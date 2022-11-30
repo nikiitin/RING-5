@@ -1,0 +1,808 @@
+{
+    "filesPaths": [
+        "/home/vnicolas/Workspace/remote-echo/workspace/gem5/results/SpecTM/"
+    ],
+    "outputPath": "",
+    "configs": [
+        "htm_t_data_spec",
+        "htm_spec_n_blocks",
+        "htm_spec_detect_false_sharing",
+        "htm_spec_stop_at_retry"
+    ],
+    "statsAnalyzed": [
+        "simTicks",
+        "abortsDueToValidation",
+        "abortsDueToOtherCauses",
+        "specTransactions",
+        "htm_transaction_aborted",
+        "numStoresSpec",
+        "falseSharingInvalidBlocks",
+        "executedTransactionsWithoutSpec",
+        "committedSpecTrans",
+        "committedTransactionsWithoutSpec",
+        "invalidBlocks",
+        "correctBlockSpeculationRemovals",
+        "uncheckedBlocks",
+        "cyclesSpeculatedMean",
+        "htm_transaction_abort_cause::explicit",
+        "htm_transaction_abort_cause::nesting_limit",
+        "htm_transaction_abort_cause::transaction_size\\s",
+        "htm_transaction_abort_cause::exception",
+        "htm_transaction_abort_cause::interrupt",
+        "htm_transaction_abort_cause::htm_disabled",
+        "htm_transaction_abort_cause::memory_conflict\\s",
+        "htm_transaction_abort_cause::lsq_conflict",
+        "htm_transaction_abort_cause::transaction_size_rset",
+        "htm_transaction_abort_cause::transaction_size_wset",
+        "htm_transaction_abort_cause::transaction_size_llc",
+        "htm_transaction_abort_cause::transaction_size_l1priv",
+        "htm_transaction_abort_cause::transaction_size_wrongcache",
+        "htm_transaction_abort_cause::explicit_fallbacklock",
+        "htm_transaction_abort_cause::memory_conflict_fallbacklock",
+        "htm_transaction_abort_cause::memory_conflict_staledata",
+        "htm_transaction_abort_cause::memory_conflict_falsesharing",
+        "htm_transaction_abort_cause::validation_failure",
+        "htm_transaction_abort_cause::other",
+        "cyclesInRegion::DEFAULT",
+        "cyclesInRegion::BARRIER",
+        "cyclesInRegion::BACKOFF",
+        "cyclesInRegion::TRANSACTIONAL_COMMITTED",
+        "cyclesInRegion::TRANSACTIONAL_ABORTED",
+        "cyclesInRegion::COMMITTING",
+        "cyclesInRegion::ABORTING",
+        "cyclesInRegion::HASLOCK",
+        "cyclesInRegion::ABORT_HANDLER\\s",
+        "cyclesInRegion::WAITFORRETRY_THRESHOLD",
+        "cyclesInRegion::WAITFORRETRY_EXCEPTION",
+        "cyclesInRegion::WAITFORRETRY_SIZE",
+        "cyclesInRegion::KERNEL",
+        "cyclesInRegion::KERNEL_HASLOCK",
+        "cyclesInRegion::STALLED_COMMITTED",
+        "cyclesInRegion::STALLED_ABORTED",
+        "cyclesInRegion::STALLED_NONTRANS",
+        "cyclesInRegion::ARBITRATION_COMMITTED",
+        "cyclesInRegion::ARBITRATION_ABORTED"
+    ],
+    "renameStats": [
+        {
+            "oldName": "simTicks",
+            "newName": "simulationTime"
+        },
+        {
+            "oldName": "htm_transaction_aborted",
+            "newName": "abortedTransactions"
+        },
+        {
+            "oldName": "committedTransactionsWithoutSpec",
+            "newName": "commitNoSpec"
+        }
+    ],
+    "mixStats": [
+        {
+            "groupName": "SpecAborts",
+            "mergingStats": [
+                "abortsDueToValidation",
+                "abortsDueToOtherCauses"
+            ]
+        },
+        {
+            "groupName": "Conflicts",
+            "mergingStats": [
+                "htm_transaction_abort_cause..memory_conflict.s",
+                "htm_transaction_abort_cause..lsq_conflict"
+            ]
+        },
+        {
+            "groupName": "Size",
+            "mergingStats": [
+                "htm_transaction_abort_cause..transaction_size.s",
+                "htm_transaction_abort_cause..transaction_size_rset",
+                "htm_transaction_abort_cause..transaction_size_wset",
+                "htm_transaction_abort_cause..transaction_size_llc",
+                "htm_transaction_abort_cause..transaction_size_l1priv",
+                "htm_transaction_abort_cause..transaction_size_wrongcache"
+            ]
+        },
+        {
+            "groupName": "FallbackLock",
+            "mergingStats": [
+                "htm_transaction_abort_cause..memory_conflict_fallbacklock",
+                "htm_transaction_abort_cause..explicit_fallbacklock"
+            ]
+        },
+        {
+            "groupName": "Validation",
+            "mergingStats": [
+                "htm_transaction_abort_cause..validation_failure"
+            ]
+        },
+        {
+            "groupName": "Other",
+            "mergingStats": [
+                "htm_transaction_abort_cause..explicit",
+                "htm_transaction_abort_cause..nesting_limit",
+                "htm_transaction_abort_cause..exception",
+                "htm_transaction_abort_cause..interrupt",
+                "htm_transaction_abort_cause..htm_disabled",
+                "htm_transaction_abort_cause..memory_conflict_staledata",
+                "htm_transaction_abort_cause..memory_conflict_falsesharing",
+                "htm_transaction_abort_cause..other"
+            ]
+        },
+        {
+            "groupName": "Parallel",
+            "mergingStats": [
+                "cyclesInRegion..DEFAULT"
+            ]
+        },
+        {
+            "groupName": "Committed",
+            "mergingStats": [
+                "cyclesInRegion..TRANSACTIONAL_COMMITTED"
+            ]
+        },
+        {
+            "groupName": "Aborted",
+            "mergingStats": [
+                "cyclesInRegion..TRANSACTIONAL_ABORTED"
+            ]
+        },
+        {
+            "groupName": "Validating",
+            "mergingStats": [
+                "cyclesInRegion..COMMITTING"
+            ]
+        },
+        {
+            "groupName": "Aborting",
+            "mergingStats": [
+                "cyclesInRegion..ABORTING"
+            ]
+        },
+        {
+            "groupName": "HasLock",
+            "mergingStats": [
+                "cyclesInRegion..HASLOCK"
+            ]
+        },
+        {
+            "groupName": "WaitForRetry",
+            "mergingStats": [
+                "cyclesInRegion..ABORT_HANDLER.s",
+                "cyclesInRegion..WAITFORRETRY_THRESHOLD",
+                "cyclesInRegion..WAITFORRETRY_EXCEPTION",
+                "cyclesInRegion..WAITFORRETRY_SIZE"
+            ]
+        },
+        {
+            "groupName": "Stalled",
+            "mergingStats": [
+                "cyclesInRegion..STALLED_COMMITTED",
+                "cyclesInRegion..STALLED_ABORTED",
+                "cyclesInRegion..STALLED_NONTRANS"
+            ]
+        },
+        {
+            "groupName": "OtherRegion",
+            "mergingStats": [
+                "cyclesInRegion..BARRIER",
+                "cyclesInRegion..KERNEL",
+                "cyclesInRegion..KERNEL_HASLOCK",
+                "cyclesInRegion..ARBITRATION_COMMITTED",
+                "cyclesInRegion..BACKOFF",
+                "cyclesInRegion..ARBITRATION_ABORTED"
+            ]
+        }
+    ],
+    "reduceSeeds": true,
+    "availablePlots": [
+        "barplot",
+        "stackBarplot"
+    ],
+    "plots": [
+        {
+            "title": "Simulation time",
+            "plotType": 0,
+            "fileName": "simulationTime",
+            "xAxisName": "benchmarks",
+            "yAxisName": "Simulation Time (Ticks)",
+            "width": 28,
+            "height": 12,
+            "benchmarksFiltered": [],
+            "configsOrdering": [
+                1,
+                3,
+                2,
+                4
+            ],
+            "configsFiltered": [],
+            "stat": "simulationTime",
+            "normalized": true,
+            "legendNames": []
+        },
+        {
+            "title": "Simulation time (Split)",
+            "plotType": 1,
+            "fileName": "simulationTimeSplit",
+            "xAxisName": "benchmarks",
+            "yAxisName": "Simulation Time (Ticks)",
+            "width": 28,
+            "height": 12,
+            "benchmarksFiltered": [],
+            "configsOrdering": [
+                1,
+                3,
+                2,
+                4
+            ],
+            "configsFiltered": [],
+            "normalized": true,
+            "stackVariables": [
+                "Parallel",
+                "Committed",
+                "Aborted",
+                "Validating",
+                "HasLock",
+                "WaitForRetry",
+                "Stalled",
+                "OtherRegion"
+            ],
+            "legendNames": [],
+            "groupNames": []
+        },
+        {
+            "title": "Aborts (by Reason norm)",
+            "plotType": 1,
+            "fileName": "AbortsByReasonNorm",
+            "xAxisName": "benchmarks",
+            "yAxisName": "Aborts",
+            "width": 28,
+            "height": 12,
+            "benchmarksFiltered": [],
+            "configsOrdering": [
+                1,
+                3,
+                2,
+                4
+            ],
+            "configsFiltered": [],
+            "stackVariables": [
+                "Conflicts",
+                "Size",
+                "FallbackLock",
+                "Validation",
+                "Other"
+            ],
+            "normalized": true,
+            "legendNames": [],
+            "groupNames": []
+        },
+        {
+            "title": "Aborts (by Reason)",
+            "plotType": 1,
+            "fileName": "AbortsByReason",
+            "xAxisName": "benchmarks",
+            "yAxisName": "Aborts",
+            "width": 28,
+            "height": 12,
+            "benchmarksFiltered": [],
+            "configsOrdering": [
+                1,
+                3,
+                2,
+                4
+            ],
+            "configsFiltered": [],
+            "stackVariables": [
+                "Conflicts",
+                "Size",
+                "FallbackLock",
+                "Validation",
+                "Other"
+            ],
+            "normalized": false,
+            "legendNames": [],
+            "groupNames": []
+        },
+        {
+            "title": "Tx that speculate",
+            "plotType": 0,
+            "fileName": "specTrans",
+            "xAxisName": "benchmarks",
+            "yAxisName": "Transactions",
+            "width": 28,
+            "height": 12,
+            "benchmarksFiltered": [],
+            "configsOrdering": [
+                1,
+                3,
+                2,
+                4
+            ],
+            "configsFiltered": [
+                {
+                    "confName": "htm_t_data_spec",
+                    "value": "True"
+                }
+            ],
+            "stat": "specTransactions",
+            "normalized": false,
+            "legendNames": [],
+            "groupNames": []
+        },
+        {
+            "title": "Tx that speculate",
+            "plotType": 0,
+            "fileName": "specTrans(norm)",
+            "xAxisName": "benchmarks",
+            "yAxisName": "Transactions",
+            "width": 28,
+            "height": 12,
+            "benchmarksFiltered": [],
+            "configsOrdering": [
+                1,
+                3,
+                2,
+                4
+            ],
+            "configsFiltered": [
+                {
+                    "confName": "htm_t_data_spec",
+                    "value": "True"
+                }
+            ],
+            "stat": "specTransactions",
+            "normalized": true,
+            "legendNames": [],
+            "groupNames": []
+        },
+        {
+            "title": "Tx executed",
+            "plotType": 1,
+            "fileName": "executedvsSpec",
+            "xAxisName": "benchmarks",
+            "yAxisName": "executed Tx",
+            "width": 28,
+            "height": 12,
+            "benchmarksFiltered": [],
+            "configsOrdering": [
+                1,
+                3,
+                2,
+                4
+            ],
+            "configsFiltered": [
+                {
+                    "confName": "htm_t_data_spec",
+                    "value": "True"
+                }
+            ],
+            "stackVariables": [
+                "executedTransactionsWithoutSpec",
+                "specTransactions"
+            ],
+            "normalized": true,
+            "legendNames": [],
+            "groupNames": []
+        },
+        {
+            "title": "Tx executed",
+            "plotType": 1,
+            "fileName": "executedvsSpec",
+            "xAxisName": "benchmarks",
+            "yAxisName": "executed Tx",
+            "width": 28,
+            "height": 12,
+            "benchmarksFiltered": [],
+            "configsOrdering": [
+                1,
+                3,
+                2,
+                4
+            ],
+            "configsFiltered": [
+                {
+                    "confName": "htm_t_data_spec",
+                    "value": "True"
+                }
+            ],
+            "stackVariables": [
+                "executedTransactionsWithoutSpec",
+                "specTransactions"
+            ],
+            "normalized": false,
+            "legendNames": [],
+            "groupNames": []
+        },
+        {
+            "title": "Tx speculating",
+            "plotType": 1,
+            "fileName": "committedvsAbortedByReason(norm)",
+            "xAxisName": "benchmarks",
+            "yAxisName": "Tx",
+            "width": 28,
+            "height": 12,
+            "benchmarksFiltered": [],
+            "configsOrdering": [
+                1,
+                3,
+                2,
+                4
+            ],
+            "configsFiltered": [
+                {
+                    "confName": "htm_t_data_spec",
+                    "value": "True"
+                }
+            ],
+            "stackVariables": [
+                "committedSpecTrans",
+                "abortsDueToValidation",
+                "abortsDueToOtherCauses"
+            ],
+            "normalized": true,
+            "legendNames": [],
+            "groupNames": []
+        },
+        {
+            "title": "Tx speculating",
+            "plotType": 1,
+            "fileName": "committedvsAbortedByReason",
+            "xAxisName": "benchmarks",
+            "yAxisName": "Tx",
+            "width": 28,
+            "height": 12,
+            "benchmarksFiltered": [],
+            "configsOrdering": [
+                1,
+                3,
+                2,
+                4
+            ],
+            "configsFiltered": [
+                {
+                    "confName": "htm_t_data_spec",
+                    "value": "True"
+                }
+            ],
+            "stackVariables": [
+                "committedSpecTrans",
+                "abortsDueToValidation",
+                "abortsDueToOtherCauses"
+            ],
+            "normalized": false,
+            "legendNames": [],
+            "groupNames": []
+        },
+        {
+            "title": "Tx speculating",
+            "plotType": 1,
+            "fileName": "executedvscommittedvsAbortedByReason",
+            "xAxisName": "benchmarks",
+            "yAxisName": "Tx",
+            "width": 28,
+            "height": 12,
+            "benchmarksFiltered": [],
+            "configsOrdering": [
+                1,
+                3,
+                2,
+                4
+            ],
+            "configsFiltered": [
+                {
+                    "confName": "htm_t_data_spec",
+                    "value": "True"
+                }
+            ],
+            "stackVariables": [
+                "committedSpecTrans",
+                "abortsDueToValidation",
+                "abortsDueToOtherCauses",
+                "executedTransactionsWithoutSpec"
+            ],
+            "normalized": false,
+            "legendNames": [],
+            "groupNames": []
+        },
+        {
+            "title": "Tx speculating",
+            "plotType": 1,
+            "fileName": "executedvscommittedvsAbortedByReason(norm)",
+            "xAxisName": "benchmarks",
+            "yAxisName": "Tx",
+            "width": 28,
+            "height": 12,
+            "benchmarksFiltered": [],
+            "configsOrdering": [
+                1,
+                3,
+                2,
+                4
+            ],
+            "configsFiltered": [
+                {
+                    "confName": "htm_t_data_spec",
+                    "value": "True"
+                }
+            ],
+            "stackVariables": [
+                "committedSpecTrans",
+                "abortsDueToValidation",
+                "abortsDueToOtherCauses",
+                "executedTransactionsWithoutSpec"
+            ],
+            "normalized": true,
+            "legendNames": [],
+            "groupNames": []
+        },
+        {
+            "title": "Tx executed by parts",
+            "plotType": 1,
+            "fileName": "txExecutedByParts(norm)",
+            "xAxisName": "benchmarks",
+            "yAxisName": "executed Tx",
+            "width": 28,
+            "height": 12,
+            "benchmarksFiltered": [],
+            "configsOrdering": [
+                1,
+                3,
+                2,
+                4
+            ],
+            "configsFiltered": [
+                {
+                    "confName": "htm_t_data_spec",
+                    "value": "True"
+                }
+            ],
+            "stackVariables": [
+                "commitNoSpec",
+                "committedSpecTrans",
+                "abortsDueToValidation",
+                "abortsDueToOtherCauses",
+                "Conflicts",
+                "Size",
+                "FallbackLock",
+                "Other"
+            ],
+            "normalized": true,
+            "legendNames": [],
+            "groupNames": []
+        },
+        {
+            "title": "Tx executed by parts(genome)",
+            "plotType": 1,
+            "fileName": "txExecutedByParts(genome)",
+            "xAxisName": "benchmarks",
+            "yAxisName": "executed Tx",
+            "width": 28,
+            "height": 12,
+            "benchmarksFiltered": [
+                "intruder",
+                "ssca2",
+                "kmeans-l",
+                "kmeans-h",
+                "vacation-l",
+                "vacation-h",
+                "yada"
+            ],
+            "configsOrdering": [
+                1,
+                3,
+                2,
+                4
+            ],
+            "configsFiltered": [
+            ],
+            "stackVariables": [
+                "commitNoSpec",
+                "committedSpecTrans",
+                "abortsDueToValidation",
+                "abortsDueToOtherCauses",
+                "Conflicts",
+                "Size",
+                "FallbackLock",
+                "Other"
+            ],
+            "normalized": false,
+            "legendNames": [],
+            "groupNames": []
+        },
+        {
+            "title": "Tx executed by parts(kmeans-h)",
+            "plotType": 1,
+            "fileName": "txExecutedByParts(kmeans-h)",
+            "xAxisName": "benchmarks",
+            "yAxisName": "executed Tx",
+            "width": 28,
+            "height": 12,
+            "benchmarksFiltered": [
+                "intruder",
+                "ssca2",
+                "kmeans-l",
+                "genome",
+                "vacation-l",
+                "vacation-h",
+                "yada"
+            ],
+            "configsOrdering": [
+                1,
+                3,
+                2,
+                4
+            ],
+            "configsFiltered": [
+            ],
+            "stackVariables": [
+                "commitNoSpec",
+                "committedSpecTrans",
+                "abortsDueToValidation",
+                "abortsDueToOtherCauses",
+                "Conflicts",
+                "Size",
+                "FallbackLock",
+                "Other"
+            ],
+            "normalized": false,
+            "legendNames": [],
+            "groupNames": []
+        },
+        {
+            "title": "Tx executed by parts(yada)",
+            "plotType": 1,
+            "fileName": "txExecutedByParts(yada)",
+            "xAxisName": "benchmarks",
+            "yAxisName": "executed Tx",
+            "width": 28,
+            "height": 12,
+            "benchmarksFiltered": [
+                "intruder",
+                "ssca2",
+                "kmeans-l",
+                "kmeans-h",
+                "vacation-l",
+                "vacation-h",
+                "genome"
+            ],
+            "configsOrdering": [
+                1,
+                3,
+                2,
+                4
+            ],
+            "configsFiltered": [
+            ],
+            "stackVariables": [
+                "commitNoSpec",
+                "committedSpecTrans",
+                "abortsDueToValidation",
+                "abortsDueToOtherCauses",
+                "Conflicts",
+                "Size",
+                "FallbackLock",
+                "Other"
+            ],
+            "normalized": false,
+            "legendNames": [],
+            "groupNames": []
+        },
+        {
+            "title": "Ticks until validation",
+            "plotType": 0,
+            "fileName": "TicksToValidate",
+            "xAxisName": "benchmarks",
+            "yAxisName": "Ticks",
+            "width": 28,
+            "height": 12,
+            "benchmarksFiltered": [],
+            "configsOrdering": [
+                1,
+                3,
+                2,
+                4
+            ],
+            "configsFiltered": [
+                {
+                    "confName": "htm_t_data_spec",
+                    "value": "True"
+                }
+            ],
+            "stat": "cyclesSpeculatedMean",
+            "normalized": false,
+            "legendNames": [],
+            "groupNames": []
+        },
+        {
+            "title": "Tx executed by parts",
+            "plotType": 1,
+            "fileName": "txExecutedByPartsNoSpec(norm)",
+            "xAxisName": "benchmarks",
+            "yAxisName": "executed Tx",
+            "width": 28,
+            "height": 12,
+            "benchmarksFiltered": [
+                "ssca2"
+            ],
+            "configsOrdering": [
+                1,
+                3,
+                2,
+                4
+            ],
+            "configsFiltered": [],
+            "stackVariables": [
+                "commitNoSpec",
+                "committedSpecTrans",
+                "abortsDueToValidation",
+                "abortsDueToOtherCauses",
+                "Conflicts",
+                "Size",
+                "FallbackLock",
+                "Other"
+            ],
+            "normalized": true,
+            "legendNames": [],
+            "groupNames": []
+        },
+        {
+            "title": "Tx executed by parts",
+            "plotType": 1,
+            "fileName": "txExecutedByPartsNoSpec()",
+            "xAxisName": "benchmarks",
+            "yAxisName": "executed Tx",
+            "width": 28,
+            "height": 12,
+            "benchmarksFiltered": [
+                "ssca2"
+            ],
+            "configsOrdering": [
+                1,
+                3,
+                2,
+                4
+            ],
+            "configsFiltered": [],
+            "stackVariables": [
+                "commitNoSpec",
+                "committedSpecTrans",
+                "abortsDueToValidation",
+                "abortsDueToOtherCauses",
+                "Conflicts",
+                "Size",
+                "FallbackLock",
+                "Other"
+            ],
+            "normalized": false,
+            "legendNames": [],
+            "groupNames": []
+        },
+        {
+            "title": "Ticks until validation",
+            "plotType": 0,
+            "fileName": "TicksToValidate",
+            "xAxisName": "benchmarks",
+            "yAxisName": "Ticks",
+            "width": 28,
+            "height": 12,
+            "benchmarksFiltered": [],
+            "configsOrdering": [
+                1,
+                3,
+                2,
+                4
+            ],
+            "configsFiltered": [
+                {
+                    "confName": "htm_t_data_spec",
+                    "value": "True"
+                }
+            ],
+            "stat": "cyclesSpeculatedMean",
+            "normalized": false,
+            "legendNames": [],
+            "groupNames": []
+        }
+    ]
+}
