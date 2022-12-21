@@ -43,7 +43,7 @@ if (nConfigsFiltered > 0) {
 configsOrdering <- NULL
 nConfigs <- arguments[currArg]
 currArg <- currArg + 1
-if (nConfigs > 1) {
+if (nConfigs > 0) {
   for (i in 1:nConfigs) {
     configsOrdering <- c(configsOrdering, as.integer(arguments[currArg]))
     currArg <- currArg + 1
@@ -57,7 +57,7 @@ currArg <- currArg + 1
 legendNames <- NULL
 nLegendNames <- arguments[currArg]
 currArg <- currArg + 1
-if (nLegendNames > 1) {
+if (nLegendNames > 0) {
   for (i in 1:nLegendNames) {
     legendNames <- c(legendNames, arguments[currArg])
     currArg <- currArg + 1
@@ -94,7 +94,7 @@ parsed_data["confName"] <- ""
 for (var in 1:nConfigs) {
   parsed_data["confName"] <- paste(parsed_data[,"confName"], parsed_data[,var])
 }
-
+print(stat)
 # Create the sd name
 stat.sd <- paste("sd", stat, sep=".")
 # Normalize data
