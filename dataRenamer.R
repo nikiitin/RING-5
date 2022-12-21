@@ -26,4 +26,4 @@ for (renaming in 1:renamingNumber) {
 }
 
 # Write everything onto csv file
-write.table(parsed_data,"./wresults.csv", sep=" ", row.names = F)
+write.table(parsed_data, statsFile, sep=" ", row.names = F)

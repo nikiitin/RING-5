@@ -37,4 +37,4 @@ colnames(secondOdf)[(configs + 1):ncol(secondOdf)] <- paste("sd", colnames(secon
 outputdf <- merge(x=outputdf, y=secondOdf, by = colnames(outputdf)[1:configs])
 
 # Write everything onto csv file
-write.table(outputdf,"./wresults.csv", sep=" ", row.names = F)
+write.table(outputdf, statsFile, sep=" ", row.names = F)

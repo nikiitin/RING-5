@@ -70,7 +70,7 @@ nGroupNames <- arguments[currArg]
 currArg <- currArg + 1
 if (nGroupNames > 1) {
   for (i in 1:nGroupNames) {
-    groupNames <- c(groupNames, as.integer(arguments[currArg]))
+    groupNames <- c(groupNames, arguments[currArg])
     currArg <- currArg + 1
   }
 }
@@ -207,6 +207,10 @@ if (plot.yAxisName != "") {
   # In case you want to modify the style
   #p + theme(axis.title.y = element_text(family, face, colour, size))
 }
+if (nGroupNames != 0) {
+  p <- p + scale_x_discrete(labels=groupNames)
+}
+
 
 
 ggsave(paste(c(plot.fileName, ".jpg"), collapse = ""), width=plot.width, height=plot.height, units="cm", dpi=320, device="jpg")
