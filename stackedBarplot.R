@@ -43,7 +43,7 @@ if (nConfigsFiltered > 0) {
 configsOrdering <- NULL
 nConfigs <- arguments[currArg]
 currArg <- currArg + 1
-if (nConfigs > 1) {
+if (nConfigs > 0) {
   for (i in 1:nConfigs) {
     configsOrdering <- c(configsOrdering, as.integer(arguments[currArg]))
     currArg <- currArg + 1
@@ -56,7 +56,7 @@ currArg <- currArg + 1
 stackVariables <- NULL
 nStackVariables <- arguments[currArg]
 currArg <- currArg + 1
-if (nStackVariables > 1) {
+if (nStackVariables > 0) {
   for (i in 1:nStackVariables) {
     stackVariables <- c(stackVariables, arguments[currArg])
     currArg <- currArg + 1
@@ -68,7 +68,7 @@ if (nStackVariables > 1) {
 groupNames <- NULL
 nGroupNames <- arguments[currArg]
 currArg <- currArg + 1
-if (nGroupNames > 1) {
+if (nGroupNames > 0) {
   for (i in 1:nGroupNames) {
     groupNames <- c(groupNames, arguments[currArg])
     currArg <- currArg + 1
@@ -78,7 +78,7 @@ if (nGroupNames > 1) {
 legendNames <- NULL
 nLegendNames <- arguments[currArg]
 currArg <- currArg + 1
-if (nLegendNames > 1) {
+if (nLegendNames > 0) {
   for (i in 1:nLegendNames) {
     legendNames <- c(legendNames, arguments[currArg])
     currArg <- currArg + 1

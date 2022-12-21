@@ -12,6 +12,7 @@ import sys
 
 csv = "results.csv"
 workRCsv = "wresults.csv"
+configFile = "config_reqLoses.json"
 
 def getPlotType(x):
     return {
@@ -78,7 +79,8 @@ def plotFigure(plotInfo, plotType, nConfigs, workResultsCsv):
         RScriptCall = ["./barplot.R"]
     
     RScriptCall.append(plotInfo["title"])
-    RScriptCall.append(plotInfo["fileName"])
+    plotPath = os.path.join(outDir, plotInfo["fileName"])
+    RScriptCall.append(plotPath)
     RScriptCall.append(plotInfo["xAxisName"])
     RScriptCall.append(plotInfo["yAxisName"])
     RScriptCall.append(str(plotInfo["width"]))
@@ -114,7 +116,7 @@ def plotFigure(plotInfo, plotType, nConfigs, workResultsCsv):
     print(RScriptCall)
     subprocess.call(RScriptCall)
 
-file = open("config.json", encoding='utf-8')
+file = open(configFile, encoding='utf-8')
 
 configString = file.read()
 config = json.loads(configString)
