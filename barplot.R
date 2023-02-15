@@ -85,7 +85,12 @@ parsed_data <- parsed_data[order(parsed_data[,"benchmark_name"], decreasing = FA
 # Order configurations as desired
 if (length(configsOrdering) > 1) {
   for (var in configsOrdering) {
-    parsed_data <- parsed_data[order(parsed_data[,var], decreasing = FALSE),]
+    if (is.integer(parsed_data[,var])) {
+      parsed_data[,var] <- as.integer(parsed_data[,var])
+      parsed_data <- parsed_data[order(as.integer(parsed_data[,var]), decreasing = FALSE),]
+    } else {
+      parsed_data <- parsed_data[order(parsed_data[,var], decreasing = FALSE),]
+    }
   }
 }
 
@@ -94,7 +99,6 @@ parsed_data["confName"] <- ""
 for (var in 1:nConfigs) {
   parsed_data["confName"] <- paste(parsed_data[,"confName"], parsed_data[,var])
 }
-print(stat)
 # Create the sd name
 stat.sd <- paste("sd", stat, sep=".")
 # Normalize data
@@ -113,10 +117,11 @@ if (normalize == "True") {
   }
 }
 
+# To keep the order from the configs, turn them into a factor
+parsed_data$confName <- factor(parsed_data$confName, levels = unique(as.character(parsed_data$confName)), ordered = TRUE)
 
 # Basic plot
 # Just plot the bar and sd
-
 p <- ggplot(parsed_data, aes(x=benchmark_name, fill=confName, y=parsed_data[,stat])) +
   geom_bar(stat="identity", position="dodge", color="black") +
   geom_errorbar(aes(ymin=parsed_data[,stat] - parsed_data[,stat.sd], ymax=parsed_data[,stat] + parsed_data[,stat.sd]), width=.2, position=position_dodge(.9))
