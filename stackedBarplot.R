@@ -18,15 +18,9 @@ fileName <- arguments[8]
 currArg <- 9
 # Variable arguments start
 
-configsOrdering <- NULL
+
 nConfigs <- arguments[currArg]
 currArg <- currArg + 1
-if (nConfigs > 0) {
-  for (i in 1:nConfigs) {
-    configsOrdering <- c(configsOrdering, as.integer(arguments[currArg]))
-    currArg <- currArg + 1
-  }
-}
 
 normalize <- arguments[currArg]
 currArg <- currArg + 1
@@ -66,18 +60,6 @@ if (nLegendNames > 0) {
 
 # Start data collection
 parsed_data <- read.table(fileName, sep = " ", header=TRUE)
-
-
-# Order benchmarks
-parsed_data <- parsed_data[order(parsed_data[,"benchmark_name"], decreasing = FALSE),]
-
-
-# Order configurations as desired
-if (length(configsOrdering) > 1) {
-  for (var in configsOrdering) {
-    parsed_data <- parsed_data[order(parsed_data[,var], decreasing = FALSE),]
-  }
-}
 
 # Create the sd name
 # For now avoid sd

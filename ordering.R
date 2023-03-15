@@ -28,6 +28,7 @@ if (nConfigs > 0) {
   }
 }
 # Finish argument parsing
+
 parsed_data <- read.table(fileName, sep = " ", header=TRUE)
 # Order benchmarks
 # TODO: choose the order you prefer for benchs, like in configs
