@@ -17,28 +17,6 @@ fileName <- arguments[8]
 
 currArg <- 9
 # Variable arguments start
-nBenchFiltered <- arguments[currArg]
-currArg <- currArg + 1
-benchFiltered <- NULL
-if (nBenchFiltered > 0){
-  for (i in 1:nBenchFiltered) {
-    benchFiltered <- c(benchFiltered, arguments[currArg])
-    currArg <- currArg + 1
-  }
-}
-
-configsFiltered <- new.env()
-nConfigsFiltered <- arguments[currArg]
-currArg <- currArg + 1
-if (nConfigsFiltered > 0) {
-  for (i in 1:nConfigsFiltered) {
-    configName <- arguments[currArg]
-    currArg <- currArg + 1
-    configVal <- arguments[currArg]
-    currArg <- currArg + 1
-    configsFiltered[[configName]] <- configVal
-  }
-}
 
 configsOrdering <- NULL
 nConfigs <- arguments[currArg]
@@ -89,15 +67,6 @@ if (nLegendNames > 0) {
 # Start data collection
 parsed_data <- read.table(fileName, sep = " ", header=TRUE)
 
-# Data filtering for benchmarks
-for (benchFilter in benchFiltered) {
-  parsed_data <- parsed_data[parsed_data["benchmark_name"] != benchFilter,]
-}
-
-# Data filtering for configs
-for (name in names(configsFiltered)) {
-  parsed_data <- parsed_data[parsed_data[name] == configsFiltered[[name]],]
-}
 
 # Order benchmarks
 parsed_data <- parsed_data[order(parsed_data[,"benchmark_name"], decreasing = FALSE),]
