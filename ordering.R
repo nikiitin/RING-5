@@ -61,5 +61,5 @@ if (orderingType == 1) {
 } else {
     stop("Unexpected sort type")
 }
-# Write filtered data onto csv file
+# Write data onto csv file
 write.table(parsed_data, statsFile, sep=" ", row.names = F)
