@@ -12,15 +12,12 @@ plot.xAxisName <- arguments[3]
 plot.yAxisName <- arguments[4]
 plot.width <- as.integer(arguments[5])
 plot.height <- as.integer(arguments[6])
-nConfigs <- as.integer(arguments[7])
-fileName <- arguments[8]
-
-currArg <- 9
+fileName <- arguments[7]
+currArg <- 8
 # Variable arguments start
 
 
-nConfigs <- arguments[currArg]
-currArg <- currArg + 1
+
 
 normalize <- arguments[currArg]
 currArg <- currArg + 1
@@ -61,40 +58,12 @@ if (nLegendNames > 0) {
 # Start data collection
 parsed_data <- read.table(fileName, sep = " ", header=TRUE)
 
-# Create the sd name
-# For now avoid sd
-#stat.sd <- paste("sd", stat, sep=".")
-# Normalize data
-if (normalize == "True") {
-  # Create new row (sum of all stacked variables)
-  parsed_data["total"] <- 0
-  for (stat in stackVariables) {
-    parsed_data["total"] <- parsed_data["total"] + parsed_data[stat]
-  }
-  for (bench in unique(parsed_data[,"benchmark_name"])){
-    dataToNorm <- parsed_data[parsed_data["benchmark_name"] == bench,]
-    # It is already ordered, take first element
-    normalizer <- dataToNorm[1,]
-    # Apply normalization
-    for (i in 1:length(dataToNorm[,1])) {
-      for (stat in stackVariables) {
-        parsed_data[parsed_data["benchmark_name"] == bench & parsed_data["confName"] == dataToNorm[i, "confName"],stat] <- dataToNorm[i,stat] / normalizer["total"]
-      }
-      # It is supposed that every stat will have its own confName and bench that won't repeat.
-      #parsed_data[parsed_data["benchmark_name"] == bench & parsed_data["confName"] == dataToNorm[i, "confName"],stat] <- dataToNorm[i,stat] / normalizer[stat]
-      # Normalize sd too
-      # By now, avoid sd
-      #parsed_data[parsed_data["benchmark_name"] == bench & parsed_data["confName"] == dataToNorm[i, "confName"],stat.sd] <- dataToNorm[i,stat.sd] / normalizer[stat]
-    }
-  }
-}
 # In this case we need a new df to obtain the plot we need
 datos <- data.frame(config = character(), benchmark=character(), stat=character(), data=numeric(), stringsAsFactors = FALSE)
 stackIndex <- 0
 for (i in 1:nrow(parsed_data)) {
   currRow <- parsed_data[i,]
   for (var in stackVariables) {
-    #stackIndex <- (stackIndex %% length(stackVariables)) + 1
     data <- currRow[[var]]
     if (is.nan(data)) {data = 0}
     datos[nrow(datos) + 1,] = c(
@@ -103,8 +72,8 @@ for (i in 1:nrow(parsed_data)) {
       var,
       data)  
   }
-  
 }
+
 datos$config <- factor(datos$config, levels = unique(as.character(datos$config)), ordered = TRUE)
 datos$benchmark <- factor(datos$benchmark, levels = unique(as.character(datos$benchmark)))
 datos$stat <- factor(datos$stat, levels = unique(as.character(datos$stat)))
