@@ -79,12 +79,6 @@ if (length(configsOrdering) > 1) {
   }
 }
 
-# Create configuration names
-parsed_data["confName"] <- ""
-for (var in 1:nConfigs) {
-  parsed_data["confName"] <- paste(parsed_data[,"confName"], parsed_data[,var])
-}
-
 # Create the sd name
 # For now avoid sd
 #stat.sd <- paste("sd", stat, sep=".")
