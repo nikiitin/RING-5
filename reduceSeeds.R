@@ -35,6 +35,12 @@ colnames(secondOdf)[(configs + 1):ncol(secondOdf)] <- paste("sd", colnames(secon
 
 # Merge both df
 outputdf <- merge(x=outputdf, y=secondOdf, by = colnames(outputdf)[1:configs])
+# Prepare the csv to be parsed by plotters
+# Create configuration names
+parsed_data["confName"] <- ""
+for (var in 1:configs) {
+  parsed_data["confName"] <- paste(parsed_data[,"confName"], parsed_data[,var])
+}
 
 # Write everything onto csv file
 write.table(outputdf, statsFile, sep=" ", row.names = F)

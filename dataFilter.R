@@ -1,6 +1,7 @@
 #!/usr/bin/Rscript
 library(readr)
 # Parse arguments
+arguments = commandArgs(trailingOnly = TRUE)
 currArg <- 1
 statsFile <- arguments[currArg]
 currArg <- currArg + 1

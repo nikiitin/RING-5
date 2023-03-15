@@ -87,12 +87,28 @@ def filterData(benchsFiltered, configsFiltered, workResultsCsv):
     for filt in configsFiltered:
         RScriptCall.append(filt["confName"])
         RScriptCall.append(filt["value"])
+    subprocess.call(RScriptCall)
+
+def orderData(orderingType, configOrdering, workResultsCsv):
+    print("Ordering data")
+    RScriptCall = ["./ordering.R"]
+    RScriptCall.append(workResultsCsv)
+    RScriptCall.append(orderingType)
+    RScriptCall.append(str(len(configOrdering)))
+    RScriptCall.extend(configOrdering)
+    subprocess.call(RScriptCall)
+
 
 
 def plotFigure(plotInfo, plotType, nConfigs, workResultsCsv):
     filterData(plotInfo["benchmarksFiltered"],
                plotInfo["configsFiltered"],
-               workResultsCsv)
+               workResultsCsv
+
+    orderData(plotInfo["orderingType"],
+              plotInfo["configOrdering"],
+              workResultsCsv)
+    
     if (plotType == "stackBarplot"):
         RScriptCall = ["./stackedBarplot.R"]
     else:
@@ -107,11 +123,6 @@ def plotFigure(plotInfo, plotType, nConfigs, workResultsCsv):
     RScriptCall.append(str(plotInfo["height"]))
     RScriptCall.append(nConfigs)
     RScriptCall.append(workResultsCsv)
-
-    # Y-axis
-    RScriptCall.append(str(len(plotInfo["configsOrdering"])))
-    for order in plotInfo["configsOrdering"]:
-        RScriptCall.append(str(order))
 
     RScriptCall.append(str(plotInfo["normalized"]))
 
