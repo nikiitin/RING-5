@@ -2,8 +2,6 @@
 library(readr)
 # Parse arguments
 currArg <- 1
-nConfigs <- as.integer(arguments[currArg])
-currArg <- currArg + 1
 statsFile <- arguments[currArg]
 currArg <- currArg + 1
 # Until here, arguments are fixed

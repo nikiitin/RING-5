@@ -1,24 +1,24 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-from curses.ascii import RS
-from nis import match
-from os import rename
+import tempfile
 import shutil
 import subprocess
 import json
 import os.path
-import sys
 
 csv = "results.csv"
 workRCsv = "wresults.csv"
+tempCsvPath = "temp.csv"
 configFile = "config_reqLoses.json"
+
 
 def getPlotType(x):
     return {
-        0 : "barplot",
-        1 : "stackBarplot"
+        0: "barplot",
+        1: "stackBarplot"
     }.get(x, "Invalid")
+
 
 def parseStats(files, stats, configs, resultsCsv):
     print("Parsing stats and turning into csv")
@@ -32,6 +32,7 @@ def parseStats(files, stats, configs, resultsCsv):
 
     subprocess.call(shellScriptCall)
 
+
 def renameStats(renamings, workResultsCsv):
     print("Renaming stats")
     RScriptCall = ["./dataRenamer.R"]
@@ -43,6 +44,7 @@ def renameStats(renamings, workResultsCsv):
 
     subprocess.call(RScriptCall)
 
+
 def mixStats(mixings, workResultsCsv):
     print("Mixing stats onto groups")
     RScriptCall = ["./dataMixer.R"]
@@ -52,8 +54,9 @@ def mixStats(mixings, workResultsCsv):
         RScriptCall.append(mix["groupName"])
         RScriptCall.append(str(len(mix["mergingStats"])))
         RScriptCall.extend(mix["mergingStats"])
-    
+
     subprocess.call(RScriptCall)
+
 
 def reduceSeeds(configs, workResultsCsv):
     print("Reducing seeds and calculating mean and sd")
@@ -61,6 +64,7 @@ def reduceSeeds(configs, workResultsCsv):
     RScriptCall.append(workResultsCsv)
     RScriptCall.append(str(len(configs) + 1))
     subprocess.call(RScriptCall)
+
 
 def compressData(files, output, name, finalDirName):
     print("Compressing data")
@@ -72,12 +76,28 @@ def compressData(files, output, name, finalDirName):
     shellScriptCall.append(finalDirName)
     subprocess.call(shellScriptCall)
 
+
+def filterData(benchsFiltered, configsFiltered, workResultsCsv):
+    print("Filtering data")
+    RScriptCall = ["./dataFilter.R"]
+    RScriptCall.append(workResultsCsv)
+    RScriptCall.append(str(len(benchsFiltered)))
+    RScriptCall.extend(benchsFiltered)
+    RScriptCall.append(str(len(configsFiltered)))
+    for filt in configsFiltered:
+        RScriptCall.append(filt["confName"])
+        RScriptCall.append(filt["value"])
+
+
 def plotFigure(plotInfo, plotType, nConfigs, workResultsCsv):
+    filterData(plotInfo["benchmarksFiltered"],
+               plotInfo["configsFiltered"],
+               workResultsCsv)
     if (plotType == "stackBarplot"):
         RScriptCall = ["./stackedBarplot.R"]
     else:
         RScriptCall = ["./barplot.R"]
-    
+
     RScriptCall.append(plotInfo["title"])
     plotPath = os.path.join(outDir, plotInfo["fileName"])
     RScriptCall.append(plotPath)
@@ -87,22 +107,14 @@ def plotFigure(plotInfo, plotType, nConfigs, workResultsCsv):
     RScriptCall.append(str(plotInfo["height"]))
     RScriptCall.append(nConfigs)
     RScriptCall.append(workResultsCsv)
-    
-    # X-axis
-    RScriptCall.append(str(len(plotInfo["benchmarksFiltered"])))
-    RScriptCall.extend(plotInfo["benchmarksFiltered"])
-    RScriptCall.append(str(len(plotInfo["configsFiltered"])))
-    for filt in plotInfo["configsFiltered"]:
-        RScriptCall.append(filt["confName"])
-        RScriptCall.append(filt["value"])
-    
+
     # Y-axis
     RScriptCall.append(str(len(plotInfo["configsOrdering"])))
     for order in plotInfo["configsOrdering"]:
         RScriptCall.append(str(order))
 
     RScriptCall.append(str(plotInfo["normalized"]))
-    
+
     # Stacking info
     if (plotType == "stackBarplot"):
         RScriptCall.append(str(len(plotInfo["stackVariables"])))
@@ -115,6 +127,7 @@ def plotFigure(plotInfo, plotType, nConfigs, workResultsCsv):
     RScriptCall.extend(plotInfo["legendNames"])
     print(RScriptCall)
     subprocess.call(RScriptCall)
+
 
 file = open(configFile, encoding='utf-8')
 
@@ -137,10 +150,9 @@ except OSError as error:
     print(error)
 
 
-
-#compressData(statsFiles, compressedFile, "*stats.txt", finalDirName)
-#parseStats(finalDirName, statsToParse, configsToAnalyze, csvPath)
-shutil.copyfile(csvPath, wcsvPath) # Make a copy of the data
+# compressData(statsFiles, compressedFile, "*stats.txt", finalDirName)
+# parseStats(finalDirName, statsToParse, configsToAnalyze, csvPath)
+shutil.copyfile(csvPath, wcsvPath)  # Make a copy of the data
 shouldReduceSeeds = config["reduceSeeds"]
 if shouldReduceSeeds:
     reduceSeeds(configsToAnalyze, wcsvPath)
@@ -151,5 +163,15 @@ renameStats(renamings, wcsvPath)
 mixings = config["mixStats"]
 mixStats(mixings, wcsvPath)
 plots = config["plots"]
+# Temp dir will be used
+temp_dir = tempfile.gettempdir()
 for plot in plots:
-    plotFigure(plot, getPlotType(plot["plotType"]), str(len(config["configs"])), wcsvPath)
+    # Create a temporary Csv file for each plot
+    temp = tempfile.TemporaryFile()
+    tempCsvPath = os.path.join(temp_dir, 'tempStats')
+    shutil.copyfile(wcsvPath, tempCsvPath)  # Make a copy of the data
+    plotFigure(plot,
+               getPlotType(plot["plotType"]),
+               str(len(config["configs"])),
+               tempCsvPath)
+    temp.close()  # Close will delete temporary file
