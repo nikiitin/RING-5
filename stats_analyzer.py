@@ -98,21 +98,39 @@ def orderData(orderingType, configOrdering, workResultsCsv):
     RScriptCall.extend(configOrdering)
     subprocess.call(RScriptCall)
 
-
+def normalizeData(shouldNorm, sd, stats, workResultsCsv):
+    print("Normalize data")
+    RScriptCall = ["./ordering.R"]
+    RScriptCall.append(workResultsCsv)
+    RScriptCall.append(shouldNorm)
+    RScriptCall.append(sd)
+    RScriptCall.append(str(len(stats)))
+    RScriptCall.extend(stats)
+    subprocess.call(RScriptCall)
 
 def plotFigure(plotInfo, plotType, nConfigs, workResultsCsv):
     filterData(plotInfo["benchmarksFiltered"],
                plotInfo["configsFiltered"],
-               workResultsCsv
+               workResultsCsv)
 
     orderData(plotInfo["orderingType"],
               plotInfo["configOrdering"],
               workResultsCsv)
     
+
+    
     if (plotType == "stackBarplot"):
         RScriptCall = ["./stackedBarplot.R"]
+        normalizeData(str(plotInfo["normalized"]),
+                True,
+                plotInfo["stackVariables"],
+                workResultsCsv)
     else:
         RScriptCall = ["./barplot.R"]
+        normalizeData(str(plotInfo["normalized"]),
+                True,
+                plotInfo["stackVariables"],
+                workResultsCsv)
 
     RScriptCall.append(plotInfo["title"])
     plotPath = os.path.join(outDir, plotInfo["fileName"])
@@ -123,8 +141,6 @@ def plotFigure(plotInfo, plotType, nConfigs, workResultsCsv):
     RScriptCall.append(str(plotInfo["height"]))
     RScriptCall.append(nConfigs)
     RScriptCall.append(workResultsCsv)
-
-    RScriptCall.append(str(plotInfo["normalized"]))
 
     # Stacking info
     if (plotType == "stackBarplot"):

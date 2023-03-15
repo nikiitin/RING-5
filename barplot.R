@@ -12,14 +12,10 @@ plot.xAxisName <- arguments[3]
 plot.yAxisName <- arguments[4]
 plot.width <- as.integer(arguments[5])
 plot.height <- as.integer(arguments[6])
-nConfigs <- as.integer(arguments[7])
-fileName <- arguments[8]
+fileName <- arguments[7]
 
-currArg <- 9
+currArg <- 8
 # Variable arguments start
-nConfigs <- arguments[currArg]
-currArg <- currArg + 1
-normalize <- arguments[currArg]
 currArg <- currArg + 1
 stat <- arguments[currArg]
 currArg <- currArg + 1
@@ -36,24 +32,6 @@ if (nLegendNames > 0) {
 
 # Start data collection
 parsed_data <- read.table(fileName, sep = " ", header=TRUE)
-
-# Create the sd name
-stat.sd <- paste("sd", stat, sep=".")
-# Normalize data
-if (normalize == "True") {
-  for (bench in parsed_data[,"benchmark_name"]){
-    dataToNorm <- parsed_data[parsed_data["benchmark_name"] == bench,]
-    # It is already ordered, take first element
-    normalizer <- dataToNorm[1,]
-    # Apply normalization
-    for (i in 1:length(dataToNorm[,1])) {
-      # It is supposed that every stat will have its own confName and bench that won't repeat.
-      parsed_data[parsed_data["benchmark_name"] == bench & parsed_data["confName"] == dataToNorm[i, "confName"],stat] <- dataToNorm[i,stat] / normalizer[stat]
-      # Normalize sd too
-      parsed_data[parsed_data["benchmark_name"] == bench & parsed_data["confName"] == dataToNorm[i, "confName"],stat.sd] <- dataToNorm[i,stat.sd] / normalizer[stat]
-    }
-  }
-}
 
 # To keep the order from the configs, turn them into a factor
 parsed_data$confName <- factor(parsed_data$confName, levels = unique(as.character(parsed_data$confName)), ordered = TRUE)
