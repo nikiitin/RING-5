@@ -7,18 +7,26 @@ arguments = commandArgs(trailingOnly = TRUE)
 
 # Arguments parsing
 plot.title <- arguments[1]
-plot.fileName <- arguments[2]
+plot.statsFile <- arguments[2]
 plot.xAxisName <- arguments[3]
 plot.yAxisName <- arguments[4]
 plot.width <- as.integer(arguments[5])
 plot.height <- as.integer(arguments[6])
-fileName <- arguments[7]
+statsFile <- arguments[7]
 
 currArg <- 8
 # Variable arguments start
+nStats <-arguments[currArg]
 currArg <- currArg + 1
-stat <- arguments[currArg]
-currArg <- currArg + 1
+stat <- NULL
+for (i in 1:nStats) {
+  stat <- c(stat, arguments[currArg])
+  currArg <- currArg + 1
+}
+if (nStats > 1) {
+  stop("Only one stat can be specified to barplot")
+}
+
 legendNames <- NULL
 nLegendNames <- arguments[currArg]
 currArg <- currArg + 1
@@ -31,14 +39,15 @@ if (nLegendNames > 0) {
 # Finish arguments parsing
 
 # Start data collection
-parsed_data <- read.table(fileName, sep = " ", header=TRUE)
+parsed_data <- read.table(statsFile, sep = " ", header=TRUE)
 
+stat.sd <- paste("sd", stat, sep=".")
 # To keep the order from the configs, turn them into a factor
-parsed_data$confName <- factor(parsed_data$confName, levels = unique(as.character(parsed_data$confName)), ordered = TRUE)
-
+parsed_data$confKey <- factor(parsed_data$confKey, levels = unique(as.character(parsed_data$confKey)), ordered = TRUE)
+parsed_data[,stat]
 # Basic plot
 # Just plot the bar and sd
-p <- ggplot(parsed_data, aes(x=benchmark_name, fill=confName, y=parsed_data[,stat])) +
+p <- ggplot(parsed_data, aes(x=benchmark_name, fill=confKey, y=parsed_data[,stat])) +
   geom_bar(stat="identity", position="dodge", color="black") +
   geom_errorbar(aes(ymin=parsed_data[,stat] - parsed_data[,stat.sd], ymax=parsed_data[,stat] + parsed_data[,stat.sd]), width=.2, position=position_dodge(.9))
 
@@ -73,4 +82,5 @@ if (plot.yAxisName != "") {
   # In case you want to modify the style
   #p + theme(axis.title.y = element_text(family, face, colour, size))
 }
-ggsave(paste(c(plot.fileName, ".jpg"), collapse = ""), width=plot.width, height=plot.height, units="cm", dpi=320, device="jpg")
+
+ggsave(paste(c(plot.statsFile, ".jpg"), collapse = ""), width=plot.width, height=plot.height, units="cm", dpi=320, device="jpg")

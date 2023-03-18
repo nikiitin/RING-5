@@ -25,25 +25,30 @@ for (stat in 1:nStats) {
 }
 # Finish argument parsing
 
-parsed_data <- read.table(fileName, sep = " ", header=TRUE)
+parsed_data <- read.table(statsFile, sep = " ", header=TRUE)
 # Normalize data
+
 if (normalize == "True") {
+  # Create the sd name
+  
   # Create new row (sum of all stacked variables)
   parsed_data["total"] <- 0
   for (stat in stats) {
     parsed_data["total"] <- parsed_data["total"] + parsed_data[stat]
   }
+  
   for (bench in unique(parsed_data[,"benchmark_name"])){
     dataToNorm <- parsed_data[parsed_data["benchmark_name"] == bench,]
     # It is already ordered, take first element
     normalizer <- dataToNorm[1,]
     # Apply normalization
     for (i in 1:length(dataToNorm[,1])) {
-      for (stat in stackVariables) {
-        parsed_data[parsed_data["benchmark_name"] == bench & parsed_data["confName"] == dataToNorm[i, "confName"],stat] <-
-            dataToNorm[i,stat] / normalizer["total"]
+      for (stat in stats) {
+        stat.sd <- paste("sd", stat, sep=".")
+        parsed_data[parsed_data["benchmark_name"] == bench & parsed_data["confName"] == as.character(dataToNorm[i, "confName"]),stat] <-
+            dataToNorm[i,stat] / normalizer["total"] 
         if (sdNorm == "True") {
-          parsed_data[parsed_data["benchmark_name"] == bench & parsed_data["confName"] == dataToNorm[i, "confName"],stat.sd] <-
+          parsed_data[parsed_data["benchmark_name"] == bench & parsed_data["confName"] == as.character(dataToNorm[i, "confName"]),stat.sd] <-
             dataToNorm[i,stat.sd] / normalizer[stat]
         }
       }

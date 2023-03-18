@@ -16,12 +16,6 @@ fileName <- arguments[7]
 currArg <- 8
 # Variable arguments start
 
-
-
-
-normalize <- arguments[currArg]
-currArg <- currArg + 1
-
 stackVariables <- NULL
 nStackVariables <- arguments[currArg]
 currArg <- currArg + 1
@@ -67,7 +61,7 @@ for (i in 1:nrow(parsed_data)) {
     data <- currRow[[var]]
     if (is.nan(data)) {data = 0}
     datos[nrow(datos) + 1,] = c(
-      as.character(currRow[["confName"]]),
+      as.character(currRow[["confKey"]]),
       as.character(currRow[["benchmark_name"]]),
       var,
       data)  
