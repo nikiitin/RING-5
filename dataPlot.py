@@ -32,6 +32,7 @@ def normalizeData(shouldNorm, sd, stats, workResultsCsv):
     RScriptCall.append(str(sd))
     RScriptCall.append(str(len(stats)))
     RScriptCall.extend(stats)
+    print(RScriptCall)
     subprocess.call(RScriptCall)
 
 def plotFigure(plotInfo, plotType, nConfigs, workResultsCsv, outDir):
@@ -46,7 +47,7 @@ def plotFigure(plotInfo, plotType, nConfigs, workResultsCsv, outDir):
     if plotType == "stackBarplot":
         RScriptCall = ["./stackedBarplot.R"]
         normalizeData(str(plotInfo["normalized"]),
-                True,
+                False,
                 plotInfo["stats"],
                 workResultsCsv)
     else:
@@ -67,8 +68,8 @@ def plotFigure(plotInfo, plotType, nConfigs, workResultsCsv, outDir):
 
     # Stacking info
     if plotType == "stackBarplot":
-        RScriptCall.append(str(len(plotInfo["stackVariables"])))
-        RScriptCall.extend(plotInfo["stackVariables"])
+        RScriptCall.append(str(len(plotInfo["stats"])))
+        RScriptCall.extend(plotInfo["stats"])
         RScriptCall.append(str(len(plotInfo["groupNames"])))
         RScriptCall.extend(plotInfo["groupNames"])
     else:

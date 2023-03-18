@@ -202,6 +202,40 @@
             "stats": ["simulationTime"],
             "normalized": true,
             "legendNames": []
+        },
+        {
+            "title": "Tx executed by parts",
+            "plotType": 1,
+            "fileName": "txExecutedByPartsNoSpec",
+            "xAxisName": "benchmarks",
+            "yAxisName": "executed Tx",
+            "width": 28,
+            "height": 12,
+            "orderingType": 2,
+            "benchmarksFiltered": [
+                "ssca2"
+            ],
+            "configsOrdering": [
+                "power_tm",
+                "requester_loses",
+                "requester_stalls_cda_hybrid",
+                "requester_wins"
+            ],
+            "configsFiltered": [],
+            "stats": [
+                "Parallel",
+                "Committed",
+                "Aborted",
+                "Validating",
+                "Aborting",
+                "HasLock",
+                "WaitForRetry",
+                "Stalled",
+                "OtherRegion"
+            ],
+            "normalized": true,
+            "legendNames": [],
+            "groupNames": []
         }
     ]
 }
