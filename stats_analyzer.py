@@ -18,8 +18,6 @@ def getPlotType(x):
 
 csv = "results.csv"
 workRCsv = "wresults.csv"
-configFile = "config_reqLoses.json"
-skipParse = False
 
 # Parse arguments
 argParser = argparse.ArgumentParser()
@@ -33,28 +31,32 @@ argParser.add_argument('-s', '--skipParse', dest='skipParse',
                     default=False,
                     action='store_true')
 args = argParser.parse_args()
-
 # Read config
-file = open(configFile, encoding='utf-8')
+file = open(args.configFile, encoding='utf-8')
+
 configString = file.read()
 config = json.loads(configString)
 file.close()
+
 # Parse data
 outDir = config["outputPath"]
 csvPath = os.path.join(outDir, csv)
-try:
-    # Create output directory
-    os.mkdir(outDir)
-except OSError as error:
-    print(error)
-if not skipParse:
+if not os.path.exists(outDir):
+    try:
+        # Create output directory
+        os.mkdir(outDir)
+    except OSError as error:
+        print(error)
+if args.skipParse:
     print("Skipping data parse")
+else:
     dataParse.runParse(config, csvPath)
 # Finish data parsing
 # Make a csv copy
 wcsvPath = os.path.join(outDir, workRCsv)
 shutil.copyfile(csvPath, wcsvPath)
 # Format data for plotting
+
 if config["reduceSeeds"]:
     dataManager.reduceSeeds(config["configs"], wcsvPath)
 
@@ -68,12 +70,13 @@ temp_dir = tempfile.gettempdir()
 for plot in plots:
     # Create a temporary Csv file for each plot
     tempCsvPath = os.path.join(temp_dir, 'tempStats')
+    print(tempCsvPath)
     shutil.copyfile(wcsvPath, tempCsvPath)  # Make a copy of the data
     dataPlot.plotFigure(plot,
               getPlotType(plot["plotType"]),
               str(len(config["configs"])),
               tempCsvPath,
               outDir)
-    tempCsvPath.close()  # Close will delete temporary file
+    #tempCsvPath.close()  # Close will delete temporary file
 
 # Parse config file

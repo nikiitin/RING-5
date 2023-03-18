@@ -11,20 +11,6 @@ parsed_data <- read.table(statsFile, sep = " ", header=TRUE)
 
 # Calculate mean
 outputdf <- aggregate(parsed_data[(configs+1):ncol(parsed_data)], by=parsed_data[1:configs],FUN = mean)
-
-# Filter outliers from current mean 
-#parsed_data["outlier"] <- FALSE
-#for (i in 1:nrow(parsed_data)) {
-#  elemFilt <- NULL
-#  elemFilt <- outputdf[outputdf["benchmark_name"] == parsed_data[i,"benchmark_name"]]
-#  for (j in 1:configs) {
-#    elemFilt <- elemFilt[elemFilt[,j] == parsed_data[i,j]]
-#  }
-#  parsed_data[i,"outlier"] <- parsed_data[i, dataToFilter] > elemFilt[,dataToFilter] * 1.2
-#}
-
-#outputdf <- parsed_data[parsed_data["outlier"] != TRUE]
-#outputdf <- aggregate(parsed_data[(configs+1):ncol(parsed_data)], by=parsed_data[1:configs],FUN = mean)
 outputdf["random_seed"] <- NULL
 # Calculate sd
 secondOdf <- aggregate(parsed_data[(configs+1):ncol(parsed_data)], by=parsed_data[1:configs],FUN = sd)
@@ -37,9 +23,13 @@ colnames(secondOdf)[(configs + 1):ncol(secondOdf)] <- paste("sd", colnames(secon
 outputdf <- merge(x=outputdf, y=secondOdf, by = colnames(outputdf)[1:configs])
 # Prepare the csv to be parsed by plotters
 # Create configuration names
-parsed_data["confName"] <- ""
+outputdf["confName"] <- ""
 for (var in 1:configs) {
-  parsed_data["confName"] <- paste(parsed_data[,"confName"], parsed_data[,var])
+  outputdf["confName"] <- paste(outputdf[,"confName"], outputdf[,var])
+}
+outputdf["confKey"] <- ""
+for (var in 1:configs-1) {
+  outputdf["confKey"] <- paste(outputdf[,"confKey"], outputdf[,var])
 }
 
 # Write everything onto csv file

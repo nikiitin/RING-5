@@ -10,12 +10,14 @@ currArg <- currArg + 1
 # 1, alphabetical order (specify if decreasing or not)
 # 2, specific order -> specify the config names in 
 # the order you want them
-orderingType <- arguments[currArg]
+orderingType <- as.integer(arguments[currArg])
 currArg <- currArg + 1
 # Until here, arguments are fixed
+skip <- orderingType == 0 
 if (orderingType == 0) {
     stop("Skipping stats sort step")
 }
+
 configsOrdering <- NULL
 nConfigs <- arguments[currArg]
 currArg <- currArg + 1
@@ -23,13 +25,17 @@ if (nConfigs > 0) {
   for (i in 1:nConfigs) {
     # Remember that here we are expecting the whole confname
     # in case it is specific order
-    configsOrdering <- c(configsOrdering, as.integer(arguments[currArg]))
+    if (orderingType == 1) {
+        configsOrdering <- c(configsOrdering, as.integer(arguments[currArg]))
+    } else {
+        configsOrdering <- c(configsOrdering, arguments[currArg])
+    }
     currArg <- currArg + 1
   }
 }
 # Finish argument parsing
 
-parsed_data <- read.table(fileName, sep = " ", header=TRUE)
+parsed_data <- read.table(statsFile, sep = " ", header=TRUE)
 # Order benchmarks
 # TODO: choose the order you prefer for benchs, like in configs
 # Rigth now order by alphabetical order
@@ -55,7 +61,7 @@ if (orderingType == 1) {
     }
 } else if (orderingType == 2) {
     # Here we will sort by confName
-    confNames <- parsed_data[,"confName"]
+    confNames <- parsed_data[,"confKey"]
     parsed_data <-
         parsed_data[order(match(confNames, configsOrdering)),]
 } else {
