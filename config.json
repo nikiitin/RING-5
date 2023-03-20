@@ -1,10 +1,11 @@
 {
     "filesPaths": [
-        "/home/vnicolas/Workspace/remote-echo/workspace/gem5/results/SpecTM/"
+        "/home/vnicolas/Workspace/remote-echo/workspace/sims/ruben/gem5/results/2023-03-18-000"
     ],
-    "outputPath": "/home/victor/workspace/repos/RING-5/results",
+    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/results",
     "configs": [
-        "htm_conflict_resolution"
+        "htm_conflict_resolution",
+        "htm_allow_early_value_forwarding"
     ],
     "statsAnalyzed": [
         "simTicks",
@@ -99,14 +100,24 @@
             ]
         },
         {
+            "groupName": "Explicit",
+            "mergingStats": [
+                "htm_transaction_abort_cause..explicit"
+            ]
+        },
+        {
+            "groupName": "Stale",
+            "mergingStats": [
+                "htm_transaction_abort_cause..memory_conflict_staledata"
+            ]
+        },
+        {
             "groupName": "Other",
             "mergingStats": [
-                "htm_transaction_abort_cause..explicit",
                 "htm_transaction_abort_cause..nesting_limit",
                 "htm_transaction_abort_cause..exception",
                 "htm_transaction_abort_cause..interrupt",
                 "htm_transaction_abort_cause..htm_disabled",
-                "htm_transaction_abort_cause..memory_conflict_staledata",
                 "htm_transaction_abort_cause..memory_conflict_falsesharing",
                 "htm_transaction_abort_cause..other"
             ]
@@ -193,33 +204,33 @@
             "benchmarksFiltered": [],
             "orderingType": 2,
             "configsOrdering": [
-                "power_tm",
-                "requester_loses",
-                "requester_stalls_cda_hybrid",
-                "requester_wins"
+                "requester_winsFalse",
+                "power_tmFalse",
+                "power_tmTrue",
+                "power_tm_consumer_winsTrue"
             ],
             "configsFiltered": [],
-            "stats": ["simulationTime"],
+            "stats": [
+                "simulationTime"
+            ],
             "normalized": true,
-            "legendNames": []
+            "legendNames": ["Rw","Pow","PowFW","PowCWFW"]
         },
         {
-            "title": "Tx executed by parts",
+            "title": "Simulation time Split",
             "plotType": 1,
-            "fileName": "txExecutedByPartsNoSpec",
+            "fileName": "simulationTimeSplit",
             "xAxisName": "benchmarks",
-            "yAxisName": "executed Tx",
+            "yAxisName": "Simulation Time (Ticks)",
             "width": 28,
             "height": 12,
+            "benchmarksFiltered": [],
             "orderingType": 2,
-            "benchmarksFiltered": [
-                "ssca2"
-            ],
             "configsOrdering": [
-                "power_tm",
-                "requester_loses",
-                "requester_stalls_cda_hybrid",
-                "requester_wins"
+                "requester_winsFalse",
+                "power_tmFalse",
+                "power_tmTrue",
+                "power_tm_consumer_winsTrue"
             ],
             "configsFiltered": [],
             "stats": [
@@ -235,7 +246,36 @@
             ],
             "normalized": true,
             "legendNames": [],
-            "groupNames": []
+            "groupNames": ["Rw","Pow","PowFW","PowCWFW"]
+        },
+        {
+            "title": "Tx executed by parts",
+            "plotType": 1,
+            "fileName": "txExecutedByPartsNoSpec",
+            "xAxisName": "benchmarks",
+            "yAxisName": "executed Tx",
+            "width": 28,
+            "height": 12,
+            "orderingType": 2,
+            "benchmarksFiltered": [],
+            "configsOrdering": [
+                "requester_winsFalse",
+                "power_tmFalse",
+                "power_tmTrue",
+                "power_tm_consumer_winsTrue"
+            ],
+            "configsFiltered": [],
+            "stats": [
+                "Conflicts",
+                "Size",
+                "FallbackLock",
+                "Explicit",
+                "Stale",
+                "Other"
+            ],
+            "normalized": true,
+            "legendNames": [],
+            "groupNames": ["Rw","Pow","PowFW","PowCWFW"]
         }
     ]
 }

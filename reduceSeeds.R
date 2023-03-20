@@ -25,11 +25,11 @@ outputdf <- merge(x=outputdf, y=secondOdf, by = colnames(outputdf)[1:configs])
 # Create configuration names
 outputdf["confName"] <- ""
 for (var in 1:configs) {
-  outputdf["confName"] <- paste(outputdf[,"confName"], outputdf[,var])
+  outputdf["confName"] <- paste(outputdf[,"confName"], outputdf[,var], sep = "")
 }
 outputdf["confKey"] <- ""
-for (var in 1:configs-1) {
-  outputdf["confKey"] <- paste(outputdf[,"confKey"], outputdf[,var])
+for (var in 1:(configs-1)) {
+  outputdf["confKey"] <- paste(outputdf[,"confKey"], outputdf[,var], sep = "")
 }
 
 # Write everything onto csv file
