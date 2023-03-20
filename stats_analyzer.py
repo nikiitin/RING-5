@@ -55,13 +55,15 @@ else:
 # Make a csv copy
 wcsvPath = os.path.join(outDir, workRCsv)
 shutil.copyfile(csvPath, wcsvPath)
-# Format data for plotting
-
-if config["reduceSeeds"]:
-    dataManager.reduceSeeds(config["configs"], wcsvPath)
-
+# Format data for 
 dataManager.renameStats(config["renameStats"], wcsvPath)
 dataManager.mixStats(config["mixStats"], wcsvPath)
+if config["reduceSeeds"]:
+    dataManager.reduceSeeds(config["configs"], config["outlierStat"], wcsvPath)
+
+
+# Remove outliers only if specified
+
 # Finish data format
 # Start plotting
 plots = config["plots"]

@@ -25,12 +25,17 @@ def mixStats(mixings, workResultsCsv):
     subprocess.call(RScriptCall)
 
 
-def reduceSeeds(configs, workResultsCsv):
+def reduceSeeds(configs, stat, workResultsCsv):
     print("Reducing seeds and calculating mean and sd")
     RScriptCall = ["./reduceSeeds.R"]
     RScriptCall.append(workResultsCsv)
     RScriptCall.append(str(len(configs) + 1))
+    RScriptCall.append(stat)
     subprocess.call(RScriptCall)
 
-
-
+def removeOutliers(stat,workResultsCsv):
+    print("Removing outliers")
+    RScriptCall = ["./removeOutliers.R"]
+    RScriptCall.append(workResultsCsv)
+    RScriptCall.append(stat)
+    subprocess.call(RScriptCall)
