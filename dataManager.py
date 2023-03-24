@@ -32,5 +32,10 @@ def reduceSeeds(configs, workResultsCsv):
     RScriptCall.append(str(len(configs) + 1))
     subprocess.call(RScriptCall)
 
-
-
+def removeOutliers(stat, configs, workResultsCsv):
+    print("Removing outliers")
+    RScriptCall = ["./removeOutliers.R"]
+    RScriptCall.append(workResultsCsv)
+    RScriptCall.append(stat)
+    RScriptCall.append(str(len(configs)))
+    subprocess.call(RScriptCall)

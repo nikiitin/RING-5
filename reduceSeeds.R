@@ -1,21 +1,24 @@
 #!/usr/bin/Rscript
 
 library(readr)
+source("util.R")
+
 arguments = commandArgs(trailingOnly = TRUE)
 statsFile <- arguments[1]
 configs <- arguments[2]
 configs <- as.numeric(configs)
-dataToFilter <- arguments[3]
 parsed_data <- read.table(statsFile, sep = " ", header=TRUE)
 
+# Prepare the csv to be parsed by plotters
+# Create configuration names
 
 # Calculate mean
 outputdf <- aggregate(parsed_data[(configs+1):ncol(parsed_data)], by=parsed_data[1:configs],FUN = mean)
 outputdf["random_seed"] <- NULL
+
 # Calculate sd
 secondOdf <- aggregate(parsed_data[(configs+1):ncol(parsed_data)], by=parsed_data[1:configs],FUN = sd)
 secondOdf["random_seed"] <- NULL
-
 # Rename columns to differentiate between mean and sd
 colnames(secondOdf)[(configs + 1):ncol(secondOdf)] <- paste("sd", colnames(secondOdf)[(configs + 1):ncol(secondOdf)], sep = "-")
 
@@ -31,6 +34,5 @@ outputdf["confKey"] <- ""
 for (var in 1:(configs-1)) {
   outputdf["confKey"] <- paste(outputdf[,"confKey"], outputdf[,var], sep = "")
 }
-
 # Write everything onto csv file
 write.table(outputdf, statsFile, sep=" ", row.names = F)
