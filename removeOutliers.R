@@ -15,9 +15,7 @@ nConfigs <- arguments[currArg]
 parsed_data <- read.table(statsFile, sep = " ", header=TRUE)
 # Make the config keys to address every config
 parsed_data["confKey"] <- ""
-for (var in 1:nConfigs) {
-  parsed_data["confKey"] <- paste(parsed_data[, "confKey"], parsed_data[,var], sep="")
-}
+parsed_data["confKey"] <- mixStringCols(1, nConfigs, parsed_data)
 for (conf in unique(parsed_data[,"confKey"])) {
     for (bench in unique(parsed_data[,"benchmark_name"])) {
         

@@ -1,21 +1,21 @@
 #!/usr/bin/Rscript
-
+source("util.R")
 library(readr)
 arguments = commandArgs(trailingOnly = TRUE)
-currentArg <- 1
-statsFile <- arguments[currentArg]
-currentArg <- currentArg + 1
-renamingNumber <- arguments[currentArg]
-currentArg <- currentArg + 1
+currArg <- 1
+statsFile <- arguments[currArg]
+currArg <- increment(currArg)
+renamingNumber <- arguments[currArg]
+currArg <- increment(currArg)
 
 parsed_data <- read.table(statsFile, sep = " ", header=TRUE)
 
 for (renaming in 1:renamingNumber) {
   # Get the renaming for the stat we are looking for
-  oldName <- arguments[currentArg]
-  currentArg <- currentArg + 1
-  newName <- arguments[currentArg]
-  currentArg <- currentArg + 1
+  oldName <- arguments[currArg]
+  currArg <- increment(currArg)
+  newName <- arguments[currArg]
+  currArg <- increment(currArg)
   
   # Do the renaming
   colnames(parsed_data)[colnames(parsed_data) == oldName] <- newName

@@ -2,7 +2,7 @@
 library(readr)
 require(ggplot2)
 require(ggthemes)
-
+source("util.R")
 arguments = commandArgs(trailingOnly = TRUE)
 
 # Arguments parsing
@@ -17,11 +17,11 @@ statsFile <- arguments[7]
 currArg <- 8
 # Variable arguments start
 nStats <-arguments[currArg]
-currArg <- currArg + 1
+currArg <- increment(currArg)
 stat <- NULL
 for (i in 1:nStats) {
   stat <- c(stat, arguments[currArg])
-  currArg <- currArg + 1
+  currArg <- increment(currArg)
 }
 if (nStats > 1) {
   stop("Only one stat can be specified to barplot")
@@ -29,11 +29,11 @@ if (nStats > 1) {
 
 legendNames <- NULL
 nLegendNames <- arguments[currArg]
-currArg <- currArg + 1
+currArg <- increment(currArg)
 if (nLegendNames > 0) {
   for (i in 1:nLegendNames) {
     legendNames <- c(legendNames, arguments[currArg])
-    currArg <- currArg + 1
+    currArg <- increment(currArg)
   }
 }
 # Finish arguments parsing

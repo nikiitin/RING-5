@@ -2,7 +2,7 @@
 library(readr)
 require(ggplot2)
 require(ggthemes)
-
+source("util.R")
 arguments = commandArgs(trailingOnly = TRUE)
 
 # Arguments parsing
@@ -18,11 +18,11 @@ currArg <- 8
 
 stackVariables <- NULL
 nStackVariables <- arguments[currArg]
-currArg <- currArg + 1
+currArg <- increment(currArg)
 if (nStackVariables > 0) {
   for (i in 1:nStackVariables) {
     stackVariables <- c(stackVariables, arguments[currArg])
-    currArg <- currArg + 1
+    currArg <- increment(currArg)
   }
 } else {
   stop("For stacked barplot you should indicate more than one stacking variable.")
@@ -30,21 +30,21 @@ if (nStackVariables > 0) {
 
 groupNames <- NULL
 nGroupNames <- arguments[currArg]
-currArg <- currArg + 1
+currArg <- increment(currArg)
 if (nGroupNames > 0) {
   for (i in 1:nGroupNames) {
     groupNames <- c(groupNames, arguments[currArg])
-    currArg <- currArg + 1
+    currArg <- increment(currArg)
   }
 }
 
 legendNames <- NULL
 nLegendNames <- arguments[currArg]
-currArg <- currArg + 1
+currArg <- increment(currArg)
 if (nLegendNames > 0) {
   for (i in 1:nLegendNames) {
     legendNames <- c(legendNames, arguments[currArg])
-    currArg <- currArg + 1
+    currArg <- increment(currArg)
   }
 }
 # Finish arguments parsing

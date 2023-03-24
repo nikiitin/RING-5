@@ -1,33 +1,34 @@
 #!/usr/bin/Rscript
 library(readr)
+source("util.R")
 # Parse arguments
 arguments = commandArgs(trailingOnly = TRUE)
 currArg <- 1
 statsFile <- arguments[currArg]
-currArg <- currArg + 1
+currArg <- increment(currArg)
 # Until here, arguments are fixed
 
 # Benchs filtered
 nBenchFiltered <- arguments[currArg]
-currArg <- currArg + 1
+currArg <- increment(currArg)
 benchFiltered <- NULL
 if (nBenchFiltered > 0){
   for (i in 1:nBenchFiltered) {
     benchFiltered <- c(benchFiltered, arguments[currArg])
-    currArg <- currArg + 1
+    currArg <- increment(currArg)
   }
 }
 
 # Configs filtered
 configsFiltered <- new.env()
 nConfigsFiltered <- arguments[currArg]
-currArg <- currArg + 1
+currArg <- increment(currArg)
 if (nConfigsFiltered > 0) {
   for (i in 1:nConfigsFiltered) {
     configName <- arguments[currArg]
-    currArg <- currArg + 1
+    currArg <- increment(currArg)
     configVal <- arguments[currArg]
-    currArg <- currArg + 1
+    currArg <- increment(currArg)
     configsFiltered[[configName]] <- configVal
   }
 }

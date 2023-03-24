@@ -2,10 +2,9 @@
     "filesPaths": [
         "/home/vnicolas/Workspace/remote-echo/workspace/sims/ruben/gem5/results/2023-03-18-000"
     ],
-    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/results",
+    "outputPath": "/home/victor/workspace/repos/RING-5",
     "configs": [
-        "htm_conflict_resolution",
-        "htm_allow_early_value_forwarding"
+        "htm_conflict_resolution"
     ],
     "statsAnalyzed": [
         "simTicks",
