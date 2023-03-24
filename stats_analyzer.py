@@ -16,7 +16,7 @@ def getPlotType(x):
         1: "stackBarplot"
     }.get(x, "Invalid")
 
-csv = "results.csv"
+csv = ""
 workRCsv = "wresults.csv"
 
 # Parse arguments
@@ -40,7 +40,7 @@ file.close()
 
 # Parse data
 outDir = config["outputPath"]
-csvPath = os.path.join(outDir, csv)
+csvPath = args.csv
 if not os.path.exists(outDir):
     try:
         # Create output directory

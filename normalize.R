@@ -1,14 +1,15 @@
 #!/usr/bin/Rscript
 library(readr)
+source("util.R")
 # Parse arguments
 arguments = commandArgs(trailingOnly = TRUE)
 currArg <- 1
 statsFile <- arguments[currArg]
-currArg <- currArg + 1
+currArg <- increment(currArg)
 normalize <- arguments[currArg]
-currArg <- currArg + 1
+currArg <- increment(currArg)
 sdNorm <- arguments[currArg]
-currArg <- currArg + 1
+currArg <- increment(currArg)
 # Until here all arguments are fixed
 
 if (normalize == "False") {
@@ -16,12 +17,12 @@ if (normalize == "False") {
 }
 
 nStats <- arguments[currArg]
-currArg <- currArg + 1
+currArg <- increment(currArg)
 stats <- NULL
 
 for (stat in 1:nStats) {
     stats <- c(stats, arguments[currArg])
-    currArg <- currArg + 1
+    currArg <- increment(currArg)
 }
 # Finish argument parsing
 
