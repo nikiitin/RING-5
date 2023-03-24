@@ -32,7 +32,6 @@ def normalizeData(shouldNorm, sd, stats, workResultsCsv):
     RScriptCall.append(str(sd))
     RScriptCall.append(str(len(stats)))
     RScriptCall.extend(stats)
-    print(RScriptCall)
     subprocess.call(RScriptCall)
 
 def plotFigure(plotInfo, plotType, nConfigs, workResultsCsv, outDir):

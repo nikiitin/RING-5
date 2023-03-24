@@ -58,8 +58,9 @@ shutil.copyfile(csvPath, wcsvPath)
 # Format data for 
 dataManager.renameStats(config["renameStats"], wcsvPath)
 dataManager.mixStats(config["mixStats"], wcsvPath)
+dataManager.removeOutliers(config["outlierStat"], config["configs"], wcsvPath)
 if config["reduceSeeds"]:
-    dataManager.reduceSeeds(config["configs"], config["outlierStat"], wcsvPath)
+    dataManager.reduceSeeds(config["configs"], wcsvPath)
 
 
 # Remove outliers only if specified

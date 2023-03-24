@@ -3,49 +3,40 @@
 library(readr)
 source("util.R")
 
-# create detect outlier function
-detect_outlier <- function(x) {
-    # calculate third quantile
-    Quantile3 <- quantile(x, probs=.75)
-    # calculate inter quartile range
-    # return true or false
-    x > Quantile3 # Detect only upper outliers
-}
-
-# create remove outlier function
-remove_outlier <- function(dataframe,
-                            columns=names(dataframe)) {
-    # for loop to traverse in columns vector
-    for (col in columns) {
-        # remove observation if it satisfies outlier function
-        dataframe <- dataframe[!detect_outlier(dataframe[[col]]), ]
-    }
-    print(dataframe)
-}
-
 # Parse arguments
 arguments = commandArgs(trailingOnly = TRUE)
 currArg <- 1
 statsFile <- arguments[currArg]
 currArg <- increment(currArg)
 outlierStat <- arguments[currArg]
+currArg <- increment(currArg)
+nConfigs <- arguments[currArg]
 # Until here, arguments are fixed
-
 parsed_data <- read.table(statsFile, sep = " ", header=TRUE)
-for (conf in )
-for (bench in unique(parsed_data[,"benchmark_name"])) {
-
-    dataForBench <- parsed_data[parsed_data["benchmark_name"] == bench, outlierStat]
-    #print(dataForBench)
-    Q <- quantile(dataForBench, probs=c(0.5), na.rm = FALSE)
-    #print(Q)
-    up <-  Q[1] # Upper Range  (Maybe adjustable?)
-    #print(up)
-    parsed_data <- subset(parsed_data, (parsed_data["benchmark_name"] != bench |
-        (parsed_data["benchmark_name"] == bench) & 
-         parsed_data[outlierStat] < up))
+# Make the config keys to address every config
+parsed_data["confKey"] <- ""
+for (var in 1:nConfigs) {
+  parsed_data["confKey"] <- paste(parsed_data[, "confKey"], parsed_data[,var], sep="")
 }
-#print(parsed_data)
-
+for (conf in unique(parsed_data[,"confKey"])) {
+    for (bench in unique(parsed_data[,"benchmark_name"])) {
+        
+        dataForOutlier <- parsed_data[parsed_data["benchmark_name"] == bench &
+            parsed_data["confKey"] == conf, 
+            outlierStat]
+        # Calculate quantile and IQR (Using IQR between mean and first element)
+        # as we are removing only upper outliers (System calls, page faults etc.)
+        Q <- quantile(dataForOutlier, probs=c(0, 0.5), na.rm = FALSE)
+        iqr <- Q[2] - Q[1]
+        # Set the threshold
+        up <-  Q[2] + iqr
+        # Filter all data that lies out of the threshold
+        parsed_data <- subset(parsed_data, (parsed_data["benchmark_name"] != bench | parsed_data["confKey"] != conf) |
+            ((parsed_data["benchmark_name"] == bench & parsed_data["confKey"] == conf) & 
+            parsed_data[outlierStat] < up))
+    }
+}
+# Drop configuration keys or seeds reduction will fail
+parsed_data["confKey"] <- NULL
 # Write filtered data onto csv file
-#write.table(parsed_data, statsFile, sep=" ", row.names = F)
+write.table(parsed_data, statsFile, sep=" ", row.names = F)
