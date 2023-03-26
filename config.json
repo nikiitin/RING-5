@@ -4,7 +4,8 @@
     ],
     "outputPath": "/home/victor/workspace/repos/RING-5",
     "configs": [
-        "htm_conflict_resolution"
+        "htm_conflict_resolution",
+        "htm_allow_early_value_forwarding"
     ],
     "statsAnalyzed": [
         "simTicks",
@@ -191,7 +192,8 @@
     "outlierStat": "simulationTime",
     "availablePlots": [
         "barplot",
-        "stackBarplot"
+        "stackBarplot",
+        "scalabilityPlot"
     ],
     "plots": [
         {
@@ -208,14 +210,27 @@
                 "requester_winsFalse",
                 "power_tmFalse",
                 "power_tmTrue",
-                "power_tm_consumer_winsTrue"
+                "power_tm_consumer_winsTrue",
+                "requester_losesFalse",
+                "woper_tmFalse",
+                "woper_tmTrue",
+                "woper_tm_consumer_winsTrue"
             ],
             "configsFiltered": [],
             "stats": [
                 "simulationTime"
             ],
             "normalized": true,
-            "legendNames": ["Rw","Pow","PowFW","PowCWFW"]
+            "legendNames": [
+                "req-win",
+                "power",
+                "powervp",
+                "powervp_cw",
+                "req-loses",
+                "woper",
+                "wopervp",
+                "wopervp_cw"
+            ]
         },
         {
             "title": "Simulation time Split",
@@ -231,7 +246,11 @@
                 "requester_winsFalse",
                 "power_tmFalse",
                 "power_tmTrue",
-                "power_tm_consumer_winsTrue"
+                "power_tm_consumer_winsTrue",
+                "requester_losesFalse",
+                "woper_tmFalse",
+                "woper_tmTrue",
+                "woper_tm_consumer_winsTrue"
             ],
             "configsFiltered": [],
             "stats": [
@@ -247,7 +266,16 @@
             ],
             "normalized": true,
             "legendNames": [],
-            "groupNames": ["Rw","Pow","PowFW","PowCWFW"]
+            "groupNames": [
+                "req-win",
+                "power",
+                "powervp",
+                "powervp_cw",
+                "req-loses",
+                "woper",
+                "wopervp",
+                "wopervp_cw"
+            ]
         },
         {
             "title": "Tx executed by parts",
@@ -263,7 +291,11 @@
                 "requester_winsFalse",
                 "power_tmFalse",
                 "power_tmTrue",
-                "power_tm_consumer_winsTrue"
+                "power_tm_consumer_winsTrue",
+                "requester_losesFalse",
+                "woper_tmFalse",
+                "woper_tmTrue",
+                "woper_tm_consumer_winsTrue"
             ],
             "configsFiltered": [],
             "stats": [
@@ -276,7 +308,54 @@
             ],
             "normalized": true,
             "legendNames": [],
-            "groupNames": ["Rw","Pow","PowFW","PowCWFW"]
+            "groupNames": [
+                "req-win",
+                "power",
+                "powervp",
+                "powervp_cw",
+                "req-loses",
+                "woper",
+                "wopervp",
+                "wopervp_cw"
+            ]
+        },
+        {
+            "title": "Simulation time",
+            "plotType": 2,
+            "fileName": "simulationTime_scalability",
+            "xAxisName": "num_cpus",
+            "xAxis": "num_cpus",
+            "yAxisName": "Simulation Time (Ticks)",
+            "iterate": "benchmark_name",
+            "width": 28,
+            "height": 12,
+            "benchmarksFiltered": [],
+            "orderingType": 2,
+            "configsOrdering": [
+                "requester_winsFalse",
+                "power_tmFalse",
+                "power_tmTrue",
+                "power_tm_consumer_winsTrue",
+                "requester_losesFalse",
+                "woper_tmFalse",
+                "woper_tmTrue",
+                "woper_tm_consumer_winsTrue"
+            ],
+            "configsFiltered": [],
+            "stats": [
+                "simulationTime"
+            ],
+            "normalized": false,
+            "legendNames": [
+                "req-win",
+                "power",
+                "powervp",
+                "powervp_cw",
+                "req-loses",
+                "woper",
+                "wopervp",
+                "wopervp_cw"
+            ]
         }
     ]
 }

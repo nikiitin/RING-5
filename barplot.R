@@ -44,7 +44,6 @@ parsed_data <- read.table(statsFile, sep = " ", header=TRUE)
 stat.sd <- paste("sd", stat, sep=".")
 # To keep the order from the configs, turn them into a factor
 parsed_data$confKey <- factor(parsed_data$confKey, levels = unique(as.character(parsed_data$confKey)), ordered = TRUE)
-parsed_data[,stat]
 # Basic plot
 # Just plot the bar and sd
 p <- ggplot(parsed_data, aes(x=benchmark_name, fill=confKey, y=parsed_data[,stat])) +
