@@ -28,7 +28,6 @@ for (i in 1:n_stats) {
   line_stat <- c(line_stat, arguments[currArg])
   currArg <- increment(currArg)
 }
-currArg <- increment(currArg)
 x_config <- arguments[currArg]
 currArg <- increment(currArg)
 var_iterate <- arguments[currArg]
@@ -60,6 +59,6 @@ for (var in vars) {
 p <- ggplot(data=plot_data, aes(x=plot_data[,x_config], y=plot_data[,line_stat], group=plot_data[,"confLine"])) +
     geom_line(aes(color=plot_data[,"confLine"])) +
     geom_point(aes(color=plot_data[,"confLine"]))
-    ggsave(paste(c(plot.statsFile, "_", var, ".jpg"), collapse = ""), width=plot.width, height=plot.height, units="cm", dpi=320, device="jpg")
+    ggsave(paste(c(plot.filename, "_", var, ".jpg"), collapse = ""), width=plot.width, height=plot.height, units="cm", dpi=320, device="jpg")
 }
 
