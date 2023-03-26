@@ -13,7 +13,8 @@ import dataPlot
 def getPlotType(x):
     return {
         0: "barplot",
-        1: "stackBarplot"
+        1: "stackBarplot",
+        2: "scalabilityPlot"
     }.get(x, "Invalid")
 
 csv = ""

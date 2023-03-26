@@ -49,12 +49,19 @@ def plotFigure(plotInfo, plotType, nConfigs, workResultsCsv, outDir):
                 False,
                 plotInfo["stats"],
                 workResultsCsv)
-    else:
+    elif plotType == "barplot":
         RScriptCall = ["./barplot.R"]
         normalizeData(str(plotInfo["normalized"]),
                 True,
                 plotInfo["stats"],
                 workResultsCsv)
+    else:
+        RScriptCall = ["./scalabilityPlot"]
+        normalizeData(str(plotInfo["normalized"]),
+                False,
+                plotInfo["stats"],
+                workResultsCsv)
+        
     
     RScriptCall.append(plotInfo["title"])
     plotPath = os.path.join(outDir, plotInfo["fileName"])
@@ -66,14 +73,25 @@ def plotFigure(plotInfo, plotType, nConfigs, workResultsCsv, outDir):
     RScriptCall.append(workResultsCsv)
 
     # Stacking info
+    # TODO: Move into a method
+    # NOTE: I am implementing in my free time and faster than ligth
+    # take this into account as maybe some things are pure ad-hoc
+    # Feel free to improve the tool!
     if plotType == "stackBarplot":
         RScriptCall.append(str(len(plotInfo["stats"])))
         RScriptCall.extend(plotInfo["stats"])
         RScriptCall.append(str(len(plotInfo["groupNames"])))
         RScriptCall.extend(plotInfo["groupNames"])
-    else:
+    elif plotType == "barplot":
         RScriptCall.append(str(len(plotInfo["stats"])))
         RScriptCall.extend(plotInfo["stats"])
+    else:
+        RScriptCall.append(str(nConfigs))
+        RScriptCall.append(str(len(plotInfo["stats"])))
+        RScriptCall.extend(plotInfo["stats"])
+        RScriptCall.append(plotInfo["xAxis"])
+        RScriptCall.append(plotInfo["iterate"])
+        
     RScriptCall.append(str(len(plotInfo["legendNames"])))
     RScriptCall.extend(plotInfo["legendNames"])
     print(RScriptCall)
