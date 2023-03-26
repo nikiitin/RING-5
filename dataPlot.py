@@ -56,7 +56,7 @@ def plotFigure(plotInfo, plotType, nConfigs, workResultsCsv, outDir):
                 plotInfo["stats"],
                 workResultsCsv)
     else:
-        RScriptCall = ["./scalabilityPlot"]
+        RScriptCall = ["./scalabilityPlot.R"]
         normalizeData(str(plotInfo["normalized"]),
                 False,
                 plotInfo["stats"],
