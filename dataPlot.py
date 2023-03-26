@@ -86,7 +86,7 @@ def plotFigure(plotInfo, plotType, nConfigs, workResultsCsv, outDir):
         RScriptCall.append(str(len(plotInfo["stats"])))
         RScriptCall.extend(plotInfo["stats"])
     else:
-        RScriptCall.append(str(nConfigs - 1))
+        RScriptCall.append(str(nConfigs))
         RScriptCall.append(str(len(plotInfo["stats"])))
         RScriptCall.extend(plotInfo["stats"])
         RScriptCall.append(plotInfo["xAxis"])

@@ -19,6 +19,7 @@ currArg <- 8
 n_lines_configs <- as.integer(arguments[currArg])
 currArg <- increment(currArg)
 n_stats <- as.integer(arguments[currArg])
+n_stats <- n_stats - 1
 currArg <- increment(currArg)
 if (n_stats > 1) {
     stop("Scalability plot not implemented with more than one stat")
