@@ -33,6 +33,7 @@ x_config <- arguments[currArg]
 currArg <- increment(currArg)
 var_iterate <- arguments[currArg]
 
+lines_names <- NULL
 n_lines_names <- arguments[currArg]
 currArg <- increment(currArg)
 if (n_lines_names > 0) {
