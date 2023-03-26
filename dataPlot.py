@@ -86,12 +86,12 @@ def plotFigure(plotInfo, plotType, nConfigs, workResultsCsv, outDir):
         RScriptCall.append(str(len(plotInfo["stats"])))
         RScriptCall.extend(plotInfo["stats"])
     else:
-        RScriptCall.append(str(nConfigs))
+        RScriptCall.append(str(nConfigs - 1))
         RScriptCall.append(str(len(plotInfo["stats"])))
         RScriptCall.extend(plotInfo["stats"])
         RScriptCall.append(plotInfo["xAxis"])
         RScriptCall.append(plotInfo["iterate"])
-        
+
     RScriptCall.append(str(len(plotInfo["legendNames"])))
     RScriptCall.extend(plotInfo["legendNames"])
     print(RScriptCall)
