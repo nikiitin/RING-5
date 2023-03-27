@@ -67,7 +67,7 @@ vars <- unique(parsed_data[,var_iterate])
 # Iterate over selected variable
 for (var in vars) {
     plot_data <- datos <- data.frame(x_config = character(), line_stat=numeric(), confLine=character(), stringsAsFactors = FALSE)
-    plot_data <- as.data.frame(parsed_data[parsed_data[var_iterate] == var])
+    plot_data <- parsed_data[parsed_data[var_iterate] == var,]
 p <- ggplot(data=parsed_data, aes(x=x_config, y=line_stat, group=parsed_data[,"confLine"])) +
     geom_line() +
     geom_point()

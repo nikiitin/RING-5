@@ -1,15 +1,16 @@
 {
     "filesPaths": [
-        "/home/vnicolas/Workspace/remote-echo/workspace/sims/ruben/gem5/results/2023-03-24-001/"
+        "/home/vnicolas/Workspace/remote-echo/workspace/sims/ruben/gem5/results/2023-03-24-002/"
     ],
-    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/results",
+    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/results-test",
     "configs": [
         "htm_conflict_resolution",
-        "htm_allow_early_value_forwarding"
+        "htm_allow_early_value_forwarding",
+        "num_cpus"
     ],
     "statsAnalyzed": [
         "simTicks",
-	"htm_transaction_abort_cause::total",
+	    "htm_transaction_abort_cause::total",
         "htm_transaction_abort_cause::explicit",
         "htm_transaction_abort_cause::nesting_limit",
         "htm_transaction_abort_cause::transaction_size\\s",
@@ -175,117 +176,25 @@
     ],
     "plots": [
         {
-            "title": "Simulation time",
-            "plotType": 0,
-            "fileName": "simulationTime",
+            "title": "simTicks",
+            "plotType": 2,
+            "fileName": "simTicks",
             "xAxisName": "benchmarks",
-            "yAxisName": "Simulation Time (Ticks)",
+            "yAxisName": "simulationTime",
+            "xAxis": "num_cpus",
+            "iterate": "benchmark_name",
             "width": 28,
             "height": 12,
-            "benchmarksFiltered": ["yada"],
-            "orderingType": 2,
+            "orderingType": 0,
+            "benchmarksFiltered": [],
             "configsOrdering": [
-                "requester_winsFalse",
-                "power_tmFalse",
-                "power_tmTrue",
-                "power_tm_consumer_winsTrue",
-                "requester_losesFalse",
-                "woper_tmFalse",
-                "woper_tmTrue",
-                "woper_tm_consumer_winsTrue"
+
             ],
             "configsFiltered": [],
             "stats": [
                 "simulationTime"
             ],
-            "normalized": true,
-            "legendNames": [
-                "req-win",
-                "power",
-                "powervp",
-                "powervp_cw",
-                "req-loses",
-                "woper",
-                "wopervp",
-                "wopervp_cw"
-            ]
-        },
-        {
-            "title": "Simulation time Split",
-            "plotType": 1,
-            "fileName": "simulationTimeSplit",
-            "xAxisName": "benchmarks",
-            "yAxisName": "Simulation Time (Ticks)",
-            "width": 28,
-            "height": 12,
-            "benchmarksFiltered": ["yada"],
-            "orderingType": 2,
-            "configsOrdering": [
-                "requester_winsFalse",
-                "power_tmFalse",
-                "power_tmTrue",
-                "power_tm_consumer_winsTrue",
-                "requester_losesFalse",
-                "woper_tmFalse",
-                "woper_tmTrue",
-                "woper_tm_consumer_winsTrue"
-            ],
-            "configsFiltered": [],
-            "stats": [
-                "Parallel",
-                "Committed",
-                "Aborted",
-                "Validating",
-                "Aborting",
-                "HasLock",
-                "WaitForRetry",
-                "OtherRegion"
-            ],
-            "normalized": true,
-            "legendNames": [],
-            "groupNames": [
-                "req-win",
-                "power",
-                "powervp",
-                "powervp_cw",
-                "req-loses",
-                "woper",
-                "wopervp",
-                "wopervp_cw"
-            ]
-        },
-        {
-            "title": "Tx executed by parts",
-            "plotType": 1,
-            "fileName": "txExecutedByPartsNoSpec",
-            "xAxisName": "benchmarks",
-            "yAxisName": "executed Tx",
-            "width": 28,
-            "height": 12,
-            "orderingType": 2,
-            "benchmarksFiltered": ["yada"],
-            "configsOrdering": [
-                "requester_winsFalse",
-                "power_tmFalse",
-                "power_tmTrue",
-                "power_tm_consumer_winsTrue",
-                "requester_losesFalse",
-                "woper_tmFalse",
-                "woper_tmTrue",
-                "woper_tm_consumer_winsTrue"
-            ],
-            "configsFiltered": [],
-            "stats": [
-                "Conflicts",
-                "PowerConflict",
-                "Validation",
-                "Size",
-                "FallbackLock",
-                "Explicit",
-                "Stale",
-                "Other"
-            ],
-            "normalized": true,
+            "normalized": false,
             "legendNames": [],
             "groupNames": [
                 "req-win",
