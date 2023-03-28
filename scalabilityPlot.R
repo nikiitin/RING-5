@@ -57,20 +57,25 @@ parsed_data <- read.table(fileName, sep = " ", header=TRUE)
 # Prepare Y-axis (pick stats names)
 parsed_data["confLine"] <- ""
 parsed_data["confLine"] <- mixStringCols(1, n_lines_configs, parsed_data)
-
+parsed_data["x_config"] <- parsed_data[,x_config]
+parsed_data["line_stat"] <- parsed_data[,line_stat]
 # To keep the order from the configs, turn them into a factor
-parsed_data$confLine <- factor(parsed_data$confKey, levels = unique(as.character(parsed_data$confKey)), ordered = TRUE)
+
 # Do not iterate over duplicates
 
 vars <- unique(parsed_data[,var_iterate])
 
 # Iterate over selected variable
 for (var in vars) {
-    plot_data <- datos <- data.frame(x_config = character(), line_stat=numeric(), confLine=character(), stringsAsFactors = FALSE)
     plot_data <- parsed_data[parsed_data[var_iterate] == var,]
-p <- ggplot(data=parsed_data, aes(x=x_config, y=line_stat, group=parsed_data[,"confLine"])) +
-    geom_line() +
-    geom_point()
+p <- ggplot(data=plot_data, aes(x=x_config, y=line_stat, group=confLine)) +
+    geom_line(aes(linetype=confLine, color=confLine)) +
+    geom_point(aes(shape=confLine))
+
+p <- p + theme_hc() +
+  theme(axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=0.5))
+
+p <- p + scale_x_continuous(breaks=unique(plot_data[,x_config]))
     ggsave(paste(c(plot.fileName, "_", var, ".jpg"), collapse = ""), width=plot.width, height=plot.height, units="cm", dpi=320, device="jpg")
 }
 
