@@ -27,9 +27,13 @@ if (nConfigsFiltered > 0) {
   for (i in 1:nConfigsFiltered) {
     configName <- arguments[currArg]
     currArg <- increment(currArg)
-    configVal <- arguments[currArg]
+    n_config_vals <- arguments[currArg]
     currArg <- increment(currArg)
-    configsFiltered[[configName]] <- configVal
+    for (nconf in 1:n_config_vals) {
+      configVal <- arguments[currArg]
+      configsFiltered[[configName]] <- c(configsFiltered[[configName]], configVal)
+      currArg <- increment(currArg)
+    }
   }
 }
 # Finish arguments parsing
@@ -43,9 +47,17 @@ for (benchFilter in benchFiltered) {
 }
 
 # Data filtering for configs
-for (name in names(configsFiltered)) {
-  parsed_data <- parsed_data[parsed_data[name] == configsFiltered[[name]],]
-}
 
+for (name in names(configsFiltered)) {
+  # Make a new dataframe with the same columns than parsed_data
+  filtered_data <- parsed_data[0, ]
+  configs <- configsFiltered[[name]]
+  for (config in configs) {
+    filtered_data <- rbind(filtered_data, parsed_data[parsed_data[name] == config,])
+  }
+  # Update parsed_data so every cycle
+  # a variable is filtered
+  parsed_data <- filtered_data
+}
 # Write filtered data onto csv file
 write.table(parsed_data, statsFile, sep=" ", row.names = F)

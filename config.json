@@ -178,19 +178,61 @@
         {
             "title": "simTicks",
             "plotType": 2,
-            "fileName": "simTicks",
+            "fileName": "simTicks(wopower)",
             "xAxisName": "benchmarks",
             "yAxisName": "simulationTime",
             "xAxis": "num_cpus",
             "iterate": "benchmark_name",
             "width": 28,
-            "height": 12,
+            "height": 18,
             "orderingType": 0,
             "benchmarksFiltered": [],
             "configsOrdering": [
 
             ],
-            "configsFiltered": [],
+            "configsFiltered": [
+                {
+                    "confName": "htm_conflict_resolution",
+                    "values": ["woper_tm","power_tm"]
+                }
+            ],
+            "stats": [
+                "simulationTime"
+            ],
+            "normalized": false,
+            "legendNames": [],
+            "groupNames": [
+                "req-win",
+                "power",
+                "powervp",
+                "powervp_cw",
+                "req-loses",
+                "woper",
+                "wopervp",
+                "wopervp_cw"
+            ]
+        },
+        {
+            "title": "simTicks",
+            "plotType": 2,
+            "fileName": "simTicks(rlrw)",
+            "xAxisName": "benchmarks",
+            "yAxisName": "simulationTime",
+            "xAxis": "num_cpus",
+            "iterate": "benchmark_name",
+            "width": 28,
+            "height": 18,
+            "orderingType": 0,
+            "benchmarksFiltered": [],
+            "configsOrdering": [
+
+            ],
+            "configsFiltered": [
+                {
+                    "confName": "htm_conflict_resolution",
+                    "values": ["requester_wins","requester_loses"]
+                }
+            ],
             "stats": [
                 "simulationTime"
             ],

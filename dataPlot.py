@@ -1,8 +1,6 @@
 import subprocess
 import os.path
 
-
-
 def filterData(benchsFiltered, configsFiltered, workResultsCsv):
     print("Filtering data")
     RScriptCall = ["./dataFilter.R"]
@@ -12,7 +10,8 @@ def filterData(benchsFiltered, configsFiltered, workResultsCsv):
     RScriptCall.append(str(len(configsFiltered)))
     for filt in configsFiltered:
         RScriptCall.append(filt["confName"])
-        RScriptCall.append(filt["value"])
+        RScriptCall.append(str(len(filt["values"])))
+        RScriptCall.extend(filt["values"])
     subprocess.call(RScriptCall)
 
 def orderData(orderingType, configOrdering, workResultsCsv):
@@ -42,6 +41,7 @@ def plotFigure(plotInfo, plotType, nConfigs, workResultsCsv, outDir):
     orderData(plotInfo["orderingType"],
               plotInfo["configsOrdering"],
               workResultsCsv)
+    exit
     
     if plotType == "stackBarplot":
         RScriptCall = ["./stackedBarplot.R"]

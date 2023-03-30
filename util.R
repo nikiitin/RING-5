@@ -9,3 +9,7 @@ mixStringCols <- function(val1, val2, dataframe) {
     }
     dataFrameColumn
 }
+
+geomean <- function(x) {
+    exp(mean(log(x)))
+}

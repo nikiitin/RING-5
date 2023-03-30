@@ -24,9 +24,9 @@ workRCsv = "wresults.csv"
 argParser = argparse.ArgumentParser()
 argParser.add_argument("-c", "--csv", dest='csv',
                        help="csv name you want to generate/use",
-                       default="./results.csv")
+                       default="results.csv")
 argParser.add_argument("-f", "--configFile",dest='configFile',
-                       default="./config.json",
+                       default="config.json",
                        help="config file to be used")
 argParser.add_argument('-s', '--skipParse', dest='skipParse',
                     default=False,
@@ -41,7 +41,7 @@ file.close()
 
 # Parse data
 outDir = config["outputPath"]
-csvPath = args.csv
+csvPath = os.path.join(outDir, args.csv)
 if not os.path.exists(outDir):
     try:
         # Create output directory
@@ -61,7 +61,7 @@ dataManager.renameStats(config["renameStats"], wcsvPath)
 dataManager.mixStats(config["mixStats"], wcsvPath)
 dataManager.removeOutliers(config["outlierStat"], config["configs"], wcsvPath)
 if config["reduceSeeds"]:
-    dataManager.reduceSeeds(config["configs"], wcsvPath)
+    dataManager.reduceSeeds(config["configs"], config["meanAlgorithm"], wcsvPath)
 
 
 # Remove outliers only if specified
