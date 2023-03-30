@@ -38,9 +38,8 @@ if (mean_algorithm != "None") {
             FUN = mean_algorithm)
         mean_df["benchmark_name"] <- "Mean"
     }
+    outputdf <- rbind(outputdf, mean_df)
 }
-
-outputdf <- rbind(outputdf, mean_df)
 
 # Prepare the csv to be parsed by plotters
 # Create configuration names
