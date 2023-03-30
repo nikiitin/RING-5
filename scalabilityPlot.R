@@ -61,6 +61,12 @@ parsed_data["confLine"] <- ""
 parsed_data["confLine"] <- mixStringCols(1, n_lines_configs, parsed_data)
 parsed_data["x_config"] <- parsed_data[,x_config]
 parsed_data["line_stat"] <- parsed_data[,line_stat]
+parsed_data$confKey <- factor(parsed_data$confKey,
+  levels = unique(as.character(parsed_data$confKey)),
+  ordered = TRUE)
+parsed_data$benchmark_name <- factor(parsed_data$benchmark_name,
+  levels = unique(as.character(parsed_data$benchmark_name)),
+  ordered = TRUE)
 # To keep the order from the configs, turn them into a factor
 if (n_lines_names > 0) {
   confs <- unique(parsed_data[,"confLine"])
@@ -127,7 +133,7 @@ for (var in vars) {
     collapse = ""), width = plot.width, height = plot.height,
     units = "cm", dpi = 320, device = "png")
 }
-p <- ggarrange(plotlist=plot_list, nrow = 2, ncol=length(vars) / 2 ,labels = vars,common.legend=TRUE, legend="bottom", font.label=list(size=7))
+p <- ggarrange(plotlist=plot_list, nrow = 2, ncol=ceiling(length(vars) / 2) ,labels = vars,common.legend=TRUE, legend="bottom", font.label=list(size=7))
 
 p <- annotate_figure(p, left = textGrob(line_stat, rot = 90),
                     bottom = textGrob(x_config))

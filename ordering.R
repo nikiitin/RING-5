@@ -48,8 +48,6 @@ parsed_data[["benchmark_name"]] <- factor(parsed_data[["benchmark_name"]], level
 
 parsed_data <- parsed_data[order(parsed_data[,"benchmark_name"], decreasing = FALSE),]
 
-
-print(parsed_data[,"benchmark_name"])
 if (orderingType == 0) {
     # Write data onto csv file
     write.table(parsed_data, statsFile, sep=" ", row.names = F)
