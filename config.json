@@ -1,30 +1,21 @@
 {
     "filesPaths": [
-        "/home/vnicolas/Workspace/remote-echo/workspace/sims/ruben/gem5/results/2023-03-18-000"
+        "/home/vnicolas/Workspace/remote-echo/workspace/sims/ruben/gem5/results/2023-03-24-002/"
     ],
-    "outputPath": "/home/victor/workspace/repos/RING-5",
+    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/results-test",
     "configs": [
-        "htm_conflict_resolution"
+        "htm_conflict_resolution",
+        "htm_allow_early_value_forwarding",
+        "num_cpus"
     ],
     "statsAnalyzed": [
         "simTicks",
-        "specTransactions",
-        "htm_transaction_aborted",
-        "numStoresSpec",
-        "falseSharingInvalidBlocks",
-        "executedTransactionsWithoutSpec",
-        "committedSpecTrans",
-        "committedTransactionsWithoutSpec",
-        "invalidBlocks",
-        "correctBlockSpeculationRemovals",
-        "uncheckedBlocks",
-        "cyclesSpeculatedMean",
+	    "htm_transaction_abort_cause::total",
         "htm_transaction_abort_cause::explicit",
         "htm_transaction_abort_cause::nesting_limit",
         "htm_transaction_abort_cause::transaction_size\\s",
         "htm_transaction_abort_cause::exception",
         "htm_transaction_abort_cause::interrupt",
-        "htm_transaction_abort_cause::htm_disabled",
         "htm_transaction_abort_cause::memory_conflict\\s",
         "htm_transaction_abort_cause::lsq_conflict",
         "htm_transaction_abort_cause::transaction_size_rset",
@@ -37,6 +28,7 @@
         "htm_transaction_abort_cause::memory_conflict_staledata",
         "htm_transaction_abort_cause::memory_conflict_falsesharing",
         "htm_transaction_abort_cause::validation_failure",
+        "htm_transaction_abort_cause::memory_conflict_power",
         "htm_transaction_abort_cause::other",
         "cyclesInRegion::DEFAULT",
         "cyclesInRegion::BARRIER",
@@ -51,12 +43,7 @@
         "cyclesInRegion::WAITFORRETRY_EXCEPTION",
         "cyclesInRegion::WAITFORRETRY_SIZE",
         "cyclesInRegion::KERNEL",
-        "cyclesInRegion::KERNEL_HASLOCK",
-        "cyclesInRegion::STALLED_COMMITTED",
-        "cyclesInRegion::STALLED_ABORTED",
-        "cyclesInRegion::STALLED_NONTRANS",
-        "cyclesInRegion::ARBITRATION_COMMITTED",
-        "cyclesInRegion::ARBITRATION_ABORTED"
+        "cyclesInRegion::KERNEL_HASLOCK"
     ],
     "renameStats": [
         {
@@ -64,12 +51,16 @@
             "newName": "simulationTime"
         },
         {
-            "oldName": "htm_transaction_aborted",
+            "oldName": "htm_transaction_abort_cause..total",
             "newName": "abortedTransactions"
         },
         {
-            "oldName": "committedTransactionsWithoutSpec",
-            "newName": "commitNoSpec"
+            "oldName": "htm_transaction_abort_cause..validation_failure",
+            "newName": "Validation"
+        },
+        {
+            "oldName": "htm_transaction_abort_cause..memory_conflict_power",
+            "newName": "PowerConflict"
         }
     ],
     "mixStats": [
@@ -77,6 +68,7 @@
             "groupName": "Conflicts",
             "mergingStats": [
                 "htm_transaction_abort_cause..memory_conflict.s",
+                "htm_transaction_abort_cause..memory_conflict_falsesharing",
                 "htm_transaction_abort_cause..lsq_conflict"
             ]
         },
@@ -116,8 +108,6 @@
                 "htm_transaction_abort_cause..nesting_limit",
                 "htm_transaction_abort_cause..exception",
                 "htm_transaction_abort_cause..interrupt",
-                "htm_transaction_abort_cause..htm_disabled",
-                "htm_transaction_abort_cause..memory_conflict_falsesharing",
                 "htm_transaction_abort_cause..other"
             ]
         },
@@ -167,22 +157,12 @@
             ]
         },
         {
-            "groupName": "Stalled",
-            "mergingStats": [
-                "cyclesInRegion..STALLED_COMMITTED",
-                "cyclesInRegion..STALLED_ABORTED",
-                "cyclesInRegion..STALLED_NONTRANS"
-            ]
-        },
-        {
             "groupName": "OtherRegion",
             "mergingStats": [
                 "cyclesInRegion..BARRIER",
                 "cyclesInRegion..KERNEL",
                 "cyclesInRegion..KERNEL_HASLOCK",
-                "cyclesInRegion..ARBITRATION_COMMITTED",
-                "cyclesInRegion..BACKOFF",
-                "cyclesInRegion..ARBITRATION_ABORTED"
+                "cyclesInRegion..BACKOFF"
             ]
         }
     ],
@@ -191,92 +171,83 @@
     "outlierStat": "simulationTime",
     "availablePlots": [
         "barplot",
-        "stackBarplot"
+        "stackBarplot",
+        "scalabilityPlot"
     ],
     "plots": [
         {
-            "title": "Simulation time",
-            "plotType": 0,
-            "fileName": "simulationTime",
+            "title": "simTicks",
+            "plotType": 2,
+            "fileName": "simTicks(wopower)",
             "xAxisName": "benchmarks",
-            "yAxisName": "Simulation Time (Ticks)",
+            "yAxisName": "simulationTime",
+            "xAxis": "num_cpus",
+            "iterate": "benchmark_name",
             "width": 28,
-            "height": 12,
+            "height": 18,
+            "orderingType": 0,
             "benchmarksFiltered": [],
-            "orderingType": 2,
             "configsOrdering": [
-                "requester_winsFalse",
-                "power_tmFalse",
-                "power_tmTrue",
-                "power_tm_consumer_winsTrue"
+
             ],
-            "configsFiltered": [],
+            "configsFiltered": [
+                {
+                    "confName": "htm_conflict_resolution",
+                    "values": ["woper_tm","power_tm"]
+                }
+            ],
             "stats": [
                 "simulationTime"
             ],
-            "normalized": true,
-            "legendNames": ["Rw","Pow","PowFW","PowCWFW"]
+            "normalized": false,
+            "legendNames": [],
+            "groupNames": [
+                "req-win",
+                "power",
+                "powervp",
+                "powervp_cw",
+                "req-loses",
+                "woper",
+                "wopervp",
+                "wopervp_cw"
+            ]
         },
         {
-            "title": "Simulation time Split",
-            "plotType": 1,
-            "fileName": "simulationTimeSplit",
+            "title": "simTicks",
+            "plotType": 2,
+            "fileName": "simTicks(rlrw)",
             "xAxisName": "benchmarks",
-            "yAxisName": "Simulation Time (Ticks)",
+            "yAxisName": "simulationTime",
+            "xAxis": "num_cpus",
+            "iterate": "benchmark_name",
             "width": 28,
-            "height": 12,
-            "benchmarksFiltered": [],
-            "orderingType": 2,
-            "configsOrdering": [
-                "requester_winsFalse",
-                "power_tmFalse",
-                "power_tmTrue",
-                "power_tm_consumer_winsTrue"
-            ],
-            "configsFiltered": [],
-            "stats": [
-                "Parallel",
-                "Committed",
-                "Aborted",
-                "Validating",
-                "Aborting",
-                "HasLock",
-                "WaitForRetry",
-                "Stalled",
-                "OtherRegion"
-            ],
-            "normalized": true,
-            "legendNames": [],
-            "groupNames": ["Rw","Pow","PowFW","PowCWFW"]
-        },
-        {
-            "title": "Tx executed by parts",
-            "plotType": 1,
-            "fileName": "txExecutedByPartsNoSpec",
-            "xAxisName": "benchmarks",
-            "yAxisName": "executed Tx",
-            "width": 28,
-            "height": 12,
-            "orderingType": 2,
+            "height": 18,
+            "orderingType": 0,
             "benchmarksFiltered": [],
             "configsOrdering": [
-                "requester_winsFalse",
-                "power_tmFalse",
-                "power_tmTrue",
-                "power_tm_consumer_winsTrue"
+
             ],
-            "configsFiltered": [],
+            "configsFiltered": [
+                {
+                    "confName": "htm_conflict_resolution",
+                    "values": ["requester_wins","requester_loses"]
+                }
+            ],
             "stats": [
-                "Conflicts",
-                "Size",
-                "FallbackLock",
-                "Explicit",
-                "Stale",
-                "Other"
+                "simulationTime"
             ],
-            "normalized": true,
+            "normalized": false,
             "legendNames": [],
-            "groupNames": ["Rw","Pow","PowFW","PowCWFW"]
+            "groupNames": [
+                "req-win",
+                "power",
+                "powervp",
+                "powervp_cw",
+                "req-loses",
+                "woper",
+                "wopervp",
+                "wopervp_cw"
+            ]
         }
     ]
 }

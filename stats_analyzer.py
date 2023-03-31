@@ -13,7 +13,8 @@ import dataPlot
 def getPlotType(x):
     return {
         0: "barplot",
-        1: "stackBarplot"
+        1: "stackBarplot",
+        2: "scalabilityPlot"
     }.get(x, "Invalid")
 
 csv = ""
@@ -40,7 +41,7 @@ file.close()
 
 # Parse data
 outDir = config["outputPath"]
-csvPath = args.csv
+csvPath = os.path.join(outDir, args.csv)
 if not os.path.exists(outDir):
     try:
         # Create output directory
@@ -60,7 +61,7 @@ dataManager.renameStats(config["renameStats"], wcsvPath)
 dataManager.mixStats(config["mixStats"], wcsvPath)
 dataManager.removeOutliers(config["outlierStat"], config["configs"], wcsvPath)
 if config["reduceSeeds"]:
-    dataManager.reduceSeeds(config["configs"], wcsvPath)
+    dataManager.reduceSeeds(config["configs"], config["meanAlgorithm"], wcsvPath)
 
 
 # Remove outliers only if specified

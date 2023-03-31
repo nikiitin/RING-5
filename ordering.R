@@ -14,10 +14,6 @@ currArg <- currArg + 1
 orderingType <- as.integer(arguments[currArg])
 currArg <- currArg + 1
 # Until here, arguments are fixed
-skip <- orderingType == 0 
-if (orderingType == 0) {
-    stop("Skipping stats sort step")
-}
 
 configsOrdering <- NULL
 nConfigs <- arguments[currArg]
@@ -40,7 +36,24 @@ parsed_data <- read.table(statsFile, sep = " ", header=TRUE)
 # Order benchmarks
 # TODO: choose the order you prefer for benchs, like in configs
 # Rigth now order by alphabetical order
+# Put mean at the end!
+
 parsed_data <- parsed_data[order(parsed_data[,"benchmark_name"], decreasing = FALSE),]
+mean_df <- parsed_data[parsed_data["benchmark_name"] != "Mean", ]
+names_vector <- unique(as.character(mean_df[,"benchmark_name"]))
+names_vector <- c(names_vector, "Mean")
+
+parsed_data[["benchmark_name"]] <- factor(parsed_data[["benchmark_name"]], levels = unique(names_vector))
+# Reorder benchmarks to have the mean figure at the end
+
+parsed_data <- parsed_data[order(parsed_data[,"benchmark_name"], decreasing = FALSE),]
+
+if (orderingType == 0) {
+    # Write data onto csv file
+    write.table(parsed_data, statsFile, sep=" ", row.names = F)
+    stop("Skipping stats sort step")
+}
+
 
 # Order configurations as desired
 if (length(configsOrdering) < 1) {
@@ -68,5 +81,3 @@ if (orderingType == 1) {
 } else {
     stop("Unexpected sort type")
 }
-# Write data onto csv file
-write.table(parsed_data, statsFile, sep=" ", row.names = F)

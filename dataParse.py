@@ -30,5 +30,5 @@ def runParse(config, csvPath):
     configsToAnalyze = config["configs"]
     compressedFile = os.path.join(outDir, "stats.tar")
     finalDirName = os.path.join(outDir, "stats")
-    #compressData(statsFiles, compressedFile, "*stats.txt", finalDirName)
+    compressData(statsFiles, compressedFile, "*stats.txt", finalDirName)
     parseStats(finalDirName, statsToParse, configsToAnalyze, csvPath)
