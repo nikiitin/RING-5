@@ -200,7 +200,10 @@
             "normalized": true,
             "legendNames": [],
             "groupNames": [
-            ]
+            ],
+            "breaks": [],
+            "limitTop": 0,
+            "limitBot": 0
         }
     ]
 }
