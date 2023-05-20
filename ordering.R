@@ -71,7 +71,7 @@ if (orderingType == 1) {
         } else {
             parsed_data <- 
                 parsed_data[order(parsed_data[,var], decreasing = FALSE),]
-        }
+	}
     }
 } else if (orderingType == 2) {
     # Here we will sort by confName
@@ -81,3 +81,5 @@ if (orderingType == 1) {
 } else {
     stop("Unexpected sort type")
 }
+# Write filtered data onto csv file
+write.table(parsed_data, statsFile, sep=" ", row.names = F)
