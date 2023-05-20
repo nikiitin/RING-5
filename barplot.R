@@ -36,6 +36,17 @@ if (nLegendNames > 0) {
     currArg <- increment(currArg)
   }
 }
+y_breaks <- NULL
+n_breaks <- arguments[currArg]
+if (n_breaks > 0) {
+  for (i in 1:n_breaks) {
+    y_breaks <- c(y_breaks, arguments[currArg])
+    currArg <- increment(currArg)
+  }
+}
+y_limit_top <- arguments[currArg]
+currArg <- increment(currArg)
+y_limit_bot <- arguments[currArg]
 # Finish arguments parsing
 
 # Start data collection
@@ -59,6 +70,15 @@ p <- ggplot(parsed_data, aes(x=benchmark_name, fill=confKey, y=parsed_data[,stat
 p <- p + theme_hc()
 
 # Add parameters to the plot
+# Limits
+if (y_limit_top > y_limit_bot) {
+  if (n_breaks > 0) {
+    p <- p + scale_y_continuous(limits = c(y_limit_bot, y_limit_top),
+      breaks = y_breaks)
+  } else {
+    p <- p + scale_y_continuous(limits = c(y_limit_bot, y_limit_top))
+  }
+}
 # Legend names
 if (nLegendNames != 0) {
   p <- p + scale_fill_brewer(palette = "Set1", labels=legendNames)
