@@ -47,6 +47,19 @@ if (nLegendNames > 0) {
     currArg <- increment(currArg)
   }
 }
+
+y_breaks <- NULL
+n_breaks <- arguments[currArg]
+currArg <- increment(currArg)
+if (n_breaks > 0) {
+  for (i in 1:n_breaks) {
+    y_breaks <- c(y_breaks, arguments[currArg])
+    currArg <- increment(currArg)
+  }
+}
+y_limit_top <- as.numeric(arguments[currArg])
+currArg <- increment(currArg)
+y_limit_bot <- as.numeric(arguments[currArg])
 # Finish arguments parsing
 
 # Start data collection
