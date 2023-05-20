@@ -77,7 +77,7 @@ if (nLegendNames != 0) {
 } else {
   p <- p + scale_fill_brewer(palette = "Set1")
 }
-
+# Breaks
 if (n_breaks > 0) {
   y_breaks <- as.numeric(y_breaks)
   p <- p + scale_y_continuous(breaks = y_breaks)
@@ -87,8 +87,6 @@ if (y_limit_top > y_limit_bot) {
     limits <- c(y_limit_bot, y_limit_top)
     p <- p + coord_cartesian(ylim=as.numeric(limits))
 }
-
-
 # Title
 if (plot.title != "") {
   p <- p + ggtitle(plot.title)
