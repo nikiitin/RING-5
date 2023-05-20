@@ -88,6 +88,15 @@ p <- p + theme_hc() +
 #}
 
 # Add parameters to the plot
+# Limits
+if (y_limit_top > y_limit_bot) {
+  if (n_breaks > 0) {
+    p <- p + scale_y_continuous(limits = c(y_limit_bot, y_limit_top),
+      breaks = y_breaks)
+  } else {
+    p <- p + scale_y_continuous(limits = c(y_limit_bot, y_limit_top))
+  }
+}
 # Legend names
 if (nLegendNames != 0) {
   p <- p + scale_fill_brewer(palette = "Set1", labels=legendNames)
