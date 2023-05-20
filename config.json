@@ -1,8 +1,8 @@
 {
     "filesPaths": [
-        "/home/victor/workspace/echo-fs/sims/ruben/gem5/results/motivation-rwvsrspec"
+        "/home/vnicolas/Workspace/remote-echo/workspace/sims/ruben/gem5/results/motivation-rwvsrspec"
     ],
-    "outputPath": "/home/victor/workspace/repos/RING-5/results-rlrw",
+    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/results-rlrw",
     "configs": [
         "htm_conflict_resolution"
     ],
@@ -201,9 +201,9 @@
             "legendNames": [],
             "groupNames": [
             ],
-            "breaks": [],
-            "limitTop": 0,
-            "limitBot": 0
+	    "breaks": ["0.75","0.875", "1", "1.125", "1.25"],
+            "limitTop": 1.25,
+            "limitBot": 0.75
         }
     ]
 }

@@ -97,6 +97,16 @@ if (y_limit_top > y_limit_bot) {
     p <- p + scale_y_continuous(limits = c(y_limit_bot, y_limit_top))
   }
 }
+# Breaks
+if (n_breaks > 0) {
+  y_breaks <- as.numeric(y_breaks)
+  p <- p + scale_y_continuous(breaks = y_breaks)
+}
+# Limits
+if (y_limit_top > y_limit_bot) {
+    limits <- c(y_limit_bot, y_limit_top)
+    p <- p + coord_cartesian(ylim=as.numeric(limits))
+}
 # Legend names
 if (nLegendNames != 0) {
   p <- p + scale_fill_brewer(palette = "Set1", labels=legendNames)
