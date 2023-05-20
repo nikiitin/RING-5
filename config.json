@@ -1,12 +1,10 @@
 {
     "filesPaths": [
-        "/home/vnicolas/Workspace/remote-echo/workspace/sims/ruben/gem5/results/2023-03-24-002/"
+        "/home/victor/workspace/echo-fs/sims/ruben/gem5/results/motivation-rwvsrspec"
     ],
-    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/results-test",
+    "outputPath": "/home/victor/workspace/repos/RING-5/results-rlrw",
     "configs": [
-        "htm_conflict_resolution",
-        "htm_allow_early_value_forwarding",
-        "num_cpus"
+        "htm_conflict_resolution"
     ],
     "statsAnalyzed": [
         "simTicks",
@@ -35,6 +33,8 @@
         "cyclesInRegion::BACKOFF",
         "cyclesInRegion::TRANSACTIONAL_COMMITTED",
         "cyclesInRegion::TRANSACTIONAL_ABORTED",
+        "cyclesInRegion::TRANSACTIONAL_POWER",
+        "cyclesInRegion::TRANSACTIONAL_SPECULATING",
         "cyclesInRegion::COMMITTING",
         "cyclesInRegion::ABORTING",
         "cyclesInRegion::HASLOCK",
@@ -67,6 +67,7 @@
         {
             "groupName": "Conflicts",
             "mergingStats": [
+                "htm_transaction_abort_cause..memory_conflict_staledata",
                 "htm_transaction_abort_cause..memory_conflict.s",
                 "htm_transaction_abort_cause..memory_conflict_falsesharing",
                 "htm_transaction_abort_cause..lsq_conflict"
@@ -97,12 +98,6 @@
             ]
         },
         {
-            "groupName": "Stale",
-            "mergingStats": [
-                "htm_transaction_abort_cause..memory_conflict_staledata"
-            ]
-        },
-        {
             "groupName": "Other",
             "mergingStats": [
                 "htm_transaction_abort_cause..nesting_limit",
@@ -126,7 +121,8 @@
         {
             "groupName": "Aborted",
             "mergingStats": [
-                "cyclesInRegion..TRANSACTIONAL_ABORTED"
+                "cyclesInRegion..TRANSACTIONAL_ABORTED",
+                "cyclesInRegion..ABORTING"
             ]
         },
         {
@@ -136,15 +132,21 @@
             ]
         },
         {
-            "groupName": "Aborting",
-            "mergingStats": [
-                "cyclesInRegion..ABORTING"
-            ]
-        },
-        {
             "groupName": "HasLock",
             "mergingStats": [
                 "cyclesInRegion..HASLOCK"
+            ]
+        },
+        {
+            "groupName": "Power",
+            "mergingStats": [
+                "cyclesInRegion::TRANSACTIONAL_POWER"
+            ]
+        },
+        {
+            "groupName": "Consuming",
+            "mergingStats": [
+                "cyclesInRegion::TRANSACTIONAL_SPECULATING"
             ]
         },
         {
@@ -157,7 +159,7 @@
             ]
         },
         {
-            "groupName": "OtherRegion",
+            "groupName": "OtherRegions",
             "mergingStats": [
                 "cyclesInRegion..BARRIER",
                 "cyclesInRegion..KERNEL",
@@ -169,6 +171,7 @@
     "reduceSeeds": true,
     "removeOutliers": true,
     "outlierStat": "simulationTime",
+    "meanAlgorithm" : "geomean",
     "availablePlots": [
         "barplot",
         "stackBarplot",
@@ -177,44 +180,7 @@
     "plots": [
         {
             "title": "simTicks",
-            "plotType": 2,
-            "fileName": "simTicks(wopower)",
-            "xAxisName": "benchmarks",
-            "yAxisName": "simulationTime",
-            "xAxis": "num_cpus",
-            "iterate": "benchmark_name",
-            "width": 28,
-            "height": 18,
-            "orderingType": 0,
-            "benchmarksFiltered": [],
-            "configsOrdering": [
-
-            ],
-            "configsFiltered": [
-                {
-                    "confName": "htm_conflict_resolution",
-                    "values": ["woper_tm","power_tm"]
-                }
-            ],
-            "stats": [
-                "simulationTime"
-            ],
-            "normalized": false,
-            "legendNames": [],
-            "groupNames": [
-                "req-win",
-                "power",
-                "powervp",
-                "powervp_cw",
-                "req-loses",
-                "woper",
-                "wopervp",
-                "wopervp_cw"
-            ]
-        },
-        {
-            "title": "simTicks",
-            "plotType": 2,
+            "plotType": 0,
             "fileName": "simTicks(rlrw)",
             "xAxisName": "benchmarks",
             "yAxisName": "simulationTime",
@@ -227,26 +193,13 @@
             "configsOrdering": [
 
             ],
-            "configsFiltered": [
-                {
-                    "confName": "htm_conflict_resolution",
-                    "values": ["requester_wins","requester_loses"]
-                }
-            ],
+            "configsFiltered": [],
             "stats": [
                 "simulationTime"
             ],
-            "normalized": false,
+            "normalized": true,
             "legendNames": [],
             "groupNames": [
-                "req-win",
-                "power",
-                "powervp",
-                "powervp_cw",
-                "req-loses",
-                "woper",
-                "wopervp",
-                "wopervp_cw"
             ]
         }
     ]
