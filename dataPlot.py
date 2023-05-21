@@ -98,5 +98,6 @@ def plotFigure(plotInfo, plotType, nConfigs, workResultsCsv, outDir):
     RScriptCall.extend(plotInfo["breaks"])
     RScriptCall.append(str(plotInfo["limitTop"]))
     RScriptCall.append(str(plotInfo["limitBot"]))
+    RScriptCall.append(plotInfo["format"])
     print(RScriptCall)
     subprocess.call(RScriptCall)

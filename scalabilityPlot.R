@@ -50,7 +50,7 @@ if (n_lines_names > 0) {
     currArg <- increment(currArg)
   }
 }
-
+format <- arguments[currArg]
 # Finish arguments parsing
 
 # Start data collection
@@ -142,6 +142,6 @@ p <- annotate_figure(p, left = textGrob(line_stat, rot = 90),
 #    p <- p + scale_fill_discrete(name="Configs",labels = lines_names, font.label=list(size=7))
 #  }
 # Configure combined plot
-ggsave(paste(c(plot.fileName, "_", "global", "_", ".png"),
+ggsave(paste(c(plot.fileName, "_", "global", "_", ".", format),
   collapse = ""), plot = p, width = plot.width, height = plot.height,
-  units = "cm", dpi = 320, device = "png")
+  units = "cm", dpi = 320, device = format)

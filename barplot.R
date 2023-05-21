@@ -48,6 +48,8 @@ if (n_breaks > 0) {
 y_limit_top <- as.numeric(arguments[currArg])
 currArg <- increment(currArg)
 y_limit_bot <- as.numeric(arguments[currArg])
+currArg <- increment(currArg)
+format <- arguments[currArg]
 # Finish arguments parsing
 
 # Start data collection
@@ -108,4 +110,4 @@ if (plot.yAxisName != "") {
   #p + theme(axis.title.y = element_text(family, face, colour, size))
 }
 
-ggsave(paste(c(plot.statsFile, ".jpg"), collapse = ""), width=plot.width, height=plot.height, units="cm", dpi=320, device="jpg")
+ggsave(paste(c(plot.statsFile, ".", format), collapse = ""), width=plot.width, height=plot.height, units="cm", dpi=320, device=format)

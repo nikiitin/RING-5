@@ -61,7 +61,7 @@ for ((stat_index = 0; stat_index < ${#grep_stats[@]}; stat_index++)); do
 
     cpusMean=0
     cpusRep=0
-    while read -r data; do       
+    while read -r data; do
         # Parse the stat we are looking for
         parsedResult=$(echo $data |  tr -s ' ' | cut -d ' ' -f 2)
         # Calculate iteratively the mean between cpus
