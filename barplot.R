@@ -71,7 +71,9 @@ p <- ggplot(parsed_data, aes(x=benchmark_name, fill=confKey, y=parsed_data[,stat
 
 # Here you can change the theme  
 p <- p + theme_hc()
-
+p <- p + theme(axis.text.x = element_text(angle = 30, hjust=1, size=10, face="bold"),
+	       axis.text.y = element_text(hjust=1, size=10, face="bold"))
+#p <- p + scale_x_discrete(guide = guide_axis(n.dodge = 2))
 # Add parameters to the plot
 # Legend names
 if (nLegendNames != 0) {

@@ -95,7 +95,9 @@ p <- ggplot(datos, aes(x=config, fill=stat, y=data)) +
   
 # Here you can change the theme  
 p <- p + theme_hc() +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  theme(axis.text.x = element_text(angle = 45, hjust=1, size=10, face="bold"),
+  	axis.text.y = element_text(size=10, face="bold"),
+	strip.text.x = element_text(angle = 90))
 
 #if(normalize == "True") {
 #p <- p + scale_y_continuous(limits = c(0, 2), breaks = seq(0, 2, by = 0.5))
@@ -128,6 +130,7 @@ if (nLegendNames != 0) {
 } else {
   p <- p + scale_fill_brewer(palette = "Set1")
 }
+p <- p +  guides(fill=guide_legend(title="New Legend Title"))
 
 # Title
 if (plot.title != "") {
