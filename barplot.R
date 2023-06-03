@@ -50,6 +50,10 @@ currArg <- increment(currArg)
 y_limit_bot <- as.numeric(arguments[currArg])
 currArg <- increment(currArg)
 format <- arguments[currArg]
+currArg <- increment(currArg)
+legend_title <- arguments[currArg]
+currArg <- increment(currArg)
+legend.n_elem_row <- arguments[currArg]
 # Finish arguments parsing
 
 # Start data collection
@@ -81,6 +85,20 @@ if (nLegendNames != 0) {
 } else {
   p <- p + scale_fill_brewer(palette = "Set1")
 }
+#Number of elements per row in legend
+if (legend.n_elem_row != 0) {
+  if (legend_title != "") {
+    p <- p + guides(fill=guide_legend(fill=guide_legend(nrow=legend.n_elem_row,title=legend_title)))
+    print("hola")
+  } else {
+    p <- p + guides(fill=guide_legend(fill=guide_legend(nrow=legend.n_elem_row)))
+  }
+} else {
+  if (legend_title != "") {
+    p <- p + guides(fill=guide_legend(fill=guide_legend(title=legend_title)))
+  } 
+}
+
 # Breaks
 if (n_breaks > 0) {
   y_breaks <- as.numeric(y_breaks)

@@ -99,5 +99,7 @@ def plotFigure(plotInfo, plotType, nConfigs, workResultsCsv, outDir):
     RScriptCall.append(str(plotInfo["limitTop"]))
     RScriptCall.append(str(plotInfo["limitBot"]))
     RScriptCall.append(plotInfo["format"])
+    RScriptCall.append(plotInfo["legendTitle"])
+    RScriptCall.append(str(plotInfo["nLegendElementsPerRow"]))
     print(RScriptCall)
     subprocess.call(RScriptCall)
