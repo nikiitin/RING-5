@@ -2,18 +2,20 @@
     "filesPaths": [
         "/home/vnicolas/Workspace/remote-echo/workspace/sims/ruben/gem5/results/motivation-rwvsrspec"
     ],
-    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/results-rlrw",
+    "outputPath": "/home/victor/workspace/repos/RING-5/results-rlrw",
     "configs": [
-        "htm_conflict_resolution"
+        "htm_conflict_resolution",
+        "htm_allow_early_value_forwarding"
     ],
     "statsAnalyzed": [
         "simTicks",
-	    "htm_transaction_abort_cause::total",
+        "htm_transaction_aborted",
         "htm_transaction_abort_cause::explicit",
         "htm_transaction_abort_cause::nesting_limit",
         "htm_transaction_abort_cause::transaction_size\\s",
         "htm_transaction_abort_cause::exception",
         "htm_transaction_abort_cause::interrupt",
+        "htm_transaction_abort_cause::htm_disabled",
         "htm_transaction_abort_cause::memory_conflict\\s",
         "htm_transaction_abort_cause::lsq_conflict",
         "htm_transaction_abort_cause::transaction_size_rset",
@@ -26,15 +28,12 @@
         "htm_transaction_abort_cause::memory_conflict_staledata",
         "htm_transaction_abort_cause::memory_conflict_falsesharing",
         "htm_transaction_abort_cause::validation_failure",
-        "htm_transaction_abort_cause::memory_conflict_power",
         "htm_transaction_abort_cause::other",
         "cyclesInRegion::DEFAULT",
         "cyclesInRegion::BARRIER",
         "cyclesInRegion::BACKOFF",
         "cyclesInRegion::TRANSACTIONAL_COMMITTED",
         "cyclesInRegion::TRANSACTIONAL_ABORTED",
-        "cyclesInRegion::TRANSACTIONAL_POWER",
-        "cyclesInRegion::TRANSACTIONAL_SPECULATING",
         "cyclesInRegion::COMMITTING",
         "cyclesInRegion::ABORTING",
         "cyclesInRegion::HASLOCK",
@@ -43,7 +42,12 @@
         "cyclesInRegion::WAITFORRETRY_EXCEPTION",
         "cyclesInRegion::WAITFORRETRY_SIZE",
         "cyclesInRegion::KERNEL",
-        "cyclesInRegion::KERNEL_HASLOCK"
+        "cyclesInRegion::KERNEL_HASLOCK",
+        "cyclesInRegion::STALLED_COMMITTED",
+        "cyclesInRegion::STALLED_ABORTED",
+        "cyclesInRegion::STALLED_NONTRANS",
+        "cyclesInRegion::ARBITRATION_COMMITTED",
+        "cyclesInRegion::ARBITRATION_ABORTED"
     ],
     "renameStats": [
         {
@@ -171,7 +175,6 @@
     "reduceSeeds": true,
     "removeOutliers": true,
     "outlierStat": "simulationTime",
-    "meanAlgorithm" : "geomean",
     "availablePlots": [
         "barplot",
         "stackBarplot",
@@ -190,20 +193,27 @@
             "height": 18,
             "orderingType": 0,
             "benchmarksFiltered": [],
-            "configsOrdering": [
-
-            ],
+            "configsOrdering": [],
             "configsFiltered": [],
             "stats": [
                 "simulationTime"
             ],
+            "meanAlgorithm": "geomean",
             "normalized": true,
             "legendNames": [],
-            "groupNames": [
+            "groupNames": [],
+            "breaks": [
+                "0.75",
+                "0.875",
+                "1",
+                "1.125",
+                "1.25"
             ],
-	    "breaks": ["0.75","0.875", "1", "1.125", "1.25"],
             "limitTop": 1.25,
-            "limitBot": 0.75
+            "limitBot": 0.75,
+            "format": "pdf",
+            "legendTitle": "example",
+            "nLegendElementsPerRow": 2
         }
     ]
 }
