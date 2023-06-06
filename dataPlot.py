@@ -14,6 +14,15 @@ def filterData(benchsFiltered, configsFiltered, workResultsCsv):
         RScriptCall.extend(filt["values"])
     subprocess.call(RScriptCall)
 
+def dataMean(nConfigs, meanAlgorithm, workResultsCsv):
+    print("Calculating means")
+    print("Algorithm: " + meanAlgorithm)
+    RScriptCall = ["./dataMeanCalculator.R"]
+    RScriptCall.append(workResultsCsv)
+    RScriptCall.append(str(nConfigs))
+    RScriptCall.append(meanAlgorithm)
+    subprocess.call(RScriptCall)
+
 def orderData(orderingType, configOrdering, workResultsCsv):
     print("Ordering data")
     RScriptCall = ["./ordering.R"]
@@ -37,11 +46,13 @@ def plotFigure(plotInfo, plotType, nConfigs, workResultsCsv, outDir):
     filterData(plotInfo["benchmarksFiltered"],
                plotInfo["configsFiltered"],
                workResultsCsv)
-
+    
+    dataMean(nConfigs,
+            plotInfo["meanAlgorithm"],
+            workResultsCsv)
     orderData(plotInfo["orderingType"],
               plotInfo["configsOrdering"],
               workResultsCsv)
-    exit
     
     if plotType == "stackBarplot":
         RScriptCall = ["./stackedBarplot.R"]

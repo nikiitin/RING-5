@@ -61,7 +61,7 @@ dataManager.renameStats(config["renameStats"], wcsvPath)
 dataManager.mixStats(config["mixStats"], wcsvPath)
 dataManager.removeOutliers(config["outlierStat"], config["configs"], wcsvPath)
 if config["reduceSeeds"]:
-    dataManager.reduceSeeds(config["configs"], config["meanAlgorithm"], wcsvPath)
+    dataManager.reduceSeeds(config["configs"], wcsvPath)
 
 
 # Remove outliers only if specified
