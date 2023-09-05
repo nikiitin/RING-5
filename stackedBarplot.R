@@ -91,17 +91,21 @@ datos$config <- factor(datos$config, levels = unique(as.character(datos$config))
 datos$benchmark <- factor(datos$benchmark, levels = unique(as.character(datos$benchmark)))
 datos$stat <- factor(datos$stat, levels = unique(as.character(datos$stat)))
 datos$data <- as.numeric(datos$data)
+datos$data <- datos$data * 100
 # Basic plot
 # Just plot the bar and sd
-p <- ggplot(datos, aes(x=config, fill=stat, y=data)) +
-  geom_bar(stat="identity", position="stack") +
-  facet_grid(~ benchmark)
+p <- ggplot(datos, aes(x=benchmark, fill=stat, y=data)) +
+  geom_bar(stat="identity", position="stack") #+
+  #facet_grid(~ benchmark, switch = "x")
   
-# Here you can change the theme  
+# Here you can change the theme
 p <- p + theme_hc() +
-  theme(axis.text.x = element_text(angle = 45, hjust=1, size=10, face="bold"),
+  theme(axis.text.x = element_text(angle = 30, hjust=1, size=10, face="bold"),
   	axis.text.y = element_text(size=10, face="bold"),
-	strip.text.x = element_text(angle = 90))
+	  strip.text.x = element_text(angle = 45, size=10, face="bold"), strip.placement = "outside",
+    strip.background = element_rect(fill = NA, color = "white"),
+    panel.spacing = unit(-.01, "cm"), legend.position="top",
+    legend.justification="right")
 
 #if(normalize == "True") {
 #p <- p + scale_y_continuous(limits = c(0, 2), breaks = seq(0, 2, by = 0.5))
@@ -130,21 +134,16 @@ if (y_limit_top > y_limit_bot) {
 }
 # Legend names
 if (nLegendNames != 0) {
-  p <- p + scale_fill_brewer(palette = "Set1", labels=legendNames)
+  p <- p + scale_fill_viridis_d(option="plasma", labels=legendNames, direction = -1)
 } else {
-  p <- p + scale_fill_brewer(palette = "Set1")
+  p <- p + scale_fill_viridis_d(option="plasma", direction = -1)
 }
 # Legend title and n elements per row
+#Number of elements per row in legend
 if (legend.n_elem_row != 0) {
-  if (legend_title != "") {
-    p <- p + guides(fill=guide_legend(fill=guide_legend(nrow=legend.n_elem_row,title=legend_title)))
-  } else {
-    p <- p + guides(fill=guide_legend(fill=guide_legend(nrow=legend.n_elem_row)))
-  }
+    p <- p + guides(fill=guide_legend(fill=guide_legend(nrow=legend.n_elem_row),title=legend_title))
 } else {
-  if (legend_title != "") {
-    p <- p + guides(fill=guide_legend(fill=guide_legend(title=legend_title)))
-  }
+    p <- p + guides(fill=guide_legend(title=legend_title))
 }
 # Title
 if (plot.title != "") {
@@ -154,11 +153,10 @@ if (plot.title != "") {
 }
 
 # X-axis title
-if (plot.xAxisName != "") {
+
   p <- p + xlab(plot.xAxisName)
   # In case you want to modify the style
   #p + theme(axis.title.x = element_text(family, face, colour, size))
-}
 
 # Y-axis title
 if (plot.yAxisName != "") {

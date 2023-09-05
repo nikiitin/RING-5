@@ -15,7 +15,8 @@ def parseStats(files, stats, configs, resultsCsv):
     print("Parsing stats and turning into csv")
     shellScriptCall = ["./dataParser.sh"]
     shellScriptCall.append(resultsCsv)
-    shellScriptCall.append(files)
+    shellScriptCall.append(str(len(files)))
+    shellScriptCall.extend(files)
     shellScriptCall.append(str(len(stats)))
     shellScriptCall.extend(stats)
     shellScriptCall.append(str(len(configs)))

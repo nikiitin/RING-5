@@ -10,6 +10,8 @@ normalize <- arguments[currArg]
 currArg <- increment(currArg)
 sdNorm <- arguments[currArg]
 currArg <- increment(currArg)
+normalizer_name <- as.numeric(arguments[currArg])
+currArg <- increment(currArg)
 # Until here all arguments are fixed
 
 if (normalize == "False") {
@@ -30,7 +32,6 @@ parsed_data <- read.table(statsFile, sep = " ", header=TRUE)
 # Normalize data
 
 if (normalize == "True") {
-  # Create the sd name
   
   # Create new row (sum of all stacked variables)
   parsed_data["total"] <- 0
@@ -41,7 +42,7 @@ if (normalize == "True") {
   for (bench in unique(parsed_data[,"benchmark_name"])){
     dataToNorm <- parsed_data[parsed_data["benchmark_name"] == bench,]
     # It is already ordered, take first element
-    normalizer <- dataToNorm[1,]
+    normalizer <- dataToNorm[normalizer_name,]
     # Apply normalization
     for (i in 1:length(dataToNorm[,1])) {
       for (stat in stats) {

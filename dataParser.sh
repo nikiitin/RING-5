@@ -2,10 +2,14 @@
 parsed_data_file=$1
 rm $parsed_data_file
 shift 1
-
-data_path=$1
+data_n_files=$1
+data_paths=()
 shift 1
-
+for i in $(seq 1 1 "$data_n_files")
+do
+    data_paths+=$1
+    shift 1
+done
 
 # Get all the stats we want to extract
 nstats=$1
@@ -73,7 +77,13 @@ echo ${header_configs[@]} ${header_stat[@]} >> $parsed_data_file
 # (Avoid extra grep)
 config_indexes=()
 # Find stats name, usually standard name
-statsFiles=$(find "$data_path" -type f -name "stats.txt")
+statsFiles=()
+for path in $data_paths
+do
+    echo "Adding $path files"
+    # Multifile parsing
+    statsFiles+=$(find "$path" -type f -name "stats.txt")
+done
 
 while read line; do
     # In my system maximum arguments are >2000000

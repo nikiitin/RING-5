@@ -2,6 +2,7 @@
 library(readr)
 require(ggplot2)
 require(ggthemes)
+library(prismatic)
 source("util.R")
 arguments = commandArgs(trailingOnly = TRUE)
 
@@ -76,39 +77,41 @@ p <- ggplot(parsed_data, aes(x=benchmark_name, fill=confKey, y=parsed_data[,stat
 # Here you can change the theme  
 p <- p + theme_hc()
 p <- p + theme(axis.text.x = element_text(angle = 30, hjust=1, size=10, face="bold"),
-	       axis.text.y = element_text(hjust=1, size=10, face="bold"))
+	      axis.text.y = element_text(hjust=1, size=10, face="bold"),
+        legend.position="top", legend.justification="right")
 #p <- p + scale_x_discrete(guide = guide_axis(n.dodge = 2))
 # Add parameters to the plot
 # Legend names
+colors_to_print <- farver::decode_colour(viridisLite::magma(length(unique(parsed_data$confKey)), direction = -1), "rgb", "hcl")
+label_col <- ifelse(colors_to_print[, "l"] > 50, "black", "white")
+
 if (nLegendNames != 0) {
-  p <- p + scale_fill_brewer(palette = "Set1", labels=legendNames)
+  p <- p + scale_fill_viridis_d(option="plasma", labels=legendNames, direction = -1)
 } else {
-  p <- p + scale_fill_brewer(palette = "Set1")
+  p <- p + scale_fill_viridis_d(option="plasma", direction = -1)
 }
 #Number of elements per row in legend
-if (legend.n_elem_row != 0) {
-  if (legend_title != "") {
-    p <- p + guides(fill=guide_legend(fill=guide_legend(nrow=legend.n_elem_row,title=legend_title)))
-    print("hola")
-  } else {
-    p <- p + guides(fill=guide_legend(fill=guide_legend(nrow=legend.n_elem_row)))
-  }
-} else {
-  if (legend_title != "") {
-    p <- p + guides(fill=guide_legend(fill=guide_legend(title=legend_title)))
-  } 
-}
+
+
+p <- p + guides(fill=guide_legend(nrow=as.numeric(legend.n_elem_row),title=legend_title))
 
 # Breaks
-if (n_breaks > 0) {
-  y_breaks <- as.numeric(y_breaks)
-  p <- p + scale_y_continuous(breaks = y_breaks)
-}
+y_breaks <- as.numeric(y_breaks)
+
+print(label_col)
 # Limits
 if (y_limit_top > y_limit_bot) {
     limits <- c(y_limit_bot, y_limit_top)
+    hard_limits <- c(y_limit_bot, y_limit_top - (y_limit_top * 0.05))
+    list_of_labels <- ifelse((parsed_data[,stat] > (y_limit_top)), format(round(parsed_data[,stat], 2), nsmall = 2), NA)
+    p <- p + scale_y_continuous(breaks = y_breaks, oob=scales::squish)
     p <- p + coord_cartesian(ylim=as.numeric(limits))
+    p <- p + geom_text(position = position_dodge(.9), 
+      aes(label = list_of_labels, group=confKey, color = confKey, y=y_limit_top),
+      show.legend = FALSE, size=2.5, angle=90, hjust = "inward")
+    p <- p + scale_color_manual(values = label_col)
 }
+
 # Title
 if (plot.title != "") {
   p <- p + ggtitle(plot.title)
@@ -117,11 +120,10 @@ if (plot.title != "") {
 }
 
 # X-axis title
-if (plot.xAxisName != "") {
+
   p <- p + xlab(plot.xAxisName)
   # In case you want to modify the style
   #p + theme(axis.title.x = element_text(family, face, colour, size))
-}
 
 # Y-axis title
 if (plot.yAxisName != "") {

@@ -8,10 +8,7 @@ def filterData(benchsFiltered, configsFiltered, workResultsCsv):
     RScriptCall.append(str(len(benchsFiltered)))
     RScriptCall.extend(benchsFiltered)
     RScriptCall.append(str(len(configsFiltered)))
-    for filt in configsFiltered:
-        RScriptCall.append(filt["confName"])
-        RScriptCall.append(str(len(filt["values"])))
-        RScriptCall.extend(filt["values"])
+    RScriptCall.extend(configsFiltered)
     subprocess.call(RScriptCall)
 
 def dataMean(nConfigs, meanAlgorithm, workResultsCsv):
@@ -23,21 +20,25 @@ def dataMean(nConfigs, meanAlgorithm, workResultsCsv):
     RScriptCall.append(meanAlgorithm)
     subprocess.call(RScriptCall)
 
-def orderData(orderingType, configOrdering, workResultsCsv):
+def orderData(orderingType, configOrdering, benchmarksOrdering, meanAlgorithm, workResultsCsv):
     print("Ordering data")
     RScriptCall = ["./ordering.R"]
     RScriptCall.append(workResultsCsv)
+    RScriptCall.append(meanAlgorithm)
     RScriptCall.append(str(orderingType))
     RScriptCall.append(str(len(configOrdering)))
     RScriptCall.extend(configOrdering)
+    RScriptCall.append(str(len(benchmarksOrdering)))
+    RScriptCall.extend(benchmarksOrdering)
     subprocess.call(RScriptCall)
 
-def normalizeData(shouldNorm, sd, stats, workResultsCsv):
+def normalizeData(shouldNorm, sd, stats, normalizer, workResultsCsv):
     print("Normalize data")
     RScriptCall = ["./normalize.R"]
     RScriptCall.append(workResultsCsv)
     RScriptCall.append(shouldNorm)
     RScriptCall.append(str(sd))
+    RScriptCall.append(str(normalizer))
     RScriptCall.append(str(len(stats)))
     RScriptCall.extend(stats)
     subprocess.call(RScriptCall)
@@ -52,6 +53,8 @@ def plotFigure(plotInfo, plotType, nConfigs, workResultsCsv, outDir):
             workResultsCsv)
     orderData(plotInfo["orderingType"],
               plotInfo["configsOrdering"],
+              plotInfo["benchmarksOrdering"],
+              plotInfo["meanAlgorithm"],
               workResultsCsv)
     
     if plotType == "stackBarplot":
@@ -59,18 +62,21 @@ def plotFigure(plotInfo, plotType, nConfigs, workResultsCsv, outDir):
         normalizeData(str(plotInfo["normalized"]),
                 False,
                 plotInfo["stats"],
+                plotInfo["normalizer"],
                 workResultsCsv)
     elif plotType == "barplot":
         RScriptCall = ["./barplot.R"]
         normalizeData(str(plotInfo["normalized"]),
                 True,
                 plotInfo["stats"],
+                plotInfo["normalizer"],
                 workResultsCsv)
     else:
         RScriptCall = ["./scalabilityPlot.R"]
         normalizeData(str(plotInfo["normalized"]),
                 False,
                 plotInfo["stats"],
+                plotInfo["normalizer"],
                 workResultsCsv)
         
     

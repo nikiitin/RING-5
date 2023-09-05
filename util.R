@@ -13,3 +13,11 @@ mixStringCols <- function(val1, val2, dataframe) {
 geomean <- function(x) {
     exp(mean(log(x)))
 }
+
+arithmean <- function(x) {
+    mean(x)
+}
+
+return_func <- function(x) {
+    x
+}
