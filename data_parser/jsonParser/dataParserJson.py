@@ -1,16 +1,21 @@
 import os.path
 import subprocess
+from stats_analyzer import AnalyzerInfo
 from data_parser.dataParserInterface import DataParserInterface
 import utils.utils as utils
 
+# NOTE: Please if you are going to add a new data parser,
+#       make it inherit from DataParserInterface
+#       and add it to the DataParserFactory
 class DataParserJson(DataParserInterface):
-    def __init__(self, json, csvPath):
+    def __init__(self, analyzerInfo: AnalyzerInfo) -> None:
+        json = analyzerInfo.getJson()
         outDir = json["outputPath"]
         self._compressedFilePath = os.path.join(outDir, "stats.tar")
         self._files = utils.jsonToArg(json, "filesPaths")
         utils.checkFilesExistOrException(self._files[1:])
         self._finalDirName = os.path.join(outDir, "stats")
-        self._csvPath = csvPath
+        self._csvPath = analyzerInfo.getCsv()
         self._statsAnalyzed = utils.jsonToArg(json, "statsAnalyzed")
         self._configs = utils.jsonToArg(json, "configs")
         

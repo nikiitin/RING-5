@@ -7,7 +7,7 @@ import json
 import os.path
 import argparse
 import utils.utils as utils
-from data_parser.dataParserJson import DataParserJson
+from data_parser.dataParserInterface import DataParserFactory 
 import data_management.dataManager as dataManager
 import plots.dataPlot as dataPlot
 
@@ -104,7 +104,7 @@ info = AnalyzerInfo()
 if info.getSkipParse():
     print("Skipping data parse")
 else:
-    DataParserJson(info.getJson(), info.getCsv()).runParse()
+    DataParserFactory.getDataParser().runParse()
 # Finish data parsing
 # Make a csv copy
 #info.createWorkCsv()
