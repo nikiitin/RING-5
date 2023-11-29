@@ -8,7 +8,7 @@ import os.path
 import argparse
 import utils.utils as utils
 from data_parser.dataParserInterface import DataParserFactory 
-import data_management.dataManager as dataManager
+from data_management.dataManagerInterface import DataManagerFactory
 import plots.dataPlot as dataPlot
 
 temp_dir = tempfile.gettempdir()
@@ -104,20 +104,11 @@ info = AnalyzerInfo()
 if info.getSkipParse():
     print("Skipping data parse")
 else:
-    DataParserFactory.getDataParser().runParse()
-# Finish data parsing
+    DataParserFactory.getDataParser("json", info).runParse()
 # Make a csv copy
-#info.createWorkCsv()
-# Format data for 
-# dataManager.renameStats(config["renameStats"], info.getWorkCsv())
-# dataManager.mixStats(config["mixStats"], wcsvPath)
-# dataManager.removeOutliers(config["outlierStat"], config["configs"], wcsvPath)
-# if config["reduceSeeds"]:
-#     dataManager.reduceSeeds(config["configs"], wcsvPath)
-# TODO: data manager must manage everything in one call
-
-# Remove outliers only if specified
-
+info.createWorkCsv()
+# Manage data
+DataManagerFactory.getDataManager("csv", info).manageResults()
 # Finish data format
 # Start plotting
 # TODO: Plotter must plot everything in one call
