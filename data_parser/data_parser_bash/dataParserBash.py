@@ -7,7 +7,7 @@ import utils.utils as utils
 # NOTE: Please if you are going to add a new data parser,
 #       make it inherit from DataParserInterface
 #       and add it to the DataParserFactory
-class DataParserJson(DataParserInterface):
+class DataParserBash(DataParserInterface):
     def __init__(self, analyzerInfo: AnalyzerInfo) -> None:
         json = analyzerInfo.getJson()
         outDir = json["outputPath"]

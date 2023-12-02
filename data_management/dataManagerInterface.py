@@ -1,5 +1,5 @@
 from stats_analyzer import AnalyzerInfo
-from data_management.csv_data_manager.dataManagerCsv import DataManagerCsv
+from data_management.data_manager_R.dataManagerR import DataManagerR
 class DataManagerInterface:
     def __init__(self, params: AnalyzerInfo) -> None:
         pass
@@ -17,7 +17,7 @@ class DataParserFactory:
         # Singleton
         if self._managerSingleton is None:
             if (implName == "csv"):
-                self._managerSingleton = DataManagerCsv(params)
+                self._managerSingleton = DataManagerR(params)
             else:
                 raise ValueError("Invalid parser implementation")
         return self._managerSingleton

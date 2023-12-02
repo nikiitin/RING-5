@@ -12,7 +12,7 @@ from data_management.dataManagerInterface import DataManagerFactory
 import plots.dataPlot as dataPlot
 
 temp_dir = tempfile.gettempdir()
-
+# TODO: Switch to specialized classes for each action
 class AnalyzerInfo:
     
     # Private methods
@@ -42,7 +42,7 @@ class AnalyzerInfo:
                 answer = input()
                 if answer == "y":
                     # Create output directory
-                    os.mkdir(outDir)
+                    utils.createDir(outDir)
                 else:
                     print("Exiting")
                     exit()
@@ -65,6 +65,9 @@ class AnalyzerInfo:
     
     def getWorkCsv(self):
         return os.path.join(tempfile.gettempdir, self._workCsv)
+    
+    def getTmpDir(self):
+        return temp_dir
     
     def getSkipParse(self):
         return self._args.skipParse

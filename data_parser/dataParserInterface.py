@@ -1,5 +1,5 @@
 from stats_analyzer import AnalyzerInfo
-from data_parser.jsonParser.dataParserJson import DataParserJson
+from data_parser.data_parser_bash.dataParserBash import DataParserBash
 class DataParserInterface:
     def __init__(self, params: AnalyzerInfo) -> None:
         pass
@@ -13,8 +13,8 @@ class DataParserFactory:
     def getDataParser(self, implName: str, params: AnalyzerInfo) -> DataParserInterface:
         # Singleton
         if self._parserSingleton is None:
-            if (implName == "json"):
-                self._parserSingleton = DataParserJson(params)
+            if (implName == "bash"):
+                self._parserSingleton = DataParserBash(params)
             else:
                 raise ValueError("Invalid parser implementation")
         return self._parserSingleton

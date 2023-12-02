@@ -3,7 +3,7 @@ from stats_analyzer import AnalyzerInfo
 from data_management.dataManagerInterface import DataManagerInterface
 import utils.utils as utils
 
-class DataManagerCsv(DataManagerInterface):
+class DataManagerR(DataManagerInterface):
     def __init__(self, params: AnalyzerInfo) -> None:
         json = params.getJson()
         self._csvPath = params.getWorkCsv()

@@ -182,6 +182,25 @@
     ],
     "plots": [
         {
+            "dataMod": {
+                "filter": {
+                    "configsFiltered":[],
+                    "benchmarksFiltered":[]
+                },
+                "mean": {
+                    "meanAlgorithm":"geomean"
+                },
+                "sort": {
+                    "orderingType":0,
+                    "benchmarksOrdering":[],
+                    "configsOrdering":[]
+                },
+                
+                "normalize": {
+                    "normalized": true,
+                    "normalizer": "simTicks"
+                }
+            },
             "title": "simTicks",
             "plotType": 0,
             "fileName": "simTicks(rlrw)",
@@ -192,14 +211,9 @@
             "width": 28,
             "height": 18,
             "orderingType": 0,
-            "benchmarksFiltered": [],
-            "configsOrdering": [],
-            "configsFiltered": [],
             "stats": [
                 "simulationTime"
             ],
-            "meanAlgorithm": "geomean",
-            "normalized": true,
             "legendNames": [],
             "groupNames": [],
             "breaks": [
