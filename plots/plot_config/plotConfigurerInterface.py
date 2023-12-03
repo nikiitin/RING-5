@@ -1,5 +1,4 @@
-from stats_analyzer import AnalyzerInfo
-from plots.plot_config.plot_config_R.plotConfigurerR import PlotConfigurerR
+from argumentParser import AnalyzerInfo
 import utils.utils as utils
 class PlotConfigurerInterface:
     _params: AnalyzerInfo = None
@@ -20,15 +19,3 @@ class PlotConfigurerInterface:
         utils.checkElementExists(plotJson, "normalized")
         if utils.getElementValue(plotJson, "normalized"):
             self._normalizeData()
-        
-        
-
-class PlotConfigurerFactory:
-    __impl = None
-    @classmethod
-    def getConfigurer(self, implName: str, params: AnalyzerInfo) -> PlotConfigurerInterface:
-        if self.__impl is None:
-            if (implName == "R"):
-                self.__impl = PlotConfigurerR(params)
-            else:
-                raise ValueError("Invalid plot configurer implementation")

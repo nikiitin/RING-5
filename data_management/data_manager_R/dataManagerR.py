@@ -1,5 +1,5 @@
 import subprocess
-from stats_analyzer import AnalyzerInfo
+from argumentParser import AnalyzerInfo
 from data_management.dataManagerInterface import DataManagerInterface
 import utils.utils as utils
 

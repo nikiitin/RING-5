@@ -1,7 +1,6 @@
 # This file contains the interface for the plot classes
-from stats_analyzer import AnalyzerInfo
+from argumentParser import AnalyzerInfo
 from plots.plot_config.plotConfigurerInterface import PlotConfigurerFactory
-from plots.plot_impl.barplot.barplot import Barplot
 import utils.utils as utils
 import os
 import random
@@ -24,6 +23,7 @@ class PlotInterface:
         while utils.checkFileExists(self._tmpCsv):
             self._tmpCsv = os.path.join(self._plotPath, "" + random.random + "tmp.csv")
         shutil.copyfile(self._info.getWorkCsv, self._tmpCsv)
+        print("Created tmp csv: " + self._tmpCsv)
         # Check if all fields are present
         self._checkCorrectness()
         # Create plot configurer, this will filter, mean, sort and normalize the data
@@ -71,12 +71,3 @@ class PlotInterface:
         self._prefixScriptCall.extend(utils.jsonToArg(self._plotJson, "width"))
         self._prefixScriptCall.extend(utils.jsonToArg(self._plotJson, "height"))
         self._prefixScriptCall.append(self._tmpCsv)
-class PlotManager:
-    # Any plot instance will be unique,
-    # do not use singleton here
-    @classmethod
-    def plot(self, plotType: str) -> PlotInterface:
-        if (plotType == "barplot"):
-            return Barplot()
-        else:
-            raise ValueError("Invalid plot type")

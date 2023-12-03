@@ -1,5 +1,5 @@
 from plotConfigurerInterface import PlotConfigurerInterface
-from stats_analyzer import AnalyzerInfo
+from argumentParser import AnalyzerInfo
 import utils.utils as utils
 import subprocess
 class PlotConfigurerR(PlotConfigurerInterface):
