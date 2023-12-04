@@ -28,7 +28,7 @@ class Barplot(PlotInterface):
         # Preconditions
         utils.checkElementExists(self._plotJson, "xSplitPoints")
         # Add parameters
-        self._prefixScriptCall.extend(utils.jsonToArg(self._plotJson, "xSplitPoints"))
+        self._sufixScriptCall.extend(utils.jsonToArg(self._plotJson, "xSplitPoints"))
 
     def __call__(self) -> None:
         super().__call__()

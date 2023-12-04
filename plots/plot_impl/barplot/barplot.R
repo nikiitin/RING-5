@@ -57,15 +57,16 @@ currArg <- increment(currArg)
 legend.n_elem_row <- arguments[currArg]
 currArg <- increment(currArg)
 
-plot.splitPoints <- NULL
-plot.nSplitPoints <- arguments[currArg]
-if (plot.nSplitPoints > 0) {
-  for (i in 1:plot.nSplitPoints) {
-    plot.splitPoints <- c(plot.splitPoints, arguments[currArg])
+plot.xSplitPoints <- NULL
+plot.nXSplitPoints <- arguments[currArg]
+currArg <- increment(currArg)
+if (plot.nXSplitPoints > 0) {
+  for (i in 1:plot.nXSplitPoints) {
+    plot.xSplitPoints <- c(plot.xSplitPoints, arguments[currArg])
     currArg <- increment(currArg)
   }
-  plot.splitPoints <- as.numeric(plot.splitPoints)
-  plot.splitPoints <- plot.splitPoints + 0.5
+  plot.xSplitPoints <- as.numeric(plot.xSplitPoints)
+  plot.xSplitPoints <- plot.xSplitPoints + 0.5
 }
 # Finish arguments parsing
 
@@ -86,8 +87,8 @@ parsed_data$benchmark_name <- factor(parsed_data$benchmark_name,
 p <- ggplot(parsed_data, aes(x=benchmark_name, fill=confKey, y=parsed_data[,stat])) +
   geom_bar(stat="identity", position="dodge", color="black") +
   geom_errorbar(aes(ymin=parsed_data[,stat] - parsed_data[,stat.sd], ymax=parsed_data[,stat] + parsed_data[,stat.sd]), width=.2, position=position_dodge(.9))
-if (plot.nSplitPoints > 0) {
-  p <- p + geom_vline(xintercept = plot.splitPoints, linetype="dashed", color = "black")
+if (plot.nXSplitPoints > 0) {
+  p <- p + geom_vline(xintercept = plot.xSplitPoints, linetype="dashed", color = "black")
 }
 # Here you can change the theme  
 p <- p + theme_hc()
