@@ -37,16 +37,6 @@ if (nLegendNames > 0) {
     currArg <- increment(currArg)
   }
 }
-plot.splitPoints <- NULL
-plot.nSplitPoints <- arguments[currArg]
-if (plot.nSplitPoints > 0) {
-  for (i in 1:plot.nSplitPoints) {
-    plot.splitPoints <- c(plot.splitPoints, arguments[currArg])
-    currArg <- increment(currArg)
-  }
-  plot.splitPoints <- as.numeric(plot.splitPoints)
-  plot.splitPoints <- plot.splitPoints + 0.5
-}
 y_breaks <- NULL
 n_breaks <- arguments[currArg]
 currArg <- increment(currArg)
@@ -65,6 +55,18 @@ currArg <- increment(currArg)
 legend_title <- arguments[currArg]
 currArg <- increment(currArg)
 legend.n_elem_row <- arguments[currArg]
+currArg <- increment(currArg)
+
+plot.splitPoints <- NULL
+plot.nSplitPoints <- arguments[currArg]
+if (plot.nSplitPoints > 0) {
+  for (i in 1:plot.nSplitPoints) {
+    plot.splitPoints <- c(plot.splitPoints, arguments[currArg])
+    currArg <- increment(currArg)
+  }
+  plot.splitPoints <- as.numeric(plot.splitPoints)
+  plot.splitPoints <- plot.splitPoints + 0.5
+}
 # Finish arguments parsing
 
 # Start data collection

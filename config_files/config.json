@@ -198,7 +198,7 @@
                 
                 "normalize": {
                     "normalized": true,
-                    "normalizer": "simTicks"
+                    "normalizer": 1
                 }
             },
             "title": "simTicks",
@@ -227,7 +227,8 @@
             "limitBot": 0.75,
             "format": "pdf",
             "legendTitle": "example",
-            "nLegendElementsPerRow": 2
+            "nLegendElementsPerRow": 2,
+            "xSplitPoints": []
         }
     ]
 }
