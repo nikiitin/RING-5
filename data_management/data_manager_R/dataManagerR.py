@@ -52,8 +52,9 @@ class DataManagerR(DataManagerInterface):
     def manageResults(self) -> None:
         self._renameStats()
         self._mixStats()
-        if self._reducingSeeds:
-            self._reduceSeeds()
         if self._removingOutliers:
             # Remove outliers only if needed
             self._removeOutliers()
+        if self._reducingSeeds:
+            self._reduceSeeds()
+        
