@@ -202,7 +202,7 @@
                 }
             },
             "title": "simTicks",
-            "plotType": 0,
+            "plotType": "barplot",
             "fileName": "simTicks(rlrw)",
             "xAxisName": "benchmarks",
             "yAxisName": "simulationTime",

@@ -1,6 +1,6 @@
 # This file contains the interface for the plot classes
 from argumentParser import AnalyzerInfo
-from plots.plot_config.plotConfigurerInterface import PlotConfigurerFactory
+from plots.plot_config.plotConfigurerFactory import PlotConfigurerFactory
 import utils.utils as utils
 import os
 import random
@@ -12,30 +12,34 @@ class PlotInterface:
         self._plotJson = plotJson
         self._info = info
         self._plotPath = os.path.join(info.getJson()["outputPath"], "plots")
-        if not utils.dirExists(self._plotPath):
+        if not utils.checkDirExists(self._plotPath):
             utils.createDir(self._plotPath)
         self._tmpDir = os.path.join(self._plotPath, ".tmp")
-        if not utils.dirExists(self._tmpDir):
+        if not utils.checkDirExists(self._tmpDir):
             utils.createDir(self._tmpDir)
-        self._tmpCsv = os.path.join(self._plotPath, "" + random.random + "tmp.csv")
+        self._tmpCsv = os.path.join(self._plotPath, "" + str(random.random()) + "tmp.csv")
         # Create a random name for the temporary csv
         # Check it is not already taken
         while utils.checkFileExists(self._tmpCsv):
-            self._tmpCsv = os.path.join(self._plotPath, "" + random.random + "tmp.csv")
-        shutil.copyfile(self._info.getWorkCsv, self._tmpCsv)
+            self._tmpCsv = os.path.join(self._plotPath, "" + str(random.random()) + "tmp.csv")
+        shutil.copyfile(self._info.getWorkCsv(), self._tmpCsv)
         print("Created tmp csv: " + self._tmpCsv)
         # Check if all fields are present
         self._checkCorrectness()
         # Create plot configurer, this will filter, mean, sort and normalize the data
         # Using R implementation.
         # TODO: make this configurable
-        self._configurer = PlotConfigurerFactory.getConfigurer("R")
+        self._configurer = PlotConfigurerFactory.getConfigurer(info, "R")
 
     def __call__(self) -> None:
         self._configurer.configurePlot(self._plotJson, self._tmpCsv)
         self._prepareScriptCall()
 
-    def checkCorrectness(self) -> None:
+    def __del__(self) -> None:
+        # Remove temporary csv
+        utils.removeFile(self._tmpCsv)
+
+    def _checkCorrectness(self) -> None:
         utils.checkElementExists(self._plotJson, "title")
         utils.checkElementExists(self._plotJson, "xAxisName")
         utils.checkElementExists(self._plotJson, "yAxisName")

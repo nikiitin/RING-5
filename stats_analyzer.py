@@ -3,7 +3,8 @@
 from data_parser.dataParserFactory import DataParserFactory 
 from data_management.dataManagerFactory import DataManagerFactory
 from argumentParser import AnalyzerInfo
-import plots.dataPlot as dataPlot
+from plots.plotFactory import PlotFactory 
+import utils.utils as utils
 
 
 
@@ -27,23 +28,18 @@ else:
 # Make a csv copy
 info.createWorkCsv()
 # Manage data
-DataManagerFactory.getDataManager("csv", info).manageResults()
+DataManagerFactory.getDataManager("R", info).manageResults()
 # Finish data format
 # Start plotting
 # TODO: Plotter must plot everything in one call
-plots = info.getJson["plots"]
+plots = info.getJson()["plots"]
 
 
-# for plot in plots:
-#     # Create a temporary Csv file for each plot
-#     tempCsvPath = os.path.join(temp_dir, 'tempStats')
-#     print(tempCsvPath)
-#     shutil.copyfile(wcsvPath, tempCsvPath)  # Make a copy of the data
-#     dataPlot.plotFigure(plot,
-#               getPlotType(plot["plotType"]),
-#               str(len(config["configs"])),
-#               tempCsvPath,
-#               outDir)
-    #tempCsvPath.close()  # Close will delete temporary file
+for plot in plots:
+    # Do plotting for each plot
+    utils.checkElementExists(plot, "plotType")
+    pl = PlotFactory.plot(info, plot, plot["plotType"])
+    pl()
+
 
 # Parse config file

@@ -44,7 +44,7 @@ def checkFileExistsOrException(filePath):
         raise Exception("File does not exist: " + filePath)
     
 def checkFileExists(filePath):
-    return os.path.file(filePath)
+    return os.path.isfile(filePath)
 
 def checkDirExistsOrException(dirPath):
     if not os.path.isdir(dirPath):
@@ -58,3 +58,9 @@ def createDir(dirPath):
         os.mkdir(dirPath)
     else:
         print("Directory already exists: " + dirPath)
+
+def removeFile(filePath):
+    if checkFileExists(filePath):
+        os.remove(filePath)
+    else:
+        print("Cannot remove, file does not exist: " + filePath)

@@ -13,7 +13,7 @@ class DataParserBash(DataParserInterface):
         outDir = json["outputPath"]
         self._compressedFilePath = os.path.join(outDir, "stats.tar")
         self._files = utils.jsonToArg(json, "filesPaths")
-        utils.checkFilesExistOrException(self._files[1:])
+        utils.checkDirsExistsOrException(self._files[1:])
         self._finalDirName = os.path.join(outDir, "stats")
         self._csvPath = analyzerInfo.getCsv()
         self._statsAnalyzed = utils.jsonToArg(json, "statsAnalyzed")
@@ -21,7 +21,7 @@ class DataParserBash(DataParserInterface):
         
     def _compressData(self):
         print("Compressing data")
-        shellScriptCall = ["./data_parser/dataCompressor.sh"]
+        shellScriptCall = ["./data_parser/data_parser_bash/dataCompressor.sh"]
         shellScriptCall.append(self._compressedFilePath)
         shellScriptCall.extend(self._files)
         shellScriptCall.append("*stats.txt")
@@ -30,7 +30,7 @@ class DataParserBash(DataParserInterface):
         
     def _parseStats(self):
         print("Parsing stats and turning into csv")
-        shellScriptCall = ["./data_parser/dataParser.sh"]
+        shellScriptCall = ["./data_parser/data_parser_bash/dataParser.sh"]
         shellScriptCall.append(self._csvPath)
         shellScriptCall.append(str(1))
         shellScriptCall.append(self._finalDirName)

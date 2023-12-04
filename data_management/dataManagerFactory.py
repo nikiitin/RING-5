@@ -7,7 +7,7 @@ class DataManagerFactory:
     def getDataManager(self, implName: str, params: AnalyzerInfo) -> DataManagerInterface:
         # Singleton
         if self._managerSingleton is None:
-            if (implName == "csv"):
+            if (implName == "R"):
                 self._managerSingleton = DataManagerR(params)
             else:
                 raise ValueError("Invalid parser implementation")

@@ -58,7 +58,7 @@ class AnalyzerInfo:
         return os.path.join(self._json["outputPath"], self._args.csv)
     
     def getWorkCsv(self):
-        return os.path.join(tempfile.gettempdir, self._workCsv)
+        return os.path.join(tempfile.gettempdir(), self._workCsv)
     
     def getTmpDir(self):
         return temp_dir
@@ -83,4 +83,4 @@ class AnalyzerInfo:
     
     def createWorkCsv(self):
         print("Creating work csv")
-        shutil.copyfile(self._args.csv, self.getWorkCsv())
+        shutil.copyfile(self.getCsv(), self.getWorkCsv())
