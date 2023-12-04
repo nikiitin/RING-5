@@ -1,6 +1,6 @@
 #!/usr/bin/Rscript
 library(readr)
-source("util.R")
+source("utils/util.R")
 # Parse arguments
 arguments = commandArgs(trailingOnly = TRUE)
 currArg <- 1

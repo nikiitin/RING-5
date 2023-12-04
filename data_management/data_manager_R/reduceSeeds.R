@@ -1,7 +1,7 @@
 #!/usr/bin/Rscript
 
 library(readr)
-source("util.R")
+source("utils/util.R")
 
 arguments = commandArgs(trailingOnly = TRUE)
 statsFile <- arguments[1]
