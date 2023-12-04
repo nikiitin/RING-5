@@ -27,6 +27,10 @@ def getElementValue(jsonElement, key):
     else:
         raise Exception("Key not found: " + key)
     
+def checkElementExists(jsonElement, key):
+    if key not in jsonElement:
+        raise Exception("Key not found: " + key)
+    
 def checkFilesExistOrException(filePaths):
     for filePath in filePaths:
         checkFileExistsOrException(filePath)
@@ -40,7 +44,7 @@ def checkFileExistsOrException(filePath):
         raise Exception("File does not exist: " + filePath)
     
 def checkFileExists(filePath):
-    return os.path.file(filePath)
+    return os.path.isfile(filePath)
 
 def checkDirExistsOrException(dirPath):
     if not os.path.isdir(dirPath):
@@ -48,3 +52,15 @@ def checkDirExistsOrException(dirPath):
 
 def checkDirExists(dirPath):
     return os.path.isdir(dirPath)
+
+def createDir(dirPath):
+    if not checkDirExists(dirPath):
+        os.mkdir(dirPath)
+    else:
+        print("Directory already exists: " + dirPath)
+
+def removeFile(filePath):
+    if checkFileExists(filePath):
+        os.remove(filePath)
+    else:
+        print("Cannot remove, file does not exist: " + filePath)

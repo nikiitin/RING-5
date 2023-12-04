@@ -4,3 +4,5 @@
 *.txt
 *.tar
 *Rhistory
+*.pyc
+__pycache__
