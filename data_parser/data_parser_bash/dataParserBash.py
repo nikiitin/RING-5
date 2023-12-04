@@ -13,7 +13,7 @@ class DataParserBash(DataParserInterface):
         outDir = json["outputPath"]
         self._compressedFilePath = os.path.join(outDir, "stats.tar")
         self._files = utils.jsonToArg(json, "filesPaths")
-        utils.checkDirsExistsOrException(self._files[1:])
+        utils.checkDirsExistOrException(self._files[1:])
         self._finalDirName = os.path.join(outDir, "stats")
         self._csvPath = analyzerInfo.getCsv()
         self._statsAnalyzed = utils.jsonToArg(json, "statsAnalyzed")

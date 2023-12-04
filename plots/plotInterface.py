@@ -11,17 +11,18 @@ class PlotInterface:
         # TODO: remove replicated info...
         self._plotJson = plotJson
         self._info = info
-        self._plotPath = os.path.join(info.getJson()["outputPath"], "plots")
-        if not utils.checkDirExists(self._plotPath):
-            utils.createDir(self._plotPath)
-        self._tmpDir = os.path.join(self._plotPath, ".tmp")
+        self._plotPathDir = os.path.join(info.getJson()["outputPath"], "plots")
+        self._plotPath = os.path.join(self._plotPathDir, plotJson["fileName"])
+        if not utils.checkDirExists(self._plotPathDir):
+            utils.createDir(self._plotPathDir)
+        self._tmpDir = os.path.join(self._plotPathDir, ".tmp")
         if not utils.checkDirExists(self._tmpDir):
             utils.createDir(self._tmpDir)
-        self._tmpCsv = os.path.join(self._plotPath, "" + str(random.random()) + "tmp.csv")
+        self._tmpCsv = os.path.join(self._plotPathDir, "" + str(random.random()) + "tmp.csv")
         # Create a random name for the temporary csv
         # Check it is not already taken
         while utils.checkFileExists(self._tmpCsv):
-            self._tmpCsv = os.path.join(self._plotPath, "" + str(random.random()) + "tmp.csv")
+            self._tmpCsv = os.path.join(self._plotPathDir, ".tmp", str(random.random()) + "tmp.csv")
         shutil.copyfile(self._info.getWorkCsv(), self._tmpCsv)
         print("Created tmp csv: " + self._tmpCsv)
         # Check if all fields are present
