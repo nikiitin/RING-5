@@ -55,6 +55,19 @@ currArg <- increment(currArg)
 legend_title <- arguments[currArg]
 currArg <- increment(currArg)
 legend.n_elem_row <- arguments[currArg]
+currArg <- increment(currArg)
+
+plot.xSplitPoints <- NULL
+plot.nXSplitPoints <- arguments[currArg]
+currArg <- increment(currArg)
+if (plot.nXSplitPoints > 0) {
+  for (i in 1:plot.nXSplitPoints) {
+    plot.xSplitPoints <- c(plot.xSplitPoints, arguments[currArg])
+    currArg <- increment(currArg)
+  }
+  plot.xSplitPoints <- as.numeric(plot.xSplitPoints)
+  plot.xSplitPoints <- plot.xSplitPoints + 0.5
+}
 # Finish arguments parsing
 
 # Start data collection
@@ -68,12 +81,15 @@ parsed_data$confKey <- factor(parsed_data$confKey,
 parsed_data$benchmark_name <- factor(parsed_data$benchmark_name,
   levels = unique(as.character(parsed_data$benchmark_name)),
   ordered = TRUE)
+
 # Basic plot
 # Just plot the bar and sd
 p <- ggplot(parsed_data, aes(x=benchmark_name, fill=confKey, y=parsed_data[,stat])) +
   geom_bar(stat="identity", position="dodge", color="black") +
   geom_errorbar(aes(ymin=parsed_data[,stat] - parsed_data[,stat.sd], ymax=parsed_data[,stat] + parsed_data[,stat.sd]), width=.2, position=position_dodge(.9))
-
+if (plot.nXSplitPoints > 0) {
+  p <- p + geom_vline(xintercept = plot.xSplitPoints, linetype="dashed", color = "black")
+}
 # Here you can change the theme  
 p <- p + theme_hc()
 p <- p + theme(axis.text.x = element_text(angle = 30, hjust=1, size=10, face="bold"),
