@@ -37,6 +37,16 @@ if (nLegendNames > 0) {
     currArg <- increment(currArg)
   }
 }
+plot.splitPoints <- NULL
+plot.nSplitPoints <- arguments[currArg]
+if (plot.nSplitPoints > 0) {
+  for (i in 1:plot.nSplitPoints) {
+    plot.splitPoints <- c(plot.splitPoints, arguments[currArg])
+    currArg <- increment(currArg)
+  }
+  plot.splitPoints <- as.numeric(plot.splitPoints)
+  plot.splitPoints <- plot.splitPoints + 0.5
+}
 y_breaks <- NULL
 n_breaks <- arguments[currArg]
 currArg <- increment(currArg)
@@ -68,12 +78,15 @@ parsed_data$confKey <- factor(parsed_data$confKey,
 parsed_data$benchmark_name <- factor(parsed_data$benchmark_name,
   levels = unique(as.character(parsed_data$benchmark_name)),
   ordered = TRUE)
+
 # Basic plot
 # Just plot the bar and sd
 p <- ggplot(parsed_data, aes(x=benchmark_name, fill=confKey, y=parsed_data[,stat])) +
   geom_bar(stat="identity", position="dodge", color="black") +
   geom_errorbar(aes(ymin=parsed_data[,stat] - parsed_data[,stat.sd], ymax=parsed_data[,stat] + parsed_data[,stat.sd]), width=.2, position=position_dodge(.9))
-
+if (plot.nSplitPoints > 0) {
+  p <- p + geom_vline(xintercept = plot.splitPoints, linetype="dashed", color = "black")
+}
 # Here you can change the theme  
 p <- p + theme_hc()
 p <- p + theme(axis.text.x = element_text(angle = 30, hjust=1, size=10, face="bold"),
