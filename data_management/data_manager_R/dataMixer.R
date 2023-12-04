@@ -1,6 +1,6 @@
 #!/usr/bin/Rscript
 library(readr)
-source("util.R")
+source("utils/util.R")
 arguments = commandArgs(trailingOnly = TRUE)
 currArg <- 1
 statsFile <- arguments[currArg]
@@ -8,7 +8,9 @@ currArg <- increment(currArg)
 
 mixingNumber <- arguments[currArg]
 currArg <- increment(currArg)
-
+if (mixingNumber == 0) {
+  stop("No mixing number specified, skipping this step")
+}
 parsed_data <- read.table(statsFile, sep = " ", header=TRUE)
 
 for (mixing in 1:mixingNumber) {

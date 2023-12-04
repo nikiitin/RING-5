@@ -3,7 +3,7 @@ library(readr)
 require(ggplot2)
 require(ggthemes)
 library(prismatic)
-source("util.R")
+source("utils/util.R")
 arguments = commandArgs(trailingOnly = TRUE)
 
 # Arguments parsing
