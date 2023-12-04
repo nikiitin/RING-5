@@ -1,5 +1,5 @@
 #!/usr/bin/Rscript
-source("util.R")
+source("utils/util.R")
 library(readr)
 arguments = commandArgs(trailingOnly = TRUE)
 currArg <- 1

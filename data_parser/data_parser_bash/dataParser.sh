@@ -88,7 +88,7 @@ done
 while read line; do
     # In my system maximum arguments are >2000000
     # I hope you won't use that MANY arguments
-    ./meanCalculatorCpu.sh "$line" "$parsed_data_file" "${#grep_pattern[@]}" "${grep_pattern[@]}" "${#grep_configs[@]}" "${grep_configs[@]}" "${#grep_stats[@]}" "${grep_stats[@]}" &
+    ./data_parser/data_parser_bash/meanCalculatorCpu.sh "$line" "$parsed_data_file" "${#grep_pattern[@]}" "${grep_pattern[@]}" "${#grep_configs[@]}" "${grep_configs[@]}" "${#grep_stats[@]}" "${grep_stats[@]}" &
     # Let's run in parallel! 
 done <<< $statsFiles
 echo "Waiting for stats files parsing"
