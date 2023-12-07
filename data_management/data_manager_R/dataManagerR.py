@@ -5,14 +5,9 @@ import utils.utils as utils
 
 class DataManagerR(DataManagerInterface):
     def __init__(self, params: AnalyzerInfo) -> None:
-        json = params.getJson()
-        self._csvPath = params.getWorkCsv()
-        self._configs = json["configs"]
-        self._renamingStats = json["renameStats"]
-        self._mixingStats = json["mixStats"]
-        self._reducingSeeds = utils.jsonToArg(json, "reduceSeeds")
-        self._removingOutliers = utils.jsonToArg(json, "removeOutliers")
-        self._outlierStat = utils.jsonToArg(json, "outlierStat")
+        super().__init__(params)
+        # Add here any pre-processing that needs to be done
+        # or any other initialization
     
     def _renameStats(self) -> None:
         print("Renaming stats")
@@ -49,12 +44,7 @@ class DataManagerR(DataManagerInterface):
         RScriptCall.append(str(len(self._configs)))
         subprocess.call(RScriptCall)
 
-    def manageResults(self) -> None:
-        self._renameStats()
-        self._mixStats()
-        if self._removingOutliers:
-            # Remove outliers only if needed
-            self._removeOutliers()
-        if self._reducingSeeds:
-            self._reduceSeeds()
+    def __call__(self) -> None:
+        super().__call__()
+        # Add here any post-processing that needs to be done
         

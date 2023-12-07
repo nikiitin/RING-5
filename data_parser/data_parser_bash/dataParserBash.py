@@ -8,16 +8,8 @@ import utils.utils as utils
 #       make it inherit from DataParserInterface
 #       and add it to the DataParserFactory
 class DataParserBash(DataParserInterface):
-    def __init__(self, analyzerInfo: AnalyzerInfo) -> None:
-        json = analyzerInfo.getJson()
-        outDir = json["outputPath"]
-        self._compressedFilePath = os.path.join(outDir, "stats.tar")
-        self._files = utils.jsonToArg(json, "filesPaths")
-        utils.checkDirsExistOrException(self._files[1:])
-        self._finalDirName = os.path.join(outDir, "stats")
-        self._csvPath = analyzerInfo.getCsv()
-        self._statsAnalyzed = utils.jsonToArg(json, "statsAnalyzed")
-        self._configs = utils.jsonToArg(json, "configs")
+    def __init__(self, params: AnalyzerInfo) -> None:
+        super().__init__(params)
         
     def _compressData(self):
         print("Compressing data")
@@ -39,6 +31,5 @@ class DataParserBash(DataParserInterface):
         subprocess.call(shellScriptCall)
 
     def runParse(self):
-        self._compressData()
-        self._parseStats()
+        super().__call__()
         
