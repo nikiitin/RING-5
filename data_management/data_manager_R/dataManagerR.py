@@ -33,7 +33,6 @@ class DataManagerR(DataManagerInterface):
         print("Reducing seeds and calculating mean and sd")
         RScriptCall = ["./data_management/data_manager_R/reduceSeeds.R"]
         RScriptCall.append(self._csvPath)
-        RScriptCall.append(str(len(self._configs) + 1))
         subprocess.call(RScriptCall)
     
     def _removeOutliers(self) -> None:
