@@ -51,4 +51,4 @@ outputdf <- merge(x = mean_dataframe,
                   y = sd_dataframe,
                   by = colnames(mean_dataframe)[1:seeds_column])
 # Write everything onto csv file
-write.table(outputdf, statsFile, sep=" ", row.names = F)
+write.table(outputdf, stats_file, sep = " ", row.names = F)
