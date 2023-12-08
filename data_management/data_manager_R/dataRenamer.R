@@ -1,29 +1,44 @@
 #!/usr/bin/Rscript
 source("utils/util.R")
 library(readr)
-arguments = commandArgs(trailingOnly = TRUE)
-currArg <- 1
-statsFile <- arguments[currArg]
-currArg <- increment(currArg)
-renamingNumber <- arguments[currArg]
-currArg <- increment(currArg)
+arguments <- commandArgs(trailingOnly = TRUE)
+curr_arg <- 1
+stats_file <- arguments[currArg]
+curr_arg <- increment(currArg)
+renamings_count <- arguments[currArg]
+curr_arg <- increment(currArg)
 
-parsed_data <- read.table(statsFile, sep = " ", header=TRUE)
+parsed_data <- read.table(stats_file, sep = " ", header = TRUE)
 
-for (renaming in 1:renamingNumber) {
+for (renaming in 1:renamings_count) {
   # Get the renaming for the stat we are looking for
-  oldName <- arguments[currArg]
-  currArg <- increment(currArg)
-  newName <- arguments[currArg]
-  currArg <- increment(currArg)
-  
-  # Do the renaming
-  colnames(parsed_data)[colnames(parsed_data) == oldName] <- newName
-  # Rename sd if there is
-  oldName <- paste("sd", oldName, sep = ".")
-  newName <- paste("sd", newName, sep = ".")
-  colnames(parsed_data)[colnames(parsed_data) == oldName] <- newName
+  old_name <- arguments[currArg]
+  curr_arg <- increment(currArg)
+  new_name <- arguments[currArg]
+  curr_arg <- increment(currArg)
+
+  # Check if name exists
+  if (!check_column_exists(old_name, parsed_data)) {
+    warning(paste("Column",
+      old_name,
+      "does not exist! could not rename! Skipping..."))
+  } else {
+    # Do renaming
+    colnames(parsed_data)[colnames(parsed_data) == old_name] <- new_name
+
+    # Check if sd column exists
+    if (!check_column_exists(paste("sd", old_name, sep = "."), parsed_data)) {
+      warning(paste("Column",
+        paste("sd", old_name, sep = "."),
+        "does not exist! Unexpected but skipping..."))
+    } else {
+      # Rename sd column too
+      old_name <- paste("sd", old_name, sep = ".")
+      new_name <- paste("sd", new_name, sep = ".")
+      colnames(parsed_data)[colnames(parsed_data) == old_name] <- new_name
+    }
+  }
 }
 
 # Write everything onto csv file
-write.table(parsed_data, statsFile, sep=" ", row.names = F)
+write.table(parsed_data, statsFile, sep = " ", row.names = FALSE)
