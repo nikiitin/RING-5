@@ -27,14 +27,14 @@ for (renaming in 1:renamings_count) {
     colnames(parsed_data)[colnames(parsed_data) == old_name] <- new_name
 
     # Check if sd column exists
-    if (!check_column_exists(paste("sd", old_name, sep = "."), parsed_data)) {
+    if (!check_column_exists(paste(old_name, "sd", sep = "."), parsed_data)) {
       warning(paste("Column",
-        paste("sd", old_name, sep = "."),
+        paste(old_name, "sd", sep = "."),
         "does not exist! Unexpected but skipping..."))
     } else {
       # Rename sd column too
-      old_name <- paste("sd", old_name, sep = ".")
-      new_name <- paste("sd", new_name, sep = ".")
+      old_name <- paste(old_name, "sd", sep = ".")
+      new_name <- paste(new_name, "sd", sep = ".")
       colnames(parsed_data)[colnames(parsed_data) == old_name] <- new_name
     }
   }
