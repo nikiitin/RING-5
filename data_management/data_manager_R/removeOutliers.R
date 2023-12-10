@@ -12,7 +12,7 @@ outlier_stat <- arguments[curr_arg]
 curr_arg <- increment(curr_arg)
 n_configs <- arguments[curr_arg]
 # Until here, arguments are fixed
-parsed_data <- read.table(statsFile, sep = " ", header = TRUE)
+parsed_data <- read.table(stats_file, sep = " ", header = TRUE)
 
 # Check if random_seed column exists
 if (!check_column_exists("random_seed", parsed_data)) {
@@ -42,4 +42,4 @@ for (conf in unique(parsed_data[, "confKey"])) {
     }
 }
 # Write filtered data onto csv file
-write.table(parsed_data, statsFile, sep=" ", row.names = F)
+write.table(parsed_data, stats_file, sep = " ", row.names = FALSE)
