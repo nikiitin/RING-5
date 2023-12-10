@@ -24,7 +24,7 @@ for (conf in unique(parsed_data[, "confKey"])) {
     for (bench in unique(parsed_data[, "benchmark_name"])) {
         data_for_outlier <- parsed_data[parsed_data["benchmark_name"] == bench &
             parsed_data["confKey"] == conf,
-            outlierStat]
+            outlier_stat]
         # Calculate quantile and IQR (Using IQR between mean and first element)
         # as we are removing only upper outliers (System calls, page faults...)
         q <- quantile(data_for_outlier, probs=c(0, 0.5), na.rm = FALSE)
@@ -38,7 +38,7 @@ for (conf in unique(parsed_data[, "confKey"])) {
                 parsed_data["confKey"] != conf) |
             ((parsed_data["benchmark_name"] == bench &
                 parsed_data["confKey"] == conf) &
-                parsed_data[outlierStat] < up))
+                parsed_data[outlier_stat] < up))
     }
 }
 # Write filtered data onto csv file

@@ -41,4 +41,4 @@ for (renaming in 1:renamings_count) {
 }
 
 # Write everything onto csv file
-write.table(parsed_data, statsFile, sep = " ", row.names = FALSE)
+write.table(parsed_data, stats_file, sep = " ", row.names = FALSE)
