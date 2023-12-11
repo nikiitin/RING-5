@@ -38,7 +38,8 @@ class PlotInterface:
 
     def __del__(self) -> None:
         # Remove temporary csv
-        utils.removeFile(self._tmpCsv)
+        #utils.removeFile(self._tmpCsv)
+        pass
 
     def _checkCorrectness(self) -> None:
         utils.checkElementExists(self._plotJson, "title")
