@@ -41,7 +41,7 @@ for (bench_filter in bench_filtered) {
 # Data filtering for configs
 for (config in configs_filtered) {
   # Make a new dataframe with the same columns than parsed_data
-  parsed_data <- parsed_data[parsed_data["confKey"] != config, ]
+  parsed_data <- parsed_data[parsed_data["conf_names"] != config, ]
 }
 # Write filtered data onto csv file
 write.table(parsed_data, stats_file, sep = " ", row.names = FALSE)

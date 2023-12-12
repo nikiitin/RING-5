@@ -34,7 +34,7 @@ if (mean_algorithm != "None") {
         # configurations removing duplicates
         mean_df["benchmark_name"] <- mean_algorithm
         mean_df["confKey"] <- ""
-        for (i in 1:config_ending_column) {
+        for (i in 2:config_ending_column) {
             mean_df$confKey <- paste(mean_df$confKey,
                 mean_df[, i],
                 sep = "")

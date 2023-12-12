@@ -116,18 +116,14 @@ if (length(n_confs_sorted) < 1) {
     stop("No elements were specified to sort stats")
 }
 
-# Prepare a column named confName with a mix of the configurations without
-# confKey and the stats
-conf_names <- mixStringCols(2, config_ending_column, parsed_data)
-parsed_data <- cbind(conf_names = conf_names, parsed_data)
+
 
 if (sorting_type == "specific") {
     # Here we will sort by confNames
+    parsed_data[, "conf_names"] <- as.character(parsed_data[, "conf_names"])
     conf_keys <- parsed_data[, "conf_names"]
     parsed_data <-
         parsed_data[order(match(conf_keys, confs_sort_order)), ]
-    # Drop confName column
-    parsed_data <- parsed_data[, -get_column_index("conf_names", parsed_data)]
 } else {
     stop("Unexpected sort type")
 }
