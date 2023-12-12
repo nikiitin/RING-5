@@ -20,7 +20,6 @@ class PlotConfigurerR(PlotConfigurerInterface):
         print("Algorithm: " + utils.getElementValue(self._meanJson, "meanAlgorithm"))
         RScriptCall = ["./plots/plot_config/plot_config_R/dataMeanCalculator.R"]
         RScriptCall.append(self._tmpCsv)
-        RScriptCall.append(str(utils.jsonToArg(self._params.getJson(), "configs")[0]))
         RScriptCall.extend(utils.jsonToArg(self._meanJson, "meanAlgorithm"))
         subprocess.call(RScriptCall)
 

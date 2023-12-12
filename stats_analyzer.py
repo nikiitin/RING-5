@@ -12,7 +12,7 @@ info = AnalyzerInfo()
 if info.getSkipParse():
     print("Skipping data parse")
 else:
-    DataParserFactory.getDataParser("bash", info).__call__()
+    DataParserFactory.getDataParser(info, "bash").__call__()
 # Make a csv copy
 info.createWorkCsv()
 
