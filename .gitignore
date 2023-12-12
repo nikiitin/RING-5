@@ -6,3 +6,4 @@
 *Rhistory
 *.pyc
 __pycache__
+renv/*
