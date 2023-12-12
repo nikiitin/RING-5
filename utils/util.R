@@ -22,6 +22,10 @@ geomean <- function(x) {
     exp(mean(log(x)))
 }
 
+sd_dropna <- function(x) {
+    sd(x, na.rm = TRUE)
+}
+
 arithmean <- function(x) {
     mean(x)
 }

@@ -55,6 +55,7 @@ currArg <- increment(currArg)
 legend_title <- arguments[currArg]
 currArg <- increment(currArg)
 legend.n_elem_row <- arguments[currArg]
+print(legend.n_elem_row)
 currArg <- increment(currArg)
 
 plot.xSplitPoints <- NULL
@@ -73,10 +74,11 @@ if (plot.nXSplitPoints > 0) {
 # Start data collection
 parsed_data <- read.table(statsFile, sep = " ", header=TRUE)
 
-stat.sd <- paste("sd", stat, sep=".")
+stat.sd <- paste(stat, "sd", sep=".")
 # To keep the order from the configs and benchmarks, turn them into a factor
-parsed_data$confKey <- factor(parsed_data$confKey,
-  levels = unique(as.character(parsed_data$confKey)),
+
+parsed_data$conf_names <- factor(parsed_data$conf_names,
+  levels = unique(as.character(parsed_data$conf_names)),
   ordered = TRUE)
 parsed_data$benchmark_name <- factor(parsed_data$benchmark_name,
   levels = unique(as.character(parsed_data$benchmark_name)),
@@ -84,7 +86,7 @@ parsed_data$benchmark_name <- factor(parsed_data$benchmark_name,
 
 # Basic plot
 # Just plot the bar and sd
-p <- ggplot(parsed_data, aes(x=benchmark_name, fill=confKey, y=parsed_data[,stat])) +
+p <- ggplot(parsed_data, aes(x=benchmark_name, fill=conf_names, y=parsed_data[,stat])) +
   geom_bar(stat="identity", position="dodge", color="black") +
   geom_errorbar(aes(ymin=parsed_data[,stat] - parsed_data[,stat.sd], ymax=parsed_data[,stat] + parsed_data[,stat.sd]), width=.2, position=position_dodge(.9))
 if (plot.nXSplitPoints > 0) {
@@ -98,7 +100,7 @@ p <- p + theme(axis.text.x = element_text(angle = 30, hjust=1, size=10, face="bo
 #p <- p + scale_x_discrete(guide = guide_axis(n.dodge = 2))
 # Add parameters to the plot
 # Legend names
-colors_to_print <- farver::decode_colour(viridisLite::magma(length(unique(parsed_data$confKey)), direction = -1), "rgb", "hcl")
+colors_to_print <- farver::decode_colour(viridisLite::magma(length(unique(parsed_data$conf_names)), direction = -1), "rgb", "hcl")
 label_col <- ifelse(colors_to_print[, "l"] > 50, "black", "white")
 
 if (nLegendNames != 0) {
@@ -123,7 +125,7 @@ if (y_limit_top > y_limit_bot) {
     p <- p + scale_y_continuous(breaks = y_breaks, oob=scales::squish)
     p <- p + coord_cartesian(ylim=as.numeric(limits))
     p <- p + geom_text(position = position_dodge(.9), 
-      aes(label = list_of_labels, group=confKey, color = confKey, y=y_limit_top),
+      aes(label = list_of_labels, group=conf_names, color = conf_names, y=y_limit_top),
       show.legend = FALSE, size=2.5, angle=90, hjust = "inward")
     p <- p + scale_color_manual(values = label_col)
 }

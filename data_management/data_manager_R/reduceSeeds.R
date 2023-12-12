@@ -11,45 +11,52 @@ parsed_data <- read.table(stats_file, sep = " ", header = TRUE)
 if (!check_column_exists("random_seed", parsed_data)) {
     stop("random_seed column does not exist! Not reducing seeds!")
 }
-seeds_column <- get_column_index("random_seed", parsed_data)
 
-# All columns from seeds_column to the end should be statistics
-# so we should convert them to numeric and do not get any error
-# when calculating the mean. Check if the column can be converted
-# to numeric, if not, stop the script
+# All columns from seeds_column to the end, except confKey should
+# be statistics so we should convert them to numeric and do not
+# get any error when calculating the mean. Check if the column
+# can be converted to numeric, if not, stop the script
+seeds_column <- get_column_index("random_seed", parsed_data)
+stat_starting_column <- seeds_column + 1
+config_ending_column <- seeds_column - 1
+selected_columns <- (stat_starting_column):ncol(parsed_data)
 if (!all(
-    sapply(parsed_data[(seeds_column + 1):ncol(parsed_data)], is.numeric))
+    sapply(
+        parsed_data[, selected_columns],
+                is.numeric))
 ) {
     stop("Statistics found not numeric! Not reducing seeds!")
 }
 
-# Convert all columns to numeric from seeds_column to the end
-parsed_data[(seeds_column + 1):ncol(parsed_data)] <-
-    sapply(parsed_data[(seeds_column + 1):ncol(parsed_data)], as.numeric)
+# Convert all selected columns to numeric
+parsed_data[, selected_columns] <-
+    sapply(parsed_data[, selected_columns], as.numeric)
 
-# Calculate mean for all statistics
+# Calculate mean for each configuration
 mean_dataframe <- aggregate(
-    parsed_data[(seeds_column + 1):ncol(parsed_data)],
-    by = parsed_data[1:seeds_column],
-    FUN = mean)
-mean_dataframe["random_seed"] <- NULL
-
-# Calculate sd for all statistics
+    parsed_data[selected_columns],
+    by = parsed_data[1:(config_ending_column)],
+    FUN = mean
+)
+# Calculate sd for each configuration
 sd_dataframe <- aggregate(
-    parsed_data[(seeds_column + 1):ncol(parsed_data)],
-    by = parsed_data[1:seeds_column],
-    FUN = sd)
-sd_dataframe["random_seed"] <- NULL
-
+    parsed_data[selected_columns],
+    by = parsed_data[1:(config_ending_column)],
+    FUN = sd_dropna
+)
+# stat_starting_column has changed index as we removed
+# random_seed column
+stat_starting_column <- stat_starting_column - 1
 # Rename sd columns to sd-<column_name>
-colnames(sd_dataframe)[(seeds_column + 1):ncol(sd_dataframe)] <-
-    paste("sd",
-    colnames(sd_dataframe)[(seeds_column + 1):ncol(sd_dataframe)],
+colnames(sd_dataframe)[(stat_starting_column):ncol(sd_dataframe)] <-
+    paste(colnames(sd_dataframe)[stat_starting_column:ncol(sd_dataframe)],
+    "sd",
     sep = "-")
 
 # Merge mean and sd dataframes
+# Random seed column is removed here
 outputdf <- merge(x = mean_dataframe,
                   y = sd_dataframe,
-                  by = colnames(mean_dataframe)[1:seeds_column])
+                  by = colnames(mean_dataframe)[1:(config_ending_column)])
 # Write everything onto csv file
 write.table(outputdf, stats_file, sep = " ", row.names = FALSE)

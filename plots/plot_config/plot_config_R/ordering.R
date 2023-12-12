@@ -2,105 +2,130 @@
 library(readr)
 source("utils/util.R")
 # Parse arguments
-arguments = commandArgs(trailingOnly = TRUE)
-currArg <- 1
-statsFile <- arguments[currArg]
-currArg <- currArg + 1
-mean_algorithm <- arguments[currArg]
-currArg <- increment(currArg)
-# Three types of ordering:
-# 0. no ordering, skip this step
-# 1, alphabetical order (specify if decreasing or not)
-# 2, specific order -> specify the config names in 
+arguments <- commandArgs(trailingOnly = TRUE)
+curr_arg <- 1
+stats_file <- arguments[curr_arg]
+curr_arg <- curr_arg + 1
+mean_algorithm <- arguments[curr_arg]
+curr_arg <- increment(curr_arg)
+# Two types of ordering:
+# None. no ordering, skip this step
+# Specific, specific order -> specify the config names in
 # the order you want them
-orderingType <- as.integer(arguments[currArg])
-currArg <- currArg + 1
+sorting_type <- arguments[curr_arg]
+curr_arg <- curr_arg + 1
 # Until here, arguments are fixed
 
-configsOrdering <- NULL
-nConfigs <- arguments[currArg]
-currArg <- currArg + 1
-if (nConfigs > 0) {
-  for (i in 1:nConfigs) {
-    # Remember that here we are expecting the whole confname
-    # in case it is specific order
-    if (orderingType == 1) {
-        configsOrdering <- c(configsOrdering, as.integer(arguments[currArg]))
+# Check available sort algorithms
+if (sorting_type != "specific") {
+    if (sorting_type != "none") {
+        stop("Unexpected sorting type")
     } else {
-        configsOrdering <- c(configsOrdering, arguments[currArg])
+        stop("Skipping stats sort step")
     }
-    currArg <- currArg + 1
-  }
 }
-benchmarks_ordering <- NULL
-n_bench <- as.integer(arguments[currArg])
-currArg <- increment(currArg)
-if (n_bench > 0) {
-    for (i in 1:n_bench) {
-        benchmarks_ordering <- c(benchmarks_ordering, arguments[currArg])
-        currArg <- increment(currArg)
+
+n_confs_sorted <- as.integer(arguments[curr_arg])
+curr_arg <- curr_arg + 1
+confs_sort_order <- NULL
+if (n_confs_sorted > 0) {
+    for (i in 1:n_confs_sorted) {
+        # Remember that here we are expecting the whole confKey
+        # in case it is specific order
+        confs_sort_order <- c(confs_sort_order, arguments[curr_arg])
+        curr_arg <- curr_arg + 1
+    }
+}
+benchmarks_sorted_order <- NULL
+n_bench_sorted <- as.integer(arguments[curr_arg])
+
+curr_arg <- increment(curr_arg)
+if (n_bench_sorted > 0) {
+    for (i in 1:n_bench_sorted) {
+        benchmarks_sorted_order <-
+        c(benchmarks_sorted_order,
+            arguments[curr_arg])
+        curr_arg <- increment(curr_arg)
     }
 }
 # Finish argument parsing
 
-parsed_data <- read.table(statsFile, sep = " ", header=TRUE)
-# Order benchmarks
-# TODO: choose the order you prefer for benchs, like in configs
-# Rigth now order by alphabetical order
+parsed_data <- read.table(stats_file, sep = " ", header = TRUE)
+
+benchmarks_column <- get_column_index("benchmark_name", parsed_data)
+config_ending_column <- benchmarks_column - 1
+
+# Here we are expecting the number of benchmarks to sort
+# but take into account that we will have one more benchmark
+# which is the mean
+if (n_bench_sorted != (length(unique(parsed_data[, "benchmark_name"])) - 1)) {
+    # Crash or unexpected behavior could happen...
+    # Notify the user
+    warning(paste("Number of entries specified for sorting",
+        "is different than the number of benchmarks found in stats file\n"))
+}
+
+# Order benchmarks as desired
 # Put mean at the end!
 if (mean_algorithm != "arithmean" && mean_algorithm != "geomean") {
+    # This will actually work for any specified algorithm due to R magic
     mean_algorithm <- "NONEMEAN"
 }
-parsed_data <- parsed_data[order(parsed_data[,"benchmark_name"], decreasing = FALSE),]
+
+# Split mean from the rest of data as it is considered a benchmark
+# TODO: improve this!!!!! this is a hack
+parsed_data <-
+    parsed_data[order(parsed_data[, "benchmark_name"], decreasing = FALSE), ]
 mean_df <- parsed_data[parsed_data["benchmark_name"] != mean_algorithm, ]
-names_vector <- unique(as.character(mean_df[,"benchmark_name"]))
-if (n_bench > 0) {
-    if (length(names_vector) != n_bench) {
-        print("CAREFUL! different number of benchmarks specified for ordering and found in stats!! unexpected result")
+# Get the name of the benchmarks in the order they appear in the stats
+names_vector <- unique(as.character(mean_df[, "benchmark_name"]))
+if (n_bench_sorted > 0) {
+    if (length(names_vector) != n_bench_sorted) {
+        # Crash or unexpected behavior could happen...
+        # Notify the user
+        # This is not a stop because it is not a fatal error...
+        warning(paste("At sorting:",
+            "CAREFUL! different number of benchmarks specified for",
+            "ordering and found in stats!! unexpected result"), sep = " ")
     }
-    names_vector <- benchmarks_ordering
+    # Use the order specified
+    names_vector <- benchmarks_sorted_order
 } else {
-    print("Skipping benchmarks sort step")
+    # No benchmarks specified, use the order found in stats
+    warning("Skipping benchmarks sort step")
 }
 names_vector <- c(names_vector, mean_algorithm)
 
-parsed_data[["benchmark_name"]] <- factor(parsed_data[["benchmark_name"]], levels = unique(names_vector))
-# Reorder benchmarks to have the mean figure at the end
+# Reorder benchmarks to have the mean figure at the end,
+# and the rest in the order specified. Order will sort data
+# by the order of the names in the vector
+parsed_data[["benchmark_name"]] <-
+    factor(parsed_data[["benchmark_name"]], levels = unique(names_vector))
+parsed_data <-
+    parsed_data[order(parsed_data[, "benchmark_name"], decreasing = FALSE), ]
 
-parsed_data <- parsed_data[order(parsed_data[,"benchmark_name"], decreasing = FALSE),]
-
-if (orderingType == 0) {
+if (sorting_type == "none") {
     # Write data onto csv file
-    write.table(parsed_data, statsFile, sep=" ", row.names = F)
+    write.table(parsed_data, stats_file, sep= " ", row.names = FALSE)
     stop("Skipping stats sort step")
 }
 
 
 # Order configurations as desired
-if (length(configsOrdering) < 1) {
+if (length(n_confs_sorted) < 1) {
     stop("No elements were specified to sort stats")
 }
 
-if (orderingType == 1) {
-    # Sort by order of variables specified
-    for (var in configsOrdering) {
-        if (is.integer(parsed_data[,var])) {
-            parsed_data[,var] <- 
-                as.integer(parsed_data[,var])
-            parsed_data <- 
-                parsed_data[order(as.integer(parsed_data[,var]), decreasing = FALSE),]
-        } else {
-            parsed_data <- 
-                parsed_data[order(parsed_data[,var], decreasing = FALSE),]
-	}
-    }
-} else if (orderingType == 2) {
-    # Here we will sort by confName
-    confNames <- parsed_data[,"confKey"]
+
+
+if (sorting_type == "specific") {
+    # Here we will sort by confNames
+    parsed_data[, "conf_names"] <- as.character(parsed_data[, "conf_names"])
+    conf_keys <- parsed_data[, "conf_names"]
     parsed_data <-
-        parsed_data[order(match(confNames, configsOrdering)),]
+        parsed_data[order(match(conf_keys, confs_sort_order)), ]
 } else {
     stop("Unexpected sort type")
 }
 # Write filtered data onto csv file
-write.table(parsed_data, statsFile, sep=" ", row.names = F)
+write.table(parsed_data, stats_file, sep = " ", row.names = FALSE)
