@@ -82,5 +82,5 @@ class AnalyzerInfo:
         self._createOutDir()
     
     def createWorkCsv(self):
-        print("Creating work csv")
+        print("Creating work csv: " + self.getWorkCsv() + " from: " + self.getCsv())
         shutil.copyfile(self.getCsv(), self.getWorkCsv())

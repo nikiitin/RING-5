@@ -3,32 +3,60 @@
 library(readr)
 source("utils/util.R")
 
-arguments = commandArgs(trailingOnly = TRUE)
-statsFile <- arguments[1]
-configs <- arguments[2]
-configs <- as.numeric(configs)
-parsed_data <- read.table(statsFile, sep = " ", header=TRUE)
+arguments <- commandArgs(trailingOnly = TRUE)
+stats_file <- arguments[1]
+parsed_data <- read.table(stats_file, sep = " ", header = TRUE)
 
-# Prepare the csv to be parsed by plotters
-# Calculate mean
-# Specify own function within apply to convert all columns to numeric
-parsed_data[ , (configs+1):ncol(parsed_data)] <- apply(parsed_data[ , (configs+1):ncol(parsed_data)], 2,
-                    function(x) as.numeric(as.character(x)))
-outputdf <- aggregate(parsed_data[(configs+1):ncol(parsed_data)], by=parsed_data[1:configs],FUN = mean)
-outputdf["random_seed"] <- NULL
+# Check if random_seed column exists
+if (!check_column_exists("random_seed", parsed_data)) {
+    stop("random_seed column does not exist! Not reducing seeds!")
+}
 
-# Calculate sd
-secondOdf <- aggregate(parsed_data[(configs+1):ncol(parsed_data)], by=parsed_data[1:configs],FUN = sd)
-secondOdf["random_seed"] <- NULL
-# Rename columns to differentiate between mean and sd
-colnames(secondOdf)[(configs + 1):ncol(secondOdf)] <- paste("sd", colnames(secondOdf)[(configs + 1):ncol(secondOdf)], sep = "-")
+# All columns from seeds_column to the end, except confKey should
+# be statistics so we should convert them to numeric and do not
+# get any error when calculating the mean. Check if the column
+# can be converted to numeric, if not, stop the script
+seeds_column <- get_column_index("random_seed", parsed_data)
+stat_starting_column <- seeds_column + 1
+config_ending_column <- seeds_column - 1
+selected_columns <- (stat_starting_column):ncol(parsed_data)
+if (!all(
+    sapply(
+        parsed_data[, selected_columns],
+                is.numeric))
+) {
+    stop("Statistics found not numeric! Not reducing seeds!")
+}
 
-# Merge both df
-outputdf <- merge(x = outputdf, y = secondOdf, by = colnames(outputdf)[1:configs])
+# Convert all selected columns to numeric
+parsed_data[, selected_columns] <-
+    sapply(parsed_data[, selected_columns], as.numeric)
 
-# Prepare the csv to be parsed by plotters
-# Create configuration names
-outputdf["confName"] <- mixStringCols(1, configs, outputdf)
-outputdf["confKey"] <- mixStringCols(1, configs - 1, outputdf)
+# Calculate mean for each configuration
+mean_dataframe <- aggregate(
+    parsed_data[selected_columns],
+    by = parsed_data[1:(config_ending_column)],
+    FUN = mean
+)
+# Calculate sd for each configuration
+sd_dataframe <- aggregate(
+    parsed_data[selected_columns],
+    by = parsed_data[1:(config_ending_column)],
+    FUN = sd_dropna
+)
+# stat_starting_column has changed index as we removed
+# random_seed column
+stat_starting_column <- stat_starting_column - 1
+# Rename sd columns to sd-<column_name>
+colnames(sd_dataframe)[(stat_starting_column):ncol(sd_dataframe)] <-
+    paste(colnames(sd_dataframe)[stat_starting_column:ncol(sd_dataframe)],
+    "sd",
+    sep = "-")
+
+# Merge mean and sd dataframes
+# Random seed column is removed here
+outputdf <- merge(x = mean_dataframe,
+                  y = sd_dataframe,
+                  by = colnames(mean_dataframe)[1:(config_ending_column)])
 # Write everything onto csv file
-write.table(outputdf, statsFile, sep=" ", row.names = F)
+write.table(outputdf, stats_file, sep = " ", row.names = FALSE)

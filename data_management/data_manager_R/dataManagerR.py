@@ -33,7 +33,6 @@ class DataManagerR(DataManagerInterface):
         print("Reducing seeds and calculating mean and sd")
         RScriptCall = ["./data_management/data_manager_R/reduceSeeds.R"]
         RScriptCall.append(self._csvPath)
-        RScriptCall.append(str(len(self._configs) + 1))
         subprocess.call(RScriptCall)
     
     def _removeOutliers(self) -> None:
@@ -44,7 +43,16 @@ class DataManagerR(DataManagerInterface):
         RScriptCall.append(str(len(self._configs)))
         subprocess.call(RScriptCall)
 
+    def _assignConfKeys(self) -> None:
+        print("Assigning configuration keys")
+        RScriptCall = ["./data_management/data_manager_R/assignConfKeys.R"]
+        RScriptCall.append(self._csvPath)
+        subprocess.call(RScriptCall)
+
     def __call__(self) -> None:
+        # Pre-processing...
+        # Add configuration keys to csv
+        self._assignConfKeys()
         super().__call__()
         # Add here any post-processing that needs to be done
         
