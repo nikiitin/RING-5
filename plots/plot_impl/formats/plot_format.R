@@ -39,6 +39,13 @@ setClass("Plot_format",
     x_split_points = "vector"
   )
 )
+setGeneric("check_data_format_correct", function(object, df) {
+  standardGeneric("check_data_format_correct")
+})
+
+setGeneric("apply_format", function(object, plot, df) {
+  standardGeneric("apply_format")
+})
 
 # Check data is correct
 setMethod("check_data_format_correct",

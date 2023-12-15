@@ -27,6 +27,33 @@ setClass("Plot",
     plot = "ggplot"
   )
 )
+setGeneric("parse_args", function(object, args) {
+  standardGeneric("parse_args")
+})
+
+setGeneric("check_data_correct", function(object) {
+  standardGeneric("check_data_correct")
+})
+
+setGeneric("read_and_format_data", function(object) {
+  standardGeneric("read_and_format_data")
+})
+
+setGeneric("save_to_plot_file", function(object) {
+  standardGeneric("save_to_plot_file")
+})
+
+setGeneric("create_plot", function(object) {
+  standardGeneric("create_plot")
+})
+
+setGeneric("create_and_store_plot", function(object) {
+  standardGeneric("create_and_store_plot")
+})
+
+setGeneric("draw_plot", function(object) {
+  standardGeneric("draw_plot")
+})
 
 # Define the parse_args method for the Plot class
 setMethod("parse_args",
