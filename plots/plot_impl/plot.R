@@ -39,8 +39,8 @@ setGeneric("read_and_format_data", function(object) {
   standardGeneric("read_and_format_data")
 })
 
-setGeneric("save_to_plot_file", function(object) {
-  standardGeneric("save_to_plot_file")
+setGeneric("save_plot_to_file", function(object) {
+  standardGeneric("save_plot_to_file")
 })
 
 setGeneric("create_plot", function(object) {
