@@ -118,7 +118,7 @@ setMethod("check_data_correct", "Plot",
     # Non-critical errors
     # Tell the user the error to fix it
     # Call plot_format check_data_correct method
-    check_data_format_correct(object@format, object@data_frame)
+    object@format$check_data_format_correct(object@data_frame)
   }
 )
 
