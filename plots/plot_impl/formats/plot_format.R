@@ -78,7 +78,7 @@ setMethod("check_data_format_correct",
 
 # Define the draw method for the Plot class
 setMethod("apply_format",
-  signature(object = "Plot_format", plot = "ggplot", df = "data.frame"),
+  signature(object = "Plot_format", plot = "ANY", df = "data.frame"),
   function(object, plot, df) {
     # Apply style to the plot
     # Set x split points. An split point

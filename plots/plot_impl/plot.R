@@ -24,7 +24,7 @@ setClass("Plot",
     # Data frame to be plotted
     data_frame = "data.frame",
     # Plot object
-    plot = "ggplot"
+    plot = "ANY"
   )
 )
 setGeneric("parse_args", function(object, args) {
