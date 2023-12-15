@@ -212,7 +212,7 @@ setMethod("save_plot_to_file", "Plot",
 # Define initialize method for the Plot class
 setMethod("initialize",
   signature(object = "Plot", args = "list"),
-  function(object, args) {
+  function(object, args, ...) {
     object <- parse_args(object, args)
     # Call read_and_format_data method
     object <- read_and_format_data(object)
