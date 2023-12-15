@@ -1,6 +1,7 @@
 library(prismatic)
 library(ggthemes)
 library(ggplot2)
+library(methods)
 setClass("Plot_format",
   slots = list(
     # The title of the plot
