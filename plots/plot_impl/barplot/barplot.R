@@ -35,10 +35,10 @@ setMethod("create_plot",
       color = "black")
     # Add standard deviation error bars
     plot <- plot + geom_errorbar(
-      aes(ymin = object@data_frame[, object@stat] -
-        object@data_frame[, paste(object@stat, "sd", sep = ".")],
-      ymax = object@data_frame[, object@stat] +
-        object@data_frame[, paste(object@stat, "sd", sep = ".")]),
+      aes(ymin = object@data_frame[, object@stats] -
+        object@data_frame[, paste(object@stats, "sd", sep = ".")],
+      ymax = object@data_frame[, object@stats] +
+        object@data_frame[, paste(object@stats, "sd", sep = ".")]),
       width = .2,
       position = position_dodge(.9))
     # Return the plot

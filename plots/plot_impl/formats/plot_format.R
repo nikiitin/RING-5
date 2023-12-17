@@ -1,5 +1,6 @@
 library(prismatic)
 library(ggthemes)
+source("utils/util.R")
 setClass("Plot_format",
   slots = list(
     # The title of the plot
@@ -35,10 +36,16 @@ setClass("Plot_format",
     n_x_split_points = "numeric",
     # The x split points (dotted vertical bars splitting the plot)
     x_split_points = "vector",
-    # The statistic to be used
-    stat = "vector"
+    # The statistics to be used
+    stats = "vector"
   )
 )
+# Define all generic methods for the Plot_format class
+setGeneric("parse_args_format",
+  function(object, format_start_point, args) {
+  standardGeneric("parse_args_format")
+})
+
 setGeneric("check_data_format_correct", function(object, df) {
   standardGeneric("check_data_format_correct")
 })
@@ -46,6 +53,69 @@ setGeneric("check_data_format_correct", function(object, df) {
 setGeneric("apply_format", function(object, plot, df) {
   standardGeneric("apply_format")
 })
+
+# Define the parse_args method for the Plot_format class
+setMethod("parse_args_format",
+  signature(object = "Plot_format",
+    format_start_point = "numeric",
+    args = "vector"),
+  function(object, format_start_point, args) {
+    # Parse the arguments and store them in the object
+    # Prepare the format object
+    # It will apply all format configurations to the plot
+    curr_arg <- format_start_point
+    object@title <- get_arg(args, curr_arg, 1)
+    curr_arg <- increment(curr_arg)
+    object@x_axis_name <- get_arg(args, curr_arg, 1)
+    curr_arg <- increment(curr_arg)
+    object@y_axis_name <- get_arg(args, curr_arg, 1)
+    curr_arg <- increment(curr_arg)
+    object@width <- as.numeric(get_arg(args, curr_arg, 1))
+    curr_arg <- increment(curr_arg)
+    object@height <- as.numeric(get_arg(args, curr_arg, 1))
+    curr_arg <- increment(curr_arg)
+    object@n_legend_names <- as.numeric(get_arg(args, curr_arg, 1))
+    curr_arg <- increment(curr_arg)
+    object@legend_names <- get_arg(args, curr_arg, object@n_legend_names)
+    curr_arg <- curr_arg + object@n_legend_names
+    object@n_y_breaks <- as.numeric(get_arg(args, curr_arg, 1))
+    curr_arg <- increment(curr_arg)
+    object@y_breaks <- as.numeric(get_arg(args, curr_arg, object@n_y_breaks))
+    curr_arg <- curr_arg + object@n_y_breaks
+    object@y_limit_top <- as.numeric(get_arg(args, curr_arg, 1))
+    curr_arg <- increment(curr_arg)
+    object@y_limit_bot <- as.numeric(get_arg(args, curr_arg, 1))
+    curr_arg <- increment(curr_arg)
+    object@format <- get_arg(args, curr_arg, 1)
+    curr_arg <- increment(curr_arg)
+    object@legend_title <- get_arg(args, curr_arg, 1)
+    curr_arg <- increment(curr_arg)
+    object@legend_n_elem_row <- as.numeric(get_arg(args, curr_arg, 1))
+    curr_arg <- increment(curr_arg)
+    object@n_x_split_points <- as.numeric(get_arg(args, curr_arg, 1))
+    curr_arg <- increment(curr_arg)
+    object@x_split_points <- as.numeric(
+      get_arg(
+        args,
+        curr_arg,
+        object@n_x_split_points))
+    curr_arg <- curr_arg + object@n_x_split_points
+    # Return the object
+    object
+  }
+)
+
+# Define initialize method for the Plot class
+setMethod("initialize", "Plot_format",
+  function(.Object, format_start_point, stats, args) {
+    .Object@stats <- stats
+    # Call the parse_args method
+    #options(error=function()traceback(2))
+    .Object <- parse_args_format(.Object, format_start_point, args)
+    # Return the object
+    .Object
+  }
+)
 
 # Check data is correct
 setMethod("check_data_format_correct",
@@ -183,10 +253,10 @@ setMethod(
         # assign a label to it
         list_of_labels <-
           ifelse(
-            (df[, object@stat] > (object@y_limit_top)),
+            (df[, object@stats] > (object@y_limit_top)),
             format(
               round(
-                df[, object@stat],
+                df[, object@stats],
                 2
               ),
               nsmall = 2

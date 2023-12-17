@@ -14,6 +14,8 @@ setClass("Plot",
   slots = list(
     # Format configuration class that contains all the
     # configuration for the plot
+    # Each plot can have its own format configuration, see
+    # plots/plot_impl/formats/plot_format.R
     format = "Plot_format",
     # The path to the file where the plot will be saved
     result_path = "character",
@@ -22,7 +24,7 @@ setClass("Plot",
     # The number of statistics to be plotted
     n_stats = "numeric",
     # The statistics to be plotted
-    stat = "vector",
+    stats = "vector",
     # The number of legend names
     data = "data.frame",
     # Data frame to be plotted
@@ -35,7 +37,8 @@ setClass("Plot",
 # Define all generic methods for the Plot class
 # These methods will be overridden in inheriting classes
 # at demand
-setGeneric("parse_args", function(object, args) {
+setGeneric("parse_args",
+  function(object, args) {
   standardGeneric("parse_args")
 })
 
@@ -69,67 +72,20 @@ setMethod("parse_args",
   function(object, args) {
     # Parse the arguments and store them in the object
     curr_arg <- 1
-    title <- get_arg(args, curr_arg, 1)
-    curr_arg <- increment(curr_arg)
     object@result_path <- get_arg(args, curr_arg, 1)
     curr_arg <- increment(curr_arg)
     object@stats_file <- get_arg(args, curr_arg, 1)
     curr_arg <- increment(curr_arg)
-    x_axis_name <- get_arg(args, curr_arg, 1)
-    curr_arg <- increment(curr_arg)
-    y_axis_name <- get_arg(args, curr_arg, 1)
-    curr_arg <- increment(curr_arg)
-    width <- as.numeric(get_arg(args, curr_arg, 1))
-    curr_arg <- increment(curr_arg)
-    height <- as.numeric(get_arg(args, curr_arg, 1))
-    curr_arg <- increment(curr_arg)
     object@n_stats <- as.numeric(get_arg(args, curr_arg, 1))
     curr_arg <- increment(curr_arg)
-    object@stat <- get_arg(args, curr_arg, object@n_stats)
+    object@stats <- get_arg(args, curr_arg, object@n_stats)
     curr_arg <- curr_arg + object@n_stats
-    n_legend_names <- as.numeric(get_arg(args, curr_arg, 1))
-    curr_arg <- increment(curr_arg)
-    legend_names <- get_arg(args, curr_arg, n_legend_names)
-    curr_arg <- curr_arg + n_legend_names
-    n_y_breaks <- as.numeric(get_arg(args, curr_arg, 1))
-    curr_arg <- increment(curr_arg)
-    y_breaks <- as.numeric(get_arg(args, curr_arg, n_y_breaks))
-    curr_arg <- curr_arg + n_y_breaks
-    y_limit_top <- as.numeric(get_arg(args, curr_arg, 1))
-    curr_arg <- increment(curr_arg)
-    y_limit_bot <- as.numeric(get_arg(args, curr_arg, 1))
-    curr_arg <- increment(curr_arg)
-    format <- get_arg(args, curr_arg, 1)
-    curr_arg <- increment(curr_arg)
-    legend_title <- get_arg(args, curr_arg, 1)
-    curr_arg <- increment(curr_arg)
-    legend_n_elem_row <- as.numeric(get_arg(args, curr_arg, 1))
-    curr_arg <- increment(curr_arg)
-    n_x_split_points <- as.numeric(get_arg(args, curr_arg, 1))
-    curr_arg <- increment(curr_arg)
-    x_split_points <- as.numeric(get_arg(args, curr_arg, n_x_split_points))
-    curr_arg <- curr_arg + n_x_split_points
     # Prepare the format object
     # It will apply all format configurations to the plot
     object@format <- new("Plot_format",
-      title = title,
-      x_axis_name = x_axis_name,
-      y_axis_name = y_axis_name,
-      width = width,
-      height = height,
-      n_legend_names = n_legend_names,
-      legend_names = legend_names,
-      n_y_breaks = n_y_breaks,
-      y_breaks = y_breaks,
-      y_limit_top = y_limit_top,
-      y_limit_bot = y_limit_bot,
-      format = format,
-      legend_title = legend_title,
-      legend_n_elem_row = legend_n_elem_row,
-      n_x_split_points = n_x_split_points,
-      x_split_points = x_split_points,
-      stat = object@stat
-    )
+      format_start_point = curr_arg,
+      stats = object@stats,
+      args = args)
     object
   }
 )
@@ -145,9 +101,9 @@ setMethod("check_data_correct", "Plot",
     # Check if all stats are present in the data
     if (!all(
         sapply(
-          object@stat,
-          function(stat) {
-            stat %in% colnames(object@data_frame)
+          object@stats,
+          function(stats) {
+            stats %in% colnames(object@data_frame)
           }
         )
       )
@@ -170,7 +126,7 @@ setMethod("read_and_format_data", "Plot",
     # Check if stat column can be turned to numeric
     if (!all(
         sapply(
-          object@data[, object@stat],
+          object@data[, object@stats],
           is.numeric
         )
       )
@@ -178,8 +134,8 @@ setMethod("read_and_format_data", "Plot",
       stop("Stats are not numeric type! Stopping plot...")
     }
     # Convert all stat columns to numeric
-    object@data[, object@stat] <-
-      sapply(object@data[, object@stat], as.numeric)
+    object@data[, object@stats] <-
+      sapply(object@data[, object@stats], as.numeric)
     # Create new data_frame with only the columns we need
     # Get config_name column (configurations)
     confs <- factor(object@data$conf_name,
@@ -190,8 +146,8 @@ setMethod("read_and_format_data", "Plot",
       levels = unique(as.character(object@data$benchmark_name)),
       ordered = TRUE)
     # Get all required stats
-    stats <- object@data[object@stat]
-    stats_sd <- object@data[paste(object@stat, "sd", sep = ".")]
+    stats <- object@data[object@stats]
+    stats_sd <- object@data[paste(object@stats, "sd", sep = ".")]
     # Prepare dataFrame for future plotting
     object@data_frame <- data.frame(configurations = confs,
       benchmarks = benchs)
@@ -256,7 +212,7 @@ setMethod("create_plot",
       object@data_frame, aes(
         x = benchmarks,
         fill = configurations,
-        y = .data[[object@stat]]))
+        y = .data[[object@stats]]))
     plot
   }
 )

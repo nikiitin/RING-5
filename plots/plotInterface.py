@@ -59,24 +59,27 @@ class PlotInterface:
     def _prepareScriptCall(self) -> None:
         pass
 
-    def _prepareSufixScriptCall(self) -> None:
-        self._sufixScriptCall = []
-        self._sufixScriptCall.extend(utils.jsonToArg(self._plotJson, "legendNames"))
-        self._sufixScriptCall.extend(utils.jsonToArg(self._plotJson, "breaks"))
-        self._sufixScriptCall.extend(utils.jsonToArg(self._plotJson, "limitTop"))
-        self._sufixScriptCall.extend(utils.jsonToArg(self._plotJson, "limitBot"))
-        self._sufixScriptCall.extend(utils.jsonToArg(self._plotJson, "format"))
-        self._sufixScriptCall.extend(utils.jsonToArg(self._plotJson, "legendTitle"))
-        self._sufixScriptCall.extend(utils.jsonToArg(self._plotJson, "nLegendElementsPerRow"))
-        self._sufixScriptCall.extend(utils.jsonToArg(self._plotJson, "xSplitPoints"))
+    def _preparePlotInfo(self) -> list:
+        plotInfo = []
+        plotInfo.append(self._plotPath)
+        plotInfo.append(self._tmpCsv)
+        plotInfo.extend(utils.jsonToArg(self._plotJson, "stats"))
+        return plotInfo
 
-    def _preparePrefixScriptCall(self) -> None:
-        self._prefixScriptCall = []
-        self._prefixScriptCall.extend(utils.jsonToArg(self._plotJson, "title"))
-        self._prefixScriptCall.append(self._plotPath)
-        self._prefixScriptCall.append(self._tmpCsv)
-        self._prefixScriptCall.extend(utils.jsonToArg(self._plotJson, "xAxisName"))
-        self._prefixScriptCall.extend(utils.jsonToArg(self._plotJson, "yAxisName"))
-        self._prefixScriptCall.extend(utils.jsonToArg(self._plotJson, "width"))
-        self._prefixScriptCall.extend(utils.jsonToArg(self._plotJson, "height"))
+    def _preparePlotFormatInfo(self) -> list:
+        plotFormatInfo = []
+        plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "title"))
+        plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "xAxisName"))
+        plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "yAxisName"))
+        plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "width"))
+        plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "height"))
+        plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "legendNames"))
+        plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "breaks"))
+        plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "limitTop"))
+        plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "limitBot"))
+        plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "format"))
+        plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "legendTitle"))
+        plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "nLegendElementsPerRow"))
+        plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "xSplitPoints"))
+        return plotFormatInfo
         

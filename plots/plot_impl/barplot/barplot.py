@@ -14,17 +14,14 @@ class Barplot(PlotInterface):
         # TODO: description file for locations
         # (Avoid hardcoding paths)
         self._RScriptCall = ["./plots/plot_impl/barplot/barplot.R"]
-        self._preparePrefixScriptCall()
-        self._RScriptCall.extend(self._prefixScriptCall)
-        self._RScriptCall.extend(utils.jsonToArg(self._plotJson, "stats"))
-        self._prepareSufixScriptCall()
-        self._RScriptCall.extend(self._sufixScriptCall)
+        self._RScriptCall.extend(self._preparePlotInfo())
+        self._RScriptCall.extend(self._preparePlotFormatInfo())
 
-    def _preparePrefixScriptCall(self) -> None:
-        super()._preparePrefixScriptCall()
+    def _preparePlotInfo(self) -> list:
+        return super()._preparePlotInfo()
     
-    def _prepareSufixScriptCall(self) -> None:
-        super()._prepareSufixScriptCall()
+    def _preparePlotFormatInfo(self) -> list:
+        return super()._preparePlotFormatInfo()
 
     def __call__(self) -> None:
         super().__call__()
