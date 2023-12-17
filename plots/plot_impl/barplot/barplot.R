@@ -1,9 +1,4 @@
 #!/usr/bin/Rscript
-library(readr)
-require(ggplot2)
-require(ggthemes)
-library(prismatic)
-library(methods)
 source("utils/util.R")
 source("plots/plot_impl/plot.R")
 
@@ -16,7 +11,7 @@ setMethod("check_data_correct",
   signature(object = "Barplot"),
   function(object) {
     # Call parent method
-    callNextMethod(object)
+    callNextMethod()
     # Check if data is correct for a barplot
     # Check if there is only one stat
     if (object@n_stats != 1) {
@@ -31,14 +26,15 @@ setMethod("create_plot",
   signature(object = "Barplot"),
   function(object) {
     # We can call parent method here!
-    plot <- callNextMethod(object)
+    # Call parent method
+    plot <- callNextMethod()
     # Add the geom_bar to the plot object
-    plot <- geom_bar(
+    plot <- plot + geom_bar(
       stat = "identity",
       position = "dodge",
-      color = "black") +
+      color = "black")
     # Add standard deviation error bars
-    plot <- geom_errorbar(
+    plot <- plot + geom_errorbar(
       aes(ymin = object@data_frame[, object@stat] -
         object@data_frame[, paste(object@stat, "sd", sep = ".")],
       ymax = object@data_frame[, object@stat] +
@@ -50,10 +46,20 @@ setMethod("create_plot",
   }
 )
 
+setMethod("read_and_format_data",
+  signature(object = "Barplot"),
+  function(object) {
+    # Call parent method
+    object <- callNextMethod()
+    # Add 0.5 to x split points to center the vlines out of the bars
+    object@format@x_split_points <- (object@format@x_split_points + 0.5)
+    # Return the object
+    object
+  }
+)
 # Definition complete. Now do plotting
 # Take arguments from calling script
 arguments <- commandArgs(trailingOnly = TRUE)
-
 # Define variable of barplot type
 # Prototype is not defined!
 # This will call initialize method from Barplot class

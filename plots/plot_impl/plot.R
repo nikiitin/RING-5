@@ -4,6 +4,10 @@ library(methods)
 library(ggplot2)
 library(readr)
 
+# Set old class gg and ggplot to be able to use ggplot2
+# functions inside the S4 class
+setOldClass(c("gg", "ggplot"))
+
 # Define the S4 class for a generic plot
 setClass("Plot",
   # Define the fields of the class
@@ -18,15 +22,19 @@ setClass("Plot",
     # The number of statistics to be plotted
     n_stats = "numeric",
     # The statistics to be plotted
-    stat = "list",
+    stat = "vector",
     # The number of legend names
     data = "data.frame",
     # Data frame to be plotted
     data_frame = "data.frame",
     # Plot object
-    plot = "ANY"
+    plot = "ggplot"
   )
 )
+
+# Define all generic methods for the Plot class
+# These methods will be overridden in inheriting classes
+# at demand
 setGeneric("parse_args", function(object, args) {
   standardGeneric("parse_args")
 })
@@ -57,10 +65,12 @@ setGeneric("draw_plot", function(object) {
 
 # Define the parse_args method for the Plot class
 setMethod("parse_args",
-  signature(object = "Plot", args = "list"),
+  signature(object = "Plot", args = "vector"),
   function(object, args) {
     # Parse the arguments and store them in the object
     curr_arg <- 1
+    title <- get_arg(args, curr_arg, 1)
+    curr_arg <- increment(curr_arg)
     object@result_path <- get_arg(args, curr_arg, 1)
     curr_arg <- increment(curr_arg)
     object@stats_file <- get_arg(args, curr_arg, 1)
@@ -69,55 +79,57 @@ setMethod("parse_args",
     curr_arg <- increment(curr_arg)
     y_axis_name <- get_arg(args, curr_arg, 1)
     curr_arg <- increment(curr_arg)
-    width <- get_arg(args, curr_arg, 1)
+    width <- as.numeric(get_arg(args, curr_arg, 1))
     curr_arg <- increment(curr_arg)
-    height <- get_arg(args, curr_arg, 1)
+    height <- as.numeric(get_arg(args, curr_arg, 1))
     curr_arg <- increment(curr_arg)
-    object@n_stats <- get_arg(args, curr_arg, 1)
+    object@n_stats <- as.numeric(get_arg(args, curr_arg, 1))
     curr_arg <- increment(curr_arg)
     object@stat <- get_arg(args, curr_arg, object@n_stats)
     curr_arg <- curr_arg + object@n_stats
-    n_legend_names <- get_arg(args, curr_arg, 1)
+    n_legend_names <- as.numeric(get_arg(args, curr_arg, 1))
     curr_arg <- increment(curr_arg)
-    legend_names <- get_arg(args, curr_arg, object@n_legend_names)
-    curr_arg <- curr_arg + object@n_legend_names
-    n_y_breaks <- get_arg(args, curr_arg, 1)
+    legend_names <- get_arg(args, curr_arg, n_legend_names)
+    curr_arg <- curr_arg + n_legend_names
+    n_y_breaks <- as.numeric(get_arg(args, curr_arg, 1))
     curr_arg <- increment(curr_arg)
-    y_breaks <- get_arg(args, curr_arg, object@n_y_breaks)
-    curr_arg <- curr_arg + object@n_y_breaks
-    y_limit_top <- get_arg(args, curr_arg, 1)
+    y_breaks <- as.numeric(get_arg(args, curr_arg, n_y_breaks))
+    curr_arg <- curr_arg + n_y_breaks
+    y_limit_top <- as.numeric(get_arg(args, curr_arg, 1))
     curr_arg <- increment(curr_arg)
-    y_limit_bot <- get_arg(args, curr_arg, 1)
+    y_limit_bot <- as.numeric(get_arg(args, curr_arg, 1))
     curr_arg <- increment(curr_arg)
     format <- get_arg(args, curr_arg, 1)
     curr_arg <- increment(curr_arg)
     legend_title <- get_arg(args, curr_arg, 1)
     curr_arg <- increment(curr_arg)
-    legend_n_elem_row <- get_arg(args, curr_arg, 1)
+    legend_n_elem_row <- as.numeric(get_arg(args, curr_arg, 1))
     curr_arg <- increment(curr_arg)
-    n_x_split_points <- get_arg(args, curr_arg, 1)
+    n_x_split_points <- as.numeric(get_arg(args, curr_arg, 1))
     curr_arg <- increment(curr_arg)
-    x_split_points <- get_arg(args, curr_arg, object@n_x_split_points)
-    curr_arg <- curr_arg + object@n_x_split_points
+    x_split_points <- as.numeric(get_arg(args, curr_arg, n_x_split_points))
+    curr_arg <- curr_arg + n_x_split_points
     # Prepare the format object
     # It will apply all format configurations to the plot
     object@format <- new("Plot_format",
-      slots = list(
-        x_axis_name = x_axis_name,
-        y_axis_name = y_axis_name,
-        width = width,
-        height = height,
-        n_legend_names = n_legend_names,
-        legend_names = legend_names,
-        n_y_breaks = n_y_breaks,
-        y_breaks = y_breaks,
-        y_limit_top = y_limit_top,
-        y_limit_bot = y_limit_bot,
-        format = format,
-        legend_title = legend_title,
-        legend_n_elem_row = legend_n_elem_row,
-        n_x_split_points = n_x_split_points,
-        x_split_points = x_split_points))
+      title = title,
+      x_axis_name = x_axis_name,
+      y_axis_name = y_axis_name,
+      width = width,
+      height = height,
+      n_legend_names = n_legend_names,
+      legend_names = legend_names,
+      n_y_breaks = n_y_breaks,
+      y_breaks = y_breaks,
+      y_limit_top = y_limit_top,
+      y_limit_bot = y_limit_bot,
+      format = format,
+      legend_title = legend_title,
+      legend_n_elem_row = legend_n_elem_row,
+      n_x_split_points = n_x_split_points,
+      x_split_points = x_split_points,
+      stat = object@stat
+    )
     object
   }
 )
@@ -145,7 +157,7 @@ setMethod("check_data_correct", "Plot",
     # Non-critical errors
     # Tell the user the error to fix it
     # Call plot_format check_data_correct method
-    object@format$check_data_format_correct(object@data_frame)
+    check_data_format_correct(object@format, object@data_frame)
   }
 )
 
@@ -178,13 +190,19 @@ setMethod("read_and_format_data", "Plot",
       levels = unique(as.character(object@data$benchmark_name)),
       ordered = TRUE)
     # Get all required stats
-    stats <- object@data[, object@stat]
+    stats <- object@data[object@stat]
+    stats_sd <- object@data[paste(object@stat, "sd", sep = ".")]
     # Prepare dataFrame for future plotting
     object@data_frame <- data.frame(configurations = confs,
       benchmarks = benchs)
     # Add stats to dataFrame
     for (stat in ncol(stats)) {
-      object@data_frame <- cbind(object@data_frame, stats[, stat])
+      object@data_frame <- cbind(
+        object@data_frame,
+        stats[stat])
+      object@data_frame <- cbind(
+        object@data_frame,
+        stats_sd[stat])
     }
     object
   }
@@ -194,32 +212,33 @@ setMethod("read_and_format_data", "Plot",
 setMethod("save_plot_to_file", "Plot",
   function(object) {
     # Save the plot to the result_path
+    result_path <- paste(
+      c(
+        object@result_path,
+        ".",
+        object@format@format),
+      collapse = "")
     ggsave(
-      paste(
-        c(
-          object@result_path,
-          ".",
-          object@format@format),
-        collapse = ""),
-      width = object@format@width,
-      height = object@format@height,
+      filename = result_path,
       units = "cm",
       dpi = 320,
-      device = object@format@format)
+      device = object@format@format,
+      plot = object@plot,
+      width = object@format@width,
+      height = object@format@height)
   }
 )
 
 # Define initialize method for the Plot class
-setMethod("initialize",
-  signature(object = "Plot", args = "list"),
-  function(object, args, ...) {
-    object <- parse_args(object, args)
+setMethod("initialize", "Plot",
+  function(.Object, args) {
+    .Object <- parse_args(.Object, args)
     # Call read_and_format_data method
-    object <- read_and_format_data(object)
+    .Object <- read_and_format_data(.Object)
     # Check data is correct
-    check_data_correct(object)
+    check_data_correct(.Object)
     # Return the object
-    object
+    .Object
   }
 )
 
@@ -237,7 +256,7 @@ setMethod("create_plot",
       object@data_frame, aes(
         x = benchmarks,
         fill = configurations,
-        y = object@data_frame[, object@stat]))
+        y = .data[[object@stat]]))
     plot
   }
 )

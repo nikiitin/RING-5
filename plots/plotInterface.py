@@ -54,6 +54,7 @@ class PlotInterface:
         utils.checkElementExists(self._plotJson, "format")
         utils.checkElementExists(self._plotJson, "legendTitle")
         utils.checkElementExists(self._plotJson, "nLegendElementsPerRow")
+        utils.checkElementExists(self._plotJson, "xSplitPoints")
 
     def _prepareScriptCall(self) -> None:
         pass
@@ -67,13 +68,15 @@ class PlotInterface:
         self._sufixScriptCall.extend(utils.jsonToArg(self._plotJson, "format"))
         self._sufixScriptCall.extend(utils.jsonToArg(self._plotJson, "legendTitle"))
         self._sufixScriptCall.extend(utils.jsonToArg(self._plotJson, "nLegendElementsPerRow"))
+        self._sufixScriptCall.extend(utils.jsonToArg(self._plotJson, "xSplitPoints"))
 
     def _preparePrefixScriptCall(self) -> None:
         self._prefixScriptCall = []
         self._prefixScriptCall.extend(utils.jsonToArg(self._plotJson, "title"))
         self._prefixScriptCall.append(self._plotPath)
+        self._prefixScriptCall.append(self._tmpCsv)
         self._prefixScriptCall.extend(utils.jsonToArg(self._plotJson, "xAxisName"))
         self._prefixScriptCall.extend(utils.jsonToArg(self._plotJson, "yAxisName"))
         self._prefixScriptCall.extend(utils.jsonToArg(self._plotJson, "width"))
         self._prefixScriptCall.extend(utils.jsonToArg(self._plotJson, "height"))
-        self._prefixScriptCall.append(self._tmpCsv)
+        

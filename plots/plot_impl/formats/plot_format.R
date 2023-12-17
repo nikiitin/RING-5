@@ -1,7 +1,5 @@
 library(prismatic)
 library(ggthemes)
-library(ggplot2)
-library(methods)
 setClass("Plot_format",
   slots = list(
     # The title of the plot
@@ -36,7 +34,9 @@ setClass("Plot_format",
     # The number of x split points
     n_x_split_points = "numeric",
     # The x split points (dotted vertical bars splitting the plot)
-    x_split_points = "vector"
+    x_split_points = "vector",
+    # The statistic to be used
+    stat = "vector"
   )
 )
 setGeneric("check_data_format_correct", function(object, df) {
@@ -66,19 +66,32 @@ setMethod("check_data_format_correct",
       warning("Number of x split points is below 1!")
     }
     # Check if number of n_legend_names is equal to number of configs
-    if (object@format@n_legend_names != length(unique(df$conf_name))) {
-      warning("Number of legend names is not equal to number of configs!")
+    if (object@n_legend_names > 0 &&
+      object@n_legend_names != length(unique(df$configurations))) {
+      warning(paste("Number of legend names is not equal to number of configs!",
+        " Expected: ",
+        length(unique(df$configurations)),
+        " Got: ",
+        object@n_legend_names, sep = ""))
     }
     # Check if x split points is greater than the number of benchmarks
-    if (object@n_x_split_points > length(unique(df$benchmark_name))) {
-      warning("Number of x split points is greater than number of benchmarks!")
+    if (object@n_x_split_points > 0 &&
+     object@n_x_split_points > length(unique(df$benchmarks))) {
+      warning(paste("Number of x split points is over benchmarks number!",
+        " Expected: ",
+        length(unique(df$benchmarks)),
+        " Got: ",
+        object@n_x_split_points, sep = ""))
     }
   }
 )
-
+# Set old class gg and ggplot to be able to use ggplot2
+# functions inside the S4 class
+setOldClass(c("gg", "ggplot"))
 # Define the draw method for the Plot class
-setMethod("apply_format",
-  signature(object = "Plot_format", plot = "ANY", df = "data.frame"),
+setMethod(
+  "apply_format",
+  signature(object = "Plot_format", plot = "ggplot", df = "data.frame"),
   function(object, plot, df) {
     # Apply style to the plot
     # Set x split points. An split point
@@ -90,7 +103,7 @@ setMethod("apply_format",
       plot <- plot +
         geom_vline(
           xintercept = object@x_split_points,
-          linetype = "dotted",
+          linetype = "dashed",
           color = "black"
         )
     }
@@ -103,13 +116,18 @@ setMethod("apply_format",
         angle = 30,
         hjust = 1,
         size = 10,
-        face = "bold"),
+        face = "bold"
+      ),
       axis.text.y = element_text(
         hjust = 1,
         size = 10,
-        face = "bold"),
+        face = "bold"
+      ),
       legend.position = "top",
-      legend.justification = "right")
+      legend.justification = "right"
+    )
+
+
     # Add the colors to the plot (one color per config)
     # using viridis color palette, which is a colorblind
     # friendly palette. In case a label is used, make it match
@@ -119,10 +137,14 @@ setMethod("apply_format",
         viridisLite::magma(
           length(
             unique(
-              df$configurations)),
-          direction = -1),
+              df$configurations
+            )
+          ),
+          direction = -1
+        ),
         "rgb",
-        "hcl")
+        "hcl"
+      )
     label_col <- ifelse(colors[, "l"] > 50, "black", "white")
     # Assign the colors to plot and labels to legend in case
     # legend names are specified
@@ -131,12 +153,14 @@ setMethod("apply_format",
         scale_fill_viridis_d(
           option = "plasma",
           labels = object@legend_names,
-          direction = -1)
+          direction = -1
+        )
     } else {
       plot <- plot +
         scale_fill_viridis_d(
           option = "plasma",
-          direction = -1)
+          direction = -1
+        )
     }
     # Set the number of elements per row in the legend
     # and the title of the legend
@@ -144,7 +168,9 @@ setMethod("apply_format",
       guides(
         fill = guide_legend(
           nrow = object@legend_n_elem_row,
-          title = object@legend_title))
+          title = object@legend_title
+        )
+      )
     # Limit the y axis and assign labels to those
     # statistics that overgo the top limit
     if (object@y_limit_top > 0) {
@@ -161,18 +187,26 @@ setMethod("apply_format",
             format(
               round(
                 df[, object@stat],
-                2),
-              nsmall = 2),
-            NA)
+                2
+              ),
+              nsmall = 2
+            ),
+            NA
+          )
         # Set the breaks and the limits
         plot <- plot +
           scale_y_continuous(
             breaks = object@y_breaks,
-            oob = scales::squish)
+            oob = scales::squish
+          )
         plot <- plot + coord_cartesian(
           ylim = as.numeric(
-            c(object@y_limit_bot,
-              object@y_limit_top)))
+            c(
+              object@y_limit_bot,
+              object@y_limit_top
+            )
+          )
+        )
         # Add the labels to the plot
         plot <- plot +
           geom_text(
@@ -181,30 +215,33 @@ setMethod("apply_format",
               label = list_of_labels,
               group = configurations,
               color = configurations,
-              y = object@y_limit_top),
+              y = object@y_limit_top
+            ),
             show.legend = FALSE,
             size = 2.5,
             angle = 90,
-            hjust = "inward")
+            hjust = "inward"
+          )
         # Set the color of the labels
         plot <- plot +
           scale_color_manual(
-            values = label_col)
-        # Set the Title
-        if (object@title != "") {
-          plot <- plot + ggtitle(object@title)
-        }
-        # Set the x axis title
-        if (object@x_axis_name != "") {
-          plot <- plot + xlab(object@x_axis_name)
-        }
-        # Set the y axis title
-        if (object@y_axis_name != "") {
-          plot <- plot + ylab(object@y_axis_name)
-        }
-        # Return the plot
-        plot
+            values = label_col
+          )
       }
     }
+    # Set the Title
+    if (object@title != "") {
+      plot <- plot + ggtitle(object@title)
+    }
+    # Set the x axis title
+    if (object@x_axis_name != "") {
+      plot <- plot + xlab(object@x_axis_name)
+    }
+    # Set the y axis title
+    if (object@y_axis_name != "") {
+      plot <- plot + ylab(object@y_axis_name)
+    }
+    # Return the plot
+    plot
   }
 )
