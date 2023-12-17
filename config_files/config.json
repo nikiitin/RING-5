@@ -27,7 +27,7 @@
         "htm_transaction_abort_cause::memory_conflict_staledata",
         "htm_transaction_abort_cause::memory_conflict_falsesharing",
         "htm_transaction_abort_cause::validation_failure",
-        "htm_transaction_abort_cause::other",
+        "htm_transaction_abort_cause::other"
     ],
     "renameStats": [
         {
