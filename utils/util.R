@@ -1,3 +1,7 @@
+source("utils/R_structs/MapSet.R")
+shift <- function(x, n) {
+    c(x[-(seq(n))])
+}
 increment <- function(val) {
     val + 1
 }
@@ -6,15 +10,14 @@ get_column_index <- function(column_name, dataframe) {
     which(colnames(dataframe) == column_name)
 }
 
-get_arg <- function(arguments, curr_arg, n_elements = 1) {
+get_arg <- function(arguments, n_elements = 1) {
     if (n_elements == 1) {
-        elem <- arguments[curr_arg]
+        elem <- arguments[1]
         elem
     } else if (n_elements > 1) {
         elems <- NULL
         for (i in 1:n_elements) {
-            elems <- c(elems, arguments[curr_arg])
-            curr_arg <- increment(curr_arg)
+            elems <- c(elems, arguments[i])
         }
         elems
     } else {

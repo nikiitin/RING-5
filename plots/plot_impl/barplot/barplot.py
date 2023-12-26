@@ -8,7 +8,11 @@ class Barplot(PlotInterface):
     
     def _checkCorrectness(self) -> None:
         super()._checkCorrectness()
-        utils.checkElementExists(self._plotJson, "stats")
+        # Check plot format info
+        utils.checkElementExists(self._plotJson, "legendNames")
+        utils.checkElementExists(self._plotJson, "breaks")
+        utils.checkElementExists(self._plotJson, "limitTop")
+        utils.checkElementExists(self._plotJson, "limitBot")
 
     def _prepareScriptCall(self) -> None:
         # TODO: description file for locations
@@ -18,10 +22,16 @@ class Barplot(PlotInterface):
         self._RScriptCall.extend(self._preparePlotFormatInfo())
 
     def _preparePlotInfo(self) -> list:
-        return super()._preparePlotInfo()
+        plotInfo = super()._preparePlotInfo()
+        plotInfo.extend(utils.jsonToArg(self._plotJson, "group"))
     
     def _preparePlotFormatInfo(self) -> list:
-        return super()._preparePlotFormatInfo()
+        plotFormatInfo = super()._preparePlotFormatInfo()
+        plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "legendNames"))
+        plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "breaks"))
+        plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "limitTop"))
+        plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "limitBot"))
+        return plotFormatInfo
 
     def __call__(self) -> None:
         super().__call__()

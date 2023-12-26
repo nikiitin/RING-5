@@ -1,6 +1,7 @@
 #!/usr/bin/Rscript
 source("utils/util.R")
 source("plots/plot_impl/plot.R")
+source("plots/plot_impl/barplot/barplot_format.R")
 
 # Define the S4 class for a barplot
 setClass("Barplot", contains = "Plot")
@@ -13,10 +14,23 @@ setMethod("check_data_correct",
     # Call parent method
     callNextMethod()
     # Check if data is correct for a barplot
-    # Check if there is only one stat
-    if (object@n_stats != 1) {
+    # Check if there is only one y stat
+    if (object@n_y != 1) {
       stop("Only one stat can be specified to barplot")
     }
+  }
+)
+
+# Override create_plot_format method from Plot class
+setMethod("create_plot_format",
+  signature(object = "Barplot"),
+  function(object) {
+    # Create barplot format object
+    object@format <- new("Barplot_format",
+      y = object@y,
+      args = object@args)
+    # Return the object
+    object
   }
 )
 
@@ -35,10 +49,10 @@ setMethod("create_plot",
       color = "black")
     # Add standard deviation error bars
     plot <- plot + geom_errorbar(
-      aes(ymin = object@data_frame[, object@stats] -
-        object@data_frame[, paste(object@stats, "sd", sep = ".")],
-      ymax = object@data_frame[, object@stats] +
-        object@data_frame[, paste(object@stats, "sd", sep = ".")]),
+      aes(ymin = object@data_frame[, object@y] -
+        object@data_frame[, paste(object@y, "sd", sep = ".")],
+      ymax = object@data_frame[, object@y] +
+        object@data_frame[, paste(object@y, "sd", sep = ".")]),
       width = .2,
       position = position_dodge(.9))
     # Return the plot
@@ -59,6 +73,7 @@ setMethod("read_and_format_data",
 )
 # Definition complete. Now do plotting
 # Take arguments from calling script
+# TODO: make it in a more generic way
 arguments <- commandArgs(trailingOnly = TRUE)
 # Define variable of barplot type
 # Prototype is not defined!

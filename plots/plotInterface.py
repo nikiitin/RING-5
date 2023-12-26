@@ -38,23 +38,28 @@ class PlotInterface:
 
     def __del__(self) -> None:
         # Remove temporary csv
-        #utils.removeFile(self._tmpCsv)
+        utils.removeFile(self._tmpCsv)
         pass
 
     def _checkCorrectness(self) -> None:
+        # Check plot format info
         utils.checkElementExists(self._plotJson, "title")
         utils.checkElementExists(self._plotJson, "xAxisName")
         utils.checkElementExists(self._plotJson, "yAxisName")
         utils.checkElementExists(self._plotJson, "width")
         utils.checkElementExists(self._plotJson, "height")
-        utils.checkElementExists(self._plotJson, "legendNames")
-        utils.checkElementExists(self._plotJson, "breaks")
-        utils.checkElementExists(self._plotJson, "limitTop")
-        utils.checkElementExists(self._plotJson, "limitBot")
         utils.checkElementExists(self._plotJson, "format")
         utils.checkElementExists(self._plotJson, "legendTitle")
         utils.checkElementExists(self._plotJson, "nLegendElementsPerRow")
         utils.checkElementExists(self._plotJson, "xSplitPoints")
+
+        # Check plot info
+        utils.checkElementExists(self._plotJson, "x")
+        utils.checkElementExists(self._plotJson, "y")
+        utils.checkElementExists(self._plotJson, "conf_z")
+        
+
+        
 
     def _prepareScriptCall(self) -> None:
         pass
@@ -63,7 +68,8 @@ class PlotInterface:
         plotInfo = []
         plotInfo.append(self._plotPath)
         plotInfo.append(self._tmpCsv)
-        plotInfo.extend(utils.jsonToArg(self._plotJson, "stats"))
+        plotInfo.extend(utils.jsonToArg(self._plotJson, "x"))
+        plotInfo.extend(utils.jsonToArg(self._plotJson, "y"))
         return plotInfo
 
     def _preparePlotFormatInfo(self) -> list:
@@ -73,10 +79,6 @@ class PlotInterface:
         plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "yAxisName"))
         plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "width"))
         plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "height"))
-        plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "legendNames"))
-        plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "breaks"))
-        plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "limitTop"))
-        plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "limitBot"))
         plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "format"))
         plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "legendTitle"))
         plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "nLegendElementsPerRow"))

@@ -30,7 +30,13 @@ def getElementValue(jsonElement, key):
 def checkElementExists(jsonElement, key):
     if key not in jsonElement:
         raise Exception("Key not found: " + key)
-    
+
+def checkElementExistNoException(jsonElement, key):
+    if key not in jsonElement:
+        return False
+    else:
+        return True
+
 def checkFilesExistOrException(filePaths):
     for filePath in filePaths:
         checkFileExistsOrException(filePath)
