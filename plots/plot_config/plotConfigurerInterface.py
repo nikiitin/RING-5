@@ -1,4 +1,5 @@
 from argumentParser import AnalyzerInfo
+from plots.configurationManager import ConfigurationManager
 import utils.utils as utils
 class PlotConfigurerInterface:
     _params: AnalyzerInfo = None
@@ -16,7 +17,7 @@ class PlotConfigurerInterface:
         self._plotJson = plotJson
         # Preconditions
         utils.checkElementExists(plotJson, "dataConfig")
-        self._jsonDataConfig = plotJson["dataConfig"]
+        self._jsonDataConfig = ConfigurationManager.getPlotConfiguration(plotJson)
         self._tmpCsv = tmpCsv
         utils.checkFileExistsOrException(self._tmpCsv)
         # Let the user know what is going on

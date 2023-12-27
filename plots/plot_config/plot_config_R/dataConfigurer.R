@@ -33,4 +33,4 @@ for (action in args@actions) {
     args@df <- perform(configurator)
 }
 # Store the data frame in the object
-store_data_in_file(df, file)
+store_data_in_file(args@df, file)

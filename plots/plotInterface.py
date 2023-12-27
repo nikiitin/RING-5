@@ -1,6 +1,7 @@
 # This file contains the interface for the plot classes
 from argumentParser import AnalyzerInfo
 from plots.plot_config.plotConfigurerFactory import PlotConfigurerFactory
+from plots.configurationManager import ConfigurationManager
 import utils.utils as utils
 import os
 import random
@@ -10,6 +11,7 @@ class PlotInterface:
     def __init__(self, info: AnalyzerInfo, plotJson: dict) -> None:
         # TODO: remove replicated info...
         self._plotJson = plotJson
+        self._styleConfigJson = ConfigurationManager.getStyleConfiguration(plotJson)
         self._info = info
         self._plotPathDir = os.path.join(info.getJson()["outputPath"], "plots")
         self._plotPath = os.path.join(self._plotPathDir, plotJson["fileName"])
@@ -43,45 +45,41 @@ class PlotInterface:
 
     def _checkCorrectness(self) -> None:
         # Check plot format info
-        utils.checkElementExists(self._plotJson, "title")
-        utils.checkElementExists(self._plotJson, "xAxisName")
-        utils.checkElementExists(self._plotJson, "yAxisName")
-        utils.checkElementExists(self._plotJson, "width")
-        utils.checkElementExists(self._plotJson, "height")
-        utils.checkElementExists(self._plotJson, "format")
-        utils.checkElementExists(self._plotJson, "legendTitle")
-        utils.checkElementExists(self._plotJson, "nLegendElementsPerRow")
-        utils.checkElementExists(self._plotJson, "xSplitPoints")
+        utils.checkElementExists(self._styleConfigJson, "apparel")
+        utils.checkElementExists(self._styleConfigJson, "title")
+        utils.checkElementExists(self._styleConfigJson, "xAxisName")
+        utils.checkElementExists(self._styleConfigJson, "yAxisName")
+        utils.checkElementExists(self._styleConfigJson, "width")
+        utils.checkElementExists(self._styleConfigJson, "height")
+        utils.checkElementExists(self._styleConfigJson, "format")
+        utils.checkElementExists(self._styleConfigJson, "legendTitle")
+        utils.checkElementExists(self._styleConfigJson, "nLegendElementsPerRow")
 
         # Check plot info
         utils.checkElementExists(self._plotJson, "x")
         utils.checkElementExists(self._plotJson, "y")
-        utils.checkElementExists(self._plotJson, "conf_z")
         
-
-        
-
     def _prepareScriptCall(self) -> None:
         pass
 
     def _preparePlotInfo(self) -> list:
         plotInfo = []
-        plotInfo.append(self._plotPath)
         plotInfo.append(self._tmpCsv)
+        plotInfo.append(self._plotPath)
         plotInfo.extend(utils.jsonToArg(self._plotJson, "x"))
         plotInfo.extend(utils.jsonToArg(self._plotJson, "y"))
         return plotInfo
 
-    def _preparePlotFormatInfo(self) -> list:
+    def _preparePlotStyleInfo(self) -> list:
         plotFormatInfo = []
-        plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "title"))
-        plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "xAxisName"))
-        plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "yAxisName"))
-        plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "width"))
-        plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "height"))
-        plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "format"))
-        plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "legendTitle"))
-        plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "nLegendElementsPerRow"))
-        plotFormatInfo.extend(utils.jsonToArg(self._plotJson, "xSplitPoints"))
+        plotFormatInfo.extend(utils.jsonToArg(self._styleConfigJson, "apparel"))
+        plotFormatInfo.extend(utils.jsonToArg(self._styleConfigJson, "title"))
+        plotFormatInfo.extend(utils.jsonToArg(self._styleConfigJson, "xAxisName"))
+        plotFormatInfo.extend(utils.jsonToArg(self._styleConfigJson, "yAxisName"))
+        plotFormatInfo.extend(utils.jsonToArg(self._styleConfigJson, "width"))
+        plotFormatInfo.extend(utils.jsonToArg(self._styleConfigJson, "height"))
+        plotFormatInfo.extend(utils.jsonToArg(self._styleConfigJson, "format"))
+        plotFormatInfo.extend(utils.jsonToArg(self._styleConfigJson, "legendTitle"))
+        plotFormatInfo.extend(utils.jsonToArg(self._styleConfigJson, "nLegendElementsPerRow"))
         return plotFormatInfo
         
