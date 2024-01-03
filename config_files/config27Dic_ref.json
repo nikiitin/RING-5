@@ -26,43 +26,8 @@
         {
             "groupName": "Conflicts",
             "mergingStats": [
-                "htm_transaction_abort_cause..memory_conflict_staledata",
-                "htm_transaction_abort_cause..memory_conflict.s",
-                "htm_transaction_abort_cause..memory_conflict_falsesharing",
-                "htm_transaction_abort_cause..lsq_conflict"
-            ]
-        },
-        {
-            "groupName": "Size",
-            "mergingStats": [
-                "htm_transaction_abort_cause..transaction_size.s",
-                "htm_transaction_abort_cause..transaction_size_rset",
-                "htm_transaction_abort_cause..transaction_size_wset",
-                "htm_transaction_abort_cause..transaction_size_llc",
-                "htm_transaction_abort_cause..transaction_size_l1priv",
-                "htm_transaction_abort_cause..transaction_size_wrongcache"
-            ]
-        },
-        {
-            "groupName": "FallbackLock",
-            "mergingStats": [
-                "htm_transaction_abort_cause..memory_conflict_fallbacklock",
-                "htm_transaction_abort_cause..explicit_fallbacklock"
-            ]
-        },
-        {
-            "groupName": "Explicit",
-            "mergingStats": [
-                "htm_transaction_abort_cause..explicit"
-            ]
-        },
-        {
-            "groupName": "Other",
-            "mergingStats": [
-                "htm_transaction_abort_cause..nesting_limit",
-                "htm_transaction_abort_cause..exception",
-                "htm_transaction_abort_cause..interrupt",
-                "htm_transaction_abort_cause..other"
+                "htm_transaction_abort_cause..memory_conflict",
+                "htm_transaction_abort_cause..memory_conflict_fallbacklock"
             ]
         }
     ],

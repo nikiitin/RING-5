@@ -8,7 +8,6 @@ class DataManagerInterface:
     def __init__(self, params: AnalyzerInfo) -> None:
         json = params.getJson()
         self._csvPath = params.getWorkCsv()
-        self._configs = json["configs"]
         self._renamingStats = json["renameStats"]
         self._mixingStats = json["mixStats"]
         self._reducingSeeds = utils.jsonToArg(json, "reduceSeeds")

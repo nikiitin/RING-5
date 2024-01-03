@@ -6,7 +6,6 @@ from data_parser.dataParserInterface import DataParserInterface
 from data_parser.data_parser_perl.src.type_mapping.typeMapper import TypeMapper
 from data_parser.data_parser_perl.src.compressor.compressor import Compressor
 from data_parser.data_parser_perl.src.parser_impl.perlParseWork import PerlParseWork
-from data_parser.data_parser_perl.src.type_mapping.types.vector import Vector
 from tqdm import tqdm
 
 class DataParserPerl(DataParserInterface):
@@ -137,12 +136,12 @@ class DataParserPerl(DataParserInterface):
                     header += varName + ".." + entry + " "
             else:
                 # Create the header for the rest of the variables
-                header += varName + ","
-        # Remove the last comma
+                header += varName + " "
+        # Remove the last whitespace
         header = header[:-1]
         # Create the file
         print("Creating stats.csv file..." + os.path.join(self._args.getOutputDir(), "stats.csv"))
-        with open(os.path.join(self._args.getOutputDir(), "stats.csv"), "w") as statsFile:
+        with open(os.path.join(self._args.getOutputDir(), "results.csv"), "w") as statsFile:
             # Write the header
             statsFile.write(header + "\n")
             # Write the stats

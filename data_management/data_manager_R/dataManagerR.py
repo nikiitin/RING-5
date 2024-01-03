@@ -40,7 +40,6 @@ class DataManagerR(DataManagerInterface):
         RScriptCall = ["./data_management/data_manager_R/removeOutliers.R"]
         RScriptCall.append(self._csvPath)
         RScriptCall.extend(self._outlierStat)
-        RScriptCall.append(str(len(self._configs)))
         subprocess.call(RScriptCall)
 
     def _assignConfKeys(self) -> None:

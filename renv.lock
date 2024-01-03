@@ -132,6 +132,29 @@
       ],
       "Hash": "49b5c6e230bfec487b8917d5a0c77cca"
     },
+    "dplyr": {
+      "Package": "dplyr",
+      "Version": "1.0.7",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "R6",
+        "ellipsis",
+        "generics",
+        "glue",
+        "lifecycle",
+        "magrittr",
+        "methods",
+        "pillar",
+        "rlang",
+        "tibble",
+        "tidyselect",
+        "utils",
+        "vctrs"
+      ],
+      "Hash": "36f1ae62f026c8ba9f9b5c9a08c03297"
+    },
     "ellipsis": {
       "Package": "ellipsis",
       "Version": "0.3.2",
@@ -161,6 +184,17 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "c98eb5133d9cb9e1622b8691487f11bb"
+    },
+    "generics": {
+      "Package": "generics",
+      "Version": "0.1.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "methods"
+      ],
+      "Hash": "3f6bcfb0ee5d671d9fd1893d2faa79cb"
     },
     "ggplot2": {
       "Package": "ggplot2",
@@ -495,6 +529,21 @@
         "vctrs"
       ],
       "Hash": "36eb05ad4cfdfeaa56f5a9b2a1311efd"
+    },
+    "tidyselect": {
+      "Package": "tidyselect",
+      "Version": "1.1.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "ellipsis",
+        "glue",
+        "purrr",
+        "rlang",
+        "vctrs"
+      ],
+      "Hash": "7243004a708d06d4716717fa1ff5b2fe"
     },
     "utf8": {
       "Package": "utf8",

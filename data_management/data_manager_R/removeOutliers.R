@@ -10,7 +10,6 @@ stats_file <- arguments[curr_arg]
 curr_arg <- increment(curr_arg)
 outlier_stat <- arguments[curr_arg]
 curr_arg <- increment(curr_arg)
-n_configs <- arguments[curr_arg]
 # Until here, arguments are fixed
 parsed_data <- read.table(stats_file, sep = " ", header = TRUE)
 
@@ -18,7 +17,6 @@ parsed_data <- read.table(stats_file, sep = " ", header = TRUE)
 if (!check_column_exists("random_seed", parsed_data)) {
     stop("random_seed column does not exist. No outliers to remove!")
 }
-n_configs <- get_column_index("random_seed", parsed_data)
 # ConfKey column should already contain benchmark_name and
 # configurations
 for (conf in unique(parsed_data[, "confKey"])) {
