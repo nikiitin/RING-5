@@ -1,4 +1,5 @@
 # RING-5
+## TODO: add dependencies to pip: tqdm
 R-based Implementation for aNalysis and Graphic generation on gem-5
 
 ## Preconditions

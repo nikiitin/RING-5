@@ -55,7 +55,10 @@ class AnalyzerInfo:
         return self._json
 
     def getCsv(self):
-        return os.path.join(self._json["outputPath"], self._args.csv)
+        return os.path.join(self.getOutputDir(), self._args.csv)
+
+    def getOutputDir(self):
+        return self._json["outputPath"]
     
     def getWorkCsv(self):
         return os.path.join(tempfile.gettempdir(), self._workCsv)

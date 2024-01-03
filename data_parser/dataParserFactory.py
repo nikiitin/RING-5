@@ -1,4 +1,5 @@
 from data_parser.data_parser_bash.dataParserBash import DataParserBash
+from data_parser.data_parser_perl.dataParserPerl import DataParserPerl
 from data_parser.dataParserInterface import DataParserInterface
 from argumentParser import AnalyzerInfo
 import threading
@@ -11,7 +12,6 @@ class DataParserFactory:
     @classmethod
     def getDataParser(cls, params: AnalyzerInfo, implName: str = "bash") -> DataParserInterface:
         # Only one instance of the data parser is allowed
-        # TODO: Make it configurable
         if cls._parserSingleton is None:
             # Thread safety
             with cls._lock:
@@ -19,6 +19,8 @@ class DataParserFactory:
                 if cls._parserSingleton is None:
                     if (implName == "bash"):
                         cls._parserSingleton = DataParserBash(params)
+                    elif (implName == "perl"):
+                        cls._parserSingleton = DataParserPerl(params)
                     else:
                         raise ValueError("Invalid parser implementation")
         return cls._parserSingleton

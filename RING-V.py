@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 from data_parser.dataParserFactory import DataParserFactory 
 from data_management.dataManagerFactory import DataManagerFactory
+from data_parser.configurationManager import ConfigurationManager as ParserConfigurationManager
 from argumentParser import AnalyzerInfo
 from plots.plotFactory import PlotFactory 
 import utils.utils as utils
@@ -12,8 +13,16 @@ info = AnalyzerInfo()
 if info.getSkipParse():
     print("Skipping data parse")
 else:
-    DataParserFactory.getDataParser(info, "bash").__call__()
+    # Get the parser to use
+    # DataParserFactory.getDataParser(info).__call__()
+    DataParserFactory.getDataParser(info,
+                                        ParserConfigurationManager
+                                            .getParserImpl(
+                                            info.getJson()
+                                        )
+                                    ).__call__()
 # Make a csv copy
+# exit()
 info.createWorkCsv()
 
 # Get and execute data manager
