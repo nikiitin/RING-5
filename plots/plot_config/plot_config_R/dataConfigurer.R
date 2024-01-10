@@ -1,4 +1,5 @@
 #!/usr/bin/Rscript
+options(error=function()traceback(2))
 source("plots/plot_config/plot_config_R/configurers/dataConfigurerIface.R")
 source("plots/plot_config/plot_config_R/configurers/dataConfigurerFactory.R")
 library(dplyr, warn.conflicts = FALSE)
@@ -11,7 +12,6 @@ read_data_file <- function(file) {
     # Read the data frame from the object
     read.table(file, sep = " ", header = TRUE)
 }
-options(error=traceback)
 # Main function
 # Parse arguments
 arguments <- commandArgs(trailingOnly = TRUE)

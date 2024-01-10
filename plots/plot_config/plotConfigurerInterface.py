@@ -1,5 +1,4 @@
 from argumentParser import AnalyzerInfo
-from plots.configurationManager import ConfigurationManager
 import utils.utils as utils
 class PlotConfigurerInterface:
     _params: AnalyzerInfo = None
@@ -14,14 +13,12 @@ class PlotConfigurerInterface:
     def _normalizeData(self) -> None:
         pass
     def configurePlot(self, plotJson: dict, tmpCsv: str) -> None:
-        self._plotJson = plotJson
         # Preconditions
         utils.checkElementExists(plotJson, "dataConfig")
-        self._jsonDataConfig = ConfigurationManager.getPlotConfiguration(plotJson)
-        self._tmpCsv = tmpCsv
-        utils.checkFileExistsOrException(self._tmpCsv)
+        utils.checkFileExistsOrException(tmpCsv)
         # Let the user know what is going on
         print("Configuring plot data")
+        self._command = ["./plots/plot_config/plot_config_R/dataConfigurer.R"]
         # Inheriting classes have to implement
         # the way to perform the actions
         # Actions

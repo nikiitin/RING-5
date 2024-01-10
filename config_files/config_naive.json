@@ -1,7 +1,7 @@
 {
-    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/valuepred-analysis-2",
+    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/valuepred-analysis-naive",
     "parseConfig": {
-        "file": "parse_conf",
+        "file": "parse_naive",
         "config": "default"
     },
     "renameStats": [
@@ -34,23 +34,18 @@
     "reduceSeeds": true,
     "removeOutliers": true,
     "outlierStat": "simulationTime",
-    "availablePlots": [
-        "barplot",
-        "stackBarplot",
-        "scalabilityPlot"
-    ],
     "plots": [
         {
             "plotType": "barplot",
             "dataConfig": {
-                "file": "remove_test",
+                "file": "config_naive",
                 "config": "default" 
             },
             "styleConfig": {
-                "file": "style_test",
+                "file": "style_naive",
                 "config": "default"
             },
-            "fileName": "simTicks(nwif)(nomic)",
+            "fileName": "simTicks(naive)",
             "x": [
                 "benchmark_name"
             ],
@@ -59,6 +54,33 @@
             ],
             "conf_z": [
                 "config_description_abbrev"
+            ],
+            "hiddenBars": [
+                    "BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry4_Pflt"
+            ]
+        },
+        {
+            "plotType": "barplot",
+            "dataConfig": {
+                "file": "config_naive",
+                "config": "no_micbench" 
+            },
+            "styleConfig": {
+                "file": "style_naive",
+                "config": "no_micbench"
+            },
+            "fileName": "simTicks(naive)(nomicbench)",
+            "x": [
+                "benchmark_name"
+            ],
+            "y": [
+                "simulationTime"
+            ],
+            "conf_z": [
+                "config_description_abbrev"
+            ],
+            "hiddenBars": [
+                    "BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry4_Pflt"
             ]
         }
     ]

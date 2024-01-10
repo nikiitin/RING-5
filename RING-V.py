@@ -32,4 +32,4 @@ plots = info.getJson()["plots"]
 for plot in plots:
     # Execute corresponding plot
     utils.checkElementExists(plot, "plotType")
-    pl = PlotFactory.plot(info, plot, plot["plotType"]).__call__()
+    PlotFactory.plot(info, plot, plot["plotType"]).__call__()

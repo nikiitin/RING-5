@@ -2,6 +2,7 @@ from data_parser.data_parser_perl.src.type_mapping.confType import confType
 from data_parser.data_parser_perl.src.type_mapping.types.vector import Vector
 from data_parser.data_parser_perl.src.type_mapping.types.configuration import Configuration
 from data_parser.data_parser_perl.src.type_mapping.types.scalar import Scalar
+from data_parser.data_parser_perl.src.type_mapping.types.distribution import Distribution
 class TypeMapper():
     def __init__(self) -> None:
         raise NotImplementedError("TypeMapper class cannot be instantiated...")
@@ -14,6 +15,13 @@ class TypeMapper():
             if entries is None:
                 raise RuntimeError("VECTOR: Vector entries not specified...")
             return Vector(repeat, entries)
+        elif varType == "distribution":
+            # Get the maximum and minimum values
+            maximum = kwargs.get("maximum")
+            minimum = kwargs.get("minimum")
+            if maximum is None or minimum is None:
+                raise RuntimeError("DISTRIBUTION: Maximum or minimum not specified...")
+            return Distribution(repeat, maximum, minimum)
         elif varType == "configuration":
             return Configuration(repeat)
         elif varType == "scalar":

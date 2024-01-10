@@ -1,0 +1,32 @@
+[
+    {
+        "styleName": "default_percentage_stack",
+        "dataStyle": {
+            "apparel": "PercentageStackedBarplot_default",
+            "title": "",
+            "xAxisName": "Benchmarks",
+            "yAxisName": "Ex. Time(normalized)",
+            "width": 40,
+            "height": 11.25,
+            "format": "pdf",
+            "legendTitle": "HTM_system",
+            "nLegendElementsPerRow": 4,
+            "xSplitPoints": [
+                "12"
+            ],
+            "legendNames": [
+                "Best-effort + VF",
+                "Best-effort + VF + CS",
+                "Best-effort + eff. VF"
+            ],
+            "breaks": [
+                "0.25",
+                "0.5",
+                "0.75",
+                "1"
+            ],
+            "limitTop": 1,
+            "limitBot": 0
+        }
+    }
+]

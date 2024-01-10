@@ -4,10 +4,12 @@ source("plots/src/plot_impl/barplot/styles/info/barplotStyleInfo.R")
 
 # Define the derived class Barplot_default
 setClass("Barplot_default",
-    contains = "Plot_style")
+    contains = "Plot_style"
+)
 
 # Create_style_info with Barplot info
-setMethod("create_style_info",
+setMethod(
+    "create_style_info",
     signature(object = "Barplot_default"),
     function(object) {
         # Create barplot style info object
@@ -15,7 +17,8 @@ setMethod("create_style_info",
         # stick to it in the rest of the styles for this kind
         # of plot
         object@style_info <- new("Barplot_style_info",
-            args = object@args)
+            args = object@args
+        )
         # Return the object
         object
     }
@@ -55,8 +58,9 @@ setMethod(
                     object@plot_info@data[
                         object@plot_info@conf_z
                     ]
-                ))
-            ) {
+                )
+            )
+        ) {
             warning(paste0(
                 "Number of legend names is ",
                 "not equal to number of configs!",
@@ -119,24 +123,6 @@ setMethod(
             legend.position = "top",
             legend.justification = "right"
         )
-        # Calculate the colors that will be applied
-        # for labels depending on its background
-        # TODO-Note: using plasma but should be configurable
-        colors <-
-            farver::decode_colour(
-                viridisLite::plasma(
-                    length(
-                        unique(
-                            object@plot_info@data_frame[,
-                                object@plot_info@conf_z]
-                        )
-                    ),
-                    direction = -1
-                ),
-                "rgb",
-                "hcl"
-            )
-        label_col <- ifelse(colors[, "l"] > 50, "black", "white")
         # Assign the colors to plot and labels to legend in case
         # legend names are specified
         if (object@style_info@n_legend_names != 0) {
@@ -157,11 +143,28 @@ setMethod(
         # statistics that overgo the top limit
         if (object@style_info@y_limit_top > 0) {
             if (object@style_info@y_limit_bot > object@style_info@y_limit_top) {
-                warning(paste0("Y limit bot is greater than Y limit top! ",
-                    "skipping limits"))
+                warning(paste0(
+                    "Y limit bot is greater than Y limit top! ",
+                    "skipping limits"
+                ))
             } else if (object@style_info@y_limit_bot < 0) {
                 warning("Y limit bot is less than 0! skipping limits")
             } else {
+                # Calculate the colors that will be applied
+                # for labels depending on its background
+                # TODO-Note: using plasma but should be configurable
+                colors <-
+                    farver::decode_colour(
+                        viridisLite::plasma(
+                            length(
+                                object@plot_info@data_frame[[object@plot_info@conf_z]]
+                            ),
+                            direction = -1,
+                        ),
+                        "rgb",
+                        "hcl"
+                    )
+                label_col <- ifelse(colors[, "l"] > 50, "black", "white")
                 # Check if any stat goes over the top limit and
                 # assign a label to it
                 list_of_labels <-
@@ -170,8 +173,10 @@ setMethod(
                             (object@style_info@y_limit_top)),
                         format(
                             round(
-                                object@plot_info@data_frame[,
-                                    object@plot_info@y],
+                                object@plot_info@data_frame[
+                                    ,
+                                    object@plot_info@y
+                                ],
                                 2
                             ),
                             nsmall = 2
@@ -203,9 +208,10 @@ setMethod(
                             y = object@style_info@y_limit_top
                         ),
                         show.legend = FALSE,
-                        size = 2.5,
+                        size = 3,
                         angle = 90,
-                        hjust = "inward"
+                        hjust = "inward",
+                        na.rm = TRUE
                     )
                 # Set the color of the labels
                 plot <- plot +
@@ -214,7 +220,6 @@ setMethod(
                     )
             }
         }
-        
         plot <- callNextMethod()
         plot
     }

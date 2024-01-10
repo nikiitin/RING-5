@@ -1,30 +1,31 @@
 from plots.plot_config.plotConfigurerInterface import PlotConfigurerInterface
+from plots.configurationManager import ConfigurationManager
 from argumentParser import AnalyzerInfo
 import utils.utils as utils
 import subprocess
 class PlotConfigurerR(PlotConfigurerInterface):
     def __init__(self, params: AnalyzerInfo):
         super().__init__(params)
-        self._command = ["./plots/plot_config/plot_config_R/dataConfigurer.R"]
+        
     
     # Private method to calculate the number of actions
     # to be performed on the data. Used as parameter
     # for dataConfigurer.R
-    def _addActionsToCommand(self) -> None:
+    def _addActionsToCommand(self, jsonDataConfig: dict) -> None:
         nActions = 0
         actions = []
         # Actions
         # Should be in the same order as in dataConfigurer.R
-        if utils.checkElementExistNoException(self._jsonDataConfig, "filter"):
+        if utils.checkElementExistNoException(jsonDataConfig, "filter"):
             nActions += 1
             actions.append("Filter")
-        if utils.checkElementExistNoException(self._jsonDataConfig, "mean"):
+        if utils.checkElementExistNoException(jsonDataConfig, "mean"):
             nActions += 1
             actions.append("Mean")
-        if utils.checkElementExistNoException(self._jsonDataConfig, "sort"):
+        if utils.checkElementExistNoException(jsonDataConfig, "sort"):
             nActions += 1
             actions.append("Sort")
-        if utils.checkElementExistNoException(self._jsonDataConfig, "normalize"):
+        if utils.checkElementExistNoException(jsonDataConfig, "normalize"):
             nActions += 1
             actions.append("Normalize")
         self._command.append(str(nActions))
@@ -88,8 +89,9 @@ class PlotConfigurerR(PlotConfigurerInterface):
     def configurePlot(self, plotJson, tmpCsv):
         # Dynamic call to configure on interface class
         super().configurePlot(plotJson, tmpCsv)
-        self._command.append(self._tmpCsv)
-        self._addActionsToCommand()
+        self._command.append(tmpCsv)
+        jsonDataConfig = ConfigurationManager.getPlotConfiguration(plotJson)
+        self._addActionsToCommand(jsonDataConfig)
         # Preconditions
         utils.checkElementExists(plotJson, "y")
         utils.checkElementExists(plotJson, "x")
@@ -98,22 +100,22 @@ class PlotConfigurerR(PlotConfigurerInterface):
         self._command.extend(utils.jsonToArg(plotJson, "x"))
         self._command.extend(utils.jsonToArg(plotJson, "conf_z"))
         
-        if utils.checkElementExistNoException(self._jsonDataConfig, "filter"):
-            self._filterJson = self._jsonDataConfig["filter"]
+        if utils.checkElementExistNoException(jsonDataConfig, "filter"):
+            self._filterJson = jsonDataConfig["filter"]
             self._filterData()
-        if utils.checkElementExistNoException(self._jsonDataConfig, "mean"):
-            self._meanJson = self._jsonDataConfig["mean"]
+        if utils.checkElementExistNoException(jsonDataConfig, "mean"):
+            self._meanJson = jsonDataConfig["mean"]
             self._dataMean()
-        if utils.checkElementExistNoException(self._jsonDataConfig, "sort"):
-            self._sortJson = self._jsonDataConfig["sort"]
+        if utils.checkElementExistNoException(jsonDataConfig, "sort"):
+            self._sortJson = jsonDataConfig["sort"]
             self._sortData()
-        if utils.checkElementExistNoException(self._jsonDataConfig, "normalize"):
-            self._normalizeJson = self._jsonDataConfig["normalize"]
+        if utils.checkElementExistNoException(jsonDataConfig, "normalize"):
+            self._normalizeJson = jsonDataConfig["normalize"]
             self._normalizeData()
         # Call the R script
-        print("Calling R script")
-        print(" ".join(self._command))
-        print(self._command)
+        # print("Calling R script")
+        # print(" ".join(self._command))
+        # print(self._command)
         subprocess.call(self._command)
         
         

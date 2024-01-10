@@ -15,7 +15,8 @@ source("plots/src/plot_impl/barplot/info/barplotInfo.R")
 # to make mistakes when defining the information for a plot.
 
 # Define the S4 class for a barplot
-setClass("Barplot", contains = "Plot")
+setClass("Barplot", contains = "Plot"
+)
 
 setMethod("create_plot_info",
   signature(object = "Barplot"),
@@ -36,8 +37,22 @@ setMethod("add_name_columns",
       cbind(object@info@data[object@info@conf_z])
     # Take into account that conf_z column is an already ordered factor
     # so assign back the levels to the data frame
-    levels(object@info@data_frame[, object@info@conf_z]) <-
-      unique(object@info@data[, object@info@conf_z])
+    object@info@data_frame[, object@info@conf_z] %<>%
+      factor(levels = unique(object@info@data[, object@info@conf_z]))
+    # Return the object
+    object
+  }
+)
+
+setMethod("format_data",
+  signature(object = "Barplot"),
+  function(object) {
+    # Call parent method
+    object <- callNextMethod()
+    df <- object@info@data_frame
+    # Remove hidden bars from data frame, filter by conf_z
+    df <- df[!df[, object@info@conf_z] %in% object@info@hidden_bars, ]
+    object@info@data_frame <- df
     # Return the object
     object
   }
@@ -73,16 +88,3 @@ setMethod("create_plot",
     object@plot
   }
 )
-
-# Definition complete. Now do plotting
-# Take arguments from calling script
-# TODO: make it in a more generic way
-arguments <- commandArgs(trailingOnly = TRUE)
-# Define variable of barplot type
-# Prototype is not defined!
-# This will call initialize method from Barplot class
-barplot <- new("Barplot", args = arguments)
-# Draw the plot as initialize method has already
-# prepared all the data
-draw_plot(barplot)
-# Finish script

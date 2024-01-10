@@ -1,0 +1,55 @@
+## Hacer el equema primero?
+## Correo cada 2x3
+
+
+### Sección 1 introducción detallada
+
+
+### Sección 2 Background
+hacer la comparativa con todos los experimentos supongo... esto lo vamos a poner todo en el paper no sé exactamente como
+
+lo mejor es dejar hacer WNDM, como hemos llegado al wndm.
+
+otro con el análisis de sensibilidad entre width y depth. por qué no afecta, supongo que esas son las conclusiones....
+
+subir la simulación con wXDX a las transparencias...
+
+Poner las dos barras, tanto la de only_written como la de no_w_in_flight
+
+barras a incluir en la ev. WNDM con only-written y con all, hemos probado a restringirlo y en general no mejora y a veces degrada el rendimiento. Ricardo reitera en esto supongo que es lo que se quiere hacer
+
+Intro 1 grafica solo, tiempo de ejecución de VF.
+
+Gráfica con abortos y forwarding efectivo en motivación.
+
+Cuantas veces se hace forwarding y cuantas veces se aborta habiendo recibido forwarding (forwarding util).
+
+Forzar ordenación de transacciones, no prioridades. Se puede hacer a nivel hardware e híbridamente con software y hardware
+
+### estado del arte, propuesta y propuesta de impl, res., metodologia
+
+## LogTM background, related work, prioridades
+
+# Esquema del paper en el overleaf
+
+## Prioridad
+Esta tarde en el paper
+
+BASE-rw - poner una línea en el 1 porque estan normalizados con respecto a eso, se puede dejar... no sé
+Prioridades hardware WNDM con onlywritten y n_w_in_flight
+Power
+Prioridades hardware WNDM con onlywritten y no_w_in_flight
+
+intruders: no poner qs, subapartado con microbenchmark para explicar que intruder va mal por x razón?
+
+METODOLOGIA Y RESULTADOS ESCRITOS ANTES DEL ABSTRACT
+
+Rehacer la estructura
+
+### Sección 3 propuesta
+
+### Sección 4 implementación propuesta
+
+### !Metodología
+
+### Sección resultados

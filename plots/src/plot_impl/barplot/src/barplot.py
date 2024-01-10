@@ -21,13 +21,17 @@ class Barplot(PlotInterface):
     def _prepareScriptCall(self) -> None:
         # TODO: description file for locations
         # (Avoid hardcoding paths)
-        self._RScriptCall = ["./plots/src/plot_impl/barplot/src/barplot.R"]
+        self._RScriptCall = ["./plots/src/plot_impl/barplot/src/run.R"]
         self._RScriptCall.extend(self._preparePlotInfo())
         self._RScriptCall.extend(self._preparePlotStyleInfo())
 
     def _preparePlotInfo(self) -> list:
         plotInfo = super()._preparePlotInfo()
         plotInfo.extend(utils.jsonToArg(self._plotJson, "conf_z"))
+        if utils.checkElementExistNoException(self._plotJson, "hiddenBars"):
+            plotInfo.extend(utils.jsonToArg(self._plotJson, "hiddenBars"))
+        else:
+            plotInfo.append("0")
         return plotInfo
     
     def _preparePlotStyleInfo(self) -> list:

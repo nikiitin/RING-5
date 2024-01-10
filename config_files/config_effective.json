@@ -1,0 +1,111 @@
+{
+    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/valuepred-analysis-effective",
+    "parseConfig": {
+        "file": "parse_effective",
+        "config": "default"
+    },
+    "renameStats": [
+        {
+            "oldName": "simTicks",
+            "newName": "simulationTime"
+        }
+    ],
+    "mixStats": [
+
+    ],
+    "reduceSeeds": true,
+    "removeOutliers": true,
+    "outlierStat": "simulationTime",
+    "plots": [
+        {
+            "plotType": "barplot",
+            "dataConfig": {
+                "file": "config_effective",
+                "config": "default" 
+            },
+            "styleConfig": {
+                "file": "style_effective",
+                "config": "default"
+            },
+            "fileName": "simTicks(test)",
+            "x": [
+                "benchmark_name"
+            ],
+            "y": [
+                "simulationTime"
+            ],
+            "conf_z": [
+                "config_description_abbrev"
+            ],
+            "hiddenBars": [
+                "BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry4_Pflt"
+        ]
+        },
+        {
+            "plotType": "barplot",
+            "dataConfig": {
+                "file": "config_effective",
+                "config": "no_micbench" 
+            },
+            "styleConfig": {
+                "file": "style_effective",
+                "config": "no_micbench"
+            },
+            "fileName": "simTicks(nomic)",
+            "x": [
+                "benchmark_name"
+            ],
+            "y": [
+                "simulationTime"
+            ],
+            "conf_z": [
+                "config_description_abbrev"
+            ],
+            "hiddenBars": [
+                "BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry4_Pflt"
+        ]
+        },
+        {
+            "plotType": "stackedBarplot",
+            "dataConfig": {
+                "file": "config_effective",
+                "config": "default" 
+            },
+            "styleConfig": {
+                "file": "style_effective",
+                "config": "default_stack"
+            },
+            "fileName": "simTicks(stack)",
+            "x": [
+                "benchmark_name"
+            ],
+            "y": [
+                "simulationTime"
+            ],
+            "conf_z": [
+                "config_description_abbrev"
+            ]
+        },
+        {
+            "plotType": "percentageStackedBarplot",
+            "dataConfig": {
+                "file": "config_effective",
+                "config": "default" 
+            },
+            "styleConfig": {
+                "file": "style_effective",
+                "config": "default_percentage_stack"
+            },
+            "fileName": "simTicks(stackpercentage)",
+            "x": [
+                "benchmark_name"
+            ],
+            "y": [
+                "simulationTime"
+            ],
+            "conf_z": [
+                "config_description_abbrev"
+            ]
+        }
+    ]
+}

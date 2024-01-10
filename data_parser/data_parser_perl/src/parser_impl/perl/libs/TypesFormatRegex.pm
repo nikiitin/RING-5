@@ -21,11 +21,16 @@ my $commentRegex = qr/#.*|\(Unspecified\)\s*/;
 my $complexValueRegex = qr/\d+\s+$floatRegex%\s+$floatRegex%/;
 my $summariesEntryRegex = qr/::(samples|mean|gmean|stdev|total)/;
 
-# Histogram components regexes
-my $histogramEntryNumericRegex = qr/::\d+/;
+# Distribution components regexes
+# | ::5
+my $distEntryNumericRegex = qr/::\d+/;
+my $distEntryOverflowRegex = qr/::overflows/;
+my $distEntryUnderflowRegex = qr/::underflows/;
+my $distEntry = qr/($distEntryNumericRegex|$distEntryOverflowRegex|$distEntryUnderflowRegex)/;
+
+# Histogram component regexes
 my $histogramEntryRangeRegex = qr/::\d+-\d+/;
-# | ::1 | ::1-5 |
-my $histogramEntryRegex = qr/$histogramEntryNumericRegex|$histogramEntryRangeRegex/;
+# | ::1-5 |
 
 # Vector components regexes
 # Summaries already included in this regex (total)
@@ -36,9 +41,11 @@ my $vectorEntryRegex = qr/::[\w\.]+/;
 # | name=value |
 my $confRegex = qr/^$varNameRegex=$confValueRegex$/;
 # | name  value  comment |
-my $scalarRegex = qr/^$varNameRegex(::\d+)?\s+$scalarValueRegex\s+$commentRegex?$/;
-# | name::entry[range]  value  perc  cumm.percent  # Comment |
-my $histogramRegex = qr/^$varNameRegex$histogramEntryRegex\s+$complexValueRegex\s+$commentRegex?$/;
+my $scalarRegex = qr/^$varNameRegex?\s+$scalarValueRegex\s+$commentRegex?$/;
+# | name::distEntryNumRegex  value  perc  cumm.percent  # Comment |
+my $distRegex = qr/^$varNameRegex$distEntry\s+$complexValueRegex\s+$commentRegex?$/;
+# | name::range1-range2  value  perc  cumm.percent  # Comment |
+my $histogramRegex = qr/^$varNameRegex$histogramEntryRangeRegex\s+$complexValueRegex\s+$commentRegex?$/;
 # | name::summVar  value  # Comment |
 my $summaryRegex = qr/^$varNameRegex$summariesEntryRegex\s+$scalarValueRegex\s+$commentRegex?$/;
 # | name::vectorEntryName  value  perc  cumm.percent  # Comment
@@ -55,10 +62,15 @@ sub getRealVariableNameFromLine {
 sub getEntryNameFromLine {
     # Get the entry name from the line
     my ($line) = @_;
-    # If is histogram has different entry name
-    # than vector
-    if ($line =~ $histogramEntryRegex) {
-        $line =~ /($histogramEntryRegex)/;
+    # If is histogram it is a range
+    if ($line =~ $histogramEntryRangeRegex) {
+        $line =~ /($histogramEntryRangeRegex)/;
+        return $1;
+    }
+    # If is distribution it is an integer or an
+    # overflow/underflow
+    if ($line =~ $distEntry) {
+        $line =~ /($distEntry)/;
         return $1;
     }
     if ($line =~ $vectorEntryRegex &&
@@ -130,13 +142,17 @@ sub parseAndPrintLineWithFormat {
         print "Scalar/" . formatLine($line) . "\n";
     } elsif ($line =~ $histogramRegex) {
         print "Histogram/" . formatLine($line) . "\n";
+    } elsif ($line =~ $distRegex) {
+        print "Distribution/" . formatLine($line) . "\n";
     } elsif ($line =~ $summaryRegex) {
         # Do not print summaries
         return;
     } elsif ($line =~ $vectorRegex) {
         print "Vector/" . formatLine($line) . "\n";
     } else {
-        print "Unknown data type: $line\n";
+        # Unknown data type found
+        # DO NOT PRINT IT!
+        # print "Unknown data type: $line\n";
     }
 }
 

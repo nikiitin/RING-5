@@ -5,7 +5,7 @@
         "compress": true,
         "parsings": [
             {
-                "path": "/home/vnicolas/Workspace/remote-echo/workspace/sims/ruben/gem5/results/valuepred-analysis-naive",
+                "path": "/home/vnicolas/Workspace/remote-echo/workspace/sims/ruben/gem5/results/valuepred-analysis-WNDM",
                 "files": "stats.txt",
                 "vars": [
                     {
@@ -37,11 +37,13 @@
                             "memory_conflict_staledata",
                             "size_spec_buffer",
                             "exception",
+                            "explicit",
                             "transaction_size_l1priv",
                             "transaction_size_llc",
                             "transaction_size_rset",
                             "spec_validation_failure",
-                            "spec_max_capacity"
+                            "spec_max_capacity",
+                            "spec_depth_failure"
 
                         ]
                     }

@@ -5,7 +5,11 @@ setClass("Barplot_info",
         # Number of conf_z columns
         n_conf_z = "numeric",
         # Columns to use as conf_z
-        conf_z = "vector"
+        conf_z = "vector",
+        # Number of hidden bars
+        n_hidden_bars = "numeric",
+        # Hidden bars
+        hidden_bars = "vector"
     )
 )
 
@@ -20,6 +24,14 @@ setMethod("parse_args_plot_info",
     # 8. Conf_z columns
     object@conf_z <- get_arg(object@args, object@n_conf_z)
     object@args %<>% shift(object@n_conf_z)
+     # 9. Number of hidden bars
+    object@n_hidden_bars <- as.numeric(get_arg(object@args, 1))
+    object@args %<>% shift(1)
+    # 10. Hidden bars
+    if (object@n_hidden_bars > 0) {
+      object@hidden_bars <- get_arg(object@args, object@n_hidden_bars)
+      object@args %<>% shift(object@n_hidden_bars)
+    }
     object
   }
 )
@@ -35,6 +47,9 @@ setMethod("check_data_info_correct",
     }
     if (object@n_y > 1) {
       stop("Barplot only supports one y axis variable.")
+    }
+    if (object@n_hidden_bars >= length(unique(object@data[, object@conf_z]))) {
+      stop("The number of hidden bars must be lesser than the number of conf_z columns.")
     }
     object
   }

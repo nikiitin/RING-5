@@ -1,0 +1,63 @@
+{
+    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/valuepred-analysis-wndm",
+    "parseConfig": {
+        "file": "parse_wndm",
+        "config": "default"
+    },
+    "renameStats": [
+        {
+            "oldName": "simTicks",
+            "newName": "simulationTime"
+        }
+    ],
+    "mixStats": [
+
+    ],
+    "reduceSeeds": true,
+    "removeOutliers": true,
+    "outlierStat": "simulationTime",
+    "plots": [
+        {
+            "plotType": "barplot",
+            "dataConfig": {
+                "file": "config_wndm",
+                "config": "default"
+            },
+            "styleConfig": {
+                "file": "style_wndm",
+                "config": "default"
+            },
+            "fileName": "simTicks(simple)",
+            "x": [
+                "benchmark_name"
+            ],
+            "y": [
+                "simulationTime"
+            ],
+            "conf_z": [
+                "config_description_abbrev"
+            ]
+        },
+        {
+            "plotType": "barplot",
+            "dataConfig": {
+                "file": "config_wndm",
+                "config": "no-micbench"
+            },
+            "styleConfig": {
+                "file": "style_wndm",
+                "config": "no-micbench"
+            },
+            "fileName": "simTicks(nomic)",
+            "x": [
+                "benchmark_name"
+            ],
+            "y": [
+                "simulationTime"
+            ],
+            "conf_z": [
+                "config_description_abbrev"
+            ]
+        }
+    ]
+}

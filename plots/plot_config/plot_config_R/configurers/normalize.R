@@ -12,6 +12,7 @@ setMethod(
   signature(object = "Normalize"),
   function(object) {
     # Get the unique combinations for x axis
+    
     unique_x_keys <- unique(object@args@df[, object@args@x])
     # For every unique combination of x axis
     for (key in unique_x_keys) {

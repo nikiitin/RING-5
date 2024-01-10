@@ -20,6 +20,10 @@ class DataParserPerl(DataParserInterface):
             utils.checkElementExists(var, "type")
             identifier = utils.getElementValue(var, "id")
             dataType = utils.getElementValue(var, "type")
+            # Put the info from json to variable
+            if not varsToParse.get(identifier) is None:
+                raise RuntimeError("Variable already defined in parsing: " +
+                    identifier)
             if utils.checkElementExistNoException(var, "repeat"):
                 repeat = utils.getElementValue(var, "repeat")
             else:
@@ -27,13 +31,15 @@ class DataParserPerl(DataParserInterface):
             if dataType == "vector":
                 utils.checkElementExists(var, "vectorEntries")
                 vectorEntries = utils.getElementValue(var, "vectorEntries")
+                varsToParse.update({identifier : TypeMapper.map(dataType, repeat, vectorEntries = vectorEntries)})
+            elif dataType == "distribution":
+                utils.checkElementExists(var, "maximum")
+                maximum = utils.getElementValue(var, "maximum")
+                utils.checkElementExists(var, "minimum")
+                minimum = utils.getElementValue(var, "minimum")
+                varsToParse.update({identifier : TypeMapper.map(dataType, repeat, maximum = maximum, minimum = minimum)})
             else:
-                vectorEntries = None
-            # Put the info from json to variable
-            if not varsToParse.get(identifier) is None:
-                raise RuntimeError("Variable already defined in parsing: " +
-                    identifier)
-            varsToParse.update({identifier : TypeMapper.map(dataType, repeat, vectorEntries = vectorEntries)})
+                varsToParse.update({identifier : TypeMapper.map(dataType, repeat)})
         return varsToParse
 
     def _getFilesToParse(self, parsing: dict) -> list:
@@ -134,6 +140,11 @@ class DataParserPerl(DataParserInterface):
                 # Create the header for the vector
                 for entry in vectorEntries:
                     header += varName + ".." + entry + " "
+            elif varType == "Distribution":
+                distEntries = var.entries
+                # Create the header for the distribution
+                for entry in distEntries:
+                    header += varName + ".." + str(entry) + " "
             else:
                 # Create the header for the rest of the variables
                 header += varName + " "
@@ -160,6 +171,12 @@ class DataParserPerl(DataParserInterface):
                         # Get the vector entries
                         vectorEntries = var.entries
                         for entry in vectorEntries:
+                            # Write the content
+                            line += (str(var.reducedContent[entry]) + " ")
+                    elif varType == "Distribution":
+                        # Get the distribution entries
+                        distEntries = var.entries
+                        for entry in distEntries:
                             # Write the content
                             line += (str(var.reducedContent[entry]) + " ")
                     else:

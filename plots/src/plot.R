@@ -4,7 +4,7 @@ source("plots/src/styles/styleIface.R")
 source("plots/src/styleMapper.R")
 library(methods)
 library(ggplot2)
-library(dplyr)
+library(dplyr, warn.conflicts = FALSE)
 library(magrittr)
 
 # Set old class gg and ggplot to be able to use ggplot2
@@ -114,13 +114,13 @@ setMethod(
 setMethod(
   "read_and_format_data", "Plot",
   function(object) {
+    # Call format_data method to format the data that
+    # will be plotted
+    object %<>% format_data()
     # Create the style object
     object %<>% create_style_plot()
     # Update args
     object %<>% update_args(object@styles@args)
-    # Call format_data method to format the data that
-    # will be plotted
-    object %<>% format_data()
     object
   }
 )
@@ -141,6 +141,8 @@ setMethod(
       style_name,
       object@args
     )
+    # Set updated plot info to styles
+    object@styles %<>% set_plot_info(object@info)
     # Note that the style object will depend
     # directly on the plot being created.
     # e.g. a barplot will have a barplot style
@@ -172,8 +174,6 @@ setMethod(
     # Add stats to dataFrame... Should
     # be added in rows
     object %<>% add_stats_to_data()
-    # Set updated plot info to styles
-    object@styles %<>% set_plot_info(object@info)
     # Return the object
     object
   }
@@ -188,8 +188,8 @@ setMethod(
     object@info@data_frame <- object@info@data[object@info@x]
     # Take into account that x column is an already ordered factor
     # so assign back the levels to the data frame
-    levels(object@info@data_frame[, object@info@x]) <-
-      unique(object@info@data[, object@info@x])
+    object@info@data_frame[, object@info@x] %<>%
+      factor(levels = unique(object@info@data[, object@info@x]))
     object
   }
 )
