@@ -42,12 +42,6 @@ setMethod(
       group_by(.data[[object@info@x]]) %>%
       mutate(error_bar_cumsum = cumsum(.data[[object@info@y]])) %>%
       ungroup()
-    error_df %<>% mutate(
-      error_bar_cumsum_ymin = error_bar_cumsum - .data[[paste(object@info@y, "sd", sep = ".")]]
-    )
-    error_df %<>% mutate(
-      error_bar_cumsum_ymax = error_bar_cumsum + .data[[paste(object@info@y, "sd", sep = ".")]]
-    )
     
     # DO NOT CALL PARENT METHOD
     # Create the plot object

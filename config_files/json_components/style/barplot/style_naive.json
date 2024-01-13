@@ -4,8 +4,8 @@
         "dataStyle": {
             "apparel": "Barplot_naive",
             "title": "",
-            "xAxisName": "Benchmarks",
-            "yAxisName": "Ex. Time(normalized)",
+            "xAxisName": " ",
+            "yAxisName": "Norm. Exec. Time",
             "width": 12,
             "height": 9,
             "format": "pdf",
@@ -35,8 +35,8 @@
         "dataStyle": {
             "apparel": "Barplot_naive",
             "title": "",
-            "xAxisName": "Benchmarks",
-            "yAxisName": "Ex. Time(normalized)",
+            "xAxisName": " ",
+            "yAxisName": "Norm. Exec. Time",
             "width": 12,
             "height": 9,
             "format": "pdf",

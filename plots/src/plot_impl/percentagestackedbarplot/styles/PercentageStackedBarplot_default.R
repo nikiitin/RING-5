@@ -25,7 +25,7 @@ setMethod(
     signature(object = "PercentageStackedBarplot_default", plot = "ggplot"),
     function(object, plot) {
         # Call parent and return
-                check_data_correct(object)
+        check_data_correct(object)
         # Apply style to the plot
         # Set the number of elements per row in the legend
         # and the title of the legend
@@ -61,20 +61,66 @@ setMethod(
         # Set the theme to be used
         plot <- plot + theme_hc()
         # Add specific configs to the theme
+        # Set the theme to be used
+        plot <- plot + theme_hc()
+        # Add specific configs to the theme
         plot <- plot + theme(
             axis.text.x = element_text(
                 angle = 30,
                 hjust = 1,
-                size = 10,
+                size = adjust_text_size(9.5,
+                    object@style_info@width,
+                    object@style_info@height),
                 face = "bold"
             ),
             axis.text.y = element_text(
                 hjust = 1,
-                size = 10,
+                size = adjust_text_size(9.5,
+                    object@style_info@width,
+                    object@style_info@height),
+                face = "bold"
+            ),
+            axis.title.x = element_text(
+                size = adjust_text_size(13,
+                    object@style_info@width,
+                    object@style_info@height),
+                face = "bold"
+            ),
+            axis.title.y = element_text(
+                size = adjust_text_size(13,
+                    object@style_info@width,
+                    object@style_info@height),
                 face = "bold"
             ),
             legend.position = "top",
-            legend.justification = "right"
+            legend.justification = "right",
+            legend.title = element_text(
+                size = adjust_text_size(13,
+                    object@style_info@width,
+                    object@style_info@height),
+                face = "bold"
+            ),
+            legend.text = element_text(
+                size = adjust_text_size(11,
+                    object@style_info@width,
+                    object@style_info@height)
+            ),
+            legend.key.width = unit(
+                adjust_text_size(1,
+                    object@style_info@width,
+                    object@style_info@height),
+                "cm"),
+            legend.key.height = unit(
+                adjust_text_size(1,
+                    object@style_info@width,
+                    object@style_info@height),
+                "cm"),
+            strip.text = element_text(
+                size = adjust_text_size(9.5,
+                    object@style_info@width,
+                    object@style_info@height),
+                face = "bold"
+            )
         )
 
 
@@ -108,23 +154,6 @@ setMethod(
                     labels = scales::percent,
                     oob = scales::squish
                 )
-        }
-        
-        # Limit the y axis and assign labels to those
-        # statistics that overgo the top limit
-        if (object@style_info@y_limit_top > 0) {
-            if (object@style_info@y_limit_bot > object@style_info@y_limit_top) {
-                warning(paste0(
-                    "Y limit bot is greater than Y limit top! ",
-                    "skipping limits"
-                ))
-            } else if (object@style_info@y_limit_bot < 0) {
-                warning("Y limit bot is less than 0! skipping limits")
-            } else {
-                # Warn the user about using limits on stacked barplots
-                warning("Y limits are not recommended for stacked barplots")
-                warning("Won't be applied!")
-            }
         }
         plot
     }

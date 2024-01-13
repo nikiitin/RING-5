@@ -24,9 +24,20 @@ setMethod(
       norm_df_rows <- object@args@df[
         object@args@df[, object@args@x] == key,
         object@args@y_sd]
+      # Check if y length is greater than 1 (is a vector)
       # Get the normalizer (only one row per x axis combination)
-      normalizer <- norm_rows[object@args@normalizer_index]
+      if (length(object@args@y) > 1) {
+        normalizer <- norm_rows[object@args@normalizer_index, ]
+        normalizer <- sum(normalizer)
+      } else {
+        normalizer <- norm_rows[object@args@normalizer_index]
+      }
+
+      if (normalizer == 0) {
+        normalizer <- 1
+      }
       # Normalize with respect to the normalizer
+      ## TODO: mutate the normalizer to be the cumsum of all y values in the group
       object@args@df[
         object@args@df[, object@args@x] == key,
         object@args@y

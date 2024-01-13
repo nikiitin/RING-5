@@ -61,10 +61,12 @@ setMethod(
             object@args %<>% shift(object@n_y_breaks)
         }
         # 15. Y limit top
-        object@y_limit_top <- as.numeric(get_arg(object@args, 1))
+        object@y_limit_top <- suppressWarnings(
+            as.numeric(get_arg(object@args, 1)))
         object@args %<>% shift(1)
         # 16. Y limit bot
-        object@y_limit_bot <- as.numeric(get_arg(object@args, 1))
+        object@y_limit_bot <- suppressWarnings(
+            as.numeric(get_arg(object@args, 1)))
         object@args %<>% shift(1)
         # Return the object
         object
@@ -79,11 +81,13 @@ setMethod(
         # Non-critical errors
         # Tell the user the error to fix it
         # Check if any y break is over the top limit
-        if (any(object@y_breaks > object@y_limit_top)) {
+        if (!is.na(object@y_limit_top) &&
+            any(object@y_breaks > object@y_limit_top)) {
             warning("Y breaks are over the top limit!")
         }
         # Check if any y break is under the bottom limit
-        if (any(object@y_breaks < object@y_limit_bot)) {
+        if (!is.na(object@y_limit_top) &&
+            any(object@y_breaks < object@y_limit_bot)) {
             warning("Y breaks are under the bottom limit!")
         }
         # Return the object

@@ -11,97 +11,76 @@
         }
     ],
     "mixStats": [
-
+        {
+            "groupName": "htm_transaction_abort_cause..Conflicts",
+            "mergingStats": [
+                "htm_transaction_abort_cause..memory_conflict_staledata",
+                "htm_transaction_abort_cause..memory_conflict",
+                "htm_transaction_abort_cause..memory_conflict_fallbacklock",
+                "htm_transaction_abort_cause..memory_conflict_power"
+            ]
+        },
+        {
+            "groupName": "htm_transaction_abort_cause..FwdValidation",
+            "mergingStats": [
+                "htm_transaction_abort_cause..spec_validation_failure"
+            ]
+        },
+        {
+            "groupName": "htm_transaction_abort_cause..FwdCapacity",
+            "mergingStats": [
+                "htm_transaction_abort_cause..spec_max_capacity"
+            ]
+        },
+        {
+            "groupName": "htm_transaction_abort_cause..Capacity",
+            "mergingStats": [
+                "htm_transaction_abort_cause..transaction_size_l1priv",
+                "htm_transaction_abort_cause..transaction_size_llc",
+                "htm_transaction_abort_cause..transaction_size_rset"
+            ]
+        },
+        {
+            "groupName": "htm_transaction_abort_cause..Explicit",
+            "mergingStats": [
+                "htm_transaction_abort_cause..explicit_fallbacklock",
+                "htm_transaction_abort_cause..explicit",
+                "htm_transaction_abort_cause..transaction_size_rset"
+            ]
+        },
+        {
+            "groupName": "htm_transaction_abort_cause..Other",
+            "mergingStats": [
+                "htm_transaction_abort_cause..interrupt",
+                "htm_transaction_abort_cause..exception"
+            ]
+        }
     ],
     "reduceSeeds": true,
     "removeOutliers": true,
     "outlierStat": "simulationTime",
     "plots": [
         {
-            "plotType": "barplot",
+            "plotType": "groupedStackedBarplot",
             "dataConfig": {
                 "file": "config_effective",
                 "config": "default" 
             },
             "styleConfig": {
                 "file": "style_effective",
-                "config": "default"
+                "config": "default_grouped_stack"
             },
-            "fileName": "simTicks(test)",
+            "fileName": "simTicks(grouped)",
             "x": [
                 "benchmark_name"
             ],
             "y": [
-                "simulationTime"
-            ],
-            "conf_z": [
-                "config_description_abbrev"
-            ],
-            "hiddenBars": [
-                "BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry4_Pflt"
-        ]
-        },
-        {
-            "plotType": "barplot",
-            "dataConfig": {
-                "file": "config_effective",
-                "config": "no_micbench" 
-            },
-            "styleConfig": {
-                "file": "style_effective",
-                "config": "no_micbench"
-            },
-            "fileName": "simTicks(nomic)",
-            "x": [
-                "benchmark_name"
-            ],
-            "y": [
-                "simulationTime"
-            ],
-            "conf_z": [
-                "config_description_abbrev"
-            ],
-            "hiddenBars": [
-                "BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry4_Pflt"
-        ]
-        },
-        {
-            "plotType": "stackedBarplot",
-            "dataConfig": {
-                "file": "config_effective",
-                "config": "default" 
-            },
-            "styleConfig": {
-                "file": "style_effective",
-                "config": "default_stack"
-            },
-            "fileName": "simTicks(stack)",
-            "x": [
-                "benchmark_name"
-            ],
-            "y": [
-                "simulationTime"
-            ],
-            "conf_z": [
-                "config_description_abbrev"
-            ]
-        },
-        {
-            "plotType": "percentageStackedBarplot",
-            "dataConfig": {
-                "file": "config_effective",
-                "config": "default" 
-            },
-            "styleConfig": {
-                "file": "style_effective",
-                "config": "default_percentage_stack"
-            },
-            "fileName": "simTicks(stackpercentage)",
-            "x": [
-                "benchmark_name"
-            ],
-            "y": [
-                "simulationTime"
+                "htm_transaction_abort_cause..Conflicts",
+                "htm_transaction_abort_cause..FwdValidation",
+                "htm_transaction_abort_cause..FwdCapacity",
+                "htm_transaction_abort_cause..Capacity",
+                "htm_transaction_abort_cause..Explicit",
+                "htm_transaction_abort_cause..Other"
             ],
             "conf_z": [
                 "config_description_abbrev"

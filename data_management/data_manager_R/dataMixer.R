@@ -20,13 +20,13 @@ for (mixing in 1:mixingNumber) {
   currArg <- increment(currArg)
   # Create a new column for the group
   parsed_data[newGroupName] <- 0
-  for(stat in 1:statsToMerge) {
-    
+  for (stat in 1:statsToMerge) {
     # Add all stats into the column
     mergingStat <- arguments[currArg]
     currArg <- increment(currArg)
-    parsed_data[newGroupName] <- parsed_data[newGroupName] + parsed_data[mergingStat]
-    
+    parsed_data[newGroupName] <-
+      parsed_data[newGroupName] +
+      parsed_data[mergingStat]
   }
 }
 

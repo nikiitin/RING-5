@@ -51,7 +51,9 @@ setMethod("format_data",
     object <- callNextMethod()
     df <- object@info@data_frame
     # Remove hidden bars from data frame, filter by conf_z
-    df <- df[!df[, object@info@conf_z] %in% object@info@hidden_bars, ]
+    if (object@info@n_hidden_bars > 0) {
+      df <- df[!df[, object@info@conf_z] %in% object@info@hidden_bars, ]
+    }
     object@info@data_frame <- df
     # Return the object
     object

@@ -31,13 +31,11 @@ setMethod(
   }
 )
 
-# Override create_plot method from Plot class
-# need different behavior for barplot
-setMethod(
-  "create_plot",
+setMethod("add_stats_to_data",
   signature(object = "PercentageStackedBarplot"),
   function(object) {
-    # Get the cummulative sum of the y axis. It will be used
+    # Call parent method
+        # Get the cummulative sum of the y axis. It will be used
     # to normalize the bars as a percentage (results and errors)
     df <- object@info@data_frame %>%
       group_by(.data[[object@info@x]]) %>%
@@ -64,7 +62,15 @@ setMethod(
       ungroup()
     # Get the treated information back to the data frame
     object@info@data_frame <- df
+  }
+)
 
+# Override create_plot method from Plot class
+# need different behavior for barplot
+setMethod(
+  "create_plot",
+  signature(object = "PercentageStackedBarplot"),
+  function(object) {
     # Create the plot object, use normalized results as y axis
     object@plot <- ggplot(object@info@data_frame, aes(
       x = .data[[object@info@x]],

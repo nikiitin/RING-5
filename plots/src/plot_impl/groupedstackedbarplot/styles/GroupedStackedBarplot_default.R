@@ -1,21 +1,21 @@
-source("plots/src/plot_impl/barplot/styles/Barplot_default.R")
-source("plots/src/plot_impl/stackedbarplot/styles/info/stackedBarplotStyleInfo.R")
+source("plots/src/plot_impl/stackedbarplot/styles/StackedBarplot_default.R")
+source("plots/src/plot_impl/groupedstackedbarplot/styles/info/groupedStackedBarplotInfo.R")
 
 # Define the derived class Barplot_default
-setClass("StackedBarplot_default",
-    contains = "Barplot_default"
+setClass("GroupedStackedBarplot_default",
+    contains = "StackedBarplot_default"
 )
 
 # Create_style_info with Barplot info
 setMethod(
     "create_style_info",
-    signature(object = "StackedBarplot_default"),
+    signature(object = "GroupedStackedBarplot_default"),
     function(object) {
         # Create barplot style info object
         # It will define which variables will be used
         # stick to it in the rest of the styles for this kind
         # of plot
-        object@style_info <- new("StackedBarplot_style_info",
+        object@style_info <- new("GroupedStackedBarplot_style_info",
             args = object@args
         )
         # Return the object
@@ -23,27 +23,12 @@ setMethod(
     }
 )
 
-setMethod("check_data_correct",
-    signature(object = "StackedBarplot_default"),
-    function(object) {
-        # Call parent method
-        callNextMethod()
-        # Do not apply limits to the y axis,
-        # in any case, the user should use the breaks
-        if (!is.na(object@style_info@y_limit_top) ||
-            !is.na(object@style_info@y_limit_bot)) {
-            warning(paste0("Stacked barplots are not intended to",
-                " have limits on the y axis. If you want to set any limits",
-                " use the breaks instead. (on your own risk)",
-                " Ignoring the limits."))
-        }
-    }
-)
 
 setMethod(
     "apply_style",
-    signature(object = "StackedBarplot_default", plot = "ggplot"),
+    signature(object = "GroupedStackedBarplot_default", plot = "ggplot"),
     function(object, plot) {
+        # Call parent and return
         check_data_correct(object)
         # Apply style to the plot
         # Set the number of elements per row in the legend
@@ -67,16 +52,42 @@ setMethod(
         if (object@style_info@y_axis_name != "") {
             plot <- plot + ylab(object@style_info@y_axis_name)
         }
+        # Label x axis with the legend names if specified
+        # Label names were conf_z names on other plots
+        if (object@style_info@n_legend_names > 0) {
+            plot <- plot + scale_x_discrete(
+                labels = object@style_info@legend_names,
+            )
+        }
 
         # x split points
         if (object@style_info@n_x_split_points > 0) {
+            # A bit tricky here. Using vlines in facets replicate the
+            # line for each facet and xintercept match x INSIDE every facet.
+            # x split points are meant to split only once the x axis
+            # Get x variables, map the xsplit points to the matching variable
+            # and put that in a data frame (other data source)
+            # with the x being the x value we want to intercept (FACET)
+            # and xint being the x inside the facet where we want to
+            # put the line
+            x_variables <-
+                unique(object@plot_info@data_frame$x)
+            x_split_points <- as.numeric(object@style_info@x_split_points)
+            x_index <- x_variables[x_split_points]
+            z_variables <-
+                unique(object@plot_info@data_frame$conf_z)
+            mapping <- data.frame(
+                xint = length(z_variables) + 0.5,
+                x = x_index
+            )
             plot <- plot +
-                geom_vline(
-                    xintercept = object@style_info@x_split_points,
+                geom_vline( data = mapping,
+                    aes(xintercept = xint),
                     linetype = "dashed",
                     color = "black"
                 )
         }
+
         # Set the theme to be used
         plot <- plot + theme_hc()
         # Add specific configs to the theme
@@ -136,27 +147,19 @@ setMethod(
                     object@style_info@width,
                     object@style_info@height),
                 face = "bold"
+            ),
+            strip.placement = "outside",
+            strip.background = element_rect(fill = NA, color = "white"),
+            panel.spacing = unit(-0.1, "cm")
+        ) # Added facet specific configs
+
+        # Assign the colors to plot
+        plot <- plot +
+            scale_fill_viridis_d(
+                option = "plasma",
+                direction = -1
             )
-        )
 
-
-
-        # Assign the colors to plot and labels to legend in case
-        # legend names are specified
-        if (object@style_info@n_legend_names != 0) {
-            plot <- plot +
-                scale_fill_viridis_d(
-                    option = "plasma",
-                    labels = object@style_info@legend_names,
-                    direction = -1
-                )
-        } else {
-            plot <- plot +
-                scale_fill_viridis_d(
-                    option = "plasma",
-                    direction = -1
-                )
-        }
         # Set the breaks
         if (object@style_info@n_y_breaks > 0) {
             plot <- plot +
@@ -167,7 +170,6 @@ setMethod(
                     oob = scales::squish
                 )
         }
-
         plot
     }
 )

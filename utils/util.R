@@ -38,7 +38,11 @@ mixStringCols <- function(val1, val2, dataframe) {
 }
 
 geomean <- function(x) {
-    exp(mean(log(x)))
+    result <- exp(mean(log(x[x > 0])))
+    if (is.nan(result)) {
+        result <- 0
+    }
+    result
 }
 
 sd_dropna <- function(x) {
@@ -51,4 +55,10 @@ arithmean <- function(x) {
 
 return_func <- function(x) {
     x
+}
+
+adjust_text_size <- function(text_size, plot_width, plot_height) {
+  # Calculate a size based on the dimensions of the plot
+  size <- text_size * sqrt(plot_width * plot_height) / 25
+  return(size)
 }

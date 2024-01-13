@@ -35,7 +35,6 @@
                             "memory_conflict_power",
                             "interrupt",
                             "memory_conflict_staledata",
-                            "size_spec_buffer",
                             "exception",
                             "explicit",
                             "transaction_size_l1priv",

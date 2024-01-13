@@ -108,20 +108,54 @@ setMethod(
         # Set the theme to be used
         plot <- plot + theme_hc()
         # Add specific configs to the theme
+        # Set the theme to be used
+        plot <- plot + theme_hc()
+        # Add specific configs to the theme
         plot <- plot + theme(
             axis.text.x = element_text(
                 angle = 30,
                 hjust = 1,
-                size = 10,
+                size = adjust_text_size(23,
+                    object@style_info@width,
+                    object@style_info@height),
                 face = "bold"
             ),
             axis.text.y = element_text(
                 hjust = 1,
-                size = 10,
+                size = adjust_text_size(23,
+                    object@style_info@width,
+                    object@style_info@height),
+                face = "bold"
+            ),
+            axis.title.y = element_text(
+                size = adjust_text_size(35,
+                    object@style_info@width,
+                    object@style_info@height),
                 face = "bold"
             ),
             legend.position = "top",
-            legend.justification = "right"
+            legend.justification = "right",
+            legend.title = element_text(
+                size = adjust_text_size(25,
+                    object@style_info@width,
+                    object@style_info@height),
+                face = "bold"
+            ),
+            legend.text = element_text(
+                size = adjust_text_size(23,
+                    object@style_info@width,
+                    object@style_info@height)
+            ),
+            legend.key.width = unit(
+                adjust_text_size(1,
+                    object@style_info@width,
+                    object@style_info@height),
+                "cm"),
+            legend.key.height = unit(
+                adjust_text_size(1,
+                    object@style_info@width,
+                    object@style_info@height),
+                "cm")
         )
         # Assign the colors to plot and labels to legend in case
         # legend names are specified
@@ -208,7 +242,9 @@ setMethod(
                             y = object@style_info@y_limit_top
                         ),
                         show.legend = FALSE,
-                        size = 3,
+                        size = adjust_text_size(8,
+                            object@style_info@width,
+                            object@style_info@height),
                         angle = 90,
                         hjust = "inward",
                         na.rm = TRUE

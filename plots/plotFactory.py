@@ -2,6 +2,7 @@ from plots.plotInterface import PlotInterface
 from plots.src.plot_impl.barplot.src.barplot import Barplot
 from plots.src.plot_impl.stackedbarplot.src.stackedBarplot import StackedBarplot
 from plots.src.plot_impl.percentagestackedbarplot.src.percentageStackedBarplot import PercentageStackedBarplot
+from plots.src.plot_impl.groupedstackedbarplot.src.groupedStackedBarplot import GroupedStackedBarplot
 from argumentParser import AnalyzerInfo
 class PlotFactory:
     # Any plot instance will be unique,
@@ -12,6 +13,8 @@ class PlotFactory:
             return Barplot(info, plotJson)
         elif (plotType == "stackedBarplot"):
             return StackedBarplot(info, plotJson)
+        elif (plotType == "groupedStackedBarplot"):
+            return GroupedStackedBarplot(info, plotJson)
         elif (plotType == "percentageStackedBarplot"):
             return PercentageStackedBarplot(info, plotJson)
         else:

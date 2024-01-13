@@ -203,7 +203,7 @@ setMethod(
     # Get standard deviation too
     stats_sd <- object@info@data[paste(object@info@y, "sd", sep = ".")]
     # Add stats to dataFrame
-    for (stat in ncol(stats)) {
+    for (stat in seq_len(ncol(stats))) {
       object@info@data_frame <- cbind(
         object@info@data_frame,
         stats[stat]
