@@ -39,8 +39,6 @@ setMethod("parse_args_plot_info",
 setMethod("check_data_info_correct",
   signature(object = "Barplot_info"),
   function(object) {
-    # Call parent method
-    callNextMethod()
     # Check that the z axis variables are in the data frame
     if (!all(object@conf_z %in% colnames(object@data))) {
       stop("The conf_z axis variables are not in the data frame.")
@@ -50,6 +48,25 @@ setMethod("check_data_info_correct",
     }
     if (object@n_hidden_bars >= length(unique(object@data[, object@conf_z]))) {
       stop("The number of hidden bars must be lesser than the number of conf_z columns.")
+    }
+    # Call parent method
+    callNextMethod()
+    object
+  }
+)
+
+setMethod("complete_data",
+  signature(object = "Barplot_info"),
+  function(object) {
+    n_rows <- nrow(object@data)
+    # Complete the data frame with the conf_z and x missing combinations
+    print(object@data)
+    print(object@x)
+    print(object@conf_z)
+    object@data %<>% tidyr::complete(.data[[object@x]], .data[[object@conf_z]], fill = list())
+    if (n_rows != nrow(object@data)) {
+      warning(paste0("The data frame was completed with missing combinations.",
+      " Filling with NA."))
     }
     object
   }

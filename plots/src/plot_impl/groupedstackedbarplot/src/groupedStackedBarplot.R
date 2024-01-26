@@ -1,5 +1,9 @@
 #!/usr/bin/Rscript
 options(error = function() traceback(2))
+library(tidyr)
+library(dplyr)
+library(tidyselect)
+library(ggh4x)
 source("utils/util.R")
 source("plots/src/plot_impl/stackedbarplot/src/stackedBarplot.R")
 # PlotType info, each plot type must have its own info
@@ -30,52 +34,26 @@ setMethod("add_stats_to_data",
     # There is a common part of the name of the columns that is
     # the same for all the entries. We need to remove it
     # to have only the name of the entries
-    vector_entries <-
-      colnames(object@info@data_frame[
-        grepl(".*\\.\\.", colnames(object@info@data_frame))
-      ])
-    # Get the entries for sd
-    vector_entries_sd <- vector_entries[grepl(".*\\.sd$", vector_entries)]
-    # Get the entries for results
-    # Configs removed!
-    vector_entries <- vector_entries[!grepl(".*\\.sd$", vector_entries)]
-    # Values of the vector and sd
-    data_values <- object@info@data_frame[vector_entries]
-    sd_values <- object@info@data_frame[vector_entries_sd]
-    # Remove the common part of the name, leave only the entry
-    # here must not be any collision, all entries should have different
-    # names
-    vector_entries <- (sub(".*\\.\\.", "", vector_entries))
-
-    # Create a new data frame to include the x axis variable,
-    # the conf_z and the entry with the values. For that, for each
-    # x axis variable and conf_z we need to put all the entries
-    # in the same column
-
-    # First, we need to create a data frame with the x axis variable
-    # and the conf_z variable
-    new_data_frame <- data.frame(
-      x =
-        rep(
-          object@info@data_frame[[object@info@x]],
-          each = length(vector_entries)),
-      conf_z =
-        rep(
-          object@info@data_frame[[object@info@conf_z]],
-          each = length(vector_entries))
-    )
-    # Then add the values and the entries
-    data_values <- data.frame(
-      entries = rep(vector_entries, nrow(data_values)),
-      values = as.vector(t(data_values)),
-      values_sd = as.vector(t(sd_values))
-    )
-    # Keep the entries sorted! this is a new data frame
-    # Should do to config and x? those are already sorted
-    data_values$entries <- factor(data_values$entries, levels = vector_entries)
-    new_data_frame <- cbind(new_data_frame, data_values)
-    # Set the new data frame to the object
-    object@info@data_frame <- new_data_frame
+    # Remove vector ID as all collisions are already removed
+    # while adding elements to the data frame
+    object@info@data_frame %<>%
+      dplyr::rename_with(
+        ~ sub(".*\\.\\.", "", .)
+      )
+    sd_df <- object@info@data_frame %>% tidyr::pivot_longer(
+        cols = tidyselect::ends_with(".sd"),
+        names_to = "entries",
+        values_to = "values_sd"
+      )
+    object@info@data_frame %<>%
+      select(-tidyselect::ends_with(".sd")) %>%
+      tidyr::pivot_longer(
+        cols = -c(object@info@x, object@info@conf_z),
+        names_to = "entries",
+        values_to = "values"
+      ) %>%
+      cbind(values_sd = sd_df$values_sd)
+    # Return the object
     object
   }
 )
@@ -110,13 +88,13 @@ setMethod(
     # Names from df should be always the same, it is a wrap
     # specific for this plot
     object@plot <- ggplot(object@info@data_frame, aes(
-      x = conf_z,
+      x = .data[[object@info@conf_z]],
       y = values
     ))
     # Add the facet grid to the plot object. Switch it in to X,
     # this enforce style to group variables in x axis
     object@plot <- object@plot + facet_grid(
-      ~ x, switch = "x"
+      ~ .data[[object@info@x]], switch = "x"
     )
     # Add the geom_bar to the plot object. Use position_stack to
     # stack the bars and reverse = TRUE to have the bars in the

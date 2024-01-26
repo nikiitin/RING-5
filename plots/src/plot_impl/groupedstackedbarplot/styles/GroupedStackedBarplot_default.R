@@ -71,17 +71,23 @@ setMethod(
             # and xint being the x inside the facet where we want to
             # put the line
             x_variables <-
-                unique(object@plot_info@data_frame$x)
-            x_split_points <- as.numeric(object@style_info@x_split_points)
-            x_index <- x_variables[x_split_points]
+                unique(object@plot_info@data_frame[[object@plot_info@x]])
+            x_split_points <-
+                floor(
+                    as.numeric(
+                        object@style_info@x_split_points
+                        )
+                    )
+            x_index <- x_variables[[x_split_points]]
             z_variables <-
-                unique(object@plot_info@data_frame$conf_z)
+                unique(object@plot_info@data_frame[[object@plot_info@conf_z]])
             mapping <- data.frame(
                 xint = length(z_variables) + 0.5,
                 x = x_index
             )
+            colnames(mapping) <- c("xint", object@plot_info@x)
             plot <- plot +
-                geom_vline( data = mapping,
+                geom_vline(data = mapping,
                     aes(xintercept = xint),
                     linetype = "dashed",
                     color = "black"
@@ -143,14 +149,15 @@ setMethod(
                     object@style_info@height),
                 "cm"),
             strip.text = element_text(
-                size = adjust_text_size(9.5,
+                size = adjust_text_size(11.5,
                     object@style_info@width,
                     object@style_info@height),
-                face = "bold"
+                angle = 30,
             ),
+            strip.clip = "off",
             strip.placement = "outside",
             strip.background = element_rect(fill = NA, color = "white"),
-            panel.spacing = unit(-0.1, "cm")
+            panel.spacing = unit(0.1, "cm")
         ) # Added facet specific configs
 
         # Assign the colors to plot

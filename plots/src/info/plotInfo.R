@@ -48,6 +48,12 @@ setGeneric("check_data_info_correct",
   }
 )
 
+setGeneric("complete_data",
+  function(object) {
+    standardGeneric("complete_data")
+  }
+)
+
 setMethod("initialize",
   "Plot_info",
   function(.Object, args) {
@@ -106,6 +112,24 @@ setMethod("check_data_info_correct",
     # Check that the y axis variables are in the data frame
     if (!all(object@y %in% colnames(object@data))) {
       stop("The y axis variables are not in the data frame.")
+    }
+    # Complete the data frame with the x missing combinations and y results
+    object %<>% complete_data()
+    object
+  }
+)
+
+setMethod("complete_data",
+  signature(object = "Plot_info"),
+  function(object) {
+    n_rows <- nrow(object@data)
+    # Complete the data frame with the x missing combinations and y results
+    object@data %<>% tidyr::complete(object@x, fill = list())
+    # This will add NA to the missing values, manage them in future
+    # for plotting
+    if (n_rows != nrow(object@data)) {
+      warning(paste0("The data frame was completed with missing combinations.",
+      " Filling with NA."))
     }
     object
   }
