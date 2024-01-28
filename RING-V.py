@@ -1,11 +1,11 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-from data_parser.dataParserFactory import DataParserFactory 
-from data_management.dataManagerFactory import DataManagerFactory
-from data_parser.configurationManager import ConfigurationManager as ParserConfigurationManager
+from src.data_parser.src.dataParserFactory import DataParserFactory 
+from src.data_management.src.dataManagerFactory import DataManagerFactory
+from src.data_parser.src.configurationManager import ConfigurationManager as ParserConfigurationManager
 from argumentParser import AnalyzerInfo
-from plots.plotFactory import PlotFactory 
-import utils.utils as utils
+from src.plots.src.plot_impl.plotFactory import PlotFactory 
+import src.utils.utils as utils
 
 info = AnalyzerInfo()
 # Parse data, it will create a csv file in the output directory

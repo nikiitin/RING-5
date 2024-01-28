@@ -42,17 +42,20 @@ if(as.numeric(thisRVersion['major']) == 3 && as.numeric(thisRVersion['minor']) <
 
 # Check for all dependency management tools and install all
 # dependencies for the project
-build: check_python_dependencies check_R_dependencies
+build: check_python_dependencies check_R_dependencies generate_proj_file
 	@echo "Build finished successfully"
 
-check_python_dependencies: check_python check_pip
-	@echo "All python dependencies are solved"
 
+#### OBJECTIVES FOR PERL ####
 # Check if perl is installed
 check_perl:
 	@which perl > /dev/null || (echo "Perl is not installed. Please install perl >= 5.0.0 before proceeding."; exit 1)
 # Check perl version is greater than 5.0.0
 	@perl -e "use 5.0.0;"
+
+#### OBJECTIVES FOR PYTHON ####
+check_python_dependencies: check_python check_pip
+	@echo "All python dependencies are solved"
 
 check_python:
 # Check if python is installed
@@ -73,6 +76,8 @@ install_pip:
 check_pip_dependencies:
 	@python3 -m pip install -r requirements.txt
 
+
+#### OBJECTIVES FOR R ####
 # Check dependencies for R and R packages
 check_R_dependencies: check_R check_renv
 	@echo "All R dependencies are solved"
@@ -102,9 +107,34 @@ check_renv_dependencies:
 	@Rscript -e $(RESTORE_DEPENDENCIES_SCRIPT)
 	@Rscript -e "renv::deactivate()"
 
-#### OBJECTIVES FOR R ####
 check_R:
 # Check if R is installed. I think any R version should work... currently using 4.0.2
 	@which R > /dev/null || (echo "R is not installed. Please install R before proceeding."; exit 1)
 # Check R version is greater than 4.0.0
 	@Rscript -e $(CHECK_R_VERSION_SCRIPT) || exit 1;
+
+#### OBJECTIVES FOR PROJ CONFIG ####
+generate_proj_file: init_proj_file add_project_path end_proj_file
+	@echo "Project file generated successfully"
+
+init_proj_file:
+# Create proj file if it does not exist
+# This is a file used to store project management information
+	@touch .proj
+# Add json start to proj file
+	@echo "{" > .proj.json
+# Let the rest of the objectives finish this file and add a closing bracket
+# On to the final objective
+
+add_project_path:
+# Add project path to proj file
+	@echo "Adding project path $(shell pwd) to proj file..."
+# Create proj file if it does not exist
+# This is a file used to store project management information
+	@touch .proj
+# Add project path to proj file
+	@echo "	RingRoot:$(shell pwd)" >> .proj.json
+
+end_proj_file:
+# Add json end to proj file
+	@echo "}" >> .proj.json

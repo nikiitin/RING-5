@@ -1,0 +1,33 @@
+{
+    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/valuepred-methodology",
+    "parseConfig": {
+        "file": "parse_methodology",
+        "config": "default"
+    },
+    "reduceSeeds": true,
+    "removeOutliers": true,
+    "outlierStat": "simulationTime",
+    "plots": [
+        {
+            "plotType": "barplot",
+            "dataConfig": {
+                "file": "config_methodology",
+                "config": "default" 
+            },
+            "styleConfig": {
+                "file": "style_methodology",
+                "config": "default"
+            },
+            "fileName": "simTicks",
+            "x": [
+                "benchmark_name"
+            ],
+            "y": [
+                "simulationTime"
+            ],
+            "conf_z": [
+                "config_description_abbrev"
+            ]
+        }
+    ]
+}

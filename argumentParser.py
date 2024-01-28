@@ -3,10 +3,11 @@ import json
 import os
 import shutil
 import argparse
-import utils.utils as utils
+import src.utils.utils as utils
 
 temp_dir = tempfile.gettempdir()
 # TODO: Switch to specialized classes for each action
+# TODO: Add proj file config
 class AnalyzerInfo:
     
     # Private methods
@@ -47,6 +48,8 @@ class AnalyzerInfo:
         else:
             print("Output directory found: " + outDir)
         
+    def _getProjConfig(self):
+        pass
     # Getters
     def getArgs(self):
         return self._args

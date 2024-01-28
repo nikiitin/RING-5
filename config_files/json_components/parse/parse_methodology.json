@@ -1,0 +1,31 @@
+[
+    {
+        "id": "default",
+        "impl": "perl",
+        "compress": true,
+        "parsings": [
+            {
+                "path": "/home/vnicolas/Workspace/remote-echo/workspace/sims/ruben/gem5/results/valuepred-test/",
+                "files": "stats.txt",
+                "vars": [
+                    {
+                        "type": "configuration",
+                        "id": "config_description_abbrev"
+                    },
+                    {
+                        "type": "configuration",
+                        "id": "benchmark_name"
+                    },
+                    {
+                        "type": "configuration",
+                        "id": "random_seed"
+                    },
+                    {
+                        "type": "scalar",
+                        "id": "simTicks"
+                    }
+                ]
+            }
+        ]
+    }
+]
