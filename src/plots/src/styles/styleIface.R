@@ -86,14 +86,20 @@ setMethod(
     # Set the Title
     if (object@style_info@title != "") {
       plot <- plot + ggtitle(object@style_info@title)
+    } else {
+      plot <- plot + ggtitle(element_blank())
     }
     # Set the x axis title
     if (object@style_info@x_axis_name != "") {
       plot <- plot + xlab(object@style_info@x_axis_name)
+    } else {
+      plot <- plot + xlab(element_blank())
     }
     # Set the y axis title
     if (object@style_info@y_axis_name != "") {
       plot <- plot + ylab(object@style_info@y_axis_name)
+    } else {
+      plot <- plot + ylab(element_blank())
     }
     # Return the plot
     plot

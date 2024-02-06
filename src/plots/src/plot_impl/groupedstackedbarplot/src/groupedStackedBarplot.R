@@ -3,6 +3,7 @@ options(error = function() traceback(2))
 library(tidyr)
 library(dplyr)
 library(tidyselect)
+library(ggh4x)
 source("src/utils/util.R")
 source("src/plots/src/plot_impl/stackedbarplot/src/stackedBarplot.R")
 # PlotType info, each plot type must have its own info
@@ -11,6 +12,7 @@ source("src/plots/src/plot_impl/groupedstackedbarplot/info/groupedStackedBarplot
 
 # Define the S4 class for a barplot
 setClass("GroupedStackedBarplot", contains = "StackedBarplot")
+
 
 setMethod(
   "create_plot_info",
@@ -24,7 +26,8 @@ setMethod(
   }
 )
 
-setMethod("add_stats_to_data",
+setMethod(
+  "add_stats_to_data",
   signature(object = "GroupedStackedBarplot"),
   function(object) {
     # Call parent method
@@ -40,10 +43,10 @@ setMethod("add_stats_to_data",
         ~ sub(".*\\.\\.", "", .)
       )
     sd_df <- object@info@data_frame %>% tidyr::pivot_longer(
-        cols = tidyselect::ends_with(".sd"),
-        names_to = "entries",
-        values_to = "values_sd"
-      )
+      cols = tidyselect::ends_with(".sd"),
+      names_to = "entries",
+      values_to = "values_sd"
+    )
     object@info@data_frame %<>%
       select(-tidyselect::ends_with(".sd")) %>%
       tidyr::pivot_longer(
@@ -52,6 +55,15 @@ setMethod("add_stats_to_data",
         values_to = "values"
       ) %>%
       cbind(values_sd = sd_df$values_sd)
+
+    if (object@info@n_faceting_vars > 0) {
+      object@info@data_frame %<>%
+        map_elements_df(
+          object@info@faceting_var,
+          object@info@facet_map,
+          "facet_column"
+        )
+    }
     # Return the object
     object
   }
@@ -70,7 +82,7 @@ setMethod(
     #   group_by(conf_z,x) %>%
     #   mutate(error_bar_cumsum = cumsum(values)) %>%
     #   ungroup()
-    
+
     # Data mapping performed here is hard to understand but
     # it would summarize to something like this:
     #        |
@@ -83,7 +95,6 @@ setMethod(
     #        |                     |
     #        -----------------------
     #                  X
-
     # Names from df should be always the same, it is a wrap
     # specific for this plot
     object@plot <- ggplot(object@info@data_frame, aes(
@@ -92,18 +103,32 @@ setMethod(
     ))
     # Add the facet grid to the plot object. Switch it in to X,
     # this enforce style to group variables in x axis
-    object@plot <- object@plot + facet_grid(
-      ~ .data[[object@info@x]], switch = "x"
-    )
+    design <- "AAABBBCCC#DDDEEEFFFGGGHHHIIIJJJKKKLLLMMM"
+    if (object@info@n_faceting_vars > 0) {
+      object@plot <- object@plot + facet_manual(
+        ~ facet_column + .data[[object@info@x]],
+        strip.position = "bottom",
+        strip = strip_nested(
+          clip = "off"
+        ),
+        design = design
+      )
+    } else {
+      object@plot <- object@plot + facet_grid(
+        ~ .data[[object@info@x]],
+        switch = "x"
+      )
+    }
+
     # Add the geom_bar to the plot object. Use position_stack to
     # stack the bars and reverse = TRUE to have the bars in the
     # same order as the legend.
-    object@plot <- object@plot + geom_bar(
-      stat = "identity",
+    object@plot <- object@plot + geom_col(
       position = position_stack(reverse = TRUE),
       color = "black",
       aes(fill = entries)
     )
+
 
     # REALLY UGLY, I do not know if it
     # should be used, just let it here, maybe it is useful

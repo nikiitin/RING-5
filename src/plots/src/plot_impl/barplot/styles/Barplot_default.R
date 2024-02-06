@@ -115,20 +115,20 @@ setMethod(
             axis.text.x = element_text(
                 angle = 30,
                 hjust = 1,
-                size = adjust_text_size(23,
+                size = adjust_text_size(11,
                     object@style_info@width,
                     object@style_info@height),
                 face = "bold"
             ),
             axis.text.y = element_text(
                 hjust = 1,
-                size = adjust_text_size(23,
+                size = adjust_text_size(11,
                     object@style_info@width,
                     object@style_info@height),
                 face = "bold"
             ),
             axis.title.y = element_text(
-                size = adjust_text_size(35,
+                size = adjust_text_size(13,
                     object@style_info@width,
                     object@style_info@height),
                 face = "bold"
@@ -136,13 +136,13 @@ setMethod(
             legend.position = "top",
             legend.justification = "right",
             legend.title = element_text(
-                size = adjust_text_size(25,
+                size = adjust_text_size(13,
                     object@style_info@width,
                     object@style_info@height),
                 face = "bold"
             ),
             legend.text = element_text(
-                size = adjust_text_size(23,
+                size = adjust_text_size(11,
                     object@style_info@width,
                     object@style_info@height)
             ),
@@ -191,7 +191,7 @@ setMethod(
                     farver::decode_colour(
                         viridisLite::plasma(
                             length(
-                                object@plot_info@data_frame[[object@plot_info@conf_z]]
+                                unique(object@plot_info@data_frame[[object@plot_info@conf_z]])
                             ),
                             direction = -1,
                         ),
@@ -242,7 +242,7 @@ setMethod(
                             y = object@style_info@y_limit_top
                         ),
                         show.legend = FALSE,
-                        size = adjust_text_size(8,
+                        size = adjust_text_size(6,
                             object@style_info@width,
                             object@style_info@height),
                         angle = 90,

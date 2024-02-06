@@ -282,6 +282,15 @@ setMethod(
       ),
       collapse = ""
     )
+    # Store the r data in case it is needed
+    # afterwards
+    # Take all the path except the last part
+    cache_path <- object@info@result_path %>% strsplit("/") %>% unlist %>% head(-1) %>% paste0(collapse = "/")
+    id <- object@info@result_path %>% strsplit("/") %>% unlist %>% tail(1)
+    saveRDS(object@plot, file = paste0(cache_path,
+      "/.sessionCache/",
+      id,
+      ".rds"))
     ggsave(
       filename = result_path,
       units = "cm",

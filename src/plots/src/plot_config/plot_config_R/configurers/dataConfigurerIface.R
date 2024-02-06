@@ -26,6 +26,10 @@ setClass("Data_configurator_args",
         normalizer_index = "numeric",
         # Mean variables
         mean_algorithm = "character",
+        # Number of variables to skip for mean calc.
+        n_skip_mean = "numeric",
+        # Variables to skip for mean calculation
+        skip_mean = "vector",
 
         # Data frame that contains the data
         df = "data.frame"
@@ -96,6 +100,12 @@ setMethod(
             .Object@actions <- c(.Object@actions, "Mean")
             .Object@mean_algorithm <- get_arg(args, 1)
             args %<>% shift(1)
+            .Object@n_skip_mean <- as.numeric(get_arg(args, 1))
+            args %<>% shift(1)
+            if (.Object@n_skip_mean > 0) {
+                .Object@skip_mean <- get_arg(args, .Object@n_skip_mean)
+                args %<>% shift(.Object@n_skip_mean)
+            }
         }
         # Check if sort is not in the actions
         if ("Sort" %in% actions) {

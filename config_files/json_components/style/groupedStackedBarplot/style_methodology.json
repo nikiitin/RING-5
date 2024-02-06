@@ -6,22 +6,29 @@
             "title": "",
             "xAxisName": " ",
             "yAxisName": "Aborts(normalized)",
-            "width": 30,
-            "height": 15,
+            "width": 40,
+            "height": 22.5,
             "format": "png",
             "legendTitle": "Abort reason",
             "nLegendElementsPerRow": 2,
             "xSplitPoints": [
-                "12"
+                "9"
             ],
             "legendNames": [
-                "RW",
-                "WN_DM"
+                "base_tournament",
+                "base_tageSCL64KB",
+                "VF + CO_tournament",
+                "VF + CO_tageSCL64KB",
+                "VF + CO + Power_tournament",
+                "VF + CO + Power_tageSCL64KB"
             ],
             "breaks": [
                 "0",
+                "0.25",
                 "0.5",
+                "0.75",
                 "1",
+                "1.25",
                 "1.5"
             ],
             "limitTop": "NA",
@@ -29,28 +36,35 @@
         }
     },
     {
-        "styleName": "test",
+        "styleName": "cycles_grouped_stack",
         "dataStyle": {
             "apparel": "GroupedStackedBarplot_default",
             "title": "",
             "xAxisName": " ",
-            "yAxisName": "Aborts(normalized)",
-            "width": 30,
-            "height": 15,
+            "yAxisName": "Cycles by region(normalized)",
+            "width": 40,
+            "height": 22.5,
             "format": "png",
             "legendTitle": "Abort reason",
             "nLegendElementsPerRow": 2,
             "xSplitPoints": [
-                "12"
+                "9"
             ],
             "legendNames": [
-
+                "base_tournament",
+                "base_tageSCL64KB",
+                "VF + CO_tournament",
+                "VF + CO_tageSCL64KB",
+                "VF + CO + Power_tournament",
+                "VF + CO + Power_tageSCL64KB"
             ],
             "breaks": [
                 "0",
+                "0.25",
                 "0.5",
+                "0.75",
                 "1",
-                "1.5"
+                "1.25"
             ],
             "limitTop": "NA",
             "limitBot": "NA"

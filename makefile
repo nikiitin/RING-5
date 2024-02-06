@@ -70,7 +70,11 @@ check_pip: install_pip check_pip_dependencies
 # Install pip
 install_pip:
 	@echo "Checking if pip is installed..."
-	@python3 -m pip --version 2>/dev/null 1>/dev/null || (echo "pip is not installed. Installing..."; sudo apt install python3-pip; echo "pip correctly installed" || (echo "Could not install pip... aborting."; exit 1))
+	@python3 -m pip --version 2>/dev/null 1>/dev/null || \
+	(echo "pip is not installed. Installing..."; \
+		sudo apt install python3-pip; \
+		echo "pip correctly installed" || \
+		(echo "Could not install pip... aborting."; exit 1))
 	@echo "pip could execute!"
 # Check if pip dependencies are solved
 check_pip_dependencies:

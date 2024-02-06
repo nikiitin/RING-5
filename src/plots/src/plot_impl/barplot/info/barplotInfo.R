@@ -1,3 +1,4 @@
+require(stringr)
 # Define the S4 class for a generic plot
 setClass("Barplot_info",
     contains = "Plot_info",
@@ -9,7 +10,13 @@ setClass("Barplot_info",
         # Number of hidden bars
         n_hidden_bars = "numeric",
         # Hidden bars
-        hidden_bars = "vector"
+        hidden_bars = "vector",
+        # Number of faceting variables
+        n_faceting_vars = "numeric",
+        # Faceting variable
+        faceting_var = "character",
+        # Facet map
+        facet_map = "MapSet"
     )
 )
 
@@ -31,6 +38,20 @@ setMethod("parse_args_plot_info",
     if (object@n_hidden_bars > 0) {
       object@hidden_bars <- get_arg(object@args, object@n_hidden_bars)
       object@args %<>% shift(object@n_hidden_bars)
+    }
+    # 11. faceting variables
+    object@n_faceting_vars <- as.numeric(get_arg(object@args, 1))
+    object@args %<>% shift(1)
+    if (object@n_faceting_vars > 0) {
+      object@facet_map <- new("MapSet", "character")
+      for (i in 1 : object@n_faceting_vars) {
+        string_arg <- get_arg(object@args, 1)
+        object@args %<>% shift(1)
+        string_arg %<>% str_split("=") %>% unlist()
+        object@facet_map %<>% emplace_element(string_arg[1], string_arg[2])
+      }
+      object@faceting_var <- get_arg(object@args, 1)
+      object@args %<>% shift(1)
     }
     object
   }

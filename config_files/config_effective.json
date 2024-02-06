@@ -84,7 +84,25 @@
             ],
             "conf_z": [
                 "config_description_abbrev"
-            ]
+            ],
+            "facet": {
+                "facetVar": "benchmark_name",
+                "facetMappings": [
+                    "clusteradding=microbenchmarks",
+                    "llbenchsimple-l=microbenchmarks",
+                    "llbenchsimple-h=microbenchmarks",
+                    "genome=STAMP",
+                    "intruder=STAMP",
+                    "kmeans-l=STAMP",
+                    "kmeans-h=STAMP",
+                    "labyrinth=STAMP",
+                    "ssca2=STAMP",
+                    "vacation-l=STAMP",
+                    "vacation-h=STAMP",
+                    "yada=STAMP",
+                    "geomean=STAMP"
+                ]
+            }
         }
     ]
 }

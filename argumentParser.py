@@ -29,6 +29,21 @@ class AnalyzerInfo:
                     help="debug mode: do not delete temporary files and print more info")
         return argParser.parse_args()
 
+    def _createSessionCache(self, outDir):
+        print(os.path.join(outDir, "plots" ,".sessionCache"))
+        if not utils.checkDirExists(os.path.join(outDir, "plots", ".sessionCache")):
+            try:
+            # Create output directory
+                utils.createDir(os.path.join(outDir, "plots" ,".sessionCache"))
+                # Create output directory
+            except OSError as error:
+                print(error)
+                exit()
+        else:
+            # Remove all files in the directory
+            for file in os.listdir(os.path.join(outDir, ".sessionCache")):
+                os.remove(os.path.join(outDir, ".sessionCache", file))
+
     def _createOutDir(self):
         outDir = self._json["outputPath"]
         if not utils.checkDirExists(outDir):
@@ -47,7 +62,8 @@ class AnalyzerInfo:
                 exit()
         else:
             print("Output directory found: " + outDir)
-        
+        self._createSessionCache(outDir)
+
     def _getProjConfig(self):
         pass
     # Getters

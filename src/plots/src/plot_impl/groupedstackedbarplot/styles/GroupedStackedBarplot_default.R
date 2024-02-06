@@ -23,7 +23,6 @@ setMethod(
     }
 )
 
-
 setMethod(
     "apply_style",
     signature(object = "GroupedStackedBarplot_default", plot = "ggplot"),
@@ -59,111 +58,151 @@ setMethod(
                 labels = object@style_info@legend_names,
             )
         }
+        #### Specific to my figures!
+        # TODO,FIXME: do it generic!!
+        # Add the vertical line using a new data frame
+        plot <- plot +
+            geom_vline(data = data.frame(xintercept = c(2.7),
+                    facet_column = c("STAMP"),
+                    benchmark_name = c("yada")),
+                aes(xintercept = xintercept),
+                color = "black", linewidth = 4,
+                linetype = "dotdash")
 
-        # x split points
-        if (object@style_info@n_x_split_points > 0) {
-            # A bit tricky here. Using vlines in facets replicate the
-            # line for each facet and xintercept match x INSIDE every facet.
-            # x split points are meant to split only once the x axis
-            # Get x variables, map the xsplit points to the matching variable
-            # and put that in a data frame (other data source)
-            # with the x being the x value we want to intercept (FACET)
-            # and xint being the x inside the facet where we want to
-            # put the line
-            x_variables <-
-                unique(object@plot_info@data_frame[[object@plot_info@x]])
-            x_split_points <-
-                floor(
-                    as.numeric(
-                        object@style_info@x_split_points
-                        )
-                    )
-            x_index <- x_variables[[x_split_points]]
-            z_variables <-
-                unique(object@plot_info@data_frame[[object@plot_info@conf_z]])
-            mapping <- data.frame(
-                xint = length(z_variables) + 0.5,
-                x = x_index
-            )
-            colnames(mapping) <- c("xint", object@plot_info@x)
-            plot <- plot +
-                geom_vline(data = mapping,
-                    aes(xintercept = xint),
-                    linetype = "dashed",
-                    color = "black"
-                )
-        }
+        # Add the vertical line using a new data frame
+        plot <- plot +
+            geom_vline(data = data.frame(xintercept = c(3),
+                    facet_column = c("microbenchmarks"),
+                    benchmark_name = c("llbenchsimple-h")),
+                aes(xintercept = xintercept),
+                color = "black", linewidth = 5,
+                linetype = "dashed")
+
+        # # x split points
+        # if (object@style_info@n_x_split_points > 0) {
+        #     # A bit tricky here. Using vlines in facets replicate the
+        #     # line for each facet and xintercept match x INSIDE every facet.
+        #     # x split points are meant to split only once the x axis
+        #     # Get x variables, map the xsplit points to the matching variable
+        #     # and put that in a data frame (other data source)
+        #     # with the x being the x value we want to intercept (FACET)
+        #     # and xint being the x inside the facet where we want to
+        #     # put the line
+        #     x_variables <-
+        #         unique(object@plot_info@data_frame[[object@plot_info@x]])
+        #     x_split_points <-
+        #         floor(
+        #             as.numeric(
+        #                 object@style_info@x_split_points
+        #                 )
+        #             )
+        #     x_index <- x_variables[[x_split_points]]
+        #     z_variables <-
+        #         unique(object@plot_info@data_frame[[object@plot_info@conf_z]])
+        #     mapping <- data.frame(
+        #         xint = length(z_variables) + 0.6,
+        #         x = x_index
+        #     )
+        #     colnames(mapping) <- c("xint", object@plot_info@x)
+        #     plot <- plot +
+        #         geom_vline(data = mapping,
+        #             aes(xintercept = xint),
+        #             linetype = "dashed",
+        #             color = "black"
+        #         )
+        # }
 
         # Set the theme to be used
         plot <- plot + theme_hc()
         # Add specific configs to the theme
         plot <- plot + theme(
             axis.text.x = element_text(
-                angle = 30,
+                angle = 90,
                 hjust = 1,
-                size = adjust_text_size(9.5,
+                size = adjust_text_size(
+                    9,
                     object@style_info@width,
-                    object@style_info@height),
+                    object@style_info@height
+                ),
                 face = "bold"
             ),
             axis.text.y = element_text(
                 hjust = 1,
-                size = adjust_text_size(9.5,
+                size = adjust_text_size(
+                    9,
                     object@style_info@width,
-                    object@style_info@height),
+                    object@style_info@height
+                ),
                 face = "bold"
             ),
             axis.title.x = element_text(
-                size = adjust_text_size(13,
+                size = adjust_text_size(
+                    13,
                     object@style_info@width,
-                    object@style_info@height),
+                    object@style_info@height
+                ),
                 face = "bold"
             ),
             axis.title.y = element_text(
-                size = adjust_text_size(13,
+                size = adjust_text_size(
+                    13,
                     object@style_info@width,
-                    object@style_info@height),
+                    object@style_info@height
+                ),
                 face = "bold"
             ),
             legend.position = "top",
             legend.justification = "right",
             legend.title = element_text(
-                size = adjust_text_size(13,
+                size = adjust_text_size(
+                    13,
                     object@style_info@width,
-                    object@style_info@height),
+                    object@style_info@height
+                ),
                 face = "bold"
             ),
             legend.text = element_text(
-                size = adjust_text_size(11,
+                size = adjust_text_size(
+                    11,
                     object@style_info@width,
-                    object@style_info@height)
+                    object@style_info@height
+                )
             ),
             legend.key.width = unit(
-                adjust_text_size(1,
+                adjust_text_size(
+                    1,
                     object@style_info@width,
-                    object@style_info@height),
-                "cm"),
+                    object@style_info@height
+                ),
+                "cm"
+            ),
             legend.key.height = unit(
-                adjust_text_size(1,
+                adjust_text_size(
+                    1,
                     object@style_info@width,
-                    object@style_info@height),
-                "cm"),
+                    object@style_info@height
+                ),
+                "cm"
+            ),
             strip.text = element_text(
-                size = adjust_text_size(11.5,
+                size = adjust_text_size(
+                    9,
                     object@style_info@width,
-                    object@style_info@height),
-                angle = 30,
+                    object@style_info@height
+                ),
+                angle = 0,
+                face = "bold"
             ),
             strip.placement = "outside",
-            strip.background = element_rect(fill = NA, color = "white"),
+            strip.background = element_rect(fill = alpha('#2eabff', 0.1), color = "white"),
             panel.spacing = unit(0.1, "cm")
         ) # Added facet specific configs
 
         # Assign the colors to plot
         plot <- plot +
             scale_fill_viridis_d(
-                option = "plasma",
-                direction = -1
+                option = "viridis",
+                direction = 1
             )
 
         # Set the breaks
@@ -171,8 +210,10 @@ setMethod(
             plot <- plot +
                 scale_y_continuous(
                     breaks = object@style_info@y_breaks,
-                    limits = c(min(object@style_info@y_breaks),
-                        max(object@style_info@y_breaks)),
+                    limits = c(
+                        min(object@style_info@y_breaks),
+                        max(object@style_info@y_breaks)
+                    ),
                     oob = scales::squish
                 )
         }

@@ -59,7 +59,9 @@ class PlotConfigurerR(PlotConfigurerInterface):
         # Preconditions
         # If mean is defined, meanAlgorithm must be defined too
         utils.checkElementExists(self._meanJson, "meanAlgorithm")
+        utils.checkElementExists(self._meanJson, "skipMean")
         RScriptCall.extend(utils.jsonToArg(self._meanJson, "meanAlgorithm"))
+        RScriptCall.extend(utils.jsonToArg(self._meanJson, "skipMean"))
         self._command.extend(RScriptCall)
 
     def _sortData(self) -> None:
