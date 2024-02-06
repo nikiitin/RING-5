@@ -1,9 +1,12 @@
 *.jpg
 *.csv
 *.pdf
-*.txt
 *.tar
 *Rhistory
+*.Rproj
+*.RData
+*.Rprofile
+*.proj
 *.pyc
 __pycache__
 renv/*
