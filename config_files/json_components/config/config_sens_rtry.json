@@ -1,0 +1,141 @@
+[
+    {
+        "configName": "default",
+        "dataConfig": {
+            "mean": {
+                "meanAlgorithm": "geomean",
+                "skipMean": [
+                    "clusteradding",
+                    "llbenchsimple-l",
+                    "llbenchsimple-h"
+                ]
+            },
+            "sort": [
+                {
+                    "varToSort": "benchmark_name",
+                    "order": [
+                        "clusteradding",
+                        "llbenchsimple-l",
+                        "llbenchsimple-h",
+                        "bayes",
+                        "genome",
+                        "intruder",
+                        "kmeans-l",
+                        "kmeans-h",
+                        "labyrinth",
+                        "ssca2",
+                        "vacation-l",
+                        "vacation-h",
+                        "yada",
+                        "geomean"
+                    ]
+                },
+                {
+                    "varToSort": "config_description_abbrev",
+                    "order": [
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry1_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry2_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry4_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry8_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDnaive_EVFwd_maxFwd8_CTV100_MVAL16_Rtry1_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDnaive_EVFwd_maxFwd8_CTV100_MVAL16_Rtry2_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDnaive_EVFwd_maxFwd8_CTV100_MVAL16_Rtry4_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDnaive_EVFwd_maxFwd8_CTV100_MVAL16_Rtry6_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDnaive_EVFwd_maxFwd8_CTV100_MVAL16_Rtry8_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd256_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry1_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd256_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry2_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd256_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry4_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd256_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry6_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd256_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry8_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd256_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry10_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd256_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry12_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd256_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry14_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd256_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry16_Pflt",
+                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd256_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry1_Pflt",
+                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd256_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry2_Pflt",
+                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd256_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry4_Pflt",
+                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd256_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry6_Pflt",
+                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd256_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry8_Pflt"
+                    ]
+                }
+            ],
+            "normalize": {
+                "normalizerIndex": 1
+            }
+        }
+    },
+    {
+        "configName": "no_bayes",
+        "dataConfig": {
+            "filter": [
+                {
+                    "varToFilter": "benchmark_name",
+                    "values": [
+                        "bayes"
+                    ]
+                }
+            ],
+            "mean": {
+                "meanAlgorithm": "geomean",
+                "skipMean": [
+                    "clusteradding",
+                    "llbenchsimple-l",
+                    "llbenchsimple-h"
+                ]
+            },
+            "sort": [
+                {
+                    "varToSort": "benchmark_name",
+                    "order": [
+                        "clusteradding",
+                        "llbenchsimple-l",
+                        "llbenchsimple-h",
+                        "genome",
+                        "intruder",
+                        "kmeans-l",
+                        "kmeans-h",
+                        "labyrinth",
+                        "ssca2",
+                        "vacation-l",
+                        "vacation-h",
+                        "yada",
+                        "geomean"
+                    ]
+                },
+                {
+                    "varToSort": "config_description_abbrev",
+                    "order": [
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry1_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry2_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry4_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry8_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDnaive_EVFwd_maxFwd8_CTV100_MVAL16_Rtry1_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDnaive_EVFwd_maxFwd8_CTV100_MVAL16_Rtry2_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDnaive_EVFwd_maxFwd8_CTV100_MVAL16_Rtry4_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDnaive_EVFwd_maxFwd8_CTV100_MVAL16_Rtry6_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDnaive_EVFwd_maxFwd8_CTV100_MVAL16_Rtry8_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd256_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry1_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd256_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry2_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd256_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry4_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd256_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry6_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd256_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry8_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd256_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry10_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd256_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry12_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd256_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry14_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd256_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry16_Pflt",
+                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd256_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry1_Pflt",
+                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd256_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry2_Pflt",
+                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd256_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry4_Pflt",
+                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd256_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry6_Pflt",
+                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd256_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry8_Pflt"
+                    ]
+                }
+            ],
+            "normalize": {
+                "normalizerIndex": 1
+            }
+        }
+    }
+]

@@ -61,22 +61,13 @@ setMethod(
         #### Specific to my figures!
         # TODO,FIXME: do it generic!!
         # Add the vertical line using a new data frame
-        plot <- plot +
-            geom_vline(data = data.frame(xintercept = c(2.7),
-                    facet_column = c("STAMP"),
-                    benchmark_name = c("yada")),
-                aes(xintercept = xintercept),
-                color = "black", linewidth = 4,
-                linetype = "dotdash")
-
-        # Add the vertical line using a new data frame
-        plot <- plot +
-            geom_vline(data = data.frame(xintercept = c(3),
-                    facet_column = c("microbenchmarks"),
-                    benchmark_name = c("llbenchsimple-h")),
-                aes(xintercept = xintercept),
-                color = "black", linewidth = 5,
-                linetype = "dashed")
+        # plot <- plot +
+        #     geom_vline(data = data.frame(xintercept = c(8.8),
+        #             facet_column = c("STAMP"),
+        #             benchmark_name = c("yada")),
+        #         aes(xintercept = xintercept),
+        #         color = "black", linewidth = 2,
+        #         linetype = "dotdash")
 
         # # x split points
         # if (object@style_info@n_x_split_points > 0) {
@@ -120,7 +111,7 @@ setMethod(
                 angle = 90,
                 hjust = 1,
                 size = adjust_text_size(
-                    9,
+                    7,
                     object@style_info@width,
                     object@style_info@height
                 ),
@@ -163,7 +154,7 @@ setMethod(
             ),
             legend.text = element_text(
                 size = adjust_text_size(
-                    11,
+                    1,
                     object@style_info@width,
                     object@style_info@height
                 )

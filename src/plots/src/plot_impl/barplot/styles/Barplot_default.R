@@ -105,9 +105,7 @@ setMethod(
                     color = "black"
                 )
         }
-        # Set the theme to be used
-        plot <- plot + theme_hc()
-        # Add specific configs to the theme
+
         # Set the theme to be used
         plot <- plot + theme_hc()
         # Add specific configs to the theme
@@ -142,7 +140,7 @@ setMethod(
                 face = "bold"
             ),
             legend.text = element_text(
-                size = adjust_text_size(11,
+                size = adjust_text_size(0.5,
                     object@style_info@width,
                     object@style_info@height)
             ),
@@ -155,22 +153,34 @@ setMethod(
                 adjust_text_size(1,
                     object@style_info@width,
                     object@style_info@height),
-                "cm")
+                "cm"),
+            strip.text = element_text(
+                size = adjust_text_size(
+                    8,
+                    object@style_info@width,
+                    object@style_info@height
+                ),
+                angle = 0,
+                face = "bold"
+            ),
+            strip.placement = "outside",
+            strip.background = element_rect(fill = alpha('#2eabff', 0.1), color = "white"),
+            panel.spacing = unit(0.1, "cm")
         )
         # Assign the colors to plot and labels to legend in case
         # legend names are specified
         if (object@style_info@n_legend_names != 0) {
             plot <- plot +
                 scale_fill_viridis_d(
-                    option = "plasma",
+                    option = "viridis",
                     labels = object@style_info@legend_names,
-                    direction = -1
+                    direction = 1
                 )
         } else {
             plot <- plot +
                 scale_fill_viridis_d(
-                    option = "plasma",
-                    direction = -1
+                    option = "viridis",
+                    direction = 1
                 )
         }
         # Limit the y axis and assign labels to those
@@ -189,11 +199,11 @@ setMethod(
                 # TODO-Note: using plasma but should be configurable
                 colors <-
                     farver::decode_colour(
-                        viridisLite::plasma(
+                        viridisLite::viridis(
                             length(
                                 unique(object@plot_info@data_frame[[object@plot_info@conf_z]])
                             ),
-                            direction = -1,
+                            direction = 1,
                         ),
                         "rgb",
                         "hcl"
@@ -242,7 +252,7 @@ setMethod(
                             y = object@style_info@y_limit_top
                         ),
                         show.legend = FALSE,
-                        size = adjust_text_size(6,
+                        size = adjust_text_size(2,
                             object@style_info@width,
                             object@style_info@height),
                         angle = 90,

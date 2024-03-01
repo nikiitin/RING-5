@@ -16,7 +16,6 @@ setMethod(
         # Remove rows matching skip_mean values
         mean_df <- mean_df[!mean_df[, object@args@x] %in%
             object@args@skip_mean, ]
-        print(mean_df)
         # Apply the mean algorithm to every stat (y values)
         # removing the x value and having as reference the conf_z value
         mean_df <- aggregate(mean_df[, c(object@args@y, object@args@y_sd)],

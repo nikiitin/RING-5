@@ -27,6 +27,7 @@ args <- new("Data_configurator_args", args = arguments)
 args@df <- df[, c(args@conf_z, args@x, args@y, args@y_sd)]
 # Create the configurators
 for (action in args@actions) {
+    print(action)
     # Create the configurator
     configurator <- get_configurer(action, args)
     # Perform the configuration

@@ -86,6 +86,7 @@ map_elements_df <- function(df, element, map_set, new_name) {
         # by key and add the element to the dataframe
         df[i, last_col] <- get_element_by_key(map_set, as.character(df[i, element]))
     }
+    print(df)
     # Return the dataframe
     df
 }

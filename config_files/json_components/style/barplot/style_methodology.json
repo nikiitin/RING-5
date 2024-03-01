@@ -6,56 +6,31 @@
             "title": "",
             "xAxisName": "",
             "yAxisName": "Ex. Time(normalized)",
-            "width": 40,
-            "height": 22.5,
+            "width": 50,
+            "height": 28.125,
             "format": "png",
             "legendTitle": "Config",
-            "nLegendElementsPerRow": 2,
+            "nLegendElementsPerRow": 4,
             "xSplitPoints": [
-                "9"
+                "13"
             ],
             "legendNames": [
-                "base_tournament",
-                "base_tageSCL64KB",
-                "VF + CO_tournament",
-                "VF + CO_tageSCL64KB",
-                "VF + CO + Power_tournament",
-                "VF + CO + Power_tageSCL64KB"
-            ],
-            "breaks": [
-                "0",
-                "0.25",
-                "0.5",
-                "0.75",
-                "1",
-                "1.25"
-            ],
-            "limitTop": 1.25,
-            "limitBot": 0
-        }
-    },
-    {
-        "styleName": "mispreds",
-        "dataStyle": {
-            "apparel": "Barplot_default",
-            "title": "",
-            "xAxisName": "",
-            "yAxisName": "mispredictions(normalized)",
-            "width": 40,
-            "height": 22.5,
-            "format": "png",
-            "legendTitle": "Config",
-            "nLegendElementsPerRow": 2,
-            "xSplitPoints": [
-                "9"
-            ],
-            "legendNames": [
-                "base_tournament",
-                "base_tageSCL64KB",
-                "VF + CO_tournament",
-                "VF + CO_tageSCL64KB",
-                "VF + CO + Power_tournament",
-                "VF + CO + Power_tageSCL64KB"
+                "OldBaseline_rw",
+                "OldBaseline_naive",
+                "OldBaseline_wndm",
+                "OldBaseline_wndm_power",
+                "tagescl_rw",
+                "tagescl_naive",
+                "tagescl_wndm",
+                "tagescl_wndm_power",
+                "ltage_rw",
+                "ltage_naive",
+                "ltage_wndm",
+                "ltage_wndm_power",
+                "newLatLtg_rw",
+                "newLatLtg_naive",
+                "newLatLtg_wndm",
+                "newLatLtg_wndm_power"
             ],
             "breaks": [
                 "0",

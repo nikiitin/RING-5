@@ -5,7 +5,7 @@
         "compress": true,
         "parsings": [
             {
-                "path": "/home/vnicolas/Workspace/remote-echo/workspace/sims/ruben/gem5/results/valuepred-methodology-v2/",
+                "path": "/home/vnicolas/Workspace/remote-echo/workspace/sims/ruben/gem5/results/valuepred-retry-sens/",
                 "files": "stats.txt",
                 "vars": [
                     {

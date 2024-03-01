@@ -50,20 +50,12 @@ setMethod(
     object@info@data_frame %<>%
       select(-tidyselect::ends_with(".sd")) %>%
       tidyr::pivot_longer(
-        cols = -c(object@info@x, object@info@conf_z),
+        cols = -c(object@info@x, object@info@conf_z, facet_column),
         names_to = "entries",
         values_to = "values"
       ) %>%
       cbind(values_sd = sd_df$values_sd)
 
-    if (object@info@n_faceting_vars > 0) {
-      object@info@data_frame %<>%
-        map_elements_df(
-          object@info@faceting_var,
-          object@info@facet_map,
-          "facet_column"
-        )
-    }
     # Return the object
     object
   }
@@ -103,7 +95,7 @@ setMethod(
     ))
     # Add the facet grid to the plot object. Switch it in to X,
     # this enforce style to group variables in x axis
-    design <- "AAABBBCCC#DDDEEEFFFGGGHHHIIIJJJKKKLLLMMM"
+    design <- "AAAABBBBCCCC##DDDDEEEEFFFFGGGGHHHHIIIIJJJJKKKKLLLLMMMM#NNNN"
     if (object@info@n_faceting_vars > 0) {
       object@plot <- object@plot + facet_manual(
         ~ facet_column + .data[[object@info@x]],

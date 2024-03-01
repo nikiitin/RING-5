@@ -122,28 +122,26 @@
             ],
             "conf_z": [
                 "config_description_abbrev"
-            ]
-        },
-        {
-            "plotType": "barplot",
-            "dataConfig": {
-                "file": "config_methodology",
-                "config": "default"
-            },
-            "styleConfig": {
-                "file": "style_methodology",
-                "config": "mispreds"
-            },
-            "fileName": "mispreds",
-            "x": [
-                "benchmark_name"
             ],
-            "y": [
-                "branchMispredicts"
-            ],
-            "conf_z": [
-                "config_description_abbrev"
-            ]
+            "facet": {
+                "facetVar": "benchmark_name",
+                "facetMappings": [
+                    "clusteradding=microbenchmarks",
+                    "llbenchsimple-l=microbenchmarks",
+                    "llbenchsimple-h=microbenchmarks",
+                    "bayes=STAMP",
+                    "genome=STAMP",
+                    "intruder=STAMP",
+                    "kmeans-l=STAMP",
+                    "kmeans-h=STAMP",
+                    "labyrinth=STAMP",
+                    "ssca2=STAMP",
+                    "vacation-l=STAMP",
+                    "vacation-h=STAMP",
+                    "yada=STAMP",
+                    "geomean=STAMP"
+                ]
+            }
         },
         {
             "plotType": "groupedStackedBarplot",
@@ -169,7 +167,26 @@
             ],
             "conf_z": [
                 "config_description_abbrev"
-            ]
+            ],
+            "facet": {
+                "facetVar": "benchmark_name",
+                "facetMappings": [
+                    "clusteradding=microbenchmarks",
+                    "llbenchsimple-l=microbenchmarks",
+                    "llbenchsimple-h=microbenchmarks",
+                    "bayes=STAMP",
+                    "genome=STAMP",
+                    "intruder=STAMP",
+                    "kmeans-l=STAMP",
+                    "kmeans-h=STAMP",
+                    "labyrinth=STAMP",
+                    "ssca2=STAMP",
+                    "vacation-l=STAMP",
+                    "vacation-h=STAMP",
+                    "yada=STAMP",
+                    "geomean=STAMP"
+                ]
+            }
         },
         {
             "plotType": "groupedStackedBarplot",
@@ -196,7 +213,26 @@
             ],
             "conf_z": [
                 "config_description_abbrev"
-            ]
+            ],
+            "facet": {
+                "facetVar": "benchmark_name",
+                "facetMappings": [
+                    "clusteradding=microbenchmarks",
+                    "llbenchsimple-l=microbenchmarks",
+                    "llbenchsimple-h=microbenchmarks",
+                    "bayes=STAMP",
+                    "genome=STAMP",
+                    "intruder=STAMP",
+                    "kmeans-l=STAMP",
+                    "kmeans-h=STAMP",
+                    "labyrinth=STAMP",
+                    "ssca2=STAMP",
+                    "vacation-l=STAMP",
+                    "vacation-h=STAMP",
+                    "yada=STAMP",
+                    "geomean=STAMP"
+                ]
+            }
         }
     ]
 }

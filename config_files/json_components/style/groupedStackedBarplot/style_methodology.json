@@ -8,28 +8,38 @@
             "yAxisName": "Aborts(normalized)",
             "width": 40,
             "height": 22.5,
-            "format": "png",
+            "format": "pdf",
             "legendTitle": "Abort reason",
             "nLegendElementsPerRow": 2,
             "xSplitPoints": [
                 "9"
             ],
             "legendNames": [
-                "base_tournament",
-                "base_tageSCL64KB",
-                "VF + CO_tournament",
-                "VF + CO_tageSCL64KB",
-                "VF + CO + Power_tournament",
-                "VF + CO + Power_tageSCL64KB"
+                "OldBaseline_rw",
+                "OldBaseline_naive",
+                "OldBaseline_wndm",
+                "OldBaseline_wndm_power",
+                "tagescl_rw",
+                "tagescl_naive",
+                "tagescl_wndm",
+                "tagescl_wndm_power",
+                "ltage_rw",
+                "ltage_naive",
+                "ltage_wndm",
+                "ltage_wndm_power",
+                "newLatLtg_rw",
+                "newLatLtg_naive",
+                "newLatLtg_wndm",
+                "newLatLtg_wndm_power"
             ],
             "breaks": [
                 "0",
-                "0.25",
                 "0.5",
-                "0.75",
                 "1",
-                "1.25",
-                "1.5"
+                "1.5",
+                "2",
+                "2.5",
+                "3"
             ],
             "limitTop": "NA",
             "limitBot": "NA"
@@ -44,27 +54,38 @@
             "yAxisName": "Cycles by region(normalized)",
             "width": 40,
             "height": 22.5,
-            "format": "png",
+            "format": "pdf",
             "legendTitle": "Abort reason",
             "nLegendElementsPerRow": 2,
             "xSplitPoints": [
                 "9"
             ],
             "legendNames": [
-                "base_tournament",
-                "base_tageSCL64KB",
-                "VF + CO_tournament",
-                "VF + CO_tageSCL64KB",
-                "VF + CO + Power_tournament",
-                "VF + CO + Power_tageSCL64KB"
+                "OldBaseline_rw",
+                "OldBaseline_naive",
+                "OldBaseline_wndm",
+                "OldBaseline_wndm_power",
+                "tagescl_rw",
+                "tagescl_naive",
+                "tagescl_wndm",
+                "tagescl_wndm_power",
+                "ltage_rw",
+                "ltage_naive",
+                "ltage_wndm",
+                "ltage_wndm_power",
+                "newLatLtg_rw",
+                "newLatLtg_naive",
+                "newLatLtg_wndm",
+                "newLatLtg_wndm_power"
             ],
             "breaks": [
                 "0",
-                "0.25",
                 "0.5",
-                "0.75",
                 "1",
-                "1.25"
+                "1.5",
+                "2",
+                "2.5",
+                "3"
             ],
             "limitTop": "NA",
             "limitBot": "NA"

@@ -4,6 +4,7 @@ source("src/utils/util.R")
 source("src/plots/src/plot_impl/plot.R")
 # Source it here. We do not want it to be generic :)
 source("src/plots/src/plot_impl/barplot/info/barplotInfo.R")
+library(ggh4x)
 # This is the definition for the barplot type. It is inheriting
 # from the Plot class.
 
@@ -60,6 +61,24 @@ setMethod("format_data",
   }
 )
 
+setMethod(
+  "add_stats_to_data",
+  signature(object = "Barplot"),
+  function(object) {
+    # Call parent method
+    object <- callNextMethod()
+    if (object@info@n_faceting_vars > 0) {
+      object@info@data_frame %<>%
+        map_elements_df(
+          object@info@faceting_var,
+          object@info@facet_map,
+          "facet_column"
+        )
+    }
+    # Return the object
+    object
+  }
+)
 
 # Override create_plot method from Plot class
 # need different behavior for barplot
@@ -69,7 +88,7 @@ setMethod("create_plot",
     # DO NOT CALL PARENT METHOD
     # Create the plot object
     object@plot <- ggplot(object@info@data_frame, aes(
-      x = .data[[object@info@x]],
+      x = "",
       y = .data[[object@info@y]],
       fill = .data[[object@info@conf_z]]
     ))
@@ -78,6 +97,20 @@ setMethod("create_plot",
       stat = "identity",
       position = "dodge",
       color = "black")
+
+        # Add the facet grid to the plot object. Switch it in to X,
+    # this enforce style to group variables in x axis
+    design <- "AAAABBBBCCCC##DDDDEEEEFFFFGGGGHHHHIIIIJJJJKKKKLLLLMMMM#NNNN"
+    if (object@info@n_faceting_vars > 0) {
+      object@plot <- object@plot + facet_manual(
+        ~ facet_column + .data[[object@info@x]],
+        strip.position = "bottom",
+        strip = strip_nested(
+          clip = "off"
+        ),
+        design = design
+      )
+    }
     # Add standard deviation error bars
     object@plot <- object@plot + geom_errorbar(
       aes(ymin = object@info@data_frame[, object@info@y] -

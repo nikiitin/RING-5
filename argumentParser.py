@@ -41,8 +41,8 @@ class AnalyzerInfo:
                 exit()
         else:
             # Remove all files in the directory
-            for file in os.listdir(os.path.join(outDir, ".sessionCache")):
-                os.remove(os.path.join(outDir, ".sessionCache", file))
+            for file in os.listdir(os.path.join(outDir, "plots", ".sessionCache")):
+                os.remove(os.path.join(outDir, "plots", ".sessionCache", file))
 
     def _createOutDir(self):
         outDir = self._json["outputPath"]
@@ -52,7 +52,7 @@ class AnalyzerInfo:
                 answer = input()
                 if answer == "y":
                     # Create output directory
-                    utils.createDir(outDir)
+                    utils.createDir(outDir)    
                 else:
                     print("Exiting")
                     exit()
@@ -62,6 +62,9 @@ class AnalyzerInfo:
                 exit()
         else:
             print("Output directory found: " + outDir)
+        self._plotPathDir = os.path.join(outDir, "plots")
+        if not utils.checkDirExists(self._plotPathDir):
+            utils.createDir(self._plotPathDir)
         self._createSessionCache(outDir)
 
     def _getProjConfig(self):
