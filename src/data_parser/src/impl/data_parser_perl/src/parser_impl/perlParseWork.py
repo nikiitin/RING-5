@@ -15,6 +15,27 @@ class PerlParseWork(ParseWork):
             raise RuntimeError("Vars to parse is empty!")
         super().__init__()
 
+    def _validateVars(self, varsToParse: dict) -> dict:
+        # Check all the variables have content
+        for varID in varsToParse.keys():
+            itVar = varsToParse[varID]
+            if itVar.content is None:
+                # This should not happen...
+                raise RuntimeError("Variable content none: " + varID)
+            if type(itVar).__name__ == "Configuration":
+                if len(itVar.content) == 0:
+                    # If the content is empty, then use the onEmpty value
+                    if itVar.onEmpty is None:
+                        # If the onEmpty value is None, then raise error
+                        # Should not happen...
+                        raise RuntimeError("Configuration variable empty: " +
+                                       varID +
+                                       "No default value... Stoping...")
+                    else:
+                        # Use the onEmpty (default) value
+                        itVar.content = itVar.onEmpty
+        return varsToParse
+
     def _addBufferedVars(self, varsToParse: dict) -> dict:
         # Add the buffered variables to the dictionary
         for varID in self._vectorDict.keys():
@@ -97,8 +118,9 @@ class PerlParseWork(ParseWork):
             return None
         for line in output.splitlines():
             self._processLine(line, varsToParse)
-        # Update all the vector variables
+        # Update all the buffered variables
         varsToParse = self._addBufferedVars(varsToParse)
+        varsToParse = self._validateVars(varsToParse)
         # Return the parsed info
         return varsToParse
 

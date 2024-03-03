@@ -38,6 +38,11 @@ class DataParserPerl(DataParserInterface):
                 utils.checkElementExists(var, "minimum")
                 minimum = utils.getElementValue(var, "minimum")
                 varsToParse.update({identifier : TypeMapper.map(dataType, repeat, maximum = maximum, minimum = minimum)})
+            elif dataType == "configuration":
+                onEmpty = "None"
+                if utils.checkElementExistNoException(var, "onEmpty"):
+                    onEmpty = utils.getElementValue(var, "onEmpty")
+                varsToParse.update({identifier : TypeMapper.map(dataType, repeat, onEmpty = onEmpty)})
             else:
                 varsToParse.update({identifier : TypeMapper.map(dataType, repeat)})
         return varsToParse

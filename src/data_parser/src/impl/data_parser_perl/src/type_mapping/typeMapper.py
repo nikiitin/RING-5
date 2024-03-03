@@ -23,7 +23,9 @@ class TypeMapper():
                 raise RuntimeError("DISTRIBUTION: Maximum or minimum not specified...")
             return Distribution(repeat, maximum, minimum)
         elif varType == "configuration":
-            return Configuration(repeat)
+            if kwargs.get("onEmpty") is None:
+                raise RuntimeError("CONFIGURATION: OnEmpty not specified...")
+            return Configuration(repeat, kwargs.get("onEmpty"))
         elif varType == "scalar":
             return Scalar(repeat)
         else:
