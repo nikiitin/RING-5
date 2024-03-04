@@ -3,6 +3,7 @@ from src.plots.src.plot_impl.barplot.src.barplot import Barplot
 from src.plots.src.plot_impl.stackedbarplot.src.stackedBarplot import StackedBarplot
 from src.plots.src.plot_impl.percentagestackedbarplot.src.percentageStackedBarplot import PercentageStackedBarplot
 from src.plots.src.plot_impl.groupedstackedbarplot.src.groupedStackedBarplot import GroupedStackedBarplot
+from src.plots.src.plot_impl.lineplot.src.lineplot import LinePlot
 from argumentParser import AnalyzerInfo
 class PlotFactory:
     # Any plot instance will be unique,
@@ -11,6 +12,8 @@ class PlotFactory:
     def plot(info: AnalyzerInfo, plotJson: dict, plotType: str = "barplot") -> PlotInterface:
         if (plotType == "barplot"):
             return Barplot(info, plotJson)
+        elif (plotType == "lineplot"):
+            return LinePlot(info, plotJson)
         elif (plotType == "stackedBarplot"):
             return StackedBarplot(info, plotJson)
         elif (plotType == "groupedStackedBarplot"):

@@ -61,6 +61,10 @@ class PlotConfigurerR(PlotConfigurerInterface):
         utils.checkElementExists(self._meanJson, "meanAlgorithm")
         utils.checkElementExists(self._meanJson, "skipMean")
         RScriptCall.extend(utils.jsonToArg(self._meanJson, "meanAlgorithm"))
+        if utils.checkElementExistNoException(self._meanJson, "meanVar"):
+            RScriptCall.extend(utils.jsonToArg(self._meanJson, "meanVar"))
+        else:
+            RScriptCall.append("benchmark_name")
         RScriptCall.extend(utils.jsonToArg(self._meanJson, "skipMean"))
         self._command.extend(RScriptCall)
 
@@ -102,6 +106,10 @@ class PlotConfigurerR(PlotConfigurerInterface):
         self._command.extend(utils.jsonToArg(plotJson, "y"))
         self._command.extend(utils.jsonToArg(plotJson, "x"))
         self._command.extend(utils.jsonToArg(plotJson, "conf_z"))
+        if utils.checkElementExistNoException(plotJson, "facets"):
+            self._command.extend(utils.jsonToArg(plotJson, "facets"))
+        else:
+            self._command.append("0")
         
         if utils.checkElementExistNoException(jsonDataConfig, "filter"):
             self._filterJson = jsonDataConfig["filter"]

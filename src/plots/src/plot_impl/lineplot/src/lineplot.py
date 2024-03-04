@@ -35,12 +35,8 @@ class LinePlot(PlotInterface):
         # FIXME
         # All plots that inherit from barplot are faceteables
         # by a variable
-        if utils.checkElementExistNoException(self._plotJson, "facet"):
-            facet = self._plotJson["facet"]
-            utils.checkElementExists(facet, "facetVar")
-            utils.checkElementExists(facet, "facetMappings")
-            plotInfo.extend(utils.jsonToArg(facet, "facetMappings"))
-            plotInfo.extend(utils.jsonToArg(facet, "facetVar"))
+        if utils.checkElementExistNoException(self._plotJson, "facets"):
+            plotInfo.extend(utils.jsonToArg(self._plotJson, "facets"))
         else:
             plotInfo.append("0")
         return plotInfo

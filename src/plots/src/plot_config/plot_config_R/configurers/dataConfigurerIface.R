@@ -16,6 +16,9 @@ setClass("Data_configurator_args",
         x = "vector",
         n_conf_z = "numeric",
         conf_z = "vector",
+        # Facets
+        n_facets = "numeric",
+        facets = "vector",
         # Filter variables
         n_filters = "numeric",
         filters = "MapSet",
@@ -26,6 +29,8 @@ setClass("Data_configurator_args",
         normalizer_index = "numeric",
         # Mean variables
         mean_algorithm = "character",
+        # Variable to calculate the mean
+        mean_var = "character",
         # Number of variables to skip for mean calc.
         n_skip_mean = "numeric",
         # Variables to skip for mean calculation
@@ -70,6 +75,17 @@ setMethod(
         # Conf_z axis variables
         .Object@conf_z <- get_arg(args, .Object@n_conf_z)
         args %<>% shift(.Object@n_conf_z)
+        # Number of facets
+        .Object@n_facets <- as.numeric(get_arg(args, 1))
+        args %<>% shift(1)
+        print(.Object@n_facets)
+        # Facets values
+        if (.Object@n_facets > 0) {
+            .Object@facets <- get_arg(args, .Object@n_facets)
+            args %<>% shift(.Object@n_facets)
+        } else {
+            .Object@facets <- vector()
+        }
         # Actions
         # Should be in this exact order:
         # 1. Filter
@@ -99,6 +115,8 @@ setMethod(
         if ("Mean" %in% actions) {
             .Object@actions <- c(.Object@actions, "Mean")
             .Object@mean_algorithm <- get_arg(args, 1)
+            args %<>% shift(1)
+            .Object@mean_var <- get_arg(args, 1)
             args %<>% shift(1)
             .Object@n_skip_mean <- as.numeric(get_arg(args, 1))
             args %<>% shift(1)

@@ -26,11 +26,7 @@ setMethod("add_name_columns",
     object <- callNextMethod()
     # Add conf_z columns
     object@info@data_frame %<>%
-      cbind(object@info@data[object@info@conf_z])
-    # Take into account that conf_z column is an already ordered factor
-    # so assign back the levels to the data frame
-    object@info@data_frame[, object@info@conf_z] %<>%
-      factor(levels = unique(object@info@data[, object@info@conf_z]))
+      bind_cols(object@info@data[object@info@conf_z])
     # Return the object
     object
   }
@@ -46,6 +42,9 @@ setMethod("format_data",
     if (object@info@n_hidden_bars > 0) {
       df <- df[!df[, object@info@conf_z] %in% object@info@hidden_bars, ]
     }
+    if (object@info@n_faceting_vars > 0) {
+      df[, object@info@faceting_var] <- object@info@data[,object@info@faceting_var]
+    }
     object@info@data_frame <- df
     # Return the object
     object
@@ -59,28 +58,33 @@ setMethod("create_plot",
   function(object) {
     # DO NOT CALL PARENT METHOD
     # Create the plot object
+    print(object@info@data_frame)
     object@plot <- ggplot(object@info@data_frame, aes(
-      x = "",
+      x = .data[[object@info@x]],
       y = .data[[object@info@y]],
-      fill = .data[[object@info@conf_z]]
+      group = .data[[object@info@conf_z]]
     ))
-    # Add the geom_bar to the plot object
-    object@plot <- object@plot + geom_bar(
-      stat = "identity",
-      position = "dodge",
-      color = "black")
+    # Add line to the plot
+    # Add geometric points to convert to scatter lineplot
+    # Add error bars to the points to show the standard deviation
+    object@plot <- object@plot +
+      geom_line(
+        aes(linetype = .data[[object@info@conf_z]])) +
+      geom_point(
+         aes(shape = .data[[object@info@conf_z]])) +
+      geom_errorbar(
+        aes(ymin = object@info@data_frame[, object@info@y] -
+          object@info@data_frame[, paste(object@info@y, "sd", sep = ".")],
+        ymax = object@info@data_frame[, object@info@y] +
+          object@info@data_frame[, paste(object@info@y, "sd", sep = ".")]),
+        width = .2)
 
-    # Add the facet grid to the plot object. Switch it in to X,
-    # this enforce style to group variables in x axis
-    
-    # Add standard deviation error bars
-    object@plot <- object@plot + geom_errorbar(
-      aes(ymin = object@info@data_frame[, object@info@y] -
-        object@info@data_frame[, paste(object@info@y, "sd", sep = ".")],
-      ymax = object@info@data_frame[, object@info@y] +
-        object@info@data_frame[, paste(object@info@y, "sd", sep = ".")]),
-      width = .2,
-      position = position_dodge(.9))
+    # Facet by the variable specified in faceting_var
+    if (object@info@n_faceting_vars > 0) {
+      object@plot <- object@plot + facet_wrap(
+        ~ .data[[object@info@faceting_var]])
+    }
+
     # Return the plot
     object@plot
   }

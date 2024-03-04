@@ -24,7 +24,11 @@ df <- read_data_file(file)
 args <- new("Data_configurator_args", args = arguments)
 
 # Drop unused columns (out of the ones that are used in the plot)
-args@df <- df[, c(args@conf_z, args@x, args@y, args@y_sd)]
+cols_to_parse <- c(args@conf_z, args@x, args@y, args@y_sd)
+if (args@n_facets > 0) {
+    cols_to_parse <- c(cols_to_parse, args@facets)
+}
+args@df <- df[, unique(cols_to_parse)]
 # Create the configurators
 for (action in args@actions) {
     print(action)

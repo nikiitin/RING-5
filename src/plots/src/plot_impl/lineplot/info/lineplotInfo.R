@@ -1,4 +1,5 @@
 require(stringr)
+require(tidyr)
 # Define the S4 class for a generic plot
 setClass("Lineplot_info",
     contains = "Plot_info",
@@ -10,12 +11,16 @@ setClass("Lineplot_info",
         # Number of hidden bars
         n_hidden_bars = "numeric",
         # Hidden bars
-        hidden_bars = "vector"
+        hidden_bars = "vector",
+        # Number of faceting variables
+        n_faceting_vars = "numeric",
+        # Faceting variable
+        faceting_var = "character"
     )
 )
 
 setMethod("parse_args_plot_info",
-  signature(object = "Barplot_info"),
+  signature(object = "Lineplot_info"),
   function(object) {
     # 1-6. Call parent method. See plots/plot_impl/info/plotInfo.R
     object <- callNextMethod()
@@ -33,38 +38,54 @@ setMethod("parse_args_plot_info",
       object@hidden_bars <- get_arg(object@args, object@n_hidden_bars)
       object@args %<>% shift(object@n_hidden_bars)
     }
+    # 11. Number of faceting variables
+    object@n_faceting_vars <- as.numeric(get_arg(object@args, 1))
+    object@args %<>% shift(1)
+    if (object@n_faceting_vars > 1) {
+      stop("Lineplot only allows one faceting variable.")
+    }
+    # 12. Faceting variable
+    if (object@n_faceting_vars > 0) {
+      object@faceting_var <- get_arg(object@args, object@n_faceting_vars)
+      object@args %<>% shift(object@n_faceting_vars)
+    }
     object
   }
 )
 
 setMethod("check_data_info_correct",
-  signature(object = "Barplot_info"),
+  signature(object = "Lineplot_info"),
   function(object) {
     # Check that the z axis variables are in the data frame
     if (!all(object@conf_z %in% colnames(object@data))) {
       stop("The conf_z axis variables are not in the data frame.")
     }
     if (object@n_y > 1) {
-      stop("Barplot only supports one y axis variable.")
+      stop("Lineplot only supports one y axis variable.")
     }
     if (object@n_hidden_bars >= length(unique(object@data[, object@conf_z]))) {
       stop("The number of hidden bars must be lesser than the number of conf_z columns.")
     }
     # Call parent method
-    callNextMethod()
+    object <- callNextMethod()
     object
   }
 )
 
 setMethod("complete_data",
-  signature(object = "Barplot_info"),
+  signature(object = "Lineplot_info"),
   function(object) {
+    if (object@n_conf_z > 1) {
+      object@data %<>% tidyr::unite("conf_z",
+        object@conf_z,
+        sep = "_",
+        remove = FALSE)
+      object@data$conf_z %<>% factor(levels = unique(object@data$conf_z)) 
+      object@conf_z <- "conf_z"
+    }
     n_rows <- nrow(object@data)
     # Complete the data frame with the conf_z and x missing combinations
-    print(object@data)
-    print(object@x)
-    print(object@conf_z)
-    object@data %<>% tidyr::complete(.data[[object@x]], .data[[object@conf_z]], fill = list())
+    object@data %<>% tidyr::complete(.data[[object@x]], .data[[object@conf_z]], .data[[object@faceting_var]], fill = list())
     if (n_rows != nrow(object@data)) {
       warning(paste0("The data frame was completed with missing combinations.",
       " Filling with NA."))
