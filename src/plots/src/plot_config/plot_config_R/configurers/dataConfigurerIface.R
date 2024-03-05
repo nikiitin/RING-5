@@ -27,6 +27,8 @@ setClass("Data_configurator_args",
         sorts = "MapSet",
         # Normalize variables
         normalizer_index = "numeric",
+        # Normalizer var
+        normalizer_var = "character",
         # Mean variables
         mean_algorithm = "character",
         # Variable to calculate the mean
@@ -148,6 +150,8 @@ setMethod(
             .Object@actions <- c(.Object@actions, "Normalize")
             # Normalizer index
             .Object@normalizer_index <- as.numeric(get_arg(args, 1))
+            args %<>% shift(1)
+            .Object@normalizer_var <- get_arg(args, 1)
             args %<>% shift(1)
         }
         # Return the object

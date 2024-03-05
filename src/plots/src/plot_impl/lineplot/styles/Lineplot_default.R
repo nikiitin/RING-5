@@ -104,7 +104,7 @@ setMethod(
                 face = "bold"
             ),
             legend.text = element_text(
-                size = adjust_text_size(0.5,
+                size = adjust_text_size(11,
                     object@style_info@width,
                     object@style_info@height)
             ),
@@ -135,29 +135,29 @@ setMethod(
         # legend names are specified
         if (object@style_info@n_legend_names != 0) {
             plot <- plot +
-                scale_fill_viridis_d(
+                scale_colour_viridis_d(
                     option = "viridis",
                     labels = object@style_info@legend_names,
                     direction = 1
                 )
         } else {
             plot <- plot +
-                scale_fill_viridis_d(
+                scale_colour_viridis_d(
                     option = "viridis",
                     direction = 1
                 )
         }
         # # Limit the y axis and assign labels to those
         # # statistics that overgo the top limit
-        # if (object@style_info@y_limit_top > 0) {
-        #     if (object@style_info@y_limit_bot > object@style_info@y_limit_top) {
-        #         warning(paste0(
-        #             "Y limit bot is greater than Y limit top! ",
-        #             "skipping limits"
-        #         ))
-        #     } else if (object@style_info@y_limit_bot < 0) {
-        #         warning("Y limit bot is less than 0! skipping limits")
-        #     } else {
+        if (object@style_info@y_limit_top > 0) {
+            if (object@style_info@y_limit_bot > object@style_info@y_limit_top) {
+                warning(paste0(
+                    "Y limit bot is greater than Y limit top! ",
+                    "skipping limits"
+                ))
+            } else if (object@style_info@y_limit_bot < 0) {
+                warning("Y limit bot is less than 0! skipping limits")
+            } else {
         #         # Calculate the colors that will be applied
         #         # for labels depending on its background
         #         # TODO-Note: using plasma but should be configurable
@@ -173,63 +173,63 @@ setMethod(
         #                 "hcl"
         #             )
         #         label_col <- ifelse(colors[, "l"] > 50, "black", "white")
-        #         # Check if any stat goes over the top limit and
-        #         # assign a label to it
-        #         list_of_labels <-
-        #             ifelse(
-        #                 (object@plot_info@data_frame[, object@plot_info@y] >
-        #                     (object@style_info@y_limit_top)),
-        #                 format(
-        #                     round(
-        #                         object@plot_info@data_frame[
-        #                             ,
-        #                             object@plot_info@y
-        #                         ],
-        #                         2
-        #                     ),
-        #                     nsmall = 2
-        #                 ),
-        #                 NA
-        #             )
-        #         # Set the breaks and the limits
-        #         plot <- plot +
-        #             scale_y_continuous(
-        #                 breaks = object@style_info@y_breaks,
-        #                 oob = scales::squish
-        #             )
-        #         plot <- plot + coord_cartesian(
-        #             ylim = as.numeric(
-        #                 c(
-        #                     object@style_info@y_limit_bot,
-        #                     object@style_info@y_limit_top
-        #                 )
-        #             )
-        #         )
-        #         # Add the labels to the plot
-        #         plot <- plot +
-        #             geom_text(
-        #                 position = position_dodge(.9),
-        #                 aes(
-        #                     label = list_of_labels,
-        #                     group = .data[[object@plot_info@conf_z]],
-        #                     color = .data[[object@plot_info@conf_z]],
-        #                     y = object@style_info@y_limit_top
-        #                 ),
-        #                 show.legend = FALSE,
-        #                 size = adjust_text_size(2,
-        #                     object@style_info@width,
-        #                     object@style_info@height),
-        #                 angle = 90,
-        #                 hjust = "inward",
-        #                 na.rm = TRUE
-        #             )
+                # Check if any stat goes over the top limit and
+                # assign a label to it
+                list_of_labels <-
+                    ifelse(
+                        ((object@plot_info@data_frame[, object@plot_info@y] >
+                            object@style_info@y_limit_top)),
+                        format(
+                            round(
+                                object@plot_info@data_frame[
+                                    ,
+                                    object@plot_info@y
+                                ],
+                                2
+                            ),
+                            nsmall = 2
+                        ),
+                        NA
+                    )
+                # Set the breaks and the limits
+                plot <- plot +
+                    scale_y_continuous(
+                        breaks = object@style_info@y_breaks,
+                        oob = scales::squish
+                    )
+                plot <- plot + coord_cartesian(
+                    ylim = as.numeric(
+                        c(
+                            object@style_info@y_limit_bot,
+                            object@style_info@y_limit_top
+                        )
+                    )
+                )
+                # Add the labels to the plot
+                plot <- plot +
+                    geom_text(
+                        position = position_dodge(.9),
+                        aes(
+                            label = list_of_labels,
+                            group = .data[[object@plot_info@conf_z]],
+                            color = .data[[object@plot_info@conf_z]],
+                            y = object@style_info@y_limit_top
+                        ),
+                        show.legend = FALSE,
+                        size = adjust_text_size(2,
+                            object@style_info@width,
+                            object@style_info@height),
+                        angle = 90,
+                        hjust = "inward",
+                        na.rm = TRUE
+                    )
         #         # Set the color of the labels
         #         plot <- plot +
         #             scale_color_manual(
         #                 values = label_col
         #             )
-        #     }
-        # }
+            }
+        }
         plot <- callNextMethod()
         plot
     }

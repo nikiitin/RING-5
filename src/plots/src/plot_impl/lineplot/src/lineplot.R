@@ -69,15 +69,24 @@ setMethod("create_plot",
     # Add error bars to the points to show the standard deviation
     object@plot <- object@plot +
       geom_line(
-        aes(linetype = .data[[object@info@conf_z]])) +
+        aes(linetype = .data[[object@info@conf_z]],
+          color = .data[[object@info@conf_z]]),
+        alpha = 0.6,
+        linewidth = adjust_text_size(0.8,
+                    object@styles@style_info@width,
+                    object@styles@style_info@height)) +
       geom_point(
-         aes(shape = .data[[object@info@conf_z]])) +
+         aes(shape = .data[[object@info@conf_z]], color = .data[[object@info@conf_z]]),
+         size = adjust_text_size(1.8,
+                    object@styles@style_info@width,
+                    object@styles@style_info@height)) +
       geom_errorbar(
         aes(ymin = object@info@data_frame[, object@info@y] -
           object@info@data_frame[, paste(object@info@y, "sd", sep = ".")],
         ymax = object@info@data_frame[, object@info@y] +
-          object@info@data_frame[, paste(object@info@y, "sd", sep = ".")]),
-        width = .2)
+          object@info@data_frame[, paste(object@info@y, "sd", sep = ".")],
+        color = .data[[object@info@conf_z]]),
+        width = .3)
 
     # Facet by the variable specified in faceting_var
     if (object@info@n_faceting_vars > 0) {

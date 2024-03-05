@@ -13,16 +13,16 @@ setMethod(
   function(object) {
     # Get the unique combinations for x axis
     
-    unique_x_keys <- unique(object@args@df[, object@args@x])
+    unique_x_keys <- unique(object@args@df[, object@args@normalizer_var])
     # For every unique combination of x axis
     for (key in unique_x_keys) {
       # Get the data to normalize (one per x axis combination)
       norm_rows <- object@args@df[
-        object@args@df[, object@args@x] == key,
+        object@args@df[, object@args@normalizer_var] == key,
         object@args@y
         ]
       norm_df_rows <- object@args@df[
-        object@args@df[, object@args@x] == key,
+        object@args@df[, object@args@normalizer_var] == key,
         object@args@y_sd]
       # Check if y length is greater than 1 (is a vector)
       # Get the normalizer (only one row per x axis combination)
@@ -39,12 +39,12 @@ setMethod(
       # Normalize with respect to the normalizer
       ## TODO: mutate the normalizer to be the cumsum of all y values in the group
       object@args@df[
-        object@args@df[, object@args@x] == key,
+        object@args@df[, object@args@normalizer_var] == key,
         object@args@y
         ] <-
         norm_rows / normalizer
       object@args@df[
-        object@args@df[, object@args@x] == key,
+        object@args@df[, object@args@normalizer_var] == key,
         object@args@y_sd
         ] <-
         norm_df_rows / normalizer

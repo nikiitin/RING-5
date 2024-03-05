@@ -90,6 +90,11 @@ class PlotConfigurerR(PlotConfigurerInterface):
         # If normalize is defined, normalizerIndex must be defined too
         utils.checkElementExists(self._normalizeJson, "normalizerIndex")
         RScriptCall.extend(utils.jsonToArg(self._normalizeJson, "normalizerIndex"))
+        if utils.checkElementExistNoException(self._meanJson, "normalizeVar"):
+            RScriptCall.extend(utils.jsonToArg(self._meanJson, "normalizeVar"))
+        else:
+            # Default value is benchmark_name
+            RScriptCall.append("benchmark_name")
         self._command.extend(RScriptCall)
     
     def configurePlot(self, plotJson, tmpCsv):
