@@ -188,14 +188,14 @@ setMethod(
     object@info@data_frame <- object@info@data[object@info@x]
     # Take into account that x column is an already ordered factor
     # so assign back the levels to the data frame
-    print("add_name_columns")
     object@info@data_frame %<>%
       mutate_at(object@info@x,
         as.character) %>%
       mutate_at(object@info@x,
         factor,
         levels = unique(pull(object@info@data, object@info@x)))
-    print(object@info@data_frame[, object@info@x])
+    print("add_name")
+    print(pull(object@info@data, object@info@x))
     print("FIN")
     object
   }

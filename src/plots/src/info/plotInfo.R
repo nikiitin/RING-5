@@ -5,7 +5,7 @@ read_data <- function(path) {
     stop(paste0("File not found: ", path, " Stopping plot..."))
   }
   # Read data from csv file
-  data <- read.table(path, sep = " ", header = TRUE, stringsAsFactors = TRUE)
+  data <- read.table(path, sep = " ", header = TRUE, stringsAsFactors = FALSE)
   # Return the data
   data
 

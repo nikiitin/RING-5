@@ -43,7 +43,7 @@ setMethod("format_data",
       df <- df[!df[, object@info@conf_z] %in% object@info@hidden_bars, ]
     }
     if (object@info@n_faceting_vars > 0) {
-      df[, object@info@faceting_var] <- object@info@data[,object@info@faceting_var]
+      df %<>% bind_cols(object@info@data[object@info@faceting_var])
     }
     object@info@data_frame <- df
     # Return the object
@@ -91,7 +91,7 @@ setMethod("create_plot",
     # Facet by the variable specified in faceting_var
     if (object@info@n_faceting_vars > 0) {
       object@plot <- object@plot + facet_wrap(
-        ~ .data[[object@info@faceting_var]])
+        ~ .data[[object@info@faceting_var]], scales = "free")
     }
 
     # Return the plot

@@ -58,6 +58,23 @@
             },
             "sort": [
                 {
+                    "varToSort": "htm_conflict_resolution",
+                    "order": [
+                        "requester_wins",
+                        "requester_loses",
+                        "requester_wins_power",
+                        "requester_loses_power"
+                    ]
+                },
+                {
+                    "varToSort": "htm_fwd_mechanism",
+                    "order": [
+                        "None",
+                        "naive",
+                        "WN_DM"
+                    ]
+                },
+                {
                     "varToSort": "benchmark_name",
                     "order": [
                         "clusteradding",
@@ -75,10 +92,7 @@
                         "geomean"
                     ]
                 }
-            ],
-            "normalize": {
-                "normalizerIndex": 1
-            }
+            ]
         }
     }
 ]

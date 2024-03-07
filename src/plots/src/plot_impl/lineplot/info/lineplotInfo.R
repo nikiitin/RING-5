@@ -75,17 +75,26 @@ setMethod("check_data_info_correct",
 setMethod("complete_data",
   signature(object = "Lineplot_info"),
   function(object) {
+    facet_levels <- unique(pull(object@data, object@faceting_var))
+    print("format_data")
     if (object@n_conf_z > 1) {
       object@data %<>% tidyr::unite("conf_z",
         object@conf_z,
         sep = "_",
         remove = FALSE)
-      object@data$conf_z %<>% factor(levels = unique(object@data$conf_z)) 
       object@conf_z <- "conf_z"
     }
     n_rows <- nrow(object@data)
     # Complete the data frame with the conf_z and x missing combinations
     object@data %<>% tidyr::complete(.data[[object@x]], .data[[object@conf_z]], .data[[object@faceting_var]], fill = list())
+    object@data %<>% mutate_at(object@faceting_var,
+        as.character)
+    print("1")
+    print(object@data %>% select(object@faceting_var), w = Inf, h = Inf)
+    print("2")
+    object@data[object@faceting_var] <- factor(pull(object@data, object@faceting_var), levels=facet_levels)
+    print(object@data)
+    print("FIN")
     if (n_rows != nrow(object@data)) {
       warning(paste0("The data frame was completed with missing combinations.",
       " Filling with NA."))
