@@ -194,9 +194,6 @@ setMethod(
       mutate_at(object@info@x,
         factor,
         levels = unique(pull(object@info@data, object@info@x)))
-    print("add_name")
-    print(pull(object@info@data, object@info@x))
-    print("FIN")
     object
   }
 )

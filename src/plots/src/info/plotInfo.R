@@ -23,6 +23,8 @@ setClass("Plot_info",
     n_y = "numeric",
     # Columns to use as y axis
     y = "vector",
+    # Option to only show the mean
+    show_only_mean = "logical",
     # The path to the file where the plot will be saved
     result_path = "character",
     # The path to the file containing the data to be plotted
@@ -85,6 +87,9 @@ setMethod("parse_args_plot_info",
     # 6. Y axis variables
     object@y <- get_arg(object@args, object@n_y)
     object@args %<>% shift(object@n_y)
+    # 7. Option to only show the mean
+    object@show_only_mean <- as.logical(get_arg(object@args, 1))
+    object@args %<>% shift(1)
     object
   }
 )

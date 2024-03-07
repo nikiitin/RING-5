@@ -186,19 +186,92 @@
             "plotType": "lineplot",
             "dataConfig": {
                 "file": "config_sens_rtry",
-                "config": "no_bayes"
+                "config": "default_lineplot"
             },
             "styleConfig": {
                 "file": "style_sens_rtry",
                 "config": "default"
             },
-            "fileName": "simTicks(noBayes)",
+            "fileName": "simTicks_lineplot",
             "x": [
                 "htm_max_retries"
             ],
             "y": [
                 "simTicks"
             ],
+            "showOnlyMean": false,
+            "conf_z": [
+                "htm_conflict_resolution",
+                "htm_fwd_mechanism"
+            ],
+            "facets": ["benchmark_name"]
+        },
+        {
+            "plotType": "lineplot",
+            "dataConfig": {
+                "file": "config_sens_rtry",
+                "config": "no_bayes_lineplot"
+            },
+            "styleConfig": {
+                "file": "style_sens_rtry",
+                "config": "default"
+            },
+            "fileName": "simTicks_lineplot(nobayes)",
+            "x": [
+                "htm_max_retries"
+            ],
+            "y": [
+                "simTicks"
+            ],
+            "showOnlyMean": false,
+            "conf_z": [
+                "htm_conflict_resolution",
+                "htm_fwd_mechanism"
+            ],
+            "facets": ["benchmark_name"]
+        },
+        {
+            "plotType": "lineplot",
+            "dataConfig": {
+                "file": "config_sens_rtry",
+                "config": "no_micbench_lineplot"
+            },
+            "styleConfig": {
+                "file": "style_sens_rtry",
+                "config": "default"
+            },
+            "fileName": "simTicks_lineplot(nomicbench)",
+            "x": [
+                "htm_max_retries"
+            ],
+            "y": [
+                "simTicks"
+            ],
+            "showOnlyMean": false,
+            "conf_z": [
+                "htm_conflict_resolution",
+                "htm_fwd_mechanism"
+            ],
+            "facets": ["benchmark_name"]
+        },
+        {
+            "plotType": "lineplot",
+            "dataConfig": {
+                "file": "config_sens_rtry",
+                "config": "default_lineplot"
+            },
+            "styleConfig": {
+                "file": "style_sens_rtry",
+                "config": "default"
+            },
+            "fileName": "simTicks_onlymean_lineplot",
+            "x": [
+                "htm_max_retries"
+            ],
+            "y": [
+                "simTicks"
+            ],
+            "showOnlyMean": true,
             "conf_z": [
                 "htm_conflict_resolution",
                 "htm_fwd_mechanism"

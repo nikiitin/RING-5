@@ -73,7 +73,8 @@ map_elements_df <- function(df, element, map_set, new_name) {
     }
     if (!length(unique(df[, element])) == length(get_all_keys(map_set))) {
         stop(paste0("Not all elements in the dataframe",
-        "can be mapped from the map table"))
+        "can be mapped from the map table", " dataFrame:\n", unique(df[, element]),
+        " mapTable:\n", get_all_keys(map_set)))
     }
     # Get the elements from the map table
     # Add a new empty column to the dataframe

@@ -5,16 +5,20 @@
             "apparel": "Lineplot_default",
             "title": "",
             "xAxisName": "",
-            "yAxisName": "Ex. Time(normalized)",
+            "yAxisName": "Ex. Time",
             "width": 40,
             "height": 22.5,
             "format": "pdf",
             "legendTitle": "Config",
-            "nLegendElementsPerRow": 4,
+            "nLegendElementsPerRow": 2,
             "xSplitPoints": [
             ],
             "legendNames": [
-                
+                "Best-effort",
+                "Power",
+                "Fwd_naive",
+                "Fwd_wndm",
+                "Power_Fwd_wndm"
             ],
             "breaks": [
                 

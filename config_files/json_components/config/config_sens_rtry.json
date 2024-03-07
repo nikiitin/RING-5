@@ -49,6 +49,211 @@
             ],
             "mean": {
                 "meanAlgorithm": "geomean",
+                "skipMean": [
+                    "clusteradding",
+                    "llbenchsimple-l",
+                    "llbenchsimple-h"
+                ]
+            },
+            "sort": [
+                {
+                    "varToSort": "benchmark_name",
+                    "order": [
+                        "clusteradding",
+                        "llbenchsimple-l",
+                        "llbenchsimple-h",
+                        "bayes",
+                        "genome",
+                        "intruder",
+                        "kmeans-l",
+                        "kmeans-h",
+                        "labyrinth",
+                        "ssca2",
+                        "vacation-l",
+                        "vacation-h",
+                        "yada",
+                        "geomean"
+                    ]
+                }
+            ],
+            "normalize": {
+                "normalizerIndex": 1
+            }
+        }
+    },
+    {
+        "configName": "default_lineplot",
+        "dataConfig": {
+            "mean": {
+                "meanAlgorithm": "geomean",
+                "meanVar": "benchmark_name",
+                "skipMean": [
+                ]
+            },
+            "sort": [
+            {
+                "varToSort": "benchmark_name",
+                "order": [
+                    "clusteradding",
+                    "llbenchsimple-l",
+                    "llbenchsimple-h",
+                    "bayes",
+                    "genome",
+                    "intruder",
+                    "kmeans-l",
+                    "kmeans-h",
+                    "labyrinth",
+                    "ssca2",
+                    "vacation-l",
+                    "vacation-h",
+                    "yada",
+                    "geomean"
+                ]
+            },
+                {
+                    "varToSort": "htm_conflict_resolution",
+                    "order": [
+                        "requester_wins",
+                        "requester_loses",
+                        "requester_wins_power",
+                        "requester_loses_power"
+                    ]
+                },
+                {
+                    "varToSort": "htm_fwd_mechanism",
+                    "order": [
+                        "None",
+                        "naive",
+                        "WN_DM"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "configName": "no_bayes_lineplot",
+        "dataConfig": {
+            "filter": [
+                {
+                    "varToFilter": "benchmark_name",
+                    "values": [
+                        "bayes"
+                    ]
+                }
+            ],
+            "mean": {
+                "meanAlgorithm": "geomean",
+                "meanVar": "benchmark_name",
+                "skipMean": [
+                ]
+            },
+            "sort": [
+                {
+                    "varToSort": "htm_conflict_resolution",
+                    "order": [
+                        "requester_wins",
+                        "requester_loses",
+                        "requester_wins_power",
+                        "requester_loses_power"
+                    ]
+                },
+                {
+                    "varToSort": "htm_fwd_mechanism",
+                    "order": [
+                        "None",
+                        "naive",
+                        "WN_DM"
+                    ]
+                },
+                {
+                    "varToSort": "benchmark_name",
+                    "order": [
+                        "clusteradding",
+                        "llbenchsimple-l",
+                        "llbenchsimple-h",
+                        "genome",
+                        "intruder",
+                        "kmeans-l",
+                        "kmeans-h",
+                        "labyrinth",
+                        "ssca2",
+                        "vacation-l",
+                        "vacation-h",
+                        "yada",
+                        "geomean"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "configName": "no_micbench_lineplot",
+        "dataConfig": {
+            "filter": [
+                {
+                    "varToFilter": "benchmark_name",
+                    "values": [
+                        "bayes",
+                        "clusteradding",
+                        "llbenchsimple-l",
+                        "llbenchsimple-h"
+                    ]
+                }
+            ],
+            "mean": {
+                "meanAlgorithm": "geomean",
+                "meanVar": "benchmark_name",
+                "skipMean": []
+            },
+            "sort": [
+                {
+                    "varToSort": "htm_conflict_resolution",
+                    "order": [
+                        "requester_wins",
+                        "requester_loses",
+                        "requester_wins_power",
+                        "requester_loses_power"
+                    ]
+                },
+                {
+                    "varToSort": "htm_fwd_mechanism",
+                    "order": [
+                        "None",
+                        "naive",
+                        "WN_DM"
+                    ]
+                },
+                {
+                    "varToSort": "benchmark_name",
+                    "order": [
+                        "genome",
+                        "intruder",
+                        "kmeans-l",
+                        "kmeans-h",
+                        "labyrinth",
+                        "ssca2",
+                        "vacation-l",
+                        "vacation-h",
+                        "yada",
+                        "geomean"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "configName": "onlymean_lineplot",
+        "dataConfig": {
+            "filter": [
+                {
+                    "varToFilter": "benchmark_name",
+                    "values": [
+                        "bayes"
+                    ]
+                }
+            ],
+            "mean": {
+                "meanAlgorithm": "geomean",
                 "meanVar": "benchmark_name",
                 "skipMean": [
                     "clusteradding",

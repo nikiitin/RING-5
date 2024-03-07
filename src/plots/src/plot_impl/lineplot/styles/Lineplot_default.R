@@ -134,12 +134,19 @@ setMethod(
         # Assign the colors to plot and labels to legend in case
         # legend names are specified
         if (object@style_info@n_legend_names != 0) {
+            # GGplot seems to be really strange sometimes.
+            # We need to do this because legends for shapes,
+            # linetypes and colors is not the same even if the
+            # content is...
+            # Just used in case there is legend_names specified
             plot <- plot +
-                scale_colour_viridis_d(
-                    option = "viridis",
-                    labels = object@style_info@legend_names,
-                    direction = 1
-                )
+                labs(color = object@style_info@legend_title,
+                    shape = object@style_info@legend_title,
+                    linetype = object@style_info@legend_title) +
+                scale_color_viridis_d(labels = object@style_info@legend_names,
+                    option = "viridis", direction = 1) +
+                scale_shape_discrete(labels = object@style_info@legend_names) +
+                scale_linetype_discrete(labels = object@style_info@legend_names)
         } else {
             plot <- plot +
                 scale_colour_viridis_d(

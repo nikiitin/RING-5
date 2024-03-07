@@ -27,6 +27,7 @@ setMethod("add_name_columns",
     # Add conf_z columns
     object@info@data_frame %<>%
       bind_cols(object@info@data[object@info@conf_z])
+    print(str(object@info@data_frame))
     # Return the object
     object
   }
@@ -45,6 +46,9 @@ setMethod("format_data",
     if (object@info@n_faceting_vars > 0) {
       df %<>% bind_cols(object@info@data[object@info@faceting_var])
     }
+    if (object@info@show_only_mean) {
+      df <- df[df[, object@info@faceting_var] == "geomean", ]
+    }
     object@info@data_frame <- df
     # Return the object
     object
@@ -58,7 +62,6 @@ setMethod("create_plot",
   function(object) {
     # DO NOT CALL PARENT METHOD
     # Create the plot object
-    print(object@info@data_frame)
     object@plot <- ggplot(object@info@data_frame, aes(
       x = .data[[object@info@x]],
       y = .data[[object@info@y]],

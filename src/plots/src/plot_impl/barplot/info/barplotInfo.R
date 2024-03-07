@@ -81,9 +81,6 @@ setMethod("complete_data",
   function(object) {
     n_rows <- nrow(object@data)
     # Complete the data frame with the conf_z and x missing combinations
-    print(object@data)
-    print(object@x)
-    print(object@conf_z)
     object@data %<>% tidyr::complete(.data[[object@x]], .data[[object@conf_z]], fill = list())
     if (n_rows != nrow(object@data)) {
       warning(paste0("The data frame was completed with missing combinations.",

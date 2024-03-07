@@ -68,6 +68,10 @@ class PlotInterface:
         plotInfo.append(self._plotPath)
         plotInfo.extend(utils.jsonToArg(self._plotJson, "x"))
         plotInfo.extend(utils.jsonToArg(self._plotJson, "y"))
+        if utils.checkElementExistNoException(self._plotJson, "showOnlyMean"):
+            plotInfo.extend(utils.jsonToArg(self._plotJson, "showOnlyMean"))
+        else:
+            plotInfo.append("False")
         return plotInfo
 
     def _preparePlotStyleInfo(self) -> list:
