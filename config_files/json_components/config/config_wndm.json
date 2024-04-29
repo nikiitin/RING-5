@@ -1,73 +1,43 @@
 [
     {
-        "configName": "default",
-        "dataConfig": {
-            "mean": {
-                "meanAlgorithm": "geomean"
-            },
-            "sort": [
-                {
-                    "varToSort": "benchmark_name",
-                    "order": [
-                        "clusteradding",
-                        "llbenchsimple-l",
-                        "llbenchsimple-h",
-                        "genome",
-                        "intruder",
-                        "kmeans-l",
-                        "kmeans-h",
-                        "labyrinth",
-                        "ssca2",
-                        "vacation-l",
-                        "vacation-h",
-                        "yada",
-                        "geomean"
-                    ]
-                },
-                {
-                    "varToSort": "config_description_abbrev",
-                    "order": [
-                        "BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry4_Pflt",
-                        "BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWX_DX_EVFwd_maxFwd8_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_MaxCons1_MaxPrioDiff1_Rtry4_Pflt",
-                        "BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWX_DX_EVFwd_maxFwd8_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_MaxCons1_MaxPrioDiff2_Rtry4_Pflt",
-                        "BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWX_DX_EVFwd_maxFwd8_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_MaxCons2_MaxPrioDiff1_Rtry4_Pflt",
-                        "BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWX_DX_EVFwd_maxFwd8_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_MaxCons2_MaxPrioDiff2_Rtry4_Pflt",
-                        "BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd8_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry4_Pflt",
-                        "BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWX_DX_EVFwd_maxFwd8_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_MaxCons1_MaxPrioDiff1_Rtry4_Pflt",
-                        "BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWX_DX_EVFwd_maxFwd8_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_MaxCons1_MaxPrioDiff2_Rtry4_Pflt",
-                        "BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWX_DX_EVFwd_maxFwd8_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_MaxCons2_MaxPrioDiff1_Rtry4_Pflt",
-                        "BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWX_DX_EVFwd_maxFwd8_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_MaxCons2_MaxPrioDiff2_Rtry4_Pflt",
-                        "BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd8_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry4_Pflt"
-                    ]
-                }
-            ],
-            "normalize": {
-                "normalizerIndex": 1
-            }
-        }
-    },
-    {
-        "configName": "no-micbench",
+        "configName": "onlymean_heatmap_pwwndm",
         "dataConfig": {
             "filter": [
                 {
+                    "varToFilter": "htm_conflict_resolution",
+                    "values": [
+                        "requester_loses"
+                    ]
+                },
+                {
                     "varToFilter": "benchmark_name",
                     "values": [
-                        "clusteradding",
-                        "llbenchsimple-l",
-                        "llbenchsimple-h"
+                        "bayes"
+                    ]
+                },
+                {
+                    "varToFilter": "htm_fwd_mechanism",
+                    "values": [
+                        "WN_DM"
                     ]
                 }
-            ],"mean": {
-                "meanAlgorithm": "geomean"
+            ],
+            "mean": {
+                "meanAlgorithm": "geomean",
+                "meanVar": "benchmark_name",
+                "skipMean": [
+                    "cadd",
+                    "llb-l",
+                    "llb-h"
+                ]
             },
             "sort": [
                 {
                     "varToSort": "benchmark_name",
                     "order": [
-                        "clusteradding",
-                        "llbenchsimple-l",
-                        "llbenchsimple-h",
+                        "cadd",
+                        "llb-l",
+                        "llb-h",
                         "genome",
                         "intruder",
                         "kmeans-l",
@@ -81,19 +51,23 @@
                     ]
                 },
                 {
-                    "varToSort": "config_description_abbrev",
+                    "varToSort": "htm_max_prio_diff",
                     "order": [
-                        "BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry4_Pflt",
-                        "BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWX_DX_EVFwd_maxFwd8_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_MaxCons1_MaxPrioDiff1_Rtry4_Pflt",
-                        "BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWX_DX_EVFwd_maxFwd8_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_MaxCons1_MaxPrioDiff2_Rtry4_Pflt",
-                        "BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWX_DX_EVFwd_maxFwd8_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_MaxCons2_MaxPrioDiff1_Rtry4_Pflt",
-                        "BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWX_DX_EVFwd_maxFwd8_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_MaxCons2_MaxPrioDiff2_Rtry4_Pflt",
-                        "BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd8_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry4_Pflt",
-                        "BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWX_DX_EVFwd_maxFwd8_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_MaxCons1_MaxPrioDiff1_Rtry4_Pflt",
-                        "BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWX_DX_EVFwd_maxFwd8_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_MaxCons1_MaxPrioDiff2_Rtry4_Pflt",
-                        "BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWX_DX_EVFwd_maxFwd8_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_MaxCons2_MaxPrioDiff1_Rtry4_Pflt",
-                        "BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWX_DX_EVFwd_maxFwd8_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_MaxCons2_MaxPrioDiff2_Rtry4_Pflt",
-                        "BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd8_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry4_Pflt"
+                        "1",
+                        "2",
+                        "4",
+                        "8",
+                        "16"
+                    ]
+                },
+                {
+                    "varToSort": "htm_max_consumers",
+                    "order": [
+                        "1",
+                        "2",
+                        "4",
+                        "8",
+                        "16"
                     ]
                 }
             ],
@@ -103,18 +77,50 @@
         }
     },
     {
-        "configName": "test",
+        "configName": "onlymean_heatmap_rlwndm",
         "dataConfig": {
+            "filter": [
+                {
+                    "varToFilter": "htm_conflict_resolution",
+                    "values": [
+                        "requester_loses_power"
+                    ]
+                },
+                {
+                    "varToFilter": "htm_fwd_mechanism",
+                    "values": [
+                        "naive"
+                    ]
+                },
+                {
+                    "varToFilter": "htm_fwd_mechanism",
+                    "values": [
+                        "WN_DM"
+                    ]
+                },
+                {
+                    "varToFilter": "benchmark_name",
+                    "values": [
+                        "bayes"
+                    ]
+                }
+            ],
             "mean": {
-                "meanAlgorithm": "geomean"
+                "meanAlgorithm": "geomean",
+                "meanVar": "benchmark_name",
+                "skipMean": [
+                    "cadd",
+                    "llb-l",
+                    "llb-h"
+                ]
             },
             "sort": [
                 {
                     "varToSort": "benchmark_name",
                     "order": [
-                        "clusteradding",
-                        "llbenchsimple-l",
-                        "llbenchsimple-h",
+                        "cadd",
+                        "llb-l",
+                        "llb-h",
                         "genome",
                         "intruder",
                         "kmeans-l",
@@ -125,6 +131,26 @@
                         "vacation-h",
                         "yada",
                         "geomean"
+                    ]
+                },
+                {
+                    "varToSort": "htm_max_prio_diff",
+                    "order": [
+                        "1",
+                        "2",
+                        "4",
+                        "8",
+                        "16"
+                    ]
+                },
+                {
+                    "varToSort": "htm_max_consumers",
+                    "order": [
+                        "1",
+                        "2",
+                        "4",
+                        "8",
+                        "16"
                     ]
                 }
             ],

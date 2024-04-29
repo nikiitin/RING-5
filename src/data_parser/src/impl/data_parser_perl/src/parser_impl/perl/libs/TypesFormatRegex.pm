@@ -146,7 +146,7 @@ sub parseAndPrintLineWithFormat {
         print "Distribution/" . formatLine($line) . "\n";
     } elsif ($line =~ $summaryRegex) {
         # Do not print summaries
-        return;
+        print "Summary/" . formatLine($line) . "\n";
     } elsif ($line =~ $vectorRegex) {
         print "Vector/" . formatLine($line) . "\n";
     } else {

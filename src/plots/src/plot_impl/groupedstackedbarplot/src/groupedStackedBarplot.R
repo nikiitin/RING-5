@@ -89,13 +89,20 @@ setMethod(
     #                  X
     # Names from df should be always the same, it is a wrap
     # specific for this plot
+        total_values <- object@info@data_frame %>%
+                group_by(.data[[object@info@conf_z]], .data[[object@info@x]]) %>%
+                summarise(total = sum(values))
+    print(total_values,n = 1000, width = 1000)
+    total_values[,"total"] <- as.numeric(format(round(total_values$total, 2), nsmall = 2))
+    total_values[,"total"] <- ifelse(total_values$total < max(object@styles@style_info@y_breaks), NA, total_values$total)
+
     object@plot <- ggplot(object@info@data_frame, aes(
       x = .data[[object@info@conf_z]],
       y = values
     ))
     # Add the facet grid to the plot object. Switch it in to X,
     # this enforce style to group variables in x axis
-    design <- "AAAABBBBCCCC##DDDDEEEEFFFFGGGGHHHHIIIIJJJJKKKKLLLLMMMM#NNNN"
+    design <- "BBBBBCCCCCDDDDD#EEEEEFFFFFGGGGGHHHHHIIIIIJJJJJKKKKKLLLLLMMMMM#AAAAA"
     if (object@info@n_faceting_vars > 0) {
       object@plot <- object@plot + facet_manual(
         ~ facet_column + .data[[object@info@x]],
@@ -111,17 +118,27 @@ setMethod(
         switch = "x"
       )
     }
-
     # Add the geom_bar to the plot object. Use position_stack to
     # stack the bars and reverse = TRUE to have the bars in the
     # same order as the legend.
     object@plot <- object@plot + geom_col(
+      aes(fill = entries),
       position = position_stack(reverse = TRUE),
-      color = "black",
-      aes(fill = entries)
-    )
-
-
+      color = "black") +
+    geom_text(data = total_values,
+      aes(y = total,
+      label = total,
+      x = .data[[object@info@conf_z]]),
+      color = "white",
+      angle = 90,
+      hjust = "inward",
+      na.rm = TRUE,
+      size = adjust_text_size(6,
+                            object@styles@style_info@width,
+                            object@styles@style_info@height),
+      position = position_dodge(width = 1),
+      color = "black"
+        )
     # REALLY UGLY, I do not know if it
     # should be used, just let it here, maybe it is useful
 

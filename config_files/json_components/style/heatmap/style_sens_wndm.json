@@ -1,0 +1,50 @@
+[
+    {
+        "styleName": "default",
+        "dataStyle": {
+            "apparel": "Heatmap_default",
+            "title": "",
+            "xAxisName": "Max. fwd depth",
+            "yAxisName": "Max. fwd width",
+            "width": 41,
+            "height": 40,
+            "format": "pdf",
+            "legendTitle": "Ex. time\n(Normalized\n by (1, 50))",
+            "nLegendElementsPerRow": 2,
+            "xSplitPoints": [
+            ],
+            "legendNames": [
+
+            ],
+            "breaks": [
+                
+            ],
+            "limitTop": -1,
+            "limitBot": 0
+        }
+    },
+    {
+        "styleName": "default_aborts",
+        "dataStyle": {
+            "apparel": "Heatmap_default",
+            "title": "",
+            "xAxisName": "Max. fwd depth",
+            "yAxisName": "Max. fwd width",
+            "width": 41,
+            "height": 40,
+            "format": "pdf",
+            "legendTitle": "Aborts\n(Normalized\n by (1, 50))",
+            "nLegendElementsPerRow": 2,
+            "xSplitPoints": [
+            ],
+            "legendNames": [
+
+            ],
+            "breaks": [
+                
+            ],
+            "limitTop": -1,
+            "limitBot": 0
+        }
+    }
+]

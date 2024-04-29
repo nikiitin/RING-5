@@ -26,10 +26,10 @@ for (conf in unique(parsed_data[, "confKey"])) {
     ]
     # Calculate quantile and IQR (Using IQR between mean and first element)
     # as we are removing only upper outliers (System calls, page faults...)
-    q <- quantile(data_for_outlier, probs = c(0, 0.5), na.rm = FALSE)
-    iqr <- q[2] - q[1]
+    q <- quantile(data_for_outlier, probs = c(0, 0.5, 0.75), na.rm = FALSE)
     # Set the threshold
-    up <- q[2] + iqr
+    # FIXME: all this just to remove the top 25% of the data?...
+    up <- q[3]
     # Remove outliers by letting only values that lie below the threshold
     # or the ones that are not from the current configuration
     parsed_data <- subset(

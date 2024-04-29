@@ -19,9 +19,11 @@ setMethod(
     filtered_df <- object@args@df
     filt_names <- get_all_keys(object@args@filters)
     for (filter_var in filt_names) {
+      print(filter_var)
       # Get the column that will be filtered
       # from the data frame with filter_var name
       column_to_filter <- filtered_df[, filter_var]
+      print(column_to_filter)
       # Remove the rows that contain the filtered value
       filtered_df <- filtered_df[!column_to_filter %in%
         object@args@filters[filter_var],

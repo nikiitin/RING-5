@@ -75,36 +75,48 @@ setMethod(
         # Add specific configs to the theme
         plot <- plot + theme(
             axis.text.x = element_text(
-                angle = 30,
                 hjust = 1,
-                size = adjust_text_size(11,
+                vjust = 2,
+                angle = 30,
+                size = adjust_text_size(16,
                     object@style_info@width,
                     object@style_info@height),
                 face = "bold"
             ),
             axis.text.y = element_text(
                 hjust = 1,
-                size = adjust_text_size(11,
+                size = adjust_text_size(16,
                     object@style_info@width,
                     object@style_info@height),
                 face = "bold"
             ),
-            axis.title.y = element_text(
-                size = adjust_text_size(13,
-                    object@style_info@width,
-                    object@style_info@height),
-                face = "bold"
-            ),
-            legend.position = "top",
+            axis.ticks.x = element_blank(),
+            axis.ticks.y = element_blank(),
+            legend.box.margin = margin(-3, 0, -3, 0),
+            legend.position = c(0.95,0.15),
             legend.justification = "right",
+            legend.background = element_blank(),
+            legend.box.background = element_rect(fill = "white", color = "black"),   
+            axis.title.y = element_text(
+                size = adjust_text_size(16,
+                    object@style_info@width,
+                    object@style_info@height),
+                face = "bold"
+            ),
+            axis.title.x = element_text(
+                size = adjust_text_size(16,
+                    object@style_info@width,
+                    object@style_info@height),
+                face = "bold"
+            ),
             legend.title = element_text(
-                size = adjust_text_size(13,
+                size = adjust_text_size(16,
                     object@style_info@width,
                     object@style_info@height),
                 face = "bold"
             ),
             legend.text = element_text(
-                size = adjust_text_size(11,
+                size = adjust_text_size(16,
                     object@style_info@width,
                     object@style_info@height)
             ),
@@ -120,7 +132,7 @@ setMethod(
                 "cm"),
             strip.text = element_text(
                 size = adjust_text_size(
-                    8,
+                    16,
                     object@style_info@width,
                     object@style_info@height
                 ),
@@ -223,7 +235,7 @@ setMethod(
                             y = object@style_info@y_limit_top
                         ),
                         show.legend = FALSE,
-                        size = adjust_text_size(2,
+                        size = adjust_text_size(3,
                             object@style_info@width,
                             object@style_info@height),
                         angle = 90,

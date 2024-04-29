@@ -36,7 +36,8 @@ setMethod(
             guides(
                 fill = guide_legend(
                     nrow = object@style_info@legend_n_elem_row,
-                    title = object@style_info@legend_title
+                    title = object@style_info@legend_title,
+                    title.position = "left"
                 )
             )
         # Set the Title
@@ -58,6 +59,7 @@ setMethod(
                 labels = object@style_info@legend_names,
             )
         }
+        
         #### Specific to my figures!
         # TODO,FIXME: do it generic!!
         # Add the vertical line using a new data frame
@@ -108,10 +110,10 @@ setMethod(
         # Add specific configs to the theme
         plot <- plot + theme(
             axis.text.x = element_text(
-                angle = 90,
+                angle = 45,
                 hjust = 1,
                 size = adjust_text_size(
-                    7,
+                    18,
                     object@style_info@width,
                     object@style_info@height
                 ),
@@ -120,33 +122,29 @@ setMethod(
             axis.text.y = element_text(
                 hjust = 1,
                 size = adjust_text_size(
-                    9,
+                    19,
                     object@style_info@width,
                     object@style_info@height
                 ),
                 face = "bold"
             ),
-            axis.title.x = element_text(
-                size = adjust_text_size(
-                    13,
-                    object@style_info@width,
-                    object@style_info@height
-                ),
-                face = "bold"
-            ),
+            axis.title.x = element_blank(),
             axis.title.y = element_text(
                 size = adjust_text_size(
-                    13,
+                    19,
                     object@style_info@width,
                     object@style_info@height
                 ),
                 face = "bold"
             ),
+            # legend.position = c(0.8,0.9),
             legend.position = "top",
             legend.justification = "right",
+            # legend.background = element_blank(),
+            # legend.box.background = element_rect(fill = "white", color = "black"),   
             legend.title = element_text(
                 size = adjust_text_size(
-                    13,
+                    19,
                     object@style_info@width,
                     object@style_info@height
                 ),
@@ -154,7 +152,7 @@ setMethod(
             ),
             legend.text = element_text(
                 size = adjust_text_size(
-                    1,
+                    19,
                     object@style_info@width,
                     object@style_info@height
                 )
@@ -175,9 +173,10 @@ setMethod(
                 ),
                 "cm"
             ),
+            legend.box.margin = margin(-3, 0, -3, 0),
             strip.text = element_text(
                 size = adjust_text_size(
-                    9,
+                    19,
                     object@style_info@width,
                     object@style_info@height
                 ),
@@ -186,7 +185,7 @@ setMethod(
             ),
             strip.placement = "outside",
             strip.background = element_rect(fill = alpha('#2eabff', 0.1), color = "white"),
-            panel.spacing = unit(0.1, "cm")
+            panel.spacing = unit(0.1, "cm"),
         ) # Added facet specific configs
 
         # Assign the colors to plot
@@ -208,6 +207,7 @@ setMethod(
                     oob = scales::squish
                 )
         }
+
         plot
     }
 )

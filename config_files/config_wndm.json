@@ -1,62 +1,145 @@
 {
-    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/valuepred-analysis-wndm",
+    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/valuepred-sens-wndm",
     "parseConfig": {
         "file": "parse_wndm",
         "config": "default"
     },
-    "renameStats": [
-        {
-            "oldName": "simTicks",
-            "newName": "simulationTime"
-        }
-    ],
     "mixStats": [
-
+        {
+            "groupName": "aborts",
+            "mergingStats": [
+                "htm_transaction_abort_cause..memory_conflict_staledata",
+                "htm_transaction_abort_cause..memory_conflict",
+                "htm_transaction_abort_cause..memory_conflict_fallbacklock",
+                "htm_transaction_abort_cause..memory_conflict_power",
+                "htm_transaction_abort_cause..spec_validation_failure",
+                "htm_transaction_abort_cause..spec_max_capacity",
+                "htm_transaction_abort_cause..transaction_size_l1priv",
+                "htm_transaction_abort_cause..transaction_size_llc",
+                "htm_transaction_abort_cause..transaction_size_rset",
+                "htm_transaction_abort_cause..transaction_size_wset",
+                "htm_transaction_abort_cause..explicit_fallbacklock",
+                "htm_transaction_abort_cause..explicit",
+                "htm_transaction_abort_cause..transaction_size_rset",
+                "htm_transaction_abort_cause..interrupt",
+                "htm_transaction_abort_cause..exception"
+            ]
+        }
     ],
     "reduceSeeds": true,
     "removeOutliers": true,
-    "outlierStat": "simulationTime",
+    "outlierStat": "simTicks",
     "plots": [
         {
-            "plotType": "barplot",
+            "plotType": "heatmap",
             "dataConfig": {
                 "file": "config_wndm",
-                "config": "default"
+                "config": "onlymean_heatmap_pwwndm"
             },
             "styleConfig": {
-                "file": "style_wndm",
+                "file": "style_sens_wndm",
                 "config": "default"
             },
-            "fileName": "simTicks(simple)",
+            "fileName": "simTicks_onlymean_heatmap_pwwndm",
             "x": [
-                "benchmark_name"
+                "htm_max_prio_diff"
             ],
             "y": [
-                "simulationTime"
+                "simTicks"
             ],
+            "showOnlyMean": true,
+            "meanFacet": "benchmark_name",
             "conf_z": [
-                "config_description_abbrev"
+                "htm_max_consumers"
+            ],
+            "facets": [
+                "benchmark_name",
+                "htm_conflict_resolution",
+                "htm_fwd_mechanism"
             ]
         },
         {
-            "plotType": "barplot",
+            "plotType": "heatmap",
             "dataConfig": {
                 "file": "config_wndm",
-                "config": "no-micbench"
+                "config": "onlymean_heatmap_pwwndm"
             },
             "styleConfig": {
-                "file": "style_wndm",
-                "config": "no-micbench"
+                "file": "style_sens_wndm",
+                "config": "default_aborts"
             },
-            "fileName": "simTicks(nomic)",
+            "fileName": "aborts_onlymean_heatmap_pwwndm",
             "x": [
-                "benchmark_name"
+                "htm_max_prio_diff"
             ],
             "y": [
-                "simulationTime"
+                "aborts"
             ],
+            "showOnlyMean": true,
+            "meanFacet": "benchmark_name",
             "conf_z": [
-                "config_description_abbrev"
+                "htm_max_consumers"
+            ],
+            "facets": [
+                "benchmark_name",
+                "htm_conflict_resolution",
+                "htm_fwd_mechanism"
+            ]
+        },
+        {
+            "plotType": "heatmap",
+            "dataConfig": {
+                "file": "config_wndm",
+                "config": "onlymean_heatmap_rlwndm"
+            },
+            "styleConfig": {
+                "file": "style_sens_wndm",
+                "config": "default"
+            },
+            "fileName": "simTicks_onlymean_heatmap_rlwndm",
+            "x": [
+                "htm_max_prio_diff"
+            ],
+            "y": [
+                "simTicks"
+            ],
+            "showOnlyMean": true,
+            "meanFacet": "benchmark_name",
+            "conf_z": [
+                "htm_max_consumers"
+            ],
+            "facets": [
+                "benchmark_name",
+                "htm_conflict_resolution",
+                "htm_fwd_mechanism"
+            ]
+        },
+        {
+            "plotType": "heatmap",
+            "dataConfig": {
+                "file": "config_wndm",
+                "config": "onlymean_heatmap_rlwndm"
+            },
+            "styleConfig": {
+                "file": "style_sens_wndm",
+                "config": "default_aborts"
+            },
+            "fileName": "aborts_onlymean_heatmap_rlwndm",
+            "x": [
+                "htm_max_prio_diff"
+            ],
+            "y": [
+                "aborts"
+            ],
+            "showOnlyMean": true,
+            "meanFacet": "benchmark_name",
+            "conf_z": [
+                "htm_max_consumers"
+            ],
+            "facets": [
+                "benchmark_name",
+                "htm_conflict_resolution",
+                "htm_fwd_mechanism"
             ]
         }
     ]

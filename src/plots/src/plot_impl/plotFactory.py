@@ -4,6 +4,7 @@ from src.plots.src.plot_impl.stackedbarplot.src.stackedBarplot import StackedBar
 from src.plots.src.plot_impl.percentagestackedbarplot.src.percentageStackedBarplot import PercentageStackedBarplot
 from src.plots.src.plot_impl.groupedstackedbarplot.src.groupedStackedBarplot import GroupedStackedBarplot
 from src.plots.src.plot_impl.lineplot.src.lineplot import LinePlot
+from src.plots.src.plot_impl.heatmap.src.heatmap import Heatmap
 from argumentParser import AnalyzerInfo
 class PlotFactory:
     # Any plot instance will be unique,
@@ -14,6 +15,8 @@ class PlotFactory:
             return Barplot(info, plotJson)
         elif (plotType == "lineplot"):
             return LinePlot(info, plotJson)
+        elif (plotType == "heatmap"):
+            return Heatmap(info, plotJson)
         elif (plotType == "stackedBarplot"):
             return StackedBarplot(info, plotJson)
         elif (plotType == "groupedStackedBarplot"):

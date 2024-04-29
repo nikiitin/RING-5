@@ -5,7 +5,7 @@
         "compress": true,
         "parsings": [
             {
-                "path": "/home/vnicolas/Workspace/remote-echo/workspace/sims/ruben/gem5/results/valuepred-wndm-sens/",
+                "path": "/home/vnicolas/Workspace/remote-echo/workspace/sims/ruben/gem5/results/valuepred-blk-sens/",
                 "files": "stats.txt",
                 "vars": [
                     {
@@ -14,10 +14,10 @@
                     },
                     {
                         "type": "configuration",
-                        "id": "htm_max_prio_diff"
+                        "id": "htm_cycles_to_validate"
                     },                    {
                         "type": "configuration",
-                        "id": "htm_max_consumers"
+                        "id": "htm_max_consumed_blocks"
                     },
                     {
                         "type": "configuration",
@@ -63,8 +63,6 @@
                             "transaction_size_rset",
                             "spec_validation_failure",
                             "spec_max_capacity",
-                            "spec_read_conflict",
-                            "spec_depth_failure",
                             "transaction_size_wset"
                         ]
                     },

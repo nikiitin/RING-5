@@ -88,7 +88,7 @@ setMethod("create_plot",
     # DO NOT CALL PARENT METHOD
     # Create the plot object
     object@plot <- ggplot(object@info@data_frame, aes(
-      x = "",
+      x = benchmark_name,
       y = .data[[object@info@y]],
       fill = .data[[object@info@conf_z]]
     ))
@@ -96,11 +96,12 @@ setMethod("create_plot",
     object@plot <- object@plot + geom_bar(
       stat = "identity",
       position = "dodge",
-      color = "black")
+      color = "black",
+      width=0.8)
 
         # Add the facet grid to the plot object. Switch it in to X,
     # this enforce style to group variables in x axis
-    design <- "BBBBBCCCCCDDDDD#EEEEEFFFFFGGGGGHHHHHIIIIIJJJJJKKKKKLLLLLMMMMM#AAAAA"
+    design <- "DDDDDEEEEEFFFFFGGGGGHHHHHIIIIIJJJJJKKKKKLLLLL#NNNNN"
     if (object@info@n_faceting_vars > 0) {
       object@plot <- object@plot + facet_manual(
         ~ facet_column + .data[[object@info@x]],

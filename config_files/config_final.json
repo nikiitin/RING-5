@@ -1,7 +1,7 @@
 {
-    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/valuepred-sens-rtry",
+    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/valuepred-final",
     "parseConfig": {
-        "file": "parse_sens_rtry",
+        "file": "parse_final",
         "config": "default"
     },
     "mixStats": [
@@ -117,6 +117,24 @@
                 "htm_transaction_abort_cause..interrupt",
                 "htm_transaction_abort_cause..exception"
             ]
+        },
+        {
+            "groupName": "Modified_commit",
+            "mergingStats": [
+                "htm_transaction_producer_modified..htm_transaction_producer_modified_commit_m"
+            ]
+        },
+        {
+            "groupName": "Abort",
+            "mergingStats": [
+                "htm_transaction_producer_modified..htm_transaction_producer_modified_abort"
+            ]
+        },
+        {
+            "groupName": "Not_modified_commit",
+            "mergingStats": [
+                "htm_transaction_producer_modified..htm_transaction_producer_modified_commit_nm"
+            ]
         }
     ],
     "reduceSeeds": true,
@@ -126,14 +144,14 @@
         {
             "plotType": "barplot",
             "dataConfig": {
-                "file": "config_sens_rtry",
+                "file": "config_final",
                 "config": "default"
             },
             "styleConfig": {
-                "file": "style_sens_rtry",
+                "file": "style_final",
                 "config": "default"
             },
-            "fileName": "simTicks",
+            "fileName": "barplot_simTicks",
             "x": [
                 "benchmark_name"
             ],
@@ -146,10 +164,9 @@
             "facet": {
                 "facetVar": "benchmark_name",
                 "facetMappings": [
-                    "clusteradding=microbenchmarks",
-                    "llbenchsimple-l=microbenchmarks",
-                    "llbenchsimple-h=microbenchmarks",
-                    "bayes=STAMP",
+                    "cadd=Microbenchmark",
+                    "llb-l=Microbenchmark",
+                    "llb-h=Microbenchmark",
                     "genome=STAMP",
                     "intruder=STAMP",
                     "kmeans-l=STAMP",
@@ -159,26 +176,26 @@
                     "vacation-l=STAMP",
                     "vacation-h=STAMP",
                     "yada=STAMP",
-                    "geomean=STAMP"
+                    "geomean=(STAMP)"
                 ]
             }
         },
         {
             "plotType": "barplot",
             "dataConfig": {
-                "file": "config_sens_rtry",
-                "config": "no_bayes"
-            },
-            "styleConfig": {
-                "file": "style_sens_rtry",
+                "file": "config_final",
                 "config": "default"
             },
-            "fileName": "simTicks(noBayes)",
+            "styleConfig": {
+                "file": "style_final",
+                "config": "default_communication"
+            },
+            "fileName": "barplot_network",
             "x": [
                 "benchmark_name"
             ],
             "y": [
-                "simTicks"
+                "flits_injected__get_summary"
             ],
             "conf_z": [
                 "config_description_abbrev"
@@ -186,9 +203,9 @@
             "facet": {
                 "facetVar": "benchmark_name",
                 "facetMappings": [
-                    "clusteradding=microbenchmarks",
-                    "llbenchsimple-l=microbenchmarks",
-                    "llbenchsimple-h=microbenchmarks",
+                    "cadd=Microbenchmark",
+                    "llb-l=Microbenchmark",
+                    "llb-h=Microbenchmark",
                     "genome=STAMP",
                     "intruder=STAMP",
                     "kmeans-l=STAMP",
@@ -198,202 +215,165 @@
                     "vacation-l=STAMP",
                     "vacation-h=STAMP",
                     "yada=STAMP",
-                    "geomean=STAMP"
+                    "geomean=(STAMP)"
                 ]
             }
         },
         {
-            "plotType": "lineplot",
+            "plotType": "barplot",
             "dataConfig": {
-                "file": "config_sens_rtry",
-                "config": "default_lineplot"
+                "file": "config_final",
+                "config": "default_intro"
             },
             "styleConfig": {
-                "file": "style_sens_rtry",
-                "config": "default"
+                "file": "style_final",
+                "config": "default_intro"
             },
-            "fileName": "simTicks_lineplot",
+            "fileName": "barplot_intro_simticks",
             "x": [
-                "htm_max_retries"
+                "benchmark_name"
             ],
             "y": [
                 "simTicks"
             ],
-            "showOnlyMean": false,
             "conf_z": [
-                "htm_conflict_resolution",
-                "htm_fwd_mechanism"
+                "config_description_abbrev"
             ],
-            "facets": ["benchmark_name"]
+
+            "hiddenBars": [
+                "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt"
+            ]
+            
         },
         {
-            "plotType": "lineplot",
+            "plotType": "groupedStackedBarplot",
             "dataConfig": {
-                "file": "config_sens_rtry",
-                "config": "no_bayes_lineplot"
-            },
-            "styleConfig": {
-                "file": "style_sens_rtry",
+                "file": "config_final",
                 "config": "default"
             },
-            "fileName": "simTicks_lineplot(nobayes)",
+            "styleConfig": {
+                "file": "style_final",
+                "config": "default_stack"
+            },
+            "fileName": "region_simTicks",
             "x": [
-                "htm_max_retries"
+                "benchmark_name"
             ],
             "y": [
-                "simTicks"
+                "cyclesInRegion..Parallel",
+                "cyclesInRegion..Transactional_Committed",
+                "cyclesInRegion..Transactional_Aborted",
+                "cyclesInRegion..Committing_Validation",
+                "cyclesInRegion..Commit_Fallback",
+                "cyclesInRegion..Wait_Fallback",
+                "cyclesInRegion..Other"
             ],
-            "showOnlyMean": false,
             "conf_z": [
-                "htm_conflict_resolution",
-                "htm_fwd_mechanism"
+                "config_description_abbrev"
             ],
-            "facets": ["benchmark_name"]
+            "facet": {
+                "facetVar": "benchmark_name",
+                "facetMappings": [
+                    "cadd=Microbenchmark",
+                    "llb-l=Microbenchmark",
+                    "llb-h=Microbenchmark",
+                    "genome=STAMP",
+                    "intruder=STAMP",
+                    "kmeans-l=STAMP",
+                    "kmeans-h=STAMP",
+                    "labyrinth=STAMP",
+                    "ssca2=STAMP",
+                    "vacation-l=STAMP",
+                    "vacation-h=STAMP",
+                    "yada=STAMP",
+                    "geomean=(STAMP)"
+                ]
+            }
         },
         {
-            "plotType": "lineplot",
+            "plotType": "groupedStackedBarplot",
             "dataConfig": {
-                "file": "config_sens_rtry",
-                "config": "no_micbench_lineplot"
-            },
-            "styleConfig": {
-                "file": "style_sens_rtry",
+                "file": "config_final",
                 "config": "default"
             },
-            "fileName": "simTicks_lineplot(nomicbench)",
+            "styleConfig": {
+                "file": "style_final",
+                "config": "default_abort_stack"
+            },
+            "fileName": "aborts_cause",
             "x": [
-                "htm_max_retries"
+                "benchmark_name"
             ],
             "y": [
-                "simTicks"
+                "htm_transaction_abort_cause..Conflicts",
+                "htm_transaction_abort_cause..FwdValidation",
+                "htm_transaction_abort_cause..FwdCapacity",
+                "htm_transaction_abort_cause..Capacity",
+                "htm_transaction_abort_cause..Explicit",
+                "htm_transaction_abort_cause..Other"
             ],
-            "showOnlyMean": false,
             "conf_z": [
-                "htm_conflict_resolution",
-                "htm_fwd_mechanism"
+                "config_description_abbrev"
             ],
-            "facets": ["benchmark_name"]
+            "facet": {
+                "facetVar": "benchmark_name",
+                "facetMappings": [
+                    "cadd=Microbenchmark",
+                    "llb-l=Microbenchmark",
+                    "llb-h=Microbenchmark",
+                    "genome=STAMP",
+                    "intruder=STAMP",
+                    "kmeans-l=STAMP",
+                    "kmeans-h=STAMP",
+                    "labyrinth=STAMP",
+                    "ssca2=STAMP",
+                    "vacation-l=STAMP",
+                    "vacation-h=STAMP",
+                    "yada=STAMP",
+                    "geomean=(STAMP)"
+                ]
+            }
         },
         {
-            "plotType": "lineplot",
+            "plotType": "groupedStackedBarplot",
             "dataConfig": {
-                "file": "config_sens_rtry",
-                "config": "default_lineplot"
+                "file": "config_final",
+                "config": "default_accuracy"
             },
             "styleConfig": {
-                "file": "style_sens_rtry",
-                "config": "default"
+                "file": "style_final",
+                "config": "default_accuracy_stack"
             },
-            "fileName": "simTicks_onlymean_lineplot",
+            "fileName": "accuracy",
             "x": [
-                "htm_max_retries"
+                "benchmark_name"
             ],
             "y": [
-                "simTicks"
+                "Modified_commit",
+                "Not_modified_commit",
+                "Abort"
             ],
-            "showOnlyMean": true,
             "conf_z": [
-                "htm_conflict_resolution",
-                "htm_fwd_mechanism"
+                "config_description_abbrev"
             ],
-            "facets": ["benchmark_name"]
-        },
-        {
-            "plotType": "lineplot",
-            "dataConfig": {
-                "file": "config_sens_rtry",
-                "config": "default_lineplot"
-            },
-            "styleConfig": {
-                "file": "style_sens_rtry",
-                "config": "default_aborts"
-            },
-            "fileName": "aborts_onlymean_lineplot",
-            "x": [
-                "htm_max_retries"
-            ],
-            "y": [
-                "aborts"
-            ],
-            "showOnlyMean": true,
-            "conf_z": [
-                "htm_conflict_resolution",
-                "htm_fwd_mechanism"
-            ],
-            "facets": ["benchmark_name"]
-        },
-        {
-            "plotType": "lineplot",
-            "dataConfig": {
-                "file": "config_sens_rtry",
-                "config": "default_lineplot_goodforpaper"
-            },
-            "styleConfig": {
-                "file": "style_sens_rtry",
-                "config": "default"
-            },
-            "fileName": "simticks_lineplot_nomicnobayes",
-            "x": [
-                "htm_max_retries"
-            ],
-            "y": [
-                "simTicks"
-            ],
-            "showOnlyMean": false,
-            "conf_z": [
-                "htm_conflict_resolution",
-                "htm_fwd_mechanism"
-            ],
-            "facets": ["benchmark_name"]
-        },
-        {
-            "plotType": "lineplot",
-            "dataConfig": {
-                "file": "config_sens_rtry",
-                "config": "default_lineplot"
-            },
-            "styleConfig": {
-                "file": "style_sens_rtry",
-                "config": "default_aborts"
-            },
-            "fileName": "aborts_lineplot",
-            "x": [
-                "htm_max_retries"
-            ],
-            "y": [
-                "aborts"
-            ],
-            "showOnlyMean": false,
-            "conf_z": [
-                "htm_conflict_resolution",
-                "htm_fwd_mechanism"
-            ],
-            "facets": ["benchmark_name"]
-        }
-        ,
-        {
-            "plotType": "lineplot",
-            "dataConfig": {
-                "file": "config_sens_rtry",
-                "config": "default_lineplot_goodforpaper"
-            },
-            "styleConfig": {
-                "file": "style_sens_rtry",
-                "config": "default_aborts"
-            },
-            "fileName": "aborts_lineplot_nomicnobayes",
-            "x": [
-                "htm_max_retries"
-            ],
-            "y": [
-                "aborts"
-            ],
-            "showOnlyMean": false,
-            "conf_z": [
-                "htm_conflict_resolution",
-                "htm_fwd_mechanism"
-            ],
-            "facets": ["benchmark_name"]
+            "facet": {
+                "facetVar": "benchmark_name",
+                "facetMappings": [
+                    "cadd=Microbenchmark",
+                    "llb-l=Microbenchmark",
+                    "llb-h=Microbenchmark",
+                    "genome=STAMP",
+                    "intruder=STAMP",
+                    "kmeans-l=STAMP",
+                    "kmeans-h=STAMP",
+                    "labyrinth=STAMP",
+                    "ssca2=STAMP",
+                    "vacation-l=STAMP",
+                    "vacation-h=STAMP",
+                    "yada=STAMP",
+                    "geomean=(STAMP)"
+                ]
+            }
         }
     ]
 }

@@ -113,7 +113,7 @@ setMethod(
             axis.text.x = element_text(
                 angle = 30,
                 hjust = 1,
-                size = adjust_text_size(20,
+                size = adjust_text_size(32,
                     object@style_info@width,
                     object@style_info@height),
                 face = "bold"
@@ -122,29 +122,29 @@ setMethod(
             axis.ticks.y = element_blank(),
             axis.text.y = element_text(
                 hjust = 1,
-                size = adjust_text_size(20,
+                size = adjust_text_size(32,
                     object@style_info@width,
                     object@style_info@height),
                 face = "bold"
             ),
             axis.title.y = element_text(
-                size = adjust_text_size(20,
+                size = adjust_text_size(32,
                     object@style_info@width,
                     object@style_info@height),
                 face = "bold"
             ),
-            legend.position = "top",
-            legend.justification = "right",
-            legend.background= element_rect(fill = NA, color = "white"),
-            legend.box.margin = margin(-18, 0, -16, 0),
+            legend.position = "none",
+            legend.background = element_rect(fill = NA),
+            legend.box.background = element_rect(fill = "white", colour = "Black"),
+            legend.margin=margin(-7,5,-7,5),
             legend.title = element_text(
-                size = adjust_text_size(20,
+                size = adjust_text_size(32,
                     object@style_info@width,
                     object@style_info@height),
                 face = "bold"
             ),
             legend.text = element_text(
-                size = adjust_text_size(20,
+                size = adjust_text_size(32,
                     object@style_info@width,
                     object@style_info@height)
             ),
@@ -160,12 +160,23 @@ setMethod(
                 "cm"),
             strip.text = element_text(
                 size = adjust_text_size(
-                    20,
+                    32,
                     object@style_info@width,
                     object@style_info@height
                 ),
                 angle = 0,
-                face = "bold"
+                face = "bold",
+                margin=margin(-10,0,-10,0)
+            ),
+            strip.text.x = element_text(
+                size = adjust_text_size(
+                    32,
+                    object@style_info@width,
+                    object@style_info@height
+                ),
+                angle = 0,
+                face = "bold",
+                margin=margin(-10,0,-10,0)
             ),
             strip.placement = "outside",
             strip.background = element_rect(fill = alpha('#2eabff', 0.1), color = "white"),
@@ -252,11 +263,12 @@ setMethod(
                         aes(
                             label = list_of_labels,
                             group = .data[[object@plot_info@conf_z]],
-                            color = .data[[object@plot_info@conf_z]],
+                            
                             y = object@style_info@y_limit_top
                         ),
+                        color="white",
                         show.legend = FALSE,
-                        size = adjust_text_size(6,
+                        size = adjust_text_size(10,
                             object@style_info@width,
                             object@style_info@height),
                         angle = 90,

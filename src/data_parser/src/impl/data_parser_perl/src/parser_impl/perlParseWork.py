@@ -92,9 +92,20 @@ class PerlParseWork(ParseWork):
                 self._processDist(varID, varValue)
                 # Remove the key from the ID
                 varID = varID.split("::")[0]
-            else:
+            elif varType == "Scalar" or varType == "Configuration":
                 varsToParse[varID].content = varValue
-
+            elif varType == "Summary":
+                # Summaries need a keyword at the end
+                varID = varID + "__get_summary"
+                if varsToParse.get(varID) is None:
+                    # Do not parse summary if not asked
+                    return
+                varsToParse[varID].content = varValue
+                # Return to avoid type mismatch
+                return
+            else:
+                # Unknown variable type
+                raise RuntimeError("Unknown variable type: " + varType)
             # Post check but it is ok, an error will raise            
             # Check if the variable is in the list of variables to parse
             if varsToParse.get(varID) is None:
