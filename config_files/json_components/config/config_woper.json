@@ -1,0 +1,198 @@
+[
+    {
+        "configName": "default",
+        "dataConfig": {
+            "mean": {
+                "meanAlgorithm": "geomean",
+                "skipMean": [
+                    "llb-l",
+                    "llb-h",
+                    "cadd"
+                ]
+            },
+            "sort": [
+                {
+                    "varToSort": "benchmark_name",
+                    "order": [
+                        "llb-l",
+                        "llb-h",
+                        "cadd",
+                        "genome",
+                        "intruder",
+                        "intruder-qs",
+                        "kmeans-l",
+                        "kmeans-h",
+                        "labyrinth",
+                        "ssca2",
+                        "vacation-l",
+                        "vacation-h",
+                        "yada",
+                        "geomean"
+                    ]
+                },
+                {
+                    "varToSort": "config_description_abbrev",
+                    "order": [
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
+                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
+                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt"
+                    ]
+                }
+            ],
+            "normalize": {
+                "normalizerIndex": 1,
+                "normalizeSelector": [
+                    "all"
+                ]
+            }
+        }
+    },
+    {
+        "configName": "default_stack",
+        "dataConfig": {
+            "mean": {
+                "meanAlgorithm": "mean",
+                "skipMean": [
+                    "llb-l",
+                    "llb-h",
+                    "cadd"
+                ]
+            },
+            "sort": [
+                {
+                    "varToSort": "benchmark_name",
+                    "order": [
+                        "llb-l",
+                        "llb-h",
+                        "cadd",
+                        "genome",
+                        "intruder",
+                        "intruder-qs",
+                        "kmeans-l",
+                        "kmeans-h",
+                        "labyrinth",
+                        "ssca2",
+                        "vacation-l",
+                        "vacation-h",
+                        "yada",
+                        "mean"
+                    ]
+                },
+                {
+                    "varToSort": "config_description_abbrev",
+                    "order": [
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
+                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
+                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt"
+                    ]
+                }
+            ],
+            "normalize": {
+                "normalizerIndex": 1,
+                "normalizeSelector": [
+                    "all"
+                ]
+            }
+        }
+    },
+    {
+        "configName": "stack_norm_commit",
+        "dataConfig": {
+            "filter": [
+                {
+                    "varToFilter": "benchmark_name",
+                    "values": [
+                        "bayes"
+                    ]
+                }
+            ],
+            "mean": {
+                "meanAlgorithm": "mean",
+                "skipMean": [
+                    "llb-l",
+                    "llb-h",
+                    "cadd"
+                ]
+            },
+            "sort": [
+                {
+                    "varToSort": "benchmark_name",
+                    "order": [
+                        "llb-l",
+                        "llb-h",
+                        "cadd",
+                        "genome",
+                        "intruder",
+                        "intruder-qs",
+                        "kmeans-l",
+                        "kmeans-h",
+                        "labyrinth",
+                        "ssca2",
+                        "vacation-l",
+                        "vacation-h",
+                        "yada",
+                        "mean"
+                    ]
+                },
+                {
+                    "varToSort": "config_description_abbrev",
+                    "order": [
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry4_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRcdab_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry16_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrequester_stalls_pic_base_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Prio_numeric_FCSabort_Rtry16_Pflt"
+                    ]
+                }
+            ],
+            "normalize": {
+                "normalizerIndex": 1,
+                "normalizeSelector": [
+                    "htm_transaction_executed_type_rate..Commit",
+                    "htm_transaction_executed_type_rate..FallbackLock_commit"
+                ]
+            }
+        }
+    },
+    {
+        "configName": "sens_retry",
+        "dataConfig": {
+            "mean": {
+                "meanAlgorithm": "geomean",
+                "skipMean": [
+                    "llb-l",
+                    "llb-h",
+                    "cadd",
+                    "intruder-qs"
+                ]
+            },
+            "sort": [
+                {
+                    "varToSort": "benchmark_name",
+                    "order": [
+                        "llb-l",
+                        "llb-h",
+                        "cadd",
+                        "genome",
+                        "intruder",
+                        "intruder-qs",
+                        "kmeans-l",
+                        "kmeans-h",
+                        "labyrinth",
+                        "ssca2",
+                        "vacation-l",
+                        "vacation-h",
+                        "yada",
+                        "geomean"
+                    ]
+                }
+            ],
+            "normalize": {
+                "normalizerIndex": 1,
+                "normalizeSelector": [
+                    "all"
+                ]
+            }
+        }
+    }
+]

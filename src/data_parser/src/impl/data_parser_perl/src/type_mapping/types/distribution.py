@@ -15,8 +15,9 @@ class Distribution(confType):
         self.__dict__["reducedContent"] = dict()
         # Create the buckets
         # minimum - 1 and maximum + 2 are the underflow and overflow buckets
+        self.content.update({"underflows": []})
         self.content.update((str(x), []) for x in range(int(minimum), int(maximum) + 1))
-
+        self.content.update({"overflows": []})
     # Distribution must be a list of ints representing the number of times
     # a value (key) has appeared
     # Those are repeated n times for each cpu...
@@ -95,8 +96,8 @@ class Distribution(confType):
             underflows = __value.pop("underflows")
             overflows = __value.pop("overflows")
             keys = __value.keys()
-            __value[(self.__dict__["minimum"] + "-")] = underflows
-            __value[(self.__dict__["maximum"] + "+")] = overflows
+            __value["underflows"] = underflows
+            __value["overflows"] = overflows
             # Turn every key into a string and every value into a float
             __value.update((str(x), list(y)) for x, y in __value.items())
             # Check if the keys are the same as the buckets
@@ -104,8 +105,8 @@ class Distribution(confType):
             expectedValues = []
             for i in range(int(self.__dict__["minimum"]), int(self.__dict__["maximum"]) + 1):
                 expectedValues.append(str(i))
-            expectedValues.append(str(self.__dict__["minimum"]) + "-")
-            expectedValues.append(str(self.__dict__["maximum"]) + "+")
+            expectedValues.append("underflows")
+            expectedValues.append("overflows")
             if not set(__value.keys()).issubset(expectedValues):
                 raise RuntimeError("DISTRIBUTION: Keys in file are not the same as the buckets in configuration: \n" +
                         "Expected: " +

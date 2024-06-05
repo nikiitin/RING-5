@@ -29,6 +29,10 @@ setClass("Data_configurator_args",
         normalizer_index = "numeric",
         # Normalizer var
         normalizer_var = "character",
+        # Number of normalizer selector
+        n_normalizer_selector = "numeric",
+        # Normalizer selector
+        normalizer_selector = "vector",
         # Mean variables
         mean_algorithm = "character",
         # Variable to calculate the mean
@@ -153,6 +157,9 @@ setMethod(
             args %<>% shift(1)
             .Object@normalizer_var <- get_arg(args, 1)
             args %<>% shift(1)
+            .Object@n_normalizer_selector <- as.numeric(get_arg(args, 1))
+            args %<>% shift(1)
+            .Object@normalizer_selector <- get_arg(args, .Object@n_normalizer_selector)
         }
         # Return the object
         .Object

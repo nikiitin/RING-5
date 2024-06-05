@@ -99,42 +99,14 @@ setMethod(
     print("TOTAL VALUES")
     object@info@data_frame$entries <- factor(object@info@data_frame$entries, levels = unique(object@info@data_frame$entries))
     entries_order <- unique(object@info@data_frame$entries)
-    #preprocess
     
-    #stamplot
-    stampdata <- object@info@data_frame[object@info@data_frame$facet_column != "Microbenchmark",]
-    object@plot <- ggplot(stampdata, aes(
+    object@plot <- ggplot(object@info@data_frame, aes(
       x = .data[[object@info@conf_z]],
       y = values
     ))
-    # #micplot
-    micplotdata <- object@info@data_frame[object@info@data_frame$facet_column == "Microbenchmark",]
-    micplot <- ggplot(micplotdata, aes(
-      x = .data[[object@info@conf_z]],
-      y = values
-    ))
-    
     # Add the facet grid to the plot object. Switch it in to X,
     # this enforce style to group variables in x axis
-    design <- "EEEEEFFFFFGGGGGHHHHHIIIIIJJJJJKKKKKLLLLLMMMMMNNNNN#AAAAA"
-    #Microbench
-    design_micro <- "BBBBBCCCCCDDDDD"
-    object@plot <- object@plot + facet_manual(
-        ~ facet_column + .data[[object@info@x]],
-        strip.position = "bottom",
-        strip = strip_nested(
-          clip = "off"
-        ),
-        design = design
-      )
-    micplot <- micplot + facet_manual(
-        ~ facet_column + .data[[object@info@x]],
-        strip.position = "bottom",
-        strip = strip_nested(
-          clip = "off"
-        ),
-        design = design_micro
-      )
+    design <- "BBBBBCCCCCDDDDD#EEEEEFFFFFGGGGGHHHHHIIIIIJJJJJKKKKKLLLLLMMMMMNNNNN#AAAAA"
     if (object@info@n_faceting_vars > 0) {
       object@plot <- object@plot + facet_manual(
         ~ facet_column + .data[[object@info@x]],
@@ -157,18 +129,10 @@ setMethod(
       aes(fill = entries),
       position = position_stack(reverse = TRUE),
       color = "black") 
-    micplot <- micplot +  geom_col(
-      aes(fill = entries),
-      position = position_stack(reverse = TRUE),
-      color = "black") 
-    object@plot <- micplot + object@plot +
-      plot_layout(widths=c(15, 55),
-        guides = 'collect',
-        axis_titles = 'collect')
     if (!all(is.na(total_values$total))) {
       # If all values are NA, do not add the text
       # or it will throw an error
-      object@plot <- object@plot & geom_text(data = total_values,
+      object@plot <- object@plot + geom_text(data = total_values,
       aes(y = total,
       label = total,
       x = .data[[object@info@conf_z]]),

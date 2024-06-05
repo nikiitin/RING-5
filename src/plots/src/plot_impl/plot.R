@@ -6,10 +6,11 @@ library(methods)
 library(ggplot2)
 library(dplyr, warn.conflicts = FALSE)
 library(magrittr)
+library(patchwork)
 
 # Set old class gg and ggplot to be able to use ggplot2
 # functions inside the S4 class
-setOldClass(c("gg", "ggplot"))
+setOldClass(c("patchwork", "gg", "ggplot"))
 
 #### CLASS DEFINITION ####
 

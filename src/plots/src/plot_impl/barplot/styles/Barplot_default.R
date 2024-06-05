@@ -113,7 +113,7 @@ setMethod(
             axis.text.x = element_text(
                 angle = 30,
                 hjust = 1,
-                size = adjust_text_size(20,
+                size = adjust_text_size(13,
                     object@style_info@width,
                     object@style_info@height),
                 face = "bold"
@@ -122,13 +122,13 @@ setMethod(
             axis.ticks.y = element_blank(),
             axis.text.y = element_text(
                 hjust = 1,
-                size = adjust_text_size(20,
+                size = adjust_text_size(13,
                     object@style_info@width,
                     object@style_info@height),
                 face = "bold"
             ),
             axis.title.y = element_text(
-                size = adjust_text_size(20,
+                size = adjust_text_size(13,
                     object@style_info@width,
                     object@style_info@height),
                 face = "bold"
@@ -138,13 +138,13 @@ setMethod(
             legend.background= element_rect(fill = NA, color = "white"),
             legend.box.margin = margin(-18, 0, -16, 0),
             legend.title = element_text(
-                size = adjust_text_size(20,
+                size = adjust_text_size(13,
                     object@style_info@width,
                     object@style_info@height),
                 face = "bold"
             ),
             legend.text = element_text(
-                size = adjust_text_size(20,
+                size = adjust_text_size(13,
                     object@style_info@width,
                     object@style_info@height)
             ),
@@ -160,7 +160,7 @@ setMethod(
                 "cm"),
             strip.text = element_text(
                 size = adjust_text_size(
-                    20,
+                    13,
                     object@style_info@width,
                     object@style_info@height
                 ),

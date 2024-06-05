@@ -32,7 +32,7 @@ setMethod(
         # Apply style to the plot
         # Set the number of elements per row in the legend
         # and the title of the legend
-        plot <- plot &
+        plot <- plot +
             guides(
                 fill = guide_legend(
                     nrow = object@style_info@legend_n_elem_row,
@@ -42,20 +42,20 @@ setMethod(
             )
         # Set the Title
         if (object@style_info@title != "") {
-            plot <- plot & ggtitle(object@style_info@title)
+            plot <- plot + ggtitle(object@style_info@title)
         }
         # Set the x axis title
         if (object@style_info@x_axis_name != "") {
-            plot <- plot & xlab(object@style_info@x_axis_name)
+            plot <- plot + xlab(object@style_info@x_axis_name)
         }
         # Set the y axis title
         if (object@style_info@y_axis_name != "") {
-            plot <- plot & ylab(object@style_info@y_axis_name)
+            plot <- plot + ylab(object@style_info@y_axis_name)
         }
         # Label x axis with the legend names if specified
         # Label names were conf_z names on other plots
         if (object@style_info@n_legend_names > 0) {
-            plot <- plot & scale_x_discrete(
+            plot <- plot + scale_x_discrete(
                 labels = object@style_info@legend_names,
             )
         }
@@ -106,9 +106,9 @@ setMethod(
         # }
 
         # Set the theme to be used
-        plot <- plot & theme_hc()
+        plot <- plot + theme_hc()
         # Add specific configs to the theme
-        plot <- plot & theme(
+        plot <- plot + theme(
             axis.text.x = element_text(
                 angle = 45,
                 hjust = 1,
@@ -189,15 +189,16 @@ setMethod(
         ) # Added facet specific configs
 
         # Assign the colors to plot
-        plot <- plot &
+        plot <- plot +
             scale_fill_viridis_d(
                 option = "viridis",
-                direction = 1
+                direction = 1,
+                end = 0.9
             )
 
         # Set the breaks
         if (object@style_info@n_y_breaks > 0) {
-            plot <- plot &
+            plot <- plot +
                 scale_y_continuous(
                     breaks = object@style_info@y_breaks,
                     limits = c(

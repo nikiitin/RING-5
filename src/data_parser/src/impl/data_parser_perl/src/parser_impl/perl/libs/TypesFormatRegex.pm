@@ -23,7 +23,7 @@ my $summariesEntryRegex = qr/::(samples|mean|gmean|stdev|total)/;
 
 # Distribution components regexes
 # | ::5
-my $distEntryNumericRegex = qr/::\d+/;
+my $distEntryNumericRegex = qr/::-?\d+/;
 my $distEntryOverflowRegex = qr/::overflows/;
 my $distEntryUnderflowRegex = qr/::underflows/;
 my $distEntry = qr/($distEntryNumericRegex|$distEntryOverflowRegex|$distEntryUnderflowRegex)/;

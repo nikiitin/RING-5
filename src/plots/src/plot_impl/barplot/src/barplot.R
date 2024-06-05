@@ -100,7 +100,7 @@ setMethod("create_plot",
 
         # Add the facet grid to the plot object. Switch it in to X,
     # this enforce style to group variables in x axis
-    design <- "BBBBBCCCCCDDDDD#EEEEEFFFFFGGGGGHHHHHIIIIIJJJJJKKKKKLLLLLMMMMM#AAAAA"
+    design <- "BBBBBCCCCCDDDDD#EEEEEFFFFFGGGGGHHHHHIIIIIJJJJJKKKKKLLLLLMMMMMNNNNN#AAAAA"
     if (object@info@n_faceting_vars > 0) {
       object@plot <- object@plot + facet_manual(
         ~ facet_column + .data[[object@info@x]],

@@ -5,6 +5,21 @@
 setClass("Normalize",
     contains = "Data_configurator"
 )
+setGeneric("normSelector", function(object, df) {
+    standardGeneric("normSelector")
+})
+setMethod(
+  "normSelector",
+  signature(object = "Normalize"),
+  function(object, df) {
+    if (as.numeric(object@args@n_normalizer_selector) == 1 &&
+        object@args@normalizer_selector[1] == "all") {
+      df
+    } else {
+      df[, object@args@normalizer_selector]
+    }
+  }
+)
 
 # Override perform method from Data_configurator class
 setMethod(
@@ -12,7 +27,6 @@ setMethod(
   signature(object = "Normalize"),
   function(object) {
     # Get the unique combinations for x axis
-    
     unique_x_keys <- unique(object@args@df[, object@args@normalizer_var])
     # For every unique combination of x axis
     for (key in unique_x_keys) {
@@ -28,9 +42,14 @@ setMethod(
       # Get the normalizer (only one row per x axis combination)
       if (length(object@args@y) > 1) {
         normalizer <- norm_rows[object@args@normalizer_index, ]
+        normalizer <- normSelector(object, normalizer)
+        print("normalizer")
+        print(key)
+        print(norm_rows)
         normalizer <- sum(normalizer)
       } else {
         normalizer <- norm_rows[object@args@normalizer_index]
+        normalizer <- normSelector(object, normalizer)
       }
 
       if (normalizer == 0) {
