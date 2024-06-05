@@ -7,3 +7,6 @@
 *.pyc
 __pycache__
 renv/*
+.R*
+.vscode
+.proj*
