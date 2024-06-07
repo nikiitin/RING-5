@@ -35,8 +35,7 @@ class ConfigurationManager:
     def getStyleConfiguration(cls, plotJson: dict):
         utils.checkElementExists(plotJson, "plotType")
         stylePath = os.path.join(cls._pathToConfigFiles,
-                                 "style",
-                                 plotJson["plotType"])
+                                 "style")
         utils.checkDirExistsOrException(stylePath)
         utils.checkElementExists(plotJson, "styleConfig")
         styleConfig = plotJson["styleConfig"]

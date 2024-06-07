@@ -143,7 +143,8 @@ setMethod(
                 face = "bold"
             ),
             strip.placement = "outside",
-            strip.background = element_rect(fill = alpha('#2eabff', 0.1), color = "white"),
+            strip.background = 
+                element_rect(fill = alpha('#2eabff', 0.1), color = "white"),
             panel.spacing = unit(0.1, "cm")
         )
         # Assign the colors to plot and labels to legend in case
@@ -248,8 +249,6 @@ setMethod(
                     )
             }
         }
-
-
         object
     }
 )

@@ -1,7 +1,8 @@
 options(error = function() {
   # On error, print the traceback and exit with status 1
   traceback(2)
-  exit(1)}
+  quit(1)
+  }
 )
 # Any used source add it here
 # Caution, cyclic dependencies may occur!

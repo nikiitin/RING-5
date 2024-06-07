@@ -1,4 +1,4 @@
-source("src/data_plotter/src/plot_iface/plot.R")
+source("src/data_plotter/src/plots/barplot.R")
 # This is the definition for the barplot type. It is inheriting
 # from the Plot class.
 
@@ -6,7 +6,7 @@ setClass("barplotFacetManual", contains = "barplot")
 
 setMethod(
     "create_plot",
-    signature(object = "barplot"),
+    signature(object = "barplotFacetManual"),
     function(object) {
         object <- callNextMethod()
         design <- "BBBBBCCCCCDDDDD#EEEEEFFFFFGGGGGHHHHHIIIIIJJJJJKKKKKLLLLLMMMMMNNNNN#AAAAA"
