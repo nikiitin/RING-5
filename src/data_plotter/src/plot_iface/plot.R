@@ -1,4 +1,8 @@
-options(error = function() traceback(2))
+options(error = function() {
+  # On error, print the traceback and exit with status 1
+  traceback(2)
+  exit(1)}
+)
 # Any used source add it here
 # Caution, cyclic dependencies may occur!
 library(methods)
@@ -10,6 +14,8 @@ require(stringr)
 library(ggh4x)
 library(prismatic)
 library(ggthemes)
+library(tidyr)
+library(tidyselect)
 source("src/utils/util.R")
 source("src/data_plotter/src/plot_iface/info.R")
 source("src/data_plotter/src/plot_iface/style.R")

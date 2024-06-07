@@ -2,10 +2,10 @@ source("src/data_plotter/src/plot_iface/plot.R")
 # This is the definition for the barplot type. It is inheriting
 # from the Plot class.
 
-setClass("barplot", contains = "Plot")
+setClass("groupedStackedBarplot", contains = "Plot")
 
 setMethod("pre_process",
-    signature(object = "barplot"),
+    signature(object = "groupedStackedBarplot"),
   function(object) {
     # Remove hidden bars from data frame, filter by conf_z
     if (length(object@info@hidden_bars) > 0) {
@@ -30,7 +30,7 @@ setMethod("pre_process",
 
 setMethod(
     "create_plot",
-    signature(object = "barplot"),
+    signature(object = "groupedStackedBarplot"),
     function(object) {
         object@plot <- ggplot(object@info@data_frame, aes(
             x = .data[[object@info@x]],
@@ -77,7 +77,7 @@ setMethod(
 
 setMethod(
     "apply_style",
-    signature(object = "barplot"),
+    signature(object = "groupedStackedBarplot"),
     function(object) {
         # Call parent method
         object <- callNextMethod()
