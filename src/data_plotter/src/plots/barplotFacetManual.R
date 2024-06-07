@@ -8,7 +8,17 @@ setMethod(
     "create_plot",
     signature(object = "barplotFacetManual"),
     function(object) {
-        object <- callNextMethod()
+        object@plot <- ggplot(object@info@data_frame, aes(
+            x = "",
+            y = .data[[object@info@y]],
+            fill = .data[[object@info@conf_z]]
+        ))
+        # Add the geom_bar to the plot object
+        object@plot <- object@plot + geom_bar(
+            stat = "identity",
+            position = "dodge",
+            color = "black"
+        )
         design <- "BBBBBCCCCCDDDDD#EEEEEFFFFFGGGGGHHHHHIIIIIJJJJJKKKKKLLLLLMMMMMNNNNN#AAAAA"
         if (length(object@info@faceting_var) > 0) {
           object@plot <- object@plot + facet_manual(
@@ -20,6 +30,20 @@ setMethod(
             design = design
           )
         }
+        # Add standard deviation error bars
+        object@plot <- object@plot + geom_errorbar(
+            aes(
+                ymin =
+                    object@info@data_frame[, object@info@y] -
+                    object@info@data_frame[,
+                        paste(object@info@y, "sd", sep = ".")],
+                ymax = object@info@data_frame[, object@info@y] +
+                    object@info@data_frame[,
+                    paste(object@info@y, "sd", sep = ".")]
+            ),
+            width = .2,
+            position = position_dodge(.9)
+        )
         object
     }
 )
