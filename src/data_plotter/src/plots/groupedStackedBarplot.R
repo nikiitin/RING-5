@@ -4,73 +4,194 @@ source("src/data_plotter/src/plot_iface/plot.R")
 
 setClass("groupedStackedBarplot", contains = "Plot")
 
-setMethod("pre_process",
+setMethod(
+    "pre_process",
     signature(object = "groupedStackedBarplot"),
-  function(object) {
-    # Remove hidden bars from data frame, filter by conf_z
-    if (length(object@info@hidden_bars) > 0) {
-      object@info@data_frame <-
-        object@info@data_frame[
-            !object@info@data_frame[, object@info@conf_z] %in%
-            object@info@hidden_bars, ]
-    }
-    # Apply faceting for the data frame
-    if (length(object@info@faceting_var) > 0) {
-      object@info@data_frame %<>%
-        map_elements_df(
-          object@info@faceting_var,
-          object@info@facet_map,
-          "facet_column"
+    function(object) {
+        object <- callNextMethod()
+        # The vector ID is kept in csv to avoid collisions
+        # There is a common part of the name of the columns that is
+        # the same for all the entries. We need to remove it
+        # to have only the name of the entries
+        # Remove vector ID as all collisions are already removed
+        # while adding elements to the data frame
+        object@info@data_frame %<>%
+            dplyr::rename_with(
+                ~ sub(".*\\.\\.", "", .)
+            )
+
+        sd_df <- object@info@data_frame %>% tidyr::pivot_longer(
+            cols = tidyselect::ends_with(".sd"),
+            names_to = "entries",
+            values_to = "values_sd"
         )
+        object@info@data_frame %<>%
+            select(-tidyselect::ends_with(".sd")) %>%
+            tidyr::pivot_longer(
+                cols = -c(object@info@x, object@info@conf_z, facet_column),
+                names_to = "entries",
+                values_to = "values"
+            ) %>%
+            cbind(values_sd = sd_df$values_sd)
+        
+        object@info@data_frame$entries <-
+            factor(object@info@data_frame$entries,
+            levels = unique(object@info@data_frame$entries))
+        # Return the object
+        object
     }
-    # Return the object
-    object
-  }
 )
 
 setMethod(
     "create_plot",
     signature(object = "groupedStackedBarplot"),
     function(object) {
-        object@plot <- ggplot(object@info@data_frame, aes(
-            x = .data[[object@info@x]],
-            y = .data[[object@info@y]],
-            fill = .data[[object@info@conf_z]]
+        # Get the cummulative sum of the y axis. It will be used
+        # to set error bars for each entry
+        # Just let it here, in case it is useful
+        # error_df <- object@info@data_frame %>%
+        #   group_by(conf_z,x) %>%
+        #   mutate(error_bar_cumsum = cumsum(values)) %>%
+        #   ungroup()
+
+        # Data mapping performed here is hard to understand but
+        # it would summarize to something like this:
+        #        |
+        # y_val  |
+        #        |
+        #        |
+        #        -----------------------
+        #        |                     |
+        #     conf_z_a              conf_z_b
+        #        |                     |
+        #        -----------------------
+        #                  X
+        # Names from df should be always the same, it is a wrap
+        # specific for this plot
+        total_values <- object@info@data_frame %>%
+            group_by(.data[[object@info@conf_z]], .data[[object@info@x]]) %>%
+            summarise(total = sum(values))
+
+        total_values[, "total"] <-
+            as.numeric(format(round(total_values$total, 2), nsmall = 2))
+
+        total_values[, "total"] <-
+            ifelse(total_values$total < max(object@styles@y_breaks),
+                NA,
+                total_values$total)
+
+        # stamplot
+        stampdata <-
+            object@info@data_frame[
+                object@info@data_frame$facet_column != "Microbenchmark", 
+                ]
+        object@plot <- ggplot(stampdata, aes(
+            x = .data[[object@info@conf_z]],
+            y = values
+            ))
+        # micplot
+        micplotdata <-
+            object@info@data_frame[
+                object@info@data_frame$facet_column == "Microbenchmark",
+                ]
+
+        micplot <- ggplot(micplotdata, aes(
+            x = .data[[object@info@conf_z]],
+            y = values
         ))
-        # Add the geom_bar to the plot object
-        object@plot <- object@plot + geom_bar(
-            stat = "identity",
-            position = "dodge",
+
+        # Add the facet grid to the plot object. Switch it in to X,
+        # this enforce style to group variables in x axis
+        design <- "EEEEEFFFFFGGGGGHHHHHIIIIIJJJJJKKKKKLLLLLMMMMMNNNNN#AAAAA"
+        # Microbench
+        design_micro <- "BBBBBCCCCCDDDDD"
+        object@plot <- object@plot + facet_manual(
+            ~ facet_column + .data[[object@info@x]],
+            strip.position = "bottom",
+            strip = strip_nested(
+                clip = "off"
+            ),
+            design = design
+        )
+        micplot <- micplot + facet_manual(
+            ~ facet_column + .data[[object@info@x]],
+            strip.position = "bottom",
+            strip = strip_nested(
+                clip = "off"
+            ),
+            design = design_micro
+        )
+
+        object@plot <- object@plot + facet_manual(
+            ~ facet_column + .data[[object@info@x]],
+            strip.position = "bottom",
+            strip = strip_nested(
+                clip = "off"
+            ),
+            design = design
+        )
+
+        # Add the geom_bar to the plot object. Use position_stack to
+        # stack the bars and reverse = TRUE to have the bars in the
+        # same order as the legend.
+        object@plot <- object@plot + geom_col(
+            aes(fill = entries),
+            position = position_stack(reverse = TRUE),
             color = "black"
         )
 
-        # # Add the facet grid to the plot object. Switch it in to X,
-        # # this enforce style to group variables in x axis
-        # design <- "BBBBBCCCCCDDDDD#EEEEEFFFFFGGGGGHHHHHIIIIIJJJJJKKKKKLLLLLMMMMMNNNNN#AAAAA"
-        # if (object@info@n_faceting_vars > 0) {
-        #   object@plot <- object@plot + facet_manual(
-        #     ~ facet_column + .data[[object@info@x]],
-        #     strip.position = "bottom",
-        #     strip = strip_nested(
-        #       clip = "off"
-        #     ),
-        #     design = design
-        #   )
-        # }
-        # Add standard deviation error bars
-        object@plot <- object@plot + geom_errorbar(
-            aes(
-                ymin =
-                    object@info@data_frame[, object@info@y] -
-                    object@info@data_frame[,
-                        paste(object@info@y, "sd", sep = ".")],
-                ymax = object@info@data_frame[, object@info@y] +
-                    object@info@data_frame[,
-                    paste(object@info@y, "sd", sep = ".")]
-            ),
-            width = .2,
-            position = position_dodge(.9)
+        micplot <- micplot + geom_col(
+            aes(fill = entries),
+            position = position_stack(reverse = TRUE),
+            color = "black"
         )
+
+        # Patchwork micbenchs and stamp together and
+        # size them correctly
+        object@plot <- micplot + object@plot +
+            plot_layout(
+                widths = c(15, 55),
+                guides = "collect",
+                axis_titles = "collect"
+            )
+        if (!all(is.na(total_values$total))) {
+            # If all values are NA, do not add the text
+            # or it will throw an error
+            object@plot <- object@plot & geom_text(
+                data = total_values,
+                aes(
+                    y = total,
+                    label = total,
+                    x = .data[[object@info@conf_z]]
+                ),
+                color = "white",
+                angle = 90,
+                hjust = "inward",
+                na.rm = TRUE,
+                size = adjust_text_size(
+                    6,
+                    object@styles@width,
+                    object@styles@height
+                ),
+                position = position_dodge(width = 1)
+            )
+        }
+        # REALLY UGLY, I do not know if it
+        # should be used, just let it here, maybe it is useful
+
+        # # Add standard deviation error bars, use the caculated
+        # # error_bar as y axis
+        # object@plot <- object@plot + geom_errorbar(
+        #   data = error_df,
+        #   aes(
+        #     ymin = error_bar_cumsum - values_sd,
+        #     ymax = error_bar_cumsum + values_sd,
+        #   ),
+        #   width = .2
+        # )
+
+
+        # Return the plot
         object
     }
 )
@@ -79,60 +200,107 @@ setMethod(
     "apply_style",
     signature(object = "groupedStackedBarplot"),
     function(object) {
-        # Call parent method
-        object <- callNextMethod()
+        # Apply style to the plot
+        # Set the number of elements per row in the legend
+        # and the title of the legend
+        object@plot <- object@plot &
+            guides(
+                fill = guide_legend(
+                    nrow = object@styles@legend_n_elem_row,
+                    title = object@styles@legend_title,
+                    title.position = "left"
+                )
+            )
+
+        # Set the Title
+        if (object@styles@title != "") {
+            object@plot <- object@plot & ggtitle(object@styles@title)
+        }
+        # Set the x axis title
+        if (object@styles@x_axis_name != "") {
+            object@plot <- object@plot & xlab(object@styles@x_axis_name)
+        }
+        # Set the y axis title
+        if (object@styles@y_axis_name != "") {
+            object@plot <- object@plot & ylab(object@styles@y_axis_name)
+        }
+        # Label x axis with the legend names if specified
+        # Label names were conf_z names on other plots
+        if (length(object@styles@legend_names) > 0) {
+            object@plot <- object@plot & scale_x_discrete(
+                labels = object@styles@legend_names,
+            )
+        }
+
         # Set the theme to be used
-        object@plot <- object@plot + theme_hc()
+        object@plot <- object@plot & theme_hc()
         # Add specific configs to the theme
-        object@plot <- object@plot + theme(
+        object@plot <- object@plot & theme(
             axis.text.x = element_text(
-                angle = 30,
+                angle = 45,
                 hjust = 1,
-                size = adjust_text_size(13,
+                size = adjust_text_size(
+                    13,
                     object@styles@width,
-                    object@styles@height),
+                    object@styles@height
+                ),
                 face = "bold"
             ),
-            axis.ticks.x = element_blank(),
-            axis.ticks.y = element_blank(),
             axis.text.y = element_text(
                 hjust = 1,
-                size = adjust_text_size(13,
+                size = adjust_text_size(
+                    13,
                     object@styles@width,
-                    object@styles@height),
+                    object@styles@height
+                ),
                 face = "bold"
             ),
+            axis.title.x = element_blank(),
             axis.title.y = element_text(
-                size = adjust_text_size(13,
+                size = adjust_text_size(
+                    13,
                     object@styles@width,
-                    object@styles@height),
+                    object@styles@height
+                ),
                 face = "bold"
             ),
+            # legend.position = c(0.8,0.9),
             legend.position = "top",
             legend.justification = "right",
-            legend.background= element_rect(fill = NA, color = "white"),
-            legend.box.margin = margin(-18, 0, -16, 0),
+            # legend.background = element_blank(),
+            # legend.box.background = element_rect(fill = "white", color = "black"),
             legend.title = element_text(
-                size = adjust_text_size(13,
+                size = adjust_text_size(
+                    13,
                     object@styles@width,
-                    object@styles@height),
+                    object@styles@height
+                ),
                 face = "bold"
             ),
             legend.text = element_text(
-                size = adjust_text_size(13,
+                size = adjust_text_size(
+                    13,
                     object@styles@width,
-                    object@styles@height)
+                    object@styles@height
+                )
             ),
             legend.key.width = unit(
-                adjust_text_size(1,
+                adjust_text_size(
+                    1,
                     object@styles@width,
-                    object@styles@height),
-                "cm"),
+                    object@styles@height
+                ),
+                "cm"
+            ),
             legend.key.height = unit(
-                adjust_text_size(1,
+                adjust_text_size(
+                    1,
                     object@styles@width,
-                    object@styles@height),
-                "cm"),
+                    object@styles@height
+                ),
+                "cm"
+            ),
+            legend.box.margin = margin(-3, 0, -3, 0),
             strip.text = element_text(
                 size = adjust_text_size(
                     13,
@@ -143,113 +311,30 @@ setMethod(
                 face = "bold"
             ),
             strip.placement = "outside",
-            strip.background = element_rect(fill = alpha('#2eabff', 0.1), color = "white"),
-            panel.spacing = unit(0.1, "cm")
-        )
-        # Assign the colors to plot and labels to legend in case
-        # legend names are specified
-        if (length(object@styles@legend_names) != 0) {
-            object@plot <- object@plot +
-                scale_fill_viridis_d(
-                    option = "viridis",
-                    labels = object@styles@legend_names,
-                    direction = 1
-                )
-        } else {
-            object@plot <- object@plot +
-                scale_fill_viridis_d(
-                    option = "viridis",
-                    direction = 1
+            strip.background =
+                element_rect(fill = alpha("#2eabff", 0.1), color = "white"),
+            panel.spacing = unit(0.1, "cm"),
+        ) # Added facet specific configs
+
+        # Assign the colors to plot
+        object@plot <- object@plot &
+            scale_fill_viridis_d(
+                option = "viridis",
+                direction = 1
+            )
+
+        # Set the breaks
+        if (length(object@styles@y_breaks) > 0) {
+            object@plot <- object@plot &
+                scale_y_continuous(
+                    breaks = object@styles@y_breaks,
+                    limits = c(
+                        min(object@styles@y_breaks),
+                        max(object@styles@y_breaks)
+                    ),
+                    oob = scales::squish
                 )
         }
-        # Limit the y axis and assign labels to those
-        # statistics that overgo the top limit
-        if (object@styles@y_limit_top > 0) {
-            if (object@styles@y_limit_bot > object@styles@y_limit_top) {
-                warning(paste0(
-                    "Y limit bot is greater than Y limit top! ",
-                    "skipping limits"
-                ))
-            } else if (object@styles@y_limit_bot < 0) {
-                warning("Y limit bot is less than 0! skipping limits")
-            } else {
-                # Calculate the colors that will be applied
-                # for labels depending on its background
-                # TODO-Note: using plasma but should be configurable
-                colors <-
-                    farver::decode_colour(
-                        viridisLite::viridis(
-                            length(
-                                unique(
-                                    object@info@data_frame[[
-                                        object@info@conf_z
-                                        ]])
-                            ),
-                            direction = 1,
-                        ),
-                        "rgb",
-                        "hcl"
-                    )
-                label_col <- ifelse(colors[, "l"] > 50, "black", "white")
-                # Check if any stat goes over the top limit and
-                # assign a label to it
-                list_of_labels <-
-                    ifelse(
-                        (object@info@data_frame[, object@info@y] >
-                            (object@styles@y_limit_top)),
-                        format(
-                            round(
-                                object@info@data_frame[
-                                    ,
-                                    object@info@y
-                                ],
-                                2
-                            ),
-                            nsmall = 2
-                        ),
-                        NA
-                    )
-                # Set the breaks and the limits
-                object@plot <- object@plot +
-                    scale_y_continuous(
-                        breaks = object@styles@y_breaks,
-                        oob = scales::squish
-                    )
-                object@plot <- object@plot + coord_cartesian(
-                    ylim = as.numeric(
-                        c(
-                            object@styles@y_limit_bot,
-                            object@styles@y_limit_top
-                        )
-                    )
-                )
-                # Add the labels to the plot
-                object@plot <- object@plot +
-                    geom_text(
-                        position = position_dodge(.9),
-                        aes(
-                            label = list_of_labels,
-                            group = .data[[object@info@conf_z]],
-                            color = .data[[object@info@conf_z]],
-                            y = object@styles@y_limit_top
-                        ),
-                        show.legend = FALSE,
-                        size = adjust_text_size(6,
-                            object@styles@width,
-                            object@styles@height),
-                        angle = 90,
-                        hjust = "inward",
-                        na.rm = TRUE
-                    )
-                # Set the color of the labels
-                object@plot <- object@plot +
-                    scale_color_manual(
-                        values = label_col
-                    )
-            }
-        }
-
-
         object
     }
 )

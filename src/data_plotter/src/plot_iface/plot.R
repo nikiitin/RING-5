@@ -151,6 +151,22 @@ setMethod(
   "pre_process",
   signature(object = "Plot"),
   function(object) {
+    # Remove hidden bars from data frame, filter by conf_z
+    if (length(object@info@hidden_bars) > 0) {
+      object@info@data_frame <-
+        object@info@data_frame[
+            !object@info@data_frame[, object@info@conf_z] %in%
+            object@info@hidden_bars, ]
+    }
+    # Apply faceting for the data frame
+    if (length(object@info@faceting_var) > 0) {
+      object@info@data_frame %<>%
+        map_elements_df(
+          object@info@faceting_var,
+          object@info@facet_map,
+          "facet_column"
+        )
+    }
     object
   }
 )

@@ -65,22 +65,27 @@
     "removeOutliers": true,
     "outlierStat": "simTicks",
     "plots": [
+
         {
-            "plotType": "barplotFacetManual",
+            "plotType": "groupedStackedBarplot",
             "dataConfig": {
                 "file": "config_woper",
-                "config": "sens_retry"
+                "config": "default_stack"
             },
             "styleConfig": {
                 "file": "style_woper",
-                "config": "sens_retry"
+                "config": "aborts_reason"
             },
-            "fileName": "simticks",
+            "fileName": "aborts_cause",
             "x": [
                 "benchmark_name"
             ],
             "y": [
-                "simTicks"
+                "htm_transaction_abort_cause..Conflicts",
+                "htm_transaction_abort_cause..Conflicts_fallbacklock",
+                "htm_transaction_abort_cause..Capacity",
+                "htm_transaction_abort_cause..Explicit",
+                "htm_transaction_abort_cause..Other"
             ],
             "conf_z": [
                 "config_description_abbrev"
@@ -101,7 +106,7 @@
                     "vacation-l=STAMP",
                     "vacation-h=STAMP",
                     "yada=STAMP",
-                    "geomean=(STAMP)"
+                    "mean=(STAMP)"
                 ]
             }
         }
