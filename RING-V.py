@@ -4,7 +4,7 @@ from src.data_parser.src.dataParserFactory import DataParserFactory
 from src.data_management.src.dataManagerFactory import DataManagerFactory
 from src.data_parser.src.configurationManager import ConfigurationManager as ParserConfigurationManager
 from argumentParser import AnalyzerInfo
-from src.plots.src.plot_impl.plotFactory import PlotFactory 
+from src.data_plotter.data_plotter import dataPlotter
 import src.utils.utils as utils
 
 info = AnalyzerInfo()
@@ -29,7 +29,4 @@ info.createWorkCsv()
 manager = DataManagerFactory.getDataManager("R", info).__call__()
 # Get and execute plots
 plots = info.getJson()["plots"]
-for plot in plots:
-    # Execute corresponding plot
-    utils.checkElementExists(plot, "plotType")
-    PlotFactory.plot(info, plot, plot["plotType"]).__call__()
+dataPlotter(info.getOutputDir(), info.getWorkCsv(), plots).__call__()
