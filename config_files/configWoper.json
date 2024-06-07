@@ -1,8 +1,8 @@
 {
-    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/woper_sens",
+    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/woper_comparePCHATS",
     "parseConfig": {
         "file": "parse_woper",
-        "config": "retry_sens"
+        "config": "default"
     },
     "mixStats": [
         {
@@ -65,7 +65,46 @@
     "removeOutliers": true,
     "outlierStat": "simTicks",
     "plots": [
-
+        {
+            "plotType": "barplotFacetManual",
+            "dataConfig": {
+                "file": "config_woper",
+                "config": "sens_retry"
+            },
+            "styleConfig": {
+                "file": "style_woper",
+                "config": "sens_retry"
+            },
+            "fileName": "simticks",
+            "x": [
+                "benchmark_name"
+            ],
+            "y": [
+                "simTicks"
+            ],
+            "conf_z": [
+                "config_description_abbrev"
+            ],
+            "facet": {
+                "facetVar": "benchmark_name",
+                "facetMappings": [
+                    "cadd=Microbenchmark",
+                    "llb-l=Microbenchmark",
+                    "llb-h=Microbenchmark",
+                    "genome=STAMP",
+                    "intruder=STAMP",
+                    "intruder-qs=STAMP",
+                    "kmeans-l=STAMP",
+                    "kmeans-h=STAMP",
+                    "labyrinth=STAMP",
+                    "ssca2=STAMP",
+                    "vacation-l=STAMP",
+                    "vacation-h=STAMP",
+                    "yada=STAMP",
+                    "geomean=(STAMP)"
+                ]
+            }
+        },
         {
             "plotType": "groupedStackedBarplot",
             "dataConfig": {

@@ -5,7 +5,7 @@
         "compress": true,
         "parsings": [
             {
-                "path": "/home/vnicolas/Workspace/remote-echo/workspace/sims/ruben/gem5/results/valuepred-woper-test",
+                "path": "/home/vnicolas/Workspace/remote-echo/workspace/sims/ruben/gem5/results/valuepred-woper-comparePCHATS",
                 "files": "stats.txt",
                 "vars": [
                     {
