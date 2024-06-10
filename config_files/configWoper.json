@@ -1,8 +1,8 @@
 {
-    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/woper_comparePCHATS",
+    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/woper_sens",
     "parseConfig": {
         "file": "parse_woper",
-        "config": "default"
+        "config": "retry_sens"
     },
     "mixStats": [
         {
@@ -66,131 +66,6 @@
     "outlierStat": "simTicks",
     "plots": [
         {
-            "plotType": "barplotFacetManual",
-            "dataConfig": {
-                "file": "config_woper",
-                "config": "compare_pchats"
-            },
-            "styleConfig": {
-                "file": "style_woper",
-                "config": "sens_retry"
-            },
-            "fileName": "simticks",
-            "x": [
-                "benchmark_name"
-            ],
-            "y": [
-                "simTicks"
-            ],
-            "conf_z": [
-                "config_description_abbrev"
-            ],
-            "facet": {
-                "facetVar": "benchmark_name",
-                "facetMappings": [
-                    "cadd=Microbenchmark",
-                    "llb-l=Microbenchmark",
-                    "llb-h=Microbenchmark",
-                    "genome=STAMP",
-                    "intruder=STAMP",
-                    "intruder-qs=STAMP",
-                    "kmeans-l=STAMP",
-                    "kmeans-h=STAMP",
-                    "labyrinth=STAMP",
-                    "ssca2=STAMP",
-                    "vacation-l=STAMP",
-                    "vacation-h=STAMP",
-                    "yada=STAMP",
-                    "geomean=(STAMP)"
-                ]
-            }
-        },
-        {
-            "plotType": "groupedStackedBarplot",
-            "dataConfig": {
-                "file": "config_woper",
-                "config": "compare_pchats_stack"
-            },
-            "styleConfig": {
-                "file": "style_woper",
-                "config": "aborts_reason"
-            },
-            "fileName": "aborts_cause",
-            "x": [
-                "benchmark_name"
-            ],
-            "y": [
-                "htm_transaction_abort_cause..Conflicts",
-                "htm_transaction_abort_cause..Conflicts_fallbacklock",
-                "htm_transaction_abort_cause..Capacity",
-                "htm_transaction_abort_cause..Explicit",
-                "htm_transaction_abort_cause..Other"
-            ],
-            "conf_z": [
-                "config_description_abbrev"
-            ],
-            "facet": {
-                "facetVar": "benchmark_name",
-                "facetMappings": [
-                    "cadd=Microbenchmark",
-                    "llb-l=Microbenchmark",
-                    "llb-h=Microbenchmark",
-                    "genome=STAMP",
-                    "intruder=STAMP",
-                    "intruder-qs=STAMP",
-                    "kmeans-l=STAMP",
-                    "kmeans-h=STAMP",
-                    "labyrinth=STAMP",
-                    "ssca2=STAMP",
-                    "vacation-l=STAMP",
-                    "vacation-h=STAMP",
-                    "yada=STAMP",
-                    "mean=(STAMP)"
-                ]
-            }
-        },
-        {
-            "plotType": "lineplot",
-            "dataConfig": {
-                "file": "config_sens_rtry",
-                "config": "default_lineplot"
-            },
-            "styleConfig": {
-                "file": "style_sens_rtry",
-                "config": "default"
-            },
-            "fileName": "simTicks_lineplot",
-            "x": [
-                "htm_max_retries"
-            ],
-            "y": [
-                "simTicks"
-            ],
-            "showOnlyMean": false,
-            "conf_z": [
-                "htm_conflict_resolution"
-            ],
-            "facet": {
-                "facetVar": "benchmark_name",
-                "facetMappings": [
-                    "cadd=Microbenchmark",
-                    "llb-l=Microbenchmark",
-                    "llb-h=Microbenchmark",
-                    "genome=STAMP",
-                    "intruder=STAMP",
-                    "intruder-qs=STAMP",
-                    "kmeans-l=STAMP",
-                    "kmeans-h=STAMP",
-                    "labyrinth=STAMP",
-                    "ssca2=STAMP",
-                    "vacation-l=STAMP",
-                    "vacation-h=STAMP",
-                    "yada=STAMP",
-                    "mean=(STAMP)"
-                ]
-            }
-        },
-        {
             "plotType": "heatmap",
             "dataConfig": {
                 "file": "config_woper",
@@ -207,7 +82,7 @@
             "y": [
                 "simTicks"
             ],
-            "showOnlyMean": false,
+            "showOnlyMean": true,
             "meanFacet": "benchmark_name",
             "conf_z": [
                 "htm_conflict_resolution"
@@ -228,7 +103,7 @@
                     "vacation-l=STAMP",
                     "vacation-h=STAMP",
                     "yada=STAMP",
-                    "mean=(STAMP)"
+                    "geomean=(STAMP)"
                 ]
             }
         }

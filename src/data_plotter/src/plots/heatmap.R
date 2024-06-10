@@ -17,6 +17,9 @@ setMethod("initialize",
         factor(pull(.Object@info@data_frame, .Object@info@faceting_var),
         levels = facet_levels)
 
+    .Object@info@data_frame[.Object@info@faceting_var] <-
+        factor(pull(.Object@info@data_frame, .Object@info@faceting_var),
+        levels = facet_levels)
     .Object
   }
 )
@@ -27,8 +30,11 @@ setMethod("pre_process",
     object <- callNextMethod()
     object@info@data_frame[[object@info@conf_z]] %<>%
         factor(levels = unique(object@info@data[[object@info@conf_z]]))
-    object@data_frame[[object@info@x]] %<>%
+    object@info@data_frame[[object@info@x]] %<>%
         factor(levels = unique(object@info@data[[object@info@x]]))
+    if (object@info@show_only_mean == TRUE) {
+        object@info@data_frame <- object@info@data_frame[object@info@data_frame[["benchmark_name"]] == "geomean", ]
+    }
     # Return the object
     object
   }
@@ -67,7 +73,7 @@ setMethod("create_plot",
         color = label_col)
 
     # Facet by the variable specified in faceting_var
-    if (length(object@info@faceting_vars) > 0) {
+    if (length(object@info@faceting_var) > 0) {
       object@plot <- object@plot + facet_wrap(
         object@info@faceting_var)
     }
@@ -81,17 +87,17 @@ setMethod(
     "apply_style",
     signature(object = "heatmap"),
     function(object) {
+        object <- callNextMethod()
         # Set the theme to be used
-        plot <- plot + theme_hc()
-            plot <- plot +
+        object@plot <- object@plot + theme_hc()
+            object@plot <- object@plot +
                 scale_fill_viridis_c(
                     option = "viridis",
                     direction = 1,
                     alpha = 0.8
                 )
-        plot <- callNextMethod()
         # Reshape legend
-        plot <- plot +
+        object@plot <- object@plot +
             guides(
                 fill = guide_colourbar(
                     title = object@styles@legend_title,
@@ -105,7 +111,7 @@ setMethod(
                         object@styles@height))
             )
                 # # Add specific configs to the theme
-        plot <- plot + theme(
+        object@plot <- object@plot + theme(
             axis.text.x = element_text(
                 hjust = 0.5,
                 vjust = 0.5,
@@ -163,6 +169,6 @@ setMethod(
             panel.spacing = unit(0.1, "cm"),
             panel.grid.major.y = element_blank()
         )
-        plot
+        object
     }
 )
