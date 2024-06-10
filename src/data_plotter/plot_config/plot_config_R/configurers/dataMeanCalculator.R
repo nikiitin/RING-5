@@ -14,7 +14,6 @@ setMethod(
         # Copy the data frame to store the mean values
         mean_df <- object@args@df
         # Remove rows matching skip_mean values
-        print(object@args@mean_var)
         mean_df <- mean_df[!mean_df[, object@args@mean_var] %in%
             object@args@skip_mean, ]
         # Apply the mean algorithm to every stat (y values)
@@ -25,7 +24,6 @@ setMethod(
                     object@args@y,
                     object@args@y_sd)],
             FUN = object@args@mean_algorithm)
-        print(mean_df)
         # Add the x column again to the data frame
         mean_df[object@args@mean_var] <- object@args@mean_algorithm
         # Add the mean_df rows to the data frame

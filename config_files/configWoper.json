@@ -69,7 +69,7 @@
             "plotType": "barplotFacetManual",
             "dataConfig": {
                 "file": "config_woper",
-                "config": "sens_retry"
+                "config": "compare_pchats"
             },
             "styleConfig": {
                 "file": "style_woper",
@@ -109,7 +109,7 @@
             "plotType": "groupedStackedBarplot",
             "dataConfig": {
                 "file": "config_woper",
-                "config": "default_stack"
+                "config": "compare_pchats_stack"
             },
             "styleConfig": {
                 "file": "style_woper",
@@ -148,6 +148,30 @@
                     "mean=(STAMP)"
                 ]
             }
+        },
+        {
+            "plotType": "lineplot",
+            "dataConfig": {
+                "file": "config_sens_rtry",
+                "config": "default_lineplot"
+            },
+            "styleConfig": {
+                "file": "style_sens_rtry",
+                "config": "default"
+            },
+            "fileName": "simTicks_lineplot",
+            "x": [
+                "htm_max_retries"
+            ],
+            "y": [
+                "simTicks"
+            ],
+            "showOnlyMean": false,
+            "conf_z": [
+                "htm_conflict_resolution",
+                "htm_fwd_mechanism"
+            ],
+            "facets": ["benchmark_name"]
         }
     ]
 }

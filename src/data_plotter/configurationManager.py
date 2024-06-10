@@ -49,9 +49,6 @@ class ConfigurationManager:
         # Search for the style
         for element in style:
             utils.checkElementExists(element, "styleName")
-            print(element)
-            print(styleName)
-            print(element["styleName"])
             if (utils.getElementValue(element, "styleName") == styleName):
                 utils.checkElementExists(element, "dataStyle")
                 return element["dataStyle"]

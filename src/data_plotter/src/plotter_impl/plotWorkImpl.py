@@ -10,6 +10,8 @@ class PlotWorkImpl(PlotWork):
     def __init__(self, outputPath: str, workCsv: str, plotJson: dict) -> None:
         # Plot data
         self._plotJson = plotJson
+        self._workCsv = workCsv
+        self._copiedFile = False
         # Initialize style data
         # Initialize plot data
         # R script call
@@ -27,15 +29,7 @@ class PlotWorkImpl(PlotWork):
         if not utils.checkDirExists(self._tmpDir):
             utils.createDir(self._tmpDir)
         # Create temporary csv with random name
-        self._tmpCsv = os.path.join(self._plotPathDir, "" + str(random.random()) + "tmp.csv")
-        # Create a random name for the temporary csv
-        # Check it is not already taken
-        while utils.checkFileExists(self._tmpCsv):
-            self._tmpCsv = os.path.join(self._plotPathDir, ".tmp", str(random.random()) + "tmp.csv")
-        # Copy the work csv to the temporary csv
-        shutil.copyfile(workCsv, self._tmpCsv)
-        # Only for debugging
-        # print("Created tmp csv: " + self._tmpCsv)
+        self._tmpCsv = os.path.join(self._tmpDir, str(random.random()) + "tmp.csv")
         # Is plot data correct?
         self._checkCorrectness()
         # Create plot configurer, this will filter, mean, sort and normalize the data
@@ -44,6 +38,13 @@ class PlotWorkImpl(PlotWork):
         super().__init__()
 
     def __call__(self) -> None:
+        # Create a random name for the temporary csv
+        # Check it is not already taken
+        while utils.checkFileExists(self._tmpCsv):
+            self._tmpCsv = os.path.join(self._tmpDir, str(random.random()) + "tmp.csv")
+        # Copy the work csv to the temporary csv
+        shutil.copyfile(self._workCsv, self._tmpCsv)
+        self._copiedFile = True
         # Configure plot
         self._configurer.configurePlot(self._plotJson, self._tmpCsv)
         # Prepare R script call
@@ -53,7 +54,8 @@ class PlotWorkImpl(PlotWork):
     
     def __del__(self) -> None:
         # Remove temporary csv
-        utils.removeFile(self._tmpCsv)
+        if self._copiedFile:
+            utils.removeFile(self._tmpCsv)
         pass
 
     def __str__(self) -> str:

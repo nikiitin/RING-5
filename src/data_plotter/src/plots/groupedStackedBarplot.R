@@ -122,15 +122,6 @@ setMethod(
             design = design_micro
         )
 
-        object@plot <- object@plot + facet_manual(
-            ~ facet_column + .data[[object@info@x]],
-            strip.position = "bottom",
-            strip = strip_nested(
-                clip = "off"
-            ),
-            design = design
-        )
-
         # Add the geom_bar to the plot object. Use position_stack to
         # stack the bars and reverse = TRUE to have the bars in the
         # same order as the legend.
@@ -317,10 +308,17 @@ setMethod(
         ) # Added facet specific configs
 
         # Assign the colors to plot
+        # Get stacked color vector
+        color_index_vector <- get_stack_discrete_color_vector(
+            length(unique(object@info@data_frame$entries))
+            )
+        # Get the colors from the viridis palette
+        color_vector <- viridis::viridis(length(color_index_vector))
+        # Apply the specific order from the color index vector
+        color_vector <- color_vector[color_index_vector * (length(color_vector) - 1) + 1]
         object@plot <- object@plot &
-            scale_fill_viridis_d(
-                option = "viridis",
-                direction = 1
+            scale_fill_manual(
+                values = color_vector
             )
 
         # Set the breaks

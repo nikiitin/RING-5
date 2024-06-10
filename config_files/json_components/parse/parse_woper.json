@@ -92,6 +92,19 @@
                 "vars": [
                     {
                         "type": "configuration",
+                        "id": "htm_max_retries"
+                    },
+                    {
+                        "type": "configuration",
+                        "id": "htm_fwd_mechanism"
+                    },
+                    {
+                        "type": "configuration",
+                        "id": "htm_conflict_resolution",
+                        "onEmpty": "none"
+                    },
+                    {
+                        "type": "configuration",
                         "id": "config_description_abbrev"
                     },
                     {

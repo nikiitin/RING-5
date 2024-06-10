@@ -43,9 +43,6 @@ setMethod(
       if (length(object@args@y) > 1) {
         normalizer <- norm_rows[object@args@normalizer_index, ]
         normalizer <- normSelector(object, normalizer)
-        print("normalizer")
-        print(key)
-        print(norm_rows)
         normalizer <- sum(normalizer)
       } else {
         normalizer <- norm_rows[object@args@normalizer_index]

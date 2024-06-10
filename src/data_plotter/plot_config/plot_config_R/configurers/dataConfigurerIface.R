@@ -84,7 +84,6 @@ setMethod(
         # Number of facets
         .Object@n_facets <- as.numeric(get_arg(args, 1))
         args %<>% shift(1)
-        print(.Object@n_facets)
         # Facets values
         if (.Object@n_facets > 0) {
             .Object@facets <- get_arg(args, .Object@n_facets)

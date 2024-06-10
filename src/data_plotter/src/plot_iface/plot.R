@@ -15,7 +15,7 @@ require(stringr)
 library(ggh4x)
 library(prismatic)
 library(ggthemes)
-library(tidyr)
+library(tidyr, warn.conflicts = FALSE)
 library(tidyselect)
 source("src/utils/util.R")
 source("src/data_plotter/src/plot_iface/info.R")
@@ -105,7 +105,7 @@ setMethod(
         levels = unique(pull(.Object@info@data, .Object@info@x)))
     # Add conf_z columns
     .Object@info@data_frame %<>%
-      cbind(.Object@info@data[.Object@info@conf_z])
+      bind_cols(.Object@info@data[.Object@info@conf_z])
     # Take into account that conf_z column is an already ordered factor
     # so assign back the levels to the data frame
     .Object@info@data_frame[, .Object@info@conf_z] %<>%
@@ -116,11 +116,11 @@ setMethod(
     stats_sd <- .Object@info@data[paste(.Object@info@y, "sd", sep = ".")]
     # Add stats to dataFrame
     for (stat in seq_len(ncol(stats))) {
-      .Object@info@data_frame <- cbind(
+      .Object@info@data_frame <- bind_cols(
         .Object@info@data_frame,
         stats[stat]
       )
-      .Object@info@data_frame <- cbind(
+      .Object@info@data_frame <- bind_cols(
         .Object@info@data_frame,
         stats_sd[stat]
       )

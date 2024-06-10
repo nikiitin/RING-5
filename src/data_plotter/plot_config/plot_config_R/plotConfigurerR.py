@@ -116,8 +116,12 @@ class PlotConfigurerR(PlotConfigurerInterface):
         self._command.extend(utils.jsonToArg(plotJson, "y"))
         self._command.extend(utils.jsonToArg(plotJson, "x"))
         self._command.extend(utils.jsonToArg(plotJson, "conf_z"))
-        if utils.checkElementExistNoException(plotJson, "facets"):
-            self._command.extend(utils.jsonToArg(plotJson, "facets"))
+        if utils.checkElementExistNoException(plotJson, "facet"):
+            facetJson = plotJson["facet"]
+            utils.checkElementExists(facetJson, "facetVar")
+            # Hardcoded right now
+            self._command.append("1")
+            self._command.extend(utils.jsonToArg(facetJson, "facetVar"))
         else:
             self._command.append("0")
         
@@ -134,9 +138,6 @@ class PlotConfigurerR(PlotConfigurerInterface):
             self._normalizeJson = jsonDataConfig["normalize"]
             self._normalizeData()
         # Call the R script
-        # print("Calling R script")
-        # print(" ".join(self._command))
-        print(self._command)
         subprocess.call(self._command)
         
         

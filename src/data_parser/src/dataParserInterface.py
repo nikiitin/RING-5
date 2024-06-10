@@ -28,8 +28,8 @@ class DataParserInterface:
     # Generic definition for data parsing
     def __call__(self) -> None:
         # Data compression will bring all stats files into a single directory
-        if (self._shouldCompress == "True"):
-             self._compressData()
+#        if (self._shouldCompress == "True"):
+#             self._compressData()
         # Parse stats and turn them into csv
         self._parseStats()
         self._turnIntoCsv()

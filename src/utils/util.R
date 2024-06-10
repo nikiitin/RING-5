@@ -87,7 +87,19 @@ map_elements_df <- function(df, element, map_set, new_name) {
         # by key and add the element to the dataframe
         df[i, last_col] <- get_element_by_key(map_set, as.character(df[i, element]))
     }
-    print(df)
     # Return the dataframe
     df
+}
+
+get_stack_discrete_color_vector <- function(total_n_elements) {
+    indexes <- c()
+    for (i in seq_len(total_n_elements)) {
+        if (i %% 2 == 0) {
+            i / 2
+            indexes <- c(indexes, ((i / 2) / total_n_elements))
+        } else {
+            indexes <- c(indexes, 0.5 + (((i + 1) / 2) / total_n_elements))
+        }
+    }
+    indexes
 }
