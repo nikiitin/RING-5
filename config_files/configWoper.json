@@ -168,10 +168,69 @@
             ],
             "showOnlyMean": false,
             "conf_z": [
-                "htm_conflict_resolution",
-                "htm_fwd_mechanism"
+                "htm_conflict_resolution"
             ],
-            "facets": ["benchmark_name"]
+            "facet": {
+                "facetVar": "benchmark_name",
+                "facetMappings": [
+                    "cadd=Microbenchmark",
+                    "llb-l=Microbenchmark",
+                    "llb-h=Microbenchmark",
+                    "genome=STAMP",
+                    "intruder=STAMP",
+                    "intruder-qs=STAMP",
+                    "kmeans-l=STAMP",
+                    "kmeans-h=STAMP",
+                    "labyrinth=STAMP",
+                    "ssca2=STAMP",
+                    "vacation-l=STAMP",
+                    "vacation-h=STAMP",
+                    "yada=STAMP",
+                    "mean=(STAMP)"
+                ]
+            }
+        },
+        {
+            "plotType": "heatmap",
+            "dataConfig": {
+                "file": "config_woper",
+                "config": "onlymean_heatmap_rln"
+            },
+            "styleConfig": {
+                "file": "style_woper",
+                "config": "heatmap_default"
+            },
+            "fileName": "simTicks_onlymean_heatmap_rln",
+            "x": [
+                "htm_max_retries"
+            ],
+            "y": [
+                "simTicks"
+            ],
+            "showOnlyMean": false,
+            "meanFacet": "benchmark_name",
+            "conf_z": [
+                "htm_conflict_resolution"
+            ],
+            "facet": {
+                "facetVar": "benchmark_name",
+                "facetMappings": [
+                    "cadd=Microbenchmark",
+                    "llb-l=Microbenchmark",
+                    "llb-h=Microbenchmark",
+                    "genome=STAMP",
+                    "intruder=STAMP",
+                    "intruder-qs=STAMP",
+                    "kmeans-l=STAMP",
+                    "kmeans-h=STAMP",
+                    "labyrinth=STAMP",
+                    "ssca2=STAMP",
+                    "vacation-l=STAMP",
+                    "vacation-h=STAMP",
+                    "yada=STAMP",
+                    "mean=(STAMP)"
+                ]
+            }
         }
     ]
 }

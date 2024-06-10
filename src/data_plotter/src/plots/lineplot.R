@@ -8,9 +8,13 @@ setMethod("initialize",
     .Object <- callNextMethod()
     .Object@info@data_frame %<>%
         bind_cols(.Object@info@data[.Object@info@faceting_var])
+
     facet_levels <- unique(pull(.Object@info@data, .Object@info@faceting_var))
+
     .Object@info@data_frame[.Object@info@faceting_var] <-
-        factor(pull(.Object@info@data_frame, .Object@info@faceting_var), levels=facet_levels)
+        factor(pull(.Object@info@data_frame, .Object@info@faceting_var),
+        levels = facet_levels)
+
     .Object
   }
 )

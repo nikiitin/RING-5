@@ -344,5 +344,65 @@
                 ]
             }
         }
+    },
+    {
+        "configName": "onlymean_heatmap_rln",
+        "dataConfig": {
+            "mean": {
+                "meanAlgorithm": "geomean",
+                "meanVar": "benchmark_name",
+                "skipMean": [
+                    "cadd",
+                    "llb-l",
+                    "llb-h",
+                    "intruder-qs"
+                ]
+            },
+            "sort": [
+                {
+                    "varToSort": "benchmark_name",
+                    "order": [
+                        "cadd",
+                        "llb-l",
+                        "llb-h",
+                        "genome",
+                        "intruder",
+                        "intruder-qs",
+                        "kmeans-l",
+                        "kmeans-h",
+                        "labyrinth",
+                        "ssca2",
+                        "vacation-l",
+                        "vacation-h",
+                        "yada",
+                        "geomean"
+                    ]
+                },
+                {
+                    "varToSort": "htm_max_retries",
+                    "order": [
+                        "1",
+                        "2",
+                        "4",
+                        "6",
+                        "8",
+                        "10"
+                    ]
+                },
+                {
+                    "varToSort": "htm_conflict_resolution",
+                    "order": [
+                        "requester_loses",
+                        "requester_loses_power"
+                    ]
+                }
+            ],
+            "normalize": {
+                "normalizerIndex": 1,
+                "normalizeSelector": [
+                    "all"
+                ]
+            }
+        }
     }
 ]
