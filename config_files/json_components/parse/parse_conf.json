@@ -1,0 +1,52 @@
+[
+    {
+        "id": "default",
+        "impl": "perl",
+        "compress": true,
+        "parsings": [
+            {
+                "path": "/home/vnicolas/Workspace/remote-echo/workspace/sims/ruben/gem5/results/valuepred-bpred",
+                "files": "stats.txt",
+                "vars": [
+                    {
+                        "type": "configuration",
+                        "id": "config_description_abbrev"
+                    },
+                    {
+                        "type": "configuration",
+                        "id": "benchmark_name"
+                    },
+                    {
+                        "type": "configuration",
+                        "id": "random_seed"
+                    },
+                    {
+                        "type": "scalar",
+                        "id": "simTicks"
+                    },
+                    {
+                        "type": "vector",
+                        "id": "htm_transaction_abort_cause",
+                        "repeat": 16,
+                        "vectorEntries": [
+                            "memory_conflict",
+                            "memory_conflict_fallbacklock",
+                            "explicit_fallbacklock",
+                            "memory_conflict_power",
+                            "interrupt",
+                            "memory_conflict_staledata",
+                            "size_spec_buffer",
+                            "exception",
+                            "transaction_size_l1priv",
+                            "transaction_size_llc",
+                            "transaction_size_rset",
+                            "spec_validation_failure",
+                            "spec_max_capacity"
+
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+]

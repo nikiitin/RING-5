@@ -1,0 +1,84 @@
+[
+    {
+        "id": "default",
+        "impl": "perl",
+        "compress": true,
+        "parsings": [
+            {
+                "path": "/home/vnicolas/Workspace/remote-echo/workspace/sims/ruben/gem5/results/valuepred-req-stall-pic",
+                "files": "stats.txt",
+                "vars": [
+                    {
+                        "type": "configuration",
+                        "id": "config_description_abbrev"
+                    },
+                    {
+                        "type": "configuration",
+                        "id": "benchmark_name"
+                    },
+                    {
+                        "type": "configuration",
+                        "id": "random_seed"
+                    },
+                    {
+                        "type": "scalar",
+                        "id": "simTicks"
+                    },
+                    {
+                        "type": "vector",
+                        "id": "htm_transaction_abort_cause",
+                        "repeat": 16,
+                        "vectorEntries": [
+                            "explicit",
+                            "nesting_limit",
+                            "transaction_size",
+                            "exception",
+                            "memory_conflict",
+                            "other",
+                            "htm_disabled",
+                            "interrupt",
+                            "lsq_conflict",
+                            "transaction_size_rset",
+                            "transaction_size_wset",
+                            "transaction_size_l1priv",
+                            "transaction_size_llc",
+                            "transaction_size_wrongcache",
+                            "explicit_fallbacklock",
+                            "memory_conflict_fallbacklock",
+                            "memory_conflict_staledata",
+                            "memory_conflict_falsesharing",
+                            "memory_conflict_power",
+                            "spec_illegal",
+                            "spec_validation_failure",
+                            "spec_max_capacity",
+                            "spec_depth_failure",
+                            "spec_write_in_flight",
+                            "spec_read_conflict"
+                        ]
+                    },
+                    {
+                        "type": "vector",
+                        "id": "htm_transaction_executed_type_rate",
+                        "repeat": 16,
+                        "vectorEntries": [
+                            "Common_commit",
+                            "Common_abort",
+                            "Producer_commit",
+                            "Producer_abort",
+                            "Consumer_commit",
+                            "Consumer_abort",
+                            "Producer_consumer_commit",
+                            "Producer_consumer_abort",
+                            "Power_producer_commit",
+                            "Power_producer_abort",
+                            "Power_commit",
+                            "Power_abort",
+                            "FallbackLock_commit",
+                            "FallbackLock_abort"
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+]

@@ -1,0 +1,69 @@
+{
+    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/valuepred-analysis-simple",
+    "parseConfig": {
+        "file": "parse_simple",
+        "config": "default"
+    },
+    "renameStats": [
+        {
+            "oldName": "simTicks",
+            "newName": "simulationTime"
+        }
+    ],
+    "mixStats": [
+
+    ],
+    "reduceSeeds": true,
+    "removeOutliers": true,
+    "outlierStat": "simulationTime",
+    "plots": [
+        {
+            "plotType": "barplot",
+            "dataConfig": {
+                "file": "config_simple",
+                "config": "no_micbench" 
+            },
+            "styleConfig": {
+                "file": "style_simple",
+                "config": "no_micbench"
+            },
+            "fileName": "simTicks(simple)(nomic)",
+            "x": [
+                "benchmark_name"
+            ],
+            "y": [
+                "simulationTime"
+            ],
+            "conf_z": [
+                "config_description_abbrev"
+            ],
+            "hiddenBars": [
+                "BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry4_Pflt"
+            ]
+        },
+        {
+            "plotType": "barplot",
+            "dataConfig": {
+                "file": "config_simple",
+                "config": "default" 
+            },
+            "styleConfig": {
+                "file": "style_simple",
+                "config": "default"
+            },
+            "fileName": "simTicks(simple)",
+            "x": [
+                "benchmark_name"
+            ],
+            "y": [
+                "simulationTime"
+            ],
+            "conf_z": [
+                "config_description_abbrev"
+            ],
+            "hiddenBars": [
+                "BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry4_Pflt"
+            ]
+        }
+    ]
+}

@@ -1,0 +1,26 @@
+[
+    {
+        "styleName": "default_stack",
+        "dataStyle": {
+            "apparel": "StackedBarplot_default",
+            "title": "",
+            "xAxisName": "Benchmarks",
+            "yAxisName": "Ex. Time(normalized)",
+            "width": 40,
+            "height": 15.25,
+            "format": "pdf",
+            "legendTitle": "HTM_system",
+            "nLegendElementsPerRow": 4,
+            "xSplitPoints": [
+                
+            ],
+            "legendNames": [
+                
+            ],
+            "breaks": [
+            ],
+            "limitTop": -1,
+            "limitBot": 0
+        }
+    }
+]

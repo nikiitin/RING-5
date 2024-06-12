@@ -1,0 +1,99 @@
+[
+    {
+        "styleName": "default_stack",
+        "dataStyle": {
+            "apparel": "GroupedStackedBarplot_default",
+            "title": "",
+            "xAxisName": "",
+            "yAxisName": "Ex. Time(normalized)",
+            "width": 35,
+            "height": 7,
+            "format": "pdf",
+            "legendTitle": "Execution regions",
+            "nLegendElementsPerRow": 1,
+            "xSplitPoints": [
+                
+            ],
+            "legendNames": [
+                "Base",
+                "Naive R-S",
+                "CHATS",
+                "Power",
+                "PCHATS"
+            ],
+            "breaks": [
+                "0",
+                "0.5",
+                "1",
+                "1.5",
+                "2"
+            ],
+            "limitTop": -1,
+            "limitBot": 0
+        }
+    },
+    {
+        "styleName": "default_abort_stack",
+        "dataStyle": {
+            "apparel": "GroupedStackedBarplot_default",
+            "title": "",
+            "xAxisName": "",
+            "yAxisName": "Aborts\n(normalized)",
+            "width": 35,
+            "height": 7,
+            "format": "pdf",
+            "legendTitle": "Abort causes",
+            "nLegendElementsPerRow": 1,
+            "xSplitPoints": [
+                
+            ],
+            "legendNames": [
+                "Base",
+                "Naive R-S",
+                "CHATS",
+                "Power",
+                "PCHATS"
+            ],
+            "breaks": [
+                "0",
+                "0.5",
+                "1",
+                "1.5",
+                "2"
+            ],
+            "limitTop": -1,
+            "limitBot": 0
+        }
+    },
+    {
+        "styleName": "default_accuracy_stack",
+        "dataStyle": {
+            "apparel": "GroupedStackedBarplot_default",
+            "title": "",
+            "xAxisName": "",
+            "yAxisName": "Forwarder Tx\n(normalized)",
+            "width": 35,
+            "height": 7,
+            "format": "pdf",
+            "legendTitle": "Forwarder transaction ending states",
+            "nLegendElementsPerRow": 1,
+            "xSplitPoints": [
+                
+            ],
+            "legendNames": [
+                "Naive R-S",
+                "CHATS",
+                "PCHATS"
+            ],
+            "breaks": [
+                "0",
+                "0.5",
+                "1",
+                "1.5",
+                "2"
+            ],
+            "limitTop": -1,
+            "limitBot": 0
+        }
+    }
+]

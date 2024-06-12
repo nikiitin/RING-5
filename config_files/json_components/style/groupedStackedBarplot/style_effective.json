@@ -1,0 +1,59 @@
+[
+    {
+        "styleName": "default_grouped_stack",
+        "dataStyle": {
+            "apparel": "GroupedStackedBarplot_default",
+            "title": "",
+            "xAxisName": " ",
+            "yAxisName": "Aborts(normalized)",
+            "width": 30,
+            "height": 15,
+            "format": "png",
+            "legendTitle": "Abort reason",
+            "nLegendElementsPerRow": 2,
+            "xSplitPoints": [
+                "12"
+            ],
+            "legendNames": [
+                "RW",
+                "WN_DM"
+            ],
+            "breaks": [
+                "0",
+                "0.5",
+                "1",
+                "1.5"
+            ],
+            "limitTop": "NA",
+            "limitBot": "NA"
+        }
+    },
+    {
+        "styleName": "test",
+        "dataStyle": {
+            "apparel": "GroupedStackedBarplot_default",
+            "title": "",
+            "xAxisName": " ",
+            "yAxisName": "Aborts(normalized)",
+            "width": 30,
+            "height": 15,
+            "format": "png",
+            "legendTitle": "Abort reason",
+            "nLegendElementsPerRow": 2,
+            "xSplitPoints": [
+                "12"
+            ],
+            "legendNames": [
+
+            ],
+            "breaks": [
+                "0",
+                "0.5",
+                "1",
+                "1.5"
+            ],
+            "limitTop": "NA",
+            "limitBot": "NA"
+        }
+    }
+]

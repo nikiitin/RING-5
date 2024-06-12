@@ -1,0 +1,70 @@
+[
+    {
+        "styleName": "executed_trans",
+        "dataStyle": {
+            "apparel": "GroupedStackedBarplot_default",
+            "title": "",
+            "xAxisName": "",
+            "yAxisName": "Executed transactions(normalized)",
+            "width": 75,
+            "height": 30,
+            "format": "pdf",
+            "legendTitle": "Executed transactions by type",
+            "nLegendElementsPerRow": 2,
+            "xSplitPoints": [
+                
+            ],
+            "legendNames": [
+                "Req-wins",
+                "Req-stalls",
+                "Req-stalls-pic"
+            ],
+            "breaks": [
+                "0",
+                "0.25",
+                "0.5",
+                "0.75",
+                "1",
+                "1.25",
+                "1.5",
+                "1.75",
+                "2"
+            ],
+            "limitTop": 2,
+            "limitBot": 0
+        }
+    },
+    {
+        "styleName": "aborted_trans",
+        "dataStyle": {
+            "apparel": "GroupedStackedBarplot_default",
+            "title": "",
+            "xAxisName": "",
+            "yAxisName": "Aborted transactions(normalized)",
+            "width": 75,
+            "height": 30,
+            "format": "pdf",
+            "legendTitle": "Abort reasons",
+            "nLegendElementsPerRow": 2,
+            "xSplitPoints": [
+                
+            ],
+            "legendNames": [
+                "Req-wins",
+                "Req-stalls",
+                "Req-stalls-pic"
+            ],
+            "breaks": [
+                "0",
+                "0.25",
+                "0.5",
+                "0.75",
+                "1",
+                "1.25",
+                "1.5"
+            ],
+            "limitTop": 2,
+            "limitBot": 0
+        }
+    }
+]

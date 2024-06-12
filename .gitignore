@@ -4,3 +4,9 @@
 *.txt
 *.tar
 *Rhistory
+*.pyc
+__pycache__
+renv/*
+.R*
+.vscode
+.proj*

@@ -1,0 +1,55 @@
+[
+    {
+        "configName": "default",
+        "dataConfig": {
+            "filter": [
+                {
+                    "varToFilter": "benchmark_name",
+                    "values": [
+                        "bayes",
+                        "llb-l",
+                        "llb-h",
+                        "cadd"
+                    ]
+                }
+            ],
+            "mean": {
+                "meanAlgorithm": "geomean",
+                "skipMean": [
+
+                ]
+            },
+            "sort": [
+                {
+                    "varToSort": "benchmark_name",
+                    "order": [
+                        "genome",
+                        "intruder",
+                        "kmeans-l",
+                        "kmeans-h",
+                        "labyrinth",
+                        "ssca2",
+                        "vacation-l",
+                        "vacation-h",
+                        "yada",
+                        "geomean"
+                    ]
+                },
+                {
+                    "varToSort": "config_description_abbrev",
+                    "order": [
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd16_CTV50_Prio_numeric_FCSabort_Allow_Fwd_all_data_Rtry32_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd16_CTV50_Prio_numeric_FCSabort_Allow_Fwd_no_write_in_flight_Rtry32_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd16_CTV50_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry32_Pflt",
+                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd4_CTV50_Prio_numeric_FCSabort_Allow_Fwd_all_data_Rtry1_Pflt",
+                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd4_CTV50_Prio_numeric_FCSabort_Allow_Fwd_no_write_in_flight_Rtry1_Pflt",
+                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd4_CTV50_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry1_Pflt"
+                    ]
+                }
+            ],
+            "normalize": {
+                "normalizerIndex": 1
+            }
+        }
+    }
+]

@@ -1,0 +1,173 @@
+[
+    {
+        "configName": "default",
+        "dataConfig": {
+            "filter": [
+                {
+                    "varToFilter": "config_description_abbrev",
+                    "values": [
+                        "BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDnaive_EVFwd_maxFwd8_CTV100_MVAL20_Rtry4_Pflt",
+                        "BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDsimple_EVFwd_maxFwd8_CTV100_Rtry4_Pflt"
+                    ]
+                }
+            ],
+            "mean": {
+                "meanAlgorithm": "geomean",
+                "skipMean": [
+                    "clusteradding",
+                    "llbenchsimple-l",
+                    "llbenchsimple-h"
+                ]
+            },
+            "sort": [
+                {
+                    "varToSort": "benchmark_name",
+                    "order": [
+                        "clusteradding",
+                        "llbenchsimple-l",
+                        "llbenchsimple-h",
+                        "genome",
+                        "intruder",
+                        "kmeans-l",
+                        "kmeans-h",
+                        "labyrinth",
+                        "ssca2",
+                        "vacation-l",
+                        "vacation-h",
+                        "yada",
+                        "geomean"
+                    ]
+                },
+                {
+                    "varToSort": "config_description_abbrev",
+                    "order": [
+                        "BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry4_Pflt",
+                        
+                        "BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd8_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry4_Pflt"
+                    ]
+                }
+            ],
+            "normalize": {
+                "normalizerIndex": 1
+            }
+        }
+    },
+    {
+        "configName": "no_micbench",
+        "dataConfig": {
+            "filter": [
+                {
+                    "varToFilter": "config_description_abbrev",
+                    "values": [
+                        "BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDnaive_EVFwd_maxFwd8_CTV100_MVAL20_Rtry4_Pflt",
+                        "BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDsimple_EVFwd_maxFwd8_CTV100_Rtry4_Pflt"
+                    ]
+                },
+                {
+                    "varToFilter": "benchmark_name",
+                    "values": [
+                        "clusteradding",
+                        "llbenchsimple-l",
+                        "llbenchsimple-h"
+                    ]
+                }
+            ],
+            "mean": {
+                "meanAlgorithm": "geomean",
+                "skipMean": [
+                    "clusteradding",
+                    "llbenchsimple-l",
+                    "llbenchsimple-h"
+                ]
+            },
+            "sort": [
+                {
+                    "varToSort": "benchmark_name",
+                    "order": [
+                        "genome",
+                        "intruder",
+                        "kmeans-l",
+                        "kmeans-h",
+                        "labyrinth",
+                        "ssca2",
+                        "vacation-l",
+                        "vacation-h",
+                        "yada",
+                        "geomean"
+                    ]
+                },
+                {
+                    "varToSort": "config_description_abbrev",
+                    "order": [
+                        "BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry4_Pflt",
+                        "BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDnaive_EVFwd_maxFwd8_CTV100_MVAL20_Rtry4_Pflt",
+                        "BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDsimple_EVFwd_maxFwd8_CTV100_Rtry4_Pflt",
+                        "BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd8_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry4_Pflt"
+                    ]
+                }
+            ],
+            "normalize": {
+                "normalizerIndex": 1
+            }
+        }
+    },
+    {
+        "configName": "only_micbench",
+        "dataConfig": {
+            "filter": [
+                {
+                    "varToFilter": "config_description_abbrev",
+                    "values": [
+                        "BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDnaive_EVFwd_maxFwd8_CTV100_MVAL20_Rtry4_Pflt",
+                        "BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDsimple_EVFwd_maxFwd8_CTV100_Rtry4_Pflt"
+                    ]
+                },
+                {
+                    "varToFilter": "benchmark_name",
+                    "values": [
+                        "genome",
+                        "intruder",
+                        "kmeans-l",
+                        "kmeans-h",
+                        "labyrinth",
+                        "ssca2",
+                        "vacation-l",
+                        "vacation-h",
+                        "yada"
+                    ]
+                }
+            ],
+            "mean": {
+                "meanAlgorithm": "geomean",
+                "skipMean": [
+                    "clusteradding",
+                    "llbenchsimple-l",
+                    "llbenchsimple-h"
+                ]
+            },
+            "sort": [
+                {
+                    "varToSort": "benchmark_name",
+                    "order": [
+                        "clusteradding",
+                        "llbenchsimple-l",
+                        "llbenchsimple-h",
+                        "geomean"
+                    ]
+                },
+                {
+                    "varToSort": "config_description_abbrev",
+                    "order": [
+                        "BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry4_Pflt",
+                        "BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDnaive_EVFwd_maxFwd8_CTV100_MVAL20_Rtry4_Pflt",
+                        "BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDsimple_EVFwd_maxFwd8_CTV100_Rtry4_Pflt",
+                        "BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd8_CTV100_Prio_numeric_FCSabort_Allow_Fwd_only_written_Rtry4_Pflt"
+                    ]
+                }
+            ],
+            "normalize": {
+                "normalizerIndex": 1
+            }
+        }
+    }
+]

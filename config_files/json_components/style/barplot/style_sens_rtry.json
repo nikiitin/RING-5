@@ -1,0 +1,33 @@
+[
+    {
+        "styleName": "default",
+        "dataStyle": {
+            "apparel": "Barplot_default",
+            "title": "",
+            "xAxisName": "",
+            "yAxisName": "Ex. Time(normalized)",
+            "width": 60,
+            "height": 22.5,
+            "format": "pdf",
+            "legendTitle": "Config",
+            "nLegendElementsPerRow": 4,
+            "xSplitPoints": [
+                "9"
+            ],
+            "legendNames": [
+                
+            ],
+            "breaks": [
+                "0",
+                "0.25",
+                "0.5",
+                "0.75",
+                "1",
+                "1.25",
+                "1.5"
+            ],
+            "limitTop": 1.55,
+            "limitBot": 0
+        }
+    }
+]

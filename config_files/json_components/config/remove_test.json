@@ -1,0 +1,71 @@
+[
+    {
+        "configName": "default",
+        "dataConfig": {
+            "filter": [
+                {
+                    "varToFilter": "benchmark_name",
+                    "values": [
+                        "clusteradding",
+                        "llbenchsimple-l",
+                        "llbenchsimple-h"
+                    ]
+                },
+                {
+                    "varToFilter": "config_description_abbrev",
+                    "values": [
+                        "BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDW1_D1_maxFwd8_Prio_numeric_FCSabort_Allow_Fwd_all_data_Rtry4_Pflt",
+                        "BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDW1_DN_maxFwd8_Prio_numeric_FCSabort_Allow_Fwd_all_data_Rtry4_Pflt",
+                        "BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_D1_maxFwd8_Prio_numeric_FCSabort_Allow_Fwd_all_data_Rtry4_Pflt",
+                        "BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_maxFwd8_Prio_numeric_FCSabort_Allow_Fwd_all_data_Rtry4_Pflt",
+                        "BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDno_fwd_maxFwd8_Prio_no_prio_Rtry4_Pflt",
+                        "BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDW1_D1_maxFwd8_Prio_numeric_FCSabort_Allow_Fwd_no_write_in_flight_Rtry4_Pflt",
+                        "BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDW1_D1_maxFwd8_Prio_numeric_FCSabort_Allow_Fwd_no_write_in_flight_Rtry4_Pflt",
+                        "BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDW1_DN_maxFwd8_Prio_numeric_FCSabort_Allow_Fwd_no_write_in_flight_Rtry4_Pflt",
+                        "BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_D1_maxFwd8_Prio_numeric_FCSabort_Allow_Fwd_no_write_in_flight_Rtry4_Pflt",
+                        "BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_maxFwd8_Prio_numeric_FCSabort_Allow_Fwd_no_write_in_flight_Rtry4_Pflt",
+                        "BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDW1_D1_maxFwd8_Prio_numeric_FCSabort_Allow_Fwd_all_data_Rtry4_Pflt",
+                        "BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDW1_DN_maxFwd8_Prio_numeric_FCSabort_Allow_Fwd_all_data_Rtry4_Pflt",
+                        "BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_D1_maxFwd8_Prio_numeric_FCSabort_Allow_Fwd_all_data_Rtry4_Pflt",
+                        "BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_maxFwd8_Prio_numeric_FCSabort_Allow_Fwd_all_data_Rtry4_Pflt"
+                    ]
+                }
+            ],
+            "mean": {
+                "meanAlgorithm": "geomean"
+            },
+            "sort": [
+                {
+                    "varToSort": "benchmark_name",
+                    "order": [
+                        "genome",
+                        "intruder",
+                        "intruder-qs",
+                        "kmeans-l",
+                        "kmeans-h",
+                        "kmeans-qs-l",
+                        "kmeans-qs-h",
+                        "ssca2",
+                        "vacation-h",
+                        "yada",
+                        "geomean"
+                    ]
+                },
+                {
+                    "varToSort": "config_description_abbrev",
+                    "order": [
+                        "BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDno_fwd_maxFwd8_Prio_no_prio_Rtry4_Pflt",
+                        "BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDno_fwd_maxFwd8_Prio_no_prio_Rtry4_Pflt",
+                        "BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDW1_D1_maxFwd8_Prio_numeric_FCSabort_Allow_Fwd_no_write_in_flight_Rtry4_Pflt",
+                        "BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDW1_DN_maxFwd8_Prio_numeric_FCSabort_Allow_Fwd_no_write_in_flight_Rtry4_Pflt",
+                        "BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_D1_maxFwd8_Prio_numeric_FCSabort_Allow_Fwd_no_write_in_flight_Rtry4_Pflt",
+                        "BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_maxFwd8_Prio_numeric_FCSabort_Allow_Fwd_no_write_in_flight_Rtry4_Pflt"
+                    ]
+                }
+            ],
+            "normalize": {
+                "normalizerIndex": 1
+            }
+        }
+    }
+]
