@@ -119,6 +119,7 @@
                     "order": [
                         "requester_wins",
                         "requester_loses",
+                        "requester_stalls_cda_base",
                         "requester_wins_power",
                         "requester_loses_power"
                     ]
@@ -128,6 +129,7 @@
                     "order": [
                         "None",
                         "naive",
+                        "W1_D1",
                         "WN_DM"
                     ]
                 }
@@ -191,7 +193,75 @@
                 }
             ],
             "normalize": {
-                "normalizerIndex": 1
+                "normalizerIndex": 1,
+                "normalizeSelector": [
+                    "all"
+                ]
+            }
+        }
+    },
+    {
+        "configName": "default_lineplot_goodforpaper_rebutal",
+        "dataConfig": {
+            "filter": [
+                {
+                    "varToFilter": "benchmark_name",
+                    "values": [
+                        "cadd",
+                        "llb-l",
+                        "llb-h",
+                        "bayes",
+                        "intruder-qs"
+                    ]
+                }
+            ],
+            "mean": {
+                "meanAlgorithm": "geomean",
+                "meanVar": "benchmark_name",
+                "skipMean": []
+            },
+            "sort": [
+                {
+                    "varToSort": "benchmark_name",
+                    "order": [
+                        "genome",
+                        "intruder",
+                        "kmeans-l",
+                        "kmeans-h",
+                        "labyrinth",
+                        "ssca2",
+                        "vacation-l",
+                        "vacation-h",
+                        "yada",
+                        "geomean"
+                    ]
+                },
+                {
+                    "varToSort": "htm_fwd_mechanism",
+                    "order": [
+                        "None",
+                        "naive",
+                        "W1_D1",
+                        "WN_DM"
+                        
+                    ]
+                },
+                {
+                    "varToSort": "htm_conflict_resolution",
+                    "order": [
+                        "requester_wins",
+                        "requester_stalls_cda_base",
+                        "requester_wins_power",
+                        "requester_loses",
+                        "requester_loses_power"
+                    ]
+                }
+            ],
+            "normalize": {
+                "normalizerIndex": 1,
+                "normalizeSelector": [
+                    "all"
+                ]
             }
         }
     },
@@ -370,6 +440,76 @@
             ],
             "normalize": {
                 "normalizerIndex": 1
+            }
+        }
+    },
+    {
+        "configName": "rebutal",
+        "dataConfig": {
+            "filter": [
+                {
+                    "varToFilter": "benchmark_name",
+                    "values": [
+                        "cadd",
+                        "llb-l",
+                        "llb-h",
+                        "bayes",
+                        "intruder-qs",
+                        "kmeans-l",
+                        "kmeans-h",
+                        "labyrinth",
+                        "vacation-l",
+                        "yada"
+                    ]
+                },
+                {
+                    "varToFilter": "htm_conflict_resolution",
+                    "values": [
+                        "requester_stalls_cda_base"
+                    ]
+                }
+            ],
+            "mean": {
+                "meanAlgorithm": "geomean",
+                "meanVar": "benchmark_name",
+                "skipMean": []
+            },
+            "sort": [
+                {
+                    "varToSort": "benchmark_name",
+                    "order": [
+                        "genome",
+                        "intruder",
+                        "ssca2",
+                        "vacation-h",
+                        "geomean"
+                    ]
+                },
+                {
+                    "varToSort": "htm_fwd_mechanism",
+                    "order": [
+                        "None",
+                        "naive",
+                        "W1_D1",
+                        "WN_DM"
+                        
+                    ]
+                },
+                {
+                    "varToSort": "htm_conflict_resolution",
+                    "order": [
+                        "requester_wins",
+                        "requester_wins_power",
+                        "requester_loses",
+                        "requester_loses_power"
+                    ]
+                }
+            ],
+            "normalize": {
+                "normalizerIndex": 1,
+                "normalizeSelector": [
+                    "all"
+                ]
             }
         }
     }

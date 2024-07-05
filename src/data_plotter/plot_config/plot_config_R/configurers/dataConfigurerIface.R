@@ -41,6 +41,7 @@ setClass("Data_configurator_args",
         n_skip_mean = "numeric",
         # Variables to skip for mean calculation
         skip_mean = "vector",
+        is_distribution = "numeric",
 
         # Data frame that contains the data
         df = "data.frame"
@@ -159,7 +160,12 @@ setMethod(
             .Object@n_normalizer_selector <- as.numeric(get_arg(args, 1))
             args %<>% shift(1)
             .Object@normalizer_selector <- get_arg(args, .Object@n_normalizer_selector)
+            args %<>% shift(.Object@n_normalizer_selector)
         }
+
+        # Get the last argument that tells if the data is a distribution
+        .Object@is_distribution <- as.numeric(get_arg(args, 1))
+        args %<>% shift(1)
         # Return the object
         .Object
     }

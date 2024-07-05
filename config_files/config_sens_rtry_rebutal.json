@@ -1,8 +1,8 @@
 {
-    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/valuepred-rebutal_scalability",
+    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/valuepred-sens-rebutal-rtry",
     "parseConfig": {
-        "file": "parse_final",
-        "config": "rebutal_scalability"
+        "file": "parse_sens_rtry",
+        "config": "default"
     },
     "mixStats": [
         {
@@ -97,7 +97,7 @@
             "mergingStats": [
                 "cyclesInRegion..BARRIER"
             ]
-        },
+        },        
         {
             "groupName": "aborts",
             "mergingStats": [
@@ -119,44 +119,40 @@
             ]
         }
     ],
-    "preprocessor": [
-        {
-            "type": "Divider",
-            "args": [
-                "div_result",
-                "simTicks",
-                "flits_injected__get_summary"
-            ]
-        }
-    ],
     "reduceSeeds": true,
     "removeOutliers": true,
     "outlierStat": "simTicks",
     "plots": [
+        
         {
             "plotType": "lineplot",
             "dataConfig": {
-                "file": "config_final",
-                "config": "rebutal_scalability"
+                "file": "config_sens_rtry",
+                "config": "rebutal"
             },
             "styleConfig": {
-                "file": "style_final",
-                "config": "default_scalability"
+                "file": "style_sens_rtry",
+                "config": "rebutal"
             },
-            "fileName": "lineplot_rebutal_scalability",
+            "fileName": "simticks_lineplot_nomicnobayes",
             "x": [
-                "num_cpus"
+                "htm_max_retries"
             ],
             "y": [
                 "simTicks"
             ],
-            "showOnlyMean": true,
+            "showOnlyMean": false,
             "conf_z": [
-                "config_description_abbrev"
+                "htm_conflict_resolution",
+                "htm_fwd_mechanism"
             ],
             "facet": {
                 "facetVar": "benchmark_name",
                 "facetMappings": [
+                    "genome=STAMP",
+                    "intruder=STAMP",
+                    "ssca2=STAMP",
+                    "vacation-h=STAMP",
                     "geomean=(STAMP)"
                 ]
             }

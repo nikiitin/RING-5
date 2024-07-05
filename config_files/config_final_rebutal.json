@@ -1,8 +1,8 @@
 {
-    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/valuepred-rebutal_scalability",
+    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/valuepred-final-rebutal",
     "parseConfig": {
         "file": "parse_final",
-        "config": "rebutal_scalability"
+        "config": "default_rebutal"
     },
     "mixStats": [
         {
@@ -11,7 +11,13 @@
                 "htm_transaction_abort_cause..memory_conflict_staledata",
                 "htm_transaction_abort_cause..memory_conflict",
                 "htm_transaction_abort_cause..memory_conflict_fallbacklock",
-                "htm_transaction_abort_cause..memory_conflict_power"
+                "htm_transaction_abort_cause..memory_conflict_power",
+                "htm_transaction_abort_cause..spec_illegal",
+                "htm_transaction_abort_cause..spec_validation_failure",
+                "htm_transaction_abort_cause..spec_max_capacity",
+                "htm_transaction_abort_cause..spec_depth_failure",
+                "htm_transaction_abort_cause..spec_write_in_flight",
+                "htm_transaction_abort_cause..spec_read_conflict"
             ]
         },
         {
@@ -117,46 +123,149 @@
                 "htm_transaction_abort_cause..interrupt",
                 "htm_transaction_abort_cause..exception"
             ]
-        }
-    ],
-    "preprocessor": [
+        },
         {
-            "type": "Divider",
-            "args": [
-                "div_result",
-                "simTicks",
-                "flits_injected__get_summary"
+            "groupName": "Modified_commit",
+            "mergingStats": [
+                "htm_transaction_producer_modified..htm_transaction_producer_modified_commit_m"
+            ]
+        },
+        {
+            "groupName": "Abort",
+            "mergingStats": [
+                "htm_transaction_producer_modified..htm_transaction_producer_modified_abort"
+            ]
+        },
+        {
+            "groupName": "Not_modified_commit",
+            "mergingStats": [
+                "htm_transaction_producer_modified..htm_transaction_producer_modified_commit_nm"
             ]
         }
     ],
+    
     "reduceSeeds": true,
     "removeOutliers": true,
     "outlierStat": "simTicks",
     "plots": [
         {
-            "plotType": "lineplot",
+            "plotType": "barplot",
             "dataConfig": {
                 "file": "config_final",
-                "config": "rebutal_scalability"
+                "config": "default_rebutal"
             },
             "styleConfig": {
                 "file": "style_final",
-                "config": "default_scalability"
+                "config": "default_rebutal"
             },
-            "fileName": "lineplot_rebutal_scalability",
+            "fileName": "barplot_simTicks",
             "x": [
-                "num_cpus"
+                "benchmark_name"
             ],
             "y": [
                 "simTicks"
             ],
-            "showOnlyMean": true,
             "conf_z": [
                 "config_description_abbrev"
             ],
             "facet": {
                 "facetVar": "benchmark_name",
                 "facetMappings": [
+                    "cadd=Microbenchmark",
+                    "llb-l=Microbenchmark",
+                    "llb-h=Microbenchmark",
+                    "genome=STAMP",
+                    "intruder=STAMP",
+                    "kmeans-l=STAMP",
+                    "kmeans-h=STAMP",
+                    "labyrinth=STAMP",
+                    "ssca2=STAMP",
+                    "vacation-l=STAMP",
+                    "vacation-h=STAMP",
+                    "yada=STAMP",
+                    "geomean=(STAMP)"
+                ]
+            }
+        },
+        {
+            "plotType": "barplot",
+            "dataConfig": {
+                "file": "config_final",
+                "config": "default_rebutal"
+            },
+            "styleConfig": {
+                "file": "style_final",
+                "config": "default_communication_rebutal"
+            },
+            "fileName": "barplot_network",
+            "x": [
+                "benchmark_name"
+            ],
+            "y": [
+                "flits_injected__get_summary"
+            ],
+            "conf_z": [
+                "config_description_abbrev"
+            ],
+            "facet": {
+                "facetVar": "benchmark_name",
+                "facetMappings": [
+                    "cadd=Microbenchmark",
+                    "llb-l=Microbenchmark",
+                    "llb-h=Microbenchmark",
+                    "genome=STAMP",
+                    "intruder=STAMP",
+                    "kmeans-l=STAMP",
+                    "kmeans-h=STAMP",
+                    "labyrinth=STAMP",
+                    "ssca2=STAMP",
+                    "vacation-l=STAMP",
+                    "vacation-h=STAMP",
+                    "yada=STAMP",
+                    "geomean=(STAMP)"
+                ]
+            }
+        },
+        {
+            "plotType": "groupedStackedBarplot",
+            "dataConfig": {
+                "file": "config_final",
+                "config": "default_rebutal"
+            },
+            "styleConfig": {
+                "file": "style_final",
+                "config": "default_abort_stack_rebutal"
+            },
+            "fileName": "aborts_cause",
+            "x": [
+                "benchmark_name"
+            ],
+            "y": [
+                "htm_transaction_abort_cause..Capacity",
+                "htm_transaction_abort_cause..Conflicts",
+                "htm_transaction_abort_cause..Explicit",
+                "htm_transaction_abort_cause..FwdCapacity",
+                "htm_transaction_abort_cause..FwdValidation",
+                "htm_transaction_abort_cause..Other"
+            ],
+            "conf_z": [
+                "config_description_abbrev"
+            ],
+            "facet": {
+                "facetVar": "benchmark_name",
+                "facetMappings": [
+                    "cadd=Microbenchmark",
+                    "llb-l=Microbenchmark",
+                    "llb-h=Microbenchmark",
+                    "genome=STAMP",
+                    "intruder=STAMP",
+                    "kmeans-l=STAMP",
+                    "kmeans-h=STAMP",
+                    "labyrinth=STAMP",
+                    "ssca2=STAMP",
+                    "vacation-l=STAMP",
+                    "vacation-h=STAMP",
+                    "yada=STAMP",
                     "geomean=(STAMP)"
                 ]
             }

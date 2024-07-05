@@ -71,7 +71,7 @@ map_elements_df <- function(df, element, map_set, new_name) {
     if (!is(map_set, "MapSet")) {
         stop("map_set argument is not a MapSet object")
     }
-    if (!length(unique(df[, element])) == length(get_all_keys(map_set))) {
+    if (!length(unique(pull(df, element))) == length(get_all_keys(map_set))) {
         stop(paste0("Not all elements in the dataframe",
         "can be mapped from the map table", " dataFrame:\n", unique(df[, element]),
         " mapTable:\n", get_all_keys(map_set)))
@@ -87,6 +87,9 @@ map_elements_df <- function(df, element, map_set, new_name) {
         # by key and add the element to the dataframe
         df[i, last_col] <- get_element_by_key(map_set, as.character(df[i, element]))
     }
+    # Turn this character vector into a factor
+    df[, last_col] <- 
+        factor(df[, last_col], levels = unique(unlist(get_all_elements(map_set))))
     # Return the dataframe
     df
 }

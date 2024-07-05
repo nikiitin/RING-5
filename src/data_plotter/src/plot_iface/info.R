@@ -55,11 +55,11 @@ setGeneric("parse_args_plot_info",
 #   }
 # )
 
-setGeneric("complete_data",
-  function(object) {
-    standardGeneric("complete_data")
-  }
-)
+# setGeneric("complete_data",
+#   function(object) {
+#     standardGeneric("complete_data")
+#   }
+# )
 
 setMethod("initialize",
   "Plot_info",
@@ -121,50 +121,50 @@ setMethod("parse_args_plot_info",
       }
       object@faceting_var <- get_arg(object@args, 1)
       object@args %<>% shift(1)
-    }
+    } 
     object
   }
 )
 
 
 
-setMethod("complete_data",
-  signature(object = "Plot_info"),
-  function(object) {
-    n_rows <- nrow(object@data)
-    facet_levels <- unique(pull(object@data, object@faceting_var))
-    if (length(object@conf_z) > 1) {
-    # Unite the conf_z columns
-      object@data %<>% tidyr::unite("conf_z",
-        object@conf_z,
-        sep = "_",
-        remove = FALSE)
-      object@conf_z <- "conf_z"
-      print("Joining conf_z columns")
-    }
-    conf_z_levels <- unique(pull(object@data, object@conf_z))
-    object@data$conf_z %<>% factor(levels = conf_z_levels)
-    # Complete the data frame with the conf_z and x missing combinations
-    object@data %<>%
-        tidyr::complete(.data[[object@x]],
-            .data[[object@conf_z]],
-            .data[[object@faceting_var]],
-            fill = list())
+# setMethod("complete_data",
+#   signature(object = "Plot_info"),
+#   function(object) {
+#     n_rows <- nrow(object@data)
+#     facet_levels <- unique(pull(object@data, object@faceting_var))
+#     if (length(object@conf_z) > 1) {
+#     # Unite the conf_z columns
+#       object@data %<>% tidyr::unite("conf_z",
+#         object@conf_z,
+#         sep = "_",
+#         remove = FALSE)
+#       object@conf_z <- "conf_z"
+#       print("Joining conf_z columns")
+#     }
+#     conf_z_levels <- unique(pull(object@data, object@conf_z))
+#     object@data$conf_z %<>% factor(levels = conf_z_levels)
+#     # Complete the data frame with the conf_z and x missing combinations
+#     object@data %<>%
+#         tidyr::complete(.data[[object@x]],
+#             .data[[object@conf_z]],
+#             .data[[object@faceting_var]],
+#             fill = list())
 
-    object@data %<>% mutate_at(object@faceting_var,
-        as.character)
-    # Put faceting variables as ordered factors
-    object@data[object@faceting_var] <-
-        factor(pull(object@data, object@faceting_var), levels = facet_levels)
-    # Put conf_z and x as ordered factors
-    object@data[[object@conf_z]] %<>%
-        factor(levels = unique(object@data[[object@conf_z]]))
-    object@data[[object@x]] %<>%
-        factor(levels = unique(object@data[[object@x]]))
-    if (n_rows != nrow(object@data)) {
-      warning(paste0("The data frame was completed with missing combinations.",
-      " Filling with NA."))
-    }
-    object
-  }
-)
+#     object@data %<>% mutate_at(object@faceting_var,
+#         as.character)
+#     # Put faceting variables as ordered factors
+#     object@data[object@faceting_var] <-
+#         factor(pull(object@data, object@faceting_var), levels = facet_levels)
+#     # Put conf_z and x as ordered factors
+#     object@data[[object@conf_z]] %<>%
+#         factor(levels = unique(object@data[[object@conf_z]]))
+#     object@data[[object@x]] %<>%
+#         factor(levels = unique(object@data[[object@x]]))
+#     if (n_rows != nrow(object@data)) {
+#       warning(paste0("The data frame was completed with missing combinations.",
+#       " Filling with NA."))
+#     }
+#     object
+#   }
+# )

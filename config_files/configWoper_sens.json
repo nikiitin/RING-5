@@ -1,0 +1,610 @@
+{
+    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/woper_sens_analysis",
+    "parseConfig": {
+        "file": "parse_woper",
+        "config": "retry_sens_power_woper"
+    },
+    "mixStats": [
+        {
+            "groupName": "htm_transaction_abort_cause..Conflicts_fallbacklock",
+            "mergingStats": [
+                "htm_transaction_abort_cause..memory_conflict_fallbacklock"
+            ]
+        },
+        {
+            "groupName": "htm_transaction_abort_cause..Conflicts",
+            "mergingStats": [
+                "htm_transaction_abort_cause..memory_conflict_staledata",
+                "htm_transaction_abort_cause..memory_conflict",
+                "htm_transaction_abort_cause..memory_conflict_power",
+                "htm_transaction_abort_cause..lsq_conflict",
+                "htm_transaction_abort_cause..memory_conflict_falsesharing"
+            ]
+        },
+        {
+            "groupName": "htm_transaction_abort_cause..Capacity",
+            "mergingStats": [
+                "htm_transaction_abort_cause..transaction_size_l1priv",
+                "htm_transaction_abort_cause..transaction_size_llc",
+                "htm_transaction_abort_cause..transaction_size_rset",
+                "htm_transaction_abort_cause..transaction_size_wset",
+                "htm_transaction_abort_cause..transaction_size",
+                "htm_transaction_abort_cause..transaction_size_wrongcache"
+            ]
+        },
+        {
+            "groupName": "htm_transaction_abort_cause..Explicit",
+            "mergingStats": [
+                "htm_transaction_abort_cause..explicit_fallbacklock",
+                "htm_transaction_abort_cause..explicit"
+            ]
+        },
+        {
+            "groupName": "htm_transaction_abort_cause..Other",
+            "mergingStats": [
+                "htm_transaction_abort_cause..interrupt",
+                "htm_transaction_abort_cause..exception",
+                "htm_transaction_abort_cause..nesting_limit",
+                "htm_transaction_abort_cause..htm_disabled"
+            ]
+        },
+        {
+            "groupName": "htm_transaction_executed_type_rate..Commit",
+            "mergingStats": [
+                "htm_transaction_executed_type_rate..Common_commit"
+            ]
+        },
+        {
+            "groupName": "htm_transaction_executed_type_rate..Abort",
+            "mergingStats": [
+                "htm_transaction_executed_type_rate..Common_abort"
+            ]
+        },
+        {
+            "groupName": "Aborts",
+            "mergingStats": [
+                "htm_transaction_abort_cause..Conflicts_fallbacklock",
+                "htm_transaction_abort_cause..Conflicts",
+                "htm_transaction_abort_cause..Capacity",
+                "htm_transaction_abort_cause..Explicit",
+                "htm_transaction_abort_cause..Other"
+            ]
+        },
+        {
+            "groupName": "cyclesInRegion..Parallel",
+            "mergingStats": [
+                "cyclesInRegion..DEFAULT"
+            ]
+        },
+        {
+            "groupName": "cyclesInRegion..Transactional_Committed",
+            "mergingStats": [
+                "cyclesInRegion..TRANSACTIONAL_COMMITTED",
+                "cyclesInRegion..TRANSACTIONAL_SPECULATING"
+            ]
+        },
+        {
+            "groupName": "cyclesInRegion..Power",
+            "mergingStats": [
+                "cyclesInRegion..TRANSACTIONAL_POWER"
+            ]
+        },
+        {
+            "groupName": "cyclesInRegion..Transactional_Aborted",
+            "mergingStats": [
+                "cyclesInRegion..TRANSACTIONAL_ABORTED",
+                "cyclesInRegion..ABORTING"
+            ]
+        },
+        {
+            "groupName": "cyclesInRegion..Committing_Validation",
+            "mergingStats": [
+                "cyclesInRegion..COMMITTING"
+            ]
+        },
+        {
+            "groupName": "cyclesInRegion..Commit_Fallback",
+            "mergingStats": [
+                "cyclesInRegion..HASLOCK"
+            ]
+        },
+        {
+            "groupName": "cyclesInRegion..Abort_Handler",
+            "mergingStats": [
+                "cyclesInRegion..ABORT_HANDLER"
+            ]
+        },
+        {
+            "groupName": "cyclesInRegion..Wait_Fallback",
+            "mergingStats": [
+                "cyclesInRegion..WAITFORRETRY_THRESHOLD",
+                "cyclesInRegion..WAITFORRETRY_EXCEPTION",
+                "cyclesInRegion..WAITFORRETRY_SIZE"
+            ]
+        },
+        {
+            "groupName": "cyclesInRegion..Barrier",
+            "mergingStats": [
+                "cyclesInRegion..BARRIER"
+            ]
+        }
+    ],
+    "reduceSeeds": true,
+    "removeOutliers": true,
+    "outlierStat": "simTicks",
+    "plots": [
+        {
+            "plotType": "lineplot",
+            "dataConfig": {
+                "file": "config_woper",
+                "config": "sens_lineplot"
+            },
+            "styleConfig": {
+                "file": "style_woper",
+                "config": "lineplot_retry"
+            },
+            "fileName": "lineplot_simticks_retry",
+            "x": [
+                "htm_max_retries"
+            ],
+            "y": [
+                "simTicks"
+            ],
+            "conf_z": [
+                "htm_conflict_resolution"
+            ],
+            "facet": {
+                "facetVar": "benchmark_name",
+                "facetMappings": [
+                    "cadd=Microbenchmark",
+                    "llb-l=Microbenchmark",
+                    "llb-h=Microbenchmark",
+                    "genome=STAMP",
+                    "intruder=STAMP",
+                    "intruder-qs=STAMP",
+                    "kmeans-l=STAMP",
+                    "kmeans-h=STAMP",
+                    "labyrinth=STAMP",
+                    "ssca2=STAMP",
+                    "vacation-l=STAMP",
+                    "vacation-h=STAMP",
+                    "yada=STAMP",
+                    "geomean=(STAMP)"
+                ]
+            }
+        },
+        {
+            "plotType": "groupedStackedBarplot",
+            "dataConfig": {
+                "file": "config_woper",
+                "config": "sens_stacked_rw"
+            },
+            "styleConfig": {
+                "file": "style_woper",
+                "config": "cycles_region"
+            },
+            "fileName": "region_rw",
+            "x": [
+                "benchmark_name"
+            ],
+            "y": [
+                "cyclesInRegion..Parallel",
+                "cyclesInRegion..Commit_Fallback",
+                "cyclesInRegion..Transactional_Committed",
+                "cyclesInRegion..Power",
+                "cyclesInRegion..Transactional_Aborted",
+                "cyclesInRegion..Wait_Fallback",
+                "cyclesInRegion..Abort_Handler",
+                "cyclesInRegion..Barrier"
+            ],
+            "conf_z": [
+                "config_description_abbrev"
+            ],
+            "facet": {
+                "facetVar": "benchmark_name",
+                "facetMappings": [
+                    "cadd=Microbenchmark",
+                    "llb-l=Microbenchmark",
+                    "llb-h=Microbenchmark",
+                    "genome=STAMP",
+                    "intruder=STAMP",
+                    "kmeans-l=STAMP",
+                    "kmeans-h=STAMP",
+                    "labyrinth=STAMP",
+                    "ssca2=STAMP",
+                    "vacation-l=STAMP",
+                    "vacation-h=STAMP",
+                    "yada=STAMP",
+                    "mean=(STAMP)"
+                ]
+            }
+        },
+        {
+            "plotType": "groupedStackedBarplot",
+            "dataConfig": {
+                "file": "config_woper",
+                "config": "sens_stacked_rl"
+            },
+            "styleConfig": {
+                "file": "style_woper",
+                "config": "cycles_region"
+            },
+            "fileName": "region_rl",
+            "x": [
+                "benchmark_name"
+            ],
+            "y": [
+                "cyclesInRegion..Parallel",
+                "cyclesInRegion..Commit_Fallback",
+                "cyclesInRegion..Transactional_Committed",
+                "cyclesInRegion..Power",
+                "cyclesInRegion..Transactional_Aborted",
+                "cyclesInRegion..Wait_Fallback",
+                "cyclesInRegion..Abort_Handler",
+                "cyclesInRegion..Barrier"
+            ],
+            "conf_z": [
+                "config_description_abbrev"
+            ],
+            "facet": {
+                "facetVar": "benchmark_name",
+                "facetMappings": [
+                    "cadd=Microbenchmark",
+                    "llb-l=Microbenchmark",
+                    "llb-h=Microbenchmark",
+                    "genome=STAMP",
+                    "intruder=STAMP",
+                    "kmeans-l=STAMP",
+                    "kmeans-h=STAMP",
+                    "labyrinth=STAMP",
+                    "ssca2=STAMP",
+                    "vacation-l=STAMP",
+                    "vacation-h=STAMP",
+                    "yada=STAMP",
+                    "mean=(STAMP)"
+                ]
+            }
+        },
+        {
+            "plotType": "groupedStackedBarplot",
+            "dataConfig": {
+                "file": "config_woper",
+                "config": "sens_stacked_rwp"
+            },
+            "styleConfig": {
+                "file": "style_woper",
+                "config": "cycles_region"
+            },
+            "fileName": "region_rwp",
+            "x": [
+                "benchmark_name"
+            ],
+            "y": [
+                "cyclesInRegion..Parallel",
+                "cyclesInRegion..Commit_Fallback",
+                "cyclesInRegion..Transactional_Committed",
+                "cyclesInRegion..Power",
+                "cyclesInRegion..Transactional_Aborted",
+                "cyclesInRegion..Wait_Fallback",
+                "cyclesInRegion..Abort_Handler",
+                "cyclesInRegion..Barrier"
+            ],
+            "conf_z": [
+                "config_description_abbrev"
+            ],
+            "facet": {
+                "facetVar": "benchmark_name",
+                "facetMappings": [
+                    "cadd=Microbenchmark",
+                    "llb-l=Microbenchmark",
+                    "llb-h=Microbenchmark",
+                    "genome=STAMP",
+                    "intruder=STAMP",
+                    "kmeans-l=STAMP",
+                    "kmeans-h=STAMP",
+                    "labyrinth=STAMP",
+                    "ssca2=STAMP",
+                    "vacation-l=STAMP",
+                    "vacation-h=STAMP",
+                    "yada=STAMP",
+                    "mean=(STAMP)"
+                ]
+            }
+        },
+        {
+            "plotType": "groupedStackedBarplot",
+            "dataConfig": {
+                "file": "config_woper",
+                "config": "sens_stacked_rlp"
+            },
+            "styleConfig": {
+                "file": "style_woper",
+                "config": "cycles_region"
+            },
+            "fileName": "region_rlp",
+            "x": [
+                "benchmark_name"
+            ],
+            "y": [
+                "cyclesInRegion..Parallel",
+                "cyclesInRegion..Commit_Fallback",
+                "cyclesInRegion..Transactional_Committed",
+                "cyclesInRegion..Power",
+                "cyclesInRegion..Transactional_Aborted",
+                "cyclesInRegion..Wait_Fallback",
+                "cyclesInRegion..Abort_Handler",
+                "cyclesInRegion..Barrier"
+            ],
+            "conf_z": [
+                "config_description_abbrev"
+            ],
+            "facet": {
+                "facetVar": "benchmark_name",
+                "facetMappings": [
+                    "cadd=Microbenchmark",
+                    "llb-l=Microbenchmark",
+                    "llb-h=Microbenchmark",
+                    "genome=STAMP",
+                    "intruder=STAMP",
+                    "kmeans-l=STAMP",
+                    "kmeans-h=STAMP",
+                    "labyrinth=STAMP",
+                    "ssca2=STAMP",
+                    "vacation-l=STAMP",
+                    "vacation-h=STAMP",
+                    "yada=STAMP",
+                    "mean=(STAMP)"
+                ]
+            }
+        },
+        {
+            "plotType": "groupedStackedBarplot",
+            "dataConfig": {
+                "file": "config_woper",
+                "config": "cycles_region_final"
+            },
+            "styleConfig": {
+                "file": "style_woper",
+                "config": "cycles_region_final"
+            },
+            "fileName": "region_final",
+            "x": [
+                "benchmark_name"
+            ],
+            "y": [
+                "cyclesInRegion..Parallel",
+                "cyclesInRegion..Commit_Fallback",
+                "cyclesInRegion..Transactional_Committed",
+                "cyclesInRegion..Power",
+                "cyclesInRegion..Transactional_Aborted",
+                "cyclesInRegion..Wait_Fallback",
+                "cyclesInRegion..Abort_Handler",
+                "cyclesInRegion..Barrier"
+            ],
+            "conf_z": [
+                "config_description_abbrev"
+            ],
+            "facet": {
+                "facetVar": "benchmark_name",
+                "facetMappings": [
+                    "cadd=Microbenchmark",
+                    "llb-l=Microbenchmark",
+                    "llb-h=Microbenchmark",
+                    "genome=STAMP",
+                    "intruder=STAMP",
+                    "kmeans-l=STAMP",
+                    "kmeans-h=STAMP",
+                    "labyrinth=STAMP",
+                    "ssca2=STAMP",
+                    "vacation-l=STAMP",
+                    "vacation-h=STAMP",
+                    "yada=STAMP",
+                    "mean=(STAMP)"
+                ]
+            }
+        },
+        {
+            "plotType": "groupedStackedBarplot_sideline",
+            "dataConfig": {
+                "file": "config_woper",
+                "config": "cycles_region_final"
+            },
+            "styleConfig": {
+                "file": "style_woper",
+                "config": "cycles_region_final"
+            },
+            "fileName": "region_final_sided_aborts",
+            "x": [
+                "benchmark_name"
+            ],
+            "y": [
+                "cyclesInRegion..Parallel",
+                "cyclesInRegion..Commit_Fallback",
+                "cyclesInRegion..Transactional_Committed",
+                "cyclesInRegion..Power",
+                "cyclesInRegion..Transactional_Aborted",
+                "cyclesInRegion..Wait_Fallback",
+                "cyclesInRegion..Abort_Handler",
+                "cyclesInRegion..Barrier",
+                "Aborts__side"
+            ],
+            "conf_z": [
+                "config_description_abbrev"
+            ],
+            "facet": {
+                "facetVar": "benchmark_name",
+                "facetMappings": [
+                    "cadd=Microbenchmark",
+                    "llb-l=Microbenchmark",
+                    "llb-h=Microbenchmark",
+                    "genome=STAMP",
+                    "intruder=STAMP",
+                    "kmeans-l=STAMP",
+                    "kmeans-h=STAMP",
+                    "labyrinth=STAMP",
+                    "ssca2=STAMP",
+                    "vacation-l=STAMP",
+                    "vacation-h=STAMP",
+                    "yada=STAMP",
+                    "mean=(STAMP)"
+                ]
+            }
+        },
+        {
+            "plotType": "barplotFacetManual",
+            "dataConfig": {
+                "file": "config_woper",
+                "config": "sens_percentage_rlp"
+            },
+            "styleConfig": {
+                "file": "style_woper",
+                "config": "cycles_before_abort"
+            },
+            "fileName": "percentage_before_abort_rlp",
+            "x": [
+                "benchmark_name"
+            ],
+            "y": [
+                "htm_percentage_executed_on_abort..mean__get_summary"
+            ],
+            "conf_z": [
+                "config_description_abbrev"
+            ],
+            "facet": {
+                "facetVar": "benchmark_name",
+                "facetMappings": [
+                    "cadd=Microbenchmark",
+                    "llb-l=Microbenchmark",
+                    "llb-h=Microbenchmark",
+                    "genome=STAMP",
+                    "intruder=STAMP",
+                    "kmeans-l=STAMP",
+                    "kmeans-h=STAMP",
+                    "labyrinth=STAMP",
+                    "ssca2=STAMP",
+                    "vacation-l=STAMP",
+                    "vacation-h=STAMP",
+                    "yada=STAMP",
+                    "mean=(STAMP)"
+                ]
+            }
+        },
+        {
+            "plotType": "barplotFacetManual",
+            "dataConfig": {
+                "file": "config_woper",
+                "config": "sens_percentage_rwp"
+            },
+            "styleConfig": {
+                "file": "style_woper",
+                "config": "cycles_before_abort"
+            },
+            "fileName": "percentage_before_abort_rwp",
+            "x": [
+                "benchmark_name"
+            ],
+            "y": [
+                "htm_percentage_executed_on_abort..mean__get_summary"
+            ],
+            "conf_z": [
+                "config_description_abbrev"
+            ],
+            "facet": {
+                "facetVar": "benchmark_name",
+                "facetMappings": [
+                    "cadd=Microbenchmark",
+                    "llb-l=Microbenchmark",
+                    "llb-h=Microbenchmark",
+                    "genome=STAMP",
+                    "intruder=STAMP",
+                    "kmeans-l=STAMP",
+                    "kmeans-h=STAMP",
+                    "labyrinth=STAMP",
+                    "ssca2=STAMP",
+                    "vacation-l=STAMP",
+                    "vacation-h=STAMP",
+                    "yada=STAMP",
+                    "mean=(STAMP)"
+                ]
+            }
+        },
+        {
+            "plotType": "barplotFacetManual",
+            "dataConfig": {
+                "file": "config_woper",
+                "config": "sens_percentage_rw"
+            },
+            "styleConfig": {
+                "file": "style_woper",
+                "config": "cycles_before_abort"
+            },
+            "fileName": "percentage_before_abort_rw",
+            "x": [
+                "benchmark_name"
+            ],
+            "y": [
+                "htm_percentage_executed_on_abort..mean__get_summary"
+            ],
+            "conf_z": [
+                "config_description_abbrev"
+            ],
+            "facet": {
+                "facetVar": "benchmark_name",
+                "facetMappings": [
+                    "cadd=Microbenchmark",
+                    "llb-l=Microbenchmark",
+                    "llb-h=Microbenchmark",
+                    "genome=STAMP",
+                    "intruder=STAMP",
+                    "kmeans-l=STAMP",
+                    "kmeans-h=STAMP",
+                    "labyrinth=STAMP",
+                    "ssca2=STAMP",
+                    "vacation-l=STAMP",
+                    "vacation-h=STAMP",
+                    "yada=STAMP",
+                    "mean=(STAMP)"
+                ]
+            }
+        },
+        {
+            "plotType": "barplotFacetManual",
+            "dataConfig": {
+                "file": "config_woper",
+                "config": "sens_percentage_rl"
+            },
+            "styleConfig": {
+                "file": "style_woper",
+                "config": "cycles_before_abort"
+            },
+            "fileName": "percentage_before_abort_rl",
+            "x": [
+                "benchmark_name"
+            ],
+            "y": [
+                "htm_percentage_executed_on_abort..mean__get_summary"
+            ],
+            "conf_z": [
+                "config_description_abbrev"
+            ],
+            "facet": {
+                "facetVar": "benchmark_name",
+                "facetMappings": [
+                    "cadd=Microbenchmark",
+                    "llb-l=Microbenchmark",
+                    "llb-h=Microbenchmark",
+                    "genome=STAMP",
+                    "intruder=STAMP",
+                    "kmeans-l=STAMP",
+                    "kmeans-h=STAMP",
+                    "labyrinth=STAMP",
+                    "ssca2=STAMP",
+                    "vacation-l=STAMP",
+                    "vacation-h=STAMP",
+                    "yada=STAMP",
+                    "mean=(STAMP)"
+                ]
+            }
+        }
+    ]
+}

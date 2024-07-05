@@ -1,8 +1,8 @@
 {
-    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/woper_sens",
+    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/woper_comparePCHATS",
     "parseConfig": {
         "file": "parse_woper",
-        "config": "retry_sens"
+        "config": "default"
     },
     "mixStats": [
         {
@@ -66,26 +66,24 @@
     "outlierStat": "simTicks",
     "plots": [
         {
-            "plotType": "heatmap",
+            "plotType": "barplotFacetManual",
             "dataConfig": {
                 "file": "config_woper",
-                "config": "onlymean_heatmap_rln"
+                "config": "compare_pchats"
             },
             "styleConfig": {
                 "file": "style_woper",
-                "config": "heatmap_default"
+                "config": "sens_retry"
             },
-            "fileName": "simTicks_onlymean_heatmap_rln",
+            "fileName": "simticks",
             "x": [
-                "htm_max_retries"
+                "benchmark_name"
             ],
             "y": [
                 "simTicks"
             ],
-            "showOnlyMean": true,
-            "meanFacet": "benchmark_name",
             "conf_z": [
-                "htm_conflict_resolution"
+                "config_description_abbrev"
             ],
             "facet": {
                 "facetVar": "benchmark_name",
@@ -104,6 +102,50 @@
                     "vacation-h=STAMP",
                     "yada=STAMP",
                     "geomean=(STAMP)"
+                ]
+            }
+        },
+        {
+            "plotType": "groupedStackedBarplot",
+            "dataConfig": {
+                "file": "config_woper",
+                "config": "compare_pchats_stack"
+            },
+            "styleConfig": {
+                "file": "style_woper",
+                "config": "aborts_reason"
+            },
+            "fileName": "aborts_cause",
+            "x": [
+                "benchmark_name"
+            ],
+            "y": [
+                "htm_transaction_abort_cause..Conflicts",
+                "htm_transaction_abort_cause..Conflicts_fallbacklock",
+                "htm_transaction_abort_cause..Capacity",
+                "htm_transaction_abort_cause..Explicit",
+                "htm_transaction_abort_cause..Other"
+            ],
+            "conf_z": [
+                "config_description_abbrev"
+            ],
+            "facet": {
+                "facetVar": "benchmark_name",
+                "facetMappings": [
+                    "cadd=Microbenchmark",
+                    "llb-l=Microbenchmark",
+                    "llb-h=Microbenchmark",
+                    "genome=STAMP",
+                    "intruder=STAMP",
+                    "intruder-qs=STAMP",
+                    "kmeans-l=STAMP",
+                    "kmeans-h=STAMP",
+                    "labyrinth=STAMP",
+                    "ssca2=STAMP",
+                    "vacation-l=STAMP",
+                    "vacation-h=STAMP",
+                    "yada=STAMP",
+                    "mean=(STAMP)"
                 ]
             }
         }

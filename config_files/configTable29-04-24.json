@@ -182,147 +182,7 @@
     "outlierStat": "simTicks",
     "plots": [
         {
-            "plotType": "groupedStackedBarplot",
-            "dataConfig": {
-                "file": "config_table_29-04-24",
-                "config": "default"
-            },
-            "styleConfig": {
-                "file": "style_table_29-04-24",
-                "config": "aborts_reason"
-            },
-            "fileName": "aborts_cause",
-            "x": [
-                "benchmark_name"
-            ],
-            "y": [
-                "htm_transaction_abort_cause..Conflicts",
-                "htm_transaction_abort_cause..Conflicts_fallbacklock",
-                "htm_transaction_abort_cause..FwdValidation",
-                "htm_transaction_abort_cause..FwdCapacity",
-                "htm_transaction_abort_cause..Capacity",
-                "htm_transaction_abort_cause..Explicit",
-                "htm_transaction_abort_cause..Other"
-            ],
-            "conf_z": [
-                "config_description_abbrev"
-            ],
-            "facet": {
-                "facetVar": "benchmark_name",
-                "facetMappings": [
-                    "cadd=Microbenchmark",
-                    "llb-l=Microbenchmark",
-                    "llb-h=Microbenchmark",
-                    "genome=STAMP",
-                    "intruder=STAMP",
-                    "intruder-qs=STAMP",
-                    "kmeans-l=STAMP",
-                    "kmeans-h=STAMP",
-                    "labyrinth=STAMP",
-                    "ssca2=STAMP",
-                    "vacation-l=STAMP",
-                    "vacation-h=STAMP",
-                    "yada=STAMP",
-                    "mean=(STAMP)"
-                ]
-            }
-        },
-        {
-            "plotType": "groupedStackedBarplot",
-            "dataConfig": {
-                "file": "config_table_29-04-24",
-                "config": "default"
-            },
-            "styleConfig": {
-                "file": "style_table_29-04-24",
-                "config": "summary_commit"
-            },
-            "fileName": "Summary",
-            "x": [
-                "benchmark_name"
-            ],
-            "y": [
-                "htm_transaction_executed_type_rate..Common_commit",
-                "htm_transaction_executed_type_rate..FallbackLock_commit",
-                "producers..Producers_commit_no_modify",
-                "producers..Producers_commit_modify",
-                "htm_transaction_executed_type_rate..Consumer_commit",
-                "htm_transaction_executed_type_rate..Power_commit",
-                "Power_producer_commit_modify",
-                "Power_producer_commit_no_modify"
-
-            ],
-            "conf_z": [
-                "config_description_abbrev"
-            ],
-            "facet": {
-                "facetVar": "benchmark_name",
-                "facetMappings": [
-                    "cadd=Microbenchmark",
-                    "llb-l=Microbenchmark",
-                    "llb-h=Microbenchmark",
-                    "genome=STAMP",
-                    "intruder=STAMP",
-                    "intruder-qs=STAMP",
-                    "kmeans-l=STAMP",
-                    "kmeans-h=STAMP",
-                    "labyrinth=STAMP",
-                    "ssca2=STAMP",
-                    "vacation-l=STAMP",
-                    "vacation-h=STAMP",
-                    "yada=STAMP",
-                    "mean=(STAMP)"
-                ]
-            }
-        },
-        {
-            "plotType": "groupedStackedBarplot",
-            "dataConfig": {
-                "file": "config_table_29-04-24",
-                "config": "summary_aborts"
-            },
-            "styleConfig": {
-                "file": "style_table_29-04-24",
-                "config": "summary"
-            },
-            "fileName": "Summary_commit_abort_split",
-            "x": [
-                "benchmark_name"
-            ],
-            "y": [
-                "Commit",
-                "htm_transaction_executed_type_rate..FallbackLock_commit",
-                "htm_transaction_executed_type_rate..Common_abort",
-                "htm_transaction_executed_type_rate..Producer_abort",
-                "htm_transaction_executed_type_rate..Consumer_abort",
-                "htm_transaction_executed_type_rate..Producer_consumer_abort"
-
-            ],
-            "conf_z": [
-                "config_description_abbrev"
-            ],
-            "facet": {
-                "facetVar": "benchmark_name",
-                "facetMappings": [
-                    "cadd=Microbenchmark",
-                    "llb-l=Microbenchmark",
-                    "llb-h=Microbenchmark",
-                    "genome=STAMP",
-                    "intruder=STAMP",
-                    "intruder-qs=STAMP",
-                    "kmeans-l=STAMP",
-                    "kmeans-h=STAMP",
-                    "labyrinth=STAMP",
-                    "ssca2=STAMP",
-                    "vacation-l=STAMP",
-                    "vacation-h=STAMP",
-                    "yada=STAMP",
-                    "mean=(STAMP)"
-                ]
-            }
-        },
-        {
-            "plotType": "groupedStackedBarplot",
+            "plotType": "distribution",
             "dataConfig": {
                 "file": "config_table_29-04-24",
                 "config": "forwardings"
@@ -333,12 +193,10 @@
             },
             "fileName": "forwardings",
             "x": [
-                "benchmark_name"
+                "simTicks"
             ],
             "y": [
-                "forwardings..No_modify",
-                "forwardings..Modify",
-                "forwardings..Abort"
+                "htm_PiC_aborted"
             ],
             "conf_z": [
                 "config_description_abbrev"
@@ -358,8 +216,7 @@
                     "ssca2=STAMP",
                     "vacation-l=STAMP",
                     "vacation-h=STAMP",
-                    "yada=STAMP",
-                    "mean=(STAMP)"
+                    "yada=STAMP"
                 ]
             }
         }

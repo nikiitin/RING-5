@@ -2,11 +2,11 @@ source("src/data_plotter/src/plots/barplot.R")
 # This is the definition for the barplot type. It is inheriting
 # from the Plot class.
 
-setClass("barplotFacetManual", contains = "barplot")
+setClass("barplotFacetManual_comparison", contains = "barplot")
 
 setMethod(
     "create_plot",
-    signature(object = "barplotFacetManual"),
+    signature(object = "barplotFacetManual_comparison"),
     function(object) {
         object@plot <- ggplot(object@info@data_frame, aes(
             x = "",
@@ -19,7 +19,7 @@ setMethod(
             position = "dodge",
             color = "black"
         )
-        # Facet the plot
+        design <- "BBBBBCCCCCDDDDD#EEEEEFFFFFGGGGGHHHHHIIIIIJJJJJKKKKKLLLLLMMMMM#AAAAA"
         if (length(object@info@faceting_var) > 0) {
           object@plot <- object@plot + facet_manual(
             ~ facet_column + .data[[object@info@x]],
@@ -27,7 +27,7 @@ setMethod(
             strip = strip_nested(
               clip = "off"
             ),
-            design = create_facet_design(object, 5)
+            design = design
           )
         }
         # Add standard deviation error bars
@@ -44,6 +44,22 @@ setMethod(
             width = .2,
             position = position_dodge(.9)
         )
+        object
+    }
+)
+
+setMethod(
+    "apply_style",
+    signature(object = "barplotFacetManual_comparison"),
+    function(object) {
+        object <- callNextMethod()
+        # We need the 3rd and the last color from the palette
+                color_vector <- viridis::viridis(5)
+        color_vector <- color_vector[c(3, 5)]
+        # Now we need to add red and light red to the color vector
+        color_vector <- c(color_vector, "#BC2429")
+        # Now we need to add the colors to the plot
+        object@plot <- object@plot + scale_fill_manual(values = color_vector, labels = object@styles@legend_names)
         object
     }
 )

@@ -8,7 +8,7 @@
             "yAxisName": "Ex. time(normalized)",
             "width": 75,
             "height": 30,
-            "format": "pdf",
+            "format": "png",
             "legendTitle": "Conflict resolution",
             "nLegendElementsPerRow": 2,
             "xSplitPoints": [
@@ -40,7 +40,7 @@
             "yAxisName": "Ex. time(normalized)",
             "width": 75,
             "height": 30,
-            "format": "pdf",
+            "format": "png",
             "legendTitle": "Retries",
             "nLegendElementsPerRow": 2,
             "xSplitPoints": [
@@ -73,7 +73,7 @@
             "yAxisName": "Ex. time(normalized)",
             "width": 75,
             "height": 30,
-            "format": "pdf",
+            "format": "png",
             "legendTitle": "Retries",
             "nLegendElementsPerRow": 2,
             "xSplitPoints": [
@@ -131,6 +131,121 @@
         }
     },
     {
+        "styleName": "cycles_region",
+        "dataStyle": {
+            "apparel": "GroupedStackedBarplot_default",
+            "title": "",
+            "xAxisName": "Retries",
+            "yAxisName": "Ex. time(normalized)",
+            "width": 60,
+            "height": 15,
+            "format": "png",
+            "legendTitle": "Execution region",
+            "nLegendElementsPerRow": 2,
+            "xSplitPoints": [
+                
+            ],
+            "legendNames": [
+                "1",
+                "2",
+                "4",
+                "6",
+                "8",
+                "10",
+                "12",
+                "14",
+                "16",
+                "32",
+                "64"
+            ],
+            "breaks": [
+                "0",
+                "0.25",
+                "0.5",
+                "0.75",
+                "1",
+                "1.25",
+                "1.5",
+                "1.75",
+                "2"
+            ],
+            "limitTop": 2,
+            "limitBot": 0
+        }
+    },
+    {
+        "styleName": "cycles_region_final",
+        "dataStyle": {
+            "apparel": "GroupedStackedBarplot_default",
+            "title": "",
+            "xAxisName": "Retries",
+            "yAxisName": "Ex. time(normalized)",
+            "width": 60,
+            "height": 25,
+            "format": "png",
+            "legendTitle": "Execution region",
+            "nLegendElementsPerRow": 2,
+            "xSplitPoints": [
+                
+            ],
+            "legendNames": [
+                "Req-Wins",
+                "Req-Loses",
+                "Power",
+                "Woper"
+            ],
+            "breaks": [
+                "0",
+                "0.25",
+                "0.5",
+                "0.75",
+                "1",
+                "1.25"
+            ],
+            "limitTop": 2,
+            "limitBot": 0
+        }
+    },
+    {
+        "styleName": "cycles_before_abort",
+        "dataStyle": {
+            "apparel": "GroupedStackedBarplot_default",
+            "title": "",
+            "xAxisName": "",
+            "yAxisName": "Completion %",
+            "width": 60,
+            "height": 30,
+            "format": "png",
+            "legendTitle": "Retries",
+            "nLegendElementsPerRow": 2,
+            "xSplitPoints": [
+                
+            ],
+            "legendNames": [
+                "1",
+                "2",
+                "4",
+                "6",
+                "8",
+                "10",
+                "12",
+                "14",
+                "16",
+                "32",
+                "64"
+            ],
+            "breaks": [
+                "0",
+                "25",
+                "50",
+                "75",
+                "100"
+            ],
+            "limitTop": 120,
+            "limitBot": 0
+        }
+    },
+    {
         "styleName": "lineplot_retry",
         "dataStyle": {
             "apparel": "Lineplot_default",
@@ -139,7 +254,7 @@
             "yAxisName": "Ex. Time (Normalized)",
             "width": 20,
             "height": 15,
-            "format": "pdf",
+            "format": "png",
             "legendTitle": "Config",
             "nLegendElementsPerRow": 2,
             "xSplitPoints": [
@@ -149,14 +264,14 @@
             ],
             "breaks": [
                 "0",
-                "0.2",
-                "0.4",
-                "0.6",
-                "0.8",
+                "0.25",
+                "0.5",
+                "0.75",
                 "1.0",
-                "1.2"
+                "1.25",
+                "1.5"
             ],
-            "limitTop": 1.3,
+            "limitTop": 1.5,
             "limitBot": 0
         }
     },
@@ -169,7 +284,7 @@
             "yAxisName": "Max. received blocks",
             "width": 41,
             "height": 40,
-            "format": "pdf",
+            "format": "png",
             "legendTitle": "Exec.\ntime\nNorm. by\n(1, 50)",
             "nLegendElementsPerRow": 2,
             "xSplitPoints": [

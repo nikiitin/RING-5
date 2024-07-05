@@ -2,10 +2,10 @@ source("src/data_plotter/src/plot_iface/plot.R")
 # This is the definition for the barplot type. It is inheriting
 # from the Plot class.
 
-setClass("barplot", contains = "Plot")
+setClass("barplot_comparison", contains = "Plot")
 
 setMethod("pre_process",
-    signature(object = "barplot"),
+    signature(object = "barplot_comparison"),
   function(object) {
     object <- callNextMethod()
     # Return the object
@@ -15,7 +15,7 @@ setMethod("pre_process",
 
 setMethod(
     "create_plot",
-    signature(object = "barplot"),
+    signature(object = "barplot_comparison"),
     function(object) {
         object@plot <- ggplot(object@info@data_frame, aes(
             x = .data[[object@info@x]],
@@ -62,7 +62,7 @@ setMethod(
 
 setMethod(
     "apply_style",
-    signature(object = "barplot"),
+    signature(object = "barplot_comparison"),
     function(object) {
         # Call parent method
         object <- callNextMethod()
@@ -73,7 +73,7 @@ setMethod(
             axis.text.x = element_text(
                 angle = 30,
                 hjust = 1,
-                size = adjust_text_size(16,
+                size = adjust_text_size(25,
                     object@styles@width,
                     object@styles@height),
                 face = "bold"
@@ -82,13 +82,13 @@ setMethod(
             axis.ticks.y = element_blank(),
             axis.text.y = element_text(
                 hjust = 1,
-                size = adjust_text_size(16,
+                size = adjust_text_size(23,
                     object@styles@width,
                     object@styles@height),
                 face = "bold"
             ),
             axis.title.y = element_text(
-                size = adjust_text_size(16,
+                size = adjust_text_size(23,
                     object@styles@width,
                     object@styles@height),
                 face = "bold"
@@ -98,13 +98,13 @@ setMethod(
             legend.background= element_rect(fill = NA, color = "white"),
             legend.box.margin = margin(-18, 0, -16, 0),
             legend.title = element_text(
-                size = adjust_text_size(16,
+                size = adjust_text_size(23,
                     object@styles@width,
                     object@styles@height),
                 face = "bold"
             ),
             legend.text = element_text(
-                size = adjust_text_size(16,
+                size = adjust_text_size(23,
                     object@styles@width,
                     object@styles@height)
             ),
@@ -132,22 +132,7 @@ setMethod(
                 element_rect(fill = alpha('#2eabff', 0.1), color = "white"),
             panel.spacing = unit(0.1, "cm")
         )
-        # Assign the colors to plot and labels to legend in case
-        # legend names are specified
-        if (length(object@styles@legend_names) != 0) {
-            object@plot <- object@plot +
-                scale_fill_viridis_d(
-                    option = "viridis",
-                    labels = object@styles@legend_names,
-                    direction = 1
-                )
-        } else {
-            object@plot <- object@plot +
-                scale_fill_viridis_d(
-                    option = "viridis",
-                    direction = 1
-                )
-        }
+
         # Limit the y axis and assign labels to those
         # statistics that overgo the top limit
         if (object@styles@y_limit_top > 0) {
@@ -176,7 +161,7 @@ setMethod(
                         "rgb",
                         "hcl"
                     )
-                label_col <- ifelse(colors[, "l"] > 50, "black", "white")
+                label_col <- ifelse(colors[, "l"] > 50, "white", "white")
                 # Check if any stat goes over the top limit and
                 # assign a label to it
                 list_of_labels <-
@@ -220,7 +205,7 @@ setMethod(
                             y = object@styles@y_limit_top
                         ),
                         show.legend = FALSE,
-                        size = adjust_text_size(6,
+                        size = adjust_text_size(8,
                             object@styles@width,
                             object@styles@height),
                         angle = 90,
@@ -234,6 +219,19 @@ setMethod(
                     )
             }
         }
+                # We need the 3rd and the last color from the palette
+                color_vector <- viridis::viridis(5)
+        color_vector <- color_vector[c(3, 5)]
+        # Now we need to add red and light red to the color vector
+        color_vector <- c(color_vector, "#BC2429", "#78171A")
+        # Now we need to add the colors to the plot
+        object@plot <- object@plot + scale_fill_manual(values = color_vector, labels = object@styles@legend_names) +
+            scale_y_continuous(
+                breaks = object@styles@y_breaks,
+                oob = scales::squish
+            )
+        object@plot <- object@plot + geom_vline(xintercept = 12.5, linetype="dashed", 
+                color = "black")
         object
     }
 )

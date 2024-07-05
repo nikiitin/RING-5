@@ -1,52 +1,90 @@
 source("src/data_plotter/src/plot_iface/plot.R")
 # Define the S4 class for a lineplot
-setClass("lineplot", contains = "Plot")
+every_nth = function(n) {
+  return(function(x) {x[c(TRUE, rep(FALSE, n - 1))]})
+}
+setClass("distribution", contains = "Plot")
 
 setMethod("initialize",
-  "lineplot",
+  "distribution",
   function(.Object, args) {
-    .Object <- callNextMethod()
-    # Assume X is numeric
-    # Order the data by X by numeric order
-    numeric_vector <- .Object@info@data_frame %>%
-        mutate_at(.Object@info@x, as.character) %>%
-        mutate_at(.Object@info@x, as.numeric) %>%
-        pull(.Object@info@x) %>%
-        unique()
-    numeric_vector <- sort(numeric_vector)
-    .Object@info@data_frame %<>%
-        mutate_at(.Object@info@x, factor, levels = numeric_vector)
+    .Object@args <- args
+    ## Args parse ##
+    # Create plotInfo object
+    .Object@info <- new("Plot_info",
+      args = .Object@args
+    )
+    # Update args to remove the ones already used
+    .Object %<>% update_args(.Object@info@args)
+    .Object@styles <- new("Plot_style",
+      args = .Object@args
+    )
+    # Update args
+    .Object %<>% update_args(.Object@styles@args)
+    # X is not used
+    # Add conf_z columns
+    .Object@info@data_frame <- .Object@info@data[.Object@info@conf_z]
+    # Take into account that conf_z column is an already ordered factor
+    # so assign back the levels to the data frame
+    .Object@info@data_frame[, .Object@info@conf_z] %<>%
+      factor(levels = unique(.Object@info@data[, .Object@info@conf_z]))
+    ## Data formating ##
+    cols_to_include <- grep(.Object@info@y, colnames(.Object@info@data), value=TRUE)
+    .Object@info@data_frame %<>% cbind(.Object@info@data[cols_to_include])
 
     .Object@info@data_frame %<>%
-        bind_cols(.Object@info@data[.Object@info@faceting_var])
+        cbind(.Object@info@data[.Object@info@faceting_var])
+    .Object@info@data_frame %<>% 
+        select(-tidyselect::ends_with(".sd")) %>%
+        pivot_longer(
+        cols = starts_with(.Object@info@y),
+        names_to = "dist_names",
+        values_to = "dist_vals",
+        names_pattern = "^.*?\\.\\.(\\.?.*)"
+    )
+    .Object@info@data_frame$dist_names %<>% str_replace("^\\.", "-")
+    
+    numeric_values <- as.numeric(unique(.Object@info@data_frame$dist_names))
+    numeric_values <- numeric_values[!is.na(numeric_values)]
 
-    facet_levels <- unique(pull(.Object@info@data, .Object@info@faceting_var))
+    numeric_ranges <- cut(numeric_values, breaks = 16)
+    range_names <- as.character(numeric_ranges)
+    # Reemplaza los valores numéricos en dist_names con los nombres de los rangos
+    .Object@info@data_frame$dist_names[.Object@info@data_frame$dist_names %in% numeric_values] <- range_names
 
-    .Object@info@data_frame[.Object@info@faceting_var] <-
-        factor(pull(.Object@info@data_frame, .Object@info@faceting_var),
-        levels = facet_levels)
-    if (.Object@info@show_only_mean) {
-        .Object@info@data_frame <- 
-            .Object@info@data_frame[
-                .Object@info@data_frame[,
-                    .Object@info@faceting_var
-                    ] == "geomean",
-                ]
-    }
+    # Agrupa por dist_names y suma dist_vals
+.Object@info@data_frame <- .Object@info@data_frame %>%
+  group_by(dist_names, .data[[.Object@info@conf_z]], .data[[.Object@info@faceting_var]]) %>%
+  summarise(dist_vals = sum(dist_vals), .groups = "keep")
+
+
+    # Desagrupa el dataframe
+    .Object@info@data_frame <- ungroup(.Object@info@data_frame)
+
+
+
+# # Reemplaza los valores numéricos en dist_names con los nombres de los rangos
+# .Object@info@data_frame$dist_names[.Object@info@data_frame$dist_names %in% numeric_values] <- range_names
+    .Object@info@data_frame$dist_names <-
+        factor(.Object@info@data_frame$dist_names,
+        levels = c("underflows", unique(range_names), "overflows"))
+
     .Object
   }
 )
 
+
 # Override create_plot method from Plot class
 # need different behavior for Lineplot
 setMethod("create_plot",
-  signature(object = "lineplot"),
+  signature(object = "distribution"),
   function(object) {
     # DO NOT CALL PARENT METHOD
     # Create the plot object
+
     object@plot <- ggplot(object@info@data_frame, aes(
-      x = .data[[object@info@x]],
-      y = .data[[object@info@y]],
+      x = dist_names,
+      y = dist_vals,
       group = .data[[object@info@conf_z]]
     ))
     # Add line to the plot
@@ -56,22 +94,15 @@ setMethod("create_plot",
       geom_line(
         aes(linetype = .data[[object@info@conf_z]],
           color = .data[[object@info@conf_z]]),
-        alpha = 1,
-        linewidth = adjust_text_size(1.4,
+        alpha = 0.6,
+        linewidth = adjust_text_size(0.8,
                     object@styles@width,
                     object@styles@height)) +
       geom_point(
          aes(shape = .data[[object@info@conf_z]], color = .data[[object@info@conf_z]]),
-         size = adjust_text_size(3,
+         size = adjust_text_size(1.8,
                     object@styles@width,
-                    object@styles@height)) +
-      geom_errorbar(
-        aes(ymin = object@info@data_frame[, object@info@y] -
-          object@info@data_frame[, paste(object@info@y, "sd", sep = ".")],
-        ymax = object@info@data_frame[, object@info@y] +
-          object@info@data_frame[, paste(object@info@y, "sd", sep = ".")],
-        color = .data[[object@info@conf_z]]),
-        width = .4)
+                    object@styles@height))
 
     # Facet by the variable specified in faceting_var
     if (length(object@info@faceting_var) > 0) {
@@ -87,7 +118,7 @@ setMethod("create_plot",
 # Override apply_style method from Plot class
 setMethod(
     "apply_style",
-    signature(object = "lineplot"),
+    signature(object = "distribution"),
     function(object) {
         object <- callNextMethod()
         # Set the theme to be used
@@ -96,16 +127,16 @@ setMethod(
         object@plot <- object@plot + theme(
             axis.text.x = element_text(
                 hjust = 1,
-                vjust = 2,
+                vjust = 1,
                 angle = 30,
-                size = adjust_text_size(16,
+                size = adjust_text_size(8,
                     object@styles@width,
                     object@styles@height),
                 face = "bold"
             ),
             axis.text.y = element_text(
                 hjust = 1,
-                size = adjust_text_size(16,
+                size = adjust_text_size(8,
                     object@styles@width,
                     object@styles@height),
                 face = "bold"
@@ -220,7 +251,8 @@ setMethod(
                     scale_y_continuous(
                         breaks = object@styles@y_breaks,
                         oob = scales::squish
-                    )
+                    ) +
+                    scale_x_discrete(breaks = every_nth(4))
                 object@plot <- object@plot + coord_cartesian(
                     ylim = as.numeric(
                         c(

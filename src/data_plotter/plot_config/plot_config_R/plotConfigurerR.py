@@ -106,6 +106,7 @@ class PlotConfigurerR(PlotConfigurerInterface):
         # Dynamic call to configure on interface class
         super().configurePlot(plotJson, tmpCsv)
         self._command = ["./src/data_plotter/plot_config/plot_config_R/dataConfigurer.R"]
+        utils.checkElementExists(plotJson, "plotType")
         self._command.append(tmpCsv)
         jsonDataConfig = ConfigurationManager.getPlotConfiguration(plotJson)
         self._addActionsToCommand(jsonDataConfig)
@@ -137,6 +138,10 @@ class PlotConfigurerR(PlotConfigurerInterface):
         if utils.checkElementExistNoException(jsonDataConfig, "normalize"):
             self._normalizeJson = jsonDataConfig["normalize"]
             self._normalizeData()
+        if plotJson["plotType"] == "distribution":
+            self._command.append("1")
+        else:
+            self._command.append("0")
         # Call the R script
         subprocess.call(self._command)
         

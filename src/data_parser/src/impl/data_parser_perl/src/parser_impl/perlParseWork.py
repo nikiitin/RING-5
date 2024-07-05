@@ -163,7 +163,9 @@ class PerlParseWork(ParseWork):
         utils.checkFileExistsOrException(self._fileToParse)
         scriptCall.append(self._fileToParse)
         # In the script, only the IDs are needed
-        scriptCall.extend(self._varsToParse.keys())
+        # Remove directives from the variables
+        # at script call
+        scriptCall.extend([varID.split("__")[0] for varID in self._varsToParse.keys()])
         # Call the parser script
         output = self._getOutputFromSubprocess(scriptCall)
         # print(output)

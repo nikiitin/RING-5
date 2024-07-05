@@ -1,8 +1,8 @@
 {
-    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/valuepred-rebutal_scalability",
+    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/valuepred-rebutal_abortdel",
     "parseConfig": {
         "file": "parse_final",
-        "config": "rebutal_scalability"
+        "config": "rebutal_abortdel"
     },
     "mixStats": [
         {
@@ -124,8 +124,8 @@
             "type": "Divider",
             "args": [
                 "div_result",
-                "simTicks",
-                "flits_injected__get_summary"
+                "htm_delayed_time_fwd_on_abort..mean__get_summary",
+                "htm_transaction_cycles..mean__get_summary"
             ]
         }
     ],
@@ -134,21 +134,77 @@
     "outlierStat": "simTicks",
     "plots": [
         {
-            "plotType": "lineplot",
+            "plotType": "resulter",
             "dataConfig": {
                 "file": "config_final",
-                "config": "rebutal_scalability"
+                "config": "rebutal_abortdel"
             },
             "styleConfig": {
                 "file": "style_final",
-                "config": "default_scalability"
+                "config": "default_abortdel"
             },
-            "fileName": "lineplot_rebutal_scalability",
+            "fileName": "resulter_abortdel",
             "x": [
-                "num_cpus"
+                "benchmark_name"
             ],
             "y": [
-                "simTicks"
+                "htm_delayed_time_fwd_on_abort..mean__get_summary"
+            ],
+            "showOnlyMean": true,
+            "conf_z": [
+                "config_description_abbrev"
+            ],
+            "facet": {
+                "facetVar": "benchmark_name",
+                "facetMappings": [
+                    "geomean=(STAMP)"
+                ]
+            }
+        },
+        {
+            "plotType": "resulter",
+            "dataConfig": {
+                "file": "config_final",
+                "config": "rebutal_abortdel"
+            },
+            "styleConfig": {
+                "file": "style_final",
+                "config": "default_abortdel"
+            },
+            "fileName": "resulter_abortdel_percentage",
+            "x": [
+                "benchmark_name"
+            ],
+            "y": [
+                "div_result"
+            ],
+            "showOnlyMean": true,
+            "conf_z": [
+                "config_description_abbrev"
+            ],
+            "facet": {
+                "facetVar": "benchmark_name",
+                "facetMappings": [
+                    "geomean=(STAMP)"
+                ]
+            }
+        },
+        {
+            "plotType": "resulter",
+            "dataConfig": {
+                "file": "config_final",
+                "config": "rebutal_abortdel"
+            },
+            "styleConfig": {
+                "file": "style_final",
+                "config": "default_abortdel"
+            },
+            "fileName": "resulter_abortdel_cycles",
+            "x": [
+                "benchmark_name"
+            ],
+            "y": [
+                "htm_transaction_cycles..mean__get_summary"
             ],
             "showOnlyMean": true,
             "conf_z": [

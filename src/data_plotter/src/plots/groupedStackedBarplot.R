@@ -70,7 +70,7 @@ setMethod(
         # specific for this plot
         total_values <- object@info@data_frame %>%
             group_by(.data[[object@info@conf_z]], .data[[object@info@x]]) %>%
-            summarise(total = sum(values))
+            summarise(total = sum(values), .groups = "drop")
 
         total_values[, "total"] <-
             as.numeric(format(round(total_values$total, 2), nsmall = 2))
@@ -94,7 +94,6 @@ setMethod(
             object@info@data_frame[
                 object@info@data_frame$facet_column == "Microbenchmark",
                 ]
-
         micplot <- ggplot(micplotdata, aes(
             x = .data[[object@info@conf_z]],
             y = values
@@ -102,16 +101,13 @@ setMethod(
 
         # Add the facet grid to the plot object. Switch it in to X,
         # this enforce style to group variables in x axis
-        design <- "EEEEEFFFFFGGGGGHHHHHIIIIIJJJJJKKKKKLLLLLMMMMMNNNNN#AAAAA"
-        # Microbench
-        design_micro <- "BBBBBCCCCCDDDDD"
         object@plot <- object@plot + facet_manual(
             ~ facet_column + .data[[object@info@x]],
             strip.position = "bottom",
             strip = strip_nested(
                 clip = "off"
             ),
-            design = design
+            design = create_facet_design(object, 5, c("STAMP", "(STAMP)"), 4)
         )
         micplot <- micplot + facet_manual(
             ~ facet_column + .data[[object@info@x]],
@@ -119,7 +115,7 @@ setMethod(
             strip = strip_nested(
                 clip = "off"
             ),
-            design = design_micro
+            design = create_facet_design(object, 5, "Microbenchmark")
         )
 
         # Add the geom_bar to the plot object. Use position_stack to
@@ -160,7 +156,7 @@ setMethod(
                 hjust = "inward",
                 na.rm = TRUE,
                 size = adjust_text_size(
-                    6,
+                    5,
                     object@styles@width,
                     object@styles@height
                 ),
@@ -219,7 +215,7 @@ setMethod(
         # Label names were conf_z names on other plots
         if (length(object@styles@legend_names) > 0) {
             object@plot <- object@plot & scale_x_discrete(
-                labels = object@styles@legend_names,
+                labels = object@styles@legend_names
             )
         }
 
@@ -231,7 +227,7 @@ setMethod(
                 angle = 45,
                 hjust = 1,
                 size = adjust_text_size(
-                    13,
+                    8,
                     object@styles@width,
                     object@styles@height
                 ),
@@ -277,7 +273,7 @@ setMethod(
             ),
             legend.key.width = unit(
                 adjust_text_size(
-                    1,
+                    0.7,
                     object@styles@width,
                     object@styles@height
                 ),
@@ -285,7 +281,7 @@ setMethod(
             ),
             legend.key.height = unit(
                 adjust_text_size(
-                    1,
+                    0.7,
                     object@styles@width,
                     object@styles@height
                 ),
@@ -314,6 +310,9 @@ setMethod(
             )
         # Get the colors from the viridis palette
         color_vector <- viridis::viridis(length(color_index_vector))
+        # color_vector <- viridis::viridis(
+        #     length(unique(object@info@data_frame$entries))
+        # )
         # Apply the specific order from the color index vector
         color_vector <- color_vector[color_index_vector * (length(color_vector) - 1) + 1]
         object@plot <- object@plot &
@@ -330,7 +329,8 @@ setMethod(
                         min(object@styles@y_breaks),
                         max(object@styles@y_breaks)
                     ),
-                    oob = scales::squish
+                    oob = scales::squish,
+                    expand = c(0, 0)
                 )
         }
         object
