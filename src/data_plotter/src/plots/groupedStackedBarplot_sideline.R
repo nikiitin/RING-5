@@ -172,7 +172,6 @@ setMethod(
                     object@styles@width,
                     object@styles@height))
             #### End of side plot ####
-            print(side_df)
             total_side_values <- side_df %>%
                 group_by(.data[[object@info@conf_z]], .data[[object@info@x]]) %>%
                 summarise(total = .data[[y_points_side]], .groups = "drop")
@@ -186,9 +185,6 @@ setMethod(
                 ifelse(total_side_values$total < max(object@styles@y_breaks),
                     NA,
                     total_side_values$total)
-
-            # print(total_side_values)
-            # print(side_df)
             # Get the totals for labeling on this plot
             total_values <- object@info@data_frame %>%
                 filter(facet_column == element) %>%
@@ -203,7 +199,7 @@ setMethod(
                 ifelse(total_values$total < max(object@styles@y_breaks),
                     NA,
                     total_values$total)
-            # print(total_values)
+
             # Labelling
             if (!all(is.na(total_values$total))) {
                 # If all values are NA, do not add the text
@@ -381,8 +377,8 @@ setMethod(
             # legend.position = c(0.8,0.9),
             legend.position = "top",
             legend.justification = "right",
-            legend.background = element_blank(),
-            legend.box.background = element_rect(fill = "white", color = "black"),
+            # legend.background = element_blank(),
+            # legend.box.background = element_rect(fill = "white", color = "black"),
             legend.title = element_text(
                 size = adjust_text_size(
                     13,
@@ -453,7 +449,7 @@ setMethod(
                 scale_y_continuous(
                     breaks = object@styles@y_breaks,
                     oob = scales::oob_squish,
-                    expand = c(0, 0.03),
+                    expand = c(0, 0.01),
                     sec.axis = sec_axis(
                         ~ .,
                         breaks = object@styles@y_breaks,

@@ -65,6 +65,39 @@
         }
     },
     {
+        "styleName": "sens_retry_abort",
+        "dataStyle": {
+            "apparel": "Barplot_default",
+            "title": "",
+            "xAxisName": "",
+            "yAxisName": "Aborts (normalized)",
+            "width": 75,
+            "height": 30,
+            "format": "png",
+            "legendTitle": "Retries",
+            "nLegendElementsPerRow": 2,
+            "xSplitPoints": [
+                
+            ],
+            "legendNames": [
+                "rw",
+                "rl",
+                "power",
+                "woper",
+                "PCHATS"
+            ],
+            "breaks": [
+                "0",
+                "0.25",
+                "0.5",
+                "0.75",
+                "1"
+            ],
+            "limitTop": 1.2,
+            "limitBot": 0
+        }
+    },
+    {
         "styleName": "compare_pchats",
         "dataStyle": {
             "apparel": "Barplot_default",
@@ -174,6 +207,49 @@
         }
     },
     {
+        "styleName": "aborts_region",
+        "dataStyle": {
+            "apparel": "GroupedStackedBarplot_default",
+            "title": "",
+            "xAxisName": "Retries",
+            "yAxisName": "Aborts (normalized)",
+            "width": 60,
+            "height": 15,
+            "format": "png",
+            "legendTitle": "Abort reason",
+            "nLegendElementsPerRow": 2,
+            "xSplitPoints": [
+                
+            ],
+            "legendNames": [
+                "1",
+                "2",
+                "4",
+                "6",
+                "8",
+                "10",
+                "12",
+                "14",
+                "16",
+                "32",
+                "64"
+            ],
+            "breaks": [
+                "0",
+                "0.25",
+                "0.5",
+                "0.75",
+                "1",
+                "1.25",
+                "1.5",
+                "1.75",
+                "2"
+            ],
+            "limitTop": 2,
+            "limitBot": 0
+        }
+    },
+    {
         "styleName": "cycles_region_final",
         "dataStyle": {
             "apparel": "GroupedStackedBarplot_default",
@@ -181,9 +257,42 @@
             "xAxisName": "Retries",
             "yAxisName": "Ex. time(normalized)",
             "width": 60,
-            "height": 25,
+            "height": 15,
             "format": "png",
             "legendTitle": "Execution region",
+            "nLegendElementsPerRow": 2,
+            "xSplitPoints": [
+                
+            ],
+            "legendNames": [
+                "Req-Wins",
+                "Req-Loses",
+                "Power",
+                "Woper"
+            ],
+            "breaks": [
+                "0",
+                "0.25",
+                "0.5",
+                "0.75",
+                "1",
+                "1.25"
+            ],
+            "limitTop": 2,
+            "limitBot": 0
+        }
+    },
+    {
+        "styleName": "aborts_region_final",
+        "dataStyle": {
+            "apparel": "GroupedStackedBarplot_default",
+            "title": "",
+            "xAxisName": "Retries",
+            "yAxisName": "Aborts (normalized)",
+            "width": 60,
+            "height": 15,
+            "format": "png",
+            "legendTitle": "Abort reason",
             "nLegendElementsPerRow": 2,
             "xSplitPoints": [
                 
@@ -252,6 +361,36 @@
             "title": "",
             "xAxisName": "N. of retries until fallback/power",
             "yAxisName": "Ex. Time (Normalized)",
+            "width": 20,
+            "height": 15,
+            "format": "png",
+            "legendTitle": "Config",
+            "nLegendElementsPerRow": 2,
+            "xSplitPoints": [
+            ],
+            "legendNames": [
+                
+            ],
+            "breaks": [
+                "0",
+                "0.25",
+                "0.5",
+                "0.75",
+                "1.0",
+                "1.25",
+                "1.5"
+            ],
+            "limitTop": 1.5,
+            "limitBot": 0
+        }
+    },
+    {
+        "styleName": "lineplot_retry_aborts",
+        "dataStyle": {
+            "apparel": "Lineplot_default",
+            "title": "",
+            "xAxisName": "N. of retries until fallback/power",
+            "yAxisName": "Aborts (Normalized)",
             "width": 20,
             "height": 15,
             "format": "png",

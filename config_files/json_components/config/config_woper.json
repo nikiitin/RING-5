@@ -349,7 +349,7 @@
         "configName": "sens_lineplot",
         "dataConfig": {
             "mean": {
-                "meanAlgorithm": "geomean",
+                "meanAlgorithm": "mean",
                 "meanVar": "benchmark_name",
                 "skipMean": [
                     "cadd",
@@ -375,7 +375,7 @@
                         "vacation-l",
                         "vacation-h",
                         "yada",
-                        "geomean"
+                        "mean"
                     ]
                 },
                 {
