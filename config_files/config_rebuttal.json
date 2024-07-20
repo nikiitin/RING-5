@@ -1,0 +1,188 @@
+{
+    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/rebuttal",
+    "parseConfig": {
+        "file": "parse_final",
+        "config": "default_rebutal"
+    },
+    "mixStats": [
+        {
+            "groupName": "htm_transaction_abort_cause..Conflicts",
+            "mergingStats": [
+                "htm_transaction_abort_cause..memory_conflict_staledata",
+                "htm_transaction_abort_cause..memory_conflict",
+                "htm_transaction_abort_cause..memory_conflict_fallbacklock",
+                "htm_transaction_abort_cause..memory_conflict_power",
+                "htm_transaction_abort_cause..spec_illegal",
+                "htm_transaction_abort_cause..spec_validation_failure",
+                "htm_transaction_abort_cause..spec_max_capacity",
+                "htm_transaction_abort_cause..spec_depth_failure",
+                "htm_transaction_abort_cause..spec_write_in_flight",
+                "htm_transaction_abort_cause..spec_read_conflict"
+            ]
+        },
+        {
+            "groupName": "htm_transaction_abort_cause..FwdValidation",
+            "mergingStats": [
+                "htm_transaction_abort_cause..spec_validation_failure"
+            ]
+        },
+        {
+            "groupName": "htm_transaction_abort_cause..FwdCapacity",
+            "mergingStats": [
+                "htm_transaction_abort_cause..spec_max_capacity"
+            ]
+        },
+        {
+            "groupName": "htm_transaction_abort_cause..Capacity",
+            "mergingStats": [
+                "htm_transaction_abort_cause..transaction_size_l1priv",
+                "htm_transaction_abort_cause..transaction_size_llc",
+                "htm_transaction_abort_cause..transaction_size_rset",
+                "htm_transaction_abort_cause..transaction_size_wset"
+            ]
+        },
+        {
+            "groupName": "htm_transaction_abort_cause..Explicit",
+            "mergingStats": [
+                "htm_transaction_abort_cause..explicit_fallbacklock",
+                "htm_transaction_abort_cause..explicit",
+                "htm_transaction_abort_cause..transaction_size_rset"
+            ]
+        },
+        {
+            "groupName": "htm_transaction_abort_cause..Other",
+            "mergingStats": [
+                "htm_transaction_abort_cause..interrupt",
+                "htm_transaction_abort_cause..exception"
+            ]
+        },
+        {
+            "groupName": "htm_producers_consumers_tx..Abort",
+            "mergingStats": [
+                "htm_producers_consumers_tx..explicit",
+                "htm_producers_consumers_tx..nesting_limit",
+                "htm_producers_consumers_tx..transaction_size",
+                "htm_producers_consumers_tx..exception",
+                "htm_producers_consumers_tx..memory_conflict",
+                "htm_producers_consumers_tx..other",
+                "htm_producers_consumers_tx..htm_disabled",
+                "htm_producers_consumers_tx..interrupt",
+                "htm_producers_consumers_tx..lsq_conflict",
+                "htm_producers_consumers_tx..transaction_size_rset",
+                "htm_producers_consumers_tx..transaction_size_wset",
+                "htm_producers_consumers_tx..transaction_size_l1priv",
+                "htm_producers_consumers_tx..transaction_size_llc",
+                "htm_producers_consumers_tx..transaction_size_wrongcache",
+                "htm_producers_consumers_tx..explicit_fallbacklock",
+                "htm_producers_consumers_tx..memory_conflict_fallbacklock",
+                "htm_producers_consumers_tx..memory_conflict_staledata",
+                "htm_producers_consumers_tx..memory_conflict_falsesharing",
+                "htm_producers_consumers_tx..memory_conflict_power",
+                "htm_producers_consumers_tx..spec_illegal",
+                "htm_producers_consumers_tx..spec_validation_failure",
+                "htm_producers_consumers_tx..spec_max_capacity",
+                "htm_producers_consumers_tx..spec_depth_failure",
+                "htm_producers_consumers_tx..spec_write_in_flight",
+                "htm_producers_consumers_tx..spec_read_conflict"
+            ]
+        },
+        {
+            "groupName": "htm_producers_tx..Abort",
+            "mergingStats": [
+                "htm_producers_tx..explicit",
+                "htm_producers_tx..nesting_limit",
+                "htm_producers_tx..transaction_size",
+                "htm_producers_tx..exception",
+                "htm_producers_tx..memory_conflict",
+                "htm_producers_tx..other",
+                "htm_producers_tx..htm_disabled",
+                "htm_producers_tx..interrupt",
+                "htm_producers_tx..lsq_conflict",
+                "htm_producers_tx..transaction_size_rset",
+                "htm_producers_tx..transaction_size_wset",
+                "htm_producers_tx..transaction_size_l1priv",
+                "htm_producers_tx..transaction_size_llc",
+                "htm_producers_tx..transaction_size_wrongcache",
+                "htm_producers_tx..explicit_fallbacklock",
+                "htm_producers_tx..memory_conflict_fallbacklock",
+                "htm_producers_tx..memory_conflict_staledata",
+                "htm_producers_tx..memory_conflict_falsesharing",
+                "htm_producers_tx..memory_conflict_power",
+                "htm_producers_tx..spec_illegal",
+                "htm_producers_tx..spec_validation_failure",
+                "htm_producers_tx..spec_max_capacity",
+                "htm_producers_tx..spec_depth_failure",
+                "htm_producers_tx..spec_write_in_flight",
+                "htm_producers_tx..spec_read_conflict"
+            ]
+        },
+        {
+            "groupName": "htm_producer..commit_nm",
+            "mergingStats": [
+                "htm_producers_tx..commit_nm",
+                "htm_producers_consumers_tx..commit_nm"
+            ]
+        },
+        {
+            "groupName": "htm_producer..commit_m",
+            "mergingStats": [
+                "htm_producers_tx..commit_m",
+                "htm_producers_consumers_tx..commit_m"
+            ]
+        },
+        {
+            "groupName": "htm_producer..abort",
+            "mergingStats": [
+                "htm_producers_tx..Abort",
+                "htm_producers_consumers_tx..Abort"
+            ]
+        }
+    ],
+    "reduceSeeds": true,
+    "removeOutliers": true,
+    "outlierStat": "simTicks",
+    "plots": [
+
+        {
+            "plotType": "groupedStackedBarplotacc",
+            "dataConfig": {
+                "file": "config_final",
+                "config": "default_accuracy"
+            },
+            "styleConfig": {
+                "file": "style_final",
+                "config": "default_accuracy_stack"
+            },
+            "fileName": "accuracy",
+            "x": [
+                "benchmark_name"
+            ],
+            "y": [
+                "htm_producer..abort",
+                "htm_producer..commit_m",
+                "htm_producer..commit_nm"
+            ],
+            "conf_z": [
+                "config_description_abbrev"
+            ],
+            "facet": {
+                "facetVar": "benchmark_name",
+                "facetMappings": [
+                    "cadd=Microbenchmark",
+                    "llb-l=Microbenchmark",
+                    "llb-h=Microbenchmark",
+                    "genome=STAMP",
+                    "intruder=STAMP",
+                    "kmeans-l=STAMP",
+                    "kmeans-h=STAMP",
+                    "labyrinth=STAMP",
+                    "ssca2=STAMP",
+                    "vacation-l=STAMP",
+                    "vacation-h=STAMP",
+                    "yada=STAMP",
+                    "mean=(STAMP)"
+                ]
+            }
+        }
+    ]
+}

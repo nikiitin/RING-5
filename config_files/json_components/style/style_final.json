@@ -212,7 +212,7 @@
             "yAxisName": "Aborts\n(normalized)",
             "width": 35,
             "height": 7,
-            "format": "png",
+            "format": "pdf",
             "legendTitle": "Abort causes",
             "nLegendElementsPerRow": 1,
             "xSplitPoints": [
@@ -280,7 +280,7 @@
             "yAxisName": "Forwarder Tx\n(normalized)",
             "width": 35,
             "height": 7,
-            "format": "png",
+            "format": "pdf",
             "legendTitle": "Forwarder transaction ending states",
             "nLegendElementsPerRow": 1,
             "xSplitPoints": [
