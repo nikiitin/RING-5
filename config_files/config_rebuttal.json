@@ -117,14 +117,14 @@
             ]
         },
         {
-            "groupName": "htm_producer..commit_nm",
+            "groupName": "htm_producer..commit_not_modified",
             "mergingStats": [
                 "htm_producers_tx..commit_nm",
                 "htm_producers_consumers_tx..commit_nm"
             ]
         },
         {
-            "groupName": "htm_producer..commit_m",
+            "groupName": "htm_producer..commit_modified",
             "mergingStats": [
                 "htm_producers_tx..commit_m",
                 "htm_producers_consumers_tx..commit_m"
@@ -159,8 +159,8 @@
             ],
             "y": [
                 "htm_producer..abort",
-                "htm_producer..commit_m",
-                "htm_producer..commit_nm"
+                "htm_producer..commit_modified",
+                "htm_producer..commit_not_modified"
             ],
             "conf_z": [
                 "config_description_abbrev"

@@ -303,124 +303,6 @@
         }
     },
     {
-        "styleName": "default_abort_stack_rebutal_rs",
-        "dataStyle": {
-            "apparel": "GroupedStackedBarplot_default",
-            "title": "",
-            "xAxisName": "",
-            "yAxisName": "Aborts\n(normalized)",
-            "width": 35,
-            "height": 7,
-            "format": "png",
-            "legendTitle": "Abort causes",
-            "nLegendElementsPerRow": 1,
-            "xSplitPoints": [
-                
-            ],
-            "legendNames": [
-                "Req-stalls",
-                "LEVC"
-            ],
-            "breaks": [
-                "0",
-                "0.5",
-                "1",
-                "1.5",
-                "2"
-            ],
-            "limitTop": -1,
-            "limitBot": 0
-        }
-    },
-    {
-        "styleName": "default_communication_rebutal_rs",
-        "dataStyle": {
-            "apparel": "Barplot_default",
-            "title": "",
-            "xAxisName": "",
-            "yAxisName": "Network usage, flits\n(normalized)",
-            "width": 35,
-            "height": 7,
-            "format": "png",
-            "legendTitle": "HTM system",
-            "nLegendElementsPerRow": 1,
-            "xSplitPoints": [
-                
-            ],
-            "legendNames": [
-                "Req-stalls",
-                "LEVC"
-            ],
-            "breaks": [
-                "0",
-                "0.25",
-                "0.5",
-                "0.75",
-                "1",
-                "1.25"
-            ],
-            "limitTop": 1.3,
-            "limitBot": 0
-        }
-    },
-    {
-        "styleName": "default_rebutal_rs",
-        "dataStyle": {
-            "apparel": "Barplot_default",
-            "title": "",
-            "xAxisName": "",
-            "yAxisName": "Ex. Time\n(normalized)",
-            "width": 35,
-            "height": 7,
-            "format": "png",
-            "legendTitle": "HTM system",
-            "nLegendElementsPerRow": 1,
-            "xSplitPoints": [
-                
-            ],
-            "legendNames": [
-                "Req-stalls",
-                "LEVC"
-            ],
-            "breaks": [
-                "0",
-                "0.25",
-                "0.5",
-                "0.75",
-                "1",
-                "1.25"
-            ],
-            "limitTop": 1.3,
-            "limitBot": 0
-        }
-    },
-    {
-        "styleName": "default_abortdel",
-        "dataStyle": {
-            "apparel": "Barplot_default",
-            "title": "",
-            "xAxisName": "",
-            "yAxisName": "Cycles delayed\nfor aborts",
-            "width": 35,
-            "height": 7,
-            "format": "pdf",
-            "legendTitle": "HTM system",
-            "nLegendElementsPerRow": 1,
-            "xSplitPoints": [
-                
-            ],
-            "legendNames": [
-                "CHATS",
-                "PCHATS"
-            ],
-            "breaks": [
-                
-            ],
-            "limitTop": -1,
-            "limitBot": 0
-        }
-    },
-    {
         "styleName": "rebutal_comparison",
         "dataStyle": {
             "apparel": "Barplot_default",
@@ -453,27 +335,21 @@
         }
     },
     {
-        "styleName": "default_scalability",
+        "styleName": "heatmap_default",
         "dataStyle": {
+            "apparel": "Heatmap_default",
             "title": "",
-            "xAxisName": "Nº of threads (cores)",
-            "yAxisName": "Ex. time\n(normalized - Base)",
-            "width": 35,
-            "height": 35,
+            "xAxisName": "Validation period(cycles)",
+            "yAxisName": "Max. received blocks",
+            "width": 41,
+            "height": 40,
             "format": "png",
-            "legendTitle": "HTM system",
-            "nLegendElementsPerRow": 1,
+            "legendTitle": "Exec.\ntime\nNorm. by\n(1, 50)",
+            "nLegendElementsPerRow": 2,
             "xSplitPoints": [
-                
             ],
             "legendNames": [
-                "Base",
-                "LEVC",
-                "Power",
-                "Req-loses",
-                "Naive R-S",
-                "CHATS",
-                "PCHATS"
+
             ],
             "breaks": [
                 
