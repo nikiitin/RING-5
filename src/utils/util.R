@@ -106,3 +106,14 @@ get_stack_discrete_color_vector <- function(total_n_elements) {
     }
     indexes
 }
+
+read_data <- function(path) {
+  # Check if the file exists
+  if (!file.exists(path)) {
+    stop(paste0("File not found: ", path, " Stopping..."))
+  }
+  # Read data from csv file
+  data <- read.table(path, sep = " ", header = TRUE, stringsAsFactors = FALSE)
+  # Return the data
+  data
+}

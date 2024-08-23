@@ -80,24 +80,12 @@ setMethod(
                 NA,
                 total_values$total)
 
-        # stamplot
-        stampdata <-
-            object@info@data_frame[
-                object@info@data_frame$facet_column != "Microbenchmark", 
-                ]
-        object@plot <- ggplot(stampdata, aes(
+
+        object@plot <- ggplot(object@info@data_frame, aes(
             x = .data[[object@info@conf_z]],
             y = values
             ))
-        # micplot
-        micplotdata <-
-            object@info@data_frame[
-                object@info@data_frame$facet_column == "Microbenchmark",
-                ]
-        micplot <- ggplot(micplotdata, aes(
-            x = .data[[object@info@conf_z]],
-            y = values
-        ))
+
 
         # Add the facet grid to the plot object. Switch it in to X,
         # this enforce style to group variables in x axis
@@ -107,15 +95,7 @@ setMethod(
             strip = strip_nested(
                 clip = "off"
             ),
-            design = create_facet_design(object, 5, c("STAMP", "(STAMP)"), 4)
-        )
-        micplot <- micplot + facet_manual(
-            ~ facet_column + .data[[object@info@x]],
-            strip.position = "bottom",
-            strip = strip_nested(
-                clip = "off"
-            ),
-            design = create_facet_design(object, 5, "Microbenchmark")
+            design = create_facet_design(object, 5, c("Microbenchmark","STAMP", "(STAMP)"))
         )
 
         # Add the geom_bar to the plot object. Use position_stack to
@@ -127,24 +107,12 @@ setMethod(
             color = "black"
         )
 
-        micplot <- micplot + geom_col(
-            aes(fill = entries),
-            position = position_stack(reverse = TRUE),
-            color = "black"
-        )
 
-        # Patchwork micbenchs and stamp together and
-        # size them correctly
-        object@plot <- micplot + object@plot +
-            plot_layout(
-                widths = c(15, 55),
-                guides = "collect",
-                axis_titles = "collect"
-            )
+
         if (!all(is.na(total_values$total))) {
             # If all values are NA, do not add the text
             # or it will throw an error
-            object@plot <- object@plot & geom_text(
+            object@plot <- object@plot + geom_text(
                 data = total_values,
                 aes(
                     y = total,
@@ -190,7 +158,7 @@ setMethod(
         # Apply style to the plot
         # Set the number of elements per row in the legend
         # and the title of the legend
-        object@plot <- object@plot &
+        object@plot <- object@plot +
             guides(
                 fill = guide_legend(
                     nrow = object@styles@legend_n_elem_row,
@@ -201,28 +169,28 @@ setMethod(
 
         # Set the Title
         if (object@styles@title != "") {
-            object@plot <- object@plot & ggtitle(object@styles@title)
+            object@plot <- object@plot + ggtitle(object@styles@title)
         }
         # Set the x axis title
         if (object@styles@x_axis_name != "") {
-            object@plot <- object@plot & xlab(object@styles@x_axis_name)
+            object@plot <- object@plot + xlab(object@styles@x_axis_name)
         }
         # Set the y axis title
         if (object@styles@y_axis_name != "") {
-            object@plot <- object@plot & ylab(object@styles@y_axis_name)
+            object@plot <- object@plot + ylab(object@styles@y_axis_name)
         }
         # Label x axis with the legend names if specified
         # Label names were conf_z names on other plots
         if (length(object@styles@legend_names) > 0) {
-            object@plot <- object@plot & scale_x_discrete(
+            object@plot <- object@plot + scale_x_discrete(
                 labels = object@styles@legend_names
             )
         }
 
         # Set the theme to be used
-        object@plot <- object@plot & theme_hc()
+        object@plot <- object@plot + theme_hc()
         # Add specific configs to the theme
-        object@plot <- object@plot & theme(
+        object@plot <- object@plot + theme(
             axis.text.x = element_text(
                 angle = 45,
                 hjust = 1,
@@ -315,14 +283,14 @@ setMethod(
         )
         # Apply the specific order from the color index vector
         # color_vector <- color_vector[color_index_vector * (length(color_vector) - 1) + 1]
-        object@plot <- object@plot &
+        object@plot <- object@plot +
             scale_fill_manual(
                 values = color_vector
             )
 
         # Set the breaks
         if (length(object@styles@y_breaks) > 0) {
-            object@plot <- object@plot &
+            object@plot <- object@plot +
                 scale_y_continuous(
                     breaks = object@styles@y_breaks,
                     limits = c(
