@@ -5,7 +5,7 @@
         "compress": true,
         "parsings": [
             {
-                "path": "/home/vnicolas/Workspace/remote-echo/workspace/sims/ruben/gem5/results/valuepred-blk-sens/",
+                "path": "../results/chats-blocks-sens/",
                 "files": "stats.txt",
                 "vars": [
                     {

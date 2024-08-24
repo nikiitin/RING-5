@@ -1,8 +1,8 @@
 {
-    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/valuepred-comparison_rs",
+    "outputPath": "../plots/chats-comparison-levc",
     "parseConfig": {
         "file": "parse_final",
-        "config": "comparison_rs"
+        "config": "default_rebutal"
     },
     "mixStats": [
     ],
@@ -20,7 +20,7 @@
                 "file": "style_final",
                 "config": "rebutal_comparison"
             },
-            "fileName": "lineplot_rebutal_comparison",
+            "fileName": "Fig11",
             "x": [
                 "benchmark_name"
             ],

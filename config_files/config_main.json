@@ -1,5 +1,5 @@
 {
-    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/valuepred-final-rebutal",
+    "outputPath": "../plots/chats-final",
     "parseConfig": {
         "file": "parse_final",
         "config": "default_rebutal"
@@ -55,92 +55,6 @@
                 "htm_transaction_abort_cause..interrupt",
                 "htm_transaction_abort_cause..exception"
             ]
-        },
-        {
-            "groupName": "cyclesInRegion..Parallel",
-            "mergingStats": [
-                "cyclesInRegion..DEFAULT"
-            ]
-        },
-        {
-            "groupName": "cyclesInRegion..Transactional_Committed",
-            "mergingStats": [
-                "cyclesInRegion..TRANSACTIONAL_COMMITTED",
-                "cyclesInRegion..TRANSACTIONAL_POWER",
-                "cyclesInRegion..TRANSACTIONAL_SPECULATING"
-            ]
-        },
-        {
-            "groupName": "cyclesInRegion..Transactional_Aborted",
-            "mergingStats": [
-                "cyclesInRegion..TRANSACTIONAL_ABORTED",
-                "cyclesInRegion..ABORTING"
-            ]
-        },
-        {
-            "groupName": "cyclesInRegion..Committing_Validation",
-            "mergingStats": [
-                "cyclesInRegion..COMMITTING"
-            ]
-        },
-        {
-            "groupName": "cyclesInRegion..Commit_Fallback",
-            "mergingStats": [
-                "cyclesInRegion..HASLOCK"
-            ]
-        },
-        {
-            "groupName": "cyclesInRegion..Wait_Fallback",
-            "mergingStats": [
-                "cyclesInRegion..WAITFORRETRY_THRESHOLD",
-                "cyclesInRegion..WAITFORRETRY_EXCEPTION",
-                "cyclesInRegion..WAITFORRETRY_SIZE",
-                "cyclesInRegion..ABORT_HANDLER"
-            ]
-        },
-        {
-            "groupName": "cyclesInRegion..Other",
-            "mergingStats": [
-                "cyclesInRegion..BARRIER"
-            ]
-        },
-        {
-            "groupName": "aborts",
-            "mergingStats": [
-                "htm_transaction_abort_cause..memory_conflict_staledata",
-                "htm_transaction_abort_cause..memory_conflict",
-                "htm_transaction_abort_cause..memory_conflict_fallbacklock",
-                "htm_transaction_abort_cause..memory_conflict_power",
-                "htm_transaction_abort_cause..spec_validation_failure",
-                "htm_transaction_abort_cause..spec_max_capacity",
-                "htm_transaction_abort_cause..transaction_size_l1priv",
-                "htm_transaction_abort_cause..transaction_size_llc",
-                "htm_transaction_abort_cause..transaction_size_rset",
-                "htm_transaction_abort_cause..transaction_size_wset",
-                "htm_transaction_abort_cause..explicit_fallbacklock",
-                "htm_transaction_abort_cause..explicit",
-                "htm_transaction_abort_cause..transaction_size_rset",
-                "htm_transaction_abort_cause..interrupt",
-                "htm_transaction_abort_cause..exception"
-            ]
-        },
-        {
-            "groupName": "Modified_commit",
-            "mergingStats": [
-                "htm_transaction_producer_modified..htm_transaction_producer_modified_commit_m"
-            ]
-        },
-        {
-            "groupName": "Abort",
-            "mergingStats": [
-                "htm_transaction_producer_modified..htm_transaction_producer_modified_abort"
-            ]
-        },
-        {
-            "groupName": "Not_modified_commit",
-            "mergingStats": [
-                "htm_transaction_producer_modified..htm_transaction_producer_modified_commit_nm"
-            ]
         }
     ],
     
@@ -158,7 +72,7 @@
                 "file": "style_final",
                 "config": "default_rebutal"
             },
-            "fileName": "barplot_simTicks",
+            "fileName": "Fig4",
             "x": [
                 "benchmark_name"
             ],
@@ -197,7 +111,7 @@
                 "file": "style_final",
                 "config": "default_communication_rebutal"
             },
-            "fileName": "barplot_network",
+            "fileName": "Fig7",
             "x": [
                 "benchmark_name"
             ],
@@ -236,7 +150,7 @@
                 "file": "style_final",
                 "config": "default_abort_stack_rebutal"
             },
-            "fileName": "aborts_cause",
+            "fileName": "Fig5",
             "x": [
                 "benchmark_name"
             ],
@@ -269,6 +183,45 @@
                     "geomean=(STAMP)"
                 ]
             }
+        },
+        {
+            "plotType": "barplot",
+            "dataConfig": {
+                "file": "config_final",
+                "config": "config_intro"
+            },
+            "styleConfig": {
+                "file": "style_final",
+                "config": "style_intro"
+            },
+            "fileName": "Fig1",
+            "x": [
+                "benchmark_name"
+            ],
+            "y": [
+                "simTicks"
+            ],
+            "conf_z": [
+                "config_description_abbrev"
+            ],
+            "facet": {
+                "facetVar": "benchmark_name",
+                "facetMappings": [
+                    "genome=STAMP",
+                    "intruder=STAMP",
+                    "kmeans-l=STAMP",
+                    "kmeans-h=STAMP",
+                    "labyrinth=STAMP",
+                    "ssca2=STAMP",
+                    "vacation-l=STAMP",
+                    "vacation-h=STAMP",
+                    "yada=STAMP",
+                    "geomean=(STAMP)"
+                ]
+            },
+            "hiddenBars": [
+                "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt"
+            ]
         }
     ]
 }

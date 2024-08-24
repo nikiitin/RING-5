@@ -142,3 +142,21 @@ add_project_path:
 end_proj_file:
 # Add json end to proj file
 	@echo "}" >> .proj.json
+
+run: run_main run_comparison run_sens_retry run_sens_blk
+
+run_main:
+	@echo "Plotting results from chats-main"
+	@./RING-V.py -f config_files/config_main.json
+
+run_comparison:
+	@echo "Plotting results from chats-comparison"
+	@./RING-V.py -f config_files/config_comparison_rs.json
+
+run_sens_retry:
+	@echo "Plotting results from chats-sens-retry"
+	@./RING-V.py -f config_files/config_sens_retry.json
+
+run_sens_blk:
+	@echo "Plotting results from chats-sens-blk"
+	@./RING-V.py -f config_files/config_sens_blk.json

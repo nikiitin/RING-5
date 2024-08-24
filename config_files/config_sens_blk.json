@@ -1,5 +1,5 @@
 {
-    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/valuepred-sens-blk",
+    "outputPath": "../plots/sens-blk",
     "parseConfig": {
         "file": "parse_sens_blk",
         "config": "default"
@@ -40,7 +40,7 @@
                 "file": "style_sens_blk",
                 "config": "default"
             },
-            "fileName": "simTicks_onlymean_heatmap_pchats",
+            "fileName": "Fig10C",
             "x": [
                 "htm_cycles_to_validate"
             ],
@@ -67,7 +67,7 @@
                 "file": "style_sens_blk",
                 "config": "default"
             },
-            "fileName": "simTicks_onlymean_heatmap_chats",
+            "fileName": "Fig10A",
             "x": [
                 "htm_cycles_to_validate"
             ],
@@ -95,7 +95,7 @@
                 "file": "style_sens_blk",
                 "config": "default_aborts"
             },
-            "fileName": "aborts_onlymean_heatmap_pchats",
+            "fileName": "Fig10D",
             "x": [
                 "htm_cycles_to_validate"
             ],
@@ -122,7 +122,7 @@
                 "file": "style_sens_blk",
                 "config": "default_aborts"
             },
-            "fileName": "aborts_onlymean_heatmap_chats",
+            "fileName": "Fig10B",
             "x": [
                 "htm_cycles_to_validate"
             ],

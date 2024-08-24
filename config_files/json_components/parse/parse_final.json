@@ -5,7 +5,7 @@
         "compress": true,
         "parsings": [
             {
-                "path": "/home/vnicolas/Workspace/remote-echo/workspace/sims/ruben/gem5/results/valuepred-final/",
+                "path": "./results/chats-main",
                 "files": "stats.txt",
                 "vars": [
                     {
@@ -125,10 +125,10 @@
     {
         "id": "default_rebutal",
         "impl": "perl",
-        "compress": true,
+        "compress": false,
         "parsings": [
             {
-                "path": "/home/vnicolas/Workspace/remote-echo/workspace/sims/ruben/gem5/results/valuepred-final-rebutal2/",
+                "path": "../results/chats-main",
                 "files": "stats.txt",
                 "vars": [
                     {

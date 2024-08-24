@@ -1,5 +1,5 @@
 {
-    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/valuepred-sens-rtry",
+    "outputPath": "../plots/sens_rtry",
     "parseConfig": {
         "file": "parse_sens_rtry",
         "config": "default"
@@ -18,7 +18,7 @@
                 "file": "style_sens_rtry",
                 "config": "default"
             },
-            "fileName": "simticks_lineplot_nomicnobayes",
+            "fileName": "Fig9",
             "x": [
                 "htm_max_retries"
             ],

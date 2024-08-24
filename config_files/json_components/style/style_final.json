@@ -44,17 +44,15 @@
             "height": 7,
             "format": "png",
             "legendTitle": "HTM system",
-            "nLegendElementsPerRow": 1,
+            "nLegendElementsPerRow": 1, 
             "xSplitPoints": [
                 
             ],
             "legendNames": [
                 "Base",
-                "LEVC",
-                "Power",
-                "PleaseTM",
                 "Naive R-S",
                 "CHATS",
+                "Power",
                 "PCHATS"
             ],
             "breaks": [
@@ -120,11 +118,9 @@
             ],
             "legendNames": [
                 "Base",
-                "LEVC",
-                "Power",
-                "PleaseTM",
                 "Naive R-S",
                 "CHATS",
+                "Power",
                 "PCHATS"
             ],
             "breaks": [
@@ -140,7 +136,7 @@
         }
     },
     {
-        "styleName": "default_intro",
+        "styleName": "style_intro",
         "dataStyle": {
             "apparel": "Barplot_default",
             "title": "",
@@ -155,7 +151,7 @@
                 "9"
             ],
             "legendNames": [
-                "Fwd-Retry"
+                "Naive R-S"
             ],
             "breaks": [
                 "0",
@@ -253,11 +249,9 @@
             ],
             "legendNames": [
                 "Base",
-                "LEVC",
-                "Power",
-                "PleaseTM",
                 "Naive R-S",
                 "CHATS",
+                "Power",
                 "PCHATS"
             ],
             "breaks": [
