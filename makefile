@@ -109,7 +109,6 @@ check_renv_dependencies:
 	@Rscript -e "renv::activate()"
 # Check if renv dependencies are solved. If not, restore them
 	@Rscript -e $(RESTORE_DEPENDENCIES_SCRIPT)
-	@Rscript -e "renv::deactivate()"
 
 check_R:
 # Check if R is installed. I think any R version should work... currently using 4.0.2
