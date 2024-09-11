@@ -109,7 +109,6 @@ check_renv_dependencies:
 	@Rscript -e "renv::activate()"
 # Check if renv dependencies are solved. If not, restore them
 	@Rscript -e $(RESTORE_DEPENDENCIES_SCRIPT)
-	@Rscript -e "renv::deactivate()"
 
 check_R:
 # Check if R is installed. I think any R version should work... currently using 4.0.2
@@ -135,9 +134,9 @@ add_project_path:
 	@echo "Adding project path $(shell pwd) to proj file..."
 # Create proj file if it does not exist
 # This is a file used to store project management information
-	@touch .proj
+	@touch .proj.json
 # Add project path to proj file
-	@echo "	RingRoot:$(shell pwd)" >> .proj.json
+	@echo "	\"RingRoot\":\"$(shell pwd)\"" >> .proj.json
 
 end_proj_file:
 # Add json end to proj file

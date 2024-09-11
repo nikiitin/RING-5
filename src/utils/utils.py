@@ -14,8 +14,14 @@ def jsonToArg(jsonElement, key):
         commandLineArgs.append(arg)
     return commandLineArgs
 
-def getElementValue(jsonElement, key):
+def jsonToOptionalArg(jsonElement, key):
+    if (checkElementExistNoException(jsonElement, key)):
+        return jsonToArg(jsonElement, key)
+    else:
+        return [0]
     
+
+def getElementValue(jsonElement, key):
     if key in jsonElement:
         if isinstance(jsonElement[key], bool):
             return str(jsonElement[key])
