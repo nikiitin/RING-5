@@ -33,14 +33,14 @@ invisible(setValidity(
                 # just skip the variable
                 warning(paste0("Variable to select: ",
                     var,
-                    " is not in the data frame.",
-                    "Skipping"))
+                    " is not in the data frame. Skipping"))
+                vars_to_skip <- c(vars_to_skip, var)
             }
         }
-        # If not, remove them from the select_vars
-        if (length(vars_to_skip) > 0) {
-            object@select_vars <-
-                object@select_vars[!(object@select_vars %in% vars_to_skip)]
+        if (length(vars_to_skip) != 0 &&
+            vars_to_skip == object@select_vars) {
+            message("Variables to select are not in the data frame. Stopping...")
+            is_valid <- FALSE
         }
         is_valid
     }
@@ -69,6 +69,18 @@ setMethod(
     "perform",
     "Selector",
     function(object) {
+        wrong_vars <- c()
+        # If variables are wrongly spelled, add them to the wrong_vars
+        for (var in object@select_vars) {
+            if (!(var %in% colnames(object@df))) {
+                wrong_vars <- c(wrong_vars, var)
+            }
+        }
+        # Remove the wrong variables from the select_vars
+        if (length(wrong_vars) > 0) {
+            object@select_vars <-
+                object@select_vars[!(object@select_vars %in% wrong_vars)]
+        }
         # Select the variables
         object@df <- object@df %>% select(object@select_vars)
         object

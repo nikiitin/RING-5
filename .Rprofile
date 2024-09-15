@@ -24,3 +24,5 @@ if (file.exists(proj_file_path)) {
        "Please, run make build to build the project.",
        sep = "\n"))
 }
+# Set the working directory to the main repo directory
+setwd(ring_env$root_dir)
