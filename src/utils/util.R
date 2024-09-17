@@ -1,6 +1,9 @@
 source("src/utils/R_structs/MapSet.R")
+setClassUnion("nullable_vector", c("vector", "NULL"))
 shift <- function(x, n) {
-    c(x[-(seq(n))])
+    if (n > 0) {
+        c(x[-(seq(n))])
+    } else x
 }
 increment <- function(val) {
     val + 1

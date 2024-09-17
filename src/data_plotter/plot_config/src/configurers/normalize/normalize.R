@@ -17,11 +17,11 @@ setClass("Normalize",
         # Variables that groups the data
         group_vars = "vector",
         # Stats to use in normalization
-        stats = "vector",
+        stats = "nullable_vector",
         # Columns that will be skipped for normalization
-        skip_normalize = "vector",
+        skip_normalize = "nullable_vector"
     )
-)
+) -> Normalize
 #' @description Get the normalizer
 #' the normalizer is the sum of the stats to apply
 #' the normalization to other stats
@@ -58,7 +58,7 @@ setMethod(
         #   for each group, stats must exist
         object@df %>%
             filter(.data[[object@normalize_var]] == object@normalize_value) %>%
-            group_by(object@group_vars) %>% # Group by the group variables
+            group_by(.data[[object@group_vars]]) %>% # Group by the group variables
             select(c(object@stats)) %>% # Select the stats to normalize
             group_modify(~ {
                 sum(.x) %>%       # Add all the values of the row
@@ -78,19 +78,27 @@ setMethod(
         #   else, the normalization will fail
         #   Not numeric stats can be skipped
         object@df <- object@df %>%
-            group_by(object@group_vars) %>% # Group by the group variables
-            select(-c(object@normalize_var,
-                object@group_vars)) %>% # Remove the group variables
-            select(-c(object@skip_normalize)) %>% # Remove the variables to skip
-            group_modify(~
-                .x/normalizers[as.character(unlist(.y))]) # Normalize the values
+            group_by(.data[[object@group_vars]]) # Group by the group variables
+        # Normalize the stats
+        for (stat in object@stats) {
+            # Do mutate each stat and divide by the normalizer
+            object@df <- object@df %>%
+                mutate(!!stat := .data[[stat]] / normalizers[as.character(.data[[object@group_vars]])])
+        }
+        object
+        # print(object@df, n = 100)
     }
 )
 setValidity(
     "Normalize",
     function(object) {
+        is_valid <- TRUE
         if (length(unique(object@stats)) != length(object@stats)) {
-            stop("Stats must be unique")
+            message(paste0("Stats provided to normalizer must be unique.",
+                "Provided stats: ", object@stats,
+                "Suggested unique stats: ", unique(object@stats)),
+                "Stopping...")
+            is_valid <- FALSE
         }
         if (length(unique(object@group_vars)) != length(object@group_vars)) {
             stop("Group variables must be unique")
@@ -106,7 +114,7 @@ setValidity(
             warning("Stats are empty, using all stats. Continuing...")
         }
 
-        TRUE
+        is_valid
     }
 )
 
@@ -122,7 +130,7 @@ setMethod(
         .Object@normalize_var <- get_arg(args, 1)
         args %<>% shift(1)
         # Parse the normalizer value
-        .Object@normalizer_value <- as.numeric(get_arg(args, 1))
+        .Object@normalize_value <- get_arg(args, 1)
         args %<>% shift(1)
         # Parse the group variables
         n_group_vars <- as.numeric(get_arg(args, 1))
@@ -138,18 +146,7 @@ setMethod(
         n_skip_normalize <- as.numeric(get_arg(args, 1))
         args %<>% shift(1)
         .Object@skip_normalize <- get_arg(args, n_skip_normalize)
-        if (.Object@skip_normalize == NULL) {
-            .Object@skip_normalize <- character(0)
-        }
         args %<>% shift(n_skip_normalize)
-        if (.Object@stats == NULL) {
-            .Object@stats <- colnames(.Object@df)[
-                    !colnames(.Object@df) %in%
-                        c(.Object@group_vars,
-                            .Object@normalize_var,
-                            .Object@skip_normalize)
-                ]
-        }
         # Return the parsed arguments
         list(arguments = args, configurer = .Object)
     }
@@ -160,12 +157,18 @@ setMethod(
     "Normalize",
     function(object) {
         # Get the unique stats that will normalize
+        if (is.null(object@stats)) {
+            # Pick all the stats from the data frame
+            object@stats <- colnames(object@df)[
+                !colnames(object@df) %in% c(object@skip_normalize,
+                    object@group_vars,
+                    object@normalize_var)]
+        }
         normalizers <- get_normalizer(object)
         # Normalize the values
         object <- normalize(object, normalizers)
         object
     }
 )
-
-normalize <- new("Normalize", args = commandArgs(trailingOnly = TRUE))
-run(normalize)
+# Run the selector configurer and keep it invisible
+invisible(run(Normalize(args = commandArgs(trailingOnly = TRUE))))

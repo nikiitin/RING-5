@@ -1,7 +1,5 @@
 #!/usr/bin/Rscript
 source("src/data_plotter/plot_config/src/configurers/configurer.R")
-library(dplyr, warn.conflicts = FALSE)
-library(magrittr)
 #' @title Selector
 #' @description Selector configurer. This configurer will
 #' select the specified columns from the data frame
@@ -38,7 +36,7 @@ invisible(setValidity(
             }
         }
         if (length(vars_to_skip) != 0 &&
-            vars_to_skip == object@select_vars) {
+            setequal(vars_to_skip, object@select_vars)) {
             message("Variables to select are not in the data frame. Stopping...")
             is_valid <- FALSE
         }
