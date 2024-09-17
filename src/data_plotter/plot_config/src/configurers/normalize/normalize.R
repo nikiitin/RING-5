@@ -101,14 +101,17 @@ setValidity(
             is_valid <- FALSE
         }
         if (length(unique(object@group_vars)) != length(object@group_vars)) {
-            stop("Group variables must be unique")
+            message("Group variables must be unique")
+            is_valid <- FALSE
         }
         if (length(unique(object@skip_normalize)) !=
             length(object@skip_normalize)) {
-            stop("Skip normalize variables must be unique")
+            message("Skip normalize variables must be unique")
+            is_valid <- FALSE
         }
         if (length(object@group_vars) == 0) {
-            stop("Group variables are empty")
+            message("Group variables are empty")
+            is_valid <- FALSE
         }
         if (length(object@stats) == 0) {
             warning("Stats are empty, using all stats. Continuing...")
