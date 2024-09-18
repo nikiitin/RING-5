@@ -13,35 +13,25 @@ setClass("Filter",
         # Variable selected to filter
         filter_var = "character",
         # Values to remove from the data frame
-        values = "vector"
+        values = "nullable_vector"
     )
-)
+) -> Filter
 
 setValidity(
     "Filter",
     function(object) {
+        is_valid <- TRUE
         # Check if the values to remove are empty
-        if (length(object@values) == 0) {
-            stop("Values to remove from the data frame are empty")
+        if (is.null(object@values) || length(object@values) == 0) {
+            message("Values to remove from the data frame are empty")
+            is_valid <- FALSE
         }
         # Check if the variable to filter is empty
         if (length(object@filter_var) == 0) {
-            stop("Variable to filter is empty")
+            message("Variable to filter is empty")
+            is_valid <- FALSE
         }
-        # Check if the variable to filter is in the data frame
-        if (!(object@filter_var %in% colnames(object@df))) {
-            stop(paste0("Variable to filter: ", object@filter_var, " is not in the data frame"))
-        }
-        # Soft condition
-        # Check if the values to remove are in the data frame
-        if (!(object@values %in% unique(object@df[, object@filter_var]))) {
-            warning(paste0(
-                "Values to remove: ",
-                object@values,
-                " are not in the data frame!",
-                "Continuing..."))
-        }
-        TRUE
+        is_valid
     }
 )
 
@@ -70,6 +60,24 @@ setMethod(
     "perform",
     "Filter",
     function(object) {
+        # Check if the variable to filter is in the data frame
+        if (!(object@filter_var %in% colnames(object@df))) {
+            stop(paste0("Variable to filter: ",
+                object@filter_var,
+                " is not in the data frame"))
+        }
+        # Soft condition
+        # Check if the values to remove are in the data frame
+        if (!all(object@values %in%
+            unique(object@df[, object@filter_var]))) {
+            print(object@values)
+            print(unique(object@df[, object@filter_var]))
+            warning(paste0(
+                "Values to remove: ",
+                object@values,
+                " are not in the data frame! ",
+                "Continuing..."))
+        }
         # Get the column that will be filtered
         # from the data frame with filter_var name
         column_to_filter <- object@df[, object@filter_var]
@@ -82,5 +90,4 @@ setMethod(
     }
 )
 
-filter <- new("Filter", args = commandArgs(trailingOnly = TRUE))
-run(filter)
+invisible(run(Filter(args = commandArgs(trailingOnly = TRUE))))
