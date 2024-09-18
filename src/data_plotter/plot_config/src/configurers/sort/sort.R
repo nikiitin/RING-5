@@ -12,34 +12,38 @@ setClass("Sort",
         # Variable selected to sort
         sort_var = "character",
         # Order of the sort
-        sort_order = "vector"
+        sort_order = "nullable_vector"
     )
-)
+) -> Sort
 
 setValidity(
     "Sort",
     function(object) {
+        is_valid <- TRUE
         # Check if the variable to sort is empty
         if (length(object@sort_var) == 0) {
-            stop("Variable to sort is empty")
+            message("Variable to sort is empty")
+            is_valid <- FALSE
         }
         # Check if the variable to sort is in the data frame
         if (!(object@sort_var %in% colnames(object@df))) {
-            stop(paste0("Variable to sort: ",
+            message(paste0("Variable to sort: ",
                 object@sort_var,
                 " is not in the data frame"))
+            is_valid <- FALSE
         }
         # Check if the order is empty
-        if (length(object@sort_order) == 0) {
-            stop("Order of the sort is empty")
-        }
-        # Check if the order is valid
-        if (!(all(object@sort_order
-            %in% object@df %>% select(object@sort_var)))) {
-            stop(paste0("Order of the sort: ",
+        if (is.null(object@sort_order) || length(object@sort_order) == 0) {
+            message("Order of the sort is empty")
+            is_valid <- FALSE
+        } else if (!(all(object@sort_order
+            %in% object@df))) {
+            # Check if the order is valid
+            message(paste0("Order of the sort: ",
                 object@sort_order,
                 " is not valid, ",
                 "it must be a subset of the variable to sort"))
+            is_valid <- FALSE
         }
         TRUE
     }
@@ -60,7 +64,7 @@ setMethod(
         n_sorts <- as.numeric(get_arg(args, 1))
         args %<>% shift(1)
         .Object@sort_order <- get_arg(args, n_sorts)
-        shift(n_sorts)
+        args %<>% shift(n_sorts)
         # Return the parsed arguments
         list(arguments = args, configurer = .Object)
     }
@@ -78,5 +82,5 @@ setMethod(
     }
 )
 
-sorter <- new("Sort", args = commandArgs(trailingOnly = TRUE))
-run(sorter)
+# Run the configurer
+invisible(run(Sort(args = commandArgs(trailingOnly = TRUE))))

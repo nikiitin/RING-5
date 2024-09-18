@@ -1,7 +1,7 @@
 # Description: This file contains the test cases for the normalize configurer.
 
 normalize_test_env <- test_env$setup_test_env(test_env, "normalize")
-# Test case 01 - select one column
+# Test case 01 - normalize using simTicks stat
 test_that("normalize with simTicks", {
   source(paste0(normalize_test_env$args_folder, "/01_args_normalize_test_simTicks.R"))
   setCommandArgs(args_test_simTicks)
@@ -19,6 +19,7 @@ test_that("normalize with simTicks", {
   expect_equal(result_csv, expected_csv)
 })
 
+# Test case 02 - normalize without specifying any stat
 test_that("normalize without specifying stats", {
   source(paste0(normalize_test_env$args_folder, "/02_args_normalize_test_no_stat.R"))
   setCommandArgs(args_test_no_stat)

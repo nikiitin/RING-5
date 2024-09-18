@@ -86,7 +86,6 @@ setMethod(
                 mutate(!!stat := .data[[stat]] / normalizers[as.character(.data[[object@group_vars]])])
         }
         object
-        # print(object@df, n = 100)
     }
 )
 setValidity(
@@ -173,5 +172,5 @@ setMethod(
         object
     }
 )
-# Run the selector configurer and keep it invisible
+# Run the normalize configurer and keep it invisible
 invisible(run(Normalize(args = commandArgs(trailingOnly = TRUE))))
