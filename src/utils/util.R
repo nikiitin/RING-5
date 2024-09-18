@@ -40,20 +40,8 @@ mixStringCols <- function(val1, val2, dataframe) {
     dataFrameColumn
 }
 
-geomean <- function(x) {
-    result <- exp(mean(log(x[x > 0])))
-    if (is.nan(result)) {
-        result <- 0
-    }
-    result
-}
-
 sd_dropna <- function(x) {
     sd(x, na.rm = TRUE)
-}
-
-arithmean <- function(x) {
-    mean(x)
 }
 
 return_func <- function(x) {
