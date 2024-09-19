@@ -58,7 +58,6 @@ def checkEnumExistsNoException(jsonElement: dict, enum: enum.EnumMeta):
 def getEnumValue(jsonElement: dict, enumType: enum.EnumMeta):
     for key in jsonElement:
         for enum_member in enumType:
-            print("key: " + key + " enum_member: " + enum_member.value + " result: " + str(key == enum_member.value))
             if key == enum_member.value:
                 return key
     return None

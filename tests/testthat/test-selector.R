@@ -28,11 +28,9 @@ test_that("fail select one column", {
             "tests/testthat/mock/selector/output/selector_test_case_fail_select_one_column.csv",
             overwrite = TRUE)
   # Sourcing the configurer will run it too
-  expect_error(
-    expect_warning(
-      source("src/data_plotter/plot_config/src/configurers/selector/selector.R"),
-      "Variable to select: config_description_abbre is not in the data frame. Skipping"),
-    "error in evaluating the argument 'object' in selecting a method for function 'run': invalid class “Selector” object: FALSE")
+  expect_warning(
+    source("src/data_plotter/plot_config/src/configurers/selector/selector.R"),
+    "Selected variable is not in the data frame: config_description_abbre")
   # Get the result from the output file
   result_csv <- read_data("tests/testthat/mock/selector/output/selector_test_case_fail_select_one_column.csv")
   # Get the expected result
