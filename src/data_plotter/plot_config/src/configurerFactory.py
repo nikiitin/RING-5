@@ -1,8 +1,8 @@
-from src.data_plotter.plot_config.src.configurers.filter import FilterConfigurer
-from src.data_plotter.plot_config.src.configurers.mean import MeanConfigurer
-from src.data_plotter.plot_config.src.configurers.normalize import NormalizeConfigurer
-from src.data_plotter.plot_config.src.configurers.sort import SortConfigurer
-from src.data_plotter.plot_config.src.configurers.selector import SelectorConfigurer
+from src.data_plotter.plot_config.src.configurers.filter.filter import FilterConfigurer
+from src.data_plotter.plot_config.src.configurers.mean.mean import MeanConfigurer
+from src.data_plotter.plot_config.src.configurers.normalize.normalize import NormalizeConfigurer
+from src.data_plotter.plot_config.src.configurers.sort.sort import SortConfigurer
+from src.data_plotter.plot_config.src.configurers.selector.selector import SelectorConfigurer
 
 class ConfigurerFactory:
     """! @brief Factory class for creating configurer objects.

@@ -4,7 +4,6 @@ from src.data_plotter.plot_config.src.configurer import Configurer
 class NormalizeConfigurer(Configurer):
     def __init__(self, params: dict) -> None:
         super().__init__(params)
-        self._json = params
         # TODO: move paths to configuration file
         self._RScriptCall = ["./src/data_plotter/plot_config/src/configurers/normalize/normalize.R"]
         # Normalize specific parameters

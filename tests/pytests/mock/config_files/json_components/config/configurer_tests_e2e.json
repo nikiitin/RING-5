@@ -1,0 +1,58 @@
+{
+    "test01": {
+        "selector": {
+            "selectedCols": [
+                "benchmark_name",
+                "config_description_abbrev",
+                "simTicks"
+            ],
+            "mean": {
+                "meanAlgorithm": "arithmean",
+                "meanVars": [
+                    "simTicks"
+                ],
+                "groupingColumn": "config_description_abbrev",
+                "replacingColumn": "benchmark_name",
+                "normalize": {
+                    "normalizeVar": "config_description_abbrev",
+                    "normalizeValue": "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt",
+                    "groupBy": [
+                        "benchmark_name"
+                    ],
+                    "sort": {
+                        "varToSort": "benchmark_name",
+                        "order": [
+                            "llb-l",
+                            "llb-h",
+                            "cadd",
+                            "bayes",
+                            "genome",
+                            "intruder",
+                            "intruder-qs",
+                            "kmeans-l",
+                            "kmeans-h",
+                            "labyrinth",
+                            "ssca2",
+                            "vacation-l",
+                            "vacation-h",
+                            "yada",
+                            "arithmean"
+                        ],
+                        "sort": {
+                            "varToSort": "config_description_abbrev",
+                            "order": [
+                                "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt",
+                                "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry12_Pflt",
+                                "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDnaive_EVFwd_maxFwd8_CTV50_MVAL16_Rtry2_Pflt",
+                                "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd16_CTV50_Prio_numeric_FCSabort_Allow_Fwd_no_write_in_flight_Rtry32_Pflt",
+                                "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry2_Pflt",
+                                "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd4_CTV50_Prio_numeric_FCSabort_Allow_Fwd_no_write_in_flight_Rtry1_Pflt",
+                                "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRcdab_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDW1_D1_EVFwd_maxFwd4_CTV1_Prio_no_prio_FCSabort_Allow_Fwd_no_write_in_flight_Rtry64_Pflt"
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

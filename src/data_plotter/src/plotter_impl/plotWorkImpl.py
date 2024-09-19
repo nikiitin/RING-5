@@ -5,7 +5,7 @@ import random
 import shutil
 from src.data_plotter.multiprocessing.plotWork import PlotWork
 from src.data_plotter.configurationManager import ConfigurationManager
-from src.data_plotter.plot_config.plotConfigurerFactory import PlotConfigurerFactory
+from src.data_plotter.plot_config.src.configurerBuilder import ConfigurerBuilder
 class PlotWorkImpl(PlotWork):
     def __init__(self, outputPath: str, workCsv: str, plotJson: dict) -> None:
         # Plot data
@@ -34,7 +34,13 @@ class PlotWorkImpl(PlotWork):
         self._checkCorrectness()
         # Create plot configurer, this will filter, mean, sort and normalize the data
         # Using R implementation.
-        self._configurer = PlotConfigurerFactory.getConfigurer("R")
+        self._plotConfiguration = ConfigurationManager.getPlotConfiguration(plotJson)
+        # There should only be one configurer that
+        # have the other configurers as children
+        assert len(self._plotConfiguration) == 1
+        configurerName = list(self._plotConfiguration.keys())[0]
+        self._configurer = ConfigurerBuilder().build(
+            configurerName, self._plotConfiguration[configurerName])
         super().__init__()
 
     def __call__(self) -> None:
@@ -46,7 +52,7 @@ class PlotWorkImpl(PlotWork):
         shutil.copyfile(self._workCsv, self._tmpCsv)
         self._copiedFile = True
         # Configure plot
-        self._configurer.configurePlot(self._plotJson, self._tmpCsv)
+        self._configurer.configurePlot(self._tmpCsv)
         # Prepare R script call
         self._prepareScriptCall()
         # Call R script

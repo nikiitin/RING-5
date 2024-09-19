@@ -36,14 +36,6 @@ setValidity(
         if (is.null(object@sort_order) || length(object@sort_order) == 0) {
             message("Order of the sort is empty")
             is_valid <- FALSE
-        } else if (!(all(object@sort_order
-            %in% object@df))) {
-            # Check if the order is valid
-            message(paste0("Order of the sort: ",
-                object@sort_order,
-                " is not valid, ",
-                "it must be a subset of the variable to sort"))
-            is_valid <- FALSE
         }
         TRUE
     }
@@ -74,6 +66,22 @@ setMethod(
     "perform",
     "Sort",
     function(object) {
+        # Check if the order is missing any element
+        if (!all(unique(object@df[, object@sort_var] %in% object@sort_order))) {
+            warning(paste0("Order of the sort is missing elements in the data frame"))
+            message("Order of the sort: ")
+            print(paste(object@sort_order, sep=", "))
+            message("Unique elements in the data frame: ")
+            print(unique(object@df[, object@sort_var]))
+        }
+        if (length(object@sort_order) > length(unique(object@df[, object@sort_var]))) {
+            warning(paste0("Order of the sort has more elements than the data frame"))
+            message("Order of the sort: ")
+            print(paste(object@sort_order, sep=", "))
+            message("Unique elements in the data frame: ")
+            print(unique(object@df[, object@sort_var]))
+            warning("strange results can be expected")
+        }
         object@df[, object@sort_var] <- factor(
             object@df[, object@sort_var],
             levels = object@sort_order)

@@ -1,4 +1,5 @@
 import os
+import enum
 
 # Description: Utility functions for the project
 def getPathToRingRoot():
@@ -18,7 +19,7 @@ def jsonToOptionalArg(jsonElement, key):
     if (checkElementExistNoException(jsonElement, key)):
         return jsonToArg(jsonElement, key)
     else:
-        return [0]
+        return ["0"]
     
 
 def getElementValue(jsonElement, key):
@@ -33,6 +34,8 @@ def getElementValue(jsonElement, key):
             return jsonElement[key]
         elif isinstance(jsonElement[key], list):
             return jsonElement[key]
+        elif isinstance(jsonElement[key], dict):
+            return jsonElement[key]
     else:
         raise Exception("Key not found: " + key)
     
@@ -45,6 +48,21 @@ def checkElementExistNoException(jsonElement, key):
         return False
     else:
         return True
+
+def checkEnumExistsNoException(jsonElement: dict, enum: enum.EnumMeta):
+    for key in jsonElement:
+        if key in enum.__members__:
+            return True
+    return False
+
+def getEnumValue(jsonElement: dict, enumType: enum.EnumMeta):
+    for key in jsonElement:
+        for enum_member in enumType:
+            print("key: " + key + " enum_member: " + enum_member.value + " result: " + str(key == enum_member.value))
+            if key == enum_member.value:
+                return key
+    return None
+
 
 def checkFilesExistOrException(filePaths):
     for filePath in filePaths:

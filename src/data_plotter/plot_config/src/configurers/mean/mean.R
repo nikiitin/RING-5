@@ -42,7 +42,7 @@ setClass("Mean",
         # Variables to skip for mean calculation
         skip_mean = "nullable_vector",
         # Name that will be assigned to the mean column
-        mean_name = "character"
+        replacing_column = "character"
     )
 ) -> Mean
 
@@ -64,7 +64,7 @@ setValidity(
             is_valid <- FALSE
         }
         # Check if the mean name is empty
-        if (object@mean_name == "") {
+        if (object@replacing_column == "") {
             message("Mean name is empty")
             is_valid <- FALSE
         }
@@ -98,7 +98,7 @@ setMethod(
         .Object@skip_mean <- get_arg(args, n_skip_mean)
         args %<>% shift(n_skip_mean)
         # Parse the name of the label for the mean column
-        .Object@mean_name <- get_arg(args, 1)
+        .Object@replacing_column <- get_arg(args, 1)
         args %<>% shift(1)
         # Return the parsed arguments
         list(arguments = args, configurer = .Object)
@@ -122,7 +122,7 @@ setMethod(
         formula <- as.formula(paste(paste(object@mean_vars, sep = "+"), "~", object@reduced_column))
         mean_df <- aggregate(formula, mean_df, get(object@mean_algorithm))
         # Add the reduced_column again to the data frame
-        mean_df[object@mean_name] <- object@mean_algorithm
+        mean_df[object@replacing_column] <- object@mean_algorithm
         # Add the mean_df rows to the data frame
         object@df <- rbind(object@df, mean_df)
         # Return the object
@@ -144,9 +144,9 @@ setMethod(
             stop(paste0("Reduced column: ", object@reduced_column, " is not in the data frame"))
         }
         # Check if the mean name is already in the data frame
-        if (object@mean_name %in% object@df[, object@mean_vars]) {
-            warning(paste0("Mean name: ",
-                object@mean_name,
+        if (object@replacing_column %in% object@df[, object@mean_vars]) {
+            warning(paste0("Column replacing name: ",
+                object@replacing_column,
                 " is already in the data frame! It will be augmented"))
         }
         # Check if the variables to skip are in the data frame
