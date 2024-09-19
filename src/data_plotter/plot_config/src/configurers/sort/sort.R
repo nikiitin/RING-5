@@ -16,7 +16,7 @@ setClass("Sort",
     )
 ) -> Sort
 
-setValidity(
+invisible(setValidity(
     "Sort",
     function(object) {
         is_valid <- TRUE
@@ -39,7 +39,7 @@ setValidity(
         }
         TRUE
     }
-)
+))
 
 # Override parse_args with the new arguments
 setMethod(

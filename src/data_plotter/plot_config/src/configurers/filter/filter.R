@@ -5,7 +5,6 @@ source("src/data_plotter/plot_config/src/configurers/configurer.R")
 #' @description Filter configurer. This configurer
 #' will remove the selected elements with the selected
 #' values from the data frame
-
 setClass("Filter",
     contains = "Configurer",
     slots = list(
@@ -16,8 +15,7 @@ setClass("Filter",
         values = "nullable_vector"
     )
 ) -> Filter
-
-setValidity(
+invisible(setValidity(
     "Filter",
     function(object) {
         is_valid <- TRUE
@@ -33,7 +31,7 @@ setValidity(
         }
         is_valid
     }
-)
+))
 
 # Override parse_args with the new arguments
 setMethod(
@@ -70,13 +68,12 @@ setMethod(
         # Check if the values to remove are in the data frame
         if (!all(object@values %in%
             unique(object@df[, object@filter_var]))) {
+            message("Values to filter do not match those in the data frame!")
+            message("Values: ")
             print(object@values)
+            message("Unique values in the data frame: ")
             print(unique(object@df[, object@filter_var]))
-            warning(paste0(
-                "Values to remove: ",
-                object@values,
-                " are not in the data frame! ",
-                "Continuing..."))
+            warning("Some values to filter are not in the data frame, results may not be as expected")
         }
         # Get the column that will be filtered
         # from the data frame with filter_var name
@@ -89,5 +86,4 @@ setMethod(
         object
     }
 )
-
 invisible(run(Filter(args = commandArgs(trailingOnly = TRUE))))

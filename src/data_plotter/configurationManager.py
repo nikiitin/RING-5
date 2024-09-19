@@ -25,11 +25,11 @@ class ConfigurationManager:
         with open(configPath) as configFile:
             config = json.load(configFile)
         # Search for the config
-        for element in config:
-            utils.checkElementExists(element, "configName")
-            if (utils.getElementValue(element, "configName") == configName):
-                return element["dataConfig"]
-        raise RuntimeError("Config not found")
+        
+        if utils.checkElementExistNoException(config, configName):
+            return utils.getElementValue(config, configName)
+        else:
+            raise RuntimeError("Configuration: " + configName + " not found in file: " + configPath)
 
     @classmethod
     def getStyleConfiguration(cls, plotJson: dict):

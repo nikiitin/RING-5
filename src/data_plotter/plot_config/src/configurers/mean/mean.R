@@ -46,7 +46,7 @@ setClass("Mean",
     )
 ) -> Mean
 
-setValidity(
+invisible(setValidity(
     "Mean",
     function(object) {
         is_valid <- TRUE
@@ -70,7 +70,7 @@ setValidity(
         }
         is_valid
     }
-)
+))
 
 # Override parse_args with the new arguments
 setMethod(
@@ -119,14 +119,15 @@ setMethod(
         # Apply the mean algorithm to the stats
         # specified by the mean_vars. Keep the name of the
         # columns and those that are not mean_vars
-        formula <- as.formula(paste(paste(object@mean_vars, sep = "+"), "~", object@reduced_column))
-        mean_df <- aggregate(formula, mean_df, get(object@mean_algorithm))
+        mean_function <- match.fun(object@mean_algorithm)
+        mean_df <- mean_df %>%
+            group_by(across(all_of(object@reduced_column))) %>%
+            summarise(across(all_of(object@mean_vars), mean_function, .names = "{col}"), .groups = 'drop')
         # Add the reduced_column again to the data frame
         mean_df[object@replacing_column] <- object@mean_algorithm
         # Add the mean_df rows to the data frame
-        object@df <- rbind(object@df, mean_df)
-        # Return the object
-        object
+        object@df <- rbind(object@df, mean_df)        # Return the object
+        invisible(object)
     }
 )
 
@@ -136,18 +137,27 @@ setMethod(
     function(object) {
         # Post-df parse checks
         # Check if the variable to calculate the mean is in the data frame
-        if (!(object@mean_vars %in% colnames(object@df))) {
-            stop(paste0("Variable to calculate the mean: ", object@mean_vars, " is not in the data frame"))
+        if (!all(object@mean_vars %in% colnames(object@df))) {
+            missing_vars <- NULL
+            for (var in object@mean_vars) {
+                if (!(var %in% colnames(object@df))) {
+                    missing_vars <- c(missing_vars, var)
+                }
+            }
+            message("Some variables to calculate the mean are not in the data frame")
+            message("Missing variables: ")
+            print(missing_vars)
+            stop("Stopping...")
         }
         # Check if the reduced column is in the data frame
         if(!(object@reduced_column %in% colnames(object@df))) {
             stop(paste0("Reduced column: ", object@reduced_column, " is not in the data frame"))
         }
         # Check if the mean name is already in the data frame
-        if (object@replacing_column %in% object@df[, object@mean_vars]) {
+        if (!(object@replacing_column %in% colnames(object@df))) {
             warning(paste0("Column replacing name: ",
                 object@replacing_column,
-                " is already in the data frame! It will be augmented"))
+                " is not in the data frame. It will be added"))
         }
         # Check if the variables to skip are in the data frame
         if (!is.null(object@skip_mean) && length(object@skip_mean) > 0) {
@@ -158,7 +168,7 @@ setMethod(
             }
         }
         # Calculate the mean
-        object %<>% calculate_mean()
+        object <- calculate_mean(object)
         return(object)
     }
 )

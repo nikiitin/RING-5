@@ -88,7 +88,7 @@ setMethod(
         object
     }
 )
-setValidity(
+invisible(setValidity(
     "Normalize",
     function(object) {
         is_valid <- TRUE
@@ -118,7 +118,7 @@ setValidity(
 
         is_valid
     }
-)
+))
 
 # Override parse_args with the new arguments
 setMethod(

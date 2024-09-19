@@ -25,16 +25,6 @@ invisible(setValidity(
         }
         # Check if the variable to select is in the data frame
         vars_to_skip <- c()
-        for (var in object@select_vars) {
-            if (!(var %in% colnames(object@df))) {
-                # Print a warning, but don't stop the execution
-                # just skip the variable
-                warning(paste0("Variable to select: ",
-                    var,
-                    " is not in the data frame. Skipping"))
-                vars_to_skip <- c(vars_to_skip, var)
-            }
-        }
         if (length(vars_to_skip) != 0 &&
             setequal(vars_to_skip, object@select_vars)) {
             message("Variables to select are not in the data frame. Stopping...")
@@ -71,6 +61,7 @@ setMethod(
         # If variables are wrongly spelled, add them to the wrong_vars
         for (var in object@select_vars) {
             if (!(var %in% colnames(object@df))) {
+                warning(paste0("Selected variable is not in the data frame: ", var))
                 wrong_vars <- c(wrong_vars, var)
             }
         }
