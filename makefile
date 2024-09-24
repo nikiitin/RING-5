@@ -116,6 +116,20 @@ check_R:
 # Check R version is greater than 4.0.0
 	@Rscript -e $(CHECK_R_VERSION_SCRIPT) || exit 1;
 
+#### TEST OBJECTIVES ####
+
+# Main test objective
+test: test_python test_R
+	@echo "All tests passed successfully"
+
+# Test python
+test_python:
+	@pytest tests/pytests
+
+# Test R
+test_R:
+	@Rscript -e "testthat::test_dir(\"tests/testthat\")"
+
 #### OBJECTIVES FOR PROJ CONFIG ####
 generate_proj_file: init_proj_file add_project_path end_proj_file
 	@echo "Project file generated successfully"
