@@ -1,8 +1,8 @@
 {
-    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/woper_comparePCHATS",
+    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/woper01_24_09_2024",
     "parseConfig": {
         "file": "parse_woper",
-        "config": "default"
+        "config": "woper0124_09_2024"
     },
     "mixStats": [
         {
@@ -69,7 +69,7 @@
             "plotType": "barplotFacetManual",
             "dataConfig": {
                 "file": "config_woper",
-                "config": "compare_pchats"
+                "config": "woper01"
             },
             "styleConfig": {
                 "file": "style_woper",
@@ -102,50 +102,6 @@
                     "vacation-h=STAMP",
                     "yada=STAMP",
                     "geomean=(STAMP)"
-                ]
-            }
-        },
-        {
-            "plotType": "groupedStackedBarplot",
-            "dataConfig": {
-                "file": "config_woper",
-                "config": "compare_pchats_stack"
-            },
-            "styleConfig": {
-                "file": "style_woper",
-                "config": "aborts_reason"
-            },
-            "fileName": "aborts_cause",
-            "x": [
-                "benchmark_name"
-            ],
-            "y": [
-                "htm_transaction_abort_cause..Conflicts",
-                "htm_transaction_abort_cause..Conflicts_fallbacklock",
-                "htm_transaction_abort_cause..Capacity",
-                "htm_transaction_abort_cause..Explicit",
-                "htm_transaction_abort_cause..Other"
-            ],
-            "conf_z": [
-                "config_description_abbrev"
-            ],
-            "facet": {
-                "facetVar": "benchmark_name",
-                "facetMappings": [
-                    "cadd=Microbenchmark",
-                    "llb-l=Microbenchmark",
-                    "llb-h=Microbenchmark",
-                    "genome=STAMP",
-                    "intruder=STAMP",
-                    "intruder-qs=STAMP",
-                    "kmeans-l=STAMP",
-                    "kmeans-h=STAMP",
-                    "labyrinth=STAMP",
-                    "ssca2=STAMP",
-                    "vacation-l=STAMP",
-                    "vacation-h=STAMP",
-                    "yada=STAMP",
-                    "mean=(STAMP)"
                 ]
             }
         }
