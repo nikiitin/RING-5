@@ -1,4 +1,5 @@
 source("src/utils/R_structs/MapSet.R")
+source("src/utils/R_structs/text_size.R")
 setClassUnion("nullable_vector", c("vector", "NULL"))
 shift <- function(x, n) {
     if (n > 0) {

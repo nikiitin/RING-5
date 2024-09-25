@@ -69,28 +69,35 @@ setMethod(
         # Set the theme to be used
         object@plot <- object@plot + theme_hc()
         # Add specific configs to the theme
+        axis_labels_size <- Vectorized_text_size(
+                    text_size = 24,
+                    unit = "pt",
+                    plot_width = object@styles@width,
+                    plot_height = object@styles@height,
+                    num_labels =
+                        length(unique(object@info@data_frame[[object@info@x]])))
+        titles_size <- Plot_text_size(
+            text_size = 16,
+            unit = "pt",
+            plot_width = object@styles@width,
+            plot_height = object@styles@height
+        )
         object@plot <- object@plot + theme(
             axis.text.x = element_text(
                 angle = 30,
                 hjust = 1,
-                size = adjust_text_size(16,
-                    object@styles@width,
-                    object@styles@height),
+                size = unit(get_size(axis_labels_size), "pt"),
                 face = "bold"
             ),
             axis.ticks.x = element_blank(),
             axis.ticks.y = element_blank(),
             axis.text.y = element_text(
                 hjust = 1,
-                size = adjust_text_size(16,
-                    object@styles@width,
-                    object@styles@height),
+                size = unit(get_size(axis_labels_size), "pt"),
                 face = "bold"
             ),
             axis.title.y = element_text(
-                size = adjust_text_size(16,
-                    object@styles@width,
-                    object@styles@height),
+                size = unit(get_size(titles_size), "pt"),
                 face = "bold"
             ),
             legend.position = "top",
@@ -98,32 +105,18 @@ setMethod(
             legend.background= element_rect(fill = NA, color = "white"),
             legend.box.margin = margin(-18, 0, -16, 0),
             legend.title = element_text(
-                size = adjust_text_size(16,
-                    object@styles@width,
-                    object@styles@height),
+                size = unit(get_size(titles_size), "pt"),
                 face = "bold"
             ),
             legend.text = element_text(
-                size = adjust_text_size(16,
-                    object@styles@width,
-                    object@styles@height)
+                size = unit(get_size(axis_labels_size), "pt"),
             ),
             legend.key.width = unit(
-                adjust_text_size(1,
-                    object@styles@width,
-                    object@styles@height),
-                "cm"),
+                get_size(titles_size) * 2, "pt"),
             legend.key.height = unit(
-                adjust_text_size(1,
-                    object@styles@width,
-                    object@styles@height),
-                "cm"),
+                get_size(titles_size) * 2, "pt"),
             strip.text = element_text(
-                size = adjust_text_size(
-                    18,
-                    object@styles@width,
-                    object@styles@height
-                ),
+                size = unit(get_size(axis_labels_size), "pt"),
                 angle = 0,
                 face = "bold"
             ),
@@ -220,9 +213,7 @@ setMethod(
                             y = object@styles@y_limit_top
                         ),
                         show.legend = FALSE,
-                        size = adjust_text_size(6,
-                            object@styles@width,
-                            object@styles@height),
+                        size = get_size(titles_size),
                         angle = 90,
                         hjust = "inward",
                         na.rm = TRUE
