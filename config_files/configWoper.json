@@ -64,6 +64,15 @@
     "reduceSeeds": true,
     "removeOutliers": true,
     "outlierStat": "simTicks",
+    "preprocessor": [
+        {
+            "divider": {
+                "dst": "newSimTicks",
+                "src1": "simTicks",
+                "src2": "simTicks"
+            }
+        }
+    ],
     "plots": [
         {
             "plotType": "barplotFacetManual",
