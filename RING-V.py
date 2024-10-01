@@ -32,6 +32,7 @@ manager = DataManagerFactory.getDataManager("R", info).__call__()
 
 # Preprocess data if needed
 if utils.checkElementExistNoException(info.getJson(), "preprocessor"):
+    print("Preprocessing data")
     for preprocessor in utils.getElementValue(info.getJson(), "preprocessor"):
 
         preprocessorJson = utils.getElementValue(
