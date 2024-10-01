@@ -70,14 +70,14 @@ setMethod(
         object@plot <- object@plot + theme_hc()
         # Add specific configs to the theme
         axis_labels_size <- Vectorized_text_size(
-                    text_size = 24,
+                    text_size = 38,
                     unit = "pt",
                     plot_width = object@styles@width,
                     plot_height = object@styles@height,
                     num_labels =
                         length(unique(object@info@data_frame[[object@info@x]])))
         titles_size <- Plot_text_size(
-            text_size = 16,
+            text_size = 20,
             unit = "pt",
             plot_width = object@styles@width,
             plot_height = object@styles@height

@@ -33,10 +33,11 @@ setMethod(
                 values_to = "values"
             ) %>%
             cbind(values_sd = sd_df$values_sd)
-        
+
         object@info@data_frame$entries <-
             factor(object@info@data_frame$entries,
-            levels = unique(object@info@data_frame$entries))
+                levels = unique(object@info@data_frame$entries)
+            )
         # Return the object
         object
     }
@@ -68,23 +69,39 @@ setMethod(
         #                  X
         # Names from df should be always the same, it is a wrap
         # specific for this plot
-        total_values <- object@info@data_frame %>%
-            group_by(.data[[object@info@conf_z]], .data[[object@info@x]]) %>%
-            summarise(total = sum(values), .groups = "drop")
+        total_values <- NA
+        if (object@styles@y_limit_top > 0) {
+            if (object@styles@y_limit_bot > object@styles@y_limit_top) {
+                warning(paste0(
+                    "Y limit bot is greater than Y limit top! ",
+                    "skipping limits"
+                ))
+            } else {
+                if (object@styles@y_limit_top < max(object@styles@y_breaks)) {
+                    warning(paste0(
+                        "Y limit top is lower than the ",
+                        "maximum value of breaks!",
+                    ))
+                }
+                total_values <- object@info@data_frame %>%
+                    group_by(.data[[object@info@conf_z]],
+                        .data[[object@info@x]]) %>%
+                    summarise(total = sum(values), .groups = "drop")
 
-        total_values[, "total"] <-
-            as.numeric(format(round(total_values$total, 2), nsmall = 2))
+                total_values[, "total"] <-
+                    as.numeric(format(round(total_values$total, 2), nsmall = 2))
 
-        total_values[, "total"] <-
-            ifelse(total_values$total < max(object@styles@y_breaks),
-                NA,
-                total_values$total)
-
-
+                total_values[, "total"] <-
+                    ifelse(total_values$total < max(object@styles@y_limit_top),
+                        NA,
+                        total_values$total
+                    )
+            }
+        }
         object@plot <- ggplot(object@info@data_frame, aes(
             x = .data[[object@info@conf_z]],
             y = values
-            ))
+        ))
 
 
         # Add the facet grid to the plot object. Switch it in to X,
@@ -95,7 +112,7 @@ setMethod(
             strip = strip_nested(
                 clip = "off"
             ),
-            design = create_facet_design(object, 5, c("Microbenchmark","STAMP", "(STAMP)"))
+            design = create_facet_design(object, 5, c("Microbenchmark", "STAMP", "(STAMP)"))
         )
 
         # Add the geom_bar to the plot object. Use position_stack to
@@ -190,33 +207,35 @@ setMethod(
         # Set the theme to be used
         object@plot <- object@plot + theme_hc()
         # Add specific configs to the theme
+        axis_labels_size <- Vectorized_text_size(
+            text_size = 34,
+            unit = "pt",
+            plot_width = object@styles@width,
+            plot_height = object@styles@height,
+            num_labels =
+                length(unique(object@info@data_frame[[object@info@x]]))
+        )
+        titles_size <- Plot_text_size(
+            text_size = 20,
+            unit = "pt",
+            plot_width = object@styles@width,
+            plot_height = object@styles@height
+        )
         object@plot <- object@plot + theme(
             axis.text.x = element_text(
                 angle = 45,
                 hjust = 1,
-                size = adjust_text_size(
-                    18,
-                    object@styles@width,
-                    object@styles@height
-                ),
+                size = unit(get_size(axis_labels_size), "pt"),
                 face = "bold"
             ),
             axis.text.y = element_text(
                 hjust = 1,
-                size = adjust_text_size(
-                    18,
-                    object@styles@width,
-                    object@styles@height
-                ),
+                size = unit(get_size(axis_labels_size), "pt"),
                 face = "bold"
             ),
             axis.title.x = element_blank(),
             axis.title.y = element_text(
-                size = adjust_text_size(
-                    18,
-                    object@styles@width,
-                    object@styles@height
-                ),
+                size = unit(get_size(titles_size), "pt"),
                 face = "bold"
             ),
             # legend.position = c(0.8,0.9),
@@ -225,43 +244,19 @@ setMethod(
             # legend.background = element_blank(),
             # legend.box.background = element_rect(fill = "white", color = "black"),
             legend.title = element_text(
-                size = adjust_text_size(
-                    18,
-                    object@styles@width,
-                    object@styles@height
-                ),
+                size = unit(get_size(titles_size), "pt"),
                 face = "bold"
             ),
             legend.text = element_text(
-                size = adjust_text_size(
-                    18,
-                    object@styles@width,
-                    object@styles@height
-                )
+                size = unit(get_size(titles_size), "pt")
             ),
             legend.key.width = unit(
-                adjust_text_size(
-                    1,
-                    object@styles@width,
-                    object@styles@height
-                ),
-                "cm"
-            ),
+                get_size(titles_size) * 1.2, "pt"),
             legend.key.height = unit(
-                adjust_text_size(
-                    1,
-                    object@styles@width,
-                    object@styles@height
-                ),
-                "cm"
-            ),
+                get_size(titles_size) * 1.2, "pt"),
             legend.box.margin = margin(-3, 0, -3, 0),
             strip.text = element_text(
-                size = adjust_text_size(
-                    18,
-                    object@styles@width,
-                    object@styles@height
-                ),
+                size = unit(get_size(axis_labels_size), "pt"),
                 angle = 0,
                 face = "bold"
             ),
@@ -294,8 +289,8 @@ setMethod(
                 scale_y_continuous(
                     breaks = object@styles@y_breaks,
                     limits = c(
-                        min(object@styles@y_breaks),
-                        max(object@styles@y_breaks)
+                        object@styles@y_limit_bot,
+                        object@styles@y_limit_top
                     ),
                     oob = scales::squish,
                     expand = c(0, 0)
