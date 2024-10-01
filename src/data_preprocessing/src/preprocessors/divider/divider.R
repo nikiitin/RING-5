@@ -14,7 +14,7 @@ setClass("Divider", contains = "Preprocessor",
     )
 ) -> Divider
 
-setValidity("Divider",
+invisible(setValidity("Divider",
     function(object) {
         callNextMethod()
         is_valid <- TRUE
@@ -32,7 +32,7 @@ setValidity("Divider",
         }
         return(is_valid)
     }
-)
+))
 
 setMethod("initialize",
     "Divider",
@@ -48,14 +48,24 @@ setMethod("preprocess",
     signature(object = "Divider"),
     function(object) {
         # Create the new column with the name of the first operator,
-        # and the result of the division of the second operator 
+        # and the result of the division of the second operator
         # by the third operator
-        object@data[, object@destination_op] <-
-            object@data[, object@src1_op] /
-            object@data[, object@src2_op]
+
+        # Do the division if the second operator is not 0,
+        # otherwise, set the result to src1_op
+        object@data[, object@destination_op] <- ifelse(
+            object@data[, object@src2_op] != 0,
+            object@data[, object@src1_op] / object@data[, object@src2_op],
+            object@data[, object@src1_op]
+        )
         return(object)
     }
 )
+# Parse the arguments and run the preprocessor
+# NOTE: arguments are parsed out of the
+# class in purpose, I want each preprocessor
+# to stand alone and not depend on the
+# command line arguments
 arguments <- commandArgs(trailingOnly = TRUE)
 csv_file <- get_arg(arguments, 1)
 arguments <- shift(arguments, 1)

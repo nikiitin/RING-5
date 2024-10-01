@@ -17,7 +17,6 @@ class Divider(Preprocessor):
         self._RScriptCall.append(self._operands["dst"])
         self._RScriptCall.append(self._operands["src1"])
         self._RScriptCall.append(self._operands["src2"])
-        print(self._RScriptCall)
         subprocess.call(self._RScriptCall)
         return self._operands["dst"]
         

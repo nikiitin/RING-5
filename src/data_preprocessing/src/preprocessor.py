@@ -18,7 +18,6 @@ class Preprocessor:
         self._configurePreprocessor()
     
     def addOperand(self, operandName: str, operand: any) -> None:
-        print(f"Adding operand {operandName} with value {operand}")
         if (operandName in self._operands):
             raise KeyError(f"Operand {operandName} already exists")
         if not isinstance(operand, Preprocessor) and not isinstance(operand, str):
@@ -28,7 +27,6 @@ class Preprocessor:
         if operandName == "dst" and not isinstance(operand, str):
             raise TypeError("dst must be a string")
         self._operands[operandName] = operand
-        print(f"Operands are now: {self._operands}")
 
     def __call__(self) -> str:
         # Solve all the operands first
@@ -42,7 +40,6 @@ class Preprocessor:
             else:
                 raise TypeError("Operand must be a preprocessor or a string")
         # Replace the operands with the solved ones
-        print(f"Operands are: {self._operands} and solved operands are: {solvedOperands}")
         self._operands = solvedOperands
         # Then solve the preprocessor
         return self._perform()
