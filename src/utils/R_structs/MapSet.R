@@ -3,7 +3,7 @@ setClass("MapSet",
         # Map table
         map_table = "data.frame"
     )
-)
+) -> MapSet
 
 setGeneric("get_all_keys",
     function(object) {
@@ -208,5 +208,13 @@ setMethod(
         x <- set_element(x, i, value)
         # Return the object
         x
+    }
+)
+
+setMethod("length",
+    signature(x = "MapSet"),
+    function(x) {
+        # Get the length of the map table
+        length(x@map_table)
     }
 )

@@ -40,7 +40,7 @@ setClass("Mean",
         # Column that will hold the categoric value for the mean
         reduced_column = "character",
         # Variables to skip for mean calculation
-        skip_mean = "nullable_vector",
+        skip_mean = "MapSet",
         # Name that will be assigned to the mean column
         replacing_column = "character"
     )
@@ -57,10 +57,12 @@ invisible(setValidity(
         }
         # Check if the mean algorithm is valid
         if (!(object@mean_algorithm %in% available_mean_algorithms)) {
-            message(paste0("Mean algorithm: ",
+            message(paste0(
+                "Mean algorithm: ",
                 object@mean_algorithm,
                 " is not valid\n",
-                "Valid algorithms are: mean, geomean"))
+                "Valid algorithms are: mean, geomean"
+            ))
             is_valid <- FALSE
         }
         # Check if the mean name is empty
@@ -95,8 +97,22 @@ setMethod(
         # Parse the variables to skip
         n_skip_mean <- as.numeric(get_arg(args, 1))
         args %<>% shift(1)
-        .Object@skip_mean <- get_arg(args, n_skip_mean)
-        args %<>% shift(n_skip_mean)
+        # Variables to skip are given by pairs of
+        # variable name and values to skip
+        .Object@skip_mean <- MapSet(container_type = "list")
+        if (n_skip_mean != 0) {
+            for (i in seq_along(n_skip_mean)) {
+                skip_var_name <- get_arg(args, 1)
+                args %<>% shift(1)
+                skip_var_n_values <- as.numeric(get_arg(args, 1))
+                args %<>% shift(1)
+                skip_var_values <- get_arg(args, skip_var_n_values)
+                args %<>% shift(skip_var_n_values)
+                .Object@skip_mean %<>% emplace_element(
+                    skip_var_name, skip_var_values
+                )
+            }
+        }
         # Parse the name of the label for the mean column
         .Object@replacing_column <- get_arg(args, 1)
         args %<>% shift(1)
@@ -111,10 +127,18 @@ setMethod(
     function(object) {
         # Copy the data frame to store the mean values
         mean_df <- object@df
-        if (!is.null(object@skip_mean)) {
+        if (length(object@skip_mean) != 0) {
             # Remove rows matching skip_mean values
-            mean_df <- mean_df[!mean_df[, object@mean_vars] %in%
-                object@skip_mean, ]
+            for (skip_var in get_all_keys(object@skip_mean)) {
+                # Get the values to skip
+                vars_to_skip <- object@skip_mean[skip_var]
+                # Remove the rows with columns
+                # which name is skip_var and
+                # the values from those columns
+                # are in vars_to_skip
+                mean_df <- mean_df[!mean_df[[skip_var]] %in%
+                    unlist(vars_to_skip), ]
+            }
         }
         # Apply the mean algorithm to the stats
         # specified by the mean_vars. Keep the name of the
@@ -122,11 +146,11 @@ setMethod(
         mean_function <- match.fun(object@mean_algorithm)
         mean_df <- mean_df %>%
             group_by(across(all_of(object@reduced_column))) %>%
-            summarise(across(all_of(object@mean_vars), mean_function, .names = "{col}"), .groups = 'drop')
+            summarise(across(all_of(object@mean_vars), mean_function, .names = "{col}"), .groups = "drop")
         # Add the reduced_column again to the data frame
         mean_df[object@replacing_column] <- object@mean_algorithm
         # Add the mean_df rows to the data frame
-        object@df <- rbind(object@df, mean_df)        # Return the object
+        object@df <- rbind(object@df, mean_df) # Return the object
         invisible(object)
     }
 )
@@ -150,21 +174,32 @@ setMethod(
             stop("Stopping...")
         }
         # Check if the reduced column is in the data frame
-        if(!(object@reduced_column %in% colnames(object@df))) {
+        if (!(object@reduced_column %in% colnames(object@df))) {
             stop(paste0("Reduced column: ", object@reduced_column, " is not in the data frame"))
         }
         # Check if the mean name is already in the data frame
         if (!(object@replacing_column %in% colnames(object@df))) {
-            warning(paste0("Column replacing name: ",
+            warning(paste0(
+                "Column replacing name: ",
                 object@replacing_column,
-                " is not in the data frame. It will be added"))
+                " is not in the data frame. It will be added"
+            ))
         }
         # Check if the variables to skip are in the data frame
-        if (!is.null(object@skip_mean) && length(object@skip_mean) > 0) {
-            if (!(object@skip_mean %in% colnames(object@df))) {
-                stop(paste0("Variables to skip: ",
-                    object@skip_mean,
-                    " are not in the data frame"))
+        for (skip_var in get_all_keys(object@skip_mean)) {
+            if (!(skip_var %in% colnames(object@df))) {
+                warning(paste0(
+                    "Variable to skip: ",
+                    skip_var,
+                    " is not in the data frame"
+                ))
+            }
+            if (!all(object@skip_mean[skip_var] %in% object@df[[skip_var]])) {
+                warning(paste0(
+                    "Values to skip for variable: ",
+                    skip_var,
+                    " are not in the data frame"
+                ))
             }
         }
         # Calculate the mean
