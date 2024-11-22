@@ -27,11 +27,9 @@ if (!all(
 ) {
     stop("Statistics found not numeric! Not reducing seeds!")
 }
-
 # Convert all selected columns to numeric
 parsed_data[, selected_columns] <-
     sapply(parsed_data[, selected_columns], as.numeric)
-
 # Calculate mean for each configuration
 mean_dataframe <- aggregate(
     parsed_data[selected_columns],

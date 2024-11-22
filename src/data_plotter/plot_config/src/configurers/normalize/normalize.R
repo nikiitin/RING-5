@@ -56,6 +56,10 @@ setMethod(
         #   for each group, there must be only one normalize_value
         #   for each group, normalize_var must exist
         #   for each group, stats must exist
+        groups <- object@df %>% 
+            filter(.data[[object@normalize_var]] == object@normalize_value) %>%
+            select(object@group_vars)
+        print(groups)
         object@df %>%
             filter(.data[[object@normalize_var]] == object@normalize_value) %>%
             group_by(.data[[object@group_vars]]) %>% # Group by the group variables

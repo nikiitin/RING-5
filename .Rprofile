@@ -1,3 +1,4 @@
+source("renv/activate.R")
 renv_path <- "renv/activate.R"
 proj_file_path <- ".proj.json"
 ring_env <- new.env()

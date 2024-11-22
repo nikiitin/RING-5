@@ -43,11 +43,513 @@
                             "varToSort": "config_description_abbrev",
                             "order": [
                                 "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                                "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                                "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
+                                "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
+                                "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
                                 "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt"
+                            ],
+                            "filter": {
+                                "varToFilter": "benchmark_name",
+                                "values": [
+                                    "intruder-qs"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "woper01_stacked": {
+        "selector": {
+            "selectedCols": [
+                "benchmark_name",
+                "config_description_abbrev",
+                "abort_propotion..0",
+                "abort_propotion..1",
+                "abort_propotion..2",
+                "abort_propotion..3",
+                "abort_propotion..4",
+                "abort_propotion..5",
+                "abort_propotion..0.sd",
+                "abort_propotion..1.sd",
+                "abort_propotion..2.sd",
+                "abort_propotion..3.sd",
+                "abort_propotion..4.sd",
+                "abort_propotion..5.sd"
+            ],
+            "normalize": {
+                "normalizeVar": "config_description_abbrev",
+                "normalizeValue": "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
+                "groupBy": [
+                    "benchmark_name"
+                ],
+                "sort": {
+                    "varToSort": "benchmark_name",
+                    "order": [
+                        "cadd",
+                        "llb-l",
+                        "llb-h",
+                        "genome",
+                        "intruder",
+                        "intruder-qs",
+                        "kmeans-l",
+                        "kmeans-h",
+                        "labyrinth",
+                        "ssca2",
+                        "vacation-l",
+                        "vacation-h",
+                        "yada"
+                    ],
+                    "sort": {
+                        "varToSort": "config_description_abbrev",
+                        "order": [
+                            "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
+                            "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
+                            "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
+                            "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt"
+                        ],
+                        "filter": {
+                            "varToFilter": "benchmark_name",
+                            "values": [
+                                "intruder-qs"
                             ]
                         }
+                    }
+                }
+            }
+        }
+    },
+    "woper01_stacked_no_norm": {
+        "selector": {
+            "selectedCols": [
+                "benchmark_name",
+                "config_description_abbrev",
+                "abort_propotion..0",
+                "abort_propotion..1",
+                "abort_propotion..2",
+                "abort_propotion..3",
+                "abort_propotion..4",
+                "abort_propotion..5",
+                "abort_propotion..0.sd",
+                "abort_propotion..1.sd",
+                "abort_propotion..2.sd",
+                "abort_propotion..3.sd",
+                "abort_propotion..4.sd",
+                "abort_propotion..5.sd"
+            ],
+            "sort": {
+                "varToSort": "benchmark_name",
+                "order": [
+                    "cadd",
+                    "llb-l",
+                    "llb-h",
+                    "genome",
+                    "intruder",
+                    "intruder-qs",
+                    "kmeans-l",
+                    "kmeans-h",
+                    "labyrinth",
+                    "ssca2",
+                    "vacation-l",
+                    "vacation-h",
+                    "yada"
+                ],
+                "sort": {
+                    "varToSort": "config_description_abbrev",
+                    "order": [
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
+                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
+                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt"
+                    ],
+                    "filter": {
+                        "varToFilter": "benchmark_name",
+                        "values": [
+                            "intruder-qs"
+                        ]
+                    }
+                }
+            }
+        }
+    },
+    "woper02_stacked": {
+        "selector": {
+            "selectedCols": [
+                "benchmark_name",
+                "config_description_abbrev",
+                "t_cycles..0",
+                "t_cycles..1",
+                "t_cycles..2",
+                "t_cycles..3",
+                "t_cycles..4",
+                "t_cycles..5",
+                "t_cycles..0.sd",
+                "t_cycles..1.sd",
+                "t_cycles..2.sd",
+                "t_cycles..3.sd",
+                "t_cycles..4.sd",
+                "t_cycles..5.sd"
+            ],
+            "normalize": {
+                "normalizeVar": "config_description_abbrev",
+                "normalizeValue": "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
+                "groupBy": [
+                    "benchmark_name"
+                ],
+                "sort": {
+                    "varToSort": "benchmark_name",
+                    "order": [
+                        "cadd",
+                        "llb-l",
+                        "llb-h",
+                        "genome",
+                        "intruder",
+                        "intruder-qs",
+                        "kmeans-l",
+                        "kmeans-h",
+                        "labyrinth",
+                        "ssca2",
+                        "vacation-l",
+                        "vacation-h",
+                        "yada"
+                    ],
+                    "sort": {
+                        "varToSort": "config_description_abbrev",
+                        "order": [
+                            "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
+                            "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
+                            "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
+                            "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt"
+                        ],
+                        "filter": {
+                            "varToFilter": "benchmark_name",
+                            "values": [
+                                "intruder-qs"
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "woper02_stacked_no_norm": {
+        "selector": {
+            "selectedCols": [
+                "benchmark_name",
+                "config_description_abbrev",
+                "t_cycles..0",
+                "t_cycles..1",
+                "t_cycles..2",
+                "t_cycles..3",
+                "t_cycles..4",
+                "t_cycles..5",
+                "t_cycles..0.sd",
+                "t_cycles..1.sd",
+                "t_cycles..2.sd",
+                "t_cycles..3.sd",
+                "t_cycles..4.sd",
+                "t_cycles..5.sd"
+            ],
+            "sort": {
+                "varToSort": "benchmark_name",
+                "order": [
+                    "cadd",
+                    "llb-l",
+                    "llb-h",
+                    "genome",
+                    "intruder",
+                    "intruder-qs",
+                    "kmeans-l",
+                    "kmeans-h",
+                    "labyrinth",
+                    "ssca2",
+                    "vacation-l",
+                    "vacation-h",
+                    "yada"
+                ],
+                "sort": {
+                    "varToSort": "config_description_abbrev",
+                    "order": [
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
+                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
+                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt"
+                    ],
+                    "filter": {
+                        "varToFilter": "benchmark_name",
+                        "values": [
+                            "intruder-qs"
+                        ]
+                    }
+                }
+            }
+        }
+    },
+    "woper03_stacked": {
+        "selector": {
+            "selectedCols": [
+                "benchmark_name",
+                "config_description_abbrev",
+                "htm_cycles_xid..0",
+                "htm_cycles_xid..1",
+                "htm_cycles_xid..2",
+                "htm_cycles_xid..3",
+                "htm_cycles_xid..4",
+                "htm_cycles_xid..5",
+                "htm_cycles_xid..0.sd",
+                "htm_cycles_xid..1.sd",
+                "htm_cycles_xid..2.sd",
+                "htm_cycles_xid..3.sd",
+                "htm_cycles_xid..4.sd",
+                "htm_cycles_xid..5.sd"
+            ],
+            "normalize": {
+                "normalizeVar": "config_description_abbrev",
+                "normalizeValue": "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
+                "groupBy": [
+                    "benchmark_name"
+                ],
+                "sort": {
+                    "varToSort": "benchmark_name",
+                    "order": [
+                        "cadd",
+                        "llb-l",
+                        "llb-h",
+                        "genome",
+                        "intruder",
+                        "intruder-qs",
+                        "kmeans-l",
+                        "kmeans-h",
+                        "labyrinth",
+                        "ssca2",
+                        "vacation-l",
+                        "vacation-h",
+                        "yada"
+                    ],
+                    "sort": {
+                        "varToSort": "config_description_abbrev",
+                        "order": [
+                            "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
+                            "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
+                            "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
+                            "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt"
+                        ],
+                        "filter": {
+                            "varToFilter": "benchmark_name",
+                            "values": [
+                                "intruder-qs"
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "woper03_stacked_no_norm": {
+        "selector": {
+            "selectedCols": [
+                "benchmark_name",
+                "config_description_abbrev",
+                "htm_cycles_xid..0",
+                "htm_cycles_xid..1",
+                "htm_cycles_xid..2",
+                "htm_cycles_xid..3",
+                "htm_cycles_xid..4",
+                "htm_cycles_xid..5",
+                "htm_cycles_xid..0.sd",
+                "htm_cycles_xid..1.sd",
+                "htm_cycles_xid..2.sd",
+                "htm_cycles_xid..3.sd",
+                "htm_cycles_xid..4.sd",
+                "htm_cycles_xid..5.sd"
+            ],
+            "sort": {
+                "varToSort": "benchmark_name",
+                "order": [
+                    "cadd",
+                    "llb-l",
+                    "llb-h",
+                    "genome",
+                    "intruder",
+                    "intruder-qs",
+                    "kmeans-l",
+                    "kmeans-h",
+                    "labyrinth",
+                    "ssca2",
+                    "vacation-l",
+                    "vacation-h",
+                    "yada"
+                ],
+                "sort": {
+                    "varToSort": "config_description_abbrev",
+                    "order": [
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
+                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
+                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt"
+                    ],
+                    "filter": {
+                        "varToFilter": "benchmark_name",
+                        "values": [
+                            "intruder-qs"
+                        ]
+                    }
+                }
+            }
+        }
+    },
+    "woper01_stacked_region": {
+        "selector": {
+            "selectedCols": [
+                "benchmark_name",
+                "config_description_abbrev",
+                "cyclesInRegion..Non_Transactional",
+                "cyclesInRegion..Committed",
+                "cyclesInRegion..Power",
+                "cyclesInRegion..Aborted",
+                "cyclesInRegion..Fallback_lock",
+                "cyclesInRegion..Wait_fallback_lock",
+                "cyclesInRegion..Barrier",
+                "cyclesInRegion..Non_Transactional.sd",
+                "cyclesInRegion..Committed.sd",
+                "cyclesInRegion..Power.sd",
+                "cyclesInRegion..Aborted.sd",
+                "cyclesInRegion..Fallback_lock.sd",
+                "cyclesInRegion..Wait_fallback_lock.sd",
+                "cyclesInRegion..Barrier.sd"
+            ],
+            "mean": {
+                "meanAlgorithm": "arithmean",
+                "meanVars": [
+                    "cyclesInRegion..Non_Transactional",
+                    "cyclesInRegion..Committed",
+                    "cyclesInRegion..Power",
+                    "cyclesInRegion..Aborted",
+                    "cyclesInRegion..Fallback_lock",
+                    "cyclesInRegion..Wait_fallback_lock",
+                    "cyclesInRegion..Barrier",
+                    "cyclesInRegion..Non_Transactional.sd",
+                    "cyclesInRegion..Committed.sd",
+                    "cyclesInRegion..Power.sd",
+                    "cyclesInRegion..Aborted.sd",
+                    "cyclesInRegion..Fallback_lock.sd",
+                    "cyclesInRegion..Wait_fallback_lock.sd",
+                    "cyclesInRegion..Barrier.sd"
+                ],
+                "skipMean": [
+                    {
+                        "varToSkip": "benchmark_name",
+                        "values": [
+                            "cadd",
+                            "llb-l",
+                            "llb-h",
+                            "intruder-qs",
+                            "labyrinth"
+                        ]
+                    }
+                ],
+                "groupingColumn": "config_description_abbrev",
+                "replacingColumn": "benchmark_name",
+                "normalize": {
+                    "normalizeVar": "config_description_abbrev",
+                    "normalizeValue": "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
+                    "groupBy": [
+                        "benchmark_name"
+                    ],
+                    "sort": {
+                        "varToSort": "benchmark_name",
+                        "order": [
+                            "cadd",
+                            "llb-l",
+                            "llb-h",
+                            "genome",
+                            "intruder",
+                            "intruder-qs",
+                            "kmeans-l",
+                            "kmeans-h",
+                            "labyrinth",
+                            "ssca2",
+                            "vacation-l",
+                            "vacation-h",
+                            "yada",
+                            "arithmean"
+                        ],
+                        "sort": {
+                            "varToSort": "config_description_abbrev",
+                            "order": [
+                                "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
+                                "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
+                                "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
+                                "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt"
+                            ],
+                            "filter": {
+                                "varToFilter": "benchmark_name",
+                                "values": [
+                                    "intruder-qs",
+                                    "labyrinth"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "sens_lineplot": {
+        "selector": {
+            "selectedCols": [
+                "benchmark_name",
+                "htm_max_retries",
+                "simTicks",
+                "simTicks.sd",
+                "htm_conflict_resolution"
+            ],
+            "sort": {
+                "varToSort": "benchmark_name",
+                "order": [
+                    "cadd",
+                    "llb-l",
+                    "llb-h",
+                    "genome",
+                    "intruder",
+                    "intruder-qs",
+                    "kmeans-l",
+                    "kmeans-h",
+                    "labyrinth",
+                    "ssca2",
+                    "vacation-l",
+                    "vacation-h",
+                    "yada"
+                ],
+                "sort": {
+                    "varToSort": "htm_max_retries",
+                    "order": [
+                        "1",
+                        "2",
+                        "4",
+                        "6",
+                        "8",
+                        "10",
+                        "12",
+                        "14",
+                        "16",
+                        "18",
+                        "20",
+                        "22",
+                        "24",
+                        "26",
+                        "28",
+                        "30",
+                        "32",
+                        "48",
+                        "64"
+                    ],
+                    "filter": {
+                        "varToFilter": "benchmark_name",
+                        "values": [
+                            "intruder-qs",
+                            "labyrinth"
+                        ]
                     }
                 }
             }

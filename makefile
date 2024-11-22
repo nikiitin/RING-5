@@ -42,7 +42,7 @@ if(as.numeric(thisRVersion['major']) == 3 && as.numeric(thisRVersion['minor']) <
 
 # Check for all dependency management tools and install all
 # dependencies for the project
-build: check_python_dependencies check_R_dependencies generate_proj_file
+build: generate_proj_file check_python_dependencies check_R_dependencies
 	@echo "Build finished successfully"
 
 

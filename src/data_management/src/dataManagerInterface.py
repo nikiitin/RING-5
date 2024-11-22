@@ -21,7 +21,7 @@ class DataManagerInterface:
         else:
             self._reducingSeeds = False
         if utils.checkElementExistNoException(json, "removeOutliers"):
-            self._removingOutliers = utils.jsonToArg(json, "removeOutliers")
+            self._removingOutliers = json["removeOutliers"]
             utils.checkElementExists(json, "outlierStat")
             self._outlierStat = utils.jsonToArg(json, "outlierStat")
         else:
