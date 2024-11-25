@@ -16,8 +16,11 @@
                 "groupingColumn": "config_description_abbrev",
                 "replacingColumn": "benchmark_name",
                 "normalize": {
-                    "normalizeVar": "config_description_abbrev",
-                    "normalizeValue": "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
+                    "normalizeVars": [
+                        {
+                            "config_description_abbrev": "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt"
+                        }
+                    ],
                     "groupBy": [
                         "benchmark_name"
                     ],
@@ -78,8 +81,11 @@
                 "abort_propotion..5.sd"
             ],
             "normalize": {
-                "normalizeVar": "config_description_abbrev",
-                "normalizeValue": "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
+                "normalizeVars": [
+                    {
+                        "config_description_abbrev": "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt"
+                    }
+                ],
                 "groupBy": [
                     "benchmark_name"
                 ],
@@ -191,8 +197,11 @@
                 "t_cycles..5.sd"
             ],
             "normalize": {
-                "normalizeVar": "config_description_abbrev",
-                "normalizeValue": "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
+                "normalizeVars": [
+                    {
+                        "config_description_abbrev": "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt"
+                    }
+                ],
                 "groupBy": [
                     "benchmark_name"
                 ],
@@ -304,8 +313,11 @@
                 "htm_cycles_xid..5.sd"
             ],
             "normalize": {
-                "normalizeVar": "config_description_abbrev",
-                "normalizeValue": "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
+                "normalizeVars": [
+                    {
+                        "config_description_abbrev": "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt"
+                    }
+                ],
                 "groupBy": [
                     "benchmark_name"
                 ],
@@ -451,8 +463,11 @@
                 "groupingColumn": "config_description_abbrev",
                 "replacingColumn": "benchmark_name",
                 "normalize": {
-                    "normalizeVar": "config_description_abbrev",
-                    "normalizeValue": "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
+                    "normalizeVars": [
+                        {
+                            "config_description_abbrev": "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt"
+                        }
+                    ],
                     "groupBy": [
                         "benchmark_name"
                     ],
@@ -504,52 +519,154 @@
                 "simTicks.sd",
                 "htm_conflict_resolution"
             ],
-            "sort": {
-                "varToSort": "benchmark_name",
-                "order": [
-                    "cadd",
-                    "llb-l",
-                    "llb-h",
-                    "genome",
-                    "intruder",
-                    "intruder-qs",
-                    "kmeans-l",
-                    "kmeans-h",
-                    "labyrinth",
-                    "ssca2",
-                    "vacation-l",
-                    "vacation-h",
-                    "yada"
+            "replacingColumn": "benchmark_name",
+            "normalize": {
+                "normalizeVars": [
+                    {
+                        "htm_max_retries": "1"
+                    },
+                    {
+                        "htm_conflict_resolution": "requester_wins"
+                    }
+                ],
+                "groupBy": [
+                    "benchmark_name"
                 ],
                 "sort": {
-                    "varToSort": "htm_max_retries",
+                    "varToSort": "benchmark_name",
                     "order": [
-                        "1",
-                        "2",
-                        "4",
-                        "6",
-                        "8",
-                        "10",
-                        "12",
-                        "14",
-                        "16",
-                        "18",
-                        "20",
-                        "22",
-                        "24",
-                        "26",
-                        "28",
-                        "30",
-                        "32",
-                        "48",
-                        "64"
+                        "cadd",
+                        "llb-l",
+                        "llb-h",
+                        "genome",
+                        "intruder",
+                        "intruder-qs",
+                        "kmeans-l",
+                        "kmeans-h",
+                        "labyrinth",
+                        "ssca2",
+                        "vacation-l",
+                        "vacation-h",
+                        "yada"
                     ],
-                    "filter": {
-                        "varToFilter": "benchmark_name",
-                        "values": [
-                            "intruder-qs",
-                            "labyrinth"
-                        ]
+                    "sort": {
+                        "varToSort": "htm_max_retries",
+                        "order": [
+                            "1",
+                            "2",
+                            "4",
+                            "6",
+                            "8",
+                            "10",
+                            "12",
+                            "14",
+                            "16",
+                            "20",
+                            "24",
+                            "28",
+                            "32",
+                            "40",
+                            "48",
+                            "56",
+                            "64"
+                        ],
+                        "sort": {
+                            "varToSort": "htm_conflict_resolution",
+                            "order": [
+                                "requester_wins",
+                                "requester_loses",
+                                "requester_wins_power",
+                                "requester_loses_power"
+                            ],
+                            "filter": {
+                                "varToFilter": "benchmark_name",
+                                "values": [
+                                    "intruder-qs",
+                                    "labyrinth"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "sens_lineplot_abort": {
+        "selector": {
+            "selectedCols": [
+                "benchmark_name",
+                "htm_max_retries",
+                "htm_transaction_abort_cause..total__get_summary",
+                "htm_transaction_abort_cause..total__get_summary.sd",
+                "htm_conflict_resolution"
+            ],
+            "replacingColumn": "benchmark_name",
+            "normalize": {
+                "normalizeVars": [
+                    {
+                        "htm_max_retries": "1"
+                    },
+                    {
+                        "htm_conflict_resolution": "requester_wins"
+                    }
+                ],
+                "groupBy": [
+                    "benchmark_name"
+                ],
+                "sort": {
+                    "varToSort": "benchmark_name",
+                    "order": [
+                        "cadd",
+                        "llb-l",
+                        "llb-h",
+                        "genome",
+                        "intruder",
+                        "intruder-qs",
+                        "kmeans-l",
+                        "kmeans-h",
+                        "labyrinth",
+                        "ssca2",
+                        "vacation-l",
+                        "vacation-h",
+                        "yada"
+                    ],
+                    "sort": {
+                        "varToSort": "htm_max_retries",
+                        "order": [
+                            "1",
+                            "2",
+                            "4",
+                            "6",
+                            "8",
+                            "10",
+                            "12",
+                            "14",
+                            "16",
+                            "20",
+                            "24",
+                            "28",
+                            "32",
+                            "40",
+                            "48",
+                            "56",
+                            "64"
+                        ],
+                        "sort": {
+                            "varToSort": "htm_conflict_resolution",
+                            "order": [
+                                "requester_wins",
+                                "requester_loses",
+                                "requester_wins_power",
+                                "requester_loses_power"
+                            ],
+                            "filter": {
+                                "varToFilter": "benchmark_name",
+                                "values": [
+                                    "intruder-qs",
+                                    "labyrinth"
+                                ]
+                            }
+                        }
                     }
                 }
             }

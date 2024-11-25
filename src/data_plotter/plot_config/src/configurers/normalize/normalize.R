@@ -1,6 +1,7 @@
 #!/usr/bin/Rscript
 source("src/data_plotter/plot_config/src/configurers/configurer.R")
-
+# library(vscDebugger)
+# .vsc.listen()
 #' @title normalize
 #' @description Normalize configurer. This configurer
 #' will normalize the selected variables in the data frame
@@ -11,7 +12,7 @@ setClass("Normalize",
     slots = list(
         # Arguments for the normalize
         # Variable selected to normalize
-        normalize_var = "character",
+        normalize_var = "MapSet",
         # Value from variable taken as normalizer
         normalize_value = "character",
         # Variables that groups the data
@@ -45,31 +46,20 @@ setGeneric(
     }
 )
 
-
-
 setMethod(
     "get_normalizer",
     "Normalize",
     function(object) {
-        # Get the unique stats that will normalize
-        # Preconditions:
-        #   for each group, there must be only one normalize_value
-        #   for each group, normalize_var must exist
-        #   for each group, stats must exist
-        groups <- object@df %>% 
-            filter(.data[[object@normalize_var]] == object@normalize_value) %>%
-            select(object@group_vars)
-        print(groups)
-        object@df %>%
-            filter(.data[[object@normalize_var]] == object@normalize_value) %>%
-            group_by(.data[[object@group_vars]]) %>% # Group by the group variables
-            select(c(object@stats)) %>% # Select the stats to normalize
-            group_modify(~ {
-                sum(.x) %>%       # Add all the values of the row
-                tibble::enframe() # Enframe to keep the name of the group
-                }) %>%            # and the value of the sum for each row
-            select(-c("name")) %>% # Grouped variable, name will contain thrash
-            tibble::deframe() # Deframe will make a vector with group as key
+        normalizers <- object@df
+        for (normalize_var_key in get_all_keys(object@normalize_var)) {
+            # Turn the normalize variable column into character
+            normalizers[, normalize_var_key] <-
+                as.character(normalizers[, normalize_var_key])
+            # Filter the data frame by the normalize variable
+            normalizers %<>% filter(.data[[normalize_var_key]] ==
+                get_element_by_key(object@normalize_var, normalize_var_key))
+        }
+        return(normalizers)
     }
 )
 
@@ -77,17 +67,21 @@ setMethod(
     "normalize",
     "Normalize",
     function(object, normalizers) {
-        # Preconditions:
-        #   The stats to normalize must be numeric,
-        #   else, the normalization will fail
-        #   Not numeric stats can be skipped
-        object@df <- object@df %>%
-            group_by(.data[[object@group_vars]]) # Group by the group variables
-        # Normalize the stats
-        for (stat in object@stats) {
-            # Do mutate each stat and divide by the normalizer
-            object@df <- object@df %>%
-                mutate(!!stat := .data[[stat]] / normalizers[as.character(.data[[object@group_vars]])])
+        for (normalizer in seq_len(nrow(normalizers))) {
+            normalizer_entry <- normalizers[normalizer, ]
+            # Each stat in a group will be normalized
+            # by the normalizer for that group
+            for (stat in object@stats) {
+                object@df[object@df[[object@group_vars]] ==
+                    normalizer_entry[[object@group_vars]], stat] <-
+                    unlist(lapply(
+                        object@df[object@df[[object@group_vars]] ==
+                            normalizer_entry[[object@group_vars]], stat],
+                        function(x) {
+                            x / normalizer_entry[stat]
+                        }
+                    ))
+            }
         }
         object
     }
@@ -97,10 +91,14 @@ invisible(setValidity(
     function(object) {
         is_valid <- TRUE
         if (length(unique(object@stats)) != length(object@stats)) {
-            message(paste0("Stats provided to normalizer must be unique.",
-                "Provided stats: ", object@stats,
-                "Suggested unique stats: ", unique(object@stats)),
-                "Stopping...")
+            message(
+                paste0(
+                    "Stats provided to normalizer must be unique.",
+                    "Provided stats: ", object@stats,
+                    "Suggested unique stats: ", unique(object@stats)
+                ),
+                "Stopping..."
+            )
             is_valid <- FALSE
         }
         if (length(unique(object@group_vars)) != length(object@group_vars)) {
@@ -133,11 +131,19 @@ setMethod(
         args <- parse_result$arguments
         .Object <- parse_result$configurer
         # Parse the normalizer variable
-        .Object@normalize_var <- get_arg(args, 1)
+        n_norm_vars <- as.numeric(get_arg(args, 1))
         args %<>% shift(1)
-        # Parse the normalizer value
-        .Object@normalize_value <- get_arg(args, 1)
-        args %<>% shift(1)
+        .Object@normalize_var <- MapSet("character")
+        for (i in 1:n_norm_vars) {
+            key <- get_arg(args, 1)
+            args %<>% shift(1)
+            value <- get_arg(args, 1)
+            args %<>% shift(1)
+            .Object@normalize_var %<>% emplace_element(
+                key = key,
+                value = value
+            )
+        }
         # Parse the group variables
         n_group_vars <- as.numeric(get_arg(args, 1))
         args %<>% shift(1)
@@ -166,9 +172,12 @@ setMethod(
         if (is.null(object@stats)) {
             # Pick all the stats from the data frame
             object@stats <- colnames(object@df)[
-                !colnames(object@df) %in% c(object@skip_normalize,
+                !colnames(object@df) %in% c(
+                    object@skip_normalize,
                     object@group_vars,
-                    object@normalize_var)]
+                    get_all_keys(object@normalize_var)
+                )
+            ]
         }
         normalizers <- get_normalizer(object)
         # Normalize the values

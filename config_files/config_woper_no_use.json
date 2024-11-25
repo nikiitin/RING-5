@@ -1,8 +1,8 @@
 {
-    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/valuepred-woper00_20_11_2024",
+    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/valuepred-woper00_22_11_2024",
     "parseConfig": {
         "file": "parse_woper",
-        "config": "woper00_20_11_2024"
+        "config": "woper00_22_11_2024"
     },
     "mixStats": [
 
@@ -29,6 +29,43 @@
             ],
             "y": [
                 "simTicks"
+            ],
+            "conf_z": [
+                "htm_conflict_resolution"
+            ],
+            "facet": {
+                "facetVar": "benchmark_name",
+                "facetMappings": [
+                    "cadd=Microbenchmark",
+                    "llb-l=Microbenchmark",
+                    "llb-h=Microbenchmark",
+                    "genome=STAMP",
+                    "intruder=STAMP",
+                    "kmeans-l=STAMP",
+                    "kmeans-h=STAMP",
+                    "ssca2=STAMP",
+                    "vacation-l=STAMP",
+                    "vacation-h=STAMP",
+                    "yada=STAMP"
+                ]
+            }
+        },
+        {
+            "plotType": "lineplot",
+            "dataConfig": {
+                "file": "config_woper",
+                "config": "sens_lineplot_abort"
+            },
+            "styleConfig": {
+                "file": "style_woper",
+                "config": "lineplot_retry_aborts"
+            },
+            "fileName": "lineplot_aborts_retry",
+            "x": [
+                "htm_max_retries"
+            ],
+            "y": [
+                "htm_transaction_abort_cause..total__get_summary"
             ],
             "conf_z": [
                 "htm_conflict_resolution"
