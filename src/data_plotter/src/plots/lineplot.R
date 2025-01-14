@@ -64,14 +64,14 @@ setMethod("create_plot",
          aes(shape = .data[[object@info@conf_z]], color = .data[[object@info@conf_z]]),
          size = adjust_text_size(3,
                     object@styles@width,
-                    object@styles@height))
-    #   geom_errorbar(
-    #     aes(ymin = object@info@data_frame[, object@info@y] -
-    #       object@info@data_frame[, paste(object@info@y, "sd", sep = ".")],
-    #     ymax = object@info@data_frame[, object@info@y] +
-    #       object@info@data_frame[, paste(object@info@y, "sd", sep = ".")],
-    #     color = .data[[object@info@conf_z]]),
-    #     width = .4)
+                    object@styles@height)) +
+      geom_errorbar(
+        aes(ymin = object@info@data_frame[, object@info@y] -
+          object@info@data_frame[, paste(object@info@y, "sd", sep = ".")],
+        ymax = object@info@data_frame[, object@info@y] +
+          object@info@data_frame[, paste(object@info@y, "sd", sep = ".")],
+        color = .data[[object@info@conf_z]]),
+        width = .4)
 
     # Facet by the variable specified in faceting_var
     if (length(object@info@faceting_var) > 0) {

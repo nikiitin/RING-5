@@ -73,16 +73,17 @@
             "yAxisName": "Ex. time(normalized)",
             "width": 25,
             "height": 5, 
-            "format": "png",
+            "format": "pdf",
             "legendTitle": "Conflict resolution",
             "nLegendElementsPerRow": 1,
             "xSplitPoints": [
                 
             ],
             "legendNames": [
-                "rl",
-                "power",
-                "woper"
+                "Req-wins",
+                "Req-loses",
+                "Power",
+                "Woper"
             ],
             "breaks": [
                 "0",
@@ -136,7 +137,7 @@
             "apparel": "Barplot_default",
             "title": "",
             "xAxisName": "",
-            "yAxisName": "Cycl aborted / Tx cycles",
+            "yAxisName": "Cycl. aborted / Tx cycl.",
             "width": 25,
             "height": 6.5,
             "format": "pdf",
@@ -146,11 +147,10 @@
                 
             ],
             "legendNames": [
-                "rw",
-                "rl",
-                "power",
-                "woper",
-                "PCHATS"
+                "Req-wins",
+                "Req-loses",
+                "Power",
+                "Woper"
             ],
             "breaks": [
                 "0",

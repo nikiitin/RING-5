@@ -204,24 +204,18 @@
             "facet": {
                 "facetVar": "benchmark_name",
                 "facetMappings": [
-                    "cadd=Microbenchmark",
-                    "llb-l=Microbenchmark",
-                    "llb-h=Microbenchmark",
-                    "genome=STAMP",
-                    "intruder=STAMP",
-                    "kmeans-l=STAMP",
-                    "kmeans-h=STAMP",
-                    "labyrinth=STAMP",
-                    "ssca2=STAMP",
-                    "vacation-l=STAMP",
-                    "vacation-h=STAMP",
-                    "yada=STAMP",
-                    "geomean=(STAMP)"
+                    "genome=",
+                    "intruder=",
+                    "kmeans-l=",
+                    "kmeans-h=",
+                    "labyrinth=",
+                    "ssca2=",
+                    "vacation-l=",
+                    "vacation-h=",
+                    "yada=",
+                    "geomean="
                 ]
-            },
-            "hiddenBars": [
-                "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt"
-            ]
+            }
         },
         {
             "plotType": "groupedStackedBarplot",
@@ -294,9 +288,6 @@
             "facet": {
                 "facetVar": "benchmark_name",
                 "facetMappings": [
-                    "cadd=Microbenchmark",
-                    "llb-l=Microbenchmark",
-                    "llb-h=Microbenchmark",
                     "genome=STAMP",
                     "intruder=STAMP",
                     "kmeans-l=STAMP",

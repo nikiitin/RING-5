@@ -8,6 +8,7 @@ class TestConfigurer:
     testConfigurerJsonPath = os.path.relpath("tests/pytests/mock/config_files/json_components/config/")
     inputsDir = os.path.relpath("tests/pytests/mock/inputs")
     expectsDir = os.path.relpath("tests/pytests/mock/expects")
+    
     def test_e2e(self, tmp_path, capsys):
         # Copy the input files to the temporary directory
         # It is a mock csv file

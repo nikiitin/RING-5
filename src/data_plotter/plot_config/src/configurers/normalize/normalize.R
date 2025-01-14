@@ -81,6 +81,23 @@ setMethod(
                             x / normalizer_entry[stat]
                         }
                     ))
+                # Now we will have to apply normalization to
+                # standard deviation columns if they exist
+                if (paste0(stat, ".sd") %in% colnames(object@df)) {
+                    object@df[
+                        object@df[[object@group_vars]] ==
+                            normalizer_entry[[object@group_vars]],
+                        paste0(stat, ".sd")] <-
+                        unlist(lapply(
+                            object@df[
+                                object@df[[object@group_vars]] ==
+                                    normalizer_entry[[object@group_vars]],
+                                paste0(stat, ".sd")],
+                            function(x) {
+                                x / normalizer_entry[stat]
+                            }
+                        ))
+                }
             }
         }
         object
@@ -178,6 +195,9 @@ setMethod(
                     get_all_keys(object@normalize_var)
                 )
             ]
+            object@stats <- object@stats[!object@stats %in% c(
+                paste0(object@stats, ".sd")
+            )]
         }
         normalizers <- get_normalizer(object)
         # Normalize the values

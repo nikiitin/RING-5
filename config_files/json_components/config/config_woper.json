@@ -15,6 +15,17 @@
                 ],
                 "groupingColumn": "config_description_abbrev",
                 "replacingColumn": "benchmark_name",
+                "skipMean": [
+                    {
+                        "varToSkip": "benchmark_name",
+                        "values": [
+                            "cadd",
+                            "llb-l",
+                            "llb-h",
+                            "intruder-qs"
+                        ]
+                    }
+                ],
                 "normalize": {
                     "normalizeVars": [
                         {
@@ -53,7 +64,10 @@
                             "filter": {
                                 "varToFilter": "benchmark_name",
                                 "values": [
-                                    "intruder-qs"
+                                    "intruder-qs",
+                                    "cadd",
+                                    "llb-l",
+                                    "llb-h"
                                 ]
                             }
                         }
@@ -171,6 +185,9 @@
                     "filter": {
                         "varToFilter": "benchmark_name",
                         "values": [
+                            "llb-l",
+                            "llb-h",
+                            "cadd",
                             "intruder-qs"
                         ]
                     }

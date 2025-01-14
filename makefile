@@ -42,7 +42,7 @@ if(as.numeric(thisRVersion['major']) == 3 && as.numeric(thisRVersion['minor']) <
 
 # Check for all dependency management tools and install all
 # dependencies for the project
-build: generate_proj_file check_python_dependencies check_R_dependencies
+build: configure_env check_python_dependencies check_R_dependencies
 	@echo "Build finished successfully"
 
 
@@ -130,28 +130,7 @@ test_python:
 test_R:
 	@Rscript -e "testthat::test_dir(\"tests/testthat\")"
 
-#### OBJECTIVES FOR PROJ CONFIG ####
-generate_proj_file: init_proj_file add_project_path end_proj_file
-	@echo "Project file generated successfully"
+configure_env: configure_rprofile
 
-init_proj_file:
-# Create proj file if it does not exist
-# This is a file used to store project management information
-	@touch .proj
-# Add json start to proj file
-	@echo "{" > .proj.json
-# Let the rest of the objectives finish this file and add a closing bracket
-# On to the final objective
-
-add_project_path:
-# Add project path to proj file
-	@echo "Adding project path $(shell pwd) to proj file..."
-# Create proj file if it does not exist
-# This is a file used to store project management information
-	@touch .proj.json
-# Add project path to proj file
-	@echo "	\"RingRoot\":\"$(shell pwd)\"" >> .proj.json
-
-end_proj_file:
-# Add json end to proj file
-	@echo "}" >> .proj.json
+configure_rprofile:
+	@bash build_files/Rprofile_config.sh

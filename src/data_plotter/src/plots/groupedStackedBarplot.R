@@ -211,7 +211,7 @@ setMethod(
             text_size = 34,
             unit = "pt",
             plot_width = object@styles@width,
-            plot_height = object@styles@height,
+            plot_height = (object@styles@height * 0.769),
             num_labels =
                 length(unique(object@info@data_frame[[object@info@x]]))
         )
@@ -219,13 +219,13 @@ setMethod(
             text_size = 20,
             unit = "pt",
             plot_width = object@styles@width,
-            plot_height = object@styles@height
+            plot_height = (object@styles@height * 0.769)
         )
         object@plot <- object@plot + theme(
             axis.text.x = element_text(
                 angle = 45,
-                hjust = 1,
-                size = unit(get_size(axis_labels_size), "pt"),
+                hjust = 0.9,
+                size = unit((get_size(axis_labels_size))*0.8, "pt"),
                 face = "bold"
             ),
             axis.text.y = element_text(
@@ -234,15 +234,15 @@ setMethod(
                 face = "bold"
             ),
             axis.title.x = element_blank(),
-            axis.title.y = element_text(
+            axis.title.y = element_text(hjust=1,
                 size = unit(get_size(titles_size), "pt"),
                 face = "bold"
             ),
             # legend.position = c(0.8,0.9),
             legend.position = "top",
             legend.justification = "right",
-            # legend.background = element_blank(),
-            # legend.box.background = element_rect(fill = "white", color = "black"),
+            legend.background= element_rect(fill = NA, color = "white"),
+            legend.box.margin = margin(-5, 0, -16, 0),
             legend.title = element_text(
                 size = unit(get_size(titles_size), "pt"),
                 face = "bold"
@@ -251,10 +251,10 @@ setMethod(
                 size = unit(get_size(titles_size), "pt")
             ),
             legend.key.width = unit(
-                get_size(titles_size) * 1.2, "pt"),
+                get_size(titles_size) * 2, "pt"),
             legend.key.height = unit(
-                get_size(titles_size) * 1.2, "pt"),
-            legend.box.margin = margin(-3, 0, -3, 0),
+                get_size(titles_size) * 2, "pt"),
+
             strip.text = element_text(
                 size = unit(get_size(axis_labels_size), "pt"),
                 angle = 0,
