@@ -58,7 +58,25 @@ setMethod(
             # Filter the data frame by the normalize variable
             normalizers %<>% filter(.data[[normalize_var_key]] ==
                 get_element_by_key(object@normalize_var, normalize_var_key))
+            # Select only the stats without standard deviation
+            reduced_normalizers <- normalizers %>% select(
+                -ends_with(".sd"),
+                -get_all_keys(object@normalize_var)
+            )
+            # Get the grouping column
+            normalizer_groups <- reduced_normalizers %>% select(
+                object@group_vars
+            )
+            # Remove the group variables from the normalizers
+            reduced_normalizers <- reduced_normalizers %>% select(
+                -object@group_vars
+            )
+            # Sum the stats
+            normalizers <- rowSums(reduced_normalizers)
+            normalizers <- cbind(normalizer_groups, normalizers)
         }
+        # Add the group variables to the normalizers
+        # Should match the number of rows in the normalizers
         return(normalizers)
     }
 )
@@ -69,36 +87,27 @@ setMethod(
     function(object, normalizers) {
         for (normalizer in seq_len(nrow(normalizers))) {
             normalizer_entry <- normalizers[normalizer, ]
+            normalizer_group <- normalizer_entry[[object@group_vars]]
             # Each stat in a group will be normalized
             # by the normalizer for that group
-            for (stat in object@stats) {
-                object@df[object@df[[object@group_vars]] ==
-                    normalizer_entry[[object@group_vars]], stat] <-
-                    unlist(lapply(
-                        object@df[object@df[[object@group_vars]] ==
-                            normalizer_entry[[object@group_vars]], stat],
-                        function(x) {
-                            x / normalizer_entry[stat]
-                        }
-                    ))
-                # Now we will have to apply normalization to
-                # standard deviation columns if they exist
-                if (paste0(stat, ".sd") %in% colnames(object@df)) {
-                    object@df[
-                        object@df[[object@group_vars]] ==
-                            normalizer_entry[[object@group_vars]],
-                        paste0(stat, ".sd")] <-
-                        unlist(lapply(
-                            object@df[
-                                object@df[[object@group_vars]] ==
-                                    normalizer_entry[[object@group_vars]],
-                                paste0(stat, ".sd")],
-                            function(x) {
-                                x / normalizer_entry[stat]
-                            }
-                        ))
-                }
-            }
+            # Pick all the elements from the group
+            # and divide them by the normalizer
+            normalizer_var <- normalizer_entry[["normalizers"]]
+            grouped_data <- object@df[object@df[object@group_vars] == normalizer_group, ]
+            object@df[object@df[object@group_vars] == normalizer_group, ] <-
+                object@df[object@df[object@group_vars] == normalizer_group, ] %>%
+                mutate_at(
+                    object@stats,
+                    function(x) {
+                        x / normalizer_var
+                    }
+                ) %>%
+                mutate_at(
+                    paste0(object@stats, ".sd"),
+                    function(x) {
+                        x / normalizer_var
+                    }
+                )
         }
         object
     }

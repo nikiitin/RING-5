@@ -21,6 +21,15 @@ hmean <- function(x) {
     result
 }
 
+hmean_grouped <- function(x) {
+    # Grouped harmonic mean
+    result <- length(x) / sum(1 / x[x > 0])
+    if (is.nan(result) || is.infinite(result)) {
+        result <- 0
+    }
+    result
+}
+
 arithmean <- function(x) {
     mean(x)
 }
@@ -151,33 +160,76 @@ setMethod(
                     unlist(vars_to_skip), ]
             }
         }
-        # Apply the mean algorithm to the stats
-        # specified by the mean_vars. Keep the name of the
-        # columns and those that are not mean_vars
-        mean_function <- match.fun(object@mean_algorithm)
-        # Create another data frame with the standard deviation
-        # of the mean_vars
-        sd_mean_df <- mean_df %>% select(ends_with(".sd"), all_of(object@reduced_column))
-        # Calculate the standard deviation of the mean_vars
-        sd_mean_df <- sd_mean_df %>%
-            group_by(across(all_of(object@reduced_column))) %>%
-            summarise(across(ends_with(".sd"), mean_function, .names = "{col}"), .groups = "drop")
-        # Remove any column that is not in the mean_vars
-        # or the reduced_column
-        mean_df <- mean_df %>% select(all_of(object@mean_vars), all_of(object@reduced_column))
+        print(mean_df)
         mean_df <- mean_df %>%
-            group_by(across(all_of(object@reduced_column))) %>%
-            summarise(across(all_of(object@mean_vars), mean_function, .names = "{col}"), .groups = "drop")
-        # Merge the mean_df with the sd_mean_df
-        mean_df <- merge(mean_df, sd_mean_df, by = object@reduced_column)
-        # Rename the columns to the replacing_column with the
-        # algorithm used to calculate the mean
-        mean_df[object@replacing_column] <- object@mean_algorithm
-        # Use bind_rows to add the mean_df rows to the data frame
-        # filling all the columns that are not in the mean_df with NA
-        object@df <- dplyr::bind_rows(object@df, mean_df)
+            select(config_description_abbrev, benchmark_name,
+                cyclesInRegion..No_Transactional,
+                cyclesInRegion..Committed,
+                cyclesInRegion..Aborted,
+                cyclesInRegion..Wait_Fallback_Lock)
+        # total_df <- mean_df %>%
+        #     group_by(config_description_abbrev) %>%
+        #     mutate(total = sum(cyclesInRegion..No_Transactional + cyclesInRegion..Transactional_Committed +
+        #         cyclesInRegion..Transactional_Aborted +
+        #         cyclesInRegion..Stalled_Aborted +
+        #         cyclesInRegion..Stalled_Committed +
+        #         cyclesInRegion..Commit_Fallback +
+        #         cyclesInRegion..Wait_Retry +
+        #         cyclesInRegion..Barrier))
+        total_df <- mean_df %>%
+            group_by(config_description_abbrev) %>%  # Agrupa por config
+            summarise(across(where(is.numeric), sum, na.rm = TRUE))        
+        total_df <- total_df %>%
+            mutate(total = cyclesInRegion..No_Transactional +
+                cyclesInRegion..Committed +
+                cyclesInRegion..Aborted +
+                cyclesInRegion..Wait_Fallback_Lock)
+        harm_df <- total_df %>%
+            group_by(config_description_abbrev) %>%  # Agrupa por config
+            summarise(harm_total = n() / sum(1/ total))
+        regions <- c("cyclesInRegion..No_Transactional",
+                "cyclesInRegion..Committed",
+                "cyclesInRegion..Aborted",
+                "cyclesInRegion..Wait_Fallback_Lock")
+
+        region_proportions <- total_df %>%
+            rowwise() %>%
+            mutate(across(all_of(regions), ~ .x / total, .names = "prop_{.col}")) %>%
+            ungroup() %>%
+            group_by(config_description_abbrev) %>%
+            summarise(across(starts_with("prop_"), mean))
+
+        new_harm_df <- left_join(harm_df, region_proportions, by = "config_description_abbrev") %>%
+            rowwise() %>%
+            mutate(cyclesInRegion..No_Transactional = harm_total * prop_cyclesInRegion..No_Transactional,
+                cyclesInRegion..Committed = harm_total * prop_cyclesInRegion..Committed,
+                cyclesInRegion..Aborted = harm_total * prop_cyclesInRegion..Aborted,
+                cyclesInRegion..Wait_Fallback_Lock = harm_total * prop_cyclesInRegion..Wait_Fallback_Lock) %>%
+            select(config_description_abbrev,
+                cyclesInRegion..No_Transactional,
+                cyclesInRegion..Committed,
+                cyclesInRegion..Aborted,
+                cyclesInRegion..Wait_Fallback_Lock)
+                print(new_harm_df, n = Inf, width = Inf)
+        new_harm_df[object@replacing_column] <- object@mean_algorithm
+        # harmonic_df <- total_df %>%
+        #     group_by(config_description_abbrev) %>%  # Agrupa por config
+        #     summarise(harm_total = n() / sum(1 / total_df$total[total_df$config_description_abbrev == config_description_abbrev]))
+            
+        # mean_df <- mean_df %>%
+        #     group_by(across(all_of(object@reduced_column))) %>%
+        #     summarise(across(all_of(object@mean_vars), mean_function, .names = "{col}"), .groups = "drop")
+        # # Merge the mean_df with the sd_mean_df
+        # mean_df <- merge(mean_df, sd_mean_df, by = object@reduced_column)
+        # # Rename the columns to the replacing_column with the
+        # # algorithm used to calculate the mean
+        # mean_df[object@replacing_column] <- object@mean_algorithm
+        # # Use bind_rows to add the mean_df rows to the data frame
+        # # filling all the columns that are not in the mean_df with NA
+        # object@df <- dplyr::bind_rows(object@df, mean_df)
         # Add the mean_df rows to the data frame filling all
         # the columns that are not in the mean_df with NA
+        object@df <- dplyr::bind_rows(object@df, new_harm_df)
         invisible(object)
     }
 )

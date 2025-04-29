@@ -1,6 +1,7 @@
 source("src/data_plotter/src/plot_iface/plot.R")
 # This is the definition for the barplot type. It is inheriting
 # from the Plot class.
+# library(vscDebugger)
 
 setClass("barplot", contains = "Plot")
 
@@ -203,6 +204,7 @@ setMethod(
                     )
                 )
                 # Add the labels to the plot
+                if (!all(is.na(list_of_labels))) {
                 object@plot <- object@plot +
                     geom_text(
                         position = position_dodge(.9),
@@ -213,11 +215,12 @@ setMethod(
                             y = object@styles@y_limit_top
                         ),
                         show.legend = FALSE,
-                        size = get_size(titles_size),
+                        size = unit(get_size(titles_size) / 2.5, "pt"),
                         angle = 90,
                         hjust = "inward",
                         na.rm = TRUE
                     )
+                }
                 # Set the color of the labels
                 object@plot <- object@plot +
                     scale_color_manual(
