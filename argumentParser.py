@@ -9,7 +9,7 @@ temp_dir = tempfile.gettempdir()
 # TODO: Switch to specialized classes for each action
 # TODO: Add proj file config
 class AnalyzerInfo:
-    
+    categoricalStats = []
     # Private methods
     def _parseArgs(self):
         argParser = argparse.ArgumentParser()
@@ -109,3 +109,9 @@ class AnalyzerInfo:
     def createWorkCsv(self):
         print("Creating work csv: " + self.getWorkCsv() + " from: " + self.getCsv())
         shutil.copyfile(self.getCsv(), self.getWorkCsv())
+    
+    def addCategoricalStats(self, stats):
+        AnalyzerInfo.categoricalStats.extend(stats)
+
+    def getCategoricalColumns(self):
+        return AnalyzerInfo.categoricalStats

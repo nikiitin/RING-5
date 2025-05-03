@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 from src.data_parser.src.dataParserFactory import DataParserFactory 
-from src.data_management.src.dataManagerFactory import DataManagerFactory
+from src.data_management.dataManagerFactory import DataManagerFactory
 from src.data_parser.src.configurationManager import ConfigurationManager as ParserConfigurationManager
 from src.data_preprocessing.src.preprocessorBuilder import PreprocessorBuilder
 from src.data_preprocessing.src.preprocessor import PreprocessorType
@@ -28,7 +28,12 @@ else:
 info.createWorkCsv()
 
 # Get and execute data manager
-manager = DataManagerFactory.getDataManager("R", info).__call__()
+manager = DataManagerFactory.getDataManager(info)
+if len(manager) > 0:
+    for m in manager:
+        m.__call__()
+else:
+    print("No data manager found, skipping data management")
 
 # Preprocess data if needed
 if utils.checkElementExistNoException(info.getJson(), "preprocessor"):

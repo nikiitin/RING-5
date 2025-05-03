@@ -1,12 +1,12 @@
 {
-    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/valuepred-woper00_19_11_2024",
+    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/valuepred-woper00_32_11_2024",
     "parseConfig": {
         "file": "parse_woper",
         "config": "woper00_19_11_2024"
     },
-    "mixStats": [
-
-    ],
+    "dataManagers": {
+        "reduceSeeds": true
+    },
     "reduceSeeds": true,
     "removeOutliers": true,
     "outlierStat": "simTicks",
