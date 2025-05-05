@@ -1,4 +1,70 @@
 {
+    "wopercp": {
+        "selector": {
+            "selectedCols": [
+                "benchmark_name",
+                "config_description_abbrev",
+                "commit_propotion..total",
+                "commit_propotion..total.sd"
+            ],
+            "mean": {
+                "meanAlgorithm": "geomean",
+                "meanVars": [
+                    "commit_propotion..total"
+                ],
+                "groupingColumn": "config_description_abbrev",
+                "replacingColumn": "benchmark_name",
+                "skipMean": [
+                    {
+                        "varToSkip": "benchmark_name",
+                        "values": [
+                            "cadd",
+                            "llb-l",
+                            "llb-h",
+                            "intruder-qs"
+                        ]
+                    }
+                ],
+                "sort": {
+                    "varToSort": "benchmark_name",
+                    "order": [
+                        "cadd",
+                        "llb-l",
+                        "llb-h",
+                        "genome",
+                        "intruder",
+                        "intruder-qs",
+                        "kmeans-l",
+                        "kmeans-h",
+                        "labyrinth",
+                        "ssca2",
+                        "vacation-l",
+                        "vacation-h",
+                        "yada",
+                        "geomean"
+                    ],
+                    "sort": {
+                        "varToSort": "config_description_abbrev",
+                        "order": [
+                            "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
+                            "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
+                            "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
+                            "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt"
+                        ],
+                        "filter": {
+                            "varToFilter": "benchmark_name",
+                            "values": [
+                                "intruder-qs",
+                                "cadd",
+                                "llb-l",
+                                "llb-h"
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    },
     "woper01": {
         "selector": {
             "selectedCols": [
@@ -10,8 +76,7 @@
             "mean": {
                 "meanAlgorithm": "geomean",
                 "meanVars": [
-                    "simTicks",
-                    "simTicks.sd"
+                    "simTicks"
                 ],
                 "groupingColumn": "config_description_abbrev",
                 "replacingColumn": "benchmark_name",
@@ -139,6 +204,62 @@
             }
         }
     },
+    "wopercp_stacked_no_norm": {
+        "selector": {
+            "selectedCols": [
+                "benchmark_name",
+                "config_description_abbrev",
+                "commit_propotion..0",
+                "commit_propotion..1",
+                "commit_propotion..2",
+                "commit_propotion..3",
+                "commit_propotion..4",
+                "commit_propotion..5",
+                "commit_propotion..0.sd",
+                "commit_propotion..1.sd",
+                "commit_propotion..2.sd",
+                "commit_propotion..3.sd",
+                "commit_propotion..4.sd",
+                "commit_propotion..5.sd"
+            ],
+            "sort": {
+                "varToSort": "benchmark_name",
+                "order": [
+                    "cadd",
+                    "llb-l",
+                    "llb-h",
+                    "genome",
+                    "intruder",
+                    "intruder-qs",
+                    "kmeans-l",
+                    "kmeans-h",
+                    "labyrinth",
+                    "ssca2",
+                    "vacation-l",
+                    "vacation-h",
+                    "yada"
+                ],
+                "sort": {
+                    "varToSort": "config_description_abbrev",
+                    "order": [
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
+                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
+                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt"
+                    ],
+                    "filter": {
+                        "varToFilter": "benchmark_name",
+                        "values": [
+                            "llb-l",
+                            "llb-h",
+                            "cadd",
+                            "intruder-qs"
+                        ]
+                    }
+                }
+            }
+        }
+    },
     "woper01_stacked_no_norm": {
         "selector": {
             "selectedCols": [
@@ -163,15 +284,15 @@
                     "cadd",
                     "llb-l",
                     "llb-h",
-                    "genome",
-                    "intruder",
-                    "intruder-qs",
-                    "kmeans-l",
-                    "kmeans-h",
                     "labyrinth",
                     "ssca2",
                     "vacation-l",
                     "vacation-h",
+                    "genome",
+                    "intruder",
+                    "intruder-qs",
+                    "kmeans-l",
+                    "kmeans-h",                    
                     "yada"
                 ],
                 "sort": {
@@ -432,38 +553,22 @@
             "selectedCols": [
                 "benchmark_name",
                 "config_description_abbrev",
-                "cyclesInRegion..Non_Transactional",
+                "cyclesInRegion..No_Transactional",
                 "cyclesInRegion..Committed",
-                "cyclesInRegion..Power",
                 "cyclesInRegion..Aborted",
-                "cyclesInRegion..Fallback_lock",
-                "cyclesInRegion..Wait_fallback_lock",
-                "cyclesInRegion..Barrier",
-                "cyclesInRegion..Non_Transactional.sd",
+                "cyclesInRegion..Wait_Fallback_Lock",
+                "cyclesInRegion..No_Transactional.sd",
                 "cyclesInRegion..Committed.sd",
-                "cyclesInRegion..Power.sd",
                 "cyclesInRegion..Aborted.sd",
-                "cyclesInRegion..Fallback_lock.sd",
-                "cyclesInRegion..Wait_fallback_lock.sd",
-                "cyclesInRegion..Barrier.sd"
+                "cyclesInRegion..Wait_Fallback_Lock.sd"
             ],
             "mean": {
                 "meanAlgorithm": "arithmean",
                 "meanVars": [
-                    "cyclesInRegion..Non_Transactional",
+                    "cyclesInRegion..No_Transactional",
                     "cyclesInRegion..Committed",
-                    "cyclesInRegion..Power",
                     "cyclesInRegion..Aborted",
-                    "cyclesInRegion..Fallback_lock",
-                    "cyclesInRegion..Wait_fallback_lock",
-                    "cyclesInRegion..Barrier",
-                    "cyclesInRegion..Non_Transactional.sd",
-                    "cyclesInRegion..Committed.sd",
-                    "cyclesInRegion..Power.sd",
-                    "cyclesInRegion..Aborted.sd",
-                    "cyclesInRegion..Fallback_lock.sd",
-                    "cyclesInRegion..Wait_fallback_lock.sd",
-                    "cyclesInRegion..Barrier.sd"
+                    "cyclesInRegion..Wait_Fallback_Lock"
                 ],
                 "skipMean": [
                     {
@@ -472,8 +577,7 @@
                             "cadd",
                             "llb-l",
                             "llb-h",
-                            "intruder-qs",
-                            "labyrinth"
+                            "intruder-qs"
                         ]
                     }
                 ],
@@ -494,15 +598,15 @@
                             "cadd",
                             "llb-l",
                             "llb-h",
-                            "genome",
-                            "intruder",
-                            "intruder-qs",
-                            "kmeans-l",
-                            "kmeans-h",
                             "labyrinth",
                             "ssca2",
                             "vacation-l",
                             "vacation-h",
+                            "genome",
+                            "intruder",
+                            "intruder-qs",
+                            "kmeans-l",
+                            "kmeans-h",                    
                             "yada",
                             "arithmean"
                         ],
@@ -518,7 +622,9 @@
                                 "varToFilter": "benchmark_name",
                                 "values": [
                                     "intruder-qs",
-                                    "labyrinth"
+                                    "cadd",
+                                    "llb-l",
+                                    "llb-h"
                                 ]
                             }
                         }

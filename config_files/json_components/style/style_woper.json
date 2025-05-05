@@ -80,10 +80,10 @@
                 
             ],
             "legendNames": [
-                "Req-wins",
-                "Req-loses",
-                "Power",
-                "Woper"
+                "RW",
+                "RL",
+                "PowerTM",
+                "WoperTM"
             ],
             "breaks": [
                 "0",
@@ -116,16 +116,14 @@
                 "rw",
                 "rl",
                 "power",
-                "woper",
-                "PCHATS"
+                "woper"
             ],
             "breaks": [
                 "0",
                 "0.25",
                 "0.5",
                 "0.75",
-                "1.00",
-                "1.25"
+                "1.00"
             ],
             "limitTop": 1.25,
             "limitBot": 0
@@ -139,7 +137,7 @@
             "xAxisName": "",
             "yAxisName": "Cycl. aborted / Tx cycl.",
             "width": 25,
-            "height": 6.5,
+            "height": 5,
             "format": "pdf",
             "legendTitle": "Transaction identifier",
             "nLegendElementsPerRow": 1,
@@ -147,10 +145,42 @@
                 
             ],
             "legendNames": [
-                "Req-wins",
-                "Req-loses",
-                "Power",
-                "Woper"
+                "RW",
+                "RL",
+                "PTM",
+                "WTM"
+            ],
+            "breaks": [
+                "0",
+                "0.25",
+                "0.5",
+                "0.75",
+                "1.00"
+            ],
+            "limitTop": 1.02,
+            "limitBot": 0
+        }
+    },
+    {
+        "styleName": "wopercp_stacked_no_norm",
+        "dataStyle": {
+            "apparel": "Barplot_default",
+            "title": "",
+            "xAxisName": "",
+            "yAxisName": "Cycl. aborted / Cycl. committed",
+            "width": 25,
+            "height": 5,
+            "format": "pdf",
+            "legendTitle": "Transaction identifier",
+            "nLegendElementsPerRow": 1,
+            "xSplitPoints": [
+                
+            ],
+            "legendNames": [
+                "RW",
+                "RL",
+                "PowerTM",
+                "WoperTM"
             ],
             "breaks": [
                 "0",
@@ -266,7 +296,7 @@
             "xAxisName": "",
             "yAxisName": "Cycl by xid",
             "width": 25,
-            "height": 6.5,
+            "height": 6,
             "format": "pdf",
             "legendTitle": "Transaction identifier",
             "nLegendElementsPerRow": 1,
@@ -317,6 +347,40 @@
                 "1.25"
             ],
             "limitTop": 1.3,
+            "limitBot": 0
+        }
+    },
+    {
+        "styleName": "woper02_stacked_region",
+        "dataStyle": {
+            "apparel": "Barplot_default",
+            "title": "",
+            "xAxisName": "",
+            "yAxisName": "Ex. time(normalized)",
+            "width": 25,
+            "height": 6,
+            "format": "pdf",
+            "legendTitle": "Ex. time split by regions",
+            "nLegendElementsPerRow": 1,
+            "xSplitPoints": [
+                
+            ],
+            "legendNames": [
+                "RW",
+                "RL",
+                "PTM",
+                "WTM"
+            ],
+            "breaks": [
+                "0",
+                "0.2",
+                "0.4",
+                "0.6",
+                "0.8",
+                "1.0",
+                "1.2"
+            ],
+            "limitTop": 1.25,
             "limitBot": 0
         }
     },

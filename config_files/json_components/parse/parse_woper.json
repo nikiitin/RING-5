@@ -364,6 +364,16 @@
                         "id": "htm_cycles_xid::total__get_summary"
                     },
                     {
+                        "type": "scalar",
+                        "repeat": 16,
+                        "id": "htm_committed_cycles_xid::total__get_summary"
+                    },
+                    {
+                        "type": "scalar",
+                        "repeat": 16,
+                        "id": "htm_fl_cycles_tx_xid::total__get_summary"
+                    },                    
+                    {
                         "type": "vector",
                         "id": "cyclesInRegion",
                         "repeat": 1,
@@ -386,6 +396,13 @@
                     {
                         "type": "distribution",
                         "id": "htm_aborted_cycles_xid",
+                        "repeat": 16,
+                        "minimum": 0,
+                        "maximum": 9
+                    },
+                    {
+                        "type": "distribution",
+                        "id": "htm_committed_cycles_xid",
                         "repeat": 16,
                         "minimum": 0,
                         "maximum": 9
