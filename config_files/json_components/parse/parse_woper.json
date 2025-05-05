@@ -339,10 +339,6 @@
                     },
                     {
                         "type": "configuration",
-                        "id": "htm_fwd_mechanism"
-                    },
-                    {
-                        "type": "configuration",
                         "id": "htm_conflict_resolution",
                         "onEmpty": "none"
                     },

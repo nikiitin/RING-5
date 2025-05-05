@@ -19,14 +19,14 @@ class Renamer(DataManager):
             raise ValueError("Renamer element is empty at json file")
 
 
-    def __init__(self, params: AnalyzerInfo) -> None:
+    def __init__(self, params: AnalyzerInfo, json: dict) -> None:
         """
         Constructor for the Renamer class. Instance the class only
         if the renamer is present in the json file.
         Args:
             params: The parameters for the renamer.
         """
-        super().__init__(params)
+        super().__init__(params, json)
         # Check if the renamer is present in the json file
         utils.checkElementExists(self._json, "rename")
         self._renamerElement = self._json["rename"]
@@ -34,4 +34,4 @@ class Renamer(DataManager):
     def __call__(self):
         super().__call__()
         # Rename the columns in the DataFrame with the values in the renamer dictionary
-        self._df.rename(columns=self._renamerElement, inplace=True)
+        DataManager._df.rename(columns=self._renamerElement, inplace=True)

@@ -110,8 +110,8 @@ class AnalyzerInfo:
         print("Creating work csv: " + self.getWorkCsv() + " from: " + self.getCsv())
         shutil.copyfile(self.getCsv(), self.getWorkCsv())
     
-    def addCategoricalStats(self, stats):
-        AnalyzerInfo.categoricalStats.extend(stats)
+    def addCategoricalStats(stats):
+        AnalyzerInfo.categoricalStats.append(stats)
 
     def getCategoricalColumns(self):
         return AnalyzerInfo.categoricalStats

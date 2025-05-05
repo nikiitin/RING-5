@@ -5,181 +5,143 @@
         "config": "woper00_19_11_2024"
     },
     "dataManagers": {
-        "reduceSeeds": true
-    },
-    "reduceSeeds": true,
-    "removeOutliers": true,
-    "outlierStat": "simTicks",
-    "preprocessor": [
-        {
-            "divider": {
-                "dst": "abort_propotion..0",
+        "outlierRemover": {
+            "outlierStat": "simTicks"
+        },
+        "seedsReducer": true,
+        "mixer": {
+            "mixedStats": [
+                "simTicks",
+                "htm_cycles_xid..0"
+            ],
+            "mixed2Stats": [
+                "simTicks",
+                "htm_cycles_xid..1"
+            ]
+        },
+        "preprocessor": {
+            "abort_propotion..0": {
+                "operator": "divide",
                 "src1": "htm_aborted_cycles_xid..0",
-                "src2": "htm_cycles_xid..total__get_summary"
-            }
-        },
-        {
-            "divider": {
-                "dst": "abort_propotion..1",
+                "src2": "htm_cycles_xid::total__get_summary"
+            },
+            "abort_propotion..1": {
+                "operator": "divide",
                 "src1": "htm_aborted_cycles_xid..1",
-                "src2": "htm_cycles_xid..total__get_summary"
-            }
-        },
-        {
-            "divider": {
-                "dst": "abort_propotion..2",
+                "src2": "htm_cycles_xid::total__get_summary"
+            },
+            "abort_propotion..2": {
+                "operator": "divide",
                 "src1": "htm_aborted_cycles_xid..2",
-                "src2": "htm_cycles_xid..total__get_summary"
-            }
-        },
-        {
-            "divider": {
-                "dst": "abort_propotion..3",
+                "src2": "htm_cycles_xid::total__get_summary"
+            },
+            "abort_propotion..3": {
+                "operator": "divide",
                 "src1": "htm_aborted_cycles_xid..3",
-                "src2": "htm_cycles_xid..total__get_summary"
-            }
-        },
-        {
-            "divider": {
-                "dst": "abort_propotion..4",
+                "src2": "htm_cycles_xid::total__get_summary"
+            },
+            "abort_propotion..4": {
+                "operator": "divide",
                 "src1": "htm_aborted_cycles_xid..4",
-                "src2": "htm_cycles_xid..total__get_summary"
-            }
-        },
-        {
-            "divider": {
-                "dst": "abort_propotion..5",
+                "src2": "htm_cycles_xid::total__get_summary"
+            },
+            "abort_propotion..5": {
+                "operator": "divide",
                 "src1": "htm_aborted_cycles_xid..5",
-                "src2": "htm_cycles_xid..total__get_summary"
-            }
-        },
-        {
-            "divider": {
-                "dst": "abort_propotion..0.sd",
+                "src2": "htm_cycles_xid::total__get_summary"
+            },
+            "abort_propotion..0.sd": {
+                "operator": "divide",
                 "src1": "htm_aborted_cycles_xid..0.sd",
-                "src2": "htm_cycles_xid..total__get_summary"
-            }
-        },
-        {
-            "divider": {
-                "dst": "abort_propotion..1.sd",
+                "src2": "htm_cycles_xid::total__get_summary"
+            },
+            "abort_propotion..1.sd": {
+                "operator": "divide",
                 "src1": "htm_aborted_cycles_xid..1.sd",
-                "src2": "htm_cycles_xid..total__get_summary"
-            }
-        },
-        {
-            "divider": {
-                "dst": "abort_propotion..2.sd",
+                "src2": "htm_cycles_xid::total__get_summary"
+            },
+            "abort_propotion..2.sd": {
+                "operator": "divide",
                 "src1": "htm_aborted_cycles_xid..2.sd",
-                "src2": "htm_cycles_xid..total__get_summary"
-            }
-        },
-        {
-            "divider": {
-                "dst": "abort_propotion..3.sd",
+                "src2": "htm_cycles_xid::total__get_summary"
+            },
+            "abort_propotion..3.sd": {
+                "operator": "divide",
                 "src1": "htm_aborted_cycles_xid..3.sd",
-                "src2": "htm_cycles_xid..total__get_summary"
-            }
-        },
-        {
-            "divider": {
-                "dst": "abort_propotion..4.sd",
+                "src2": "htm_cycles_xid::total__get_summary"
+            },
+            "abort_propotion..4.sd": {
+                "operator": "divide",
                 "src1": "htm_aborted_cycles_xid..4.sd",
-                "src2": "htm_cycles_xid..total__get_summary"
-            }
-        },
-        {
-            "divider": {
-                "dst": "abort_propotion..5.sd",
+                "src2": "htm_cycles_xid::total__get_summary"
+            },
+            "abort_propotion..5.sd": {
+                "operator": "divide",
                 "src1": "htm_aborted_cycles_xid..5.sd",
-                "src2": "htm_cycles_xid..total__get_summary"
-            }
-        },
-        {
-            "divider": {
-                "dst": "t_cycles..0",
+                "src2": "htm_cycles_xid::total__get_summary"
+            },
+            "t_cycles..0": {
+                "operator": "divide",
                 "src1": "htm_cycles_xid..0",
-                "src2": "htm_cycles_xid..total__get_summary"
-            }
-        },
-        {
-            "divider": {
-                "dst": "t_cycles..1",
+                "src2": "htm_cycles_xid::total__get_summary"
+            },
+            "t_cycles..1": {
+                "operator": "divide",
                 "src1": "htm_cycles_xid..1",
-                "src2": "htm_cycles_xid..total__get_summary"
-            }
-        },
-        {
-            "divider": {
-                "dst": "t_cycles..2",
+                "src2": "htm_cycles_xid::total__get_summary"
+            },
+            "t_cycles..2": {
+                "operator": "divide",
                 "src1": "htm_cycles_xid..2",
-                "src2": "htm_cycles_xid..total__get_summary"
-            }
-        },
-        {
-            "divider": {
-                "dst": "t_cycles..3",
+                "src2": "htm_cycles_xid::total__get_summary"
+            },
+            "t_cycles..3": {
+                "operator": "divide",
                 "src1": "htm_cycles_xid..3",
-                "src2": "htm_cycles_xid..total__get_summary"
-            }
-        },
-        {
-            "divider": {
-                "dst": "t_cycles..4",
+                "src2": "htm_cycles_xid::total__get_summary"
+            },
+            "t_cycles..4": {
+                "operator": "divide",
                 "src1": "htm_cycles_xid..4",
-                "src2": "htm_cycles_xid..total__get_summary"
-            }
-        },
-        {
-            "divider": {
-                "dst": "t_cycles..5",
+                "src2": "htm_cycles_xid::total__get_summary"
+            },
+            "t_cycles..5": {
+                "operator": "divide",
                 "src1": "htm_cycles_xid..5",
-                "src2": "htm_cycles_xid..total__get_summary"
-            }
-        },
-        {
-            "divider": {
-                "dst": "t_cycles..0.sd",
+                "src2": "htm_cycles_xid::total__get_summary"
+            },
+            "t_cycles..0.sd": {
+                "operator": "divide",
                 "src1": "htm_cycles_xid..0.sd",
-                "src2": "htm_cycles_xid..total__get_summary"
-            }
-        },
-        {
-            "divider": {
-                "dst": "t_cycles..1.sd",
+                "src2": "htm_cycles_xid::total__get_summary"
+            },
+            "t_cycles..1.sd": {
+                "operator": "divide",
                 "src1": "htm_cycles_xid..1.sd",
-                "src2": "htm_cycles_xid..total__get_summary"
-            }
-        },
-        {
-            "divider": {
-                "dst": "t_cycles..2.sd",
+                "src2": "htm_cycles_xid::total__get_summary"
+            },
+            "t_cycles..2.sd": {
+                "operator": "divide",
                 "src1": "htm_cycles_xid..2.sd",
-                "src2": "htm_cycles_xid..total__get_summary"
-            }
-        },
-        {
-            "divider": {
-                "dst": "t_cycles..3.sd",
+                "src2": "htm_cycles_xid::total__get_summary"
+            },
+            "t_cycles..3.sd": {
+                "operator": "divide",
                 "src1": "htm_cycles_xid..3.sd",
-                "src2": "htm_cycles_xid..total__get_summary"
-            }
-        },
-        {
-            "divider": {
-                "dst": "t_cycles..4.sd",
+                "src2": "htm_cycles_xid::total__get_summary"
+            },
+            "t_cycles..4.sd": {
+                "operator": "divide",
                 "src1": "htm_cycles_xid..4.sd",
-                "src2": "htm_cycles_xid..total__get_summary"
-            }
-        },
-        {
-            "divider": {
-                "dst": "t_cycles..5.sd",
+                "src2": "htm_cycles_xid::total__get_summary"
+            },
+            "t_cycles..5.sd": {
+                "operator": "divide",
                 "src1": "htm_cycles_xid..5.sd",
-                "src2": "htm_cycles_xid..total__get_summary"
+                "src2": "htm_cycles_xid::total__get_summary"
             }
         }
-    ],
+    },
     "plots": [
         {
             "plotType": "barplotFacetManual",
@@ -214,307 +176,6 @@
                     "vacation-h=",
                     "yada=",
                     "geomean="
-                ]
-            }
-        },
-        {
-            "plotType": "groupedStackedBarplot",
-            "dataConfig": {
-                "file": "config_woper",
-                "config": "woper01_stacked"
-            },
-            "styleConfig": {
-                "file": "style_woper",
-                "config": "woper01_stacked"
-            },
-            "fileName": "abort_proportion",
-            "x": [
-                "benchmark_name"
-            ],
-            "y": [
-                "abort_propotion..0",
-                "abort_propotion..1",
-                "abort_propotion..2",
-                "abort_propotion..3",
-                "abort_propotion..4",
-                "abort_propotion..5"
-            ],
-            "conf_z": [
-                "config_description_abbrev"
-            ],
-            "facet": {
-                "facetVar": "benchmark_name",
-                "facetMappings": [
-                    "cadd=Microbenchmark",
-                    "llb-l=Microbenchmark",
-                    "llb-h=Microbenchmark",
-                    "genome=STAMP",
-                    "intruder=STAMP",
-                    "kmeans-l=STAMP",
-                    "kmeans-h=STAMP",
-                    "labyrinth=STAMP",
-                    "ssca2=STAMP",
-                    "vacation-l=STAMP",
-                    "vacation-h=STAMP",
-                    "yada=STAMP"
-                ]
-            }
-        },
-        {
-            "plotType": "groupedStackedBarplot",
-            "dataConfig": {
-                "file": "config_woper",
-                "config": "woper01_stacked_no_norm"
-            },
-            "styleConfig": {
-                "file": "style_woper",
-                "config": "woper01_stacked_no_norm"
-            },
-            "fileName": "abort_proportion_no_norm",
-            "x": [
-                "benchmark_name"
-            ],
-            "y": [
-                "abort_propotion..0",
-                "abort_propotion..1",
-                "abort_propotion..2",
-                "abort_propotion..3",
-                "abort_propotion..4",
-                "abort_propotion..5"
-            ],
-            "conf_z": [
-                "config_description_abbrev"
-            ],
-            "facet": {
-                "facetVar": "benchmark_name",
-                "facetMappings": [
-                    "genome=STAMP",
-                    "intruder=STAMP",
-                    "kmeans-l=STAMP",
-                    "kmeans-h=STAMP",
-                    "labyrinth=STAMP",
-                    "ssca2=STAMP",
-                    "vacation-l=STAMP",
-                    "vacation-h=STAMP",
-                    "yada=STAMP"
-                ]
-            }
-        },
-        {
-            "plotType": "groupedStackedBarplot",
-            "dataConfig": {
-                "file": "config_woper",
-                "config": "woper02_stacked"
-            },
-            "styleConfig": {
-                "file": "style_woper",
-                "config": "woper02_stacked"
-            },
-            "fileName": "cycles_xid",
-            "x": [
-                "benchmark_name"
-            ],
-            "y": [
-                "t_cycles..0",
-                "t_cycles..1",
-                "t_cycles..2",
-                "t_cycles..3",
-                "t_cycles..4",
-                "t_cycles..5"
-            ],
-            "conf_z": [
-                "config_description_abbrev"
-            ],
-            "facet": {
-                "facetVar": "benchmark_name",
-                "facetMappings": [
-                    "cadd=Microbenchmark",
-                    "llb-l=Microbenchmark",
-                    "llb-h=Microbenchmark",
-                    "genome=STAMP",
-                    "intruder=STAMP",
-                    "kmeans-l=STAMP",
-                    "kmeans-h=STAMP",
-                    "labyrinth=STAMP",
-                    "ssca2=STAMP",
-                    "vacation-l=STAMP",
-                    "vacation-h=STAMP",
-                    "yada=STAMP"
-                ]
-            }
-        },
-        {
-            "plotType": "groupedStackedBarplot",
-            "dataConfig": {
-                "file": "config_woper",
-                "config": "woper02_stacked_no_norm"
-            },
-            "styleConfig": {
-                "file": "style_woper",
-                "config": "woper02_stacked_no_norm"
-            },
-            "fileName": "cycles_xid_no_norm",
-            "x": [
-                "benchmark_name"
-            ],
-            "y": [
-                "t_cycles..0",
-                "t_cycles..1",
-                "t_cycles..2",
-                "t_cycles..3",
-                "t_cycles..4",
-                "t_cycles..5"
-            ],
-            "conf_z": [
-                "config_description_abbrev"
-            ],
-            "facet": {
-                "facetVar": "benchmark_name",
-                "facetMappings": [
-                    "cadd=Microbenchmark",
-                    "llb-l=Microbenchmark",
-                    "llb-h=Microbenchmark",
-                    "genome=STAMP",
-                    "intruder=STAMP",
-                    "kmeans-l=STAMP",
-                    "kmeans-h=STAMP",
-                    "labyrinth=STAMP",
-                    "ssca2=STAMP",
-                    "vacation-l=STAMP",
-                    "vacation-h=STAMP",
-                    "yada=STAMP"
-                ]
-            }
-        },
-        {
-            "plotType": "groupedStackedBarplot",
-            "dataConfig": {
-                "file": "config_woper",
-                "config": "woper03_stacked"
-            },
-            "styleConfig": {
-                "file": "style_woper",
-                "config": "woper03_stacked"
-            },
-            "fileName": "cycles_xid_nodiv",
-            "x": [
-                "benchmark_name"
-            ],
-            "y": [
-                "htm_cycles_xid..0",
-                "htm_cycles_xid..1",
-                "htm_cycles_xid..2",
-                "htm_cycles_xid..3",
-                "htm_cycles_xid..4",
-                "htm_cycles_xid..5"
-            ],
-            "conf_z": [
-                "config_description_abbrev"
-            ],
-            "facet": {
-                "facetVar": "benchmark_name",
-                "facetMappings": [
-                    "cadd=Microbenchmark",
-                    "llb-l=Microbenchmark",
-                    "llb-h=Microbenchmark",
-                    "genome=STAMP",
-                    "intruder=STAMP",
-                    "kmeans-l=STAMP",
-                    "kmeans-h=STAMP",
-                    "labyrinth=STAMP",
-                    "ssca2=STAMP",
-                    "vacation-l=STAMP",
-                    "vacation-h=STAMP",
-                    "yada=STAMP"
-                ]
-            }
-        },
-        {
-            "plotType": "groupedStackedBarplot",
-            "dataConfig": {
-                "file": "config_woper",
-                "config": "woper03_stacked_no_norm"
-            },
-            "styleConfig": {
-                "file": "style_woper",
-                "config": "woper03_stacked_no_norm"
-            },
-            "fileName": "cycles_xid_no_norm_nodiv",
-            "x": [
-                "benchmark_name"
-            ],
-            "y": [
-                "htm_cycles_xid..0",
-                "htm_cycles_xid..1",
-                "htm_cycles_xid..2",
-                "htm_cycles_xid..3",
-                "htm_cycles_xid..4",
-                "htm_cycles_xid..5"
-            ],
-            "conf_z": [
-                "config_description_abbrev"
-            ],
-            "facet": {
-                "facetVar": "benchmark_name",
-                "facetMappings": [
-                    "cadd=Microbenchmark",
-                    "llb-l=Microbenchmark",
-                    "llb-h=Microbenchmark",
-                    "genome=STAMP",
-                    "intruder=STAMP",
-                    "kmeans-l=STAMP",
-                    "kmeans-h=STAMP",
-                    "labyrinth=STAMP",
-                    "ssca2=STAMP",
-                    "vacation-l=STAMP",
-                    "vacation-h=STAMP",
-                    "yada=STAMP"
-                ]
-            }
-        },
-        {
-            "plotType": "groupedStackedBarplot",
-            "dataConfig": {
-                "file": "config_woper",
-                "config": "woper01_stacked_region"
-            },
-            "styleConfig": {
-                "file": "style_woper",
-                "config": "woper01_stacked_region"
-            },
-            "fileName": "cycles_by_region",
-            "x": [
-                "benchmark_name"
-            ],
-            "y": [
-                "cyclesInRegion..Non_Transactional",
-                "cyclesInRegion..Barrier",
-                "cyclesInRegion..Fallback_lock",
-                "cyclesInRegion..Wait_fallback_lock",
-                "cyclesInRegion..Power",
-                "cyclesInRegion..Committed",
-                "cyclesInRegion..Aborted"
-                
-
-            ],
-            "conf_z": [
-                "config_description_abbrev"
-            ],
-            "facet": {
-                "facetVar": "benchmark_name",
-                "facetMappings": [
-                    "cadd=Microbenchmark",
-                    "llb-l=Microbenchmark",
-                    "llb-h=Microbenchmark",
-                    "genome=STAMP",
-                    "intruder=STAMP",
-                    "kmeans-l=STAMP",
-                    "kmeans-h=STAMP",
-                    "ssca2=STAMP",
-                    "vacation-l=STAMP",
-                    "vacation-h=STAMP",
-                    "yada=STAMP",
-                    "arithmean=STAMP"
                 ]
             }
         }

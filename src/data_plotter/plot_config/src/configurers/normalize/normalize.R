@@ -196,6 +196,7 @@ setMethod(
     function(object) {
         # Get the unique stats that will normalize
         if (is.null(object@stats)) {
+            print("Stats are empty, using all stats")
             # Pick all the stats from the data frame
             object@stats <- colnames(object@df)[
                 !colnames(object@df) %in% c(
@@ -204,6 +205,7 @@ setMethod(
                     get_all_keys(object@normalize_var)
                 )
             ]
+            print(object@stats)
             object@stats <- object@stats[!object@stats %in% c(
                 paste0(object@stats, ".sd")
             )]

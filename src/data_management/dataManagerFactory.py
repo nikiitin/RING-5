@@ -1,7 +1,8 @@
 from argumentParser import AnalyzerInfo
-from src.data_management.impl import renamer, mixer, outlierRemover, seedsReducer
+from src.data_management.impl import renamer, mixer, outlierRemover, seedsReducer, preprocessor
 
 class DataManagerFactory:
+    @staticmethod
     def getDataManager(params: AnalyzerInfo) -> list:
         """
         Factory function. It will read the json file and create a list of
@@ -24,21 +25,32 @@ class DataManagerFactory:
         manager_json = json["dataManagers"]
         managers = []
         for element in manager_json.keys():
-
+            manager = None
             # Check if the renamer is present in the json file
             if element == "rename":
-                managers.append(renamer.Renamer(params, manager_json))
+                manager = renamer.Renamer(params, manager_json)
+                managers.append(manager)
             
             # Check if the mixer is present in the json file
             if element == "mixer":
-                managers.append(mixer.Mixer(params, manager_json))
+                manager = mixer.Mixer(params, manager_json)
+                managers.append(manager)
             
             # Check if the outlierRemover is present in the json file
             if element == "outlierRemover":
-                managers.append(outlierRemover.OutlierRemover(params, manager_json))
+                manager = outlierRemover.OutlierRemover(params, manager_json)
+                managers.append(manager)
             
             # Check if the seedsReducer is present in the json file
             if element == "seedsReducer":
-                managers.append(seedsReducer.seedsReducer(params, manager_json))
-        
+                manager = seedsReducer.SeedsReducer(params, manager_json)
+                managers.append(manager)
+            
+            if element == "preprocessor":
+                manager = preprocessor.Preprocessor(params, manager_json)
+                managers.append(manager)
+
+            if manager is None:
+                raise ValueError(f"DataManager {element} is not defined in the json file")
+            
         return managers

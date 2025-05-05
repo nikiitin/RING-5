@@ -13,17 +13,17 @@ class OutlierRemover(DataManager):
         # Outlier stat must be an string and that column must exist in the DataFrame
         if not isinstance(self._outlierStat, str):
             raise ValueError("Outlier stat element is not correctly defined at json file. Must be a string")
-        if self._outlierStat not in self._df.columns:
+        if self._outlierStat not in DataManager._df.columns:
             raise ValueError(f"Outlier stat column {self._outlierStat} does not exist in the DataFrame")
 
-    def __init__(self, params: AnalyzerInfo) -> None:
+    def __init__(self, params: AnalyzerInfo, json: dict) -> None:
         """
         Constructor for the OutlierRemover class. Instance the class only
         if the outlierRemover is present in the json file.
         Args:
             params: The parameters for the outlier remover.
         """
-        super().__init__(params)
+        super().__init__(params, json)
         # Check if the outlierRemover is present in the json file
         utils.checkElementExists(self._json, "outlierRemover")
         self._outlierRemoverElement = self._json["outlierRemover"]
@@ -41,12 +41,18 @@ class OutlierRemover(DataManager):
         super().__call__()
         # Check if the outlierRemover is set to True
         if self._outlierRemoverElement:
-            # Identify numeric statistic columns (all columns not in categorical_columns).
-            # Note that categorical_columns already includes 'seed_number'.
-            statistic_columns = [col for col in self._df.columns if col not in self._categorical_columns]
+            print("Removing outliers...")
+            # pd.set_option('display.max_colwidth', None)
+            # pd.set_option('display.max_rows', None)
             # Remove outliers, that data that is outside the 3rd quartile (Q3)
-            for column in statistic_columns:
-                # Calculate Q3 (75th percentile)
-                Q3 = self._df[column].quantile(0.75)
-                # Remove outliers
-                self._df = self._df[self._df[column] <= Q3]
+
+            # Group by categorical columns
+            grouped = DataManager._df.groupby(DataManager._categorical_columns)
+
+            # Calculate Q3 for each group
+            Q3 = grouped[self._outlierStat].transform(lambda x: x.quantile(0.75))
+
+            # Filter rows where the specified column is <= Q3 for their group
+            filtered_df = DataManager._df[DataManager._df[self._outlierStat] <= Q3]
+            # Update the DataFrame with the filtered data
+            DataManager._df = filtered_df

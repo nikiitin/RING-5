@@ -2,9 +2,8 @@
 # -*- coding: utf-8 -*-
 from src.data_parser.src.dataParserFactory import DataParserFactory 
 from src.data_management.dataManagerFactory import DataManagerFactory
+from src.data_management.dataManager import DataManager
 from src.data_parser.src.configurationManager import ConfigurationManager as ParserConfigurationManager
-from src.data_preprocessing.src.preprocessorBuilder import PreprocessorBuilder
-from src.data_preprocessing.src.preprocessor import PreprocessorType
 from argumentParser import AnalyzerInfo
 from src.data_plotter.data_plotter import dataPlotter
 import src.utils.utils as utils
@@ -30,24 +29,12 @@ info.createWorkCsv()
 # Get and execute data manager
 manager = DataManagerFactory.getDataManager(info)
 if len(manager) > 0:
+    print("Data manager found, executing")
     for m in manager:
-        m.__call__()
+        m()
+    DataManager.persist()
 else:
     print("No data manager found, skipping data management")
-
-# Preprocess data if needed
-if utils.checkElementExistNoException(info.getJson(), "preprocessor"):
-    print("Preprocessing data")
-    for preprocessor in utils.getElementValue(info.getJson(), "preprocessor"):
-
-        preprocessorJson = utils.getElementValue(
-            preprocessor,
-            utils.getEnumValue(preprocessor, PreprocessorType))
-
-        PreprocessorBuilder(
-            utils.getEnumValue(preprocessor, PreprocessorType),
-            info.getWorkCsv(),
-            preprocessorJson).build().__call__()
 # Get and execute plots
 plots = info.getJson()["plots"]
 dataPlotter(info.getOutputDir(), info.getWorkCsv(), plots).__call__()
