@@ -1,323 +1,31 @@
-[
-    {
-        "configName": "default",
-        "dataConfig": {
-            "mean": {
-                "meanAlgorithm": "geomean",
-                "skipMean": [
-                    "llb-l",
-                    "llb-h",
-                    "cadd"
-                ]
-            },
-            "sort": [
-                {
-                    "varToSort": "benchmark_name",
-                    "order": [
-                        "llb-l",
-                        "llb-h",
-                        "cadd",
-                        "genome",
-                        "intruder",
-                        "intruder-qs",
-                        "kmeans-l",
-                        "kmeans-h",
-                        "labyrinth",
-                        "ssca2",
-                        "vacation-l",
-                        "vacation-h",
-                        "yada",
-                        "geomean"
-                    ]
-                },
-                {
-                    "varToSort": "config_description_abbrev",
-                    "order": [
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt"
-                    ]
-                }
-            ],
-            "normalize": {
-                "normalizerIndex": 1,
-                "normalizeSelector": [
-                    "all"
-                ]
-            }
-        }
-    },
-    {
-        "configName": "compare_pchats",
-        "dataConfig": {
-            "filter": [
-                {
-                    "varToFilter": "config_description_abbrev",
-                    "values": [
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd4_CTV50_Prio_numeric_FCSabort_Allow_Fwd_no_write_in_flight_Rtry1_Pflt"
-                    ]
-                }
+{
+    "wopercp": {
+        "selector": {
+            "selectedCols": [
+                "benchmark_name",
+                "config_description_abbrev",
+                "commit_propotion..total",
+                "commit_propotion..total.sd"
             ],
             "mean": {
                 "meanAlgorithm": "geomean",
+                "meanVars": [
+                    "commit_propotion..total"
+                ],
+                "groupingColumn": "config_description_abbrev",
+                "replacingColumn": "benchmark_name",
                 "skipMean": [
-                    "llb-l",
-                    "llb-h",
-                    "cadd"
-                ]
-            },
-            "sort": [
-                {
-                    "varToSort": "benchmark_name",
-                    "order": [
-                        "llb-l",
-                        "llb-h",
-                        "cadd",
-                        "genome",
-                        "intruder",
-                        "intruder-qs",
-                        "kmeans-l",
-                        "kmeans-h",
-                        "labyrinth",
-                        "ssca2",
-                        "vacation-l",
-                        "vacation-h",
-                        "yada",
-                        "geomean"
-                    ]
-                },
-                {
-                    "varToSort": "config_description_abbrev",
-                    "order": [
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd4_CTV50_Prio_numeric_FCSabort_Allow_Fwd_no_write_in_flight_Rtry1_Pflt"
-                    ]
-                }
-            ],
-            "normalize": {
-                "normalizerIndex": 1,
-                "normalizeSelector": [
-                    "all"
-                ]
-            }
-        }
-    },
-    {
-        "configName": "compare_pchats_stack",
-        "dataConfig": {
-            "filter": [
-                {
-                    "varToFilter": "config_description_abbrev",
-                    "values": [
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd4_CTV50_Prio_numeric_FCSabort_Allow_Fwd_no_write_in_flight_Rtry1_Pflt"
-                    ]
-                }
-            ],
-            "mean": {
-                "meanAlgorithm": "mean",
-                "skipMean": [
-                    "llb-l",
-                    "llb-h",
-                    "cadd"
-                ]
-            },
-            "sort": [
-                {
-                    "varToSort": "benchmark_name",
-                    "order": [
-                        "llb-l",
-                        "llb-h",
-                        "cadd",
-                        "genome",
-                        "intruder",
-                        "intruder-qs",
-                        "kmeans-l",
-                        "kmeans-h",
-                        "labyrinth",
-                        "ssca2",
-                        "vacation-l",
-                        "vacation-h",
-                        "yada",
-                        "mean"
-                    ]
-                },
-                {
-                    "varToSort": "config_description_abbrev",
-                    "order": [
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FWDWN_DM_EVFwd_maxFwd4_CTV50_Prio_numeric_FCSabort_Allow_Fwd_no_write_in_flight_Rtry1_Pflt"
-                    ]
-                }
-            ],
-            "normalize": {
-                "normalizerIndex": 1,
-                "normalizeSelector": [
-                    "all"
-                ]
-            }
-        }
-    },
-    {
-        "configName": "default_stack",
-        "dataConfig": {
-            "mean": {
-                "meanAlgorithm": "mean",
-                "skipMean": [
-                    "llb-l",
-                    "llb-h",
-                    "cadd",
-                    "intruder-qs"
-                ]
-            },
-            "sort": [
-                {
-                    "varToSort": "benchmark_name",
-                    "order": [
-                        "llb-l",
-                        "llb-h",
-                        "cadd",
-                        "genome",
-                        "intruder",
-                        "intruder-qs",
-                        "kmeans-l",
-                        "kmeans-h",
-                        "labyrinth",
-                        "ssca2",
-                        "vacation-l",
-                        "vacation-h",
-                        "yada",
-                        "mean"
-                    ]
-                }
-            ],
-            "normalize": {
-                "normalizerIndex": 1,
-                "normalizeSelector": [
-                    "all"
-                ]
-            }
-        }
-    },
-    {
-        "configName": "stack_norm_commit",
-        "dataConfig": {
-            "filter": [
-                {
-                    "varToFilter": "benchmark_name",
-                    "values": [
-                        "bayes"
-                    ]
-                }
-            ],
-            "mean": {
-                "meanAlgorithm": "mean",
-                "skipMean": [
-                    "llb-l",
-                    "llb-h",
-                    "cadd"
-                ]
-            },
-            "sort": [
-                {
-                    "varToSort": "benchmark_name",
-                    "order": [
-                        "llb-l",
-                        "llb-h",
-                        "cadd",
-                        "genome",
-                        "intruder",
-                        "intruder-qs",
-                        "kmeans-l",
-                        "kmeans-h",
-                        "labyrinth",
-                        "ssca2",
-                        "vacation-l",
-                        "vacation-h",
-                        "yada",
-                        "mean"
-                    ]
-                },
-                {
-                    "varToSort": "config_description_abbrev",
-                    "order": [
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRcdab_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrequester_stalls_pic_base_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Prio_numeric_FCSabort_Rtry16_Pflt"
-                    ]
-                }
-            ],
-            "normalize": {
-                "normalizerIndex": 1,
-                "normalizeSelector": [
-                    "htm_transaction_executed_type_rate..Commit",
-                    "htm_transaction_executed_type_rate..FallbackLock_commit"
-                ]
-            }
-        }
-    },
-    {
-        "configName": "sens_retry",
-        "dataConfig": {
-            "mean": {
-                "meanAlgorithm": "geomean",
-                "skipMean": [
-                    "llb-l",
-                    "llb-h",
-                    "cadd",
-                    "intruder-qs"
-                ]
-            },
-            "sort": [
-                {
-                    "varToSort": "benchmark_name",
-                    "order": [
-                        "llb-l",
-                        "llb-h",
-                        "cadd",
-                        "genome",
-                        "intruder",
-                        "intruder-qs",
-                        "kmeans-l",
-                        "kmeans-h",
-                        "labyrinth",
-                        "ssca2",
-                        "vacation-l",
-                        "vacation-h",
-                        "yada",
-                        "geomean"
-                    ]
-                }
-            ],
-            "normalize": {
-                "normalizerIndex": 1,
-                "normalizeSelector": [
-                    "all"
-                ]
-            }
-        }
-    },
-    {
-        "configName": "default_lineplot",
-        "dataConfig": {
-            "mean": {
-                "meanAlgorithm": "geomean",
-                "meanVar": "benchmark_name",
-                "skipMean": [
-                    "cadd",
-                    "llb-l",
-                    "llb-h",
-                    "intruder-qs"
-                ]
-            },
-            "sort": [
-                {
+                    {
+                        "varToSkip": "benchmark_name",
+                        "values": [
+                            "cadd",
+                            "llb-l",
+                            "llb-h",
+                            "intruder-qs"
+                        ]
+                    }
+                ],
+                "sort": {
                     "varToSort": "benchmark_name",
                     "order": [
                         "cadd",
@@ -334,99 +42,133 @@
                         "vacation-h",
                         "yada",
                         "geomean"
-                    ]
+                    ],
+                    "sort": {
+                        "varToSort": "config_description_abbrev",
+                        "order": [
+                            "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
+                            "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
+                            "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
+                            "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt"
+                        ],
+                        "filter": {
+                            "varToFilter": "benchmark_name",
+                            "values": [
+                                "intruder-qs",
+                                "cadd",
+                                "llb-l",
+                                "llb-h"
+                            ]
+                        }
+                    }
                 }
-            ],
-            "normalize": {
-                "normalizerIndex": 1,
-                "normalizeSelector": [
-                    "all"
-                ]
             }
         }
     },
-    {
-        "configName": "sens_lineplot",
-        "dataConfig": {
-            "mean": {
-                "meanAlgorithm": "mean",
-                "meanVar": "benchmark_name",
-                "skipMean": [
-                    "cadd",
-                    "llb-l",
-                    "llb-h",
-                    "intruder-qs"
-                ]
-            },
-            "sort": [
-                {
-                    "varToSort": "benchmark_name",
-                    "order": [
-                        "cadd",
-                        "llb-l",
-                        "llb-h",
-                        "genome",
-                        "intruder",
-                        "intruder-qs",
-                        "kmeans-l",
-                        "kmeans-h",
-                        "labyrinth",
-                        "ssca2",
-                        "vacation-l",
-                        "vacation-h",
-                        "yada",
-                        "mean"
-                    ]
-                },
-                {
-                    "varToSort": "htm_conflict_resolution",
-                    "order": [
-                        "requester_wins",
-                        "requester_loses",
-                        "requester_wins_power",
-                        "requester_loses_power"
-                    ]
-                },
-                {
-                    "varToSort": "htm_max_retries",
-                    "order": [
-                        "1",
-                        "2",
-                        "4",
-                        "6",
-                        "8",
-                        "10",
-                        "12",
-                        "14",
-                        "16",
-                        "32",
-                        "64"
-                    ]
-                }
+    "woper01": {
+        "selector": {
+            "selectedCols": [
+                "benchmark_name",
+                "config_description_abbrev",
+                "simTicks",
+                "simTicks.sd"
             ],
-            "normalize": {
-                "normalizerIndex": 1,
-                "normalizeSelector": [
-                    "all"
-                ]
-            }
-        }
-    },
-    {
-        "configName": "onlymean_heatmap_rln",
-        "dataConfig": {
             "mean": {
                 "meanAlgorithm": "geomean",
-                "meanVar": "benchmark_name",
+                "meanVars": [
+                    "simTicks"
+                ],
+                "groupingColumn": "config_description_abbrev",
+                "replacingColumn": "benchmark_name",
                 "skipMean": [
-                    "cadd",
-                    "llb-l",
-                    "llb-h",
-                    "intruder-qs"
-                ]
-            },
-            "sort": [
-                {
+                    {
+                        "varToSkip": "benchmark_name",
+                        "values": [
+                            "cadd",
+                            "llb-l",
+                            "llb-h",
+                            "intruder-qs"
+                        ]
+                    }
+                ],
+                "normalize": {
+                    "normalizeVars": [
+                        {
+                            "config_description_abbrev": "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt"
+                        }
+                    ],
+                    "groupBy": [
+                        "benchmark_name"
+                    ],
+                    "sort": {
+                        "varToSort": "benchmark_name",
+                        "order": [
+                            "cadd",
+                            "llb-l",
+                            "llb-h",
+                            "genome",
+                            "intruder",
+                            "intruder-qs",
+                            "kmeans-l",
+                            "kmeans-h",
+                            "labyrinth",
+                            "ssca2",
+                            "vacation-l",
+                            "vacation-h",
+                            "yada",
+                            "geomean"
+                        ],
+                        "sort": {
+                            "varToSort": "config_description_abbrev",
+                            "order": [
+                                "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
+                                "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
+                                "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
+                                "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt"
+                            ],
+                            "filter": {
+                                "varToFilter": "benchmark_name",
+                                "values": [
+                                    "intruder-qs",
+                                    "cadd",
+                                    "llb-l",
+                                    "llb-h"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "woper01_stacked": {
+        "selector": {
+            "selectedCols": [
+                "benchmark_name",
+                "config_description_abbrev",
+                "abort_propotion..0",
+                "abort_propotion..1",
+                "abort_propotion..2",
+                "abort_propotion..3",
+                "abort_propotion..4",
+                "abort_propotion..5",
+                "abort_propotion..0.sd",
+                "abort_propotion..1.sd",
+                "abort_propotion..2.sd",
+                "abort_propotion..3.sd",
+                "abort_propotion..4.sd",
+                "abort_propotion..5.sd"
+            ],
+            "normalize": {
+                "normalizeVars": [
+                    {
+                        "config_description_abbrev": "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt"
+                    }
+                ],
+                "groupBy": [
+                    "benchmark_name"
+                ],
+                "sort": {
                     "varToSort": "benchmark_name",
                     "order": [
                         "cadd",
@@ -441,920 +183,616 @@
                         "ssca2",
                         "vacation-l",
                         "vacation-h",
-                        "yada",
-                        "geomean"
-                    ]
-                },
-                {
-                    "varToSort": "htm_max_retries",
-                    "order": [
-                        "1",
-                        "2",
-                        "4",
-                        "6",
-                        "8",
-                        "10"
-                    ]
-                },
-                {
-                    "varToSort": "htm_conflict_resolution",
-                    "order": [
-                        "requester_loses",
-                        "requester_loses_power"
-                    ]
+                        "yada"
+                    ],
+                    "sort": {
+                        "varToSort": "config_description_abbrev",
+                        "order": [
+                            "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
+                            "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
+                            "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
+                            "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt"
+                        ],
+                        "filter": {
+                            "varToFilter": "benchmark_name",
+                            "values": [
+                                "intruder-qs"
+                            ]
+                        }
+                    }
                 }
-            ],
-            "normalize": {
-                "normalizerIndex": 1,
-                "normalizeSelector": [
-                    "all"
-                ]
             }
         }
     },
-    {
-        "configName": "sens_stacked_rl",
-        "dataConfig": {
-            "filter": [
-                {
-                    "varToFilter": "config_description_abbrev",
-                    "values": [
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt"
-                    ]
-                },
-                {
-                    "varToFilter": "benchmark_name",
-                    "values": [
-                        "intruder-qs"
-                    ]
-                }
+    "wopercp_stacked_no_norm": {
+        "selector": {
+            "selectedCols": [
+                "benchmark_name",
+                "config_description_abbrev",
+                "commit_propotion..0",
+                "commit_propotion..1",
+                "commit_propotion..2",
+                "commit_propotion..3",
+                "commit_propotion..4",
+                "commit_propotion..5",
+                "commit_propotion..0.sd",
+                "commit_propotion..1.sd",
+                "commit_propotion..2.sd",
+                "commit_propotion..3.sd",
+                "commit_propotion..4.sd",
+                "commit_propotion..5.sd"
             ],
-            "mean": {
-                "meanAlgorithm": "mean",
-                "skipMean": [
+            "sort": {
+                "varToSort": "benchmark_name",
+                "order": [
+                    "cadd",
                     "llb-l",
                     "llb-h",
-                    "cadd"
-                ]
-            },
-            "sort": [
-                {
-                    "varToSort": "benchmark_name",
-                    "order": [
-                        "llb-l",
-                        "llb-h",
-                        "cadd",
-                        "genome",
-                        "intruder",
-                        "kmeans-l",
-                        "kmeans-h",
-                        "labyrinth",
-                        "ssca2",
-                        "vacation-l",
-                        "vacation-h",
-                        "yada",
-                        "mean"
-                    ]
-                },
-                {
+                    "genome",
+                    "intruder",
+                    "intruder-qs",
+                    "kmeans-l",
+                    "kmeans-h",
+                    "labyrinth",
+                    "ssca2",
+                    "vacation-l",
+                    "vacation-h",
+                    "yada"
+                ],
+                "sort": {
                     "varToSort": "config_description_abbrev",
                     "order": [
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt"
-                    ]
-                }
-            ],
-            "normalize": {
-                "normalizerIndex": 1,
-                "normalizeSelector": [
-                    "all"
-                ]
-            }
-        }
-    },
-    {
-        "configName": "sens_percentage_rl",
-        "dataConfig": {
-            "filter": [
-                {
-                    "varToFilter": "config_description_abbrev",
-                    "values": [
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
                         "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt"
-                    ]
-                },
-                {
-                    "varToFilter": "benchmark_name",
-                    "values": [
-                        "intruder-qs"
-                    ]
-                }
-            ],
-            "mean": {
-                "meanAlgorithm": "mean",
-                "skipMean": [
-                    "llb-l",
-                    "llb-h",
-                    "cadd"
-                ]
-            },
-            "sort": [
-                {
-                    "varToSort": "benchmark_name",
-                    "order": [
-                        "llb-l",
-                        "llb-h",
-                        "cadd",
-                        "genome",
-                        "intruder",
-                        "kmeans-l",
-                        "kmeans-h",
-                        "labyrinth",
-                        "ssca2",
-                        "vacation-l",
-                        "vacation-h",
-                        "yada",
-                        "mean"
-                    ]
-                },
-                {
-                    "varToSort": "config_description_abbrev",
-                    "order": [
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
                         "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt"
-                    ]
-                }
-            ]
-        }
-    },
-    {
-        "configName": "sens_stacked_rw",
-        "dataConfig": {
-            "filter": [
-                {
-                    "varToFilter": "config_description_abbrev",
-                    "values": [
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt"
-                    ]
-                },
-                {
-                    "varToFilter": "benchmark_name",
-                    "values": [
-                        "intruder-qs"
-                    ]
-                }
-            ],
-            "mean": {
-                "meanAlgorithm": "mean",
-                "skipMean": [
-                    "llb-l",
-                    "llb-h",
-                    "cadd"
-                ]
-            },
-            "sort": [
-                {
-                    "varToSort": "benchmark_name",
-                    "order": [
-                        "llb-l",
-                        "llb-h",
-                        "cadd",
-                        "genome",
-                        "intruder",
-                        "kmeans-l",
-                        "kmeans-h",
-                        "labyrinth",
-                        "ssca2",
-                        "vacation-l",
-                        "vacation-h",
-                        "yada",
-                        "mean"
-                    ]
-                },
-                {
-                    "varToSort": "config_description_abbrev",
-                    "order": [
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt"
-                    ]
-                }
-            ],
-            "normalize": {
-                "normalizerIndex": 1,
-                "normalizeSelector": [
-                    "all"
-                ]
-            }
-        }
-    },
-    {
-        "configName": "sens_percentage_rw",
-        "dataConfig": {
-            "filter": [
-                {
-                    "varToFilter": "config_description_abbrev",
-                    "values": [
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt"
-                    ]
-                },
-                {
-                    "varToFilter": "benchmark_name",
-                    "values": [
-                        "intruder-qs"
-                    ]
-                }
-            ],
-            "mean": {
-                "meanAlgorithm": "mean",
-                "skipMean": [
-                    "llb-l",
-                    "llb-h",
-                    "cadd"
-                ]
-            },
-            "sort": [
-                {
-                    "varToSort": "benchmark_name",
-                    "order": [
-                        "llb-l",
-                        "llb-h",
-                        "cadd",
-                        "genome",
-                        "intruder",
-                        "kmeans-l",
-                        "kmeans-h",
-                        "labyrinth",
-                        "ssca2",
-                        "vacation-l",
-                        "vacation-h",
-                        "yada",
-                        "mean"
-                    ]
-                },
-                {
-                    "varToSort": "config_description_abbrev",
-                    "order": [
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt"
-                    ]
-                }
-            ]
-        }
-    },
-    {
-        "configName": "sens_stacked_rlp",
-        "dataConfig": {
-            "filter": [
-                {
-                    "varToFilter": "config_description_abbrev",
-                    "values": [
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt"
-                    ]
-                },
-                {
-                    "varToFilter": "benchmark_name",
-                    "values": [
-                        "intruder-qs"
-                    ]
-                }
-            ],
-            "mean": {
-                "meanAlgorithm": "mean",
-                "skipMean": [
-                    "llb-l",
-                    "llb-h",
-                    "cadd"
-                ]
-            },
-            "sort": [
-                {
-                    "varToSort": "benchmark_name",
-                    "order": [
-                        "llb-l",
-                        "llb-h",
-                        "cadd",
-                        "genome",
-                        "intruder",
-                        "kmeans-l",
-                        "kmeans-h",
-                        "labyrinth",
-                        "ssca2",
-                        "vacation-l",
-                        "vacation-h",
-                        "yada",
-                        "mean"
-                    ]
-                },
-                {
-                    "varToSort": "config_description_abbrev",
-                    "order": [
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt"
-                    ]
-                }
-            ],
-            "normalize": {
-                "normalizerIndex": 1,
-                "normalizeSelector": [
-                    "all"
-                ]
-            }
-        }
-    },
-    {
-        "configName": "sens_percentage_rlp",
-        "dataConfig": {
-            "filter": [
-                {
-                    "varToFilter": "config_description_abbrev",
-                    "values": [
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt"
-                    ]
-                },
-                {
-                    "varToFilter": "benchmark_name",
-                    "values": [
-                        "intruder-qs"
-                    ]
-                }
-            ],
-            "mean": {
-                "meanAlgorithm": "mean",
-                "skipMean": [
-                    "llb-l",
-                    "llb-h",
-                    "cadd"
-                ]
-            },
-            "sort": [
-                {
-                    "varToSort": "benchmark_name",
-                    "order": [
-                        "llb-l",
-                        "llb-h",
-                        "cadd",
-                        "genome",
-                        "intruder",
-                        "kmeans-l",
-                        "kmeans-h",
-                        "labyrinth",
-                        "ssca2",
-                        "vacation-l",
-                        "vacation-h",
-                        "yada",
-                        "mean"
-                    ]
-                },
-                {
-                    "varToSort": "config_description_abbrev",
-                    "order": [
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt"
-                    ]
-                }
-            ]
-        }
-    },
-    {
-        "configName": "sens_stacked_rwp",
-        "dataConfig": {
-            "filter": [
-                {
-                    "varToFilter": "config_description_abbrev",
-                    "values": [
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt"
-                    ]
-                },
-                {
-                    "varToFilter": "benchmark_name",
-                    "values": [
-                        "intruder-qs"
-                    ]
-                }
-            ],
-            "mean": {
-                "meanAlgorithm": "mean",
-                "skipMean": [
-                    "llb-l",
-                    "llb-h",
-                    "cadd"
-                ]
-            },
-            "sort": [
-                {
-                    "varToSort": "benchmark_name",
-                    "order": [
-                        "llb-l",
-                        "llb-h",
-                        "cadd",
-                        "genome",
-                        "intruder",
-                        "kmeans-l",
-                        "kmeans-h",
-                        "labyrinth",
-                        "ssca2",
-                        "vacation-l",
-                        "vacation-h",
-                        "yada",
-                        "mean"
-                    ]
-                },
-                {
-                    "varToSort": "config_description_abbrev",
-                    "order": [
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt"
-                    ]
-                }
-            ],
-            "normalize": {
-                "normalizerIndex": 1,
-                "normalizeSelector": [
-                    "all"
-                ]
-            }
-        }
-    },
-    {
-        "configName": "sens_percentage_rwp",
-        "dataConfig": {
-            "filter": [
-                {
-                    "varToFilter": "config_description_abbrev",
-                    "values": [
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt"
-                    ]
-                },
-                {
-                    "varToFilter": "benchmark_name",
-                    "values": [
-                        "intruder-qs"
-                    ]
-                }
-            ],
-            "mean": {
-                "meanAlgorithm": "mean",
-                "skipMean": [
-                    "llb-l",
-                    "llb-h",
-                    "cadd"
-                ]
-            },
-            "sort": [
-                {
-                    "varToSort": "benchmark_name",
-                    "order": [
-                        "llb-l",
-                        "llb-h",
-                        "cadd",
-                        "genome",
-                        "intruder",
-                        "kmeans-l",
-                        "kmeans-h",
-                        "labyrinth",
-                        "ssca2",
-                        "vacation-l",
-                        "vacation-h",
-                        "yada",
-                        "mean"
-                    ]
-                },
-                {
-                    "varToSort": "config_description_abbrev",
-                    "order": [
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt"
-                    ]
-                }
-            ]
-        }
-    },
-    {
-        "configName": "cycles_region_final",
-        "dataConfig": {
-            "filter": [
-                {
-                    "varToFilter": "config_description_abbrev",
-                    "values": [
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry2_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry8_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry14_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry32_Pflt",
-                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry64_Pflt"
-                    ]
-                },
-                {
-                    "varToFilter": "benchmark_name",
-                    "values": [
-                        "intruder-qs"
-                    ]
-                }
-            ],
-            "mean": {
-                "meanAlgorithm": "mean",
-                "skipMean": [
-                    "llb-l",
-                    "llb-h",
-                    "cadd"
-                ]
-            },
-            "sort": [
-                {
-                    "varToSort": "benchmark_name",
-                    "order": [
-                        "llb-l",
-                        "llb-h",
-                        "cadd",
-                        "genome",
-                        "intruder",
-                        "kmeans-l",
-                        "kmeans-h",
-                        "labyrinth",
-                        "ssca2",
-                        "vacation-l",
-                        "vacation-h",
-                        "yada",
-                        "mean"
-                    ]
-                },
-                {
-                    "varToSort": "config_description_abbrev",
-                    "order": [
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry4_Pflt",
-                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry12_Pflt",
                         "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
                         "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt"
-                    ]
+                    ],
+                    "filter": {
+                        "varToFilter": "benchmark_name",
+                        "values": [
+                            "llb-l",
+                            "llb-h",
+                            "cadd",
+                            "intruder-qs"
+                        ]
+                    }
                 }
+            }
+        }
+    },
+    "woper01_stacked_no_norm": {
+        "selector": {
+            "selectedCols": [
+                "benchmark_name",
+                "config_description_abbrev",
+                "abort_propotion..0",
+                "abort_propotion..1",
+                "abort_propotion..2",
+                "abort_propotion..3",
+                "abort_propotion..4",
+                "abort_propotion..5",
+                "abort_propotion..0.sd",
+                "abort_propotion..1.sd",
+                "abort_propotion..2.sd",
+                "abort_propotion..3.sd",
+                "abort_propotion..4.sd",
+                "abort_propotion..5.sd"
+            ],
+            "sort": {
+                "varToSort": "benchmark_name",
+                "order": [
+                    "cadd",
+                    "llb-l",
+                    "llb-h",
+                    "labyrinth",
+                    "ssca2",
+                    "vacation-l",
+                    "vacation-h",
+                    "genome",
+                    "intruder",
+                    "intruder-qs",
+                    "kmeans-l",
+                    "kmeans-h",                    
+                    "yada"
+                ],
+                "sort": {
+                    "varToSort": "config_description_abbrev",
+                    "order": [
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
+                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
+                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt"
+                    ],
+                    "filter": {
+                        "varToFilter": "benchmark_name",
+                        "values": [
+                            "llb-l",
+                            "llb-h",
+                            "cadd",
+                            "intruder-qs"
+                        ]
+                    }
+                }
+            }
+        }
+    },
+    "woper02_stacked": {
+        "selector": {
+            "selectedCols": [
+                "benchmark_name",
+                "config_description_abbrev",
+                "t_cycles..0",
+                "t_cycles..1",
+                "t_cycles..2",
+                "t_cycles..3",
+                "t_cycles..4",
+                "t_cycles..5",
+                "t_cycles..0.sd",
+                "t_cycles..1.sd",
+                "t_cycles..2.sd",
+                "t_cycles..3.sd",
+                "t_cycles..4.sd",
+                "t_cycles..5.sd"
             ],
             "normalize": {
-                "normalizerIndex": 1,
-                "normalizeSelector": [
-                    "all"
-                ]
+                "normalizeVars": [
+                    {
+                        "config_description_abbrev": "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt"
+                    }
+                ],
+                "groupBy": [
+                    "benchmark_name"
+                ],
+                "sort": {
+                    "varToSort": "benchmark_name",
+                    "order": [
+                        "cadd",
+                        "llb-l",
+                        "llb-h",
+                        "genome",
+                        "intruder",
+                        "intruder-qs",
+                        "kmeans-l",
+                        "kmeans-h",
+                        "labyrinth",
+                        "ssca2",
+                        "vacation-l",
+                        "vacation-h",
+                        "yada"
+                    ],
+                    "sort": {
+                        "varToSort": "config_description_abbrev",
+                        "order": [
+                            "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
+                            "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
+                            "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
+                            "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt"
+                        ],
+                        "filter": {
+                            "varToFilter": "benchmark_name",
+                            "values": [
+                                "intruder-qs"
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "woper02_stacked_no_norm": {
+        "selector": {
+            "selectedCols": [
+                "benchmark_name",
+                "config_description_abbrev",
+                "t_cycles..0",
+                "t_cycles..1",
+                "t_cycles..2",
+                "t_cycles..3",
+                "t_cycles..4",
+                "t_cycles..5",
+                "t_cycles..0.sd",
+                "t_cycles..1.sd",
+                "t_cycles..2.sd",
+                "t_cycles..3.sd",
+                "t_cycles..4.sd",
+                "t_cycles..5.sd"
+            ],
+            "sort": {
+                "varToSort": "benchmark_name",
+                "order": [
+                    "cadd",
+                    "llb-l",
+                    "llb-h",
+                    "genome",
+                    "intruder",
+                    "intruder-qs",
+                    "kmeans-l",
+                    "kmeans-h",
+                    "labyrinth",
+                    "ssca2",
+                    "vacation-l",
+                    "vacation-h",
+                    "yada"
+                ],
+                "sort": {
+                    "varToSort": "config_description_abbrev",
+                    "order": [
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
+                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
+                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt"
+                    ],
+                    "filter": {
+                        "varToFilter": "benchmark_name",
+                        "values": [
+                            "intruder-qs"
+                        ]
+                    }
+                }
+            }
+        }
+    },
+    "woper03_stacked": {
+        "selector": {
+            "selectedCols": [
+                "benchmark_name",
+                "config_description_abbrev",
+                "htm_cycles_xid..0",
+                "htm_cycles_xid..1",
+                "htm_cycles_xid..2",
+                "htm_cycles_xid..3",
+                "htm_cycles_xid..4",
+                "htm_cycles_xid..5",
+                "htm_cycles_xid..0.sd",
+                "htm_cycles_xid..1.sd",
+                "htm_cycles_xid..2.sd",
+                "htm_cycles_xid..3.sd",
+                "htm_cycles_xid..4.sd",
+                "htm_cycles_xid..5.sd"
+            ],
+            "normalize": {
+                "normalizeVars": [
+                    {
+                        "config_description_abbrev": "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt"
+                    }
+                ],
+                "groupBy": [
+                    "benchmark_name"
+                ],
+                "sort": {
+                    "varToSort": "benchmark_name",
+                    "order": [
+                        "cadd",
+                        "llb-l",
+                        "llb-h",
+                        "genome",
+                        "intruder",
+                        "intruder-qs",
+                        "kmeans-l",
+                        "kmeans-h",
+                        "labyrinth",
+                        "ssca2",
+                        "vacation-l",
+                        "vacation-h",
+                        "yada"
+                    ],
+                    "sort": {
+                        "varToSort": "config_description_abbrev",
+                        "order": [
+                            "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
+                            "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
+                            "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
+                            "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt"
+                        ],
+                        "filter": {
+                            "varToFilter": "benchmark_name",
+                            "values": [
+                                "intruder-qs"
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "woper03_stacked_no_norm": {
+        "selector": {
+            "selectedCols": [
+                "benchmark_name",
+                "config_description_abbrev",
+                "htm_cycles_xid..0",
+                "htm_cycles_xid..1",
+                "htm_cycles_xid..2",
+                "htm_cycles_xid..3",
+                "htm_cycles_xid..4",
+                "htm_cycles_xid..5",
+                "htm_cycles_xid..0.sd",
+                "htm_cycles_xid..1.sd",
+                "htm_cycles_xid..2.sd",
+                "htm_cycles_xid..3.sd",
+                "htm_cycles_xid..4.sd",
+                "htm_cycles_xid..5.sd"
+            ],
+            "sort": {
+                "varToSort": "benchmark_name",
+                "order": [
+                    "cadd",
+                    "llb-l",
+                    "llb-h",
+                    "genome",
+                    "intruder",
+                    "intruder-qs",
+                    "kmeans-l",
+                    "kmeans-h",
+                    "labyrinth",
+                    "ssca2",
+                    "vacation-l",
+                    "vacation-h",
+                    "yada"
+                ],
+                "sort": {
+                    "varToSort": "config_description_abbrev",
+                    "order": [
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
+                        "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
+                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
+                        "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt"
+                    ],
+                    "filter": {
+                        "varToFilter": "benchmark_name",
+                        "values": [
+                            "intruder-qs"
+                        ]
+                    }
+                }
+            }
+        }
+    },
+    "woper01_stacked_region": {
+        "selector": {
+            "selectedCols": [
+                "benchmark_name",
+                "config_description_abbrev",
+                "cyclesInRegion..No_Transactional",
+                "cyclesInRegion..Committed",
+                "cyclesInRegion..Aborted",
+                "cyclesInRegion..Wait_Fallback_Lock",
+                "cyclesInRegion..No_Transactional.sd",
+                "cyclesInRegion..Committed.sd",
+                "cyclesInRegion..Aborted.sd",
+                "cyclesInRegion..Wait_Fallback_Lock.sd"
+            ],
+            "mean": {
+                "meanAlgorithm": "arithmean",
+                "meanVars": [
+                    "cyclesInRegion..No_Transactional",
+                    "cyclesInRegion..Committed",
+                    "cyclesInRegion..Aborted",
+                    "cyclesInRegion..Wait_Fallback_Lock"
+                ],
+                "skipMean": [
+                    {
+                        "varToSkip": "benchmark_name",
+                        "values": [
+                            "cadd",
+                            "llb-l",
+                            "llb-h",
+                            "intruder-qs"
+                        ]
+                    }
+                ],
+                "groupingColumn": "config_description_abbrev",
+                "replacingColumn": "benchmark_name",
+                "normalize": {
+                    "normalizeVars": [
+                        {
+                            "config_description_abbrev": "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt"
+                        }
+                    ],
+                    "groupBy": [
+                        "benchmark_name"
+                    ],
+                    "sort": {
+                        "varToSort": "benchmark_name",
+                        "order": [
+                            "cadd",
+                            "llb-l",
+                            "llb-h",
+                            "labyrinth",
+                            "ssca2",
+                            "vacation-l",
+                            "vacation-h",
+                            "genome",
+                            "intruder",
+                            "intruder-qs",
+                            "kmeans-l",
+                            "kmeans-h",                    
+                            "yada",
+                            "arithmean"
+                        ],
+                        "sort": {
+                            "varToSort": "config_description_abbrev",
+                            "order": [
+                                "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry6_Pflt",
+                                "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrl_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry10_Pflt",
+                                "CPUtest_BinSfx.htm.powertm_LV_ED_CRrwp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt",
+                                "CPUtest_BinSfx.htm.powertm_LV_ED_CRrlp_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry1_Pflt"
+                            ],
+                            "filter": {
+                                "varToFilter": "benchmark_name",
+                                "values": [
+                                    "intruder-qs",
+                                    "cadd",
+                                    "llb-l",
+                                    "llb-h"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "sens_lineplot": {
+        "selector": {
+            "selectedCols": [
+                "benchmark_name",
+                "htm_max_retries",
+                "simTicks",
+                "simTicks.sd",
+                "htm_conflict_resolution"
+            ],
+            "replacingColumn": "benchmark_name",
+            "normalize": {
+                "normalizeVars": [
+                    {
+                        "htm_max_retries": "1"
+                    },
+                    {
+                        "htm_conflict_resolution": "requester_wins"
+                    }
+                ],
+                "groupBy": [
+                    "benchmark_name"
+                ],
+                "sort": {
+                    "varToSort": "benchmark_name",
+                    "order": [
+                        "cadd",
+                        "llb-l",
+                        "llb-h",
+                        "genome",
+                        "intruder",
+                        "intruder-qs",
+                        "kmeans-l",
+                        "kmeans-h",
+                        "labyrinth",
+                        "ssca2",
+                        "vacation-l",
+                        "vacation-h",
+                        "yada"
+                    ],
+                    "sort": {
+                        "varToSort": "htm_max_retries",
+                        "order": [
+                            "1",
+                            "2",
+                            "4",
+                            "6",
+                            "8",
+                            "10",
+                            "12",
+                            "14",
+                            "16",
+                            "20",
+                            "24",
+                            "28",
+                            "32",
+                            "40",
+                            "48",
+                            "56",
+                            "64"
+                        ],
+                        "sort": {
+                            "varToSort": "htm_conflict_resolution",
+                            "order": [
+                                "requester_wins",
+                                "requester_loses",
+                                "requester_wins_power",
+                                "requester_loses_power"
+                            ],
+                            "filter": {
+                                "varToFilter": "benchmark_name",
+                                "values": [
+                                    "intruder-qs",
+                                    "labyrinth"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "sens_lineplot_abort": {
+        "selector": {
+            "selectedCols": [
+                "benchmark_name",
+                "htm_max_retries",
+                "htm_transaction_abort_cause..total__get_summary",
+                "htm_transaction_abort_cause..total__get_summary.sd",
+                "htm_conflict_resolution"
+            ],
+            "replacingColumn": "benchmark_name",
+            "normalize": {
+                "normalizeVars": [
+                    {
+                        "htm_max_retries": "1"
+                    },
+                    {
+                        "htm_conflict_resolution": "requester_wins"
+                    }
+                ],
+                "groupBy": [
+                    "benchmark_name"
+                ],
+                "sort": {
+                    "varToSort": "benchmark_name",
+                    "order": [
+                        "cadd",
+                        "llb-l",
+                        "llb-h",
+                        "genome",
+                        "intruder",
+                        "intruder-qs",
+                        "kmeans-l",
+                        "kmeans-h",
+                        "labyrinth",
+                        "ssca2",
+                        "vacation-l",
+                        "vacation-h",
+                        "yada"
+                    ],
+                    "sort": {
+                        "varToSort": "htm_max_retries",
+                        "order": [
+                            "1",
+                            "2",
+                            "4",
+                            "6",
+                            "8",
+                            "10",
+                            "12",
+                            "14",
+                            "16",
+                            "20",
+                            "24",
+                            "28",
+                            "32",
+                            "40",
+                            "48",
+                            "56",
+                            "64"
+                        ],
+                        "sort": {
+                            "varToSort": "htm_conflict_resolution",
+                            "order": [
+                                "requester_wins",
+                                "requester_loses",
+                                "requester_wins_power",
+                                "requester_loses_power"
+                            ],
+                            "filter": {
+                                "varToFilter": "benchmark_name",
+                                "values": [
+                                    "intruder-qs",
+                                    "labyrinth"
+                                ]
+                            }
+                        }
+                    }
+                }
             }
         }
     }
-]
+}

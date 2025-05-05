@@ -221,6 +221,10 @@ setMethod(
                         breaks = object@styles@y_breaks,
                         oob = scales::squish
                     )
+                # object@plot <- object@plot +
+                #     scale_x_continuous(
+                #         breaks = c()
+                #     )
                 object@plot <- object@plot + coord_cartesian(
                     ylim = as.numeric(
                         c(

@@ -1,0 +1,16 @@
+source("renv/activate.R")
+renv_path <- "renv/activate.R"
+proj_file_path <- ".proj.json"
+ring_env <- new.env()
+if (file.exists(renv_path)) {
+    source(renv_path)
+} else {
+    stop(paste("renv files not found. Please, run renv::activate()",
+        "to create the renv files",
+        "Additionally, please run renv::restore() to restore the environment",
+        sep = "\n"))
+}
+
+# RINGGENERATED
+# Set the working directory to the main repo directory
+setwd(ring_env$root_dir)

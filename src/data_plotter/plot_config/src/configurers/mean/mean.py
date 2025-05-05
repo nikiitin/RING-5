@@ -16,7 +16,20 @@ class MeanConfigurer(Configurer):
         self._meanVars = utils.jsonToArg(self._json, "meanVars")
         self._groupingColumn = utils.jsonToArg(self._json, "groupingColumn")
         self._replacingColumn = utils.jsonToArg(self._json, "replacingColumn")
-        self._skipMean = utils.jsonToOptionalArg(self._json, "skipMean")
+        skipMean = utils.jsonToOptionalArg(self._json, "skipMean")
+        if skipMean[0] != "0":
+            # Skip mean is a list of dictionaries
+            # each dict should contain two entries:
+            # - varToSkip: The variable to skip
+            # - values: The values to skip
+            self._skipMean = []
+            self._skipMean.append(str(skipMean[0]))
+            for skip in skipMean[1:]:
+                self._skipMean.append(utils.getElementValue(skip, "varToSkip"))
+                self._skipMean.extend(utils.jsonToArg(skip, "values"))
+        else:
+            self._skipMean = skipMean
+
     
     def _checkPreconditions(self) -> None:
         # Required fields

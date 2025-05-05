@@ -8,5 +8,6 @@
 __pycache__
 renv/*
 .R*
+!templates/.Rprofile-template
 .vscode
 .proj*

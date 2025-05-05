@@ -6,6 +6,7 @@
 args_test_simTicks <- c(
   "--args",
   "tests/testthat/mock/normalize/output/normalize_test_case_simTicks.csv",
+  "1",
   "config_description_abbrev",
   "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt",
   "1",

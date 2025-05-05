@@ -1,0 +1,206 @@
+{
+    "outputPath": "/home/vnicolas/Workspace/repos/RING-5/multipolicy-comparison/",
+    "parseConfig": {
+        "file": "parse_multipolicy",
+        "config": "multipolicy-comparison"
+    },
+    "mixStats": [
+
+    ],
+    "reduceSeeds": true,
+    "removeOutliers": true,
+    "outlierStat": "simTicks",
+    "preprocessor": [
+        {
+            "divider": {
+                "dst": "abort_propotion..0",
+                "src1": "htm_aborted_cycles_xid..0",
+                "src2": "htm_cycles_xid..total__get_summary"
+            }
+        },
+        {
+            "divider": {
+                "dst": "abort_propotion..1",
+                "src1": "htm_aborted_cycles_xid..1",
+                "src2": "htm_cycles_xid..total__get_summary"
+            }
+        },
+        {
+            "divider": {
+                "dst": "abort_propotion..2",
+                "src1": "htm_aborted_cycles_xid..2",
+                "src2": "htm_cycles_xid..total__get_summary"
+            }
+        },
+        {
+            "divider": {
+                "dst": "abort_propotion..3",
+                "src1": "htm_aborted_cycles_xid..3",
+                "src2": "htm_cycles_xid..total__get_summary"
+            }
+        },
+        {
+            "divider": {
+                "dst": "abort_propotion..4",
+                "src1": "htm_aborted_cycles_xid..4",
+                "src2": "htm_cycles_xid..total__get_summary"
+            }
+        },
+        {
+            "divider": {
+                "dst": "abort_propotion..5",
+                "src1": "htm_aborted_cycles_xid..5",
+                "src2": "htm_cycles_xid..total__get_summary"
+            }
+        },
+        {
+            "divider": {
+                "dst": "abort_propotion..0.sd",
+                "src1": "htm_aborted_cycles_xid..0.sd",
+                "src2": "htm_cycles_xid..total__get_summary"
+            }
+        },
+        {
+            "divider": {
+                "dst": "abort_propotion..1.sd",
+                "src1": "htm_aborted_cycles_xid..1.sd",
+                "src2": "htm_cycles_xid..total__get_summary"
+            }
+        },
+        {
+            "divider": {
+                "dst": "abort_propotion..2.sd",
+                "src1": "htm_aborted_cycles_xid..2.sd",
+                "src2": "htm_cycles_xid..total__get_summary"
+            }
+        },
+        {
+            "divider": {
+                "dst": "abort_propotion..3.sd",
+                "src1": "htm_aborted_cycles_xid..3.sd",
+                "src2": "htm_cycles_xid..total__get_summary"
+            }
+        },
+        {
+            "divider": {
+                "dst": "abort_propotion..4.sd",
+                "src1": "htm_aborted_cycles_xid..4.sd",
+                "src2": "htm_cycles_xid..total__get_summary"
+            }
+        },
+        {
+            "divider": {
+                "dst": "abort_propotion..5.sd",
+                "src1": "htm_aborted_cycles_xid..5.sd",
+                "src2": "htm_cycles_xid..total__get_summary"
+            }
+        },
+        {
+            "divider": {
+                "dst": "t_cycles..0",
+                "src1": "htm_cycles_xid..0",
+                "src2": "htm_cycles_xid..total__get_summary"
+            }
+        },
+        {
+            "divider": {
+                "dst": "t_cycles..1",
+                "src1": "htm_cycles_xid..1",
+                "src2": "htm_cycles_xid..total__get_summary"
+            }
+        },
+        {
+            "divider": {
+                "dst": "t_cycles..2",
+                "src1": "htm_cycles_xid..2",
+                "src2": "htm_cycles_xid..total__get_summary"
+            }
+        },
+        {
+            "divider": {
+                "dst": "t_cycles..3",
+                "src1": "htm_cycles_xid..3",
+                "src2": "htm_cycles_xid..total__get_summary"
+            }
+        },
+        {
+            "divider": {
+                "dst": "t_cycles..4",
+                "src1": "htm_cycles_xid..4",
+                "src2": "htm_cycles_xid..total__get_summary"
+            }
+        },
+        {
+            "divider": {
+                "dst": "t_cycles..5",
+                "src1": "htm_cycles_xid..5",
+                "src2": "htm_cycles_xid..total__get_summary"
+            }
+        },
+        {
+            "divider": {
+                "dst": "t_cycles..0.sd",
+                "src1": "htm_cycles_xid..0.sd",
+                "src2": "htm_cycles_xid..total__get_summary"
+            }
+        },
+        {
+            "divider": {
+                "dst": "t_cycles..1.sd",
+                "src1": "htm_cycles_xid..1.sd",
+                "src2": "htm_cycles_xid..total__get_summary"
+            }
+        },
+        {
+            "divider": {
+                "dst": "t_cycles..2.sd",
+                "src1": "htm_cycles_xid..2.sd",
+                "src2": "htm_cycles_xid..total__get_summary"
+            }
+        },
+        {
+            "divider": {
+                "dst": "t_cycles..3.sd",
+                "src1": "htm_cycles_xid..3.sd",
+                "src2": "htm_cycles_xid..total__get_summary"
+            }
+        },
+        {
+            "divider": {
+                "dst": "t_cycles..4.sd",
+                "src1": "htm_cycles_xid..4.sd",
+                "src2": "htm_cycles_xid..total__get_summary"
+            }
+        },
+        {
+            "divider": {
+                "dst": "t_cycles..5.sd",
+                "src1": "htm_cycles_xid..5.sd",
+                "src2": "htm_cycles_xid..total__get_summary"
+            }
+        }
+    ],
+    "plots": [
+        {
+            "plotType": "barplot",
+            "dataConfig": {
+                "file": "config_multipolicy",
+                "config": "comparison"
+            },
+            "styleConfig": {
+                "file": "style_multipolicy",
+                "config": "comparison"
+            },
+            "fileName": "ex.time(norm)",
+            "x": [
+                "benchmark_name"
+            ],
+            "y": [
+                "simTicks"
+            ],
+            "conf_z": [
+                "config_description_abbrev"
+            ]
+        }
+    ]
+}

@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 from src.data_parser.src.dataParserFactory import DataParserFactory 
-from src.data_management.src.dataManagerFactory import DataManagerFactory
+from src.data_management.dataManagerFactory import DataManagerFactory
+from src.data_management.dataManager import DataManager
 from src.data_parser.src.configurationManager import ConfigurationManager as ParserConfigurationManager
-from src.data_preprocessing.preprocessor import Preprocessor
 from argumentParser import AnalyzerInfo
 from src.data_plotter.data_plotter import dataPlotter
 import src.utils.utils as utils
@@ -27,11 +27,14 @@ else:
 info.createWorkCsv()
 
 # Get and execute data manager
-manager = DataManagerFactory.getDataManager("R", info).__call__()
-
-# Preprocess data if needed
-if utils.checkElementExistNoException(info.getJson(), "preprocessor"):
-    Preprocessor(info.getWorkCsv(), info.getJson()["preprocessor"]).__call__()
+manager = DataManagerFactory.getDataManager(info)
+if len(manager) > 0:
+    print("Data manager found, executing")
+    for m in manager:
+        m()
+    DataManager.persist()
+else:
+    print("No data manager found, skipping data management")
 # Get and execute plots
 plots = info.getJson()["plots"]
 dataPlotter(info.getOutputDir(), info.getWorkCsv(), plots).__call__()

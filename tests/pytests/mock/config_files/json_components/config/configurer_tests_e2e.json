@@ -14,8 +14,11 @@
                 "groupingColumn": "config_description_abbrev",
                 "replacingColumn": "benchmark_name",
                 "normalize": {
-                    "normalizeVar": "config_description_abbrev",
-                    "normalizeValue": "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt",
+                    "normalizeVars": [
+                        {
+                            "config_description_abbrev": "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt"
+                        }
+                    ],
                     "groupBy": [
                         "benchmark_name"
                     ],

@@ -39,6 +39,8 @@ class DataParserPerl(DataParserInterface):
                 minimum = utils.getElementValue(var, "minimum")
                 varsToParse.update({identifier : TypeMapper.map(dataType, repeat, maximum = maximum, minimum = minimum)})
             elif dataType == "configuration":
+                # Add this variable as a categorical variable
+                AnalyzerInfo.addCategoricalStats(identifier)
                 onEmpty = "None"
                 if utils.checkElementExistNoException(var, "onEmpty"):
                     onEmpty = utils.getElementValue(var, "onEmpty")

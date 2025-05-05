@@ -1,4 +1,3 @@
-from src.data_parser.src.impl.data_parser_bash_Deprecated.dataParserBash import DataParserBash
 from src.data_parser.src.impl.data_parser_perl.dataParserPerl import DataParserPerl
 from src.data_parser.src.dataParserInterface import DataParserInterface
 from argumentParser import AnalyzerInfo
@@ -17,9 +16,7 @@ class DataParserFactory:
             with cls._lock:
                 # Check again if it is None to avoid race conditions
                 if cls._parserSingleton is None:
-                    if (implName == "bash"):
-                        cls._parserSingleton = DataParserBash(params)
-                    elif (implName == "perl"):
+                    if (implName == "perl"):
                         cls._parserSingleton = DataParserPerl(params)
                     else:
                         raise ValueError("Invalid parser implementation")

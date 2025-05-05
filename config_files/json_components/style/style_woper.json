@@ -37,11 +37,11 @@
             "apparel": "Barplot_default",
             "title": "",
             "xAxisName": "",
-            "yAxisName": "Ex. time(normalized)",
+            "yAxisName": "Cycl aborted / Tx cycles (normalized)",
             "width": 75,
-            "height": 30,
+            "height": 25,
             "format": "png",
-            "legendTitle": "Retries",
+            "legendTitle": "Transaction identifier",
             "nLegendElementsPerRow": 2,
             "xSplitPoints": [
                 
@@ -58,9 +58,329 @@
                 "0.25",
                 "0.5",
                 "0.75",
-                "1"
+                "1.00",
+                "1.25"
+            ],
+            "limitTop": 1.25,
+            "limitBot": 0
+        }
+    },
+    {
+        "styleName": "woper01",
+        "dataStyle": {
+            "title": "",
+            "xAxisName": "",
+            "yAxisName": "Ex. time(normalized)",
+            "width": 25,
+            "height": 5, 
+            "format": "pdf",
+            "legendTitle": "Conflict resolution",
+            "nLegendElementsPerRow": 1,
+            "xSplitPoints": [
+                
+            ],
+            "legendNames": [
+                "RW",
+                "RL",
+                "PowerTM",
+                "WoperTM"
+            ],
+            "breaks": [
+                "0",
+                "0.25",
+                "0.5",
+                "0.75",
+                "1",
+                "1.25"
             ],
             "limitTop": 1.2,
+            "limitBot": 0
+        }
+    },
+    {
+        "styleName": "woper01_stacked",
+        "dataStyle": {
+            "apparel": "Barplot_default",
+            "title": "",
+            "xAxisName": "",
+            "yAxisName": "Cycl aborted / Tx cycles (normalized)",
+            "width": 25,
+            "height": 6.5,
+            "format": "pdf",
+            "legendTitle": "Transaction identifier",
+            "nLegendElementsPerRow": 1,
+            "xSplitPoints": [
+                
+            ],
+            "legendNames": [
+                "rw",
+                "rl",
+                "power",
+                "woper"
+            ],
+            "breaks": [
+                "0",
+                "0.25",
+                "0.5",
+                "0.75",
+                "1.00"
+            ],
+            "limitTop": 1.25,
+            "limitBot": 0
+        }
+    },
+    {
+        "styleName": "woper01_stacked_no_norm",
+        "dataStyle": {
+            "apparel": "Barplot_default",
+            "title": "",
+            "xAxisName": "",
+            "yAxisName": "Cycl. aborted / Tx cycl.",
+            "width": 25,
+            "height": 5,
+            "format": "pdf",
+            "legendTitle": "Transaction identifier",
+            "nLegendElementsPerRow": 1,
+            "xSplitPoints": [
+                
+            ],
+            "legendNames": [
+                "RW",
+                "RL",
+                "PTM",
+                "WTM"
+            ],
+            "breaks": [
+                "0",
+                "0.25",
+                "0.5",
+                "0.75",
+                "1.00"
+            ],
+            "limitTop": 1.02,
+            "limitBot": 0
+        }
+    },
+    {
+        "styleName": "wopercp_stacked_no_norm",
+        "dataStyle": {
+            "apparel": "Barplot_default",
+            "title": "",
+            "xAxisName": "",
+            "yAxisName": "Cycl. aborted / Cycl. committed",
+            "width": 25,
+            "height": 5,
+            "format": "pdf",
+            "legendTitle": "Transaction identifier",
+            "nLegendElementsPerRow": 1,
+            "xSplitPoints": [
+                
+            ],
+            "legendNames": [
+                "RW",
+                "RL",
+                "PowerTM",
+                "WoperTM"
+            ],
+            "breaks": [
+                "0",
+                "0.25",
+                "0.5",
+                "0.75",
+                "1.00"
+            ],
+            "limitTop": 1.02,
+            "limitBot": 0
+        }
+    },
+    {
+        "styleName": "woper02_stacked",
+        "dataStyle": {
+            "apparel": "Barplot_default",
+            "title": "",
+            "xAxisName": "",
+            "yAxisName": "Cycl by xid",
+            "width": 25,
+            "height": 6.5,
+            "format": "pdf",
+            "legendTitle": "Transaction identifier",
+            "nLegendElementsPerRow": 1,
+            "xSplitPoints": [
+                
+            ],
+            "legendNames": [
+                "rw",
+                "rl",
+                "power",
+                "woper",
+                "PCHATS"
+            ],
+            "breaks": [
+                "0",
+                "0.25",
+                "0.5",
+                "0.75",
+                "1.00",
+                "1.25"
+            ],
+            "limitTop": 1.25,
+            "limitBot": 0
+        }
+    },
+    {
+        "styleName": "woper02_stacked_no_norm",
+        "dataStyle": {
+            "apparel": "Barplot_default",
+            "title": "",
+            "xAxisName": "",
+            "yAxisName": "Cycl by xid",
+            "width": 25,
+            "height": 6.5,
+            "format": "pdf",
+            "legendTitle": "Transaction identifier",
+            "nLegendElementsPerRow": 1,
+            "xSplitPoints": [
+                
+            ],
+            "legendNames": [
+                "rw",
+                "rl",
+                "power",
+                "woper",
+                "PCHATS"
+            ],
+            "breaks": [
+                "0",
+                "0.25",
+                "0.5",
+                "0.75",
+                "1.00"
+            ],
+            "limitTop": 1.02,
+            "limitBot": 0
+        }
+    },
+    {
+        "styleName": "woper03_stacked",
+        "dataStyle": {
+            "apparel": "Barplot_default",
+            "title": "",
+            "xAxisName": "",
+            "yAxisName": "Cycl by xid",
+            "width": 25,
+            "height": 6.5,
+            "format": "pdf",
+            "legendTitle": "Transaction identifier",
+            "nLegendElementsPerRow": 1,
+            "xSplitPoints": [
+                
+            ],
+            "legendNames": [
+                "rw",
+                "rl",
+                "power",
+                "woper",
+                "PCHATS"
+            ],
+            "breaks": [
+            ],
+            "limitTop": 1000000000,
+            "limitBot": 0
+        }
+    },
+    {
+        "styleName": "woper03_stacked_no_norm",
+        "dataStyle": {
+            "apparel": "Barplot_default",
+            "title": "",
+            "xAxisName": "",
+            "yAxisName": "Cycl by xid",
+            "width": 25,
+            "height": 6,
+            "format": "pdf",
+            "legendTitle": "Transaction identifier",
+            "nLegendElementsPerRow": 1,
+            "xSplitPoints": [
+                
+            ],
+            "legendNames": [
+                "rw",
+                "rl",
+                "power",
+                "woper",
+                "PCHATS"
+            ],
+            "breaks": [
+
+            ],
+            "limitTop": 1000000000,
+            "limitBot": 0
+        }
+    },
+    {
+        "styleName": "woper01_stacked_region",
+        "dataStyle": {
+            "apparel": "Barplot_default",
+            "title": "",
+            "xAxisName": "",
+            "yAxisName": "Ex. time(normalized)",
+            "width": 25,
+            "height": 6.5,
+            "format": "pdf",
+            "legendTitle": "Time separated by regions",
+            "nLegendElementsPerRow": 1,
+            "xSplitPoints": [
+                
+            ],
+            "legendNames": [
+                "rw",
+                "rl",
+                "power",
+                "woper"
+            ],
+            "breaks": [
+                "0",
+                "0.25",
+                "0.5",
+                "0.75",
+                "1.00",
+                "1.25"
+            ],
+            "limitTop": 1.3,
+            "limitBot": 0
+        }
+    },
+    {
+        "styleName": "woper02_stacked_region",
+        "dataStyle": {
+            "apparel": "Barplot_default",
+            "title": "",
+            "xAxisName": "",
+            "yAxisName": "Ex. time(normalized)",
+            "width": 25,
+            "height": 6,
+            "format": "pdf",
+            "legendTitle": "Ex. time split by regions",
+            "nLegendElementsPerRow": 1,
+            "xSplitPoints": [
+                
+            ],
+            "legendNames": [
+                "RW",
+                "RL",
+                "PTM",
+                "WTM"
+            ],
+            "breaks": [
+                "0",
+                "0.2",
+                "0.4",
+                "0.6",
+                "0.8",
+                "1.0",
+                "1.2"
+            ],
+            "limitTop": 1.25,
             "limitBot": 0
         }
     },
@@ -369,18 +689,19 @@
             "xSplitPoints": [
             ],
             "legendNames": [
-                
+                "rw",
+                "rl",
+                "power",
+                "woper"
             ],
             "breaks": [
                 "0",
-                "0.25",
                 "0.5",
-                "0.75",
-                "1.0",
-                "1.25",
-                "1.5"
+                "1",
+                "2"
+
             ],
-            "limitTop": 1.5,
+            "limitTop": 2.2,
             "limitBot": 0
         }
     },
@@ -399,18 +720,19 @@
             "xSplitPoints": [
             ],
             "legendNames": [
-                
+                "rw",
+                "rl",
+                "power",
+                "woper"
             ],
             "breaks": [
                 "0",
-                "0.25",
                 "0.5",
-                "0.75",
-                "1.0",
-                "1.25",
-                "1.5"
+                "1",
+                "2"
+
             ],
-            "limitTop": 1.5,
+            "limitTop": 2.2,
             "limitBot": 0
         }
     },

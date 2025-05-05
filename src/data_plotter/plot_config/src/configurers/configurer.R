@@ -108,7 +108,8 @@ setMethod(
             }
             # Ensure there is no arguments left
             if (length(parse_result$arguments) != 0) {
-                stop("Error parsing arguments. There are arguments left")
+                stop(paste0("Error parsing arguments. There are arguments",
+                " left\nArguments left: ", parse_result$arguments))
             }
             .Object <- parse_result$configurer
             # Check if csv file exists
