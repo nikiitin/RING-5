@@ -44,6 +44,7 @@ setMethod(
             width = .2,
             position = position_dodge(.9)
         )
+        print(object@info@data_frame)
         object
     }
 )

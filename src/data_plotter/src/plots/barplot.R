@@ -71,14 +71,14 @@ setMethod(
         object@plot <- object@plot + theme_hc()
         # Add specific configs to the theme
         axis_labels_size <- Vectorized_text_size(
-                    text_size = 38,
+                    text_size = 20,
                     unit = "pt",
                     plot_width = object@styles@width,
                     plot_height = object@styles@height,
                     num_labels =
                         length(unique(object@info@data_frame[[object@info@x]])))
         titles_size <- Plot_text_size(
-            text_size = 20,
+            text_size = 25,
             unit = "pt",
             plot_width = object@styles@width,
             plot_height = object@styles@height
@@ -123,7 +123,7 @@ setMethod(
             ),
             strip.placement = "outside",
             strip.background = 
-                element_rect(fill = alpha('#2eabff', 0.1), color = "white"),
+                element_rect(fill = alpha('#2eabff', 0), color = "white"),
             panel.spacing = unit(0.1, "cm")
         )
         # Assign the colors to plot and labels to legend in case
@@ -203,24 +203,7 @@ setMethod(
                         )
                     )
                 )
-                # Add the labels to the plot
-                if (!all(is.na(list_of_labels))) {
-                object@plot <- object@plot +
-                    geom_text(
-                        position = position_dodge(.9),
-                        aes(
-                            label = list_of_labels,
-                            group = .data[[object@info@conf_z]],
-                            color = .data[[object@info@conf_z]],
-                            y = object@styles@y_limit_top
-                        ),
-                        show.legend = FALSE,
-                        size = unit(get_size(titles_size) / 2.5, "pt"),
-                        angle = 90,
-                        hjust = "inward",
-                        na.rm = TRUE
-                    )
-                }
+
                 # Set the color of the labels
                 object@plot <- object@plot +
                     scale_color_manual(

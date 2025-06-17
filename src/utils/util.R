@@ -64,6 +64,8 @@ map_elements_df <- function(df, element, map_set, new_name) {
         stop("map_set argument is not a MapSet object")
     }
     if (!length(unique(pull(df, element))) == length(get_all_keys(map_set))) {
+        print(unique(df[, element]))
+        print(get_all_keys(map_set))
         stop(paste0("Not all elements in the dataframe",
         "can be mapped from the map table", " dataFrame:\n", unique(df[, element]),
         " mapTable:\n", get_all_keys(map_set)))

@@ -231,6 +231,7 @@ setMethod(
         }
         # Calculate the mean
         object <- calculate_mean(object)
+        print(object@df)
         return(object)
     }
 )
