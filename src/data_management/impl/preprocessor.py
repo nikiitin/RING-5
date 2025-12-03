@@ -7,7 +7,7 @@ class operator:
     """
     Class to define the operator to be used in the preprocessor.
     """
-    def __call__(self, dataFrame: pd.DataFrame, src1: str, src2: str, dst: str):
+    def __call__(self, dataFrame: pd.DataFrame, src1: str, src2: str, dst: str) -> pd.DataFrame:
         """
         Method to be implemented by the operator.
         """
@@ -17,12 +17,22 @@ class DivideOperator(operator):
     """
     Class to define the divide operator.
     """
-    def __call__(self, dataFrame: pd.DataFrame, src1: str, src2: str, dst: str):
+    def __call__(self, dataFrame: pd.DataFrame, src1: str, src2: str, dst: str) -> pd.DataFrame:
         # Divide the src1 column by the src2 column and store the result in the dst column.
         # Avoid division by zero by letting the result be the src1 column
         # if the src2 column is zero.
         print(f"Dividing {src1} by {src2} and storing the result in {dst}")
         dataFrame[dst] = dataFrame[src1] / dataFrame[src2].replace(0, 1)
+        return dataFrame
+    
+class SumOperator(operator):
+    """
+    Class to define the sum operator.
+    """
+    def __call__(self, dataFrame: pd.DataFrame, src1: str, src2: str, dst: str) -> pd.DataFrame:
+        # Sum the src1 column and the src2 column and store the result in the dst column.
+        print(f"Summing {src1} and {src2} and storing the result in {dst}")
+        dataFrame[dst] = dataFrame[src1] + dataFrame[src2]
         return dataFrame
 
 
@@ -30,9 +40,12 @@ class OperatorFactory:
     """
     Factory class to create the operator.
     """
-    def getOperator(operator: str):
+    @classmethod
+    def getOperator(cls, operator: str):
         if operator == "divide":
             return DivideOperator()
+        if operator == "sum":
+            return SumOperator()
         raise ValueError(f"Operator {operator} not implemented")
 
 class Preprocessor(DataManager):
@@ -82,4 +95,6 @@ class Preprocessor(DataManager):
                 operator = OperatorFactory.getOperator(values["operator"])
                 # Apply the operator to the data frame
                 DataManager._df = operator(DataManager._df, values["src1"], values["src2"], key)
+                # Add the new column to the statistic columns
+                DataManager._statistic_columns.append(key)
     

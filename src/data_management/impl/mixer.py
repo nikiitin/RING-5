@@ -1,7 +1,6 @@
 from argumentParser import AnalyzerInfo
 from src.data_management.dataManager import DataManager
 import src.utils.utils as utils
-import pandas as pd
 
 class Mixer(DataManager):
     """
@@ -73,3 +72,5 @@ class Mixer(DataManager):
                 # Create the new column with the name being the key
                 print(f"  | into: {key}")
                 DataManager._df[key] = mixed_column
+                # Add the new column to the statistic columns
+                DataManager._statistic_columns.append(key)

@@ -5,36 +5,38 @@ import json
 # Allow to have several split configuration module files
 # and load both, data configuration and style.
 class ConfigurationManager:
-    _pathToConfigFiles = "config_files/json_components"
+    _pathToShaperFiles = "config_files/json_components"
     # No instance for this class
     def __init__(self):
         raise RuntimeError("Cannot create instance for this class")
     
     @classmethod
-    def getPlotConfiguration(cls, plotJson: dict):
+    def getPlotShaper(cls, plotJson: dict) -> dict:
         utils.checkElementExists(plotJson, "plotType")
-        configPath = os.path.join(cls._pathToConfigFiles, "config")
-        utils.checkDirExistsOrException(configPath)
-        utils.checkElementExists(plotJson, "dataConfig")
-        dataConfig = plotJson["dataConfig"]
-        utils.checkElementExists(dataConfig, "file")
-        utils.checkElementExists(dataConfig, "config")
-        configPath = os.path.join(configPath, dataConfig["file"] + ".json")
-        configName = dataConfig["config"]
+        shaperPath = os.path.join(cls._pathToShaperFiles, "shapers")
+        utils.checkDirExistsOrException(shaperPath)
+        utils.checkElementExists(plotJson, "dataShaper")
+        dataShaper = plotJson["dataShaper"]
+        utils.checkElementExists(dataShaper, "file")
+        utils.checkElementExists(dataShaper, "shaper")
+        shaperPath = os.path.join(shaperPath, dataShaper["file"] + ".json")
+        shaperName = dataShaper["shaper"]
         config = None
-        with open(configPath) as configFile:
-            config = json.load(configFile)
+        with open(shaperPath) as shaperFile:
+            shaper = json.load(shaperFile)
         # Search for the config
         
-        if utils.checkElementExistNoException(config, configName):
-            return utils.getElementValue(config, configName)
+        if utils.checkElementExistNoException(shaper, shaperName):
+            shp = utils.getElementValue(shaper, shaperName)
+            utils.checkVarType(shp, dict)
+            return shp
         else:
-            raise RuntimeError("Configuration: " + configName + " not found in file: " + configPath)
+            raise RuntimeError("Shaper: " + shaperName + " not found in file: " + shaperPath)
 
     @classmethod
     def getStyleConfiguration(cls, plotJson: dict):
         utils.checkElementExists(plotJson, "plotType")
-        stylePath = os.path.join(cls._pathToConfigFiles,
+        stylePath = os.path.join(cls._pathToShaperFiles,
                                  "style")
         utils.checkDirExistsOrException(stylePath)
         utils.checkElementExists(plotJson, "styleConfig")

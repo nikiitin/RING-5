@@ -6,6 +6,7 @@ import shutil
 from src.data_plotter.multiprocessing.plotWork import PlotWork
 from src.data_plotter.configurationManager import ConfigurationManager
 from src.data_plotter.plot_config.src.configurerBuilder import ConfigurerBuilder
+from src.da
 class PlotWorkImpl(PlotWork):
     def __init__(self, outputPath: str, workCsv: str, plotJson: dict) -> None:
         # Plot data
@@ -34,13 +35,12 @@ class PlotWorkImpl(PlotWork):
         self._checkCorrectness()
         # Create plot configurer, this will filter, mean, sort and normalize the data
         # Using R implementation.
-        self._plotConfiguration = ConfigurationManager.getPlotConfiguration(plotJson)
+        self._plotShaper = ConfigurationManager.getPlotShaper(plotJson)
         # There should only be one configurer that
         # have the other configurers as children
-        assert len(self._plotConfiguration) == 1
-        configurerName = list(self._plotConfiguration.keys())[0]
-        self._configurer = ConfigurerBuilder().build(
-            configurerName, self._plotConfiguration[configurerName])
+        assert len(self._plotShaper) == 1
+        shaperName = list(self._plotShaper.keys())[0]
+
         super().__init__()
 
     def __call__(self) -> None:

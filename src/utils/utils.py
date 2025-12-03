@@ -1,5 +1,6 @@
 import os
 import enum
+import tempfile
 
 # Description: Utility functions for the project
 def getPathToRingRoot():
@@ -12,7 +13,7 @@ def jsonToArg(jsonElement, key):
         commandLineArgs.append(str(len(arg)))
         commandLineArgs.extend(arg)
     else:
-        commandLineArgs.append(arg)
+        commandLineArgs.append(str(arg))
     return commandLineArgs
 
 def jsonToOptionalArg(jsonElement, key):
@@ -22,22 +23,17 @@ def jsonToOptionalArg(jsonElement, key):
         return ["0"]
     
 
-def getElementValue(jsonElement, key):
+def getElementValue(jsonElement, key, optional=True) -> bool | int | float | str | list | dict | None:
     if key in jsonElement:
-        if isinstance(jsonElement[key], bool):
-            return str(jsonElement[key])
-        elif isinstance(jsonElement[key], int):
-            return str(jsonElement[key])
-        elif isinstance(jsonElement[key], float):
-            return str(jsonElement[key])
-        elif isinstance(jsonElement[key], str):
-            return jsonElement[key]
-        elif isinstance(jsonElement[key], list):
-            return jsonElement[key]
-        elif isinstance(jsonElement[key], dict):
+        if jsonElement[key] is None:
+            if optional:
+                return None
+            else:
+                raise Exception("Value is None for key: " + key + " and is not optional")
+        else:
             return jsonElement[key]
     else:
-        raise Exception("Key not found: " + key)
+        raise Exception("Key not found: " + key) 
     
 def checkElementExists(jsonElement, key):
     if key not in jsonElement:
@@ -91,8 +87,19 @@ def createDir(dirPath):
     else:
         print("Directory already exists: " + dirPath)
 
+def createTmpFile():
+    # Create a temporary file and return the path
+    tmp = tempfile.mkstemp()
+    # Close the file descriptor and return the path
+    os.close(tmp[0])
+    return tmp[1]
+
 def removeFile(filePath):
     if checkFileExists(filePath):
         os.remove(filePath)
     else:
         print("Cannot remove, file does not exist: " + filePath)
+
+def checkVarType(var, varType):
+    if not isinstance(var, varType):
+        raise Exception("Variable is not of type " + str(varType) + ": " + str(var))

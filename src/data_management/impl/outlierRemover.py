@@ -1,7 +1,6 @@
 from argumentParser import AnalyzerInfo
 from src.data_management.dataManager import DataManager
 import src.utils.utils as utils
-import pandas as pd
 
 class OutlierRemover(DataManager):
     """
