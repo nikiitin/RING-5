@@ -7,6 +7,7 @@ A modernized, simplified data analyzer specifically tailored for gem5 simulator 
 ## Features
 
 - **Pure Python**: No R dependencies - everything runs in Python
+- **🌐 Interactive Web UI**: Modern Streamlit dashboard for zero-code analysis (NEW!)
 - **Simplified Configuration**: JSON schema-based configuration with validation
 - **Template System**: Easy configuration file generation with built-in templates
 - **Modern Plotting**: Uses matplotlib and seaborn for all visualizations
@@ -45,6 +46,30 @@ pip install -r requirements.txt
 ```
 
 ## Quick Start
+
+### Interactive Web Application (Recommended for New Users)
+
+Launch the modern web interface:
+
+```bash
+# Activate environment
+source python_venv/bin/activate
+
+# Start web app
+streamlit run app.py
+```
+
+Open browser to **http://localhost:8501** and enjoy:
+- 📤 Drag-and-drop data upload
+- 🔧 Visual pipeline configuration (no JSON needed!)
+- 📊 Interactive plot builder
+- 📈 One-click exports (CSV, JSON, Excel)
+
+**See [WEB_APP_README.md](WEB_APP_README.md) for complete web app documentation.**
+
+---
+
+### Command Line Interface (For Automation & Scripting)
 
 ### 1. Create a Configuration Template
 
