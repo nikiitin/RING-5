@@ -7,7 +7,9 @@ A modernized, simplified data analyzer specifically tailored for gem5 simulator 
 ## Features
 
 - **Pure Python**: No R dependencies - everything runs in Python
-- **🌐 Interactive Web UI**: Modern Streamlit dashboard for zero-code analysis (NEW!)
+- **🌐 Interactive Web UI**: Modern Streamlit dashboard for zero-code analysis
+  - **🔍 Integrated Parser**: Parse gem5 stats.txt directly in the UI (NEW!)
+  - **🗜️ Compression Support**: 10-100x faster parsing for remote filesystems (NEW!)
 - **Simplified Configuration**: JSON schema-based configuration with validation
 - **Template System**: Easy configuration file generation with built-in templates
 - **Modern Plotting**: Uses matplotlib and seaborn for all visualizations
@@ -60,12 +62,18 @@ streamlit run app.py
 ```
 
 Open browser to **http://localhost:8501** and enjoy:
-- 📤 Drag-and-drop data upload
+- 🔍 **Parse gem5 stats.txt files directly** (NEW!)
+  - Interactive variable selection
+  - Optional compression for SSHFS/remote filesystems
+  - Automatic CSV generation
+- 📤 Drag-and-drop data upload (or use parsed data)
 - 🔧 Visual pipeline configuration (no JSON needed!)
 - 📊 Interactive plot builder
 - 📈 One-click exports (CSV, JSON, Excel)
 
 **See [WEB_APP_README.md](WEB_APP_README.md) for complete web app documentation.**
+
+**See [PARSER_INTEGRATION_GUIDE.md](PARSER_INTEGRATION_GUIDE.md) for parser usage guide.**
 
 ---
 
