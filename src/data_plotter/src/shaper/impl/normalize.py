@@ -139,11 +139,17 @@ class Normalize(UniDfShaper):
         # Create a copy to avoid modifying the original
         result = data_frame.copy()
         
-        # Group by the specified columns
+        # Group by the specified columns and apply normalization
         grouped = result.groupby(self._groupBy, group_keys=False)
         
-        # Apply normalization to each group
-        result = grouped.apply(lambda x: self.normalize_group(x), include_groups=False).reset_index(drop=True)
+        # Apply normalization - the normalize_group method preserves all columns
+        # Note: pandas will issue FutureWarning about operating on grouping columns,
+        # but this is intentional - we want to preserve all columns in the result
+        import warnings
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=FutureWarning, 
+                                  message='.*DataFrameGroupBy.apply operated on the grouping columns.*')
+            result = grouped.apply(lambda x: self.normalize_group(x))
         
         return result
 

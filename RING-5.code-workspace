@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../../../.continue"
+		}
+	],
+	"settings": {
+		"r.lsp.promptToInstall": false
+	}
+}

@@ -3,11 +3,9 @@
 *.pdf
 *.txt
 *.tar
-*Rhistory
 *.pyc
 __pycache__
-renv/*
-.R*
-!templates/.Rprofile-template
 .vscode
 .proj*
+python_venv/
+.pytest_cache/

@@ -428,3 +428,148 @@ class TestE2EIntegration:
         print(f"   - Output: {len(final_data)} rows × {len(final_data.columns)} columns")
         print(f"   - Result saved to: {result_csv}")
         print(f"   - Data properly filtered and ordered for gem5 HTM analysis")
+    
+    def test_complete_pipeline_with_plot(self, tmp_path):
+        """
+        Complete integration test: Load → Select Columns → Normalize → Mean → Rename → Sort → Plot
+        Tests the full pipeline from raw gem5 data to a PDF plot.
+        """
+        # Copy input CSV
+        input_csv = os.path.join(self.inputsDir, "csv/configurer/configurer_test_case01.csv")
+        test_csv = tmp_path / "test_complete_pipeline.csv"
+        shutil.copyfile(input_csv, test_csv)
+        
+        # Load real gem5 benchmark data
+        data = pd.read_csv(test_csv, sep=r'\s+')
+        
+        print(f"\n{'='*70}")
+        print(f"COMPLETE PIPELINE INTEGRATION TEST")
+        print(f"{'='*70}")
+        print(f"\n📊 Step 0: Load Data")
+        print(f"   Loaded: {len(data)} rows × {len(data.columns)} columns")
+        print(f"   Benchmarks: {len(data['benchmark_name'].unique())} unique")
+        print(f"   Configs: {len(data['config_description_abbrev'].unique())} unique")
+        
+        # Step 1: ColumnSelector - select only needed columns
+        print(f"\n📊 Step 1: Column Selection")
+        selector = ColumnSelector({
+            "columns": ['benchmark_name', 'config_description_abbrev', 'simTicks']
+        })
+        data = selector(data)
+        print(f"   Selected 3 columns: benchmark_name, config_description_abbrev, simTicks")
+        assert len(data.columns) == 3
+        
+        # Step 2: Normalize - normalize simTicks by baseline configuration
+        print(f"\n📊 Step 2: Normalization")
+        normalizer = Normalize({
+            "normalizeVars": ["simTicks"],
+            "normalizerColumn": "config_description_abbrev",
+            "normalizerValue": "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt",
+            "groupBy": ["benchmark_name"]
+        })
+        data = normalizer(data)
+        print(f"   Normalized simTicks by baseline config")
+        # Verify baseline is 1.0
+        baseline_rows = data[data['config_description_abbrev'] == 
+            "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt"]
+        assert all(baseline_rows['simTicks'] == 1.0), "Baseline should be normalized to 1.0"
+        
+        # Step 3: Mean - calculate arithmetic mean per config
+        print(f"\n📊 Step 3: Calculate Mean")
+        mean_shaper = Mean({
+            "meanAlgorithm": "arithmean",
+            "meanVars": ["simTicks"],
+            "groupingColumn": "config_description_abbrev",
+            "replacingColumn": "benchmark_name"
+        })
+        data = mean_shaper(data)
+        print(f"   Added arithmetic mean rows")
+        assert 'arithmean' in data['benchmark_name'].values
+        mean_rows = data[data['benchmark_name'] == 'arithmean']
+        print(f"   Mean rows added: {len(mean_rows)}")
+        
+        # Step 4: Rename column - simTicks → simulation_cycles
+        print(f"\n📊 Step 4: Rename Column")
+        data = data.rename(columns={'simTicks': 'simulation_cycles'})
+        print(f"   Renamed: simTicks → simulation_cycles")
+        assert 'simulation_cycles' in data.columns
+        assert 'simTicks' not in data.columns
+        
+        # Step 5: Sort - order benchmarks
+        print(f"\n📊 Step 5: Sort Data")
+        benchmark_order = [
+            'llb-l', 'llb-h', 'cadd', 'bayes', 'genome',
+            'intruder', 'intruder-qs', 'kmeans-l', 'kmeans-h',
+            'labyrinth', 'ssca2', 'vacation-l', 'vacation-h', 'yada',
+            'arithmean'  # Mean rows at the end
+        ]
+        sorter = Sort({
+            "order_dict": {
+                "benchmark_name": benchmark_order
+            }
+        })
+        data = sorter(data)
+        print(f"   Data sorted by benchmark order")
+        
+        # Step 6: Generate Plot
+        print(f"\n📊 Step 6: Generate Plot")
+        from src.plotting.plot_engine import PlotGenerator
+        
+        # Create plot configuration
+        plot_config = {
+            "type": "bar",
+            "data": {
+                "x": "benchmark_name",
+                "y": "simulation_cycles",
+                "hue": "config_description_abbrev"
+            },
+            "style": {
+                "title": "Normalized Simulation Cycles (gem5 HTM Benchmarks)",
+                "xlabel": "Benchmark",
+                "ylabel": "Normalized Simulation Cycles",
+                "width": 14,
+                "height": 8,
+                "rotation": 45
+            },
+            "output": {
+                "filename": str(tmp_path / "normalized_simticks"),
+                "format": "pdf"
+            }
+        }
+        
+        plotter = PlotGenerator(data, plot_config)
+        plotter.generate()
+        
+        output_pdf = tmp_path / "normalized_simticks.pdf"
+        assert output_pdf.exists(), "PDF plot should be generated"
+        assert output_pdf.stat().st_size > 0, "PDF should not be empty"
+        
+        print(f"   ✅ Plot generated: {output_pdf}")
+        print(f"   ✅ File size: {output_pdf.stat().st_size} bytes")
+        
+        # Final verification
+        print(f"\n{'='*70}")
+        print(f"✅ COMPLETE PIPELINE TEST SUCCESSFUL!")
+        print(f"{'='*70}")
+        print(f"Pipeline executed:")
+        print(f"  1. ✅ Column Selection (51 → 3 columns)")
+        print(f"  2. ✅ Normalization (baseline = 1.0)")
+        print(f"  3. ✅ Mean Calculation (added {len(mean_rows)} mean rows)")
+        print(f"  4. ✅ Column Rename (simTicks → simulation_cycles)")
+        print(f"  5. ✅ Sorting (benchmark order)")
+        print(f"  6. ✅ Plot Generation (PDF with normalized data)")
+        print(f"\n📄 Output: {output_pdf}")
+        print(f"📊 Final dataset: {len(data)} rows × {len(data.columns)} columns")
+        print(f"{'='*70}\n")
+        
+        # Assertions for final data quality
+        assert len(data) > 0, "Final data should not be empty"
+        assert 'simulation_cycles' in data.columns, "Renamed column should exist"
+        assert 'arithmean' in data['benchmark_name'].values, "Mean rows should be present"
+        
+        # Verify baseline normalization is still preserved after all transformations
+        final_baseline_rows = data[data['config_description_abbrev'] == 
+            "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt"]
+        non_mean_baseline = final_baseline_rows[final_baseline_rows['benchmark_name'] != 'arithmean']
+        assert all(non_mean_baseline['simulation_cycles'] == 1.0), "Baseline normalization preserved"
+
