@@ -513,7 +513,7 @@ class TestE2EIntegration:
         
         # Step 6: Generate Plot
         print(f"\n📊 Step 6: Generate Plot")
-        from src.plotting.plot_engine import PlotGenerator
+        from src.plotting import PlotFactory, PlotRenderer
         
         # Create plot configuration
         plot_config = {
@@ -537,8 +537,9 @@ class TestE2EIntegration:
             }
         }
         
-        plotter = PlotGenerator(data, plot_config)
-        plotter.generate()
+        plot = PlotFactory.create_plot(data, plot_config)
+        renderer = PlotRenderer()
+        renderer.render(plot)
         
         output_pdf = tmp_path / "normalized_simticks.pdf"
         assert output_pdf.exists(), "PDF plot should be generated"

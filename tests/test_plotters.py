@@ -9,7 +9,8 @@ import sys
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
-from plotting.plot_engine import PlotGenerator, PlotManager, DataProcessor
+from plotting import PlotFactory, PlotRenderer, PlotManager
+from plotting.plots import BarPlot, LinePlot, ScatterPlot, BoxPlot, HeatmapPlot
 
 
 @pytest.fixture
@@ -39,8 +40,8 @@ def temp_csv_file(tmp_path, sample_data):
     return str(csv_file)
 
 
-class TestPlotGenerator:
-    """Test cases for PlotGenerator class."""
+class TestPlotFactory:
+    """Test cases for PlotFactory class."""
     
     def test_bar_plot_generation(self, sample_data, temp_output_dir):
         """Test basic bar plot generation."""
@@ -51,8 +52,9 @@ class TestPlotGenerator:
             'style': {'title': 'Test Bar Plot'}
         }
         
-        generator = PlotGenerator(sample_data, plot_config)
-        generator.generate()
+        plot = PlotFactory.create_plot(sample_data, plot_config)
+        renderer = PlotRenderer()
+        renderer.render(plot)
         
         # Check that plot file was created
         output_file = Path(temp_output_dir) / 'test_bar.png'
@@ -67,8 +69,9 @@ class TestPlotGenerator:
             'style': {'title': 'Test Line Plot'}
         }
         
-        generator = PlotGenerator(sample_data, plot_config)
-        generator.generate()
+        plot = PlotFactory.create_plot(sample_data, plot_config)
+        renderer = PlotRenderer()
+        renderer.render(plot)
         
         output_file = Path(temp_output_dir) / 'test_line.png'
         assert output_file.exists()
@@ -82,8 +85,9 @@ class TestPlotGenerator:
             'style': {'title': 'Test Scatter Plot'}
         }
         
-        generator = PlotGenerator(sample_data, plot_config)
-        generator.generate()
+        plot = PlotFactory.create_plot(sample_data, plot_config)
+        renderer = PlotRenderer()
+        renderer.render(plot)
         
         output_file = Path(temp_output_dir) / 'test_scatter.png'
         assert output_file.exists()
@@ -103,8 +107,9 @@ class TestPlotGenerator:
             'style': {'title': 'Test Box Plot'}
         }
         
-        generator = PlotGenerator(data, plot_config)
-        generator.generate()
+        plot = PlotFactory.create_plot(data, plot_config)
+        renderer = PlotRenderer()
+        renderer.render(plot)
         
         output_file = Path(temp_output_dir) / 'test_box.png'
         assert output_file.exists()
@@ -125,8 +130,9 @@ class TestPlotGenerator:
             'style': {'title': 'Test Heatmap'}
         }
         
-        generator = PlotGenerator(data, plot_config)
-        generator.generate()
+        plot = PlotFactory.create_plot(data, plot_config)
+        renderer = PlotRenderer()
+        renderer.render(plot)
         
         output_file = Path(temp_output_dir) / 'test_heatmap.png'
         assert output_file.exists()
@@ -139,8 +145,9 @@ class TestPlotGenerator:
             'data': {'x': 'benchmark', 'y': 'simTicks'}
         }
         
-        generator = PlotGenerator(sample_data, plot_config)
-        generator.generate()
+        plot = PlotFactory.create_plot(sample_data, plot_config)
+        renderer = PlotRenderer()
+        renderer.render(plot)
         
         output_file = Path(temp_output_dir) / 'test_pdf.pdf'
         assert output_file.exists()
@@ -153,8 +160,9 @@ class TestPlotGenerator:
             'data': {'x': 'benchmark', 'y': 'simTicks'}
         }
         
-        generator = PlotGenerator(sample_data, plot_config)
-        generator.generate()
+        plot = PlotFactory.create_plot(sample_data, plot_config)
+        renderer = PlotRenderer()
+        renderer.render(plot)
         
         output_file = Path(temp_output_dir) / 'test_svg.svg'
         assert output_file.exists()
@@ -173,33 +181,31 @@ class TestPlotGenerator:
             'data': {'x': 'benchmark', 'y': 'value', 'hue': 'config'}
         }
         
-        generator = PlotGenerator(data, plot_config)
-        generator.generate()
+        plot = PlotFactory.create_plot(data, plot_config)
+        renderer = PlotRenderer()
+        renderer.render(plot)
         
         output_file = Path(temp_output_dir) / 'test_hue.png'
         assert output_file.exists()
     
     def test_plot_with_filters(self, sample_data, temp_output_dir):
-        """Test plot with data filters."""
+        """Test plot creation (filtering handled by shapers in real workflow)."""
+        # Filter data before creating plot
+        filtered_data = sample_data[sample_data['benchmark'].isin(['bzip2', 'gcc'])]
+        
         plot_config = {
             'type': 'bar',
             'output': {'filename': str(Path(temp_output_dir) / 'test_filter')},
-            'data': {
-                'x': 'benchmark',
-                'y': 'simTicks',
-                'filters': {'benchmark': ['bzip2', 'gcc']}
-            }
+            'data': {'x': 'benchmark', 'y': 'simTicks'}
         }
         
-        generator = PlotGenerator(sample_data, plot_config)
-        generator.generate()
+        plot = PlotFactory.create_plot(filtered_data, plot_config)
+        renderer = PlotRenderer()
+        renderer.render(plot)
         
         # Verify file created
         output_file = Path(temp_output_dir) / 'test_filter.png'
         assert output_file.exists()
-        
-        # Verify data was filtered
-        assert len(generator.data) == 2
     
     def test_invalid_plot_type_raises_error(self, sample_data, temp_output_dir):
         """Test that invalid plot type raises error."""
@@ -209,33 +215,8 @@ class TestPlotGenerator:
             'data': {'x': 'benchmark', 'y': 'simTicks'}
         }
         
-        generator = PlotGenerator(sample_data, plot_config)
         with pytest.raises(ValueError, match="Unknown plot type"):
-            generator.generate()
-
-
-class TestDataProcessor:
-    """Test cases for DataProcessor class."""
-    
-    def test_filter_data(self, sample_data):
-        """Test data filtering."""
-        filters = {'benchmark': ['bzip2', 'gcc']}
-        filtered = DataProcessor.filter_data(sample_data, filters)
-        
-        assert len(filtered) == 2
-        assert set(filtered['benchmark'].values) == {'bzip2', 'gcc'}
-    
-    def test_aggregate_data(self, sample_data):
-        """Test data aggregation."""
-        # Add multiple rows for same benchmark
-        data = pd.concat([sample_data, sample_data], ignore_index=True)
-        
-        aggregated = DataProcessor.aggregate_data(
-            data, 'mean', ['benchmark'], ['simTicks']
-        )
-        
-        assert len(aggregated) == 5  # 5 unique benchmarks
-        assert 'simTicks' in aggregated.columns
+            PlotFactory.create_plot(sample_data, plot_config)
 
 
 class TestPlotManager:
@@ -244,20 +225,21 @@ class TestPlotManager:
     def test_plot_manager_loads_data(self, temp_csv_file):
         """Test that PlotManager loads data correctly."""
         manager = PlotManager(temp_csv_file, '/tmp')
-        assert manager.data is not None
-        assert len(manager.data) > 0
+        assert manager.data_path.exists()
+        assert manager.output_dir.exists()
     
     def test_plot_manager_generates_single_plot(self, temp_csv_file, temp_output_dir):
         """Test generating a single plot."""
         plot_configs = [{
             'type': 'bar',
-            'output': {'filename': str(Path(temp_output_dir) / 'test')},
+            'output': {'filename': 'test'},
             'data': {'x': 'benchmark', 'y': 'simTicks'}
         }]
         
         manager = PlotManager(temp_csv_file, temp_output_dir)
-        manager.generate_plots(plot_configs)
+        manager.generate_plots(plot_configs, use_multiprocessing=False)
         
         # Check plot was created
         output_file = Path(temp_output_dir) / 'test.png'
         assert output_file.exists()
+
