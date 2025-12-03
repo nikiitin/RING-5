@@ -6,3 +6,5 @@ numpy
 matplotlib
 seaborn
 jsonschema
+streamlit
+openpyxl
