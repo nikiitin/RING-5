@@ -9,135 +9,149 @@ import numpy as np
 class Mean(UniDfShaper):
 
 # Getters and setters
-    @property # Columns to calculate the mean for
-    def _summaryColumns(self) -> list:
-        return self._summaryColumns_data
-    @_summaryColumns.setter
-    def _summaryColumns(self, value: Any) -> None:
+    @property # Numeric columns to calculate the mean for
+    def _meanVars(self) -> list:
+        return self._meanVars_data
+    @_meanVars.setter
+    def _meanVars(self, value: Any) -> None:
         utils.checkVarType(value, list)
         for item in value:
             utils.checkVarType(item, str)
-        self._summaryColumns_data = value
+        self._meanVars_data = value
+    
     @property # Algorithm to use for calculating the mean
     def _meanAlgorithm(self) -> str:
         return self._meanAlgorithm_function
     @_meanAlgorithm.setter
     def _meanAlgorithm(self, value: Any) -> None:
         utils.checkVarType(value, str)
-        if value not in ["amean", "gmean", "hmean"]:
-            raise ValueError("The 'meanAlgorithm' parameter must be one of 'amean', 'gmean', or 'hmean'.")
+        if value not in ["arithmean", "geomean", "hmean"]:
+            raise ValueError("The 'meanAlgorithm' parameter must be one of 'arithmean', 'geomean', or 'hmean'.")
         self._meanAlgorithm_function = value
-    @property # Name to replace the summary columns with in the new rows
-    def _dstName(self) -> str:
-        return self._dstName_data
-    @_dstName.setter
-    def _dstName(self, value: Any) -> None:
+    
+    @property # Column to group by (e.g., config_description_abbrev)
+    def _groupingColumn(self) -> str:
+        return self._groupingColumn_data
+    @_groupingColumn.setter
+    def _groupingColumn(self, value: Any) -> None:
         utils.checkVarType(value, str)
-        self._dstName_data = value
+        self._groupingColumn_data = value
+    
+    @property # Column to replace with mean algorithm name (e.g., benchmark_name)
+    def _replacingColumn(self) -> str:
+        return self._replacingColumn_data
+    @_replacingColumn.setter
+    def _replacingColumn(self, value: Any) -> None:
+        utils.checkVarType(value, str)
+        self._replacingColumn_data = value
 
     def __init__(self, params: dict) -> None:
         super().__init__(params)
-        self._summaryColumns = utils.getElementValue(self._params, "summaryColumns")
+        self._meanVars = utils.getElementValue(self._params, "meanVars")
         self._meanAlgorithm = utils.getElementValue(self._params, "meanAlgorithm")
-        self._dstName = utils.getElementValue(self._params, "dstColumn")
+        self._groupingColumn = utils.getElementValue(self._params, "groupingColumn")
+        self._replacingColumn = utils.getElementValue(self._params, "replacingColumn")
 
     def _verifyParams(self) -> bool:
         verified = super()._verifyParams()
-        # Checks for meanSrcVars
-        utils.checkElementExists(self._params, "summaryColumns")
+        # Checks for required parameters
+        utils.checkElementExists(self._params, "meanVars")
         utils.checkElementExists(self._params, "meanAlgorithm")
-        utils.checkElementExists(self._params, "dstColumn")
+        utils.checkElementExists(self._params, "groupingColumn")
+        utils.checkElementExists(self._params, "replacingColumn")
         return verified
 
     def _verifyPreconditions(self, data_frame: pd.DataFrame) -> bool:
         verified = super()._verifyPreconditions(data_frame)
-        # Check that the summary columns exist in the data frame
-        for col in self._summaryColumns:
+        # Check that the meanVars columns exist in the data frame
+        for col in self._meanVars:
             if col not in data_frame.columns:
-                raise ValueError(f"The column {col} does not exist in the data frame! Stopping")
-        if data_frame.select_dtypes(include=np.number).empty:
-            raise ValueError("The data frame does not contain any numeric columns! Stopping")
-        # Check that the dstName is not in the data frame
-        if self._dstName in data_frame.columns:
-            raise ValueError(f"The column {self._dstName} already exists in the data frame! Stopping")
+                raise ValueError(f"The mean variable column '{col}' does not exist in the data frame! Stopping")
+        
+        # Check that the grouping column exists
+        if self._groupingColumn not in data_frame.columns:
+            raise ValueError(f"The grouping column '{self._groupingColumn}' does not exist in the data frame! Stopping")
+        
+        # Check that the replacing column exists
+        if self._replacingColumn not in data_frame.columns:
+            raise ValueError(f"The replacing column '{self._replacingColumn}' does not exist in the data frame! Stopping")
+        
+        # Check that meanVars are numeric
+        for col in self._meanVars:
+            if not pd.api.types.is_numeric_dtype(data_frame[col]):
+                raise ValueError(f"The mean variable column '{col}' is not numeric! Stopping")
+        
         return verified
 
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
         data_frame = super().__call__(data_frame)
-        # Get the numeric columns
-        numeric_cols = data_frame.select_dtypes(include=np.number).columns.tolist()
-        # Get the non-numeric columns
-        config_cols = [col for col in data_frame.columns
-                       if col not in numeric_cols
-                       and col not in self._summaryColumns]
-
-        # For every combination of summary columns, calculate the mean
-        # and add it to the data frame
-
-        # Get the different combinations of summary columns
-        summary_cols = data_frame[self._summaryColumns].drop_duplicates()
-
-        # Calculate the mean for each combination of summary columns
-        means_calculated = False  # Flag to track if any means were calculated
-        all_means_rows = []  # Store the means rows for concatenation
-        for _, row in summary_cols.iterrows():
-            # Get the rows that match the current combination of summary columns
-            sys_data = data_frame.loc[(data_frame[self._summaryColumns] == row).all(axis=1)]
-
-            # Calculate the means for the numeric columns
-            if self._meanAlgorithm == "amean":
-                means = sys_data[numeric_cols].mean()
-            elif self._meanAlgorithm == "gmean":
-                means = sys_data[numeric_cols].apply(gmean)
-            elif self._meanAlgorithm == "hmean":
-                means = sys_data[numeric_cols].apply(hmean)
-            else:
-                raise ValueError("Unsupported mean algorithm")
-            means_calculated = True
-
-            # Create a new Series for the means row
-            means_row = pd.Series(dtype='object')  # Create an empty series to start
-            # Assign the mean values
-            for col in numeric_cols:
-                means_row[col] = means[col] if col in means else None
-
-            # Assign the dstName value to the config columns
-            for col in config_cols:
-                means_row[col] = self._dstName
-
-            # Assign the summary column values from the current row
-            for col in self._summaryColumns:
-                means_row[col] = row[col]  # Use the values from the 'row' Series
-
-            all_means_rows.append(means_row) # Append means row
         
-        if means_calculated:
-            # Concatenate all means rows to original dataframe
-            means_df = pd.DataFrame(all_means_rows)
-            data_frame = pd.concat([data_frame, means_df], ignore_index=True)
+        # Create a copy to avoid modifying the original
+        result = data_frame.copy()
+        
+        # Group by the grouping column
+        grouped = result.groupby(self._groupingColumn)
+        
+        # Calculate the mean based on the algorithm
+        if self._meanAlgorithm == "arithmean":
+            mean_df = grouped[self._meanVars].mean().reset_index()
+        elif self._meanAlgorithm == "geomean":
+            mean_df = grouped[self._meanVars].agg(gmean).reset_index()
+        elif self._meanAlgorithm == "hmean":
+            mean_df = grouped[self._meanVars].agg(hmean).reset_index()
+        else:
+            raise ValueError(f"Unsupported mean algorithm: {self._meanAlgorithm}")
+        
+        # Set the replacing column to the algorithm name
+        mean_df[self._replacingColumn] = self._meanAlgorithm
+        
+        # For all other columns (not meanVars, not groupingColumn, not replacingColumn),
+        # fill with appropriate values from the first row of each group
+        other_cols = [col for col in result.columns 
+                     if col not in self._meanVars 
+                     and col != self._groupingColumn 
+                     and col != self._replacingColumn]
+        
+        for col in other_cols:
+            # Get the first value from each group for this column
+            first_values = grouped[col].first().reset_index()
+            mean_df[col] = first_values[col]
+        
+        # Concatenate the mean rows to the original dataframe
+        result = pd.concat([result, mean_df], ignore_index=True)
+        
+        return result
 
-        return data_frame
 
 # Main function to test the Mean class
 def test():
     # Create a sample data frame
     df = pd.DataFrame({
-    'system_id': ['S1', 'S1', 'S1', 'S1', 'S2', 'S2', 'S2', 'S2', 'S3', 'S3', 'S3', 'S3'],
-    'benchmark': ['B1', 'B2', 'B1', 'B2', 'B1', 'B2', 'B1', 'B2', 'B1', 'B2', 'B1', 'B2'],
-    'throughput': [100, 105, 120, 118, 80, 82, 78, 85, 90, 95, 100, 102],
-    'latency': [1.2, 1.1, 1.5, 1.4, 2.0, 1.9, 2.1, 2.2, 1.8, 1.7, 1.6, 1.5],
-    'config_param': ['A1', 'A1', 'A2', 'A2', 'B1', 'B1', 'B2', 'B2', 'C1', 'C1', 'C2', 'C2']
+        'system_id': ['S1', 'S1', 'S1', 'S1', 'S2', 'S2', 'S2', 'S2', 'S3', 'S3', 'S3', 'S3'],
+        'benchmark': ['B1', 'B2', 'B1', 'B2', 'B1', 'B2', 'B1', 'B2', 'B1', 'B2', 'B1', 'B2'],
+        'throughput': [100, 105, 120, 118, 80, 82, 78, 85, 90, 95, 100, 102],
+        'latency': [1.2, 1.1, 1.5, 1.4, 2.0, 1.9, 2.1, 2.2, 1.8, 1.7, 1.6, 1.5],
+        'config_param': ['A1', 'A1', 'A2', 'A2', 'B1', 'B1', 'B2', 'B2', 'C1', 'C1', 'C2', 'C2']
     })
     params = {
-        'summaryColumns': ['system_id', "config_param"],
-        'meanAlgorithm': 'amean',
-        'dstColumn': 'ALL',
+        'meanVars': ['throughput', 'latency'],
+        'meanAlgorithm': 'arithmean',
+        'groupingColumn': 'system_id',
+        'replacingColumn': 'benchmark',
         'srcCsv': 'meantest.csv',
         'dstCsv': 'output_data.csv'
     }
-    print("input: ")
+    print("Input:")
     print(df)
+    print("\n" + "="*80 + "\n")
     mean_shaper = Mean(params)
     df = mean_shaper(df)
-    print("result: ")
+    print("Result:")
     print(df)
+    print("\n" + "="*80 + "\n")
+    print("Mean rows (where benchmark == 'arithmean'):")
+    print(df[df['benchmark'] == 'arithmean'])
+
+
+if __name__ == "__main__":
+    test()

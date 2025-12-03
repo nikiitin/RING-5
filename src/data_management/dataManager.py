@@ -85,8 +85,9 @@ class DataManager(metaclass=MetaDataManager):
         if DataManager._categorical_columns is None:
             # Get the categorical columns from the parameters
             DataManager._categorical_columns = params.getCategoricalColumns()
-            # Set categorical columns to exclude 'random_seed'
-            DataManager._categorical_columns.remove("random_seed")
+            # Set categorical columns to exclude 'random_seed' if present
+            if "random_seed" in DataManager._categorical_columns:
+                DataManager._categorical_columns.remove("random_seed")
         # Identify numeric statistic columns (all columns not in categorical_columns or 'random_seed').
         if DataManager._statistic_columns is None:
             DataManager._statistic_columns = [col for col in DataManager._df.columns if col not in DataManager._categorical_columns and col != "random_seed"]
@@ -121,6 +122,12 @@ class DataManager(metaclass=MetaDataManager):
         """
         self._verifyParams()
         pass
+    
+    def manage(self) -> None:
+        """
+        Alias for __call__() to support both calling conventions.
+        """
+        return self.__call__()
 
     @classmethod
     def persist(cls) -> None:

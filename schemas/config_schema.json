@@ -1,0 +1,315 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "RING-5 Configuration Schema",
+  "description": "Main configuration schema for RING-5 gem5 data analyzer",
+  "type": "object",
+  "required": ["outputPath", "parseConfig", "plots"],
+  "properties": {
+    "outputPath": {
+      "type": "string",
+      "description": "Directory path where output files and plots will be saved"
+    },
+    "parseConfig": {
+      "type": "object",
+      "description": "Configuration for data parsing from gem5 stats files",
+      "required": ["parser"],
+      "properties": {
+        "parser": {
+          "type": "string",
+          "description": "Parser type to use",
+          "enum": ["gem5_stats", "custom"]
+        },
+        "statsPath": {
+          "type": "string",
+          "description": "Path to gem5 stats files"
+        },
+        "statsPattern": {
+          "type": "string",
+          "description": "Glob pattern for stats files (e.g., '**/stats.txt')",
+          "default": "**/stats.txt"
+        },
+        "compress": {
+          "type": "boolean",
+          "description": "Whether to compress intermediate files",
+          "default": false
+        },
+        "variables": {
+          "type": "array",
+          "description": "Variables to extract from stats files",
+          "items": {
+            "type": "object",
+            "required": ["name", "type"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Variable name in stats file"
+              },
+              "type": {
+                "type": "string",
+                "enum": ["scalar", "vector", "distribution", "configuration"],
+                "description": "Type of variable"
+              },
+              "rename": {
+                "type": "string",
+                "description": "Optional new name for the variable in output"
+              }
+            }
+          }
+        }
+      }
+    },
+    "dataManagers": {
+      "type": "object",
+      "description": "Data preprocessing and management operations",
+      "properties": {
+        "seedsReducer": {
+          "type": "boolean",
+          "description": "Reduce multiple random seeds by calculating mean and std",
+          "default": false
+        },
+        "outlierRemover": {
+          "type": "object",
+          "description": "Remove statistical outliers from data",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true
+            },
+            "column": {
+              "type": "string",
+              "description": "Column to use for outlier detection"
+            },
+            "method": {
+              "type": "string",
+              "enum": ["iqr", "zscore"],
+              "default": "iqr",
+              "description": "Outlier detection method"
+            },
+            "threshold": {
+              "type": "number",
+              "default": 1.5,
+              "description": "Threshold for outlier detection (IQR multiplier or z-score)"
+            }
+          }
+        },
+        "normalizer": {
+          "type": "object",
+          "description": "Normalize data to baseline configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "baseline": {
+              "type": "object",
+              "description": "Baseline configuration for normalization",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "columns": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Columns to normalize"
+            },
+            "groupBy": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Group normalization by these columns"
+            }
+          }
+        }
+      }
+    },
+    "plots": {
+      "type": "array",
+      "description": "List of plots to generate",
+      "items": {
+        "$ref": "#/definitions/plot"
+      }
+    }
+  },
+  "definitions": {
+    "plot": {
+      "type": "object",
+      "required": ["type", "data", "output"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "bar",
+            "line",
+            "heatmap",
+            "grouped_bar",
+            "stacked_bar",
+            "box",
+            "violin",
+            "scatter"
+          ],
+          "description": "Type of plot to generate"
+        },
+        "output": {
+          "type": "object",
+          "required": ["filename"],
+          "properties": {
+            "filename": {
+              "type": "string",
+              "description": "Output filename (without extension)"
+            },
+            "format": {
+              "type": "string",
+              "enum": ["png", "pdf", "svg"],
+              "default": "png"
+            },
+            "dpi": {
+              "type": "integer",
+              "default": 300
+            }
+          }
+        },
+        "data": {
+          "type": "object",
+          "required": ["x", "y"],
+          "properties": {
+            "x": {
+              "oneOf": [
+                {"type": "string"},
+                {"type": "array", "items": {"type": "string"}}
+              ],
+              "description": "X-axis variable(s)"
+            },
+            "y": {
+              "oneOf": [
+                {"type": "string"},
+                {"type": "array", "items": {"type": "string"}}
+              ],
+              "description": "Y-axis variable(s)"
+            },
+            "hue": {
+              "type": "string",
+              "description": "Variable for color grouping"
+            },
+            "filters": {
+              "type": "object",
+              "description": "Filter data before plotting",
+              "additionalProperties": {
+                "oneOf": [
+                  {"type": "string"},
+                  {"type": "number"},
+                  {"type": "array"}
+                ]
+              }
+            },
+            "aggregate": {
+              "type": "object",
+              "properties": {
+                "method": {
+                  "type": "string",
+                  "enum": ["mean", "median", "sum", "geomean"],
+                  "default": "mean"
+                },
+                "groupBy": {
+                  "type": "array",
+                  "items": {"type": "string"}
+                }
+              }
+            }
+          }
+        },
+        "style": {
+          "type": "object",
+          "description": "Plot styling options",
+          "properties": {
+            "title": {
+              "type": "string",
+              "default": ""
+            },
+            "xlabel": {
+              "type": "string",
+              "default": ""
+            },
+            "ylabel": {
+              "type": "string",
+              "default": ""
+            },
+            "width": {
+              "type": "number",
+              "default": 10,
+              "description": "Figure width in inches"
+            },
+            "height": {
+              "type": "number",
+              "default": 6,
+              "description": "Figure height in inches"
+            },
+            "legend": {
+              "type": "object",
+              "properties": {
+                "show": {
+                  "type": "boolean",
+                  "default": true
+                },
+                "title": {
+                  "type": "string"
+                },
+                "location": {
+                  "type": "string",
+                  "enum": ["best", "upper right", "upper left", "lower left", "lower right", "right", "center left", "center right", "lower center", "upper center", "center"],
+                  "default": "best"
+                }
+              }
+            },
+            "xlim": {
+              "type": "array",
+              "items": {"type": "number"},
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "ylim": {
+              "type": "array",
+              "items": {"type": "number"},
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "grid": {
+              "type": "boolean",
+              "default": false
+            },
+            "theme": {
+              "type": "string",
+              "enum": ["default", "whitegrid", "darkgrid", "white", "dark", "ticks"],
+              "default": "default"
+            }
+          }
+        },
+        "facet": {
+          "type": "object",
+          "description": "Create multiple subplots based on variable values",
+          "properties": {
+            "by": {
+              "type": "string",
+              "description": "Variable to facet by"
+            },
+            "ncols": {
+              "type": "integer",
+              "default": 2,
+              "description": "Number of columns in facet grid"
+            },
+            "sharey": {
+              "type": "boolean",
+              "default": true
+            },
+            "sharex": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        }
+      }
+    }
+  }
+}

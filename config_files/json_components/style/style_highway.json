@@ -1,25 +1,27 @@
 [
     {
-        "styleName": "comparison",
+        "styleName": "default",
         "dataStyle": {
             "apparel": "Barplot_default",
             "title": "",
             "xAxisName": "",
             "yAxisName": "Ex. time(normalized)",
             "width": 75,
-            "height": 30,
+            "height": 35,
             "format": "png",
             "legendTitle": "Conflict resolution",
-            "nLegendElementsPerRow": 2,
+            "nLegendElementsPerRow": 1,
             "xSplitPoints": [
                 
             ],
             "legendNames": [
-                "rw",
-                "rl",
-                "CHATS",
-                "rs-pic",
-                "rs-base"
+                "Req-wins",
+                "PiC",
+                "PiC+NCNP",
+                "PiC+ICP",
+                "Rs-Cid",
+                "Woper",
+                "Highway"
             ],
             "breaks": [
                 "0",

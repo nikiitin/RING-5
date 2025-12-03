@@ -21,7 +21,6 @@ class DivideOperator(operator):
         # Divide the src1 column by the src2 column and store the result in the dst column.
         # Avoid division by zero by letting the result be the src1 column
         # if the src2 column is zero.
-        print(f"Dividing {src1} by {src2} and storing the result in {dst}")
         dataFrame[dst] = dataFrame[src1] / dataFrame[src2].replace(0, 1)
         return dataFrame
     
@@ -31,7 +30,6 @@ class SumOperator(operator):
     """
     def __call__(self, dataFrame: pd.DataFrame, src1: str, src2: str, dst: str) -> pd.DataFrame:
         # Sum the src1 column and the src2 column and store the result in the dst column.
-        print(f"Summing {src1} and {src2} and storing the result in {dst}")
         dataFrame[dst] = dataFrame[src1] + dataFrame[src2]
         return dataFrame
 
@@ -78,9 +76,29 @@ class Preprocessor(DataManager):
     
     def __init__(self, params, json):
         super().__init__(params, json)
-        # Check if the preprocessor is present in the json file
-        utils.checkElementExists(self._json, "preprocessor")
-        self._preprocessorElement = self._json["preprocessor"]
+        # Handle two JSON formats:
+        # 1. Simple: {"operation": "divide", "column1": "a", "column2": "b"}
+        # 2. Nested: {"preprocessor": {"result_col": {"operator": "divide", "src1": "a", "src2": "b"}}}
+        
+        if "preprocessor" in self._json:
+            # Nested format
+            self._preprocessorElement = self._json["preprocessor"]
+        elif "operation" in self._json:
+            # Simple format - convert to nested format
+            operation = self._json["operation"]
+            column1 = self._json.get("column1", self._json.get("src1"))
+            column2 = self._json.get("column2", self._json.get("src2"))
+            dst_col = self._json.get("dst", f"{column1}/{column2}" if operation == "divide" else f"{column1}+{column2}")
+            
+            self._preprocessorElement = {
+                dst_col: {
+                    "operator": operation,
+                    "src1": column1,
+                    "src2": column2
+                }
+            }
+        else:
+            raise ValueError("Preprocessor requires either 'preprocessor' or 'operation' key in JSON")
 
     def __call__(self):
         """

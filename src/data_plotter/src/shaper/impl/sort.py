@@ -27,18 +27,22 @@ class Sort(UniDfShaper):
     
     def __call__(self, data_frame: Any) -> pd.DataFrame:
         data_frame = super().__call__(data_frame)
+        # Make a copy to avoid SettingWithCopyWarning
+        result = data_frame.copy()
+        
         print("order_dict: ", self.order_dict)
         for column, orders in self.order_dict.items():
             print("column: ", column)
             print("orders: ", orders)
-            print(pd.Categorical(data_frame[column], categories=orders, ordered=True))
-            data_frame[column] = pd.Categorical(data_frame[column], categories=orders, ordered=True)
-        data_frame.sort_values(by=list(self.order_dict.keys()), inplace=True)
+            print(pd.Categorical(result[column], categories=orders, ordered=True))
+            result[column] = pd.Categorical(result[column], categories=orders, ordered=True)
+        
+        result = result.sort_values(by=list(self.order_dict.keys()))
 
         for column in self.order_dict:
-            data_frame[column] = data_frame[column].astype(str)
+            result[column] = result[column].astype(str)
         
-        return data_frame
+        return result
     
 # Main function to test the sort class
 def test():

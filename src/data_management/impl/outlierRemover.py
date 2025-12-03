@@ -9,7 +9,10 @@ class OutlierRemover(DataManager):
     """
     def _verifyParams(self):
         super()._verifyParams()
-        # Outlier stat must be an string and that column must exist in the DataFrame
+        # Skip validation if no outlier removal is configured
+        if self._outlierStat is None:
+            return
+        # Outlier stat must be a string and that column must exist in the DataFrame
         if not isinstance(self._outlierStat, str):
             raise ValueError("Outlier stat element is not correctly defined at json file. Must be a string")
         if self._outlierStat not in DataManager._df.columns:
@@ -23,13 +26,29 @@ class OutlierRemover(DataManager):
             params: The parameters for the outlier remover.
         """
         super().__init__(params, json)
-        # Check if the outlierRemover is present in the json file
-        utils.checkElementExists(self._json, "outlierRemover")
-        self._outlierRemoverElement = self._json["outlierRemover"]
-        # Outlier remover should contain a statistic used as reference for the
-        # outlier removal. That should be one of the statistic columns.
-        utils.checkElementExists(self._outlierRemoverElement, "outlierStat")
-        self._outlierStat = self._outlierRemoverElement["outlierStat"]
+        
+        # Handle two JSON formats:
+        # 1. Empty: {} - skip outlier removal
+        # 2. Nested: {"outlierRemover": {"outlierStat": "column_name"}}
+        # 3. Simple: {"outlierStat": "column_name"}
+        
+        if not self._json or len(self._json) == 0:
+            # Empty dict - skip outlier removal
+            self._outlierRemoverElement = None
+            self._outlierStat = None
+        elif "outlierRemover" in self._json:
+            # Nested format
+            self._outlierRemoverElement = self._json["outlierRemover"]
+            utils.checkElementExists(self._outlierRemoverElement, "outlierStat")
+            self._outlierStat = self._outlierRemoverElement["outlierStat"]
+        elif "outlierStat" in self._json:
+            # Simple format
+            self._outlierStat = self._json["outlierStat"]
+            self._outlierRemoverElement = self._json
+        else:
+            # No outlier removal config
+            self._outlierRemoverElement = None
+            self._outlierStat = None
 
     def __call__(self):
         """

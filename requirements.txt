@@ -1,3 +1,8 @@
 tqdm
 pytest
 pandas
+scipy
+numpy
+matplotlib
+seaborn
+jsonschema
