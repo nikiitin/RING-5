@@ -10,6 +10,17 @@
 
 ## ✨ Features
 
+### ⚙️ **Data Source Selection** (NEW!)
+Choose between two input methods:
+- **🔍 Parse gem5 Stats**: Direct parsing of raw gem5 output files
+  - Interactive variable selection
+  - Support for scalar, vector, distribution, and configuration variables
+  - Optional compression for remote filesystems (SSHFS)
+  - Automatic CSV generation
+- **📄 Upload CSV**: Pre-parsed CSV data
+  - Drag-and-drop or paste data
+  - Auto-detect separators
+
 ### 📤 **Interactive Data Upload**
 - **File Upload**: Drag-and-drop CSV files
 - **Paste Data**: Direct CSV data input
@@ -70,14 +81,42 @@ The app automatically opens at:
 
 ## 📖 User Guide
 
-### Step 1: Upload Data
+### Step 1: Choose Data Source (NEW!)
+1. Navigate to **⚙️ Data Source** page
+2. Select input method:
+
+   **Option A: Parse gem5 Stats Files**
+   - Choose "🔍 Parse gem5 Stats Files"
+   - Configure parser settings:
+     - **Stats Directory**: Path to gem5 output (e.g., `/path/to/gem5/runs`)
+     - **File Pattern**: Filename to search (e.g., `stats.txt`)
+     - **Compression**: Enable for remote/SSHFS filesystems
+   
+   - Define variables to extract:
+     - **Scalar**: Single values (simTicks, IPC, cache misses)
+     - **Vector**: Arrays (per-core stats, cache breakdown)
+     - **Distribution**: Statistical distributions
+     - **Configuration**: Metadata (benchmark, config, seed)
+   
+   - Click **▶️ Parse gem5 Stats Files**
+   - Wait for parsing to complete
+   - Review parsed data preview
+   
+   **Option B: Upload CSV**
+   - Choose "📄 I already have CSV data"
+   - Proceed to Upload Data page
+
+### Step 2: Upload Data (CSV Mode)
+### Step 2: Upload Data (CSV Mode)
 1. Navigate to **📤 Upload Data** page
 2. Choose upload method:
    - **Upload CSV File**: Click or drag-and-drop
    - **Paste Data**: Copy-paste CSV text
 3. Review data preview and statistics
 
-### Step 2: Configure Pipeline
+*(Skip this step if using parser - data is already loaded)*
+
+### Step 3: Configure Pipeline
 1. Navigate to **🔧 Configure Pipeline** page
 2. Enable and configure shapers:
    
@@ -105,7 +144,7 @@ The app automatically opens at:
 3. Click **▶️ Apply Configuration**
 4. Review processed data preview
 
-### Step 3: Generate Plots
+### Step 4: Generate Plots
 1. Navigate to **📊 Generate Plots** page
 2. Configure plot:
    
@@ -129,7 +168,7 @@ The app automatically opens at:
 4. Preview in browser
 5. Download generated file
 
-### Step 4: Export Results
+### Step 5: Export Results
 1. Navigate to **📈 Results** page
 2. Review summary statistics
 3. Browse processed data table
@@ -137,6 +176,88 @@ The app automatically opens at:
    - **CSV**: For spreadsheets
    - **JSON**: For programmatic use
    - **Excel**: For reports
+
+---
+
+## 🔍 gem5 Stats Parser
+
+### Overview
+RING-5 includes a high-performance parser for gem5 statistics files. The parser:
+- Extracts variables from raw gem5 output (stats.txt)
+- Supports multiple variable types (scalar, vector, distribution, configuration)
+- Handles recursive directory searches
+- Optional compression for remote filesystems
+- Generates CSV output for analysis
+
+### When to Use Parser vs CSV Upload
+
+**Use Parser (🔍) when:**
+- You have raw gem5 stats.txt files
+- Stats files are on remote cluster (via SSHFS)
+- You want to extract specific variables
+- You need automatic CSV generation
+
+**Use CSV Upload (📄) when:**
+- You already have parsed CSV data
+- Data is from previous RING-5 runs
+- Data is from other tools
+- You want quick iteration on analysis
+
+### Compression Feature
+
+**What is it?**
+The compression feature copies stats files from remote filesystems (e.g., SSHFS-mounted cluster) to local storage before parsing.
+
+**Why use it?**
+- **Performance**: Remote filesystem access is slow (especially SSHFS)
+- **Reliability**: Reduces network-related parsing failures
+- **Speed**: 10-100x faster parsing on local files
+
+**When to enable:**
+- ✅ Stats files on SSHFS-mounted remote cluster
+- ✅ Network filesystem (NFS, SMB)
+- ✅ Slow I/O performance
+- ❌ Files already local
+- ❌ SSD/NVMe local storage
+
+**How it works:**
+1. Scanner finds all matching stats files
+2. Files copied to local temp directory
+3. Parser processes local copies
+4. CSV generated from local data
+
+### Variable Types
+
+| Type | Description | Example | Use Case |
+|------|-------------|---------|----------|
+| **scalar** | Single numeric value | `simTicks`, `system.cpu.ipc` | Performance metrics |
+| **vector** | Array of values | Per-core stats, cache breakdown | Multi-dimensional data |
+| **distribution** | Statistical distribution | Latency histograms | Distribution analysis |
+| **configuration** | Metadata string | `benchmark_name`, `config_id`, `seed` | Grouping, filtering |
+
+### Example Parser Configuration
+
+```python
+# Parsing gem5 stats from remote cluster
+Stats Path: /mnt/cluster/gem5_runs
+File Pattern: stats.txt
+Compression: ✅ Enabled (SSHFS filesystem)
+
+Variables:
+- simTicks (scalar)           # Execution time
+- system.cpu.ipc (scalar)     # IPC
+- benchmark_name (configuration)  # Benchmark
+- config_description (configuration)  # Config
+- random_seed (configuration)  # Seed
+```
+
+**Result**: Parsed CSV with columns:
+```
+simTicks  system.cpu.ipc  benchmark_name  config_description  random_seed
+1234567   1.85           bzip2           baseline            1
+2345678   1.92           gcc             opt_l1              1
+...
+```
 
 ---
 

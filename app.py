@@ -9,6 +9,8 @@ import tempfile
 import shutil
 from pathlib import Path
 import sys
+import glob
+import os
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / 'src'))
@@ -71,6 +73,10 @@ if 'config' not in st.session_state:
     st.session_state.config = {}
 if 'temp_dir' not in st.session_state:
     st.session_state.temp_dir = None
+if 'csv_path' not in st.session_state:
+    st.session_state.csv_path = None
+if 'use_parser' not in st.session_state:
+    st.session_state.use_parser = False
 
 
 def main():
@@ -87,7 +93,7 @@ def main():
         
         page = st.radio(
             "Navigation",
-            ["📤 Upload Data", "🔧 Configure Pipeline", "📊 Generate Plots", "📈 Results"],
+            ["⚙️ Data Source", "📤 Upload Data", "🔧 Configure Pipeline", "📊 Generate Plots", "📈 Results"],
             label_visibility="collapsed"
         )
         
@@ -96,6 +102,7 @@ def main():
         st.info("""
         **Pure Python** implementation for gem5 data analysis.
         
+        ✅ Parse gem5 stats OR upload CSV  
         ✅ No R dependencies  
         ✅ Interactive configuration  
         ✅ Real-time visualization  
@@ -106,13 +113,17 @@ def main():
             st.session_state.data = None
             st.session_state.processed_data = None
             st.session_state.config = {}
+            st.session_state.csv_path = None
+            st.session_state.use_parser = False
             if st.session_state.temp_dir and Path(st.session_state.temp_dir).exists():
                 shutil.rmtree(st.session_state.temp_dir)
             st.session_state.temp_dir = None
             st.rerun()
     
     # Main content
-    if page == "📤 Upload Data":
+    if page == "⚙️ Data Source":
+        show_data_source_page()
+    elif page == "📤 Upload Data":
         show_upload_page()
     elif page == "🔧 Configure Pipeline":
         show_configure_page()
@@ -122,10 +133,337 @@ def main():
         show_results_page()
 
 
+
+
+def show_data_source_page():
+    """Data source selection page - Parser or CSV."""
+    st.markdown('<div class="step-header">', unsafe_allow_html=True)
+    st.markdown("## ⚙️ Step 1: Choose Data Source")
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+    st.info("""
+    **RING-5 supports two data input methods:**
+    
+    - 🔍 **Parse gem5 Stats Files**: For raw gem5 output (stats.txt files)
+    - 📄 **Upload CSV Directly**: If you already have parsed CSV data
+    """)
+    
+    choice = st.radio(
+        "Select your data source:",
+        ["🔍 Parse gem5 Stats Files", "📄 I already have CSV data"],
+        key="data_source_choice"
+    )
+    
+    if choice == "🔍 Parse gem5 Stats Files":
+        st.session_state.use_parser = True
+        show_parser_configuration()
+    else:
+        st.session_state.use_parser = False
+        st.success("✅ CSV mode selected. Proceed to **📤 Upload Data** to upload your CSV file.")
+
+
+def show_parser_configuration():
+    """Parser configuration interface."""
+    st.markdown("---")
+    st.markdown("### 🔍 gem5 Stats Parser Configuration")
+    
+    st.markdown("#### 📁 File Location")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        stats_path = st.text_input(
+            "Stats directory path",
+            value="/path/to/gem5/stats",
+            help="Directory containing gem5 stats files (can include subdirectories)"
+        )
+    
+    with col2:
+        stats_pattern = st.text_input(
+            "File pattern",
+            value="stats.txt",
+            help="Filename pattern to search for (e.g., stats.txt, *.txt)"
+        )
+    
+    # Compression option
+    st.markdown("#### 🗜️ Remote Filesystem Optimization")
+    
+    compress_data = st.checkbox(
+        "Enable compression (for remote/SSHFS filesystems)",
+        value=False,
+        help="Compress and copy stats files locally for faster processing. Use this if your stats are on a remote cluster mounted via SSHFS."
+    )
+    
+    if compress_data:
+        st.info("""
+        **Compression Mode Enabled:**
+        
+        Stats files will be copied from the remote filesystem to a local directory and compressed. 
+        This significantly speeds up parsing when working with SSHFS-mounted directories.
+        """)
+    
+    # Variables configuration
+    st.markdown("#### 📊 Variables to Extract")
+    
+    st.markdown("""
+    Define which variables to extract from gem5 stats files. You can add:
+    - **Scalar**: Single numeric values (e.g., simTicks, IPC)
+    - **Vector**: Arrays of values (e.g., cache miss breakdown)
+    - **Distribution**: Statistical distributions
+    - **Configuration**: Metadata (benchmark name, config ID, seed)
+    """)
+    
+    # Initialize variables list in session state
+    if 'parse_variables' not in st.session_state:
+        st.session_state.parse_variables = [
+            {"name": "simTicks", "type": "scalar"},
+            {"name": "benchmark_name", "type": "configuration"},
+            {"name": "config_description", "type": "configuration"}
+        ]
+    
+    # Display existing variables
+    st.markdown("**Current Variables:**")
+    
+    for idx, var in enumerate(st.session_state.parse_variables):
+        col1, col2, col3 = st.columns([3, 2, 1])
+        
+        with col1:
+            st.text_input(
+                f"Variable {idx+1} Name",
+                value=var.get("name", ""),
+                key=f"var_name_{idx}",
+                label_visibility="collapsed"
+            )
+        
+        with col2:
+            st.selectbox(
+                f"Type {idx+1}",
+                options=["scalar", "vector", "distribution", "configuration"],
+                index=["scalar", "vector", "distribution", "configuration"].index(var.get("type", "scalar")),
+                key=f"var_type_{idx}",
+                label_visibility="collapsed"
+            )
+        
+        with col3:
+            if st.button("🗑️", key=f"delete_var_{idx}"):
+                st.session_state.parse_variables.pop(idx)
+                st.rerun()
+    
+    # Add variable button
+    col1, col2 = st.columns([1, 4])
+    with col1:
+        if st.button("➕ Add Variable", use_container_width=True):
+            st.session_state.parse_variables.append({"name": "new_variable", "type": "scalar"})
+            st.rerun()
+    
+    # Preview configuration
+    st.markdown("#### ⚙️ Configuration Preview")
+    
+    # Update variables from inputs
+    for idx in range(len(st.session_state.parse_variables)):
+        st.session_state.parse_variables[idx]["name"] = st.session_state.get(f"var_name_{idx}", "")
+        st.session_state.parse_variables[idx]["type"] = st.session_state.get(f"var_type_{idx}", "scalar")
+    
+    parse_config = {
+        "parser": "gem5_stats",
+        "statsPath": stats_path,
+        "statsPattern": stats_pattern,
+        "compress": compress_data,
+        "variables": st.session_state.parse_variables
+    }
+    
+    st.json(parse_config)
+    
+    # Parse button
+    st.markdown("---")
+    
+    if st.button("▶️ Parse gem5 Stats Files", type="primary", use_container_width=True):
+        # Validate inputs
+        if not stats_path or stats_path == "/path/to/gem5/stats":
+            st.error("❌ Please specify a valid stats directory path!")
+            return
+        
+        if not Path(stats_path).exists():
+            st.error(f"❌ Directory not found: {stats_path}")
+            return
+        
+        # Check for files
+        pattern = f"{stats_path}/**/{stats_pattern}"
+        files_found = glob.glob(pattern, recursive=True)
+        
+        if len(files_found) == 0:
+            st.warning(f"⚠️ No files found matching pattern: {pattern}")
+            return
+        
+        st.info(f"📁 Found {len(files_found)} files to parse")
+        
+        # Run parser
+        with st.spinner("🔍 Parsing gem5 stats files..."):
+            try:
+                csv_path = run_parser(
+                    stats_path=stats_path,
+                    stats_pattern=stats_pattern,
+                    compress=compress_data,
+                    variables=st.session_state.parse_variables
+                )
+                
+                if csv_path and Path(csv_path).exists():
+                    # Load the parsed CSV
+                    data = pd.read_csv(csv_path, sep=r'\s+')
+                    st.session_state.data = data
+                    st.session_state.csv_path = csv_path
+                    
+                    st.success(f"✅ Successfully parsed {len(data)} rows!")
+                    st.markdown("### 📊 Parsed Data Preview")
+                    st.dataframe(data.head(20), use_container_width=True)
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.metric("Rows", len(data))
+                    with col2:
+                        st.metric("Columns", len(data.columns))
+                    
+                    st.info("✨ Data ready! Proceed to **🔧 Configure Pipeline**")
+                else:
+                    st.error("❌ Parser did not generate CSV file")
+                    
+            except Exception as e:
+                st.error(f"❌ Error during parsing: {e}")
+                import traceback
+                st.code(traceback.format_exc())
+
+
+def run_parser(stats_path: str, stats_pattern: str, compress: bool, variables: list) -> str:
+    """Run the gem5 stats parser and return path to generated CSV."""
+    from argumentParser import AnalyzerInfo
+    from src.data_parser.src.dataParserFactory import DataParserFactory
+    
+    # Create temp directory if needed
+    if not st.session_state.temp_dir:
+        st.session_state.temp_dir = tempfile.mkdtemp()
+    
+    output_dir = st.session_state.temp_dir
+    
+    # Create parse config JSON
+    parse_config_data = {
+        "outputPath": output_dir,
+        "parseConfig": {
+            "file": "webapp_parse",
+            "config": "webapp_config"
+        }
+    }
+    
+    # Create the parse configuration file
+    parse_component_dir = Path("config_files/json_components/parse")
+    parse_component_dir.mkdir(parents=True, exist_ok=True)
+    
+    parse_config_file = parse_component_dir / "webapp_parse.json"
+    
+    # Map variables to parser format
+    parser_vars = []
+    for var in variables:
+        var_config = {
+            "id": var["name"],
+            "type": var["type"]
+        }
+        parser_vars.append(var_config)
+    
+    # Create parser configuration
+    parser_config = [{
+        "id": "webapp_config",
+        "impl": "perl",
+        "compress": "True" if compress else "False",
+        "parsings": [{
+            "path": stats_path,
+            "files": stats_pattern,
+            "vars": parser_vars
+        }]
+    }]
+    
+    # Write parser config
+    with open(parse_config_file, 'w') as f:
+        json.dump(parser_config, f, indent=2)
+    
+    # Write main config
+    config_file = Path(output_dir) / "config.json"
+    with open(config_file, 'w') as f:
+        json.dump(parse_config_data, f, indent=2)
+    
+    # Create AnalyzerInfo
+    class SimpleAnalyzerInfo:
+        def __init__(self, output_dir, config_json):
+            self.output_dir = output_dir
+            self.config_json = config_json
+        
+        def getOutputDir(self):
+            return self.output_dir
+        
+        def getJson(self):
+            return self.config_json
+        
+        @staticmethod
+        def addCategoricalStats(var_name):
+            pass
+    
+    analyzer_info = SimpleAnalyzerInfo(output_dir, parse_config_data)
+    
+    # Get parser and run
+    parser = DataParserFactory.getDataParser(analyzer_info, "perl")
+    parser()
+    
+    # Return path to results.csv
+    csv_path = Path(output_dir) / "results.csv"
+    return str(csv_path) if csv_path.exists() else None
+
+
 def show_upload_page():
     """Data upload and preview page."""
+    
+    # Check if parser mode and data already loaded
+    if st.session_state.use_parser:
+        if st.session_state.data is not None:
+            st.markdown('<div class="step-header">', unsafe_allow_html=True)
+            st.markdown("## 📊 Step 2: Parsed Data Preview")
+            st.markdown("</div>", unsafe_allow_html=True)
+            
+            st.success("✅ Data loaded from parser!")
+            
+            data = st.session_state.data
+            st.dataframe(data.head(20), use_container_width=True)
+            
+            # Statistics
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric("Rows", len(data))
+            with col2:
+                st.metric("Columns", len(data.columns))
+            with col3:
+                numeric_cols = data.select_dtypes(include=['number']).columns
+                st.metric("Numeric Columns", len(numeric_cols))
+            with col4:
+                categorical_cols = data.select_dtypes(include=['object']).columns
+                st.metric("Categorical Columns", len(categorical_cols))
+            
+            # Column information
+            with st.expander("📋 Column Details"):
+                col_info = pd.DataFrame({
+                    'Column': data.columns,
+                    'Type': data.dtypes.astype(str),
+                    'Non-Null': data.count(),
+                    'Null': data.isnull().sum(),
+                    'Unique': [data[col].nunique() for col in data.columns]
+                })
+                st.dataframe(col_info, use_container_width=True)
+            
+            st.info("✨ Proceed to **🔧 Configure Pipeline** to process your data")
+            return
+        else:
+            st.warning("⚠️ Please parse gem5 stats first in **⚙️ Data Source** page!")
+            return
+    
+    # CSV upload mode
     st.markdown('<div class="step-header">', unsafe_allow_html=True)
-    st.markdown("## 📤 Step 1: Upload Your Data")
+    st.markdown("## 📤 Step 2: Upload Your Data")
     st.markdown("</div>", unsafe_allow_html=True)
     
     tab1, tab2 = st.tabs(["📁 Upload CSV File", "✍️ Paste Data"])
@@ -222,7 +560,7 @@ def show_configure_page():
         return
     
     st.markdown('<div class="step-header">', unsafe_allow_html=True)
-    st.markdown("## 🔧 Step 2: Configure Processing Pipeline")
+    st.markdown("## 🔧 Step 3: Configure Processing Pipeline")
     st.markdown("</div>", unsafe_allow_html=True)
     
     data = st.session_state.data
@@ -423,7 +761,7 @@ def show_plots_page():
         return
     
     st.markdown('<div class="step-header">', unsafe_allow_html=True)
-    st.markdown("## 📊 Step 3: Generate Visualizations")
+    st.markdown("## 📊 Step 4: Generate Visualizations")
     st.markdown("</div>", unsafe_allow_html=True)
     
     data = st.session_state.processed_data
@@ -555,7 +893,7 @@ def show_results_page():
         return
     
     st.markdown('<div class="step-header">', unsafe_allow_html=True)
-    st.markdown("## 📈 Step 4: Results & Export")
+    st.markdown("## 📈 Step 5: Results & Export")
     st.markdown("</div>", unsafe_allow_html=True)
     
     data = st.session_state.processed_data
