@@ -1,8 +1,14 @@
 from argumentParser import AnalyzerInfo
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Union
 from abc import ABC, abstractmethod
 import src.utils.utils as utils
 import pandas as pd
+
+# Import new parameter classes
+try:
+    from src.data_management.manager_params import DataManagerParams
+except ImportError:
+    DataManagerParams = None
 
 class MetaDataManager(type):
     """
@@ -64,17 +70,31 @@ class DataManager(metaclass=MetaDataManager):
     _statistic_columns_data = None
     _csvPath_data = None
 
-    def __init__(self, params: AnalyzerInfo, json: dict) -> None:
+    def __init__(self, params: Union[AnalyzerInfo, 'DataManagerParams'], json: dict) -> None:
         """
         Constructor for the DataManager class.
+        Supports both legacy AnalyzerInfo and new DataManagerParams.
+        
         Args:
-            params (AnalyzerInfo): The parameters for the data manager.
+            params: Either AnalyzerInfo (CLI) or DataManagerParams (web/modern)
+            json: Configuration dictionary
         """
+        # Handle both old and new parameter types
+        if DataManagerParams and isinstance(params, DataManagerParams):
+            # New parameter class
+            csv_path = params.get_work_csv()
+            categorical_cols = params.get_categorical_columns()
+        else:
+            # Legacy AnalyzerInfo
+            csv_path = params.getWorkCsv()
+            categorical_cols = params.getCategoricalColumns()
+        
         if DataManager._csvPath is None:
-            DataManager._csvPath = params.getWorkCsv()
+            DataManager._csvPath = csv_path
+            
         if DataManager._df is None:
             if utils.checkFileExists(DataManager._csvPath):
-                DataManager._df = pd.read_csv(DataManager._csvPath, header=0, sep='\s+')
+                DataManager._df = pd.read_csv(DataManager._csvPath, header=0)
             else:
                 raise FileNotFoundError(f"The file {DataManager._csvPath} does not exist.")
 
@@ -84,7 +104,7 @@ class DataManager(metaclass=MetaDataManager):
         # This will be useful for all the managers that inherit from this class.
         if DataManager._categorical_columns is None:
             # Get the categorical columns from the parameters
-            DataManager._categorical_columns = params.getCategoricalColumns()
+            DataManager._categorical_columns = categorical_cols
             # Set categorical columns to exclude 'random_seed' if present
             if "random_seed" in DataManager._categorical_columns:
                 DataManager._categorical_columns.remove("random_seed")
@@ -135,7 +155,7 @@ class DataManager(metaclass=MetaDataManager):
         Persist the DataFrame to a csv file.
         """
         if DataManager._df is not None:
-            DataManager._df.to_csv(DataManager._csvPath, index=False, sep=" ")
+            DataManager._df.to_csv(DataManager._csvPath, index=False)
             print(f"DataFrame persisted to {DataManager._csvPath}")
         else:
             print("DataFrame is None, cannot persist.")

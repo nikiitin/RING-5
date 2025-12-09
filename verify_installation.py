@@ -96,18 +96,19 @@ def test_file_structure():
     
     required_files = [
         'ring5.py',
+        'app.py',
+        'pyproject.toml',
+        'requirements.txt',
+        'README.md',
         'schemas/config_schema.json',
         'templates/config_template.json',
-        'examples/complete_example.json',
         'src/config/config_manager.py',
-        'src/plotting/plot_engine.py',
-        'tools/create_config.py',
-        'README_NEW.md',
-        'MIGRATION_GUIDE.md',
-        'QUICKSTART.md',
-        'ARCHITECTURE.md',
-        'PROJECT_SUMMARY.md',
-        'INDEX.md'
+        'src/web/pages/portfolio.py',
+        'src/web/pages/manage_plots.py',
+        'src/data_management/dataManager.py',
+        'src/data_plotter/src/shaper/shaperFactory.py',
+        'tests/test_basic.py',
+        'tests/test_modularization.py'
     ]
     
     missing = []

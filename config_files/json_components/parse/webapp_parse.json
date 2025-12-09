@@ -1,0 +1,31 @@
+[
+  {
+    "id": "webapp_config",
+    "impl": "perl",
+    "compress": "True",
+    "parsings": [
+      {
+        "path": "/home/vnicolas/tmpdata/highway-final",
+        "files": "stats.txt",
+        "vars": [
+          {
+            "id": "simTicks",
+            "type": "scalar"
+          },
+          {
+            "id": "benchmark_name",
+            "type": "configuration"
+          },
+          {
+            "id": "config_description",
+            "type": "configuration"
+          },
+          {
+            "id": "random_seed",
+            "type": "configuration"
+          }
+        ]
+      }
+    ]
+  }
+]

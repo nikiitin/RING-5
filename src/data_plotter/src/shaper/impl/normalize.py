@@ -13,6 +13,16 @@ class Normalize(UniDfShaper):
     """
 
 # Getters and setters
+    @property # Variables (columns) that will be summed to create the normalizer
+    def _normalizerVars(self) -> list:
+        return self._normalizerVars_data
+    @_normalizerVars.setter
+    def _normalizerVars(self, value: Any) -> None:
+        utils.checkVarType(value, list)
+        for item in value:
+            utils.checkVarType(item, str)
+        self._normalizerVars_data = value
+    
     @property # Variables (columns) to normalize
     def _normalizeVars(self) -> list:
         return self._normalizeVars_data
@@ -48,26 +58,55 @@ class Normalize(UniDfShaper):
         for item in value:
             utils.checkVarType(item, str)
         self._groupBy_data = value
+    
+    @property # Whether to auto-normalize SD columns
+    def _normalizeSd(self) -> bool:
+        return self._normalizeSd_data
+    @_normalizeSd.setter
+    def _normalizeSd(self, value: Any) -> None:
+        utils.checkVarType(value, bool)
+        self._normalizeSd_data = value
 
 
     def __init__(self, params: dict) -> None:
         super().__init__(params)
-        self._normalizeVars = utils.getElementValue(self._params, "normalizeVars")
-        self._normalizerColumn = utils.getElementValue(self._params, "normalizerColumn")
-        self._normalizerValue = utils.getElementValue(self._params, "normalizerValue")
-        self._groupBy = utils.getElementValue(self._params, "groupBy")
+        # normalizeVars is required
+        self._normalizeVars = utils.getElementValue(self._params, "normalizeVars", optional=False)
+        # normalizerVars defaults to normalizeVars if not provided
+        if "normalizerVars" in self._params:
+            self._normalizerVars = utils.getElementValue(self._params, "normalizerVars", optional=False)
+        else:
+            self._normalizerVars = self._normalizeVars
+        self._normalizerColumn = utils.getElementValue(self._params, "normalizerColumn", optional=False)
+        self._normalizerValue = utils.getElementValue(self._params, "normalizerValue", optional=False)
+        self._groupBy = utils.getElementValue(self._params, "groupBy", optional=False)
+        # normalizeSd is optional, defaults to True
+        if "normalizeSd" in self._params:
+            self._normalizeSd = utils.getElementValue(self._params, "normalizeSd", optional=True)
+            if self._normalizeSd is None:
+                self._normalizeSd = True
+        else:
+            self._normalizeSd = True
 
     def _verifyParams(self) -> bool:
         verified = super()._verifyParams()
-        # Check for required parameters
+        # Check for required parameters (normalizerVars is optional, defaults to normalizeVars)
         utils.checkElementExists(self._params, "normalizeVars")
         utils.checkElementExists(self._params, "normalizerColumn")
         utils.checkElementExists(self._params, "normalizerValue")
         utils.checkElementExists(self._params, "groupBy")
+        # normalizeSd is optional with default True
         return verified
 
     def _verifyPreconditions(self, data_frame: pd.DataFrame) -> bool:
         verified = super()._verifyPreconditions(data_frame)
+        
+        # Check that normalizerVars columns exist
+        for col in self._normalizerVars:
+            if col not in data_frame.columns:
+                raise ValueError(f"The normalizer variable column '{col}' does not exist in the data frame! Stopping")
+            if not pd.api.types.is_numeric_dtype(data_frame[col]):
+                raise ValueError(f"The normalizer variable column '{col}' is not numeric! Stopping")
         
         # Check that normalizeVars columns exist
         for col in self._normalizeVars:
@@ -103,8 +142,8 @@ class Normalize(UniDfShaper):
     
     def normalize_group(self, group):
         """
-        Normalize a single group by dividing all values by the sum of the normalizer row.
-        This ensures that the baseline configuration sums to 1.0 across all normalized variables.
+        Normalize a single group by dividing variables by the sum of normalizer variables.
+        The normalizer is computed as the sum of all normalizerVars from the baseline row.
         """
         # Create a copy to avoid SettingWithCopyWarning
         result = group.copy()
@@ -116,20 +155,32 @@ class Normalize(UniDfShaper):
             # No normalizer in this group, return unchanged
             return result
         
-        # Extract normalizer values for the variables to normalize
-        normalizer_values = normalizer_row.iloc[0][self._normalizeVars]
+        # Calculate the normalizer value as the sum of normalizer variables
+        normalizer_value = sum(normalizer_row.iloc[0][col] for col in self._normalizerVars)
         
-        # Calculate the sum of all normalizer values (total normalizer)
-        normalizer_sum = normalizer_values.sum()
-        
-        # Normalize: divide each value by the total sum
-        if normalizer_sum != 0:
-            for var in self._normalizeVars:
-                result[var] = result[var] / normalizer_sum
-        else:
-            # Avoid division by zero
+        if normalizer_value == 0:
+            # Avoid division by zero - set all normalized columns to 0
             for var in self._normalizeVars:
                 result[var] = 0
+            if self._normalizeSd:
+                for var in self._normalizeVars:
+                    sd_col = f"{var}.sd"
+                    if sd_col in result.columns:
+                        result[sd_col] = 0
+            return result
+        
+        # Normalize each variable by dividing by the normalizer sum
+        for var in self._normalizeVars:
+            result[var] = result[var] / normalizer_value
+        
+        # Auto-normalize .sd columns if enabled
+        if self._normalizeSd:
+            # SD columns should be normalized using the SAME normalizer as their base statistic
+            # (not the SD of the normalizer variables)
+            for var in self._normalizeVars:
+                sd_col = f"{var}.sd"
+                if sd_col in result.columns:
+                    result[sd_col] = result[sd_col] / normalizer_value
 
         return result
 
@@ -179,11 +230,14 @@ def test():
     print("Result (normalized by 'baseline'):")
     print(df)
     print("\n" + "="*80 + "\n")
-    print("Baseline rows (sum of all normalized vars should = 1.0):")
+    print("Verification:")
+    print("- Each variable is normalized by its own baseline value")
+    print("- Baseline rows should have value = 1.0 for each normalized variable")
     baseline = df[df['config'] == 'baseline']
+    print("\nBaseline rows:")
     print(baseline)
-    print(f"\nSum of metrics for first baseline row: {baseline.iloc[0][['metric1', 'metric2']].sum():.6f}")
-    print("Expected: 1.0")
+    print(f"\nBaseline metric1 values (should be 1.0): {baseline['metric1'].values}")
+    print(f"Baseline metric2 values (should be 1.0): {baseline['metric2'].values}")
 
 
 if __name__ == "__main__":

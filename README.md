@@ -6,15 +6,16 @@ A modernized, simplified data analyzer specifically tailored for gem5 simulator 
 
 ## Features
 
-- **Pure Python**: No R dependencies - everything runs in Python
-- **🌐 Interactive Web UI**: Modern Streamlit dashboard for zero-code analysis
-  - **🔍 Integrated Parser**: Parse gem5 stats.txt directly in the UI (NEW!)
-  - **🗜️ Compression Support**: 10-100x faster parsing for remote filesystems (NEW!)
-- **Simplified Configuration**: JSON schema-based configuration with validation
-- **Template System**: Easy configuration file generation with built-in templates
-- **Modern Plotting**: Uses matplotlib and seaborn for all visualizations
-- **Multithreaded**: Parallel plot generation for faster analysis
-- **Extensible**: Easy to add new data managers, shapers, and plot types
+- Pure Python: No R dependencies - everything runs in Python
+- Interactive Web UI: Modern Streamlit dashboard for zero-code analysis
+  - Integrated Parser: Parse gem5 stats.txt directly in the UI
+  - Compression Support: 10-100x faster parsing for remote filesystems
+- Simplified Configuration: JSON schema-based configuration with validation
+- Template System: Easy configuration file generation with built-in templates
+- Modern Plotting: Uses matplotlib, seaborn, and plotly for all visualizations
+- Multithreaded: Parallel plot generation for faster analysis
+- Extensible: Easy to add new data managers, shapers, and plot types
+- Portfolio Management: Save and restore complete analysis snapshots
 
 ## Prerequisites
 
@@ -24,17 +25,25 @@ A modernized, simplified data analyzer specifically tailored for gem5 simulator 
 
 ## Installation
 
-### Quick Setup
+### Quick Setup (Recommended)
+
+The fastest way to get started:
 
 ```bash
-# Build and install all dependencies
+# Clone the repository
+git clone <repository-url>
+cd RING-5
+
+# Build and install (creates virtual environment and installs all dependencies)
 make build
 
-# Activate virtual environment
+# Activate the virtual environment
 source python_venv/bin/activate
 ```
 
-### Manual Setup
+### Manual Installation
+
+If you prefer manual setup or don't have make:
 
 ```bash
 # Create virtual environment
@@ -43,8 +52,41 @@ python3 -m venv python_venv
 # Activate it
 source python_venv/bin/activate
 
-# Install dependencies
-pip install -r requirements.txt
+# Install RING-5 in development mode
+pip install -e .
+```
+
+### Building Distribution Packages
+
+To create distributable packages:
+
+```bash
+# Install build tools
+pip install build
+
+# Build wheel and source distribution
+python -m build
+
+# This creates:
+# - dist/ring5-1.0.0-py3-none-any.whl (wheel package)
+# - dist/ring5-1.0.0.tar.gz (source distribution)
+
+# Install from the built wheel
+pip install dist/ring5-1.0.0-py3-none-any.whl
+```
+
+### Verification
+
+Verify the installation:
+
+```bash
+# Run tests
+pytest
+
+# Expected: All tests pass (65 tests)
+
+# Check installed packages
+pip list | grep -E "(plotly|streamlit|pandas|matplotlib)"
 ```
 
 ## Quick Start
@@ -61,15 +103,16 @@ source python_venv/bin/activate
 streamlit run app.py
 ```
 
-Open browser to **http://localhost:8501** and enjoy:
-- 🔍 **Parse gem5 stats.txt files directly** (NEW!)
+Open browser to **http://localhost:8501** and:
+- Parse gem5 stats.txt files directly
   - Interactive variable selection
   - Optional compression for SSHFS/remote filesystems
   - Automatic CSV generation
-- 📤 Drag-and-drop data upload (or use parsed data)
-- 🔧 Visual pipeline configuration (no JSON needed!)
-- 📊 Interactive plot builder
-- 📈 One-click exports (CSV, JSON, Excel)
+- Drag-and-drop data upload (or use parsed data)
+- Visual pipeline configuration (no JSON needed)
+- Interactive plot builder
+- One-click exports (CSV, JSON, Excel, PDF)
+- Save and load complete portfolios
 
 **See [WEB_APP_README.md](WEB_APP_README.md) for complete web app documentation.**
 
@@ -403,10 +446,6 @@ pip install -r requirements.txt
 | `make test` | Run all tests |
 | `make clean` | Remove virtual environment |
 | `make help` | Show available targets |
-
-## License
-
-[Your license here]
 
 ## Acknowledgments
 

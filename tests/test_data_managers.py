@@ -1,7 +1,7 @@
 """
 Unit tests for data manager modules.
 Tests seedsReducer, outlierRemover, and preprocessor integration.
-Based on existing pytest infrastructure with proper mocking.
+Uses proper DataManagerParams classes instead of mocks.
 """
 
 import pytest
@@ -16,25 +16,15 @@ import shutil
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from argumentParser import AnalyzerInfo
 from src.data_management.dataManager import DataManager
 from src.data_management.impl.seedsReducer import SeedsReducer
 from src.data_management.impl.outlierRemover import OutlierRemover
 from src.data_management.impl.preprocessor import Preprocessor
-
-
-class MockAnalyzerInfo:
-    """Mock AnalyzerInfo for testing data managers."""
-    
-    def __init__(self, config_json):
-        self.json = config_json
-        self._workCsv = "test_results.csv"
-        
-    def getWorkCsv(self):
-        return os.path.join(tempfile.gettempdir(), self._workCsv)
-    
-    def getTmpDir(self):
-        return tempfile.gettempdir()
+from src.data_management.manager_params import (
+    SeedsReducerParams,
+    OutlierRemoverParams,
+    PreprocessorParams
+)
 
 
 class TestSeedsReducer:
@@ -54,19 +44,19 @@ class TestSeedsReducer:
         csv_file = tmp_path / "test.csv"
         csv_data.to_csv(csv_file, index=False)
         
-        # Set up DataManager static state
-        DataManager._df = csv_data
-        DataManager._categorical_columns = ['benchmark', 'config']
-        DataManager._statistic_columns = ['simTicks', 'ipc']
-        DataManager._csvPath = str(csv_file)
+        # Create proper params using SeedsReducerParams
+        params = SeedsReducerParams(
+            csv_path=str(csv_file),
+            categorical_columns=['benchmark', 'config'],
+            statistic_columns=['simTicks', 'ipc'],
+            enable_reduction=True
+        )
         
-        # Create config and mock params
         config = {'seedsReducer': True}
-        params = MockAnalyzerInfo(config)
         
         # Execute reducer
         reducer = SeedsReducer(params, config)
-        reducer()
+        reducer.manage()
         
         # Verify results
         result = DataManager._df
@@ -93,18 +83,19 @@ class TestSeedsReducer:
         csv_file = tmp_path / "test.csv"
         test_df.to_csv(csv_file, index=False)
         
-        DataManager._df = test_df
-        DataManager._categorical_columns = ['benchmark']
-        DataManager._statistic_columns = ['simTicks']
-        DataManager._csvPath = str(csv_file)
+        params = SeedsReducerParams(
+            csv_path=str(csv_file),
+            categorical_columns=['benchmark'],
+            statistic_columns=['simTicks'],
+            enable_reduction=True
+        )
         
         config = {'seedsReducer': True}
-        params = MockAnalyzerInfo(config)
         
         # Should raise ValueError
         with pytest.raises(ValueError, match="random_seed"):
             reducer = SeedsReducer(params, config)
-            reducer()
+            reducer.manage()
 
 
 class TestOutlierRemover:
@@ -122,17 +113,19 @@ class TestOutlierRemover:
         csv_file = tmp_path / "test.csv"
         test_df.to_csv(csv_file, index=False)
         
-        DataManager._df = test_df
-        DataManager._categorical_columns = ['benchmark', 'config']
-        DataManager._statistic_columns = ['simTicks']
-        DataManager._csvPath = str(csv_file)
+        # Create proper params using OutlierRemoverParams
+        params = OutlierRemoverParams(
+            csv_path=str(csv_file),
+            categorical_columns=['benchmark', 'config'],
+            statistic_columns=['simTicks'],
+            outlier_column='simTicks'
+        )
         
         config = {
             'outlierRemover': {
                 'outlierStat': 'simTicks'
             }
         }
-        params = MockAnalyzerInfo(config)
         
         # Execute remover
         remover = OutlierRemover(params, config)
@@ -155,21 +148,22 @@ class TestOutlierRemover:
         csv_file = tmp_path / "test.csv"
         test_df.to_csv(csv_file, index=False)
         
-        DataManager._df = test_df
-        DataManager._categorical_columns = ['benchmark', 'config']
-        DataManager._statistic_columns = ['simTicks']
-        DataManager._csvPath = str(csv_file)
+        params = OutlierRemoverParams(
+            csv_path=str(csv_file),
+            categorical_columns=['benchmark', 'config'],
+            outlier_column='simTicks',
+            group_by_columns=['benchmark', 'config']
+        )
         
         config = {
             'outlierRemover': {
                 'outlierStat': 'simTicks'
             }
         }
-        params = MockAnalyzerInfo(config)
         
         # Execute remover
         remover = OutlierRemover(params, config)
-        remover()
+        remover.manage()
         
         # Should preserve most or all data
         result = DataManager._df
@@ -190,10 +184,17 @@ class TestPreprocessor:
         csv_file = tmp_path / "test.csv"
         test_df.to_csv(csv_file, index=False)
         
-        DataManager._df = test_df
-        DataManager._categorical_columns = ['benchmark']
-        DataManager._statistic_columns = ['simTicks', 'instructions']
-        DataManager._csvPath = str(csv_file)
+        params = PreprocessorParams(
+            csv_path=str(csv_file),
+            categorical_columns=['benchmark'],
+            operations={
+                'cpi': {
+                    'operator': 'divide',
+                    'src1': 'simTicks',
+                    'src2': 'instructions'
+                }
+            }
+        )
         
         config = {
             'preprocessor': {
@@ -204,11 +205,10 @@ class TestPreprocessor:
                 }
             }
         }
-        params = MockAnalyzerInfo(config)
         
         # Execute preprocessor
         preprocessor = Preprocessor(params, config)
-        preprocessor()
+        preprocessor.manage()
         
         # Verify new column was created
         result = DataManager._df
@@ -227,10 +227,17 @@ class TestPreprocessor:
         csv_file = tmp_path / "test.csv"
         test_df.to_csv(csv_file, index=False)
         
-        DataManager._df = test_df
-        DataManager._categorical_columns = ['benchmark']
-        DataManager._statistic_columns = ['value1', 'value2']
-        DataManager._csvPath = str(csv_file)
+        params = PreprocessorParams(
+            csv_path=str(csv_file),
+            categorical_columns=['benchmark'],
+            operations={
+                'total': {
+                    'operator': 'sum',
+                    'src1': 'value1',
+                    'src2': 'value2'
+                }
+            }
+        )
         
         config = {
             'preprocessor': {
@@ -241,11 +248,10 @@ class TestPreprocessor:
                 }
             }
         }
-        params = MockAnalyzerInfo(config)
         
         # Execute preprocessor
         preprocessor = Preprocessor(params, config)
-        preprocessor()
+        preprocessor.manage()
         
         # Verify sum was calculated
         result = DataManager._df
@@ -270,11 +276,6 @@ class TestDataManagerPipeline:
         csv_file = tmp_path / "test.csv"
         test_df.to_csv(csv_file, index=False)
         
-        DataManager._df = test_df
-        DataManager._categorical_columns = ['benchmark', 'config']
-        DataManager._statistic_columns = ['simTicks', 'instructions']
-        DataManager._csvPath = str(csv_file)
-        
         # Step 1: Add CPI column via preprocessor
         preprocess_config = {
             'preprocessor': {
@@ -285,18 +286,37 @@ class TestDataManagerPipeline:
                 }
             }
         }
-        params = MockAnalyzerInfo(preprocess_config)
-        preprocessor = Preprocessor(params, preprocess_config)
-        preprocessor()
+        preprocess_params = PreprocessorParams(
+            csv_path=str(csv_file),
+            categorical_columns=['benchmark', 'config'],
+            operations={
+                'cpi': {
+                    'operator': 'divide',
+                    'src1': 'simTicks',
+                    'src2': 'instructions'
+                }
+            }
+        )
+        preprocessor = Preprocessor(preprocess_params, preprocess_config)
+        preprocessor.manage()
         
         # Verify CPI was added
         assert 'cpi' in DataManager._df.columns
         
+        # Save intermediate result
+        intermediate_file = tmp_path / "after_preprocess.csv"
+        DataManager._df.to_csv(intermediate_file, index=False)
+        
         # Step 2: Reduce seeds
         seeds_config = {'seedsReducer': True}
-        params = MockAnalyzerInfo(seeds_config)
-        reducer = SeedsReducer(params, seeds_config)
-        reducer()
+        seeds_params = SeedsReducerParams(
+            csv_path=str(intermediate_file),
+            categorical_columns=['benchmark', 'config'],
+            statistic_columns=['simTicks', 'instructions', 'cpi'],
+            enable_reduction=True
+        )
+        reducer = SeedsReducer(seeds_params, seeds_config)
+        reducer.manage()
         
         # Verify seeds were reduced
         result = DataManager._df

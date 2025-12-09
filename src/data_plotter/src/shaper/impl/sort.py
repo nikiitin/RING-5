@@ -37,7 +37,10 @@ class Sort(UniDfShaper):
             print(pd.Categorical(result[column], categories=orders, ordered=True))
             result[column] = pd.Categorical(result[column], categories=orders, ordered=True)
         
-        result = result.sort_values(by=list(self.order_dict.keys()))
+        # Use stable sort (kind='stable') to preserve previous ordering
+        # This ensures that when sorting by one column, rows with equal values
+        # maintain their previous order (from earlier sort operations)
+        result = result.sort_values(by=list(self.order_dict.keys()), kind='stable')
 
         for column in self.order_dict:
             result[column] = result[column].astype(str)
