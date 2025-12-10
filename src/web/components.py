@@ -129,15 +129,19 @@ class UIComponents:
         st.text(message)
     
     @staticmethod
-    def variable_editor(variables: List[Dict[str, str]]) -> List[Dict[str, str]]:
+    def variable_editor(variables: List[Dict[str, str]], available_variables: Optional[List[Dict[str, str]]] = None, 
+                       stats_path: str = None, stats_pattern: str = "stats.txt") -> List[Dict[str, str]]:
         """
         Display an editor for parser variables.
         
         Args:
             variables: List of variable configurations
+            available_variables: Optional list of discovered variables from stats files
+            stats_path: Optional path to stats files (for deep scanning)
+            stats_pattern: Optional pattern for stats files
             
         Returns:
-            Updated list of variables
+            Updated list of variable configurations
         """
         st.markdown("**Current Variables:**")
         
@@ -170,8 +174,249 @@ class UIComponents:
                     deleted_indices.append(idx)
             
             if idx not in deleted_indices:
-                updated_vars.append({"name": var_name, "type": var_type})
+                var_config = {"name": var_name, "type": var_type}
+                
+                # Type-specific configuration
+                if var_type == "vector":
+                    st.markdown(f"**Vector Configuration for `{var_name}`:**")
+                    st.info("ℹ️ Vectors require entries to be specified. [See Vector Parsing Guide](../VECTOR_PARSING_GUIDE.md)")
+                    
+                    # Check if we have discovered entries for this variable
+                    discovered_entries = []
+                    if available_variables:
+                        for v in available_variables:
+                            if v["name"] == var_name and "entries" in v:
+                                discovered_entries = v["entries"]
+                                break
+                    
+                    # Choice: manual entries or statistics
+                    options = ["Manual Entry Names", "Vector Statistics"]
+                    if discovered_entries:
+                        options.insert(0, "Select from Discovered Entries")
+                        
+                    # Add Deep Scan option if stats path is available
+                    if stats_path and not discovered_entries:
+                         # If no entries found yet (or incomplete), allow scanning
+                         pass
+
+                    entry_mode = st.radio(
+                        "How to specify vector entries:",
+                        options=options,
+                        index=0 if not var.get("useSpecialMembers", False) else (options.index("Vector Statistics") if "Vector Statistics" in options else 1),
+                        key=f"entry_mode_{idx}",
+                        horizontal=True
+                    )
+                    
+                    # Deep Scan Button
+                    if stats_path and entry_mode == "Select from Discovered Entries" or (stats_path and not discovered_entries and entry_mode == "Manual Entry Names"):
+                        if st.button(f"🔍 Deep Scan Entries for '{var_name}'", key=f"deep_scan_{idx}", help="Scan ALL stats files to find all possible entries for this vector."):
+                            with st.spinner(f"Scanning all files for {var_name}..."):
+                                # We need to import Facade here or pass it. 
+                                # Since Facade is in src.web.facade, we can import it.
+                                from src.web.facade import BackendFacade
+                                facade = BackendFacade()
+                                all_entries = facade.scan_vector_entries(stats_path, var_name, stats_pattern)
+                                
+                                if all_entries:
+                                    # Update available_variables in session state if possible, 
+                                    # but here we just need to update the local context or force a rerun
+                                    # We can't easily update the parent's available_variables from here without session state
+                                    # But we can update the 'discovered_entries' local variable for this render? 
+                                    # No, streamlit reruns.
+                                    
+                                    # Update session state
+                                    if 'available_variables' in st.session_state and st.session_state.available_variables:
+                                        for v in st.session_state.available_variables:
+                                            if v['name'] == var_name:
+                                                v['entries'] = all_entries
+                                                break
+                                    
+                                    st.success(f"Found {len(all_entries)} entries!")
+                                    st.rerun()
+                                else:
+                                    st.warning("No entries found.")
+
+                    if entry_mode == "Select from Discovered Entries":
+                        # Multiselect for discovered entries
+                        current_entries = var.get("vectorEntries", [])
+                        if isinstance(current_entries, str):
+                            current_entries = [e.strip() for e in current_entries.split(",") if e.strip()]
+                            
+                        # Filter current entries to only those in discovered list to avoid errors
+                        valid_defaults = [e for e in current_entries if e in discovered_entries]
+                        
+                        selected_entries = st.multiselect(
+                            "Select entries to extract:",
+                            options=discovered_entries,
+                            default=valid_defaults,
+                            key=f"vector_entries_select_{idx}"
+                        )
+                        
+                        if selected_entries:
+                            var_config["vectorEntries"] = selected_entries
+                            var_config["useSpecialMembers"] = False
+                            st.success(f"✓ Will extract {len(selected_entries)} entries")
+                        else:
+                            st.warning("⚠️ Please select at least one entry")
+
+                    elif entry_mode == "Manual Entry Names":
+                        # Manual vector entries input
+                        default_entries = var.get("vectorEntries", "")
+                        if isinstance(default_entries, list):
+                            default_entries = ", ".join(default_entries)
+                        
+                        vector_entries_input = st.text_input(
+                            "Vector entries (comma-separated)",
+                            value=default_entries,
+                            key=f"vector_entries_{idx}",
+                            placeholder="e.g., cpu0, cpu1, cpu2 or bank0, bank1, bank2",
+                            help="Enter the exact names of vector entries as they appear in stats.txt (e.g., 'cpu0', 'cpu1.data', 'bank0')"
+                        )
+                        
+                        if vector_entries_input.strip():
+                            # Parse comma-separated entries
+                            entries = [e.strip() for e in vector_entries_input.split(",") if e.strip()]
+                            var_config["vectorEntries"] = entries
+                            var_config["useSpecialMembers"] = False
+                            st.success(f"✓ Will extract {len(entries)} entries: {', '.join(entries[:3])}{'...' if len(entries) > 3 else ''}")
+                        else:
+                            st.warning(f"⚠️ Please enter at least one vector entry name")
+                    
+                    else:  # Vector Statistics mode
+                        st.markdown("**Select statistics to extract from the vector:**")
+                        
+                        col_stat1, col_stat2 = st.columns(2)
+                        
+                        with col_stat1:
+                            extract_total = st.checkbox(
+                                "total (sum of all entries)",
+                                value="total" in var.get("vectorEntries", []),
+                                key=f"stat_total_{idx}"
+                            )
+                            extract_mean = st.checkbox(
+                                "mean (arithmetic mean)",
+                                value="mean" in var.get("vectorEntries", []),
+                                key=f"stat_mean_{idx}"
+                            )
+                            extract_gmean = st.checkbox(
+                                "gmean (geometric mean)",
+                                value="gmean" in var.get("vectorEntries", []),
+                                key=f"stat_gmean_{idx}"
+                            )
+                        
+                        with col_stat2:
+                            extract_samples = st.checkbox(
+                                "samples (count)",
+                                value="samples" in var.get("vectorEntries", []),
+                                key=f"stat_samples_{idx}"
+                            )
+                            extract_stdev = st.checkbox(
+                                "stdev (standard deviation)",
+                                value="stdev" in var.get("vectorEntries", []),
+                                key=f"stat_stdev_{idx}"
+                            )
+                        
+                        # Build list of selected statistics
+                        special_members = []
+                        if extract_total:
+                            special_members.append("total")
+                        if extract_mean:
+                            special_members.append("mean")
+                        if extract_gmean:
+                            special_members.append("gmean")
+                        if extract_samples:
+                            special_members.append("samples")
+                        if extract_stdev:
+                            special_members.append("stdev")
+                        
+                        if special_members:
+                            var_config["vectorEntries"] = special_members
+                            var_config["useSpecialMembers"] = True
+                            st.success(f"✓ Will extract statistics: {', '.join(special_members)}")
+                        else:
+                            st.warning("⚠️ Please select at least one statistic to extract")
+                
+                elif var_type == "distribution":
+                    st.markdown(f"**Distribution Configuration for `{var_name}`:**")
+                    
+                    col_min, col_max = st.columns(2)
+                    with col_min:
+                        min_val = st.number_input(
+                            "Minimum value",
+                            value=var.get("minimum", 0),
+                            key=f"dist_min_{idx}"
+                        )
+                    with col_max:
+                        max_val = st.number_input(
+                            "Maximum value",
+                            value=var.get("maximum", 100),
+                            key=f"dist_max_{idx}"
+                        )
+                    
+                    var_config["minimum"] = min_val
+                    var_config["maximum"] = max_val
+                
+                elif var_type == "configuration":
+                    st.markdown(f"**Configuration for `{var_name}`:**")
+                    
+                    on_empty = st.text_input(
+                        "Default value (if not found)",
+                        value=var.get("onEmpty", "None"),
+                        key=f"config_onempty_{idx}",
+                        help="Value to use if the configuration variable is not found in stats"
+                    )
+                    var_config["onEmpty"] = on_empty
+                
+                # Ensure vectorEntries is present for vector types, even if empty
+                if var_type == "vector":
+                    if "vectorEntries" not in var_config:
+                        # Try to preserve existing entries if available in the input var
+                        if "vectorEntries" in var:
+                             var_config["vectorEntries"] = var["vectorEntries"]
+                        else:
+                             var_config["vectorEntries"] = []
+                        st.write(f"DEBUG: Added missing vectorEntries for {var_name}")
+                    else:
+                        st.write(f"DEBUG: vectorEntries present for {var_name}: {var_config['vectorEntries']}")
+                
+                updated_vars.append(var_config)
         
+        # Add Variable Section
+        st.markdown("---")
+        st.markdown("### Add Variable")
+        
+        col_add1, col_add2 = st.columns([3, 1])
+        
+        with col_add1:
+            if available_variables:
+                # Create options list: "name (type)"
+                options = [f"{v['name']} ({v['type']})" for v in available_variables]
+                selected_option = st.selectbox(
+                    "Search available variables", 
+                    options=[""] + options,
+                    key="var_search_box",
+                    help="Type to search for variables found in your stats files"
+                )
+                
+                if selected_option:
+                    # Parse back
+                    name = selected_option.split(" (")[0]
+                    var_type = selected_option.split(" (")[1][:-1]
+                    
+                    if st.button("Add Selected", key="add_selected_var"):
+                        # If vector, try to pre-populate all entries if available?
+                        # Or just let the user select them.
+                        # Let's just add the variable, the editor will show the entries.
+                        variables.append({"name": name, "type": var_type})
+                        st.rerun()
+            else:
+                st.info("Scan stats files to enable variable search.")
+
+        with col_add2:
+             if st.button("+ Add Manual", key="add_manual_var"):
+                variables.append({"name": "new_variable", "type": "scalar"})
+                st.rerun()
+
         return updated_vars
     
     @staticmethod

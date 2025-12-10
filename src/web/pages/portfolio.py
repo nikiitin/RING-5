@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 import json
 from pathlib import Path
+from src.plotting import BasePlot
 
 
 def show_portfolio_page():
@@ -33,35 +34,38 @@ def show_portfolio_page():
                     PORTFOLIO_DIR = RING5_DATA_DIR / 'portfolios'
                     PORTFOLIO_DIR.mkdir(parents=True, exist_ok=True)
                     
-                    # Serialize plots (convert DataFrames to CSV strings, remove Figure objects)
+                    # Serialize plots
                     serialized_plots = []
-                    for i, plot in enumerate(st.session_state.plots):
-                        try:
-                            plot_copy = plot.copy()
-                            # Remove non-serializable Figure objects
-                            plot_copy.pop('figure', None)
-                            plot_copy.pop('last_generated_fig', None)
-                            # Convert processed_data DataFrame to CSV string if it exists
-                            if plot_copy.get('processed_data') is not None:
-                                if isinstance(plot_copy['processed_data'], pd.DataFrame):
-                                    plot_copy['processed_data'] = plot_copy['processed_data'].to_csv(index=False)
-                            
-                            # Test serialize this individual plot to catch issues early
-                            json.dumps(plot_copy)
-                            serialized_plots.append(plot_copy)
-                        except Exception as plot_error:
-                            st.error(f"Error serializing plot {i} ('{plot.get('name', 'unknown')}'): {plot_error}")
-                            # Try to identify the problematic key
-                            for key, value in plot.items():
-                                try:
-                                    json.dumps({key: value})
-                                except:
-                                    st.error(f"  → Non-serializable key: '{key}' = {type(value)}")
-                            raise
+                    
+                    # Check if we are using the new object-based plots
+                    if 'plots_objects' in st.session_state and st.session_state.plots_objects:
+                        for plot in st.session_state.plots_objects:
+                            try:
+                                serialized_plots.append(plot.to_dict())
+                            except Exception as plot_error:
+                                st.error(f"Error serializing plot '{plot.name}': {plot_error}")
+                                raise
+                    # Fallback to old dictionary-based plots
+                    elif 'plots' in st.session_state and st.session_state.plots:
+                        for i, plot in enumerate(st.session_state.plots):
+                            try:
+                                plot_copy = plot.copy()
+                                # Remove non-serializable Figure objects
+                                plot_copy.pop('figure', None)
+                                plot_copy.pop('last_generated_fig', None)
+                                # Convert processed_data DataFrame to CSV string if it exists
+                                if plot_copy.get('processed_data') is not None:
+                                    if isinstance(plot_copy['processed_data'], pd.DataFrame):
+                                        plot_copy['processed_data'] = plot_copy['processed_data'].to_csv(index=False)
+                                
+                                serialized_plots.append(plot_copy)
+                            except Exception as plot_error:
+                                st.error(f"Error serializing plot {i}: {plot_error}")
+                                raise
                     
                     # Create portfolio package
                     portfolio_data = {
-                        'version': '1.0',
+                        'version': '2.0', # Bump version for object support
                         'timestamp': pd.Timestamp.now().isoformat(),
                         'data_csv': st.session_state.data.to_csv(index=False),
                         'csv_path': str(st.session_state.csv_path) if st.session_state.csv_path else None,
@@ -76,7 +80,7 @@ def show_portfolio_page():
                         json.dump(portfolio_data, f, indent=2)
                     
                     st.success(f"Portfolio saved: {portfolio_path}")
-                    st.info(f"Saved {len(st.session_state.plots)} plots and {len(st.session_state.data)} data rows")
+                    st.info(f"Saved {len(serialized_plots)} plots and {len(st.session_state.data)} data rows")
                 except Exception as e:
                     st.error(f"Failed to save portfolio: {e}")
     
@@ -102,21 +106,35 @@ def show_portfolio_page():
                         st.session_state.data = pd.read_csv(pd.io.common.StringIO(portfolio_data['data_csv']))
                         st.session_state.csv_path = portfolio_data.get('csv_path')
                         
-                        # Deserialize plots (convert CSV strings back to DataFrames)
-                        loaded_plots = []
-                        for plot in portfolio_data.get('plots', []):
-                            # Convert processed_data CSV string back to DataFrame if it exists
-                            if plot.get('processed_data') is not None:
-                                if isinstance(plot['processed_data'], str):
-                                    plot['processed_data'] = pd.read_csv(pd.io.common.StringIO(plot['processed_data']))
-                            loaded_plots.append(plot)
+                        # Restore plots
+                        loaded_plots_objects = []
+                        loaded_plots_dicts = [] # For backward compatibility if needed
                         
-                        st.session_state.plots = loaded_plots
+                        for plot_data in portfolio_data.get('plots', []):
+                            # Try to load as object first (Version 2.0+)
+                            try:
+                                if 'plot_type' in plot_data:
+                                    plot_obj = BasePlot.from_dict(plot_data)
+                                    loaded_plots_objects.append(plot_obj)
+                            except Exception as e:
+                                st.warning(f"Could not load plot as object: {e}")
+                            
+                            # Also keep as dict for fallback/legacy
+                            # Convert processed_data CSV string back to DataFrame if it exists
+                            if plot_data.get('processed_data') is not None:
+                                if isinstance(plot_data['processed_data'], str):
+                                    plot_data['processed_data'] = pd.read_csv(pd.io.common.StringIO(plot_data['processed_data']))
+                            loaded_plots_dicts.append(plot_data)
+                        
+                        # Update session state
+                        st.session_state.plots_objects = loaded_plots_objects
+                        st.session_state.plots = loaded_plots_dicts # Keep for legacy compatibility
+                        
                         st.session_state.plot_counter = portfolio_data.get('plot_counter', 0)
                         st.session_state.config = portfolio_data.get('config', {})
                         
                         st.success(f"Portfolio loaded: {selected_portfolio}")
-                        st.info(f"Loaded {len(st.session_state.plots)} plots and {len(st.session_state.data)} data rows")
+                        st.info(f"Loaded {len(loaded_plots_objects)} plots and {len(st.session_state.data)} data rows")
                         st.info(f"Timestamp: {portfolio_data.get('timestamp', 'Unknown')}")
                         st.rerun()
                     except Exception as e:
@@ -149,3 +167,86 @@ def show_portfolio_page():
                             st.rerun()
                     except Exception as e:
                         st.error(f"Error reading portfolio: {e}")
+
+    # Pipeline Management
+    st.markdown("---")
+    st.markdown("## Pipeline Templates")
+    st.markdown("Save configuration pipelines from existing plots and apply them to others.")
+    
+    PIPELINE_DIR = RING5_DATA_DIR / 'pipelines'
+    PIPELINE_DIR.mkdir(parents=True, exist_ok=True)
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("### Save Pipeline")
+        # Select plot to extract pipeline from
+        if 'plots_objects' in st.session_state and st.session_state.plots_objects:
+            plot_names = {p.name: p for p in st.session_state.plots_objects}
+            selected_plot_name = st.selectbox("Extract pipeline from:", list(plot_names.keys()), key="pipe_extract_select")
+            
+            if selected_plot_name:
+                selected_plot = plot_names[selected_plot_name]
+                pipeline_name = st.text_input("Pipeline Name", value=f"{selected_plot_name}_pipeline", key="pipe_save_name")
+                
+                if st.button("Save Pipeline", type="primary"):
+                    try:
+                        pipeline_data = {
+                            'name': pipeline_name,
+                            'description': f"Extracted from {selected_plot_name}",
+                            'pipeline': selected_plot.pipeline,
+                            'timestamp': pd.Timestamp.now().isoformat()
+                        }
+                        
+                        save_path = PIPELINE_DIR / f"{pipeline_name}.json"
+                        with open(save_path, 'w') as f:
+                            json.dump(pipeline_data, f, indent=2)
+                        st.success(f"Pipeline saved: {save_path}")
+                    except Exception as e:
+                        st.error(f"Failed to save pipeline: {e}")
+        else:
+            st.info("Create some plots first to extract pipelines.")
+
+    with col2:
+        st.markdown("### Apply Pipeline")
+        # List available pipelines
+        pipeline_files = list(PIPELINE_DIR.glob("*.json"))
+        if pipeline_files:
+            pipeline_names = [p.stem for p in pipeline_files]
+            selected_pipeline_name = st.selectbox("Select Pipeline", pipeline_names, key="pipe_load_select")
+            
+            # Select target plots
+            if 'plots_objects' in st.session_state and st.session_state.plots_objects:
+                target_plots = st.multiselect(
+                    "Apply to plots:", 
+                    [p.name for p in st.session_state.plots_objects],
+                    key="pipe_apply_select"
+                )
+                
+                if st.button("Apply Pipeline", type="primary"):
+                    try:
+                        # Load pipeline
+                        load_path = PIPELINE_DIR / f"{selected_pipeline_name}.json"
+                        with open(load_path, 'r') as f:
+                            pipeline_data = json.load(f)
+                        
+                        new_pipeline = pipeline_data.get('pipeline', [])
+                        
+                        # Apply to targets
+                        count = 0
+                        for p in st.session_state.plots_objects:
+                            if p.name in target_plots:
+                                # Deep copy the pipeline to avoid shared references
+                                import copy
+                                p.pipeline = copy.deepcopy(new_pipeline)
+                                # Reset processed data so it gets recomputed
+                                p.processed_data = None 
+                                count += 1
+                        
+                        st.success(f"Applied pipeline to {count} plots. Go to 'Manage Plots' to re-run them.")
+                    except Exception as e:
+                        st.error(f"Failed to apply pipeline: {e}")
+            else:
+                st.info("No plots available to apply pipeline to.")
+        else:
+            st.info("No saved pipelines found.")

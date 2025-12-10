@@ -142,9 +142,17 @@ def render_plot_management(plot: BasePlot, plot_idx: int):
             plot.name = new_name
     
     with col2:
-        if st.button("📥 Load Config", key=f"load_plot_{plot.plot_id}"):
-            st.session_state[f'show_load_for_plot_{plot.plot_id}'] = True
-            st.rerun()
+        col2_1, col2_2 = st.columns(2)
+        with col2_1:
+            if st.button("💾 Save Pipe", key=f"save_plot_{plot.plot_id}", help="Save current pipeline"):
+                st.session_state[f'show_save_for_plot_{plot.plot_id}'] = True
+                st.session_state[f'show_load_for_plot_{plot.plot_id}'] = False
+                st.rerun()
+        with col2_2:
+            if st.button("📥 Load Pipe", key=f"load_plot_{plot.plot_id}", help="Load a saved pipeline"):
+                st.session_state[f'show_load_for_plot_{plot.plot_id}'] = True
+                st.session_state[f'show_save_for_plot_{plot.plot_id}'] = False
+                st.rerun()
     
     with col3:
         if st.button("🗑️ Delete", key=f"delete_plot_{plot.plot_id}"):
@@ -163,55 +171,114 @@ def render_plot_management(plot: BasePlot, plot_idx: int):
             st.session_state.plot_counter += 1
             st.rerun()
     
-    # Show load dialog if requested
+    # Show dialogs if requested
+    if st.session_state.get(f'show_save_for_plot_{plot.plot_id}', False):
+        render_save_pipeline_dialog(plot)
+        
     if st.session_state.get(f'show_load_for_plot_{plot.plot_id}', False):
-        render_load_config_dialog(plot)
+        render_load_pipeline_dialog(plot)
 
 
-def render_load_config_dialog(plot: BasePlot):
-    """Render dialog for loading saved configurations."""
+def render_save_pipeline_dialog(plot: BasePlot):
+    """Render dialog for saving pipeline configuration."""
+    st.markdown("---")
+    st.markdown("### Save Pipeline Configuration")
+    
+    from pathlib import Path
+    import json
+    RING5_DATA_DIR = Path.home() / '.ring5'
+    PIPELINE_DIR = RING5_DATA_DIR / 'pipelines'
+    PIPELINE_DIR.mkdir(parents=True, exist_ok=True)
+    
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        pipeline_name = st.text_input(
+            "Pipeline Name", 
+            value=f"{plot.name}_pipeline",
+            key=f"save_pipe_name_{plot.plot_id}"
+        )
+    
+    with col2:
+        st.write("") # Spacer
+        st.write("")
+        if st.button("Save", type="primary", key=f"confirm_save_{plot.plot_id}"):
+            try:
+                pipeline_data = {
+                    'name': pipeline_name,
+                    'description': f"Extracted from {plot.name}",
+                    'pipeline': plot.pipeline,
+                    'timestamp': pd.Timestamp.now().isoformat()
+                }
+                
+                save_path = PIPELINE_DIR / f"{pipeline_name}.json"
+                with open(save_path, 'w') as f:
+                    json.dump(pipeline_data, f, indent=2)
+                
+                st.success(f"Pipeline saved: {pipeline_name}")
+                st.session_state[f'show_save_for_plot_{plot.plot_id}'] = False
+                st.rerun()
+            except Exception as e:
+                st.error(f"Failed to save pipeline: {e}")
+        
+        if st.button("Cancel", key=f"cancel_save_{plot.plot_id}"):
+            st.session_state[f'show_save_for_plot_{plot.plot_id}'] = False
+            st.rerun()
+
+
+def render_load_pipeline_dialog(plot: BasePlot):
+    """Render dialog for loading saved pipelines."""
     st.markdown("---")
     st.markdown("### Load Pipeline Configuration")
     
     from pathlib import Path
+    import json
     RING5_DATA_DIR = Path.home() / '.ring5'
-    CONFIGS_DIR = RING5_DATA_DIR / 'configs'
+    PIPELINE_DIR = RING5_DATA_DIR / 'pipelines'
     
-    if CONFIGS_DIR.exists():
-        config_files = list(CONFIGS_DIR.glob("*.json"))
-        if config_files:
-            config_names = [c.stem for c in config_files]
-            selected_config = st.selectbox(
-                "Select configuration",
-                config_names,
-                key=f"load_config_select_{plot.plot_id}"
+    if PIPELINE_DIR.exists():
+        pipeline_files = list(PIPELINE_DIR.glob("*.json"))
+        if pipeline_files:
+            pipeline_names = [p.stem for p in pipeline_files]
+            selected_pipeline = st.selectbox(
+                "Select pipeline",
+                pipeline_names,
+                key=f"load_pipe_select_{plot.plot_id}"
             )
             
             col1, col2 = st.columns(2)
             with col1:
                 if st.button("Load", type="primary", key=f"confirm_load_{plot.plot_id}"):
-                    import json
-                    config_path = CONFIGS_DIR / f"{selected_config}.json"
-                    with open(config_path, 'r') as f:
-                        loaded_config = json.load(f)
-                    
-                    if 'pipeline' in loaded_config:
-                        pipeline = loaded_config['pipeline']
-                        pipeline_counter = loaded_config.get('pipeline_counter', len(pipeline))
-                        plot.pipeline = pipeline
-                        plot.pipeline_counter = pipeline_counter
-                        st.success(f"Loaded configuration: {selected_config}")
+                    try:
+                        load_path = PIPELINE_DIR / f"{selected_pipeline}.json"
+                        with open(load_path, 'r') as f:
+                            pipeline_data = json.load(f)
+                        
+                        # Apply pipeline
+                        import copy
+                        plot.pipeline = copy.deepcopy(pipeline_data.get('pipeline', []))
+                        plot.pipeline_counter = len(plot.pipeline)
+                        plot.processed_data = None # Reset data
+                        
+                        st.success(f"Pipeline loaded: {selected_pipeline}")
                         st.session_state[f'show_load_for_plot_{plot.plot_id}'] = False
                         st.rerun()
+                    except Exception as e:
+                        st.error(f"Failed to load pipeline: {e}")
             
             with col2:
                 if st.button("Cancel", key=f"cancel_load_{plot.plot_id}"):
                     st.session_state[f'show_load_for_plot_{plot.plot_id}'] = False
                     st.rerun()
         else:
-            st.info("No saved configurations found.")
+            st.warning("No saved pipelines found.")
+            if st.button("Close", key=f"close_load_{plot.plot_id}"):
+                st.session_state[f'show_load_for_plot_{plot.plot_id}'] = False
+                st.rerun()
     else:
-        st.info("No saved configurations found.")
+        st.warning("No pipelines directory found.")
+        if st.button("Close", key=f"close_load_{plot.plot_id}"):
+            st.session_state[f'show_load_for_plot_{plot.plot_id}'] = False
+            st.rerun()
 
 
 def render_data_pipeline(plot: BasePlot):
@@ -225,12 +292,21 @@ def render_data_pipeline(plot: BasePlot):
     # Add shaper to pipeline
     col1, col2 = st.columns([3, 1])
     with col1:
-        shaper_types = ['Column Selector', 'Sort', 'Mean Calculator', 'Normalize', 'Filter']
-        selected_shaper = st.selectbox(
+        # Map display names to internal types
+        shaper_map = {
+            'Column Selector': 'columnSelector',
+            'Sort': 'sort',
+            'Mean Calculator': 'mean',
+            'Normalize': 'normalize',
+            'Filter': 'conditionSelector'
+        }
+        
+        selected_shaper_display = st.selectbox(
             "Add transformation",
-            shaper_types,
+            list(shaper_map.keys()),
             key=f"shaper_type_{plot.plot_id}"
         )
+        selected_shaper = shaper_map[selected_shaper_display]
     
     with col2:
         if st.button("Add to Pipeline", width="stretch", key=f"add_shaper_{plot.plot_id}"):
@@ -247,7 +323,10 @@ def render_data_pipeline(plot: BasePlot):
         st.markdown("**Current Pipeline:**")
         
         for idx, shaper in enumerate(plot.pipeline):
-            with st.expander(f"{idx + 1}. {shaper['type']}", expanded=True):
+            # Get display name for expander
+            display_name = next((k for k, v in shaper_map.items() if v == shaper['type']), shaper['type'])
+            
+            with st.expander(f"{idx + 1}. {display_name}", expanded=True):
                 col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
                 
                 with col1:
@@ -345,7 +424,7 @@ def render_plot_configuration(plot: BasePlot):
     # Advanced Options - in an expander
     with st.expander("⚙️ Advanced Options", expanded=False):
         # Advanced display options (legend, error bars, download)
-        advanced_config = plot.render_advanced_options(saved_config)
+        advanced_config = plot.render_advanced_options(saved_config, data)
         current_config.update(advanced_config)
         
         st.markdown("---")

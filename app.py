@@ -14,10 +14,15 @@ import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import plotly.express as px
 import plotly.graph_objects as go
+import importlib
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent / 'src'))
+# Add project root to path
+root_dir = Path(__file__).parent
+if str(root_dir) not in sys.path:
+    sys.path.insert(0, str(root_dir))
 
+from src.web.components import UIComponents
+from src.web.facade import BackendFacade
 from src.data_management.dataManager import DataManager
 from src.data_management.dataManagerFactory import DataManagerFactory
 from src.data_plotter.src.shaper.shaperFactory import ShaperFactory
@@ -311,6 +316,21 @@ def show_parser_configuration():
             help="Filename pattern to search for (e.g., stats.txt, *.txt)"
         )
     
+    # Scan for variables
+    if st.button("Scan for Variables"):
+        with st.spinner("Scanning stats files..."):
+            facade = BackendFacade()
+            vars_found = facade.scan_stats_variables(stats_path, stats_pattern)
+            if vars_found:
+                st.session_state.available_variables = vars_found
+                st.success(f"Found {len(vars_found)} variables!")
+            else:
+                st.warning("No variables found. Check path and pattern.")
+    
+    # Initialize available_variables if not present
+    if 'available_variables' not in st.session_state:
+        st.session_state.available_variables = None
+
     # Compression option
     st.markdown("#### Remote Filesystem Optimization")
     
@@ -347,49 +367,24 @@ def show_parser_configuration():
             {"name": "config_description", "type": "configuration"}
         ]
     
-    # Display existing variables
-    st.markdown("**Current Variables:**")
-    
-    for idx, var in enumerate(st.session_state.parse_variables):
-        col1, col2, col3 = st.columns([3, 2, 1])
-        
-        with col1:
-            st.text_input(
-                f"Variable {idx+1} Name",
-                value=var.get("name", ""),
-                key=f"var_name_{idx}",
-                label_visibility="collapsed"
-            )
-        
-        with col2:
-            st.selectbox(
-                f"Type {idx+1}",
-                options=["scalar", "vector", "distribution", "configuration"],
-                index=["scalar", "vector", "distribution", "configuration"].index(var.get("type", "scalar")),
-                key=f"var_type_{idx}",
-                label_visibility="collapsed"
-            )
-        
-        with col3:
-            if st.button("X", key=f"delete_var_{idx}"):
-                st.session_state.parse_variables.pop(idx)
-                st.rerun()
-    
-    # Add variable button
-    col1, col2 = st.columns([1, 4])
-    with col1:
-        if st.button("+ Add Variable", width='stretch'):
-            st.session_state.parse_variables.append({"name": "new_variable", "type": "scalar"})
-            st.rerun()
+    # Use UIComponents to manage variables (includes vector support)
+    st.session_state.parse_variables = UIComponents.variable_editor(
+        st.session_state.parse_variables,
+        available_variables=st.session_state.available_variables,
+        stats_path=stats_path,
+        stats_pattern=stats_pattern
+    )
     
     # Preview configuration
     st.markdown("#### Configuration Preview")
     
-    # Update variables from inputs
-    for idx in range(len(st.session_state.parse_variables)):
-        st.session_state.parse_variables[idx]["name"] = st.session_state.get(f"var_name_{idx}", "")
-        st.session_state.parse_variables[idx]["type"] = st.session_state.get(f"var_type_{idx}", "scalar")
-    
+    # DEBUG: Check variables before creating config
+    for v in st.session_state.parse_variables:
+        if v.get("type") == "vector":
+            st.write(f"DEBUG APP: Variable {v.get('name')} keys: {list(v.keys())}")
+            if "vectorEntries" not in v:
+                st.error(f"CRITICAL: vectorEntries missing for {v.get('name')} in app.py!")
+
     parse_config = {
         "parser": "gem5_stats",
         "statsPath": stats_path,
@@ -521,6 +516,17 @@ def run_parser_with_progress(stats_path: str, stats_pattern: str, compress: bool
             "id": var["name"],
             "type": var["type"]
         }
+        
+        # Add type-specific parameters
+        if var["type"] == "vector":
+            if "vectorEntries" in var:
+                var_config["vectorEntries"] = var["vectorEntries"]
+        elif var["type"] == "distribution":
+            if "minimum" in var: var_config["minimum"] = var["minimum"]
+            if "maximum" in var: var_config["maximum"] = var["maximum"]
+        elif var["type"] == "configuration":
+            if "onEmpty" in var: var_config["onEmpty"] = var["onEmpty"]
+            
         parser_vars.append(var_config)
     
     # Create parser configuration
@@ -627,6 +633,17 @@ def run_parser(stats_path: str, stats_pattern: str, compress: bool, variables: l
             "id": var["name"],
             "type": var["type"]
         }
+        
+        # Add type-specific parameters
+        if var["type"] == "vector":
+            if "vectorEntries" in var:
+                var_config["vectorEntries"] = var["vectorEntries"]
+        elif var["type"] == "distribution":
+            if "minimum" in var: var_config["minimum"] = var["minimum"]
+            if "maximum" in var: var_config["maximum"] = var["maximum"]
+        elif var["type"] == "configuration":
+            if "onEmpty" in var: var_config["onEmpty"] = var["onEmpty"]
+            
         parser_vars.append(var_config)
     
     # Create parser configuration
@@ -862,11 +879,19 @@ def show_configure_page():
     # Shaper selection
     col1, col2 = st.columns([3, 1])
     with col1:
-        shaper_type = st.selectbox(
+        shaper_map = {
+            'Column Selector': 'columnSelector',
+            'Normalize': 'normalize',
+            'Mean Calculator': 'mean',
+            'Sort': 'sort',
+            'Filter': 'conditionSelector'
+        }
+        shaper_display = st.selectbox(
             "Select shaper to add",
-            options=['Column Selector', 'Normalize', 'Mean Calculator', 'Sort'],
+            options=list(shaper_map.keys()),
             key='shaper_selector'
         )
+        shaper_type = shaper_map[shaper_display]
     with col2:
         if st.button("➕ Add Shaper", width='stretch'):
             # Add a new shaper configuration to pipeline with unique ID
@@ -986,7 +1011,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
     if existing_config is None:
         existing_config = {}
     
-    if shaper_type == 'Column Selector':
+    if shaper_type == 'columnSelector':
         st.markdown("Select which columns to keep")
         default_cols = existing_config.get('columns', [data.columns[0]] if len(data.columns) > 0 else [])
         selected_columns = st.multiselect(
@@ -1000,7 +1025,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
             'columns': selected_columns if selected_columns else []
         }
     
-    elif shaper_type == 'Normalize':
+    elif shaper_type == 'normalize':
         numeric_cols = data.select_dtypes(include=['number']).columns.tolist()
         categorical_cols = data.select_dtypes(include=['object']).columns.tolist()
         
@@ -1071,7 +1096,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
                 'normalizeSd': normalize_sd
             }
     
-    elif shaper_type == 'Mean Calculator':
+    elif shaper_type == 'mean':
         numeric_cols = data.select_dtypes(include=['number']).columns.tolist()
         categorical_cols = data.select_dtypes(include=['object']).columns.tolist()
         
@@ -1124,7 +1149,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
                     'replacingColumn': replacing_column
                 }
     
-    elif shaper_type == 'Sort':
+    elif shaper_type == 'sort':
         categorical_cols = data.select_dtypes(include=['object']).columns.tolist()
         
         sort_col_default = None
@@ -1205,7 +1230,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
                     'order_dict': {sort_column: order_list}
                 }
     
-    elif shaper_type == 'Filter':
+    elif shaper_type == 'conditionSelector':
         categorical_cols = data.select_dtypes(include=['object']).columns.tolist()
         numeric_cols = data.select_dtypes(include=['number']).columns.tolist()
         all_cols = categorical_cols + numeric_cols
@@ -1256,7 +1281,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
                         key=f"filter_range_{shaper_id}"
                     )
                     config = {
-                        'type': 'filter',
+                        'type': 'conditionSelector',
                         'column': filter_column,
                         'mode': 'range',
                         'range': list(value_range)
@@ -1269,7 +1294,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
                         key=f"filter_gt_{shaper_id}"
                     )
                     config = {
-                        'type': 'filter',
+                        'type': 'conditionSelector',
                         'column': filter_column,
                         'mode': 'greater_than',
                         'threshold': threshold
@@ -1282,7 +1307,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
                         key=f"filter_lt_{shaper_id}"
                     )
                     config = {
-                        'type': 'filter',
+                        'type': 'conditionSelector',
                         'column': filter_column,
                         'mode': 'less_than',
                         'threshold': threshold
@@ -1295,7 +1320,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
                         key=f"filter_eq_{shaper_id}"
                     )
                     config = {
-                        'type': 'filter',
+                        'type': 'conditionSelector',
                         'column': filter_column,
                         'mode': 'equals',
                         'value': value
@@ -1314,7 +1339,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
                 
                 if selected_values:
                     config = {
-                        'type': 'filter',
+                        'type': 'conditionSelector',
                         'column': filter_column,
                         'values': selected_values
                     }
@@ -1807,10 +1832,11 @@ def show_load_config_page():
                                     
                                     for shaper_cfg in plot_data.get('pipeline', []):
                                         shaper_type_map = {
-                                            'columnSelector': 'Column Selector',
-                                            'normalize': 'Normalize',
-                                            'mean': 'Mean Calculator',
-                                            'sort': 'Sort'
+                                            'Column Selector': 'columnSelector',
+                                            'Normalize': 'normalize',
+                                            'Mean Calculator': 'mean',
+                                            'Sort': 'sort',
+                                            'Filter': 'conditionSelector'
                                         }
                                         shaper_type = shaper_type_map.get(shaper_cfg.get('type'), shaper_cfg.get('type'))
                                         pipeline.append({
@@ -1840,10 +1866,11 @@ def show_load_config_page():
                                 
                                 for shaper_cfg in shapers_config:
                                     shaper_type_map = {
-                                        'columnSelector': 'Column Selector',
-                                        'normalize': 'Normalize',
-                                        'mean': 'Mean Calculator',
-                                        'sort': 'Sort'
+                                        'Column Selector': 'columnSelector',
+                                        'Normalize': 'normalize',
+                                        'Mean Calculator': 'mean',
+                                        'Sort': 'sort',
+                                        'Filter': 'conditionSelector'
                                     }
                                     shaper_type = shaper_type_map.get(shaper_cfg.get('type'), shaper_cfg.get('type'))
                                     pipeline.append({

@@ -92,7 +92,20 @@ class PlotRenderer:
                     fig = plot.last_generated_fig
                 
                 # Display the plot
-                st.plotly_chart(fig)
+                st.plotly_chart(
+                    fig,
+                    config={
+                        'editable': plot.config.get('enable_editable', False),
+                        'modeBarButtonsToAdd': [
+                            'drawline',
+                            'drawopenpath',
+                            'drawclosedpath',
+                            'drawcircle',
+                            'drawrect',
+                            'eraseshape'
+                        ]
+                    }
+                )
                 
                 # Download button
                 PlotRenderer._render_download_button(plot, fig)

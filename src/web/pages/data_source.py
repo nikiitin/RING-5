@@ -152,9 +152,13 @@ class DataSourcePage:
         st.markdown("""
         Define which variables to extract from gem5 stats files:
         - **Scalar**: Single numeric values (e.g., simTicks, IPC)
-        - **Vector**: Arrays of values (e.g., cache miss breakdown)
-        - **Distribution**: Statistical distributions
+        - **Vector**: Arrays of values with specified entries (e.g., cache miss breakdown by CPU)
+          - Specify entry names like: `cpu0, cpu1, cpu2`
+          - Or use statistics: `total, mean, samples, stdev, gmean`
+        - **Distribution**: Statistical distributions with min/max range
         - **Configuration**: Metadata (benchmark name, config ID, seed)
+        
+        **Note:** For vector statistics (total, mean, etc.), use the special members feature in the vector configuration.
         """)
         
         # Variable editor

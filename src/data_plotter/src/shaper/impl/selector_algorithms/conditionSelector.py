@@ -6,53 +6,78 @@ import pandas as pd
 class ConditionSelector(Selector):
     """
     ConditionSelector is a Selector that selects items based on a specified condition.
-    It can be used to filter data before further processing or analysis.
+    It supports numeric comparisons, ranges, and categorical inclusion.
     """
-    # Getters and setters
-    @property
-    def _condition(self) -> str:
-        return self._condition_data
-    @_condition.setter
-    def _condition(self, value: Any) -> None:
-        utils.checkVarType(value, str)
-        if value not in ["<", ">", "<=", ">=", "==", "!="]:
-            raise ValueError("The 'condition' parameter must be one of the following: '<', '>', '<=', '>=', '==', '!='.")
-        self._condition_data = value
-    @property
-    def _value(self) -> int | float:
-        return self._value_data
-    @_value.setter
-    def _value(self, value: Any) -> None:
-        if not isinstance(value, int) and not isinstance(value, float):
-            raise ValueError(f"The 'value' parameter must be an int or a float. Got: {type(value)}")
-        self._value_data = value
-
+    
     def __init__(self, params: dict):
         super().__init__(params)
-        self._condition = utils.getElementValue(self._params, "condition")
-        self._value = utils.getElementValue(self._params, "value")
-
+        # Optional parameters based on mode
+        self._mode = params.get('mode', 'legacy')
+        self._condition = params.get('condition')
+        self._value = params.get('value')
+        self._threshold = params.get('threshold')
+        self._range = params.get('range')
+        self._values = params.get('values')
 
     def _verifyParams(self) -> bool:
         verified = super()._verifyParams()
-        # The condition that must be applied
-        utils.checkElementExists(self._params, "condition")
-        # The value that must be used in the condition
-        utils.checkElementExists(self._params, "value")
+        
+        # Verify based on what parameters are present
+        if self._values is not None:
+            # Categorical mode
+            if not isinstance(self._values, list):
+                raise ValueError("'values' must be a list")
+        elif self._range is not None:
+            # Range mode
+            if not isinstance(self._range, list) or len(self._range) != 2:
+                raise ValueError("'range' must be a list of 2 values")
+        elif self._mode == 'greater_than' or self._mode == 'less_than':
+            if self._threshold is None:
+                raise ValueError(f"'{self._mode}' mode requires 'threshold'")
+        elif self._mode == 'equals':
+            if self._value is None:
+                raise ValueError("'equals' mode requires 'value'")
+        elif self._condition is not None and self._value is not None:
+            # Legacy mode
+            if self._condition not in ["<", ">", "<=", ">=", "==", "!="]:
+                raise ValueError("The 'condition' parameter must be one of: '<', '>', '<=', '>=', '==', '!='.")
+        else:
+            # If we are here, we might have a missing parameter configuration
+            # But we allow initialization, validation happens at runtime or we can be strict here.
+            pass
+            
         return verified
     
     def _verifyPreconditions(self, data_frame: pd.DataFrame) -> bool:
-
-        verified = super()._verifyPreconditions(data_frame)
-        # Check if condition is valid
-        if self._condition not in ["==", ">", "<", ">=", "<=", "!="]:
-            raise ValueError(f"Invalid condition '{self._condition}'.")
-        return verified
+        return super()._verifyPreconditions(data_frame)
 
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
         super().__call__(data_frame)
-        # Select items based on the specified condition
-        return data_frame.query(f"{self._column} {self._condition} {self._value}")
+        
+        col = self._column
+        
+        # 1. Categorical / List of values
+        if self._values is not None:
+            return data_frame[data_frame[col].isin(self._values)]
+            
+        # 2. Range
+        if self._range is not None:
+            min_val, max_val = self._range
+            return data_frame[(data_frame[col] >= min_val) & (data_frame[col] <= max_val)]
+            
+        # 3. Explicit Modes from UI
+        if self._mode == 'greater_than':
+            return data_frame[data_frame[col] > self._threshold]
+        elif self._mode == 'less_than':
+            return data_frame[data_frame[col] < self._threshold]
+        elif self._mode == 'equals':
+            return data_frame[data_frame[col] == self._value]
+            
+        # 4. Legacy Condition
+        if self._condition is not None and self._value is not None:
+            return data_frame.query(f"{col} {self._condition} {self._value}")
+            
+        return data_frame
     
 # Main function to test the Cselector class
 def test():

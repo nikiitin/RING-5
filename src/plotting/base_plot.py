@@ -96,11 +96,63 @@ class BasePlot(ABC):
         Returns:
             Updated figure
         """
-        fig.update_layout(
-            width=config.get('width', 800),
-            height=config.get('height', 500),
-            hovermode='closest'
-        )
+        # Basic layout
+        layout_args = {
+            'width': config.get('width', 800),
+            'height': config.get('height', 500),
+            'hovermode': 'closest',
+            'margin': dict(b=config.get('margin_b', 100)),
+            'legend': dict(
+                orientation=config.get('legend_orientation', 'v'),
+                x=config.get('legend_x', 1.02),
+                y=config.get('legend_y', 1.0)
+            )
+        }
+        
+        # Bar settings
+        if 'bar' in self.plot_type:
+            layout_args['bargap'] = config.get('bargap', 0.2)
+            if 'grouped' in self.plot_type:
+                layout_args['bargroupgap'] = config.get('bargroupgap', 0.0)
+        
+        # Axis settings
+        xaxis_settings = {
+            'tickangle': config.get('xaxis_tickangle', -45),
+            'tickfont': dict(size=config.get('xaxis_tickfont_size', 12)),
+            'automargin': config.get('automargin', True)
+        }
+        
+        # Apply X-axis ordering
+        if config.get('xaxis_order'):
+            xaxis_settings['categoryorder'] = 'array'
+            xaxis_settings['categoryarray'] = config['xaxis_order']
+            
+        # Apply Y-axis stepping
+        yaxis_settings = {}
+        if config.get('yaxis_dtick'):
+            yaxis_settings['dtick'] = config['yaxis_dtick']
+            
+        # Update layout
+        fig.update_layout(**layout_args)
+        fig.update_xaxes(**xaxis_settings)
+        fig.update_yaxes(**yaxis_settings)
+        
+        # Apply Shapes
+        if config.get('shapes'):
+            fig.update_layout(shapes=config['shapes'])
+            
+        # Apply Legend/Group Order (Reorder traces)
+        trace_order = config.get('legend_order') or config.get('group_order')
+        if trace_order:
+            # Create a map of name to index
+            order_map = {str(name): i for i, name in enumerate(trace_order)}
+            # Sort traces based on map, putting unknown ones at the end
+            fig.data = tuple(sorted(fig.data, key=lambda t: order_map.get(str(t.name), 9999)))
+        
+        # Update traces for border if needed
+        if config.get('bar_border_width', 0) > 0:
+            fig.update_traces(marker=dict(line=dict(width=config['bar_border_width'], color='white')))
+        
         fig.update_traces(hovertemplate='<b>%{x}</b><br>%{y:.4f}<extra></extra>')
         
         if config.get('legend_title'):
@@ -274,17 +326,19 @@ class BasePlot(ABC):
             'height': height
         }
     
-    def render_advanced_options(self, saved_config: Dict[str, Any]) -> Dict[str, Any]:
+    def render_advanced_options(self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame] = None) -> Dict[str, Any]:
         """
-        Render advanced options (legend, error bars, download format).
+        Render advanced options (legend, error bars, download format, axis settings).
         Should be called within an expander.
         
         Args:
             saved_config: Previously saved configuration
+            data: The data being plotted (optional, needed for ordering options)
             
         Returns:
             Configuration dictionary with advanced options
         """
+        st.markdown("#### General Settings")
         col1, col2 = st.columns(2)
         
         with col1:
@@ -312,9 +366,253 @@ class BasePlot(ABC):
                 index=default_format_idx,
                 key=f"download_fmt_{self.plot_id}"
             )
+
+        st.markdown("#### Axis Settings")
+        col3, col4 = st.columns(2)
+        with col3:
+            xaxis_tickangle = st.slider(
+                "X-axis Label Rotation",
+                min_value=-90,
+                max_value=90,
+                value=saved_config.get('xaxis_tickangle', -45),
+                step=15,
+                key=f"xaxis_angle_{self.plot_id}",
+                help="Rotate X-axis labels to prevent overlap"
+            )
+            
+            xaxis_tickfont_size = st.number_input(
+                "X-axis Font Size",
+                min_value=8,
+                max_value=24,
+                value=saved_config.get('xaxis_tickfont_size', 12),
+                key=f"xaxis_font_{self.plot_id}"
+            )
+            
+            # Y-axis Stepping
+            yaxis_dtick = st.number_input(
+                "Y-axis Step Size (0 for auto)",
+                min_value=0.0,
+                value=float(saved_config.get('yaxis_dtick') or 0.0),
+                key=f"ydtick_{self.plot_id}"
+            )
+
+        with col4:
+            automargin = st.checkbox(
+                "Auto Margins",
+                value=saved_config.get('automargin', True),
+                key=f"automargin_{self.plot_id}",
+                help="Automatically adjust margins to fit labels"
+            )
+            
+            bottom_margin = st.number_input(
+                "Bottom Margin (px)",
+                min_value=0,
+                max_value=500,
+                value=saved_config.get('margin_b', 100),
+                key=f"margin_b_{self.plot_id}",
+                help="Increase this if labels are cut off"
+            )
+            
+        # Ordering Options
+        xaxis_order = None
+        group_order = None
+        legend_order = None
+        
+        if data is not None:
+            st.markdown("#### Ordering Control")
+            
+            # X-axis Order
+            if saved_config.get('x') and saved_config['x'] in data.columns:
+                with st.expander("Reorder X-axis Labels"):
+                    unique_x = sorted(data[saved_config['x']].unique().tolist())
+                    xaxis_order = self.render_reorderable_list("X-axis Order", unique_x, "xaxis")
+            
+            # Group Order
+            if saved_config.get('group') and saved_config['group'] in data.columns:
+                with st.expander("Reorder Groups"):
+                    unique_g = sorted(data[saved_config['group']].unique().tolist())
+                    group_order = self.render_reorderable_list("Group Order", unique_g, "group")
+            
+            # Legend Order (Color)
+            if saved_config.get('color') and saved_config['color'] in data.columns:
+                with st.expander("Reorder Legend Items"):
+                    unique_c = sorted(data[saved_config['color']].unique().tolist())
+                    legend_order = self.render_reorderable_list("Legend Order", unique_c, "legend")
+
+        # Bar Settings
+        bargap = 0.2
+        bargroupgap = 0.0
+        bar_border_width = 0.0
+        if 'bar' in self.plot_type:
+            st.markdown("#### Bar Settings")
+            col_bar1, col_bar2 = st.columns(2)
+            with col_bar1:
+                bargap = st.slider(
+                    "Spacing between Bars (Gap)",
+                    min_value=0.0,
+                    max_value=1.0,
+                    value=saved_config.get('bargap', 0.2),
+                    step=0.05,
+                    key=f"bargap_{self.plot_id}"
+                )
+            
+            with col_bar2:
+                if 'grouped' in self.plot_type:
+                    bargroupgap = st.slider(
+                        "Spacing between Groups",
+                        min_value=0.0,
+                        max_value=1.0,
+                        value=saved_config.get('bargroupgap', 0.0),
+                        step=0.05,
+                        key=f"bargroupgap_{self.plot_id}"
+                    )
+                
+                if 'stacked' in self.plot_type:
+                    bar_border_width = st.slider(
+                        "Spacing between Stacked Items (Border)",
+                        min_value=0.0,
+                        max_value=5.0,
+                        value=saved_config.get('bar_border_width', 0.0),
+                        step=0.5,
+                        key=f"bar_border_{self.plot_id}",
+                        help="Adds a white border to separate stacked segments."
+                    )
+
+        # Legend Settings
+        st.markdown("#### Legend Settings")
+        col_leg1, col_leg2 = st.columns(2)
+        with col_leg1:
+            legend_orientation = st.selectbox(
+                "Legend Orientation",
+                options=['v', 'h'],
+                format_func=lambda x: "Vertical" if x == 'v' else "Horizontal",
+                index=0 if saved_config.get('legend_orientation', 'v') == 'v' else 1,
+                key=f"leg_orient_{self.plot_id}"
+            )
+            
+            enable_editable = st.checkbox(
+                "Enable Drag & Drop (Move Legend)",
+                value=saved_config.get('enable_editable', False),
+                key=f"editable_{self.plot_id}",
+                help="Allows you to drag the legend and title around the plot."
+            )
+
+        with col_leg2:
+            legend_x = st.number_input(
+                "Legend X Position",
+                value=saved_config.get('legend_x', 1.02),
+                step=0.05,
+                key=f"leg_x_{self.plot_id}"
+            )
+            legend_y = st.number_input(
+                "Legend Y Position",
+                value=saved_config.get('legend_y', 1.0),
+                step=0.05,
+                key=f"leg_y_{self.plot_id}"
+            )
+            
+        # Shapes (Annotations)
+        st.markdown("#### Annotations (Shapes)")
+        shapes = saved_config.get('shapes', [])
+        
+        # Add new shape
+        with st.expander("Add New Shape"):
+            new_shape_type = st.selectbox("Type", ["line", "circle", "rect"], key=f"new_shape_type_{self.plot_id}")
+            c1, c2, c3, c4 = st.columns(4)
+            with c1: x0 = st.text_input("x0", key=f"s_x0_{self.plot_id}")
+            with c2: y0 = st.text_input("y0", key=f"s_y0_{self.plot_id}")
+            with c3: x1 = st.text_input("x1", key=f"s_x1_{self.plot_id}")
+            with c4: y1 = st.text_input("y1", key=f"s_y1_{self.plot_id}")
+            
+            c5, c6 = st.columns(2)
+            with c5: s_color = st.color_picker("Color", "#000000", key=f"s_color_{self.plot_id}")
+            with c6: s_width = st.number_input("Width", 1, 10, 2, key=f"s_width_{self.plot_id}")
+            
+            if st.button("Add Shape", key=f"add_shape_{self.plot_id}"):
+                # Try to convert to float if possible, else keep as string
+                def try_float(v):
+                    try: return float(v)
+                    except: return v
+                
+                shapes.append({
+                    'type': new_shape_type,
+                    'x0': try_float(x0), 'y0': try_float(y0),
+                    'x1': try_float(x1), 'y1': try_float(y1),
+                    'line': {'color': s_color, 'width': s_width}
+                })
+                st.rerun()
+        
+        # List existing shapes
+        if shapes:
+            st.markdown("Existing Shapes:")
+            for i, shape in enumerate(shapes):
+                col_s1, col_s2 = st.columns([4, 1])
+                with col_s1:
+                    st.text(f"{shape['type']}: ({shape['x0']},{shape['y0']}) -> ({shape['x1']},{shape['y1']})")
+                with col_s2:
+                    if st.button("🗑️", key=f"del_shape_{i}_{self.plot_id}"):
+                        shapes.pop(i)
+                        st.rerun()
         
         return {
             'legend_title': legend_title,
             'show_error_bars': show_error_bars,
-            'download_format': download_format
+            'download_format': download_format,
+            'xaxis_tickangle': xaxis_tickangle,
+            'xaxis_tickfont_size': xaxis_tickfont_size,
+            'yaxis_dtick': yaxis_dtick if yaxis_dtick > 0 else None,
+            'automargin': automargin,
+            'margin_b': bottom_margin,
+            'bargap': bargap,
+            'bargroupgap': bargroupgap,
+            'bar_border_width': bar_border_width if 'stacked' in self.plot_type else 0.0,
+            'legend_orientation': legend_orientation,
+            'enable_editable': enable_editable,
+            'legend_x': legend_x,
+            'legend_y': legend_y,
+            'xaxis_order': xaxis_order,
+            'group_order': group_order,
+            'legend_order': legend_order,
+            'shapes': shapes
         }
+    
+    def render_reorderable_list(self, label: str, items: List[Any], key_prefix: str) -> List[Any]:
+        """
+        Render a list that can be reordered using up/down buttons.
+        """
+        st.markdown(f"**{label}**")
+        
+        # Initialize in session state if needed
+        ss_key = f"{key_prefix}_order_{self.plot_id}"
+        if ss_key not in st.session_state:
+            st.session_state[ss_key] = list(items)
+        
+        # Sync if items changed (e.g. data update) but keep existing order for common items
+        current_items = st.session_state[ss_key]
+        if set(current_items) != set(items):
+            # Keep existing items in order, append new ones
+            new_items = [x for x in current_items if x in items]
+            new_items.extend([x for x in items if x not in current_items])
+            st.session_state[ss_key] = new_items
+            current_items = new_items
+
+        # Display items with reordering controls
+        for i, item in enumerate(current_items):
+            c1, c2, c3 = st.columns([6, 1, 1])
+            with c1:
+                st.text(str(item))
+            with c2:
+                if i > 0:
+                    if st.button("↑", key=f"{key_prefix}_up_{i}_{self.plot_id}"):
+                        current_items[i], current_items[i-1] = current_items[i-1], current_items[i]
+                        st.session_state[ss_key] = current_items
+                        st.rerun()
+            with c3:
+                if i < len(current_items) - 1:
+                    if st.button("↓", key=f"{key_prefix}_down_{i}_{self.plot_id}"):
+                        current_items[i], current_items[i+1] = current_items[i+1], current_items[i]
+                        st.session_state[ss_key] = current_items
+                        st.rerun()
+        
+        return current_items
+
