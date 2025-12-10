@@ -1,15 +1,18 @@
 from abc import abstractmethod
-import pandas as pd
 from typing import Any
+
+import pandas as pd
 
 
 class Shaper:
     """
     Abstract class for shapers.
     """
+
     @property
     def _params(self) -> dict:
         return self._params_data
+
     @_params.setter
     def _params(self, value: Any) -> None:
         if isinstance(value, dict):
@@ -36,7 +39,6 @@ class Shaper:
         if self._params is None:
             raise ValueError("The parameters are None! Stopping")
         return True
-        
 
     @abstractmethod
     def _verifyPreconditions(self, data_frame: pd.DataFrame) -> bool:

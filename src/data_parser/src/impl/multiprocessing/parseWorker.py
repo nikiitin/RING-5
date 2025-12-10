@@ -1,5 +1,6 @@
 import multiprocessing
 
+
 class ParseWorker(multiprocessing.Process):
     def __init__(self, workQueue, resultQueue):
         multiprocessing.Process.__init__(self)
@@ -7,7 +8,6 @@ class ParseWorker(multiprocessing.Process):
         self.resultQueue = resultQueue
 
     def run(self):
-        proc_name = self.name
         # This is the method that every process will execute
         while True:
             # Use the queue to get the work from the main process

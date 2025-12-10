@@ -1,33 +1,40 @@
-from argumentParser import AnalyzerInfo
-from src.data_management.dataManager import DataManager
-import src.utils.utils as utils
 import pandas as pd
+
+import src.utils.utils as utils
+from src.data_management.dataManager import DataManager
+from src.data_management.manager_params import DataManagerParams
+
 
 class operator:
     """
     Class to define the operator to be used in the preprocessor.
     """
+
     def __call__(self, dataFrame: pd.DataFrame, src1: str, src2: str, dst: str) -> pd.DataFrame:
         """
         Method to be implemented by the operator.
         """
         raise NotImplementedError("Operator not implemented")
 
+
 class DivideOperator(operator):
     """
     Class to define the divide operator.
     """
+
     def __call__(self, dataFrame: pd.DataFrame, src1: str, src2: str, dst: str) -> pd.DataFrame:
         # Divide the src1 column by the src2 column and store the result in the dst column.
         # Avoid division by zero by letting the result be the src1 column
         # if the src2 column is zero.
         dataFrame[dst] = dataFrame[src1] / dataFrame[src2].replace(0, 1)
         return dataFrame
-    
+
+
 class SumOperator(operator):
     """
     Class to define the sum operator.
     """
+
     def __call__(self, dataFrame: pd.DataFrame, src1: str, src2: str, dst: str) -> pd.DataFrame:
         # Sum the src1 column and the src2 column and store the result in the dst column.
         dataFrame[dst] = dataFrame[src1] + dataFrame[src2]
@@ -38,6 +45,7 @@ class OperatorFactory:
     """
     Factory class to create the operator.
     """
+
     @classmethod
     def getOperator(cls, operator: str):
         if operator == "divide":
@@ -46,17 +54,19 @@ class OperatorFactory:
             return SumOperator()
         raise ValueError(f"Operator {operator} not implemented")
 
+
 class Preprocessor(DataManager):
     """
     Class to divide a column by other column in
     a data frame.
     """
+
     def _verifyParams(self):
         super()._verifyParams()
         # Check if the divider is a dictionary
         if not isinstance(self._preprocessorElement, dict):
             raise ValueError("Preprocessor element is not correctly defined at json file")
-        
+
         # Check if the divider is empty
         if not self._preprocessorElement:
             raise ValueError("Preprocessor element is empty at json file")
@@ -73,13 +83,14 @@ class Preprocessor(DataManager):
             utils.checkElementExists(values, "operator")
             utils.checkElementExists(values, "src1")
             utils.checkElementExists(values, "src2")
-    
-    def __init__(self, params, json):
+
+    def __init__(self, params: DataManagerParams, json: dict) -> None:
         super().__init__(params, json)
         # Handle two JSON formats:
         # 1. Simple: {"operation": "divide", "column1": "a", "column2": "b"}
-        # 2. Nested: {"preprocessor": {"result_col": {"operator": "divide", "src1": "a", "src2": "b"}}}
-        
+        # 2. Nested: {"preprocessor": {"result_col": {"operator": "divide", "src1": "a",
+        # "src2": "b"}}}
+
         if "preprocessor" in self._json:
             # Nested format
             self._preprocessorElement = self._json["preprocessor"]
@@ -88,17 +99,17 @@ class Preprocessor(DataManager):
             operation = self._json["operation"]
             column1 = self._json.get("column1", self._json.get("src1"))
             column2 = self._json.get("column2", self._json.get("src2"))
-            dst_col = self._json.get("dst", f"{column1}/{column2}" if operation == "divide" else f"{column1}+{column2}")
-            
+            dst_col = self._json.get(
+                "dst", f"{column1}/{column2}" if operation == "divide" else f"{column1}+{column2}"
+            )
+
             self._preprocessorElement = {
-                dst_col: {
-                    "operator": operation,
-                    "src1": column1,
-                    "src2": column2
-                }
+                dst_col: {"operator": operation, "src1": column1, "src2": column2}
             }
         else:
-            raise ValueError("Preprocessor requires either 'preprocessor' or 'operation' key in JSON")
+            raise ValueError(
+                "Preprocessor requires either 'preprocessor' or 'operation' key in JSON"
+            )
 
     def __call__(self):
         """
@@ -115,4 +126,3 @@ class Preprocessor(DataManager):
                 DataManager._df = operator(DataManager._df, values["src1"], values["src2"], key)
                 # Add the new column to the statistic columns
                 DataManager._statistic_columns.append(key)
-    

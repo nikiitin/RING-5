@@ -1,16 +1,20 @@
-from src.data_plotter.src.shaper.shaper import Shaper
 from src.data_plotter.src.shaper.impl.mean import Mean
-from src.data_plotter.src.shaper.impl.selector_algorithms.columnSelector import ColumnSelector
-from src.data_plotter.src.shaper.impl.selector_algorithms.conditionSelector import ConditionSelector
-from src.data_plotter.src.shaper.impl.selector_algorithms.itemSelector import ItemSelector
 from src.data_plotter.src.shaper.impl.normalize import Normalize
+from src.data_plotter.src.shaper.impl.selector_algorithms.columnSelector import \
+    ColumnSelector
+from src.data_plotter.src.shaper.impl.selector_algorithms.conditionSelector import \
+    ConditionSelector
+from src.data_plotter.src.shaper.impl.selector_algorithms.itemSelector import \
+    ItemSelector
 from src.data_plotter.src.shaper.impl.sort import Sort
+from src.data_plotter.src.shaper.shaper import Shaper
 
 
 class ShaperFactory:
     """
     Factory class for creating shapers.
     """
+
     @classmethod
     def createShaper(cls, type: str, params: dict) -> Shaper:
         """
@@ -30,4 +34,3 @@ class ShaperFactory:
             return Sort(params)
         else:
             raise ValueError("Invalid shaper type")
-        

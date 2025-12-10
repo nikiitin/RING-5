@@ -1,11 +1,15 @@
 from typing import Any
-from src.data_parser.src.impl.data_parser_perl.src.type_mapping.confType import confType
+
+from src.data_parser.src.impl.data_parser_perl.src.type_mapping.confType import \
+    confType
+
+
 class Distribution(confType):
-    #|| ReceivedForwardsCPU0::-1:freq
-    #|| ReceivedForwardsCPU0::0:freq
-    #|| ReceivedForwardsCPU0::1:freq
-    #|| ReceivedForwardsCPU0::overflows:freq
-    #|| ReceivedForwardsCPU0::underflows:freq
+    # || ReceivedForwardsCPU0::-1:freq
+    # || ReceivedForwardsCPU0::0:freq
+    # || ReceivedForwardsCPU0::1:freq
+    # || ReceivedForwardsCPU0::overflows:freq
+    # || ReceivedForwardsCPU0::underflows:freq
 
     def __init__(self, repeat: int, maximum: int, minimum: int) -> None:
         super().__init__(repeat)
@@ -18,6 +22,7 @@ class Distribution(confType):
         self.content.update({"underflows": []})
         self.content.update((str(x), []) for x in range(int(minimum), int(maximum) + 1))
         self.content.update({"overflows": []})
+
     # Distribution must be a list of ints representing the number of times
     # a value (key) has appeared
     # Those are repeated n times for each cpu...
@@ -33,12 +38,12 @@ class Distribution(confType):
     #  "1" : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     #  "1+" : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     # }
-        
+
     def __getattribute__(self, __name: str) -> Any:
         if __name == "entries":
             return super().__getattribute__("content").keys()
         return super().__getattribute__(__name)
-        
+
     def __setattr__(self, __name: str, __value: dict) -> None:
         super().__setattr__(__name, __value)
         if __name == "content":
@@ -49,49 +54,59 @@ class Distribution(confType):
                     # Check that the values are ints or underflow or overflow
                     if key != "underflows" and key != "overflows":
                         int(key)
-            except:
-                raise TypeError("DISTRIBUTION: Variable non-convertible to int... value: " +
-                                str(__value) +
-                                " type: " +
-                                str(type(__value)) +
-                                " field: "
-                                + __name)
+            except Exception:
+                raise TypeError(
+                    "DISTRIBUTION: Variable non-convertible to int... value: "
+                    + str(__value)
+                    + " type: "
+                    + str(type(__value))
+                    + " field: "
+                    + __name
+                )
             try:
                 # Check if all values are ints
                 map(int, __value.values())
-            except:
-                raise TypeError("DISTRIBUTION: Variable non-convertible to list of ints... value: " +
-                                str(__value) +
-                                " type: " +
-                                str(type(__value)) +
-                                " field: "
-                                + __name)
+            except Exception:
+                raise TypeError(
+                    "DISTRIBUTION: Variable non-convertible to list of ints... value: "
+                    + str(__value)
+                    + " type: "
+                    + str(type(__value))
+                    + " field: "
+                    + __name
+                )
 
             # Check "-" and "+" are in the keys
-            if not "underflows" in __value.keys() or not "overflows" in __value.keys():
-                raise TypeError("DISTRIBUTION: Variable does not contain underflows or overflows... value: " +
-                                str(__value) +
-                                " type: " +
-                                str(type(__value)) +
-                                " field: "
-                                + __name)
+            if "underflows" not in __value.keys() or "overflows" not in __value.keys():
+                raise TypeError(
+                    "DISTRIBUTION: Variable does not contain underflows or overflows... value: "
+                    + str(__value)
+                    + " type: "
+                    + str(type(__value))
+                    + " field: "
+                    + __name
+                )
             # Change "-" and "+" to "firstKey-" and "lastKey+"
-            
-            
+
             # Do it like this, so we can keep the order of the keys
             # in any case
-            
+
             # Check if minimum and maximum are in the keys
-            if not self.__dict__["minimum"] in keys or not self.__dict__["maximum"] in keys:
+            if self.__dict__["minimum"] not in keys or self.__dict__["maximum"] not in keys:
                 # Using print instead of warning purposely as print is
                 # proccess safe and warning is not :(
-                raise RuntimeError("DISTRIBUTION: Minimum or maximum not in keys: \n" +
-                        "Expected: " +
-                        str(self.__dict__["minimum"]) + "\n" +
-                        str(self.__dict__["maximum"]) + "\n" +
-                        "Found: " +
-                        str(keys) + "\n" +
-                        "Maybe you should check the configuration file...")
+                raise RuntimeError(
+                    "DISTRIBUTION: Minimum or maximum not in keys: \n"
+                    + "Expected: "
+                    + str(self.__dict__["minimum"])
+                    + "\n"
+                    + str(self.__dict__["maximum"])
+                    + "\n"
+                    + "Found: "
+                    + str(keys)
+                    + "\n"
+                    + "Maybe you should check the configuration file..."
+                )
             # Change the keys
             underflows = __value.pop("underflows")
             overflows = __value.pop("overflows")
@@ -108,16 +123,25 @@ class Distribution(confType):
             expectedValues.append("underflows")
             expectedValues.append("overflows")
             if not set(__value.keys()).issubset(expectedValues):
-                raise RuntimeError("DISTRIBUTION: Keys in file are not the same as the buckets in configuration: \n" +
-                        "Expected: " +
-                        str(expectedValues) + "\n" +
-                        "Found: " +
-                        str(__value.keys()) + "\n" +
-                        "Maybe you should check the configuration file...")
+                raise RuntimeError(
+                    "DISTRIBUTION: Keys in file are not the same as the buckets in "
+                    "configuration: \n"
+                    + "Expected: "
+                    + str(expectedValues)
+                    + "\n"
+                    + "Found: "
+                    + str(__value.keys())
+                    + "\n"
+                    + "Maybe you should check the configuration file..."
+                )
             __value = dict((x, y) for x, y in __value.items() if x in expectedValues)
             # Update the content with the new dictionary
             self.__dict__["content"].update(__value)
-        elif __name == "balancedContent" or __name == "reducedDuplicates" or __name == "reducedContent":
+        elif (
+            __name == "balancedContent"
+            or __name == "reducedDuplicates"
+            or __name == "reducedContent"
+        ):
             # Default behaviour
             super().__setattr__(__name, __value)
         else:
@@ -125,7 +149,7 @@ class Distribution(confType):
 
     def __str__(self):
         return super().__str__()
-    
+
     def balanceContent(self) -> None:
         super().balanceContent()
         # Balance the content
@@ -142,12 +166,14 @@ class Distribution(confType):
                 for i in range(contentLen, repeat):
                     content.append(0)
             elif repeat < contentLen:
-                raise RuntimeError("DISTRIBUTION: Variable has more values than expected... values: " +
-                                    str(content) +
-                                    " length: " +
-                                    str(contentLen) +
-                                    " repeat: " +
-                                    str(repeat))
+                raise RuntimeError(
+                    "DISTRIBUTION: Variable has more values than expected... values: "
+                    + str(content)
+                    + " length: "
+                    + str(contentLen)
+                    + " repeat: "
+                    + str(repeat)
+                )
 
     def reduceDuplicates(self) -> None:
         super().reduceDuplicates()
@@ -158,7 +184,7 @@ class Distribution(confType):
             self.reducedContent[bucket] = 0
             values = self.content.get(bucket)
             for i in range(0, int(self.repeat)):
-                # Get the value for the bucket     
+                # Get the value for the bucket
                 self.reducedContent[bucket] += int(values[i])
             # Do arithmetic mean
             self.reducedContent[bucket] = self.reducedContent[bucket] / int(self.repeat)

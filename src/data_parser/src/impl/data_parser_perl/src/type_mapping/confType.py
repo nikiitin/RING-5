@@ -8,7 +8,7 @@ class confType:
     # This contains all the repeated values of the variable
     # The variable is a list of whatever values needed
     # That will be resolved in the specific type
-    
+
     def __init__(self, repeat: int) -> None:
         # Only save the content. Identifier is not needed here
         # Content will be the dynamic content of the variable
@@ -25,7 +25,7 @@ class confType:
         # This is why we need to override the __setattr__ method...
         # ...to make sure we are setting the content correctly
         pass
-    
+
     def __str__(self) -> str:
         # This method gives the string representation of the variable
         stringVariable = ""
@@ -36,24 +36,23 @@ class confType:
     def __repr__(self) -> str:
         return str(self.__str__())
 
-    def __setattr__(self, __name: str, __value: Any) -> None:
-        if __name == "content":
-            if self.__dict__.get("content") is None:
-                self.__dict__["content"] = list()
-            return
-        super().__setattr__(__name, __value)
-            
-
     def __getattribute__(self, __name: str) -> Any:
         if __name == "content":
             if self.__dict__.get("content") is None:
                 # This is unexpected. This should never happen
-                raise AttributeError("Trying to access content of variable that has not been initialized")
+                raise AttributeError(
+                    "Trying to access content of variable that has not been initialized"
+                )
         if __name == "reducedContent":
-            if self.__dict__.get("reducedDuplicates") == False or self.__dict__.get("balancedContent") == False:
-                raise AttributeError("Trying to access reduced content of variable that has not been reduced or balanced")
+            if not self.__dict__.get("reducedDuplicates") or not self.__dict__.get(
+                "balancedContent"
+            ):
+                raise AttributeError(
+                    "Trying to access reduced content of variable that has not been reduced or "
+                    "balanced"
+                )
         return super().__getattribute__(__name)
-    
+
     def balanceContent(self) -> None:
         # Balance the entries of the content list
         # This means that every entry will have the same number of values
@@ -61,7 +60,7 @@ class confType:
         # The number of entries MUST be specified as repeat in the constructor
         self.balancedContent = True
         pass
-    
+
     def reduceDuplicates(self) -> Any:
         # This method removes duplicates from the content
         # by doing arithmetic mean to the values
@@ -71,5 +70,3 @@ class confType:
         if len(self.content) == 0:
             self.reducedContent = "NA"
         pass
-            
-            

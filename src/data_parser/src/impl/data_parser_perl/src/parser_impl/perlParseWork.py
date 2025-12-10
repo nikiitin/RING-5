@@ -1,7 +1,9 @@
 import os
 import subprocess
+
 import src.utils.utils as utils
 from src.data_parser.src.impl.multiprocessing.parseWork import ParseWork
+
 
 class PerlParseWork(ParseWork):
     def __init__(self, fileToParse: str, varsToParse: dict) -> None:
@@ -28,9 +30,11 @@ class PerlParseWork(ParseWork):
                     if itVar.onEmpty is None:
                         # If the onEmpty value is None, then raise error
                         # Should not happen...
-                        raise RuntimeError("Configuration variable empty: " +
-                                       varID +
-                                       "No default value... Stoping...")
+                        raise RuntimeError(
+                            "Configuration variable empty: "
+                            + varID
+                            + "No default value... Stoping..."
+                        )
                     else:
                         # Use the onEmpty (default) value
                         itVar.content = itVar.onEmpty
@@ -47,7 +51,7 @@ class PerlParseWork(ParseWork):
         # Return the parsed info
         return varsToParse
 
-    def _processVector(self, varID:str, varValue:str) -> None:
+    def _processVector(self, varID: str, varValue: str) -> None:
         splittedVarID = varID.split("::")
         varID = splittedVarID[0]
         varKey = splittedVarID[1]
@@ -58,8 +62,8 @@ class PerlParseWork(ParseWork):
             self._vectorDict[varID].update({varKey: []})
         # Buffer the value with the key (entry)
         self._vectorDict[varID][varKey].append(varValue)
-    
-    def _processDist(self, varID:str, varValue:str) -> None:
+
+    def _processDist(self, varID: str, varValue: str) -> None:
         splittedVarID = varID.split("::")
         varID = splittedVarID[0]
         # Distribution also has key
@@ -75,48 +79,53 @@ class PerlParseWork(ParseWork):
 
     def _processLine(self, line: str, varsToParse: dict) -> str:
         # Split the line by slashes
-            lineElements = line.split("/")
-            # Get the type of the variable
-            varType = lineElements[0]
-            # Get the ID of the variable
-            varID = lineElements[1]
-            varValue = lineElements[2]
-            # If the variable is a vector, then the ID
-            # will be in the format: ID::key
-            # So, we need to split it again
-            if varType == "Vector":
-                self._processVector(varID, varValue)
-                # Remove the key from the ID
-                varID = varID.split("::")[0]
-            elif varType == "Distribution":
-                self._processDist(varID, varValue)
-                # Remove the key from the ID
-                varID = varID.split("::")[0]
-            elif varType == "Scalar" or varType == "Configuration":
-                varsToParse[varID].content = varValue
-            elif varType == "Summary":
-                # Summaries need a keyword at the end
-                varID = varID + "__get_summary"
-                if varsToParse.get(varID) is None:
-                    # Do not parse summary if not asked
-                    return
-                varsToParse[varID].content = varValue
-                # Return to avoid type mismatch
-                return
-            else:
-                # Unknown variable type
-                raise RuntimeError("Unknown variable type: " + varType)
-            # Post check but it is ok, an error will raise            
-            # Check if the variable is in the list of variables to parse
+        lineElements = line.split("/")
+        # Get the type of the variable
+        varType = lineElements[0]
+        # Get the ID of the variable
+        varID = lineElements[1]
+        varValue = lineElements[2]
+        # If the variable is a vector, then the ID
+        # will be in the format: ID::key
+        # So, we need to split it again
+        if varType == "Vector":
+            self._processVector(varID, varValue)
+            # Remove the key from the ID
+            varID = varID.split("::")[0]
+        elif varType == "Distribution":
+            self._processDist(varID, varValue)
+            # Remove the key from the ID
+            varID = varID.split("::")[0]
+        elif varType == "Scalar" or varType == "Configuration":
+            varsToParse[varID].content = varValue
+        elif varType == "Summary":
+            # Summaries need a keyword at the end
+            varID = varID + "__get_summary"
             if varsToParse.get(varID) is None:
-                # Variable not in the list, raise error
-                raise RuntimeError("Variable not in the list of variables to parse: " + varID)
-            # Check variable type matches the one in the list
-            if type(varsToParse.get(varID)).__name__ != varType:
-                raise RuntimeError("Variable type does not match the one in the list: " +
-                    "Expected: " + type(varsToParse.get(varID)).__name__ +
-                    " Found: " + varType + " ID: " +
-                    varID)
+                # Do not parse summary if not asked
+                return
+            varsToParse[varID].content = varValue
+            # Return to avoid type mismatch
+            return
+        else:
+            # Unknown variable type
+            raise RuntimeError("Unknown variable type: " + varType)
+        # Post check but it is ok, an error will raise
+        # Check if the variable is in the list of variables to parse
+        if varsToParse.get(varID) is None:
+            # Variable not in the list, raise error
+            raise RuntimeError("Variable not in the list of variables to parse: " + varID)
+        # Check variable type matches the one in the list
+        if type(varsToParse.get(varID)).__name__ != varType:
+            raise RuntimeError(
+                "Variable type does not match the one in the list: "
+                + "Expected: "
+                + type(varsToParse.get(varID)).__name__
+                + " Found: "
+                + varType
+                + " ID: "
+                + varID
+            )
 
     def _processOutput(self, output: str, varsToParse: dict) -> dict:
         # Process the output from the script
@@ -141,11 +150,11 @@ class PerlParseWork(ParseWork):
         try:
             output = subprocess.check_output(scriptCall).decode("utf-8")
         except subprocess.CalledProcessError as e:
-            print("Error while calling script: " + scriptCall)
-            print("Error message: " + str(e.output))
+            print(f"Error while calling script: {scriptCall}")
+            print(f"Error message: {e.output}")
             raise
         except Exception:
-            print("Error while calling script: " + scriptCall)
+            print(f"Error while calling script: {scriptCall}")
             raise
         # Return the output
         return output
@@ -153,11 +162,12 @@ class PerlParseWork(ParseWork):
     def __call__(self) -> dict:
         # Set the script path
         # FIXME: MAGIC!
-        scriptPath = os.path.join("./src/data_parser/src/impl/data_parser_perl/src/parser_impl/fileParser.pl")
+        scriptPath = os.path.join(
+            "./src/data_parser/src/impl/data_parser_perl/src/parser_impl/fileParser.pl"
+        )
         # Get a list with a caller for the script
         # and the arguments
-        scriptCall = ["perl",
-            scriptPath]
+        scriptCall = ["perl", scriptPath]
         # Add the work to the call
         # The first element is the file to parse
         utils.checkFileExistsOrException(self._fileToParse)

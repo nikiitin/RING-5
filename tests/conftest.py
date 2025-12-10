@@ -1,5 +1,7 @@
 """Pytest configuration and fixtures."""
+
 import pytest
+
 from src.data_management.dataManager import DataManager
 
 

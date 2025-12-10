@@ -1,6 +1,9 @@
 from typing import Any
-from src.data_plotter.src.shaper.shaper import Shaper
+
 import pandas as pd
+
+from src.data_plotter.src.shaper.shaper import Shaper
+
 
 class UniDfShaper(Shaper):
     """

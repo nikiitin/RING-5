@@ -1,10 +1,12 @@
-from multiprocessing.pool import Pool
 import multiprocessing
 import os
-from src.data_parser.src.impl.multiprocessing.parseWork import ParseWork
-from src.data_parser.src.impl.multiprocessing.parseWorker import ParseWorker
+
 # External dependency
 from tqdm import tqdm
+
+from src.data_parser.src.impl.multiprocessing.parseWork import ParseWork
+from src.data_parser.src.impl.multiprocessing.parseWorker import ParseWorker
+
 
 class ParseWorkPool:
     _singleton = None
@@ -18,7 +20,7 @@ class ParseWorkPool:
         if cls._singleton is None:
             cls._singleton = ParseWorkPool()
         return cls._singleton
-    
+
     def __init__(self) -> None:
         # Get the number of cores available
         self._numCores = os.cpu_count()
@@ -55,10 +57,10 @@ class ParseWorkPool:
         # after startPool() method, otherwise all
         # processes will be blocked forever
         # Join the pool only if it was started
-        if not self._workers is None:
+        if self._workers is not None:
             # Join the pool (wait for all processes to finish)
             self._workQueue.join()
-        else :
+        else:
             raise RuntimeError("Pool was not started!")
         # Get the results from the queue
         results = []
@@ -75,6 +77,3 @@ class ParseWorkPool:
                 raise
         # Return the results
         return results
-
-    
-

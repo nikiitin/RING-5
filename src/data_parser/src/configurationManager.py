@@ -1,9 +1,13 @@
-import os
 import json
+import os
+
 import src.utils.utils as utils
+
+
 class ConfigurationManager:
     _pathToConfigFiles = "config_files/json_components"
     _parseJson: dict = None
+
     # No instance for this class
     def __init__(self):
         raise RuntimeError("Cannot create instance for this class")
@@ -16,25 +20,23 @@ class ConfigurationManager:
 
     @classmethod
     def _loadParseJson(cls, configJson: dict) -> dict:
-        if (cls._parseJson is not None):
+        if cls._parseJson is not None:
             # Only load the json once
             return cls._parseJson
         pConfig = cls._getParseConfiguration(configJson)
         utils.checkElementExists(pConfig, "file")
-        with open(os.path.join(
-            cls._pathToConfigFiles,
-            "parse",
-            pConfig["file"] +
-            ".json")) as parseFile:
+        with open(
+            os.path.join(cls._pathToConfigFiles, "parse", pConfig["file"] + ".json")
+        ) as parseFile:
             cls._parseJson = json.load(parseFile)
         return cls._parseJson
 
     @classmethod
     def _getParserById(cls, configJson: dict, id: str) -> dict:
-        parseJson = cls._loadParseJson(configJson)
+        cls._loadParseJson(configJson)
         for parser in cls._parseJson:
             utils.checkElementExists(parser, "id")
-            if (utils.getElementValue(parser, "id") == id):
+            if utils.getElementValue(parser, "id") == id:
                 return parser
         raise RuntimeError("Parser not found, id: " + id)
 
@@ -51,14 +53,13 @@ class ConfigurationManager:
         parser = cls._getParserById(configJson, confId)
         utils.checkElementExists(parser, "impl")
         return utils.getElementValue(parser, "impl")
-    
+
     @classmethod
     def getCompress(cls, configJson: dict) -> str:
         confId = cls.getParserId(configJson)
         parser = cls._getParserById(configJson, confId)
         utils.checkElementExists(parser, "compress")
         return utils.getElementValue(parser, "compress")
-        
 
     @classmethod
     def getParser(cls, configJson: dict) -> dict:

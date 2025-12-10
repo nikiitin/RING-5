@@ -1,12 +1,15 @@
-from argumentParser import AnalyzerInfo
 import src.utils.utils as utils
+from src.data_parser.parser_params import DataParserParams
 from src.data_parser.src.configurationManager import ConfigurationManager
-from src.data_parser.src.impl.multiprocessing.parseWorkPool import ParseWorkPool
+from src.data_parser.src.impl.multiprocessing.parseWorkPool import \
+    ParseWorkPool
+
+
 class DataParserInterface:
-    def __init__(self, params: AnalyzerInfo) -> None:
+    def __init__(self, params: DataParserParams) -> None:
         self._args = params
-        self._parseConfig = ConfigurationManager.getParser(params.getJson())
-        self._shouldCompress = ConfigurationManager.getCompress(params.getJson())
+        self._parseConfig = ConfigurationManager.getParser(params.get_json())
+        self._shouldCompress = ConfigurationManager.getCompress(params.get_json())
         self._parseWorkPool = ParseWorkPool.getInstance()
         for parsing in self._parseConfig:
             # Check for the required elements on every parsing
@@ -18,7 +21,7 @@ class DataParserInterface:
     # all of them must be called in __call__ method
     def _compressData(self) -> None:
         pass
-    
+
     def _parseStats(self) -> None:
         pass
 
@@ -28,7 +31,7 @@ class DataParserInterface:
     # Generic definition for data parsing
     def __call__(self) -> None:
         # Data compression will bring all stats files into a single directory
-        if (self._shouldCompress == "True"):
+        if self._shouldCompress == "True":
             self._compressData()
         # Parse stats and turn them into csv
         self._parseStats()

@@ -1,11 +1,15 @@
 from typing import Any
-from src.data_plotter.src.shaper.shaper import Shaper
+
 import pandas as pd
+
+from src.data_plotter.src.shaper.shaper import Shaper
+
 
 class MultiDfShaper(Shaper):
     """
     Abstract class for shapers that work on multiple dataframes.
     """
+
     def __call__(self, data_frames: Any) -> pd.DataFrame:
         # Check the data frame is not none!
         # And if it is a unique dataframe

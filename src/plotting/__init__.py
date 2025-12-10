@@ -13,25 +13,25 @@ Main entry points:
 """
 
 from .base_plot import BasePlot
-from .plot_types import (
+from .plot_factory import PlotFactory
+from .plot_renderer import PlotRenderer
+from .types import (
     BarPlot,
     GroupedBarPlot,
     GroupedStackedBarPlot,
     LinePlot,
-    ScatterPlot
+    ScatterPlot,
 )
-from .plot_factory import PlotFactory
-from .plot_renderer import PlotRenderer
 
 __all__ = [
-    'BasePlot',
-    'BarPlot',
-    'GroupedBarPlot',
-    'GroupedStackedBarPlot',
-    'LinePlot',
-    'ScatterPlot',
-    'PlotFactory',
-    'PlotRenderer'
+    "BasePlot",
+    "BarPlot",
+    "GroupedBarPlot",
+    "GroupedStackedBarPlot",
+    "LinePlot",
+    "ScatterPlot",
+    "PlotFactory",
+    "PlotRenderer",
 ]
 
-__version__ = '2.0.0'
+__version__ = "2.0.0"

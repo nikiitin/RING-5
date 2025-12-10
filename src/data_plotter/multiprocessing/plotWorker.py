@@ -1,5 +1,6 @@
 import multiprocessing
 
+
 class PlotWorker(multiprocessing.Process):
     def __init__(self, workQueue, resultQueue):
         multiprocessing.Process.__init__(self)

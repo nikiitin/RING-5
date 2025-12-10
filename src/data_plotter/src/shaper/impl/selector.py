@@ -1,8 +1,11 @@
-from src.data_plotter.src.shaper.uniDfShaper import UniDfShaper
 from abc import abstractmethod
 from typing import Any
-import src.utils.utils as utils
+
 import pandas as pd
+
+import src.utils.utils as utils
+from src.data_plotter.src.shaper.uniDfShaper import UniDfShaper
+
 
 class Selector(UniDfShaper):
     """
@@ -18,6 +21,7 @@ class Selector(UniDfShaper):
     @property
     def _column(self) -> str:
         return self._column_data
+
     @_column.setter
     def _column(self, value: Any) -> None:
         utils.checkVarType(value, str)
@@ -42,8 +46,7 @@ class Selector(UniDfShaper):
         """
         utils.checkElementExists(self._params, "column")
         return super()._verifyParams()
-        
-    
+
     @abstractmethod
     def _verifyPreconditions(self, data_frame: pd.DataFrame) -> bool:
         """

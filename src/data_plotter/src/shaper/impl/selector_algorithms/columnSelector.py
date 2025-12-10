@@ -1,15 +1,21 @@
-import pandas as pd
-from src.data_plotter.src.shaper.impl.selector import Selector
 from typing import Any
+
+import pandas as pd
+
 import src.utils.utils as utils
+from src.data_plotter.src.shaper.impl.selector import Selector
+
+
 class ColumnSelector(Selector):
     """
     ColumnSelector is a Selector that selects columns based on a specified list of strings.
     """
+
     # Getters and setters
     @property
     def _columns(self) -> list:
         return self._columns_data
+
     @_columns.setter
     def _columns(self, value: Any) -> None:
         utils.checkVarType(value, list)
@@ -46,16 +52,29 @@ class ColumnSelector(Selector):
 # Main function to test the Cselector class
 def test():
     # Create a sample data frame
-    df = pd.DataFrame({
-    'system_id': ['S1', 'S1', 'S1', 'S1', 'S2', 'S2', 'S2', 'S2', 'S3', 'S3', 'S3', 'S3'],
-    'benchmark': ['B1', 'B2', 'B1', 'B2', 'B1', 'B2', 'B1', 'B2', 'B1', 'B2', 'B1', 'B2'],
-    'throughput': [100, 105, 120, 118, 80, 82, 78, 85, 90, 95, 100, 102],
-    'latency': [1.2, 1.1, 1.5, 1.4, 2.0, 1.9, 2.1, 2.2, 1.8, 1.7, 1.6, 1.5],
-    'config_param': ['A1', 'A1', 'A2', 'A2', 'B1', 'B1', 'B2', 'B2', 'C1', 'C1', 'C2', 'C2']
-    })
-    params = {
-        'columns': ["throughput", "latency", "config_param", "benchmark"]
-    }
+    df = pd.DataFrame(
+        {
+            "system_id": ["S1", "S1", "S1", "S1", "S2", "S2", "S2", "S2", "S3", "S3", "S3", "S3"],
+            "benchmark": ["B1", "B2", "B1", "B2", "B1", "B2", "B1", "B2", "B1", "B2", "B1", "B2"],
+            "throughput": [100, 105, 120, 118, 80, 82, 78, 85, 90, 95, 100, 102],
+            "latency": [1.2, 1.1, 1.5, 1.4, 2.0, 1.9, 2.1, 2.2, 1.8, 1.7, 1.6, 1.5],
+            "config_param": [
+                "A1",
+                "A1",
+                "A2",
+                "A2",
+                "B1",
+                "B1",
+                "B2",
+                "B2",
+                "C1",
+                "C1",
+                "C2",
+                "C2",
+            ],
+        }
+    )
+    params = {"columns": ["throughput", "latency", "config_param", "benchmark"]}
     print("input: ")
     print(df)
     shaper = ColumnSelector(params)

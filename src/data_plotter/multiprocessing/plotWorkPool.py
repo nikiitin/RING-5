@@ -1,10 +1,12 @@
-from multiprocessing.pool import Pool
 import multiprocessing
 import os
-from src.data_plotter.multiprocessing.plotWork import PlotWork
-from src.data_plotter.multiprocessing.plotWorker import PlotWorker
+
 # External dependency
 from tqdm import tqdm
+
+from src.data_plotter.multiprocessing.plotWork import PlotWork
+from src.data_plotter.multiprocessing.plotWorker import PlotWorker
+
 
 class PlotWorkPool:
     _singleton = None
@@ -18,7 +20,7 @@ class PlotWorkPool:
         if cls._singleton is None:
             cls._singleton = PlotWorkPool()
         return cls._singleton
-    
+
     def __init__(self) -> None:
         # Get the number of cores available
         self._numCores = os.cpu_count()
@@ -55,7 +57,7 @@ class PlotWorkPool:
         # processes will be blocked forever
         self.addWork(None)
         # Join the pool only if it was started
-        if not self._workers is None:
+        if self._workers is not None:
             # Join the pool (wait for all processes to finish)
             self._workQueue.join()
         else:
@@ -72,7 +74,7 @@ class PlotWorkPool:
                     successes += 1
                 elif r == 1:
                     errors += 1
-                elif r == None:
+                elif r is None:
                     continue
                 else:
                     raise RuntimeError("Unknown error code!")

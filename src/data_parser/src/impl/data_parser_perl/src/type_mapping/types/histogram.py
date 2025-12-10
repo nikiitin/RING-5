@@ -1,8 +1,11 @@
-from src.data_parser.src.impl.data_parser_perl.src.type_mapping.confType import confType
+from src.data_parser.src.impl.data_parser_perl.src.type_mapping.confType import \
+    confType
+
+
 class Histogram(confType):
-    #|| cyclesinRegionCPU0::Region1:value
-    #|| cyclesinRegionCPU0::Region2:value
-    #|| cyclesinRegionCPU1::Region1:value
+    # || cyclesinRegionCPU0::Region1:value
+    # || cyclesinRegionCPU0::Region2:value
+    # || cyclesinRegionCPU1::Region1:value
     def __init__(self, repeat: int, buckets: list) -> None:
         super().__init__(repeat)
         self.__dict__["buckets"] = buckets
@@ -28,39 +31,41 @@ class Histogram(confType):
                     map(int, values)
                     # Check that the values are a range
                     if len(values) != 2:
-                        raise TypeError("HISTOGRAM: Variable non-convertible to list of floats or ints... value: " +
-                                        str(__value) +
-                                        " type: " +
-                                        str(type(__value)) +
-                                        " field: "
-                                        + __name)
+                        raise TypeError(
+                            "HISTOGRAM: Variable non-convertible to list of floats or ints... "
+                            f"value: {__value} "
+                            f"type: {type(__value)} "
+                            f"field: {__name}"
+                        )
                     # Check that the values are a range
                     if int(values[0]) >= int(values[1]):
-                        raise TypeError("HISTOGRAM: Variable non-convertible to list of floats or ints... value: " +
-                                        str(__value) +
-                                        " type: " +
-                                        str(type(__value)) +
-                                        " field: "
-                                        + __name)
-                
-            except:
-                raise TypeError("HISTOGRAM: Unable to turn keys of dict into ranges: " +
-                                str(__value) +
-                                " type: " +
-                                str(type(__value)) +
-                                " field: "
-                                + __name)
+                        raise TypeError(
+                            "HISTOGRAM: Variable non-convertible to list of floats or ints... "
+                            f"value: {__value} "
+                            f"type: {type(__value)} "
+                            f"field: {__name}"
+                        )
+
+            except Exception:
+                raise TypeError(
+                    "HISTOGRAM: Unable to turn keys of dict into ranges: "
+                    f"value: {__value} "
+                    f"type: {type(__value)} "
+                    f"field: {__name}"
+                )
             try:
                 # Check if all values are ints
                 map(int, __value.values())
 
-            except:
-                raise TypeError("HISTOGRAM: Variable non-convertible to list of ints... value: " +
-                                str(__value) +
-                                " type: " +
-                                str(type(__value)) +
-                                " field: "
-                                + __name)
+            except Exception:
+                raise TypeError(
+                    "HISTOGRAM: Variable non-convertible to list of ints... value: "
+                    + str(__value)
+                    + " type: "
+                    + str(type(__value))
+                    + " field: "
+                    + __name
+                )
             # We have a fixed amount of buckets delimited each with a value.
             # Starting from 0 to the last bucket, which has the value N+
             # We have to add the samples to the corresponding bucket
@@ -70,8 +75,6 @@ class Histogram(confType):
             # 2: 3
             # 4: 2
             # 4+: 11
-            
-
 
             # Turn every key into a string and every value into a float
             __value.update((str(x), list(y)) for x, y in __value.items())
@@ -79,16 +82,22 @@ class Histogram(confType):
             if not set(__value.keys()).issubset(set(self.entries)):
                 # Using print instead of warning purposely as print is
                 # proccess safe and warning is not :(
-                print("\nHISTOGRAM: Entries in file are not the same as the entries in configuration: \n" +
-                        "Expected: " +
-                        str(self.entries) + "\n" +
-                        "Found: " +
-                        str(__value.keys()) + "\n" +
-                        "Maybe you should check the configuration file... Skipping not defined entries...")
+                print(
+                    "\nHISTOGRAM: Entries in file are not the same as the entries in "
+                    "configuration: \n"
+                    f"Expected: {self.entries}\n"
+                    f"Found: {__value.keys()}\n"
+                    "Maybe you should check the configuration file... Skipping not defined "
+                    "entries..."
+                )
             __value = dict((x, list(y)) for x, y in __value.items() if x in self.entries)
             # Update the content with the new dictionary
             self.__dict__["content"].update(__value)
-        elif __name == "balancedContent" or __name == "reducedDuplicates" or __name == "reducedContent":
+        elif (
+            __name == "balancedContent"
+            or __name == "reducedDuplicates"
+            or __name == "reducedContent"
+        ):
             # Default behaviour
             super().__setattr__(__name, __value)
         else:
@@ -96,7 +105,7 @@ class Histogram(confType):
 
     def __str__(self):
         return super().__str__()
-    
+
     def balanceContent(self):
         super().balanceContent()
         for entry in self.content:
@@ -106,13 +115,15 @@ class Histogram(confType):
                 for i in range(len(self.content.get(entry)), int(self.repeat)):
                     self.content[entry].append(0)
             elif len(self.content.get(entry)) > int(self.repeat):
-                raise RuntimeError("HISTOGRAM: Variable has more values than expected... values: " +
-                                    str(self.content.get(entry)) +
-                                    " length: " +
-                                    str(len(self.content.get(entry))) +
-                                    " repeat: " +
-                                    str(self.repeat))
-        
+                raise RuntimeError(
+                    "HISTOGRAM: Variable has more values than expected... values: "
+                    + str(self.content.get(entry))
+                    + " length: "
+                    + str(len(self.content.get(entry)))
+                    + " repeat: "
+                    + str(self.repeat)
+                )
+
     def reduceDuplicates(self):
         super().reduceDuplicates()
         # HISTOGRAM can be picky. They can have different entries
@@ -125,7 +136,7 @@ class Histogram(confType):
             self.reducedContent[entry] = 0
             values = self.content.get(entry)
             for i in range(0, int(self.repeat)):
-                # Get the value for the entry     
+                # Get the value for the entry
                 self.reducedContent[entry] += int(values[i])
             # Do arithmetic mean
             self.reducedContent[entry] = self.reducedContent[entry] / int(self.repeat)

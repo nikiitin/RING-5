@@ -1,22 +1,21 @@
-from argumentParser import AnalyzerInfo
-from typing import Any, ClassVar, Union
-from abc import ABC, abstractmethod
-import src.utils.utils as utils
+from abc import abstractmethod
+from typing import Any, Union
+
 import pandas as pd
 
-# Import new parameter classes
-try:
-    from src.data_management.manager_params import DataManagerParams
-except ImportError:
-    DataManagerParams = None
+import src.utils.utils as utils
+from src.data_management.manager_params import DataManagerParams
+
 
 class MetaDataManager(type):
     """
     Meta class for the DataManager class.
     """
+
     @property
     def _df(cls) -> pd.DataFrame:
         return cls._df_data
+
     @_df.setter
     def _df(cls, value: Any) -> None:
         utils.checkVarType(value, pd.DataFrame)
@@ -24,9 +23,11 @@ class MetaDataManager(type):
         if value.empty:
             raise ValueError("The dataframe is empty")
         cls._df_data = value
+
     @property
     def _categorical_columns(cls) -> list:
         return cls._categorical_columns_data
+
     @_categorical_columns.setter
     def _categorical_columns(cls, value: Any) -> None:
         utils.checkVarType(value, list)
@@ -36,9 +37,11 @@ class MetaDataManager(type):
             if col == "":
                 raise ValueError("The categorical columns list contains empty strings")
         cls._categorical_columns_data = value
+
     @property
     def _statistic_columns(cls) -> list:
         return cls._statistic_columns_data
+
     @_statistic_columns.setter
     def _statistic_columns(cls, value: Any) -> None:
         utils.checkVarType(value, list)
@@ -48,11 +51,16 @@ class MetaDataManager(type):
             if col == "":
                 raise ValueError("The statistic columns list contains empty strings")
         cls._statistic_columns_data = value
+
     @property
-    def _csvPath(cls) -> str:
+    def _csvPath(cls) -> Union[str, None]:
         return cls._csvPath_data
+
     @_csvPath.setter
-    def _csvPath(cls, value: str) -> None:
+    def _csvPath(cls, value: Union[str, None]) -> None:
+        if value is None:
+            cls._csvPath_data = None
+            return
         utils.checkVarType(value, str)
         if value == "":
             raise ValueError("The csv path is empty")
@@ -60,38 +68,32 @@ class MetaDataManager(type):
             raise ValueError("The csv path does not exist")
         cls._csvPath_data = value
 
+
 class DataManager(metaclass=MetaDataManager):
     """
     Generic data manager class. A data manager is responsible for managing some properties
     of the data. It is used to preprocess the data, rename, mix columns, reduce the seeds, etc.
     """
+
     _df_data = None
     _categorical_columns_data = None
     _statistic_columns_data = None
     _csvPath_data = None
 
-    def __init__(self, params: Union[AnalyzerInfo, 'DataManagerParams'], json: dict) -> None:
+    def __init__(self, params: DataManagerParams, json: dict) -> None:
         """
         Constructor for the DataManager class.
-        Supports both legacy AnalyzerInfo and new DataManagerParams.
-        
+
         Args:
-            params: Either AnalyzerInfo (CLI) or DataManagerParams (web/modern)
+            params: DataManagerParams
             json: Configuration dictionary
         """
-        # Handle both old and new parameter types
-        if DataManagerParams and isinstance(params, DataManagerParams):
-            # New parameter class
-            csv_path = params.get_work_csv()
-            categorical_cols = params.get_categorical_columns()
-        else:
-            # Legacy AnalyzerInfo
-            csv_path = params.getWorkCsv()
-            categorical_cols = params.getCategoricalColumns()
-        
+        csv_path = params.get_work_csv()
+        categorical_cols = params.get_categorical_columns()
+
         if DataManager._csvPath is None:
             DataManager._csvPath = csv_path
-            
+
         if DataManager._df is None:
             if utils.checkFileExists(DataManager._csvPath):
                 DataManager._df = pd.read_csv(DataManager._csvPath, header=0)
@@ -108,10 +110,14 @@ class DataManager(metaclass=MetaDataManager):
             # Set categorical columns to exclude 'random_seed' if present
             if "random_seed" in DataManager._categorical_columns:
                 DataManager._categorical_columns.remove("random_seed")
-        # Identify numeric statistic columns (all columns not in categorical_columns or 'random_seed').
+        # Identify numeric statistic columns (all columns not in categorical_columns or
+        # 'random_seed').
         if DataManager._statistic_columns is None:
-            DataManager._statistic_columns = [col for col in DataManager._df.columns if col not in DataManager._categorical_columns and col != "random_seed"]
-
+            DataManager._statistic_columns = [
+                col
+                for col in DataManager._df.columns
+                if col not in DataManager._categorical_columns and col != "random_seed"
+            ]
 
     @abstractmethod
     def _verifyParams(self) -> None:
@@ -128,10 +134,15 @@ class DataManager(metaclass=MetaDataManager):
         # Ensure all specified categorical columns exist in the DataFrame
         if DataManager._categorical_columns is None:
             raise ValueError("Categorical columns are not initialized")
-        
-        missing_columns = set(DataManager._categorical_columns) - set(DataManager._df.columns.astype(str))
+
+        missing_columns = set(DataManager._categorical_columns) - set(
+            DataManager._df.columns.astype(str)
+        )
         if missing_columns:
-            raise ValueError(f"The following categorical columns are missing from the DataFrame: {list(missing_columns)}")
+            raise ValueError(
+                f"The following categorical columns are missing from the DataFrame: "
+                f"{list(missing_columns)}"
+            )
         pass
 
     @abstractmethod
@@ -142,7 +153,7 @@ class DataManager(metaclass=MetaDataManager):
         """
         self._verifyParams()
         pass
-    
+
     def manage(self) -> None:
         """
         Alias for __call__() to support both calling conventions.

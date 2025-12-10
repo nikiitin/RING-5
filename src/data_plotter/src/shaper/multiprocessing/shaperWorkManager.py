@@ -1,9 +1,13 @@
-import src.utils.utils as utils
 import os
-from tqdm import tqdm
-from src.shaper.multiprocessing.shaperWorker import shaperWorker as shaperWorker
-from shaperWork import ShaperWork as ShaperWork
 from concurrent.futures import ThreadPoolExecutor
+
+from shaperWork import ShaperWork as ShaperWork
+from src.shaper.multiprocessing.shaperWorker import \
+    shaperWorker as shaperWorker
+from tqdm import tqdm
+
+import src.utils.utils as utils
+
 
 class ShaperWorkManager:
     """
@@ -12,25 +16,26 @@ class ShaperWorkManager:
     will use futures to execute the shapers and get notified
     whenever a work is finished
     """
+
     _workers = None
-    _dependencies : dict
-    _executingWorks : dict
-    _completedWorks : dict
-    _currentFutures : list
-    _json : dict
-    _numCores : int
-    _isFinished : bool
-    _pbar : tqdm
+    _dependencies: dict
+    _executingWorks: dict
+    _completedWorks: dict
+    _currentFutures: list
+    _json: dict
+    _numCores: int
+    _isFinished: bool
+    _pbar: tqdm
 
     @property
     def completedWorks(self) -> dict:
         return self._completedWorks
-    
+
     @property
     def isFinished(self) -> bool:
         return self._isFinished
 
-    def __init__(self, json : dict, csvPath : str, plot_shapers_ids: set):
+    def __init__(self, json: dict, csvPath: str, plot_shapers_ids: set):
         numCores = os.cpu_count()
         if numCores is None:
             # OS library failed! We will use 1 core!
@@ -46,14 +51,14 @@ class ShaperWorkManager:
         # Add the initial non-dependent works to the queue
         for work_id, workInfo in self._json.items():
             work = ShaperWork(work_id, workInfo)
-            if not utils.checkElementExistNoException(workInfo, 'after'):
+            if not utils.checkElementExistNoException(workInfo, "after"):
                 # No dependencies, so this work can be added to the queue
                 # We can set srcCsvs and dstCsv here!
                 work.srcCsv = [csvPath]
                 work.dstCsv = utils.createTmpFile()
                 self._executingWorks[work_id] = work
             else:
-                deps = utils.getElementValue(workInfo, 'after')
+                deps = utils.getElementValue(workInfo, "after")
                 if isinstance(deps, str):
                     deps = [deps]
                 if not isinstance(deps, list):
@@ -75,7 +80,7 @@ class ShaperWorkManager:
         if id in self._executingWorks:
             return []
         elif id in self._dependencies:
-            work : ShaperWork = self._dependencies[id]
+            work: ShaperWork = self._dependencies[id]
             deps = work.deps
             if len(deps) == 0:
                 raise ValueError(f"Dependent work {id} has no dependencies.")
@@ -102,7 +107,6 @@ class ShaperWorkManager:
             if work_id not in realUsedWorks:
                 self._executingWorks.pop(work_id)
         # Queues should be purged at this point
-        
 
     def _checkCyclicDependencies(self, work_id: str, dependencies: list) -> bool:
         # Check recursively if there is any cyclic dependency
@@ -110,10 +114,12 @@ class ShaperWorkManager:
         for dependency in dependencies:
             # Check if the dependency exists in the json
             if dependency not in self._json.keys():
-                raise ValueError(f"Work {work_id} has an after dependency that does not exist: {dependency}.")
+                raise ValueError(
+                    f"Work {work_id} has an after dependency that does not exist: {dependency}."
+                )
             if dependency in self._dependencies.keys():
                 # Get the remote dependency list
-                remoteDep : ShaperWork = self._dependencies[dependency]
+                remoteDep: ShaperWork = self._dependencies[dependency]
                 remoteDepList = remoteDep.deps
                 if work_id in remoteDepList:
                     return True
@@ -131,7 +137,7 @@ class ShaperWorkManager:
     def _checkDependantsToSubmit(self, work_id: str):
         # Check if there are any dependants that now fulfill their dependecies
         # and submit them to the thread pool
-        dependant : ShaperWork
+        dependant: ShaperWork
         for depwork_id, dependant in self._dependencies:
             for dependency in dependant.deps:
                 if dependency == work_id:
@@ -155,7 +161,7 @@ class ShaperWorkManager:
         if not future.result():
             raise Exception(f"Error: Work {work_id} failed!")
         # Remove the work from the executing dict
-        work : ShaperWork = self._executingWorks.pop(work_id)
+        work: ShaperWork = self._executingWorks.pop(work_id)
         if work is None:
             raise Exception(f"Error: Work {work_id} not found in executing dict!")
         # Update the progress bar
@@ -167,8 +173,8 @@ class ShaperWorkManager:
         if self._workers is not None and len(self._executingWorks) == 0:
             self._workers.shutdown()
             self._isFinished = True
-        # All work is done, 
-    
+        # All work is done,
+
     def _submitWork(self, work_id: str, work: ShaperWork):
         if self._workers is None:
             raise Exception("Error: Thread pool is not running!")

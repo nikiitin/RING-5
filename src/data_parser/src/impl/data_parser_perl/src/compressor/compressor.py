@@ -1,17 +1,20 @@
-import tarfile
 import os
-import src.utils.utils as utils
+import tarfile
+
 from tqdm import tqdm
+
+import src.utils.utils as utils
+
 
 class Compressor:
     _singleton = None
+
     @classmethod
     def getInstance(cls) -> "Compressor":
         if cls._singleton is None:
             cls._singleton = Compressor()
         return cls._singleton
-        
-    
+
     def _compress(self, filesToCompress: list, pathToTar: str, destDir: str) -> None:
         # Create the tar file
         if not utils.checkDirExists(destDir):
@@ -37,14 +40,12 @@ class Compressor:
         except OSError:
             raise RuntimeError("Could not find or open the file: " + destDir + ".tar.gz")
 
-        tar.extractall(destDir)
+        tar.extractall(destDir, filter="data")
         tar.close()
-    
-    def __call__(self,
-        filesToCompress: list,
-        destDir: str,
-        fileName: str,
-        finalUntar: bool = True) -> None:
+
+    def __call__(
+        self, filesToCompress: list, destDir: str, fileName: str, finalUntar: bool = True
+    ) -> None:
         pathToTar = os.path.join(destDir, fileName)
         # Compress the files
         print("Compressing files...")

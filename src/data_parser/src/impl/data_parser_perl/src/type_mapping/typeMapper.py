@@ -1,9 +1,16 @@
-from src.data_parser.src.impl.data_parser_perl.src.type_mapping.confType import confType
-from src.data_parser.src.impl.data_parser_perl.src.type_mapping.types.vector import Vector
-from src.data_parser.src.impl.data_parser_perl.src.type_mapping.types.configuration import Configuration
-from src.data_parser.src.impl.data_parser_perl.src.type_mapping.types.scalar import Scalar
-from src.data_parser.src.impl.data_parser_perl.src.type_mapping.types.distribution import Distribution
-class TypeMapper():
+from src.data_parser.src.impl.data_parser_perl.src.type_mapping.confType import \
+    confType
+from src.data_parser.src.impl.data_parser_perl.src.type_mapping.types.configuration import \
+    Configuration
+from src.data_parser.src.impl.data_parser_perl.src.type_mapping.types.distribution import \
+    Distribution
+from src.data_parser.src.impl.data_parser_perl.src.type_mapping.types.scalar import \
+    Scalar
+from src.data_parser.src.impl.data_parser_perl.src.type_mapping.types.vector import \
+    Vector
+
+
+class TypeMapper:
     def __init__(self) -> None:
         raise NotImplementedError("TypeMapper class cannot be instantiated...")
 
@@ -29,5 +36,4 @@ class TypeMapper():
         elif varType == "scalar":
             return Scalar(repeat)
         else:
-            raise TypeError("Unknown type for variable type: " +
-                            varType)
+            raise TypeError("Unknown type for variable type: " + varType)

@@ -117,7 +117,7 @@ def test_file_structure():
             missing.append(file_path)
     
     if missing:
-        print(f"  ✗ Missing files:")
+        print("  ✗ Missing files:")
         for f in missing:
             print(f"    - {f}")
         return False
@@ -148,11 +148,11 @@ def test_dependencies():
             missing.append(module)
     
     if missing:
-        print(f"\n  Install missing dependencies:")
+        print("\n  Install missing dependencies:")
         print(f"  pip install {' '.join(missing)}")
         return False
     else:
-        print(f"\n  ✓ All dependencies installed")
+        print("\n  ✓ All dependencies installed")
         return True
 
 

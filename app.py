@@ -10,24 +10,16 @@ import shutil
 from pathlib import Path
 import sys
 import glob
-import os
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import plotly.express as px
-import plotly.graph_objects as go
-import importlib
 
 # Add project root to path
 root_dir = Path(__file__).parent
 if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
-from src.web.components import UIComponents
-from src.web.facade import BackendFacade
-from src.data_management.dataManager import DataManager
-from src.data_management.dataManagerFactory import DataManagerFactory
-from src.data_plotter.src.shaper.shaperFactory import ShaperFactory
-from src.plotting import PlotFactory
-from src.config.config_manager import ConfigValidator
+from src.web.components import UIComponents  # noqa: E402
+from src.web.facade import BackendFacade  # noqa: E402
+from src.data_plotter.src.shaper.shaperFactory import ShaperFactory  # noqa: E402
+from src.data_parser.parser_params import DataParserParams  # noqa: E402
 
 # Page configuration
 st.set_page_config(
@@ -134,7 +126,7 @@ def load_saved_configs():
                     'modified': config_file.stat().st_mtime,
                     'description': config_data.get('description', 'No description')
                 })
-            except:
+            except Exception:
                 pass
     return configs
 
@@ -283,7 +275,7 @@ def show_csv_pool():
                     preview_data = pd.read_csv(csv_path, sep=r'\s+', nrows=5)
                     if st.button("Preview", key=f"preview_csv_{idx}"):
                         st.dataframe(preview_data)
-                except:
+                except Exception:
                     pass
             
             with col3:
@@ -481,7 +473,7 @@ def run_parser_with_progress(stats_path: str, stats_pattern: str, compress: bool
                              variables: list, files_count: int, progress_bar, 
                              status_text, file_details) -> str:
     """Run the gem5 stats parser with progress tracking."""
-    from argumentParser import AnalyzerInfo
+    # from argumentParser import AnalyzerInfo
     from src.data_parser.src.dataParserFactory import DataParserFactory
     
     # Create temp directory if needed
@@ -522,10 +514,13 @@ def run_parser_with_progress(stats_path: str, stats_pattern: str, compress: bool
             if "vectorEntries" in var:
                 var_config["vectorEntries"] = var["vectorEntries"]
         elif var["type"] == "distribution":
-            if "minimum" in var: var_config["minimum"] = var["minimum"]
-            if "maximum" in var: var_config["maximum"] = var["maximum"]
+            if "minimum" in var:
+                var_config["minimum"] = var["minimum"]
+            if "maximum" in var:
+                var_config["maximum"] = var["maximum"]
         elif var["type"] == "configuration":
-            if "onEmpty" in var: var_config["onEmpty"] = var["onEmpty"]
+            if "onEmpty" in var:
+                var_config["onEmpty"] = var["onEmpty"]
             
         parser_vars.append(var_config)
     
@@ -553,23 +548,8 @@ def run_parser_with_progress(stats_path: str, stats_pattern: str, compress: bool
     status_text.text("Step 2/3: Configuring parser...")
     progress_bar.progress(0.2)
     
-    # Create AnalyzerInfo
-    class SimpleAnalyzerInfo:
-        def __init__(self, output_dir, config_json):
-            self.output_dir = output_dir
-            self.config_json = config_json
-        
-        def getOutputDir(self):
-            return self.output_dir
-        
-        def getJson(self):
-            return self.config_json
-        
-        @staticmethod
-        def addCategoricalStats(var_name):
-            pass
-    
-    analyzer_info = SimpleAnalyzerInfo(output_dir, parse_config_data)
+    # Create DataParserParams
+    parser_params = DataParserParams(config_json=parse_config_data)
     
     # Update status for compression phase
     if compress:
@@ -582,7 +562,7 @@ def run_parser_with_progress(stats_path: str, stats_pattern: str, compress: bool
     file_details.text(f"Parsing {files_count} gem5 stats files...")
     progress_bar.progress(0.5)
     
-    parser = DataParserFactory.getDataParser(analyzer_info, "perl")
+    parser = DataParserFactory.getDataParser(parser_params, "perl")
     parser()
     
     # Finalize
@@ -602,7 +582,7 @@ def run_parser_with_progress(stats_path: str, stats_pattern: str, compress: bool
 
 def run_parser(stats_path: str, stats_pattern: str, compress: bool, variables: list) -> str:
     """Run the gem5 stats parser and return path to generated CSV."""
-    from argumentParser import AnalyzerInfo
+    # from argumentParser import AnalyzerInfo
     from src.data_parser.src.dataParserFactory import DataParserFactory
     
     # Create temp directory if needed
@@ -639,10 +619,13 @@ def run_parser(stats_path: str, stats_pattern: str, compress: bool, variables: l
             if "vectorEntries" in var:
                 var_config["vectorEntries"] = var["vectorEntries"]
         elif var["type"] == "distribution":
-            if "minimum" in var: var_config["minimum"] = var["minimum"]
-            if "maximum" in var: var_config["maximum"] = var["maximum"]
+            if "minimum" in var:
+                var_config["minimum"] = var["minimum"]
+            if "maximum" in var:
+                var_config["maximum"] = var["maximum"]
         elif var["type"] == "configuration":
-            if "onEmpty" in var: var_config["onEmpty"] = var["onEmpty"]
+            if "onEmpty" in var:
+                var_config["onEmpty"] = var["onEmpty"]
             
         parser_vars.append(var_config)
     
@@ -667,26 +650,11 @@ def run_parser(stats_path: str, stats_pattern: str, compress: bool, variables: l
     with open(config_file, 'w') as f:
         json.dump(parse_config_data, f, indent=2)
     
-    # Create AnalyzerInfo
-    class SimpleAnalyzerInfo:
-        def __init__(self, output_dir, config_json):
-            self.output_dir = output_dir
-            self.config_json = config_json
-        
-        def getOutputDir(self):
-            return self.output_dir
-        
-        def getJson(self):
-            return self.config_json
-        
-        @staticmethod
-        def addCategoricalStats(var_name):
-            pass
-    
-    analyzer_info = SimpleAnalyzerInfo(output_dir, parse_config_data)
+    # Create DataParserParams
+    parser_params = DataParserParams(config_json=parse_config_data)
     
     # Get parser and run
-    parser = DataParserFactory.getDataParser(analyzer_info, "perl")
+    parser = DataParserFactory.getDataParser(parser_params, "perl")
     parser()
     
     # Return path to results.csv
@@ -768,7 +736,7 @@ def show_upload_page():
                 # Try to read with different separators
                 try:
                     data = pd.read_csv(csv_path)
-                except:
+                except Exception:
                     data = pd.read_csv(csv_path, sep=r'\s+')
                 
                 st.session_state.data = data
@@ -820,7 +788,7 @@ def show_upload_page():
                 from io import StringIO
                 try:
                     data = pd.read_csv(StringIO(csv_text))
-                except:
+                except Exception:
                     data = pd.read_csv(StringIO(csv_text), sep=r'\s+')
                 
                 st.session_state.data = data
@@ -841,15 +809,7 @@ def show_manage_plots_page():
         st.info("Make sure src/web/pages/manage_plots.py exists")
 
 
-def process_all_plots_parallel():
-    """Import and execute parallel plot processing."""
-    try:
-        from src.web.pages.manage_plots import process_all_plots_parallel as process_plots
-        process_plots()
-    except ImportError as e:
-        st.error(f"Error loading plot processor: {e}")
 
-    
 def show_configure_page():
     """Pipeline configuration page with dynamic shaper addition."""
     if st.session_state.data is None:
@@ -1606,7 +1566,7 @@ def show_load_config_for_plot(current_plot, plot_idx):
         st.info("No saved configurations yet.")
         return
     
-    st.info(f"Select a configuration to load into this plot:")
+    st.info("Select a configuration to load into this plot:")
     
     for idx, config_info in enumerate(st.session_state.saved_configs):
         config_path = Path(config_info['path'])

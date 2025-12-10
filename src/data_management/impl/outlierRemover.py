@@ -1,12 +1,14 @@
-from argumentParser import AnalyzerInfo
-from src.data_management.dataManager import DataManager
 import src.utils.utils as utils
+from src.data_management.dataManager import DataManager
+from src.data_management.manager_params import DataManagerParams
+
 
 class OutlierRemover(DataManager):
     """
     Class to remove outliers from a DataFrame.
     Inherits from the DataManager class.
     """
+
     def _verifyParams(self):
         super()._verifyParams()
         # Skip validation if no outlier removal is configured
@@ -14,11 +16,15 @@ class OutlierRemover(DataManager):
             return
         # Outlier stat must be a string and that column must exist in the DataFrame
         if not isinstance(self._outlierStat, str):
-            raise ValueError("Outlier stat element is not correctly defined at json file. Must be a string")
+            raise ValueError(
+                "Outlier stat element is not correctly defined at json file. Must be a string"
+            )
         if self._outlierStat not in DataManager._df.columns:
-            raise ValueError(f"Outlier stat column {self._outlierStat} does not exist in the DataFrame")
+            raise ValueError(
+                f"Outlier stat column {self._outlierStat} does not exist in the DataFrame"
+            )
 
-    def __init__(self, params: AnalyzerInfo, json: dict) -> None:
+    def __init__(self, params: DataManagerParams, json: dict) -> None:
         """
         Constructor for the OutlierRemover class. Instance the class only
         if the outlierRemover is present in the json file.
@@ -26,12 +32,12 @@ class OutlierRemover(DataManager):
             params: The parameters for the outlier remover.
         """
         super().__init__(params, json)
-        
+
         # Handle two JSON formats:
         # 1. Empty: {} - skip outlier removal
         # 2. Nested: {"outlierRemover": {"outlierStat": "column_name"}}
         # 3. Simple: {"outlierStat": "column_name"}
-        
+
         if not self._json or len(self._json) == 0:
             # Empty dict - skip outlier removal
             self._outlierRemoverElement = None
