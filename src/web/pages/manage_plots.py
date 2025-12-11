@@ -70,7 +70,7 @@ def show_manage_plots_page():
             "Plot type", options=PlotFactory.get_available_plot_types(), key="new_plot_type"
         )
     with col3:
-        if st.button("➕ Create Plot", width="stretch"):
+        if st.button("Create Plot", width="stretch"):
             if plot_type:
                 plot = PlotFactory.create_plot(
                     plot_type=plot_type, plot_id=st.session_state.plot_counter, name=new_plot_name
@@ -122,26 +122,26 @@ def render_plot_management(plot: BasePlot, plot_idx: int):
         col2_1, col2_2 = st.columns(2)
         with col2_1:
             if st.button(
-                "💾 Save Pipe", key=f"save_plot_{plot.plot_id}", help="Save current pipeline"
+                "Save Pipe", key=f"save_plot_{plot.plot_id}", help="Save current pipeline"
             ):
                 st.session_state[f"show_save_for_plot_{plot.plot_id}"] = True
                 st.session_state[f"show_load_for_plot_{plot.plot_id}"] = False
                 st.rerun()
         with col2_2:
             if st.button(
-                "📥 Load Pipe", key=f"load_plot_{plot.plot_id}", help="Load a saved pipeline"
+                "Load Pipe", key=f"load_plot_{plot.plot_id}", help="Load a saved pipeline"
             ):
                 st.session_state[f"show_load_for_plot_{plot.plot_id}"] = True
                 st.session_state[f"show_save_for_plot_{plot.plot_id}"] = False
                 st.rerun()
 
     with col3:
-        if st.button("🗑️ Delete", key=f"delete_plot_{plot.plot_id}"):
+        if st.button("Delete", key=f"delete_plot_{plot.plot_id}"):
             st.session_state.plots_objects.pop(plot_idx)
             st.rerun()
 
     with col4:
-        if st.button("📋 Duplicate", key=f"dup_plot_{plot.plot_id}"):
+        if st.button("Duplicate", key=f"dup_plot_{plot.plot_id}"):
             import copy
 
             new_plot = copy.deepcopy(plot)
@@ -169,7 +169,7 @@ def render_save_pipeline_dialog(plot: BasePlot):
     import json
     from pathlib import Path
 
-    RING5_DATA_DIR = Path.home() / ".ring5"
+    RING5_DATA_DIR = Path(__file__).parent.parent.parent.parent / ".ring5"
     PIPELINE_DIR = RING5_DATA_DIR / "pipelines"
     PIPELINE_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -214,7 +214,7 @@ def render_load_pipeline_dialog(plot: BasePlot):
     import json
     from pathlib import Path
 
-    RING5_DATA_DIR = Path.home() / ".ring5"
+    RING5_DATA_DIR = Path(__file__).parent.parent.parent.parent / ".ring5"
     PIPELINE_DIR = RING5_DATA_DIR / "pipelines"
 
     if PIPELINE_DIR.exists():
@@ -322,7 +322,7 @@ def render_data_pipeline(plot: BasePlot):
                     )
 
                 with col2:
-                    if idx > 0 and st.button("↑", key=f"up_{plot.plot_id}_{idx}"):
+                    if idx > 0 and st.button("Up", key=f"up_{plot.plot_id}_{idx}"):
                         plot.pipeline[idx], plot.pipeline[idx - 1] = (
                             plot.pipeline[idx - 1],
                             plot.pipeline[idx],
@@ -331,7 +331,7 @@ def render_data_pipeline(plot: BasePlot):
 
                 with col3:
                     if idx < len(plot.pipeline) - 1 and st.button(
-                        "↓", key=f"down_{plot.plot_id}_{idx}"
+                        "Down", key=f"down_{plot.plot_id}_{idx}"
                     ):
                         plot.pipeline[idx], plot.pipeline[idx + 1] = (
                             plot.pipeline[idx + 1],
@@ -340,7 +340,7 @@ def render_data_pipeline(plot: BasePlot):
                         st.rerun()
 
                 with col4:
-                    if st.button("🗑️", key=f"del_{plot.plot_id}_{idx}"):
+                    if st.button("Del", key=f"del_{plot.plot_id}_{idx}"):
                         plot.pipeline.pop(idx)
                         st.rerun()
 
@@ -427,7 +427,7 @@ def render_plot_configuration(plot: BasePlot):
 
     with col2:
         manual_generate = st.button(
-            "🔄 Refresh Plot", type="secondary", width="stretch", key=f"generate_{plot.plot_id}"
+            "Refresh Plot", type="secondary", width="stretch", key=f"generate_{plot.plot_id}"
         )
 
     # Determine if we should generate
@@ -447,11 +447,11 @@ def render_workspace_management():
     col1, col2 = st.columns(2)
 
     with col1:
-        if st.button("🚀 Process All Plots in Parallel", width="stretch"):
+        if st.button("Process All Plots in Parallel", width="stretch"):
             st.info("Parallel processing feature coming soon!")
 
     with col2:
-        if st.button("💾 Save Entire Workspace", width="stretch"):
+        if st.button("Save Entire Workspace", width="stretch"):
             # Convert plot objects to dictionaries for saving
             plots_data = [plot.to_dict() for plot in st.session_state.plots_objects]
             # Store in old format for compatibility

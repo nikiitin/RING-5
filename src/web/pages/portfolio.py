@@ -14,7 +14,7 @@ def show_portfolio_page():
     """Save and load complete portfolio snapshots."""
     # Import RING5_DATA_DIR from parent context
 
-    RING5_DATA_DIR = Path.home() / ".ring5"
+    RING5_DATA_DIR = Path(__file__).parent.parent.parent.parent / ".ring5"
 
     st.markdown("## Portfolio Management")
     st.markdown(

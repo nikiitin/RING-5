@@ -241,7 +241,7 @@ class UIComponents:
                         )
                     ):
                         if st.button(
-                            f"🔍 Deep Scan Entries for '{var_name}'",
+                            f"Deep Scan Entries for '{var_name}'",
                             key=f"deep_scan_{idx}",
                             help="Scan ALL stats files to find all possible entries "
                             "for this vector.",

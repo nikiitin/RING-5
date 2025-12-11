@@ -23,7 +23,7 @@ class BackendFacade:
 
     def __init__(self):
         """Initialize the facade with persistent storage paths."""
-        self.ring5_data_dir = Path.home() / ".ring5"
+        self.ring5_data_dir = Path(__file__).parent.parent.parent / ".ring5"
         self.csv_pool_dir = self.ring5_data_dir / "csv_pool"
         self.config_pool_dir = self.ring5_data_dir / "saved_configs"
 

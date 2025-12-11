@@ -9,3 +9,4 @@ __pycache__
 .proj*
 python_venv/
 .pytest_cache/
+.ring5

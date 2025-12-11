@@ -78,18 +78,18 @@ class ConfigurePipelinePage:
 
                 with col2:
                     if idx > 0:
-                        if st.button("↑", key=f"up_{idx}"):
+                        if st.button("Up", key=f"up_{idx}"):
                             pipeline[idx], pipeline[idx - 1] = pipeline[idx - 1], pipeline[idx]
                             st.rerun()
 
                 with col3:
                     if idx < len(pipeline) - 1:
-                        if st.button("↓", key=f"down_{idx}"):
+                        if st.button("Down", key=f"down_{idx}"):
                             pipeline[idx], pipeline[idx + 1] = pipeline[idx + 1], pipeline[idx]
                             st.rerun()
 
                 with col4:
-                    if st.button("🗑", key=f"delete_{idx}"):
+                    if st.button("Del", key=f"delete_{idx}"):
                         pipeline.pop(idx)
                         st.rerun()
 

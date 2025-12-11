@@ -340,7 +340,7 @@ class DataManagersPage:
 
         # Separate confirmation button outside the first button's scope
         if "seeds_result" in st.session_state:
-            if st.button("✓ Confirm and Apply Seeds Reducer", key="confirm_seeds", type="primary"):
+            if st.button("Confirm and Apply Seeds Reducer", key="confirm_seeds", type="primary"):
                 StateManager.set_data(st.session_state["seeds_result"])
                 del st.session_state["seeds_result"]
                 st.success("✓ Seeds-reduced data is now active!")
@@ -447,7 +447,7 @@ class DataManagersPage:
         # Separate confirmation button outside the first button's scope
         if "outlier_result" in st.session_state:
             if st.button(
-                "✓ Confirm and Apply Outlier Remover", key="confirm_outlier", type="primary"
+                "Confirm and Apply Outlier Remover", key="confirm_outlier", type="primary"
             ):
                 StateManager.set_data(st.session_state["outlier_result"])
                 del st.session_state["outlier_result"]
@@ -532,7 +532,7 @@ class DataManagersPage:
         # Separate confirmation button outside the first button's scope
         if "preproc_result" in st.session_state:
             if st.button(
-                "✓ Confirm and Add Column to Dataset", key="confirm_preproc", type="primary"
+                "Confirm and Add Column to Dataset", key="confirm_preproc", type="primary"
             ):
                 StateManager.set_data(st.session_state["preproc_result"])
                 del st.session_state["preproc_result"]
