@@ -45,10 +45,11 @@ st.markdown("""
         padding: 1rem 0;
     }
     .step-header {
-        background-color: #f0f2f6;
-        padding: 1rem;
         border-radius: 0.5rem;
         margin: 1rem 0;
+    }
+    .step-header h2 {
+        margin: 0;
     }
     .success-box {
         background-color: #d4edda;
@@ -224,7 +225,6 @@ def main():
     
     # Header
     st.markdown('<h1 class="main-header">RING-5 Interactive Analyzer</h1>', unsafe_allow_html=True)
-    st.markdown("### Modern gem5 Data Analysis & Visualization")
     
     # Show current data preview if data is loaded
     if st.session_state.data is not None:
@@ -245,7 +245,7 @@ def main():
     
     # Sidebar - Navigation
     with st.sidebar:
-        st.image("https://via.placeholder.com/300x100/667eea/ffffff?text=RING-5", width='stretch')
+        st.markdown("# RING-5")
         st.markdown("---")
         
         page = st.radio(
@@ -286,9 +286,7 @@ def main():
 
 def show_data_source_page():
     """Data source selection page - Parser or CSV."""
-    st.markdown('<div class="step-header">', unsafe_allow_html=True)
-    st.markdown("## Step 1: Choose Data Source")
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown('<div class="step-header"><h2>Step 1: Choose Data Source</h2></div>', unsafe_allow_html=True)
     
     st.markdown("""
     **RING-5 supports two data input methods:**

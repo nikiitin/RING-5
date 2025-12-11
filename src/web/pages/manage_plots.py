@@ -412,12 +412,6 @@ def render_plot_configuration(plot: BasePlot):
         advanced_config = plot.render_advanced_options(saved_config, data)
         current_config.update(advanced_config)
 
-        st.markdown("---")
-        st.markdown("#### Legend Label Customization")
-        legend_labels = PlotRenderer.render_legend_customization(plot, data, current_config)
-        if legend_labels:
-            current_config["legend_labels"] = legend_labels
-
     # Check if config changed (for auto-refresh)
     config_changed = current_config != saved_config
 

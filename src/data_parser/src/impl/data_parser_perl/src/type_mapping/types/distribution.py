@@ -1,10 +1,14 @@
-from typing import Any
+from typing import Any, Dict, List
 
 from src.data_parser.src.impl.data_parser_perl.src.type_mapping.confType import \
     confType
 
 
 class Distribution(confType):
+    content: Dict[str, List[int]]
+    reducedContent: Dict[str, float]
+    maximum: int
+    minimum: int
     # || ReceivedForwardsCPU0::-1:freq
     # || ReceivedForwardsCPU0::0:freq
     # || ReceivedForwardsCPU0::1:freq
@@ -54,7 +58,7 @@ class Distribution(confType):
                     # Check that the values are ints or underflow or overflow
                     if key != "underflows" and key != "overflows":
                         int(key)
-            except Exception:
+            except Exception as e:
                 raise TypeError(
                     "DISTRIBUTION: Variable non-convertible to int... value: "
                     + str(__value)
@@ -62,11 +66,11 @@ class Distribution(confType):
                     + str(type(__value))
                     + " field: "
                     + __name
-                )
+                ) from e
             try:
                 # Check if all values are ints
                 map(int, __value.values())
-            except Exception:
+            except Exception as e:
                 raise TypeError(
                     "DISTRIBUTION: Variable non-convertible to list of ints... value: "
                     + str(__value)
@@ -74,7 +78,7 @@ class Distribution(confType):
                     + str(type(__value))
                     + " field: "
                     + __name
-                )
+                ) from e
 
             # Check "-" and "+" are in the keys
             if "underflows" not in __value.keys() or "overflows" not in __value.keys():
@@ -163,7 +167,7 @@ class Distribution(confType):
             # Check if the repeat value is greater than the length of the content
             if repeat > contentLen:
                 # Fill the missing values with 0
-                for i in range(contentLen, repeat):
+                for _ in range(contentLen, repeat):
                     content.append(0)
             elif repeat < contentLen:
                 raise RuntimeError(
@@ -182,7 +186,7 @@ class Distribution(confType):
         for bucket in self.content:
             # Get the values for the bucket
             self.reducedContent[bucket] = 0
-            values = self.content.get(bucket)
+            values = self.content.get(bucket, [])
             for i in range(0, int(self.repeat)):
                 # Get the value for the bucket
                 self.reducedContent[bucket] += int(values[i])

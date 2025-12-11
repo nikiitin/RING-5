@@ -21,7 +21,7 @@ class Vector(confType):
         if __name == "content":
             try:
                 map(str, __value.keys())
-            except Exception:
+            except Exception as e_keys:
                 raise TypeError(
                     "VECTOR: Unable to turn keys of dict into string: "
                     + str(__value)
@@ -29,7 +29,7 @@ class Vector(confType):
                     + str(type(__value))
                     + " field: "
                     + __name
-                )
+                ) from e_keys
             try:
                 # Check if all values are ints
                 map(int, __value.values())
@@ -37,7 +37,7 @@ class Vector(confType):
                 try:
                     # Check if all values are floats
                     map(float, __value.values())
-                except Exception:
+                except Exception as e_float:
                     raise TypeError(
                         "VECTOR: Variable non-convertible to list of floats or ints... value: "
                         + str(__value)
@@ -45,7 +45,7 @@ class Vector(confType):
                         + str(type(__value))
                         + " field: "
                         + __name
-                    )
+                    ) from e_float
             # Turn every key into a string and every value into a float
             __value.update((str(x), list(y)) for x, y in __value.items())
             # Check if the keys are the same as the entries
@@ -85,8 +85,8 @@ class Vector(confType):
             # Iterating over the keys of the dictionary
             if len(self.content.get(entry)) < int(self.repeat):
                 # Fill the missing values with 0
-                for i in range(len(self.content.get(entry)), int(self.repeat)):
-                    self.content[entry].append(0)
+                missing = int(self.repeat) - len(self.content.get(entry))
+                self.content[entry].extend([0] * missing)
             elif len(self.content.get(entry)) > int(self.repeat):
                 raise RuntimeError(
                     "VECTOR: Variable has more values than expected... values: "

@@ -130,6 +130,42 @@ class GroupedStackedBarPlot(BasePlot):
                             if new_val != val:
                                 group_renames[val] = new_val
 
+        # Filter Options
+        st.markdown("#### Filter Data")
+        col_filter1, col_filter2 = st.columns(2)
+
+        # Filter X values
+        x_values = []
+        if x_column and x_column in data.columns:
+            unique_x = sorted(data[x_column].astype(str).unique())
+            default_x = saved_config.get("x_filter", unique_x)
+            # Ensure defaults are valid
+            default_x = [x for x in default_x if x in unique_x]
+
+            with col_filter1:
+                x_values = st.multiselect(
+                    f"Filter {x_column} (X-axis)",
+                    options=unique_x,
+                    default=default_x,
+                    key=f"x_filter_{self.plot_id}",
+                )
+
+        # Filter Group values
+        group_values = []
+        if group_column and group_column in data.columns:
+            unique_g = sorted(data[group_column].astype(str).unique())
+            default_g = saved_config.get("group_filter", unique_g)
+            # Ensure defaults are valid
+            default_g = [g for g in default_g if g in unique_g]
+
+            with col_filter2:
+                group_values = st.multiselect(
+                    f"Filter {group_column} (Sub-group)",
+                    options=unique_g,
+                    default=default_g,
+                    key=f"group_filter_{self.plot_id}",
+                )
+
         # Display options
         display_config = self.render_display_options(saved_config)
 
@@ -144,6 +180,8 @@ class GroupedStackedBarPlot(BasePlot):
             "legend_renames": legend_renames,
             "x_renames": x_renames,
             "group_renames": group_renames,
+            "x_filter": x_values,
+            "group_filter": group_values,
             **display_config,
             "_needs_advanced": True,
         }
@@ -166,12 +204,35 @@ class GroupedStackedBarPlot(BasePlot):
         data = data.copy()
         data[x_col] = data[x_col].astype(str)
 
+        # Apply X Filter
+        if config.get("x_filter") is not None:
+            data = data[data[x_col].isin(config["x_filter"])]
+
+        # Calculate Total for each row (stacked bars)
+        # Assuming one row per X/Group combination
+        data["__total"] = data[y_cols].sum(axis=1)
+        
+        # Debug: Print first few totals
+        print(f"DEBUG: Calculated totals (first 5): {data['__total'].head().tolist()}")
+
+        # Define hover template
+        hover_template = (
+            "<b>%{x}</b><br>"
+            "Value: %{y:.4f}<br>"
+            "<b>Total: %{customdata:.4f}</b>"
+            "<extra></extra>"
+        )
+
         if group_col:
             # Custom Layout for Grouped Stacked Bars to support Spacing
             # Note: We handle renames later to ensure ordering works on original values
 
             # Ensure data is string for categorical plotting
             data[group_col] = data[group_col].astype(str)
+
+            # Apply Group Filter
+            if config.get("group_filter") is not None:
+                data = data[data[group_col].isin(config["group_filter"])]
 
             # Get unique categories and groups (sorted)
             if config.get("xaxis_order"):
@@ -286,6 +347,8 @@ class GroupedStackedBarPlot(BasePlot):
                         name=trace_name,
                         error_y=error_y,
                         width=bar_width,
+                        customdata=data["__total"].tolist(),
+                        hovertemplate=hover_template,
                     )
                 )
 
@@ -337,7 +400,16 @@ class GroupedStackedBarPlot(BasePlot):
 
                 trace_name = legend_renames.get(y_col, y_col)
 
-                fig.add_trace(go.Bar(x=x_values, y=data[y_col], name=trace_name, error_y=error_y))
+                fig.add_trace(
+                    go.Bar(
+                        x=x_values,
+                        y=data[y_col],
+                        name=trace_name,
+                        error_y=error_y,
+                        customdata=data["__total"].tolist(),
+                        hovertemplate=hover_template,
+                    )
+                )
 
             fig.update_layout(barmode="stack")
 
@@ -350,8 +422,22 @@ class GroupedStackedBarPlot(BasePlot):
             legend_title=config.get("legend_title", "Statistics"),
         )
 
-        self.apply_common_layout(fig, config)
+        return fig
 
+    def apply_common_layout(self, fig: go.Figure, config: Dict[str, Any]) -> go.Figure:
+        """Apply common layout and enforce hover template."""
+        fig = super().apply_common_layout(fig, config)
+        
+        # Enforce hover template for this specific plot type
+        # We need to make sure this overwrites what base_plot does
+        hover_template = (
+            "<b>%{x}</b><br>"
+            "Value: %{y:.4f}<br>"
+            "<b>Total: %{customdata:.4f}</b>"
+            "<extra></extra>"
+        )
+        fig.update_traces(hovertemplate=hover_template)
+        
         return fig
 
     def get_legend_column(self, config: Dict[str, Any]) -> Optional[str]:

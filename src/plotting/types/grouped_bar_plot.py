@@ -33,6 +33,42 @@ class GroupedBarPlot(BasePlot):
             key=f"group_{self.plot_id}",
         )
 
+        col_filter1, col_filter2 = st.columns(2)
+
+        # Filter X values
+        x_values = []
+        if config.get("x") and config["x"] in data.columns:
+            unique_x = sorted(data[config["x"]].astype(str).unique())
+            default_x = saved_config.get("x_filter", unique_x)
+            # Ensure defaults are valid
+            default_x = [x for x in default_x if x in unique_x]
+
+            with col_filter1:
+                x_values = st.multiselect(
+                    "Filter X values",
+                    options=unique_x,
+                    default=default_x,
+                    key=f"x_filter_{self.plot_id}",
+                    help="Select specific values to display on the X-axis.",
+                )
+
+        # Filter Group values
+        group_values = []
+        if group_column and group_column in data.columns:
+            unique_g = sorted(data[group_column].astype(str).unique())
+            default_g = saved_config.get("group_filter", unique_g)
+            # Ensure defaults are valid
+            default_g = [g for g in default_g if g in unique_g]
+
+            with col_filter2:
+                group_values = st.multiselect(
+                    "Filter Groups",
+                    options=unique_g,
+                    default=default_g,
+                    key=f"group_filter_{self.plot_id}",
+                    help="Select specific groups to display.",
+                )
+
         # Display options
         display_config = self.render_display_options(saved_config)
 
@@ -40,6 +76,8 @@ class GroupedBarPlot(BasePlot):
             **config,
             "group": group_column,
             "color": None,
+            "x_filter": x_values,
+            "group_filter": group_values,
             **display_config,
             "_needs_advanced": True,
         }
@@ -57,6 +95,13 @@ class GroupedBarPlot(BasePlot):
         data[config["x"]] = data[config["x"]].astype(str)
         if config.get("group"):
             data[config["group"]] = data[config["group"]].astype(str)
+
+        # Apply Filters
+        if config.get("x_filter") is not None:
+            data = data[data[config["x"]].isin(config["x_filter"])]
+
+        if config.get("group_filter") is not None and config.get("group"):
+            data = data[data[config["group"]].isin(config["group_filter"])]
 
         # Handle ordering
         category_orders = {}
