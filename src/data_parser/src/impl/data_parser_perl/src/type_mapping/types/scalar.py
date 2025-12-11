@@ -1,12 +1,12 @@
 from src.data_parser.src.impl.data_parser_perl.src.type_mapping.confType import \
     confType
+from typing import Any
 
 
 class Scalar(confType):
     # Scalar variable can be a float or an int
     # So, we need to override the __setattr__ method
-    # to make sure we are setting the content correctly
-    def __setattr__(self, __name: str, __value: any) -> None:
+    def __setattr__(self, __name: str, __value: Any) -> None:
         super().__setattr__(__name, __value)
         if __name == "content":
             try:
@@ -14,7 +14,7 @@ class Scalar(confType):
             except Exception:
                 try:
                     __value = float(__value)
-                except Exception:
+                except Exception as e_float:
                     raise TypeError(
                         "SCALAR: Variable non-convertible to float or int... value: "
                         + str(__value)
@@ -22,7 +22,7 @@ class Scalar(confType):
                         + str(type(__value))
                         + " field: "
                         + __name
-                    )
+                    ) from e_float
             # Put the value inside the list. This value maps directly
             # to a repeated field in the stats file. In the end it will
             # be one only field in the csv file
@@ -47,8 +47,9 @@ class Scalar(confType):
         # If the length is greater than the repeat, raise an error
         if len(self.content) < int(self.repeat):
             # Fill the missing values with 0
-            for i in range(len(self.content), int(self.repeat)):
-                self.content.append(0)
+            missing_values = int(self.repeat) - len(self.content)
+            if missing_values > 0:
+                self.content.extend([0] * missing_values)
         elif len(self.content) > int(self.repeat):
             raise RuntimeError(
                 "SCALAR: Variable has more values than expected... values: "

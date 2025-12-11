@@ -6,25 +6,11 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-# Import functions from main app for delegation
-import app as main_app
+# Import shaper configuration functions
+from src.web.ui.shaper_config import apply_shapers, configure_shaper
+
 # Import plot classes
 from src.plotting import BasePlot, PlotFactory, PlotRenderer
-
-# Add parent directory to path
-root_dir = Path(__file__).parent.parent.parent
-if str(root_dir) not in sys.path:
-    sys.path.insert(0, str(root_dir))
-
-
-def apply_shapers(data, shapers_config):
-    """Delegate to main app's apply_shapers function."""
-    return main_app.apply_shapers(data, shapers_config)
-
-
-def configure_shaper(shaper_type, data, shaper_id, existing_config):
-    """Delegate to main app's configure_shaper function."""
-    return main_app.configure_shaper(shaper_type, data, shaper_id, existing_config)
 
 
 def initialize_session_state():
@@ -478,6 +464,11 @@ def render_workspace_management():
             st.session_state.plots = plots_data
             st.success("Workspace synchronized for saving")
 
+
+# Add parent directory to path
+root_dir = Path(__file__).parent.parent.parent
+if str(root_dir) not in sys.path:
+    sys.path.insert(0, str(root_dir))
 
 # Main entry point
 if __name__ == "__main__":
