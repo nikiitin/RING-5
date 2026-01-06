@@ -109,14 +109,23 @@ class StyleManager:
         theme_cols1, theme_cols2 = st.columns(2)
         with theme_cols1:
             if not transparent_bg:
+                # Sanitize colors (must be hex for picker)
+                curr_plot_bg = saved_config.get("plot_bgcolor", "#ffffff")
+                if not curr_plot_bg.startswith("#"):
+                    curr_plot_bg = "#ffffff"
+                    
+                curr_paper_bg = saved_config.get("paper_bgcolor", "#ffffff")
+                if not curr_paper_bg.startswith("#"):
+                    curr_paper_bg = "#ffffff"
+
                 plot_bgcolor = st.color_picker(
                     "Plot Background",
-                    saved_config.get("plot_bgcolor", "#ffffff"),
+                    curr_plot_bg,
                     key=f"bg_plot_{self.plot_id}",
                 )
                 paper_bgcolor = st.color_picker(
                     "Paper (Outer) Background",
-                    saved_config.get("paper_bgcolor", "#ffffff"),
+                    curr_paper_bg,
                     key=f"bg_paper_{self.plot_id}",
                 )
             else:
@@ -348,12 +357,23 @@ class StyleManager:
                 key=f"xaxis_tick_sz_{self.plot_id}",
                 help="Overwrites the basic X-axis font size in Advanced Options"
             )
+            xaxis_tickfont_color = st.color_picker(
+                "X-Axis Label Color",
+                saved_config.get("xaxis_tickfont_color", "#444444"),
+                key=f"xaxis_tick_col_{self.plot_id}",
+            )
+
             yaxis_tickfont_size = st.number_input(
                 "Y-Axis Label (Tick) Size",
                 min_value=8,
                 max_value=24,
                 value=saved_config.get("yaxis_tickfont_size", 12),
                 key=f"yaxis_tick_sz_{self.plot_id}",
+            )
+            yaxis_tickfont_color = st.color_picker(
+                "Y-Axis Label Color",
+                saved_config.get("yaxis_tickfont_color", "#444444"),
+                key=f"yaxis_tick_col_{self.plot_id}",
             )
 
         theme_config = {
@@ -387,8 +407,12 @@ class StyleManager:
             "title_font_size": title_font_size,
             "xaxis_title": xaxis_title,
             "xaxis_title_font_size": xaxis_title_font_size,
+            "xaxis_tickfont_size": xaxis_tickfont_size,
+            "xaxis_tickfont_color": xaxis_tickfont_color,
             "yaxis_title": yaxis_title,
             "yaxis_title_font_size": yaxis_title_font_size,
+            "yaxis_tickfont_size": yaxis_tickfont_size,
+            "yaxis_tickfont_color": yaxis_tickfont_color,
             "xaxis_tickfont_size": xaxis_tickfont_size,
             "yaxis_tickfont_size": yaxis_tickfont_size,
         }
@@ -596,7 +620,10 @@ class StyleManager:
         # 3. Axis Settings (Ticks, Logic)
         xaxis_settings = {
             "tickangle": config.get("xaxis_tickangle", -45),
-            "tickfont": dict(size=config.get("xaxis_tickfont_size", 12)),
+            "tickfont": dict(
+                size=config.get("xaxis_tickfont_size", 12),
+                color=config.get("xaxis_tickfont_color", "#444444")
+            ),
             "title": dict(
                 text=str(config.get("xaxis_title") or config.get("xlabel") or "").replace("undefined", ""),
                 font=dict(size=config.get("xaxis_title_font_size", 14))
@@ -646,7 +673,10 @@ class StyleManager:
 
 
         yaxis_settings = {
-            "tickfont": dict(size=config.get("yaxis_tickfont_size", 12)),
+            "tickfont": dict(
+                size=config.get("yaxis_tickfont_size", 12),
+                color=config.get("yaxis_tickfont_color", "#444444")
+            ),
             "title": dict(
                 text=str(config.get("yaxis_title") or config.get("ylabel") or "").replace("undefined", ""),
                 font=dict(size=config.get("yaxis_title_font_size", 14))

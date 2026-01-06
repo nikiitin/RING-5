@@ -2,9 +2,9 @@
 import pytest
 import pandas as pd
 import numpy as np
-from src.processing.shapers.impl.transformer import Transformer
-from src.processing.shapers.impl.mean import Mean
-from src.processing.shapers.impl.normalize import Normalize
+from src.web.services.shapers.impl.transformer import Transformer
+from src.web.services.shapers.impl.mean import Mean
+from src.web.services.shapers.impl.normalize import Normalize
 
 class TestTransformer:
     """Test Transformer shaper."""

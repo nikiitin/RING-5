@@ -10,124 +10,17 @@ import pandas as pd
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from src.processing.shapers.impl.mean import Mean
-from src.processing.shapers.impl.normalize import Normalize
-from src.processing.shapers.impl.selector_algorithms.columnSelector import ColumnSelector
-from src.processing.shapers.impl.sort import Sort
-from src.processing.managers.base_manager import DataManager
-from src.processing.managers.outlier_remover import OutlierRemover
-from src.processing.managers.preprocessor import Preprocessor
-from src.processing.managers.params import DataManagerParams
+from src.web.services.shapers.impl.mean import Mean
+from src.web.services.shapers.impl.normalize import Normalize
+from src.web.services.shapers.impl.selector_algorithms.columnSelector import ColumnSelector
+from src.web.services.shapers.impl.sort import Sort
+
 
 # Import test utilities
 sys.path.insert(0, str(Path(__file__).parent / "pytests"))
 
 
-class TestE2EManagers:
-    """End-to-end tests for data managers using real gem5 data."""
 
-    inputsDir = os.path.relpath("tests/pytests/mock/inputs")
-    expectsDir = os.path.relpath("tests/pytests/mock/expects")
-
-    def test_e2e_preprocessor_divide_with_gem5_data(self, tmp_path):
-        """Test Preprocessor divide operation with real gem5 data."""
-        # Copy input CSV
-        input_csv = os.path.join(self.inputsDir, "csv/configurer/configurer_test_case01.csv")
-        test_csv = tmp_path / "test_divide.csv"
-        shutil.copyfile(input_csv, test_csv)
-
-        # Load data
-        data = pd.read_csv(test_csv, sep=r"\s+")
-
-        # Set up DataManager globals
-        DataManager._df = data.copy()
-        DataManager._categorical_columns = ["benchmark_name", "config_description_abbrev"]
-        DataManager._statistic_columns = data.select_dtypes(include=["number"]).columns.tolist()
-        DataManager._csvPath = str(test_csv)
-
-        # Create DataManagerParams
-        params = DataManagerParams(
-            csv_path=str(test_csv),
-            categorical_columns=["benchmark_name", "config_description_abbrev"],
-            statistic_columns=data.select_dtypes(include=["number"]).columns.tolist(),
-        )
-
-        # JSON config for divide operation
-        json_config = {
-            "operation": "divide",
-            "column1": "flits_injected__get_summary",
-            "column2": "simTicks",
-        }
-
-        # Execute Preprocessor
-        preprocessor = Preprocessor(params, json_config)
-        preprocessor.manage()
-
-        # Verify results
-        result_df = DataManager._df
-
-        # Should have new column with divide result
-        assert result_df is not None
-        new_col = "flits_injected__get_summary/simTicks"
-        assert new_col in result_df.columns
-
-        # Verify calculation is correct for first row
-        if len(result_df) > 0:
-            expected = (
-                result_df["flits_injected__get_summary"].iloc[0] / result_df["simTicks"].iloc[0]
-            )
-            actual = result_df[new_col].iloc[0]
-            assert abs(expected - actual) < 0.0001
-
-    def test_e2e_manager_pipeline(self, tmp_path):
-        """Test complete manager pipeline: Preprocessor -> Outlier Remover."""
-        # Copy input CSV
-        input_csv = os.path.join(self.inputsDir, "csv/configurer/configurer_test_case01.csv")
-        test_csv = tmp_path / "test_pipeline.csv"
-        shutil.copyfile(input_csv, test_csv)
-
-        # Load data
-        data = pd.read_csv(test_csv, sep=r"\s+")
-
-        # Set up DataManager globals
-        DataManager._df = data.copy()
-        DataManager._categorical_columns = ["benchmark_name", "config_description_abbrev"]
-        DataManager._statistic_columns = data.select_dtypes(include=["number"]).columns.tolist()
-        DataManager._csvPath = str(test_csv)
-
-        # Step 1: Preprocessor - create efficiency metric
-        params = DataManagerParams(
-            csv_path=str(test_csv),
-            categorical_columns=["benchmark_name", "config_description_abbrev"],
-            statistic_columns=data.select_dtypes(include=["number"]).columns.tolist(),
-        )
-
-        preprocessor = Preprocessor(
-            params,
-            {
-                "operation": "divide",
-                "column1": "flits_injected__get_summary",
-                "column2": "simTicks",
-            },
-        )
-        preprocessor.manage()
-
-        # Verify preprocessing worked
-        assert "flits_injected__get_summary/simTicks" in DataManager._df.columns
-
-        # Step 2: OutlierRemover - remove outliers
-
-        remover = OutlierRemover(params, {})
-        remover.manage()
-
-        # Final verification
-        final_df = DataManager._df
-        assert final_df is not None
-        assert len(final_df) > 0
-
-        # All transformations should be preserved
-        assert "flits_injected__get_summary/simTicks" in final_df.columns
-        assert "benchmark_name" in final_df.columns
 
 
 class TestE2EShapers:

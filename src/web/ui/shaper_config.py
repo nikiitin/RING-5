@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from src.processing.shapers.factory import ShaperFactory
+from src.web.services.shapers.factory import ShaperFactory
 
 # Constants
 SHAPER_TYPE_MAP = {

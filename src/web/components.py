@@ -523,7 +523,6 @@ class UIComponents:
                 "Data Managers",
                 "Configure Pipeline",
                 "Generate Plots",
-                "Results",
                 "Load Configuration",
             ],
             label_visibility="collapsed",

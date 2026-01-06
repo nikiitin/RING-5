@@ -156,7 +156,7 @@ class TestRealDataWithShapers:
 
     def test_column_selector_on_real_data(self, parsed_data):
         """Test column selector on real data."""
-        from src.processing.shapers.factory import ShaperFactory
+        from src.web.services.shapers.factory import ShaperFactory
         
         # Get available columns
         available_cols = list(parsed_data.columns)
@@ -195,15 +195,13 @@ class TestRealDataWithManagers:
         
         return pd.DataFrame(data)
 
-    def test_seeds_reducer_via_facade(self, sample_real_like_data):
-        """Test seeds reducer via facade."""
-        from src.web.facade import BackendFacade
+    def test_seeds_reducer_via_service(self, sample_real_like_data):
+        """Test seeds reducer via service."""
+        from src.web.services.data_processing_service import DataProcessingService
         
-        facade = BackendFacade()
-        
-        # Apply seeds reducer through facade
-        result = facade.apply_seeds_reducer(
-            sample_real_like_data,
+        # Apply seeds reducer through service
+        result = DataProcessingService.reduce_seeds(
+            df=sample_real_like_data,
             categorical_cols=["benchmark", "config"],
             statistic_cols=["simTicks", "sim_insts"]
         )
@@ -223,20 +221,18 @@ class TestRealDataWithManagers:
         expected_cpi = sample_real_like_data["simTicks"] / sample_real_like_data["sim_insts"]
         pd.testing.assert_series_equal(result["cpi"], expected_cpi, check_names=False)
 
-    def test_outlier_remover_via_facade(self, sample_real_like_data):
-        """Test outlier remover via facade."""
-        from src.web.facade import BackendFacade
-        
-        facade = BackendFacade()
+    def test_outlier_remover_via_service(self, sample_real_like_data):
+        """Test outlier remover via service."""
+        from src.web.services.data_processing_service import DataProcessingService
         
         # Add an outlier
         sample_real_like_data.loc[0, "simTicks"] = 999999999.0  # Very high value
         
-        # Apply outlier remover through facade
-        result = facade.apply_outlier_remover(
-            sample_real_like_data,
-            outlier_column="simTicks",
-            categorical_cols=["benchmark", "config"]
+        # Apply outlier remover through service
+        result = DataProcessingService.remove_outliers(
+            df=sample_real_like_data,
+            outlier_col="simTicks",
+            group_by_cols=["benchmark", "config"]
         )
         
         # Should have removed the outlier
@@ -259,29 +255,16 @@ class TestCompleteWorkflow:
         assert hasattr(facade, "load_csv_file")
         assert hasattr(facade, "save_configuration")
         assert hasattr(facade, "load_configuration")
-        assert hasattr(facade, "apply_seeds_reducer")
-        assert hasattr(facade, "apply_outlier_remover")
 
     def test_shaper_factory_available(self):
         """Test that shaper factory can create column selector with proper config."""
-        from src.processing.shapers.factory import ShaperFactory
+        from src.web.services.shapers.factory import ShaperFactory
         
         # Create column selector with proper required parameters
         col_selector = ShaperFactory.createShaper("columnSelector", {"type": "columnSelector", "columns": ["a"]})
         assert col_selector is not None
 
-    def test_manager_classes_importable(self):
-        """Test that all manager classes are importable."""
-        from src.processing.managers.seeds_reducer import SeedsReducer
-        from src.processing.managers.outlier_remover import OutlierRemover
-        from src.processing.managers.preprocessor import Preprocessor
-        from src.processing.managers.mixer import Mixer
-        
-        # Classes should be importable
-        assert SeedsReducer is not None
-        assert OutlierRemover is not None
-        assert Preprocessor is not None
-        assert Mixer is not None
+
 
     def test_plot_factory_available(self):
         """Test that plot factory can create all plot types."""

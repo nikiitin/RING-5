@@ -92,57 +92,26 @@ class MixerManager(DataManager):
                 return
                 
             try:
-                result_df = data.copy()
+                from src.web.services.data_processing_service import DataProcessingService
                 
-                # 1. Calculate Value
-                if operation == "Sum":
-                    result_df[new_col_name] = result_df[selected_cols].sum(axis=1)
-                elif operation == "Concatenate":
-                    result_df[new_col_name] = result_df[selected_cols].astype(str).agg(separator.join, axis=1)
-                else: # Mean
-                    result_df[new_col_name] = result_df[selected_cols].mean(axis=1)
-                    
-                # 2. Calculate Propagated SD (if possible)
-                has_all_sd = False 
-                if operation != "Concatenate":
-                    # Look for SD columns
-                    sd_cols = []
-                    for col in selected_cols:
-                        # Try common suffixes
-                        potential_sds = [f"{col}.sd", f"{col}_stdev"]
-                        found = next((s for s in potential_sds if s in data.columns), None)
-                        if found:
-                            sd_cols.append(found)
-                        else:
-                            sd_cols.append(None)
-                    
-                    has_any_sd = any(sd_cols)
-                    has_all_sd = all(sd_cols)
-                    
-                    if has_any_sd and not has_all_sd:
-                        st.warning("⚠️ Some selected columns correspond to valid SD columns, but not all. Error propagation skipped.")
-                    elif has_all_sd:
-                        # Propagate!
-                        # Var(Sum) = Sum(Var_i) -> SD(Sum) = Sqrt(Sum(SD_i^2))
-                        # Var(Mean) = Sum(Var_i) / N^2 -> SD(Mean) = Sqrt(Sum(SD_i^2)) / N
-                        
-                        # Calculate sum of variances
-                        var_sum = pd.Series(0.0, index=data.index)
-                        for sd_col in sd_cols:
-                            var_sum += result_df[sd_col] ** 2
-                            
-                        new_sd_col = f"{new_col_name}.sd"
-                        
-                        if operation == "Sum":
-                            result_df[new_sd_col] = np.sqrt(var_sum)
-                        else: # Mean
-                            n = len(selected_cols)
-                            result_df[new_sd_col] = np.sqrt(var_sum) / n
-                            
-                        st.success(f"✓ Propagated standard deviation to `{new_sd_col}`")
-                
+                result_df = DataProcessingService.apply_mixer(
+                    df=data,
+                    dest_col=new_col_name,
+                    source_cols=selected_cols,
+                    operation=operation,
+                    separator=separator
+                )
+
                 st.success(f"Created merged column `{new_col_name}`")
-                st.dataframe(result_df[[new_col_name] + ([new_sd_col] if has_all_sd else [])].head(), width="stretch")
+                
+                # Check if SD column created
+                new_sd_col = f"{new_col_name}.sd"
+                cols_to_show = [new_col_name]
+                if new_sd_col in result_df.columns:
+                     cols_to_show.append(new_sd_col)
+                     st.success(f"✓ Propagated standard deviation to `{new_sd_col}`")
+                     
+                st.dataframe(result_df[cols_to_show].head(), width="stretch")
                 
                 st.session_state["mixer_result"] = result_df
                 

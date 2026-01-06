@@ -8,21 +8,18 @@ from typing import Optional
 
 import pandas as pd
 import streamlit as st
-from src.web.facade import BackendFacade
+
 from src.web.state_manager import StateManager
 
 
 class DataManager(ABC):
     """Abstract base class for data managers."""
 
-    def __init__(self, facade: BackendFacade):
+    def __init__(self):
         """
         Initialize the data manager.
-
-        Args:
-            facade: Backend facade instance
         """
-        self.facade = facade
+        pass
 
     @property
     @abstractmethod

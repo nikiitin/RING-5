@@ -7,9 +7,9 @@ import pytest
 import pandas as pd
 import numpy as np
 
-from src.processing.shapers.impl.selector_algorithms.columnSelector import ColumnSelector
-from src.processing.shapers.impl.selector_algorithms.conditionSelector import ConditionSelector
-from src.processing.shapers.impl.selector_algorithms.itemSelector import ItemSelector
+from src.web.services.shapers.impl.selector_algorithms.columnSelector import ColumnSelector
+from src.web.services.shapers.impl.selector_algorithms.conditionSelector import ConditionSelector
+from src.web.services.shapers.impl.selector_algorithms.itemSelector import ItemSelector
 
 
 @pytest.fixture

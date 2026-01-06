@@ -23,6 +23,11 @@ class StateManager:
     CSV_POOL = "csv_pool"
     SAVED_CONFIGS = "saved_configs"
     PARSE_VARIABLES = "parse_variables"
+    
+    # Plot State Keys
+    PLOTS_OBJECTS = "plots_objects"
+    PLOT_COUNTER = "plot_counter"
+    CURRENT_PLOT_ID = "current_plot_id"
 
     @staticmethod
     def initialize():
@@ -41,6 +46,10 @@ class StateManager:
                 {"name": "benchmark_name", "type": "configuration"},
                 {"name": "config_description", "type": "configuration"},
             ],
+            # Plot defaults
+            StateManager.PLOTS_OBJECTS: [],
+            StateManager.PLOT_COUNTER: 0,
+            StateManager.CURRENT_PLOT_ID: None,
         }
 
         for key, value in defaults.items():
@@ -204,6 +213,106 @@ class StateManager:
         return StateManager.get_data() is not None
 
     @staticmethod
-    def has_processed_data() -> bool:
-        """Check if processed data exists."""
-        return StateManager.get_processed_data() is not None
+    def get_plots() -> List[Any]:
+        """Get the list of plot objects."""
+        return st.session_state.get(StateManager.PLOTS_OBJECTS, [])
+
+    @staticmethod
+    def set_plots(plots: List[Any]):
+        """Set the list of plot objects."""
+        st.session_state[StateManager.PLOTS_OBJECTS] = plots
+
+    @staticmethod
+    def get_plot_counter() -> int:
+        """Get the current plot counter value."""
+        return st.session_state.get(StateManager.PLOT_COUNTER, 0)
+
+    @staticmethod
+    def set_plot_counter(counter: int):
+        """Set the plot counter value."""
+        st.session_state[StateManager.PLOT_COUNTER] = counter
+        
+    @staticmethod
+    def start_next_plot_id() -> int:
+        """Increment and return the next plot ID."""
+        counter = StateManager.get_plot_counter()
+        StateManager.set_plot_counter(counter + 1)
+        return counter
+
+    @staticmethod
+    def get_current_plot_id() -> Optional[int]:
+        """Get the ID of the currently selected plot."""
+        return st.session_state.get(StateManager.CURRENT_PLOT_ID)
+
+    @staticmethod
+    def set_current_plot_id(plot_id: Optional[int]):
+        """Set the ID of the currently selected plot."""
+        st.session_state[StateManager.CURRENT_PLOT_ID] = plot_id
+
+    @staticmethod
+    def restore_session_state(portfolio_data: Dict[str, Any]):
+        """Restore session state from portfolio data."""
+        import io
+        from src.plotting import BasePlot
+
+        # Restore variables configuration if present (CRITICAL for type enforcement)
+        if "parse_variables" in portfolio_data:
+            st.session_state[StateManager.PARSE_VARIABLES] = portfolio_data["parse_variables"]
+
+        # Restore data
+        if "data_csv" in portfolio_data:
+             data = pd.read_csv(io.StringIO(portfolio_data["data_csv"]))
+             StateManager.set_data(data)
+        
+        StateManager.set_csv_path(portfolio_data.get("csv_path"))
+
+        # Clear stale widget states for plots to force re-initialization from config
+        # This ensures advanced options (like order, legend aliases) are reflected correctly
+        keys_to_clear = [
+            k for k in st.session_state.keys()
+            if any(marker in k for marker in [
+                "_order_", "leg_ren_", "leg_orient_", "leg_x_", "leg_y_",
+                "xaxis_angle_", "xaxis_font_", "ydtick_", "automargin_",
+                "margin_b_", "bargap_", "bargroupgap_", "bar_border_",
+                "editable_", "download_fmt_", "show_error_bars", "new_plot_name",
+                "colsel_", "norm_", "mean_", "sort_", "filter_", "trans_",
+                # Add new hash keys markers if any specific prefix is used, 
+                # though currently they use _plot_id_hash, so clearing by plot components usually works if we reset plot objects.
+                # Since we replace plot objects, new widgets will be generated if IDs change? 
+                # Actually IDs might persist. Explicit clearing is safer.
+                "name_", "color_", "use_col_", "sym_", "msize_", "lwidth_", "pat_", "xlabel_"
+            ])
+        ]
+        for k in keys_to_clear:
+            del st.session_state[k]
+
+        # Restore plots
+        loaded_plots_objects = []
+        loaded_plots_dicts = []  # For backward compatibility if needed
+
+        for plot_data in portfolio_data.get("plots", []):
+            # Try to load as object first (Version 2.0+)
+            try:
+                if "plot_type" in plot_data:
+                    plot_obj = BasePlot.from_dict(plot_data)
+                    loaded_plots_objects.append(plot_obj)
+            except Exception as e:
+                # st.warning is not available here if we want to be pure, but StateManager currently uses st. 
+                # Prints will show in logs.
+                print(f"Could not load plot as object: {e}")
+
+            # Also keep as dict for fallback/legacy
+            # Convert processed_data CSV string back to DataFrame if it exists
+            if plot_data.get("processed_data") is not None:
+                if isinstance(plot_data["processed_data"], str):
+                    plot_data["processed_data"] = pd.read_csv(
+                        io.StringIO(plot_data["processed_data"])
+                    )
+            loaded_plots_dicts.append(plot_data)
+
+        # Update session state
+        StateManager.set_plots(loaded_plots_objects)
+        st.session_state["plots"] = loaded_plots_dicts  # Keep for legacy compatibility
+
+        StateManager.set_plot_counter(portfolio_data.get("plot_counter", 0))
+        StateManager.set_config(portfolio_data.get("config", {}))

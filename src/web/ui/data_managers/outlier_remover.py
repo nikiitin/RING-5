@@ -80,14 +80,12 @@ class OutlierRemoverManager(DataManager):
         if st.button("Apply Outlier Remover", key="apply_outlier"):
             try:
                 # Use the existing DataManager implementation via facade
-                if group_by_cols:
-                    filtered_df = self.facade.apply_outlier_remover(
-                        data=data, outlier_column=outlier_column, categorical_cols=group_by_cols
-                    )
-                else:
-                    # For global Q3, use pandas directly (simpler than DataManager)
-                    Q3 = data[outlier_column].quantile(0.75)
-                    filtered_df = data[data[outlier_column] <= Q3]
+                from src.web.services.data_processing_service import DataProcessingService
+                filtered_df = DataProcessingService.remove_outliers(
+                    df=data,
+                    outlier_col=outlier_column,
+                    group_by_cols=group_by_cols
+                )
 
                 removed_count = len(data) - len(filtered_df)
                 st.success(

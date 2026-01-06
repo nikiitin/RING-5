@@ -106,9 +106,11 @@ class SeedsReducerManager(DataManager):
                 return
 
             try:
-                # Use the existing DataManager implementation via facade
-                result_df = self.facade.apply_seeds_reducer(
-                    data=data,
+                # Use DataProcessingService
+                from src.web.services.data_processing_service import DataProcessingService
+                
+                result_df = DataProcessingService.reduce_seeds(
+                    df=data,
                     categorical_cols=selected_categorical,
                     statistic_cols=selected_numeric,
                 )

@@ -48,29 +48,37 @@ class PreprocessorManager(DataManager):
         with col1:
             src_col1 = st.selectbox("Source Column 1", options=numeric_cols, key="preproc_src1")
 
+        from src.web.services.data_processing_service import DataProcessingService
         with col2:
-            operation = st.selectbox("Operation", options=["divide", "sum"], key="preproc_op")
+            operation = st.selectbox("Operation", options=DataProcessingService.list_operators(), key="preproc_op")
 
         with col3:
             src_col2 = st.selectbox("Source Column 2", options=numeric_cols, key="preproc_src2")
 
         # Generate default name
-        if operation == "divide":
+        op_lower = operation.lower()
+        if op_lower in ["division", "divide"]:
             default_name = f"{src_col1}_per_{src_col2}"
-        else:
+        elif op_lower in ["sum", "add"]:
             default_name = f"{src_col1}_plus_{src_col2}"
+        elif op_lower in ["subtraction", "subtract"]:
+            default_name = f"{src_col1}_minus_{src_col2}"
+        elif op_lower in ["multiplication", "multiply"]:
+            default_name = f"{src_col1}_prod_{src_col2}"
+        else:
+             default_name = "new_column"
 
         new_col_name = st.text_input("New column name", value=default_name, key="preproc_name")
 
         if st.button("Preview Result", key="preview_preproc"):
             try:
-                # Use the existing DataManager implementation via facade
-                preview_data = self.facade.apply_preprocessor(
-                    data=data,
+                # Use DataProcessingService
+                preview_data = DataProcessingService.apply_operation(
+                    df=data,
                     operation=operation,
-                    src_col1=src_col1,
-                    src_col2=src_col2,
-                    dst_col=new_col_name,
+                    src1=src_col1,
+                    src2=src_col2,
+                    dest=new_col_name,
                 )
 
                 st.success(f"Created column `{new_col_name}`!")

@@ -32,7 +32,7 @@ def test_modularized_pages_import():
 
 def test_shaper_factory_import():
     """Test that ShaperFactory can be imported and used."""
-    from src.processing.shapers.factory import ShaperFactory
+    from src.web.services.shapers.factory import ShaperFactory
 
     # Test column selector shaper
     sample_data = pd.DataFrame(
@@ -53,7 +53,7 @@ def test_shaper_factory_import():
 
 def test_shapers_functionality():
     """Test that various shapers work correctly."""
-    from src.processing.shapers.factory import ShaperFactory
+    from src.web.services.shapers.factory import ShaperFactory
 
     sample_data = pd.DataFrame(
         {

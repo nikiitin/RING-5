@@ -18,7 +18,7 @@ from src.web.pages.data_managers import show_data_managers_page  # noqa: E402
 from src.web.pages.data_source import DataSourcePage  # noqa: E402
 from src.web.pages.manage_plots import show_manage_plots_page  # noqa: E402
 from src.web.pages.portfolio import show_portfolio_page  # noqa: E402
-from src.web.pages.results import show_results_page  # noqa: E402
+from src.web.pages.portfolio import show_portfolio_page  # noqa: E402
 from src.web.pages.upload_data import UploadDataPage  # noqa: E402
 from src.web.state_manager import StateManager  # noqa: E402
 
@@ -112,7 +112,6 @@ def main():
 
                 "Data Managers",
                 "Manage Plots",
-                "Results",
                 "Save/Load Portfolio",
             ],
             label_visibility="collapsed",
@@ -134,8 +133,6 @@ def main():
         show_data_managers_page()
     elif page == "Manage Plots":
         show_manage_plots_page()
-    elif page == "Results":
-        show_results_page()
     elif page == "Save/Load Portfolio":
         show_portfolio_page()
 
