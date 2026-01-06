@@ -9,12 +9,14 @@ SHAPER_TYPE_MAP = {
     'Mean Calculator': 'mean',
     'Sort': 'sort',
     'Filter': 'conditionSelector',
+    'Transformer': 'transformer',
     # Reverse mapping for compatibility
     'columnSelector': 'Column Selector',
     'normalize': 'Normalize',
     'mean': 'Mean Calculator',
     'sort': 'Sort',
-    'conditionSelector': 'Filter'
+    'conditionSelector': 'Filter',
+    'transformer': 'Transformer'
 }
 
 def configure_shaper(shaper_type, data, shaper_id, existing_config):
@@ -27,7 +29,11 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
     
     if shaper_type == 'columnSelector':
         st.markdown("Select which columns to keep")
-        default_cols = existing_config.get('columns', [data.columns[0]] if len(data.columns) > 0 else [])
+        if existing_config.get('columns'):
+            default_cols = [c for c in existing_config.get('columns', []) if c in data.columns]
+        else:
+            default_cols = [data.columns[0]] if len(data.columns) > 0 else []
+
         selected_columns = st.multiselect(
             "Columns to keep",
             options=data.columns.tolist(),
@@ -41,14 +47,14 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
     
     elif shaper_type == 'normalize':
         numeric_cols = data.select_dtypes(include=['number']).columns.tolist()
-        categorical_cols = data.select_dtypes(include=['object']).columns.tolist()
+        categorical_cols = data.select_dtypes(include=['object', 'category']).columns.tolist()
         
         col1, col2 = st.columns(2)
         with col1:
             normalizer_vars = st.multiselect(
                 "Normalizer variables (will be summed)",
                 options=numeric_cols,
-                default=existing_config.get('normalizerVars', []),
+                default=[c for c in existing_config.get('normalizerVars', []) if c in numeric_cols],
                 key=f"normalizer_vars_{shaper_id}",
                 help="These columns will be summed to create the baseline normalizer value"
             )
@@ -56,7 +62,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
             normalize_vars = st.multiselect(
                 "Variables to normalize",
                 options=numeric_cols,
-                default=existing_config.get('normalizeVars', []),
+                default=[c for c in existing_config.get('normalizeVars', []) if c in numeric_cols],
                 key=f"norm_vars_{shaper_id}",
                 help="These columns will be divided by the sum of normalizer variables"
             )
@@ -87,7 +93,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
             group_by = st.multiselect(
                 "Group by",
                 options=categorical_cols,
-                default=existing_config.get('groupBy', []),
+                default=[c for c in existing_config.get('groupBy', []) if c in categorical_cols],
                 key=f"norm_group_{shaper_id}"
             )
             
@@ -112,7 +118,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
     
     elif shaper_type == 'mean':
         numeric_cols = data.select_dtypes(include=['number']).columns.tolist()
-        categorical_cols = data.select_dtypes(include=['object']).columns.tolist()
+        categorical_cols = data.select_dtypes(include=['object', 'category']).columns.tolist()
         
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -130,21 +136,27 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
             mean_vars = st.multiselect(
                 "Variables",
                 options=numeric_cols,
-                default=existing_config.get('meanVars', []),
+                default=[c for c in existing_config.get('meanVars', []) if c in numeric_cols],
                 key=f"mean_vars_{shaper_id}"
             )
         
         with col3:
-            group_col_default = existing_config.get('groupingColumn')
-            group_col_index = categorical_cols.index(group_col_default) if group_col_default in categorical_cols else 0
-            grouping_column = st.selectbox(
+            # Handle legacy config (single column) vs new config (list)
+            group_cols_default = existing_config.get('groupingColumns', [])
+            if not group_cols_default and existing_config.get('groupingColumn'):
+                group_cols_default = [existing_config.get('groupingColumn')]
+                
+            # Ensure defaults are valid options
+            group_cols_default = [c for c in group_cols_default if c in categorical_cols]
+
+            grouping_columns = st.multiselect(
                 "Group by",
                 options=categorical_cols,
-                index=group_col_index,
+                default=group_cols_default,
                 key=f"mean_group_{shaper_id}"
             )
         
-        if mean_vars and grouping_column:
+        if mean_vars and grouping_columns:
             replace_col_default = existing_config.get('replacingColumn')
             replace_col_index = categorical_cols.index(replace_col_default) if replace_col_default in categorical_cols else 0
             replacing_column = st.selectbox(
@@ -159,12 +171,12 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
                     'type': 'mean',
                     'meanAlgorithm': mean_algorithm,
                     'meanVars': mean_vars,
-                    'groupingColumn': grouping_column,
+                    'groupingColumns': grouping_columns,
                     'replacingColumn': replacing_column
                 }
     
     elif shaper_type == 'sort':
-        categorical_cols = data.select_dtypes(include=['object']).columns.tolist()
+        categorical_cols = data.select_dtypes(include=['object', 'category']).columns.tolist()
         
         sort_col_default = None
         if existing_config.get('order_dict'):
@@ -245,7 +257,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
                 }
     
     elif shaper_type == 'conditionSelector':
-        categorical_cols = data.select_dtypes(include=['object']).columns.tolist()
+        categorical_cols = data.select_dtypes(include=['object', 'category']).columns.tolist()
         numeric_cols = data.select_dtypes(include=['number']).columns.tolist()
         all_cols = categorical_cols + numeric_cols
         
@@ -344,6 +356,9 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
                 st.markdown("**Categorical Filter**")
                 
                 default_values = existing_config.get('values', [])
+                # Ensure defaults are valid options
+                default_values = [v for v in default_values if v in unique_values]
+                
                 selected_values = st.multiselect(
                     "Keep rows where value is:",
                     options=unique_values,
@@ -358,6 +373,63 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
                         'values': selected_values
                     }
     
+    elif shaper_type == 'transformer':
+        col1, col2 = st.columns(2)
+        with col1:
+            target_col = st.selectbox(
+                "Select Variable to Transform",
+                options=sorted(data.columns.tolist()),
+                index=0 if data.columns.tolist() else None,
+                key=f"trans_col_{shaper_id}"
+            )
+        
+        with col2:
+            current_type_str = "Unknown"
+            if target_col in data.columns:
+                current_type_str = str(data[target_col].dtype)
+            st.info(f"Current Type: `{current_type_str}`")
+            
+            target_type_str = st.radio(
+                "Convert to:",
+                options=["Factor (String/Categorical)", "Scalar (Numeric)"],
+                index=0 if existing_config.get('target_type') == 'factor' else 1,
+                key=f"trans_type_{shaper_id}"
+            )
+            
+            is_factor = "Factor" in target_type_str
+            order_list = None
+            
+            if is_factor and target_col in data.columns:
+                unique_vals = sorted([str(x) for x in data[target_col].unique()])
+                
+                # Check for existing order configuration
+                # Check for existing order configuration
+                default_order = existing_config.get('order')
+                
+                # If we have a default order, keep only the items that are still valid (present in unique_vals)
+                # But do NOT discard the whole list if it doesn't match exactly.
+                if default_order:
+                    default_order = [v for v in default_order if v in unique_vals]
+
+                # If the resulting list is empty, default to alphabetical unique_vals
+                if not default_order:
+                    default_order = unique_vals
+
+                order_list = st.multiselect(
+                    "Define Factor Order (First = Min, Last = Max)",
+                    options=unique_vals,
+                    default=default_order,
+                    key=f"trans_order_{shaper_id}",
+                    help="Define the order of categories. Drag and drop in the list to reorder."
+                )
+            
+        config = {
+            'type': 'transformer',
+            'column': target_col,
+            'target_type': 'factor' if is_factor else 'scalar',
+            'order': order_list
+        }
+
     return config
 
 

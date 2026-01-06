@@ -11,7 +11,6 @@ class Configuration(confType):
     # So, we need to override the __setattr__ method
     # to make sure we are setting the content correctly
     def __setattr__(self, __name: str, __value: any) -> None:
-        super().__setattr__(__name, __value)
         if __name == "content":
             try:
                 __value = str(__value)

@@ -35,14 +35,16 @@ class Mean(UniDfShaper):
             )
         self._meanAlgorithm_function = value
 
-    @property  # Column to group by (e.g., config_description_abbrev)
-    def _groupingColumn(self) -> str:
-        return self._groupingColumn_data
+    @property  # Columns to group by (e.g., config_description_abbrev)
+    def _groupingColumns(self) -> list:
+        return self._groupingColumns_data
 
-    @_groupingColumn.setter
-    def _groupingColumn(self, value: Any) -> None:
-        utils.checkVarType(value, str)
-        self._groupingColumn_data = value
+    @_groupingColumns.setter
+    def _groupingColumns(self, value: Any) -> None:
+        utils.checkVarType(value, list)
+        for val in value:
+            utils.checkVarType(val, str)
+        self._groupingColumns_data = value
 
     @property  # Column to replace with mean algorithm name (e.g., benchmark_name)
     def _replacingColumn(self) -> str:
@@ -57,7 +59,15 @@ class Mean(UniDfShaper):
         super().__init__(params)
         self._meanVars = utils.getElementValue(self._params, "meanVars")
         self._meanAlgorithm = utils.getElementValue(self._params, "meanAlgorithm")
-        self._groupingColumn = utils.getElementValue(self._params, "groupingColumn")
+        
+        # Handle legacy or new param
+        if "groupingColumns" in self._params:
+            self._groupingColumns = utils.getElementValue(self._params, "groupingColumns")
+        else:
+            # Legacy fallback
+            col = utils.getElementValue(self._params, "groupingColumn")
+            self._groupingColumns = [col]
+            
         self._replacingColumn = utils.getElementValue(self._params, "replacingColumn")
 
     def _verifyParams(self) -> bool:
@@ -65,7 +75,8 @@ class Mean(UniDfShaper):
         # Checks for required parameters
         utils.checkElementExists(self._params, "meanVars")
         utils.checkElementExists(self._params, "meanAlgorithm")
-        utils.checkElementExists(self._params, "groupingColumn")
+        if "groupingColumns" not in self._params and "groupingColumn" not in self._params:
+             raise ValueError("Missing grouping parameter (groupingColumns or groupingColumn)")
         utils.checkElementExists(self._params, "replacingColumn")
         return verified
 
@@ -78,12 +89,13 @@ class Mean(UniDfShaper):
                     f"The mean variable column '{col}' does not exist in the data frame! Stopping"
                 )
 
-        # Check that the grouping column exists
-        if self._groupingColumn not in data_frame.columns:
-            raise ValueError(
-                f"The grouping column '{self._groupingColumn}' does not exist in the data frame! "
-                "Stopping"
-            )
+        # Check that the grouping columns exist
+        for col in self._groupingColumns:
+            if col not in data_frame.columns:
+                raise ValueError(
+                    f"The grouping column '{col}' does not exist in the data frame! "
+                    "Stopping"
+                )
 
         # Check that the replacing column exists
         if self._replacingColumn not in data_frame.columns:
@@ -105,8 +117,8 @@ class Mean(UniDfShaper):
         # Create a copy to avoid modifying the original
         result = data_frame.copy()
 
-        # Group by the grouping column
-        grouped = result.groupby(self._groupingColumn)
+        # Group by the grouping columns
+        grouped = result.groupby(self._groupingColumns)
 
         # Calculate the mean based on the algorithm
         if self._meanAlgorithm == "arithmean":
@@ -127,14 +139,15 @@ class Mean(UniDfShaper):
             col
             for col in result.columns
             if col not in self._meanVars
-            and col != self._groupingColumn
+            and col not in self._groupingColumns
             and col != self._replacingColumn
         ]
 
         for col in other_cols:
             # Get the first value from each group for this column
             first_values = grouped[col].first().reset_index()
-            mean_df[col] = first_values[col]
+            # Merge back to mean_df on grouping columns
+            mean_df = mean_df.merge(first_values, on=self._groupingColumns, how="left")
 
         # Concatenate the mean rows to the original dataframe
         result = pd.concat([result, mean_df], ignore_index=True)
@@ -170,7 +183,7 @@ def test():
     params = {
         "meanVars": ["throughput", "latency"],
         "meanAlgorithm": "arithmean",
-        "groupingColumn": "system_id",
+        "groupingColumns": ["system_id"],
         "replacingColumn": "benchmark",
         "srcCsv": "meantest.csv",
         "dstCsv": "output_data.csv",

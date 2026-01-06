@@ -139,36 +139,62 @@ class PlotRenderer:
             )
         elif download_format in ["png", "pdf"]:
             try:
-                # Convert plotly figure to static image using matplotlib backend
+                try:
+                    # improved high-fidelity export using kaleido if available
+                    import kaleido  # noqa: F401
+                    import io      # <--- Added
+                    
+                    buf = io.BytesIO()
+                    # scale=3 provides high resolution for publications
+                    fig.write_image(buf, format=download_format, engine="kaleido", scale=3)
+                    buf.seek(0)
+                    
+                    mime = "application/pdf" if download_format == "pdf" else "image/png"
+                    
+                    st.download_button(
+                        label=f"Download {download_format.upper()} (High Res)",
+                        data=buf,
+                        file_name=f"{plot.name}.{download_format}",
+                        mime=mime,
+                    )
+                    return  # Success, skip fallback
+                    
+                except Exception as e:
+                    # Provide feedback on fallback but don't crash
+                    if "kaleido" in str(e) or isinstance(e, ImportError):
+                        print(f"Kaleido export failed, using fallback: {e}")
+                    else:
+                        st.warning(f"High-fidelity export failed ({e}), using fallback renderer.")
+
+                # Fallback: Convert plotly figure to static image using matplotlib backend
                 import io
 
                 import matplotlib.pyplot as plt
 
                 # Extract data from plotly figure
-                fig_data = fig.to_dict()
-
                 width_inches = plot.config.get("width", 800) / 100
                 height_inches = plot.config.get("height", 500) / 100
 
                 mpl_fig = plt.figure(figsize=(width_inches, height_inches))
                 ax = mpl_fig.add_subplot(111)
 
-                # Simple conversion - just plot the data
-                for trace in fig_data.get("data", []):
-                    if trace.get("type") in ["bar", "scatter"]:
-                        x_data = trace.get("x", [])
-                        y_data = trace.get("y", [])
-                        label = trace.get("name", "")
+                # Extract data from plotly figure directly (avoid to_dict binary encoding)
+                for trace in fig.data:
+                    if trace.type in ["bar", "scatter"]:
+                        x_data = trace.x
+                        y_data = trace.y
+                        label = trace.name or ""
 
-                        if trace.get("type") == "bar":
-                            ax.bar(range(len(x_data)), y_data, label=label, alpha=0.7)
-                        else:
+                        if trace.type == "bar":
+                            if x_data is not None:
+                                ax.bar(range(len(x_data)), y_data, label=label, alpha=0.7)
+                        else:  # scatter/line
                             ax.plot(x_data, y_data, label=label, marker="o")
 
                 ax.set_title(plot.config.get("title", ""))
                 ax.set_xlabel(plot.config.get("xlabel", ""))
                 ax.set_ylabel(plot.config.get("ylabel", ""))
-                if len(fig_data.get("data", [])) > 1:
+                if len(fig.data) > 1:
                     ax.legend()
                 ax.grid(True, alpha=0.3)
 
@@ -192,4 +218,5 @@ class PlotRenderer:
                 )
             except Exception as e:
                 st.error(f"Failed to generate {download_format.upper()}: {e}")
+                st.exception(e)  # Show full traceback for debugging
                 st.info("HTML download is always available as a fallback")

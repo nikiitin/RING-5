@@ -49,7 +49,6 @@ class Distribution(confType):
         return super().__getattribute__(__name)
 
     def __setattr__(self, __name: str, __value: dict) -> None:
-        super().__setattr__(__name, __value)
         if __name == "content":
             try:
                 # Check that value key is either an int or an underflow(-) or overflow(+)
@@ -140,7 +139,12 @@ class Distribution(confType):
                 )
             __value = dict((x, y) for x, y in __value.items() if x in expectedValues)
             # Update the content with the new dictionary
-            self.__dict__["content"].update(__value)
+            # Modification for Reduction: Instead of replacing, we extend the existing lists
+            for key, val in __value.items():
+                if key in self.__dict__["content"]:
+                    self.__dict__["content"][key].extend(val)
+                else:
+                    self.__dict__["content"][key] = val
         elif (
             __name == "balancedContent"
             or __name == "reducedDuplicates"

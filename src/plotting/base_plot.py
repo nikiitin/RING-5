@@ -237,7 +237,7 @@ class BasePlot(ABC):
             Configuration dictionary with common options
         """
         numeric_cols = data.select_dtypes(include=["number"]).columns.tolist()
-        categorical_cols = data.select_dtypes(include=["object"]).columns.tolist()
+        categorical_cols = data.select_dtypes(include=["object", "category"]).columns.tolist()
 
         col1, col2 = st.columns(2)
 
@@ -428,13 +428,23 @@ class BasePlot(ABC):
             if saved_config.get("group") and saved_config["group"] in data.columns:
                 with st.expander("Reorder Groups"):
                     unique_g = sorted(data[saved_config["group"]].unique().tolist())
-                    group_order = self.render_reorderable_list("Group Order", unique_g, "group")
+                    group_order = self.render_reorderable_list(
+                        "Group Order", 
+                        unique_g, 
+                        "group", 
+                        legend_labels=saved_config.get("legend_labels")
+                    )
 
             # Legend Order (Color)
             if saved_config.get("color") and saved_config["color"] in data.columns:
                 with st.expander("Reorder Legend Items"):
                     unique_c = sorted(data[saved_config["color"]].unique().tolist())
-                    legend_order = self.render_reorderable_list("Legend Order", unique_c, "legend")
+                    legend_order = self.render_reorderable_list(
+                        "Legend Order", 
+                        unique_c, 
+                        "legend", 
+                        legend_labels=saved_config.get("legend_labels")
+                    )
 
         # Bar Settings
         bargap = 0.2
@@ -507,6 +517,40 @@ class BasePlot(ABC):
                 step=0.05,
                 key=f"leg_y_{self.plot_id}",
             )
+
+        # Legend Item Renaming (User Requested)
+        legend_col = self.get_legend_column(saved_config)
+        if legend_col and data is not None and legend_col in data.columns:
+            with st.expander("Rename Legend Items"):
+                st.caption("Rename specific items in the legend:")
+                
+                unique_vals = sorted(data[legend_col].unique().astype(str).tolist())
+                
+                # Retrieve existing mapping
+                legend_labels = saved_config.get("legend_labels", {})
+                
+                for val in unique_vals:
+                    col_l, col_i = st.columns([1, 2])
+                    with col_l:
+                        st.markdown(f"**{val}**")
+                    with col_i:
+                        current_alias = legend_labels.get(val, val)
+                        new_alias = st.text_input(
+                            "Label",
+                            value=current_alias, 
+                            key=f"leg_ren_{self.plot_id}_{val}",
+                            label_visibility="collapsed"
+                        )
+                        
+                        if new_alias and new_alias != val:
+                            legend_labels[val] = new_alias
+                        elif val in legend_labels:
+                            del legend_labels[val]
+
+                # Store back in config
+                saved_config["legend_labels"] = legend_labels
+
+
 
         # Shapes (Annotations)
         st.markdown("#### Annotations (Shapes)")
@@ -587,10 +631,13 @@ class BasePlot(ABC):
             "xaxis_order": xaxis_order,
             "group_order": group_order,
             "legend_order": legend_order,
+            "legend_labels": saved_config.get("legend_labels"),
             "shapes": shapes,
         }
 
-    def render_reorderable_list(self, label: str, items: List[Any], key_prefix: str) -> List[Any]:
+    def render_reorderable_list(
+        self, label: str, items: List[Any], key_prefix: str, legend_labels: Optional[Dict[str, str]] = None
+    ) -> List[Any]:
         """
         Render a list that can be reordered using up/down buttons.
         """
@@ -614,7 +661,10 @@ class BasePlot(ABC):
         for i, item in enumerate(current_items):
             c1, c2, c3 = st.columns([6, 1, 1])
             with c1:
-                st.text(str(item))
+                display_text = str(item)
+                if legend_labels and str(item) in legend_labels:
+                    display_text = f"{legend_labels[str(item)]} ({item})"
+                st.text(display_text)
             with c2:
                 if i > 0:
                     if st.button("↑", key=f"{key_prefix}_up_{i}_{self.plot_id}"):

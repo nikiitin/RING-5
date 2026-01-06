@@ -8,6 +8,7 @@ import pandas as pd
 import streamlit as st
 
 from src.plotting import BasePlot
+from src.web.state_manager import StateManager
 
 
 def show_portfolio_page():
@@ -87,6 +88,7 @@ def show_portfolio_page():
                         "plots": serialized_plots,
                         "plot_counter": st.session_state.plot_counter,
                         "config": st.session_state.config,
+                        "parse_variables": st.session_state.get(StateManager.PARSE_VARIABLES, []),
                     }
 
                     # Save to file
@@ -122,9 +124,28 @@ def show_portfolio_page():
                         with open(portfolio_path, "r") as f:
                             portfolio_data = json.load(f)
 
+                        # Restore variables configuration if present (CRITICAL for type enforcement)
+                        if "parse_variables" in portfolio_data:
+                            st.session_state[StateManager.PARSE_VARIABLES] = portfolio_data["parse_variables"]
+
                         # Restore data
-                        st.session_state.data = pd.read_csv(io.StringIO(portfolio_data["data_csv"]))
-                        st.session_state.csv_path = portfolio_data.get("csv_path")
+                        data = pd.read_csv(io.StringIO(portfolio_data["data_csv"]))
+                        StateManager.set_data(data)
+                        StateManager.set_csv_path(portfolio_data.get("csv_path"))
+
+                        # Clear stale widget states for plots to force re-initialization from config
+                        # This ensures advanced options (like order, legend aliases) are reflected correctly
+                        keys_to_clear = [
+                            k for k in st.session_state.keys()
+                            if any(marker in k for marker in [
+                                "_order_", "leg_ren_", "leg_orient_", "leg_x_", "leg_y_",
+                                "xaxis_angle_", "xaxis_font_", "ydtick_", "automargin_",
+                                "margin_b_", "bargap_", "bargroupgap_", "bar_border_",
+                                "editable_", "download_fmt_", "show_error_bars", "new_plot_name"
+                            ])
+                        ]
+                        for k in keys_to_clear:
+                            del st.session_state[k]
 
                         # Restore plots
                         loaded_plots_objects = []

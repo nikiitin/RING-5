@@ -80,6 +80,10 @@ sub getEntryNameFromLine {
         $line =~ /($vectorEntryRegex)/;
         return $1;
     }
+    if ($line =~ $summariesEntryRegex) {
+        $line =~ /($summariesEntryRegex)/;
+        return $1;
+    }
     # Do return empty string if no entry was found
     return "";
 }

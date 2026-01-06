@@ -10,6 +10,8 @@ from src.data_plotter.src.shaper.impl.sort import Sort
 from src.data_plotter.src.shaper.shaper import Shaper
 
 
+from src.data_plotter.src.shaper.impl.transformer import Transformer
+
 class ShaperFactory:
     """
     Factory class for creating shapers.
@@ -32,5 +34,7 @@ class ShaperFactory:
             return Normalize(params)
         elif type == "sort":
             return Sort(params)
+        elif type == "transformer":
+            return Transformer(params)
         else:
             raise ValueError("Invalid shaper type")

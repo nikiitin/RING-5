@@ -10,14 +10,15 @@ class ConditionSelector(Selector):
     """
 
     def __init__(self, params: dict):
-        super().__init__(params)
-        # Optional parameters based on mode
+        # Initialize attributes before super() to ensure they exist
         self._mode = params.get("mode", "legacy")
         self._condition = params.get("condition")
         self._value = params.get("value")
         self._threshold = params.get("threshold")
         self._range = params.get("range")
         self._values = params.get("values")
+        
+        super().__init__(params)
 
     def _verifyParams(self) -> bool:
         verified = super()._verifyParams()

@@ -10,3 +10,6 @@ __pycache__
 python_venv/
 .pytest_cache/
 .ring5
+*.egg-info
+.ruff_cache
+build/

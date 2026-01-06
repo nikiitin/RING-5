@@ -55,6 +55,21 @@ class StateManager:
     @staticmethod
     def set_data(data: pd.DataFrame):
         """Set the current data DataFrame."""
+        if data is not None:
+            # Enforce configuration types as strings (categorical)
+            # This ensures that even if data is reloaded, configs remain categorical
+            try:
+                variables = StateManager.get_parse_variables()
+                if variables:
+                     config_vars = [v["name"] for v in variables if v.get("type") == "configuration"]
+                     for col in config_vars:
+                         if col in data.columns:
+                             # Cast to string to treat as categorical
+                             # We use .astype(str) which converts connection-like objects properly
+                             data[col] = data[col].astype(str)
+            except Exception as e:
+                print(f"Error enforcing configuration types: {e}")
+                
         st.session_state[StateManager.DATA] = data
 
     @staticmethod
@@ -136,13 +151,34 @@ class StateManager:
 
     @staticmethod
     def get_parse_variables() -> List[Dict[str, str]]:
-        """Get the parse variables configuration."""
-        return st.session_state.get(StateManager.PARSE_VARIABLES, [])
+        """Get the parse variables configuration, ensuring each has a unique ID."""
+        import uuid
+        variables = st.session_state.get(StateManager.PARSE_VARIABLES, [])
+        keys_updated = False
+        for var in variables:
+            if "_id" not in var:
+                var["_id"] = str(uuid.uuid4())
+                keys_updated = True
+        
+        if keys_updated:
+            st.session_state[StateManager.PARSE_VARIABLES] = variables
+            
+        return variables
 
     @staticmethod
     def set_parse_variables(variables: List[Dict[str, str]]):
         """Set the parse variables configuration."""
         st.session_state[StateManager.PARSE_VARIABLES] = variables
+
+    @staticmethod
+    def get_scanned_variables() -> List[Dict[str, Any]]:
+        """Get scanned variables results."""
+        return st.session_state.get("scanned_variables", [])
+
+    @staticmethod
+    def set_scanned_variables(variables: List[Dict[str, Any]]):
+        """Set scanned variables results."""
+        st.session_state["scanned_variables"] = variables
 
     @staticmethod
     def clear_all():

@@ -169,16 +169,31 @@ class DataSourcePage:
         """
         )
 
+        # Scanner UI
+        col_scan1, col_scan2 = st.columns([1, 3])
+        with col_scan1:
+            if st.button("🔍 Scan for Variables", help="Scan files to auto-discover variables"):
+                with st.spinner("Scanning stats files..."):
+                    # Use facade to scan
+                    scanned_vars = self.facade.scan_stats_variables_with_grouping(
+                        stats_path, stats_pattern
+                    )
+                    StateManager.set_scanned_variables(scanned_vars)
+                    st.rerun()
+
+        # Display Scanned Variables Summary if any
+        scanned_vars = StateManager.get_scanned_variables()
+        if scanned_vars:
+            st.success(f"Scanner found {len(scanned_vars)} variables. Use 'Add Variable' to select them.")
+
         # Variable editor
         variables = StateManager.get_parse_variables()
         updated_vars = UIComponents.variable_editor(variables)
         StateManager.set_parse_variables(updated_vars)
 
         # Add variable button
-        if UIComponents.add_variable_button():
-            variables.append({"name": "new_variable", "type": "scalar"})
-            StateManager.set_parse_variables(variables)
-            st.rerun()
+        if st.button("➕ Add Variable", help="Add a new variable manually or from scanned list"):
+            self._variable_config_dialog()
 
         # Preview configuration
         st.markdown("#### Configuration Preview")
@@ -198,6 +213,170 @@ class DataSourcePage:
 
         if st.button("Parse gem5 Stats Files", type="primary", width="stretch"):
             self._run_parser(stats_path, stats_pattern, compress_data)
+
+    @st.dialog("Add Variable")
+    def _variable_config_dialog(self):
+        """Dialog to add a new variable."""
+        scanned_vars = StateManager.get_scanned_variables() or []
+        
+        # 1. Method Selection
+        method = st.radio("Addition Method", ["Search Scanned Variables", "Manual Entry"], horizontal=True, label_visibility="collapsed")
+        
+        name = ""
+        var_type = "scalar"
+        selected_scanned_var = None
+        
+        # 2. Input/Selection Logic
+        if method == "Search Scanned Variables":
+            if not scanned_vars:
+                st.warning("No variables scanned yet. Run 'Scan for Variables' first.")
+            else:
+                # Format options for selectbox
+                def format_func(v):
+                    label = f"{v['name']} ({v['type']})"
+                    if v['type'] == 'vector' and 'entries' in v:
+                        label += f" [{len(v['entries'])} items]"
+                    if 'count' in v and v['count'] > 1:
+                        label += f" (Grouped {v['count']}x)"
+                    return label
+                
+                # Use index to handle dict objects
+                options = range(len(scanned_vars))
+                
+                st.markdown("##### Search Variable")
+                idx = st.selectbox(
+                    "Search by name...", 
+                    options, 
+                    format_func=lambda i: format_func(scanned_vars[i]),
+                    key="dialog_select_var_idx",
+                    placeholder="Type to search...",
+                    index=None, # Allow empty initial state
+                )
+                
+                if idx is not None:
+                    selected_scanned_var = scanned_vars[idx]
+                    name = selected_scanned_var["name"]
+                    var_type = selected_scanned_var["type"]
+        
+        else: # Manual Entry
+            st.markdown("##### Variable Details")
+            manual_name = st.text_input("Variable Name", key="dialog_manual_name")
+            if manual_name:
+                name = manual_name
+            
+            # Type selection
+            type_options = ["scalar", "vector", "distribution", "configuration"]
+            var_type = st.selectbox("Type", type_options, key="dialog_manual_type")
+
+        # 3. Dynamic Configuration Form
+        # Only show if we have a name (or are in manual mode and can type one)
+        
+        if method == "Search Scanned Variables" and idx is None:
+            st.info("Start typing in the search box above to find a variable.")
+        else:
+            st.markdown("---")
+            st.markdown(f"**Configuration: {var_type.upper()}**")
+            
+            # Allow editing name even if selected from list? Usually yes, but keep it simple.
+            if method == "Search Scanned Variables":
+                name = st.text_input("Name", value=name, key="dialog_final_name")
+
+            config = {}
+            
+            if var_type == "vector":
+                st.markdown("###### Vector Configuration")
+                st.caption("Select sub-items to extract:")
+                
+                # Container for selections
+                selected_entries = []
+                
+                # A. Standard Stats
+                standard_stats = ["total", "mean", "stdev", "samples", "gmean"]
+                sel_stats = st.multiselect(
+                    "Standard Statistics", 
+                    standard_stats, 
+                    default=["total", "mean"],
+                    key="vec_stats"
+                )
+                selected_entries.extend(sel_stats)
+                
+                # B. Scanned Entries (if available)
+                if selected_scanned_var and "entries" in selected_scanned_var:
+                    found_entries = selected_scanned_var["entries"]
+                    if found_entries:
+                        sel_found = st.multiselect(
+                            "Available Fields (from scan)", 
+                            found_entries,
+                            key="vec_found"
+                        )
+                        selected_entries.extend(sel_found)
+                
+                # C. Custom Entries
+                custom_text = st.text_input(
+                    "Custom Entries (comma separated)", 
+                    placeholder="e.g. cpu0, cpu1",
+                    key="vec_custom"
+                )
+                if custom_text:
+                    custom_items = [x.strip() for x in custom_text.split(",") if x.strip()]
+                    selected_entries.extend(custom_items)
+                
+                # Combine unique entries
+                final_entries = list(dict.fromkeys(selected_entries)) # Remove dups keying order
+                
+                if final_entries:
+                    st.success(f"Selected Entries: {', '.join(final_entries)}")
+                    config["vectorEntries"] = ", ".join(final_entries)
+                else:
+                    st.warning("Please select at least one entry.")
+
+                
+            elif var_type == "distribution":
+                col_min, col_max = st.columns(2)
+                with col_min:
+                    d_min = st.number_input("Minimum", value=-10, key="dist_min")
+                with col_max:
+                    d_max = st.number_input("Maximum", value=100, key="dist_max")
+                config["minimum"] = d_min
+                config["maximum"] = d_max
+                
+            elif var_type == "configuration":
+                on_empty = st.text_input("On Empty Value", value="None", key="conf_empty")
+                config["onEmpty"] = on_empty
+                
+            # Optional Repeat stuff (Advanced)
+            with st.expander("Advanced Options"):
+                 repeat = st.number_input("Repeat Count", min_value=1, value=1, help="If variable repeats in strict sequence (Perl parser specific)", key="adv_repeat")
+                 if repeat > 1:
+                    config["repeat"] = repeat
+
+            st.write("") # Spacer
+            if st.button("Add to Configuration", type="primary", use_container_width=True):
+                if not name:
+                    st.error("Variable name is required.")
+                elif var_type == "vector" and not config.get("vectorEntries"):
+                    st.error("Vector variables require at least one entry.")
+                else:
+                    # Construct Entry
+                    import uuid
+                    new_var = {
+                        "name": name,
+                        "type": var_type,
+                        "id": None, # Parser ID - backend generated usually, but we use name as ID for parser config
+                        "_id": str(uuid.uuid4()), # UI ID
+                        **config
+                    }
+                    
+                    # Update Session State
+                    current_vars = StateManager.get_parse_variables()
+                    # Check duplicate
+                    if any(v["name"] == name for v in current_vars):
+                        st.warning(f"Variable '{name}' already exists.")
+                    else:
+                        current_vars.append(new_var)
+                        StateManager.set_parse_variables(current_vars)
+                        st.success(f"Added '{name}'!")
+                        st.rerun()
 
     def _run_parser(self, stats_path: str, stats_pattern: str, compress: bool):
         """
@@ -227,7 +406,8 @@ class DataSourcePage:
         st.info(f"Found {len(files_found)} files to parse")
 
         # Create temp directory
-        if not StateManager.get_temp_dir():
+        current_temp = StateManager.get_temp_dir()
+        if not current_temp or not Path(current_temp).exists():
             StateManager.set_temp_dir(tempfile.mkdtemp())
 
         output_dir = StateManager.get_temp_dir()
@@ -267,6 +447,7 @@ class DataSourcePage:
 
                     # Load data
                     data = self.facade.load_csv_file(csv_path)
+
                     StateManager.set_data(data)
                     StateManager.set_csv_path(csv_path)
 

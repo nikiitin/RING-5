@@ -20,11 +20,7 @@ class confType:
         self.__dict__["balancedContent"] = False
         self.__dict__["reducedDuplicates"] = False
 
-    def __setattr__(self, __name: str, __value: Any) -> None:
-        # Depending on the type of the variable, the content will be different
-        # This is why we need to override the __setattr__ method...
-        # ...to make sure we are setting the content correctly
-        pass
+
 
     def __str__(self) -> str:
         # This method gives the string representation of the variable
@@ -58,15 +54,15 @@ class confType:
         # This means that every entry will have the same number of values
         # This is done by filling the missing values with 0
         # The number of entries MUST be specified as repeat in the constructor
-        self.balancedContent = True
+        self.__dict__["balancedContent"] = True
         pass
 
     def reduceDuplicates(self) -> Any:
         # This method removes duplicates from the content
         # by doing arithmetic mean to the values
         # Only applyable to Scalars and Vectors
-        self.reducedDuplicates = True
+        self.__dict__["reducedDuplicates"] = True
         # Better return NA than 0 if not found in file
         if len(self.content) == 0:
-            self.reducedContent = "NA"
+            self.__dict__["reducedContent"] = "NA"
         pass

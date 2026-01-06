@@ -11,6 +11,8 @@ import shutil
 import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+import re
+
 
 import pandas as pd
 
@@ -233,6 +235,7 @@ class BackendFacade:
             Path to generated CSV file or None
         """
         from src.data_parser.src.dataParserFactory import DataParserFactory
+        import re
 
         # Report progress
         if progress_callback:
@@ -250,38 +253,95 @@ class BackendFacade:
         parse_config_file = parse_component_dir / "webapp_parse.json"
 
         # Map variables to parser format with type-specific parameters
+        # AND Handle Regex Expansion for reduction candidates via parsed_ids
         parser_vars = []
+
         for var in variables:
-            var_config = {"id": var["name"], "type": var["type"]}
-
-            # DEBUG
-            print(f"DEBUG FACADE: Processing {var['name']} ({var['type']})")
-            if var["type"] == "vector":
-                print(f"  Has vectorEntries: {'vectorEntries' in var}")
-
-            # Add type-specific parameters
-            if var["type"] == "vector":
-                if "vectorEntries" in var:
-                    var_config["vectorEntries"] = var["vectorEntries"]
+            var_name = var["name"]
+            
+            # Helper to add variable without modification
+            # Helper to add variable without modification
+            def _add_as_is(name, v):
+                # Check for Alias
+                alias = v.get("alias")
+                
+                if alias and alias.strip():
+                    # Use Alias as ID, map original name via parsed_ids
+                    cfg = {
+                        "id": alias.strip(),
+                        "type": v["type"],
+                        "parsed_ids": [name] # Map original name to this alias
+                    }
                 else:
-                    # Require vectorEntries for vectors
-                    print(f"ERROR FACADE: Missing vectorEntries for {var['name']}")
-                    raise ValueError(
-                        f"Vector variable '{var['name']}' requires vectorEntries to be specified"
-                    )
+                    # No alias, standard behavior
+                    cfg = {"id": name, "type": v["type"]}
+                
+                # Add type-specific parameters
+                if v["type"] == "vector":
+                    if "vectorEntries" in v:
+                        cfg["vectorEntries"] = v["vectorEntries"]
+                        if "useSpecialMembers" in v:
+                            cfg["useSpecialMembers"] = v["useSpecialMembers"]
+                    else:
+                        raise ValueError(f"Vector variable '{name}' requires vectorEntries to be specified")
+                        
+                elif v["type"] == "distribution":
+                    cfg["minimum"] = v.get("minimum", 0)
+                    cfg["maximum"] = v.get("maximum", 100)
+                    
+                elif v["type"] == "configuration":
+                    cfg["onEmpty"] = v.get("onEmpty", "None")
+                    
+                if "repeat" in v:
+                    cfg["repeat"] = v["repeat"]
+                    
+                parser_vars.append(cfg)
 
-            elif var["type"] == "distribution":
-                var_config["minimum"] = var.get("minimum", 0)
-                var_config["maximum"] = var.get("maximum", 100)
-
-            elif var["type"] == "configuration":
-                var_config["onEmpty"] = var.get("onEmpty", "None")
-
-            # Optional repeat parameter
-            if "repeat" in var:
-                var_config["repeat"] = var["repeat"]
-
-            parser_vars.append(var_config)
+            # Check if this variable looks like a regex pattern (contains \d+ or *)
+            if "\\d+" in var_name or "*" in var_name:
+                # Scan a few files to find concrete instances
+                concrete_vars = self.scan_stats_variables(stats_path, stats_pattern, limit=3)
+                
+                matched_concrete_names = []
+                for cv in concrete_vars:
+                    if re.fullmatch(var_name, cv["name"]):
+                        matched_concrete_names.append(cv["name"])
+                
+                if matched_concrete_names:
+                    # Found concrete matches -> Configure Parser for REDUCTION
+                    # We create ONE variable entry, but map ALL concrete IDs to it via 'parsed_ids'.
+                    count = len(matched_concrete_names)
+                    
+                    # Create reduced variable config
+                    reduced_config = {
+                        "id": var_name, 
+                        "type": var["type"],
+                        "parsed_ids": matched_concrete_names,
+                        "repeat": count # Parser uses this for averaging
+                    }
+                    
+                    # Copy specific fields
+                    if var["type"] == "vector":
+                        if "vectorEntries" in var:
+                            reduced_config["vectorEntries"] = var["vectorEntries"]
+                        else:
+                            reduced_config["vectorEntries"] = "total, mean"
+                            
+                    elif var["type"] == "distribution":
+                        reduced_config["minimum"] = var.get("minimum", -10)
+                        reduced_config["maximum"] = var.get("maximum", 100)
+                        
+                    elif var["type"] == "configuration":
+                        reduced_config["onEmpty"] = var.get("onEmpty", "None")
+                        
+                    parser_vars.append(reduced_config)
+                    
+                else:
+                    # No match found? Add as is
+                    _add_as_is(var_name, var)
+            else:
+                # Normal variable
+                _add_as_is(var_name, var)
 
         # Create parser configuration
         parser_config = [
@@ -319,14 +379,12 @@ class BackendFacade:
         parser()
 
         if progress_callback:
-            progress_callback(4, 0.9, "Finalizing results...")
+            progress_callback(4, 1.0, "Parsing complete!")
 
-        # Return CSV path
+        # Return CSV path (no post-processing reduction needed anymore)
         csv_path = Path(output_dir) / "results.csv"
-
+        
         if csv_path.exists():
-            if progress_callback:
-                progress_callback(5, 1.0, "Parsing complete!")
             return str(csv_path)
 
         return None
@@ -565,6 +623,7 @@ class BackendFacade:
         try:
             # Add src to path if needed, though app.py does it
             import sys
+            import re
 
             if str(Path(__file__).parent.parent.parent) not in sys.path:
                 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -607,6 +666,76 @@ class BackendFacade:
             print(f"Error scanning stats: {e}")
             return []
 
+    def scan_stats_variables_with_grouping(
+        self, stats_path: str, file_pattern: str = "stats.txt", limit: int = 5
+    ) -> List[Dict[str, Any]]:
+        """
+        Scan and group variables using Regex (heuristic for reduction).
+        e.g. system.cpu0.ipc and system.cpu1.ipc -> system.cpu\\d+.ipc
+        """
+        import re
+        from collections import defaultdict
+        
+        raw_vars = self.scan_stats_variables(stats_path, file_pattern, limit)
+        if not raw_vars:
+            return []
+            
+        # Grouping Logic
+        # We look for numbers in the variable names and replace them with \d+
+        grouped_vars = {}
+        
+        for var in raw_vars:
+            name = var["name"]
+            # Check if name contains numbers
+            if re.search(r'\d+', name):
+                # Create regex pattern
+                pattern = re.sub(r'\d+', r'\\d+', name)
+                
+                if pattern not in grouped_vars:
+                    grouped_vars[pattern] = {
+                        "name": pattern,
+                        "type": var["type"],
+                        "entries": var.get("entries", []),
+                        "count": 1,
+                        "examples": [name]
+                    }
+                else:
+                    grouped_vars[pattern]["count"] += 1
+                    if len(grouped_vars[pattern]["examples"]) < 3:
+                        grouped_vars[pattern]["examples"].append(name)
+                        
+                    # Merge entries if needed
+                    if "entries" in var:
+                         existing = set(grouped_vars[pattern]["entries"])
+                         new_entries = set(var["entries"])
+                         grouped_vars[pattern]["entries"] = sorted(list(existing.union(new_entries)))
+                         
+            else:
+                # No numbers, keep as is
+                if name not in grouped_vars:
+                    grouped_vars[name] = var
+                    grouped_vars[name]["count"] = 1
+                    grouped_vars[name]["examples"] = [name]
+        
+        # Format results
+        results = []
+        for pattern, info in grouped_vars.items():
+            # If we grouped multiple items, it's a pattern
+            if info["count"] > 1:
+                # It's a reduction candidate!
+                # Ensure type is correct (should be same for all group members usually)
+                results.append(info)
+            else:
+                # If count is 1, but it has \d+, it might be a single item that just has a number
+                # If the original name matched the pattern (ignoring escaped backslashes), it's not a group
+                # logic: if pattern == name (with escaping), it's just a variable with a number that isn't repeated?
+                # Actually, if count == 1, we prefer original name
+                if len(info["examples"]) == 1:
+                     info["name"] = info["examples"][0]
+                results.append(info)
+                
+        return sorted(results, key=lambda x: x["name"])
+
     def scan_vector_entries(
         self, stats_path: str, vector_name: str, file_pattern: str = "stats.txt"
     ) -> List[str]:
@@ -642,31 +771,28 @@ class BackendFacade:
             # scanning is reasonably fast per file, the overhead is opening many files.
             # To make it truly fast, we should use grep if available, but let's stick to python for
             # portability.
-            # Actually, let's just use StatsScanner but we can optimize it later if needed.
-            # Or better: read lines and only regex match if line starts with vector_name.
-
-            # Simple optimization: check if line starts with vector name
-            # This avoids running complex regex on every line
-            prefix = f"{vector_name}::"
-
-            for file_path in files:
+            # Only scan first 100 files for now to be safe
+            # Regex pattern: vector_name::entry_name value
+            # e.g. system.cpu.op_class::IntAlu  1234
+            # We want to capture 'IntAlu'
+            # Escape the vector name because it contains dots
+            escaped_name = re.escape(vector_name)
+            pattern = re.compile(rf"{escaped_name}::(?P<entry>[^\s]+)\s+")
+            
+            for file_path in files[:100]:
                 try:
-                    with open(file_path, "r") as f:
+                    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                         for line in f:
-                            line = line.strip()
-                            if line.startswith(prefix):
-                                # Extract entry name: name::ENTRY value...
-                                # entry is between :: and space
-                                parts = line.split("::", 1)
-                                if len(parts) > 1:
-                                    rest = parts[1]
-                                    entry = rest.split()[0]
+                            # Optimization: only check lines containing the vector name
+                            if vector_name in line:
+                                match = pattern.search(line)
+                                if match:
+                                    entry = match.group("entry")
+                                    # Sometimes entry might contain extra colons if nested, but typically not for these stats
                                     all_entries.add(entry)
-                except (OSError, UnicodeDecodeError):
-                    continue
-
+                except Exception:
+                    continue # Skip file errors
+                
             return sorted(list(all_entries))
-
-        except Exception as e:
-            print(f"Error scanning vector entries: {e}")
+        except Exception:
             return []

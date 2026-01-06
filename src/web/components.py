@@ -159,41 +159,60 @@ class UIComponents:
         updated_vars = []
         deleted_indices = []
 
+        updated_vars = []
+        deleted_indices = []
+
         for idx, var in enumerate(variables):
-            col1, col2, col3 = st.columns([3, 2, 1])
+            # Ensure ID exists (fallback if StateManager didn't catch it for some reason)
+            var_id = var.get("_id", f"fallback_{idx}")
+            
+            col1, col2, col3, col4 = st.columns([3, 2, 2, 1])
 
             with col1:
                 var_name = st.text_input(
                     f"Variable {idx+1} Name",
                     value=var.get("name", ""),
-                    key=f"var_name_{idx}",
+                    key=f"var_name_{var_id}",
                     label_visibility="collapsed",
+                    placeholder="stats.name"
+                )
+                
+            with col2:
+                var_alias = st.text_input(
+                    f"Alias {idx+1}",
+                    value=var.get("alias", ""),
+                    key=f"var_alias_{var_id}",
+                    label_visibility="collapsed",
+                    placeholder="Alias (Optional)"
                 )
 
-            with col2:
+            with col3:
                 var_type = st.selectbox(
                     f"Type {idx+1}",
                     options=["scalar", "vector", "distribution", "configuration"],
                     index=["scalar", "vector", "distribution", "configuration"].index(
                         var.get("type", "scalar")
                     ),
-                    key=f"var_type_{idx}",
+                    key=f"var_type_{var_id}",
                     label_visibility="collapsed",
                 )
 
-            with col3:
-                if st.button("X", key=f"delete_var_{idx}"):
+            with col4:
+                if st.button("X", key=f"delete_var_{var_id}"):
                     deleted_indices.append(idx)
 
             if idx not in deleted_indices:
-                var_config = {"name": var_name, "type": var_type}
+                var_config = {"name": var_name, "type": var_type, "_id": var_id}
+                if var_alias:
+                    var_config["alias"] = var_alias
 
                 # Type-specific configuration
                 if var_type == "vector":
                     st.markdown(f"**Vector Configuration for `{var_name}`:**")
                     st.info(
                         "ℹ️ Vectors require entries to be specified. "
-                        "[See Vector Parsing Guide](../VECTOR_PARSING_GUIDE.md)"
+                        "You can manually search for entries, or use the **Deep Scan** feature below "
+                        "to automatically find them in your stats files."
                     )
 
                     # Check if we have discovered entries for this variable
@@ -226,7 +245,7 @@ class UIComponents:
                                 else 1
                             )
                         ),
-                        key=f"entry_mode_{idx}",
+                        key=f"entry_mode_{var_id}",
                         horizontal=True,
                     )
 
@@ -242,7 +261,7 @@ class UIComponents:
                     ):
                         if st.button(
                             f"Deep Scan Entries for '{var_name}'",
-                            key=f"deep_scan_{idx}",
+                            key=f"deep_scan_{var_id}",
                             help="Scan ALL stats files to find all possible entries "
                             "for this vector.",
                         ):
@@ -257,16 +276,7 @@ class UIComponents:
                                 )
 
                                 if all_entries:
-                                    # Update available_variables in session state if possible,
-                                    # but here we just need to update the local context or force a
-                                    # rerun
-                                    # We can't easily update the parent's available_variables from
-                                    # here without session state
-                                    # But we can update the 'discovered_entries' local variable for
-                                    # this render?
-                                    # No, streamlit reruns.
-
-                                    # Update session state
+                                    # Update session state logic remains same...
                                     if (
                                         "available_variables" in st.session_state
                                         and st.session_state.available_variables
@@ -296,7 +306,7 @@ class UIComponents:
                             "Select entries to extract:",
                             options=discovered_entries,
                             default=valid_defaults,
-                            key=f"vector_entries_select_{idx}",
+                            key=f"vector_entries_select_{var_id}",
                         )
 
                         if selected_entries:
@@ -315,7 +325,7 @@ class UIComponents:
                         vector_entries_input = st.text_input(
                             "Vector entries (comma-separated)",
                             value=default_entries,
-                            key=f"vector_entries_{idx}",
+                            key=f"vector_entries_{var_id}",
                             placeholder="e.g., cpu0, cpu1, cpu2 or bank0, bank1, bank2",
                             help="Enter the exact names of vector entries as they appear in "
                             "stats.txt (e.g., 'cpu0', 'cpu1.data', 'bank0')",
@@ -344,29 +354,29 @@ class UIComponents:
                             extract_total = st.checkbox(
                                 "total (sum of all entries)",
                                 value="total" in var.get("vectorEntries", []),
-                                key=f"stat_total_{idx}",
+                                key=f"stat_total_{var_id}",
                             )
                             extract_mean = st.checkbox(
                                 "mean (arithmetic mean)",
                                 value="mean" in var.get("vectorEntries", []),
-                                key=f"stat_mean_{idx}",
+                                key=f"stat_mean_{var_id}",
                             )
                             extract_gmean = st.checkbox(
                                 "gmean (geometric mean)",
                                 value="gmean" in var.get("vectorEntries", []),
-                                key=f"stat_gmean_{idx}",
+                                key=f"stat_gmean_{var_id}",
                             )
 
                         with col_stat2:
                             extract_samples = st.checkbox(
                                 "samples (count)",
                                 value="samples" in var.get("vectorEntries", []),
-                                key=f"stat_samples_{idx}",
+                                key=f"stat_samples_{var_id}",
                             )
                             extract_stdev = st.checkbox(
                                 "stdev (standard deviation)",
                                 value="stdev" in var.get("vectorEntries", []),
-                                key=f"stat_stdev_{idx}",
+                                key=f"stat_stdev_{var_id}",
                             )
 
                         # Build list of selected statistics
@@ -395,11 +405,11 @@ class UIComponents:
                     col_min, col_max = st.columns(2)
                     with col_min:
                         min_val = st.number_input(
-                            "Minimum value", value=var.get("minimum", 0), key=f"dist_min_{idx}"
+                            "Minimum value", value=var.get("minimum", 0), key=f"dist_min_{var_id}"
                         )
                     with col_max:
                         max_val = st.number_input(
-                            "Maximum value", value=var.get("maximum", 100), key=f"dist_max_{idx}"
+                            "Maximum value", value=var.get("maximum", 100), key=f"dist_max_{var_id}"
                         )
 
                     var_config["minimum"] = min_val
@@ -411,7 +421,7 @@ class UIComponents:
                     on_empty = st.text_input(
                         "Default value (if not found)",
                         value=var.get("onEmpty", "None"),
-                        key=f"config_onempty_{idx}",
+                        key=f"config_onempty_{var_id}",
                         help="Value to use if the configuration variable is not found in stats",
                     )
                     var_config["onEmpty"] = on_empty
@@ -426,10 +436,7 @@ class UIComponents:
                             var_config["vectorEntries"] = []
                         st.write(f"DEBUG: Added missing vectorEntries for {var_name}")
                     else:
-                        st.write(
-                            f"DEBUG: vectorEntries present for {var_name}: "
-                            f"{var_config['vectorEntries']}"
-                        )
+                        pass # Debug message removed to reduce clutter
 
                 updated_vars.append(var_config)
 

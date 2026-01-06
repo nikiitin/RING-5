@@ -7,7 +7,6 @@ class Scalar(confType):
     # Scalar variable can be a float or an int
     # So, we need to override the __setattr__ method
     def __setattr__(self, __name: str, __value: Any) -> None:
-        super().__setattr__(__name, __value)
         if __name == "content":
             try:
                 __value = int(__value)

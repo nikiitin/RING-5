@@ -82,6 +82,21 @@ class GroupedBarPlot(BasePlot):
             "_needs_advanced": True,
         }
 
+    def render_advanced_options(
+        self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame] = None
+    ) -> Dict[str, Any]:
+        """Override to apply filters before rendering advanced options."""
+        if data is not None:
+            # Apply X filter
+            if saved_config.get("x_filter") is not None:
+                data = data[data[saved_config["x"]].isin(saved_config["x_filter"])]
+            
+            # Apply Group filter
+            if saved_config.get("group_filter") is not None and saved_config.get("group"):
+                data = data[data[saved_config["group"]].isin(saved_config["group_filter"])]
+
+        return super().render_advanced_options(saved_config, data)
+
     def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
         """Create grouped bar plot figure."""
         y_error = None

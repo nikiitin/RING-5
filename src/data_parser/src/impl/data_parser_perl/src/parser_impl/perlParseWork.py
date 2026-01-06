@@ -96,15 +96,49 @@ class PerlParseWork(ParseWork):
             self._processDist(varID, varValue)
             # Remove the key from the ID
             varID = varID.split("::")[0]
+        elif varType == "Histogram":
+            baseID = varID.split("::")[0]
+            targetVar = varsToParse.get(baseID)
+            
+            # Determine handling based on configuration
+            if targetVar and type(targetVar).__name__ == "Vector":
+                self._processVector(varID, varValue)
+                varType = "Vector"
+            else:
+                self._processDist(varID, varValue)
+                if targetVar:
+                    expected_type = type(targetVar).__name__
+                    if expected_type in ["Distribution", "Histogram"]:
+                       varType = expected_type
+            
+            varID = baseID
         elif varType == "Scalar" or varType == "Configuration":
             varsToParse[varID].content = varValue
         elif varType == "Summary":
-            # Summaries need a keyword at the end
-            varID = varID + "__get_summary"
-            if varsToParse.get(varID) is None:
-                # Do not parse summary if not asked
-                return
-            varsToParse[varID].content = varValue
+            baseID = varID.split("::")[0]
+            targetVar = varsToParse.get(baseID)
+            
+            handled_as_entry = False
+            if targetVar and "::" in varID:
+                expected_type = type(targetVar).__name__
+                if expected_type == "Vector":
+                    self._processVector(varID, varValue)
+                    varType = "Vector"
+                    varID = baseID
+                    handled_as_entry = True
+                elif expected_type in ["Distribution", "Histogram"]:
+                    self._processDist(varID, varValue)
+                    varType = expected_type
+                    varID = baseID
+                    handled_as_entry = True
+            
+            if not handled_as_entry:
+                # Summaries need a keyword at the end
+                varID = baseID + "__get_summary"
+                if varsToParse.get(varID) is None:
+                    # Do not parse summary if not asked
+                    return
+                varsToParse[varID].content = varValue
             # Return to avoid type mismatch
             return
         else:

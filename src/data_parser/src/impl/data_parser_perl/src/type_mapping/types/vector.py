@@ -17,7 +17,6 @@ class Vector(confType):
     # So, we need to override the __setattr__ method
     # to make sure we are setting the content correctly
     def __setattr__(self, __name: str, __value: dict) -> None:
-        super().__setattr__(__name, __value)
         if __name == "content":
             try:
                 map(str, __value.keys())
@@ -65,7 +64,13 @@ class Vector(confType):
                 )
             __value = dict((x, list(y)) for x, y in __value.items() if x in self.entries)
             # Update the content with the new dictionary
-            self.__dict__["content"].update(__value)
+            # Modification for Reduction: Instead of replacing, we extend the existing lists
+            # so that multiple source variables can be aggregated into this single object.
+            for key, val in __value.items():
+                if key in self.__dict__["content"]:
+                    self.__dict__["content"][key].extend(val)
+                else:
+                    self.__dict__["content"][key] = val
         elif (
             __name == "balancedContent"
             or __name == "reducedDuplicates"

@@ -280,6 +280,7 @@ def render_data_pipeline(plot: BasePlot):
             "Mean Calculator": "mean",
             "Normalize": "normalize",
             "Filter": "conditionSelector",
+            "Transformer": "transformer",
         }
 
         selected_shaper_display = st.selectbox(
@@ -409,7 +410,7 @@ def render_plot_configuration(plot: BasePlot):
     # Advanced Options - in an expander
     with st.expander("⚙️ Advanced Options", expanded=False):
         # Advanced display options (legend, error bars, download)
-        advanced_config = plot.render_advanced_options(saved_config, data)
+        advanced_config = plot.render_advanced_options(current_config, data)
         current_config.update(advanced_config)
 
     # Check if config changed (for auto-refresh)

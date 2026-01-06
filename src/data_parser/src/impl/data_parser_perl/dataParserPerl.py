@@ -54,6 +54,17 @@ class DataParserPerl(DataParserInterface):
                 varsToParse.update({identifier: TypeMapper.map(dataType, repeat, onEmpty=onEmpty)})
             else:
                 varsToParse.update({identifier: TypeMapper.map(dataType, repeat)})
+            
+            # Helper to map object
+            obj = varsToParse[identifier]
+            
+            # Check for multi-ID mapping (Reduction)
+            if utils.checkElementExistNoException(var, "parsed_ids"):
+                parsed_ids = utils.getElementValue(var, "parsed_ids")
+                if isinstance(parsed_ids, list):
+                    for pid in parsed_ids:
+                        if pid != identifier: # identifier matches one of them usually, or is the reduced name
+                            varsToParse[pid] = obj
         return varsToParse
 
     def _getFilesToParse(self, parsing: dict) -> list:
@@ -119,11 +130,15 @@ class DataParserPerl(DataParserInterface):
             # This will make things easier and less prone to
             # errors
             parsingVars = parsing["vars"]
-            parsingVars = self._mapParsingVars(parsingVars)
+            mappedVars = self._mapParsingVars(parsingVars)
             # Take the name of the variables to parse and store
             # them in the object, this will be used later
             # to turn the results into csv
-            self._varsToParse = parsingVars.keys()
+            # FIX: Only use the IDs defined in the config, not the mapped (concrete) IDs
+            self._varsToParse = [v["id"] for v in parsingVars]
+            
+            # We must use mappedVars for the actual parsing work though
+            parsingVars = mappedVars
             # Start the pool for parse workers
             self._parseWorkPool.startPool()
             # Parse the files
@@ -169,8 +184,11 @@ class DataParserPerl(DataParserInterface):
         # Remove the last whitespace
         header = header[:-1]
         # Create the file
-        print("Creating stats.csv file..." + os.path.join(self._args.getOutputDir(), "stats.csv"))
-        with open(os.path.join(self._args.getOutputDir(), "results.csv"), "w") as statsFile:
+        output_dir = self._args.getOutputDir()
+        print(f"Creating stats.csv in: {output_dir}")
+        os.makedirs(output_dir, exist_ok=True)
+        print("Creating stats.csv file..." + os.path.join(output_dir, "stats.csv"))
+        with open(os.path.join(output_dir, "results.csv"), "w") as statsFile:
             # Write the header
             statsFile.write(header + "\n")
             # Write the stats

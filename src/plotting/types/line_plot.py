@@ -41,6 +41,10 @@ class LinePlot(BasePlot):
 
     def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
         """Create line plot figure."""
+        # Sort data by x-axis to ensure correct line drawing order (prevents zig-zags)
+        if config.get("x") in data.columns:
+            data = data.sort_values(by=config["x"])
+
         y_error = None
         if config.get("show_error_bars"):
             sd_col = f"{config['y']}.sd"
@@ -55,7 +59,12 @@ class LinePlot(BasePlot):
             error_y=y_error,
             title=config["title"],
             labels={config["x"]: config["xlabel"], config["y"]: config["ylabel"]},
+            markers=True,  # Enable markers to show explicit points
         )
+
+        # Force categorical x-axis to show all unique values as labels (e.g. 8, 16, 32...)
+        # regardless of whether they are numeric or strings.
+        fig.update_xaxes(type='category')
 
         return fig
 

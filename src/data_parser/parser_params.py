@@ -13,3 +13,7 @@ class DataParserParams:
 
     def get_json(self) -> Dict[str, Any]:
         return self.config_json
+
+    def getOutputDir(self) -> str:
+        """Get the output directory path."""
+        return self.config_json.get("outputPath")

@@ -40,7 +40,7 @@ class StatsScanner:
     # Compiled Regexes
     CONF_REGEX = re.compile(rf"^{VAR_NAME_PATTERN}={CONF_VALUE_PATTERN}$")
     SCALAR_REGEX = re.compile(
-        rf"^({VAR_NAME_PATTERN})\s+{SCALAR_VALUE_PATTERN}\s+{COMMENT_PATTERN}?$"
+        rf"^({VAR_NAME_PATTERN})\s+{SCALAR_VALUE_PATTERN}\s*{COMMENT_PATTERN}?$"
     )
 
     # Distributions
@@ -55,9 +55,13 @@ class StatsScanner:
 
     # Summaries (treated as part of vector or distribution usually, but here we want base name)
     SUMMARY_REGEX = re.compile(
-        rf"^({VAR_NAME_PATTERN}){SUMMARIES_ENTRY_PATTERN}\s+{SCALAR_VALUE_PATTERN}\s+"
+        rf"^({VAR_NAME_PATTERN}){SUMMARIES_ENTRY_PATTERN}\s+{SCALAR_VALUE_PATTERN}\s*"
         rf"{COMMENT_PATTERN}?$"
     )
+
+    # Boolean detection heuristics
+    BOOLEAN_PREFIXES = ("is_", "has_", "enable_", "use_", "disable_")
+    BOOLEAN_SUFFIXES = (".enable", ".enabled")
 
     # Vectors
     # Note: Vector regex in Perl was:
@@ -74,6 +78,19 @@ class StatsScanner:
     )
 
     @staticmethod
+    def _flatten_config(config: Dict[str, Any], prefix: str = "") -> set:
+        keys = set()
+        for k, v in config.items():
+            full_key = f"{prefix}.{k}" if prefix else k
+            if isinstance(v, dict):
+                keys.update(StatsScanner._flatten_config(v, full_key))
+            else:
+                keys.add(full_key)
+                # Also add the leaf key just in case stats uses short names (less likely but possible)
+                keys.add(k) 
+        return keys
+
+    @staticmethod
     def scan_file(file_path: str) -> List[Dict[str, Any]]:
         """
         Scans a stats file and returns a list of discovered variables.
@@ -83,6 +100,19 @@ class StatsScanner:
         """
         if not os.path.exists(file_path):
             return []
+
+        # Try to load config.json
+        config_keys = set()
+        stats_dir = os.path.dirname(file_path)
+        config_path = os.path.join(stats_dir, "config.json")
+        if os.path.exists(config_path):
+            import json
+            try:
+                with open(config_path, "r") as f:
+                    config_data = json.load(f)
+                    config_keys = StatsScanner._flatten_config(config_data)
+            except Exception as e:
+                print(f"Error loading config.json: {e}")
 
         discovered_vars: Dict[str, Dict[str, Any]] = {}
 
@@ -107,7 +137,26 @@ class StatsScanner:
                     if match:
                         name = match.group(1)
                         if name not in discovered_vars:
-                            discovered_vars[name] = {"type": "scalar", "entries": set()}
+                            # Check against config keys
+                            var_type = "scalar"
+                            # Loose matching: if name in config_keys OR leaf name in config matches
+                            # Actually, strict full path match is best, but gem5 stats often omit 'system.' prefix or similar?
+                            # Let's check exact match first.
+                            if name in config_keys:
+                                var_type = "configuration"
+                            else:
+                                # Try to see if any config key ends with this name (suffix match)
+                                # This is expensive if many keys.
+                                # Optimization: only check if we suspect it's a config?
+                                # No, we need to know.
+                                # Given the user example: htm_max_retries. 
+                                # If config has system.cpu.htm_max_retries and stats has htm_max_retries, we want match.
+                                for key in config_keys:
+                                    if key.endswith(f".{name}") or key == name:
+                                        var_type = "configuration"
+                                        break
+                            
+                            discovered_vars[name] = {"type": var_type, "entries": set()}
                         continue
 
                     # Distribution / Histogram
