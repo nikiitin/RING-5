@@ -69,16 +69,12 @@ class GroupedBarPlot(BasePlot):
                     help="Select specific groups to display.",
                 )
 
-        # Display options
-        display_config = self.render_display_options(saved_config)
-
         return {
             **config,
             "group": group_column,
             "color": None,
             "x_filter": x_values,
             "group_filter": group_values,
-            **display_config,
             "_needs_advanced": True,
         }
 

@@ -94,12 +94,18 @@ class PlotRenderer:
                 else:
                     # Use cached figure
                     fig = plot.last_generated_fig
+                
+                # DEBUG: Check editable state
+                is_editable = plot.config.get("enable_editable", False)
+                # print(f"[DEBUG-RENDER] Plot {plot.name} Editable: {is_editable}")
 
                 # Display the plot
                 st.plotly_chart(
                     fig,
+                    # use_container_width=False is deprecated. Default behavior respects fig width.
                     config={
-                        "editable": plot.config.get("enable_editable", False),
+                        "responsive": False,
+                        "editable": is_editable,
                         "modeBarButtonsToAdd": [
                             "drawline",
                             "drawopenpath",
@@ -109,11 +115,12 @@ class PlotRenderer:
                             "eraseshape",
                         ],
                         # Configure client-side download button (camera icon) to SVG (vector)
+                        # WYSIWYG: Scale 1 ensures exact pixel match with UI
                         "toImageButtonOptions": {
                             "format": "svg", 
-                            "filename": "custom_view",
-                            "height": None,
-                            "width": None,
+                            "filename": f"{plot.name}_view",
+                            "height": plot.config.get("height", 500),
+                            "width": plot.config.get("width", 800),
                             "scale": 1,
                         },
                     },
@@ -145,7 +152,7 @@ class PlotRenderer:
                 file_name=f"{plot.name}.html",
                 mime="text/html",
             )
-        elif download_format in ["png", "pdf"]:
+        elif download_format in ["png", "pdf", "svg"]:
             try:
                 try:
                     # improved high-fidelity export using kaleido if available
@@ -157,7 +164,12 @@ class PlotRenderer:
                     fig.write_image(buf, format=download_format, scale=3)
                     buf.seek(0)
                     
-                    mime = "application/pdf" if download_format == "pdf" else "image/png"
+                    mime_map = {
+                        "pdf": "application/pdf",
+                        "png": "image/png",
+                        "svg": "image/svg+xml"
+                    }
+                    mime = mime_map.get(download_format, "application/octet-stream")
                     
                     st.download_button(
                         label=f"Download {download_format.upper()} (High Res)",

@@ -262,7 +262,7 @@ class BasePlot(ABC):
             )
 
         with col2:
-            download_formats = ["html", "png", "pdf"]
+            download_formats = ["html", "png", "pdf", "svg"]
             default_format_idx = 0
             if saved_config.get("download_format") in download_formats:
                 default_format_idx = download_formats.index(saved_config["download_format"])
@@ -287,14 +287,6 @@ class BasePlot(ABC):
                 help="Rotate X-axis labels to prevent overlap",
             )
 
-            xaxis_tickfont_size = st.number_input(
-                "X-axis Font Size",
-                min_value=8,
-                max_value=24,
-                value=saved_config.get("xaxis_tickfont_size", 12),
-                key=f"xaxis_font_{self.plot_id}",
-            )
-
             # Y-axis Stepping
             yaxis_dtick = st.number_input(
                 "Y-axis Step Size (0 for auto)",
@@ -308,7 +300,9 @@ class BasePlot(ABC):
             # Actually, let's keep it clean.
             pass
 
-        # Ordering Options
+
+        # X-Axis Label Renaming (Moved from Theme Options)
+        xaxis_labels = self.style_manager.render_xaxis_labels_ui(saved_config, data)
         xaxis_order = None
         group_order = None
         legend_order = None
@@ -384,69 +378,23 @@ class BasePlot(ABC):
                     )
 
         # Legend Settings
-        st.markdown("#### Legend Settings")
-        col_leg1, col_leg2 = st.columns(2)
-        with col_leg1:
-            legend_orientation = st.selectbox(
-                "Legend Orientation",
-                options=["v", "h"],
-                format_func=lambda x: "Vertical" if x == "v" else "Horizontal",
-                index=0 if saved_config.get("legend_orientation", "v") == "v" else 1,
-                key=f"leg_orient_{self.plot_id}",
-            )
+        st.markdown("#### Legend & Interactivity")
+        enable_editable = st.checkbox(
+            "Enable Interactive Editing (Drag Items, Edit Text)",
+            value=saved_config.get("enable_editable", False),
+            key=f"editable_{self.plot_id}",
+            help="Allows you to drag the legend/title and click to edit text directly on the plot.",
+        )
 
-            enable_editable = st.checkbox(
-                "Enable Drag & Drop (Move Legend)",
-                value=saved_config.get("enable_editable", False),
-                key=f"editable_{self.plot_id}",
-                help="Allows you to drag the legend and title around the plot.",
-            )
-
-        with col_leg2:
-            legend_x = st.number_input(
-                "Legend X Position",
-                value=saved_config.get("legend_x", 1.02),
-                step=0.05,
-                key=f"leg_x_{self.plot_id}",
-            )
-            legend_y = st.number_input(
-                "Legend Y Position",
-                value=saved_config.get("legend_y", 1.0),
-                step=0.05,
-                key=f"leg_y_{self.plot_id}",
-            )
-
-        # Legend Item Renaming (User Requested)
-        legend_col = self.get_legend_column(saved_config)
-        if legend_col and data is not None and legend_col in data.columns:
-            with st.expander("Rename Legend Items"):
-                st.caption("Rename specific items in the legend:")
-                
-                unique_vals = sorted(data[legend_col].unique().astype(str).tolist())
-                
-                # Retrieve existing mapping
-                legend_labels = saved_config.get("legend_labels", {})
-                
-                for val in unique_vals:
-                    col_l, col_i = st.columns([1, 2])
-                    with col_l:
-                        st.markdown(f"**{val}**")
-                    with col_i:
-                        current_alias = legend_labels.get(val, val)
-                        new_alias = st.text_input(
-                            "Label",
-                            value=current_alias, 
-                            key=f"leg_ren_{self.plot_id}_{val}",
-                            label_visibility="collapsed"
-                        )
-                        
-                        if new_alias and new_alias != val:
-                            legend_labels[val] = new_alias
-                        elif val in legend_labels:
-                            del legend_labels[val]
-
-                # Store back in config
-                saved_config["legend_labels"] = legend_labels
+        # Per-Series Styling (Color, Shape, Pattern, Name)
+        # Moved here from Theme Options
+        series_styles = {}
+        if st.checkbox("Show Series Configuration", value=True, key=f"show_series_style_{self.plot_id}"):
+             st.markdown("#### Configure Series (Color, Shape, Renaming)")
+             with st.expander("Configure Series Styles", expanded=True):
+                 series_styles = self.style_manager.render_series_styling_ui(saved_config, data)
+        else:
+             series_styles = saved_config.get("series_styles", {})
 
 
 
@@ -541,19 +489,17 @@ class BasePlot(ABC):
             "show_error_bars": show_error_bars,
             "download_format": download_format,
             "xaxis_tickangle": xaxis_tickangle,
-            "xaxis_tickfont_size": xaxis_tickfont_size,
             "yaxis_dtick": yaxis_dtick if yaxis_dtick > 0 else None,
             "bargap": bargap,
             "bargroupgap": bargroupgap,
             "bar_border_width": bar_border_width if "stacked" in self.plot_type else 0.0,
-            "legend_orientation": legend_orientation,
             "enable_editable": enable_editable,
-            "legend_x": legend_x,
-            "legend_y": legend_y,
             "xaxis_order": xaxis_order,
             "group_order": group_order,
             "legend_order": legend_order,
-            "legend_labels": saved_config.get("legend_labels"),
+            "legend_labels": saved_config.get("legend_labels"), # Preserve legacy if exists
+            "series_styles": series_styles,
+            "xaxis_labels": xaxis_labels,
             "shapes": shapes,
         }
 

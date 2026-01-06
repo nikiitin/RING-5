@@ -134,7 +134,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config, owner_id=Non
         
         col1, col2, col3 = st.columns(3)
         with col1:
-            mean_algos = ['arithmean', 'geomean', 'harmean']
+            mean_algos = ['arithmean', 'geomean', 'hmean']
             mean_algo_default = existing_config.get('meanAlgorithm', 'arithmean')
             mean_algo_index = mean_algos.index(mean_algo_default) if mean_algo_default in mean_algos else 0
             mean_algorithm = st.selectbox(

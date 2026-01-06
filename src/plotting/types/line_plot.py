@@ -34,10 +34,7 @@ class LinePlot(BasePlot):
             key=f"color_{self.plot_id}",
         )
 
-        # Display options
-        display_config = self.render_display_options(saved_config)
-
-        return {**config, "color": color_column, **display_config}
+        return {**config, "color": color_column}
 
     def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
         """Create line plot figure."""

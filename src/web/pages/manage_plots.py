@@ -414,11 +414,22 @@ def render_plot_configuration(plot: BasePlot):
     with adv_col1:
         with st.expander("⚙️ Advanced Options", expanded=False):
             # Advanced display options (legend, error bars, download)
-            advanced_config = plot.render_advanced_options(current_config, data)
+            # Merge saved config with current config to ensure we have persistence (e.g. series_styles) 
+            # AND latest updates (e.g. x, y selections)
+            merged_config = saved_config.copy()
+            merged_config.update(current_config)
+            
+            advanced_config = plot.render_advanced_options(merged_config, data)
             current_config.update(advanced_config)
 
     with adv_col2:
         with st.expander("🎨 Theme & Style", expanded=False):
+            # Layout options (width, height, margins)
+            layout_config = plot.render_display_options(saved_config)
+            current_config.update(layout_config)
+            
+            st.markdown("---")
+            
             # Theme options (palette, colors, styles)
             theme_config = plot.render_theme_options(saved_config)
             current_config.update(theme_config)

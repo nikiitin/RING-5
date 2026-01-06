@@ -166,9 +166,6 @@ class GroupedStackedBarPlot(BasePlot):
                     key=f"group_filter_{self.plot_id}",
                 )
 
-        # Display options
-        display_config = self.render_display_options(saved_config)
-
         return {
             "x": x_column,
             "group": group_column,
@@ -182,7 +179,6 @@ class GroupedStackedBarPlot(BasePlot):
             "group_renames": group_renames,
             "x_filter": x_values,
             "group_filter": group_values,
-            **display_config,
             "_needs_advanced": True,
         }
 
