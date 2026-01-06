@@ -234,8 +234,11 @@ class BackendFacade:
         Returns:
             Path to generated CSV file or None
         """
-        from src.data_parser.src.dataParserFactory import DataParserFactory
+        from src.parsing.factory import DataParserFactory
         import re
+        
+        # Reset parser factory to ensure new configuration is used
+        DataParserFactory.reset()
 
         # Report progress
         if progress_callback:
@@ -364,7 +367,7 @@ class BackendFacade:
         if progress_callback:
             progress_callback(2, 0.2, "Configuring parser...")
 
-        from src.data_parser.parser_params import DataParserParams
+        from src.parsing.params import DataParserParams
 
         parser_params = DataParserParams(config_json=parse_config_data)
 
@@ -402,7 +405,7 @@ class BackendFacade:
         Returns:
             Transformed DataFrame
         """
-        from src.data_plotter.src.shaper.shaperFactory import ShaperFactory
+        from src.processing.shapers.factory import ShaperFactory
 
         result = data.copy()
 
@@ -448,9 +451,9 @@ class BackendFacade:
             DataFrame with seeds reduced (mean and std dev calculated)
         """
 
-        from src.data_management.dataManager import DataManager
-        from src.data_management.impl.seedsReducer import SeedsReducer
-        from src.data_management.manager_params import SeedsReducerParams
+        from src.processing.managers.base_manager import DataManager
+        from src.processing.managers.seeds_reducer import SeedsReducer
+        from src.processing.managers.params import SeedsReducerParams
 
         # Create temporary CSV
         with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as tmp:
@@ -502,9 +505,9 @@ class BackendFacade:
             DataFrame with outliers removed (values > Q3)
         """
 
-        from src.data_management.dataManager import DataManager
-        from src.data_management.impl.outlierRemover import OutlierRemover
-        from src.data_management.manager_params import OutlierRemoverParams
+        from src.processing.managers.base_manager import DataManager
+        from src.processing.managers.outlier_remover import OutlierRemover
+        from src.processing.managers.params import OutlierRemoverParams
 
         # Create temporary CSV
         with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as tmp:
@@ -558,9 +561,9 @@ class BackendFacade:
             DataFrame with new column added
         """
 
-        from src.data_management.dataManager import DataManager
-        from src.data_management.impl.preprocessor import Preprocessor
-        from src.data_management.manager_params import PreprocessorParams
+        from src.processing.managers.base_manager import DataManager
+        from src.processing.managers.preprocessor import Preprocessor
+        from src.processing.managers.params import PreprocessorParams
 
         # Create temporary CSV
         with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as tmp:
@@ -628,7 +631,7 @@ class BackendFacade:
             if str(Path(__file__).parent.parent.parent) not in sys.path:
                 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-            from src.data_parser.stats_scanner import StatsScanner
+            from src.parsing.stats_scanner import StatsScanner
 
             # Find first matching file
             search_path = Path(stats_path)

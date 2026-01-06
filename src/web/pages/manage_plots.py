@@ -319,7 +319,8 @@ def render_data_pipeline(plot: BasePlot):
 
                     # Configure shaper
                     shaper["config"] = configure_shaper(
-                        shaper["type"], input_data, shaper["id"], shaper.get("config", {})
+                        shaper["type"], input_data, shaper["id"], shaper.get("config", {}),
+                        owner_id=plot.plot_id
                     )
 
                 with col2:
@@ -407,11 +408,20 @@ def render_plot_configuration(plot: BasePlot):
     # Render plot-specific configuration
     current_config = plot.render_config_ui(data, saved_config)
 
-    # Advanced Options - in an expander
-    with st.expander("⚙️ Advanced Options", expanded=False):
-        # Advanced display options (legend, error bars, download)
-        advanced_config = plot.render_advanced_options(current_config, data)
-        current_config.update(advanced_config)
+    # Advanced Options & Theme Settings
+    adv_col1, adv_col2 = st.columns(2)
+    
+    with adv_col1:
+        with st.expander("⚙️ Advanced Options", expanded=False):
+            # Advanced display options (legend, error bars, download)
+            advanced_config = plot.render_advanced_options(current_config, data)
+            current_config.update(advanced_config)
+
+    with adv_col2:
+        with st.expander("🎨 Theme & Style", expanded=False):
+            # Theme options (palette, colors, styles)
+            theme_config = plot.render_theme_options(saved_config)
+            current_config.update(theme_config)
 
     # Check if config changed (for auto-refresh)
     config_changed = current_config != saved_config

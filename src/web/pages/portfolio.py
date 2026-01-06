@@ -141,7 +141,8 @@ def show_portfolio_page():
                                 "_order_", "leg_ren_", "leg_orient_", "leg_x_", "leg_y_",
                                 "xaxis_angle_", "xaxis_font_", "ydtick_", "automargin_",
                                 "margin_b_", "bargap_", "bargroupgap_", "bar_border_",
-                                "editable_", "download_fmt_", "show_error_bars", "new_plot_name"
+                                "editable_", "download_fmt_", "show_error_bars", "new_plot_name",
+                                "colsel_", "norm_", "mean_", "sort_", "filter_", "trans_"
                             ])
                         ]
                         for k in keys_to_clear:

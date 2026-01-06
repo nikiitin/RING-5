@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from src.data_plotter.src.shaper.shaperFactory import ShaperFactory
+from src.processing.shapers.factory import ShaperFactory
 
 # Constants
 SHAPER_TYPE_MAP = {
@@ -19,9 +19,21 @@ SHAPER_TYPE_MAP = {
     'transformer': 'Transformer'
 }
 
-def configure_shaper(shaper_type, data, shaper_id, existing_config):
-    """Configure a specific shaper and return its config."""
+def configure_shaper(shaper_type, data, shaper_id, existing_config, owner_id=None):
+    """
+    Configure a specific shaper and return its config.
+    
+    Args:
+        shaper_type: String type of shaper
+        data: Input DataFrame
+        shaper_id: Unique ID of the shaper within its pipeline
+        existing_config: Previously saved configuration
+        owner_id: ID of the plot/container owning this shaper (for key uniqueness)
+    """
     config = {}
+    
+    # Prefix for all widget keys to ensure uniqueness across plots
+    key_prefix = f"p{owner_id}_" if owner_id is not None else ""
     
     # Handle None existing_config
     if existing_config is None:
@@ -38,7 +50,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
             "Columns to keep",
             options=data.columns.tolist(),
             default=default_cols,
-            key=f"colsel_{shaper_id}"
+            key=f"{key_prefix}colsel_{shaper_id}"
         )
         config = {
             'type': 'columnSelector',
@@ -55,7 +67,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
                 "Normalizer variables (will be summed)",
                 options=numeric_cols,
                 default=[c for c in existing_config.get('normalizerVars', []) if c in numeric_cols],
-                key=f"normalizer_vars_{shaper_id}",
+                key=f"{key_prefix}normalizer_vars_{shaper_id}",
                 help="These columns will be summed to create the baseline normalizer value"
             )
             
@@ -63,7 +75,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
                 "Variables to normalize",
                 options=numeric_cols,
                 default=[c for c in existing_config.get('normalizeVars', []) if c in numeric_cols],
-                key=f"norm_vars_{shaper_id}",
+                key=f"{key_prefix}norm_vars_{shaper_id}",
                 help="These columns will be divided by the sum of normalizer variables"
             )
             
@@ -73,7 +85,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
                 "Normalizer column (baseline identifier)",
                 options=categorical_cols,
                 index=norm_col_index,
-                key=f"norm_col_{shaper_id}",
+                key=f"{key_prefix}norm_col_{shaper_id}",
                 help="The categorical column that identifies the baseline configuration"
             )
         
@@ -87,21 +99,21 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
                     "Baseline value",
                     options=unique_vals,
                     index=norm_val_index,
-                    key=f"norm_val_{shaper_id}"
+                    key=f"{key_prefix}norm_val_{shaper_id}"
                 )
             
             group_by = st.multiselect(
                 "Group by",
                 options=categorical_cols,
                 default=[c for c in existing_config.get('groupBy', []) if c in categorical_cols],
-                key=f"norm_group_{shaper_id}"
+                key=f"{key_prefix}norm_group_{shaper_id}"
             )
             
             # Checkbox for auto-normalizing SD columns
             normalize_sd = st.checkbox(
                 "Automatically normalize standard deviation columns",
                 value=existing_config.get('normalizeSd', True),
-                key=f"norm_sd_{shaper_id}",
+                key=f"{key_prefix}norm_sd_{shaper_id}",
                 help="If enabled, .sd columns will be automatically normalized using the sum of their base normalizer columns"
             )
         
@@ -129,7 +141,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
                 "Mean type",
                 options=mean_algos,
                 index=mean_algo_index,
-                key=f"mean_algo_{shaper_id}"
+                key=f"{key_prefix}mean_algo_{shaper_id}"
             )
         
         with col2:
@@ -137,7 +149,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
                 "Variables",
                 options=numeric_cols,
                 default=[c for c in existing_config.get('meanVars', []) if c in numeric_cols],
-                key=f"mean_vars_{shaper_id}"
+                key=f"{key_prefix}mean_vars_{shaper_id}"
             )
         
         with col3:
@@ -153,7 +165,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
                 "Group by",
                 options=categorical_cols,
                 default=group_cols_default,
-                key=f"mean_group_{shaper_id}"
+                key=f"{key_prefix}mean_group_{shaper_id}"
             )
         
         if mean_vars and grouping_columns:
@@ -163,7 +175,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
                 "Replacing column",
                 options=categorical_cols,
                 index=replace_col_index,
-                key=f"mean_replace_{shaper_id}"
+                key=f"{key_prefix}mean_replace_{shaper_id}"
             )
             
             if replacing_column:
@@ -187,7 +199,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
             "Column to sort",
             options=categorical_cols,
             index=sort_col_index,
-            key=f"sort_col_{shaper_id}"
+            key=f"{key_prefix}sort_col_{shaper_id}"
         )
         
         if sort_column:
@@ -198,7 +210,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
             default_order = existing_config.get('order_dict', {}).get(sort_column, unique_values)
             
             # Initialize order in session state if not exists
-            order_key = f"sort_order_list_{shaper_id}"
+            order_key = f"{key_prefix}sort_order_list_{shaper_id}"
             if order_key not in st.session_state:
                 st.session_state[order_key] = default_order.copy()
             
@@ -212,18 +224,19 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
                     st.text(value)
                 with col2:
                     if i > 0:
-                        if st.button("↑", key=f"sort_up_{shaper_id}_{i}"):
+                        if st.button("↑", key=f"{key_prefix}sort_up_{shaper_id}_{i}"):
                             order_list[i], order_list[i-1] = order_list[i-1], order_list[i]
                             st.session_state[order_key] = order_list
                             st.rerun()
+                # Use a specific key for the button itself if needed, but it's enough with different shaper_id
                 with col3:
                     if i < len(order_list) - 1:
-                        if st.button("↓", key=f"sort_down_{shaper_id}_{i}"):
+                        if st.button("↓", key=f"{key_prefix}sort_down_{shaper_id}_{i}"):
                             order_list[i], order_list[i+1] = order_list[i+1], order_list[i]
                             st.session_state[order_key] = order_list
                             st.rerun()
                 with col4:
-                    if st.button("🗑️", key=f"sort_del_{shaper_id}_{i}"):
+                    if st.button("🗑️", key=f"{key_prefix}sort_del_{shaper_id}_{i}"):
                         order_list.pop(i)
                         st.session_state[order_key] = order_list
                         st.rerun()
@@ -232,13 +245,13 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
             missing = [v for v in unique_values if v not in order_list]
             if missing:
                 st.warning(f"Missing values (will appear at end): {', '.join(map(str, missing))}")
-                if st.button("Add all missing values", key=f"sort_add_missing_{shaper_id}"):
+                if st.button("Add all missing values", key=f"{key_prefix}sort_add_missing_{shaper_id}"):
                     order_list.extend(missing)
                     st.session_state[order_key] = order_list
                     st.rerun()
             
             # Preview button
-            if st.button("Preview Sort Result", key=f"sort_preview_{shaper_id}"):
+            if st.button("Preview Sort Result", key=f"{key_prefix}sort_preview_{shaper_id}"):
                 try:
                     preview_data = data.copy()
                     # Apply the sort shaper with correct params structure
@@ -270,7 +283,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
             "Column to filter",
             options=all_cols,
             index=filter_col_index,
-            key=f"filter_col_{shaper_id}"
+            key=f"{key_prefix}filter_col_{shaper_id}"
         )
         
         if filter_column:
@@ -291,7 +304,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
                     "Filter mode",
                     options=filter_modes,
                     index=filter_mode_index,
-                    key=f"filter_mode_{shaper_id}"
+                    key=f"{key_prefix}filter_mode_{shaper_id}"
                 )
                 
                 min_val = float(data[filter_column].min())
@@ -304,7 +317,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
                         min_value=min_val,
                         max_value=max_val,
                         value=(float(default_range[0]), float(default_range[1])),
-                        key=f"filter_range_{shaper_id}"
+                        key=f"{key_prefix}filter_range_{shaper_id}"
                     )
                     config = {
                         'type': 'conditionSelector',
@@ -317,7 +330,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
                     threshold = st.number_input(
                         "Greater than",
                         value=float(default_threshold),
-                        key=f"filter_gt_{shaper_id}"
+                        key=f"{key_prefix}filter_gt_{shaper_id}"
                     )
                     config = {
                         'type': 'conditionSelector',
@@ -330,7 +343,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
                     threshold = st.number_input(
                         "Less than",
                         value=float(default_threshold),
-                        key=f"filter_lt_{shaper_id}"
+                        key=f"{key_prefix}filter_lt_{shaper_id}"
                     )
                     config = {
                         'type': 'conditionSelector',
@@ -343,7 +356,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
                     value = st.number_input(
                         "Equals",
                         value=float(default_value),
-                        key=f"filter_eq_{shaper_id}"
+                        key=f"{key_prefix}filter_eq_{shaper_id}"
                     )
                     config = {
                         'type': 'conditionSelector',
@@ -363,7 +376,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
                     "Keep rows where value is:",
                     options=unique_values,
                     default=default_values,
-                    key=f"filter_values_{shaper_id}"
+                    key=f"{key_prefix}filter_values_{shaper_id}"
                 )
                 
                 if selected_values:
@@ -380,7 +393,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
                 "Select Variable to Transform",
                 options=sorted(data.columns.tolist()),
                 index=0 if data.columns.tolist() else None,
-                key=f"trans_col_{shaper_id}"
+                key=f"{key_prefix}trans_col_{shaper_id}"
             )
         
         with col2:
@@ -393,7 +406,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
                 "Convert to:",
                 options=["Factor (String/Categorical)", "Scalar (Numeric)"],
                 index=0 if existing_config.get('target_type') == 'factor' else 1,
-                key=f"trans_type_{shaper_id}"
+                key=f"{key_prefix}trans_type_{shaper_id}"
             )
             
             is_factor = "Factor" in target_type_str
@@ -403,11 +416,9 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
                 unique_vals = sorted([str(x) for x in data[target_col].unique()])
                 
                 # Check for existing order configuration
-                # Check for existing order configuration
                 default_order = existing_config.get('order')
                 
                 # If we have a default order, keep only the items that are still valid (present in unique_vals)
-                # But do NOT discard the whole list if it doesn't match exactly.
                 if default_order:
                     default_order = [v for v in default_order if v in unique_vals]
 
@@ -419,7 +430,7 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
                     "Define Factor Order (First = Min, Last = Max)",
                     options=unique_vals,
                     default=default_order,
-                    key=f"trans_order_{shaper_id}",
+                    key=f"{key_prefix}trans_order_{shaper_id}",
                     help="Define the order of categories. Drag and drop in the list to reorder."
                 )
             
@@ -429,6 +440,8 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config):
             'target_type': 'factor' if is_factor else 'scalar',
             'order': order_list
         }
+
+    return config
 
     return config
 

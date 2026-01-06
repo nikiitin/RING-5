@@ -106,7 +106,7 @@ def test_file_structure():
         'src/web/pages/portfolio.py',
         'src/web/pages/manage_plots.py',
         'src/data_management/dataManager.py',
-        'src/data_plotter/src/shaper/shaperFactory.py',
+        'src.processing.shapers.factory.py',
         'tests/test_basic.py',
         'tests/test_modularization.py'
     ]

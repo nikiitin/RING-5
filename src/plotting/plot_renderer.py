@@ -108,6 +108,14 @@ class PlotRenderer:
                             "drawrect",
                             "eraseshape",
                         ],
+                        # Configure client-side download button (camera icon) to SVG (vector)
+                        "toImageButtonOptions": {
+                            "format": "svg", 
+                            "filename": "custom_view",
+                            "height": None,
+                            "width": None,
+                            "scale": 1,
+                        },
                     },
                 )
 
@@ -142,11 +150,11 @@ class PlotRenderer:
                 try:
                     # improved high-fidelity export using kaleido if available
                     import kaleido  # noqa: F401
-                    import io      # <--- Added
+                    import io
                     
                     buf = io.BytesIO()
                     # scale=3 provides high resolution for publications
-                    fig.write_image(buf, format=download_format, engine="kaleido", scale=3)
+                    fig.write_image(buf, format=download_format, scale=3)
                     buf.seek(0)
                     
                     mime = "application/pdf" if download_format == "pdf" else "image/png"

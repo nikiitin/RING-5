@@ -30,6 +30,10 @@ class BasePlot(ABC):
         self.pipeline_counter = 0
         self.legend_mappings_by_column: Dict[str, Dict[str, str]] = {}
         self.legend_mappings: Dict[str, str] = {}
+        
+        # Initialize Style Manager
+        from .style_manager import StyleManager
+        self.style_manager = StyleManager(self.plot_id, self.plot_type)
 
     @abstractmethod
     def render_config_ui(self, data: pd.DataFrame, saved_config: Dict[str, Any]) -> Dict[str, Any]:
@@ -92,81 +96,9 @@ class BasePlot(ABC):
     def apply_common_layout(self, fig: go.Figure, config: Dict[str, Any]) -> go.Figure:
         """
         Apply common layout settings.
-
-        Args:
-            fig: Plotly figure
-            config: Configuration dictionary
-
-        Returns:
-            Updated figure
+        Delegates to StyleManager.
         """
-        # Basic layout
-        layout_args = {
-            "width": config.get("width", 800),
-            "height": config.get("height", 500),
-            "hovermode": "closest",
-            "margin": dict(b=config.get("margin_b", 100)),
-            "legend": dict(
-                orientation=config.get("legend_orientation", "v"),
-                x=config.get("legend_x", 1.02),
-                y=config.get("legend_y", 1.0),
-            ),
-        }
-
-        # Bar settings
-        if "bar" in self.plot_type:
-            layout_args["bargap"] = config.get("bargap", 0.2)
-            if "grouped" in self.plot_type:
-                layout_args["bargroupgap"] = config.get("bargroupgap", 0.0)
-
-        # Axis settings
-        xaxis_settings = {
-            "tickangle": config.get("xaxis_tickangle", -45),
-            "tickfont": dict(size=config.get("xaxis_tickfont_size", 12)),
-            "automargin": config.get("automargin", True),
-        }
-
-        # Apply X-axis ordering
-        if config.get("xaxis_order"):
-            xaxis_settings["categoryorder"] = "array"
-            xaxis_settings["categoryarray"] = config["xaxis_order"]
-
-        # Apply Y-axis stepping
-        yaxis_settings = {}
-        if config.get("yaxis_dtick"):
-            yaxis_settings["dtick"] = config["yaxis_dtick"]
-
-        # Update layout
-        fig.update_layout(**layout_args)
-        fig.update_xaxes(**xaxis_settings)
-        fig.update_yaxes(**yaxis_settings)
-
-        # Apply Shapes
-        if config.get("shapes"):
-            fig.update_layout(shapes=config["shapes"])
-
-        # Apply Legend/Group Order (Reorder traces)
-        trace_order = config.get("legend_order") or config.get("group_order")
-        if trace_order:
-            # Create a map of name to index
-            order_map = {str(name): i for i, name in enumerate(trace_order)}
-            # Sort traces based on map, putting unknown ones at the end
-            fig.data = tuple(
-                sorted(fig.data, key=lambda t: order_map.get(str(getattr(t, "name", "")), 9999))
-            )
-
-        # Update traces for border if needed
-        if config.get("bar_border_width", 0) > 0:
-            fig.update_traces(
-                marker=dict(line=dict(width=config["bar_border_width"], color="white"))
-            )
-
-        fig.update_traces(hovertemplate="<b>%{x}</b><br>%{y:.4f}<extra></extra>")
-
-        if config.get("legend_title"):
-            fig.update_layout(legend_title_text=config["legend_title"])
-
-        return fig
+        return self.style_manager.apply_styles(fig, config)
 
     def to_dict(self) -> Dict[str, Any]:
         """
@@ -275,6 +207,15 @@ class BasePlot(ABC):
             # Y-label
             default_ylabel = saved_config.get("ylabel", y_column)
             ylabel = st.text_input("Y-label", value=default_ylabel, key=f"ylabel_{self.plot_id}")
+            
+            # Legend Title
+            default_legend_title = saved_config.get("legend_title", "")
+            legend_title = st.text_input(
+                "Legend Title", 
+                value=default_legend_title, 
+                key=f"legend_title_{self.plot_id}",
+                help="Custom title for the legend. If empty, the grouping variable name will be used."
+            )
 
         return {
             "x": x_column,
@@ -282,45 +223,20 @@ class BasePlot(ABC):
             "title": title,
             "xlabel": xlabel,
             "ylabel": ylabel,
+            "legend_title": legend_title,
             "numeric_cols": numeric_cols,
             "categorical_cols": categorical_cols,
         }
 
     def render_display_options(self, saved_config: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Render basic display options (size).
+        """Render sizing and layout options via StyleManager."""
+        return self.style_manager.render_layout_options(saved_config)
 
-        Args:
-            saved_config: Previously saved configuration
-
-        Returns:
-            Configuration dictionary with display options
-        """
-        st.markdown("**Plot Size**")
-        col1, col2 = st.columns(2)
-
-        with col1:
-            width = st.slider(
-                "Width (px)",
-                min_value=400,
-                max_value=1600,
-                value=saved_config.get("width", 800),
-                step=50,
-                key=f"width_{self.plot_id}",
-            )
-
-        with col2:
-            height = st.slider(
-                "Height (px)",
-                min_value=300,
-                max_value=1200,
-                value=saved_config.get("height", 500),
-                step=50,
-                key=f"height_{self.plot_id}",
-            )
-
-        return {"width": width, "height": height}
-
+    def render_theme_options(self, saved_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Render theme options via StyleManager."""
+        # Note: StyleManager.render_theme_options also accepts 'data' for per-series styling
+        # We pass self.processed_data if available.
+        return self.style_manager.render_theme_options(saved_config, self.processed_data)
     def render_advanced_options(
         self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame] = None
     ) -> Dict[str, Any]:
@@ -339,12 +255,6 @@ class BasePlot(ABC):
         col1, col2 = st.columns(2)
 
         with col1:
-            legend_title = st.text_input(
-                "Legend Title",
-                value=saved_config.get("legend_title", ""),
-                key=f"legend_title_{self.plot_id}",
-            )
-
             show_error_bars = st.checkbox(
                 "Show Error Bars (if .sd columns exist)",
                 value=saved_config.get("show_error_bars", False),
@@ -394,21 +304,9 @@ class BasePlot(ABC):
             )
 
         with col4:
-            automargin = st.checkbox(
-                "Auto Margins",
-                value=saved_config.get("automargin", True),
-                key=f"automargin_{self.plot_id}",
-                help="Automatically adjust margins to fit labels",
-            )
-
-            bottom_margin = st.number_input(
-                "Bottom Margin (px)",
-                min_value=0,
-                max_value=500,
-                value=saved_config.get("margin_b", 100),
-                key=f"margin_b_{self.plot_id}",
-                help="Increase this if labels are cut off",
-            )
+            st.empty() # Placeholder if needed, or just remove col4 usage if empty.
+            # Actually, let's keep it clean.
+            pass
 
         # Ordering Options
         xaxis_order = None
@@ -599,28 +497,52 @@ class BasePlot(ABC):
 
         # List existing shapes
         if shapes:
-            st.markdown("Existing Shapes:")
+            st.markdown("**Existing Shapes (Edit to Resize):**")
+            
+            # Use columns for headers
+            h1, h2, h3, h4, h5, h6 = st.columns([1, 1, 1, 1, 1, 0.5])
+            with h1: st.caption("x0")
+            with h2: st.caption("y0")
+            with h3: st.caption("x1")
+            with h4: st.caption("y1")
+            with h5: st.caption("Type")
+            
             for i, shape in enumerate(shapes):
-                col_s1, col_s2 = st.columns([4, 1])
-                with col_s1:
-                    st.text(
-                        f"{shape['type']}: ({shape['x0']},{shape['y0']}) -> "
-                        f"({shape['x1']},{shape['y1']})"
-                    )
-                with col_s2:
+                c1, c2, c3, c4, c5, c6 = st.columns([1, 1, 1, 1, 1, 0.5])
+                
+                def try_float(v):
+                    try:
+                        return float(v)
+                    except (ValueError, TypeError):
+                        return v
+
+                with c1:
+                    new_x0 = st.text_input("x0", value=str(shape['x0']), key=f"edit_x0_{i}_{self.plot_id}", label_visibility="collapsed")
+                with c2:
+                    new_y0 = st.text_input("y0", value=str(shape['y0']), key=f"edit_y0_{i}_{self.plot_id}", label_visibility="collapsed")
+                with c3:
+                    new_x1 = st.text_input("x1", value=str(shape['x1']), key=f"edit_x1_{i}_{self.plot_id}", label_visibility="collapsed")
+                with c4:
+                    new_y1 = st.text_input("y1", value=str(shape['y1']), key=f"edit_y1_{i}_{self.plot_id}", label_visibility="collapsed")
+                with c5:
+                    st.text(shape['type'])
+                with c6:
                     if st.button("🗑️", key=f"del_shape_{i}_{self.plot_id}"):
                         shapes.pop(i)
                         st.rerun()
+                
+                # Update shape if values changed
+                shape['x0'] = try_float(new_x0)
+                shape['y0'] = try_float(new_y0)
+                shape['x1'] = try_float(new_x1)
+                shape['y1'] = try_float(new_y1)
 
         return {
-            "legend_title": legend_title,
             "show_error_bars": show_error_bars,
             "download_format": download_format,
             "xaxis_tickangle": xaxis_tickangle,
             "xaxis_tickfont_size": xaxis_tickfont_size,
             "yaxis_dtick": yaxis_dtick if yaxis_dtick > 0 else None,
-            "automargin": automargin,
-            "margin_b": bottom_margin,
             "bargap": bargap,
             "bargroupgap": bargroupgap,
             "bar_border_width": bar_border_width if "stacked" in self.plot_type else 0.0,
@@ -634,6 +556,8 @@ class BasePlot(ABC):
             "legend_labels": saved_config.get("legend_labels"),
             "shapes": shapes,
         }
+
+
 
     def render_reorderable_list(
         self, label: str, items: List[Any], key_prefix: str, legend_labels: Optional[Dict[str, str]] = None

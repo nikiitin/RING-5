@@ -21,7 +21,7 @@ class ConfigValidator:
         """
         if schema_path is None:
             schema_path = os.path.join(
-                os.path.dirname(__file__), "..", "..", "schemas", "config_schema.json"
+                os.path.dirname(__file__), "..", "..", "schemas", "pipeline_schema.json"
             )
 
         with open(schema_path, "r") as f:

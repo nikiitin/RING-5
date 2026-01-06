@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.data_management.dataManager import DataManager
+from src.processing.managers.base_manager import DataManager
 
 
 @pytest.fixture(autouse=True)

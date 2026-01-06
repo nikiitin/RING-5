@@ -1,6 +1,6 @@
 *.jpg
 *.csv
-*.pdf
+#*.pdf
 *.txt
 *.tar
 *.pyc
@@ -13,3 +13,5 @@ python_venv/
 *.egg-info
 .ruff_cache
 build/
+.coverage
+config_files

@@ -1,5 +1,5 @@
 """
-PlotManager orchestrates plot generation with multiprocessing support.
+PlotManager orchestrates plot generation.
 """
 
 from pathlib import Path
@@ -7,17 +7,13 @@ from typing import Any, Dict, List
 
 import pandas as pd
 
-from src.data_plotter.multiprocessing.plotWorkPool import PlotWorkPool
 from src.plotting.factory.plot_factory import PlotFactory
 from src.plotting.renderer.plot_renderer import PlotRenderer
-from src.plotting.work.plot_work_impl import PlotWorkImpl
 
 
 class PlotManager:
     """
     Manages plot generation from configurations.
-
-    Supports both sequential and parallel (multithreaded) plot generation.
     Follows Facade Pattern: provides simple interface to complex subsystem.
     """
 
@@ -40,14 +36,15 @@ class PlotManager:
             raise FileNotFoundError(f"Data file not found: {self.data_path}")
 
     def generate_plots(
-        self, plot_configs: List[Dict[str, Any]], use_multiprocessing: bool = True
+        self, plot_configs: List[Dict[str, Any]], use_multiprocessing: bool = False
     ) -> None:
         """
-        Generate all plots from configurations.
+        Generate all plots from configurations sequentially.
+        Note: use_multiprocessing is ignored as plots are now generated in-app.
 
         Args:
             plot_configs: List of plot configuration dictionaries
-            use_multiprocessing: Whether to use multiprocessing for parallel generation
+            use_multiprocessing: Ignored (legacy parameter)
         """
         if not plot_configs:
             print("No plots to generate")
@@ -56,10 +53,33 @@ class PlotManager:
         # Ensure all output paths are absolute and in output_dir
         normalized_configs = self._normalize_configs(plot_configs)
 
-        if use_multiprocessing and len(normalized_configs) > 1:
-            self._generate_parallel(normalized_configs)
-        else:
-            self._generate_sequential(normalized_configs)
+        print(f"Generating {len(normalized_configs)} plot(s) sequentially...")
+
+        # Load data once
+        try:
+            data = pd.read_csv(self.data_path)
+        except Exception:
+            data = pd.read_csv(self.data_path, sep=r"\s+")
+
+        renderer = PlotRenderer()
+
+        for i, config in enumerate(normalized_configs, 1):
+            try:
+                print(
+                    f"  [{i}/{len(normalized_configs)}] Generating {config.get('type', 'unknown')} "
+                    "plot..."
+                )
+
+                # Create plot
+                plot = PlotFactory.create_plot(data.copy(), config)
+
+                # Render
+                renderer.render(plot)
+
+            except Exception as e:
+                print(f"  ✗ Error generating plot {i}: {e}")
+                import traceback
+                traceback.print_exc()
 
         print(f"\n✓ All plots generated in: {self.output_dir}")
 
@@ -104,60 +124,3 @@ class PlotManager:
             normalized.append(normalized_config)
 
         return normalized
-
-    def _generate_sequential(self, plot_configs: List[Dict[str, Any]]) -> None:
-        """
-        Generate plots sequentially (single-threaded).
-
-        Args:
-            plot_configs: Normalized plot configurations
-        """
-        print(f"Generating {len(plot_configs)} plot(s) sequentially...")
-
-        # Load data once
-        try:
-            data = pd.read_csv(self.data_path)
-        except Exception:
-            data = pd.read_csv(self.data_path, sep=r"\s+")
-
-        renderer = PlotRenderer()
-
-        for i, config in enumerate(plot_configs, 1):
-            try:
-                print(
-                    f"  [{i}/{len(plot_configs)}] Generating {config.get('type', 'unknown')} "
-                    "plot..."
-                )
-
-                # Create plot
-                plot = PlotFactory.create_plot(data.copy(), config)
-
-                # Render
-                renderer.render(plot)
-
-            except Exception as e:
-                print(f"  ✗ Error generating plot {i}: {e}")
-                import traceback
-
-                traceback.print_exc()
-
-    def _generate_parallel(self, plot_configs: List[Dict[str, Any]]) -> None:
-        """
-        Generate plots in parallel using multiprocessing pool.
-
-        Args:
-            plot_configs: Normalized plot configurations
-        """
-        print(f"Generating {len(plot_configs)} plot(s) in parallel...")
-
-        # Get pool instance
-        pool = PlotWorkPool.getInstance()
-        pool.startPool()
-
-        # Add all plots as work items
-        for config in plot_configs:
-            work = PlotWorkImpl(str(self.data_path), config)
-            pool.addWork(work)
-
-        # Signal completion and wait for all workers to finish
-        pool.setFinishJob()
