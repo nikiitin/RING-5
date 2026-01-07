@@ -5,13 +5,10 @@
 A modernized, simplified data analyzer specifically tailored for gem5 simulator output.
 
 ## Features
-
-- Pure Python: No R dependencies - everything runs in Python
 - Interactive Web UI: Modern Streamlit dashboard for zero-code analysis
   - Integrated Parser: Parse gem5 stats.txt directly in the UI
   - Compression Support: 10-100x faster parsing for remote filesystems
 - Simplified Configuration: JSON schema-based configuration with validation
-- Template System: Easy configuration file generation with built-in templates
 - Modern Plotting: Uses matplotlib, seaborn, and plotly for all visualizations
 - Multithreaded: Parallel plot generation for faster analysis
 - Extensible: Easy to add new data managers, shapers, and plot types
