@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use Exporter 'import';
 our $VERSION = '1.00';
-our @EXPORT  = qw(parseAndPrintLineWithFormat setFilterRegexes);
+our @EXPORT  = qw(parseAndPrintLineWithFormat setFilterRegexes classifyLine);
 
 # Simple components regexes
 my $floatRegex = qr/\d+\.\d+/;
@@ -49,7 +49,9 @@ my $histogramRegex = qr/^$varNameRegex$histogramEntryRangeRegex\s+$complexValueR
 # | name::summVar  value  # Comment |
 my $summaryRegex = qr/^$varNameRegex$summariesEntryRegex\s+$scalarValueRegex\s+$commentRegex?$/;
 # | name::vectorEntryName  value  perc  cumm.percent  # Comment
-my $vectorRegex = qr/^$varNameRegex$vectorEntryRegex\s+$complexValueRegex\s+$commentRegex?$/;
+# OR
+# | name::vectorEntryName  value  # Comment
+my $vectorRegex = qr/^$varNameRegex$vectorEntryRegex\s+(?:$complexValueRegex|$scalarValueRegex)\s+$commentRegex?$/;
 
 my $filtersRegexes;
 
@@ -158,6 +160,51 @@ sub parseAndPrintLineWithFormat {
         # DO NOT PRINT IT!
         # print "Unknown data type: $line\n";
     }
+}
+
+sub classifyLine {
+    my ($line) = @_;
+    
+    # Check types in order with explicit captures
+    
+    # Configuration: name=value
+    if ($line =~ /^($varNameRegex)=$confValueRegex$/) {
+        return { type => 'Configuration', name => $1, entry => undef };
+    } 
+    # Scalar: name value # comment
+    elsif ($line =~ /^($varNameRegex)\s+$scalarValueRegex\s+$commentRegex?$/) {
+        return { type => 'Scalar', name => $1, entry => undef };
+    } 
+    # Histogram: name::range ...
+    elsif ($line =~ /^($varNameRegex)($histogramEntryRangeRegex)\s+$complexValueRegex\s+$commentRegex?$/) {
+        my $name = $1;
+        my $entry = $2;
+        $entry =~ s/^:://; 
+        return { type => 'Distribution', name => $name, entry => $entry }; 
+    } 
+    # Distribution: name::val ...
+    elsif ($line =~ /^($varNameRegex)($distEntry)\s+$complexValueRegex\s+$commentRegex?$/) {
+        my $name = $1;
+        my $entry = $2;
+        $entry =~ s/^:://;
+        return { type => 'Distribution', name => $name, entry => $entry };
+    } 
+    # Summary: name::total ...
+    elsif ($line =~ /^($varNameRegex)($summariesEntryRegex)\s+$scalarValueRegex\s+$commentRegex?$/) {
+        my $name = $1;
+        my $entry = $2;
+        $entry =~ s/^:://;
+        return { type => 'Summary', name => $name, entry => $entry };
+    } 
+    # Vector: name::entry ...
+    elsif ($line =~ /^($varNameRegex)($vectorEntryRegex)\s+(?:$complexValueRegex|$scalarValueRegex)\s+$commentRegex?$/) {
+        my $name = $1;
+        my $entry = $2;
+        $entry =~ s/^:://;
+        return { type => 'Vector', name => $name, entry => $entry };
+    }
+    
+    return undef;
 }
 
 1; # A module must end with a true value or "use" will report an error

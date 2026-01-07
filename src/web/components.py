@@ -210,7 +210,7 @@ class UIComponents:
                 if var_type == "vector":
                     st.markdown(f"**Vector Configuration for `{var_name}`:**")
                     st.info(
-                        "ℹ️ Vectors require entries to be specified. "
+                        "Vectors require entries to be specified. "
                         "You can manually search for entries, or use the **Deep Scan** feature below "
                         "to automatically find them in your stats files."
                     )
@@ -312,9 +312,9 @@ class UIComponents:
                         if selected_entries:
                             var_config["vectorEntries"] = selected_entries
                             var_config["useSpecialMembers"] = False
-                            st.success(f"✓ Will extract {len(selected_entries)} entries")
+                            st.success(f"Will extract {len(selected_entries)} entries")
                         else:
-                            st.warning("⚠️ Please select at least one entry")
+                            st.warning("Please select at least one entry")
 
                     elif entry_mode == "Manual Entry Names":
                         # Manual vector entries input
@@ -339,11 +339,11 @@ class UIComponents:
                             var_config["vectorEntries"] = entries
                             var_config["useSpecialMembers"] = False
                             st.success(
-                                f"✓ Will extract {len(entries)} entries: "
+                                f"Will extract {len(entries)} entries: "
                                 f"{', '.join(entries[:3])}{'...' if len(entries) > 3 else ''}"
                             )
                         else:
-                            st.warning("⚠️ Please enter at least one vector entry name")
+                            st.warning("Please enter at least one vector entry name")
 
                     else:  # Vector Statistics mode
                         st.markdown("**Select statistics to extract from the vector:**")
@@ -395,9 +395,9 @@ class UIComponents:
                         if special_members:
                             var_config["vectorEntries"] = special_members
                             var_config["useSpecialMembers"] = True
-                            st.success(f"✓ Will extract statistics: {', '.join(special_members)}")
+                            st.success(f"Will extract statistics: {', '.join(special_members)}")
                         else:
-                            st.warning("⚠️ Please select at least one statistic to extract")
+                            st.warning("Please select at least one statistic to extract")
 
                 elif var_type == "distribution":
                     st.markdown(f"**Distribution Configuration for `{var_name}`:**")

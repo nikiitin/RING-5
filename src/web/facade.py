@@ -461,7 +461,7 @@ class BackendFacade:
             if str(Path(__file__).parent.parent.parent) not in sys.path:
                 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-            from src.parsing.stats_scanner import StatsScanner
+            # from src.parsing.stats_scanner import StatsScanner -> Removed in favor of Perl script
 
             # Find first matching file
             search_path = Path(stats_path)
@@ -476,23 +476,41 @@ class BackendFacade:
             merged_vars = {}
 
             # Limit files for speed
+            # Limit files for speed
             files_to_scan = files[:limit]
-
+            
+            # Use Perl Scanner
+            import subprocess
+            import json
+            
+            script_path = self.ring5_data_dir.parent / "src/parsing/impl/data_parser_perl/src/parser_impl/statsScanner.pl"
+            
             for file_path in files_to_scan:
-                file_vars = StatsScanner.scan_file(str(file_path))
-                for var in file_vars:
-                    name = var["name"]
-                    if name not in merged_vars:
-                        merged_vars[name] = var
-                    else:
-                        # Merge entries if vector
-                        if var["type"] == "vector" and "entries" in var:
-                            existing_entries = set(merged_vars[name].get("entries", []))
-                            new_entries = set(var["entries"])
-                            if not new_entries.issubset(existing_entries):
-                                merged_vars[name]["entries"] = sorted(
-                                    list(existing_entries.union(new_entries))
-                                )
+                try:
+                    # Collect potentially relevant config keys for detection hints
+                    # Optimistically pass names that might be config keys
+                    # Just pass empty string for now as the perl script handles config types via regex too
+                    cmd = ["perl", str(script_path), str(file_path)]
+                    
+                    result = subprocess.check_output(cmd, stderr=subprocess.DEVNULL)
+                    file_vars = json.loads(result)
+                    
+                    for var in file_vars:
+                         name = var["name"]
+                         if name not in merged_vars:
+                             merged_vars[name] = var
+                         else:
+                             # Merge entries if vector
+                             if var["type"] == "vector" and "entries" in var:
+                                 existing_entries = set(merged_vars[name].get("entries", []))
+                                 new_entries = set(var["entries"])
+                                 if not new_entries.issubset(existing_entries):
+                                     merged_vars[name]["entries"] = sorted(
+                                         list(existing_entries.union(new_entries))
+                                     )
+                except Exception as e:
+                    print(f"Error scanning file {file_path} with Perl script: {e}")
+                    continue
 
             return list(merged_vars.values())
         except Exception as e:
@@ -604,27 +622,33 @@ class BackendFacade:
             # scanning is reasonably fast per file, the overhead is opening many files.
             # To make it truly fast, we should use grep if available, but let's stick to python for
             # portability.
-            # Only scan first 100 files for now to be safe
-            # Regex pattern: vector_name::entry_name value
-            # e.g. system.cpu.op_class::IntAlu  1234
-            # We want to capture 'IntAlu'
-            # Escape the vector name because it contains dots
-            escaped_name = re.escape(vector_name)
-            pattern = re.compile(rf"{escaped_name}::(?P<entry>[^\s]+)\s+")
+            # Limit files for speed
+            files_to_scan = files[:100]
             
-            for file_path in files[:100]:
+            # Use Perl Scanner
+            import subprocess
+            import json
+            
+            script_path = self.ring5_data_dir.parent / "src/parsing/impl/data_parser_perl/src/parser_impl/statsScanner.pl"
+            
+            for file_path in files_to_scan:
                 try:
+                    # Optimization: Check if file contains vector name with grep/python first? 
+                    # Actually standard Python check is fast enough
                     with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-                        for line in f:
-                            # Optimization: only check lines containing the vector name
-                            if vector_name in line:
-                                match = pattern.search(line)
-                                if match:
-                                    entry = match.group("entry")
-                                    # Sometimes entry might contain extra colons if nested, but typically not for these stats
-                                    all_entries.add(entry)
+                        if vector_name not in f.read():
+                             continue
+                            
+                    cmd = ["perl", str(script_path), str(file_path)]
+                    result = subprocess.check_output(cmd, stderr=subprocess.DEVNULL)
+                    file_vars = json.loads(result)
+                    
+                    for var in file_vars:
+                        if var["name"] == vector_name and "entries" in var:
+                            all_entries.update(var["entries"])
+                            
                 except Exception:
-                    continue # Skip file errors
+                    continue 
                 
             return sorted(list(all_entries))
         except Exception:
