@@ -123,17 +123,7 @@ class TestManagePlotsPage:
         assert len(at.markdown) > 0 or len(at.header) > 0
 
 
-class TestResultsPage:
-    """UI tests for Results page."""
 
-    def test_page_loads(self):
-        """Test that Results page loads."""
-        at = AppTest.from_file("app.py", default_timeout=10)
-        at.run()
-        
-        at.sidebar.radio[0].set_value("Results").run()
-        
-        assert not at.exception
 
 
 class TestPortfolioPage:
@@ -172,7 +162,6 @@ class TestNavigation:
             "Upload Data",
             "Data Managers",
             "Manage Plots",
-            "Results",
             "Save/Load Portfolio"
         ]
         

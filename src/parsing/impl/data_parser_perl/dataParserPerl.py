@@ -17,6 +17,7 @@ from src.parsing.impl.data_parser_perl.src.type_mapping.typeMapper import \
 class DataParserPerl(DataParserInterface):
     def __init__(self, params: DataParserParams) -> None:
         super().__init__(params)
+        self._results = []
 
     def _mapParsingVars(self, parsingVars: list) -> dict:
         varsToParse = dict()
