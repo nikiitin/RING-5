@@ -1,0 +1,49 @@
+"""Manage plots page using modern plot class hierarchy."""
+
+import sys
+from pathlib import Path
+import streamlit as st
+
+# Add parent directory to path
+root_dir = Path(__file__).parent.parent.parent.parent
+if str(root_dir) not in sys.path:
+    sys.path.insert(0, str(root_dir))
+
+from src.web.state_manager import StateManager
+from src.web.services.plot_service import PlotService
+from src.web.services.portfolio_service import PortfolioService
+from src.web.ui.components.plot_manager_components import PlotManagerComponents
+
+def show_manage_plots_page():
+    """Main interface for managing multiple plots with pipelines."""
+    st.markdown("## Manage Plots")
+    st.markdown("Create and configure multiple plots with independent data processing pipelines.")
+
+    # Initialize State
+    StateManager.initialize()
+
+
+
+    # 1. Create Plot Section
+    PlotManagerComponents.render_create_plot_section()
+
+    # 2. Plot Selector
+    current_plot = PlotManagerComponents.render_plot_selector()
+
+    if current_plot:
+        # 3. Plot Controls (Rename, Delete, Duplicate, Pipe I/O)
+        PlotManagerComponents.render_plot_controls(current_plot)
+
+        st.markdown("---")
+        
+        # 4. Pipeline Editor
+        PlotManagerComponents.render_pipeline_editor(current_plot)
+        
+        # 5. Plot Visualization & Config
+        PlotManagerComponents.render_plot_display(current_plot)
+
+    # 6. Workspace Management
+    PlotManagerComponents.render_workspace_management(PortfolioService)
+
+if __name__ == "__main__":
+    show_manage_plots_page()
