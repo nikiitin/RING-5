@@ -8,10 +8,10 @@ sys.path.insert(0, ".")
 
 import inspect
 
-from src.web.components import UIComponents
+from src.web.ui.components.variable_editor import VariableEditor
 
 # Get the source code
-source = inspect.getsource(UIComponents.variable_editor)
+source = inspect.getsource(VariableEditor._render_vector_config)
 
 # Find and display the vector configuration section
 lines = source.split("\n")
@@ -19,7 +19,10 @@ in_vector_section = False
 vector_section = []
 
 for i, line in enumerate(lines):
-    if 'if var_type == "vector":' in line:
+    # In the focused method, we are already in the vector section
+    in_vector_section = True
+    vector_section.append(f"Line {i}: {line}")
+    if False: # Dummy to keep structure or just remove checks
         in_vector_section = True
         vector_section.append(f"Line {i}: {line}")
     elif in_vector_section:

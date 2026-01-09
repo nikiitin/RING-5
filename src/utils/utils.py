@@ -2,31 +2,7 @@ import enum
 import os
 import tempfile
 
-
 # Description: Utility functions for the project
-def getPathToRingRoot():
-    pass
-
-
-def jsonToArg(jsonElement, key):
-    """
-    Convert a JSON element to a command line argument list.
-    """
-    commandLineArgs = []
-    arg = getElementValue(jsonElement, key)
-    if isinstance(arg, list):
-        commandLineArgs.append(str(len(arg)))
-        commandLineArgs.extend(arg)
-    else:
-        commandLineArgs.append(str(arg))
-    return commandLineArgs
-
-
-def jsonToOptionalArg(jsonElement, key):
-    if checkElementExistNoException(jsonElement, key):
-        return jsonToArg(jsonElement, key)
-    else:
-        return ["0"]
 
 
 def getElementValue(
@@ -118,13 +94,6 @@ def createTmpFile():
     # Close the file descriptor and return the path
     os.close(tmp[0])
     return tmp[1]
-
-
-def removeFile(filePath):
-    if checkFileExists(filePath):
-        os.remove(filePath)
-    else:
-        print("Cannot remove, file does not exist: " + filePath)
 
 
 def checkVarType(var, varType):

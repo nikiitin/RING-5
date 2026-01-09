@@ -31,9 +31,9 @@ def mock_facade():
 
 
 @pytest.fixture
-def mock_ui_components():
-    with patch("src.web.ui.components.data_source_components.UIComponents") as mock_ui:
-        yield mock_ui
+def mock_card_components():
+    with patch("src.web.ui.components.data_source_components.CardComponents") as mock_card:
+        yield mock_card
 
 
 @pytest.fixture
@@ -57,7 +57,7 @@ def test_render_csv_pool_empty(mock_streamlit, mock_facade, mock_state_manager):
 
 
 def test_render_csv_pool_with_files(
-    mock_streamlit, mock_facade, mock_ui_components, mock_state_manager
+    mock_streamlit, mock_facade, mock_card_components, mock_state_manager
 ):
     # Setup pool with file
     csv_info = {"name": "test.csv", "path": "/path/to/test.csv"}
@@ -66,7 +66,7 @@ def test_render_csv_pool_with_files(
     # Mock Path exists
     with patch("pathlib.Path.exists", return_value=True):
         # Mock file info card interactions: Load clicked=True
-        mock_ui_components.file_info_card.return_value = (True, False, False)
+        mock_card_components.file_info_card.return_value = (True, False, False)
 
         # Mock load data
         mock_data = MagicMock()
@@ -81,13 +81,13 @@ def test_render_csv_pool_with_files(
         mock_streamlit.success.assert_called()
 
 
-def test_render_csv_pool_delete(mock_streamlit, mock_facade, mock_ui_components):
+def test_render_csv_pool_delete(mock_streamlit, mock_facade, mock_card_components):
     csv_info = {"name": "del.csv", "path": "/del.csv"}
     mock_facade.load_csv_pool.return_value = [csv_info]
 
     with patch("pathlib.Path.exists", return_value=True):
         # Delete clicked
-        mock_ui_components.file_info_card.return_value = (False, False, True)
+        mock_card_components.file_info_card.return_value = (False, False, True)
         mock_facade.delete_from_csv_pool.return_value = True
 
         DataSourceComponents.render_csv_pool(mock_facade)

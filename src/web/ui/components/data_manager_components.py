@@ -1,7 +1,7 @@
 import pandas as pd
 import streamlit as st
 
-from src.web.components import UIComponents
+from src.web.ui.components.data_components import DataComponents
 
 
 class DataManagerComponents:
@@ -26,7 +26,7 @@ class DataManagerComponents:
         st.markdown("### Quick Preview (first 20 rows)")
         st.dataframe(data.head(20), width="stretch")
 
-        UIComponents.show_column_details(data)
+        DataComponents.show_column_details(data)
 
         # Additional statistics
         st.markdown("### Data Statistics")

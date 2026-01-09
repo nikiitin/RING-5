@@ -44,12 +44,12 @@ def mock_state_manager():
 
 
 @pytest.fixture
-def mock_ui_components():
-    with patch("src.web.ui.components.data_source_components.UIComponents") as mock_ui:
-        yield mock_ui
+def mock_card_components():
+    with patch("src.web.ui.components.data_source_components.CardComponents") as mock_card:
+        yield mock_card
 
 
-def test_render_csv_pool_load(mock_streamlit, mock_facade, mock_state_manager, mock_ui_components):
+def test_render_csv_pool_load(mock_streamlit, mock_facade, mock_state_manager, mock_card_components):
     """Test loading a CSV file from the pool."""
     mock_st, _ = mock_streamlit
     mock_sm, _ = mock_state_manager
@@ -60,7 +60,7 @@ def test_render_csv_pool_load(mock_streamlit, mock_facade, mock_state_manager, m
 
     # Mock UI Interactions
     # file_info_card returns (load_clicked, preview_clicked, delete_clicked)
-    mock_ui_components.file_info_card.return_value = (True, False, False)
+    mock_card_components.file_info_card.return_value = (True, False, False)
 
     # Mock Load
     df = pd.DataFrame({"col": [1, 2]})

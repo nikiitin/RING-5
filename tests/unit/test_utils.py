@@ -217,23 +217,7 @@ class TestTempFile:
             os.unlink(temp_path)
 
 
-class TestRemoveFile:
-    """Tests for removeFile function."""
 
-    def test_remove_existing_file(self):
-        """Test removing an existing file."""
-        with tempfile.NamedTemporaryFile(delete=False) as f:
-            temp_path = f.name
-
-        assert os.path.exists(temp_path)
-        utils.removeFile(temp_path)
-        assert not os.path.exists(temp_path)
-
-    def test_remove_nonexistent_file(self, capsys):
-        """Test removing a non-existent file prints message."""
-        utils.removeFile("/nonexistent/path/file.txt")
-        captured = capsys.readouterr()
-        assert "Cannot remove" in captured.out
 
 
 class TestVarTypeCheck:
@@ -264,41 +248,3 @@ class TestVarTypeCheck:
         """Test None value check."""
         with pytest.raises(Exception, match="not of type"):
             utils.checkVarType(None, str)
-
-
-class TestJsonToArg:
-    """Tests for jsonToArg function."""
-
-    def test_single_value(self):
-        """Test converting single value to args."""
-        data = {"key": "value"}
-        result = utils.jsonToArg(data, "key")
-        assert result == ["value"]
-
-    def test_numeric_value(self):
-        """Test converting numeric value to args."""
-        data = {"key": 42}
-        result = utils.jsonToArg(data, "key")
-        assert result == ["42"]
-
-    def test_list_value(self):
-        """Test converting list value to args."""
-        data = {"key": ["a", "b", "c"]}
-        result = utils.jsonToArg(data, "key")
-        assert result == ["3", "a", "b", "c"]  # Length prefix + items
-
-
-class TestJsonToOptionalArg:
-    """Tests for jsonToOptionalArg function."""
-
-    def test_existing_key(self):
-        """Test with existing key."""
-        data = {"key": "value"}
-        result = utils.jsonToOptionalArg(data, "key")
-        assert result == ["value"]
-
-    def test_missing_key(self):
-        """Test with missing key returns default."""
-        data = {"other": "value"}
-        result = utils.jsonToOptionalArg(data, "key")
-        assert result == ["0"]

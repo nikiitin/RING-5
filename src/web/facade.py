@@ -2,131 +2,63 @@
 RING-5 Backend Facade
 Simplified interface to all backend operations (Facade Pattern).
 Decouples the web interface from complex backend implementations.
+
+NOTE: CSV and Configuration management have been extracted to dedicated services.
+This facade now delegates to those services for backward compatibility.
 """
 
-import datetime
 import glob
 import json
 import re
-import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
+
+from src.web.services.config_service import ConfigService
+from src.web.services.csv_pool_service import CsvPoolService
+from src.web.services.paths import PathService
 
 
 class BackendFacade:
     """
     Facade providing simplified access to all backend operations.
     Hides complexity of data parsing, processing, and storage.
+
+    NOTE: For new code, prefer using the dedicated services directly:
+    - CsvPoolService for CSV file management
+    - ConfigService for configuration persistence
     """
 
     def __init__(self):
         """Initialize the facade with persistent storage paths."""
-        self.ring5_data_dir = Path(__file__).parent.parent.parent / ".ring5"
-        self.csv_pool_dir = self.ring5_data_dir / "csv_pool"
-        self.config_pool_dir = self.ring5_data_dir / "saved_configs"
+        self.ring5_data_dir = PathService.get_data_dir()
+        self.csv_pool_dir = CsvPoolService.get_pool_dir()
+        self.config_pool_dir = ConfigService.get_config_dir()
 
-        # Ensure directories exist
-        self.csv_pool_dir.mkdir(parents=True, exist_ok=True)
-        self.config_pool_dir.mkdir(parents=True, exist_ok=True)
-
-    # ==================== CSV Pool Management ====================
+    # ==================== CSV Pool Management (delegates to CsvPoolService) ====================
 
     def load_csv_pool(self) -> List[Dict[str, Any]]:
-        """
-        Load list of CSV files in the pool, checking if they still exist.
-
-        Returns:
-            List of dicts with 'path', 'name', 'size', 'modified' keys
-        """
-        pool = []
-        if self.csv_pool_dir.exists():
-            for csv_file in sorted(
-                self.csv_pool_dir.glob("*.csv"), key=lambda x: x.stat().st_mtime, reverse=True
-            ):
-                pool.append(
-                    {
-                        "path": str(csv_file),
-                        "name": csv_file.name,
-                        "size": csv_file.stat().st_size,
-                        "modified": csv_file.stat().st_mtime,
-                    }
-                )
-        return pool
+        """Load list of CSV files in the pool."""
+        return CsvPoolService.load_pool()
 
     def add_to_csv_pool(self, csv_path: str) -> str:
-        """
-        Add a CSV file to the pool with timestamp.
-
-        Args:
-            csv_path: Path to the CSV file to add
-
-        Returns:
-            Path to the file in the pool
-        """
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        pool_path = self.csv_pool_dir / f"parsed_{timestamp}.csv"
-        shutil.copy(csv_path, pool_path)
-        return str(pool_path)
+        """Add a CSV file to the pool with timestamp."""
+        return CsvPoolService.add_to_pool(csv_path)
 
     def delete_from_csv_pool(self, csv_path: str) -> bool:
-        """
-        Delete a CSV file from the pool.
-
-        Args:
-            csv_path: Path to the CSV file to delete
-
-        Returns:
-            True if deleted successfully
-        """
-        try:
-            Path(csv_path).unlink()
-            return True
-        except Exception:
-            return False
+        """Delete a CSV file from the pool."""
+        return CsvPoolService.delete_from_pool(csv_path)
 
     def load_csv_file(self, csv_path: str) -> pd.DataFrame:
-        """
-        Load a CSV file with automatic separator detection.
+        """Load a CSV file with automatic separator detection."""
+        return CsvPoolService.load_csv_file(csv_path)
 
-        Args:
-            csv_path: Path to the CSV file
-
-        Returns:
-            DataFrame with the CSV data
-        """
-        # Use pandas' automatic separator detection
-        return pd.read_csv(csv_path, sep=None, engine="python")
-
-    # ==================== Configuration Management ====================
+    # ==================== Configuration Management (delegates to ConfigService) ====================
 
     def load_saved_configs(self) -> List[Dict[str, Any]]:
-        """
-        Load list of saved configuration files.
-
-        Returns:
-            List of dicts with 'path', 'name', 'modified', 'description' keys
-        """
-        configs = []
-        if self.config_pool_dir.exists():
-            for config_file in sorted(
-                self.config_pool_dir.glob("*.json"), key=lambda x: x.stat().st_mtime, reverse=True
-            ):
-                try:
-                    with open(config_file, "r") as f:
-                        config_data = json.load(f)
-                    configs.append(
-                        {
-                            "path": str(config_file),
-                            "name": config_file.name,
-                            "modified": config_file.stat().st_mtime,
-                            "description": config_data.get("description", "No description"),
-                        }
-                    )
-                except (OSError, json.JSONDecodeError):
-                    pass
-        return configs
+        """Load list of saved configuration files."""
+        return ConfigService.load_saved_configs()
 
     def save_configuration(
         self,
@@ -135,63 +67,16 @@ class BackendFacade:
         shapers_config: List[Dict],
         csv_path: Optional[str] = None,
     ) -> str:
-        """
-        Save a configuration to the pool.
-
-        Args:
-            name: Configuration name
-            description: Configuration description
-            shapers_config: List of shaper configurations
-            csv_path: Optional path to associated CSV file
-
-        Returns:
-            Path to the saved configuration file
-        """
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        config_filename = f"{name}_{timestamp}.json"
-        config_path = self.config_pool_dir / config_filename
-
-        config_data = {
-            "name": name,
-            "description": description,
-            "timestamp": timestamp,
-            "shapers": shapers_config,
-            "csv_path": csv_path,
-        }
-
-        with open(config_path, "w") as f:
-            json.dump(config_data, f, indent=2)
-
-        return str(config_path)
+        """Save a configuration to the pool."""
+        return ConfigService.save_configuration(name, description, shapers_config, csv_path)
 
     def load_configuration(self, config_path: str) -> Dict[str, Any]:
-        """
-        Load a configuration from file.
-
-        Args:
-            config_path: Path to configuration file
-
-        Returns:
-            Configuration dictionary
-        """
-        with open(config_path, "r") as f:
-            return json.load(f)
+        """Load a configuration from file."""
+        return ConfigService.load_configuration(config_path)
 
     def delete_configuration(self, config_path: str) -> bool:
-        """
-        Delete a configuration file.
-
-        Args:
-            config_path: Path to configuration file
-
-        Returns:
-            True if deleted successfully
-        """
-        try:
-            Path(config_path).unlink()
-            return True
-        except Exception:
-            return False
+        """Delete a configuration file."""
+        return ConfigService.delete_configuration(config_path)
 
     # ==================== Data Parsing ====================
 

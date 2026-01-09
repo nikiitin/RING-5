@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from src.web.components import UIComponents
+from src.web.ui.components.data_components import DataComponents
 from src.web.state_manager import StateManager
 
 
@@ -22,8 +22,8 @@ class UploadComponents:
         st.success("Data loaded from parser!")
 
         data = StateManager.get_data()
-        UIComponents.show_data_preview(data)
-        UIComponents.show_column_details(data)
+        DataComponents.show_data_preview(data)
+        DataComponents.show_column_details(data)
 
         st.info("Proceed to **Configure Pipeline** to process your data")
 
@@ -55,8 +55,8 @@ class UploadComponents:
 
                 st.success(f"Successfully loaded {len(data)} rows × {len(data.columns)} columns!")
 
-                UIComponents.show_data_preview(data)
-                UIComponents.show_column_details(data)
+                DataComponents.show_data_preview(data)
+                DataComponents.show_column_details(data)
 
             except Exception as e:
                 st.error(f"Error loading file: {e}")

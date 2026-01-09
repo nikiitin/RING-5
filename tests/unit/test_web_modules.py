@@ -151,20 +151,23 @@ class TestBackendFacade:
 
     def test_load_csv_pool_empty(self):
         """Test loading empty CSV pool."""
-        from src.web.facade import BackendFacade
+        from unittest.mock import patch
 
-        # Create facade with test directory (override paths after creation)
-        facade = BackendFacade()
+        from src.web.facade import BackendFacade
 
         # Create a clean temp directory for testing
         temp_csv_pool = self.test_dir / "csv_pool"
         temp_csv_pool.mkdir(parents=True, exist_ok=True)
-        facade.csv_pool_dir = temp_csv_pool
 
-        pool = facade.load_csv_pool()
+        # Patch PathService to use temp directory
+        with patch("src.web.services.csv_pool_service.PathService.get_data_dir", return_value=self.test_dir):
+            facade = BackendFacade()
+            facade.csv_pool_dir = temp_csv_pool
 
-        assert isinstance(pool, list)
-        assert len(pool) == 0
+            pool = facade.load_csv_pool()
+
+            assert isinstance(pool, list)
+            assert len(pool) == 0
 
     def test_add_to_csv_pool(self):
         """Test adding CSV to pool."""
@@ -293,24 +296,19 @@ class TestBackendFacade:
 
 
 class TestUIComponents:
-    """Test the UIComponents class."""
+    """Test the UI Components."""
 
-    def test_show_data_preview(self):
-        """Test data preview display (simplified)."""
-        from src.web.components import UIComponents
+    def test_data_components_preview(self):
+        """Test DataComponents.show_data_preview exist."""
+        from src.web.ui.components.data_components import DataComponents
+        assert hasattr(DataComponents, "show_data_preview")
+        assert callable(DataComponents.show_data_preview)
 
-        # Just verify the method exists and is callable
-        # Full UI testing requires Streamlit context
-        assert hasattr(UIComponents, "show_data_preview")
-        assert callable(UIComponents.show_data_preview)
-
-    def test_variable_editor_returns_list(self):
-        """Test variable editor returns updated list."""
-        from src.web.components import UIComponents
-
-        # This test needs Streamlit context, so we'll just verify the function exists
-        assert hasattr(UIComponents, "variable_editor")
-        assert callable(UIComponents.variable_editor)
+    def test_variable_editor_exists(self):
+        """Test VariableEditor.render exists."""
+        from src.web.ui.components.variable_editor import VariableEditor
+        assert hasattr(VariableEditor, "render")
+        assert callable(VariableEditor.render)
 
 
 def run_tests():

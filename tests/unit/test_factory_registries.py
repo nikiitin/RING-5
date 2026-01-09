@@ -1,0 +1,83 @@
+"""Extended tests for ShaperFactory and DataParserFactory registries."""
+
+import pytest
+
+from src.web.services.shapers.factory import ShaperFactory
+
+
+class TestShaperFactoryRegistry:
+    """Tests for ShaperFactory registry functionality."""
+
+    def test_get_available_types(self):
+        """Test getting available shaper types."""
+        types = ShaperFactory.get_available_types()
+        assert isinstance(types, list)
+        assert "mean" in types
+        assert "columnSelector" in types
+        assert "normalize" in types
+        assert "sort" in types
+
+    def test_create_unknown_shaper_raises(self):
+        """Test creating unknown shaper type raises ValueError with helpful message."""
+        with pytest.raises(ValueError) as exc_info:
+            ShaperFactory.createShaper("nonexistent", {})
+
+        assert "nonexistent" in str(exc_info.value)
+        assert "Available" in str(exc_info.value)
+
+    def test_register_custom_shaper(self):
+        """Test registering a custom shaper type."""
+        from src.web.services.shapers.base_shaper import Shaper
+
+        class CustomShaper(Shaper):
+            def shape(self, df):
+                return df
+
+        # Register custom shaper
+        ShaperFactory.register("customTest", CustomShaper)
+
+        # Verify it's available
+        assert "customTest" in ShaperFactory.get_available_types()
+
+        # Create instance
+        shaper = ShaperFactory.createShaper("customTest", {})
+        assert isinstance(shaper, CustomShaper)
+
+        # Cleanup - remove from registry
+        del ShaperFactory._registry["customTest"]
+
+
+class TestDataParserFactoryRegistry:
+    """Tests for DataParserFactory registry functionality."""
+
+    def test_get_available_implementations(self):
+        """Test getting available parser implementations."""
+        from src.parsing.factory import DataParserFactory
+
+        impls = DataParserFactory.get_available_implementations()
+        assert isinstance(impls, list)
+        assert "perl" in impls
+
+    def test_unknown_impl_raises(self):
+        """Test unknown implementation raises with helpful message."""
+        from src.parsing.factory import DataParserFactory
+        from src.parsing.params import DataParserParams
+
+        DataParserFactory.reset()
+
+        params = DataParserParams(
+            config_json={
+                "statsPath": "test",
+                "statsPattern": "*.txt",
+                "outputPath": "/tmp/test",
+                "variables": [],
+            }
+        )
+
+        with pytest.raises(ValueError) as exc_info:
+            DataParserFactory.getDataParser(params, "nonexistent")
+
+        assert "nonexistent" in str(exc_info.value)
+        assert "Available" in str(exc_info.value)
+
+        DataParserFactory.reset()

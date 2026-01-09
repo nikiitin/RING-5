@@ -1,4 +1,5 @@
 from pathlib import Path
+from unittest.mock import patch
 
 import pandas as pd
 import pytest
@@ -10,24 +11,27 @@ from src.web.facade import BackendFacade
 def facade(tmp_path):
     """
     Fixture creates a BackendFacade instance with temporary directories.
+    Patches PathService to use temp directories for isolation.
     """
     # Create temp structure
     ring5_dir = tmp_path / ".ring5"
     ring5_dir.mkdir()
+    csv_pool = ring5_dir / "csv_pool"
+    csv_pool.mkdir()
+    config_pool = ring5_dir / "saved_configs"
+    config_pool.mkdir()
 
-    # Initialize facade
-    f = BackendFacade()
-
-    # Override paths to use temp dir
-    f.ring5_data_dir = ring5_dir
-    f.csv_pool_dir = ring5_dir / "csv_pool"
-    f.config_pool_dir = ring5_dir / "saved_configs"
-
-    # Create directories
-    f.csv_pool_dir.mkdir()
-    f.config_pool_dir.mkdir()
-
-    return f
+    # Patch PathService.get_data_dir to return our temp dir
+    with patch("src.web.services.paths.PathService.get_data_dir", return_value=ring5_dir):
+        with patch("src.web.services.csv_pool_service.PathService.get_data_dir", return_value=ring5_dir):
+            with patch("src.web.services.config_service.PathService.get_data_dir", return_value=ring5_dir):
+                # Initialize facade (will use patched paths)
+                f = BackendFacade()
+                # Override paths on facade too for backward compatibility
+                f.ring5_data_dir = ring5_dir
+                f.csv_pool_dir = csv_pool
+                f.config_pool_dir = config_pool
+                yield f
 
 
 def test_csv_pool_operations(facade, tmp_path):

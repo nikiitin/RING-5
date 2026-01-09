@@ -1,14 +1,14 @@
-from src.data_parser.src.impl.data_parser_perl.src.type_mapping.confType import confType
-from src.data_parser.src.impl.data_parser_perl.src.type_mapping.types.configuration import (
+from src.parsing.impl.data_parser_perl.src.type_mapping.confType import confType
+from src.parsing.impl.data_parser_perl.src.type_mapping.types.configuration import (
     Configuration,
 )
-from src.data_parser.src.impl.data_parser_perl.src.type_mapping.types.distribution import (
+from src.parsing.impl.data_parser_perl.src.type_mapping.types.distribution import (
     Distribution,
 )
-from src.data_parser.src.impl.data_parser_perl.src.type_mapping.types.scalar import (
+from src.parsing.impl.data_parser_perl.src.type_mapping.types.scalar import (
     Scalar,
 )
-from src.data_parser.src.impl.data_parser_perl.src.type_mapping.types.vector import (
+from src.parsing.impl.data_parser_perl.src.type_mapping.types.vector import (
     Vector,
 )
 

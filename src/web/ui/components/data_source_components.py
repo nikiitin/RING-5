@@ -3,7 +3,9 @@ from pathlib import Path
 
 import streamlit as st
 
-from src.web.components import UIComponents
+from src.web.ui.components.card_components import CardComponents
+from src.web.ui.components.data_components import DataComponents
+from src.web.ui.components.variable_editor import VariableEditor
 from src.web.facade import BackendFacade
 from src.web.state_manager import StateManager
 
@@ -34,7 +36,7 @@ class DataSourceComponents:
                 st.error(f"File no longer exists: {csv_info['name']}")
                 continue
 
-            load_clicked, preview_clicked, delete_clicked = UIComponents.file_info_card(
+            load_clicked, preview_clicked, delete_clicked = CardComponents.file_info_card(
                 csv_info, idx
             )
 
@@ -47,8 +49,8 @@ class DataSourceComponents:
                     st.success(f"Loaded {len(data)} rows!")
 
                     # Show data preview
-                    UIComponents.show_data_preview(data, "Loaded CSV Preview")
-                    UIComponents.show_column_details(data)
+                    DataComponents.show_data_preview(data, "Loaded CSV Preview")
+                    DataComponents.show_column_details(data)
                     st.info("Data loaded! Proceed to **Configure Pipeline** to process it.")
                 except Exception as e:
                     st.error(f"Error loading file: {e}")
@@ -149,7 +151,7 @@ class DataSourceComponents:
 
         # Variable editor
         variables = StateManager.get_parse_variables()
-        updated_vars = UIComponents.variable_editor(
+        updated_vars = VariableEditor.render(
             variables,
             available_variables=scanned_vars,
             stats_path=stats_path,
@@ -389,7 +391,7 @@ class DataSourceComponents:
                     StateManager.set_csv_path(csv_path)
 
                     st.success(f"Successfully parsed {len(data)} rows! CSV saved to pool.")
-                    UIComponents.show_data_preview(data, "Parsed Data Preview")
+                    DataComponents.show_data_preview(data, "Parsed Data Preview")
                     st.info("Data ready! Proceed to **Configure Pipeline**")
                 else:
                     st.error("Parser did not generate CSV file")

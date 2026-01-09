@@ -4,7 +4,7 @@ from src.core.multiprocessing.job import Job
 
 
 class ParseWork(Job):
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, **kwargs) -> None:
         pass
 
     def __call__(self) -> Any:

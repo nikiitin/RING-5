@@ -466,8 +466,6 @@ def configure_shaper(shaper_type, data, shaper_id, existing_config, owner_id=Non
 
     return config
 
-    return config
-
 
 def apply_shapers(data, shapers_config):
     """Apply shapers to data."""

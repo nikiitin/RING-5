@@ -329,7 +329,7 @@ class PlotManagerComponents:
         PlotRenderer.render_plot(plot, should_gen)
 
     @staticmethod
-    def render_workspace_management(PortfolioServiceClass):
+    def render_workspace_management(_PortfolioServiceClass):
         """Render workspace management buttons."""
         st.markdown("---")
         st.markdown("### Workspace Management")

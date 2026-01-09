@@ -20,9 +20,7 @@ class ConfigValidator:
             schema_path: Path to JSON schema file. If None, uses default schema.
         """
         if schema_path is None:
-            schema_path = os.path.join(
-                os.path.dirname(__file__), "schemas", "pipeline_schema.json"
-            )
+            schema_path = os.path.join(os.path.dirname(__file__), "schemas", "pipeline_schema.json")
 
         with open(schema_path, "r") as f:
             self.schema = json.load(f)

@@ -313,19 +313,25 @@ class TestConfigurationPersistence:
 
     def test_load_csv_pool(self, temp_output_dir):
         """Test loading CSV pool."""
+        from unittest.mock import patch
+
         from src.web.facade import BackendFacade
 
-        facade = BackendFacade()
-        # Override csv dir
-        facade.csv_pool_dir = Path(temp_output_dir) / "csv_pool"
-        facade.csv_pool_dir.mkdir(parents=True, exist_ok=True)
+        temp_path = Path(temp_output_dir)
+        csv_pool = temp_path / "csv_pool"
+        csv_pool.mkdir(parents=True, exist_ok=True)
 
         # Create a test CSV
-        test_csv = facade.csv_pool_dir / "test.csv"
+        test_csv = csv_pool / "test.csv"
         pd.DataFrame({"a": [1, 2, 3]}).to_csv(test_csv, index=False)
 
-        # Load pool
-        pool = facade.load_csv_pool()
+        # Patch PathService to use temp directory
+        with patch("src.web.services.csv_pool_service.PathService.get_data_dir", return_value=temp_path):
+            facade = BackendFacade()
+            facade.csv_pool_dir = csv_pool
 
-        assert len(pool) == 1
-        assert pool[0]["name"] == "test.csv"
+            # Load pool
+            pool = facade.load_csv_pool()
+
+            assert len(pool) == 1
+            assert pool[0]["name"] == "test.csv"
