@@ -1,6 +1,6 @@
 *.jpg
 *.csv
-#*.pdf
+*.pdf
 *.txt
 *.tar
 *.pyc
@@ -15,3 +15,6 @@ python_venv/
 build/
 .coverage
 config_files
+
+# Un-ignore test data for LFS
+!tests/data/**/*.txt
