@@ -165,7 +165,7 @@ class UIComponents:
         for idx, var in enumerate(variables):
             # Ensure ID exists (fallback if StateManager didn't catch it for some reason)
             var_id = var.get("_id", f"fallback_{idx}")
-            
+
             col1, col2, col3, col4 = st.columns([3, 2, 2, 1])
 
             with col1:
@@ -174,16 +174,16 @@ class UIComponents:
                     value=var.get("name", ""),
                     key=f"var_name_{var_id}",
                     label_visibility="collapsed",
-                    placeholder="stats.name"
+                    placeholder="stats.name",
                 )
-                
+
             with col2:
                 var_alias = st.text_input(
                     f"Alias {idx+1}",
                     value=var.get("alias", ""),
                     key=f"var_alias_{var_id}",
                     label_visibility="collapsed",
-                    placeholder="Alias (Optional)"
+                    placeholder="Alias (Optional)",
                 )
 
             with col3:
@@ -436,7 +436,7 @@ class UIComponents:
                             var_config["vectorEntries"] = []
                         st.write(f"DEBUG: Added missing vectorEntries for {var_name}")
                     else:
-                        pass # Debug message removed to reduce clutter
+                        pass  # Debug message removed to reduce clutter
 
                 updated_vars.append(var_config)
 

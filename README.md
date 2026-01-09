@@ -5,6 +5,7 @@
 A modernized, simplified data analyzer specifically tailored for gem5 simulator output.
 
 ## Features
+
 - Interactive Web UI: Modern Streamlit dashboard for zero-code analysis
   - Integrated Parser: Parse gem5 stats.txt directly in the UI
 - Modern Plotting: Uses matplotlib, seaborn, and plotly for all visualizations
@@ -75,7 +76,8 @@ Launch the modern web interface:
 ./launch_webapp.sh
 ```
 
-Open browser to **http://localhost:8501** and:
+Open browser to **[http://localhost:8501](http://localhost:8501)** and:
+
 - Parse gem5 stats.txt files directly
   - Interactive variable selection
   - Optional compression for SSHFS/remote filesystems
@@ -87,19 +89,18 @@ Open browser to **http://localhost:8501** and:
 - Automated variable scanning
 - Save and load complete portfolios
 
-
 ## Configuration Guide
 
 RING-5 uses a single JSON configuration file with three main sections:
 
 **Supported Plot Types:**
 
-| Type | Description | Use Case |
-|------|-------------|----------|
-| `bar` | Bar plot | Comparing categories |
-| `line` | Line plot | Trends over time/values |
-| `grouped_bar` | Multiple bars per category | Multi-metric comparison |
-| `stacked_bar` | Stacked bars | Part-to-whole relationships |
+| Type          | Description                | Use Case                    |
+| ------------- | -------------------------- | --------------------------- |
+| `bar`         | Bar plot                   | Comparing categories        |
+| `line`        | Line plot                  | Trends over time/values     |
+| `grouped_bar` | Multiple bars per category | Multi-metric comparison     |
+| `stacked_bar` | Stacked bars               | Part-to-whole relationships |
 
 ## Development
 
@@ -112,10 +113,10 @@ make test
 
 ### Makefile Targets
 
-| Target | Description |
-|--------|-------------|
-| `make build` | Check dependencies and install everything |
-| `make install` | Install Python dependencies |
-| `make test` | Run all tests |
-| `make clean` | Remove virtual environment |
-| `make help` | Show available targets |
+| Target         | Description                               |
+| -------------- | ----------------------------------------- |
+| `make build`   | Check dependencies and install everything |
+| `make install` | Install Python dependencies               |
+| `make test`    | Run all tests                             |
+| `make clean`   | Remove virtual environment                |
+| `make help`    | Show available targets                    |

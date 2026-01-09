@@ -1,13 +1,16 @@
-from src.data_parser.src.impl.data_parser_perl.src.type_mapping.confType import \
-    confType
-from src.data_parser.src.impl.data_parser_perl.src.type_mapping.types.configuration import \
-    Configuration
-from src.data_parser.src.impl.data_parser_perl.src.type_mapping.types.distribution import \
-    Distribution
-from src.data_parser.src.impl.data_parser_perl.src.type_mapping.types.scalar import \
-    Scalar
-from src.data_parser.src.impl.data_parser_perl.src.type_mapping.types.vector import \
-    Vector
+from src.data_parser.src.impl.data_parser_perl.src.type_mapping.confType import confType
+from src.data_parser.src.impl.data_parser_perl.src.type_mapping.types.configuration import (
+    Configuration,
+)
+from src.data_parser.src.impl.data_parser_perl.src.type_mapping.types.distribution import (
+    Distribution,
+)
+from src.data_parser.src.impl.data_parser_perl.src.type_mapping.types.scalar import (
+    Scalar,
+)
+from src.data_parser.src.impl.data_parser_perl.src.type_mapping.types.vector import (
+    Vector,
+)
 
 
 class TypeMapper:

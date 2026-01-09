@@ -3,6 +3,7 @@ Seeds Reducer Manager
 """
 
 import streamlit as st
+
 from src.web.ui.data_managers.base_manager import DataManager
 
 
@@ -107,8 +108,10 @@ class SeedsReducerManager(DataManager):
 
             try:
                 # Use DataProcessingService
-                from src.web.services.data_processing_service import DataProcessingService
-                
+                from src.web.services.data_processing_service import (
+                    DataProcessingService,
+                )
+
                 result_df = DataProcessingService.reduce_seeds(
                     df=data,
                     categorical_cols=selected_categorical,

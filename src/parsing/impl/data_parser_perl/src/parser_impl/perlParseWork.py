@@ -1,5 +1,5 @@
 import os
-import subprocess
+import subprocess  # nosec
 
 import src.utils.utils as utils
 from src.parsing.impl.multiprocessing.parseWork import ParseWork
@@ -99,7 +99,7 @@ class PerlParseWork(ParseWork):
         elif varType == "Histogram":
             baseID = varID.split("::")[0]
             targetVar = varsToParse.get(baseID)
-            
+
             # Determine handling based on configuration
             if targetVar and type(targetVar).__name__ == "Vector":
                 self._processVector(varID, varValue)
@@ -109,15 +109,15 @@ class PerlParseWork(ParseWork):
                 if targetVar:
                     expected_type = type(targetVar).__name__
                     if expected_type in ["Distribution", "Histogram"]:
-                       varType = expected_type
-            
+                        varType = expected_type
+
             varID = baseID
         elif varType == "Scalar" or varType == "Configuration":
             varsToParse[varID].content = varValue
         elif varType == "Summary":
             baseID = varID.split("::")[0]
             targetVar = varsToParse.get(baseID)
-            
+
             handled_as_entry = False
             if targetVar and "::" in varID:
                 expected_type = type(targetVar).__name__
@@ -131,7 +131,7 @@ class PerlParseWork(ParseWork):
                     varType = expected_type
                     varID = baseID
                     handled_as_entry = True
-            
+
             if not handled_as_entry:
                 # Summaries need a keyword at the end
                 varID = baseID + "__get_summary"
@@ -182,7 +182,7 @@ class PerlParseWork(ParseWork):
         # Call the script and get the output
         output = ""
         try:
-            output = subprocess.check_output(scriptCall).decode("utf-8")
+            output = subprocess.check_output(scriptCall).decode("utf-8")  # nosec
         except subprocess.CalledProcessError as e:
             print(f"Error while calling script: {scriptCall}")
             print(f"Error message: {e.output}")
@@ -196,12 +196,20 @@ class PerlParseWork(ParseWork):
     def __call__(self) -> dict:
         # Set the script path
         # TODO: Avoid hardcoded path. Ensure this script is accessible.
-        scriptPath = os.path.join(
+        scriptPath = os.path.abspath(
             "./src/parsing/impl/data_parser_perl/src/parser_impl/fileParser.pl"
         )
+
+        # Resolve perl executable
+        import shutil
+
+        perl_exe = shutil.which("perl")
+        if not perl_exe:
+            raise RuntimeError("Perl executable not found in PATH")
+
         # Get a list with a caller for the script
         # and the arguments
-        scriptCall = ["perl", scriptPath]
+        scriptCall = [perl_exe, scriptPath]
         # Add the work to the call
         # The first element is the file to parse
         utils.checkFileExistsOrException(self._fileToParse)
@@ -211,7 +219,7 @@ class PerlParseWork(ParseWork):
         # at script call
         scriptCall.extend([varID.split("__")[0] for varID in self._varsToParse.keys()])
         # Call the parser script
-        output = self._getOutputFromSubprocess(scriptCall)
+        output = self._getOutputFromSubprocess(scriptCall)  # nosec
         # print(output)
         # exit(0)
         # Process the output and return the parsed info

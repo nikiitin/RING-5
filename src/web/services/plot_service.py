@@ -1,8 +1,8 @@
-from typing import List, Optional, Any
 import copy
-import streamlit as st
-from src.plotting import PlotFactory, BasePlot
+
+from src.plotting import BasePlot, PlotFactory
 from src.web.state_manager import StateManager
+
 
 class PlotService:
     """Service to handle plot lifecycle and management."""
@@ -11,17 +11,13 @@ class PlotService:
     def create_plot(name: str, plot_type: str) -> BasePlot:
         """Create a new plot and add it to the session state."""
         plot_id = StateManager.start_next_plot_id()
-        plot = PlotFactory.create_plot(
-            plot_type=plot_type,
-            plot_id=plot_id,
-            name=name
-        )
-        
+        plot = PlotFactory.create_plot(plot_type=plot_type, plot_id=plot_id, name=name)
+
         plots = StateManager.get_plots()
         plots.append(plot)
         StateManager.set_plots(plots)
         StateManager.set_current_plot_id(plot_id)
-        
+
         return plot
 
     @staticmethod
@@ -31,7 +27,7 @@ class PlotService:
         # Filter out the plot to delete
         new_plots = [p for p in plots if p.plot_id != plot_id]
         StateManager.set_plots(new_plots)
-        
+
         # If deleted current plot, reset selection
         if StateManager.get_current_plot_id() == plot_id:
             StateManager.set_current_plot_id(None if not new_plots else new_plots[0].plot_id)
@@ -44,11 +40,11 @@ class PlotService:
         new_plot.name = f"{plot.name} (copy)"
         # Clear non-serializable data
         new_plot.last_generated_fig = None
-        
+
         plots = StateManager.get_plots()
         plots.append(new_plot)
         StateManager.set_plots(plots)
-        
+
         return new_plot
 
     @staticmethod
@@ -62,7 +58,7 @@ class PlotService:
         new_plot.pipeline_counter = plot.pipeline_counter
         new_plot.processed_data = plot.processed_data
         new_plot.config = {}  # Reset config when type changes
-        
+
         # Replace in session state
         plots = StateManager.get_plots()
         try:
@@ -73,7 +69,5 @@ class PlotService:
         except StopIteration:
             # Should not happen if checking logic is correct
             pass
-            
+
         return new_plot
-
-

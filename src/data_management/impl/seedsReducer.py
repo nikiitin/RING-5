@@ -1,7 +1,9 @@
-from argumentParser import AnalyzerInfo
-from src.data_management.dataManager import DataManager
-import src.utils.utils as utils
 import pandas as pd
+from argumentParser import AnalyzerInfo
+
+import src.utils.utils as utils
+from src.data_management.dataManager import DataManager
+
 
 class SeedsReducer(DataManager):
     """
@@ -9,6 +11,7 @@ class SeedsReducer(DataManager):
     and calculate the mean and standard deviation from the values of all
     the numeric statistics (columns).
     """
+
     def _verifyParams(self):
         super()._verifyParams()
         # Ensure the random_seed column exists
@@ -16,12 +19,16 @@ class SeedsReducer(DataManager):
             raise ValueError("The 'random_seed' column is missing from the DataFrame.")
         # Seeds reducer is a boolean
         if not isinstance(self._seedsReducerElement, bool):
-            raise ValueError("Seeds reducer element is not correctly defined at json file. Must be a boolean")
+            raise ValueError(
+                "Seeds reducer element is not correctly defined at json file. Must be a boolean"
+            )
         # Verify none of the categorical columns contain only "NaN" values
         for column in DataManager._categorical_columns:
             if DataManager._df[column].isnull().all():
-                raise ValueError(f"The categorical column {column} contains only NaN values, which is not allowed.",
-                                 f"Please check the parsing info and stats files for missing values.")
+                raise ValueError(
+                    f"The categorical column {column} contains only NaN values, which is not allowed.",
+                    "Please check the parsing info and stats files for missing values.",
+                )
 
     def __init__(self, params: AnalyzerInfo, json: dict) -> None:
         """
@@ -46,18 +53,22 @@ class SeedsReducer(DataManager):
             print("Reducing seeds...")
             # Group by categorical columns and calculate mean and standard deviation
             grouped = DataManager._df.groupby(DataManager._categorical_columns)
-            
+
             # Calculate mean and standard deviation for each group
             # Reset index to flatten the DataFrame
             mean_df = grouped[DataManager._statistic_columns].mean().reset_index()
             std_df = grouped[DataManager._statistic_columns].std().reset_index()
 
             # Rename standard deviation columns to include '_std'
-            std_df = std_df.rename(columns=lambda x: f"{x}.sd" if x in DataManager._statistic_columns else x)
+            std_df = std_df.rename(
+                columns=lambda x: f"{x}.sd" if x in DataManager._statistic_columns else x
+            )
 
             # Merge mean and standard deviation DataFrames
             result_df = pd.merge(mean_df, std_df, on=DataManager._categorical_columns)
-            correct_order = DataManager._categorical_columns + [col for col in result_df.columns if col not in DataManager._categorical_columns]
+            correct_order = DataManager._categorical_columns + [
+                col for col in result_df.columns if col not in DataManager._categorical_columns
+            ]
             # Sort the columns for categorical columns first
             result_df = result_df.reindex(correct_order, axis=1)
 

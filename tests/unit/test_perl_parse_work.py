@@ -1,7 +1,11 @@
+from unittest.mock import patch
 
 import pytest
-from unittest.mock import MagicMock, patch
-from src.parsing.impl.data_parser_perl.src.parser_impl.perlParseWork import PerlParseWork
+
+from src.parsing.impl.data_parser_perl.src.parser_impl.perlParseWork import (
+    PerlParseWork,
+)
+
 
 class MockType:
     def __init__(self, type_name):
@@ -10,56 +14,64 @@ class MockType:
         self.entries = []
         self.onEmpty = None
 
+
 # Mocking type(var).__name__ requires the class name to match
 class Scalar:
     def __init__(self):
         self.content = None
+
+
 class Vector:
     def __init__(self):
         self.content = None
         self.entries = []
+
+
 class Distribution:
     def __init__(self):
         self.content = None
         self.entries = []
+
+
 class Configuration:
     def __init__(self):
         self.content = None
         self.onEmpty = None
 
+
 @pytest.fixture
 def parser():
-    vars_to_parse = {
-        "scalar_var": Scalar(),
-        "vector_var": Vector(),
-        "dist_var": Distribution()
-    }
+    vars_to_parse = {"scalar_var": Scalar(), "vector_var": Vector(), "dist_var": Distribution()}
     # Mock file existence check if needed, but __init__ doesn't check it (checkFile is in __call__)
     return PerlParseWork("dummy.txt", vars_to_parse)
+
 
 def test_init_empty_vars():
     with pytest.raises(RuntimeError):
         PerlParseWork("file", {})
+
 
 def test_process_line_scalar(parser):
     line = "Scalar/scalar_var/123"
     parser._processLine(line, parser._varsToParse)
     assert parser._varsToParse["scalar_var"].content == "123"
 
+
 def test_process_line_vector(parser):
     # Vector comes as Vector/ID::key/value
     line1 = "Vector/vector_var::0/10"
     line2 = "Vector/vector_var::1/20"
-    
+
     # Initialize dicts
     parser._vectorDict = {}
     parser._distDict = {}
-    
+
     parser._processLine(line1, parser._varsToParse)
     parser._processLine(line2, parser._varsToParse)
-    
+
     assert parser._vectorDict["vector_var"]["0"] == ["10"]
     assert parser._vectorDict["vector_var"]["1"] == ["20"]
+
 
 def test_process_output_full_flow(parser):
     output = """Scalar/scalar_var/99
@@ -68,50 +80,54 @@ Vector/vector_var::0/101
 Distribution/dist_var::min/5
 Distribution/dist_var::max/15
 """
-    # Verify vector_var entries are populated if needed? 
+    # Verify vector_var entries are populated if needed?
     # Logic in _addBufferedVars copies from dict to var.content
-    
+
     parsed = parser._processOutput(output, parser._varsToParse)
-    
+
     assert parsed["scalar_var"].content == "99"
-    
+
     # Check Vector
     # _processVector appends to list: _vectorDict[varID][varKey].append(varValue)
     # output had two values for vector_var::0 => ["100", "101"]
     v_content = parsed["vector_var"].content
     assert v_content["0"] == ["100", "101"]
-    
+
     # Check Dist
     d_content = parsed["dist_var"].content
     assert d_content["min"] == ["5"]
     assert d_content["max"] == ["15"]
+
 
 def test_validate_vars_missing_content(parser):
     # Scalar var content remains None
     with pytest.raises(RuntimeError, match="Variable content none"):
         parser._validateVars(parser._varsToParse)
 
+
 def test_validate_vars_config_default():
     vars_map = {"config_var": Configuration()}
     vars_map["config_var"].onEmpty = "Default"
     # Content must not be None to pass first check, but empty to trigger default logic
-    vars_map["config_var"].content = [] 
-    
+    vars_map["config_var"].content = []
+
     work = PerlParseWork("f", vars_map)
     validated = work._validateVars(vars_map)
-    
+
     assert validated["config_var"].content == "Default"
+
 
 def test_validate_vars_config_no_default_fail():
     vars_map = {"config_var": Configuration()}
     vars_map["config_var"].onEmpty = None
-    vars_map["config_var"].content = [] 
-    
+    vars_map["config_var"].content = []
+
     work = PerlParseWork("f", vars_map)
-    
+
     # This specifically raises "Configuration variable empty"
     with pytest.raises(RuntimeError, match="Configuration variable empty"):
         work._validateVars(vars_map)
+
 
 def test_call_subprocess(parser):
     # Test __call__ flow mocking subprocess
@@ -124,9 +140,8 @@ def test_call_subprocess(parser):
                 b"Distribution/dist_var::min/5\n"
             )
             mock_run.return_value = output
-            
+
             result = parser()
-            
+
             assert result["scalar_var"].content == "10"
             assert result["vector_var"].content["0"] == ["20"]
-

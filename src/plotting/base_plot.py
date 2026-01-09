@@ -30,9 +30,10 @@ class BasePlot(ABC):
         self.pipeline_counter = 0
         self.legend_mappings_by_column: Dict[str, Dict[str, str]] = {}
         self.legend_mappings: Dict[str, str] = {}
-        
+
         # Initialize Style Manager
         from src.plotting.styles import StyleManager
+
         self.style_manager = StyleManager(self.plot_id, self.plot_type)
 
     @abstractmethod
@@ -207,14 +208,14 @@ class BasePlot(ABC):
             # Y-label
             default_ylabel = saved_config.get("ylabel", y_column)
             ylabel = st.text_input("Y-label", value=default_ylabel, key=f"ylabel_{self.plot_id}")
-            
+
             # Legend Title
             default_legend_title = saved_config.get("legend_title", "")
             legend_title = st.text_input(
-                "Legend Title", 
-                value=default_legend_title, 
+                "Legend Title",
+                value=default_legend_title,
                 key=f"legend_title_{self.plot_id}",
-                help="Custom title for the legend. If empty, the grouping variable name will be used."
+                help="Custom title for the legend. If empty, the grouping variable name will be used.",
             )
 
         return {
@@ -232,11 +233,15 @@ class BasePlot(ABC):
         """Render sizing and layout options via StyleManager."""
         return self.style_manager.render_layout_options(saved_config)
 
-    def render_theme_options(self, saved_config: Dict[str, Any], items: Optional[List[str]] = None) -> Dict[str, Any]:
+    def render_theme_options(
+        self, saved_config: Dict[str, Any], items: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
         """Render theme options via StyleManager."""
         # Pass data for potential data-dependent theming (e.g. series colors)
         # Use a prefix to distinguish from advanced options
-        return self.style_manager.render_theme_options(saved_config, self.processed_data, items=items, key_prefix="theme_")
+        return self.style_manager.render_theme_options(
+            saved_config, self.processed_data, items=items, key_prefix="theme_"
+        )
 
     def render_advanced_options(
         self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame] = None
@@ -253,7 +258,7 @@ class BasePlot(ABC):
             Configuration dictionary with advanced options
         """
         config = {}
-        
+
         # 1. General & Axis Settings
         self._render_general_settings(saved_config, config)
 
@@ -277,28 +282,28 @@ class BasePlot(ABC):
             help="Allows you to drag the legend/title and click to edit text directly on the plot.",
         )
         # 6. Series Styling (Color, Shape, Pattern, Name)
-        if st.checkbox("Show Series Renaming", value=False, key=f"show_series_style_{self.plot_id}"):
-             st.markdown("#### Rename Series")
-             with st.expander("Rename Items", expanded=True):
-                 # Colors are now handled in Style & Theme, so we only do Renaming here.
-                 renaming_styles = self.style_manager.render_series_renaming_ui(saved_config, data)
-                 # Merge with existing styles (which might have colors from Style Menu)
-                 if "series_styles" not in config:
-                     config["series_styles"] = {}
-                 
-                 # We need to update deeply? 
-                 # series_styles is Dict[str, Dict].
-                 for k, v in renaming_styles.items():
-                     if k not in config["series_styles"]:
-                         config["series_styles"][k] = v
-                     else:
-                         config["series_styles"][k].update(v)
+        if st.checkbox(
+            "Show Series Renaming", value=False, key=f"show_series_style_{self.plot_id}"
+        ):
+            st.markdown("#### Rename Series")
+            with st.expander("Rename Items", expanded=True):
+                # Colors are now handled in Style & Theme, so we only do Renaming here.
+                renaming_styles = self.style_manager.render_series_renaming_ui(saved_config, data)
+                # Merge with existing styles (which might have colors from Style Menu)
+                if "series_styles" not in config:
+                    config["series_styles"] = {}
+
+                # We need to update deeply?
+                # series_styles is Dict[str, Dict].
+                for k, v in renaming_styles.items():
+                    if k not in config["series_styles"]:
+                        config["series_styles"][k] = v
+                    else:
+                        config["series_styles"][k].update(v)
         else:
-             # Preserve existing series styles if UI is hidden
-             if "series_styles" not in config:
-                  config["series_styles"] = saved_config.get("series_styles", {})
-
-
+            # Preserve existing series styles if UI is hidden
+            if "series_styles" not in config:
+                config["series_styles"] = saved_config.get("series_styles", {})
 
         # 7. Annotations
         st.markdown("#### Annotations (Shapes)")
@@ -306,7 +311,9 @@ class BasePlot(ABC):
 
         return config
 
-    def render_specific_advanced_options(self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame] = None) -> Dict[str, Any]:
+    def render_specific_advanced_options(
+        self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame] = None
+    ) -> Dict[str, Any]:
         """
         Hook for subclasses to render plot-specific advanced options.
         Default implementation renders Bar settings if plot_type contains 'bar'.
@@ -358,7 +365,7 @@ class BasePlot(ABC):
                 value=saved_config.get("show_error_bars", False),
                 key=f"error_bars_{self.plot_id}",
             )
-            
+
             # Y-axis Stepping
             dtick = st.number_input(
                 "Y-axis Step Size (0 for auto)",
@@ -374,7 +381,7 @@ class BasePlot(ABC):
             default_fmt_idx = 0
             if saved_config.get("download_format") in download_formats:
                 default_fmt_idx = download_formats.index(saved_config["download_format"])
-            
+
             config["download_format"] = st.selectbox(
                 "Download Format",
                 options=download_formats,
@@ -392,7 +399,9 @@ class BasePlot(ABC):
                 help="Rotate X-axis labels to prevent overlap",
             )
 
-    def _render_ordering_ui(self, saved_config: Dict[str, Any], data: pd.DataFrame, config: Dict[str, Any]):
+    def _render_ordering_ui(
+        self, saved_config: Dict[str, Any], data: pd.DataFrame, config: Dict[str, Any]
+    ):
         """Helper to render ordering UI."""
         st.markdown("#### Ordering Control")
 
@@ -401,10 +410,7 @@ class BasePlot(ABC):
             with st.expander("Reorder X-axis Labels"):
                 unique_x = sorted(data[saved_config["x"]].unique().tolist())
                 config["xaxis_order"] = self.render_reorderable_list(
-                    "X-axis Order", 
-                    unique_x, 
-                    "xaxis",
-                    default_order=saved_config.get("xaxis_order")
+                    "X-axis Order", unique_x, "xaxis", default_order=saved_config.get("xaxis_order")
                 )
 
         # Group Order
@@ -412,11 +418,11 @@ class BasePlot(ABC):
             with st.expander("Reorder Groups"):
                 unique_g = sorted(data[saved_config["group"]].unique().tolist())
                 config["group_order"] = self.render_reorderable_list(
-                    "Group Order", 
-                    unique_g, 
-                    "group", 
+                    "Group Order",
+                    unique_g,
+                    "group",
                     legend_labels=saved_config.get("legend_labels"),
-                    default_order=saved_config.get("group_order")
+                    default_order=saved_config.get("group_order"),
                 )
 
         # Legend Order (Color)
@@ -424,11 +430,11 @@ class BasePlot(ABC):
             with st.expander("Reorder Legend Items"):
                 unique_c = sorted(data[saved_config["color"]].unique().tolist())
                 config["legend_order"] = self.render_reorderable_list(
-                    "Legend Order", 
-                    unique_c, 
-                    "legend", 
+                    "Legend Order",
+                    unique_c,
+                    "legend",
                     legend_labels=saved_config.get("legend_labels"),
-                    default_order=saved_config.get("legend_order")
+                    default_order=saved_config.get("legend_order"),
                 )
 
     def _render_shapes_ui(self, saved_config: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -457,6 +463,7 @@ class BasePlot(ABC):
                 s_width = st.number_input("Width", 1, 10, 2, key=f"s_width_{self.plot_id}")
 
             if st.button("Add Shape", key=f"add_shape_{self.plot_id}"):
+
                 def try_float(v):
                     try:
                         return float(v)
@@ -478,17 +485,22 @@ class BasePlot(ABC):
         # List existing shapes
         if shapes:
             st.markdown("**Existing Shapes (Edit to Resize):**")
-            
+
             h1, h2, h3, h4, h5, h6 = st.columns([1, 1, 1, 1, 1, 0.5])
-            with h1: st.caption("x0")
-            with h2: st.caption("y0")
-            with h3: st.caption("x1")
-            with h4: st.caption("y1")
-            with h5: st.caption("Type")
-            
+            with h1:
+                st.caption("x0")
+            with h2:
+                st.caption("y0")
+            with h3:
+                st.caption("x1")
+            with h4:
+                st.caption("y1")
+            with h5:
+                st.caption("Type")
+
             for i, shape in enumerate(shapes):
                 c1, c2, c3, c4, c5, c6 = st.columns([1, 1, 1, 1, 1, 0.5])
-                
+
                 def try_float(v):
                     try:
                         return float(v)
@@ -496,36 +508,54 @@ class BasePlot(ABC):
                         return v
 
                 with c1:
-                    new_x0 = st.text_input("x0", value=str(shape['x0']), key=f"edit_x0_{i}_{self.plot_id}", label_visibility="collapsed")
+                    new_x0 = st.text_input(
+                        "x0",
+                        value=str(shape["x0"]),
+                        key=f"edit_x0_{i}_{self.plot_id}",
+                        label_visibility="collapsed",
+                    )
                 with c2:
-                    new_y0 = st.text_input("y0", value=str(shape['y0']), key=f"edit_y0_{i}_{self.plot_id}", label_visibility="collapsed")
+                    new_y0 = st.text_input(
+                        "y0",
+                        value=str(shape["y0"]),
+                        key=f"edit_y0_{i}_{self.plot_id}",
+                        label_visibility="collapsed",
+                    )
                 with c3:
-                    new_x1 = st.text_input("x1", value=str(shape['x1']), key=f"edit_x1_{i}_{self.plot_id}", label_visibility="collapsed")
+                    new_x1 = st.text_input(
+                        "x1",
+                        value=str(shape["x1"]),
+                        key=f"edit_x1_{i}_{self.plot_id}",
+                        label_visibility="collapsed",
+                    )
                 with c4:
-                    new_y1 = st.text_input("y1", value=str(shape['y1']), key=f"edit_y1_{i}_{self.plot_id}", label_visibility="collapsed")
+                    new_y1 = st.text_input(
+                        "y1",
+                        value=str(shape["y1"]),
+                        key=f"edit_y1_{i}_{self.plot_id}",
+                        label_visibility="collapsed",
+                    )
                 with c5:
-                    st.text(shape['type'])
+                    st.text(shape["type"])
                 with c6:
                     if st.button("🗑️", key=f"del_shape_{i}_{self.plot_id}"):
                         shapes.pop(i)
                         st.rerun()
-                
-                shape['x0'] = try_float(new_x0)
-                shape['y0'] = try_float(new_y0)
-                shape['x1'] = try_float(new_x1)
-                shape['y1'] = try_float(new_y1)
+
+                shape["x0"] = try_float(new_x0)
+                shape["y0"] = try_float(new_y0)
+                shape["x1"] = try_float(new_x1)
+                shape["y1"] = try_float(new_y1)
 
         return shapes
 
-
-
     def render_reorderable_list(
-        self, 
-        label: str, 
-        items: List[Any], 
-        key_prefix: str, 
+        self,
+        label: str,
+        items: List[Any],
+        key_prefix: str,
         legend_labels: Optional[Dict[str, str]] = None,
-        default_order: Optional[List[Any]] = None
+        default_order: Optional[List[Any]] = None,
     ) -> List[Any]:
         """
         Render a list that can be reordered using up/down buttons.

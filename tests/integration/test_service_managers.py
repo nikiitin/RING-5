@@ -1,4 +1,3 @@
-
 """
 Integration tests for DataProcessingService methods.
 Replaces legacy facade manager tests.

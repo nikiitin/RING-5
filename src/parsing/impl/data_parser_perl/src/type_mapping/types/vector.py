@@ -1,5 +1,4 @@
-from src.data_parser.src.impl.data_parser_perl.src.type_mapping.confType import \
-    confType
+from src.data_parser.src.impl.data_parser_perl.src.type_mapping.confType import confType
 
 
 class Vector(confType):

@@ -2,10 +2,11 @@
 Comprehensive tests for utility functions.
 """
 
+import enum
 import os
 import tempfile
+
 import pytest
-import enum
 
 import src.utils.utils as utils
 
@@ -84,6 +85,7 @@ class TestEnumFunctions:
 
     class SampleEnum(enum.Enum):
         """Sample enum for testing (not a test class)."""
+
         OPTION_A = "option_a"
         OPTION_B = "option_b"
         OPTION_C = "option_c"
@@ -222,7 +224,7 @@ class TestRemoveFile:
         """Test removing an existing file."""
         with tempfile.NamedTemporaryFile(delete=False) as f:
             temp_path = f.name
-        
+
         assert os.path.exists(temp_path)
         utils.removeFile(temp_path)
         assert not os.path.exists(temp_path)

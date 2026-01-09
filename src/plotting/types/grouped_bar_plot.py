@@ -3,7 +3,6 @@
 from typing import Any, Dict, Optional
 
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
@@ -86,7 +85,7 @@ class GroupedBarPlot(BasePlot):
             # Apply X filter
             if saved_config.get("x_filter") is not None:
                 data = data[data[saved_config["x"]].isin(saved_config["x_filter"])]
-            
+
             # Apply Group filter
             if saved_config.get("group_filter") is not None and saved_config.get("group"):
                 data = data[data[saved_config["group"]].isin(saved_config["group_filter"])]
@@ -96,7 +95,7 @@ class GroupedBarPlot(BasePlot):
     def render_theme_options(self, saved_config: Dict[str, Any]) -> Dict[str, Any]:
         """Add specific styling options for Grouped Bar."""
         config = super().render_theme_options(saved_config)
-        
+
         # Visual Distinction Section
         st.markdown("**Visual Distinction**")
         d1, d2 = st.columns(2)
@@ -104,25 +103,25 @@ class GroupedBarPlot(BasePlot):
             config["show_separators"] = st.checkbox(
                 "Show Vertical Separators",
                 value=saved_config.get("show_separators", False),
-                key=f"show_sep_{self.plot_id}"
+                key=f"show_sep_{self.plot_id}",
             )
             config["separator_color"] = st.color_picker(
                 "Separator Color",
                 value=saved_config.get("separator_color", "#E0E0E0"),
-                key=f"sep_col_{self.plot_id}"
+                key=f"sep_col_{self.plot_id}",
             )
         with d2:
-            # Shading alternate groups might be less relevant for simple grouped bar 
+            # Shading alternate groups might be less relevant for simple grouped bar
             # if the groups are just categories, but providing it for consistency.
             config["shade_alternate"] = st.checkbox(
                 "Shade Alternate Categories",
                 value=saved_config.get("shade_alternate", False),
-                key=f"shade_alt_{self.plot_id}"
+                key=f"shade_alt_{self.plot_id}",
             )
             config["shade_color"] = st.color_picker(
                 "Shade Color",
                 value=saved_config.get("shade_color", "#F5F5F5"),
-                key=f"shade_col_{self.plot_id}"
+                key=f"shade_col_{self.plot_id}",
             )
 
         # Isolation Section
@@ -133,7 +132,7 @@ class GroupedBarPlot(BasePlot):
                 "Isolate Last Group",
                 value=saved_config.get("isolate_last_group", False),
                 key=f"iso_last_{self.plot_id}",
-                help="Adds extra space and a distinct separator before the last X-axis category."
+                help="Adds extra space and a distinct separator before the last X-axis category.",
             )
         with d4:
             if config["isolate_last_group"]:
@@ -142,19 +141,19 @@ class GroupedBarPlot(BasePlot):
                     value=float(saved_config.get("isolation_gap", 0.5)),
                     min_value=0.0,
                     step=0.1,
-                    key=f"iso_gap_{self.plot_id}"
+                    key=f"iso_gap_{self.plot_id}",
                 )
 
         return config
 
     def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
         """Create grouped bar plot figure using manual coordinates for spacing control."""
-        
+
         # 1. Data Preparation
         data = data.copy()
         x_col = config["x"]
         group_col = config["group"] if config.get("group") else None
-        
+
         data[x_col] = data[x_col].astype(str)
         if group_col:
             data[group_col] = data[group_col].astype(str)
@@ -177,22 +176,24 @@ class GroupedBarPlot(BasePlot):
         # Determine Group Order (for Legend/Color)
         if group_col:
             if config.get("group_order"):
-                ordered_groups = [str(g) for g in config["group_order"] if str(g) in data[group_col].unique()]
+                ordered_groups = [
+                    str(g) for g in config["group_order"] if str(g) in data[group_col].unique()
+                ]
                 missing_g = [g for g in sorted(data[group_col].unique()) if g not in ordered_groups]
                 ordered_groups.extend(missing_g)
             else:
                 ordered_groups = sorted(data[group_col].unique())
         else:
-            ordered_groups = [None] # Dummy for iteration
+            ordered_groups = [None]  # Dummy for iteration
 
         # 2. Calculate Manual X Coordinates
         # We place each X-category at a specific integer/float position.
-        
+
         current_x = 0.0
-        x_map = {} # Category -> Coordinate
+        x_map = {}  # Category -> Coordinate
         tick_vals = []
         tick_text = []
-        
+
         # Shapes
         distinction_shapes = []
         show_separators = config.get("show_separators", False)
@@ -210,103 +211,120 @@ class GroupedBarPlot(BasePlot):
             if isolate_last and i == len(ordered_x) - 1 and i > 0:
                 # Add extra isolation gap
                 current_x += isolation_gap
-                
+
                 # Draw Special Separator
-                prev_center = x_map[ordered_x[i-1]]
+                prev_center = x_map[ordered_x[i - 1]]
                 sep_x = (prev_center + current_x) / 2.0
-                
-                distinction_shapes.append(dict(
-                    type="line", xref="x", yref="paper",
-                    x0=sep_x, x1=sep_x, y0=0, y1=1,
-                    line=dict(color="#333333", width=2, dash="solid"),
-                    layer="below"
-                ))
-            
+
+                distinction_shapes.append(
+                    dict(
+                        type="line",
+                        xref="x",
+                        yref="paper",
+                        x0=sep_x,
+                        x1=sep_x,
+                        y0=0,
+                        y1=1,
+                        line=dict(color="#333333", width=2, dash="solid"),
+                        layer="below",
+                    )
+                )
+
             x_map[cat] = current_x
             tick_vals.append(current_x)
-            
+
             # Apply Rename
             display_name = rename_map.get(cat, cat)
             tick_text.append(display_name)
-            
+
             # Shading
             if shade_alternate and (i % 2 == 1):
                 # Standard width is 1.0 (from -0.5 to +0.5 relative to center)
                 rect_x0 = current_x - 0.5
                 rect_x1 = current_x + 0.5
-                distinction_shapes.append(dict(
-                    type="rect", xref="x", yref="paper",
-                    x0=rect_x0, x1=rect_x1, y0=0, y1=1,
-                    fillcolor=shade_color, opacity=0.5, layer="below", line_width=0
-                ))
-                
+                distinction_shapes.append(
+                    dict(
+                        type="rect",
+                        xref="x",
+                        yref="paper",
+                        x0=rect_x0,
+                        x1=rect_x1,
+                        y0=0,
+                        y1=1,
+                        fillcolor=shade_color,
+                        opacity=0.5,
+                        layer="below",
+                        line_width=0,
+                    )
+                )
+
             # Standard Separator (if not isolating next)
             next_is_last_isolated = isolate_last and (i == len(ordered_x) - 2)
             if show_separators and i < len(ordered_x) - 1:
                 if not next_is_last_isolated:
-                     # Standard midpoint
-                     sep_x = current_x + 0.5
-                     distinction_shapes.append(dict(
-                        type="line", xref="x", yref="paper",
-                        x0=sep_x, x1=sep_x, y0=0, y1=1,
-                        line=dict(color=sep_color, width=1, dash="dash"),
-                        layer="below"
-                    ))
-            
+                    # Standard midpoint
+                    sep_x = current_x + 0.5
+                    distinction_shapes.append(
+                        dict(
+                            type="line",
+                            xref="x",
+                            yref="paper",
+                            x0=sep_x,
+                            x1=sep_x,
+                            y0=0,
+                            y1=1,
+                            line=dict(color=sep_color, width=1, dash="dash"),
+                            layer="below",
+                        )
+                    )
+
             current_x += 1.0
 
         # 3. Create Traces
         fig = go.Figure()
-        
+
         # If grouped by color
         if group_col:
             # For each group in legend order
             for grp in ordered_groups:
                 # Filter data for this group
                 grp_data = data[data[group_col] == grp]
-                
+
                 # Map X values to manual coords
-                # We need to preserve alignment. 
+                # We need to preserve alignment.
                 # It's easiest to reindex or merge.
-                
+
                 # Create a series for X coords
                 # Ensure we have all X categories represented (even if empty, for alignment)?
                 # No, plotly handles sparse data well if we give x/y arrays.
-                
+
                 x_coords = grp_data[x_col].map(x_map)
-                
+
                 y_error_dict = None
                 if config.get("show_error_bars"):
-                     sd_col = f"{config['y']}.sd"
-                     if sd_col in data.columns:
-                         y_error_dict = dict(type="data", array=grp_data[sd_col], visible=True)
+                    sd_col = f"{config['y']}.sd"
+                    if sd_col in data.columns:
+                        y_error_dict = dict(type="data", array=grp_data[sd_col], visible=True)
 
-                fig.add_trace(go.Bar(
-                    x=x_coords,
-                    y=grp_data[config["y"]],
-                    name=grp,
-                    error_y=y_error_dict
-                ))
+                fig.add_trace(
+                    go.Bar(x=x_coords, y=grp_data[config["y"]], name=grp, error_y=y_error_dict)
+                )
         else:
             # No grouping (Single series)
             x_coords = data[x_col].map(x_map)
-            
+
             y_error_dict = None
             if config.get("show_error_bars"):
-                 sd_col = f"{config['y']}.sd"
-                 if sd_col in data.columns:
-                     y_error_dict = dict(type="data", array=data[sd_col], visible=True)
+                sd_col = f"{config['y']}.sd"
+                if sd_col in data.columns:
+                    y_error_dict = dict(type="data", array=data[sd_col], visible=True)
 
-            fig.add_trace(go.Bar(
-                x=x_coords,
-                y=data[config["y"]],
-                error_y=y_error_dict
-            ))
-
+            fig.add_trace(go.Bar(x=x_coords, y=data[config["y"]], error_y=y_error_dict))
 
         # 4. Layout
         existing_shapes = config.get("shapes", []) or []
-        if not isinstance(existing_shapes, list): existing_shapes = []
+        if not isinstance(existing_shapes, list):
+            existing_shapes = []
         fig.update_layout(
             barmode="group",
             title=config.get("title", ""),
@@ -314,9 +332,9 @@ class GroupedBarPlot(BasePlot):
                 title=config.get("xlabel", x_col),
                 tickmode="array",
                 tickvals=tick_vals,
-                ticktext=tick_text
+                ticktext=tick_text,
             ),
-            yaxis=dict( title=config.get("ylabel", config.get("y", "Value")) ),
+            yaxis=dict(title=config.get("ylabel", config.get("y", "Value"))),
             shapes=existing_shapes + distinction_shapes,
             legend_title=config.get("group", ""),
         )

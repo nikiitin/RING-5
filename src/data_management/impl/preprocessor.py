@@ -1,22 +1,26 @@
-from argumentParser import AnalyzerInfo
-from src.data_management.dataManager import DataManager
-import src.utils.utils as utils
 import pandas as pd
+
+import src.utils.utils as utils
+from src.data_management.dataManager import DataManager
+
 
 class Operator:
     """
     Class to define the operator to be used in the preprocessor.
     """
+
     def __call__(self, dataFrame: pd.DataFrame, src1: str, src2: str, dst: str):
         """
         Method to be implemented by the operator.
         """
         raise NotImplementedError("Operator not implemented")
 
+
 class DivideOperator(Operator):
     """
     Class to define the divide operator.
     """
+
     def __call__(self, dataFrame: pd.DataFrame, src1: str, src2: str, dst: str):
         # Divide the src1 column by the src2 column and store the result in the dst column.
         # Avoid division by zero by letting the result be the src1 column
@@ -30,22 +34,25 @@ class OperatorFactory:
     """
     Factory class to create the operator.
     """
+
     def getOperator(operator: str):
         if operator == "divide":
             return DivideOperator()
         raise ValueError(f"Operator {operator} not implemented")
+
 
 class Preprocessor(DataManager):
     """
     Class to divide a column by other column in
     a data frame.
     """
+
     def _verifyParams(self):
         super()._verifyParams()
         # Check if the divider is a dictionary
         if not isinstance(self._preprocessorElement, dict):
             raise ValueError("Preprocessor element is not correctly defined at json file")
-        
+
         # Check if the divider is empty
         if not self._preprocessorElement:
             raise ValueError("Preprocessor element is empty at json file")
@@ -62,7 +69,7 @@ class Preprocessor(DataManager):
             utils.checkElementExists(values, "operator")
             utils.checkElementExists(values, "src1")
             utils.checkElementExists(values, "src2")
-    
+
     def __init__(self, params, json):
         super().__init__(params, json)
         # Check if the preprocessor is present in the json file
@@ -82,4 +89,3 @@ class Preprocessor(DataManager):
                 operator = OperatorFactory.getOperator(values["operator"])
                 # Apply the operator to the data frame
                 DataManager._df = operator(DataManager._df, values["src1"], values["src2"], key)
-    

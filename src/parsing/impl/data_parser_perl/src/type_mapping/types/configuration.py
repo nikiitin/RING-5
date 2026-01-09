@@ -1,5 +1,4 @@
-from src.data_parser.src.impl.data_parser_perl.src.type_mapping.confType import \
-    confType
+from src.data_parser.src.impl.data_parser_perl.src.type_mapping.confType import confType
 
 
 class Configuration(confType):
@@ -14,7 +13,7 @@ class Configuration(confType):
         if __name == "content":
             try:
                 __value = str(__value)
-            except Exception:
+            except Exception as err:
                 raise TypeError(
                     "CONFIGURATION: Variable non-convertible to string... value: "
                     + str(__value)
@@ -22,7 +21,7 @@ class Configuration(confType):
                     + str(type(__value))
                     + " field: "
                     + __name
-                )
+                ) from err
             self.__dict__["content"].append(__value)
         elif (
             __name == "balancedContent"

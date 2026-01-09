@@ -1,21 +1,23 @@
-from typing import Any, Dict, List, Optional
-import streamlit as st
-import pandas as pd
-import plotly.colors as pc
 import hashlib
+from typing import Any, Dict, List, Optional
+
+import pandas as pd
+import streamlit as st
+
 
 class BaseStyleUI:
     """
     Base Strategy Logic for generic UI rendering.
     """
+
     def __init__(self, plot_id: int, plot_type: str):
         self.plot_id = plot_id
         self.plot_type = plot_type
-    
+
     def render_layout_options(self, saved_config: Dict[str, Any]) -> Dict[str, Any]:
         """Render layout sizing, margins, and spacing options."""
         st.markdown("**Dimensions & Margins**")
-        
+
         c1, c2 = st.columns(2)
         with c1:
             width = st.slider(
@@ -23,61 +25,106 @@ class BaseStyleUI:
             )
         with c2:
             height = st.slider(
-                "Height (px)", 300, 1200, saved_config.get("height", 500), 50, key=f"h_{self.plot_id}"
+                "Height (px)",
+                300,
+                1200,
+                saved_config.get("height", 500),
+                50,
+                key=f"h_{self.plot_id}",
             )
 
         with st.expander("Margins & Spacing", expanded=True):
             m1, m2 = st.columns(2)
             with m1:
-                margin_l = st.number_input("Left", 0, 1000, saved_config.get("margin_l", 100), key=f"ml_{self.plot_id}")
-                margin_r = st.number_input("Right", 0, 1000, saved_config.get("margin_r", 100), key=f"mr_{self.plot_id}")
-                margin_pad = st.number_input("Padding (px)", 0, 200, saved_config.get("margin_pad", 0), key=f"mp_{self.plot_id}", help="Space between axis and labels")
+                margin_l = st.number_input(
+                    "Left", 0, 1000, saved_config.get("margin_l", 100), key=f"ml_{self.plot_id}"
+                )
+                margin_r = st.number_input(
+                    "Right", 0, 1000, saved_config.get("margin_r", 100), key=f"mr_{self.plot_id}"
+                )
+                margin_pad = st.number_input(
+                    "Padding (px)",
+                    0,
+                    200,
+                    saved_config.get("margin_pad", 0),
+                    key=f"mp_{self.plot_id}",
+                    help="Space between axis and labels",
+                )
             with m2:
-                margin_t = st.number_input("Top", 0, 1000, saved_config.get("margin_t", 80), key=f"mt_{self.plot_id}")
-                margin_b = st.number_input("Bottom", 0, 1000, saved_config.get("margin_b", 120), key=f"mb_{self.plot_id}")
-                automargin = st.checkbox("Auto-Marg (Prevents Cutoff)", value=saved_config.get("automargin", True), key=f"am_{self.plot_id}")
+                margin_t = st.number_input(
+                    "Top", 0, 1000, saved_config.get("margin_t", 80), key=f"mt_{self.plot_id}"
+                )
+                margin_b = st.number_input(
+                    "Bottom", 0, 1000, saved_config.get("margin_b", 120), key=f"mb_{self.plot_id}"
+                )
+                automargin = st.checkbox(
+                    "Auto-Marg (Prevents Cutoff)",
+                    value=saved_config.get("automargin", True),
+                    key=f"am_{self.plot_id}",
+                )
 
         return {
-            "width": width, 
+            "width": width,
             "height": height,
             "margin_l": margin_l,
             "margin_r": margin_r,
             "margin_t": margin_t,
             "margin_b": margin_b,
             "margin_pad": margin_pad,
-            "automargin": automargin
+            "automargin": automargin,
         }
 
-    def render_style_ui(self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame] = None, items: Optional[List[str]] = None, key_prefix: str = "") -> Dict[str, Any]:
+    def render_style_ui(
+        self,
+        saved_config: Dict[str, Any],
+        data: Optional[pd.DataFrame] = None,
+        items: Optional[List[str]] = None,
+        key_prefix: str = "",
+    ) -> Dict[str, Any]:
         """
         Render style configurator UI (Theme, Colors, Fonts).
         Delegates to specific render methods for Series Colors, Backgrounds, and Fonts.
         """
         # 1. Series Styling
         st.markdown("#### Series Colors")
-        
+
         # Color Palette Selection
-        available_palettes = ["Plotly", "G10", "T10", "Alphabet", "Dark24", "Light24", 
-                            "Pastel", "Set1", "Set2", "Set3", "Tableau", "Safe", "Vivid"]
-        
+        available_palettes = [
+            "Plotly",
+            "G10",
+            "T10",
+            "Alphabet",
+            "Dark24",
+            "Light24",
+            "Pastel",
+            "Set1",
+            "Set2",
+            "Set3",
+            "Tableau",
+            "Safe",
+            "Vivid",
+        ]
+
         current_palette = saved_config.get("color_palette", "Plotly")
         if current_palette not in available_palettes:
             current_palette = "Plotly"
-            
+
         color_palette = st.selectbox(
             "Select Color Palette",
             options=available_palettes,
             index=available_palettes.index(current_palette),
             key=f"{key_prefix}palette_{self.plot_id}",
-            help="Choose a color scheme for the plot series/groups."
+            help="Choose a color scheme for the plot series/groups.",
         )
 
-        series_styles = self.render_series_colors_ui(saved_config, data, items=items, key_prefix=key_prefix, current_palette=color_palette)
-        
+        series_styles = self.render_series_colors_ui(
+            saved_config, data, items=items, key_prefix=key_prefix, current_palette=color_palette
+        )
+
         st.markdown("---")
-        
+
         st.markdown("#### Backgrounds & Grid")
-        
+
         transparent_bg = st.checkbox(
             "Transparent Background",
             value=saved_config.get("transparent_bg", False),
@@ -91,7 +138,7 @@ class BaseStyleUI:
                 curr_plot_bg = saved_config.get("plot_bgcolor", "#ffffff")
                 if not curr_plot_bg.startswith("#"):
                     curr_plot_bg = "#ffffff"
-                    
+
                 curr_paper_bg = saved_config.get("paper_bgcolor", "#ffffff")
                 if not curr_paper_bg.startswith("#"):
                     curr_paper_bg = "#ffffff"
@@ -134,7 +181,7 @@ class BaseStyleUI:
                 enable_stripes = False
 
         st.markdown("#### Legend Styling")
-        
+
         # Split into logical sections for better balance
         # 1. Position & Orientation
         st.markdown("**Position & Orientation**")
@@ -147,21 +194,23 @@ class BaseStyleUI:
                 index=0 if saved_config.get("legend_orientation", "v") == "v" else 1,
                 key=f"{key_prefix}leg_orient_{self.plot_id}",
             )
-            
+
             legend_ncols = st.number_input(
                 "Columns (Horiz Only)",
                 min_value=0,
                 max_value=20,
                 value=saved_config.get("legend_ncols", 0),
                 key=f"{key_prefix}leg_cols_{self.plot_id}",
-                help="Set number of columns. Forces Horizontal orientation. 0 = Auto."
+                help="Set number of columns. Forces Horizontal orientation. 0 = Auto.",
             )
 
             legend_valign = st.selectbox(
                 "Vertical Align",
                 options=["middle", "top", "bottom"],
-                index=["middle", "top", "bottom"].index(saved_config.get("legend_valign", "middle")),
-                key=f"{key_prefix}leg_valign_{self.plot_id}"
+                index=["middle", "top", "bottom"].index(
+                    saved_config.get("legend_valign", "middle")
+                ),
+                key=f"{key_prefix}leg_valign_{self.plot_id}",
             )
 
         with pos_c2:
@@ -174,10 +223,12 @@ class BaseStyleUI:
             legend_xanchor = st.selectbox(
                 "X Anchor",
                 options=["auto", "left", "center", "right"],
-                index=["auto", "left", "center", "right"].index(saved_config.get("legend_xanchor", "auto")),
-                key=f"{key_prefix}leg_xanc_{self.plot_id}"
+                index=["auto", "left", "center", "right"].index(
+                    saved_config.get("legend_xanchor", "auto")
+                ),
+                key=f"{key_prefix}leg_xanc_{self.plot_id}",
             )
-            
+
         with pos_c3:
             legend_y = st.number_input(
                 "Y Pos",
@@ -188,8 +239,10 @@ class BaseStyleUI:
             legend_yanchor = st.selectbox(
                 "Y Anchor",
                 options=["auto", "top", "middle", "bottom"],
-                index=["auto", "top", "middle", "bottom"].index(saved_config.get("legend_yanchor", "auto")),
-                key=f"{key_prefix}leg_yanc_{self.plot_id}"
+                index=["auto", "top", "middle", "bottom"].index(
+                    saved_config.get("legend_yanchor", "auto")
+                ),
+                key=f"{key_prefix}leg_yanc_{self.plot_id}",
             )
 
         # 2. Appearance (Background, Border, Fonts)
@@ -203,9 +256,9 @@ class BaseStyleUI:
             transparent_legend = st.checkbox(
                 "Transparent Background",
                 value=saved_config.get("transparent_legend", False),
-                key=f"{key_prefix}trans_leg_{self.plot_id}"
+                key=f"{key_prefix}trans_leg_{self.plot_id}",
             )
-            
+
             if not transparent_legend:
                 legend_bgcolor = st.color_picker(
                     "Background Color",
@@ -214,7 +267,7 @@ class BaseStyleUI:
                 )
             else:
                 legend_bgcolor = "rgba(0,0,0,0)"
-            
+
             st.caption("Border")
             legend_border_color = st.color_picker(
                 "Border Color",
@@ -243,7 +296,7 @@ class BaseStyleUI:
                 value=saved_config.get("legend_font_size", 12),
                 key=f"{key_prefix}leg_font_sz_{self.plot_id}",
             )
-            
+
             st.caption("Title Font")
             legend_title_font_color = st.color_picker(
                 "Title Color",
@@ -267,15 +320,19 @@ class BaseStyleUI:
                 options=["constant", "trace"],
                 index=0 if saved_config.get("legend_itemsizing", "constant") == "constant" else 1,
                 key=f"{key_prefix}leg_item_sz_{self.plot_id}",
-                help="Constant: markers are equal size. Trace: markers match plot size."
+                help="Constant: markers are equal size. Trace: markers match plot size.",
             )
             legend_itemwidth = st.number_input(
                 "Marker Width (px)",
                 min_value=0,
                 max_value=120,
-                value=saved_config.get("legend_itemwidth") if saved_config.get("legend_itemwidth") is not None else 30,
+                value=(
+                    saved_config.get("legend_itemwidth")
+                    if saved_config.get("legend_itemwidth") is not None
+                    else 30
+                ),
                 key=f"{key_prefix}leg_item_wd_{self.plot_id}",
-                help="Width of the legend items (default 30). Set to 0 for auto."
+                help="Width of the legend items (default 30). Set to 0 for auto.",
             )
             legend_tracegroupgap = st.number_input(
                 "Item Spacing (px)",
@@ -283,7 +340,7 @@ class BaseStyleUI:
                 max_value=100,
                 value=saved_config.get("legend_tracegroupgap", 10),
                 key=f"{key_prefix}leg_gap_{self.plot_id}",
-                help="Vertical spacing between legend items."
+                help="Vertical spacing between legend items.",
             )
 
         with sz_c2:
@@ -292,15 +349,19 @@ class BaseStyleUI:
                 options=["pixels", "fraction"],
                 index=0 if saved_config.get("legend_entrywidthmode", "pixels") == "pixels" else 1,
                 key=f"{key_prefix}leg_width_mode_{self.plot_id}",
-                help="How to interpret the entry width value."
+                help="How to interpret the entry width value.",
             )
             legend_entrywidth = st.number_input(
                 "Entry Width",
                 min_value=0,
                 max_value=1200,
-                value=int(saved_config.get("legend_entrywidth")) if saved_config.get("legend_entrywidth") is not None else 0,
+                value=(
+                    int(saved_config.get("legend_entrywidth"))
+                    if saved_config.get("legend_entrywidth") is not None
+                    else 0
+                ),
                 key=f"{key_prefix}leg_entry_wd_{self.plot_id}",
-                help="Set a fixed width (e.g. 200) to prevent text cropping. Leave at 0 for Plotly default behavior."
+                help="Set a fixed width (e.g. 200) to prevent text cropping. Leave at 0 for Plotly default behavior.",
             )
 
         st.markdown("#### Typography (Titles & Labels)")
@@ -309,7 +370,7 @@ class BaseStyleUI:
             plot_title = st.text_input(
                 "Main Plot Title",
                 value=saved_config.get("title", ""),
-                key=f"{key_prefix}plot_title_{self.plot_id}"
+                key=f"{key_prefix}plot_title_{self.plot_id}",
             )
             title_font_size = st.number_input(
                 "Plot Title Font Size",
@@ -323,13 +384,13 @@ class BaseStyleUI:
                 "Legend Title",
                 value=saved_config.get("legend_title", ""),
                 key=f"{key_prefix}leg_title_txt_{self.plot_id}",
-                help="Leave empty to use default (Group/Color column name)"
+                help="Leave empty to use default (Group/Color column name)",
             )
-            
+
             xaxis_title = st.text_input(
                 "X-Axis Title",
                 value=saved_config.get("xaxis_title", ""),
-                key=f"{key_prefix}xaxis_title_{self.plot_id}"
+                key=f"{key_prefix}xaxis_title_{self.plot_id}",
             )
             xaxis_title_font_size = st.number_input(
                 "X-Axis Title Font Size",
@@ -342,7 +403,7 @@ class BaseStyleUI:
             yaxis_title = st.text_input(
                 "Y-Axis Title",
                 value=saved_config.get("yaxis_title", ""),
-                key=f"{key_prefix}yaxis_title_{self.plot_id}"
+                key=f"{key_prefix}yaxis_title_{self.plot_id}",
             )
             yaxis_title_font_size = st.number_input(
                 "Y-Axis Title Font Size",
@@ -359,7 +420,7 @@ class BaseStyleUI:
                 max_value=24,
                 value=saved_config.get("xaxis_tickfont_size", 12),
                 key=f"{key_prefix}xaxis_tick_sz_{self.plot_id}",
-                help="Overwrites the basic X-axis font size in Advanced Options"
+                help="Overwrites the basic X-axis font size in Advanced Options",
             )
             xaxis_tickfont_color = st.color_picker(
                 "X-Axis Label Color",
@@ -397,10 +458,18 @@ class BaseStyleUI:
             "legend_border_color": legend_border_color,
             "legend_border_width": legend_border_width,
             "legend_itemsizing": legend_itemsizing,
-            "legend_entrywidth": legend_entrywidth if (legend_entrywidth is not None and legend_entrywidth > 0) else None,
+            "legend_entrywidth": (
+                legend_entrywidth
+                if (legend_entrywidth is not None and legend_entrywidth > 0)
+                else None
+            ),
             "legend_entrywidthmode": legend_entrywidthmode,
             "legend_tracegroupgap": legend_tracegroupgap,
-            "legend_itemwidth": legend_itemwidth if (legend_itemwidth is not None and legend_itemwidth > 0) else None,
+            "legend_itemwidth": (
+                legend_itemwidth
+                if (legend_itemwidth is not None and legend_itemwidth > 0)
+                else None
+            ),
             "legend_valign": legend_valign,
             "legend_xanchor": legend_xanchor,
             "legend_yanchor": legend_yanchor,
@@ -419,198 +488,214 @@ class BaseStyleUI:
             "yaxis_title_font_size": yaxis_title_font_size,
             "yaxis_tickfont_size": yaxis_tickfont_size,
             "yaxis_tickfont_color": yaxis_tickfont_color,
-            "xaxis_tickfont_size": xaxis_tickfont_size,
-            "yaxis_tickfont_size": yaxis_tickfont_size,
             "series_styles": series_styles,
         }
 
         return theme_config
 
     def render_series_colors_ui(
-        self, 
-        saved_config: Dict[str, Any], 
+        self,
+        saved_config: Dict[str, Any],
         data: Optional[pd.DataFrame] = None,
         items: Optional[List[str]] = None,
         key_prefix: str = "",
-        current_palette: Optional[str] = None
+        current_palette: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Render UI for per-series coloring.
         """
         series_styles = saved_config.get("series_styles", {})
         unique_vals = self._get_unique_values(saved_config, data, items)
-        
+
         # Use current selection if available, else saved config
         palette_name = current_palette or saved_config.get("color_palette", "plotly")
-        
+
         from src.plotting.styles.colors import get_palette_colors, to_hex
+
         palette_colors = get_palette_colors(palette_name)
 
         if unique_vals:
             for idx, val in enumerate(unique_vals):
                 val_str = str(val)
-                val_hash = hashlib.md5(val_str.encode()).hexdigest()[:8]
-                
+                val_hash = hashlib.md5(val_str.encode(), usedforsecurity=False).hexdigest()[:8]
+
                 raw_color = palette_colors[idx % len(palette_colors)]
                 default_color = to_hex(raw_color)
-                
+
                 current_style = series_styles.get(val_str, {})
-                
+
                 c1, c2 = st.columns([1, 2])
                 with c1:
                     st.markdown(f"**{val_str}**")
-                    
+
                 with c2:
                     # Pass palette name to trigger key reset on palette change
-                    current_style = self._render_series_item(val_str, default_color, current_style, val_hash, key_prefix, palette_name)
-                    
+                    current_style = self._render_series_item(
+                        val_str, default_color, current_style, val_hash, key_prefix, palette_name
+                    )
+
                 series_styles[val_str] = current_style
-                
+
         return series_styles
-    
-    def _render_series_item(self, val_str: str, default_color: str, current_style: Dict[str, Any], val_hash: str, key_prefix: str = "", palette_context: str = ""):
+
+    def _render_series_item(
+        self,
+        val_str: str,
+        default_color: str,
+        current_style: Dict[str, Any],
+        val_hash: str,
+        key_prefix: str = "",
+        palette_context: str = "",
+    ):
         c2, c3 = st.columns([1, 2])
-        
+
         # Keys for widgets
         picker_key = f"{key_prefix}color_{self.plot_id}_{val_hash}"
         override_key = f"{key_prefix}use_col_{self.plot_id}_{val_hash}"
-        
+
         with c2:
             st.color_picker(
-                 "Original",
-                 default_color,
-                 key=f"{key_prefix}orig_col_{self.plot_id}_{val_hash}_{palette_context}",
-                 disabled=True,
-                 label_visibility="collapsed"
+                "Original",
+                default_color,
+                key=f"{key_prefix}orig_col_{self.plot_id}_{val_hash}_{palette_context}",
+                disabled=True,
+                label_visibility="collapsed",
             )
             st.caption(f"{default_color}")
-            
+
             # Reset Button
-            if st.button("Rewind", key=f"{key_prefix}rst_{self.plot_id}_{val_hash}", help="Reset to palette color"):
-                 current_style["use_color"] = False
-                 current_style["color"] = default_color
-                 
-                 # Force update session state to reflect change immediately
-                 if picker_key in st.session_state:
-                     st.session_state[picker_key] = default_color
-                 if override_key in st.session_state:
-                     st.session_state[override_key] = False
-                     
-                 st.rerun()
+            if st.button(
+                "Rewind",
+                key=f"{key_prefix}rst_{self.plot_id}_{val_hash}",
+                help="Reset to palette color",
+            ):
+                current_style["use_color"] = False
+                current_style["color"] = default_color
+
+                # Force update session state to reflect change immediately
+                if picker_key in st.session_state:
+                    st.session_state[picker_key] = default_color
+                if override_key in st.session_state:
+                    st.session_state[override_key] = False
+
+                st.rerun()
 
         with c3:
             saved_col = current_style.get("color", default_color)
             new_color = st.color_picker(
-                "Custom",
-                saved_col,
-                key=picker_key,
-                label_visibility="collapsed"
+                "Custom", saved_col, key=picker_key, label_visibility="collapsed"
             )
             st.caption(f"{new_color}")
-            
+
             use_custom = st.checkbox(
-                "Override",
-                value=current_style.get("use_color", False),
-                key=override_key
+                "Override", value=current_style.get("use_color", False), key=override_key
             )
-            
+
             current_style["color"] = new_color
             current_style["use_color"] = use_custom
 
             # specific visuals (Symbols, Patterns, etc)
             self._render_specific_series_visuals(current_style, val_hash, key_prefix=key_prefix)
-            
+
         return current_style
 
-    def _render_specific_series_visuals(self, current_style: Dict[str, Any], key_suffix: str, key_prefix: str = ""):
+    def _render_specific_series_visuals(
+        self, current_style: Dict[str, Any], key_suffix: str, key_prefix: str = ""
+    ):
         """Hook for subclasses to render specific style options."""
         pass
 
     def render_series_renaming_ui(
-        self, 
-        saved_config: Dict[str, Any], 
+        self,
+        saved_config: Dict[str, Any],
         data: Optional[pd.DataFrame] = None,
-        items: Optional[List[str]] = None
+        items: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """
         Render UI for per-series renaming.
         """
         series_styles = saved_config.get("series_styles", {})
         unique_vals = self._get_unique_values(saved_config, data, items)
-        
+
         if unique_vals:
-             for val in unique_vals:
-                 val_str = str(val)
-                 val_hash = hashlib.md5(val_str.encode()).hexdigest()[:8]
-                 
-                 current_style = series_styles.get(val_str, {})
-                 
-                 c1, c2 = st.columns([1, 2])
-                 with c1:
-                     st.markdown(f"**{val_str}**")
-                 with c2:
-                     new_name = st.text_input(
-                         "Display Name",
-                         value=current_style.get("name", val_str),
-                         key=f"name_{self.plot_id}_{val_hash}",
-                         label_visibility="collapsed",
-                         placeholder=val_str
-                     )
-                     current_style["name"] = new_name
-                 
-                 series_styles[val_str] = current_style
-                 
+            for val in unique_vals:
+                val_str = str(val)
+                val_hash = hashlib.md5(val_str.encode(), usedforsecurity=False).hexdigest()[:8]
+
+                current_style = series_styles.get(val_str, {})
+
+                c1, c2 = st.columns([1, 2])
+                with c1:
+                    st.markdown(f"**{val_str}**")
+                with c2:
+                    new_name = st.text_input(
+                        "Display Name",
+                        value=current_style.get("name", val_str),
+                        key=f"name_{self.plot_id}_{val_hash}",
+                        label_visibility="collapsed",
+                        placeholder=val_str,
+                    )
+                    current_style["name"] = new_name
+
+                series_styles[val_str] = current_style
+
         return series_styles
 
-    def render_xaxis_labels_ui(self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame] = None, key_prefix: str = "xlabel") -> Dict[str, str]:
+    def render_xaxis_labels_ui(
+        self,
+        saved_config: Dict[str, Any],
+        data: Optional[pd.DataFrame] = None,
+        key_prefix: str = "xlabel",
+    ) -> Dict[str, str]:
         """
         Render UI for X-Axis label renaming.
         """
         xaxis_labels = saved_config.get("xaxis_labels", {})
         x_col = saved_config.get("x")
-        
+
         if data is not None and x_col and x_col in data.columns:
             st.markdown("#### X-Axis Label Overrides")
             with st.expander("Rename X-Axis Labels"):
                 unique_x_raw = data[x_col].unique()
                 unique_x = sorted(unique_x_raw, key=lambda x: str(x))
-                
+
                 if len(unique_x) > 50:
                     st.warning("Too many X-axis values to list all. Showing first 50.")
                     unique_x = unique_x[:50]
-                
+
                 for val in unique_x:
-                     s_val = str(val)
-                     import hashlib
-                     val_hash = hashlib.md5(s_val.encode()).hexdigest()[:8]
-                     
-                     col_l, col_r = st.columns([1, 2])
-                     with col_l:
-                          st.markdown(f"**{val}**")
-                     with col_r:
-                          new_label = st.text_input(
-                              "Display As",
-                              value=xaxis_labels.get(s_val, ""),
-                              key=f"{key_prefix}_{self.plot_id}_{val_hash}",
-                              label_visibility="collapsed",
-                              placeholder=s_val
-                          )
-                          if new_label and new_label != s_val:
-                              xaxis_labels[s_val] = new_label
-                          elif s_val in xaxis_labels:
-                              del xaxis_labels[s_val]
-        
+                    s_val = str(val)
+                    import hashlib
+
+                    val_hash = hashlib.md5(s_val.encode(), usedforsecurity=False).hexdigest()[:8]
+
+                    col_l, col_r = st.columns([1, 2])
+                    with col_l:
+                        st.markdown(f"**{val}**")
+                    with col_r:
+                        new_label = st.text_input(
+                            "Display As",
+                            value=xaxis_labels.get(s_val, ""),
+                            key=f"{key_prefix}_{self.plot_id}_{val_hash}",
+                            label_visibility="collapsed",
+                            placeholder=s_val,
+                        )
+                        if new_label and new_label != s_val:
+                            xaxis_labels[s_val] = new_label
+                        elif s_val in xaxis_labels:
+                            del xaxis_labels[s_val]
+
         return xaxis_labels
 
     def _get_unique_values(self, saved_config, data, items) -> List[Any]:
         """Helper to determine series items."""
         unique_vals = []
         if items is not None:
-             unique_vals = sorted([str(i) for i in items])
+            unique_vals = sorted([str(i) for i in items])
         elif data is not None:
             legend_col = saved_config.get("color") or saved_config.get("group")
             y_cols = saved_config.get("y_columns", [])
-            
+
             if legend_col and legend_col in data.columns:
                 unique_vals = sorted(data[legend_col].unique().astype(str).tolist())
             elif y_cols:

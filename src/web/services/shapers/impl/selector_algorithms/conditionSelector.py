@@ -17,7 +17,7 @@ class ConditionSelector(Selector):
         self._threshold = params.get("threshold")
         self._range = params.get("range")
         self._values = params.get("values")
-        
+
         super().__init__(params)
 
     def _verifyParams(self) -> bool:

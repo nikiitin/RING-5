@@ -20,8 +20,6 @@ class confType:
         self.__dict__["balancedContent"] = False
         self.__dict__["reducedDuplicates"] = False
 
-
-
     def __str__(self) -> str:
         # This method gives the string representation of the variable
         stringVariable = ""

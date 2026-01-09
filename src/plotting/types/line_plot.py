@@ -36,15 +36,19 @@ class LinePlot(BasePlot):
 
         return {**config, "color": color_column}
 
-    def render_specific_advanced_options(self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame] = None) -> Dict[str, Any]:
+    def render_specific_advanced_options(
+        self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame] = None
+    ) -> Dict[str, Any]:
         """Specific options for Line Plot."""
         config = {}
         st.markdown("#### Line Settings")
         config["line_shape"] = st.selectbox(
             "Line Shape",
             ["linear", "spline", "hv", "vh", "hvh", "vhv"],
-            index=["linear", "spline", "hv", "vh", "hvh", "vhv"].index(saved_config.get("line_shape", "linear")),
-            key=f"lshape_{self.plot_id}"
+            index=["linear", "spline", "hv", "vh", "hvh", "vhv"].index(
+                saved_config.get("line_shape", "linear")
+            ),
+            key=f"lshape_{self.plot_id}",
         )
         return config
 
@@ -72,7 +76,7 @@ class LinePlot(BasePlot):
         )
 
         # Force categorical x-axis to show all unique values as labels
-        fig.update_xaxes(type='category')
+        fig.update_xaxes(type="category")
 
         return fig
 

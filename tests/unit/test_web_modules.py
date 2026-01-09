@@ -155,12 +155,12 @@ class TestBackendFacade:
 
         # Create facade with test directory (override paths after creation)
         facade = BackendFacade()
-        
+
         # Create a clean temp directory for testing
         temp_csv_pool = self.test_dir / "csv_pool"
         temp_csv_pool.mkdir(parents=True, exist_ok=True)
         facade.csv_pool_dir = temp_csv_pool
-        
+
         pool = facade.load_csv_pool()
 
         assert isinstance(pool, list)

@@ -27,7 +27,7 @@ class StateManager:
     STATS_PATH = "stats_path"
     STATS_PATTERN = "stats_pattern"
     SCANNED_VARIABLES = "scanned_variables"
-    
+
     # Plot State Keys
     PLOTS_OBJECTS = "plots_objects"
     PLOT_COUNTER = "plot_counter"
@@ -78,15 +78,15 @@ class StateManager:
             try:
                 variables = StateManager.get_parse_variables()
                 if variables:
-                     config_vars = [v["name"] for v in variables if v.get("type") == "configuration"]
-                     for col in config_vars:
-                         if col in data.columns:
-                             # Cast to string to treat as categorical
-                             # We use .astype(str) which converts connection-like objects properly
-                             data[col] = data[col].astype(str)
+                    config_vars = [v["name"] for v in variables if v.get("type") == "configuration"]
+                    for col in config_vars:
+                        if col in data.columns:
+                            # Cast to string to treat as categorical
+                            # We use .astype(str) which converts connection-like objects properly
+                            data[col] = data[col].astype(str)
             except Exception as e:
                 print(f"Error enforcing configuration types: {e}")
-                
+
         st.session_state[StateManager.DATA] = data
 
     @staticmethod
@@ -170,16 +170,17 @@ class StateManager:
     def get_parse_variables() -> List[Dict[str, str]]:
         """Get the parse variables configuration, ensuring each has a unique ID."""
         import uuid
+
         variables = st.session_state.get(StateManager.PARSE_VARIABLES, [])
         keys_updated = False
         for var in variables:
             if "_id" not in var:
                 var["_id"] = str(uuid.uuid4())
                 keys_updated = True
-        
+
         if keys_updated:
             st.session_state[StateManager.PARSE_VARIABLES] = variables
-            
+
         return variables
 
     @staticmethod
@@ -234,18 +235,18 @@ class StateManager:
         st.session_state[StateManager.CSV_PATH] = None
         st.session_state[StateManager.USE_PARSER] = False
         st.session_state[StateManager.TEMP_DIR] = None
-        
+
         # Reset new/parser fields
         st.session_state[StateManager.STATS_PATH] = "/path/to/gem5/stats"
         st.session_state[StateManager.STATS_PATTERN] = "stats.txt"
         st.session_state[StateManager.SCANNED_VARIABLES] = []
-        
+
         # Also clean up parse variables to default?
         st.session_state[StateManager.PARSE_VARIABLES] = [
-                {"name": "simTicks", "type": "scalar"},
-                {"name": "benchmark_name", "type": "configuration"},
-                {"name": "config_description", "type": "configuration"},
-            ]
+            {"name": "simTicks", "type": "scalar"},
+            {"name": "benchmark_name", "type": "configuration"},
+            {"name": "config_description", "type": "configuration"},
+        ]
 
     @staticmethod
     def has_data() -> bool:
@@ -271,7 +272,7 @@ class StateManager:
     def set_plot_counter(counter: int):
         """Set the plot counter value."""
         st.session_state[StateManager.PLOT_COUNTER] = counter
-        
+
     @staticmethod
     def start_next_plot_id() -> int:
         """Increment and return the next plot ID."""
@@ -293,12 +294,13 @@ class StateManager:
     def restore_session_state(portfolio_data: Dict[str, Any]):
         """Restore session state from portfolio data."""
         import io
+
         from src.plotting import BasePlot
 
         # Restore variables configuration if present (CRITICAL for type enforcement)
         if "parse_variables" in portfolio_data:
             st.session_state[StateManager.PARSE_VARIABLES] = portfolio_data["parse_variables"]
-            
+
         # Restore stats config
         if "stats_path" in portfolio_data:
             st.session_state[StateManager.STATS_PATH] = portfolio_data["stats_path"]
@@ -309,25 +311,59 @@ class StateManager:
 
         # Restore data
         if "data_csv" in portfolio_data:
-             data = pd.read_csv(io.StringIO(portfolio_data["data_csv"]))
-             StateManager.set_data(data)
-        
+            data = pd.read_csv(io.StringIO(portfolio_data["data_csv"]))
+            StateManager.set_data(data)
+
         StateManager.set_csv_path(portfolio_data.get("csv_path"))
 
         # Clear stale widget states for plots to force re-initialization from config
         # This ensures advanced options (like order, legend aliases) are reflected correctly
         keys_to_clear = [
-            k for k in st.session_state.keys()
-            if any(marker in k for marker in [
-                "_order_", "leg_ren_", "leg_orient_", "leg_x_", "leg_y_",
-                "xaxis_angle_", "xaxis_font_", "ydtick_", "automargin_",
-                "margin_b_", "bargap_", "bargroupgap_", "bar_border_",
-                "editable_", "download_fmt_", "show_error_bars", "new_plot_name",
-                "colsel_", "norm_", "mean_", "sort_", "filter_", "trans_",
-                "colsel_", "norm_", "mean_", "sort_", "filter_", "trans_",
-                # Clear specific style widget keys to prevent stale state
-                "name_", "color_", "use_col_", "sym_", "msize_", "lwidth_", "pat_", "xlabel_"
-            ])
+            k
+            for k in st.session_state.keys()
+            if any(
+                marker in k
+                for marker in [
+                    "_order_",
+                    "leg_ren_",
+                    "leg_orient_",
+                    "leg_x_",
+                    "leg_y_",
+                    "xaxis_angle_",
+                    "xaxis_font_",
+                    "ydtick_",
+                    "automargin_",
+                    "margin_b_",
+                    "bargap_",
+                    "bargroupgap_",
+                    "bar_border_",
+                    "editable_",
+                    "download_fmt_",
+                    "show_error_bars",
+                    "new_plot_name",
+                    "colsel_",
+                    "norm_",
+                    "mean_",
+                    "sort_",
+                    "filter_",
+                    "trans_",
+                    "colsel_",
+                    "norm_",
+                    "mean_",
+                    "sort_",
+                    "filter_",
+                    "trans_",
+                    # Clear specific style widget keys to prevent stale state
+                    "name_",
+                    "color_",
+                    "use_col_",
+                    "sym_",
+                    "msize_",
+                    "lwidth_",
+                    "pat_",
+                    "xlabel_",
+                ]
+            )
         ]
         for k in keys_to_clear:
             del st.session_state[k]

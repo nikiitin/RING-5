@@ -1,5 +1,6 @@
 import pandas as pd
 import pytest
+
 from src.plotting import GroupedBarPlot, GroupedStackedBarPlot
 
 
@@ -34,14 +35,12 @@ class TestGroupedBarPlotFilters:
         fig = plot.create_figure(sample_data, config)
 
         # Check that C is not in the figure data
-        # In grouped bar plot, x values are in fig.data[i].x
-        all_x = []
-        for trace in fig.data:
-            all_x.extend(trace.x)
+        # In grouped bar plot, x values are manual coords, check ticktext
+        tick_text = fig.layout.xaxis.ticktext
 
-        assert "A" in all_x
-        assert "B" in all_x
-        assert "C" not in all_x
+        assert "A" in tick_text
+        assert "B" in tick_text
+        assert "C" not in tick_text
 
     def test_filter_group(self, sample_data):
         """Test filtering Group values."""

@@ -1,5 +1,5 @@
-from typing import List, Any, Optional
 from tqdm import tqdm
+
 from src.core.multiprocessing.pool import WorkPool
 from src.parsing.impl.multiprocessing.parseWork import ParseWork
 
@@ -9,6 +9,7 @@ class ParseWorkPool:
     Facade for parsing work pool, now using the unified WorkPool manager.
     Maintains the existing API for compatibility.
     """
+
     _singleton = None
 
     @classmethod
@@ -29,7 +30,7 @@ class ParseWorkPool:
 
     def startPool(self) -> None:
         """
-        No-op for compatibility. 
+        No-op for compatibility.
         The unified WorkPool handles its own lifecycle.
         Clears previous futures for a fresh start.
         """
@@ -42,7 +43,7 @@ class ParseWorkPool:
         """
         results = []
         print(f"Collecting results from {len(self._futures)} parsing jobs...")
-        
+
         for future in tqdm(self._futures, desc="Parsing progress"):
             try:
                 result = future.result()
@@ -51,8 +52,9 @@ class ParseWorkPool:
             except Exception as e:
                 print(f"Error in parsing job: {e}")
                 import traceback
+
                 traceback.print_exc()
-        
+
         # Clear futures for next batch
         self._futures = []
         return results

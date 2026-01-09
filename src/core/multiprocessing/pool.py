@@ -1,15 +1,18 @@
-import os
 import multiprocessing
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, Future
-from typing import List, Optional, Union, Callable
+import os
+from concurrent.futures import Future, ProcessPoolExecutor, ThreadPoolExecutor
+from typing import Callable, List, Optional, Union
+
 from .job import Job
+
 
 class WorkPool:
     """
     Unified singleton pool manager for parallel task execution.
     Supports both ProcessPool (for CPU-bound tasks) and ThreadPool (for IO-bound tasks).
     """
-    _instance: Optional['WorkPool'] = None
+
+    _instance: Optional["WorkPool"] = None
 
     def __new__(cls):
         if cls._instance is None:
@@ -20,36 +23,33 @@ class WorkPool:
     def __init__(self):
         if self._initialized:
             return
-            
+
         self._num_workers = os.cpu_count() or 1
         self._process_executor: Optional[ProcessPoolExecutor] = None
         self._thread_executor: Optional[ThreadPoolExecutor] = None
-        
+
         # Use spawn context for processes to avoid fork warnings
         try:
             self._mp_context = multiprocessing.get_context("spawn")
         except ValueError:
             self._mp_context = None
-            
+
         self._initialized = True
 
     @classmethod
-    def get_instance(cls) -> 'WorkPool':
+    def get_instance(cls) -> "WorkPool":
         return cls()
 
     def _get_process_executor(self) -> ProcessPoolExecutor:
         if self._process_executor is None:
             self._process_executor = ProcessPoolExecutor(
-                max_workers=max(1, self._num_workers - 1),
-                mp_context=self._mp_context
+                max_workers=max(1, self._num_workers - 1), mp_context=self._mp_context
             )
         return self._process_executor
 
     def _get_thread_executor(self) -> ThreadPoolExecutor:
         if self._thread_executor is None:
-            self._thread_executor = ThreadPoolExecutor(
-                max_workers=self._num_workers * 2
-            )
+            self._thread_executor = ThreadPoolExecutor(max_workers=self._num_workers * 2)
         return self._thread_executor
 
     def submit(self, task: Union[Job, Callable], use_threads: bool = False) -> Future:

@@ -4,14 +4,13 @@ import os
 from tqdm import tqdm
 
 import src.utils.utils as utils
-from src.parsing.params import DataParserParams
+from src.parsing.impl.data_parser_perl.src.compressor.compressor import Compressor
+from src.parsing.impl.data_parser_perl.src.parser_impl.perlParseWork import (
+    PerlParseWork,
+)
+from src.parsing.impl.data_parser_perl.src.type_mapping.typeMapper import TypeMapper
 from src.parsing.interface import DataParserInterface
-from src.parsing.impl.data_parser_perl.src.compressor.compressor import \
-    Compressor
-from src.parsing.impl.data_parser_perl.src.parser_impl.perlParseWork import \
-    PerlParseWork
-from src.parsing.impl.data_parser_perl.src.type_mapping.typeMapper import \
-    TypeMapper
+from src.parsing.params import DataParserParams
 
 
 class DataParserPerl(DataParserInterface):
@@ -55,16 +54,18 @@ class DataParserPerl(DataParserInterface):
                 varsToParse.update({identifier: TypeMapper.map(dataType, repeat, onEmpty=onEmpty)})
             else:
                 varsToParse.update({identifier: TypeMapper.map(dataType, repeat)})
-            
+
             # Helper to map object
             obj = varsToParse[identifier]
-            
+
             # Check for multi-ID mapping (Reduction)
             if utils.checkElementExistNoException(var, "parsed_ids"):
                 parsed_ids = utils.getElementValue(var, "parsed_ids")
                 if isinstance(parsed_ids, list):
                     for pid in parsed_ids:
-                        if pid != identifier: # identifier matches one of them usually, or is the reduced name
+                        if (
+                            pid != identifier
+                        ):  # identifier matches one of them usually, or is the reduced name
                             varsToParse[pid] = obj
         return varsToParse
 
@@ -134,7 +135,7 @@ class DataParserPerl(DataParserInterface):
             # to turn the results into csv
             # FIX: Only use the IDs defined in the config, not the mapped (concrete) IDs
             self._varsToParse = [v["id"] for v in parsingVars]
-            
+
             # We must use mappedVars for the actual parsing work though
             parsingVars = mappedVars
             # Start the pool for parse workers

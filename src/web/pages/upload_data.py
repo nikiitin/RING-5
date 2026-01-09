@@ -4,10 +4,12 @@ Page for uploading CSV data directly.
 """
 
 import streamlit as st
+
 from src.web.facade import BackendFacade
 from src.web.state_manager import StateManager
 from src.web.styles import AppStyles
 from src.web.ui.components.upload_components import UploadComponents
+
 
 class UploadDataPage:
     """Handles CSV data upload and preview."""
@@ -37,4 +39,3 @@ class UploadDataPage:
 
         with tab2:
             UploadComponents.render_paste_data_tab()
-

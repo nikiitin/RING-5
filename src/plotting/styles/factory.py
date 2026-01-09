@@ -1,6 +1,7 @@
+from .bar_ui import BarStyleUI
 from .base_ui import BaseStyleUI
 from .line_ui import LineStyleUI, ScatterStyleUI
-from .bar_ui import BarStyleUI
+
 
 class StyleUIFactory:
     @staticmethod

@@ -20,8 +20,8 @@ class Compressor:
         if not utils.checkDirExists(destDir):
             try:
                 os.mkdir(destDir)
-            except OSError:
-                raise RuntimeError("Could not find or create the directory: " + destDir)
+            except OSError as err:
+                raise RuntimeError("Could not find or create the directory: " + destDir) from err
         tar = tarfile.open(pathToTar + ".tar.gz", "w:gz")
         # Add all the files to the tar file
         for file in tqdm(filesToCompress):
@@ -37,8 +37,8 @@ class Compressor:
         # Extract the tar file
         try:
             tar = tarfile.open(pathToTar + ".tar.gz", "r:gz")
-        except OSError:
-            raise RuntimeError("Could not find or open the file: " + destDir + ".tar.gz")
+        except OSError as err:
+            raise RuntimeError("Could not find or open the file: " + destDir + ".tar.gz") from err
 
         tar.extractall(destDir, filter="data")
         tar.close()

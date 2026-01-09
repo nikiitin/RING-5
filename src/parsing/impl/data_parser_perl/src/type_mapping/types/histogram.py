@@ -1,5 +1,4 @@
-from src.data_parser.src.impl.data_parser_perl.src.type_mapping.confType import \
-    confType
+from src.data_parser.src.impl.data_parser_perl.src.type_mapping.confType import confType
 
 
 class Histogram(confType):
@@ -18,6 +17,7 @@ class Histogram(confType):
     Those are repeated n times for each cpu.
     Have a fixed amout of buckets.
     """
+
     def __setattr__(self, __name: str, __value: dict) -> None:
         super().__setattr__(__name, __value)
         if __name == "content":
@@ -48,18 +48,18 @@ class Histogram(confType):
                             f"field: {__name}"
                         )
 
-            except Exception:
+            except Exception as err:
                 raise TypeError(
                     "HISTOGRAM: Unable to turn keys of dict into ranges: "
                     f"value: {__value} "
                     f"type: {type(__value)} "
                     f"field: {__name}"
-                )
+                ) from err
             try:
                 # Check if all values are ints
                 map(int, __value.values())
 
-            except Exception:
+            except Exception as err:
                 raise TypeError(
                     "HISTOGRAM: Variable non-convertible to list of ints... value: "
                     + str(__value)
@@ -67,7 +67,7 @@ class Histogram(confType):
                     + str(type(__value))
                     + " field: "
                     + __name
-                )
+                ) from err
             # We have a fixed amount of buckets delimited each with a value.
             # Starting from 0 to the last bucket, which has the value N+
             # We have to add the samples to the corresponding bucket
@@ -114,7 +114,7 @@ class Histogram(confType):
             # Iterating over the keys of the dictionary
             if len(self.content.get(entry)) < int(self.repeat):
                 # Fill the missing values with 0
-                for i in range(len(self.content.get(entry)), int(self.repeat)):
+                for _i in range(len(self.content.get(entry)), int(self.repeat)):
                     self.content[entry].append(0)
             elif len(self.content.get(entry)) > int(self.repeat):
                 raise RuntimeError(

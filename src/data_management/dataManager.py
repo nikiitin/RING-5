@@ -1,7 +1,10 @@
-from argumentParser import AnalyzerInfo
-from abc import ABC, abstractmethod
-import src.utils.utils as utils
+from abc import abstractmethod
+
 import pandas as pd
+from argumentParser import AnalyzerInfo
+
+import src.utils.utils as utils
+
 
 class DataManager:
 
@@ -9,6 +12,7 @@ class DataManager:
     _categorical_columns = None
     _statistic_columns = None
     _csvPath = None
+
     def __init__(self, params: AnalyzerInfo, json: dict) -> None:
         """
         Constructor for the DataManager class.
@@ -34,8 +38,11 @@ class DataManager:
             DataManager._categorical_columns.remove("random_seed")
         # Identify numeric statistic columns (all columns not in categorical_columns or 'random_seed').
         if DataManager._statistic_columns is None:
-            DataManager._statistic_columns = [col for col in DataManager._df.columns if col not in DataManager._categorical_columns and col != "random_seed"]
-
+            DataManager._statistic_columns = [
+                col
+                for col in DataManager._df.columns
+                if col not in DataManager._categorical_columns and col != "random_seed"
+            ]
 
     @abstractmethod
     def _verifyParams(self) -> None:
@@ -50,7 +57,9 @@ class DataManager:
         # Ensure all specified categorical columns exist in the DataFrame
         missing_columns = set(DataManager._categorical_columns) - set(self._df.columns.astype(str))
         if missing_columns:
-            raise ValueError(f"The following categorical columns are missing from the DataFrame: {list(missing_columns)}")
+            raise ValueError(
+                f"The following categorical columns are missing from the DataFrame: {list(missing_columns)}"
+            )
         pass
 
     @abstractmethod

@@ -1,16 +1,16 @@
+from src.web.services.shapers.base_shaper import Shaper
 from src.web.services.shapers.impl.mean import Mean
 from src.web.services.shapers.impl.normalize import Normalize
-from src.web.services.shapers.impl.selector_algorithms.columnSelector import \
-    ColumnSelector
-from src.web.services.shapers.impl.selector_algorithms.conditionSelector import \
-    ConditionSelector
-from src.web.services.shapers.impl.selector_algorithms.itemSelector import \
-    ItemSelector
+from src.web.services.shapers.impl.selector_algorithms.columnSelector import (
+    ColumnSelector,
+)
+from src.web.services.shapers.impl.selector_algorithms.conditionSelector import (
+    ConditionSelector,
+)
+from src.web.services.shapers.impl.selector_algorithms.itemSelector import ItemSelector
 from src.web.services.shapers.impl.sort import Sort
-from src.web.services.shapers.base_shaper import Shaper
-
-
 from src.web.services.shapers.impl.transformer import Transformer
+
 
 class ShaperFactory:
     """

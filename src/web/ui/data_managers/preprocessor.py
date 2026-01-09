@@ -3,6 +3,7 @@ Preprocessor Manager
 """
 
 import streamlit as st
+
 from src.web.ui.data_managers.base_manager import DataManager
 
 
@@ -49,8 +50,11 @@ class PreprocessorManager(DataManager):
             src_col1 = st.selectbox("Source Column 1", options=numeric_cols, key="preproc_src1")
 
         from src.web.services.data_processing_service import DataProcessingService
+
         with col2:
-            operation = st.selectbox("Operation", options=DataProcessingService.list_operators(), key="preproc_op")
+            operation = st.selectbox(
+                "Operation", options=DataProcessingService.list_operators(), key="preproc_op"
+            )
 
         with col3:
             src_col2 = st.selectbox("Source Column 2", options=numeric_cols, key="preproc_src2")
@@ -66,7 +70,7 @@ class PreprocessorManager(DataManager):
         elif op_lower in ["multiplication", "multiply"]:
             default_name = f"{src_col1}_prod_{src_col2}"
         else:
-             default_name = "new_column"
+            default_name = "new_column"
 
         new_col_name = st.text_input("New column name", value=default_name, key="preproc_name")
 

@@ -7,10 +7,10 @@ echo "======================"
 echo ""
 
 # Check if virtual environment exists
-if [ ! -d "python_venv" ]; then
-    echo "Virtual environment not found!"
-    echo "Run: make build"
-    exit 1
+if [[ ! -d "python_venv" ]]; then
+	echo "Virtual environment not found!"
+	echo "Run: make build"
+	exit 1
 fi
 
 # Activate virtual environment
@@ -18,9 +18,9 @@ echo "Activating virtual environment..."
 source python_venv/bin/activate
 
 # Check if streamlit is installed
-if ! command -v streamlit &> /dev/null; then
-    echo "Installing Streamlit..."
-    pip install streamlit openpyxl -q
+if ! command -v streamlit &>/dev/null; then
+	echo "Installing Streamlit..."
+	pip install streamlit openpyxl -q
 fi
 
 echo "Environment ready!"

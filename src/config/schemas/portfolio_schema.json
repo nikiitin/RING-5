@@ -29,17 +29,17 @@
           "id": { "type": "integer" },
           "name": { "type": "string" },
           "plot_type": { "type": "string" },
-          "config": { 
-             "type": "object",
-             "additionalProperties": true
+          "config": {
+            "type": "object",
+            "additionalProperties": true
           },
-          "processed_data": { 
-             "type": ["string", "null"],
-             "description": "CSV content of processed data for this plot"
+          "processed_data": {
+            "type": ["string", "null"],
+            "description": "CSV content of processed data for this plot"
           },
-          "pipeline": { 
-             "type": "array",
-             "items": { "type": "object", "additionalProperties": true }
+          "pipeline": {
+            "type": "array",
+            "items": { "type": "object", "additionalProperties": true }
           },
           "pipeline_counter": { "type": "integer" },
           "legend_mappings_by_column": { "type": "object" },

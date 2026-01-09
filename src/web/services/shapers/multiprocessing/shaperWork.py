@@ -1,10 +1,12 @@
-from typing import Any, List, Optional
+from typing import List
+
 import pandas as pd
+
+import src.utils.utils as utils
 from src.core.multiprocessing.job import Job
 from src.web.services.shapers.factory import ShaperFactory
-from src.web.services.shapers.uni_df_shaper import UniDfShaper
 from src.web.services.shapers.multi_df_shaper import MultiDfShaper
-import src.utils.utils as utils
+from src.web.services.shapers.uni_df_shaper import UniDfShaper
 
 
 class ShaperWork(Job):
@@ -78,15 +80,15 @@ class ShaperWork(Job):
             return False
 
         utils.checkFilesExistOrException(self._srcCsv)
-        
+
         task_type = utils.getElementValue(self._json, "type")
         task_params = utils.getElementValue(self._json, "params")
-        
+
         # Create the shaper using the factory
         shaper = ShaperFactory.createShaper(task_type, task_params)
         if shaper is None:
             raise Exception(f"Error: Shaper not created for work {self._work_id}")
-            
+
         # Perform the shaper operation
         if isinstance(shaper, UniDfShaper):
             # UniDfShaper usually takes the first (or relevant) CSV
@@ -108,7 +110,7 @@ class ShaperWork(Job):
             df = self._getDataFrame(self._srcCsv[0])
             shaper(df)
             self._persistDf(df, self._dstCsv)
-            
+
         return True
 
     def __str__(self) -> str:

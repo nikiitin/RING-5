@@ -4,10 +4,12 @@ Page for selecting and configuring data sources.
 """
 
 import streamlit as st
-from src.web.state_manager import StateManager
+
 from src.web.facade import BackendFacade
+from src.web.state_manager import StateManager
 from src.web.styles import AppStyles
 from src.web.ui.components.data_source_components import DataSourceComponents
+
 
 class DataSourcePage:
     """Handles the data source selection and parser configuration."""

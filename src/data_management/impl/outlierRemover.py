@@ -1,20 +1,26 @@
 from argumentParser import AnalyzerInfo
-from src.data_management.dataManager import DataManager
+
 import src.utils.utils as utils
-import pandas as pd
+from src.data_management.dataManager import DataManager
+
 
 class OutlierRemover(DataManager):
     """
     Class to remove outliers from a DataFrame.
     Inherits from the DataManager class.
     """
+
     def _verifyParams(self):
         super()._verifyParams()
         # Outlier stat must be an string and that column must exist in the DataFrame
         if not isinstance(self._outlierStat, str):
-            raise ValueError("Outlier stat element is not correctly defined at json file. Must be a string")
+            raise ValueError(
+                "Outlier stat element is not correctly defined at json file. Must be a string"
+            )
         if self._outlierStat not in DataManager._df.columns:
-            raise ValueError(f"Outlier stat column {self._outlierStat} does not exist in the DataFrame")
+            raise ValueError(
+                f"Outlier stat column {self._outlierStat} does not exist in the DataFrame"
+            )
 
     def __init__(self, params: AnalyzerInfo, json: dict) -> None:
         """

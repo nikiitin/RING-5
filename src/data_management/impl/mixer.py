@@ -1,19 +1,21 @@
 from argumentParser import AnalyzerInfo
-from src.data_management.dataManager import DataManager
+
 import src.utils.utils as utils
-import pandas as pd
+from src.data_management.dataManager import DataManager
+
 
 class Mixer(DataManager):
     """
     Class to rename columns in a DataFrame.
     Inherits from the DataManager class.
     """
+
     def _verifyParams(self):
         super()._verifyParams()
         # Check if the mixer is a dictionary
         if not isinstance(self._mixerElement, dict):
             raise ValueError("Mixer element is not correctly defined at json file")
-        
+
         # Check if the mixer is empty
         if not self._mixerElement:
             raise ValueError("Mixer element is empty at json file")
@@ -47,7 +49,6 @@ class Mixer(DataManager):
         # Check if the renamer is present in the json file
         utils.checkElementExists(self._json, "mixer")
         self._mixerElement = self._json["mixer"]
-        
 
     def __call__(self):
         """
@@ -61,6 +62,7 @@ class Mixer(DataManager):
             # and the values are the columns to be mixed.
             for key, values in self._mixerElement.items():
                 print(f"Mixing columns: {' '.join([str(v) for v in values])} | into: {key}")
+                mixed_column = None
                 for value in values:
                     # The values are the columns to be mixed
                     if mixed_column is None:

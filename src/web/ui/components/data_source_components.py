@@ -1,13 +1,16 @@
-import streamlit as st
 import tempfile
 from pathlib import Path
+
+import streamlit as st
+
 from src.web.components import UIComponents
-from src.web.state_manager import StateManager
 from src.web.facade import BackendFacade
+from src.web.state_manager import StateManager
+
 
 class DataSourceComponents:
     """UI Components for the Data Source Page."""
-    
+
     @staticmethod
     def render_csv_pool(facade: BackendFacade):
         """Display and manage the CSV pool."""
@@ -79,19 +82,19 @@ class DataSourceComponents:
                 "Stats directory path",
                 value=current_path,
                 help="Directory containing gem5 stats files (can include subdirectories)",
-                key="stats_path_input"
+                key="stats_path_input",
             )
             # Explicitly set state to ensure persistence across reruns
             if stats_path != current_path:
                 StateManager.set_stats_path(stats_path)
-                
+
         with col2:
             current_pattern = StateManager.get_stats_pattern()
             stats_pattern = st.text_input(
                 "File pattern",
                 value=current_pattern,
                 help="Filename pattern to search for (e.g., stats.txt, *.txt)",
-                key="stats_pattern_input"
+                key="stats_pattern_input",
             )
             if stats_pattern != current_pattern:
                 StateManager.set_stats_pattern(stats_pattern)
@@ -140,11 +143,18 @@ class DataSourceComponents:
 
         scanned_vars = StateManager.get_scanned_variables()
         if scanned_vars:
-            st.success(f"Scanner found {len(scanned_vars)} variables. Use 'Add Variable' to select them.")
+            st.success(
+                f"Scanner found {len(scanned_vars)} variables. Use 'Add Variable' to select them."
+            )
 
         # Variable editor
         variables = StateManager.get_parse_variables()
-        updated_vars = UIComponents.variable_editor(variables, available_variables=scanned_vars, stats_path=stats_path, stats_pattern=stats_pattern)
+        updated_vars = UIComponents.variable_editor(
+            variables,
+            available_variables=scanned_vars,
+            stats_path=stats_path,
+            stats_pattern=stats_pattern,
+        )
         StateManager.set_parse_variables(updated_vars)
 
         # Add variable button
@@ -172,45 +182,51 @@ class DataSourceComponents:
     def variable_config_dialog():
         """Dialog to add a new variable."""
         scanned_vars = StateManager.get_scanned_variables() or []
-        
+
         # 1. Method Selection
-        method = st.radio("Addition Method", ["Search Scanned Variables", "Manual Entry"], horizontal=True, label_visibility="collapsed")
-        
+        method = st.radio(
+            "Addition Method",
+            ["Search Scanned Variables", "Manual Entry"],
+            horizontal=True,
+            label_visibility="collapsed",
+        )
+
         name = ""
         var_type = "scalar"
         selected_scanned_var = None
         idx = None
-        
+
         # 2. Input/Selection Logic
         if method == "Search Scanned Variables":
             if not scanned_vars:
                 st.warning("No variables scanned yet. Run 'Scan for Variables' first.")
             else:
+
                 def format_func(v):
                     label = f"{v['name']} ({v['type']})"
-                    if v['type'] == 'vector' and 'entries' in v:
+                    if v["type"] == "vector" and "entries" in v:
                         label += f" [{len(v['entries'])} items]"
-                    if 'count' in v and v['count'] > 1:
+                    if "count" in v and v["count"] > 1:
                         label += f" (Grouped {v['count']}x)"
                     return label
-                
+
                 options = range(len(scanned_vars))
                 st.markdown("##### Search Variable")
                 idx = st.selectbox(
-                    "Search by name...", 
-                    options, 
+                    "Search by name...",
+                    options,
                     format_func=lambda i: format_func(scanned_vars[i]),
                     key="dialog_select_var_idx",
                     placeholder="Type to search...",
                     index=None,
                 )
-                
+
                 if idx is not None:
                     selected_scanned_var = scanned_vars[idx]
                     name = selected_scanned_var["name"]
                     var_type = selected_scanned_var["type"]
-        
-        else: # Manual Entry
+
+        else:  # Manual Entry
             st.markdown("##### Variable Details")
             manual_name = st.text_input("Variable Name", key="dialog_manual_name")
             if manual_name:
@@ -224,7 +240,7 @@ class DataSourceComponents:
         else:
             st.markdown("---")
             st.markdown(f"**Configuration: {var_type.upper()}**")
-            
+
             if method == "Search Scanned Variables":
                 name = st.text_input("Name", value=name, key="dialog_final_name")
 
@@ -233,29 +249,40 @@ class DataSourceComponents:
                 st.markdown("###### Vector Configuration")
                 st.caption("Select sub-items to extract:")
                 selected_entries = []
-                
+
                 standard_stats = ["total", "mean", "stdev", "samples", "gmean"]
-                sel_stats = st.multiselect("Standard Statistics", standard_stats, default=["total", "mean"], key="vec_stats")
+                sel_stats = st.multiselect(
+                    "Standard Statistics",
+                    standard_stats,
+                    default=["total", "mean"],
+                    key="vec_stats",
+                )
                 selected_entries.extend(sel_stats)
-                
+
                 if selected_scanned_var and "entries" in selected_scanned_var:
                     found_entries = selected_scanned_var["entries"]
                     if found_entries:
-                        sel_found = st.multiselect("Available Fields (from scan)", found_entries, key="vec_found")
+                        sel_found = st.multiselect(
+                            "Available Fields (from scan)", found_entries, key="vec_found"
+                        )
                         selected_entries.extend(sel_found)
-                
-                custom_text = st.text_input("Custom Entries (comma separated)", placeholder="e.g. cpu0, cpu1", key="vec_custom")
+
+                custom_text = st.text_input(
+                    "Custom Entries (comma separated)",
+                    placeholder="e.g. cpu0, cpu1",
+                    key="vec_custom",
+                )
                 if custom_text:
                     custom_items = [x.strip() for x in custom_text.split(",") if x.strip()]
                     selected_entries.extend(custom_items)
-                
+
                 final_entries = list(dict.fromkeys(selected_entries))
                 if final_entries:
                     st.success(f"Selected Entries: {', '.join(final_entries)}")
                     config["vectorEntries"] = ", ".join(final_entries)
                 else:
                     st.warning("Please select at least one entry.")
-                
+
             elif var_type == "distribution":
                 col_min, col_max = st.columns(2)
                 with col_min:
@@ -264,17 +291,23 @@ class DataSourceComponents:
                     d_max = st.number_input("Maximum", value=100, key="dist_max")
                 config["minimum"] = d_min
                 config["maximum"] = d_max
-                
+
             elif var_type == "configuration":
                 on_empty = st.text_input("On Empty Value", value="None", key="conf_empty")
                 config["onEmpty"] = on_empty
-                
+
             with st.expander("Advanced Options"):
-                 repeat = st.number_input("Repeat Count", min_value=1, value=1, help="If variable repeats in strict sequence (Perl parser specific)", key="adv_repeat")
-                 if repeat > 1:
+                repeat = st.number_input(
+                    "Repeat Count",
+                    min_value=1,
+                    value=1,
+                    help="If variable repeats in strict sequence (Perl parser specific)",
+                    key="adv_repeat",
+                )
+                if repeat > 1:
                     config["repeat"] = repeat
 
-            st.write("") 
+            st.write("")
             if st.button("Add to Configuration", type="primary", use_container_width=True):
                 if not name:
                     st.error("Variable name is required.")
@@ -282,12 +315,13 @@ class DataSourceComponents:
                     st.error("Vector variables require at least one entry.")
                 else:
                     import uuid
+
                     new_var = {
                         "name": name,
                         "type": var_type,
-                        "id": None, 
-                        "_id": str(uuid.uuid4()), 
-                        **config
+                        "id": None,
+                        "_id": str(uuid.uuid4()),
+                        **config,
                     }
                     current_vars = StateManager.get_parse_variables()
                     if any(v["name"] == name for v in current_vars):
@@ -363,4 +397,5 @@ class DataSourceComponents:
             except Exception as e:
                 st.error(f"Error during parsing: {e}")
                 import traceback
+
                 st.code(traceback.format_exc())

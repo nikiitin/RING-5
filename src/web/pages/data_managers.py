@@ -4,24 +4,22 @@ Visualize and configure data managers with live effects preview.
 """
 
 import streamlit as st
-import pandas as pd
 
 from src.web.state_manager import StateManager
 from src.web.styles import AppStyles
 from src.web.ui.components.data_manager_components import DataManagerComponents
+from src.web.ui.data_managers.mixer import MixerManager
+from src.web.ui.data_managers.outlier_remover import OutlierRemoverManager
+from src.web.ui.data_managers.preprocessor import PreprocessorManager
 
 # Import Sub-Managers
 from src.web.ui.data_managers.seeds_reducer import SeedsReducerManager
-from src.web.ui.data_managers.outlier_remover import OutlierRemoverManager
-from src.web.ui.data_managers.preprocessor import PreprocessorManager
-from src.web.ui.data_managers.mixer import MixerManager
+
 
 def show_data_managers_page():
     """Render the data managers page."""
-    
-    st.markdown(
-        AppStyles.step_header("Data Managers & Transformations"), unsafe_allow_html=True
-    )
+
+    st.markdown(AppStyles.step_header("Data Managers & Transformations"), unsafe_allow_html=True)
 
     st.info(
         """
@@ -35,9 +33,7 @@ def show_data_managers_page():
     )
 
     if not StateManager.has_data():
-        st.warning(
-            "No data loaded. Please load data from **Data Source** or **Upload Data** page."
-        )
+        st.warning("No data loaded. Please load data from **Data Source** or **Upload Data** page.")
         return
 
     data = StateManager.get_data()
@@ -55,7 +51,7 @@ def show_data_managers_page():
             seeds_mgr.name,
             outlier_mgr.name,
             preproc_mgr.name,
-            mixer_mgr.name
+            mixer_mgr.name,
         ]
     )
 
@@ -73,6 +69,6 @@ def show_data_managers_page():
 
     with tab5:
         preproc_mgr.render()
-        
+
     with tab6:
         mixer_mgr.render()

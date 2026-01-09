@@ -11,17 +11,11 @@
       },
       "impl": {
         "type": "string",
-        "enum": [
-          "perl",
-          "python"
-        ]
+        "enum": ["perl", "python"]
       },
       "compress": {
         "type": "string",
-        "enum": [
-          "True",
-          "False"
-        ]
+        "enum": ["True", "False"]
       },
       "parsings": {
         "type": "array",
@@ -76,31 +70,17 @@
                     "type": "string"
                   },
                   "repeat": {
-                    "type": [
-                      "string",
-                      "integer"
-                    ]
+                    "type": ["string", "integer"]
                   }
                 },
-                "required": [
-                  "id",
-                  "type"
-                ]
+                "required": ["id", "type"]
               }
             }
           },
-          "required": [
-            "path",
-            "files",
-            "vars"
-          ]
+          "required": ["path", "files", "vars"]
         }
       }
     },
-    "required": [
-      "id",
-      "impl",
-      "parsings"
-    ]
+    "required": ["id", "impl", "parsings"]
   }
 }

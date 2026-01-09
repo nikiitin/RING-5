@@ -1,10 +1,11 @@
 import os
-from typing import Dict, Set, List, Optional
+from typing import Dict, List, Optional, Set
+
 from tqdm import tqdm
 
+import src.utils.utils as utils
 from src.core.multiprocessing.pool import WorkPool
 from src.web.services.shapers.multiprocessing.shaperWork import ShaperWork
-import src.utils.utils as utils
 
 
 class ShaperWorkManager:
@@ -17,21 +18,25 @@ class ShaperWorkManager:
         self._work_pool = WorkPool.get_instance()
         self._json = json_config
         self._csv_path = csv_path
-        
+
         self._dependencies: Dict[str, ShaperWork] = {}  # work_id : work (waiting for deps)
-        self._executing_works: Dict[str, ShaperWork] = {} # work_id : work (submitted to pool)
+        self._executing_works: Dict[str, ShaperWork] = {}  # work_id : work (submitted to pool)
         self._completed_works: Dict[str, str] = {}  # work_id : dst_csv_path
-        
+
         self._is_finished = False
         self._pbar: Optional[tqdm] = None
 
         # Build work objects and identify initial tasks
         for work_id, work_info in self._json.items():
             work = ShaperWork(work_id, work_info)
-            deps = utils.getElementValue(work_info, "after") if utils.checkElementExistNoException(work_info, "after") else []
+            deps = (
+                utils.getElementValue(work_info, "after")
+                if utils.checkElementExistNoException(work_info, "after")
+                else []
+            )
             if isinstance(deps, str):
                 deps = [deps]
-                
+
             if not deps:
                 # No dependencies, ready to execute
                 work.srcCsv = [csv_path]
@@ -60,7 +65,7 @@ class ShaperWorkManager:
             return []
         elif work_id in self._dependencies:
             work = self._dependencies[work_id]
-            deps = list(work.deps) # Copy
+            deps = list(work.deps)  # Copy
             all_deps = list(deps)
             for dep in deps:
                 all_deps.extend(self._get_dependency_list(dep))
@@ -71,14 +76,16 @@ class ShaperWorkManager:
     def _filter_queues(self, used_ids: Set[str]):
         real_used_works = set()
         for work_id in used_ids:
-            if work_id in self._json: # Ensure it exists in config
+            if work_id in self._json:  # Ensure it exists in config
                 real_used_works.add(work_id)
                 real_used_works.update(self._get_dependency_list(work_id))
-        
+
         # Purge dependencies
         self._dependencies = {k: v for k, v in self._dependencies.items() if k in real_used_works}
         # Purge executing
-        self._executing_works = {k: v for k, v in self._executing_works.items() if k in real_used_works}
+        self._executing_works = {
+            k: v for k, v in self._executing_works.items() if k in real_used_works
+        }
 
     def _check_cyclic_dependencies(self, work_id: str, dependencies: List[str]) -> bool:
         for dep in dependencies:
@@ -92,7 +99,7 @@ class ShaperWorkManager:
         return False
 
     def _submit_work(self, work_id: str, work: ShaperWork):
-        # Use ThreadPool (use_threads=True) as shaping is typically IO/Mixed 
+        # Use ThreadPool (use_threads=True) as shaping is typically IO/Mixed
         # and may interact with shared memory/objects more safely in threads
         future = self._work_pool.submit(work, use_threads=True)
         future.add_done_callback(lambda f: self._handle_work_finish(work_id, f))
@@ -150,9 +157,9 @@ class ShaperWorkManager:
 
     def __del__(self):
         # Cleanup temporary files
+        import contextlib
+
         for csv_path in self._completed_works.values():
             if os.path.exists(csv_path):
-                try:
+                with contextlib.suppress(Exception):
                     os.remove(csv_path)
-                except Exception:
-                    pass

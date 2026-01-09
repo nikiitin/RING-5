@@ -1,8 +1,11 @@
 """
 Shared color utilities for consistent palette loading.
 """
+
 from typing import List
+
 import plotly.colors as pc
+
 
 def get_palette_colors(palette_name: str) -> List[str]:
     """
@@ -27,6 +30,7 @@ def get_palette_colors(palette_name: str) -> List[str]:
 
     return default_palette
 
+
 def to_hex(color_str: str) -> str:
     """
     Ensure the color string is a hex code.
@@ -37,34 +41,39 @@ def to_hex(color_str: str) -> str:
         return "#000000"
 
     color_str = color_str.strip()
-    
+
     # Already hex
     if color_str.startswith("#"):
         if len(color_str) in (4, 7):
-             return color_str
+            return color_str
         # Handle alpha hex (strip alpha for streamlit picker)?
         return color_str[:7]
-        
+
     # Handle rgb(r, g, b)
     if color_str.startswith("rgb"):
         try:
             # Extract numbers
             import re
+
             nums = re.findall(r"\d+", color_str)
             if len(nums) >= 3:
                 r, g, b = int(nums[0]), int(nums[1]), int(nums[2])
                 return "#{:02x}{:02x}{:02x}".format(r, g, b)
-        except:
-            pass
-            
-    # Handle named colors via Plotly/Matplotlib? 
-    # For now, if we can't convert, return black or input. 
+        except Exception:
+            import logging
+
+            logging.warning(f"Could not parse rgb color: {color_str}")
+
+    # Handle named colors via Plotly/Matplotlib?
+    # For now, if we can't convert, return black or input.
     # Streamlit dies on bad input, so fallback to black is safer for UI.
+    # Last resort fallback for Streamlit
+    import logging
+
     try:
         return pc.convert_colors_to_same_type(color_str, "hex")[0][0]
-    except:
-        pass
-        
+    except Exception:
+        logging.warning(f"Could not convert color {color_str} to hex. Fallback to black.")
+
     # Last resort fallback for Streamlit
     return "#000000"
-

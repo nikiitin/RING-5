@@ -2,6 +2,7 @@
 RING-5 Interactive Web Application
 Modern, interactive dashboard for gem5 data analysis and visualization.
 """
+
 import sys
 from pathlib import Path
 
@@ -13,11 +14,9 @@ if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
 from src.web.facade import BackendFacade  # noqa: E402
-
 from src.web.pages.data_managers import show_data_managers_page  # noqa: E402
 from src.web.pages.data_source import DataSourcePage  # noqa: E402
 from src.web.pages.manage_plots import show_manage_plots_page  # noqa: E402
-from src.web.pages.portfolio import show_portfolio_page  # noqa: E402
 from src.web.pages.portfolio import show_portfolio_page  # noqa: E402
 from src.web.pages.upload_data import UploadDataPage  # noqa: E402
 from src.web.state_manager import StateManager  # noqa: E402
@@ -77,9 +76,7 @@ def main():
     facade = BackendFacade()
 
     # Header
-    st.markdown(
-        '<h1 class="main-header">RING-5 Interactive Analyzer</h1>', unsafe_allow_html=True
-    )
+    st.markdown('<h1 class="main-header">RING-5 Interactive Analyzer</h1>', unsafe_allow_html=True)
 
     # Show current data preview if data is loaded
     if StateManager.has_data():
@@ -109,7 +106,6 @@ def main():
             [
                 "Data Source",
                 "Upload Data",
-
                 "Data Managers",
                 "Manage Plots",
                 "Save/Load Portfolio",

@@ -12,15 +12,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from src.web.services.shapers.impl.mean import Mean
 from src.web.services.shapers.impl.normalize import Normalize
-from src.web.services.shapers.impl.selector_algorithms.columnSelector import ColumnSelector
+from src.web.services.shapers.impl.selector_algorithms.columnSelector import (
+    ColumnSelector,
+)
 from src.web.services.shapers.impl.sort import Sort
-
 
 # Import test utilities
 sys.path.insert(0, str(Path(__file__).parent / "pytests"))
-
-
-
 
 
 class TestE2EShapers:

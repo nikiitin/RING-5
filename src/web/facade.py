@@ -7,12 +7,10 @@ Decouples the web interface from complex backend implementations.
 import datetime
 import glob
 import json
+import re
 import shutil
-import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-import re
-
 
 import pandas as pd
 
@@ -234,9 +232,9 @@ class BackendFacade:
         Returns:
             Path to generated CSV file or None
         """
+
         from src.parsing.factory import DataParserFactory
-        import re
-        
+
         # Reset parser factory to ensure new configuration is used
         DataParserFactory.reset()
 
@@ -261,23 +259,23 @@ class BackendFacade:
 
         for var in variables:
             var_name = var["name"]
-            
+
             # Helper to add variable without modification
             def _add_as_is(name, v):
                 # Check for Alias
                 alias = v.get("alias")
-                
+
                 if alias and alias.strip():
                     # Use Alias as ID, map original name via parsed_ids
                     cfg = {
                         "id": alias.strip(),
                         "type": v["type"],
-                        "parsed_ids": [name] # Map original name to this alias
+                        "parsed_ids": [name],  # Map original name to this alias
                     }
                 else:
                     # No alias, standard behavior
                     cfg = {"id": name, "type": v["type"]}
-                
+
                 # Add type-specific parameters
                 if v["type"] == "vector":
                     if "vectorEntries" in v:
@@ -285,59 +283,61 @@ class BackendFacade:
                         if "useSpecialMembers" in v:
                             cfg["useSpecialMembers"] = v["useSpecialMembers"]
                     else:
-                        raise ValueError(f"Vector variable '{name}' requires vectorEntries to be specified")
-                        
+                        raise ValueError(
+                            f"Vector variable '{name}' requires vectorEntries to be specified"
+                        )
+
                 elif v["type"] == "distribution":
                     cfg["minimum"] = v.get("minimum", 0)
                     cfg["maximum"] = v.get("maximum", 100)
-                    
+
                 elif v["type"] == "configuration":
                     cfg["onEmpty"] = v.get("onEmpty", "None")
-                    
+
                 if "repeat" in v:
                     cfg["repeat"] = v["repeat"]
-                    
+
                 parser_vars.append(cfg)
 
             # Check if this variable looks like a regex pattern (contains \d+ or *)
             if "\\d+" in var_name or "*" in var_name:
                 # Scan a few files to find concrete instances
                 concrete_vars = self.scan_stats_variables(stats_path, stats_pattern, limit=3)
-                
+
                 matched_concrete_names = []
                 for cv in concrete_vars:
                     if re.fullmatch(var_name, cv["name"]):
                         matched_concrete_names.append(cv["name"])
-                
+
                 if matched_concrete_names:
                     # Found concrete matches: Configure Parser for reduction.
                     # Create one variable entry mapping all concrete IDs via 'parsed_ids'.
                     count = len(matched_concrete_names)
-                    
+
                     # Create reduced variable config
                     reduced_config = {
-                        "id": var_name, 
+                        "id": var_name,
                         "type": var["type"],
                         "parsed_ids": matched_concrete_names,
-                        "repeat": count # Parser uses this for averaging
+                        "repeat": count,  # Parser uses this for averaging
                     }
-                    
+
                     # Copy specific fields
                     if var["type"] == "vector":
                         if "vectorEntries" in var:
                             reduced_config["vectorEntries"] = var["vectorEntries"]
                         else:
                             reduced_config["vectorEntries"] = "total, mean"
-                            
+
                     elif var["type"] == "distribution":
                         reduced_config["minimum"] = var.get("minimum", -10)
                         reduced_config["maximum"] = var.get("maximum", 100)
-                        
+
                     elif var["type"] == "configuration":
                         reduced_config["onEmpty"] = var.get("onEmpty", "None")
-                        
+
                     parser_vars.append(reduced_config)
-                    
+
                 else:
                     # No match found? Add as is
                     _add_as_is(var_name, var)
@@ -385,7 +385,7 @@ class BackendFacade:
 
         # Return CSV path (no post-processing reduction needed anymore)
         csv_path = Path(output_dir) / "results.csv"
-        
+
         if csv_path.exists():
             return str(csv_path)
 
@@ -433,8 +433,6 @@ class BackendFacade:
             "null_counts": data.isnull().sum().to_dict(),
         }
 
-
-
     # ==================== Parser Operations ====================
 
     def scan_stats_variables(
@@ -455,7 +453,6 @@ class BackendFacade:
         try:
             # Add src to path if needed, though app.py does it
             import sys
-            import re
 
             if str(Path(__file__).parent.parent.parent) not in sys.path:
                 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -477,36 +474,49 @@ class BackendFacade:
             # Limit files for speed
             # Limit files for speed
             files_to_scan = files[:limit]
-            
+
             # Use Perl Scanner
-            import subprocess
             import json
-            
-            script_path = self.ring5_data_dir.parent / "src/parsing/impl/data_parser_perl/src/parser_impl/statsScanner.pl"
-            
+            import shutil
+            import subprocess  # nosec
+
+            perl_exe = shutil.which("perl")
+            if not perl_exe:
+                # Should we raise? or just log and return empty?
+                # Given the existing structure, logging seems appropriate as it returns [] on error
+                print("Perl executable not found.")
+                return []
+
+            script_path = (
+                self.ring5_data_dir.parent
+                / "src/parsing/impl/data_parser_perl/src/parser_impl/statsScanner.pl"
+            ).resolve()
+
             for file_path in files_to_scan:
                 try:
                     # Execute Perl scanner script
-                    cmd = ["perl", str(script_path), str(file_path)]
-                    
-                    result = subprocess.check_output(cmd, stderr=subprocess.DEVNULL)
+                    cmd = [perl_exe, str(script_path), str(file_path)]
+
+                    result = subprocess.check_output(cmd, stderr=subprocess.DEVNULL)  # nosec
                     file_vars = json.loads(result)
-                    
+
                     for var in file_vars:
-                         name = var["name"]
-                         if name not in merged_vars:
-                             merged_vars[name] = var
-                         else:
-                             # Merge entries if vector
-                             if var["type"] == "vector" and "entries" in var:
-                                 existing_entries = set(merged_vars[name].get("entries", []))
-                                 new_entries = set(var["entries"])
-                                 if not new_entries.issubset(existing_entries):
-                                     merged_vars[name]["entries"] = sorted(
-                                         list(existing_entries.union(new_entries))
-                                     )
+                        name = var["name"]
+                        if name not in merged_vars:
+                            merged_vars[name] = var
+                        else:
+                            # Merge entries if vector
+                            if var["type"] == "vector" and "entries" in var:
+                                existing_entries = set(merged_vars[name].get("entries", []))
+                                new_entries = set(var["entries"])
+                                if not new_entries.issubset(existing_entries):
+                                    merged_vars[name]["entries"] = sorted(
+                                        list(existing_entries.union(new_entries))
+                                    )
                 except Exception as e:
-                    print(f"Error scanning file {file_path} with Perl script: {e}")
+                    import logging
+
+                    logging.error(f"Error scanning file {file_path} with Perl script: {e}")
                     continue
 
             return list(merged_vars.values())
@@ -517,57 +527,55 @@ class BackendFacade:
     def scan_stats_variables_with_grouping(
         self, stats_path: str, file_pattern: str = "stats.txt", limit: int = 5
     ) -> List[Dict[str, Any]]:
-        """
+        r"""
         Scan and group variables using Regex (heuristic for reduction).
         e.g. system.cpu0.ipc and system.cpu1.ipc -> system.cpu\\d+.ipc
         """
-        import re
-        from collections import defaultdict
-        
+
         raw_vars = self.scan_stats_variables(stats_path, file_pattern, limit)
         if not raw_vars:
             return []
-            
+
         # Grouping Logic
         # We look for numbers in the variable names and replace them with \d+
         grouped_vars = {}
-        
+
         for var in raw_vars:
             name = var["name"]
             # Check if name contains numbers
-            if re.search(r'\d+', name):
+            if re.search(r"\d+", name):
                 # Create regex pattern
-                pattern = re.sub(r'\d+', r'\\d+', name)
-                
+                pattern = re.sub(r"\d+", r"\\d+", name)
+
                 if pattern not in grouped_vars:
                     grouped_vars[pattern] = {
                         "name": pattern,
                         "type": var["type"],
                         "entries": var.get("entries", []),
                         "count": 1,
-                        "examples": [name]
+                        "examples": [name],
                     }
                 else:
                     grouped_vars[pattern]["count"] += 1
                     if len(grouped_vars[pattern]["examples"]) < 3:
                         grouped_vars[pattern]["examples"].append(name)
-                        
+
                     # Merge entries if needed
                     if "entries" in var:
-                         existing = set(grouped_vars[pattern]["entries"])
-                         new_entries = set(var["entries"])
-                         grouped_vars[pattern]["entries"] = sorted(list(existing.union(new_entries)))
-                         
+                        existing = set(grouped_vars[pattern]["entries"])
+                        new_entries = set(var["entries"])
+                        grouped_vars[pattern]["entries"] = sorted(list(existing.union(new_entries)))
+
             else:
                 # No numbers, keep as is
                 if name not in grouped_vars:
                     grouped_vars[name] = var
                     grouped_vars[name]["count"] = 1
                     grouped_vars[name]["examples"] = [name]
-        
+
         # Format results
         results = []
-        for pattern, info in grouped_vars.items():
+        for _, info in grouped_vars.items():
             # If we grouped multiple items, it's a pattern
             if info["count"] > 1:
                 # It's a reduction candidate!
@@ -579,9 +587,9 @@ class BackendFacade:
                 # logic: if pattern == name (with escaping), it's just a variable with a number that isn't repeated?
                 # Actually, if count == 1, we prefer original name
                 if len(info["examples"]) == 1:
-                     info["name"] = info["examples"][0]
+                    info["name"] = info["examples"][0]
                 results.append(info)
-                
+
         return sorted(results, key=lambda x: x["name"])
 
     def scan_vector_entries(
@@ -621,31 +629,40 @@ class BackendFacade:
             # portability.
             # Limit files for speed
             files_to_scan = files[:100]
-            
+
             # Use Perl Scanner
-            import subprocess
             import json
-            
-            script_path = self.ring5_data_dir.parent / "src/parsing/impl/data_parser_perl/src/parser_impl/statsScanner.pl"
-            
+            import subprocess  # nosec
+
+            script_path = (
+                self.ring5_data_dir.parent
+                / "src/parsing/impl/data_parser_perl/src/parser_impl/statsScanner.pl"
+            ).resolve()
+
+            import shutil
+
+            perl_exe = shutil.which("perl")
+            if not perl_exe:
+                return []
+
             for file_path in files_to_scan:
                 try:
                     # Optimization: Fast pre-check using Python reads before spawning Perl process
                     with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                         if vector_name not in f.read():
-                             continue
-                            
-                    cmd = ["perl", str(script_path), str(file_path)]
-                    result = subprocess.check_output(cmd, stderr=subprocess.DEVNULL)
+                            continue
+
+                    cmd = [perl_exe, str(script_path), str(file_path)]
+                    result = subprocess.check_output(cmd, stderr=subprocess.DEVNULL)  # nosec
                     file_vars = json.loads(result)
-                    
+
                     for var in file_vars:
                         if var["name"] == vector_name and "entries" in var:
                             all_entries.update(var["entries"])
-                            
+
                 except Exception:
-                    continue 
-                
+                    continue  # nosec
+
             return sorted(list(all_entries))
         except Exception:
             return []

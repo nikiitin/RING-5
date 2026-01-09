@@ -59,7 +59,7 @@ class Mean(UniDfShaper):
         super().__init__(params)
         self._meanVars = utils.getElementValue(self._params, "meanVars")
         self._meanAlgorithm = utils.getElementValue(self._params, "meanAlgorithm")
-        
+
         # Handle legacy or new param
         if "groupingColumns" in self._params:
             self._groupingColumns = utils.getElementValue(self._params, "groupingColumns")
@@ -67,7 +67,7 @@ class Mean(UniDfShaper):
             # Legacy fallback
             col = utils.getElementValue(self._params, "groupingColumn")
             self._groupingColumns = [col]
-            
+
         self._replacingColumn = utils.getElementValue(self._params, "replacingColumn")
 
     def _verifyParams(self) -> bool:
@@ -76,7 +76,7 @@ class Mean(UniDfShaper):
         utils.checkElementExists(self._params, "meanVars")
         utils.checkElementExists(self._params, "meanAlgorithm")
         if "groupingColumns" not in self._params and "groupingColumn" not in self._params:
-             raise ValueError("Missing grouping parameter (groupingColumns or groupingColumn)")
+            raise ValueError("Missing grouping parameter (groupingColumns or groupingColumn)")
         utils.checkElementExists(self._params, "replacingColumn")
         return verified
 
@@ -93,8 +93,7 @@ class Mean(UniDfShaper):
         for col in self._groupingColumns:
             if col not in data_frame.columns:
                 raise ValueError(
-                    f"The grouping column '{col}' does not exist in the data frame! "
-                    "Stopping"
+                    f"The grouping column '{col}' does not exist in the data frame! " "Stopping"
                 )
 
         # Check that the replacing column exists

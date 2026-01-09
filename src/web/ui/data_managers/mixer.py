@@ -2,10 +2,10 @@
 Mixer Manager
 """
 
-import numpy as np
-import pandas as pd
 import streamlit as st
+
 from src.web.ui.data_managers.base_manager import DataManager
+
 
 class MixerManager(DataManager):
     """Manager for merging multiple columns with standard deviation propagation."""
@@ -35,14 +35,19 @@ class MixerManager(DataManager):
             return
 
         numeric_cols = data.select_dtypes(include=["number"]).columns.tolist()
-        
+
         # Filter out likely SD columns to reduce clutter, but allow selecting them just in case
-        primary_cols = [c for c in numeric_cols if not c.endswith((".sd", "_stdev"))]
+        [c for c in numeric_cols if not c.endswith((".sd", "_stdev"))]
 
         st.markdown("#### Configuration")
-        
-        mode = st.radio("Mixer Mode", ["Numerical Operations", "Configuration Merge"], horizontal=True, key="mixer_mode")
-        
+
+        mode = st.radio(
+            "Mixer Mode",
+            ["Numerical Operations", "Configuration Merge"],
+            horizontal=True,
+            key="mixer_mode",
+        )
+
         if mode == "Numerical Operations":
             available_cols = [c for c in numeric_cols if not c.endswith((".sd", "_stdev"))]
             operations = ["Sum", "Mean (Average)"]
@@ -55,66 +60,58 @@ class MixerManager(DataManager):
             operations = ["Concatenate"]
 
         col_select_1, col_select_2 = st.columns(2)
-        
+
         with col_select_1:
             selected_cols = st.multiselect(
-                "Select columns to merge",
-                options=available_cols,
-                key="mixer_select_cols"
+                "Select columns to merge", options=available_cols, key="mixer_select_cols"
             )
-            
+
         with col_select_2:
-            operation = st.selectbox(
-                "Operation",
-                operations,
-                key="mixer_op"
-            )
-            
+            operation = st.selectbox("Operation", operations, key="mixer_op")
+
         separator = "_"
         if operation == "Concatenate":
             separator = st.text_input("Separator", value="_", key="mixer_sep")
-            
+
         default_name_parts = selected_cols[:2] if selected_cols else ["merged"]
         if operation == "Concatenate":
-             default_name = f"concat_{separator.join(default_name_parts)}"
+            default_name = f"concat_{separator.join(default_name_parts)}"
         else:
-             default_name = f"{operation.lower()}_{'_'.join(default_name_parts)}"
+            default_name = f"{operation.lower()}_{'_'.join(default_name_parts)}"
 
-        new_col_name = st.text_input(
-            "New Column Name",
-            value=default_name,
-            key="mixer_new_name"
-        )
+        new_col_name = st.text_input("New Column Name", value=default_name, key="mixer_new_name")
 
         if st.button("Preview Merge", key="mixer_preview"):
             if len(selected_cols) < 2:
                 st.warning("Please select at least 2 columns to merge.")
                 return
-                
+
             try:
-                from src.web.services.data_processing_service import DataProcessingService
-                
+                from src.web.services.data_processing_service import (
+                    DataProcessingService,
+                )
+
                 result_df = DataProcessingService.apply_mixer(
                     df=data,
                     dest_col=new_col_name,
                     source_cols=selected_cols,
                     operation=operation,
-                    separator=separator
+                    separator=separator,
                 )
 
                 st.success(f"Created merged column `{new_col_name}`")
-                
+
                 # Check if SD column created
                 new_sd_col = f"{new_col_name}.sd"
                 cols_to_show = [new_col_name]
                 if new_sd_col in result_df.columns:
-                     cols_to_show.append(new_sd_col)
-                     st.success(f"✓ Propagated standard deviation to `{new_sd_col}`")
-                     
+                    cols_to_show.append(new_sd_col)
+                    st.success(f"✓ Propagated standard deviation to `{new_sd_col}`")
+
                 st.dataframe(result_df[cols_to_show].head(), width="stretch")
-                
+
                 st.session_state["mixer_result"] = result_df
-                
+
             except Exception as e:
                 st.error(f"Error during merge: {e}")
 

@@ -3,9 +3,15 @@
 import pandas as pd
 import pytest
 
-from src.plotting import (BarPlot, BasePlot, GroupedBarPlot,
-                          GroupedStackedBarPlot, LinePlot, PlotFactory,
-                          ScatterPlot)
+from src.plotting import (
+    BarPlot,
+    BasePlot,
+    GroupedBarPlot,
+    GroupedStackedBarPlot,
+    LinePlot,
+    PlotFactory,
+    ScatterPlot,
+)
 
 
 @pytest.fixture

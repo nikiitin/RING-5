@@ -1,37 +1,40 @@
-
-import pytest
 import importlib
 from unittest.mock import MagicMock, patch
-from src.web.state_manager import StateManager
+
+import pytest
+
 # Defer import of DataSourceComponents to fixture to ensure patching works
 import src.web.ui.components.data_source_components as ds_module
+
 
 @pytest.fixture
 def components_bundle():
     """Patch st and reload module to capture decorator."""
-    
+
     # 1. Patch streamlit.dialog globally so the decorator is intercepted during reload
     with patch("streamlit.dialog", side_effect=lambda title=None: lambda func: func):
         importlib.reload(ds_module)
-    
+
     # 2. Patch the module's st attribute for runtime widget mocking
     with patch("src.web.ui.components.data_source_components.st") as mock_st:
         mock_st.session_state = {}
-        
+
         # Mock columns
         def columns_side_effect(spec, **kwargs):
             if isinstance(spec, int):
                 return [MagicMock() for _ in range(spec)]
             return [MagicMock()]
+
         mock_st.columns.side_effect = columns_side_effect
-        
+
         # Default return values for widgets to avoid TypeErrors
         mock_st.number_input.return_value = 1
         mock_st.checkbox.return_value = False
-        
+
         # We don't need to patch dialog here, as the function is already undecorated
-        
+
         yield mock_st, ds_module.DataSourceComponents
+
 
 @pytest.fixture
 def mock_state_manager():
@@ -40,18 +43,19 @@ def mock_state_manager():
         mock_sm.get_parse_variables.return_value = []
         yield mock_sm
 
+
 def test_variable_config_dialog_manual_entry_scalar(components_bundle, mock_state_manager):
     """Test manual entry of a scalar variable."""
     mock_streamlit, DataSourceComponents = components_bundle
-    
+
     # Interactions: Input Name, Select Type, Click Button
     mock_streamlit.radio.return_value = "Manual Entry"
-    mock_streamlit.text_input.return_value = "my_var" 
+    mock_streamlit.text_input.return_value = "my_var"
     mock_streamlit.selectbox.return_value = "scalar"
     mock_streamlit.button.return_value = True
-    
+
     DataSourceComponents.variable_config_dialog()
-    
+
     # Verify StateManager update
     args = mock_state_manager.set_parse_variables.call_args
     assert args is not None
@@ -59,22 +63,23 @@ def test_variable_config_dialog_manual_entry_scalar(components_bundle, mock_stat
     assert len(new_vars) == 1
     assert new_vars[0]["name"] == "my_var"
     assert new_vars[0]["type"] == "scalar"
-    
+
     mock_streamlit.success.assert_called()
     mock_streamlit.rerun.assert_called()
+
 
 def test_variable_config_dialog_manual_entry_vector(components_bundle, mock_state_manager):
     """Test manual entry of a vector variable."""
     mock_streamlit, DataSourceComponents = components_bundle
-    
+
     mock_streamlit.radio.return_value = "Manual Entry"
-    mock_streamlit.text_input.side_effect = ["vec", "cpu0"] # Name, Custom Entries
+    mock_streamlit.text_input.side_effect = ["vec", "cpu0"]  # Name, Custom Entries
     mock_streamlit.selectbox.return_value = "vector"
     mock_streamlit.multiselect.return_value = ["total", "mean"]
     mock_streamlit.button.return_value = True
-    
+
     DataSourceComponents.variable_config_dialog()
-    
+
     args = mock_state_manager.set_parse_variables.call_args
     new_vars = args[0][0]
     assert new_vars[0]["type"] == "vector"
@@ -82,42 +87,44 @@ def test_variable_config_dialog_manual_entry_vector(components_bundle, mock_stat
     assert "total" in entries
     assert "cpu0" in entries
 
+
 def test_variable_config_dialog_search_scanned(components_bundle, mock_state_manager):
     """Test adding from scanned variables."""
     mock_streamlit, DataSourceComponents = components_bundle
-    
+
     scanned = [
         {"name": "system.cpu.ipc", "type": "scalar", "id": "ipc"},
-        {"name": "system.l2.misses", "type": "vector", "entries": ["cpu0", "cpu1"]}
+        {"name": "system.l2.misses", "type": "vector", "entries": ["cpu0", "cpu1"]},
     ]
     mock_state_manager.get_scanned_variables.return_value = scanned
-    
+
     mock_streamlit.radio.return_value = "Search Scanned Variables"
     mock_streamlit.selectbox.side_effect = [0]
     mock_streamlit.text_input.return_value = "IPC"
     mock_streamlit.button.return_value = True
-    
+
     # Reset side effect for selectbox if needed, or rely on it handling one call well?
-    # Actually, if selectbox is called more than expected, side effect might run out? 
+    # Actually, if selectbox is called more than expected, side effect might run out?
     # But here we only expect 1 call for search index.
-    
+
     DataSourceComponents.variable_config_dialog()
-    
+
     args = mock_state_manager.set_parse_variables.call_args
     new_vars = args[0][0]
     assert new_vars[0]["name"] == "IPC"
     assert new_vars[0]["type"] == "scalar"
 
+
 def test_variable_config_dialog_validation_fail(components_bundle, mock_state_manager):
     """Test validation failure (no name)."""
     mock_streamlit, DataSourceComponents = components_bundle
-    
+
     mock_streamlit.radio.return_value = "Manual Entry"
-    mock_streamlit.text_input.return_value = "" # Empty name
+    mock_streamlit.text_input.return_value = ""  # Empty name
     mock_streamlit.selectbox.return_value = "scalar"
     mock_streamlit.button.return_value = True
-    
+
     DataSourceComponents.variable_config_dialog()
-    
+
     mock_streamlit.error.assert_called_with("Variable name is required.")
     mock_state_manager.set_parse_variables.assert_not_called()

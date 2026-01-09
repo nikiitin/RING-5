@@ -1,9 +1,8 @@
 import threading
 
-from src.parsing.params import DataParserParams
+from src.parsing.impl.data_parser_perl.dataParserPerl import DataParserPerl
 from src.parsing.interface import DataParserInterface
-from src.parsing.impl.data_parser_perl.dataParserPerl import \
-    DataParserPerl
+from src.parsing.params import DataParserParams
 
 
 class DataParserFactory:
@@ -16,6 +15,7 @@ class DataParserFactory:
     def reset(cls) -> None:
         """Reset the singleton instance."""
         from src.parsing.config_manager import ConfigurationManager
+
         ConfigurationManager.reset()
         with cls._lock:
             cls._parserSingleton = None

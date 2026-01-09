@@ -1,5 +1,5 @@
 from pathlib import Path
-import os
+
 
 class PathService:
     @staticmethod

@@ -1,5 +1,13 @@
 from argumentParser import AnalyzerInfo
-from src.data_management.impl import renamer, mixer, outlierRemover, seedsReducer, preprocessor
+
+from src.data_management.impl import (
+    mixer,
+    outlierRemover,
+    preprocessor,
+    renamer,
+    seedsReducer,
+)
+
 
 class DataManagerFactory:
     @staticmethod
@@ -30,27 +38,27 @@ class DataManagerFactory:
             if element == "rename":
                 manager = renamer.Renamer(params, manager_json)
                 managers.append(manager)
-            
+
             # Check if the mixer is present in the json file
             if element == "mixer":
                 manager = mixer.Mixer(params, manager_json)
                 managers.append(manager)
-            
+
             # Check if the outlierRemover is present in the json file
             if element == "outlierRemover":
                 manager = outlierRemover.OutlierRemover(params, manager_json)
                 managers.append(manager)
-            
+
             # Check if the seedsReducer is present in the json file
             if element == "seedsReducer":
                 manager = seedsReducer.SeedsReducer(params, manager_json)
                 managers.append(manager)
-            
+
             if element == "preprocessor":
                 manager = preprocessor.Preprocessor(params, manager_json)
                 managers.append(manager)
 
             if manager is None:
                 raise ValueError(f"DataManager {element} is not defined in the json file")
-            
+
         return managers

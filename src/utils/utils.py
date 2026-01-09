@@ -40,11 +40,11 @@ def getElementValue(
             if optional:
                 return None
             else:
-                raise Exception("Value is None for key: " + key + " and is not optional")
+                raise ValueError("Value is None for key: " + key + " and is not optional")
         else:
             return jsonElement[key]
     else:
-        raise Exception("Key not found: " + key)
+        raise KeyError("Key not found: " + key)
 
 
 def checkElementExists(jsonElement, key):
@@ -52,7 +52,7 @@ def checkElementExists(jsonElement, key):
     Check if a key exists in a JSON element, raise exception if not.
     """
     if key not in jsonElement:
-        raise Exception("Key not found: " + key)
+        raise KeyError("Key not found: " + key)
 
 
 def checkElementExistNoException(jsonElement, key):
@@ -129,4 +129,4 @@ def removeFile(filePath):
 
 def checkVarType(var, varType):
     if not isinstance(var, varType):
-        raise Exception("Variable is not of type " + str(varType) + ": " + str(var))
+        raise TypeError("Variable is not of type " + str(varType) + ": " + str(var))

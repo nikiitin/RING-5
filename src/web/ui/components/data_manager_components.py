@@ -1,7 +1,8 @@
-import streamlit as st
 import pandas as pd
-from typing import Optional
+import streamlit as st
+
 from src.web.components import UIComponents
+
 
 class DataManagerComponents:
     """UI Components for the Data Managers Page."""
@@ -116,11 +117,11 @@ class DataManagerComponents:
             total_rows = len(display_data)
             rows_per_page_int = int(rows_per_page)
             total_pages = (total_rows - 1) // rows_per_page_int + 1
-            
+
             # Ensure page is within range
             if "page_num" not in st.session_state:
                 st.session_state.page_num = 1
-                
+
             page = st.number_input(
                 "Page", min_value=1, max_value=max(1, total_pages), key="page_num"
             )

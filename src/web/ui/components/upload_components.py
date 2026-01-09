@@ -1,11 +1,13 @@
-import streamlit as st
-import pandas as pd
+import tempfile
 from io import StringIO
 from pathlib import Path
-import tempfile
-from src.web.state_manager import StateManager
+
+import pandas as pd
+import streamlit as st
+
 from src.web.components import UIComponents
-from src.web.services.paths import PathService
+from src.web.state_manager import StateManager
+
 
 class UploadComponents:
     """UI Components for the Upload Data Page."""
@@ -13,10 +15,10 @@ class UploadComponents:
     @staticmethod
     def render_parsed_data_preview():
         """Render preview if data is already parsed/loaded."""
-        st.markdown("## Step 2: Parsed Data Preview") # Reusing h2 style manual or via class?
+        st.markdown("## Step 2: Parsed Data Preview")  # Reusing h2 style manual or via class?
         # The page file uses AppStyles.step_header. We can do that or just markdown.
         # Let's keep it simple.
-        
+
         st.success("Data loaded from parser!")
 
         data = StateManager.get_data()

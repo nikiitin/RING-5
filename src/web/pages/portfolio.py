@@ -1,11 +1,13 @@
 """Portfolio management page - save and load complete analysis snapshots."""
 
-import pandas as pd
-import streamlit as st
 import copy
-from src.web.state_manager import StateManager
-from src.web.services.portfolio_service import PortfolioService
+
+import streamlit as st
+
 from src.web.services.pipeline_service import PipelineService
+from src.web.services.portfolio_service import PortfolioService
+from src.web.state_manager import StateManager
+
 
 def show_portfolio_page():
     """Save and load complete portfolio snapshots."""
@@ -40,7 +42,7 @@ def show_portfolio_page():
                         config=StateManager.get_config(),
                         plot_counter=StateManager.get_plot_counter(),
                         csv_path=StateManager.get_csv_path(),
-                        parse_variables=StateManager.get_parse_variables()
+                        parse_variables=StateManager.get_parse_variables(),
                     )
                     st.success(f"Portfolio saved: {portfolio_name}")
                 except Exception as e:
@@ -70,7 +72,7 @@ def show_portfolio_page():
     # Manage Saved Portfolios
     st.markdown("---")
     st.markdown("### Manage Saved Portfolios")
-    
+
     portfolios = PortfolioService.list_portfolios()
     if portfolios:
         for pname in portfolios:
@@ -105,9 +107,9 @@ def show_portfolio_page():
                 if st.button("Save Pipeline", type="primary"):
                     try:
                         PipelineService.save_pipeline(
-                            pipeline_name, 
-                            selected_plot.pipeline, 
-                            description=f"Extracted from {selected_plot_name}"
+                            pipeline_name,
+                            selected_plot.pipeline,
+                            description=f"Extracted from {selected_plot_name}",
                         )
                         st.success(f"Pipeline saved: {pipeline_name}")
                     except Exception as e:
@@ -142,10 +144,10 @@ def show_portfolio_page():
                                 p.pipeline = copy.deepcopy(new_pipeline)
                                 p.processed_data = None
                                 count += 1
-                        
+
                         # Update state
                         StateManager.set_plots(plots)
-                        
+
                         st.success(f"Applied pipeline to {count} plots.")
                     except Exception as e:
                         st.error(f"Failed to apply pipeline: {e}")

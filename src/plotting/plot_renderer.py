@@ -94,7 +94,7 @@ class PlotRenderer:
                 else:
                     # Use cached figure
                     fig = plot.last_generated_fig
-                
+
                 # Display the plot
                 st.plotly_chart(
                     fig,
@@ -113,7 +113,7 @@ class PlotRenderer:
                         # Configure client-side download button (camera icon) to SVG (vector)
                         # WYSIWYG: Scale 1 ensures exact pixel match with UI
                         "toImageButtonOptions": {
-                            "format": "svg", 
+                            "format": "svg",
                             "filename": f"{plot.name}_view",
                             "height": plot.config.get("height", 500),
                             "width": plot.config.get("width", 800),
@@ -152,21 +152,22 @@ class PlotRenderer:
             try:
                 try:
                     # High-fidelity export using kaleido if available
-                    import kaleido  # noqa: F401
                     import io
-                    
+
+                    import kaleido  # noqa: F401
+
                     buf = io.BytesIO()
                     # scale=3 provides high resolution for publications
                     fig.write_image(buf, format=download_format, scale=3)
                     buf.seek(0)
-                    
+
                     mime_map = {
                         "pdf": "application/pdf",
                         "png": "image/png",
-                        "svg": "image/svg+xml"
+                        "svg": "image/svg+xml",
                     }
                     mime = mime_map.get(download_format, "application/octet-stream")
-                    
+
                     st.download_button(
                         label=f"Download {download_format.upper()} (High Res)",
                         data=buf,
@@ -174,7 +175,7 @@ class PlotRenderer:
                         mime=mime,
                     )
                     return  # Success, skip fallback
-                    
+
                 except Exception as e:
                     # Provide feedback on fallback but don't crash
                     if "kaleido" in str(e) or isinstance(e, ImportError):

@@ -1,8 +1,7 @@
 import src.utils.utils as utils
-from src.parsing.params import DataParserParams
 from src.parsing.config_manager import ConfigurationManager
-from src.parsing.impl.multiprocessing.parseWorkPool import \
-    ParseWorkPool
+from src.parsing.impl.multiprocessing.parseWorkPool import ParseWorkPool
+from src.parsing.params import DataParserParams
 
 
 class DataParserInterface:

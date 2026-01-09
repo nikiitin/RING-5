@@ -39,6 +39,7 @@ class ColumnSelector(Selector):
         # Don't call Selector's preconditions as it expects _column (singular)
         # Call UniDfShaper's _verifyPreconditions instead
         from src.web.services.shapers.uni_df_shaper import UniDfShaper
+
         verified = UniDfShaper._verifyPreconditions(self, data_frame)
         # Check that all columns exist in the data frame
         for column in self._columns:

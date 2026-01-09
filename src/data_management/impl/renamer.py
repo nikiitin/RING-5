@@ -1,23 +1,24 @@
 from argumentParser import AnalyzerInfo
-from src.data_management.dataManager import DataManager
+
 import src.utils.utils as utils
-import pandas as pd
+from src.data_management.dataManager import DataManager
+
 
 class Renamer(DataManager):
     """
     Class to rename columns in a DataFrame.
     Inherits from the DataManager class.
     """
+
     def _verifyParams(self):
         super()._verifyParams()
         # Check if the renamer is a dictionary
         if not isinstance(self._renamerElement, dict):
             raise ValueError("Renamer element is not correctly defined at json file")
-        
+
         # Check if the renamer is empty
         if not self._renamerElement:
             raise ValueError("Renamer element is empty at json file")
-
 
     def __init__(self, params: AnalyzerInfo, json: dict) -> None:
         """

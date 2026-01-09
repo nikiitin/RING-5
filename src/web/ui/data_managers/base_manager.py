@@ -7,19 +7,12 @@ from abc import ABC, abstractmethod
 from typing import Optional
 
 import pandas as pd
-import streamlit as st
 
 from src.web.state_manager import StateManager
 
 
 class DataManager(ABC):
     """Abstract base class for data managers."""
-
-    def __init__(self):
-        """
-        Initialize the data manager.
-        """
-        pass
 
     @property
     @abstractmethod
