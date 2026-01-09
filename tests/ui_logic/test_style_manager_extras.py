@@ -2,12 +2,14 @@
 import pytest
 import pandas as pd
 from unittest.mock import MagicMock, patch, ANY
-from src.plotting.style_manager import StyleManager
+from src.plotting.styles import StyleManager
 import plotly.graph_objects as go
 
 @pytest.fixture
 def mock_streamlit():
-    with patch("src.plotting.style_manager.st") as mock_st:
+    with patch("src.plotting.styles.base_ui.st") as mock_st, \
+         patch("src.plotting.styles.line_ui.st", mock_st), \
+         patch("src.plotting.styles.bar_ui.st", mock_st):
         # Mock columns
         mock_st.columns.side_effect = lambda n: [MagicMock() for _ in range(n)] if isinstance(n, int) else [MagicMock() for _ in n]
         # Mock session_state
@@ -16,41 +18,68 @@ def mock_streamlit():
         mock_st.expander.return_value.__enter__.return_value = MagicMock()
         yield mock_st
 
-def test_render_series_styling_ui_full(mock_streamlit):
+def test_render_series_renaming_ui_full(mock_streamlit):
     # Setup data and config
     df = pd.DataFrame({"group": ["A", "B"], "val": [1, 2]})
     config = {"color": "group", "series_styles": {}}
-    sm = StyleManager(1, "line")
+    sm = StyleManager(1, "grouped_stacked_bar")
     
-    # Mock inputs
-    # Loop over A and B
-    # A: name, color, use_color, symbol, marker_size, line_width
-    # B: name, color, use_color, symbol, marker_size, line_width
-    
-    # We need to ensure we return enough values for the loop
-    # text_input (name): "A_new", "B_new"
+    # Mock return values for widgets
+    # text_input (renaming): A -> A_new, B -> B_new
     mock_streamlit.text_input.side_effect = ["A_new", "B_new"]
-    # color_picker (color): "#ff0000", "#00ff00"
-    mock_streamlit.color_picker.side_effect = ["#ff0000", "#00ff00"]
-    # checkbox (use_color): True, False
-    mock_streamlit.checkbox.side_effect = [True, False]
-    # selectbox (symbol): "circle", "square"
-    mock_streamlit.selectbox.side_effect = ["circle", "square"]
-    # number_input (marker_size): 10, 12
-    # number_input (line_width): 3, 4
-    mock_streamlit.number_input.side_effect = [10, 3, 12, 4]
     
-    styles = sm.render_series_styling_ui(config, df)
+    styles = sm.render_series_renaming_ui(config, df)
     
     assert styles["A"]["name"] == "A_new"
+    assert styles["B"]["name"] == "B_new"
+
+def test_render_series_colors_ui_full(mock_streamlit):
+    # Setup data and config
+    df = pd.DataFrame({"group": ["A", "B"], "val": [1, 2]})
+    config = {"color": "group", "series_styles": {}}
+    sm = StyleManager(1, "line") # Use line to trigger symbol/line_width widgets
+
+    # Mock return values for widgets
+    # render_series_colors_ui:
+    # 1. color_picker (Original A - disabled)
+    # 2. color_picker (Custom A)
+    # 3. checkbox (Override A)
+    # 4. color_picker (Original B - disabled)
+    # 5. color_picker (Custom B)
+    # 6. checkbox (Override B)
+    
+    # We need to match the calls.
+    # A: Original=#..., Custom=#ff0000, Override=True
+    # B: Original=#..., Custom=#00ff00, Override=False
+    
+    # matched calls:
+    # A: Original, Custom, Override, Expander(Marker), Symbol, MarkerSize, LineWidth
+    # B: Original, Custom, Override, Expander(Marker), Symbol, MarkerSize, LineWidth
+    
+    # We need to mock the returns for the new widgets
+    # ColorPicker: 4 calls
+    mock_streamlit.color_picker.side_effect = ["#aaaaaa", "#ff0000", "#bbbbbb", "#00ff00"]
+    # Checkbox: 2 calls
+    mock_streamlit.checkbox.side_effect = [True, False]
+    # Selectbox (Symbol): 2 calls (one for A, one for B)
+    mock_streamlit.selectbox.side_effect = ["circle", "square"]
+    # NumberInput: 4 calls (MarkerSize A, LineWidth A, MarkerSize B, LineWidth B)
+    mock_streamlit.number_input.side_effect = [10, 3, 12, 4]
+    
+    styles = sm.render_series_colors_ui(config, df)
+    
+    # A
     assert styles["A"]["use_color"] is True
     assert styles["A"]["color"] == "#ff0000"
+    # Specific options should be collected
     assert styles["A"]["symbol"] == "circle"
     assert styles["A"]["marker_size"] == 10
+    assert styles["A"]["line_width"] == 3
     
-    assert styles["B"]["name"] == "B_new"
+    # B
     assert styles["B"]["use_color"] is False
-    assert "color" not in styles["B"] # Popped
+    assert styles["B"]["color"] == "#00ff00"
+    assert styles["B"]["symbol"] == "square"
     
 def test_render_xaxis_labels_ui_filtering(mock_streamlit):
     df = pd.DataFrame({"x": ["a", "b"]})

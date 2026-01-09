@@ -40,8 +40,6 @@ class DataProcessingService:
         result_df = pd.merge(mean_df, std_df, on=categorical_cols)
         
         # Reorder columns: Categorical first, then Logic
-        # Actually standard python dict keys are insertion ordered, 
-        # but let's just put categorical first for clarity
         cols = categorical_cols + [c for c in result_df.columns if c not in categorical_cols]
         return result_df[cols]
 
@@ -140,7 +138,6 @@ class DataProcessingService:
             
             for col in source_cols:
                 # Try common suffixes
-                # Logic from MixerManager
                 potential_sds = [f"{col}.sd", f"{col}_stdev"]
                 sd_col = next((s for s in potential_sds if s in result.columns), None)
                 

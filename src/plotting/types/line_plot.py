@@ -36,6 +36,18 @@ class LinePlot(BasePlot):
 
         return {**config, "color": color_column}
 
+    def render_specific_advanced_options(self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame] = None) -> Dict[str, Any]:
+        """Specific options for Line Plot."""
+        config = {}
+        st.markdown("#### Line Settings")
+        config["line_shape"] = st.selectbox(
+            "Line Shape",
+            ["linear", "spline", "hv", "vh", "hvh", "vhv"],
+            index=["linear", "spline", "hv", "vh", "hvh", "vhv"].index(saved_config.get("line_shape", "linear")),
+            key=f"lshape_{self.plot_id}"
+        )
+        return config
+
     def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
         """Create line plot figure."""
         # Sort data by x-axis to ensure correct line drawing order (prevents zig-zags)
@@ -59,8 +71,7 @@ class LinePlot(BasePlot):
             markers=True,  # Enable markers to show explicit points
         )
 
-        # Force categorical x-axis to show all unique values as labels (e.g. 8, 16, 32...)
-        # regardless of whether they are numeric or strings.
+        # Force categorical x-axis to show all unique values as labels
         fig.update_xaxes(type='category')
 
         return fig

@@ -32,7 +32,7 @@ class BasePlot(ABC):
         self.legend_mappings: Dict[str, str] = {}
         
         # Initialize Style Manager
-        from .style_manager import StyleManager
+        from src.plotting.styles import StyleManager
         self.style_manager = StyleManager(self.plot_id, self.plot_type)
 
     @abstractmethod
@@ -232,11 +232,12 @@ class BasePlot(ABC):
         """Render sizing and layout options via StyleManager."""
         return self.style_manager.render_layout_options(saved_config)
 
-    def render_theme_options(self, saved_config: Dict[str, Any]) -> Dict[str, Any]:
+    def render_theme_options(self, saved_config: Dict[str, Any], items: Optional[List[str]] = None) -> Dict[str, Any]:
         """Render theme options via StyleManager."""
-        # Note: StyleManager.render_theme_options also accepts 'data' for per-series styling
-        # We pass self.processed_data if available.
-        return self.style_manager.render_theme_options(saved_config, self.processed_data)
+        # Pass data for potential data-dependent theming (e.g. series colors)
+        # Use a prefix to distinguish from advanced options
+        return self.style_manager.render_theme_options(saved_config, self.processed_data, items=items, key_prefix="theme_")
+
     def render_advanced_options(
         self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame] = None
     ) -> Dict[str, Any]:
@@ -251,102 +252,71 @@ class BasePlot(ABC):
         Returns:
             Configuration dictionary with advanced options
         """
-        st.markdown("#### General Settings")
-        col1, col2 = st.columns(2)
+        config = {}
+        
+        # 1. General & Axis Settings
+        self._render_general_settings(saved_config, config)
 
-        with col1:
-            show_error_bars = st.checkbox(
-                "Show Error Bars (if .sd columns exist)",
-                value=saved_config.get("show_error_bars", False),
-                key=f"error_bars_{self.plot_id}",
-            )
+        # 2. Specific Settings (Plot Type Specific)
+        specific_config = self.render_specific_advanced_options(saved_config, data)
+        config.update(specific_config)
 
-        with col2:
-            download_formats = ["html", "png", "pdf", "svg"]
-            default_format_idx = 0
-            if saved_config.get("download_format") in download_formats:
-                default_format_idx = download_formats.index(saved_config["download_format"])
+        # 3. Label Renaming (Generic X-axis renames mostly)
+        config["xaxis_labels"] = self.style_manager.render_xaxis_labels_ui(saved_config, data)
 
-            download_format = st.selectbox(
-                "Download Format",
-                options=download_formats,
-                index=default_format_idx,
-                key=f"download_fmt_{self.plot_id}",
-            )
-
-        st.markdown("#### Axis Settings")
-        col3, col4 = st.columns(2)
-        with col3:
-            xaxis_tickangle = st.slider(
-                "X-axis Label Rotation",
-                min_value=-90,
-                max_value=90,
-                value=saved_config.get("xaxis_tickangle", -45),
-                step=15,
-                key=f"xaxis_angle_{self.plot_id}",
-                help="Rotate X-axis labels to prevent overlap",
-            )
-
-            # Y-axis Stepping
-            yaxis_dtick = st.number_input(
-                "Y-axis Step Size (0 for auto)",
-                min_value=0.0,
-                value=float(saved_config.get("yaxis_dtick") or 0.0),
-                key=f"ydtick_{self.plot_id}",
-            )
-
-        with col4:
-            st.empty() # Placeholder if needed, or just remove col4 usage if empty.
-            # Actually, let's keep it clean.
-            pass
-
-
-        # X-Axis Label Renaming (Moved from Theme Options)
-        xaxis_labels = self.style_manager.render_xaxis_labels_ui(saved_config, data)
-        xaxis_order = None
-        group_order = None
-        legend_order = None
-
+        # 4. Ordering Control
         if data is not None:
-            st.markdown("#### Ordering Control")
+            self._render_ordering_ui(saved_config, data, config)
 
-            # X-axis Order
-            if saved_config.get("x") and saved_config["x"] in data.columns:
-                with st.expander("Reorder X-axis Labels"):
-                    unique_x = sorted(data[saved_config["x"]].unique().tolist())
-                    xaxis_order = self.render_reorderable_list("X-axis Order", unique_x, "xaxis")
+        # 5. Legend & Interactivity
+        st.markdown("#### Legend & Interactivity")
+        config["enable_editable"] = st.checkbox(
+            "Enable Interactive Editing",
+            value=saved_config.get("enable_editable", False),
+            key=f"editable_{self.plot_id}",
+            help="Allows you to drag the legend/title and click to edit text directly on the plot.",
+        )
+        # 6. Series Styling (Color, Shape, Pattern, Name)
+        if st.checkbox("Show Series Renaming", value=False, key=f"show_series_style_{self.plot_id}"):
+             st.markdown("#### Rename Series")
+             with st.expander("Rename Items", expanded=True):
+                 # Colors are now handled in Style & Theme, so we only do Renaming here.
+                 renaming_styles = self.style_manager.render_series_renaming_ui(saved_config, data)
+                 # Merge with existing styles (which might have colors from Style Menu)
+                 if "series_styles" not in config:
+                     config["series_styles"] = {}
+                 
+                 # We need to update deeply? 
+                 # series_styles is Dict[str, Dict].
+                 for k, v in renaming_styles.items():
+                     if k not in config["series_styles"]:
+                         config["series_styles"][k] = v
+                     else:
+                         config["series_styles"][k].update(v)
+        else:
+             # Preserve existing series styles if UI is hidden
+             if "series_styles" not in config:
+                  config["series_styles"] = saved_config.get("series_styles", {})
 
-            # Group Order
-            if saved_config.get("group") and saved_config["group"] in data.columns:
-                with st.expander("Reorder Groups"):
-                    unique_g = sorted(data[saved_config["group"]].unique().tolist())
-                    group_order = self.render_reorderable_list(
-                        "Group Order", 
-                        unique_g, 
-                        "group", 
-                        legend_labels=saved_config.get("legend_labels")
-                    )
 
-            # Legend Order (Color)
-            if saved_config.get("color") and saved_config["color"] in data.columns:
-                with st.expander("Reorder Legend Items"):
-                    unique_c = sorted(data[saved_config["color"]].unique().tolist())
-                    legend_order = self.render_reorderable_list(
-                        "Legend Order", 
-                        unique_c, 
-                        "legend", 
-                        legend_labels=saved_config.get("legend_labels")
-                    )
 
-        # Bar Settings
-        bargap = 0.2
-        bargroupgap = 0.0
-        bar_border_width = 0.0
+        # 7. Annotations
+        st.markdown("#### Annotations (Shapes)")
+        config["shapes"] = self._render_shapes_ui(saved_config)
+
+        return config
+
+    def render_specific_advanced_options(self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame] = None) -> Dict[str, Any]:
+        """
+        Hook for subclasses to render plot-specific advanced options.
+        Default implementation renders Bar settings if plot_type contains 'bar'.
+        """
+        config = {}
         if "bar" in self.plot_type:
             st.markdown("#### Bar Settings")
             col_bar1, col_bar2 = st.columns(2)
             with col_bar1:
-                bargap = st.slider(
+                config["bargap"] = st.slider(
                     "Spacing between Bars (Gap)",
                     min_value=0.0,
                     max_value=1.0,
@@ -357,7 +327,7 @@ class BasePlot(ABC):
 
             with col_bar2:
                 if "grouped" in self.plot_type:
-                    bargroupgap = st.slider(
+                    config["bargroupgap"] = st.slider(
                         "Spacing between Groups",
                         min_value=0.0,
                         max_value=1.0,
@@ -367,7 +337,7 @@ class BasePlot(ABC):
                     )
 
                 if "stacked" in self.plot_type:
-                    bar_border_width = st.slider(
+                    config["bar_border_width"] = st.slider(
                         "Spacing between Stacked Items (Border)",
                         min_value=0.0,
                         max_value=5.0,
@@ -376,30 +346,93 @@ class BasePlot(ABC):
                         key=f"bar_border_{self.plot_id}",
                         help="Adds a white border to separate stacked segments.",
                     )
+        return config
 
-        # Legend Settings
-        st.markdown("#### Legend & Interactivity")
-        enable_editable = st.checkbox(
-            "Enable Interactive Editing (Drag Items, Edit Text)",
-            value=saved_config.get("enable_editable", False),
-            key=f"editable_{self.plot_id}",
-            help="Allows you to drag the legend/title and click to edit text directly on the plot.",
-        )
+    def _render_general_settings(self, saved_config: Dict[str, Any], config: Dict[str, Any]):
+        """Helper to render general settings."""
+        st.markdown("#### General & Axis")
+        col1, col2 = st.columns(2)
+        with col1:
+            config["show_error_bars"] = st.checkbox(
+                "Show Error Bars (if .sd columns exist)",
+                value=saved_config.get("show_error_bars", False),
+                key=f"error_bars_{self.plot_id}",
+            )
+            
+            # Y-axis Stepping
+            dtick = st.number_input(
+                "Y-axis Step Size (0 for auto)",
+                min_value=0.0,
+                value=float(saved_config.get("yaxis_dtick") or 0.0),
+                key=f"ydtick_{self.plot_id}",
+            )
+            if dtick > 0:
+                config["yaxis_dtick"] = dtick
 
-        # Per-Series Styling (Color, Shape, Pattern, Name)
-        # Moved here from Theme Options
-        series_styles = {}
-        if st.checkbox("Show Series Configuration", value=True, key=f"show_series_style_{self.plot_id}"):
-             st.markdown("#### Configure Series (Color, Shape, Renaming)")
-             with st.expander("Configure Series Styles", expanded=True):
-                 series_styles = self.style_manager.render_series_styling_ui(saved_config, data)
-        else:
-             series_styles = saved_config.get("series_styles", {})
+        with col2:
+            download_formats = ["html", "png", "pdf", "svg"]
+            default_fmt_idx = 0
+            if saved_config.get("download_format") in download_formats:
+                default_fmt_idx = download_formats.index(saved_config["download_format"])
+            
+            config["download_format"] = st.selectbox(
+                "Download Format",
+                options=download_formats,
+                index=default_fmt_idx,
+                key=f"download_fmt_{self.plot_id}",
+            )
 
+            config["xaxis_tickangle"] = st.slider(
+                "X-axis Label Rotation",
+                min_value=-90,
+                max_value=90,
+                value=saved_config.get("xaxis_tickangle", -45),
+                step=15,
+                key=f"xaxis_angle_{self.plot_id}",
+                help="Rotate X-axis labels to prevent overlap",
+            )
 
+    def _render_ordering_ui(self, saved_config: Dict[str, Any], data: pd.DataFrame, config: Dict[str, Any]):
+        """Helper to render ordering UI."""
+        st.markdown("#### Ordering Control")
 
-        # Shapes (Annotations)
-        st.markdown("#### Annotations (Shapes)")
+        # X-axis Order
+        if saved_config.get("x") and saved_config["x"] in data.columns:
+            with st.expander("Reorder X-axis Labels"):
+                unique_x = sorted(data[saved_config["x"]].unique().tolist())
+                config["xaxis_order"] = self.render_reorderable_list(
+                    "X-axis Order", 
+                    unique_x, 
+                    "xaxis",
+                    default_order=saved_config.get("xaxis_order")
+                )
+
+        # Group Order
+        if saved_config.get("group") and saved_config["group"] in data.columns:
+            with st.expander("Reorder Groups"):
+                unique_g = sorted(data[saved_config["group"]].unique().tolist())
+                config["group_order"] = self.render_reorderable_list(
+                    "Group Order", 
+                    unique_g, 
+                    "group", 
+                    legend_labels=saved_config.get("legend_labels"),
+                    default_order=saved_config.get("group_order")
+                )
+
+        # Legend Order (Color)
+        if saved_config.get("color") and saved_config["color"] in data.columns:
+            with st.expander("Reorder Legend Items"):
+                unique_c = sorted(data[saved_config["color"]].unique().tolist())
+                config["legend_order"] = self.render_reorderable_list(
+                    "Legend Order", 
+                    unique_c, 
+                    "legend", 
+                    legend_labels=saved_config.get("legend_labels"),
+                    default_order=saved_config.get("legend_order")
+                )
+
+    def _render_shapes_ui(self, saved_config: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Helper to render Shapes UI."""
         shapes = saved_config.get("shapes", [])
 
         # Add new shape
@@ -424,7 +457,6 @@ class BasePlot(ABC):
                 s_width = st.number_input("Width", 1, 10, 2, key=f"s_width_{self.plot_id}")
 
             if st.button("Add Shape", key=f"add_shape_{self.plot_id}"):
-                # Try to convert to float if possible, else keep as string
                 def try_float(v):
                     try:
                         return float(v)
@@ -447,7 +479,6 @@ class BasePlot(ABC):
         if shapes:
             st.markdown("**Existing Shapes (Edit to Resize):**")
             
-            # Use columns for headers
             h1, h2, h3, h4, h5, h6 = st.columns([1, 1, 1, 1, 1, 0.5])
             with h1: st.caption("x0")
             with h2: st.caption("y0")
@@ -479,34 +510,22 @@ class BasePlot(ABC):
                         shapes.pop(i)
                         st.rerun()
                 
-                # Update shape if values changed
                 shape['x0'] = try_float(new_x0)
                 shape['y0'] = try_float(new_y0)
                 shape['x1'] = try_float(new_x1)
                 shape['y1'] = try_float(new_y1)
 
-        return {
-            "show_error_bars": show_error_bars,
-            "download_format": download_format,
-            "xaxis_tickangle": xaxis_tickangle,
-            "yaxis_dtick": yaxis_dtick if yaxis_dtick > 0 else None,
-            "bargap": bargap,
-            "bargroupgap": bargroupgap,
-            "bar_border_width": bar_border_width if "stacked" in self.plot_type else 0.0,
-            "enable_editable": enable_editable,
-            "xaxis_order": xaxis_order,
-            "group_order": group_order,
-            "legend_order": legend_order,
-            "legend_labels": saved_config.get("legend_labels"), # Preserve legacy if exists
-            "series_styles": series_styles,
-            "xaxis_labels": xaxis_labels,
-            "shapes": shapes,
-        }
+        return shapes
 
 
 
     def render_reorderable_list(
-        self, label: str, items: List[Any], key_prefix: str, legend_labels: Optional[Dict[str, str]] = None
+        self, 
+        label: str, 
+        items: List[Any], 
+        key_prefix: str, 
+        legend_labels: Optional[Dict[str, str]] = None,
+        default_order: Optional[List[Any]] = None
     ) -> List[Any]:
         """
         Render a list that can be reordered using up/down buttons.
@@ -516,7 +535,15 @@ class BasePlot(ABC):
         # Initialize in session state if needed
         ss_key = f"{key_prefix}_order_{self.plot_id}"
         if ss_key not in st.session_state:
-            st.session_state[ss_key] = list(items)
+            # Use default_order if provided, but validate against current items
+            if default_order:
+                # Filter default_order to only include items currently in data
+                valid_defaults = [x for x in default_order if x in items]
+                # Append any new items from data that weren't in default_order
+                missing_items = [x for x in items if x not in valid_defaults]
+                st.session_state[ss_key] = valid_defaults + missing_items
+            else:
+                st.session_state[ss_key] = list(items)
 
         # Sync if items changed (e.g. data update) but keep existing order for common items
         current_items = st.session_state[ss_key]

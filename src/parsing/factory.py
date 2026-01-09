@@ -8,7 +8,6 @@ from src.parsing.impl.data_parser_perl.dataParserPerl import \
 
 class DataParserFactory:
     # Lock for thread safety
-    # Should not be needed, but just in case
     _lock = threading.Lock()
     # Singleton
     _parserSingleton = None

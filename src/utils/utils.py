@@ -9,6 +9,9 @@ def getPathToRingRoot():
 
 
 def jsonToArg(jsonElement, key):
+    """
+    Convert a JSON element to a command line argument list.
+    """
     commandLineArgs = []
     arg = getElementValue(jsonElement, key)
     if isinstance(arg, list):
@@ -29,6 +32,9 @@ def jsonToOptionalArg(jsonElement, key):
 def getElementValue(
     jsonElement, key, optional=True
 ) -> bool | int | float | str | list | dict | None:
+    """
+    Get the value of a key in a JSON element.
+    """
     if key in jsonElement:
         if jsonElement[key] is None:
             if optional:
@@ -42,6 +48,9 @@ def getElementValue(
 
 
 def checkElementExists(jsonElement, key):
+    """
+    Check if a key exists in a JSON element, raise exception if not.
+    """
     if key not in jsonElement:
         raise Exception("Key not found: " + key)
 

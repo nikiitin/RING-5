@@ -263,7 +263,6 @@ class BackendFacade:
             var_name = var["name"]
             
             # Helper to add variable without modification
-            # Helper to add variable without modification
             def _add_as_is(name, v):
                 # Check for Alias
                 alias = v.get("alias")
@@ -311,8 +310,8 @@ class BackendFacade:
                         matched_concrete_names.append(cv["name"])
                 
                 if matched_concrete_names:
-                    # Found concrete matches -> Configure Parser for REDUCTION
-                    # We create ONE variable entry, but map ALL concrete IDs to it via 'parsed_ids'.
+                    # Found concrete matches: Configure Parser for reduction.
+                    # Create one variable entry mapping all concrete IDs via 'parsed_ids'.
                     count = len(matched_concrete_names)
                     
                     # Create reduced variable config
@@ -487,9 +486,7 @@ class BackendFacade:
             
             for file_path in files_to_scan:
                 try:
-                    # Collect potentially relevant config keys for detection hints
-                    # Optimistically pass names that might be config keys
-                    # Just pass empty string for now as the perl script handles config types via regex too
+                    # Execute Perl scanner script
                     cmd = ["perl", str(script_path), str(file_path)]
                     
                     result = subprocess.check_output(cmd, stderr=subprocess.DEVNULL)
@@ -633,8 +630,7 @@ class BackendFacade:
             
             for file_path in files_to_scan:
                 try:
-                    # Optimization: Check if file contains vector name with grep/python first? 
-                    # Actually standard Python check is fast enough
+                    # Optimization: Fast pre-check using Python reads before spawning Perl process
                     with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                         if vector_name not in f.read():
                              continue

@@ -2,11 +2,11 @@
 import pytest
 from unittest.mock import MagicMock, patch
 import pandas as pd
-from src.plotting.style_manager import StyleManager
+from src.plotting.styles import StyleManager
 
 @pytest.fixture
 def mock_streamlit():
-    with patch("src.plotting.style_manager.st") as mock_st:
+    with patch("src.plotting.styles.base_ui.st") as mock_st:
         # Mock columns
         def columns_side_effect(spec, **kwargs):
             if isinstance(spec, int):
@@ -42,11 +42,11 @@ def test_render_layout_options(mock_streamlit, style_manager):
     assert "margin_l" in result
     mock_streamlit.slider.assert_called()
 
-def test_render_theme_options_basic(mock_streamlit, style_manager):
+def test_render_style_ui_basic(style_manager, mock_streamlit):
     config = {}
     
     # Just verify it runs and collects basics
-    result = style_manager.render_theme_options(config)
+    result = style_manager.render_style_ui(config)
     
     assert "color_palette" in result
     assert "plot_bgcolor" in result
@@ -54,7 +54,7 @@ def test_render_theme_options_basic(mock_streamlit, style_manager):
 
 def test_render_series_styling_ui_no_data(mock_streamlit, style_manager):
     config = {}
-    result = style_manager.render_series_styling_ui(config, None)
+    result = style_manager.render_series_renaming_ui(config, None)
     assert result == {}
 
 def test_render_series_styling_ui_with_data(mock_streamlit, style_manager):
@@ -71,7 +71,7 @@ def test_render_series_styling_ui_with_data(mock_streamlit, style_manager):
     
     # Mock unique values iteration by checking calls to markdown("**val**")
     
-    style_manager.render_series_styling_ui(config, data)
+    style_manager.render_series_renaming_ui(config, data)
     
     # Should see markdown calls for group names
     # Note: unittest mock matching args in list

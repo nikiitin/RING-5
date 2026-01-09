@@ -3,7 +3,7 @@ from src.data_management.dataManager import DataManager
 import src.utils.utils as utils
 import pandas as pd
 
-class operator:
+class Operator:
     """
     Class to define the operator to be used in the preprocessor.
     """
@@ -13,7 +13,7 @@ class operator:
         """
         raise NotImplementedError("Operator not implemented")
 
-class DivideOperator(operator):
+class DivideOperator(Operator):
     """
     Class to define the divide operator.
     """

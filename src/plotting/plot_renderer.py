@@ -95,17 +95,13 @@ class PlotRenderer:
                     # Use cached figure
                     fig = plot.last_generated_fig
                 
-                # DEBUG: Check editable state
-                is_editable = plot.config.get("enable_editable", False)
-                # print(f"[DEBUG-RENDER] Plot {plot.name} Editable: {is_editable}")
-
                 # Display the plot
                 st.plotly_chart(
                     fig,
                     # use_container_width=False is deprecated. Default behavior respects fig width.
                     config={
                         "responsive": False,
-                        "editable": is_editable,
+                        "editable": plot.config.get("enable_editable", False),
                         "modeBarButtonsToAdd": [
                             "drawline",
                             "drawopenpath",
@@ -155,7 +151,7 @@ class PlotRenderer:
         elif download_format in ["png", "pdf", "svg"]:
             try:
                 try:
-                    # improved high-fidelity export using kaleido if available
+                    # High-fidelity export using kaleido if available
                     import kaleido  # noqa: F401
                     import io
                     

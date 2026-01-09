@@ -195,7 +195,7 @@ class PerlParseWork(ParseWork):
 
     def __call__(self) -> dict:
         # Set the script path
-        # FIXME: MAGIC!
+        # TODO: Avoid hardcoded path. Ensure this script is accessible.
         scriptPath = os.path.join(
             "./src/parsing/impl/data_parser_perl/src/parser_impl/fileParser.pl"
         )

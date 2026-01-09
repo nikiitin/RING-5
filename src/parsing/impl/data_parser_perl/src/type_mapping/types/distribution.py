@@ -27,21 +27,23 @@ class Distribution(confType):
         self.content.update((str(x), []) for x in range(int(minimum), int(maximum) + 1))
         self.content.update({"overflows": []})
 
-    # Distribution must be a list of ints representing the number of times
-    # a value (key) has appeared
-    # Those are repeated n times for each cpu...
-    # Have a fixed amout of buckets, which are the keys, the last key and the first key
-    # are the underflow and overflow buckets, respectively and
-    # are defined by the maximum and minimum values, the key format is:
-    # - "underflows" which should be represented with "2nd element-" key
-    # + "overflows" which should be represented with "last element+" key
-    # "X" where X is the value of the bucket
-    # so, as result we have a dict with the following format:
-    # { "0-" : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    #  "0" : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    #  "1" : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    #  "1+" : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    # }
+    """
+    Distribution must be a list of ints representing the number of times
+    a value (key) has appeared.
+    Those are repeated n times for each cpu.
+    Have a fixed amout of buckets, which are the keys, the last key and the first key
+    are the underflow and overflow buckets, respectively and
+    are defined by the maximum and minimum values, the key format is:
+    - "underflows" which should be represented with "2nd element-" key
+    - "overflows" which should be represented with "last element+" key
+    "X" where X is the value of the bucket.
+    So, as result we have a dict with the following format:
+    { "0-" : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+     "0" : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+     "1" : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+     "1+" : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    }
+    """
 
     def __getattribute__(self, __name: str) -> Any:
         if __name == "entries":

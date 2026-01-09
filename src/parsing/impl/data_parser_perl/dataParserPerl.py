@@ -73,7 +73,6 @@ class DataParserPerl(DataParserInterface):
         filesPath = utils.getElementValue(parsing, "path")
         files = utils.getElementValue(parsing, "files")
         # Look for all the files recursively that end with suffix
-        # and are in the path or subdirectories
         print("Looking for files in path: " + filesPath)
         filesFound = glob.glob(filesPath + "/**/" + files, recursive=True)
         return filesFound
@@ -108,8 +107,7 @@ class DataParserPerl(DataParserInterface):
             # Get the files to parse
             if self._shouldCompress == "True":
                 # Get the files from the compressed file
-                # No worries about time here (more or less),
-                # we are not remote anymore
+                # Get the files from the compressed file
                 filesFound = glob.glob(
                     self._args.getOutputDir()
                     + utils.getElementValue(parsing, "path")
@@ -128,8 +126,7 @@ class DataParserPerl(DataParserInterface):
                 # Nothing to do here...
                 continue
             # Map the vars to types used in parsing
-            # This will make things easier and less prone to
-            # errors
+            # Map the vars to types used in parsing
             parsingVars = parsing["vars"]
             mappedVars = self._mapParsingVars(parsingVars)
             # Take the name of the variables to parse and store
@@ -160,7 +157,7 @@ class DataParserPerl(DataParserInterface):
         if len(self._results) == 0:
             return
         # Get the first file. From here we will get the variables
-        # Hacky? I don't think so...
+        # Get the first file. From here we will get the variables
         file = self._results[0]
         for varName in self._varsToParse:
             # Get the variable

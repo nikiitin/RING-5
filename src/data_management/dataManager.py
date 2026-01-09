@@ -62,12 +62,13 @@ class DataManager:
         self._verifyParams()
         pass
 
-    def persist() -> None:
+    @classmethod
+    def persist(cls) -> None:
         """
         Persist the DataFrame to a csv file.
         """
-        if DataManager._df is not None:
-            DataManager._df.to_csv(DataManager._csvPath, index=False, sep=" ")
-            print(f"DataFrame persisted to {DataManager._csvPath}")
+        if cls._df is not None:
+            cls._df.to_csv(cls._csvPath, index=False, sep=" ")
+            print(f"DataFrame persisted to {cls._csvPath}")
         else:
             print("DataFrame is None, cannot persist.")

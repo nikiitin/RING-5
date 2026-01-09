@@ -60,16 +60,12 @@ class Mixer(DataManager):
             # Mixer are defined as a dictionary, where the key is the name of the new column
             # and the values are the columns to be mixed.
             for key, values in self._mixerElement.items():
-                print("Mixing columns:", end=" ")
-                # Check if the values are a list
-                mixed_column = None
+                print(f"Mixing columns: {' '.join([str(v) for v in values])} | into: {key}")
                 for value in values:
-                    print(f" {value}", end=",")
                     # The values are the columns to be mixed
                     if mixed_column is None:
                         mixed_column = DataManager._df[value]
                     else:
                         mixed_column += DataManager._df[value]
                 # Create the new column with the name being the key
-                print(f"  | into: {key}")
                 DataManager._df[key] = mixed_column

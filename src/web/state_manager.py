@@ -22,7 +22,11 @@ class StateManager:
     USE_PARSER = "use_parser"
     CSV_POOL = "csv_pool"
     SAVED_CONFIGS = "saved_configs"
+
     PARSE_VARIABLES = "parse_variables"
+    STATS_PATH = "stats_path"
+    STATS_PATTERN = "stats_pattern"
+    SCANNED_VARIABLES = "scanned_variables"
     
     # Plot State Keys
     PLOTS_OBJECTS = "plots_objects"
@@ -50,6 +54,10 @@ class StateManager:
             StateManager.PLOTS_OBJECTS: [],
             StateManager.PLOT_COUNTER: 0,
             StateManager.CURRENT_PLOT_ID: None,
+            # Parser defaults
+            StateManager.STATS_PATH: "/path/to/gem5/stats",
+            StateManager.STATS_PATTERN: "stats.txt",
+            StateManager.SCANNED_VARIABLES: [],
         }
 
         for key, value in defaults.items():
@@ -180,14 +188,34 @@ class StateManager:
         st.session_state[StateManager.PARSE_VARIABLES] = variables
 
     @staticmethod
+    def get_stats_path() -> str:
+        """Get the stats directory path."""
+        return st.session_state.get(StateManager.STATS_PATH, "/path/to/gem5/stats")
+
+    @staticmethod
+    def set_stats_path(path: str):
+        """Set the stats directory path."""
+        st.session_state[StateManager.STATS_PATH] = path
+
+    @staticmethod
+    def get_stats_pattern() -> str:
+        """Get the stats file pattern."""
+        return st.session_state.get(StateManager.STATS_PATTERN, "stats.txt")
+
+    @staticmethod
+    def set_stats_pattern(pattern: str):
+        """Set the stats file pattern."""
+        st.session_state[StateManager.STATS_PATTERN] = pattern
+
+    @staticmethod
     def get_scanned_variables() -> List[Dict[str, Any]]:
         """Get scanned variables results."""
-        return st.session_state.get("scanned_variables", [])
+        return st.session_state.get(StateManager.SCANNED_VARIABLES, [])
 
     @staticmethod
     def set_scanned_variables(variables: List[Dict[str, Any]]):
         """Set scanned variables results."""
-        st.session_state["scanned_variables"] = variables
+        st.session_state[StateManager.SCANNED_VARIABLES] = variables
 
     @staticmethod
     def clear_all():
@@ -206,6 +234,18 @@ class StateManager:
         st.session_state[StateManager.CSV_PATH] = None
         st.session_state[StateManager.USE_PARSER] = False
         st.session_state[StateManager.TEMP_DIR] = None
+        
+        # Reset new/parser fields
+        st.session_state[StateManager.STATS_PATH] = "/path/to/gem5/stats"
+        st.session_state[StateManager.STATS_PATTERN] = "stats.txt"
+        st.session_state[StateManager.SCANNED_VARIABLES] = []
+        
+        # Also clean up parse variables to default?
+        st.session_state[StateManager.PARSE_VARIABLES] = [
+                {"name": "simTicks", "type": "scalar"},
+                {"name": "benchmark_name", "type": "configuration"},
+                {"name": "config_description", "type": "configuration"},
+            ]
 
     @staticmethod
     def has_data() -> bool:
@@ -258,6 +298,14 @@ class StateManager:
         # Restore variables configuration if present (CRITICAL for type enforcement)
         if "parse_variables" in portfolio_data:
             st.session_state[StateManager.PARSE_VARIABLES] = portfolio_data["parse_variables"]
+            
+        # Restore stats config
+        if "stats_path" in portfolio_data:
+            st.session_state[StateManager.STATS_PATH] = portfolio_data["stats_path"]
+        if "stats_pattern" in portfolio_data:
+            st.session_state[StateManager.STATS_PATTERN] = portfolio_data["stats_pattern"]
+        if "scanned_variables" in portfolio_data:
+            st.session_state[StateManager.SCANNED_VARIABLES] = portfolio_data["scanned_variables"]
 
         # Restore data
         if "data_csv" in portfolio_data:
@@ -276,10 +324,8 @@ class StateManager:
                 "margin_b_", "bargap_", "bargroupgap_", "bar_border_",
                 "editable_", "download_fmt_", "show_error_bars", "new_plot_name",
                 "colsel_", "norm_", "mean_", "sort_", "filter_", "trans_",
-                # Add new hash keys markers if any specific prefix is used, 
-                # though currently they use _plot_id_hash, so clearing by plot components usually works if we reset plot objects.
-                # Since we replace plot objects, new widgets will be generated if IDs change? 
-                # Actually IDs might persist. Explicit clearing is safer.
+                "colsel_", "norm_", "mean_", "sort_", "filter_", "trans_",
+                # Clear specific style widget keys to prevent stale state
                 "name_", "color_", "use_col_", "sym_", "msize_", "lwidth_", "pat_", "xlabel_"
             ])
         ]
@@ -297,8 +343,7 @@ class StateManager:
                     plot_obj = BasePlot.from_dict(plot_data)
                     loaded_plots_objects.append(plot_obj)
             except Exception as e:
-                # st.warning is not available here if we want to be pure, but StateManager currently uses st. 
-                # Prints will show in logs.
+                # Log error if object reconstruction fails
                 print(f"Could not load plot as object: {e}")
 
             # Also keep as dict for fallback/legacy

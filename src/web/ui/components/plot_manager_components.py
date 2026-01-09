@@ -314,14 +314,5 @@ class PlotManagerComponents:
                  st.info("Coming soon!")
         with c2:
              if st.button("Save Entire Workspace", width="stretch"):
-                  # Use PortfolioService to save? 
-                  # Actually the old behavior was sync only.
-                  # But 'Save Entire Workspace' usually implies persistence.
-                  # The user said "not persisting... save... load".
-                  # The button in manage_plots just syncs to `st.session_state.plots` list.
-                  # We should maintain that behavior or improve it.
-                  # Let's keep the sync behavior for now as Portfolio Page does the real file saving.
-                  plots = StateManager.get_plots()
-                  # We simply confirm they are in state (they are, since we use get_plots/set_plots).
-                  # Maybe this button is redundant now?
+                  # Sync state confirmation
                   st.success("Workspace state synchronized.")

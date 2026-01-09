@@ -3,7 +3,7 @@ import pytest
 from unittest.mock import MagicMock, patch
 import pandas as pd
 import plotly.graph_objects as go
-from src.plotting.style_manager import StyleManager
+from src.plotting.styles import StyleManager
 
 @pytest.fixture
 def style_manager():
@@ -11,7 +11,7 @@ def style_manager():
 
 @pytest.fixture
 def mock_streamlit():
-    with patch("src.plotting.style_manager.st") as mock_st:
+    with patch("src.plotting.styles.base_ui.st") as mock_st:
         mock_st.session_state = {}
         # Mock columns
         def columns_side_effect(spec, **kwargs):
@@ -72,7 +72,7 @@ def test_apply_styles_axis(style_manager):
     assert fig.layout.xaxis.tickangle == -90
     assert fig.layout.yaxis.gridcolor == "#cccccc"
 
-def test_render_theme_options(style_manager, mock_streamlit):
+def test_render_style_ui(style_manager, mock_streamlit):
     """Test rendering theme options UI."""
     saved_config = {"color_palette": "G10", "transparent_bg": False}
     
@@ -82,7 +82,7 @@ def test_render_theme_options(style_manager, mock_streamlit):
     mock_streamlit.color_picker.return_value = "#ffffff"
     mock_streamlit.number_input.return_value = 12
     
-    result = style_manager.render_theme_options(saved_config)
+    result = style_manager.render_style_ui(saved_config)
     
     assert result["color_palette"] == "G10"
     assert result["transparent_bg"] is False

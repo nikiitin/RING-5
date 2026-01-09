@@ -13,9 +13,11 @@ class Histogram(confType):
         self.__dict__["reducedContent"] = dict()
         self.content.update((x, []) for x in buckets)
 
-    # Histogram must be a list of floats or ints.
-    # those are repeated n times for each cpu...
-    # Have a fixed amout of buckets
+    """
+    Histogram must be a list of floats or ints.
+    Those are repeated n times for each cpu.
+    Have a fixed amout of buckets.
+    """
     def __setattr__(self, __name: str, __value: dict) -> None:
         super().__setattr__(__name, __value)
         if __name == "content":

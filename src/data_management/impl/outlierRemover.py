@@ -42,8 +42,6 @@ class OutlierRemover(DataManager):
         # Check if the outlierRemover is set to True
         if self._outlierRemoverElement:
             print("Removing outliers...")
-            # pd.set_option('display.max_colwidth', None)
-            # pd.set_option('display.max_rows', None)
             # Remove outliers, that data that is outside the 3rd quartile (Q3)
 
             # Group by categorical columns

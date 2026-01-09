@@ -4,6 +4,7 @@ import pandas as pd
 from typing import List, Dict, Any, Optional, Union
 from src.web.services.paths import PathService
 from src.plotting import BasePlot
+from src.web.state_manager import StateManager
 
 class PortfolioService:
     """Service to handle saving and loading full portfolios."""
@@ -42,6 +43,11 @@ class PortfolioService:
             "plot_counter": plot_counter,
             "config": config,
             "parse_variables": parse_variables or [],
+            
+            # Persist stats location & scanning results
+            "stats_path": StateManager.get_stats_path(),
+            "stats_pattern": StateManager.get_stats_pattern(),
+            "scanned_variables": StateManager.get_scanned_variables(),
         }
 
         save_path = PathService.get_portfolios_dir() / f"{name}.json"

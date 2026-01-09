@@ -73,17 +73,28 @@ class DataSourceComponents:
         st.markdown("#### File Location")
         col1, col2 = st.columns(2)
         with col1:
+            # Use StateManager for persistence
+            current_path = StateManager.get_stats_path()
             stats_path = st.text_input(
                 "Stats directory path",
-                value="/path/to/gem5/stats",
+                value=current_path,
                 help="Directory containing gem5 stats files (can include subdirectories)",
+                key="stats_path_input"
             )
+            # Explicitly set state to ensure persistence across reruns
+            if stats_path != current_path:
+                StateManager.set_stats_path(stats_path)
+                
         with col2:
+            current_pattern = StateManager.get_stats_pattern()
             stats_pattern = st.text_input(
                 "File pattern",
-                value="stats.txt",
+                value=current_pattern,
                 help="Filename pattern to search for (e.g., stats.txt, *.txt)",
+                key="stats_pattern_input"
             )
+            if stats_pattern != current_pattern:
+                StateManager.set_stats_pattern(stats_pattern)
 
         # Compression option
         st.markdown("#### Remote Filesystem Optimization")
