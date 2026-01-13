@@ -83,12 +83,58 @@ class BaseStyleUI:
     ) -> Dict[str, Any]:
         """
         Render style configurator UI (Theme, Colors, Fonts).
-        Delegates to specific render methods for Series Colors, Backgrounds, and Fonts.
+        Delegates to specific render methods for each section.
         """
-        # 1. Series Styling
+        # 1. Series Colors
+        series_config = self._render_series_section(saved_config, data, items, key_prefix)
+
+        st.markdown("---")
+
+        # 2. Data Labels
+        data_labels_config = self.render_data_labels_ui(saved_config, key_prefix)
+
+        st.markdown("---")
+
+        # 3. Backgrounds & Grid
+        bg_config = self._render_backgrounds_section(saved_config, key_prefix)
+
+        # 4. Legend Styling
+        legend_config = self._render_legend_section(saved_config, key_prefix)
+
+        # 5. Typography (Titles & Labels)
+        typography_config = self._render_typography_section(saved_config, key_prefix)
+
+        # Merge all configs
+        theme_config = {
+            **series_config,
+            **bg_config,
+            **legend_config,
+            **typography_config,
+            "show_values": data_labels_config.get("show_values", False),
+            "text_color_mode": data_labels_config.get("text_color_mode"),
+            "text_color": data_labels_config.get("text_color"),
+            "text_font_size": data_labels_config.get("text_font_size"),
+            "text_rotation": data_labels_config.get("text_rotation"),
+            "text_position": data_labels_config.get("text_position"),
+            "text_anchor": data_labels_config.get("text_anchor"),
+            "text_format": data_labels_config.get("text_format"),
+            "text_display_logic": data_labels_config.get("text_display_logic"),
+            "text_threshold": data_labels_config.get("text_threshold"),
+            "text_constraint": data_labels_config.get("text_constraint"),
+        }
+
+        return theme_config
+
+    def _render_series_section(
+        self,
+        saved_config: Dict[str, Any],
+        data: Optional[pd.DataFrame],
+        items: Optional[List[str]],
+        key_prefix: str,
+    ) -> Dict[str, Any]:
+        """Render series colors section."""
         st.markdown("#### Series Colors")
 
-        # Color Palette Selection
         available_palettes = [
             "Plotly",
             "G10",
@@ -123,6 +169,12 @@ class BaseStyleUI:
 
         st.markdown("---")
 
+        return {"color_palette": color_palette, "series_styles": series_styles}
+
+    def _render_backgrounds_section(
+        self, saved_config: Dict[str, Any], key_prefix: str
+    ) -> Dict[str, Any]:
+        """Render backgrounds and grid section."""
         st.markdown("#### Backgrounds & Grid")
 
         transparent_bg = st.checkbox(
@@ -180,12 +232,39 @@ class BaseStyleUI:
             else:
                 enable_stripes = False
 
+        return {
+            "transparent_bg": transparent_bg,
+            "plot_bgcolor": plot_bgcolor,
+            "paper_bgcolor": paper_bgcolor,
+            "grid_color": grid_color,
+            "axis_color": axis_color,
+            "enable_stripes": enable_stripes,
+        }
+
+    def _render_legend_section(
+        self, saved_config: Dict[str, Any], key_prefix: str
+    ) -> Dict[str, Any]:
+        """Render legend styling section."""
         st.markdown("#### Legend Styling")
 
-        # Split into logical sections for better balance
-        # 1. Position & Orientation
+        # Position & Orientation
+        pos_config = self._render_legend_position(saved_config, key_prefix)
+
+        # Appearance
+        app_config = self._render_legend_appearance(saved_config, key_prefix)
+
+        # Sizing & Spacing
+        sz_config = self._render_legend_sizing(saved_config, key_prefix)
+
+        return {**pos_config, **app_config, **sz_config}
+
+    def _render_legend_position(
+        self, saved_config: Dict[str, Any], key_prefix: str
+    ) -> Dict[str, Any]:
+        """Render legend position and orientation controls."""
         st.markdown("**Position & Orientation**")
         pos_c1, pos_c2, pos_c3 = st.columns(3)
+
         with pos_c1:
             legend_orientation = st.selectbox(
                 "Orientation",
@@ -202,6 +281,19 @@ class BaseStyleUI:
                 value=saved_config.get("legend_ncols", 0),
                 key=f"{key_prefix}leg_cols_{self.plot_id}",
                 help="Set number of columns. Forces Horizontal orientation. 0 = Auto.",
+            )
+
+            legend_entrywidth = st.number_input(
+                "Entry Width",
+                min_value=0,
+                max_value=1200,
+                value=(
+                    int(saved_config.get("legend_entrywidth"))
+                    if saved_config.get("legend_entrywidth") is not None
+                    else 0
+                ),
+                key=f"{key_prefix}leg_entry_wd_{self.plot_id}",
+                help="Set a fixed width (e.g. 100) to prevent text cropping. Leave at 0 for auto/fractional.",
             )
 
             legend_valign = st.selectbox(
@@ -245,9 +337,28 @@ class BaseStyleUI:
                 key=f"{key_prefix}leg_yanc_{self.plot_id}",
             )
 
-        # 2. Appearance (Background, Border, Fonts)
+        return {
+            "legend_orientation": legend_orientation,
+            "legend_ncols": legend_ncols,
+            "legend_entrywidth": (
+                legend_entrywidth
+                if (legend_entrywidth is not None and legend_entrywidth > 0)
+                else None
+            ),
+            "legend_valign": legend_valign,
+            "legend_x": legend_x,
+            "legend_xanchor": legend_xanchor,
+            "legend_y": legend_y,
+            "legend_yanchor": legend_yanchor,
+        }
+
+    def _render_legend_appearance(
+        self, saved_config: Dict[str, Any], key_prefix: str
+    ) -> Dict[str, Any]:
+        """Render legend appearance controls (colors, border, fonts)."""
         st.markdown("**Appearance**")
         app_c1, app_c2 = st.columns(2)
+
         with app_c1:
             bg_col = saved_config.get("legend_bgcolor", "#ffffff")
             if str(bg_col).startswith("rgba"):
@@ -311,9 +422,24 @@ class BaseStyleUI:
                 key=f"{key_prefix}leg_title_sz_{self.plot_id}",
             )
 
-        # 3. Sizing & Spacing
+        return {
+            "transparent_legend": transparent_legend,
+            "legend_bgcolor": legend_bgcolor,
+            "legend_border_color": legend_border_color,
+            "legend_border_width": legend_border_width,
+            "legend_font_color": legend_font_color,
+            "legend_font_size": legend_font_size,
+            "legend_title_font_color": legend_title_font_color,
+            "legend_title_font_size": legend_title_font_size,
+        }
+
+    def _render_legend_sizing(
+        self, saved_config: Dict[str, Any], key_prefix: str
+    ) -> Dict[str, Any]:
+        """Render legend sizing and spacing controls."""
         st.markdown("**Sizing & Spacing**")
         sz_c1, sz_c2 = st.columns(2)
+
         with sz_c1:
             legend_itemsizing = st.selectbox(
                 "Marker Scale",
@@ -351,21 +477,25 @@ class BaseStyleUI:
                 key=f"{key_prefix}leg_width_mode_{self.plot_id}",
                 help="How to interpret the entry width value.",
             )
-            legend_entrywidth = st.number_input(
-                "Entry Width",
-                min_value=0,
-                max_value=1200,
-                value=(
-                    int(saved_config.get("legend_entrywidth"))
-                    if saved_config.get("legend_entrywidth") is not None
-                    else 0
-                ),
-                key=f"{key_prefix}leg_entry_wd_{self.plot_id}",
-                help="Set a fixed width (e.g. 200) to prevent text cropping. Leave at 0 for Plotly default behavior.",
-            )
 
+        return {
+            "legend_itemsizing": legend_itemsizing,
+            "legend_itemwidth": (
+                legend_itemwidth
+                if (legend_itemwidth is not None and legend_itemwidth > 0)
+                else None
+            ),
+            "legend_tracegroupgap": legend_tracegroupgap,
+            "legend_entrywidthmode": legend_entrywidthmode,
+        }
+
+    def _render_typography_section(
+        self, saved_config: Dict[str, Any], key_prefix: str
+    ) -> Dict[str, Any]:
+        """Render typography section (titles and labels)."""
         st.markdown("#### Typography (Titles & Labels)")
         typo_c1, typo_c2 = st.columns(2)
+
         with typo_c1:
             plot_title = st.text_input(
                 "Main Plot Title",
@@ -441,57 +571,19 @@ class BaseStyleUI:
                 key=f"{key_prefix}yaxis_tick_col_{self.plot_id}",
             )
 
-        theme_config = {
-            "color_palette": color_palette,
-            "transparent_bg": transparent_bg,
-            "plot_bgcolor": plot_bgcolor,
-            "paper_bgcolor": paper_bgcolor,
-            "grid_color": grid_color,
-            "axis_color": axis_color,
-            "enable_stripes": enable_stripes,
-            "legend_font_color": legend_font_color,
-            "legend_font_size": legend_font_size,
-            "legend_title_font_color": legend_title_font_color,
-            "legend_title_font_size": legend_title_font_size,
-            "transparent_legend": transparent_legend,
-            "legend_bgcolor": legend_bgcolor,
-            "legend_border_color": legend_border_color,
-            "legend_border_width": legend_border_width,
-            "legend_itemsizing": legend_itemsizing,
-            "legend_entrywidth": (
-                legend_entrywidth
-                if (legend_entrywidth is not None and legend_entrywidth > 0)
-                else None
-            ),
-            "legend_entrywidthmode": legend_entrywidthmode,
-            "legend_tracegroupgap": legend_tracegroupgap,
-            "legend_itemwidth": (
-                legend_itemwidth
-                if (legend_itemwidth is not None and legend_itemwidth > 0)
-                else None
-            ),
-            "legend_valign": legend_valign,
-            "legend_xanchor": legend_xanchor,
-            "legend_yanchor": legend_yanchor,
-            "legend_orientation": legend_orientation,
-            "legend_ncols": legend_ncols,
-            "legend_x": legend_x,
-            "legend_y": legend_y,
+        return {
             "title": plot_title,
-            "legend_title": legend_title,
             "title_font_size": title_font_size,
+            "legend_title": legend_title,
             "xaxis_title": xaxis_title,
             "xaxis_title_font_size": xaxis_title_font_size,
-            "xaxis_tickfont_size": xaxis_tickfont_size,
-            "xaxis_tickfont_color": xaxis_tickfont_color,
             "yaxis_title": yaxis_title,
             "yaxis_title_font_size": yaxis_title_font_size,
+            "xaxis_tickfont_size": xaxis_tickfont_size,
+            "xaxis_tickfont_color": xaxis_tickfont_color,
             "yaxis_tickfont_size": yaxis_tickfont_size,
             "yaxis_tickfont_color": yaxis_tickfont_color,
-            "series_styles": series_styles,
         }
-
-        return theme_config
 
     def render_series_colors_ui(
         self,
@@ -701,3 +793,133 @@ class BaseStyleUI:
             elif y_cols:
                 unique_vals = sorted([str(c) for c in y_cols])
         return unique_vals
+
+    def render_data_labels_ui(
+        self, saved_config: Dict[str, Any], key_prefix: str = ""
+    ) -> Dict[str, Any]:
+        """
+        Render UI for Data Values/Labels.
+        """
+        st.markdown("#### Data Labels")
+
+        show_values = st.checkbox(
+            "Show Values",
+            value=saved_config.get("show_values", False),
+            key=f"{key_prefix}show_vals_{self.plot_id}",
+            help="Display data values on the bars/points.",
+        )
+
+        config_update = {"show_values": show_values}
+
+        if show_values:
+            c1, c2 = st.columns(2)
+            with c1:
+                text_position = st.selectbox(
+                    "Position",
+                    options=["auto", "inside", "outside"],
+                    index=["auto", "inside", "outside"].index(
+                        saved_config.get("text_position") or "auto"
+                    ),
+                    key=f"{key_prefix}txt_pos_{self.plot_id}",
+                )
+
+                # Show Anchor only if inside
+                if text_position == "inside":
+                    text_anchor = st.selectbox(
+                        "Anchor (Inside)",
+                        options=["auto", "start", "middle", "end"],
+                        index=["auto", "start", "middle", "end"].index(
+                            saved_config.get("text_anchor") or "auto"
+                        ),
+                        key=f"{key_prefix}txt_anc_{self.plot_id}",
+                        help="Start=Bottom/Left, End=Top/Right",
+                    )
+                else:
+                    text_anchor = None
+
+            with c2:
+                # Text Color Mode
+                color_mode = st.radio(
+                    "Color Mode",
+                    options=["Custom", "Auto Contrast"],
+                    index=0 if saved_config.get("text_color_mode", "Custom") == "Custom" else 1,
+                    horizontal=True,
+                    key=f"{key_prefix}txt_mode_{self.plot_id}",
+                    help="Auto Contrast flips text color (black/white) based on bar brightness.",
+                )
+
+                if color_mode == "Custom":
+                    text_color = st.color_picker(
+                        "Text Color",
+                        saved_config.get("text_color", "#000000"),
+                        key=f"{key_prefix}txt_col_{self.plot_id}",
+                    )
+                else:
+                    text_color = None  # handled in applicator
+
+                text_font_size = st.number_input(
+                    "Font Size",
+                    value=int(saved_config.get("text_font_size") or 12),
+                    min_value=6,
+                    max_value=48,
+                    step=1,
+                    key=f"{key_prefix}txt_fs_{self.plot_id}",
+                )
+
+                text_rotation = st.number_input(
+                    "Rotation",
+                    value=int(saved_config.get("text_rotation") or 0),
+                    min_value=-360,
+                    max_value=360,
+                    step=90,
+                    key=f"{key_prefix}txt_rot_{self.plot_id}",
+                )
+
+                text_format = st.text_input(
+                    "Format Template",
+                    value=saved_config.get("text_format", "%{y:.2f}"),
+                    key=f"{key_prefix}txt_fmt_{self.plot_id}",
+                    help="Plotly d3 formatting. e.g. %{y:.2f} for 2 decimals.",
+                )
+
+                # Conditional Display
+                display_logic = st.selectbox(
+                    "Display Logic",
+                    options=["Always Show", "If > Threshold"],
+                    index=["Always Show", "If > Threshold"].index(
+                        saved_config.get("text_display_logic") or "Always Show"
+                    ),
+                    key=f"{key_prefix}txt_logic_{self.plot_id}",
+                )
+
+                threshold = 0.0
+                if display_logic == "If > Threshold":
+                    threshold = st.number_input(
+                        "Threshold Value",
+                        value=float(saved_config.get("text_threshold") or 0.0),
+                        key=f"{key_prefix}txt_thresh_{self.plot_id}",
+                    )
+
+                text_constraint = st.checkbox(
+                    "Constrain to Bar",
+                    value=saved_config.get("text_constraint", False),
+                    key=f"{key_prefix}txt_constrain_{self.plot_id}",
+                    help="Force text to fit inside the bar (prevents overlap).",
+                )
+
+            config_update.update(
+                {
+                    "text_position": text_position,
+                    "text_anchor": text_anchor,
+                    "text_color_mode": color_mode,
+                    "text_color": text_color,
+                    "text_font_size": text_font_size,
+                    "text_rotation": text_rotation,
+                    "text_format": text_format,
+                    "text_display_logic": display_logic,
+                    "text_threshold": threshold,
+                    "text_constraint": text_constraint,
+                }
+            )
+
+        return config_update

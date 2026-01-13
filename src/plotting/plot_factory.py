@@ -9,6 +9,7 @@ from .types import (
     GroupedStackedBarPlot,
     LinePlot,
     ScatterPlot,
+    StackedBarPlot,
 )
 
 
@@ -18,6 +19,7 @@ class PlotFactory:
     _plot_classes: Dict[str, type] = {
         "bar": BarPlot,
         "grouped_bar": GroupedBarPlot,
+        "stacked_bar": StackedBarPlot,
         "grouped_stacked_bar": GroupedStackedBarPlot,
         "line": LinePlot,
         "scatter": ScatterPlot,

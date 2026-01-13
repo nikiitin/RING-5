@@ -1,19 +1,22 @@
 """Grouped stacked bar plot implementation."""
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.plotting.base_plot import BasePlot
+from src.plotting.types.stacked_bar_plot import StackedBarPlot
+from src.utils.grouped_bar_utils import GroupedBarUtils
+from src.web.ui.components.plot_config_components import PlotConfigComponents
 
 
-class GroupedStackedBarPlot(BasePlot):
-    """Grouped stacked bar plot with support for multiple stacked statistics."""
+class GroupedStackedBarPlot(StackedBarPlot):
+    """Grouped stacked bar plot with support for multiple stacked statistics and grouping."""
 
     def __init__(self, plot_id: int, name: str):
-        super().__init__(plot_id, name, "grouped_stacked_bar")
+        # Initialize with BasePlot's __init__ to set correct plot_type
+        super(StackedBarPlot, self).__init__(plot_id, name, "grouped_stacked_bar")
 
     def render_config_ui(self, data: pd.DataFrame, saved_config: Dict[str, Any]) -> Dict[str, Any]:
         """Render configuration UI for grouped stacked bar plot."""
@@ -80,39 +83,15 @@ class GroupedStackedBarPlot(BasePlot):
 
         # Filter Options
         st.markdown("#### Filter Data")
-        col_filter1, col_filter2 = st.columns(2)
-
-        # Filter X values
-        x_values = []
-        if x_column and x_column in data.columns:
-            unique_x = sorted(data[x_column].astype(str).unique())
-            default_x = saved_config.get("x_filter", unique_x)
-            # Ensure defaults are valid
-            default_x = [x for x in default_x if x in unique_x]
-
-            with col_filter1:
-                x_values = st.multiselect(
-                    f"Filter {x_column} (X-axis)",
-                    options=unique_x,
-                    default=default_x,
-                    key=f"x_filter_{self.plot_id}",
-                )
-
-        # Filter Group values
-        group_values = []
-        if group_column and group_column in data.columns:
-            unique_g = sorted(data[group_column].astype(str).unique())
-            default_g = saved_config.get("group_filter", unique_g)
-            # Ensure defaults are valid
-            default_g = [g for g in default_g if g in unique_g]
-
-            with col_filter2:
-                group_values = st.multiselect(
-                    f"Filter {group_column} (Sub-group)",
-                    options=unique_g,
-                    default=default_g,
-                    key=f"group_filter_{self.plot_id}",
-                )
+        x_values, group_values = PlotConfigComponents.render_filter_multiselects(
+            data=data,
+            x_col=x_column,
+            group_col=group_column,
+            saved_config=saved_config,
+            plot_id=self.plot_id,
+            x_label=f"Filter {x_column} (X-axis)" if x_column else "Filter X values",
+            group_label=f"Filter {group_column} (Sub-group)" if group_column else "Filter Groups",
+        )
 
         return {
             "x": x_column,
@@ -126,6 +105,91 @@ class GroupedStackedBarPlot(BasePlot):
             "group_filter": group_values,
             "_needs_advanced": True,
         }
+
+    def _render_stack_total_options(self, saved_config: Dict[str, Any], config: Dict[str, Any]):
+        """Render options for Stack Totals."""
+        st.markdown("**Stack Totals**")
+        c1, c2 = st.columns(2)
+        with c1:
+            config["show_totals"] = st.checkbox(
+                "Show Stack Totals",
+                value=saved_config.get("show_totals", False),
+                key=f"show_tot_{self.plot_id}",
+            )
+        with c2:
+            if config["show_totals"]:
+                config["net_total_format"] = st.text_input(
+                    "Format",
+                    value=saved_config.get("net_total_format", ".2f"),
+                    help="Python format string (e.g. .2f)",
+                    key=f"tot_fmt_{self.plot_id}",
+                )
+
+        if config["show_totals"]:
+            c3, c4 = st.columns(2)
+            with c3:
+                config["total_font_size"] = st.number_input(
+                    "Font Size",
+                    value=saved_config.get("total_font_size", 12),
+                    min_value=8,
+                    max_value=30,
+                    key=f"tot_sz_{self.plot_id}",
+                )
+                config["total_font_color"] = st.color_picker(
+                    "Font Color",
+                    value=saved_config.get("total_font_color", "#000000"),
+                    key=f"tot_col_{self.plot_id}",
+                )
+            with c4:
+                config["total_position"] = st.selectbox(
+                    "Position",
+                    options=["Outside", "Inside"],
+                    index=["Outside", "Inside"].index(
+                        saved_config.get("total_position", "Outside")
+                    ),
+                    key=f"tot_pos_{self.plot_id}",
+                    help="Outside: Always on top. Inside: Configurable anchor.",
+                )
+
+                if config["total_position"] == "Inside":
+                    config["total_anchor"] = st.selectbox(
+                        "Anchor (Inside)",
+                        options=["Start", "Middle", "End"],
+                        index=["Start", "Middle", "End"].index(
+                            saved_config.get("total_anchor", "End")
+                        ),
+                        key=f"tot_anc_{self.plot_id}",
+                        help="Start=Bottom, End=Top",
+                    )
+
+        if config["show_totals"]:
+            c5, c6 = st.columns(2)
+            with c5:
+                config["total_offset"] = st.number_input(
+                    "Vertical Offset (px)",
+                    value=saved_config.get("total_offset", 0),
+                    step=1,
+                    key=f"tot_off_{self.plot_id}",
+                    help="Adjustment in pixels (positive = up, negative = down)",
+                )
+            with c6:
+                config["total_rotation"] = st.number_input(
+                    "Rotation",
+                    value=int(saved_config.get("total_rotation", 0)),
+                    step=45,
+                    min_value=-360,
+                    max_value=360,
+                    key=f"tot_rot_{self.plot_id}",
+                )
+
+        if config["show_totals"]:
+            config["total_threshold"] = st.number_input(
+                "Minimum Threshold",
+                value=float(saved_config.get("total_threshold", 0.0)),
+                step=0.1,
+                key=f"tot_thresh_{self.plot_id}",
+                help="Only show totals greater than this value.",
+            )
 
     def render_theme_options(self, saved_config: Dict[str, Any]) -> Dict[str, Any]:
         """Override to add specific styling options."""
@@ -160,6 +224,9 @@ class GroupedStackedBarPlot(BasePlot):
                 key=f"maj_off_th_{self.plot_id}",
                 help="Adjust vertical position of Major Group labels (negative values move down)",
             )
+
+        # Add Stack Totals
+        self._render_stack_total_options(saved_config, config)
 
         st.markdown("**Visual Distinction**")
         d1, d2 = st.columns(2)
@@ -314,347 +381,269 @@ class GroupedStackedBarPlot(BasePlot):
 
     def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
         """Create grouped stacked bar plot figure."""
-        fig = go.Figure()
-
         x_col = config.get("x")
         group_col = config.get("group")
         y_cols = config.get("y_columns", [])
+
+        # If no group column, delegate to parent's simple stacked bar implementation
+        if not group_col:
+            return super().create_figure(data, config)
+
+        fig = go.Figure()
 
         if not x_col or not y_cols:
             fig.update_layout(title="Please select X axis and at least one Statistic")
             return fig
 
-        # Prepare X axis with renames
-        # Prepare X axis with renames (handled later to preserve order)
-        # Ensure x_data is string for categorical plotting
-        data = data.copy()
-        data[x_col] = data[x_col].astype(str)
-
-        # Apply X Filter
-        if config.get("x_filter") is not None:
-            data = data[data[x_col].isin(config["x_filter"])]
-
-        # Calculate Total for each row (stacked bars)
-        # Assuming one row per X/Group combination
-        data["__total"] = data[y_cols].sum(axis=1)
+        # Prepare data using parent's method
+        data = self._prepare_data(data, x_col, y_cols, config)
 
         # Define hover template
-        hover_template = (
-            "<b>%{x}</b><br>"
-            "Value: %{y:.4f}<br>"
-            "<b>Total: %{customdata:.4f}</b>"
-            "<extra></extra>"
+        hover_template = self._get_hover_template()
+
+        # Create grouped figure
+        fig = self._create_grouped_figure(
+            fig, data, x_col, group_col, y_cols, config, hover_template
         )
-
-        if group_col:
-            # Custom Layout for Grouped Stacked Bars to support Spacing
-
-            # Ensure data is string for categorical plotting
-            data[group_col] = data[group_col].astype(str)
-
-            # Apply Group Filter
-            if config.get("group_filter") is not None:
-                data = data[data[group_col].isin(config["group_filter"])]
-
-            # Get unique categories and groups (sorted)
-            if config.get("xaxis_order"):
-                # Convert order to strings to match data
-                xaxis_order_str = [str(x) for x in config["xaxis_order"]]
-                # Filter to present values
-                ordered_cats = [c for c in xaxis_order_str if c in data[x_col].unique()]
-                missing = [c for c in sorted(data[x_col].unique()) if c not in ordered_cats]
-                ordered_cats.extend(missing)
-            else:
-                ordered_cats = sorted(data[x_col].unique())
-
-            if config.get("group_order"):
-                # Convert order to strings to match data
-                group_order_str = [str(g) for g in config["group_order"]]
-                ordered_groups = [g for g in group_order_str if g in data[group_col].unique()]
-                missing = [g for g in sorted(data[group_col].unique()) if g not in ordered_groups]
-                ordered_groups.extend(missing)
-            else:
-                ordered_groups = sorted(data[group_col].unique())
-
-            # Apply Renames to Data
-            x_renames = config.get("xaxis_labels", {})
-            if x_renames:
-                data[x_col] = data[x_col].replace(x_renames)
-
-            # Apply Renames to Ordered Lists
-            categories = []
-            for cat in ordered_cats:
-                new_name = x_renames.get(cat, cat)
-                categories.append(new_name)
-
-            groups = []
-            # Check for explicit group renames (from specific UI)
-            group_renames = config.get("group_renames", {})
-
-            # Fix: Apply renames to data so lookups succeed
-            if group_renames:
-                data[group_col] = data[group_col].replace(group_renames)
-
-            for grp in ordered_groups:
-                new_name = group_renames.get(grp, grp)
-                groups.append(new_name)
-
-            # Calculate coordinates: Map (Category, Group) -> X Coordinate
-            # Unit width per bar slot (including gap) is 1.0
-
-            bargap = config.get("bargap", 0.2)
-            bargroupgap = config.get("bargroupgap", 0.0)
-
-            # Bar width
-            bar_width = 1.0 - bargap
-
-            # Coordinate mapping
-            tick_vals = []
-            tick_text = []
-
-            # For annotations (Category labels)
-            cat_centers = []
-
-            current_x = 0.0
-
-            # We need to map each row in data to an x_coord
-            # Create a mapping dictionary
-            coord_map = {}
-
-            # For Shapes (Distinction)
-            distinction_shapes = []
-            show_separators = config.get("show_separators", False)
-            sep_color = config.get("separator_color", "#E0E0E0")
-            shade_alternate = config.get("shade_alternate", False)
-            shade_color = config.get("shade_color", "#F5F5F5")
-
-            # Isolation Config
-            isolate_last = config.get("isolate_last_group", False)
-            isolation_gap = config.get("isolation_gap", 0.5)
-
-            # Track start of current category for shading
-
-            for i, cat in enumerate(categories):
-                start_x = current_x
-
-                for grp in groups:
-                    # Map based on current iteration values
-                    coord_map[(cat, grp)] = current_x
-                    tick_vals.append(current_x)
-                    tick_text.append(grp)
-                    current_x += 1.0  # Advance by 1 unit (bar + gap is handled by width)
-
-                # Calculate center for this category
-                # Bars occupy [start_x, current_x] roughly, but last bar ends at current_x - 1.0 + bar_width
-                # We align label to the center of the group occupied duration.
-                # Center = (start_x + (current_x - 1.0)) / 2.0
-                center = (start_x + (current_x - 1.0)) / 2.0
-                cat_centers.append((center, cat))
-
-                # SHADING LOGIC
-                if shade_alternate and (i % 2 == 1):
-                    # Shade odd groups (e.g., 2nd, 4th...)
-                    # Left edge: Start of group minus half gap (unless first group)
-                    rect_x0 = start_x - 0.5 - (bargroupgap / 2.0)
-
-                    # Right edge: End of group plus half gap
-                    rect_x1 = current_x - 0.5 + (bargroupgap / 2.0)
-
-                    distinction_shapes.append(
-                        dict(
-                            type="rect",
-                            xref="x",
-                            yref="paper",
-                            x0=rect_x0,
-                            x1=rect_x1,
-                            y0=0,
-                            y1=1,
-                            fillcolor=shade_color,
-                            opacity=0.5,
-                            layer="below",
-                            line_width=0,
-                        )
-                    )
-
-                # SEPARATOR LOGIC
-                # We want to draw separators between groups.
-                # If 'isolate_last' is True, we handle the separation before the LAST group differently.
-
-                # Check if the NEXT group is the last one (and we are isolating)
-                next_is_last_isolated = isolate_last and (i == len(categories) - 2)
-
-                if show_separators and i < len(categories) - 1:
-                    # If next is isolated, we SKIP the standard dashed separator here.
-                    # We will draw a special solid separator after adding the gap.
-                    if not next_is_last_isolated:
-                        # Standard Separator at midpoint of gap
-                        sep_x = (current_x - 0.5) + (bargroupgap / 2.0)
-                        distinction_shapes.append(
-                            dict(
-                                type="line",
-                                xref="x",
-                                yref="paper",
-                                x0=sep_x,
-                                x1=sep_x,
-                                y0=0,
-                                y1=1,
-                                line=dict(color=sep_color, width=1, dash="dash"),
-                                layer="below",
-                            )
-                        )
-
-                # Standard Gap between groups
-                current_x += bargroupgap
-
-                # ISOLATION GAP & SEPARATOR
-                # If we just finished the second-to-last group, and we are isolating the last one:
-                if next_is_last_isolated:
-                    # Add extra isolation gap
-                    current_x += isolation_gap
-
-                    # Draw Special Separator in the middle of this total gap
-                    # Total gap = bargroupgap + isolation_gap
-                    # The gap ends at the new 'current_x' (start of next bar slot - 0.5? No, see below)
-                    # Visual Right Edge of Prev Group = (current_x - isolation_gap - bargroupgap) - 0.5
-                    # Visual Left Edge of Next Group = current_x - 0.5
-
-                    # Midpoint = current_x - 0.5 - (TotalGap / 2.0)
-                    gap_total = bargroupgap + isolation_gap
-                    sep_x = current_x - 0.5 - (gap_total / 2.0)
-
-                    # Draw solid line
-                    distinction_shapes.append(
-                        dict(
-                            type="line",
-                            xref="x",
-                            yref="paper",
-                            x0=sep_x,
-                            x1=sep_x,
-                            y0=0,
-                            y1=1,
-                            line=dict(color="#333333", width=2, dash="solid"),  # Darker/Stronger
-                            layer="below",
-                        )
-                    )
-
-            # Map coordinates to data
-            # We can't just use map on a tuple column easily, so we iterate or use apply
-            # Faster: create a temporary column
-            def get_coord(row: pd.Series) -> Any:
-                return coord_map.get((row[x_col], row[group_col]), None)
-
-            data["__x_coord"] = data.apply(get_coord, axis=1)
-
-            # Add traces
-
-            for y_col in y_cols:
-                error_y = None
-                if config.get("show_error_bars"):
-                    sd_col = f"{y_col}.sd"
-                    if sd_col in data.columns:
-                        error_y = dict(type="data", array=data[sd_col], visible=True)
-
-                # We use the original y_col as name. StyleManager will apply overrides.
-                trace_name = y_col
-
-                fig.add_trace(
-                    go.Bar(
-                        x=data["__x_coord"],
-                        y=data[y_col],
-                        name=trace_name,
-                        error_y=error_y,
-                        width=bar_width,
-                        customdata=data["__total"].tolist(),
-                        hovertemplate=hover_template,
-                    )
-                )
-
-            # Update Layout
-            fig.update_layout(
-                barmode="stack",
-                xaxis=dict(
-                    tickmode="array",
-                    tickvals=tick_vals,
-                    ticktext=tick_text,
-                    title=config.get("xlabel", x_col),
-                ),
-            )
-
-            # Combine shapes
-            existing_shapes = config.get("shapes", []) or []
-            # Make sure it's a list
-            if not isinstance(existing_shapes, list):
-                existing_shapes = []
-
-            # Convert tuples likely coming from Streamlit shapes UI? No, usually list of dicts.
-            # safe merge
-            all_shapes = existing_shapes + distinction_shapes
-            fig.update_layout(shapes=all_shapes)
-
-            # Add Annotations for Categories
-            # We place them below the X axis
-            annotations = []
-
-            font_size = config.get("major_label_size", 14)
-            font_color = config.get("major_label_color", "#000000")
-            font_offset = config.get("major_label_offset", -0.15)
-
-            for center, label in cat_centers:
-                annotations.append(
-                    dict(
-                        x=center,
-                        y=font_offset,  # Position below axis. User might need to adjust bottom margin.
-                        xref="x",
-                        yref="paper",  # Relative to plot area
-                        text=f"<b>{label}</b>",
-                        showarrow=False,
-                        font=dict(size=font_size, color=font_color),
-                        yanchor="top",
-                    )
-                )
-
-            fig.update_layout(annotations=annotations)
-
-            # Adjust bottom margin automatically if not set high enough?
-            # The user has a control for margin_b, so we respect that.
-
-        else:
-            # Standard Stacked Bar (No Sub-groups)
-            x_values = data[x_col]
-
-            for y_col in y_cols:
-                error_y = None
-                if config.get("show_error_bars"):
-                    sd_col = f"{y_col}.sd"
-                    if sd_col in data.columns:
-                        error_y = dict(type="data", array=data[sd_col], visible=True)
-
-                # We use the original y_col as name. StyleManager will apply overrides.
-                trace_name = y_col
-
-                fig.add_trace(
-                    go.Bar(
-                        x=x_values,
-                        y=data[y_col],
-                        name=trace_name,
-                        error_y=error_y,
-                        customdata=data["__total"].tolist(),
-                        hovertemplate=hover_template,
-                    )
-                )
-
-            fig.update_layout(barmode="stack")
 
         fig.update_layout(
             title=config.get("title", ""),
-            xaxis_title=(
-                config.get("xlabel", x_col) if not group_col else None
-            ),  # Hide default title if grouped? No, keep it.
             yaxis_title=config.get("ylabel", "Value"),
             legend_title=config.get("legend_title", "Statistics"),
         )
 
         return fig
+
+    def _create_grouped_figure(
+        self,
+        fig: go.Figure,
+        data: pd.DataFrame,
+        x_col: str,
+        group_col: str,
+        y_cols: List[str],
+        config: Dict[str, Any],
+        hover_template: str,
+    ) -> go.Figure:
+        """Create figure for grouped stacked bars."""
+        # Make a copy to avoid SettingWithCopyWarning
+        data = data.copy()
+
+        # Ensure group column is string
+        data[group_col] = data[group_col].astype(str)
+
+        # Apply Group Filter
+        if config.get("group_filter") is not None:
+            data = data[data[group_col].isin(config["group_filter"])]
+
+        # Get ordered categories and groups
+        categories, groups = self._get_ordered_categories_and_groups(data, x_col, group_col, config)
+
+        # Apply renames
+        data, categories, groups = self._apply_renames(
+            data, x_col, group_col, categories, groups, config
+        )
+
+        # Build coordinate map and shapes
+        coord_result = self._build_coordinate_map(
+            categories, groups, data, x_col, group_col, config
+        )
+        coord_map = coord_result["coord_map"]
+        tick_vals = coord_result["tick_vals"]
+        tick_text = coord_result["tick_text"]
+        cat_centers = coord_result["cat_centers"]
+        distinction_shapes = coord_result["shapes"]
+        bar_width = coord_result["bar_width"]
+
+        # Map coordinates to data
+        data["__x_coord"] = data.apply(
+            lambda row: coord_map.get((row[x_col], row[group_col]), None), axis=1
+        )
+
+        # Add bar traces
+        for y_col in y_cols:
+            fig = self._add_bar_trace(
+                fig, data, y_col, "__x_coord", bar_width, hover_template, config
+            )
+
+        # Update layout for grouped bars
+        fig.update_layout(
+            barmode="stack",
+            xaxis=dict(
+                tickmode="array",
+                tickvals=tick_vals,
+                ticktext=tick_text,
+                title=config.get("xlabel", x_col),
+            ),
+        )
+
+        # Combine shapes
+        existing_shapes = config.get("shapes", []) or []
+        if not isinstance(existing_shapes, list):
+            existing_shapes = []
+        fig.update_layout(shapes=existing_shapes + distinction_shapes)
+
+        # Build annotations
+        annotations = self._build_category_annotations(cat_centers, config)
+
+        # Add totals if requested
+        if config.get("show_totals"):
+            totals_annotations = self._build_totals_annotations(data, "__x_coord", config)
+            annotations.extend(totals_annotations)
+
+        fig.update_layout(annotations=annotations)
+
+        return fig
+
+    def _get_ordered_categories_and_groups(
+        self, data: pd.DataFrame, x_col: str, group_col: str, config: Dict[str, Any]
+    ) -> tuple:
+        """Get ordered lists of categories and groups."""
+        # Categories
+        if config.get("xaxis_order"):
+            xaxis_order_str = [str(x) for x in config["xaxis_order"]]
+            ordered_cats = [c for c in xaxis_order_str if c in data[x_col].unique()]
+            missing = [c for c in sorted(data[x_col].unique()) if c not in ordered_cats]
+            ordered_cats.extend(missing)
+        else:
+            ordered_cats = sorted(data[x_col].unique())
+
+        # Groups
+        if config.get("group_order"):
+            group_order_str = [str(g) for g in config["group_order"]]
+            ordered_groups = [g for g in group_order_str if g in data[group_col].unique()]
+            missing = [g for g in sorted(data[group_col].unique()) if g not in ordered_groups]
+            ordered_groups.extend(missing)
+        else:
+            ordered_groups = sorted(data[group_col].unique())
+
+        return ordered_cats, ordered_groups
+
+    def _apply_renames(
+        self,
+        data: pd.DataFrame,
+        x_col: str,
+        group_col: str,
+        categories: List[str],
+        groups: List[str],
+        config: Dict[str, Any],
+    ) -> tuple:
+        """Apply renames to data and ordered lists."""
+        # X-axis renames
+        x_renames = config.get("xaxis_labels", {})
+        if x_renames:
+            data[x_col] = data[x_col].replace(x_renames)
+
+        renamed_categories = [x_renames.get(cat, cat) for cat in categories]
+
+        # Group renames
+        group_renames = config.get("group_renames", {})
+        if group_renames:
+            data[group_col] = data[group_col].replace(group_renames)
+
+        renamed_groups = [group_renames.get(grp, grp) for grp in groups]
+
+        return data, renamed_categories, renamed_groups
+
+    def _build_coordinate_map(
+        self,
+        categories: List[str],
+        groups: List[str],
+        data: pd.DataFrame,
+        x_col: str,
+        group_col: str,
+        config: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Build coordinate mapping for grouped bars."""
+        bargap = config.get("bargap", 0.2)
+        bargroupgap = config.get("bargroupgap", 0.0)
+        bar_width = 1.0 - bargap
+
+        tick_vals = []
+        tick_text = []
+        cat_centers = []
+        shapes = []
+        coord_map = {}
+
+        show_separators = config.get("show_separators", False)
+        sep_color = config.get("separator_color", "#E0E0E0")
+        shade_alternate = config.get("shade_alternate", False)
+        shade_color = config.get("shade_color", "#F5F5F5")
+        isolate_last = config.get("isolate_last_group", False)
+        isolation_gap = config.get("isolation_gap", 0.5)
+
+        current_x = 0.0
+
+        for i, cat in enumerate(categories):
+            start_x = current_x
+
+            for grp in groups:
+                coord_map[(cat, grp)] = current_x
+                tick_vals.append(current_x)
+                tick_text.append(grp)
+                current_x += 1.0
+
+            center = (start_x + (current_x - 1.0)) / 2.0
+            cat_centers.append((center, cat))
+
+            # Shading
+            if shade_alternate and (i % 2 == 1):
+                shapes.append(
+                    self._create_shade_shape(start_x, current_x, bargroupgap, shade_color)
+                )
+
+            # Separators
+            next_is_last_isolated = isolate_last and (i == len(categories) - 2)
+            if show_separators and i < len(categories) - 1:
+                if not next_is_last_isolated:
+                    shapes.append(self._create_separator_shape(current_x, bargroupgap, sep_color))
+
+            current_x += bargroupgap
+
+            # Isolation gap
+            if next_is_last_isolated:
+                current_x += isolation_gap
+                gap_total = bargroupgap + isolation_gap
+                shapes.append(self._create_isolation_separator(current_x, gap_total))
+
+        return {
+            "coord_map": coord_map,
+            "tick_vals": tick_vals,
+            "tick_text": tick_text,
+            "cat_centers": cat_centers,
+            "shapes": shapes,
+            "bar_width": bar_width,
+        }
+
+    def _create_shade_shape(
+        self, start_x: float, current_x: float, bargroupgap: float, shade_color: str
+    ) -> Dict[str, Any]:
+        """Create a shading rectangle shape."""
+        x0 = start_x - 0.5 - (bargroupgap / 2.0)
+        x1 = current_x - 0.5 + (bargroupgap / 2.0)
+        return GroupedBarUtils.create_shade_shape(x0, x1, shade_color)
+
+    def _create_separator_shape(
+        self, current_x: float, bargroupgap: float, sep_color: str
+    ) -> Dict[str, Any]:
+        """Create a separator line shape."""
+        sep_x = (current_x - 0.5) + (bargroupgap / 2.0)
+        return GroupedBarUtils.create_separator_shape(sep_x, sep_color)
+
+    def _create_isolation_separator(self, current_x: float, gap_total: float) -> Dict[str, Any]:
+        """Create an isolation separator line."""
+        sep_x = current_x - 0.5 - (gap_total / 2.0)
+        return GroupedBarUtils.create_isolation_separator(sep_x)
+
+    def _build_category_annotations(
+        self, cat_centers: List[tuple], config: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
+        """Build annotations for category labels (grouped bars only)."""
+        return GroupedBarUtils.build_category_annotations(
+            cat_centers=cat_centers,
+            font_size=config.get("major_label_size", 14),
+            font_color=config.get("major_label_color", "#000000"),
+            y_offset=config.get("major_label_offset", -0.15),
+        )
 
     def apply_common_layout(self, fig: go.Figure, config: Dict[str, Any]) -> go.Figure:
         """Apply common layout and enforce hover template."""

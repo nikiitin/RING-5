@@ -8,7 +8,9 @@ from src.plotting.types.grouped_stacked_bar_plot import GroupedStackedBarPlot
 
 @pytest.fixture
 def mock_streamlit():
-    with patch("src.plotting.types.grouped_stacked_bar_plot.st") as mock_st:
+    with patch("src.plotting.types.grouped_stacked_bar_plot.st") as mock_st, patch(
+        "src.web.ui.components.plot_config_components.st", mock_st
+    ):
         mock_st.session_state = {}
 
         def columns_side_effect(spec, **kwargs):

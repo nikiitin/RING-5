@@ -74,6 +74,14 @@ class StyleManager:
         """Render X-axis label UI."""
         return self.ui_manager.render_xaxis_labels_ui(saved_config, data, key_prefix)
 
+    def render_data_labels_ui(
+        self,
+        saved_config: Dict[str, Any],
+        key_prefix: str = "",
+    ) -> Dict[str, Any]:
+        """Render data labels UI."""
+        return self.ui_manager.render_data_labels_ui(saved_config, key_prefix)
+
     def apply_styles(self, fig: go.Figure, config: Dict[str, Any]) -> go.Figure:
         """Apply styles to figure."""
         return self.applicator.apply_styles(fig, config)

@@ -7,6 +7,8 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from src.plotting.base_plot import BasePlot
+from src.utils.grouped_bar_utils import GroupedBarUtils
+from src.web.ui.components.plot_config_components import PlotConfigComponents
 
 
 class GroupedBarPlot(BasePlot):
@@ -32,41 +34,14 @@ class GroupedBarPlot(BasePlot):
             key=f"group_{self.plot_id}",
         )
 
-        col_filter1, col_filter2 = st.columns(2)
-
-        # Filter X values
-        x_values = []
-        if config.get("x") and config["x"] in data.columns:
-            unique_x = sorted(data[config["x"]].astype(str).unique())
-            default_x = saved_config.get("x_filter", unique_x)
-            # Ensure defaults are valid
-            default_x = [x for x in default_x if x in unique_x]
-
-            with col_filter1:
-                x_values = st.multiselect(
-                    "Filter X values",
-                    options=unique_x,
-                    default=default_x,
-                    key=f"x_filter_{self.plot_id}",
-                    help="Select specific values to display on the X-axis.",
-                )
-
-        # Filter Group values
-        group_values = []
-        if group_column and group_column in data.columns:
-            unique_g = sorted(data[group_column].astype(str).unique())
-            default_g = saved_config.get("group_filter", unique_g)
-            # Ensure defaults are valid
-            default_g = [g for g in default_g if g in unique_g]
-
-            with col_filter2:
-                group_values = st.multiselect(
-                    "Filter Groups",
-                    options=unique_g,
-                    default=default_g,
-                    key=f"group_filter_{self.plot_id}",
-                    help="Select specific groups to display.",
-                )
+        # Use reusable filter components
+        x_values, group_values = PlotConfigComponents.render_filter_multiselects(
+            data=data,
+            x_col=config.get("x"),
+            group_col=group_column,
+            saved_config=saved_config,
+            plot_id=self.plot_id,
+        )
 
         return {
             **config,
@@ -215,20 +190,7 @@ class GroupedBarPlot(BasePlot):
                 # Draw Special Separator
                 prev_center = x_map[ordered_x[i - 1]]
                 sep_x = (prev_center + current_x) / 2.0
-
-                distinction_shapes.append(
-                    dict(
-                        type="line",
-                        xref="x",
-                        yref="paper",
-                        x0=sep_x,
-                        x1=sep_x,
-                        y0=0,
-                        y1=1,
-                        line=dict(color="#333333", width=2, dash="solid"),
-                        layer="below",
-                    )
-                )
+                distinction_shapes.append(GroupedBarUtils.create_isolation_separator(sep_x))
 
             x_map[cat] = current_x
             tick_vals.append(current_x)
@@ -243,19 +205,7 @@ class GroupedBarPlot(BasePlot):
                 rect_x0 = current_x - 0.5
                 rect_x1 = current_x + 0.5
                 distinction_shapes.append(
-                    dict(
-                        type="rect",
-                        xref="x",
-                        yref="paper",
-                        x0=rect_x0,
-                        x1=rect_x1,
-                        y0=0,
-                        y1=1,
-                        fillcolor=shade_color,
-                        opacity=0.5,
-                        layer="below",
-                        line_width=0,
-                    )
+                    GroupedBarUtils.create_shade_shape(rect_x0, rect_x1, shade_color)
                 )
 
             # Standard Separator (if not isolating next)
@@ -265,17 +215,7 @@ class GroupedBarPlot(BasePlot):
                     # Standard midpoint
                     sep_x = current_x + 0.5
                     distinction_shapes.append(
-                        dict(
-                            type="line",
-                            xref="x",
-                            yref="paper",
-                            x0=sep_x,
-                            x1=sep_x,
-                            y0=0,
-                            y1=1,
-                            line=dict(color=sep_color, width=1, dash="dash"),
-                            layer="below",
-                        )
+                        GroupedBarUtils.create_separator_shape(sep_x, sep_color)
                     )
 
             current_x += 1.0
