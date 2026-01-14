@@ -36,9 +36,35 @@ class StackedBarPlot(BasePlot):
             plot_id=self.plot_id,
         )
 
+        # Filter Options
+        x_values, _ = PlotConfigComponents.render_filter_multiselects(
+            data=data,
+            x_col=x_col,
+            group_col=None,
+            saved_config=saved_config,
+            plot_id=self.plot_id,
+        )
+
+        # Title & Labels
+        default_title = saved_config.get("title", f"Stacked Statistics by {x_col}")
+        default_xlabel = saved_config.get("xlabel", x_col)
+        default_ylabel = saved_config.get("ylabel", "Value")
+
+        label_config = PlotConfigComponents.render_title_labels_section(
+            saved_config=saved_config,
+            plot_id=self.plot_id,
+            default_title=default_title,
+            default_xlabel=default_xlabel,
+            default_ylabel=default_ylabel,
+            include_legend_title=True,
+            default_legend_title=saved_config.get("legend_title", "Statistics"),
+        )
+
         return {
             "x": x_col,
             "y_columns": y_cols,
+            "x_filter": x_values,
+            **label_config,
         }
 
     def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:

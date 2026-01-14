@@ -95,6 +95,11 @@ class StyleApplicator:
             xaxis_settings["categoryorder"] = "array"
             xaxis_settings["categoryarray"] = config["xaxis_order"]
 
+        # Range overrides (Zoom)
+        if config.get("range_x"):
+            xaxis_settings["range"] = config["range_x"]
+            xaxis_settings["autorange"] = False
+
         # X-Axis Label Overrides (skip for grouped bar types)
         if config.get("xaxis_labels") and self.plot_type not in [
             "grouped_stacked_bar",
@@ -116,6 +121,10 @@ class StyleApplicator:
         }
         if config.get("yaxis_dtick"):
             yaxis_settings["dtick"] = config["yaxis_dtick"]
+
+        if config.get("range_y"):
+            yaxis_settings["range"] = config["range_y"]
+            yaxis_settings["autorange"] = False
 
         # Axis color styling
         self._apply_axis_colors(fig, config)

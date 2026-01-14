@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from src.plotting.base_plot import BasePlot
-from src.utils.grouped_bar_utils import GroupedBarUtils
+from src.plotting.utils import GroupedBarUtils
 from src.web.ui.components.plot_config_components import PlotConfigComponents
 
 

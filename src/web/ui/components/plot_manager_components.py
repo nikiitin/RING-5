@@ -267,10 +267,17 @@ class PlotManagerComponents:
 
     @staticmethod
     def render_plot_display(plot: BasePlot):
-        """Render the plot configuration and the plot itself."""
+        """Render the plot display section with controls."""
         if plot.processed_data is None:
             st.warning("No processed data available.")
             return
+
+        st.markdown("### Visualization")
+
+        # Config merge logic
+        # Config merge logic
+        saved_config = plot.config
+        current_config = saved_config.copy()
 
         st.markdown("---")
         st.markdown("### Plot Configuration")
@@ -290,23 +297,24 @@ class PlotManagerComponents:
 
         # Plot-specific UI
         data = plot.processed_data
-        saved_config = plot.config
-        current_config = plot.render_config_ui(data, saved_config)
+
+        # Merge logic to preserve interactive state (e.g. range_x, legend_x)
+        ui_config = plot.render_config_ui(data, saved_config)
+        current_config.update(ui_config)
 
         # Advanced & Theme
         a1, a2 = st.columns(2)
         with a1:
             with st.expander("⚙️ Advanced Options"):
-                merged = saved_config.copy()
-                merged.update(current_config)
-                advanced = plot.render_advanced_options(merged, data)
+                # Pass current state so advanced options see UI updates
+                advanced = plot.render_advanced_options(current_config, data)
                 current_config.update(advanced)
         with a2:
             with st.expander("🎨 Theme & Style"):
-                layout = plot.render_display_options(saved_config)
+                layout = plot.render_display_options(current_config)
                 current_config.update(layout)
                 st.markdown("---")
-                theme = plot.render_theme_options(saved_config)
+                theme = plot.render_theme_options(current_config)
                 current_config.update(theme)
 
         # Refresh Logic
@@ -333,6 +341,70 @@ class PlotManagerComponents:
         """Render workspace management buttons."""
         st.markdown("---")
         st.markdown("### Workspace Management")
+
+        st.markdown("#### Export All Plots")
+        st.caption(
+            "Export all plots to a local directory (e.g., your LaTeX repository). Uses individual plot settings (Scale/Format)."
+        )
+
+        ec1, ec2, ec3 = st.columns([2, 1, 1])
+        with ec1:
+            export_path = st.text_input(
+                "Local Export Path",
+                value=st.session_state.get("last_export_path", ""),
+                placeholder="/absolute/path/to/folder",
+                key="export_path_input",
+            )
+        with ec2:
+            export_fmt_override = st.selectbox(
+                "Force Format",
+                options=["Keep Individual", "pdf", "svg", "png", "html"],
+                index=0,
+                key="export_fmt_override",
+                help="Override format for all plots (e.g. force PDF for LaTeX)",
+            )
+
+        with ec3:
+            st.write("")
+            st.write("")
+            if st.button("Export All", type="primary", width="stretch", key="export_all_btn"):
+                if not export_path:
+                    st.error("Please provide a path.")
+                else:
+                    st.session_state["last_export_path"] = export_path
+                    plots = StateManager.get_plots()
+                    if not plots:
+                        st.warning("No plots to export.")
+                    else:
+                        count = 0
+                        errors = []
+                        # Determine override
+                        fmt_arg = None
+                        if export_fmt_override != "Keep Individual":
+                            fmt_arg = export_fmt_override
+
+                        progress = st.progress(0)
+                        for i, p in enumerate(plots):
+                            try:
+                                res = PlotService.export_plot_to_file(
+                                    p, export_path, format=fmt_arg
+                                )
+                                if res:
+                                    count += 1
+                            except Exception as e:
+                                errors.append(f"{p.name}: {e}")
+                            progress.progress((i + 1) / len(plots))
+
+                        progress.empty()
+                        if count > 0:
+                            st.success(f"Successfully exported {count} plots to '{export_path}'")
+                        if errors:
+                            st.error(f"Failed to export {len(errors)} plots.")
+                            with st.expander("Show Errors"):
+                                for e in errors:
+                                    st.write(e)
+
+        st.markdown("---")
         c1, c2 = st.columns(2)
         with c1:
             if st.button("Process All Plots in Parallel", width="stretch"):

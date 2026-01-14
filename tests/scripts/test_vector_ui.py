@@ -11,7 +11,7 @@ import inspect
 from src.web.ui.components.variable_editor import VariableEditor
 
 # Get the source code
-source = inspect.getsource(VariableEditor._render_vector_config)
+source = inspect.getsource(VariableEditor.render_vector_config)
 
 # Find and display the vector configuration section
 lines = source.split("\n")
@@ -22,7 +22,7 @@ for i, line in enumerate(lines):
     # In the focused method, we are already in the vector section
     in_vector_section = True
     vector_section.append(f"Line {i}: {line}")
-    if False: # Dummy to keep structure or just remove checks
+    if False:  # Dummy to keep structure or just remove checks
         in_vector_section = True
         vector_section.append(f"Line {i}: {line}")
     elif in_vector_section:

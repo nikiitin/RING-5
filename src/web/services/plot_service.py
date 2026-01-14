@@ -1,4 +1,5 @@
 import copy
+import os
 
 from src.plotting import BasePlot, PlotFactory
 from src.web.state_manager import StateManager
@@ -71,3 +72,30 @@ class PlotService:
             pass
 
         return new_plot
+
+    @staticmethod
+    def export_plot_to_file(plot: BasePlot, directory: str, format: str = None) -> str:
+        """Export a plot to a file in the specified directory."""
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        # Ensure figure is generated
+        try:
+            fig = plot.generate_figure()
+        except Exception:
+            # If generation fails (e.g. no data), skip
+            return None
+
+        fmt = format or plot.config.get("download_format", "pdf")
+        scale = plot.config.get("export_scale", 1)
+
+        # Clean name
+        safe_name = "".join([c if c.isalnum() else "_" for c in plot.name])
+        filename = f"{safe_name}.{fmt}"
+        path = os.path.join(directory, filename)
+
+        if fmt == "html":
+            fig.write_html(path)
+        else:
+            fig.write_image(path, format=fmt, scale=scale)
+        return path

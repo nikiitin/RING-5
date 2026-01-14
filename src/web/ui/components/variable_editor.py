@@ -41,7 +41,7 @@ class VariableEditor:
         for idx, var in enumerate(variables):
             # Ensure ID exists
             var_id = var.get("_id", f"fallback_{idx}")
-            
+
             # Common fields (Name, Alias, Type)
             var_name, var_alias, var_type, should_delete = cls._render_common_fields(
                 idx, var, var_id
@@ -56,14 +56,15 @@ class VariableEditor:
                 var_config["alias"] = var_alias
 
             # Type-specific configuration
+            # Type-specific configuration
             if var_type == "vector":
-                cls._render_vector_config(
+                cls.render_vector_config(
                     var_config, var, var_id, available_variables, stats_path, stats_pattern
                 )
             elif var_type == "distribution":
-                cls._render_distribution_config(var_config, var, var_id)
+                cls.render_distribution_config(var_config, var, var_id)
             elif var_type == "configuration":
-                cls._render_configuration_config(var_config, var, var_id)
+                cls.render_configuration_config(var_config, var, var_id)
 
             updated_vars.append(var_config)
 
@@ -98,10 +99,10 @@ class VariableEditor:
         with col3:
             current_type = var.get("type", "scalar")
             options = ["scalar", "vector", "distribution", "configuration"]
-            
+
             if current_type not in options:
                 current_type = "scalar"
-                
+
             var_type = st.selectbox(
                 f"Type {idx+1}",
                 options=options,
@@ -116,7 +117,7 @@ class VariableEditor:
         return var_name, var_alias, var_type, delete_clicked
 
     @classmethod
-    def _render_vector_config(
+    def render_vector_config(
         cls,
         var_config: Dict[str, Any],
         original_var: Dict[str, Any],
@@ -126,15 +127,17 @@ class VariableEditor:
         stats_pattern: str,
     ):
         """Render configuration for vector variables."""
-        var_name = var_config["name"]
-        st.markdown(f"**Vector Configuration for `{var_name}`:**")
+        var_name = var_config.get("name", "")
+        # Header is optional or can be external
+        if var_name:
+            st.markdown(f"**Vector Configuration for `{var_name}`:**")
+
         st.info(
             "Vectors require entries to be specified. "
             "You can manually search for entries, or use the **Deep Scan** feature below "
             "to automatically find them in your stats files."
         )
 
-        # 1. Determine discovered entries
         discovered_entries = []
         if available_variables:
             for v in available_variables:
@@ -142,7 +145,6 @@ class VariableEditor:
                     discovered_entries = v["entries"]
                     break
 
-        # 2. Determine entry mode options
         options = ["Manual Entry Names", "Vector Statistics"]
         if discovered_entries:
             options.insert(0, "Select from Discovered Entries")
@@ -152,8 +154,8 @@ class VariableEditor:
             if "Vector Statistics" in options:
                 current_mode_index = options.index("Vector Statistics")
             else:
-                current_mode_index = 1 # Fallback
-        
+                current_mode_index = 1  # Fallback
+
         entry_mode = st.radio(
             "How to specify vector entries:",
             options=options,
@@ -162,42 +164,41 @@ class VariableEditor:
             horizontal=True,
         )
 
-        # 3. Handle Deep Scan
         cls._handle_deep_scan(
-            var_name, 
-            var_id, 
-            entry_mode, 
-            discover_entries_available=bool(discovered_entries), 
-            stats_path=stats_path, 
-            stats_pattern=stats_pattern
+            var_name,
+            var_id,
+            entry_mode,
+            discover_entries_available=bool(discovered_entries),
+            stats_path=stats_path,
+            stats_pattern=stats_pattern,
         )
 
-        # 4. Render selected mode inputs
         if entry_mode == "Select from Discovered Entries":
-            cls._render_vector_discovered_selection(var_config, original_var, var_id, discovered_entries)
-        
+            cls._render_vector_discovered_selection(
+                var_config, original_var, var_id, discovered_entries
+            )
+
         elif entry_mode == "Manual Entry Names":
             cls._render_vector_manual_entry(var_config, original_var, var_id)
-            
+
         else:  # Vector Statistics mode
             cls._render_vector_statistics_selection(var_config, original_var, var_id)
 
     @staticmethod
     def _handle_deep_scan(
-        var_name: str, 
-        var_id: str, 
-        entry_mode: str, 
-        discover_entries_available: bool, 
-        stats_path: Optional[str], 
-        stats_pattern: str
+        var_name: str,
+        var_id: str,
+        entry_mode: str,
+        discover_entries_available: bool,
+        stats_path: Optional[str],
+        stats_pattern: str,
     ):
         """Handle deep scan logic and button."""
         if not stats_path:
             return
 
-        should_show_scan = (
-            entry_mode == "Select from Discovered Entries"
-            or (not discover_entries_available and entry_mode == "Manual Entry Names")
+        should_show_scan = entry_mode == "Select from Discovered Entries" or (
+            not discover_entries_available and entry_mode == "Manual Entry Names"
         )
 
         if should_show_scan:
@@ -208,18 +209,19 @@ class VariableEditor:
             ):
                 with st.spinner(f"Scanning all files for {var_name}..."):
                     facade = BackendFacade()
-                    all_entries = facade.scan_vector_entries(
-                        stats_path, var_name, stats_pattern
-                    )
+                    all_entries = facade.scan_vector_entries(stats_path, var_name, stats_pattern)
 
                     if all_entries:
                         # Update session state available variables
-                        if "available_variables" in st.session_state and st.session_state.available_variables:
+                        if (
+                            "available_variables" in st.session_state
+                            and st.session_state.available_variables
+                        ):
                             for v in st.session_state.available_variables:
                                 if v["name"] == var_name:
                                     v["entries"] = all_entries
                                     break
-                                    
+
                         st.success(f"Found {len(all_entries)} entries!")
                         st.rerun()
                     else:
@@ -227,10 +229,10 @@ class VariableEditor:
 
     @staticmethod
     def _render_vector_discovered_selection(
-        var_config: Dict[str, Any], 
-        original_var: Dict[str, Any], 
-        var_id: str, 
-        discovered_entries: List[str]
+        var_config: Dict[str, Any],
+        original_var: Dict[str, Any],
+        var_id: str,
+        discovered_entries: List[str],
     ):
         """Render multiselect for discovered vector entries."""
         current_entries = original_var.get("vectorEntries", [])
@@ -256,9 +258,7 @@ class VariableEditor:
 
     @staticmethod
     def _render_vector_manual_entry(
-        var_config: Dict[str, Any], 
-        original_var: Dict[str, Any], 
-        var_id: str
+        var_config: Dict[str, Any], original_var: Dict[str, Any], var_id: str
     ):
         """Render text input for manual vector entries."""
         default_entries = original_var.get("vectorEntries", "")
@@ -286,24 +286,34 @@ class VariableEditor:
 
     @staticmethod
     def _render_vector_statistics_selection(
-        var_config: Dict[str, Any], 
-        original_var: Dict[str, Any], 
-        var_id: str
+        var_config: Dict[str, Any], original_var: Dict[str, Any], var_id: str
     ):
         """Render checkboxes for vector statistics."""
         st.markdown("**Select statistics to extract from the vector:**")
         col_stat1, col_stat2 = st.columns(2)
-        
+
         current_entries = original_var.get("vectorEntries", [])
 
         with col_stat1:
-            extract_total = st.checkbox("total (sum)", value="total" in current_entries, key=f"stat_total_{var_id}")
-            extract_mean = st.checkbox("mean (arithmetic)", value="mean" in current_entries, key=f"stat_mean_{var_id}")
-            extract_gmean = st.checkbox("gmean (geometric)", value="gmean" in current_entries, key=f"stat_gmean_{var_id}")
+            extract_total = st.checkbox(
+                "total (sum)", value="total" in current_entries, key=f"stat_total_{var_id}"
+            )
+            extract_mean = st.checkbox(
+                "mean (arithmetic)", value="mean" in current_entries, key=f"stat_mean_{var_id}"
+            )
+            extract_gmean = st.checkbox(
+                "gmean (geometric)", value="gmean" in current_entries, key=f"stat_gmean_{var_id}"
+            )
 
         with col_stat2:
-            extract_samples = st.checkbox("samples (count)", value="samples" in current_entries, key=f"stat_samples_{var_id}")
-            extract_stdev = st.checkbox("stdev (standard deviation)", value="stdev" in current_entries, key=f"stat_stdev_{var_id}")
+            extract_samples = st.checkbox(
+                "samples (count)", value="samples" in current_entries, key=f"stat_samples_{var_id}"
+            )
+            extract_stdev = st.checkbox(
+                "stdev (standard deviation)",
+                value="stdev" in current_entries,
+                key=f"stat_stdev_{var_id}",
+            )
 
         special_members = []
         if extract_total:
@@ -325,10 +335,13 @@ class VariableEditor:
             st.warning("Please select at least one statistic to extract")
 
     @staticmethod
-    def _render_distribution_config(var_config: Dict[str, Any], original_var: Dict[str, Any], var_id: str):
+    def render_distribution_config(
+        var_config: Dict[str, Any], original_var: Dict[str, Any], var_id: str
+    ):
         """Render configuration for distribution variables."""
-        var_name = var_config["name"]
-        st.markdown(f"**Distribution Configuration for `{var_name}`:**")
+        var_name = var_config.get("name", "")
+        if var_name:
+            st.markdown(f"**Distribution Configuration for `{var_name}`:**")
 
         col_min, col_max = st.columns(2)
         with col_min:
@@ -344,10 +357,13 @@ class VariableEditor:
         var_config["maximum"] = max_val
 
     @staticmethod
-    def _render_configuration_config(var_config: Dict[str, Any], original_var: Dict[str, Any], var_id: str):
+    def render_configuration_config(
+        var_config: Dict[str, Any], original_var: Dict[str, Any], var_id: str
+    ):
         """Render configuration for configuration variables."""
-        var_name = var_config["name"]
-        st.markdown(f"**Configuration for `{var_name}`:**")
+        var_name = var_config.get("name", "")
+        if var_name:
+            st.markdown(f"**Configuration for `{var_name}`:**")
 
         on_empty = st.text_input(
             "Default value (if not found)",
@@ -358,7 +374,9 @@ class VariableEditor:
         var_config["onEmpty"] = on_empty
 
     @staticmethod
-    def _render_add_variable_section(variables: List[Dict[str, Any]], available_variables: Optional[List[Dict[str, Any]]]):
+    def _render_add_variable_section(
+        variables: List[Dict[str, Any]], available_variables: Optional[List[Dict[str, Any]]]
+    ):
         """Render the 'Add Variable' section with search and manual add options."""
         st.markdown("---")
         st.markdown("### Add Variable")

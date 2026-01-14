@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from src.plotting.types.stacked_bar_plot import StackedBarPlot
-from src.utils.grouped_bar_utils import GroupedBarUtils
+from src.plotting.utils import GroupedBarUtils
 from src.web.ui.components.plot_config_components import PlotConfigComponents
 
 
@@ -66,16 +66,24 @@ class GroupedStackedBarPlot(StackedBarPlot):
                 help="Select multiple statistics to stack on top of each other",
             )
 
-            # Title
+            # Title & Labels
             default_title = saved_config.get("title", f"Stacked Statistics by {x_column}")
-            title = st.text_input("Title", value=default_title, key=f"title_{self.plot_id}")
-
-            # Labels
             default_xlabel = saved_config.get("xlabel", x_column)
-            xlabel = st.text_input("X-label", value=default_xlabel, key=f"xlabel_{self.plot_id}")
-
             default_ylabel = saved_config.get("ylabel", "Value")
-            ylabel = st.text_input("Y-label", value=default_ylabel, key=f"ylabel_{self.plot_id}")
+
+            label_config = PlotConfigComponents.render_title_labels_section(
+                saved_config=saved_config,
+                plot_id=self.plot_id,
+                default_title=default_title,
+                default_xlabel=default_xlabel,
+                default_ylabel=default_ylabel,
+                include_legend_title=True,
+                default_legend_title=saved_config.get("legend_title", ""),
+            )
+            title = label_config["title"]
+            xlabel = label_config["xlabel"]
+            ylabel = label_config["ylabel"]
+            legend_title = label_config["legend_title"]
 
         # Renaming Options (Delegated to Advanced Options now)
         # We removed the manual 'legend_renames' in favor of the standardized 'Series Configuration'
@@ -101,6 +109,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
             "title": title,
             "xlabel": xlabel,
             "ylabel": ylabel,
+            "legend_title": legend_title,
             "x_filter": x_values,
             "group_filter": group_values,
             "_needs_advanced": True,

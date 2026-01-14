@@ -25,6 +25,15 @@ def show_manage_plots_page():
     # Initialize State
     StateManager.initialize()
 
+    # CRITICAL: Apply pending widget updates from previous run (e.g. interactive zoom/legend drag)
+    # This must happen BEFORE any widgets are rendered to avoid "Instantiated" errors.
+    if "pending_plot_updates" in st.session_state:
+        updates = st.session_state["pending_plot_updates"]
+        for key, value in updates.items():
+            if key in st.session_state:
+                st.session_state[key] = value
+        del st.session_state["pending_plot_updates"]
+
     # 1. Create Plot Section
     PlotManagerComponents.render_create_plot_section()
 

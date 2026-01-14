@@ -119,6 +119,8 @@ class PlotConfigComponents:
         default_title: str = "",
         default_xlabel: str = "",
         default_ylabel: str = "Value",
+        include_legend_title: bool = False,
+        default_legend_title: str = "",
     ) -> Dict[str, str]:
         """
         Render title and label inputs.
@@ -129,9 +131,11 @@ class PlotConfigComponents:
             default_title: Default title value
             default_xlabel: Default x-label value
             default_ylabel: Default y-label value
+            include_legend_title: Whether to show legend title input
+            default_legend_title: Default legend title value
 
         Returns:
-            Dictionary with title, xlabel, ylabel
+            Dictionary with title, xlabel, ylabel, (and legend_title if requested)
         """
         title = st.text_input(
             "Title",
@@ -151,8 +155,19 @@ class PlotConfigComponents:
             key=f"ylabel_{plot_id}",
         )
 
-        return {
+        result = {
             "title": title,
             "xlabel": xlabel,
             "ylabel": ylabel,
         }
+
+        if include_legend_title:
+            legend_title = st.text_input(
+                "Legend Title",
+                value=saved_config.get("legend_title", default_legend_title),
+                key=f"legend_title_{plot_id}",
+                help="Custom title for the legend.",
+            )
+            result["legend_title"] = legend_title
+
+        return result

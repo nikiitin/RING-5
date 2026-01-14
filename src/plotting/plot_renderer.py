@@ -77,56 +77,113 @@ class PlotRenderer:
             plot: Plot instance
             should_generate: Whether to regenerate the figure
         """
-        if should_generate or plot.last_generated_fig is not None:
+        # 1. Generate Figure if needed (Forced OR Cache Missing)
+        if (should_generate or plot.last_generated_fig is None) and plot.processed_data is not None:
             try:
-                # Only regenerate if needed
-                if should_generate and plot.processed_data is not None:
-                    fig = plot.create_figure(plot.processed_data, plot.config)
-                    fig = plot.apply_common_layout(fig, plot.config)
+                fig = plot.create_figure(plot.processed_data, plot.config)
+                fig = plot.apply_common_layout(fig, plot.config)
 
-                    # Apply legend labels
-                    legend_labels = plot.config.get("legend_labels")
-                    if legend_labels:
-                        fig = plot.apply_legend_labels(fig, legend_labels)
+                # Apply legend labels
+                legend_labels = plot.config.get("legend_labels")
+                if legend_labels:
+                    fig = plot.apply_legend_labels(fig, legend_labels)
 
-                    # Store the figure
-                    plot.last_generated_fig = fig
-                else:
-                    # Use cached figure
-                    fig = plot.last_generated_fig
+                # Store the figure
+                plot.last_generated_fig = fig
+            except Exception as e:
+                st.error(f"Error generating plot: {e}")
+                return
 
-                # Display the plot
-                st.plotly_chart(
-                    fig,
-                    # use_container_width=False is deprecated. Default behavior respects fig width.
-                    config={
-                        "responsive": False,
-                        "editable": plot.config.get("enable_editable", False),
-                        "modeBarButtonsToAdd": [
-                            "drawline",
-                            "drawopenpath",
-                            "drawclosedpath",
-                            "drawcircle",
-                            "drawrect",
-                            "eraseshape",
-                        ],
-                        # Configure client-side download button (camera icon) to SVG (vector)
-                        # WYSIWYG: Scale 1 ensures exact pixel match with UI
-                        "toImageButtonOptions": {
-                            "format": "svg",
-                            "filename": f"{plot.name}_view",
-                            "height": plot.config.get("height", 500),
-                            "width": plot.config.get("width", 800),
-                            "scale": 1,
-                        },
-                    },
+        # 2. Render if we have a figure
+        if plot.last_generated_fig is not None:
+            try:
+                fig = plot.last_generated_fig
+
+                # Display the plot using custom interactive component
+                # This enables capturing zoom/pan/drag events to sync with backend
+                from src.web.ui.components.interactive_plot import (
+                    interactive_plotly_chart,
                 )
+
+                # Reconstruct config for interactivity
+                # We enforce editable=True (scoped) to allow legend dragging
+                # but we can restrict other edits via 'edits' if needed in future
+                plotly_config = {
+                    "responsive": False,
+                    "editable": True,  # Required for legend dragging
+                    "edits": {
+                        "legendPosition": True,
+                        "titleText": False,
+                        "axisTitleText": False,
+                        "annotationText": False,
+                        "colorbarTitleText": False,
+                    },
+                    "modeBarButtonsToAdd": [
+                        "drawline",
+                        "drawopenpath",
+                        "drawclosedpath",
+                        "drawcircle",
+                        "drawrect",
+                        "eraseshape",
+                    ],
+                    "toImageButtonOptions": {
+                        "format": "svg",
+                        "filename": f"{plot.name}_view",
+                        "height": plot.config.get("height", 500),
+                        "width": plot.config.get("width", 800),
+                        "scale": plot.config.get("export_scale", 1),
+                    },
+                }
+
+                relayout_data = interactive_plotly_chart(
+                    fig, config=plotly_config, key=f"chart_{plot.plot_id}"
+                )
+
+                # Update backend config if user interacted
+                if relayout_data:
+                    # Prevent infinite loops by checking if we already processed this exact event
+                    last_event_key = f"last_relayout_{plot.plot_id}"
+                    last_event = st.session_state.get(last_event_key)
+
+                    if relayout_data != last_event:
+                        if plot.update_from_relayout(relayout_data):
+                            # Store updates for the next run to avoid "widget instantiated" errors
+                            # We can't modify widget keys here because they were already rendered in this frame.
+                            updates = {}
+                            for prefix in ["", "theme_"]:
+                                # Position Keys
+                                x_key = f"{prefix}leg_x_sm_{plot.plot_id}"
+                                y_key = f"{prefix}leg_y_sm_{plot.plot_id}"
+
+                                # Anchor Keys (Critical for preventing jump/drift)
+                                x_anc_key = f"{prefix}leg_xanc_{plot.plot_id}"
+                                y_anc_key = f"{prefix}leg_yanc_{plot.plot_id}"
+
+                                # We blindly stage updates; if the key doesn't exist next run, it's harmless
+                                if "legend_x" in plot.config:
+                                    updates[x_key] = plot.config["legend_x"]
+                                if "legend_y" in plot.config:
+                                    updates[y_key] = plot.config["legend_y"]
+
+                                # Sync Anchors if they changed
+                                if "legend_xanchor" in plot.config:
+                                    updates[x_anc_key] = plot.config["legend_xanchor"]
+                                if "legend_yanchor" in plot.config:
+                                    updates[y_anc_key] = plot.config["legend_yanchor"]
+
+                            if updates:
+                                st.session_state["pending_plot_updates"] = updates
+
+                            st.session_state[last_event_key] = relayout_data
+                            st.rerun()
 
                 # Download button
                 PlotRenderer._render_download_button(plot, fig)
 
             except Exception as e:
                 st.error(f"Error generating plot: {e}")
+                # Fallback to standard chart if custom component fails?
+                # For now, explicit error is better for debugging main loop
 
     @staticmethod
     def _render_download_button(plot: BasePlot, fig) -> None:
@@ -157,8 +214,9 @@ class PlotRenderer:
                     import kaleido  # noqa: F401
 
                     buf = io.BytesIO()
-                    # scale=3 provides high resolution for publications
-                    fig.write_image(buf, format=download_format, scale=3)
+                    # Scale based on user config (default 1 for WYSIWYG match)
+                    scale = plot.config.get("export_scale", 1)
+                    fig.write_image(buf, format=download_format, scale=scale)
                     buf.seek(0)
 
                     mime_map = {
@@ -173,6 +231,7 @@ class PlotRenderer:
                         data=buf,
                         file_name=f"{plot.name}.{download_format}",
                         mime=mime,
+                        key=f"dl_btn_{plot.plot_id}_{download_format}_hires",
                     )
                     return  # Success, skip fallback
 
@@ -232,6 +291,7 @@ class PlotRenderer:
                     data=buf,
                     file_name=f"{plot.name}.{download_format}",
                     mime=mime,
+                    key=f"dl_btn_{plot.plot_id}_{download_format}_fallback",
                 )
             except Exception as e:
                 st.error(f"Failed to generate {download_format.upper()}: {e}")

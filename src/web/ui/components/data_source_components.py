@@ -3,11 +3,11 @@ from pathlib import Path
 
 import streamlit as st
 
+from src.web.facade import BackendFacade
+from src.web.state_manager import StateManager
 from src.web.ui.components.card_components import CardComponents
 from src.web.ui.components.data_components import DataComponents
 from src.web.ui.components.variable_editor import VariableEditor
-from src.web.facade import BackendFacade
-from src.web.state_manager import StateManager
 
 
 class DataSourceComponents:
@@ -247,56 +247,28 @@ class DataSourceComponents:
                 name = st.text_input("Name", value=name, key="dialog_final_name")
 
             config = {}
+            temp_id = "dialog_new_var"
+            defaults = selected_scanned_var if selected_scanned_var else {}
+
+            config["name"] = name
+
             if var_type == "vector":
-                st.markdown("###### Vector Configuration")
-                st.caption("Select sub-items to extract:")
-                selected_entries = []
-
-                standard_stats = ["total", "mean", "stdev", "samples", "gmean"]
-                sel_stats = st.multiselect(
-                    "Standard Statistics",
-                    standard_stats,
-                    default=["total", "mean"],
-                    key="vec_stats",
+                VariableEditor.render_vector_config(
+                    var_config=config,
+                    original_var=defaults,
+                    var_id=temp_id,
+                    available_variables=scanned_vars,
+                    stats_path=StateManager.get_stats_path(),
+                    stats_pattern=StateManager.get_stats_pattern(),
                 )
-                selected_entries.extend(sel_stats)
-
-                if selected_scanned_var and "entries" in selected_scanned_var:
-                    found_entries = selected_scanned_var["entries"]
-                    if found_entries:
-                        sel_found = st.multiselect(
-                            "Available Fields (from scan)", found_entries, key="vec_found"
-                        )
-                        selected_entries.extend(sel_found)
-
-                custom_text = st.text_input(
-                    "Custom Entries (comma separated)",
-                    placeholder="e.g. cpu0, cpu1",
-                    key="vec_custom",
-                )
-                if custom_text:
-                    custom_items = [x.strip() for x in custom_text.split(",") if x.strip()]
-                    selected_entries.extend(custom_items)
-
-                final_entries = list(dict.fromkeys(selected_entries))
-                if final_entries:
-                    st.success(f"Selected Entries: {', '.join(final_entries)}")
-                    config["vectorEntries"] = ", ".join(final_entries)
-                else:
-                    st.warning("Please select at least one entry.")
-
             elif var_type == "distribution":
-                col_min, col_max = st.columns(2)
-                with col_min:
-                    d_min = st.number_input("Minimum", value=-10, key="dist_min")
-                with col_max:
-                    d_max = st.number_input("Maximum", value=100, key="dist_max")
-                config["minimum"] = d_min
-                config["maximum"] = d_max
-
+                VariableEditor.render_distribution_config(
+                    var_config=config, original_var=defaults, var_id=temp_id
+                )
             elif var_type == "configuration":
-                on_empty = st.text_input("On Empty Value", value="None", key="conf_empty")
-                config["onEmpty"] = on_empty
+                VariableEditor.render_configuration_config(
+                    var_config=config, original_var=defaults, var_id=temp_id
+                )
 
             with st.expander("Advanced Options"):
                 repeat = st.number_input(

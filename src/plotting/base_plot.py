@@ -7,6 +7,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from src.web.ui.components.plot_config_components import PlotConfigComponents
+
 
 class BasePlot(ABC):
     """Abstract base class for all plot types."""
@@ -64,6 +66,93 @@ class BasePlot(ABC):
         """
         pass
 
+    def update_from_relayout(self, relayout_data: Dict[str, Any]) -> bool:
+        """
+        Update config from client-side relayout data (zoom/pan, legend drag).
+        Returns True if config changed.
+        """
+        changed = False
+
+        if not relayout_data:
+            return False
+
+        # Helper to safely update
+        def update_if_new(key, val):
+            current = self.config.get(key)
+            # Check for float equality if both are lists of numbers (ranges)
+            import math
+
+            def is_close(a, b):
+                try:
+                    return math.isclose(float(a), float(b), rel_tol=1e-9)
+                except (ValueError, TypeError):
+                    return a == b
+
+            if isinstance(current, list) and isinstance(val, list) and len(current) == len(val):
+                if all(is_close(c, v) for c, v in zip(current, val)):
+                    return False
+
+            # Simple equality check for non-lists or different lengths
+            if current != val:
+                if is_close(current, val):
+                    return False
+
+                self.config[key] = val
+                return True
+            return False
+
+        # 1. Custom Range (Zoom)
+        # Plotly sends ranges as array [min, max]
+        # x-axis
+        if "xaxis.range[0]" in relayout_data and "xaxis.range[1]" in relayout_data:
+            new_range = [relayout_data["xaxis.range[0]"], relayout_data["xaxis.range[1]"]]
+            if update_if_new("range_x", new_range):
+                changed = True
+        elif "xaxis.range" in relayout_data:
+            if update_if_new("range_x", relayout_data["xaxis.range"]):
+                changed = True
+
+        # y-axis
+        if "yaxis.range[0]" in relayout_data and "yaxis.range[1]" in relayout_data:
+            new_range = [relayout_data["yaxis.range[0]"], relayout_data["yaxis.range[1]"]]
+            if update_if_new("range_y", new_range):
+                changed = True
+        elif "yaxis.range" in relayout_data:
+            if update_if_new("range_y", relayout_data["yaxis.range"]):
+                changed = True
+
+        # Autosize / Reset Zoom
+        if "xaxis.autorange" in relayout_data and relayout_data["xaxis.autorange"]:
+            if self.config.get("range_x") is not None:
+                self.config["range_x"] = None
+                changed = True
+
+        if "yaxis.autorange" in relayout_data and relayout_data["yaxis.autorange"]:
+            if self.config.get("range_y") is not None:
+                self.config["range_y"] = None
+                changed = True
+
+        # 2. Legend Position (Drag)
+        if "legend.x" in relayout_data:
+            if update_if_new("legend_x", relayout_data["legend.x"]):
+                changed = True
+                self.config["legend_xanchor"] = "left"
+
+        if "legend.xanchor" in relayout_data:
+            if update_if_new("legend_xanchor", relayout_data["legend.xanchor"]):
+                changed = True
+
+        if "legend.y" in relayout_data:
+            if update_if_new("legend_y", relayout_data["legend.y"]):
+                changed = True
+                self.config["legend_yanchor"] = "top"
+
+        # Invalidate cache if changed so next render uses new config
+        if changed:
+            self.last_generated_fig = None
+
+        return changed
+
     @abstractmethod
     def get_legend_column(self, config: Dict[str, Any]) -> Optional[str]:
         """
@@ -100,6 +189,25 @@ class BasePlot(ABC):
         Delegates to StyleManager.
         """
         return self.style_manager.apply_styles(fig, config)
+
+    def generate_figure(self) -> go.Figure:
+        """
+        Generate and cache the final Plotly figure.
+        Applies creation, layout, and legend labels.
+        """
+        if self.processed_data is None:
+            raise ValueError(f"Plot '{self.name}' has no processed data.")
+
+        fig = self.create_figure(self.processed_data, self.config)
+        fig = self.apply_common_layout(fig, self.config)
+
+        # Apply legend labels
+        legend_labels = self.config.get("legend_labels")
+        if legend_labels:
+            fig = self.apply_legend_labels(fig, legend_labels)
+
+        self.last_generated_fig = fig
+        return fig
 
     def to_dict(self) -> Dict[str, Any]:
         """
@@ -197,26 +305,25 @@ class BasePlot(ABC):
             )
 
         with col2:
-            # Title
+            # Title & Labels
             default_title = saved_config.get("title", f"{y_column} by {x_column}")
-            title = st.text_input("Title", value=default_title, key=f"title_{self.plot_id}")
-
-            # X-label
             default_xlabel = saved_config.get("xlabel", x_column)
-            xlabel = st.text_input("X-label", value=default_xlabel, key=f"xlabel_{self.plot_id}")
-
-            # Y-label
             default_ylabel = saved_config.get("ylabel", y_column)
-            ylabel = st.text_input("Y-label", value=default_ylabel, key=f"ylabel_{self.plot_id}")
-
-            # Legend Title
             default_legend_title = saved_config.get("legend_title", "")
-            legend_title = st.text_input(
-                "Legend Title",
-                value=default_legend_title,
-                key=f"legend_title_{self.plot_id}",
-                help="Custom title for the legend. If empty, the grouping variable name will be used.",
+
+            label_config = PlotConfigComponents.render_title_labels_section(
+                saved_config=saved_config,
+                plot_id=self.plot_id,
+                default_title=default_title,
+                default_xlabel=default_xlabel,
+                default_ylabel=default_ylabel,
+                include_legend_title=True,
+                default_legend_title=default_legend_title,
             )
+            title = label_config["title"]
+            xlabel = label_config["xlabel"]
+            ylabel = label_config["ylabel"]
+            legend_title = label_config["legend_title"]
 
         return {
             "x": x_column,
@@ -383,11 +490,27 @@ class BasePlot(ABC):
                 default_fmt_idx = download_formats.index(saved_config["download_format"])
 
             config["download_format"] = st.selectbox(
-                "Download Format",
+                "Default Download Format",
                 options=download_formats,
                 index=default_fmt_idx,
                 key=f"download_fmt_{self.plot_id}",
             )
+
+            # Export Scale
+            config["export_scale"] = st.selectbox(
+                "Export Scale (Resolution)",
+                options=[1, 2, 3],
+                index=[1, 2, 3].index(saved_config.get("export_scale", 1)),
+                key=f"exp_scale_{self.plot_id}",
+                help="1x = Screen Resolution (WYSIWYG). 3x = High Res (Publication).",
+            )
+
+            # Dimension Preview
+            w = saved_config.get("width", 800)
+            h = saved_config.get("height", 500)
+            s = config["export_scale"]
+            st.caption(f"Export Size: {w * s} x {h * s} px")
+            st.caption("Change base dimensions in 'Theme & Style' -> 'Dimensions'.")
 
             config["xaxis_tickangle"] = st.slider(
                 "X-axis Label Rotation",

@@ -16,7 +16,10 @@ def components_bundle():
         importlib.reload(ds_module)
 
     # 2. Patch the module's st attribute for runtime widget mocking
-    with patch("src.web.ui.components.data_source_components.st") as mock_st:
+    with patch("src.web.ui.components.data_source_components.st") as mock_st, patch(
+        "src.web.ui.components.variable_editor.st", new=mock_st
+    ):
+
         mock_st.session_state = {}
 
         # Mock columns
@@ -72,19 +75,23 @@ def test_variable_config_dialog_manual_entry_vector(components_bundle, mock_stat
     """Test manual entry of a vector variable."""
     mock_streamlit, DataSourceComponents = components_bundle
 
-    mock_streamlit.radio.return_value = "Manual Entry"
-    mock_streamlit.text_input.side_effect = ["vec", "cpu0"]  # Name, Custom Entries
+    mock_streamlit.radio.side_effect = ["Manual Entry", "Manual Entry Names"]
+
+    mock_streamlit.text_input.side_effect = ["vec", "cpu0"]
+
     mock_streamlit.selectbox.return_value = "vector"
-    mock_streamlit.multiselect.return_value = ["total", "mean"]
-    mock_streamlit.button.return_value = True
+
+    mock_streamlit.button.side_effect = [False, True]
 
     DataSourceComponents.variable_config_dialog()
 
+    assert mock_state_manager.set_parse_variables.called
     args = mock_state_manager.set_parse_variables.call_args
+    assert args is not None
     new_vars = args[0][0]
     assert new_vars[0]["type"] == "vector"
     entries = new_vars[0]["vectorEntries"]
-    assert "total" in entries
+    # VariableEditor stores list of strings
     assert "cpu0" in entries
 
 
