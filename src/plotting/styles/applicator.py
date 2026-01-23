@@ -117,6 +117,7 @@ class StyleApplicator:
                     "undefined", ""
                 ),
                 font=dict(size=config.get("yaxis_title_font_size", 14)),
+                standoff=config.get("yaxis_title_standoff", 0),
             ),
         }
         if config.get("yaxis_dtick"):
@@ -132,8 +133,17 @@ class StyleApplicator:
         # Explicit Title Overrides
         if config.get("xaxis_title"):
             fig.update_xaxes(title_text=config["xaxis_title"])
-        if config.get("yaxis_title"):
-            fig.update_yaxes(title_text=config["yaxis_title"])
+
+        # Y-Axis Title Logic (Native vs Annotation)
+        y_title_text = yaxis_settings["title"]["text"]
+        y_vshift = int(config.get("yaxis_title_vshift") or 0)
+
+        if y_title_text:
+            if y_vshift != 0:
+                # Manual Mode (Annotation)
+                self._apply_yaxis_title_annotation(fig, config, y_title_text, y_vshift)
+                # Hide native title in settings so it doesn't get reapplied
+                yaxis_settings["title"]["text"] = ""
 
         fig.update_xaxes(**xaxis_settings)
         fig.update_yaxes(**yaxis_settings)
@@ -201,7 +211,9 @@ class StyleApplicator:
 
         x_anc = config.get("legend_xanchor", "auto")
         if x_anc == "auto":
-            legend_update["xanchor"] = "left" if legend_update["x"] > 0.5 else "right"
+            # If x is on the left (<=0.5), anchor left (grow right).
+            # If x is on the right (>0.5), anchor right (grow left) to prevent overflow.
+            legend_update["xanchor"] = "left" if legend_update["x"] <= 0.5 else "right"
         else:
             legend_update["xanchor"] = x_anc
 
@@ -295,7 +307,7 @@ class StyleApplicator:
         # Font size with validation
         try:
             text_font_size = int(config.get("text_font_size") or 12)
-            text_font_size = max(6, min(48, text_font_size))
+            text_font_size = max(6, min(100, text_font_size))
         except (ValueError, TypeError):
             text_font_size = 12
 
@@ -420,100 +432,99 @@ class StyleApplicator:
     ):
         """
         Apply legend layout logic.
-        If strict columns (cols > 1 AND entrywidth > 0) are requested, use multiple legends.
-        Otherwise use standard Plotly legend.
+        When ncols > 1, create multiple legend objects for true column layout.
         """
         try:
             ncols = int(config.get("legend_ncols") or 0)
         except (ValueError, TypeError):
             ncols = 0
 
-        try:
-            entry_width = int(config.get("legend_entrywidth") or 0)
-        except (ValueError, TypeError):
-            entry_width = 0
+        col_width = config.get("legend_col_width", 150)
 
-        if ncols > 1 and entry_width > 0:
-            # STRICT COLUMN MODE (Multiple Legends)
-            import math
+        # Get base position
+        base_x = base_legend_update.get("x", 1.02)
+        base_y = base_legend_update.get("y", 1.0)
+        x_anchor = base_legend_update.get("xanchor", "left")
 
-            # Apply base styling to the first legend (and others)
-            # We base everything on the 'legend_update' constructed earlier but need to adapt it
-            # 1. Distribute traces
-            # Only count visible legend items if needed, but safe to iterate all
-            all_traces = list(fig.data)
-            n_traces = len(all_traces)
-            items_per_col = math.ceil(n_traces / ncols)
+        if ncols > 1:
+            # Multi-legend approach for true column control
+            num_traces = len(fig.data)
+            if num_traces == 0:
+                fig.update_layout(legend=base_legend_update)
+                return
 
-            # Dimensions for positioning
-            fig_width = config.get("width", 800)
-            # Normalize pixel width to fraction of figure
-            # Guard against div/0
-            if fig_width <= 0:
-                fig_width = 800
+            # Calculate items per column (distribute evenly, fill columns top-to-bottom)
+            items_per_col = (num_traces + ncols - 1) // ncols  # ceiling division
 
-            w_fraction = entry_width / fig_width
+            # Convert col_width to fraction of plot (assuming ~1000px plot width)
+            plot_width = config.get("width", 1000)
+            col_width_frac = col_width / plot_width
 
-            # Base X/Y
-            base_x = base_legend_update.get("x", 1.02)
-            base_y = base_legend_update.get("y", 1.0)
-            x_anchor = base_legend_update.get("xanchor", "left")
-            y_anchor = base_legend_update.get("yanchor", "top")
-
-            # We enforce xanchor=left for multi-column to make math easier?
-            # Or respect user?
-            # Simplified: Strict mode implies we place columns side-by-side starting at X.
-
-            layout_update = {}
-
+            # Create legend config for each column
+            legend_configs = {}
             for col_idx in range(ncols):
-                leg_id = "legend" if col_idx == 0 else f"legend{col_idx+1}"
+                legend_name = "legend" if col_idx == 0 else f"legend{col_idx + 1}"
 
-                # Calculate position
-                pos_x = base_x + (col_idx * w_fraction)
+                # Get position for this legend column
+                # Check if there's a stored position for this legend, otherwise calculate
+                if col_idx == 0:
+                    # Primary legend uses base position
+                    col_x = config.get("legend_x", base_x)
+                    col_y = config.get("legend_y", base_y)
+                    col_xanchor = config.get("legend_xanchor", x_anchor)
+                    col_yanchor = config.get("legend_yanchor", "top")
+                else:
+                    # Secondary legends (legend2, legend3, etc.)
+                    stored_x = config.get(f"legend{col_idx + 1}_x")
+                    stored_y = config.get(f"legend{col_idx + 1}_y")
 
-                # Copy base styles
-                leg_settings = base_legend_update.copy()
-                leg_settings.update(
-                    {
-                        "x": pos_x,
-                        "y": base_y,
-                        "xanchor": x_anchor,
-                        "yanchor": y_anchor,
-                        "orientation": "v",  # Force vertical stacks
-                        "entrywidth": entry_width,
-                        "entrywidthmode": "pixels",
-                    }
-                )
+                    if stored_x is not None:
+                        col_x = stored_x
+                    else:
+                        # Calculate initial position side by side
+                        if x_anchor == "left":
+                            col_x = base_x + (col_idx * col_width_frac)
+                        elif x_anchor == "right":
+                            col_x = base_x - ((ncols - 1 - col_idx) * col_width_frac)
+                        else:  # center
+                            offset = (col_idx - (ncols - 1) / 2) * col_width_frac
+                            col_x = base_x + offset
 
-                layout_update[leg_id] = leg_settings
+                    col_y = stored_y if stored_y is not None else base_y
+                    col_xanchor = config.get(f"legend{col_idx + 1}_xanchor", x_anchor)
+                    col_yanchor = config.get(f"legend{col_idx + 1}_yanchor", "top")
 
-            fig.update_layout(**layout_update)
+                # Build legend config for this column
+                # NOTE: No borders on individual columns to avoid "double border" appearance
+                legend_config = {
+                    "title": base_legend_update.get("title") if col_idx == 0 else {"text": ""},
+                    "font": base_legend_update.get("font", {}),
+                    "bgcolor": base_legend_update.get("bgcolor", "#ffffff"),
+                    "bordercolor": "rgba(0,0,0,0)",  # Transparent border
+                    "borderwidth": 0,  # No border on individual columns
+                    "orientation": "v",  # Vertical for column layout
+                    "x": col_x,
+                    "y": col_y,
+                    "xanchor": col_xanchor,
+                    "yanchor": col_yanchor,
+                    "itemsizing": base_legend_update.get("itemsizing", "constant"),
+                    "valign": base_legend_update.get("valign", "middle"),
+                }
 
-            # Assign traces
-            for i, trace in enumerate(all_traces):
-                col_idx = i // items_per_col
-                # Safety clamp
-                if col_idx >= ncols:
-                    col_idx = ncols - 1
+                legend_configs[legend_name] = legend_config
 
-                target_leg = "legend" if col_idx == 0 else f"legend{col_idx+1}"
-                trace.legend = target_leg
+            # Apply all legend configs to layout
+            fig.update_layout(**legend_configs)
+
+            # Assign traces to their respective legend columns
+            for trace_idx, trace in enumerate(fig.data):
+                col_idx = trace_idx // items_per_col
+                col_idx = min(col_idx, ncols - 1)  # Clamp to last column
+                legend_name = "legend" if col_idx == 0 else f"legend{col_idx + 1}"
+                trace.update(legend=legend_name)
 
         else:
-            # STANDARD MODE
-            # Use the logic we wrote previously (or simple fallback)
-
-            if ncols > 0:
-                base_legend_update["orientation"] = "h"
-                if entry_width > 0:
-                    base_legend_update["entrywidth"] = entry_width
-                    base_legend_update["entrywidthmode"] = "pixels"
-                else:
-                    base_legend_update["entrywidth"] = 1.0 / ncols
-                    base_legend_update["entrywidthmode"] = "fraction"
-
-            # Apply the single legend update
+            # Single legend (default behavior)
             fig.update_layout(legend=base_legend_update)
 
     def _apply_series_styling(self, fig: go.Figure, config: Dict[str, Any]):
@@ -558,3 +569,37 @@ class StyleApplicator:
                 trace.update(marker=dict(pattern=dict(shape=style["pattern"], fillmode="replace")))
             elif config.get("enable_stripes") and "bar" in self.plot_type:
                 trace.update(marker=dict(pattern=dict(shape="/", fillmode="replace")))
+
+    def _apply_yaxis_title_annotation(
+        self, fig: go.Figure, config: Dict[str, Any], text: str, vshift: int
+    ) -> None:
+        """
+        Apply Y-axis title as an annotation to support vertical shifting.
+        """
+        standoff = int(config.get("yaxis_title_standoff") or 0)
+        font_size = int(config.get("yaxis_title_font_size", 14))
+        # Default color matches simple axis color logic or black
+        font_color = config.get("axis_color", "#444444")
+
+        # We need to simulate 'standoff' with xshift.
+        # Standoff moves left (negative xshift).
+        # We also need to clear enough space, but annotations don't reserve margin automatically
+        # like titles do. User might need to adjust left margin manually if it clips.
+        x_shift = (
+            -standoff - 40
+        )  # -40 is a heuristic for tick labels space since we are at x=0 (paper)
+
+        fig.add_annotation(
+            text=text,
+            x=0,
+            y=0.5,
+            xref="paper",
+            yref="paper",
+            xanchor="right",
+            yanchor="middle",
+            textangle=-90,
+            yshift=vshift,
+            xshift=x_shift,
+            showarrow=False,
+            font=dict(size=font_size, color=font_color),
+        )

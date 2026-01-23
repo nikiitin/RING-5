@@ -18,6 +18,11 @@ class ParseWorkPool:
             cls._singleton = ParseWorkPool()
         return cls._singleton
 
+    @classmethod
+    def reset(cls):
+        """Reset the singleton instance to force fresh state."""
+        cls._singleton = None
+
     def __init__(self) -> None:
         self._workPool = WorkPool.get_instance()
         self._futures = []

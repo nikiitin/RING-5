@@ -39,15 +39,15 @@ class DataParserFactory:
     def reset(cls) -> None:
         """Reset the singleton instance."""
         from src.parsing.config_manager import ConfigurationManager
+        from src.parsing.impl.multiprocessing.parseWorkPool import ParseWorkPool
 
         ConfigurationManager.reset()
+        ParseWorkPool.reset()
         with cls._lock:
             cls._parserSingleton = None
 
     @classmethod
-    def getDataParser(
-        cls, params: DataParserParams, implName: str = "perl"
-    ) -> DataParserInterface:
+    def getDataParser(cls, params: DataParserParams, implName: str = "perl") -> DataParserInterface:
         """
         Get or create a data parser singleton.
 

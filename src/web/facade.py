@@ -360,10 +360,11 @@ class BackendFacade:
             # Limit files for speed
             files_to_scan = files[:limit]
 
-            # Use Perl Scanner
-            import json
+            # Use Parallel Scanner
             import shutil
-            import subprocess  # nosec
+
+            from src.scanning.impl.multiprocessing.scanWorkPool import ScanWorkPool
+            from src.scanning.impl.multiprocessing.statsScanWork import StatsScanWork
 
             perl_exe = shutil.which("perl")
             if not perl_exe:
@@ -377,34 +378,34 @@ class BackendFacade:
                 / "src/parsing/impl/data_parser_perl/src/parser_impl/statsScanner.pl"
             ).resolve()
 
+            # Initialize Pool
+            pool = ScanWorkPool.getInstance()
+
+            # Submit Work
             for file_path in files_to_scan:
-                try:
-                    # Execute Perl scanner script
-                    cmd = [perl_exe, str(script_path), str(file_path)]
+                work = StatsScanWork(file_path, perl_exe, script_path)
+                pool.addWork(work)
 
-                    result = subprocess.check_output(cmd, stderr=subprocess.DEVNULL)  # nosec
-                    file_vars = json.loads(result)
+            # Collect Results
+            results = pool.getResults()
 
-                    for var in file_vars:
-                        name = var["name"]
-                        if name not in merged_vars:
-                            merged_vars[name] = var
-                        else:
-                            # Merge entries if vector
-                            if var["type"] == "vector" and "entries" in var:
-                                existing_entries = set(merged_vars[name].get("entries", []))
-                                new_entries = set(var["entries"])
-                                if not new_entries.issubset(existing_entries):
-                                    merged_vars[name]["entries"] = sorted(
-                                        list(existing_entries.union(new_entries))
-                                    )
-                except Exception as e:
-                    import logging
+            # Merge Results
+            for file_vars in results:
+                for var in file_vars:
+                    name = var["name"]
+                    if name not in merged_vars:
+                        merged_vars[name] = var
+                    else:
+                        # Merge entries if vector
+                        if var["type"] == "vector" and "entries" in var:
+                            existing_entries = set(merged_vars[name].get("entries", []))
+                            new_entries = set(var["entries"])
+                            if not new_entries.issubset(existing_entries):
+                                merged_vars[name]["entries"] = sorted(
+                                    list(existing_entries.union(new_entries))
+                                )
 
-                    logging.error(f"Error scanning file {file_path} with Perl script: {e}")
-                    continue
-
-            return list(merged_vars.values())
+            return sorted(list(merged_vars.values()), key=lambda x: x["name"])
         except Exception as e:
             print(f"Error scanning stats: {e}")
             return []
@@ -478,7 +479,11 @@ class BackendFacade:
         return sorted(results, key=lambda x: x["name"])
 
     def scan_vector_entries(
-        self, stats_path: str, vector_name: str, file_pattern: str = "stats.txt"
+        self,
+        stats_path: str,
+        vector_name: str,
+        file_pattern: str = "stats.txt",
+        limit: int = 1000000,
     ) -> List[str]:
         """
         Scan ALL stats files for entries of a specific vector variable.
@@ -512,41 +517,38 @@ class BackendFacade:
             # scanning is reasonably fast per file, the overhead is opening many files.
             # To make it truly fast, we should use grep if available, but let's stick to python for
             # portability.
-            # Limit files for speed
-            files_to_scan = files[:100]
+            # Limit files
+            files_to_scan = files[:limit]
 
-            # Use Perl Scanner
-            import json
-            import subprocess  # nosec
+            # Use Parallel Scanner
+            import shutil
+
+            from src.scanning.impl.multiprocessing.scanWorkPool import ScanWorkPool
+            from src.scanning.impl.multiprocessing.vectorScanWork import VectorScanWork
 
             script_path = (
                 self.ring5_data_dir.parent
                 / "src/parsing/impl/data_parser_perl/src/parser_impl/statsScanner.pl"
             ).resolve()
 
-            import shutil
-
             perl_exe = shutil.which("perl")
             if not perl_exe:
                 return []
 
+            # Initialize Pool
+            pool = ScanWorkPool.getInstance()
+
+            # Submit Work
             for file_path in files_to_scan:
-                try:
-                    # Optimization: Fast pre-check using Python reads before spawning Perl process
-                    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-                        if vector_name not in f.read():
-                            continue
+                work = VectorScanWork(file_path, vector_name, perl_exe, script_path)
+                pool.addWork(work)
 
-                    cmd = [perl_exe, str(script_path), str(file_path)]
-                    result = subprocess.check_output(cmd, stderr=subprocess.DEVNULL)  # nosec
-                    file_vars = json.loads(result)
+            # Collect Results
+            results = pool.getResults()
 
-                    for var in file_vars:
-                        if var["name"] == vector_name and "entries" in var:
-                            all_entries.update(var["entries"])
-
-                except Exception:
-                    continue  # nosec
+            # Merge unique entries
+            for entry_list in results:
+                all_entries.update(entry_list)
 
             return sorted(list(all_entries))
         except Exception:

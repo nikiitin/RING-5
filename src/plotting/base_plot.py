@@ -133,19 +133,45 @@ class BasePlot(ABC):
                 changed = True
 
         # 2. Legend Position (Drag)
-        if "legend.x" in relayout_data:
-            if update_if_new("legend_x", relayout_data["legend.x"]):
-                changed = True
-                self.config["legend_xanchor"] = "left"
+        # Track each legend position independently (legend, legend2, legend3, etc.)
+        # Users can position each column separately
 
-        if "legend.xanchor" in relayout_data:
-            if update_if_new("legend_xanchor", relayout_data["legend.xanchor"]):
-                changed = True
+        # Check for any legend drag events
+        for key, val in relayout_data.items():
+            if not key.startswith("legend"):
+                continue
 
-        if "legend.y" in relayout_data:
-            if update_if_new("legend_y", relayout_data["legend.y"]):
+            parts = key.split(".")
+            if len(parts) != 2:
+                continue
+
+            legend_name = parts[0]  # "legend" or "legend2", etc.
+            prop = parts[1]  # "x", "y", "xanchor", etc.
+
+            # Build config key: legend.x -> legend_x, legend2.x -> legend2_x
+            if legend_name == "legend":
+                config_key = f"legend_{prop}"
+            else:
+                config_key = f"{legend_name}_{prop}"
+
+            if prop in ("x", "y"):
+                if update_if_new(config_key, val):
+                    changed = True
+                    # Also set anchor when position changes
+                    if prop == "x":
+                        anchor_key = config_key.replace("_x", "_xanchor")
+                        self.config[anchor_key] = "left"
+                    elif prop == "y":
+                        anchor_key = config_key.replace("_y", "_yanchor")
+                        self.config[anchor_key] = "top"
+            elif prop in ("xanchor", "yanchor"):
+                if update_if_new(config_key, val):
+                    changed = True
+
+        # 3. Legend Title (Edit)
+        if "legend.title.text" in relayout_data:
+            if update_if_new("legend_title", relayout_data["legend.title.text"]):
                 changed = True
-                self.config["legend_yanchor"] = "top"
 
         # Invalidate cache if changed so next render uses new config
         if changed:

@@ -101,8 +101,17 @@ Distribution/dist_var::max/15
 
 def test_validate_vars_missing_content(parser):
     # Scalar var content remains None
-    with pytest.raises(RuntimeError, match="Variable content none"):
-        parser._validateVars(parser._varsToParse)
+    # WITH FIX: Should default to "0" instead of raising error
+    parser._validateVars(parser._varsToParse)
+    assert parser._varsToParse["scalar_var"].content == "0"
+
+
+def test_process_output_empty_returns_defaults(parser):
+    # Empty output should result in defaults being populated
+    output = ""
+    parsed = parser._processOutput(output, parser._varsToParse)
+    assert parsed is not None
+    assert parsed["scalar_var"].content == "0"
 
 
 def test_validate_vars_config_default():
@@ -124,9 +133,9 @@ def test_validate_vars_config_no_default_fail():
 
     work = PerlParseWork("f", vars_map)
 
-    # This specifically raises "Configuration variable empty"
-    with pytest.raises(RuntimeError, match="Configuration variable empty"):
-        work._validateVars(vars_map)
+    # WITH FIX: Should default to "None" instead of raising error
+    work._validateVars(vars_map)
+    assert vars_map["config_var"].content == "None"
 
 
 def test_call_subprocess(parser):

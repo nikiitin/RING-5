@@ -22,19 +22,18 @@ class PerlParseWork(ParseWork):
         for varID in varsToParse.keys():
             itVar = varsToParse[varID]
             if itVar.content is None:
-                # This should not happen...
-                raise RuntimeError("Variable content none: " + varID)
+                # Variable not found in file
+                # Instead of crashing, fill with default "0" or appropriate empty value
+                # This allows parsing files that are missing some variables
+                # print(f"Warning: Variable {varID} not found in {self._fileToParse}, using 0")
+                itVar.content = "0"
+
             if type(itVar).__name__ == "Configuration":
                 if len(itVar.content) == 0:
                     # If the content is empty, then use the onEmpty value
                     if itVar.onEmpty is None:
-                        # If the onEmpty value is None, then raise error
-                        # Should not happen...
-                        raise RuntimeError(
-                            "Configuration variable empty: "
-                            + varID
-                            + "No default value... Stoping..."
-                        )
+                        # Fallback for configuration
+                        itVar.content = "None"
                     else:
                         # Use the onEmpty (default) value
                         itVar.content = itVar.onEmpty
@@ -85,34 +84,46 @@ class PerlParseWork(ParseWork):
         # Get the ID of the variable
         varID = lineElements[1]
         varValue = lineElements[2]
-        # If the variable is a vector, then the ID
-        # will be in the format: ID::key
-        # So, we need to split it again
+
+        # For types with entries (Vector, Distribution, Histogram), extract base ID first
+        # and check if it exists before buffering
         if varType == "Vector":
+            baseID = varID.split("::")[0]
+            # Check if this variable is in our parse list before buffering
+            if varsToParse.get(baseID) is None:
+                return  # Skip unknown variables
             self._processVector(varID, varValue)
-            # Remove the key from the ID
-            varID = varID.split("::")[0]
+            varID = baseID
         elif varType == "Distribution":
+            baseID = varID.split("::")[0]
+            # Check if this variable is in our parse list before buffering
+            if varsToParse.get(baseID) is None:
+                return  # Skip unknown variables
             self._processDist(varID, varValue)
-            # Remove the key from the ID
-            varID = varID.split("::")[0]
+            varID = baseID
         elif varType == "Histogram":
             baseID = varID.split("::")[0]
             targetVar = varsToParse.get(baseID)
 
+            # Skip if not in parse list
+            if targetVar is None:
+                return
+
             # Determine handling based on configuration
-            if targetVar and type(targetVar).__name__ == "Vector":
+            if type(targetVar).__name__ == "Vector":
                 self._processVector(varID, varValue)
                 varType = "Vector"
             else:
                 self._processDist(varID, varValue)
-                if targetVar:
-                    expected_type = type(targetVar).__name__
-                    if expected_type in ["Distribution", "Histogram"]:
-                        varType = expected_type
+                expected_type = type(targetVar).__name__
+                if expected_type in ["Distribution", "Histogram"]:
+                    varType = expected_type
 
             varID = baseID
         elif varType == "Scalar" or varType == "Configuration":
+            # Check if variable exists before assigning
+            if varsToParse.get(varID) is None:
+                return  # Skip unknown variables
             varsToParse[varID].content = varValue
         elif varType == "Summary":
             baseID = varID.split("::")[0]
@@ -144,11 +155,12 @@ class PerlParseWork(ParseWork):
         else:
             # Unknown variable type
             raise RuntimeError("Unknown variable type: " + varType)
-        # Post check but it is ok, an error will raise
-        # Check if the variable is in the list of variables to parse
+
+        # Final check - should not reach here for unknown variables
+        # but keep as safety net
         if varsToParse.get(varID) is None:
-            # Variable not in the list, raise error
-            raise RuntimeError("Variable not in the list of variables to parse: " + varID)
+            return
+
         # Check variable type matches the one in the list
         if type(varsToParse.get(varID)).__name__ != varType:
             raise RuntimeError(
@@ -168,8 +180,12 @@ class PerlParseWork(ParseWork):
         self._vectorDict = dict()
         self._distDict = dict()
         if len(output) == 0:
-            print("Output file: " + self._fileToParse + " is empty! Skipping...")
-            return None
+            # Output might be empty if no variables matched the filter.
+            # We should still return a row with defaults (handled by validateVars)
+            # instead of dropping the file completely.
+            pass
+            # print("Output file: " + self._fileToParse + " is empty! Defaults will be used.")
+            # return None
         for line in output.splitlines():
             self._processLine(line, varsToParse)
         # Update all the buffered variables

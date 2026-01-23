@@ -219,6 +219,27 @@ class StateManager:
         st.session_state[StateManager.SCANNED_VARIABLES] = variables
 
     @staticmethod
+    def clear_data():
+        """Clear only the data-related state (CSV, plots) without resetting parser configuration."""
+        import shutil
+
+        # Clear temp directory to force fresh parsing next time
+        temp_dir = StateManager.get_temp_dir()
+        if temp_dir and Path(temp_dir).exists():
+            shutil.rmtree(temp_dir)
+
+        # Clear data and related state
+        st.session_state[StateManager.DATA] = None
+        st.session_state[StateManager.PROCESSED_DATA] = None
+        st.session_state[StateManager.CSV_PATH] = None
+        st.session_state[StateManager.TEMP_DIR] = None
+
+        # Clear plots
+        st.session_state[StateManager.PLOTS_OBJECTS] = []
+        st.session_state[StateManager.PLOT_COUNTER] = 0
+        st.session_state[StateManager.CURRENT_PLOT_ID] = None
+
+    @staticmethod
     def clear_all():
         """Clear all session state (reset application)."""
         import shutil

@@ -54,13 +54,23 @@ class OutlierRemoverManager(DataManager):
 
         with col2:
             if categorical_cols:
+                # Intelligent default: Exclude "random_seed" from grouping as it defeats outlier detection
+                # (grouping by seed means 1 item per group -> no outliers)
+                default_cols = [
+                    c for c in categorical_cols if c != "random_seed" and "seed" not in c.lower()
+                ]
+                # Fallback if everything was filtered out (unlikely) or take top 3
+                if not default_cols:
+                    default_cols = categorical_cols[:3]
+                else:
+                    default_cols = default_cols[:3]
+
                 group_by_cols = st.multiselect(
                     "Group by columns (optional)",
                     options=categorical_cols,
-                    default=(
-                        categorical_cols[:3] if len(categorical_cols) >= 3 else categorical_cols
-                    ),
+                    default=default_cols,
                     key="outlier_groupby",
+                    help="Columns to group data by before calculating Q3. Do NOT include 'random_seed' here!",
                 )
             else:
                 group_by_cols = []

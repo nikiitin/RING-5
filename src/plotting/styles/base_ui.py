@@ -275,25 +275,21 @@ class BaseStyleUI:
             )
 
             legend_ncols = st.number_input(
-                "Columns (Horiz Only)",
+                "Columns",
                 min_value=0,
-                max_value=20,
+                max_value=10,
                 value=saved_config.get("legend_ncols", 0),
                 key=f"{key_prefix}leg_cols_{self.plot_id}",
-                help="Set number of columns. Forces Horizontal orientation. 0 = Auto.",
+                help="Number of legend columns. Uses multiple legend objects positioned side-by-side. 0 = Auto (single column).",
             )
 
-            legend_entrywidth = st.number_input(
-                "Entry Width",
+            legend_col_width = st.number_input(
+                "Column Width (px)",
                 min_value=0,
-                max_value=1200,
-                value=(
-                    int(saved_config.get("legend_entrywidth"))
-                    if saved_config.get("legend_entrywidth") is not None
-                    else 0
-                ),
-                key=f"{key_prefix}leg_entry_wd_{self.plot_id}",
-                help="Set a fixed width (e.g. 100) to prevent text cropping. Leave at 0 for auto/fractional.",
+                max_value=500,
+                value=saved_config.get("legend_col_width", 150),
+                key=f"{key_prefix}leg_col_width_{self.plot_id}",
+                help="Width of each legend column in pixels.",
             )
 
             legend_valign = st.selectbox(
@@ -340,11 +336,7 @@ class BaseStyleUI:
         return {
             "legend_orientation": legend_orientation,
             "legend_ncols": legend_ncols,
-            "legend_entrywidth": (
-                legend_entrywidth
-                if (legend_entrywidth is not None and legend_entrywidth > 0)
-                else None
-            ),
+            "legend_col_width": legend_col_width,
             "legend_valign": legend_valign,
             "legend_x": legend_x,
             "legend_xanchor": legend_xanchor,
@@ -403,7 +395,7 @@ class BaseStyleUI:
             legend_font_size = st.number_input(
                 "Font Size",
                 min_value=8,
-                max_value=24,
+                max_value=100,
                 value=saved_config.get("legend_font_size", 12),
                 key=f"{key_prefix}leg_font_sz_{self.plot_id}",
             )
@@ -417,7 +409,7 @@ class BaseStyleUI:
             legend_title_font_size = st.number_input(
                 "Title Size",
                 min_value=8,
-                max_value=28,
+                max_value=100,
                 value=saved_config.get("legend_title_font_size", 14),
                 key=f"{key_prefix}leg_title_sz_{self.plot_id}",
             )
@@ -469,15 +461,6 @@ class BaseStyleUI:
                 help="Vertical spacing between legend items.",
             )
 
-        with sz_c2:
-            legend_entrywidthmode = st.selectbox(
-                "Width Mode",
-                options=["pixels", "fraction"],
-                index=0 if saved_config.get("legend_entrywidthmode", "pixels") == "pixels" else 1,
-                key=f"{key_prefix}leg_width_mode_{self.plot_id}",
-                help="How to interpret the entry width value.",
-            )
-
         return {
             "legend_itemsizing": legend_itemsizing,
             "legend_itemwidth": (
@@ -486,7 +469,6 @@ class BaseStyleUI:
                 else None
             ),
             "legend_tracegroupgap": legend_tracegroupgap,
-            "legend_entrywidthmode": legend_entrywidthmode,
         }
 
     def _render_typography_section(
@@ -505,16 +487,9 @@ class BaseStyleUI:
             title_font_size = st.number_input(
                 "Plot Title Font Size",
                 min_value=8,
-                max_value=48,
+                max_value=100,
                 value=saved_config.get("title_font_size", 18),
                 key=f"{key_prefix}title_sz_{self.plot_id}",
-            )
-
-            legend_title = st.text_input(
-                "Legend Title",
-                value=saved_config.get("legend_title", ""),
-                key=f"{key_prefix}leg_title_txt_{self.plot_id}",
-                help="Leave empty to use default (Group/Color column name)",
             )
 
             xaxis_title = st.text_input(
@@ -525,7 +500,7 @@ class BaseStyleUI:
             xaxis_title_font_size = st.number_input(
                 "X-Axis Title Font Size",
                 min_value=8,
-                max_value=32,
+                max_value=100,
                 value=saved_config.get("xaxis_title_font_size", 14),
                 key=f"{key_prefix}xaxis_title_sz_{self.plot_id}",
             )
@@ -538,16 +513,34 @@ class BaseStyleUI:
             yaxis_title_font_size = st.number_input(
                 "Y-Axis Title Font Size",
                 min_value=8,
-                max_value=32,
+                max_value=100,
                 value=saved_config.get("yaxis_title_font_size", 14),
                 key=f"{key_prefix}yaxis_title_sz_{self.plot_id}",
+            )
+
+            yaxis_title_standoff = st.slider(
+                "Y-Axis Title Standoff (Spacing)",
+                min_value=0,
+                max_value=100,
+                value=saved_config.get("yaxis_title_standoff", 0),
+                key=f"{key_prefix}yaxis_title_standoff_{self.plot_id}",
+                help="Distance between Y-axis ticks and the title.",
+            )
+
+            yaxis_title_vshift = st.slider(
+                "Y-Axis Title Vertical Shift",
+                min_value=-300,
+                max_value=300,
+                value=saved_config.get("yaxis_title_vshift", 0),
+                key=f"{key_prefix}yaxis_title_vshift_{self.plot_id}",
+                help="Move title up (+) or down (-) along the axis. Note: Disables native auto-margins for title.",
             )
 
         with typo_c2:
             xaxis_tickfont_size = st.number_input(
                 "X-Axis Label (Tick) Size",
                 min_value=8,
-                max_value=24,
+                max_value=100,
                 value=saved_config.get("xaxis_tickfont_size", 12),
                 key=f"{key_prefix}xaxis_tick_sz_{self.plot_id}",
                 help="Overwrites the basic X-axis font size in Advanced Options",
@@ -561,7 +554,7 @@ class BaseStyleUI:
             yaxis_tickfont_size = st.number_input(
                 "Y-Axis Label (Tick) Size",
                 min_value=8,
-                max_value=24,
+                max_value=100,
                 value=saved_config.get("yaxis_tickfont_size", 12),
                 key=f"{key_prefix}yaxis_tick_sz_{self.plot_id}",
             )
@@ -574,11 +567,12 @@ class BaseStyleUI:
         return {
             "title": plot_title,
             "title_font_size": title_font_size,
-            "legend_title": legend_title,
             "xaxis_title": xaxis_title,
             "xaxis_title_font_size": xaxis_title_font_size,
             "yaxis_title": yaxis_title,
             "yaxis_title_font_size": yaxis_title_font_size,
+            "yaxis_title_standoff": yaxis_title_standoff,
+            "yaxis_title_vshift": yaxis_title_vshift,
             "xaxis_tickfont_size": xaxis_tickfont_size,
             "xaxis_tickfont_color": xaxis_tickfont_color,
             "yaxis_tickfont_size": yaxis_tickfont_size,
@@ -861,7 +855,7 @@ class BaseStyleUI:
                     "Font Size",
                     value=int(saved_config.get("text_font_size") or 12),
                     min_value=6,
-                    max_value=48,
+                    max_value=100,
                     step=1,
                     key=f"{key_prefix}txt_fs_{self.plot_id}",
                 )

@@ -115,7 +115,16 @@ def main():
 
         st.markdown("---")
 
-        if st.button("Clear All Data", width="stretch"):
+        if st.button("Clear Data", width="stretch", help="Clear loaded CSV data and plots"):
+            StateManager.clear_data()
+            st.rerun()
+
+        if st.button(
+            "Reset All",
+            width="stretch",
+            type="secondary",
+            help="Reset entire application to defaults",
+        ):
             StateManager.clear_all()
             st.rerun()
 

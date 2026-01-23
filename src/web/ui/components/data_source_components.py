@@ -132,11 +132,16 @@ class DataSourceComponents:
         # Scanner UI
         col_scan1, col_scan2 = st.columns([1, 3])
         with col_scan1:
+            deep_scan = st.checkbox(
+                "Deep Scan (check all files)", help="Scan ALL files for variables (slower)"
+            )
             if st.button("🔍 Scan for Variables", help="Scan files to auto-discover variables"):
                 with st.spinner("Scanning stats files..."):
                     try:
+                        # Use a large limit for deep scan, default 5 for quick scan
+                        scan_limit = 1000000 if deep_scan else 5
                         scanned_vars = facade.scan_stats_variables_with_grouping(
-                            stats_path, stats_pattern
+                            stats_path, stats_pattern, limit=scan_limit
                         )
                         StateManager.set_scanned_variables(scanned_vars)
                         st.rerun()
@@ -324,13 +329,10 @@ class DataSourceComponents:
 
         st.info(f"Found {len(files_found)} files to parse")
 
-        if not StateManager.get_temp_dir():
-            StateManager.set_temp_dir(tempfile.mkdtemp())
-
-        output_dir = StateManager.get_temp_dir()
-        if output_dir is None:
-            st.error("Failed to create temporary directory")
-            return
+        # Always create a fresh temp directory for each parsing run
+        # This avoids reusing cached results from previous runs
+        output_dir = tempfile.mkdtemp()
+        StateManager.set_temp_dir(output_dir)
 
         progress_container = st.container()
         with progress_container:
