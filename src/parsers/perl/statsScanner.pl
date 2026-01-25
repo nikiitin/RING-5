@@ -2,7 +2,7 @@
 use strict;
 use warnings;
 use FindBin;
-use lib "$FindBin::Bin/../../perl_libs";
+use lib "$FindBin::Bin/libs";
 use TypesFormatRegex;
 
 # Arguments:

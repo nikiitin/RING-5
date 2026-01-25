@@ -5,7 +5,7 @@ statistics that appear in the data but were not specifically requested
 in the configuration.
 """
 
-from src.common.types import StatTypeRegistry
+from src.parsers.types import StatTypeRegistry
 
 
 class TestDistributionUnconfiguredStats:

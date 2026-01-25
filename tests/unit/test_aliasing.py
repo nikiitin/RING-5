@@ -6,7 +6,7 @@ from src.web.facade import BackendFacade
 class TestAliasing:
     @patch("src.web.facade.Path")
     @patch("builtins.open", new_callable=mock_open)
-    @patch("src.parsing.parser.Gem5StatsParser.builder")
+    @patch("src.parsers.parser.Gem5StatsParser.builder")
     def test_aliasing_config_generation(self, mock_builder, mock_file_open, mock_path):
         # Setup
         facade = BackendFacade()

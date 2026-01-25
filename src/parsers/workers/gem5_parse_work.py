@@ -9,7 +9,7 @@ import subprocess
 from typing import Any, Dict, Optional
 
 import src.utils.utils as utils
-from src.parsing.workers.parse_work import ParseWork
+from src.parsers.workers.parse_work import ParseWork
 
 
 class Gem5ParseWork(ParseWork):
@@ -61,7 +61,7 @@ class Gem5ParseWork(ParseWork):
 
     def _getExpectedType(self, var: Any) -> str:
         """Get the type name from a variable object."""
-        from src.common.type_mapper import TypeMapper
+        from src.parsers.type_mapper import TypeMapper
 
         return TypeMapper.normalize_type(type(var).__name__)
 
@@ -72,7 +72,7 @@ class Gem5ParseWork(ParseWork):
         Process entry-based types (Vector, Distribution, Histogram).
         Returns the resolved varType if successful, None if variable unknown.
         """
-        from src.common.type_mapper import TypeMapper
+        from src.parsers.type_mapper import TypeMapper
 
         baseID = varID.split("::")[0]
         targetVar = varsToParse.get(baseID)
@@ -102,7 +102,7 @@ class Gem5ParseWork(ParseWork):
         1. Entry of a Vector/Distribution (e.g., ::total, ::mean)
         2. Standalone summary request (varID__get_summary)
         """
-        from src.common.type_mapper import TypeMapper
+        from src.parsers.type_mapper import TypeMapper
 
         baseID = varID.split("::")[0]
         targetVar = varsToParse.get(baseID)
@@ -121,7 +121,7 @@ class Gem5ParseWork(ParseWork):
 
     def _processLine(self, line: str, varsToParse: dict) -> None:
         """Process a single output line from the Perl parser."""
-        from src.common.type_mapper import TypeMapper
+        from src.parsers.type_mapper import TypeMapper
 
         rawType, varID, varValue = self._parseLine(line)
         normalizedType = TypeMapper.normalize_type(rawType)
@@ -180,7 +180,7 @@ class Gem5ParseWork(ParseWork):
 
     def _runPerlScript(self) -> str:
         """Execute the Perl parser script and return output."""
-        scriptPath = os.path.abspath("./src/parsing/perl/fileParser.pl")
+        scriptPath = os.path.abspath("./src/parsers/perl/fileParser.pl")
 
         perl_exe = shutil.which("perl")
         if not perl_exe:

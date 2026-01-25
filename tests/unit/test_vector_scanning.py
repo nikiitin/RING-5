@@ -5,7 +5,7 @@ from src.web.facade import BackendFacade
 
 
 class TestVectorScanning:
-    @patch("src.scanning.workers.pool.ScanWorkPool")
+    @patch("src.parsers.workers.pool.ScanWorkPool")
     @patch("src.web.facade.Path")
     @patch("shutil.which")
     @patch("subprocess.check_output")
@@ -121,7 +121,7 @@ class TestVectorScanning:
         expected = ["FloatAdd", "IntAlu", "IntDiv", "IntMult"]
         assert sorted(entries) == sorted(expected)
 
-    @patch("src.scanning.workers.pool.ScanWorkPool")
+    @patch("src.parsers.workers.pool.ScanWorkPool")
     @patch("src.web.facade.Path")
     def test_scan_vector_entries_no_match(self, mock_path, mock_scan_pool):
         # Mock pool to return empty results

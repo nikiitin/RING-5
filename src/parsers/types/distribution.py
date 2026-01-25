@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, List, Optional, Set
 
-from src.common.types.base import StatType, register_type
+from src.parsers.types.base import StatType, register_type
 
 # Scientific Safety: Prevent memory explosion for incorrectly configured large ranges.
 SAFETY_MAX_BUCKETS = 100_000

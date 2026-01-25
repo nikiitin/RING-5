@@ -6,8 +6,7 @@ from typing import Any, Dict, List, Optional
 
 from tqdm import tqdm
 
-from src.common.types import StatTypeRegistry
-from src.parsing.workers import ParseWorkPool
+from src.parsers.workers import ParseWorkPool
 
 logger = logging.getLogger(__name__)
 
@@ -87,31 +86,14 @@ class Gem5StatsParser:
             if not name:
                 raise ValueError("PARSER: Variable config missing 'name' or 'id'.")
 
-            # Registry Inversion: Extract type-specific entries
-            var_type = var["type"]
             if name in var_map:
                 raise RuntimeError(f"PARSER: Duplicate variable definition: {name}")
 
-            # Build kwargs for type creation (DTO Pattern)
-            kwargs = {"repeat": var.get("repeat", 1)}
-
             # Registry Inversion: Extract type-specific entries
-            if var_type == "vector":
-                kwargs["entries"] = var.get("vectorEntries") or var.get("entries")
-            elif var_type == "distribution":
-                kwargs["minimum"] = var.get("minimum", 0)
-                kwargs["maximum"] = var.get("maximum", 100)
-                kwargs["statistics"] = var.get("vectorEntries") or var.get("statistics")
-            elif var_type == "histogram":
-                kwargs["bins"] = var.get("bins", 0)
-                kwargs["max_range"] = var.get("max_range", 0.0)
-                kwargs["entries"] = var.get("entries")
-                kwargs["statistics"] = var.get("statistics") or var.get("vectorEntries")
-            elif var_type == "configuration":
-                kwargs["onEmpty"] = var.get("onEmpty", "None")
-
-            # Instantiate Typed Stat (Strategy Pattern via Registry)
-            stat_obj = StatTypeRegistry.create(var_type, **kwargs)
+            # Registry Inversion: Extract type-specific entries via consolidated Mapper
+            from src.parsers.type_mapper import TypeMapper
+            stat_obj = TypeMapper.create_stat(var)
+            
             var_map[name] = stat_obj
 
             # Handle multi-ID mapping (Variables matched via regex scanning)
@@ -135,7 +117,7 @@ class Gem5StatsParser:
 
     def _parse_stats(self) -> None:
         """Parse all discovered stats files using the parallel ParseWorkPool."""
-        from src.parsing.workers import Gem5ParseWork
+        from src.parsers.workers import Gem5ParseWork
 
         files = self._get_files()
         if not files:

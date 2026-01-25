@@ -3,7 +3,7 @@
 import re
 from typing import Any, Dict, List, Optional
 
-from src.common.types.base import StatType, register_type
+from src.parsers.types.base import StatType, register_type
 
 
 @register_type("histogram")

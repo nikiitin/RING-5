@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from src.parsing.parser import Gem5StatsParser
+from src.parsers.parser import Gem5StatsParser
 
 
 class TestParserFunctional:

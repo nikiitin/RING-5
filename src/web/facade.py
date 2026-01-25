@@ -113,7 +113,7 @@ class BackendFacade:
         Returns:
             Path to the generated results file.
         """
-        from src.parsing.parser import Gem5StatsParser
+        from src.parsers.parser import Gem5StatsParser
 
         Gem5StatsParser.reset()
 
@@ -211,8 +211,8 @@ class BackendFacade:
         # Optimization: Scan few samples to build the schema quickly
         files_to_sample = files[:limit]
 
-        from src.scanning.workers.gem5_scan_work import Gem5ScanWork
-        from src.scanning.workers.pool import ScanWorkPool
+        from src.parsers.workers.gem5_scan_work import Gem5ScanWork
+        from src.parsers.workers.pool import ScanWorkPool
 
         pool = ScanWorkPool.getInstance()
         for file_path in files_to_sample:
@@ -341,8 +341,8 @@ class BackendFacade:
         # Sampling for discovery speed
         files = list(search_path.rglob(file_pattern))[:limit]
 
-        from src.scanning.workers.gem5_scan_work import Gem5ScanWork
-        from src.scanning.workers.pool import ScanWorkPool
+        from src.parsers.workers.gem5_scan_work import Gem5ScanWork
+        from src.parsers.workers.pool import ScanWorkPool
 
         pool = ScanWorkPool.getInstance()
         for f in files:

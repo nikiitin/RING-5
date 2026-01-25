@@ -39,9 +39,9 @@ class Gem5StatsScanner:
             raise RuntimeError("CRITICAL: Perl executable not found in PATH.")
 
         # Resolve script path relative to this file
-        # src/scanning/scanner.py -> src/scanning/perl/statsScanner.pl
-        current_dir = Path(__file__).parent
-        self._script_path = (current_dir / "perl" / "statsScanner.pl").resolve()
+        # src/scanning/scanner.py -> src/parsers/perl/statsScanner.pl
+        current_dir = Path(__file__).parent.parent  # Go up to src/
+        self._script_path = (current_dir / "parsers" / "perl" / "statsScanner.pl").resolve()
 
         if not self._script_path.exists():
             raise FileNotFoundError(
@@ -95,7 +95,7 @@ class Gem5StatsScanner:
             results = json.loads(result.stdout)
 
             # Map types using TypeMapper
-            from src.common.type_mapper import TypeMapper
+            from src.parsers.type_mapper import TypeMapper
 
             return [TypeMapper.map_scan_result(r) for r in results]
 

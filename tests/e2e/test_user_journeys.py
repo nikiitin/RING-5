@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from src.parsing.parser import Gem5StatsParser
+from src.parsers.parser import Gem5StatsParser
 from src.web.facade import BackendFacade
 from src.web.services.plot_service import PlotService
 from src.web.services.portfolio_service import PortfolioService

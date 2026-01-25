@@ -15,7 +15,7 @@ class TestDeepScanMinMax:
 
     def test_merging_logic_in_facade(self):
         # We need to mock the worker pool results to test scan_stats_variables logic
-        with patch("src.scanning.workers.pool.ScanWorkPool.getInstance") as mock_pool_cls:
+        with patch("src.parsers.workers.pool.ScanWorkPool.getInstance") as mock_pool_cls:
             mock_pool = MagicMock()
             mock_pool_cls.return_value = mock_pool
 

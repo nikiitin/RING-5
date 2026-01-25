@@ -1,4 +1,4 @@
-from src.common.types.vector import Vector
+from src.parsers.types.vector import Vector
 
 
 def test_vector_creation():

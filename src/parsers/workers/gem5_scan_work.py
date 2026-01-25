@@ -1,7 +1,7 @@
 import os
 from typing import Any, Dict, List
 
-from src.scanning.workers.scan_work import ScanWork
+from src.parsers.workers.scan_work import ScanWork
 
 
 class Gem5ScanWork(ScanWork):
@@ -21,7 +21,7 @@ class Gem5ScanWork(ScanWork):
         """
         from pathlib import Path
 
-        from src.scanning.scanner import Gem5StatsScanner
+        from src.parsers.scanner import Gem5StatsScanner
 
         try:
             scanner = Gem5StatsScanner.get_instance()

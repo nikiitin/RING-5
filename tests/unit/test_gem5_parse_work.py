@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.parsing.workers import Gem5ParseWork
+from src.parsers.workers import Gem5ParseWork
 
 
 class MockType:
@@ -138,7 +138,7 @@ def test_validate_vars_config_no_default_fail():
 def test_call_subprocess(parser):
     # Test __call__ flow mocking subprocess.run
     # Note: We must patch where it is USED, i.e., in the worker module
-    with patch("src.parsing.workers.gem5_parse_work.subprocess.run") as mock_run:
+    with patch("src.parsers.workers.gem5_parse_work.subprocess.run") as mock_run:
         with patch("src.utils.utils.checkFileExistsOrException"):
             # Success Case
             mock_result = MagicMock()
@@ -158,7 +158,7 @@ def test_call_subprocess(parser):
 def test_distribution_with_stats(parser):
     # Test processing distribution with stats entries (mean, samples)
     # Mock variables first
-    from src.common.types import StatTypeRegistry
+    from src.parsers.types import StatTypeRegistry
 
     # Use small range to satisfy validation of all buckets
     # Initialize with configured statistics to pass validation

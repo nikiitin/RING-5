@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from src.common.types.base import StatType, register_type
+from src.parsers.types.base import StatType, register_type
 
 
 @register_type("configuration")

@@ -66,7 +66,7 @@ class TestRealGem5DataParsing:
 
     def test_parse_gem5_stats_subset(self, test_data_available, temp_output_dir):
         """Test parsing a subset of gem5 stats files."""
-        from src.parsing.parser import Gem5StatsParser
+        from src.parsers.parser import Gem5StatsParser
         from src.web.facade import BackendFacade
 
         # Reset parser singleton
@@ -116,7 +116,7 @@ class TestRealDataWithShapers:
     @pytest.fixture
     def parsed_data(self, test_data_available, temp_output_dir):
         """Parse real data and return DataFrame."""
-        from src.parsing.parser import Gem5StatsParser
+        from src.parsers.parser import Gem5StatsParser
         from src.web.facade import BackendFacade
 
         Gem5StatsParser.reset()
