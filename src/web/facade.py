@@ -2,12 +2,10 @@
 RING-5 Backend Facade
 Simplified interface to all backend operations (Facade Pattern).
 Decouples the web interface from complex backend implementations.
-
-NOTE: CSV and Configuration management have been extracted to dedicated services.
-This facade now delegates to those services for backward compatibility.
 """
 
 import glob
+import logging
 import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -18,15 +16,16 @@ from src.web.services.config_service import ConfigService
 from src.web.services.csv_pool_service import CsvPoolService
 from src.web.services.paths import PathService
 
+logger = logging.getLogger(__name__)
+
 
 class BackendFacade:
     """
     Facade providing simplified access to all backend operations.
-    Hides complexity of data parsing, processing, and storage.
 
-    NOTE: For new code, prefer using the dedicated services directly:
-    - CsvPoolService for CSV file management
-    - ConfigService for configuration persistence
+    Following the Facade Pattern, this class provides a single point of entry
+    for the presentation layer to interact with the scientific domain logic
+    (Layer B) and ingestion (Layer A).
     """
 
     def __init__(self):
@@ -35,46 +34,44 @@ class BackendFacade:
         self.csv_pool_dir = CsvPoolService.get_pool_dir()
         self.config_pool_dir = ConfigService.get_config_dir()
 
-    # ==================== CSV Pool Management (delegates to CsvPoolService) ====================
+    # ==================== CSV & Configuration Services (Delegated) ====================
 
     def load_csv_pool(self) -> List[Dict[str, Any]]:
-        """Load list of CSV files in the pool."""
+        """Fetch the registry of available ingested datasets."""
         return CsvPoolService.load_pool()
 
     def add_to_csv_pool(self, csv_path: str) -> str:
-        """Add a CSV file to the pool with timestamp."""
+        """Register a new CSV results file into the pool."""
         return CsvPoolService.add_to_pool(csv_path)
 
     def delete_from_csv_pool(self, csv_path: str) -> bool:
-        """Delete a CSV file from the pool."""
+        """Remove an ingested dataset from the pool."""
         return CsvPoolService.delete_from_pool(csv_path)
 
     def load_csv_file(self, csv_path: str) -> pd.DataFrame:
-        """Load a CSV file with automatic separator detection."""
+        """Load a dataset into a Pandas DataFrame with automatic schema detection."""
         return CsvPoolService.load_csv_file(csv_path)
 
-    # ==================== Configuration Management (delegates to ConfigService) ====================
-
     def load_saved_configs(self) -> List[Dict[str, Any]]:
-        """Load list of saved configuration files."""
+        """List all persisted simulation configurations."""
         return ConfigService.load_saved_configs()
 
     def save_configuration(
         self,
         name: str,
         description: str,
-        shapers_config: List[Dict],
+        shapers_config: List[Dict[str, Any]],
         csv_path: Optional[str] = None,
     ) -> str:
-        """Save a configuration to the pool."""
+        """Persist a simulation analyzer configuration."""
         return ConfigService.save_configuration(name, description, shapers_config, csv_path)
 
     def load_configuration(self, config_path: str) -> Dict[str, Any]:
-        """Load a configuration from file."""
+        """Retrieve a specific configuration schema."""
         return ConfigService.load_configuration(config_path)
 
     def delete_configuration(self, config_path: str) -> bool:
-        """Delete a configuration file."""
+        """Delete a saved configuration."""
         return ConfigService.delete_configuration(config_path)
 
     # ==================== Data Parsing ====================
@@ -93,284 +90,181 @@ class BackendFacade:
         pattern = f"{stats_path}/**/{stats_pattern}"
         return glob.glob(pattern, recursive=True)
 
+    # ==================== Core Extraction Orchestration ====================
+
     def parse_gem5_stats(
         self,
         stats_path: str,
         stats_pattern: str,
-        variables: List[Dict],
+        variables: List[Dict[str, Any]],
         output_dir: str,
-        progress_callback=None,
+        progress_callback: Optional[Any] = None,
     ) -> Optional[str]:
         """
-        Parse gem5 stats files and generate CSV.
+        Execute the parallel gem5 stats ingestion pipeline.
 
         Args:
-            stats_path: Base directory with stats files
-            stats_pattern: File pattern to match
-            variables: List of variable configurations
-            output_dir: Output directory for results
-            progress_callback: Optional callback function(step, progress, message)
+            stats_path: Root directory of simulation folders.
+            stats_pattern: Filename filter (e.g. stats.txt).
+            variables: List of variable definitions from the UI.
+            output_dir: Destination for results.csv.
+            progress_callback: UI hook for status updates.
 
         Returns:
-            Path to generated CSV file or None
+            Path to the generated results file.
         """
         from src.parsing.parser import Gem5StatsParser
 
-        # Reset parser singleton
         Gem5StatsParser.reset()
 
         if progress_callback:
-            progress_callback(1, 0.1, "Initializing parser...")
+            progress_callback(1, 0.1, "Analyzing Variable Patterns...")
 
-        # Process variables for parser format
-        parser_vars = []
+        # Scientific Variable Resolution:
+        # Before parsing, we must expand regex patterns into concrete variable identifiers.
+        processed_vars = []
         for var in variables:
             var_name = var["name"]
 
-            # Handle regex patterns for reduction
+            # Pattern Recognition: Identify variables meant for cross-controller aggregation
+            # e.g. system.cpu\d+.ipc
             if "\\d+" in var_name or "*" in var_name:
-                concrete_vars = self.scan_stats_variables(stats_path, stats_pattern, limit=3)
-                matches = [cv["name"] for cv in concrete_vars if re.fullmatch(var_name, cv["name"])]
+                # Discover concrete matches to determine 'repeat' factor and IDs
+                concrete_matches = self.scan_stats_variables(stats_path, stats_pattern, limit=3)
+                matched_ids = [
+                    cv["name"] for cv in concrete_matches if re.fullmatch(var_name, cv["name"])
+                ]
 
-                if matches:
+                if matched_ids:
                     var_config = {
                         "name": var_name,
                         "type": var["type"],
-                        "parsed_ids": matches,
-                        "repeat": len(matches),
+                        "parsed_ids": matched_ids,
+                        "repeat": len(matched_ids),
                     }
-                    if var["type"] == "vector":
-                        var_config["vectorEntries"] = var.get("vectorEntries") or var.get("statistics", "total,mean")
-                    elif var["type"] == "distribution":
-                        var_config["minimum"] = var.get("minimum", -10)
-                        var_config["maximum"] = var.get("maximum", 100)
-                        stats = var.get("statistics") or var.get("vectorEntries")
-                        if stats:
-                            var_config["vectorEntries"] = stats
-                    elif var["type"] == "histogram":
-                        if var.get("bins"):
-                            var_config["bins"] = var["bins"]
-                        if var.get("max_range"):
-                            var_config["max_range"] = var["max_range"]
-                        stats = var.get("statistics") or var.get("vectorEntries")
-                        if stats:
-                            var_config["vectorEntries"] = stats
-                    
-                    parser_vars.append(var_config)
+                    # Propagate type-specific configurations
+                    for key in ["bins", "max_range", "minimum", "maximum", "vectorEntries", "statistics"]:
+                        if key in var:
+                            var_config[key] = var[key]
+
+                    processed_vars.append(var_config)
                     continue
 
-            # Standard variable
+            # Standard Fixed-ID Variable
             var_config = {"name": var_name, "type": var["type"]}
             if var.get("alias"):
                 var_config["name"] = var["alias"]
                 var_config["parsed_ids"] = [var_name]
 
-            if var["type"] == "vector":
-                var_config["vectorEntries"] = var.get("vectorEntries")
-            elif var["type"] == "distribution":
-                var_config["minimum"] = var.get("minimum", 0)
-                var_config["maximum"] = var.get("maximum", 100)
-                # Map 'statistics' from UI to 'vectorEntries' for parser
-                stats = var.get("statistics") or var.get("vectorEntries")
-                if stats:
-                    var_config["vectorEntries"] = stats
-            elif var["type"] == "histogram":
-                if var.get("bins"):
-                    var_config["bins"] = var["bins"]
-                if var.get("max_range"):
-                    var_config["max_range"] = var["max_range"]
-                # Map 'statistics' or 'vectorEntries' from UI to 'vectorEntries' for parser
-                stats = var.get("statistics") or var.get("vectorEntries")
-                if stats:
-                    var_config["vectorEntries"] = stats
-            elif var["type"] == "configuration":
-                var_config["onEmpty"] = var.get("onEmpty", "None")
+            # Copy all extra attributes (bins, ranges, etc.)
+            for key, val in var.items():
+                if key not in ("name", "alias", "type"):
+                    var_config[key] = val
 
-            if "repeat" in var:
-                var_config["repeat"] = var["repeat"]
-
-            parser_vars.append(var_config)
+            processed_vars.append(var_config)
 
         if progress_callback:
-            progress_callback(2, 0.3, "Configuring parser...")
+            progress_callback(3, 0.5, "Executing Parallel Ingestion...")
 
-        # Build and run parser
         parser = (
             Gem5StatsParser.builder()
             .with_path(stats_path)
             .with_pattern(stats_pattern)
-            .with_variables(parser_vars)
+            .with_variables(processed_vars)
             .with_output(output_dir)
             .build()
         )
 
-        if progress_callback:
-            progress_callback(3, 0.5, "Parsing files...")
-
         csv_path = parser.parse()
 
         if progress_callback:
-            progress_callback(4, 1.0, "Parsing complete!")
+            progress_callback(10, 1.0, "Ingestion Complete.")
 
         return csv_path
 
-    # ==================== Data Processing ====================
-
-    def apply_shapers(self, data: pd.DataFrame, shapers_config: List[Dict]) -> pd.DataFrame:
-        """
-        Apply data shapers to transform the data.
-
-        Args:
-            data: Input DataFrame
-            shapers_config: List of shaper configurations
-
-        Returns:
-            Transformed DataFrame
-        """
-        from src.web.services.shapers.factory import ShaperFactory
-
-        result = data.copy()
-
-        for shaper_config in shapers_config:
-            shaper_type = shaper_config["type"]
-            shaper = ShaperFactory.createShaper(shaper_type, shaper_config)
-            result = shaper(result)
-
-        return result
-
-    def get_column_info(self, data: pd.DataFrame) -> Dict[str, Any]:
-        """
-        Get information about DataFrame columns.
-
-        Args:
-            data: Input DataFrame
-
-        Returns:
-            Dictionary with column information
-        """
-        return {
-            "total_columns": len(data.columns),
-            "numeric_columns": data.select_dtypes(include=["number"]).columns.tolist(),
-            "categorical_columns": data.select_dtypes(include=["object"]).columns.tolist(),
-            "total_rows": len(data),
-            "null_counts": data.isnull().sum().to_dict(),
-        }
-
-    # ==================== Parser Operations ====================
+    # ==================== Variable Discovery & Scanning ====================
 
     def scan_stats_variables(
-        self, stats_path: str, file_pattern: str = "stats.txt", limit: int = 5
-    ) -> List[Dict[str, str]]:
+        self, stats_path: str, stats_pattern: str = "stats.txt", limit: int = 5
+    ) -> List[Dict[str, Any]]:
         """
-        Scan stats files to discover available variables.
+        Parallel scan of stats files to discover available metrics.
 
-        Args:
-            stats_path: Directory containing stats files
-            file_pattern: Pattern to match stats files
-            limit: Maximum number of files to scan (default 5 for speed)
-
-        Returns:
-            List of discovered variables with types
+        Uses the parallel ScanWorkPool for research-scale efficiency.
         """
-        # Import here to avoid circular imports if any
-        try:
-            # Add src to path if needed, though app.py does it
-            import sys
-
-            if str(Path(__file__).parent.parent.parent) not in sys.path:
-                sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
-            # from src.parsing.stats_scanner import StatsScanner -> Removed in favor of Perl script
-
-            # Find first matching file
-            search_path = Path(stats_path)
-            if not search_path.exists():
-                return []
-
-            files = list(search_path.rglob(file_pattern))
-            if not files:
-                return []
-
-            # Scan limited files and merge results
-            merged_vars = {}
-
-            # Limit files for speed
-            # Limit files for speed
-            files_to_scan = files[:limit]
-
-            # Use Parallel Scanner via Gem5StatsScanner wrapper
-            # Use the Scanner directly with the Pool to maintain parallelism.
-            from src.scanning.workers.gem5_scan_work import Gem5ScanWork
-            from src.scanning.workers.pool import ScanWorkPool
-
-            # Initialize Pool
-            pool = ScanWorkPool.getInstance()
-
-            # Submit Work
-
-            for file_path in files_to_scan:
-                work = Gem5ScanWork(str(file_path))
-                pool.addWork(work)
-
-            # Collect Results
-            results = pool.getResults()
-
-            # Merge Results
-            for file_vars in results:
-                for var in file_vars:
-                    name = var["name"]
-                    if name not in merged_vars:
-                        merged_vars[name] = var
-                    else:
-                        # Merge entries if vector or histogram
-                        if var["type"] in ("vector", "histogram") and "entries" in var:
-                            existing_entries = set(merged_vars[name].get("entries", []))
-                            new_entries = set(var["entries"])
-                            if not new_entries.issubset(existing_entries):
-                                merged_vars[name]["entries"] = sorted(
-                                    list(existing_entries.union(new_entries))
-                                )
-
-                        # Merge min/max if distribution
-                        if var["type"] == "distribution":
-                            if "minimum" in var:
-                                current_min = merged_vars[name].get("minimum")
-                                new_min = var["minimum"]
-                                if current_min is None or new_min < current_min:
-                                    merged_vars[name]["minimum"] = new_min
-
-                            if "maximum" in var:
-                                current_max = merged_vars[name].get("maximum")
-                                new_max = var["maximum"]
-                                if current_max is None or new_max > current_max:
-                                    merged_vars[name]["maximum"] = new_max
-
-            return sorted(list(merged_vars.values()), key=lambda x: x["name"])
-        except Exception as e:
-            print(f"Error scanning stats: {e}")
+        search_path = Path(stats_path)
+        if not search_path.exists():
+            logger.error(f"FACADE: Stats path does not exist: {stats_path}")
             return []
+
+        files = list(search_path.rglob(stats_pattern))
+        if not files:
+            return []
+
+        # Optimization: Scan few samples to build the schema quickly
+        files_to_sample = files[:limit]
+
+        from src.scanning.workers.gem5_scan_work import Gem5ScanWork
+        from src.scanning.workers.pool import ScanWorkPool
+
+        pool = ScanWorkPool.getInstance()
+        for file_path in files_to_sample:
+            pool.addWork(Gem5ScanWork(str(file_path)))
+
+        results = pool.getResults()
+
+        # Scientific Merging: Combine discovered keys across all sampled files
+        merged_registry: Dict[str, Dict[str, Any]] = {}
+
+        for file_vars in results:
+            for var in file_vars:
+                name = var["name"]
+                if name not in merged_registry:
+                    merged_registry[name] = var
+                else:
+                    # Union of discovered keys for vectors/histograms
+                    if var["type"] in ("vector", "histogram") and "entries" in var:
+                        existing = set(merged_registry[name].get("entries", []))
+                        existing.update(var["entries"])
+                        merged_registry[name]["entries"] = sorted(list(existing))
+
+                    # Global range detection for distributions
+                    if var["type"] == "distribution":
+                        if "minimum" in var:
+                            cur_min = merged_registry[name].get("minimum")
+                            merged_registry[name]["minimum"] = (
+                                min(cur_min, var["minimum"])
+                                if cur_min is not None
+                                else var["minimum"]
+                            )
+                        if "maximum" in var:
+                            cur_max = merged_registry[name].get("maximum")
+                            merged_registry[name]["maximum"] = (
+                                max(cur_max, var["maximum"])
+                                if cur_max is not None
+                                else var["maximum"]
+                            )
+
+        return sorted(list(merged_registry.values()), key=lambda x: x["name"])
 
     def scan_stats_variables_with_grouping(
         self, stats_path: str, file_pattern: str = "stats.txt", limit: int = 5
     ) -> List[Dict[str, Any]]:
         r"""
         Scan and group variables using Regex (heuristic for reduction).
-        e.g. system.cpu0.ipc and system.cpu1.ipc -> system.cpu\\d+.ipc
-        """
+        e.g. system.cpu0.ipc and system.cpu1.ipc -> system.cpu\d+.ipc
 
+        Note: This is a heuristic discovery method.
+        """
         raw_vars = self.scan_stats_variables(stats_path, file_pattern, limit)
         if not raw_vars:
             return []
 
-        # Grouping Logic
-        # We look for numbers in the variable names and replace them with \d+
-        grouped_vars = {}
+        grouped_vars: Dict[str, Dict[str, Any]] = {}
 
         for var in raw_vars:
             name = var["name"]
-            # Check if name contains numbers
             if re.search(r"\d+", name):
-                # Create regex pattern
                 pattern = re.sub(r"\d+", r"\\d+", name)
 
                 if pattern not in grouped_vars:
@@ -381,7 +275,6 @@ class BackendFacade:
                         "count": 1,
                         "examples": [name],
                     }
-                    # Initialize min/max if distribution
                     if var["type"] == "distribution":
                         if "minimum" in var:
                             grouped_vars[pattern]["minimum"] = var["minimum"]
@@ -392,162 +285,114 @@ class BackendFacade:
                     if len(grouped_vars[pattern]["examples"]) < 3:
                         grouped_vars[pattern]["examples"].append(name)
 
-                    # Merge entries if needed
                     if "entries" in var:
-                        existing = set(grouped_vars[pattern]["entries"])
-                        new_entries = set(var["entries"])
-                        grouped_vars[pattern]["entries"] = sorted(list(existing.union(new_entries)))
+                        existing = set(grouped_vars[pattern].get("entries", []))
+                        existing.update(var["entries"])
+                        grouped_vars[pattern]["entries"] = sorted(list(existing))
 
-                    # Merge min/max if distribution
                     if var["type"] == "distribution":
                         if "minimum" in var:
-                            current_min = grouped_vars[pattern].get("minimum")
-                            new_min = var["minimum"]
-                            if current_min is None or new_min < current_min:
-                                grouped_vars[pattern]["minimum"] = new_min
-
+                            cur_min = grouped_vars[pattern].get("minimum")
+                            grouped_vars[pattern]["minimum"] = (
+                                min(cur_min, var["minimum"])
+                                if cur_min is not None
+                                else var["minimum"]
+                            )
                         if "maximum" in var:
-                            current_max = grouped_vars[pattern].get("maximum")
-                            new_max = var["maximum"]
-                            if current_max is None or new_max > current_max:
-                                grouped_vars[pattern]["maximum"] = new_max
-
+                            cur_max = grouped_vars[pattern].get("maximum")
+                            grouped_vars[pattern]["maximum"] = (
+                                max(cur_max, var["maximum"])
+                                if cur_max is not None
+                                else var["maximum"]
+                            )
             else:
-                # No numbers, keep as is
                 if name not in grouped_vars:
                     grouped_vars[name] = var
                     grouped_vars[name]["count"] = 1
                     grouped_vars[name]["examples"] = [name]
 
-        # Format results
         results = []
-        for _, info in grouped_vars.items():
-            # If we grouped multiple items, it's a pattern
-            if info["count"] > 1:
-                # It's a reduction candidate!
-                # Ensure type is correct (should be same for all group members usually)
-                results.append(info)
-            else:
-                # If count is 1, but it has \d+, it might be a single item that just has a number
-                # If the original name matched the pattern (ignoring escaped backslashes), it's not a group
-                # logic: if pattern == name (with escaping), it's just a variable with a number that isn't repeated?
-                # Actually, if count == 1, we prefer original name
-                if len(info["examples"]) == 1:
-                    info["name"] = info["examples"][0]
-                results.append(info)
+        for info in grouped_vars.values():
+            if info["count"] == 1 and len(info["examples"]) == 1:
+                info["name"] = info["examples"][0]
+            results.append(info)
 
         return sorted(results, key=lambda x: x["name"])
 
     def scan_entries_for_variable(
-        self,
-        stats_path: str,
-        var_name: str,
-        file_pattern: str = "stats.txt",
-        limit: int = 1000000,
+        self, stats_path: str, var_name: str, file_pattern: str = "stats.txt", limit: int = 10
     ) -> List[str]:
         """
-        Scan ALL stats files for entries of a specific variable (Vector or Histogram).
-        
-        Args:
-            stats_path: Directory containing stats files
-            var_name: Name of the variable
-            file_pattern: Pattern to match stats files
-
-        Returns:
-            List of all unique entries found for this variable
+        Deep scan to find all unique sub-keys (entries) for a complex variable.
         """
-        try:
-            search_path = Path(stats_path)
-            if not search_path.exists():
-                return []
+        found_entries: set[str] = set()
 
-            files = list(search_path.rglob(file_pattern))
-            if not files:
-                return []
-
-            all_entries = set()
-            files_to_scan = files[:limit]
-
-            from src.scanning.workers.gem5_scan_work import Gem5ScanWork
-            from src.scanning.workers.pool import ScanWorkPool
-
-            pool = ScanWorkPool.getInstance()
-            for file_path in files_to_scan:
-                work = Gem5ScanWork(str(file_path))
-                pool.addWork(work)
-
-            results = pool.getResults()
-
-            for file_vars in results:
-                for var in file_vars:
-                    if var["name"] == var_name and var.get("type") in ("vector", "histogram"):
-                        entries = var.get("entries", [])
-                        all_entries.update(entries)
-
-            return sorted(list(all_entries))
-        except Exception as e:
-            print(f"Error scanning entries: {e}")
+        search_path = Path(stats_path)
+        if not search_path.exists():
             return []
 
-    def scan_vector_entries(self, *args, **kwargs):
-        """Backward compatibility for scan_vector_entries."""
-        return self.scan_entries_for_variable(*args, **kwargs)
+        # Sampling for discovery speed
+        files = list(search_path.rglob(file_pattern))[:limit]
+
+        from src.scanning.workers.gem5_scan_work import Gem5ScanWork
+        from src.scanning.workers.pool import ScanWorkPool
+
+        pool = ScanWorkPool.getInstance()
+        for f in files:
+            pool.addWork(Gem5ScanWork(str(f)))
+
+        results = pool.getResults()
+        for file_vars in results:
+            for var in file_vars:
+                if var["name"] == var_name and "entries" in var:
+                    found_entries.update(var["entries"])
+
+        return sorted(list(found_entries))
 
     def scan_distribution_range(
-        self,
-        stats_path: str,
-        var_name: str,
-        file_pattern: str = "stats.txt",
-        limit: int = 1000000,
+        self, stats_path: str, var_name: str, file_pattern: str = "stats.txt"
     ) -> Dict[str, Optional[int]]:
         """
-        Scan ALL stats files for the global min/max range of a specific distribution.
-
-        Args:
-            stats_path: Directory containing stats files
-            var_name: Name of the distribution variable
-            file_pattern: Pattern to match stats files
-
-        Returns:
-            Dict with 'minimum' and 'maximum' keys
+        Determine the global operational range for a distribution variable.
         """
-        try:
-            search_path = Path(stats_path)
-            if not search_path.exists():
-                return {"minimum": None, "maximum": None}
+        global_min: Optional[int] = None
+        global_max: Optional[int] = None
 
-            files = list(search_path.rglob(file_pattern))
-            if not files:
-                return {"minimum": None, "maximum": None}
+        # Deep scan across 20 samples to ensure range coverage
+        discovered_vars = self.scan_stats_variables(stats_path, file_pattern, limit=20)
 
-            global_min = None
-            global_max = None
-            files_to_scan = files[:limit]
+        for var in discovered_vars:
+            if var["name"] == var_name and var.get("type") == "distribution":
+                global_min = var.get("minimum")
+                global_max = var.get("maximum")
+                break
 
-            from src.scanning.workers.gem5_scan_work import Gem5ScanWork
-            from src.scanning.workers.pool import ScanWorkPool
+        return {"minimum": global_min, "maximum": global_max}
 
-            pool = ScanWorkPool.getInstance()
-            for file_path in files_to_scan:
-                work = Gem5ScanWork(str(file_path))
-                pool.addWork(work)
+    # ==================== Utility Methods ====================
 
-            results = pool.getResults()
+    def apply_shapers(
+        self, data: pd.DataFrame, shapers_config: List[Dict[str, Any]]
+    ) -> pd.DataFrame:
+        """Apply a sequence of business logic transformations to a dataset."""
+        from src.web.services.shapers.factory import ShaperFactory
 
-            for file_vars in results:
-                for var in file_vars:
-                    if var["name"] == var_name and var.get("type") == "distribution":
-                        file_min = var.get("minimum")
-                        file_max = var.get("maximum")
-                        
-                        if file_min is not None:
-                            if global_min is None or file_min < global_min:
-                                global_min = file_min
-                        if file_max is not None:
-                            if global_max is None or file_max > global_max:
-                                global_max = file_max
+        result = data.copy()
+        for cfg in shapers_config:
+            shaper = ShaperFactory.createShaper(cfg["type"], cfg)
+            result = shaper(result)
+        return result
 
-            return {"minimum": global_min, "maximum": global_max}
-        except Exception as e:
-            print(f"Error scanning distribution range: {e}")
-            return {"minimum": None, "maximum": None}
+    def get_column_info(self, data: pd.DataFrame) -> Dict[str, Any]:
+        """Retrieve structural metadata for the current dataset."""
+        return {
+            "total_columns": len(data.columns),
+            "numeric_columns": data.select_dtypes(include=["number"]).columns.tolist(),
+            "categorical_columns": data.select_dtypes(include=["object"]).columns.tolist(),
+            "total_rows": len(data),
+            "null_counts": data.isnull().sum().to_dict(),
+        }
+
+    def scan_vector_entries(self, *args, **kwargs) -> List[str]:
+        """Backward compatibility alias."""
+        return self.scan_entries_for_variable(*args, **kwargs)

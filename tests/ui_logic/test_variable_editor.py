@@ -8,21 +8,21 @@ from src.web.ui.components.variable_editor import VariableEditor
 @pytest.fixture
 def mock_streamlit():
     # Patch st in all 3 modules used
-    with patch("src.web.ui.components.data_components.st") as mock_st_data, \
-         patch("src.web.ui.components.card_components.st") as mock_st_card, \
-         patch("src.web.ui.components.variable_editor.st") as mock_st_var:
-        
+    with patch("src.web.ui.components.data_components.st") as mock_st_data, patch(
+        "src.web.ui.components.card_components.st"
+    ) as mock_st_card, patch("src.web.ui.components.variable_editor.st") as mock_st_var:
+
         mock_st = MagicMock()
         mock_st.session_state = {}
 
         # Connect mocks
         mock_st_data.dataframe = mock_st.dataframe
         mock_st_data.metric = mock_st.metric
-        
+
         mock_st_card.expander = mock_st.expander
         mock_st_card.button = mock_st.button
         mock_st_card.columns = mock_st.columns
-        
+
         mock_st_var.text_input = mock_st.text_input
         mock_st_var.selectbox = mock_st.selectbox
         mock_st_var.radio = mock_st.radio
@@ -44,7 +44,6 @@ def mock_streamlit():
         mock_st_data.columns = mock_st.columns
         mock_st_var.columns = mock_st.columns
 
-
         # Mock expander
         mock_st.expander.return_value.__enter__.return_value = MagicMock()
 
@@ -60,9 +59,6 @@ def mock_facade():
         instance = MagicMock()
         mock_cls.return_value = instance
         yield instance
-
-
-
 
 
 def test_variable_editor_render_existing(mock_streamlit):

@@ -159,13 +159,14 @@ def test_distribution_with_stats(parser):
     # Test processing distribution with stats entries (mean, samples)
     # Mock variables first
     from src.common.types import StatTypeRegistry
+
     # Use small range to satisfy validation of all buckets
     # Initialize with configured statistics to pass validation
     dist_var = StatTypeRegistry.create(
         "distribution",
         minimum=0,
         maximum=1,
-        statistics=["samples", "mean", "underflows", "overflows"]
+        statistics=["samples", "mean", "underflows", "overflows"],
     )
     parser._varsToParse = {"dist_var": dist_var}
     parser._entryBuffer = {}

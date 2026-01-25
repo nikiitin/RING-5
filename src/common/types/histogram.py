@@ -1,6 +1,7 @@
 """Histogram stat type for range-based frequency distributions."""
 
-from typing import Any, Dict, List
+import re
+from typing import Any, Dict, List, Optional
 
 from src.common.types.base import StatType, register_type
 
@@ -11,11 +12,17 @@ class Histogram(StatType):
     Represents histogram statistics with range-based buckets.
     Example: system.mem::0-1023 5
 
-    Content is stored as dict mapping range strings to values.
+    Content is stored as a dictionary mapping range strings to a list of numeric values
+    (one value per simulation/repeat).
+
+    Rebinning:
+    If `bins` and `max_range` are provided, raw histogram data is proportionally
+    redistributed into uniform buckets using linear interpolation. This assumes
+    a uniform distribution of values within each raw bucket.
 
     Validation:
     - Keys should generally be range strings (e.g., "0-10") or specific markers.
-    - Values must be convertible to int/float.
+    - Values are automatically aggregated (summed) if multiple matches occur in one file.
     """
 
     required_params = []  # Histogram buckets are usually dynamic in gem5 stats
@@ -29,64 +36,102 @@ class Histogram(StatType):
             "balancedContent",
             "reducedDuplicates",
             "reducedContent",
+            "_bins",
+            "_max_range",
+            "_entries",
+            "_statistics",
         }
     )
 
-    def __init__(self, repeat: int = 1, entries: List[str] = None, bins: int = 0, max_range: float = 0, **kwargs):
+    def __init__(
+        self,
+        repeat: int = 1,
+        entries: Optional[List[str]] = None,
+        bins: int = 0,
+        max_range: float = 0.0,
+        statistics: Optional[List[str]] = None,
+        **kwargs,
+    ):
+        """
+        Initialize Histogram type.
+
+        Args:
+            repeat: Number of simulations/dumps expected.
+            entries: Explicit list of buckets to extract (overrides rebinning).
+            bins: Number of target buckets for rebinning.
+            max_range: Maximum value for rebinning range.
+            **kwargs: Additional attributes passed to parent.
+        """
         super().__init__(repeat, **kwargs)
         # Content is a dict of {range_key: [value1, value2...]}
-        object.__setattr__(self, "_content", {})
+        if isinstance(statistics, str):
+            statistics = [s.strip() for s in statistics.split(",")]
+
         object.__setattr__(self, "_bins", int(bins))
         object.__setattr__(self, "_max_range", float(max_range))
         object.__setattr__(self, "_entries", list(entries) if entries else None)
+        object.__setattr__(self, "_statistics", list(statistics) if statistics else [])
+
+        # Pre-initialize content with statistics to ensure column presence
+        content = {stat: [] for stat in self._statistics}
+        object.__setattr__(self, "_content", content)
 
     @property
     def entries(self) -> List[str]:
-        # Priority 1: User-selected entries (Summary stats or specific buckets)
+        """Get the expected output entry keys for this histogram."""
+        result = []
+        # Priority 1: User-selected specific buckets
         if self._entries:
-            return self._entries
-
+            result.extend(self._entries)
         # Priority 2: Rebinned buckets
-        if self._bins > 0 and self._max_range > 0:
+        elif self._bins > 0 and self._max_range > 0:
             num_bins = self._bins
             max_val = self._max_range
             bin_width = max_val / num_bins
-            return [f"{int(b * bin_width)}-{int((b + 1) * bin_width)}" for b in range(num_bins)]
-
+            result.extend([f"{int(b * bin_width)}-{int((b + 1) * bin_width)}" for b in range(num_bins)])
         # Priority 3: Discovered raw buckets
-        return sorted(list(object.__getattribute__(self, "_content").keys()))
+        else:
+            result.extend(sorted(list(object.__getattribute__(self, "_content").keys())))
+
+        # Always include extra statistics if they were discovered or configured
+        for stat in self._statistics:
+            if stat not in result:
+                result.append(stat)
+
+        return result
 
     @property
-    def content(self) -> Dict[str, List[Any]]:
+    def content(self) -> Dict[str, List[float]]:
+        """Get the raw accumulated content mapping."""
         return object.__getattribute__(self, "_content")
 
     @content.setter
-    def content(self, value: Dict[str, List[Any]]) -> None:
-        """Set content from dict."""
+    def content(self, value: Dict[str, Any]) -> None:
+        """
+        Set and aggregate content from a dictionary.
+
+        This setter handles the 'Sacred Scanning' requirement by automatically
+        summing multiple occurrences per file (e.g., aggregating across CPU cores).
+        """
         if not isinstance(value, dict):
             raise TypeError(f"HISTOGRAM: Content must be dict, got {type(value).__name__}")
 
-        # Validate values are numeric
+        # Validate values are numeric and aggregate matches
         for key, vals in value.items():
-            # Check key format (optional, but good for validation)
-            # gem5 range format: number-number
-            # But we allow 'overflows'/'underflows' if they appear in histograms too?
-            # Typically Histograms in gem5 use ranges.
-
             if isinstance(vals, list):
                 val_list = vals
             else:
                 val_list = [vals]
 
             # Aggregate multiple matches from a single file (e.g. regex across CPUs)
-            # We sum them so that one file adds exactly one aggregated value.
+            # We sum them so that one file adds exactly one aggregated value per repeat.
             aggregated_val = 0.0
             for v in val_list:
                 try:
                     aggregated_val += float(v)
                 except (TypeError, ValueError) as e:
                     raise TypeError(
-                        f"HISTOGRAM: Value non-convertible to number. " f"Key: {key}, Value: {v}"
+                        f"HISTOGRAM: Value non-convertible to number. Key: {key}, Value: {v}"
                     ) from e
 
             # Update content
@@ -97,28 +142,39 @@ class Histogram(StatType):
             self._content[str_key].append(aggregated_val)
 
     def balance_content(self) -> None:
-        """Balance each bucket to have exactly `repeat` values."""
+        """
+        Ensure each bucket has exactly `repeat` values by padding with 0.
+
+        Fails loudly if more values than expected are found, preventing data corruption.
+        """
         object.__setattr__(self, "_balanced", True)
 
-        for bucket in self._content:
+        # Scientific Integrity: Ensure all configured/discovered buckets are balanced
+        # This includes re-initializing missing statistical buckets for this dump factor.
+        target_keys = set(self._content.keys())
+        if self._statistics:
+            target_keys.update(self._statistics)
+
+        for bucket in target_keys:
+            if bucket not in self._content:
+                self._content[bucket] = []
+
             current_len = len(self._content[bucket])
             if current_len < self._repeat:
                 padding = self._repeat - current_len
-                self._content[bucket].extend([0] * padding)
+                self._content[bucket].extend([0.0] * padding)
             elif current_len > self._repeat:
-                # If we have too many, it might be due to multiple dumps?
-                # For now raise error as per other types logic
+                # This could happen if simpoint aware dumps are incorrectly aggregated
                 raise RuntimeError(
                     f"HISTOGRAM: Bucket '{bucket}' has more values than expected. "
-                    f"Values: {self._content[bucket]}, "
                     f"Length: {current_len}, Repeat: {self._repeat}"
                 )
 
     def reduce_duplicates(self) -> None:
-        """Reduce each bucket via arithmetic mean, applying rebinning if configured."""
+        """Reduce collected data via mean, applying rebinning if requested."""
         object.__setattr__(self, "_reduced", True)
 
-        # If rebinning is configured, we transform the data first
+        # Rebinning takes precedence if configured
         if self._bins > 0 and self._max_range > 0:
             self._reduce_with_rebinning()
             return
@@ -127,11 +183,9 @@ class Histogram(StatType):
         for bucket in self._content:
             values = self._content.get(bucket, [])
             if not values:
-                reduced[bucket] = 0
+                reduced[bucket] = 0.0
             else:
-                total = 0
-                for i in range(self._repeat):
-                    total += float(values[i])
+                total = sum(float(v) for v in values[: self._repeat])
                 reduced[bucket] = total / self._repeat
 
         object.__setattr__(self, "_reduced_content", reduced)
@@ -142,83 +196,80 @@ class Histogram(StatType):
         max_val = self._max_range
         bin_width = max_val / num_bins
 
-        # Initialize target result
+        # Initialize target result set
         target_reduced = {}
-        # Pre-fill standard buckets to ensure order and existence
+        # Pre-fill standard buckets to guarantee alignment and order
         for b in range(num_bins):
             key = f"{int(b * bin_width)}-{int((b + 1) * bin_width)}"
             target_reduced[key] = 0.0
 
-        # Process each simulation
+        # Process each simulation independently
         for i in range(self._repeat):
             sim_data = {}
             for bucket, values in self._content.items():
-                if i < len(values):
-                    sim_data[bucket] = float(values[i])
-                else:
-                    sim_data[bucket] = 0.0
+                sim_data[bucket] = float(values[i]) if i < len(values) else 0.0
 
-            # Rebin this simulation's data
+            # Rebin this simulation's data (deterministic transformation)
             rebinned = self._rebin_simulation_data(sim_data, num_bins, max_val)
 
-            # Accumulate into target (includes both buckets and preserved stats)
+            # Accumulate (includes rebinned buckets and preserved summary stats)
             for key, val in rebinned.items():
                 if key not in target_reduced:
                     target_reduced[key] = 0.0
                 target_reduced[key] += val
 
-        # Calculate mean across simulations
+        # Calculate population mean across simulations
         for key in target_reduced:
             target_reduced[key] /= self._repeat
 
         object.__setattr__(self, "_reduced_content", target_reduced)
 
-    def _rebin_simulation_data(self, data: Dict[str, float], num_bins: int, max_val: float) -> Dict[str, float]:
-        """Proportionally redistribute raw histogram data into uniform target bins."""
+    def _rebin_simulation_data(
+        self, data: Dict[str, float], num_bins: int, max_val: float
+    ) -> Dict[str, float]:
+        """
+        Proportionally redistribute raw histogram data into uniform target bins.
+
+        Uses linear interpolation to map raw mass to target bins.
+        """
         bin_width = max_val / num_bins
-        rebinned = {}
-        for b in range(num_bins):
-            key = f"{int(b * bin_width)}-{int((b + 1) * bin_width)}"
-            rebinned[key] = 0.0
+        rebinned = {
+            f"{int(b * bin_width)}-{int((b + 1) * bin_width)}": 0.0 for b in range(num_bins)
+        }
 
         for raw_key, value in data.items():
             if value == 0:
                 continue
 
-            # Parse range from key (e.g. "0-1023")
             bounds = self._parse_range_key(raw_key)
             if not bounds:
-                # If it's not a range (e.g. "mean", "total"), we preserve it as is
-                # It will be averaged across simulations in _reduce_with_rebinning
+                # Preserve summary stats (mean, total, etc.) as-is
                 rebinned[raw_key] = value
                 continue
 
             raw_start, raw_end = bounds
-
-            # Clip to max_val
             if raw_start >= max_val:
                 continue
+
             actual_end = min(raw_end, max_val)
             if actual_end <= raw_start:
                 continue
 
-            # Distribute 'value' across target bins [b_start, b_end]
-            # that overlap with [raw_start, actual_end]
             raw_span = raw_end - raw_start
             if raw_span <= 0:
                 continue
 
+            # Redistribute 'value' across target bins based on overlap
             for b in range(num_bins):
                 b_start = b * bin_width
                 b_end = (b + 1) * bin_width
 
-                # Calculate overlap
                 overlap_start = max(raw_start, b_start)
                 overlap_end = min(actual_end, b_end)
 
                 if overlap_end > overlap_start:
                     overlap_width = overlap_end - overlap_start
-                    # Linear redistribution assumption
+                    # Scientific Assumption: Uniform distribution within raw gems5 buckets
                     proportion = overlap_width / raw_span
                     target_key = f"{int(b_start)}-{int(b_end)}"
                     rebinned[target_key] += value * proportion
@@ -226,8 +277,7 @@ class Histogram(StatType):
         return rebinned
 
     def _parse_range_key(self, key: str) -> List[float]:
-        """Extract numeric bounds from a range string (e.g., '0-1023' or '1024-2047')."""
-        import re
+        """Extract numeric bounds from a range string (e.g., '0-1023')."""
         match = re.search(r"(\d+)-(\d+)", key)
         if match:
             return [float(match.group(1)), float(match.group(2))]
@@ -235,19 +285,20 @@ class Histogram(StatType):
 
     @property
     def reduced_content(self) -> Dict[str, float]:
+        """Get the final reduced (averaged) data."""
         balanced = object.__getattribute__(self, "_balanced")
         reduced = object.__getattribute__(self, "_reduced")
         if not balanced or not reduced:
             raise AttributeError(
-                "HISTOGRAM: Cannot access reducedContent before calling "
+                "HISTOGRAM: Cannot access reduced_content before calling "
                 "balance_content() AND reduce_duplicates()"
             )
         return object.__getattribute__(self, "_reduced_content")
 
-    # Backward compatibility
     @property
     def reducedContent(self) -> Dict[str, float]:
+        """Backward compatibility alias."""
         return self.reduced_content
 
     def __str__(self) -> str:
-        return f"Histogram(buckets={len(self._content)})"
+        return f"Histogram(buckets={len(self._content)}, repeat={self._repeat})"

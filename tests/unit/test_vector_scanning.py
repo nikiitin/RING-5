@@ -121,13 +121,18 @@ class TestVectorScanning:
         expected = ["FloatAdd", "IntAlu", "IntDiv", "IntMult"]
         assert sorted(entries) == sorted(expected)
 
+    @patch("src.scanning.workers.pool.ScanWorkPool")
     @patch("src.web.facade.Path")
-    def test_scan_vector_entries_no_match(self, mock_path):
+    def test_scan_vector_entries_no_match(self, mock_path, mock_scan_pool):
+        # Mock pool to return empty results
+        mock_pool_instance = mock_scan_pool.getInstance.return_value
+        mock_pool_instance.getResults.return_value = []
+
         facade = BackendFacade()
         mock_stats_dir = MagicMock()
         mock_path.return_value = mock_stats_dir
         mock_stats_dir.exists.return_value = True
-        mock_stats_dir.rglob.return_value = [MagicMock()]  # 1 file
+        mock_stats_dir.rglob.return_value = ["stats.txt"]
 
         stats_content = """
         system.cpu.ipc 1.0

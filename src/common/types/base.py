@@ -5,7 +5,7 @@ This module provides a self-registering type system for gem5 statistics.
 Types register themselves using the @register_type decorator.
 """
 
-from typing import Any, Dict, List, Type
+from typing import Any, Dict, List, Optional, Type
 
 
 class StatTypeRegistry:
@@ -193,9 +193,12 @@ class StatType:
         self.reduce_duplicates()
 
     @property
-    def entries(self) -> List[str]:
-        """Override in Vector/Distribution to return entry keys."""
-        raise NotImplementedError(f"{self._type_name} does not have entries")
+    def entries(self) -> Optional[List[str]]:
+        """
+        Return entry keys for complex types (Vector, Distribution).
+        Returns None for Scalar and Configuration types.
+        """
+        return None
 
     def __str__(self) -> str:
         return f"{self._type_name}({self._content})"

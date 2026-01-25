@@ -62,9 +62,7 @@ class VariableEditor:
                     var_config, var, var_id, available_variables, stats_path, stats_pattern
                 )
             elif var_type == "distribution":
-                cls.render_distribution_config(
-                    var_config, var, var_id, stats_path, stats_pattern
-                )
+                cls.render_distribution_config(var_config, var, var_id, stats_path, stats_pattern)
             elif var_type == "histogram":
                 cls.render_histogram_config(
                     var_config, var, var_id, available_variables, stats_path, stats_pattern
@@ -184,9 +182,9 @@ class VariableEditor:
             "Normalize to Fixed Buckets (Rebinning)",
             value=original_var.get("enableRebin", False),
             key=f"hist_rebin_{var_id}",
-            help="Normalizes histograms with inconsistent bucket ranges across simulations"
+            help="Normalizes histograms with inconsistent bucket ranges across simulations",
         )
-        
+
         if enable_rebin:
             c1, c2 = st.columns(2)
             with c1:
@@ -195,14 +193,14 @@ class VariableEditor:
                     min_value=1,
                     max_value=1000,
                     value=int(original_var.get("bins", 10)),
-                    key=f"hist_bins_{var_id}"
+                    key=f"hist_bins_{var_id}",
                 )
             with c2:
                 max_range = st.number_input(
                     "Max Range",
                     min_value=1.0,
                     value=float(original_var.get("max_range", 1024.0)),
-                    key=f"hist_max_range_{var_id}"
+                    key=f"hist_max_range_{var_id}",
                 )
             var_config["bins"] = bins
             var_config["max_range"] = max_range
@@ -276,7 +274,6 @@ class VariableEditor:
             stats_pattern=stats_pattern,
         )
 
-
         if entry_mode == "Select from Discovered Entries":
             cls._render_vector_discovered_selection(
                 var_config, original_var, var_id, discovered_entries
@@ -303,11 +300,13 @@ class VariableEditor:
             return
 
         is_distribution = var_type == "distribution"
-        
+
         if is_distribution:
             should_show_scan = True
             btn_label = f"Deep Scan Range for '{var_name}'"
-            help_text = "Scan ALL stats files to find the total min/max bucket range for this distribution."
+            help_text = (
+                "Scan ALL stats files to find the total min/max bucket range for this distribution."
+            )
         else:
             should_show_scan = entry_mode == "Select from Discovered Entries" or (
                 not discover_entries_available and entry_mode == "Manual Entry Names"
@@ -323,10 +322,12 @@ class VariableEditor:
             ):
                 with st.spinner(f"Scanning all files for {var_name}..."):
                     facade = BackendFacade()
-                    
+
                     if is_distribution:
                         result = facade.scan_distribution_range(stats_path, var_name, stats_pattern)
-                        if result and (result["minimum"] is not None or result["maximum"] is not None):
+                        if result and (
+                            result["minimum"] is not None or result["maximum"] is not None
+                        ):
                             # Update session state if possible, though number_input value is local
                             st.success(f"Found range: {result['minimum']} to {result['maximum']}")
                             # We store in session state so number_input can use it as default
@@ -335,7 +336,9 @@ class VariableEditor:
                         else:
                             st.warning("No distribution data found.")
                     else:
-                        all_entries = facade.scan_entries_for_variable(stats_path, var_name, stats_pattern)
+                        all_entries = facade.scan_entries_for_variable(
+                            stats_path, var_name, stats_pattern
+                        )
 
                         if all_entries:
                             # Update session state available variables
@@ -481,13 +484,9 @@ class VariableEditor:
 
         col_min, col_max = st.columns(2)
         with col_min:
-            min_val = st.number_input(
-                "Minimum value", value=default_min, key=f"dist_min_{var_id}"
-            )
+            min_val = st.number_input("Minimum value", value=default_min, key=f"dist_min_{var_id}")
         with col_max:
-            max_val = st.number_input(
-                "Maximum value", value=default_max, key=f"dist_max_{var_id}"
-            )
+            max_val = st.number_input("Maximum value", value=default_max, key=f"dist_max_{var_id}")
 
         var_config["minimum"] = min_val
         var_config["maximum"] = max_val
@@ -526,7 +525,9 @@ class VariableEditor:
                 "samples", value="samples" in current_stats, key=f"dist_stat_samples_{var_id}"
             )
             extract_underflows = st.checkbox(
-                "underflows", value="underflows" in current_stats, key=f"dist_stat_underflows_{var_id}"
+                "underflows",
+                value="underflows" in current_stats,
+                key=f"dist_stat_underflows_{var_id}",
             )
 
         with col_stat2:
