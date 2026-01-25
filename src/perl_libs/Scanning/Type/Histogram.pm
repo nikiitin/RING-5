@@ -12,6 +12,6 @@ our $histogramEntryRangeRegex = qr/::\d+-\d+/;
 # | ::1-5 |
 
 # | name::range1-range2  value  perc  cumm.percent  # Comment |
-our $histogramRegex = qr/^$varNameRegex$histogramEntryRangeRegex\s+$complexValueRegex\s+$commentRegex?$/;
+our $histogramRegex = qr/^$varNameRegex$histogramEntryRangeRegex\s+$complexValueRegex$commentRegex$/;
 
 1;

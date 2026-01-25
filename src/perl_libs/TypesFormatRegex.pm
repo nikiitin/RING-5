@@ -20,9 +20,34 @@ use Scanning::Type::Summary qw($summaryRegex);
 # Methods below use them.
 
 my $filtersRegexes;
+my @storedFilters;
 
 sub getRealVariableNameFromLine {
     my ($line) = @_;
+    
+    # Extract the actual name part of the line to match against filters
+    # format is: name::entry, name value, or name=value
+    my $namePart = $line;
+    if ($line =~ /::/) { $namePart = $`; }
+    elsif ($line =~ /\s+/) { $namePart = $`; }
+    elsif ($line =~ /=/) { $namePart = $`; }
+
+    # Return the original regex string that caused the match.
+    # We match specifically against the name part to avoid cross-contamination.
+    foreach my $filter (@storedFilters) {
+        if ($namePart =~ /^$filter$/ || $namePart eq $filter) {
+            return $filter;
+        }
+    }
+    
+    # Fallback for complex regexes that might need the full context
+    foreach my $filter (@storedFilters) {
+        if ($namePart =~ /$filter/) {
+            return $filter;
+        }
+    }
+
+    # Ultimate fallback to match if something goes wrong
     $line =~ /($filtersRegexes)/;
     return $1;
 }
@@ -72,10 +97,8 @@ sub getValueFromLine {
 
 sub removeCommentFromLine {
     my ($line) = @_;
-    # Trim whitespaces before comment too    
-    if ($line =~ /\s*$commentRegex/) {
-        $line = $`;
-    }
+    # Remove trailing comments starting with # or (Unspecified)
+    $line =~ s/\s+(?:#.*|\(Unspecified\)\s*)$//;
     return $line;
 }
 
@@ -95,6 +118,7 @@ sub formatLine {
 
 sub setFilterRegexes {
     my (@regexes) = @_;
+    @storedFilters = @regexes;
     # Add all filters to same regex
     $filtersRegexes = join("|", @regexes);
     # Compile regexes
@@ -123,8 +147,6 @@ sub parseAndPrintLineWithFormat {
         print "vector/" . formatLine($line) . "\n";
     } else {
         # Unknown data type found
-        # DO NOT PRINT IT!
-        # print "Unknown data type: $line\n";
     }
 }
 

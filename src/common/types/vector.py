@@ -110,7 +110,15 @@ class Vector(StatType):
             str_key = str(key)
             if str_key in self._entries:
                 if isinstance(vals, list):
-                    self._content[str_key].extend(vals)
+                    # Sum multiple matches from a single file (aggregation)
+                    try:
+                        aggregated_val = sum(float(v) for v in vals)
+                    except (TypeError, ValueError) as e:
+                        raise TypeError(
+                            f"VECTOR: Value non-convertible to number. "
+                            f"Key: {key}, Values: {vals}"
+                        ) from e
+                    self._content[str_key].append(aggregated_val)
                 else:
                     self._content[str_key].append(vals)
 

@@ -12,7 +12,7 @@ our $floatRegex = qr/\d+\.\d+/;
 our $varNameRegex = qr/[\d\.\w]+/;
 our $confValueRegex = qr/[\d\.\w\-\/\(\)\,]+/;
 our $scalarValueRegex = qr/\d+|$floatRegex/;
-our $commentRegex = qr/#.*|\(Unspecified\)\s*/;
+our $commentRegex = qr/(?:\s+(?:#.*|\(Unspecified\)\s*))?\s*/;
 
 # Complex components regexes
 #  Val perc   cumm. percent

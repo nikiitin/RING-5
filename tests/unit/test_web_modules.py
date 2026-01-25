@@ -310,6 +310,23 @@ class TestUIComponents:
         assert hasattr(VariableEditor, "render")
         assert callable(VariableEditor.render)
 
+    def test_variable_editor_histogram_support(self):
+        """Test VariableEditor supports histogram configuration."""
+        from src.web.ui.components.variable_editor import VariableEditor
+        assert hasattr(VariableEditor, "render_histogram_config")
+        
+        from unittest.mock import MagicMock
+        
+        # Simple smoke test with mock
+        with patch("src.web.ui.components.variable_editor.st") as mock_st:
+            mock_st.columns.side_effect = [
+                [MagicMock(), MagicMock(), MagicMock(), MagicMock()], 
+                [MagicMock(), MagicMock()]
+            ]
+            variables = [{"name": "test_hist", "type": "histogram"}]
+            # Should not raise exception
+            VariableEditor.render(variables)
+
 
 def run_tests():
     """Run all tests and report results."""

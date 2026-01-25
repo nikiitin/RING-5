@@ -90,6 +90,8 @@ class Gem5ParseWork(ParseWork):
                 normalizedVarType = "vector"
             elif expectedType in ("distribution", "histogram"):
                 normalizedVarType = expectedType
+        elif normalizedVarType == "vector" and expectedType == "distribution":
+            normalizedVarType = "distribution"
 
         self._bufferEntry(varID, varValue)
         return normalizedVarType
@@ -223,6 +225,3 @@ class Gem5ParseWork(ParseWork):
         """Execute the parse work and return populated variables."""
         output = self._runPerlScript()
         return self._processOutput(output, self._varsToParse)
-
-    def __str__(self) -> str:
-        return f"Gem5ParseWork({self._fileToParse})"

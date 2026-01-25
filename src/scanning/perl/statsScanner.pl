@@ -24,8 +24,71 @@ my %discovered_vars;
 # We set a catch-all filter to scan all lines.
 TypesFormatRegex::setFilterRegexes(".*");
 
+
+
+# Helper subroutines
+
+sub processSummary {
+    my ($name, $entry, $vars) = @_;
+
+    # Check if variable already exists
+    if (exists $vars->{$name}) {
+         addEntry($name, $entry, $vars);
+
+         if ($vars->{$name}{type} eq 'scalar') {
+             $vars->{$name}{type} = 'vector';
+         }
+         # Upgrade Vector to Distribution if summary implies advanced stats
+         if ($vars->{$name}{type} eq 'vector' &&
+            ($entry eq 'samples' || $entry eq 'mean' || $entry eq 'stdev' || $entry eq 'gmean')) {
+             $vars->{$name}{type} = 'distribution';
+         }
+    } else {
+         # First time seeing it. Check if summary implies distribution
+         my $init_type = 'vector';
+         if ($entry eq 'samples' || $entry eq 'mean' || $entry eq 'stdev' || $entry eq 'gmean') {
+             $init_type = 'distribution';
+         }
+         $vars->{$name} = { type => $init_type, entries => { $entry => 1 } };
+    }
+}
+
+sub manageType {
+    my ($name, $new_type, $vars) = @_;
+
+    if (!exists $vars->{$name}) {
+        $vars->{$name} = { type => $new_type, entries => {} };
+        return;
+    }
+
+    my $current_type = $vars->{$name}{type};
+
+    # Type conflict / evolution
+    # Upgrade Scalar -> Vector or Distribution or Histogram
+    if ($current_type eq 'scalar' && ($new_type eq 'vector' || $new_type eq 'distribution' || $new_type eq 'histogram')) {
+        $vars->{$name}{type} = $new_type;
+    }
+    # Upgrade Vector -> Distribution or Histogram
+    elsif ($current_type eq 'vector' && ($new_type eq 'distribution' || $new_type eq 'histogram')) {
+        $vars->{$name}{type} = $new_type;
+    }
+    # Upgrade Distribution -> Histogram (FIX for Issue 1900)
+    elsif ($current_type eq 'distribution' && $new_type eq 'histogram') {
+        $vars->{$name}{type} = $new_type;
+    }
+}
+
+sub addEntry {
+    my ($name, $entry, $vars) = @_;
+    if (defined $entry) {
+        $vars->{$name}{entries}->{$entry} = 1;
+    }
+}
+
 while (my $line = <$fh>) {
+    # print STDERR "DEBUG: $line\n";
     chomp $line;
+    # $line =~ s/\s+$//;
     next if $line =~ /^$/;
     next if $line =~ /^---/; # standard gem5 divider
 
@@ -36,20 +99,8 @@ while (my $line = <$fh>) {
     my $type = $info->{type};
     my $entry = $info->{entry};
 
-    # Type refinement logic (mirroring Python logic)
-    # Type refinement logic (mirroring Python logic)
     if ($type eq 'summary') {
-        # Vector/Dist summaries are treated as vector entries if possible
-        if (exists $discovered_vars{$name}) {
-             $discovered_vars{$name}{entries}->{$entry} = 1;
-             
-             if ($discovered_vars{$name}{type} eq 'scalar') {
-                 $discovered_vars{$name}{type} = 'vector';
-             }
-        } else {
-             # First time seeing it. Assume Vector with entry for now.
-             $discovered_vars{$name} = { type => 'vector', entries => { $entry => 1 } };
-        }
+        processSummary($name, $entry, \%discovered_vars);
         next;
     }
 
@@ -58,49 +109,55 @@ while (my $line = <$fh>) {
         $type = 'configuration';
     }
 
-    if (!exists $discovered_vars{$name}) {
-        $discovered_vars{$name} = { type => $type, entries => {} };
-    } else {
-        # Type conflict / evolution
-        # Upgrade Scalar -> Vector or Distribution
-        # Also upgrade Vector -> Distribution (Summary lines create Vector entries,
-        # but the actual data may be Distribution)
-        if ($discovered_vars{$name}{type} eq 'scalar' && ($type eq 'vector' || $type eq 'distribution')) {
-            $discovered_vars{$name}{type} = $type;
-        } elsif ($discovered_vars{$name}{type} eq 'vector' && $type eq 'distribution') {
-            $discovered_vars{$name}{type} = $type;
-        }
-    }
-
-    if (defined $entry) {
-        $discovered_vars{$name}{entries}->{$entry} = 1;
-    }
+    manageType($name, $type, \%discovered_vars);
+    addEntry($name, $entry, \%discovered_vars);
 }
 
 close($fh);
 
-# Convert to JSON list
-print "[\n";
-my $first = 1;
-foreach my $name (sort keys %discovered_vars) {
-    print ",\n" unless $first;
-    $first = 0;
-    
-    my $data = $discovered_vars{$name};
-    my $type = $data->{type};
-    # $type = "configuration" if $type eq "configuration"; # Redundant now
-    
-    print "  {\n";
-    print "    \"name\": \"$name\",\n";
-    print "    \"type\": \"$type\"";
-    
-    if (scalar keys %{$data->{entries}}) {
-        print ",\n    \"entries\": [";
-        my @entries = sort keys %{$data->{entries}};
-        print join(", ", map { "\"$_\"" } @entries);
-        print "]";
+# Output Results
+sub outputResults {
+    my ($vars) = @_;
+    print "[\n";
+    my $first = 1;
+    foreach my $name (sort keys %$vars) {
+        print ",\n" unless $first;
+        $first = 0;
+
+        my $data = $vars->{$name};
+        my $type = $data->{type};
+
+        print "  {\n";
+        print "    \"name\": \"$name\",\n";
+        print "    \"type\": \"$type\"";
+
+        if (scalar keys %{$data->{entries}}) {
+            print ",\n    \"entries\": [";
+            my @entries = sort keys %{$data->{entries}};
+            print join(", ", map { "\"$_\"" } @entries);
+            print "]";
+
+            # For distributions, calculate min and max from integer entries
+            if ($type eq "distribution") {
+                my $min = undef;
+                my $max = undef;
+                foreach my $e (@entries) {
+                    # Check for integer buckets (allow negative)
+                    if ($e =~ /^-?\d+$/) {
+                        if (!defined $min || $e < $min) { $min = $e; }
+                        if (!defined $max || $e > $max) { $max = $e; }
+                    }
+                }
+                if (defined $min) {
+                    print ",\n    \"minimum\": $min";
+                    print ",\n    \"maximum\": $max";
+                }
+            }
+        }
+
+        print "\n  }";
     }
-    
-    print "\n  }";
+    print "\n]\n";
 }
-print "\n]\n";
+
+outputResults(\%discovered_vars);

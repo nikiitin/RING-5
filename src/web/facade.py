@@ -140,13 +140,22 @@ class BackendFacade:
                         "repeat": len(matches),
                     }
                     if var["type"] == "vector":
-                        var_config["vectorEntries"] = var.get("vectorEntries", "total,mean")
+                        var_config["vectorEntries"] = var.get("vectorEntries") or var.get("statistics", "total,mean")
                     elif var["type"] == "distribution":
                         var_config["minimum"] = var.get("minimum", -10)
                         var_config["maximum"] = var.get("maximum", 100)
+                        stats = var.get("statistics") or var.get("vectorEntries")
+                        if stats:
+                            var_config["vectorEntries"] = stats
                     elif var["type"] == "histogram":
-                        # Histograms usually auto-detect buckets, but allow overrides if needed
-                        pass
+                        if var.get("bins"):
+                            var_config["bins"] = var["bins"]
+                        if var.get("max_range"):
+                            var_config["max_range"] = var["max_range"]
+                        stats = var.get("statistics") or var.get("vectorEntries")
+                        if stats:
+                            var_config["vectorEntries"] = stats
+                    
                     parser_vars.append(var_config)
                     continue
 
@@ -161,9 +170,19 @@ class BackendFacade:
             elif var["type"] == "distribution":
                 var_config["minimum"] = var.get("minimum", 0)
                 var_config["maximum"] = var.get("maximum", 100)
+                # Map 'statistics' from UI to 'vectorEntries' for parser
+                stats = var.get("statistics") or var.get("vectorEntries")
+                if stats:
+                    var_config["vectorEntries"] = stats
             elif var["type"] == "histogram":
-                # No specific default params for histogram yet
-                pass
+                if var.get("bins"):
+                    var_config["bins"] = var["bins"]
+                if var.get("max_range"):
+                    var_config["max_range"] = var["max_range"]
+                # Map 'statistics' or 'vectorEntries' from UI to 'vectorEntries' for parser
+                stats = var.get("statistics") or var.get("vectorEntries")
+                if stats:
+                    var_config["vectorEntries"] = stats
             elif var["type"] == "configuration":
                 var_config["onEmpty"] = var.get("onEmpty", "None")
 
@@ -303,14 +322,28 @@ class BackendFacade:
                     if name not in merged_vars:
                         merged_vars[name] = var
                     else:
-                        # Merge entries if vector
-                        if var["type"] == "vector" and "entries" in var:
+                        # Merge entries if vector or histogram
+                        if var["type"] in ("vector", "histogram") and "entries" in var:
                             existing_entries = set(merged_vars[name].get("entries", []))
                             new_entries = set(var["entries"])
                             if not new_entries.issubset(existing_entries):
                                 merged_vars[name]["entries"] = sorted(
                                     list(existing_entries.union(new_entries))
                                 )
+
+                        # Merge min/max if distribution
+                        if var["type"] == "distribution":
+                            if "minimum" in var:
+                                current_min = merged_vars[name].get("minimum")
+                                new_min = var["minimum"]
+                                if current_min is None or new_min < current_min:
+                                    merged_vars[name]["minimum"] = new_min
+
+                            if "maximum" in var:
+                                current_max = merged_vars[name].get("maximum")
+                                new_max = var["maximum"]
+                                if current_max is None or new_max > current_max:
+                                    merged_vars[name]["maximum"] = new_max
 
             return sorted(list(merged_vars.values()), key=lambda x: x["name"])
         except Exception as e:
@@ -348,6 +381,12 @@ class BackendFacade:
                         "count": 1,
                         "examples": [name],
                     }
+                    # Initialize min/max if distribution
+                    if var["type"] == "distribution":
+                        if "minimum" in var:
+                            grouped_vars[pattern]["minimum"] = var["minimum"]
+                        if "maximum" in var:
+                            grouped_vars[pattern]["maximum"] = var["maximum"]
                 else:
                     grouped_vars[pattern]["count"] += 1
                     if len(grouped_vars[pattern]["examples"]) < 3:
@@ -358,6 +397,20 @@ class BackendFacade:
                         existing = set(grouped_vars[pattern]["entries"])
                         new_entries = set(var["entries"])
                         grouped_vars[pattern]["entries"] = sorted(list(existing.union(new_entries)))
+
+                    # Merge min/max if distribution
+                    if var["type"] == "distribution":
+                        if "minimum" in var:
+                            current_min = grouped_vars[pattern].get("minimum")
+                            new_min = var["minimum"]
+                            if current_min is None or new_min < current_min:
+                                grouped_vars[pattern]["minimum"] = new_min
+
+                        if "maximum" in var:
+                            current_max = grouped_vars[pattern].get("maximum")
+                            new_max = var["maximum"]
+                            if current_max is None or new_max > current_max:
+                                grouped_vars[pattern]["maximum"] = new_max
 
             else:
                 # No numbers, keep as is
@@ -385,31 +438,25 @@ class BackendFacade:
 
         return sorted(results, key=lambda x: x["name"])
 
-    def scan_vector_entries(
+    def scan_entries_for_variable(
         self,
         stats_path: str,
-        vector_name: str,
+        var_name: str,
         file_pattern: str = "stats.txt",
         limit: int = 1000000,
     ) -> List[str]:
         """
-        Scan ALL stats files for entries of a specific vector variable.
-        Optimized to only look for the specific vector.
-
+        Scan ALL stats files for entries of a specific variable (Vector or Histogram).
+        
         Args:
             stats_path: Directory containing stats files
-            vector_name: Name of the vector variable
+            var_name: Name of the variable
             file_pattern: Pattern to match stats files
 
         Returns:
-            List of all unique entries found for this vector
+            List of all unique entries found for this variable
         """
         try:
-            import sys
-
-            if str(Path(__file__).parent.parent.parent) not in sys.path:
-                sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
             search_path = Path(stats_path)
             if not search_path.exists():
                 return []
@@ -419,34 +466,88 @@ class BackendFacade:
                 return []
 
             all_entries = set()
-
-            # Limit files
             files_to_scan = files[:limit]
 
-            # Use Parallel Scanner via unified StatsScanWork
             from src.scanning.workers.gem5_scan_work import Gem5ScanWork
             from src.scanning.workers.pool import ScanWorkPool
 
-            # Initialize Pool
             pool = ScanWorkPool.getInstance()
-
-            # Submit Work
             for file_path in files_to_scan:
-                # Use unified scanner worker
                 work = Gem5ScanWork(str(file_path))
                 pool.addWork(work)
 
-            # Collect Results (List of lists of dicts)
             results = pool.getResults()
 
-            # Process results to find vector entries
             for file_vars in results:
                 for var in file_vars:
-                    if var["name"] == vector_name and var.get("type") == "vector":
-                        # Add entries to set
+                    if var["name"] == var_name and var.get("type") in ("vector", "histogram"):
                         entries = var.get("entries", [])
                         all_entries.update(entries)
 
             return sorted(list(all_entries))
-        except Exception:
+        except Exception as e:
+            print(f"Error scanning entries: {e}")
             return []
+
+    def scan_vector_entries(self, *args, **kwargs):
+        """Backward compatibility for scan_vector_entries."""
+        return self.scan_entries_for_variable(*args, **kwargs)
+
+    def scan_distribution_range(
+        self,
+        stats_path: str,
+        var_name: str,
+        file_pattern: str = "stats.txt",
+        limit: int = 1000000,
+    ) -> Dict[str, Optional[int]]:
+        """
+        Scan ALL stats files for the global min/max range of a specific distribution.
+
+        Args:
+            stats_path: Directory containing stats files
+            var_name: Name of the distribution variable
+            file_pattern: Pattern to match stats files
+
+        Returns:
+            Dict with 'minimum' and 'maximum' keys
+        """
+        try:
+            search_path = Path(stats_path)
+            if not search_path.exists():
+                return {"minimum": None, "maximum": None}
+
+            files = list(search_path.rglob(file_pattern))
+            if not files:
+                return {"minimum": None, "maximum": None}
+
+            global_min = None
+            global_max = None
+            files_to_scan = files[:limit]
+
+            from src.scanning.workers.gem5_scan_work import Gem5ScanWork
+            from src.scanning.workers.pool import ScanWorkPool
+
+            pool = ScanWorkPool.getInstance()
+            for file_path in files_to_scan:
+                work = Gem5ScanWork(str(file_path))
+                pool.addWork(work)
+
+            results = pool.getResults()
+
+            for file_vars in results:
+                for var in file_vars:
+                    if var["name"] == var_name and var.get("type") == "distribution":
+                        file_min = var.get("minimum")
+                        file_max = var.get("maximum")
+                        
+                        if file_min is not None:
+                            if global_min is None or file_min < global_min:
+                                global_min = file_min
+                        if file_max is not None:
+                            if global_max is None or file_max > global_max:
+                                global_max = file_max
+
+            return {"minimum": global_min, "maximum": global_max}
+        except Exception as e:
+            print(f"Error scanning distribution range: {e}")
+            return {"minimum": None, "maximum": None}

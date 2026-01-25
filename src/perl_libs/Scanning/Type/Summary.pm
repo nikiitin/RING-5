@@ -8,6 +8,6 @@ use Scanning::RegexUtils qw(:all);
 our @EXPORT_OK = qw($summaryRegex);
 
 # | name::summVar  value  # Comment |
-our $summaryRegex = qr/^$varNameRegex$summariesEntryRegex\s+$scalarValueRegex\s+$commentRegex?$/;
+our $summaryRegex = qr/^$varNameRegex$summariesEntryRegex\s+$scalarValueRegex$commentRegex$/;
 
 1;

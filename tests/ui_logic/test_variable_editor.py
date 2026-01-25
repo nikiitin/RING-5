@@ -1,6 +1,5 @@
 from unittest.mock import MagicMock, patch
 
-import pandas as pd
 import pytest
 
 from src.web.ui.components.variable_editor import VariableEditor
@@ -129,11 +128,11 @@ def test_variable_editor_deep_scan(mock_streamlit, mock_facade):
     mock_streamlit.button.side_effect = button_side_effect
 
     # Mock Facade
-    mock_facade.scan_vector_entries.return_value = ["e1", "e2"]
+    mock_facade.scan_entries_for_variable.return_value = ["e1", "e2"]
 
     VariableEditor.render(vars_config, available_variables=[], stats_path="/path")
 
-    mock_facade.scan_vector_entries.assert_called_with("/path", "vec", "stats.txt")
+    mock_facade.scan_entries_for_variable.assert_called_with("/path", "vec", "stats.txt")
     # Execution continues because mock rerun doesn't stop it, so we check ANY call
     mock_streamlit.success.assert_any_call("Found 2 entries!")
     mock_streamlit.rerun.assert_called()

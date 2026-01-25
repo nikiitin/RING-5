@@ -103,6 +103,14 @@ class Gem5StatsParser:
                 kwargs["minimum"] = var.get("minimum", 0)
                 kwargs["maximum"] = var.get("maximum", 100)
 
+            elif var_type == "histogram":
+                if "bins" in var:
+                    kwargs["bins"] = var["bins"]
+                if "max_range" in var:
+                    kwargs["max_range"] = var["max_range"]
+                if "entries" in var or "vectorEntries" in var:
+                    kwargs["entries"] = var.get("entries") or var.get("vectorEntries")
+
             elif var_type == "configuration":
                 kwargs["onEmpty"] = var.get("onEmpty", "None")
 
@@ -151,17 +159,21 @@ class Gem5StatsParser:
         if not self._results:
             return None
 
-        # Build header
+        # Build header and record column layout
         header_parts = []
         sample = self._results[0]
+        column_map = {} # var_name -> List[entry_keys]
 
         for var_name in self._var_names:
             var = sample[var_name]
             var_type = type(var).__name__
 
             if var_type in ("Vector", "Distribution", "Histogram"):
-                header_parts.extend(f"{var_name}..{e}" for e in var.entries)
+                entries = var.entries
+                column_map[var_name] = entries
+                header_parts.extend(f"{var_name}..{e}" for e in entries)
             else:
+                column_map[var_name] = None
                 header_parts.append(var_name)
 
         # Write output
@@ -178,10 +190,14 @@ class Gem5StatsParser:
                     var = file_stats[var_name]
                     var.balance_content()
                     var.reduce_duplicates()
-                    var_type = type(var).__name__
-
-                    if var_type in ("Vector", "Distribution", "Histogram"):
-                        row_parts.extend(str(var.reduced_content[e]) for e in var.entries)
+                    
+                    entries = column_map[var_name]
+                    if entries is not None:
+                        # Fixed collection: use entries from header to pull data
+                        reduced = var.reduced_content
+                        for e in entries:
+                            val = reduced.get(e, 0)
+                            row_parts.append(str(val))
                     else:
                         row_parts.append(str(var.reduced_content))
 

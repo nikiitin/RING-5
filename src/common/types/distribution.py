@@ -37,16 +37,29 @@ class Distribution(StatType):
         }
     )
 
-    def __init__(self, repeat: int = 1, minimum: int = 0, maximum: int = 100, **kwargs):
+    def __init__(
+        self,
+        repeat: int = 1,
+        minimum: int = 0,
+        maximum: int = 100,
+        statistics: List[str] = None,
+        **kwargs,
+    ):
         super().__init__(repeat, **kwargs)
         object.__setattr__(self, "_minimum", int(minimum))
         object.__setattr__(self, "_maximum", int(maximum))
+        object.__setattr__(self, "_statistics", statistics or [])
 
         # Create buckets: underflows, min..max, overflows
         content = {"underflows": []}
         for i in range(self._minimum, self._maximum + 1):
             content[str(i)] = []
         content["overflows"] = []
+
+        # Initialize configured statistics
+        for stat in self._statistics:
+            content[stat] = []
+
         object.__setattr__(self, "_content", content)
 
     @property
@@ -56,6 +69,10 @@ class Distribution(StatType):
     @property
     def maximum(self) -> int:
         return object.__getattribute__(self, "_maximum")
+
+    @property
+    def statistics(self) -> List[str]:
+        return object.__getattribute__(self, "_statistics")
 
     @property
     def entries(self) -> List[str]:
@@ -82,44 +99,36 @@ class Distribution(StatType):
 
         keys = list(value.keys())
 
-        # Validate keys are valid bucket identifiers
-        for key in keys:
-            if key != "underflows" and key != "overflows":
-                try:
-                    int(key)
-                except (TypeError, ValueError) as e:
-                    raise TypeError(
-                        f"DISTRIBUTION: Key non-convertible to int. "
-                        f"Key: {key}, Type: {type(key).__name__}"
-                    ) from e
+        # Stats keys allowed (Configured only)
+        stats_keys = set(self._statistics)
 
-        # Validate values are integers
+        # Validate values are integers (or floats for stats)
+        # Stats are often floats (mean, stdev). Buckets are ints.
+        # We should allow floats generally if we want to support stats.
         for key, vals in value.items():
             if isinstance(vals, list):
                 for v in vals:
                     try:
-                        int(v)
+                        float(v)
                     except (TypeError, ValueError) as e:
                         raise TypeError(
-                            f"DISTRIBUTION: Value non-convertible to int. "
+                            f"DISTRIBUTION: Value non-convertible to number. "
                             f"Key: {key}, Value: {v}"
                         ) from e
             else:
                 try:
-                    int(vals)
+                    float(vals)
                 except (TypeError, ValueError) as e:
-                    raise TypeError(
-                        f"DISTRIBUTION: Value non-convertible to int. " f"Key: {key}, Value: {vals}"
+                     raise TypeError(
+                        f"DISTRIBUTION: Value non-convertible to number. " f"Key: {key}, Value: {vals}"
                     ) from e
 
-        # Check underflows and overflows are present
         if "underflows" not in keys or "overflows" not in keys:
-            raise TypeError(
+             raise TypeError(
                 f"DISTRIBUTION: Content must contain 'underflows' and 'overflows'. "
                 f"Found keys: {keys}"
             )
 
-        # Check minimum and maximum are in keys
         if str(self._minimum) not in keys or str(self._maximum) not in keys:
             raise RuntimeError(
                 f"DISTRIBUTION: Minimum or maximum not in keys.\n"
@@ -128,28 +137,37 @@ class Distribution(StatType):
                 f"Check configuration file."
             )
 
-        # Build expected bucket list
         expected = {"underflows", "overflows"}
         expected.update(str(i) for i in range(self._minimum, self._maximum + 1))
+        expected.update(stats_keys)
 
-        # Check all keys are in expected range
-        unknown = set(str(k) for k in keys) - expected
-        if unknown:
-            raise RuntimeError(
-                f"DISTRIBUTION: Keys not in expected bucket range.\n"
-                f"Expected: {sorted(expected)}\n"
-                f"Found unknown: {unknown}\n"
-                f"Check configuration file."
-            )
-
-        # Extend existing buckets with new values
         for key, vals in value.items():
             str_key = str(key)
-            if str_key in self._content:
-                if isinstance(vals, list):
-                    self._content[str_key].extend(vals)
-                else:
-                    self._content[str_key].append(vals)
+
+            is_static_bucket = str_key in expected
+
+            if not is_static_bucket:
+                try:
+                    int(str_key)
+                    raise RuntimeError(f"DISTRIBUTION: Bucket {str_key} out of range [{self._minimum}, {self._maximum}]")
+                except ValueError:
+                    continue
+
+            if str_key not in self._content:
+                self._content[str_key] = []
+
+            if isinstance(vals, list):
+                # Aggregate multiple matches from a single file
+                try:
+                    aggregated_val = sum(float(v) for v in vals)
+                except (TypeError, ValueError) as e:
+                    raise TypeError(
+                        f"DISTRIBUTION: Value non-convertible to number. "
+                        f"Key: {str_key}, Values: {vals}"
+                    ) from e
+                self._content[str_key].append(aggregated_val)
+            else:
+                self._content[str_key].append(vals)
 
     def balance_content(self) -> None:
         """Balance each bucket to have exactly `repeat` values."""
@@ -177,9 +195,11 @@ class Distribution(StatType):
             if not values:
                 reduced[bucket] = 0
             else:
-                total = 0
+                total = 0.0
                 for i in range(self._repeat):
-                    total += int(values[i])
+                     # Use float because we might have floating point stats (mean, stdev)
+                     # or integer counts.
+                    total += float(values[i])
                 reduced[bucket] = total / self._repeat
 
         object.__setattr__(self, "_reduced_content", reduced)

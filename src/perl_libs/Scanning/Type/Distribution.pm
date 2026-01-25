@@ -15,6 +15,6 @@ my $distEntryUnderflowRegex = qr/::underflows/;
 our $distEntry = qr/($distEntryNumericRegex|$distEntryOverflowRegex|$distEntryUnderflowRegex)/;
 
 # | name::distEntryNumRegex  value  perc  cumm.percent  # Comment |
-our $distRegex = qr/^$varNameRegex$distEntry\s+$complexValueRegex\s+$commentRegex?$/;
+our $distRegex = qr/^$varNameRegex$distEntry\s+$complexValueRegex$commentRegex$/;
 
 1;

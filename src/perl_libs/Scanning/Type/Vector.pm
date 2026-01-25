@@ -15,6 +15,6 @@ our $vectorEntryRegex = qr/::[\w\.]+/;
 # | name::vectorEntryName  value  perc  cumm.percent  # Comment
 # OR
 # | name::vectorEntryName  value  # Comment
-our $vectorRegex = qr/^$varNameRegex$vectorEntryRegex\s+(?:$complexValueRegex|$scalarValueRegex)\s+$commentRegex?$/;
+our $vectorRegex = qr/^$varNameRegex$vectorEntryRegex\s+(?:$complexValueRegex|$scalarValueRegex)$commentRegex$/;
 
 1;

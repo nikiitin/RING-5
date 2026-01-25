@@ -16,8 +16,8 @@ def test_histogram_content_setting():
     h.content = data
 
     assert len(h.content) == 3
-    assert h.content["0-10"] == ["5"]
-    assert h.content["20-30"] == [15]
+    assert h.content["0-10"] == [5.0]
+    assert h.content["20-30"] == [15.0]
 
 
 def test_histogram_content_extends():
