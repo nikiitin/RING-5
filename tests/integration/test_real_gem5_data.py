@@ -66,11 +66,11 @@ class TestRealGem5DataParsing:
 
     def test_parse_gem5_stats_subset(self, test_data_available, temp_output_dir):
         """Test parsing a subset of gem5 stats files."""
-        from src.parsing.factory import DataParserFactory
+        from src.parsing.parser import Gem5StatsParser
         from src.web.facade import BackendFacade
 
-        # Reset factory
-        DataParserFactory.reset()
+        # Reset parser singleton
+        Gem5StatsParser.reset()
 
         facade = BackendFacade()
 
@@ -94,7 +94,6 @@ class TestRealGem5DataParsing:
                 stats_pattern="**/stats.txt",
                 variables=variables,
                 output_dir=temp_output_dir,
-                compress=False,
             )
 
             if csv_path is None:
@@ -108,7 +107,7 @@ class TestRealGem5DataParsing:
             assert len(df) > 0
 
         finally:
-            DataParserFactory.reset()
+            Gem5StatsParser.reset()
 
 
 class TestRealDataWithShapers:
@@ -117,10 +116,10 @@ class TestRealDataWithShapers:
     @pytest.fixture
     def parsed_data(self, test_data_available, temp_output_dir):
         """Parse real data and return DataFrame."""
-        from src.parsing.factory import DataParserFactory
+        from src.parsing.parser import Gem5StatsParser
         from src.web.facade import BackendFacade
 
-        DataParserFactory.reset()
+        Gem5StatsParser.reset()
 
         facade = BackendFacade()
 
@@ -140,7 +139,6 @@ class TestRealDataWithShapers:
                 stats_pattern="**/stats.txt",
                 variables=variables,
                 output_dir=temp_output_dir,
-                compress=False,
             )
 
             if csv_path is None or not Path(csv_path).exists():
@@ -153,7 +151,7 @@ class TestRealDataWithShapers:
             return df
 
         finally:
-            DataParserFactory.reset()
+            Gem5StatsParser.reset()
 
     def test_column_selector_on_real_data(self, parsed_data):
         """Test column selector on real data."""
@@ -326,7 +324,9 @@ class TestConfigurationPersistence:
         pd.DataFrame({"a": [1, 2, 3]}).to_csv(test_csv, index=False)
 
         # Patch PathService to use temp directory
-        with patch("src.web.services.csv_pool_service.PathService.get_data_dir", return_value=temp_path):
+        with patch(
+            "src.web.services.csv_pool_service.PathService.get_data_dir", return_value=temp_path
+        ):
             facade = BackendFacade()
             facade.csv_pool_dir = csv_pool
 

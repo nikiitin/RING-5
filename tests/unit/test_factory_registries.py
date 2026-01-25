@@ -45,39 +45,3 @@ class TestShaperFactoryRegistry:
 
         # Cleanup - remove from registry
         del ShaperFactory._registry["customTest"]
-
-
-class TestDataParserFactoryRegistry:
-    """Tests for DataParserFactory registry functionality."""
-
-    def test_get_available_implementations(self):
-        """Test getting available parser implementations."""
-        from src.parsing.factory import DataParserFactory
-
-        impls = DataParserFactory.get_available_implementations()
-        assert isinstance(impls, list)
-        assert "perl" in impls
-
-    def test_unknown_impl_raises(self):
-        """Test unknown implementation raises with helpful message."""
-        from src.parsing.factory import DataParserFactory
-        from src.parsing.params import DataParserParams
-
-        DataParserFactory.reset()
-
-        params = DataParserParams(
-            config_json={
-                "statsPath": "test",
-                "statsPattern": "*.txt",
-                "outputPath": "/tmp/test",
-                "variables": [],
-            }
-        )
-
-        with pytest.raises(ValueError) as exc_info:
-            DataParserFactory.getDataParser(params, "nonexistent")
-
-        assert "nonexistent" in str(exc_info.value)
-        assert "Available" in str(exc_info.value)
-
-        DataParserFactory.reset()

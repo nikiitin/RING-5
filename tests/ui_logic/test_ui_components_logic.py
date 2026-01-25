@@ -49,7 +49,9 @@ def mock_card_components():
         yield mock_card
 
 
-def test_render_csv_pool_load(mock_streamlit, mock_facade, mock_state_manager, mock_card_components):
+def test_render_csv_pool_load(
+    mock_streamlit, mock_facade, mock_state_manager, mock_card_components
+):
     """Test loading a CSV file from the pool."""
     mock_st, _ = mock_streamlit
     mock_sm, _ = mock_state_manager
@@ -88,7 +90,7 @@ def test_execute_parser(mock_streamlit, mock_facade, mock_state_manager):
     mock_facade.parse_gem5_stats.return_value = csv_path
 
     with patch("pathlib.Path.exists", return_value=True):
-        DataSourceComponents.execute_parser(mock_facade, "/stats", "*.txt", False)
+        DataSourceComponents.execute_parser(mock_facade, "/stats", "*.txt")
 
     mock_facade.parse_gem5_stats.assert_called()
     mock_facade.add_to_csv_pool.assert_called_with(csv_path)

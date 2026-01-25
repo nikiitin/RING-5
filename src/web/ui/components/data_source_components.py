@@ -101,33 +101,15 @@ class DataSourceComponents:
             if stats_pattern != current_pattern:
                 StateManager.set_stats_pattern(stats_pattern)
 
-        # Compression option
-        st.markdown("#### Remote Filesystem Optimization")
-        compress_data = st.checkbox(
-            "Enable compression (for remote/SSHFS filesystems)",
-            value=False,
-            help="Compress and copy stats files locally for faster processing.",
-        )
-        if compress_data:
-            st.info(
-                """
-            **Compression Mode Enabled:**
-
-            Stats files will be copied and compressed locally for faster processing.
-            """
-            )
-
         # Variables configuration
         st.markdown("#### Variables to Extract")
-        st.markdown(
-            """
+        st.markdown("""
         Define which variables to extract from gem5 stats files:
         - **Scalar**: Single numeric values (e.g., simTicks, IPC)
         - **Vector**: Arrays of values with specified entries
         - **Distribution**: Statistical distributions with min/max range
         - **Configuration**: Metadata (benchmark name, config ID, seed)
-        """
-        )
+        """)
 
         # Scanner UI
         col_scan1, col_scan2 = st.columns([1, 3])
@@ -174,7 +156,6 @@ class DataSourceComponents:
             "parser": "gem5_stats",
             "statsPath": stats_path,
             "statsPattern": stats_pattern,
-            "compress": compress_data,
             "variables": StateManager.get_parse_variables(),
         }
         st.json(parse_config)
@@ -182,7 +163,7 @@ class DataSourceComponents:
         # Parse button
         st.markdown("---")
         if st.button("Parse gem5 Stats Files", type="primary", width="stretch"):
-            DataSourceComponents.execute_parser(facade, stats_path, stats_pattern, compress_data)
+            DataSourceComponents.execute_parser(facade, stats_path, stats_pattern)
 
     @staticmethod
     @st.dialog("Add Variable")
@@ -312,7 +293,7 @@ class DataSourceComponents:
                         st.rerun()
 
     @staticmethod
-    def execute_parser(facade: BackendFacade, stats_path: str, stats_pattern: str, compress: bool):
+    def execute_parser(facade: BackendFacade, stats_path: str, stats_pattern: str):
         """Run the parser with progress tracking."""
         if not stats_path or stats_path == "/path/to/gem5/stats":
             st.error("Please specify a valid stats directory path!")
@@ -351,7 +332,6 @@ class DataSourceComponents:
                 csv_path = facade.parse_gem5_stats(
                     stats_path=stats_path,
                     stats_pattern=stats_pattern,
-                    compress=compress,
                     variables=StateManager.get_parse_variables(),
                     output_dir=output_dir,
                     progress_callback=update_progress,

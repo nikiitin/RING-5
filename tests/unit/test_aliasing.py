@@ -6,11 +6,8 @@ from src.web.facade import BackendFacade
 class TestAliasing:
     @patch("src.web.facade.Path")
     @patch("builtins.open", new_callable=mock_open)
-    @patch("json.dump")
-    @patch("src.parsing.factory.DataParserFactory")
-    def test_aliasing_config_generation(
-        self, mock_factory, mock_json_dump, mock_file_open, mock_path
-    ):
+    @patch("src.parsing.parser.Gem5StatsParser.builder")
+    def test_aliasing_config_generation(self, mock_builder, mock_file_open, mock_path):
         # Setup
         facade = BackendFacade()
         stats_path = "/tmp/stats"
@@ -26,43 +23,34 @@ class TestAliasing:
             },
         ]
 
-        # Calling the private method or checking the output file content?
-        # parse_gem5_stats writes to a file. We mocked open and json.dump.
-        # We need to mock pathlib Path to avoid actual file creation issues and to satisfy the method.
-
         # Mocking mkdir
         mock_path.return_value.mkdir.return_value = None
 
-        facade.parse_gem5_stats(stats_path, stats_pattern, False, variables, "/tmp")
+        # Mock the builder chain
+        mock_instance = mock_builder.return_value
+        mock_instance.with_path.return_value = mock_instance
+        mock_instance.with_pattern.return_value = mock_instance
+        mock_instance.with_variables.return_value = mock_instance
+        mock_instance.with_output.return_value = mock_instance
+        mock_instance.build.return_value.parse.return_value = "/tmp/result.csv"
 
-        # Verify JSON content passed to dump
-        # The method writes TWO json files: parser_config and config_desc.
-        # usually 1st call is parser_config.
+        facade.parse_gem5_stats(stats_path, stats_pattern, variables, "/tmp")
 
-        # Extract arguments from json.dump calls
-        call_args_list = mock_json_dump.call_args_list
-        assert len(call_args_list) >= 1
+        # Verify variables passed to builder
+        call_args = mock_instance.with_variables.call_args
+        assert call_args is not None, "with_variables not called"
 
-        # Find the call that looks like parser configuration
-        parser_config = None
-        for args, _kwargs in call_args_list:
-            data = args[0]
-            if isinstance(data, list) and "parsings" in data[0]:
-                parser_config = data
-                break
-
-        assert parser_config is not None, "Parser config not found in json.dump calls"
-
-        parsing_vars = parser_config[0]["parsings"][0]["vars"]
+        passed_vars = call_args[0][0]
+        assert len(passed_vars) == 2
 
         # Check Aliased Variable
-        ipc_var = next((v for v in parsing_vars if v["id"] == "IPC"), None)
+        ipc_var = next((v for v in passed_vars if v["name"] == "IPC"), None)
         assert ipc_var is not None, "Aliased variable IPC not found in config"
         assert ipc_var["parsed_ids"] == [
             "system.cpu.ipc"
         ], "Aliased variable does not map original name"
 
         # Check Non-Aliased Variable
-        cpi_var = next((v for v in parsing_vars if v["id"] == "system.cpu.cpi"), None)
+        cpi_var = next((v for v in passed_vars if v["name"] == "system.cpu.cpi"), None)
         assert cpi_var is not None, "Non-aliased variable not found"
         assert "parsed_ids" not in cpi_var, "Non-aliased variable should not have parsed_ids"

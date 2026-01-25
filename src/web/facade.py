@@ -8,7 +8,6 @@ This facade now delegates to those services for backward compatibility.
 """
 
 import glob
-import json
 import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -98,7 +97,6 @@ class BackendFacade:
         self,
         stats_path: str,
         stats_pattern: str,
-        compress: bool,
         variables: List[Dict],
         output_dir: str,
         progress_callback=None,
@@ -109,7 +107,6 @@ class BackendFacade:
         Args:
             stats_path: Base directory with stats files
             stats_pattern: File pattern to match
-            compress: Enable compression
             variables: List of variable configurations
             output_dir: Output directory for results
             progress_callback: Optional callback function(step, progress, message)
@@ -117,164 +114,86 @@ class BackendFacade:
         Returns:
             Path to generated CSV file or None
         """
+        from src.parsing.parser import Gem5StatsParser
 
-        from src.parsing.factory import DataParserFactory
+        # Reset parser singleton
+        Gem5StatsParser.reset()
 
-        # Reset parser factory to ensure new configuration is used
-        DataParserFactory.reset()
-
-        # Report progress
         if progress_callback:
             progress_callback(1, 0.1, "Initializing parser...")
 
-        # Create parse config
-        parse_config_data = {
-            "outputPath": output_dir,
-            "parseConfig": {"file": "webapp_parse", "config": "webapp_config"},
-        }
-
-        # Create configuration directory
-        parse_component_dir = Path("config_files/json_components/parse")
-        parse_component_dir.mkdir(parents=True, exist_ok=True)
-        parse_config_file = parse_component_dir / "webapp_parse.json"
-
-        # Map variables to parser format with type-specific parameters
-        # AND Handle Regex Expansion for reduction candidates via parsed_ids
+        # Process variables for parser format
         parser_vars = []
-
         for var in variables:
             var_name = var["name"]
 
-            # Helper to add variable without modification
-            def _add_as_is(name, v):
-                # Check for Alias
-                alias = v.get("alias")
-
-                if alias and alias.strip():
-                    # Use Alias as ID, map original name via parsed_ids
-                    cfg = {
-                        "id": alias.strip(),
-                        "type": v["type"],
-                        "parsed_ids": [name],  # Map original name to this alias
-                    }
-                else:
-                    # No alias, standard behavior
-                    cfg = {"id": name, "type": v["type"]}
-
-                # Add type-specific parameters
-                if v["type"] == "vector":
-                    if "vectorEntries" in v:
-                        cfg["vectorEntries"] = v["vectorEntries"]
-                        if "useSpecialMembers" in v:
-                            cfg["useSpecialMembers"] = v["useSpecialMembers"]
-                    else:
-                        raise ValueError(
-                            f"Vector variable '{name}' requires vectorEntries to be specified"
-                        )
-
-                elif v["type"] == "distribution":
-                    cfg["minimum"] = v.get("minimum", 0)
-                    cfg["maximum"] = v.get("maximum", 100)
-
-                elif v["type"] == "configuration":
-                    cfg["onEmpty"] = v.get("onEmpty", "None")
-
-                if "repeat" in v:
-                    cfg["repeat"] = v["repeat"]
-
-                parser_vars.append(cfg)
-
-            # Check if this variable looks like a regex pattern (contains \d+ or *)
+            # Handle regex patterns for reduction
             if "\\d+" in var_name or "*" in var_name:
-                # Scan a few files to find concrete instances
                 concrete_vars = self.scan_stats_variables(stats_path, stats_pattern, limit=3)
+                matches = [cv["name"] for cv in concrete_vars if re.fullmatch(var_name, cv["name"])]
 
-                matched_concrete_names = []
-                for cv in concrete_vars:
-                    if re.fullmatch(var_name, cv["name"]):
-                        matched_concrete_names.append(cv["name"])
-
-                if matched_concrete_names:
-                    # Found concrete matches: Configure Parser for reduction.
-                    # Create one variable entry mapping all concrete IDs via 'parsed_ids'.
-                    count = len(matched_concrete_names)
-
-                    # Create reduced variable config
-                    reduced_config = {
-                        "id": var_name,
+                if matches:
+                    var_config = {
+                        "name": var_name,
                         "type": var["type"],
-                        "parsed_ids": matched_concrete_names,
-                        "repeat": count,  # Parser uses this for averaging
+                        "parsed_ids": matches,
+                        "repeat": len(matches),
                     }
-
-                    # Copy specific fields
                     if var["type"] == "vector":
-                        if "vectorEntries" in var:
-                            reduced_config["vectorEntries"] = var["vectorEntries"]
-                        else:
-                            reduced_config["vectorEntries"] = "total, mean"
-
+                        var_config["vectorEntries"] = var.get("vectorEntries", "total,mean")
                     elif var["type"] == "distribution":
-                        reduced_config["minimum"] = var.get("minimum", -10)
-                        reduced_config["maximum"] = var.get("maximum", 100)
+                        var_config["minimum"] = var.get("minimum", -10)
+                        var_config["maximum"] = var.get("maximum", 100)
+                    elif var["type"] == "histogram":
+                        # Histograms usually auto-detect buckets, but allow overrides if needed
+                        pass
+                    parser_vars.append(var_config)
+                    continue
 
-                    elif var["type"] == "configuration":
-                        reduced_config["onEmpty"] = var.get("onEmpty", "None")
+            # Standard variable
+            var_config = {"name": var_name, "type": var["type"]}
+            if var.get("alias"):
+                var_config["name"] = var["alias"]
+                var_config["parsed_ids"] = [var_name]
 
-                    parser_vars.append(reduced_config)
+            if var["type"] == "vector":
+                var_config["vectorEntries"] = var.get("vectorEntries")
+            elif var["type"] == "distribution":
+                var_config["minimum"] = var.get("minimum", 0)
+                var_config["maximum"] = var.get("maximum", 100)
+            elif var["type"] == "histogram":
+                # No specific default params for histogram yet
+                pass
+            elif var["type"] == "configuration":
+                var_config["onEmpty"] = var.get("onEmpty", "None")
 
-                else:
-                    # No match found? Add as is
-                    _add_as_is(var_name, var)
-            else:
-                # Normal variable
-                _add_as_is(var_name, var)
+            if "repeat" in var:
+                var_config["repeat"] = var["repeat"]
 
-        # Create parser configuration
-        parser_config = [
-            {
-                "id": "webapp_config",
-                "impl": "perl",
-                "compress": "True" if compress else "False",
-                "parsings": [{"path": stats_path, "files": stats_pattern, "vars": parser_vars}],
-            }
-        ]
-
-        # Write configurations
-        with open(parse_config_file, "w") as f:
-            json.dump(parser_config, f, indent=2)
-
-        config_file = Path(output_dir) / "config.json"
-        with open(config_file, "w") as f:
-            json.dump(parse_config_data, f, indent=2)
+            parser_vars.append(var_config)
 
         if progress_callback:
-            progress_callback(2, 0.2, "Configuring parser...")
+            progress_callback(2, 0.3, "Configuring parser...")
 
-        from src.parsing.params import DataParserParams
-
-        parser_params = DataParserParams(config_json=parse_config_data)
+        # Build and run parser
+        parser = (
+            Gem5StatsParser.builder()
+            .with_path(stats_path)
+            .with_pattern(stats_pattern)
+            .with_variables(parser_vars)
+            .with_output(output_dir)
+            .build()
+        )
 
         if progress_callback:
-            if compress:
-                progress_callback(3, 0.3, "Compressing files...")
-            else:
-                progress_callback(3, 0.5, "Parsing files...")
+            progress_callback(3, 0.5, "Parsing files...")
 
-        # Run parser
-        parser = DataParserFactory.getDataParser(parser_params, "perl")
-        parser()
+        csv_path = parser.parse()
 
         if progress_callback:
             progress_callback(4, 1.0, "Parsing complete!")
 
-        # Return CSV path (no post-processing reduction needed anymore)
-        csv_path = Path(output_dir) / "results.csv"
-
-        if csv_path.exists():
-            return str(csv_path)
-
-        return None
+        return csv_path
 
     # ==================== Data Processing ====================
 
@@ -360,30 +279,18 @@ class BackendFacade:
             # Limit files for speed
             files_to_scan = files[:limit]
 
-            # Use Parallel Scanner
-            import shutil
-
-            from src.scanning.impl.multiprocessing.scanWorkPool import ScanWorkPool
-            from src.scanning.impl.multiprocessing.statsScanWork import StatsScanWork
-
-            perl_exe = shutil.which("perl")
-            if not perl_exe:
-                # Should we raise? or just log and return empty?
-                # Given the existing structure, logging seems appropriate as it returns [] on error
-                print("Perl executable not found.")
-                return []
-
-            script_path = (
-                self.ring5_data_dir.parent
-                / "src/parsing/impl/data_parser_perl/src/parser_impl/statsScanner.pl"
-            ).resolve()
+            # Use Parallel Scanner via Gem5StatsScanner wrapper
+            # Use the Scanner directly with the Pool to maintain parallelism.
+            from src.scanning.workers.gem5_scan_work import Gem5ScanWork
+            from src.scanning.workers.pool import ScanWorkPool
 
             # Initialize Pool
             pool = ScanWorkPool.getInstance()
 
             # Submit Work
+
             for file_path in files_to_scan:
-                work = StatsScanWork(file_path, perl_exe, script_path)
+                work = Gem5ScanWork(str(file_path))
                 pool.addWork(work)
 
             # Collect Results
@@ -513,42 +420,32 @@ class BackendFacade:
 
             all_entries = set()
 
-            # We could optimize StatsScanner to accept a filter, but for now
-            # scanning is reasonably fast per file, the overhead is opening many files.
-            # To make it truly fast, we should use grep if available, but let's stick to python for
-            # portability.
             # Limit files
             files_to_scan = files[:limit]
 
-            # Use Parallel Scanner
-            import shutil
-
-            from src.scanning.impl.multiprocessing.scanWorkPool import ScanWorkPool
-            from src.scanning.impl.multiprocessing.vectorScanWork import VectorScanWork
-
-            script_path = (
-                self.ring5_data_dir.parent
-                / "src/parsing/impl/data_parser_perl/src/parser_impl/statsScanner.pl"
-            ).resolve()
-
-            perl_exe = shutil.which("perl")
-            if not perl_exe:
-                return []
+            # Use Parallel Scanner via unified StatsScanWork
+            from src.scanning.workers.gem5_scan_work import Gem5ScanWork
+            from src.scanning.workers.pool import ScanWorkPool
 
             # Initialize Pool
             pool = ScanWorkPool.getInstance()
 
             # Submit Work
             for file_path in files_to_scan:
-                work = VectorScanWork(file_path, vector_name, perl_exe, script_path)
+                # Use unified scanner worker
+                work = Gem5ScanWork(str(file_path))
                 pool.addWork(work)
 
-            # Collect Results
+            # Collect Results (List of lists of dicts)
             results = pool.getResults()
 
-            # Merge unique entries
-            for entry_list in results:
-                all_entries.update(entry_list)
+            # Process results to find vector entries
+            for file_vars in results:
+                for var in file_vars:
+                    if var["name"] == vector_name and var.get("type") == "vector":
+                        # Add entries to set
+                        entries = var.get("entries", [])
+                        all_entries.update(entries)
 
             return sorted(list(all_entries))
         except Exception:

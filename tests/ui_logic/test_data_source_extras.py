@@ -122,12 +122,11 @@ def test_execute_parser_success(mock_streamlit, mock_facade, mock_state_manager)
 
     # Mock temp dir existence (pathlib check)
     with patch("pathlib.Path.exists", return_value=True):
-        DataSourceComponents.execute_parser(mock_facade, stats_path, pattern, False)
+        DataSourceComponents.execute_parser(mock_facade, stats_path, pattern)
 
         mock_facade.parse_gem5_stats.assert_called_with(
             stats_path=stats_path,
             stats_pattern=pattern,
-            compress=False,
             variables=ANY,
             output_dir=ANY,
             progress_callback=ANY,
@@ -141,7 +140,7 @@ def test_execute_parser_no_files(mock_streamlit, mock_facade):
 
     # Validation checks path validation first which uses Path(path).exists().
     with patch("pathlib.Path.exists", return_value=True):
-        DataSourceComponents.execute_parser(mock_facade, "/p", "*.txt", False)
+        DataSourceComponents.execute_parser(mock_facade, "/p", "*.txt")
 
     mock_streamlit.warning.assert_called_with("No files found matching pattern")
     mock_facade.parse_gem5_stats.assert_not_called()

@@ -274,13 +274,13 @@ class TestEdgeCasesAndValidation:
             "group": "Group",
             "y_columns": ["Val1"],
             "show_values": True,
-            "text_font_size": 100,  # Above maximum
+            "text_font_size": 200,  # Above maximum
         }
         fig = plot.create_figure(sample_data, config)
         fig = applicator.apply_styles(fig, config)
 
         for trace in fig.data:
-            assert trace.textfont.size == 48  # Clamped to max
+            assert trace.textfont.size == 100  # Clamped to max (100)
 
     def test_invalid_rotation_string(self, plot, sample_data, applicator):
         """Test that invalid rotation string falls back to default."""

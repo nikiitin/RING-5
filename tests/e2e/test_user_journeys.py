@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from src.parsing.factory import DataParserFactory
+from src.parsing.parser import Gem5StatsParser
 from src.web.facade import BackendFacade
 from src.web.services.plot_service import PlotService
 from src.web.services.portfolio_service import PortfolioService
@@ -84,13 +84,12 @@ def test_workflow_stats_to_portfolio(test_data_available, temp_env):
 
     output_dir = tempfile.mkdtemp()
     try:
-        DataParserFactory.reset()
+        Gem5StatsParser.reset()
         csv_path = facade.parse_gem5_stats(
             stats_path=str(subdirs[0]),
             stats_pattern="**/stats.txt",
             variables=variables,
             output_dir=output_dir,
-            compress=False,
         )
 
         assert csv_path is not None, "Parsing failed"
@@ -154,20 +153,19 @@ def test_workflow_stats_to_portfolio(test_data_available, temp_env):
 
 
 def test_workflow_failed_parsing_recovery(temp_env):
-    """Test system resilience when parsing fails (e.g. no files)."""
+    """Test system resilience when parsing fails (e.g. empty variables)."""
     facade = temp_env
 
     empty_dir = tempfile.mkdtemp()
     try:
-        csv_path = facade.parse_gem5_stats(
-            stats_path=empty_dir,
-            stats_pattern="**/stats.txt",
-            variables=[],
-            output_dir=empty_dir,
-            compress=False,
-        )
-        # Should return None or handle gracefully (facade returns None if csv not exists)
-        assert csv_path is None
+        # Empty variables should raise ValueError (new validation)
+        with pytest.raises(ValueError, match="At least one variable"):
+            facade.parse_gem5_stats(
+                stats_path=empty_dir,
+                stats_pattern="**/stats.txt",
+                variables=[],
+                output_dir=empty_dir,
+            )
 
     finally:
         shutil.rmtree(empty_dir)

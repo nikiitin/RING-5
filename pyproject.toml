@@ -23,22 +23,22 @@ classifiers = [
 ]
 
 dependencies = [
-  "tqdm>=4.65.0",
-  "pytest>=7.0.0",
-  "pandas>=2.0.0",
-  "scipy>=1.10.0",
-  "numpy>=1.24.0",
-  "matplotlib>=3.7.0",
-  "seaborn>=0.12.0",
-  "jsonschema>=4.17.0",
-  "streamlit>=1.28.0",
-  "openpyxl>=3.1.0",
-  "plotly>=5.17.0",
-  "kaleido>=1.0.0",
+  "tqdm>=4.67.1",
+  "pytest>=9.0.2",
+  "pandas>=2.3.3",
+  "scipy>=1.17.0",
+  "numpy>=2.4.1",
+  "matplotlib>=3.10.8",
+  "seaborn>=0.13.2",
+  "jsonschema>=4.26.0",
+  "streamlit>=1.53.1",
+  "openpyxl>=3.1.5",
+  "plotly>=6.5.2",
+  "kaleido>=1.2.0",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=7.0.0", "pytest-cov>=4.0.0", "black>=23.0.0", "flake8>=6.0.0"]
+dev = ["pytest>=9.0.2", "pytest-cov>=7.0.0", "black>=26.1.0", "flake8>=7.3.0"]
 
 [project.urls]
 Homepage = "https://github.com/your-org/ring5"
@@ -58,6 +58,9 @@ python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
 addopts = "-v --tb=short"
+filterwarnings = [
+  "ignore:.*Support for the 'engine' argument is deprecated.*:DeprecationWarning",
+]
 
 [tool.black]
 line-length = 100

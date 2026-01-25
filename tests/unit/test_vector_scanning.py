@@ -5,22 +5,40 @@ from src.web.facade import BackendFacade
 
 
 class TestVectorScanning:
+    @patch("src.scanning.workers.pool.ScanWorkPool")
     @patch("src.web.facade.Path")
     @patch("shutil.which")
     @patch("subprocess.check_output")
-    def test_scan_vector_entries_logic(self, mock_subprocess, mock_which, mock_path):
-        import tempfile
+    def test_scan_vector_entries_logic(
+        self, mock_subprocess, mock_which, mock_path, mock_scan_pool
+    ):
         import json
+        import tempfile
+
+        # Mock ScanWorkPool sequence: getInstance() -> pool -> getResults()
+        mock_pool_instance = mock_scan_pool.getInstance.return_value
+
+        # We mock what the pool returns directly.
+        # StatsScanWork now returns a LIST of DICTS (variable objects).
+        mock_output = [
+            [
+                {
+                    "name": "system.cpu.op_class",
+                    "type": "vector",
+                    "entries": ["IntAlu", "IntMult", "IntDiv", "FloatAdd"],
+                }
+            ]
+        ]
+        mock_pool_instance.getResults.return_value = mock_output
+
+        # Mock shutil.which to return a fake path
 
         # Mock shutil.which to return a fake path
         mock_which.return_value = "/usr/bin/perl"
 
         # Mock subprocess output
         expected_output = [
-            {
-                "name": "system.cpu.op_class",
-                "entries": ["IntAlu", "IntMult", "IntDiv", "FloatAdd"]
-            }
+            {"name": "system.cpu.op_class", "entries": ["IntAlu", "IntMult", "IntDiv", "FloatAdd"]}
         ]
         mock_subprocess.return_value = json.dumps(expected_output).encode("utf-8")
 

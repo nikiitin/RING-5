@@ -1,90 +1,39 @@
-import json
-from unittest.mock import MagicMock, mock_open, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.scanning.impl.multiprocessing.scanWorkPool import ScanWorkPool
-from src.scanning.impl.multiprocessing.statsScanWork import StatsScanWork
-from src.scanning.impl.multiprocessing.vectorScanWork import VectorScanWork
-
-# --- StatsScanWork Tests ---
+from src.scanning.workers.gem5_scan_work import Gem5ScanWork
+from src.scanning.workers.pool import ScanWorkPool
 
 
 def test_stats_scan_work_success():
-    work = StatsScanWork("test_file.txt", "perl", "script.pl")
+    work = Gem5ScanWork("test_file.txt")
 
     mock_vars = [{"name": "var1", "type": "scalar"}, {"name": "var2", "type": "vector"}]
-    mock_output = json.dumps(mock_vars).encode("utf-8")
 
-    with patch("subprocess.check_output", return_value=mock_output) as mock_run:
+    with patch("src.scanning.scanner.Gem5StatsScanner.get_instance") as mock_scanner_cls:
+        mock_instance = MagicMock()
+        mock_scanner_cls.return_value = mock_instance
+        mock_instance.scan_file.return_value = mock_vars
+
         result = work()
 
-        mock_run.assert_called_once()
+        mock_instance.scan_file.assert_called_once()
         assert len(result) == 2
         assert result[0]["name"] == "var1"
 
 
 def test_stats_scan_work_failure():
-    work = StatsScanWork("test_file.txt", "perl", "script.pl")
+    work = Gem5ScanWork("test_file.txt")
 
-    with patch("subprocess.check_output", side_effect=Exception("Perl error")):
+    with patch("src.scanning.scanner.Gem5StatsScanner.get_instance") as mock_scanner_cls:
+        mock_instance = MagicMock()
+        mock_scanner_cls.return_value = mock_instance
+        mock_instance.scan_file.side_effect = Exception("Scan error")
+
+        # Should handle exception and return empty
         result = work()
         assert result == []
-
-
-# --- VectorScanWork Tests ---
-
-
-def test_vector_scan_work_quick_skip():
-    """Test that it returns empty list quickly if variable name not in file content"""
-    work = VectorScanWork("test_file.txt", "my_vector", "perl", "script.pl")
-
-    with patch("builtins.open", mock_open(read_data="other_var 10\n")):
-        with patch("subprocess.check_output") as mock_run:
-            result = work()
-
-            # Should NOT call subprocess because "my_vector" is absent
-            mock_run.assert_not_called()
-            assert result == []
-
-
-def test_vector_scan_work_success():
-    work = VectorScanWork("test_file.txt", "my_vector", "perl", "script.pl")
-
-    file_content = "my_vector::0 10\nmy_vector::1 20"
-    mock_vars = [
-        {"name": "my_vector", "entries": ["entry1", "entry2"]},
-        {"name": "other_vector", "entries": ["x"]},
-    ]
-    mock_output = json.dumps(mock_vars).encode("utf-8")
-
-    with patch("builtins.open", mock_open(read_data=file_content)):
-        with patch("subprocess.check_output", return_value=mock_output) as mock_run:
-            result = work()
-
-            mock_run.assert_called_once()
-            # Should only return entries for "my_vector"
-            assert result == ["entry1", "entry2"]
-
-
-def test_vector_scan_work_with_regex():
-    """Test using a regex pattern clearly shows failure of simpler string check"""
-    # Pattern includes regex syntax
-    work = VectorScanWork("test_file.txt", r"system\.ruby\.l\d+_cntrl\d+", "perl", "script.pl")
-
-    # File content matches the regex, but not the literal string
-    file_content = "system.ruby.l0_cntrl0::entry 10"
-
-    mock_vars = [{"name": "system.ruby.l0_cntrl0", "entries": ["entry"]}]
-    mock_output = json.dumps(mock_vars).encode("utf-8")
-
-    with patch("builtins.open", mock_open(read_data=file_content)):
-        with patch("subprocess.check_output", return_value=mock_output) as mock_run:
-            result = work()
-
-            # With the fix, this should call subprocess because regex matches
-            mock_run.assert_called_once()
-            assert result == ["entry"]
 
 
 # --- ScanWorkPool Tests ---
@@ -110,7 +59,7 @@ def test_scan_work_pool_add_work(clean_pool_singleton):
         mock_wp_cls.return_value = mock_internal_pool
 
         scan_pool = ScanWorkPool.getInstance()
-        work = StatsScanWork("f", "p", "s")
+        work = Gem5ScanWork("f")
 
         scan_pool.addWork(work)
 

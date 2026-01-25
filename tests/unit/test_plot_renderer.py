@@ -1,4 +1,4 @@
-from unittest.mock import ANY, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
@@ -66,16 +66,18 @@ def test_render_legend_customization_with_col(mock_streamlit, mock_plot):
     assert mock_plot.legend_mappings_by_column["C"] == result
 
 
-def test_render_plot_regenerate(mock_streamlit, mock_plot):
+@patch("src.web.ui.components.interactive_plot.interactive_plotly_chart")
+def test_render_plot_regenerate(mock_interactive_chart, mock_streamlit, mock_plot):
     mock_plot.processed_data = pd.DataFrame({"x": [1]})
 
     PlotRenderer.render_plot(mock_plot, should_generate=True)
 
     assert mock_plot.last_generated_fig is not None
-    mock_streamlit.plotly_chart.assert_called()
+    mock_interactive_chart.assert_called()
 
 
-def test_render_plot_cached(mock_streamlit, mock_plot):
+@patch("src.web.ui.components.interactive_plot.interactive_plotly_chart")
+def test_render_plot_cached(mock_interactive_chart, mock_streamlit, mock_plot):
     fig = MagicMock()
     mock_plot.last_generated_fig = fig
 
@@ -86,7 +88,10 @@ def test_render_plot_cached(mock_streamlit, mock_plot):
         PlotRenderer.render_plot(mock_plot, should_generate=False)
         mock_create.assert_not_called()
 
-    mock_streamlit.plotly_chart.assert_called_with(fig, config=ANY)
+    # Verify interactive chart called instead of st.plotly_chart
+    args, kwargs = mock_interactive_chart.call_args
+    assert args[0] == fig
+    assert "config" in kwargs
 
 
 def test_export_html(mock_streamlit, mock_plot):

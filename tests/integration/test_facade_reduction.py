@@ -59,7 +59,6 @@ class TestFacadeReduction:
         csv_path = facade.parse_gem5_stats(
             stats_path=stats_path,
             stats_pattern="stats.txt*",
-            compress=False,
             variables=variables,
             output_dir=output_dir,
         )
