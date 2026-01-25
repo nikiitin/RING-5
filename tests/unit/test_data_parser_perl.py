@@ -107,6 +107,12 @@ class TestParserVariableMapping:
             .build()
         )
 
+        var_map = parser._map_variables()
+        assert "dist" in var_map
+        assert type(var_map["dist"]).__name__ == "Distribution"
+        assert var_map["dist"].minimum == 0
+        assert var_map["dist"].maximum == 5
+
     def test_map_histogram_variable(self):
         """Test mapping histogram variable with statistics."""
         parser = (

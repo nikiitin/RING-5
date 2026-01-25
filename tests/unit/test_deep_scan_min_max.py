@@ -72,11 +72,3 @@ class TestDeepScanMinMax:
         assert group["name"] == "system.cpu\\d+.dist"
         assert group["minimum"] == 0
         assert group["maximum"] == 20
-
-
-if __name__ == "__main__":
-    # Manually run if executed directly
-    t = TestDeepScanMinMax()
-    t.test_merging_logic_in_facade()
-    t.test_grouping_logic_propagates_min_max()
-    print("Tests passed!")
