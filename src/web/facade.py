@@ -7,7 +7,6 @@ Decouples the web interface from complex backend implementations.
 import glob
 import logging
 import re
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
@@ -196,163 +195,43 @@ class BackendFacade:
     ) -> List[Dict[str, Any]]:
         """
         Parallel scan of stats files to discover available metrics.
-
-        Uses the parallel ScanWorkPool for research-scale efficiency.
+        Delegates to ScannerService.
         """
-        search_path = Path(stats_path)
-        if not search_path.exists():
-            logger.error(f"FACADE: Stats path does not exist: {stats_path}")
-            return []
+        from src.parsers.scanner_service import ScannerService
 
-        files = list(search_path.rglob(stats_pattern))
-        if not files:
-            return []
-
-        # Optimization: Scan few samples to build the schema quickly
-        files_to_sample = files[:limit]
-
-        from src.parsers.workers.gem5_scan_work import Gem5ScanWork
-        from src.parsers.workers.pool import ScanWorkPool
-
-        pool = ScanWorkPool.getInstance()
-        for file_path in files_to_sample:
-            pool.addWork(Gem5ScanWork(str(file_path)))
-
-        results = pool.getResults()
-
-        # Scientific Merging: Combine discovered keys across all sampled files
-        merged_registry: Dict[str, Dict[str, Any]] = {}
-
-        for file_vars in results:
-            for var in file_vars:
-                name = var["name"]
-                if name not in merged_registry:
-                    merged_registry[name] = var
-                else:
-                    # Union of discovered keys for vectors/histograms
-                    if var["type"] in ("vector", "histogram") and "entries" in var:
-                        existing = set(merged_registry[name].get("entries", []))
-                        existing.update(var["entries"])
-                        merged_registry[name]["entries"] = sorted(list(existing))
-
-                    # Global range detection for distributions
-                    if var["type"] == "distribution":
-                        if "minimum" in var:
-                            cur_min = merged_registry[name].get("minimum")
-                            merged_registry[name]["minimum"] = (
-                                min(cur_min, var["minimum"])
-                                if cur_min is not None
-                                else var["minimum"]
-                            )
-                        if "maximum" in var:
-                            cur_max = merged_registry[name].get("maximum")
-                            merged_registry[name]["maximum"] = (
-                                max(cur_max, var["maximum"])
-                                if cur_max is not None
-                                else var["maximum"]
-                            )
-
-        return sorted(list(merged_registry.values()), key=lambda x: x["name"])
+        return ScannerService.scan_stats_variables(stats_path, stats_pattern, limit)
 
     def scan_stats_variables_with_grouping(
         self, stats_path: str, file_pattern: str = "stats.txt", limit: int = 5
     ) -> List[Dict[str, Any]]:
-        r"""
-        Scan and group variables using Regex (heuristic for reduction).
-        e.g. system.cpu0.ipc and system.cpu1.ipc -> system.cpu\d+.ipc
-
-        Note: This is a heuristic discovery method.
         """
-        raw_vars = self.scan_stats_variables(stats_path, file_pattern, limit)
-        if not raw_vars:
-            return []
+        Scan and group variables using Regex (heuristic for reduction).
+        Delegates to ScannerService.
+        """
+        from src.parsers.scanner_service import ScannerService
 
-        grouped_vars: Dict[str, Dict[str, Any]] = {}
-
-        for var in raw_vars:
-            name = var["name"]
-            if re.search(r"\d+", name):
-                pattern = re.sub(r"\d+", r"\\d+", name)
-
-                if pattern not in grouped_vars:
-                    grouped_vars[pattern] = {
-                        "name": pattern,
-                        "type": var["type"],
-                        "entries": var.get("entries", []),
-                        "count": 1,
-                        "examples": [name],
-                    }
-                    if var["type"] == "distribution":
-                        if "minimum" in var:
-                            grouped_vars[pattern]["minimum"] = var["minimum"]
-                        if "maximum" in var:
-                            grouped_vars[pattern]["maximum"] = var["maximum"]
-                else:
-                    grouped_vars[pattern]["count"] += 1
-                    if len(grouped_vars[pattern]["examples"]) < 3:
-                        grouped_vars[pattern]["examples"].append(name)
-
-                    if "entries" in var:
-                        existing = set(grouped_vars[pattern].get("entries", []))
-                        existing.update(var["entries"])
-                        grouped_vars[pattern]["entries"] = sorted(list(existing))
-
-                    if var["type"] == "distribution":
-                        if "minimum" in var:
-                            cur_min = grouped_vars[pattern].get("minimum")
-                            grouped_vars[pattern]["minimum"] = (
-                                min(cur_min, var["minimum"])
-                                if cur_min is not None
-                                else var["minimum"]
-                            )
-                        if "maximum" in var:
-                            cur_max = grouped_vars[pattern].get("maximum")
-                            grouped_vars[pattern]["maximum"] = (
-                                max(cur_max, var["maximum"])
-                                if cur_max is not None
-                                else var["maximum"]
-                            )
-            else:
-                if name not in grouped_vars:
-                    grouped_vars[name] = var
-                    grouped_vars[name]["count"] = 1
-                    grouped_vars[name]["examples"] = [name]
-
-        results = []
-        for info in grouped_vars.values():
-            if info["count"] == 1 and len(info["examples"]) == 1:
-                info["name"] = info["examples"][0]
-            results.append(info)
-
-        return sorted(results, key=lambda x: x["name"])
+        return ScannerService.scan_stats_variables_with_grouping(
+            stats_path, file_pattern, limit
+        )
 
     def scan_entries_for_variable(
         self, stats_path: str, var_name: str, file_pattern: str = "stats.txt", limit: int = 10
     ) -> List[str]:
         """
         Deep scan to find all unique sub-keys (entries) for a complex variable.
+        Uses ScannerService's deep scan capability (via scan_stats_variables primarily).
         """
+        # Filter logic is here but deep scan delegated to Service
+        
+        from src.parsers.scanner_service import ScannerService
+        
+        # Refactoring to use ScannerService for raw data
+        raw_vars = ScannerService.scan_stats_variables(stats_path, file_pattern, limit)
         found_entries: set[str] = set()
-
-        search_path = Path(stats_path)
-        if not search_path.exists():
-            return []
-
-        # Sampling for discovery speed
-        files = list(search_path.rglob(file_pattern))[:limit]
-
-        from src.parsers.workers.gem5_scan_work import Gem5ScanWork
-        from src.parsers.workers.pool import ScanWorkPool
-
-        pool = ScanWorkPool.getInstance()
-        for f in files:
-            pool.addWork(Gem5ScanWork(str(f)))
-
-        results = pool.getResults()
-        for file_vars in results:
-            for var in file_vars:
-                if var["name"] == var_name and "entries" in var:
-                    found_entries.update(var["entries"])
+        
+        for var in raw_vars:
+            if var["name"] == var_name and "entries" in var:
+                found_entries.update(var["entries"])
 
         return sorted(list(found_entries))
 
@@ -362,11 +241,13 @@ class BackendFacade:
         """
         Determine the global operational range for a distribution variable.
         """
+        from src.parsers.scanner_service import ScannerService
+        
+        # Deep scan across 20 samples to ensure range coverage
+        discovered_vars = ScannerService.scan_stats_variables(stats_path, file_pattern, limit=20)
+        
         global_min: Optional[int] = None
         global_max: Optional[int] = None
-
-        # Deep scan across 20 samples to ensure range coverage
-        discovered_vars = self.scan_stats_variables(stats_path, file_pattern, limit=20)
 
         for var in discovered_vars:
             if var["name"] == var_name and var.get("type") == "distribution":

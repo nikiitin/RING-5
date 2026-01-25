@@ -52,8 +52,6 @@ class Gem5ParseWork(ParseWork):
 
     # ========== Line Processing ==========
 
-    # ========== Line Processing ==========
-
     def _parseLine(self, line: str) -> tuple:
         """Parse a line into (varType, varID, varValue)."""
         parts = line.split("/")
@@ -215,9 +213,7 @@ class Gem5ParseWork(ParseWork):
             return result.stdout
         except subprocess.CalledProcessError as e:
             print(f"Error calling Perl script: {cmd}")
-            # e.output might be bytes or str depending on text=True usage in CalledProcessError
-            # But subprocess.run with text=True raises checks with output as str usually?
-            # Actually e.stdout/e.stderr are populated. e.output is alias for stdout.
+            # subprocess.run with text=True ensures e.stdout and e.stderr are strings.
             print(f"Output: {e.stdout}")
             raise
 

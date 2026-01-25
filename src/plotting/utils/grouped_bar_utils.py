@@ -124,3 +124,129 @@ class GroupedBarUtils:
                 )
             )
         return annotations
+    @staticmethod
+    def calculate_grouped_coordinates(
+        categories: List[str],
+        groups: List[str],
+        config: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """
+        Calculate manual X-axis coordinates for grouped bar plots.
+
+        Args:
+            categories: Ordered list of Major Groups (X-axis categories)
+            groups: Ordered list of Minor Groups (Sub-groups)
+            config: Plot configuration containing spacing settings
+
+        Returns:
+            Dictionary containing:
+            - coord_map: Dict[(category, group), x_coord]
+            - tick_vals: List of x coordinates for ticks
+            - tick_text: List of labels for ticks
+            - cat_centers: List of (center_x, label) for major labels
+            - shapes: List of separator/shading shapes
+            - bar_width: Width of each bar
+        """
+        bargroupgap = config.get("bargroupgap", 0.0)
+        # In grouped bar, groups are iterator. In stacked, groups are clustered.
+        # This logic handles the clustered grouping (GroupedStacked or GroupedBar).
+        
+        # Determine strict bar width based on gaps
+        # If groups is empty (simple bar), treat as single group
+        actual_groups = groups if groups else [None]
+        
+        # Each bar occupies 1.0 unit of width in the 'simulation' space.
+        
+        coord_map = {}
+        tick_vals = []
+        tick_text = []
+        cat_centers = []
+        shapes = []
+
+        show_separators = config.get("show_separators", False)
+        sep_color = config.get("separator_color", "#E0E0E0")
+        shade_alternate = config.get("shade_alternate", False)
+        shade_color = config.get("shade_color", "#F5F5F5")
+        isolate_last = config.get("isolate_last_group", False)
+        isolation_gap = config.get("isolation_gap", 0.5)
+
+        current_x = 0.0
+
+        for i, cat in enumerate(categories):
+            start_x = current_x
+
+            for grp in actual_groups:
+                # Store coordinate
+                key = (cat, grp) if grp is not None else cat
+                coord_map[key] = current_x
+                
+                # Ticks mimic the bars
+                tick_vals.append(current_x)
+                if grp:
+                    tick_text.append(str(grp))
+                else:
+                    # If no groups, tick text is the category itself (handled by caller usually, but okay)
+                    tick_text.append(str(cat))
+
+                current_x += 1.0
+
+            # Calculate center of this major category cluster
+            # (start + end - 1) / 2
+            # end is current_x (which is one step past last bar)
+            center = (start_x + (current_x - 1.0)) / 2.0
+            cat_centers.append((center, cat))
+
+            # Visual Distinctions (Shading)
+            if shade_alternate and (i % 2 == 1):
+                # Account for bargroupgap in the shade boundaries.
+                x0 = start_x - 0.5 - (bargroupgap / 2.0)
+                x1 = (current_x - 1.0) + 0.5 + (bargroupgap / 2.0) 
+                shapes.append(
+                    GroupedBarUtils.create_shade_shape(x0, x1, shade_color)
+                )
+
+            # Separators (Vertical Lines)
+            next_is_last_isolated = isolate_last and (i == len(categories) - 2)
+            
+            # Add Inter-Category Spacing (bargroupgap)
+            current_x += bargroupgap
+            
+            # Draw Separator in the gap
+            if show_separators and i < len(categories) - 1:
+                if not next_is_last_isolated:
+                    # Midpoint of the gap we just added
+                    # gap starts at (current_x - bargroupgap)
+                    # gap ends at current_x
+                    sep_x = current_x - (bargroupgap / 2.0) - 0.5 
+                    
+                    # Consistent Logic:
+                    # Coordinate system: Centers are integers 0, 1, 2...
+                    # Bar width 0.8 means -0.4 to +0.4 relative to center.
+                    # Here we increment by 1.0, so centers are 0.0, 1.0, 2.0
+                    # Edge is +0.5.
+                    
+                    # Sep Position:
+                    
+                    sep_x = (current_x - bargroupgap) - 0.5 + (bargroupgap / 2.0)
+                    shapes.append(GroupedBarUtils.create_separator_shape(sep_x, sep_color))
+
+            # Isolation Gap (Extra spacing for last group)
+            if next_is_last_isolated:
+                current_x += isolation_gap
+                
+                # Draw Thick Separator in the middle of total gap
+                # total gap = bargroupgap + isolation_gap
+                # center of gap relative to now:
+                # start of gap = current_x - gap_total
+                gap_total = bargroupgap + isolation_gap
+                sep_x = current_x - 0.5 - (gap_total / 2.0)
+                shapes.append(GroupedBarUtils.create_isolation_separator(sep_x))
+
+        return {
+            "coord_map": coord_map,
+            "tick_vals": tick_vals,
+            "tick_text": tick_text,
+            "cat_centers": cat_centers,
+            "shapes": shapes,
+            "bar_width": 1.0 - config.get("bargap", 0.2) # Approximation
+        }

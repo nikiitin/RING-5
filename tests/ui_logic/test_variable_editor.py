@@ -107,15 +107,13 @@ def test_variable_editor_deep_scan(mock_streamlit, mock_facade):
     mock_streamlit.text_input.return_value = "vec"
     mock_streamlit.selectbox.return_value = "vector"
 
-    # Trigger Deep Scan path: requires stats_path, no discovered entries, manual entry mode?
-    # Or "Select from Discovered Entries" + Button
+    # Trigger Deep Scan path: requires stats_path, no discovered entries, manual entry mode.
 
-    # Let's say entry_mode = "Select from Discovered Entries"
+    # Simulate "Select from Discovered Entries" mode to trigger specific path
     mock_streamlit.radio.return_value = "Select from Discovered Entries"
 
-    # Deep Scan Button -> True
-    # We need to distinguish buttons.
-    # Button keys: delete_var_.., deep_scan_.., add_selected.., add_manual..
+    # Deep Scan Button Click
+    # Mocking button interactions using key prefix check
     def button_side_effect(label, key=None, **kwargs):
         if key and key.startswith("deep_scan"):
             return True

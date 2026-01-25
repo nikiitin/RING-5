@@ -262,7 +262,7 @@ class StateManager:
         st.session_state[StateManager.STATS_PATTERN] = "stats.txt"
         st.session_state[StateManager.SCANNED_VARIABLES] = []
 
-        # Also clean up parse variables to default?
+        # Reset Parse Variables to defaults
         st.session_state[StateManager.PARSE_VARIABLES] = [
             {"name": "simTicks", "type": "scalar"},
             {"name": "benchmark_name", "type": "configuration"},

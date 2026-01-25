@@ -47,7 +47,6 @@ def mock_state_manager():
 
 
 def test_render_csv_pool_empty(mock_streamlit, mock_facade, mock_state_manager):
-    # Setup empty pool
     mock_facade.load_csv_pool.return_value = []
 
     DataSourceComponents.render_csv_pool(mock_facade)
@@ -59,23 +58,18 @@ def test_render_csv_pool_empty(mock_streamlit, mock_facade, mock_state_manager):
 def test_render_csv_pool_with_files(
     mock_streamlit, mock_facade, mock_card_components, mock_state_manager
 ):
-    # Setup pool with file
     csv_info = {"name": "test.csv", "path": "/path/to/test.csv"}
     mock_facade.load_csv_pool.return_value = [csv_info]
 
-    # Mock Path exists
     with patch("pathlib.Path.exists", return_value=True):
-        # Mock file info card interactions: Load clicked=True
         mock_card_components.file_info_card.return_value = (True, False, False)
 
-        # Mock load data
         mock_data = MagicMock()
         mock_data.__len__.return_value = 10
         mock_facade.load_csv_file.return_value = mock_data
 
         DataSourceComponents.render_csv_pool(mock_facade)
 
-        # Verify load logic
         mock_facade.load_csv_file.assert_called_with("/path/to/test.csv")
         mock_state_manager.set_data.assert_called_with(mock_data)
         mock_streamlit.success.assert_called()
@@ -86,7 +80,6 @@ def test_render_csv_pool_delete(mock_streamlit, mock_facade, mock_card_component
     mock_facade.load_csv_pool.return_value = [csv_info]
 
     with patch("pathlib.Path.exists", return_value=True):
-        # Delete clicked
         mock_card_components.file_info_card.return_value = (False, False, True)
         mock_facade.delete_from_csv_pool.return_value = True
 
@@ -97,7 +90,6 @@ def test_render_csv_pool_delete(mock_streamlit, mock_facade, mock_card_component
 
 
 def test_render_parser_config(mock_streamlit, mock_facade, mock_state_manager):
-    # Test scan button
     mock_streamlit.button.side_effect = lambda label, **k: "Scan" in label
 
     mock_facade.scan_stats_variables_with_grouping.return_value = [{"name": "var1"}]
@@ -113,14 +105,11 @@ def test_execute_parser_success(mock_streamlit, mock_facade, mock_state_manager)
     stats_path = "/stats"
     pattern = "*.txt"
 
-    # Mock file finding
     mock_facade.find_stats_files.return_value = ["/stats/1.txt"]
 
-    # Mock parsing success
     generated_csv = "/output.csv"
     mock_facade.parse_gem5_stats.return_value = generated_csv
 
-    # Mock temp dir existence (pathlib check)
     with patch("pathlib.Path.exists", return_value=True):
         DataSourceComponents.execute_parser(mock_facade, stats_path, pattern)
 
@@ -138,7 +127,6 @@ def test_execute_parser_success(mock_streamlit, mock_facade, mock_state_manager)
 def test_execute_parser_no_files(mock_streamlit, mock_facade):
     mock_facade.find_stats_files.return_value = []
 
-    # Validation checks path validation first which uses Path(path).exists().
     with patch("pathlib.Path.exists", return_value=True):
         DataSourceComponents.execute_parser(mock_facade, "/p", "*.txt")
 

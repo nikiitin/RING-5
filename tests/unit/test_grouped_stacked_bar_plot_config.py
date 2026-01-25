@@ -123,17 +123,12 @@ def test_create_figure_grouped_calculated(sample_data):
 
     fig = plot.create_figure(sample_data, config)
 
-    # Check trace count (1 Y column => 1 trace per series?)
     # Implementation loops over y_columns and adds trace.
-    # Color/Legend mapping is usually handled by BasePlot's style manager
-    # or implicit grouping?
-    # Actually GSB adds one trace per Y column.
+    # GSB adds one trace per Y column.
 
     assert len(fig.data) == 1
     trace = fig.data[0]
 
-    # Check x coordinates
-    # 2 Benchmarks * 2 configs = 4 bars total?
     # Data has 2 rows (A, Low) and (B, High).
     # So 2 bars.
     assert len(trace.x) == 2

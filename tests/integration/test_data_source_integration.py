@@ -51,7 +51,6 @@ def test_csv_pool_operations(facade, tmp_path):
     pool = facade.load_csv_pool()
     assert len(pool) == 1
     assert pool[0]["path"] == str(added_path)
-    # Check if original name is preserved or timestamp added?
     # Logic: f"parsed_{timestamp}.csv" -> Name is changed.
     assert "parsed_" in pool[0]["name"]
 

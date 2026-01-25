@@ -54,8 +54,8 @@ class MixerManager(DataManager):
         else:
             # For configuration, allow all columns but prioritize string/object
             # Actually, usually config cols are object/string.
-            # Let's include all to be safe, or just non-numeric?
-            # User might want to concat a number to a string.
+            # Include all columns to allow concatenating numbers to strings
+
             available_cols = data.columns.tolist()
             operations = ["Concatenate"]
 

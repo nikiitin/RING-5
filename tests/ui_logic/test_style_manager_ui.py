@@ -76,11 +76,7 @@ def test_render_series_styling_ui_with_data(mock_streamlit, style_manager):
     # For G1: Name="G1", CustomColor=True, Color="Red"
     # For G2: Name="G2 New", CustomColor=False
 
-    # Side effects are tricky with many inputs.
-    # We'll rely on default mock returns which usually mean "passed through" or default type.
-    # But let's verify it iterates unique values "G1" and "G2"
-
-    # Mock unique values iteration by checking calls to markdown("**val**")
+    # Mock unique values iteration by checking calls to markdown("**val**").
 
     style_manager.render_series_renaming_ui(config, data)
 
@@ -98,8 +94,7 @@ def test_render_xaxis_labels_ui(mock_streamlit, style_manager):
     # Mock text_input for renaming
     # Renaming 1 -> "One", 2 -> "" (no change)
     def text_input_side_effect(label, value, key, **k):
-        # The key contains the hash, hard to match.
-        # But placeholder argument contains s_val!
+        # Validate key matching via placeholder argument.
         placeholder = k.get("placeholder", "")
         if str(placeholder) == "1":
             return "One"

@@ -139,7 +139,7 @@ class DataProcessingService:
                         variance_series = variance
                     else:
                         variance_series = variance_series.fillna(0) + variance.fillna(0)
-                # If no SD found, assume 0 variance (or should we fail? current logic assumes 0)
+                # If no SD found, variance is implicitly 0
 
             if has_sd and variance_series is not None:
                 new_sd_col = f"{dest_col}.sd"

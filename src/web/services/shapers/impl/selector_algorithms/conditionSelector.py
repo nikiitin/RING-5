@@ -45,8 +45,7 @@ class ConditionSelector(Selector):
                     "The 'condition' parameter must be one of: '<', '>', '<=', '>=', '==', '!='."
                 )
         else:
-            # If we are here, we might have a missing parameter configuration
-            # But we allow initialization, validation happens at runtime or we can be strict here.
+            # Initialization allowed; validation deferred to runtime.
             pass
 
         return verified

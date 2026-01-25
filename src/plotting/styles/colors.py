@@ -46,7 +46,7 @@ def to_hex(color_str: str) -> str:
     if color_str.startswith("#"):
         if len(color_str) in (4, 7):
             return color_str
-        # Handle alpha hex (strip alpha for streamlit picker)?
+        # Strip alpha for streamlit picker compatibility
         return color_str[:7]
 
     # Handle rgb(r, g, b)
@@ -64,7 +64,7 @@ def to_hex(color_str: str) -> str:
 
             logging.warning(f"Could not parse rgb color: {color_str}")
 
-    # Handle named colors via Plotly/Matplotlib?
+    # Handle named colors via Plotly utility
     # For now, if we can't convert, return black or input.
     # Streamlit dies on bad input, so fallback to black is safer for UI.
     # Last resort fallback for Streamlit

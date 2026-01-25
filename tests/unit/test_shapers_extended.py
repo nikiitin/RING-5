@@ -22,9 +22,7 @@ class TestTransformer:
         df = pd.DataFrame({"A": ["1", "foo", "3"]})
         transformer = Transformer({"column": "A", "target_type": "scalar"})
 
-        # Should coerce errors to NaN? Or raise?
         # Standard pd.to_numeric with errors='coerce' produces NaN
-        # Check implementation
         result = transformer(df)
         assert pd.isna(result["A"].iloc[1])
 

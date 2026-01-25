@@ -94,48 +94,24 @@ def test_render_plot_cached(mock_interactive_chart, mock_streamlit, mock_plot):
     assert "config" in kwargs
 
 
-def test_export_html(mock_streamlit, mock_plot):
+@patch("src.plotting.export.ExportService")
+def test_export_delegation(mock_export_service, mock_plot):
+    fig = MagicMock()
+    
+    # Test HTML delegation
     mock_plot.config = {"download_format": "html"}
-    fig = MagicMock()
+    PlotRenderer._render_download_button(mock_plot, fig)
+    
+    mock_export_service.render_download_button.assert_called_with(
+        plot_name=mock_plot.name,
+        plot_id=mock_plot.plot_id,
+        fig=fig,
+        config=mock_plot.config,
+        key_prefix="dl_btn"
+    )
 
-    with patch("plotly.io.to_html", return_value="<html></html>"):
-        PlotRenderer._render_download_button(mock_plot, fig)
-
-    mock_streamlit.download_button.assert_called()
-    args = mock_streamlit.download_button.call_args[1]
-    assert args["mime"] == "text/html"
-
-
-def test_export_png_kaleido_success(mock_streamlit, mock_plot):
+    # Test PNG delegation
     mock_plot.config = {"download_format": "png"}
-    fig = MagicMock()
+    PlotRenderer._render_download_button(mock_plot, fig)
+    assert mock_export_service.render_download_button.call_count == 2
 
-    # Mock kaleido write_image success
-    fig.write_image = MagicMock()
-
-    # We need to mock import kaleido.
-    # Since it's inside the function, we can patch sys.modules or just let it fail/pass depending on env.
-    # To ensure success path, we need to mock fig.write_image AND ensure import works or is mocked.
-    # The code does `import kaleido`.
-
-    with patch.dict("sys.modules", {"kaleido": MagicMock()}):
-        PlotRenderer._render_download_button(mock_plot, fig)
-
-    fig.write_image.assert_called()
-    mock_streamlit.download_button.assert_called()
-    args = mock_streamlit.download_button.call_args[1]
-    assert args["mime"] == "image/png"
-
-
-def test_export_png_fallback(mock_streamlit, mock_plot):
-    mock_plot.config = {"download_format": "png"}
-    fig = MagicMock()
-    # Ensure write_image fails
-    fig.write_image.side_effect = ImportError("No kaleido")
-
-    # Mock matplotlib
-    with patch("matplotlib.pyplot.figure") as mock_plt_fig:
-        PlotRenderer._render_download_button(mock_plot, fig)
-
-    mock_plt_fig.assert_called()  # Fallback triggered
-    mock_streamlit.download_button.assert_called()

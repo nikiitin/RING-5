@@ -56,15 +56,12 @@ def test_render_csv_pool_load(
     mock_st, _ = mock_streamlit
     mock_sm, _ = mock_state_manager
 
-    # Setup pool data
     pool = [{"name": "test.csv", "path": "/path/test.csv", "size": 100}]
     mock_facade.load_csv_pool.return_value = pool
 
-    # Mock UI Interactions
-    # file_info_card returns (load_clicked, preview_clicked, delete_clicked)
+    # load_clicked=True
     mock_card_components.file_info_card.return_value = (True, False, False)
 
-    # Mock Load
     df = pd.DataFrame({"col": [1, 2]})
     mock_facade.load_csv_file.return_value = df
 
@@ -85,7 +82,6 @@ def test_execute_parser(mock_streamlit, mock_facade, mock_state_manager):
     mock_sm.get_temp_dir.return_value = "/tmp"
     mock_sm.get_parse_variables.return_value = []
 
-    # Mock efficient parsing success
     csv_path = "/tmp/out.csv"
     mock_facade.parse_gem5_stats.return_value = csv_path
 
@@ -102,7 +98,6 @@ def test_render_file_upload(mock_streamlit, mock_facade, mock_state_manager):
     _, mock_st = mock_streamlit
     _, mock_sm = mock_state_manager
 
-    # Mock UploadedFile
     uploaded_file = MagicMock()
     uploaded_file.name = "upload.csv"
     uploaded_file.getbuffer.return_value = b"data"
@@ -110,7 +105,6 @@ def test_render_file_upload(mock_streamlit, mock_facade, mock_state_manager):
 
     mock_sm.get_temp_dir.return_value = "/tmp"
 
-    # Mock file write
     m_open = mock_open()
     with patch("builtins.open", m_open):
         with patch("src.web.ui.components.upload_components.Path") as mock_path:
@@ -121,7 +115,7 @@ def test_render_file_upload(mock_streamlit, mock_facade, mock_state_manager):
 
             UploadComponents.render_file_upload_tab(mock_facade)
 
-            m_open.assert_called()  # Should write
+            m_open.assert_called()
             mock_facade.load_csv_file.assert_called_with("/tmp/upload.csv")
             mock_sm.set_data.assert_called_with(df)
 
@@ -138,7 +132,6 @@ def test_render_paste_data(mock_streamlit, mock_state_manager):
     UploadComponents.render_paste_data_tab()
 
     mock_sm.set_data.assert_called()
-    # verify dataframe in set_data
     args = mock_sm.set_data.call_args
     df = args[0][0]
     assert len(df) == 1

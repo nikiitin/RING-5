@@ -49,7 +49,6 @@ class TestDataLabelsBasic:
         fig = plot.create_figure(sample_data, config)
         fig = applicator.apply_styles(fig, config)
 
-        # When show_values is False, texttemplate should not be set
         for trace in fig.data:
             assert trace.texttemplate is None or trace.texttemplate == ""
 
@@ -65,7 +64,6 @@ class TestDataLabelsBasic:
         fig = plot.create_figure(sample_data, config)
         fig = applicator.apply_styles(fig, config)
 
-        # When show_values is True, texttemplate should be set
         for trace in fig.data:
             assert trace.texttemplate == "%{y:.2f}"
 

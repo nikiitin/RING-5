@@ -14,11 +14,7 @@ def mock_streamlit():
         "src.web.ui.data_managers.outlier_remover.st"
     ) as mock_st_outlier:
 
-        # Combine mocks or use one if shared?
-        # Since we test separately, we can rely on patching per module.
-        # But let's return a flexible mock that can be configured.
-
-        # We need to handle session state
+        # Configure session state handling for mocks.
         mock_st_seeds.session_state = {}
         mock_st_outlier.session_state = {}
 

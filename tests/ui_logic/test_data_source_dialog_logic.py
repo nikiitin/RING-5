@@ -110,9 +110,7 @@ def test_variable_config_dialog_search_scanned(components_bundle, mock_state_man
     mock_streamlit.text_input.return_value = "IPC"
     mock_streamlit.button.return_value = True
 
-    # Reset side effect for selectbox if needed, or rely on it handling one call well?
-    # Actually, if selectbox is called more than expected, side effect might run out?
-    # But here we only expect 1 call for search index.
+    # Expect 1 call for search index.
 
     DataSourceComponents.variable_config_dialog()
 

@@ -91,11 +91,7 @@ class ShaperWork(Job):
 
         # Perform the shaper operation
         if isinstance(shaper, UniDfShaper):
-            # UniDfShaper usually takes the first (or relevant) CSV
-            # Original code used srcCsv[1] which might be a bug or specific to its logic
-            # Let's check original: df = cls.getDataFrame(work.srcCsv[1])
-            # Wait, if it has one source, it's index 0. If it has dependencies, maybe index 1?
-            # Looking at ShaperWorkManager, it appends to srcCsv.
+            # UniDfShaper uses the second source if available (dependency output), otherwise first.
             source_idx = 1 if len(self._srcCsv) > 1 else 0
             df = self._getDataFrame(self._srcCsv[source_idx])
             shaper(df)

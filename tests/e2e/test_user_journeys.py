@@ -113,20 +113,16 @@ def test_workflow_stats_to_portfolio(test_data_available, temp_env):
         )
         plot.pipeline_counter = 1
 
-        # Apply Pipeline (simulate 'Finalize' button)
-        # We need to manually apply shapers as PlotService doesn't do it automatically
-
-        # We need to 'configure' the shaper config first (usually UI does this)
-        # Since we manually constructed the config, we can just pass it if it matches internal structure
-        # But 'columnSelector' config is simple.
+        # Apply Pipeline (simulate 'Finalize' button).
+        # Manually apply shapers as PlotService doesn't do it automatically.
+        # Configure shaper manually as the UI would.
 
         processed_data = facade.apply_shapers(df, [s["config"] for s in plot.pipeline])
         plot.processed_data = processed_data
 
         assert "simTicks" in processed_data.columns
         assert "sim_insts" in processed_data.columns
-        # random_seed etc should be gone if we only selected these 2?
-        # Wait, columnSelector with columns=["simTicks", "sim_insts"] will keep only them.
+        # ColumnSelector with columns=["simTicks", "sim_insts"] will keep only them.
         assert len(processed_data.columns) == 2
 
         # 4. Save Portfolio

@@ -82,10 +82,7 @@ class TestGroupedStackedBarPlot:
         assert fig.layout.barmode == "stack"
 
         # Check traces.
-        # Logic: 2 Y columns * (Benchmark/Group combinations handled in X coord) -> 2 traces essentially?
-        # Actually GSB implementation:
-        # for each y_col: add trace.
-        # So we expect 2 traces (Value, Value2).
+        # Logic: 2 Y columns -> 2 traces (Value, Value2).
         assert len(fig.data) == 2
 
         trace0 = fig.data[0]
@@ -93,8 +90,7 @@ class TestGroupedStackedBarPlot:
         assert trace0.x is not None
         # customdata should contain totals (Value + Value2)
         total_A_Low = 10 + 1
-        # Need to find the index corresponding to A/Low.
-        # But we can just check if total_A_Low exists in customdata strings or values
+        # Validate that the expected total value is present in customdata.
         totals = trace0.customdata
         assert total_A_Low in totals
 

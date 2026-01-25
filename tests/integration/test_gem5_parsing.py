@@ -87,9 +87,8 @@ class TestGem5Parsing:
 
         # Check Columns
         # Expect selected variables + standard config columns (from directory structure or config.json if implicit)
-        # Note: The Perl parser attempts to extract config from path if config.json not present?
-        # Actually without config.json, it might relies on path structure if configured.
-        # But 'simTicks' should be there.
+        # Note: The Perl parser attempts to extract config from path if config.json not present.
+        # Without config.json, it relies on path structure if configured.
 
         for var in selected_vars:
             assert var["name"] in df.columns
@@ -103,10 +102,7 @@ class TestGem5Parsing:
         import shutil
         import tempfile
 
-        # setup_env is unlikely to yield a path if it's not defined in this file.
-        # But looking at previous code, there is no setup_env fixture usage in TestGem5Parsing methods shown.
-        # test_scan_variables uses self.TEST_DATA_DIR.
-        # We will create a fresh temp dir for this test.
+        # Create a fresh temp dir for this test.
 
         tmp_dir = Path(tempfile.mkdtemp())
         stats_dir = tmp_dir / "stats"

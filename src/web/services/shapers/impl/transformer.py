@@ -36,9 +36,7 @@ class Transformer(UniDfShaper):
 
         # Check if the column exists in the dataframe
         if col not in data_frame.columns:
-            # We allow it to be missing gracefully? No, better warn/error.
-            # But strictly raising error might break pipelines if data changes.
-            # Shapers usually raise error if misconfigured.
+            # Column required for transformation
             raise ValueError(f"Column '{col}' not found in the dataframe!")
 
         return True

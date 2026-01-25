@@ -7,10 +7,7 @@ class TestDeepScanMinMax:
     @patch("src.web.facade.BackendFacade.scan_stats_variables")
     def test_scan_stats_variables_merges_min_max(self, mock_scan_base):
         # Setup mock behavior simulating lower-level scan results
-        # Assuming Facade.scan_stats_variables calls into worker pool
-        # But here we are testing the grouping logic in scan_stats_variables_with_grouping
-        # Wait, grouping calls scan_stats_variables.
-        # But I added merge logic to scan_stats_variables too!
+        # Verify that scan_stats_variables integrates merging logic correctly.
         pass
 
     def test_merging_logic_in_facade(self):

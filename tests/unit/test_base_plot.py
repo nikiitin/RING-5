@@ -156,12 +156,11 @@ def test_render_advanced_options_shapes(concrete_plot, mock_streamlit):
 
     concrete_plot.render_advanced_options(config)
 
-    # Should have appended a shape to config['shapes'] (passed by ref or updated in place?)
+    # Should have appended a shape to config['shapes']
     # The code does shapes.append() which modifies the list in place if it came from config
-    # BUT render_advanced_options creates local shapes var from config.get.
-    # Ah, `shapes = saved_config.get("shapes", [])`. If list exists in config, it updates config list.
+    # `shapes = saved_config.get("shapes", [])`. If list exists in config, it updates config list.
     assert len(config["shapes"]) == 1
-    assert config["shapes"][0]["type"] == "line"  # Default mocked text_input??
+    assert config["shapes"][0]["type"] == "line"
     # Mock text input is tricky here as it returns same for all by default unless side effected.
     # But checking list length is enough to prove logic path.
     mock_streamlit.rerun.assert_called()

@@ -79,7 +79,7 @@ def test_mixer_confirm(mock_streamlit, sample_data):
     result_df = pd.DataFrame({"merged": [1]})
     mock_st.session_state["mixer_result"] = result_df
 
-    # Button interactions: Preview=False, Confirm=True
+    # Simulate button interactions: Confirm clicked
     mock_st.button.side_effect = lambda label, key=None, **kwargs: key == "confirm_mixer"
 
     manager.render()

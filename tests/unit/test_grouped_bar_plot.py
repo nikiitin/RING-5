@@ -35,68 +35,7 @@ def test_render_config_ui(mock_streamlit, sample_data):
     plot = GroupedBarPlot(1, "Test Plot")
     saved_config = {"x": "Category"}
 
-    # Mock inputs
-    # render_common_config: selectbox(x), selectbox(y), text_input(title, xlabel, ylabel, legend_title)
-    # render_config_ui: selectbox(group), multiselect(x_filter), multiselect(group_filter)
-
-    # render_common_config calls selectbox(x), selectbox(y) --> 2 return values
-    # render_config_ui call selectbox(group) --> 3rd return value
-    # But wait, Group default index logic might access columns too.
-    # Actually the failure 'Category' == 'Group' means config['group'] got 'Category'.
-    # This implies the 3rd selectbox call returned 'Category'.
-    # My side_effect is ["Category", "Value", "Group"].
-    # Maybe there is another selectbox call?
-    # render_common_config: x, y (2)
-    # render_config_ui: group (1)
-
-    # Ah, inside render_common_config, it calls selectbox for x, then y.
-    # inside render_config_ui, it calls selectbox for group.
-
-    # If config['group'] got 'Category', it means the 3rd call returned 'Category'.
-    # But 3rd item is "Group".
-
-    # Maybe render_common_config calls more things?
-    # Or maybe I am initializing Plot with defaults that triggering something?
-
-    # Let's just be explicit about side effects.
-    # The error was: assert 'Category' == 'Group' -> config['group'] was 'Category'.
-
-    # If the side_effect was exhausted it would raise StopIteration.
-    # It returned 'Category'.
-    # It means it took the FIRST element?
-    # That implies it was the FIRST call?
-    # No, config['x'] was correct?
-    # Assert config['x'] was not checked before failure?
-
-    # Let's fix side_effect to match usage exactly.
-    # 1. X-axis (selectbox) -> "Category"
-    # 2. Y-axis (selectbox) -> "Value"
-    # 3. Group by (selectbox) -> "Group"
-
-    # Wait, check BasePlot.render_common_config again.
-    # selectbox x, selectbox y.
-    # GroupedBarPlot.render_config_ui calls render_common_config first.
-    # then selectbox group.
-
-    # It should work. Why did it get "Category"?
-    # Maybe the test runner context reuse? side_effect pointer not reset?
-    # Use return_value if side_effect is tricky? No, we need different values.
-
-    # Let's verify failure line: assert config["group"] == "Group".
-    # And config["x"] == "Category" passes?
-    # Code:
-    # assert config["x"] == "Category"
-    # assert config["y"] == "Value"
-    # assert config["group"] == "Group" -- Fails here.
-
-    # If config["x"] passed, and config["y"] passed, then side_effect[0] and [1] were consumed correctly.
-    # So side_effect[2] should be "Group".
-
-    # Is there a possibility that another selectbox is called?
-    # "Download Format"? No that's advanced options.
-
-    # Let's retry with an explicit list and check assertions order.
-    # I suspect maybe multiselect was called instead? No, unique keys.
+    # Explicitly set side_effects to ensure deterministic behavior matches test expectations.
 
     # I will just set side_effect again to be sure.
     mock_streamlit.selectbox.side_effect = ["Category", "Value", "Group"]
@@ -182,11 +121,6 @@ def test_get_legend_column():
 def test_render_advanced_options_filtering(sample_data):
     plot = GroupedBarPlot(1, "Test Plot")
     config = {"x": "Category", "group": "Group", "x_filter": ["A"], "group_filter": ["X"]}
-
-    # This calls super().render_advanced_options which interacts with Streamlit
-    # We just want to verifying filtering logic if possible,
-    # but render_advanced_options mainly returns config for UI.
-    # Actually GroupedBarPlot.render_advanced_options applies filter to 'data' passed to super.
 
     with patch(
         "src.plotting.types.grouped_bar_plot.BasePlot.render_advanced_options"

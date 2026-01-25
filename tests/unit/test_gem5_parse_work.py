@@ -77,7 +77,6 @@ vector/vector_var::0/101
 distribution/dist_var::min/5
 distribution/dist_var::max/15
 """
-    # Verify vector_var entries are populated if needed?
     # Logic in _addBufferedVars copies from dict to var.content
 
     parsed = parser._processOutput(output, parser._varsToParse)

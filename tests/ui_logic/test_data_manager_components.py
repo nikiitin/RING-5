@@ -39,47 +39,30 @@ def test_render_summary_tab_stats(mock_streamlit):
     DataManagerComponents.render_summary_tab(df)
 
     mock_streamlit.dataframe.assert_called()
-    # Check if describe() was called (by checking dataframe calls)
-    # The code calls st.dataframe(numeric_data.describe()...)
-    # It's hard to verify exact DataFrame content in mock call args easily without complex unpacking.
-    # But we can verify execution flow.
     mock_streamlit.metric.assert_called()
 
 
 def test_render_summary_tab_empty(mock_streamlit):
     df = pd.DataFrame()
     DataManagerComponents.render_summary_tab(df)
-    mock_streamlit.info.assert_called()  # "No numeric columns" or "No categorical columns"
+    mock_streamlit.info.assert_called()
 
 
 def test_render_visualization_tab_search_all(mock_streamlit):
     df = pd.DataFrame({"A": ["foo", "bar"], "B": ["baz", "qux"]})
 
-    # Search "foo" in "All Columns"
     mock_streamlit.selectbox.return_value = "All Columns"
     mock_streamlit.text_input.return_value = "foo"
-
-    # Rows per page "All" to skip pagination logic complexity for now
-    mock_streamlit.selectbox.side_effect = ["All Columns", "All"]
-    # Actually selectbox 2 is "Rows per page"
-    # Wait, side_effect needs to match order of calls.
-    # 1. Search column
-    # 2. Rows per page
 
     mock_streamlit.selectbox.side_effect = ["All Columns", "All"]
 
     DataManagerComponents.render_visualization_tab(df)
 
-    # Should show info with "Found 1 matching rows"
     mock_streamlit.info.assert_any_call("Found 1 matching rows (out of 2 total)")
 
 
 def test_render_visualization_tab_search_specific(mock_streamlit):
     df = pd.DataFrame({"A": ["foo", "bar"], "B": ["foo", "qux"]})
-
-    # Search "foo" in column "B" -> Should find 1 row (row 0: A=foo, B=foo. row 1: A=bar, B=qux. Wait.
-    # Row 0: B=foo. Row 1: B=qux.
-    # Find "foo" in "B": 1 match.
 
     mock_streamlit.selectbox.side_effect = ["B", "All"]
     mock_streamlit.text_input.return_value = "foo"
@@ -92,18 +75,14 @@ def test_render_visualization_tab_search_specific(mock_streamlit):
 def test_render_visualization_tab_pagination(mock_streamlit):
     df = pd.DataFrame({"A": range(100)})
 
-    # Search: None
     mock_streamlit.text_input.return_value = ""
 
-    # Rows per page: 20
     mock_streamlit.selectbox.side_effect = ["All Columns", "20"]
 
-    # Page input: 2
     mock_streamlit.number_input.return_value = 2
 
     DataManagerComponents.render_visualization_tab(df)
 
-    # Should show rows 21-40 (indices 20-40)
     mock_streamlit.info.assert_any_call("Showing rows 21 to 40 of 100 (Page 2/5)")
 
 
@@ -113,7 +92,6 @@ def test_render_visualization_tab_download(mock_streamlit):
     mock_streamlit.text_input.return_value = ""
     mock_streamlit.selectbox.side_effect = ["All Columns", "All"]
 
-    # Button click
     mock_streamlit.button.return_value = True
 
     DataManagerComponents.render_visualization_tab(df)

@@ -126,7 +126,7 @@ class Histogram(StatType):
                 val_list = [vals]
 
             # Aggregate multiple matches from a single file (e.g. regex across CPUs)
-            # We sum them so that one file adds exactly one aggregated value per repeat.
+            # Sum for aggregated value per repeat.
             aggregated_val = 0.0
             for v in val_list:
                 try:

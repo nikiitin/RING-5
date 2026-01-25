@@ -426,7 +426,7 @@ class BasePlot(ABC):
                 if "series_styles" not in config:
                     config["series_styles"] = {}
 
-                # We need to update deeply?
+                # Deep update of series styles
                 # series_styles is Dict[str, Dict].
                 for k, v in renaming_styles.items():
                     if k not in config["series_styles"]:

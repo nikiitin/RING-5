@@ -330,7 +330,7 @@ class VariableEditor:
                         ):
                             # Update session state if possible, though number_input value is local
                             st.success(f"Found range: {result['minimum']} to {result['maximum']}")
-                            # We store in session state so number_input can use it as default
+                            # Store in session state for number_input default usage
                             st.session_state[f"dist_range_result_{var_id}"] = result
                             st.rerun()
                         else:

@@ -15,9 +15,7 @@ class UploadComponents:
     @staticmethod
     def render_parsed_data_preview():
         """Render preview if data is already parsed/loaded."""
-        st.markdown("## Step 2: Parsed Data Preview")  # Reusing h2 style manual or via class?
-        # The page file uses AppStyles.step_header. We can do that or just markdown.
-        # Let's keep it simple.
+        st.markdown("## Step 2: Parsed Data Preview")
 
         st.success("Data loaded from parser!")
 
