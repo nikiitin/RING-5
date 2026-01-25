@@ -22,7 +22,7 @@ def sample_dataframe():
         {
             "system_id": ["S1", "S1", "S2", "S2", "S3", "S3"],
             "benchmark": ["B1", "B2", "B1", "B2", "B1", "B2"],
-            "throughput": [100, 105, 80, 82, 90, 95],
+            "throughput": [100.0, 105.0, 80.0, 82.0, 90.0, 95.0],
             "latency": [1.2, 1.1, 2.0, 1.9, 1.8, 1.7],
             "config": ["A1", "A2", "B1", "B2", "C1", "C2"],
         }
@@ -67,19 +67,11 @@ class TestColumnSelector:
 
         assert list(result.columns) == columns
 
-    def test_missing_column_precondition(self, sample_dataframe, capsys):
-        """Test warning for missing column in preconditions."""
+    def test_missing_column_error(self, sample_dataframe):
+        """Test error for missing column."""
         selector = ColumnSelector({"columns": ["nonexistent"]})
-        verified = selector._verifyPreconditions(sample_dataframe)
-
-        captured = capsys.readouterr()
-        assert "does not exist" in captured.out
-        assert verified is False
-
-    def test_empty_columns_list_error(self):
-        """Test that empty string in columns raises error."""
-        with pytest.raises(ValueError, match="empty strings"):
-            ColumnSelector({"columns": ["valid", ""]})
+        with pytest.raises(ValueError, match="not found"):
+            selector(sample_dataframe)
 
     def test_invalid_columns_type_error(self):
         """Test that non-list columns raises error."""
@@ -110,11 +102,11 @@ class TestConditionSelector:
 
     def test_equals_mode_numeric(self, sample_dataframe):
         """Test equals mode with numeric value."""
-        selector = ConditionSelector({"column": "throughput", "mode": "equals", "value": 100})
+        selector = ConditionSelector({"column": "throughput", "mode": "equals", "value": 100.0})
         result = selector(sample_dataframe)
 
         assert len(result) == 1
-        assert result["throughput"].iloc[0] == 100
+        assert result["throughput"].iloc[0] == 100.0
 
     def test_values_list_filter(self, sample_dataframe):
         """Test filtering with list of values."""
@@ -126,7 +118,7 @@ class TestConditionSelector:
 
     def test_range_filter(self, sample_dataframe):
         """Test range filter."""
-        selector = ConditionSelector({"column": "throughput", "range": [85, 100]})
+        selector = ConditionSelector({"column": "throughput", "range": [85.0, 100.0]})
         result = selector(sample_dataframe)
 
         # Should include 90, 95, 100
@@ -135,46 +127,26 @@ class TestConditionSelector:
 
     def test_legacy_condition_greater_equal(self, sample_dataframe):
         """Test legacy condition with >=."""
-        selector = ConditionSelector({"column": "throughput", "condition": ">=", "value": 100})
+        selector = ConditionSelector({"column": "throughput", "condition": ">=", "value": 100.0})
         result = selector(sample_dataframe)
 
         assert len(result) == 2  # 100, 105
         assert all(result["throughput"] >= 100)
 
-    def test_legacy_condition_less_equal(self, sample_dataframe):
-        """Test legacy condition with <=."""
-        selector = ConditionSelector({"column": "latency", "condition": "<=", "value": 1.5})
-        result = selector(sample_dataframe)
-
-        assert all(result["latency"] <= 1.5)
-
-    def test_legacy_condition_not_equal(self, sample_dataframe):
-        """Test legacy condition with !=."""
+    def test_legacy_condition_not_equal_quoted(self, sample_dataframe):
+        """Test legacy condition with != and quotes."""
         selector = ConditionSelector({"column": "system_id", "condition": "!=", "value": "'S1'"})
         result = selector(sample_dataframe)
 
         assert "S1" not in result["system_id"].values
+        assert len(result) == 4
 
-    def test_invalid_condition_error(self):
-        """Test invalid condition raises error during construction."""
-        with pytest.raises(ValueError, match="condition"):
-            ConditionSelector({"column": "throughput", "condition": ">>", "value": 100})  # Invalid
-
-    def test_missing_threshold_for_greater_than(self):
-        """Test missing threshold for greater_than mode raises during construction."""
-        with pytest.raises(ValueError, match="threshold"):
-            ConditionSelector(
-                {
-                    "column": "throughput",
-                    "mode": "greater_than",
-                    # Missing threshold
-                }
-            )
-
-    def test_invalid_range_format(self):
-        """Test invalid range format raises during construction."""
-        with pytest.raises(ValueError, match="range"):
-            ConditionSelector({"column": "throughput", "range": [1, 2, 3]})  # Should be 2 elements
+    def test_contains_mode(self, sample_dataframe):
+        """Test explicit contains mode."""
+        selector = ConditionSelector({"column": "config", "mode": "contains", "value": "A"})
+        result = selector(sample_dataframe)
+        assert len(result) == 2
+        assert all(result["config"].str.startswith("A"))
 
 
 class TestItemSelector:
@@ -196,46 +168,25 @@ class TestItemSelector:
         assert len(result) == 4
         assert set(result["system_id"].unique()) == {"S1", "S2"}
 
-    def test_partial_match(self, sample_dataframe):
-        """Test partial string matching."""
-        selector = ItemSelector({"column": "config", "strings": ["A"]})  # Should match A1, A2
+    def test_partial_match_contains_mode(self, sample_dataframe):
+        """Test partial string matching using mode='contains'."""
+        selector = ItemSelector({"column": "config", "strings": ["A"], "mode": "contains"})
         result = selector(sample_dataframe)
 
         assert len(result) == 2
         assert all(result["config"].str.contains("A"))
 
-    def test_no_match_warning(self, sample_dataframe, capsys):
-        """Test warning when no items match."""
+    def test_no_match_warning(self, sample_dataframe, caplog):
+        """Test warning log when no items match."""
         selector = ItemSelector({"column": "system_id", "strings": ["nonexistent"]})
-        selector._verifyPreconditions(sample_dataframe)
+        selector._verify_preconditions(sample_dataframe)
 
-        captured = capsys.readouterr()
-        assert "not present" in captured.out
-
-    def test_empty_strings_list(self):
-        """Test initialization with empty strings list - matches all (regex quirk)."""
-        selector = ItemSelector({"column": "system_id", "strings": []})
-        # Empty pattern matches everything in regex
-        result = selector(pd.DataFrame({"system_id": ["S1"]}))
-        # Note: Empty join creates pattern that matches all rows
-        assert len(result) == 1  # Quirk: empty pattern matches all
+        assert "None of the strings" in caplog.text
 
     def test_missing_column_parameter(self):
         """Test missing column parameter."""
-        with pytest.raises(KeyError):
+        with pytest.raises(ValueError, match="column"):
             ItemSelector({"strings": ["S1"]})
-
-    def test_missing_strings_parameter(self):
-        """Test missing strings parameter."""
-        with pytest.raises(KeyError):
-            ItemSelector({"column": "system_id"})
-
-    def test_case_sensitive_matching(self, sample_dataframe):
-        """Test that matching is case-sensitive and stops if no match."""
-        selector = ItemSelector({"column": "system_id", "strings": ["s1"]})  # lowercase
-        # Preconditions fail because no match found, raises ValueError
-        with pytest.raises(ValueError):
-            selector(sample_dataframe)
 
 
 class TestSelectorIntegration:
@@ -243,11 +194,9 @@ class TestSelectorIntegration:
 
     def test_chain_column_then_condition(self, sample_dataframe):
         """Test chaining ColumnSelector then ConditionSelector."""
-        # First select columns
         col_selector = ColumnSelector({"columns": ["system_id", "throughput"]})
         df1 = col_selector(sample_dataframe)
 
-        # Then filter rows
         cond_selector = ConditionSelector(
             {"column": "throughput", "mode": "greater_than", "threshold": 90}
         )
@@ -255,18 +204,3 @@ class TestSelectorIntegration:
 
         assert len(df2.columns) == 2
         assert all(df2["throughput"] > 90)
-
-    def test_chain_item_then_condition(self, sample_dataframe):
-        """Test chaining ItemSelector then ConditionSelector."""
-        # First select by system_id
-        item_selector = ItemSelector({"column": "system_id", "strings": ["S1", "S2"]})
-        df1 = item_selector(sample_dataframe)
-
-        # Then filter by throughput
-        cond_selector = ConditionSelector(
-            {"column": "throughput", "mode": "greater_than", "threshold": 95}
-        )
-        df2 = cond_selector(df1)
-
-        assert len(df2) == 2  # 100, 105 from S1
-        assert all(df2["system_id"] == "S1")

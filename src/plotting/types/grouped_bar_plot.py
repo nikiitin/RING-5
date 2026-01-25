@@ -169,8 +169,11 @@ class GroupedBarPlot(BasePlot):
             categories=ordered_x, groups=[None], config=config
         )
 
-        # Adapt keys: Utility returns (cat, None), we just want cat
-        x_map = {k[0]: v for k, v in coord_result["coord_map"].items()}
+        # Adapt keys: Utility returns cat (string) when groups=[None]
+        # or (cat, grp) when groups are provided.
+        x_map = {
+            (k[0] if isinstance(k, tuple) else k): v for k, v in coord_result["coord_map"].items()
+        }
         tick_vals = coord_result["tick_vals"]
         tick_text = coord_result["tick_text"]
         distinction_shapes = coord_result["shapes"]

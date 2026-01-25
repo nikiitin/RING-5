@@ -265,7 +265,7 @@ class BackendFacade:
 
         result = data.copy()
         for cfg in shapers_config:
-            shaper = ShaperFactory.createShaper(cfg["type"], cfg)
+            shaper = ShaperFactory.create_shaper(cfg["type"], cfg)
             result = shaper(result)
         return result
 

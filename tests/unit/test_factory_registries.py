@@ -20,9 +20,10 @@ class TestShaperFactoryRegistry:
     def test_create_unknown_shaper_raises(self):
         """Test creating unknown shaper type raises ValueError with helpful message."""
         with pytest.raises(ValueError) as exc_info:
-            ShaperFactory.createShaper("nonexistent", {})
+            ShaperFactory.create_shaper("nonexistent", {})
 
         assert "nonexistent" in str(exc_info.value)
+        # Message format might vary slightly after transformation
         assert "Available" in str(exc_info.value)
 
     def test_register_custom_shaper(self):
@@ -30,7 +31,10 @@ class TestShaperFactoryRegistry:
         from src.web.services.shapers.base_shaper import Shaper
 
         class CustomShaper(Shaper):
-            def shape(self, df):
+            def _verify_params(self):
+                return True
+
+            def __call__(self, df):
                 return df
 
         # Register custom shaper
@@ -40,7 +44,7 @@ class TestShaperFactoryRegistry:
         assert "customTest" in ShaperFactory.get_available_types()
 
         # Create instance
-        shaper = ShaperFactory.createShaper("customTest", {})
+        shaper = ShaperFactory.create_shaper("customTest", {})
         assert isinstance(shaper, CustomShaper)
 
         # Cleanup - remove from registry

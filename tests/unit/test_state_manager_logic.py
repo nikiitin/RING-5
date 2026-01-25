@@ -9,6 +9,7 @@ from src.web.state_manager import StateManager
 @pytest.fixture
 def mock_streamlit():
     with patch("src.web.state_manager.st") as mock_st:
+        # Crucial: st.session_state behaves like a dict in tests
         mock_st.session_state = {}
         yield mock_st
 
@@ -18,7 +19,7 @@ def test_initialize_defaults(mock_streamlit):
 
     assert StateManager.DATA in mock_streamlit.session_state
     assert StateManager.CONFIG in mock_streamlit.session_state
-    assert StateManager.PLOT_COUNTER in mock_streamlit.session_state
+    assert StateManager.PLOTS_OBJECTS in mock_streamlit.session_state
     # Check default variables
     assert len(mock_streamlit.session_state[StateManager.PARSE_VARIABLES]) == 3
 
@@ -50,15 +51,15 @@ def test_update_config(mock_streamlit):
     assert cfg["b"] == 3
 
 
-def test_get_parse_variables_generate_ids(mock_streamlit):
+def test_set_parse_variables_generate_ids(mock_streamlit):
     # Setup variables without IDs
     vars_config = [{"name": "v1"}]
-    mock_streamlit.session_state[StateManager.PARSE_VARIABLES] = vars_config
 
-    # get_parse_variables should add IDs
+    # set_parse_variables should add IDs
     with patch("uuid.uuid4", return_value="uuid-1"):
-        vars_out = StateManager.get_parse_variables()
+        StateManager.set_parse_variables(vars_config)
 
+    vars_out = StateManager.get_parse_variables()
     assert vars_out[0]["_id"] == "uuid-1"
     # Verify state was updated
     assert mock_streamlit.session_state[StateManager.PARSE_VARIABLES][0]["_id"] == "uuid-1"
@@ -79,6 +80,9 @@ def test_restore_session_state(mock_streamlit):
         mock_plot = MagicMock()
         mock_from_dict.return_value = mock_plot
 
+        # Initialize defaults so keys exist
+        StateManager.initialize()
+
         portfolio_data = {
             "data_csv": "A,B\n1,2",
             "csv_path": "/path.csv",
@@ -87,17 +91,11 @@ def test_restore_session_state(mock_streamlit):
             "plots": [{"plot_type": "bar", "processed_data": "x,y\n1,10"}],
         }
 
-        # Mock st dictionary for clearing keys
-        mock_streamlit.session_state = {
-            "config": {},
-            "plots": [],
-            "leg_orient_123": "v",  # Should be cleared
-        }
+        # Add transient key that MUST be cleared
+        mock_streamlit.session_state["leg_orient_123"] = "v"
 
+        # Execute restore
         StateManager.restore_session_state(portfolio_data)
-
-        # Check cleared keys
-        assert "leg_orient_123" not in mock_streamlit.session_state
 
         # Check restored data
         assert StateManager.get_csv_path() == "/path.csv"
@@ -112,4 +110,7 @@ def test_restore_session_state(mock_streamlit):
         # Check plot loading
         mock_from_dict.assert_called()
         # Verify plots list updated
-        assert mock_streamlit.session_state["plots_objects"] == [mock_plot]
+        assert mock_streamlit.session_state[StateManager.PLOTS_OBJECTS] == [mock_plot]
+
+        # Check cleared keys
+        assert "leg_orient_123" not in mock_streamlit.session_state

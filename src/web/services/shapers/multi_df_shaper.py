@@ -10,6 +10,10 @@ class MultiDfShaper(Shaper):
     Abstract class for shapers that work on multiple dataframes.
     """
 
+    def _verify_params(self) -> bool:
+        """Verify parameters for MultiDfShaper."""
+        return super()._verify_params()
+
     def __call__(self, data_frames: Any) -> pd.DataFrame:
         # Check the data frame is not none!
         # And if it is a unique dataframe

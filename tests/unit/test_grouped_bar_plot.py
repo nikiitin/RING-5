@@ -11,7 +11,7 @@ from src.plotting.types.grouped_bar_plot import GroupedBarPlot
 def sample_data():
     return pd.DataFrame(
         {
-            "Category": ["A", "A", "B", "B"],
+            "Category": ["Bench1", "Bench1", "Bench2", "Bench2"],
             "Group": ["X", "Y", "X", "Y"],
             "Value": [10, 20, 15, 25],
             "Value.sd": [1, 2, 1.5, 2.5],
@@ -91,14 +91,14 @@ def test_create_figure_with_error_bars_and_filters(sample_data):
         "xlabel": "X",
         "ylabel": "Y",
         "show_error_bars": True,
-        "x_filter": ["A"],  # Filter out B
-        "xaxis_order": ["A"],
+        "x_filter": ["Bench1"],  # Filter out Bench2
+        "xaxis_order": ["Bench1"],
         "group_order": ["Y", "X"],
     }
 
     fig = plot.create_figure(sample_data, config)
 
-    # Should only have Category A
+    # Should only have Category Bench1
     # Group Y and X present
     assert len(fig.data) == 2
 
@@ -106,7 +106,7 @@ def test_create_figure_with_error_bars_and_filters(sample_data):
     # Trace 0 should be first group in order. px handles order via category_orders
     layout = fig.layout
     # Plotly might convert list to tuple internally for layout properties
-    assert list(layout.xaxis.ticktext) == ["A"]
+    assert list(layout.xaxis.ticktext) == ["Bench1"]
     # Check logic for error bars
     assert fig.data[0].error_y is not None
     assert fig.data[0].error_y.array is not None
@@ -120,7 +120,7 @@ def test_get_legend_column():
 
 def test_render_advanced_options_filtering(sample_data):
     plot = GroupedBarPlot(1, "Test Plot")
-    config = {"x": "Category", "group": "Group", "x_filter": ["A"], "group_filter": ["X"]}
+    config = {"x": "Category", "group": "Group", "x_filter": ["Bench1"], "group_filter": ["X"]}
 
     with patch(
         "src.plotting.types.grouped_bar_plot.BasePlot.render_advanced_options"
@@ -132,5 +132,5 @@ def test_render_advanced_options_filtering(sample_data):
         args, _ = mock_super.call_args
         filtered_df = args[1]
         assert len(filtered_df) == 1
-        assert filtered_df.iloc[0]["Category"] == "A"
+        assert filtered_df.iloc[0]["Category"] == "Bench1"
         assert filtered_df.iloc[0]["Group"] == "X"

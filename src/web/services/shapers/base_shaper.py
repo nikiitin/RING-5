@@ -1,69 +1,76 @@
-from abc import abstractmethod
-from typing import Any
+from abc import ABC, abstractmethod
+from typing import Any, Dict
 
 import pandas as pd
 
 
-class Shaper:
+class Shaper(ABC):
     """
-    Abstract class for shapers.
+    Abstract base class for all data shapers.
+
+    A Shaper defines a transformation on simulation data, such as filtering,
+    aggregation, or normalization.
     """
 
-    @property
-    def _params(self) -> dict:
-        return self._params_data
-
-    @_params.setter
-    def _params(self, value: Any) -> None:
-        if isinstance(value, dict):
-            self._params_data = value
-        else:
-            raise ValueError("params must be a dictionary")
-
-    def __init__(self, params: dict) -> None:
+    def __init__(self, params: Dict[str, Any]) -> None:
         """
-        Constructor for the shaper class.
+        Initialize the shaper with configuration parameters.
+
+        Args:
+            params: Dictionary of configuration parameters.
+
+        Raises:
+            ValueError: If parameters are invalid.
         """
-        self._params = params
-        if not self._verifyParams():
-            return
+        if not isinstance(params, dict):
+            raise ValueError("Shaper parameters must be a dictionary.")
+
+        self.params = params
+        self._verify_params()
 
     @abstractmethod
-    def _verifyParams(self) -> bool:
+    def _verify_params(self) -> bool:
         """
-        Verify that the Shaper json is valid, else raise an exception.
-        Raises: (ValueError): if any key parameters are missing
-        or wrong type.
-        :returns: True if the parameters are valid, False otherwise.
+        Verify that the initialization parameters are valid.
+
+        Returns:
+            True if valid.
+
+        Raises:
+            ValueError: If mandatory parameters are missing or incorrect.
         """
-        if self._params is None:
-            raise ValueError("The parameters are None! Stopping")
+        if self.params is None:
+            raise ValueError("Shaper: parameters cannot be None.")
         return True
 
-    @abstractmethod
-    def _verifyPreconditions(self, data_frame: pd.DataFrame) -> bool:
+    def _verify_preconditions(self, data_frame: pd.DataFrame) -> bool:
         """
-        Verify that the Shaper read values are valid and coherent with the data frame.
-        Raises: (ValueError): if any preconditions are not met.
-        :param data_frame: The DataFrame to be checked.
-        :type data_frame: pd.DataFrame
-        :returns: True if the preconditions are met, False otherwise.
+        Verify that the dataframe state is compatible with this shaper.
+
+        Args:
+            data_frame: Data to check.
+
+        Returns:
+            True if compatible.
+
+        Raises:
+            ValueError: If preconditions are not met.
         """
+        if data_frame is None:
+            raise ValueError("Shaper: Input dataframe cannot be None.")
         if data_frame.empty:
-            raise ValueError("The DataFrame is empty! Stopping")
+            raise ValueError("Shaper: Cannot operate on an empty dataframe.")
         return True
 
-    @abstractmethod
     def __call__(self, data_frame: Any) -> pd.DataFrame:
         """
-        Main functionality of the Shaper class.
-        Perform a shaping operation on the given DataFrame.
-        :param data_frame: The DataFrame to be shaped.
-        :type data_frame: pd.DataFrame
-        :raises NotImplementedError: If the method is not implemented in a subclass.
+        Execute the transformation on the data.
+
+        Args:
+            data_frame: The data to transform.
+
+        Returns:
+            The transformed dataframe.
         """
-        # This method should be implemented in subclasses
-        if not self._verifyPreconditions(data_frame):
-            raise ValueError("Preconditions not met! Stopping")
-        pass
+        self._verify_preconditions(data_frame)
         return data_frame

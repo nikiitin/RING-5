@@ -22,7 +22,6 @@ class TestAliasing:
             },
         ]
 
-
         # Mock the builder chain
         mock_instance = mock_builder.return_value
         mock_instance.with_path.return_value = mock_instance

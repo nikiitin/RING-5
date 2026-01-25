@@ -60,7 +60,9 @@ class TestDeepScanMinMax:
         ]
 
         # Patch ScannerService.scan_stats_variables directly to test grouping logic
-        with patch("src.parsers.scanner_service.ScannerService.scan_stats_variables", return_value=raw_vars):
+        with patch(
+            "src.parsers.scanner_service.ScannerService.scan_stats_variables", return_value=raw_vars
+        ):
             grouped = facade.scan_stats_variables_with_grouping("/tmp")
 
         assert len(grouped) == 1

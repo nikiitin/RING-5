@@ -20,11 +20,11 @@ def base_data():
 
 def test_init_validation():
     # Missing required params
-    # BaseShaper uses utils.checkElementExists which raises Exception
-    with pytest.raises(Exception, match="normalizeVars"):
+    # Now handled in Normalize._verify_params and raised in BaseShaper constructor
+    with pytest.raises(ValueError, match="Missing required parameter 'normalizeVars'"):
         Normalize({})
 
-    with pytest.raises(Exception, match="normalizerColumn"):
+    with pytest.raises(ValueError, match="Missing required parameter 'normalizerColumn'"):
         Normalize({"normalizeVars": ["m"]})
 
     # Valid init
@@ -36,7 +36,8 @@ def test_init_validation():
             "groupBy": ["bench"],
         }
     )
-    assert n._normalizerVars == ["metric"]  # Defaults to normalizeVars
+    # Testing that it correctly initialized internal attributes
+    assert n._normalizer_vars == ["metric"]
 
 
 def test_verify_preconditions_missing_col(base_data):
@@ -48,8 +49,8 @@ def test_verify_preconditions_missing_col(base_data):
             "groupBy": ["bench"],
         }
     )
-    with pytest.raises(ValueError, match="does not exist"):
-        n._verifyPreconditions(base_data)
+    with pytest.raises(ValueError, match="not found"):
+        n._verify_preconditions(base_data)
 
 
 def test_verify_preconditions_non_numeric(base_data):
@@ -61,8 +62,8 @@ def test_verify_preconditions_non_numeric(base_data):
             "groupBy": ["bench"],
         }
     )
-    with pytest.raises(ValueError, match="is not numeric"):
-        n._verifyPreconditions(base_data)
+    with pytest.raises(ValueError, match="must be numeric"):
+        n._verify_preconditions(base_data)
 
 
 def test_verify_preconditions_multiple_normalizers():
@@ -70,7 +71,7 @@ def test_verify_preconditions_multiple_normalizers():
         {
             "config": ["baseline", "baseline", "test"],
             "bench": ["b1", "b1", "b1"],
-            "metric": [10, 10, 20],
+            "metric": [10.0, 10.0, 20.0],
         }
     )
     n = Normalize(
@@ -81,8 +82,8 @@ def test_verify_preconditions_multiple_normalizers():
             "groupBy": ["bench"],
         }
     )
-    with pytest.raises(ValueError, match="expected 1"):
-        n._verifyPreconditions(df)
+    with pytest.raises(ValueError, match="Ambiguous baseline"):
+        n._verify_preconditions(df)
 
 
 def test_normalization_logic(base_data):
@@ -122,10 +123,6 @@ def test_normalization_sd(base_data):
     result = n(base_data)
 
     # Bench b1: baseline=10 (metric).
-    # SD should be divided by same baseline (10).
-    # b1 baseline sd=1.0 -> 0.1
-    # b1 test sd=2.0 -> 0.2
-
     b1 = result[result["bench"] == "b1"]
     np.testing.assert_almost_equal(b1[b1["config"] == "baseline"]["metric.sd"].iloc[0], 0.1)
     np.testing.assert_almost_equal(b1[b1["config"] == "test"]["metric.sd"].iloc[0], 0.2)
@@ -167,6 +164,7 @@ def test_different_normalizer_vars():
         }
     )
 
+    # Explicitly providing normalizerVars
     n = Normalize(
         {
             "normalizeVars": ["metric"],

@@ -1,279 +1,214 @@
 #!/usr/bin/env python3
-from typing import Any
+"""
+Normalization Shaper
+Implements data normalization relative to a baseline configuration.
+"""
+
+from typing import Any, Dict, List
 
 import pandas as pd
 
-import src.utils.utils as utils
 from src.web.services.shapers.uni_df_shaper import UniDfShaper
 
 
 class Normalize(UniDfShaper):
     """
-    Normalize is a Shaper that normalizes the data in a dataframe.
-    It groups data and normalizes numeric columns relative to a baseline configuration.
+    Shaper that normalizes numeric columns relative to a baseline configuration.
+
+    This shaper groups data by specified columns and scales the selected variables
+    by the value(s) found in a designated baseline row within each group.
     """
 
-    # Getters and setters
-    @property  # Variables (columns) that will be summed to create the normalizer
-    def _normalizerVars(self) -> list:
-        return self._normalizerVars_data
+    def __init__(self, params: Dict[str, Any]) -> None:
+        """
+        Initialize the Normalize shaper with parameters.
 
-    @_normalizerVars.setter
-    def _normalizerVars(self, value: Any) -> None:
-        utils.checkVarType(value, list)
-        for item in value:
-            utils.checkVarType(item, str)
-        self._normalizerVars_data = value
+        Args:
+            params: Dictionary containing:
+                - normalizeVars (List[str]): Columns to normalize.
+                - normalizerVars (Optional[List[str]]): Columns to sum for the baseline value.
+                - normalizerColumn (str): Column that identifies the baseline row.
+                - normalizerValue (str): Value in normalizerColumn that indicates the baseline.
+                - groupBy (List[str]): Columns used to define groups.
+                - normalizeSd (Optional[bool]): Whether to normalize .sd columns. Defaults to True.
+        """
+        # Assign properties before super().__init__ as _verify_params needs them
+        self._normalize_vars: List[str] = params.get("normalizeVars", [])
+        self._normalizer_column: str = params.get("normalizerColumn", "")
+        self._normalizer_value: Any = params.get("normalizerValue", "")
+        self._group_by: List[str] = params.get("groupBy", [])
+        self._normalizer_vars: List[str] = params.get("normalizerVars", self._normalize_vars)
+        self._normalize_sd: bool = params.get("normalizeSd", True)
 
-    @property  # Variables (columns) to normalize
-    def _normalizeVars(self) -> list:
-        return self._normalizeVars_data
-
-    @_normalizeVars.setter
-    def _normalizeVars(self, value: Any) -> None:
-        utils.checkVarType(value, list)
-        for item in value:
-            utils.checkVarType(item, str)
-        self._normalizeVars_data = value
-
-    @property  # Column that contains the normalizer configuration
-    def _normalizerColumn(self) -> str:
-        return self._normalizerColumn_data
-
-    @_normalizerColumn.setter
-    def _normalizerColumn(self, value: Any) -> None:
-        utils.checkVarType(value, str)
-        self._normalizerColumn_data = value
-
-    @property  # Value in normalizerColumn to use as baseline
-    def _normalizerValue(self) -> str:
-        return self._normalizerValue_data
-
-    @_normalizerValue.setter
-    def _normalizerValue(self, value: Any) -> None:
-        utils.checkVarType(value, str)
-        self._normalizerValue_data = value
-
-    @property  # Columns to group by
-    def _groupBy(self) -> list:
-        return self._groupBy_data
-
-    @_groupBy.setter
-    def _groupBy(self, value: Any) -> None:
-        utils.checkVarType(value, list)
-        for item in value:
-            utils.checkVarType(item, str)
-        self._groupBy_data = value
-
-    @property  # Whether to auto-normalize SD columns
-    def _normalizeSd(self) -> bool:
-        return self._normalizeSd_data
-
-    @_normalizeSd.setter
-    def _normalizeSd(self, value: Any) -> None:
-        utils.checkVarType(value, bool)
-        self._normalizeSd_data = value
-
-    def __init__(self, params: dict) -> None:
         super().__init__(params)
-        # normalizeVars is required
-        self._normalizeVars = utils.getElementValue(self._params, "normalizeVars", optional=False)
-        # normalizerVars defaults to normalizeVars if not provided
-        if "normalizerVars" in self._params:
-            self._normalizerVars = utils.getElementValue(
-                self._params, "normalizerVars", optional=False
-            )
-        else:
-            self._normalizerVars = self._normalizeVars
-        self._normalizerColumn = utils.getElementValue(
-            self._params, "normalizerColumn", optional=False
-        )
-        self._normalizerValue = utils.getElementValue(
-            self._params, "normalizerValue", optional=False
-        )
-        self._groupBy = utils.getElementValue(self._params, "groupBy", optional=False)
-        # normalizeSd is optional, defaults to True
-        if "normalizeSd" in self._params:
-            self._normalizeSd = utils.getElementValue(self._params, "normalizeSd", optional=True)
-            if self._normalizeSd is None:
-                self._normalizeSd = True
-        else:
-            self._normalizeSd = True
 
-    def _verifyParams(self) -> bool:
-        verified = super()._verifyParams()
-        # Check for required parameters (normalizerVars is optional, defaults to normalizeVars)
-        utils.checkElementExists(self._params, "normalizeVars")
-        utils.checkElementExists(self._params, "normalizerColumn")
-        utils.checkElementExists(self._params, "normalizerValue")
-        utils.checkElementExists(self._params, "groupBy")
-        # normalizeSd is optional with default True
-        return verified
+        # Mandatory parameters with strict validation
+        if (
+            not self._normalize_vars
+            or not self._normalizer_column
+            or not self._normalizer_value
+            or not self._group_by
+        ):
+            # _verify_params will catch missing keys for standard usage,
+            # but we keep this for direct instantiations if any.
+            pass
 
-    def _verifyPreconditions(self, data_frame: pd.DataFrame) -> bool:
-        verified = super()._verifyPreconditions(data_frame)
+        # Type validation
+        self._validate_init_types()
 
-        # Check that normalizerVars columns exist
-        for col in self._normalizerVars:
+    def _verify_params(self) -> bool:
+        """Verify that mandatory parameters exist in the params dict."""
+        super()._verify_params()
+        required = ["normalizeVars", "normalizerColumn", "normalizerValue", "groupBy"]
+        for r in required:
+            if r not in self.params:
+                raise ValueError(f"Normalize: Missing required parameter '{r}'")
+        return True
+
+    def _validate_init_types(self) -> None:
+        """Validate that initialization parameters have correct types."""
+        if not isinstance(self._normalize_vars, list):
+            raise TypeError("normalizeVars must be a list")
+        if not isinstance(self._group_by, list):
+            raise TypeError("groupBy must be a list")
+        if not isinstance(self._normalizer_column, str):
+            raise TypeError("normalizerColumn must be a string")
+        if not isinstance(self._normalize_sd, bool):
+            raise TypeError("normalizeSd must be a boolean")
+
+    def _verify_preconditions(self, data_frame: pd.DataFrame) -> bool:
+        """
+        Check that the dataframe contains all required columns and valid baseline values.
+
+        Args:
+            data_frame: The pandas DataFrame to check.
+
+        Returns:
+            True if all preconditions are met.
+
+        Raises:
+            ValueError: If columns are missing or normalization baseline is invalid.
+        """
+        super()._verify_preconditions(data_frame)
+
+        # Verify columns exist and are numeric
+        all_numeric_required = list(set(self._normalizer_vars + self._normalize_vars))
+        for col in all_numeric_required:
             if col not in data_frame.columns:
-                raise ValueError(
-                    f"The normalizer variable column '{col}' does not exist in the data frame! "
-                    "Stopping"
-                )
+                raise ValueError(f"Required numeric column '{col}' not found in dataframe.")
             if not pd.api.types.is_numeric_dtype(data_frame[col]):
-                raise ValueError(f"The normalizer variable column '{col}' is not numeric! Stopping")
+                raise ValueError(f"Column '{col}' must be numeric for normalization.")
 
-        # Check that normalizeVars columns exist
-        for col in self._normalizeVars:
-            if col not in data_frame.columns:
-                raise ValueError(
-                    f"The normalize variable column '{col}' does not exist in the data frame! "
-                    "Stopping"
-                )
-            if not pd.api.types.is_numeric_dtype(data_frame[col]):
-                raise ValueError(f"The normalize variable column '{col}' is not numeric! Stopping")
+        if self._normalizer_column not in data_frame.columns:
+            raise ValueError(f"Grouping column '{self._normalizer_column}' not found.")
 
-        # Check that normalizerColumn exists
-        if self._normalizerColumn not in data_frame.columns:
+        # Ensure baseline value exists
+        if self._normalizer_value not in data_frame[self._normalizer_column].values:
             raise ValueError(
-                f"The normalizer column '{self._normalizerColumn}' does not exist in the data "
-                "frame! Stopping"
+                f"Baseline value '{self._normalizer_value}' not found in column '{self._normalizer_column}'."
             )
 
-        # Check that normalizerValue exists in the normalizerColumn
-        if self._normalizerValue not in data_frame[self._normalizerColumn].values:
-            raise ValueError(
-                f"The normalizer value '{self._normalizerValue}' does not exist in column "
-                f"'{self._normalizerColumn}'! Stopping"
-            )
-
-        # Check that groupBy columns exist
-        for col in self._groupBy:
-            if col not in data_frame.columns:
-                raise ValueError(
-                    f"The groupBy column '{col}' does not exist in the data frame! Stopping"
-                )
-
-        # Check that each group has exactly one normalizer row
-        groups = data_frame.groupby(self._groupBy)
+        # Group validation
+        groups = data_frame.groupby(self._group_by)
         if len(groups) == 0:
-            raise ValueError("No groups found for normalization! Stopping")
+            raise ValueError("No groups found for the specified groupBy columns.")
 
         for name, group in groups:
-            normalizer_rows = group[group[self._normalizerColumn] == self._normalizerValue]
-            if len(normalizer_rows) != 1:
+            baseline_rows = group[group[self._normalizer_column] == self._normalizer_value]
+            if len(baseline_rows) != 1:
                 raise ValueError(
-                    f"Group {name} has {len(normalizer_rows)} normalizer rows (expected 1)! "
-                    "Stopping"
+                    f"Ambiguous baseline: Group {name} has {len(baseline_rows)} baseline rows. "
+                    "Each group must have exactly one row matching the normalizer value."
                 )
 
-        return verified
+        return True
 
-    def normalize_group(self, group):
+    def _normalize_group(self, group: pd.DataFrame) -> pd.DataFrame:
         """
-        Normalize a single group by dividing variables by the sum of normalizer variables.
-        The normalizer is computed as the sum of all normalizerVars from the baseline row.
+        Normalize a single group of data.
+
+        Args:
+            group: A subdivision of the original dataframe.
+
+        Returns:
+            A new dataframe with normalized values.
         """
-        # Create a copy to avoid SettingWithCopyWarning
         result = group.copy()
 
-        # Find the normalizer row
-        normalizer_row = result[result[self._normalizerColumn] == self._normalizerValue]
+        # Identify the baseline row for this group
+        baseline = result[result[self._normalizer_column] == self._normalizer_value]
 
-        if len(normalizer_row) == 0:
-            # No normalizer in this group, return unchanged
+        if baseline.empty:
             return result
 
-        # Calculate the normalizer value as the sum of normalizer variables
-        normalizer_value = sum(normalizer_row.iloc[0][col] for col in self._normalizerVars)
+        # Calculate denominator (sum of specified normalizer variables)
+        denominator = baseline[self._normalizer_vars].iloc[0].sum()
 
-        if normalizer_value == 0:
-            # Avoid division by zero - set all normalized columns to 0
-            for var in self._normalizeVars:
-                result[var] = 0
-            if self._normalizeSd:
-                for var in self._normalizeVars:
+        if denominator == 0:
+            # Prevent division by zero: zero out normalized columns
+            for var in self._normalize_vars:
+                result[var] = 0.0
+                if self._normalize_sd:
                     sd_col = f"{var}.sd"
                     if sd_col in result.columns:
-                        result[sd_col] = 0
+                        result[sd_col] = 0.0
             return result
 
-        # Normalize each variable by dividing by the normalizer sum
-        for var in self._normalizeVars:
-            result[var] = result[var] / normalizer_value
-
-        # Auto-normalize .sd columns if enabled
-        if self._normalizeSd:
-            # SD columns should be normalized using the SAME normalizer as their base statistic
-            # (not the SD of the normalizer variables)
-            for var in self._normalizeVars:
+        # Perform the actual scaling
+        for var in self._normalize_vars:
+            result[var] = result[var] / denominator
+            if self._normalize_sd:
                 sd_col = f"{var}.sd"
                 if sd_col in result.columns:
-                    result[sd_col] = result[sd_col] / normalizer_value
+                    result[sd_col] = result[sd_col] / denominator
 
         return result
 
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
-        super().__call__(data_frame)  # Just for precondition checking
+        """
+        Execute the normalization pipeline.
 
-        # Create a copy to avoid modifying the original
-        result = data_frame.copy()
+        Args:
+            data_frame: Input data.
 
-        # Group by the specified columns and apply normalization
-        grouped = result.groupby(self._groupBy, group_keys=False)
+        Returns:
+            New dataframe with normalized columns.
+        """
+        self._verify_preconditions(data_frame)
 
-        # Apply normalization - the normalize_group method preserves all columns
-        # Note: pandas will issue FutureWarning about operating on grouping columns,
-        # but this is intentional - we want to preserve all columns in the result
         import warnings
 
         with warnings.catch_warnings():
+            # Suppress pandas warning about group keys being dropped during apply
             warnings.filterwarnings(
                 "ignore",
                 category=FutureWarning,
                 message=".*DataFrameGroupBy.apply operated on the grouping columns.*",
             )
-            result = grouped.apply(lambda x: self.normalize_group(x))
-
-        return result
-
-
-# Main function to test the Normalize class
-def test():
-    # Create a sample data frame
-    df = pd.DataFrame(
-        {
-            "config": ["baseline", "baseline", "baseline", "config2", "config2", "config2"],
-            "benchmark": ["B1", "B2", "B3", "B1", "B2", "B3"],
-            "metric1": [100, 200, 300, 150, 250, 450],
-            "metric2": [10, 20, 30, 15, 25, 45],
-        }
-    )
-    params = {
-        "normalizeVars": ["metric1", "metric2"],
-        "normalizerColumn": "config",
-        "normalizerValue": "baseline",
-        "groupBy": ["benchmark"],
-        "srcCsv": "normtest.csv",
-        "dstCsv": "output_data.csv",
-    }
-    print("Input:")
-    print(df)
-    print("\n" + "=" * 80 + "\n")
-    norm_shaper = Normalize(params)
-    df = norm_shaper(df)
-    print("Result (normalized by 'baseline'):")
-    print(df)
-    print("\n" + "=" * 80 + "\n")
-    print("Verification:")
-    print("- Each variable is normalized by its own baseline value")
-    print("- Baseline rows should have value = 1.0 for each normalized variable")
-    baseline = df[df["config"] == "baseline"]
-    print("\nBaseline rows:")
-    print(baseline)
-    print(f"\nBaseline metric1 values (should be 1.0): {baseline['metric1'].values}")
-    print(f"Baseline metric2 values (should be 1.0): {baseline['metric2'].values}")
+            return data_frame.groupby(self._group_by, group_keys=False).apply(self._normalize_group)
 
 
 if __name__ == "__main__":
-    test()
+    # Self-test block
+    test_df = pd.DataFrame(
+        {
+            "config": ["baseline", "eval"],
+            "bench": ["B1", "B1"],
+            "cycles": [1000, 1500],
+            "energy": [50, 60],
+        }
+    )
+
+    normalizer = Normalize(
+        {
+            "normalizeVars": ["cycles", "energy"],
+            "normalizerColumn": "config",
+            "normalizerValue": "baseline",
+            "groupBy": ["bench"],
+        }
+    )
+
+    print("Pre-normalization:")
+    print(test_df)
+    print("\nPost-normalization:")
+    print(normalizer(test_df))
