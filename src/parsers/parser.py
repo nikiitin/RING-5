@@ -92,8 +92,9 @@ class Gem5StatsParser:
             # Registry Inversion: Extract type-specific entries
             # Registry Inversion: Extract type-specific entries via consolidated Mapper
             from src.parsers.type_mapper import TypeMapper
+
             stat_obj = TypeMapper.create_stat(var)
-            
+
             var_map[name] = stat_obj
 
             # Handle multi-ID mapping (Variables matched via regex scanning)

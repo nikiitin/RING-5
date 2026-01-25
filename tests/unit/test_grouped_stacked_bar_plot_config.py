@@ -69,8 +69,7 @@ def test_render_config_ui_grouped(mock_streamlit, sample_data):
     #   Group renames loops over unique Config (2 calls: Low, High)
     # Total Text Inputs: 3 + 2 + 2 + 2 = 9
 
-    # We simplify by using a broad side effect or simpler expectations
-    # Let's just mock returns to be "New Value" if needed, or pass through
+    # Side effects for widget simulation.
     mock_streamlit.text_input.return_value = "Test Input"
 
     config = plot.render_config_ui(sample_data, saved_config)

@@ -210,9 +210,7 @@ class BackendFacade:
         """
         from src.parsers.scanner_service import ScannerService
 
-        return ScannerService.scan_stats_variables_with_grouping(
-            stats_path, file_pattern, limit
-        )
+        return ScannerService.scan_stats_variables_with_grouping(stats_path, file_pattern, limit)
 
     def scan_entries_for_variable(
         self, stats_path: str, var_name: str, file_pattern: str = "stats.txt", limit: int = 10
@@ -222,13 +220,13 @@ class BackendFacade:
         Uses ScannerService's deep scan capability (via scan_stats_variables primarily).
         """
         # Filter logic is here but deep scan delegated to Service
-        
+
         from src.parsers.scanner_service import ScannerService
-        
+
         # Refactoring to use ScannerService for raw data
         raw_vars = ScannerService.scan_stats_variables(stats_path, file_pattern, limit)
         found_entries: set[str] = set()
-        
+
         for var in raw_vars:
             if var["name"] == var_name and "entries" in var:
                 found_entries.update(var["entries"])
@@ -242,10 +240,10 @@ class BackendFacade:
         Determine the global operational range for a distribution variable.
         """
         from src.parsers.scanner_service import ScannerService
-        
+
         # Deep scan across 20 samples to ensure range coverage
         discovered_vars = ScannerService.scan_stats_variables(stats_path, file_pattern, limit=20)
-        
+
         global_min: Optional[int] = None
         global_max: Optional[int] = None
 

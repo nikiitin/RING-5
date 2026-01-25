@@ -2,6 +2,7 @@
 """
 Test script to verify the vector UI configuration is working
 """
+
 import sys
 
 sys.path.insert(0, ".")

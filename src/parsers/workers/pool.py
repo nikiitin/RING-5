@@ -15,7 +15,7 @@ class ScanWorkPool:
     _singleton = None
 
     @classmethod
-    def getInstance(cls):
+    def get_instance(cls):
         if cls._singleton is None:
             cls._singleton = ScanWorkPool()
         return cls._singleton
@@ -24,13 +24,13 @@ class ScanWorkPool:
         self._workPool = WorkPool.get_instance()
         self._futures = []
 
-    def addWork(self, work: ScanWork) -> None:
+    def add_work(self, work: ScanWork) -> None:
         """Add work to the pool."""
         if work is not None:
             future = self._workPool.submit(work)
             self._futures.append(future)
 
-    def getResults(self) -> List[Any]:
+    def get_results(self) -> List[Any]:
         """
         Wait for all submitted work to finish and collect results.
         """
@@ -94,7 +94,7 @@ class ParseWorkPool:
         results = []
         if not self._futures:
             return results
-            
+
         # tqdm usage for user feedback during long parsing operations
         for future in tqdm(self._futures, desc="Parsing progress"):
             try:

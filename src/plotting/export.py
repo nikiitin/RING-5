@@ -109,7 +109,7 @@ class ExportService:
     ) -> None:
         """Render download button using Matplotlib backup renderer."""
         st.warning("High-fidelity export failed, using fallback renderer.")
-        
+
         try:
             buf = ExportService._convert_to_matplotlib(fig, config, fmt)
             mime = ExportService._get_mime_type(fmt)
@@ -126,9 +126,7 @@ class ExportService:
             st.info("HTML download is always available as a fallback")
 
     @staticmethod
-    def _convert_to_matplotlib(
-        fig: go.Figure, config: Dict[str, Any], fmt: str
-    ) -> io.BytesIO:
+    def _convert_to_matplotlib(fig: go.Figure, config: Dict[str, Any], fmt: str) -> io.BytesIO:
         """Convert Plotly figure to Matplotlib for backup export."""
         import matplotlib.pyplot as plt
 
@@ -155,7 +153,7 @@ class ExportService:
         ax.set_title(config.get("title", ""))
         ax.set_xlabel(config.get("xlabel", ""))
         ax.set_ylabel(config.get("ylabel", ""))
-        
+
         if len(fig.data) > 1:
             ax.legend()
         ax.grid(True, alpha=0.3)

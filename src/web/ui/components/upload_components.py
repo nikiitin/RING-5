@@ -5,8 +5,8 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from src.web.ui.components.data_components import DataComponents
 from src.web.state_manager import StateManager
+from src.web.ui.components.data_components import DataComponents
 
 
 class UploadComponents:

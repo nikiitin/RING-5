@@ -99,7 +99,7 @@ def test_variable_editor_deep_scan(mock_streamlit, mock_facade):
     # 3. Type ("vector")
 
     # 4. Radio Entry Mode -> "Select from Discovered Entries" (to trigger logic checks)
-    # Actually logic depends on stats_path etc.
+    # Simulation logic parameters.
 
     # Helper for side effects is tricky because of loop.
     # We'll mock specific calls if possible or allow loose matching.
@@ -112,7 +112,7 @@ def test_variable_editor_deep_scan(mock_streamlit, mock_facade):
     # Simulate "Select from Discovered Entries" mode to trigger specific path
     mock_streamlit.radio.return_value = "Select from Discovered Entries"
 
-    # Deep Scan Button Click
+    # Simulate clicking the Deep Scan button.
     # Mocking button interactions using key prefix check
     def button_side_effect(label, key=None, **kwargs):
         if key and key.startswith("deep_scan"):

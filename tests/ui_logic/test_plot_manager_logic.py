@@ -84,7 +84,6 @@ def test_render_plot_controls_rename(mock_streamlit, mock_plot_service):
     # Mock UI
     mock_streamlit.columns.return_value = [MagicMock(), MagicMock(), MagicMock(), MagicMock()]
     mock_streamlit.text_input.return_value = "New Name"
-    # Buttons return False
     mock_streamlit.button.return_value = False
 
     PlotManagerComponents.render_plot_controls(plot)

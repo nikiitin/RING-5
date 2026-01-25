@@ -4,10 +4,9 @@ from src.web.facade import BackendFacade
 
 
 class TestAliasing:
-    @patch("src.web.facade.Path")
     @patch("builtins.open", new_callable=mock_open)
     @patch("src.parsers.parser.Gem5StatsParser.builder")
-    def test_aliasing_config_generation(self, mock_builder, mock_file_open, mock_path):
+    def test_aliasing_config_generation(self, mock_builder, mock_file_open):
         # Setup
         facade = BackendFacade()
         stats_path = "/tmp/stats"
@@ -23,8 +22,6 @@ class TestAliasing:
             },
         ]
 
-        # Mocking mkdir
-        mock_path.return_value.mkdir.return_value = None
 
         # Mock the builder chain
         mock_instance = mock_builder.return_value

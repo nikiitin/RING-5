@@ -166,17 +166,14 @@ class GroupedBarPlot(BasePlot):
         # per Category (Major Group). The sub-groups are handled by Plotly automatically offsetting traces.
         # So we pass groups=[None] to the utility to get simple category-based coordinates.
         coord_result = GroupedBarUtils.calculate_grouped_coordinates(
-            categories=ordered_x,
-            groups=[None], 
-            config=config
+            categories=ordered_x, groups=[None], config=config
         )
-        
+
         # Adapt keys: Utility returns (cat, None), we just want cat
         x_map = {k[0]: v for k, v in coord_result["coord_map"].items()}
         tick_vals = coord_result["tick_vals"]
         tick_text = coord_result["tick_text"]
         distinction_shapes = coord_result["shapes"]
-
 
         # 3. Create Traces
         fig = go.Figure()

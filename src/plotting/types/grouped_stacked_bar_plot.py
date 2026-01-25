@@ -563,13 +563,8 @@ class GroupedStackedBarPlot(StackedBarPlot):
     ) -> Dict[str, Any]:
         """Build coordinate mapping for grouped bars using centralized utility."""
         return GroupedBarUtils.calculate_grouped_coordinates(
-            categories=categories,
-            groups=groups,
-            config=config
+            categories=categories, groups=groups, config=config
         )
-
-
-
 
     def _build_category_annotations(
         self, cat_centers: List[tuple], config: Dict[str, Any]

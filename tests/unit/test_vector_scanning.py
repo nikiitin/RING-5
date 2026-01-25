@@ -9,21 +9,14 @@ class TestVectorScanning:
         """Test that Facade delegates to ScannerService and filters entries correctly."""
         # Setup mock return from ScannerService
         mock_scan_service.return_value = [
-            {
-                "name": "system.cpu.op_class",
-                "type": "vector",
-                "entries": ["IntAlu", "IntMult"]
-            },
-            {
-                "name": "other.var",
-                "type": "scalar"
-            },
+            {"name": "system.cpu.op_class", "type": "vector", "entries": ["IntAlu", "IntMult"]},
+            {"name": "other.var", "type": "scalar"},
             {
                 # Duplicate name to test aggregation (if multiple files scanned)
                 "name": "system.cpu.op_class",
                 "type": "vector",
-                "entries": ["IntDiv"]
-            }
+                "entries": ["IntDiv"],
+            },
         ]
 
         facade = BackendFacade()
@@ -39,9 +32,7 @@ class TestVectorScanning:
     @patch("src.parsers.scanner_service.ScannerService.scan_stats_variables")
     def test_scan_vector_entries_no_match(self, mock_scan_service):
         """Test scanning when variable is not found."""
-        mock_scan_service.return_value = [
-            {"name": "other.var", "type": "scalar"}
-        ]
+        mock_scan_service.return_value = [{"name": "other.var", "type": "scalar"}]
 
         facade = BackendFacade()
         entries = facade.scan_vector_entries("/path", "system.cpu.op_class")

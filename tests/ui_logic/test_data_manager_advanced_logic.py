@@ -41,12 +41,7 @@ def test_mixer_render_numeric_op(mock_streamlit, sample_data):
     manager.get_data = MagicMock(return_value=sample_data)
     manager.set_data = MagicMock()
 
-    # Interactions:
-    # Radio Mode -> "Numerical Operations"
-    # Multiselect Cols -> ["A", "B"]
-    # Selectbox Op -> "Sum"
-    # TextInput Name -> "merged"
-    # Button Preview -> True
+    # Interaction parameters.
 
     mock_st.radio.return_value = "Numerical Operations"
     mock_st.multiselect.return_value = ["A", "B"]
@@ -95,12 +90,7 @@ def test_preprocessor_render_op(mock_streamlit, sample_data):
     manager = PreprocessorManager()
     manager.get_data = MagicMock(return_value=sample_data)
 
-    # Interactions:
-    # Select Src1 -> A
-    # Select Op -> Divide
-    # Select Src2 -> B
-    # Text Name -> "new_col"
-    # Button Preview -> True
+    # Interaction parameters.
 
     mock_st.selectbox.side_effect = ["A", "Divide", "B"]
     mock_st.text_input.return_value = "new_col"

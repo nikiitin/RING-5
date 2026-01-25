@@ -7,7 +7,7 @@ Moves complex domain logic out of the Web Facade.
 import logging
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from src.parsers.workers.pool import ParseWorkPool as ScanWorkPool
 
@@ -37,10 +37,10 @@ class ScannerService:
         files_to_sample = files[:limit]
 
         pool = ScanWorkPool.get_instance()
-        
+
         # Correctly import the worker class
         from src.parsers.workers.gem5_scan_work import Gem5ScanWork
-        
+
         for file_path in files_to_sample:
             # Reusing the existing worker architecture
             pool.add_work(Gem5ScanWork(str(file_path)))

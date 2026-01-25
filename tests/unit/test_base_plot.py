@@ -127,7 +127,7 @@ def test_render_reorderable_list(concrete_plot, mock_streamlit):
     # We have loops. Up on index 1 should trigger swap.
     # Pattern: up_{i}
     def button_side_effect(label, key, **kwargs):
-        if key == f"test_key_up_1_{concrete_plot.plot_id}":  # Button UP for 'B'
+        if key == f"test_key_up_1_{concrete_plot.plot_id}":
             return True
         return False
 
@@ -161,8 +161,7 @@ def test_render_advanced_options_shapes(concrete_plot, mock_streamlit):
     # `shapes = saved_config.get("shapes", [])`. If list exists in config, it updates config list.
     assert len(config["shapes"]) == 1
     assert config["shapes"][0]["type"] == "line"
-    # Mock text input is tricky here as it returns same for all by default unless side effected.
-    # But checking list length is enough to prove logic path.
+    # Validate that the shape list length increased.
     mock_streamlit.rerun.assert_called()
 
 
@@ -177,6 +176,6 @@ def test_render_advanced_options_display(concrete_plot, mock_streamlit):
     # mock_streamlit fixture returns MagicMock for everything by default.
     # We should update side_effect strictly or use loose assertions.
 
-    # Let's trust logic existence.
+    # Validate existence of expected configuration keys.
     assert "show_error_bars" in res
     assert "xaxis_tickangle" in res

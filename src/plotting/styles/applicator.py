@@ -601,4 +601,3 @@ class StyleApplicator:
             showarrow=False,
             font=dict(size=font_size, color=font_color),
         )
-

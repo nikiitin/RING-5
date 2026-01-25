@@ -51,7 +51,7 @@ def test_variable_config_dialog_manual_entry_scalar(components_bundle, mock_stat
     """Test manual entry of a scalar variable."""
     mock_streamlit, DataSourceComponents = components_bundle
 
-    # Interactions: Input Name, Select Type, Click Button
+    # Interaction parameters.
     mock_streamlit.radio.return_value = "Manual Entry"
     mock_streamlit.text_input.return_value = "my_var"
     mock_streamlit.selectbox.return_value = "scalar"

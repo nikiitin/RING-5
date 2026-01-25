@@ -97,21 +97,20 @@ def test_render_plot_cached(mock_interactive_chart, mock_streamlit, mock_plot):
 @patch("src.plotting.export.ExportService")
 def test_export_delegation(mock_export_service, mock_plot):
     fig = MagicMock()
-    
+
     # Test HTML delegation
     mock_plot.config = {"download_format": "html"}
     PlotRenderer._render_download_button(mock_plot, fig)
-    
+
     mock_export_service.render_download_button.assert_called_with(
         plot_name=mock_plot.name,
         plot_id=mock_plot.plot_id,
         fig=fig,
         config=mock_plot.config,
-        key_prefix="dl_btn"
+        key_prefix="dl_btn",
     )
 
     # Test PNG delegation
     mock_plot.config = {"download_format": "png"}
     PlotRenderer._render_download_button(mock_plot, fig)
     assert mock_export_service.render_download_button.call_count == 2
-

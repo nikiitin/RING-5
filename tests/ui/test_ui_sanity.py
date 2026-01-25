@@ -11,7 +11,7 @@ class TestUISanity:
 
         assert not at.exception
 
-        assert len(at.markdown) > 0 or len(at.title) > 0 # Verify content exists
+        assert len(at.markdown) > 0 or len(at.title) > 0  # Verify content exists
 
     def test_navigation_sidebar(self):
         """Test that navigation sidebar is present."""
@@ -31,4 +31,4 @@ class TestUISanity:
         at.sidebar.radio[0].set_value("Manage Plots").run()
 
         assert not at.exception
-        assert len(at.markdown) > 0 or len(at.header) > 0 # Verify content exists
+        assert len(at.markdown) > 0 or len(at.header) > 0  # Verify content exists

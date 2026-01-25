@@ -28,7 +28,7 @@ def mock_streamlit():
 
         # Mock selectbox to return a valid string for palette
         mock_st.selectbox.return_value = "Plotly"
-        
+
         yield mock_st
 
 

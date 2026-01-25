@@ -93,9 +93,7 @@ class TestGem5Parsing:
         for var in selected_vars:
             assert var["name"] in df.columns
 
-        # Check for inferred columns (benchmark, config, seed)
-        # The parser logic usually adds 'benchmark', 'config' etc if it can infer them or if provided in separate config.
-        # Let's check what we got.
+        # Verify presence of inferred columns.
 
     def test_histogram_parsing(self):
         """Test scanning and parsing a file containing histograms."""

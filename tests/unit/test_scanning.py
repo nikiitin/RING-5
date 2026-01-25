@@ -48,8 +48,8 @@ def clean_pool_singleton():
 
 
 def test_scan_work_pool_singleton(clean_pool_singleton):
-    pool1 = ScanWorkPool.getInstance()
-    pool2 = ScanWorkPool.getInstance()
+    pool1 = ScanWorkPool.get_instance()
+    pool2 = ScanWorkPool.get_instance()
     assert pool1 is pool2
 
 
@@ -58,10 +58,10 @@ def test_scan_work_pool_add_work(clean_pool_singleton):
         mock_internal_pool = MagicMock()
         mock_wp_cls.return_value = mock_internal_pool
 
-        scan_pool = ScanWorkPool.getInstance()
+        scan_pool = ScanWorkPool.get_instance()
         work = Gem5ScanWork("f")
 
-        scan_pool.addWork(work)
+        scan_pool.add_work(work)
 
         mock_internal_pool.submit.assert_called_once_with(work)
         assert len(scan_pool._futures) == 1
@@ -69,7 +69,7 @@ def test_scan_work_pool_add_work(clean_pool_singleton):
 
 def test_scan_work_pool_get_results(clean_pool_singleton):
     with patch("src.core.multiprocessing.pool.WorkPool.get_instance"):
-        scan_pool = ScanWorkPool.getInstance()
+        scan_pool = ScanWorkPool.get_instance()
 
         # Mock futures
         mock_future1 = MagicMock()
@@ -80,7 +80,7 @@ def test_scan_work_pool_get_results(clean_pool_singleton):
 
         scan_pool._futures = [mock_future1, mock_future2]
 
-        results = scan_pool.getResults()
+        results = scan_pool.get_results()
 
         assert results == ["res1", "res2"]
         # Futures should be cleared

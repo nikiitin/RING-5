@@ -10,9 +10,10 @@ from src.web.ui.components.data_components import DataComponents
 @pytest.fixture
 def mock_streamlit():
     # We need to patch st in both modules where it is used
-    with patch("src.web.ui.components.data_components.st") as mock_st_data, \
-         patch("src.web.ui.components.card_components.st") as mock_st_card:
-        
+    with patch("src.web.ui.components.data_components.st") as mock_st_data, patch(
+        "src.web.ui.components.card_components.st"
+    ) as mock_st_card:
+
         # Unify mocks for easier assertion
         mock_st = MagicMock()
         mock_st_data.markdown = mock_st.markdown
@@ -21,7 +22,7 @@ def mock_streamlit():
         mock_st_data.expander = mock_st.expander
         mock_st_data.download_button = mock_st.download_button
         mock_st_data.columns = mock_st.columns
-        
+
         mock_st_card.expander = mock_st.expander
         mock_st_card.button = mock_st.button
         mock_st_card.columns = mock_st.columns

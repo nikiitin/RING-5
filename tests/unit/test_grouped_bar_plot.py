@@ -103,7 +103,7 @@ def test_create_figure_with_error_bars_and_filters(sample_data):
     assert len(fig.data) == 2
 
     # Check data content
-    # Trace 0 should be first group in order? px handles order via category_orders
+    # Trace 0 should be first group in order. px handles order via category_orders
     layout = fig.layout
     # Plotly might convert list to tuple internally for layout properties
     assert list(layout.xaxis.ticktext) == ["A"]

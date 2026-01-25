@@ -4,15 +4,11 @@ from src.web.facade import BackendFacade
 
 
 class TestDeepScanMinMax:
-    @patch("src.web.facade.BackendFacade.scan_stats_variables")
-    def test_scan_stats_variables_merges_min_max(self, mock_scan_base):
-        # Setup mock behavior simulating lower-level scan results
-        # Verify that scan_stats_variables integrates merging logic correctly.
-        pass
-
-    def test_merging_logic_in_facade(self):
-        # We need to mock the worker pool results to test scan_stats_variables logic
-        with patch("src.parsers.workers.pool.ScanWorkPool.getInstance") as mock_pool_cls:
+    def test_merging_logic_in_scanner_service(self):
+        """Test that ScannerService correctly merges distribution ranges from multiple files."""
+        # Setup mock for the pool used inside ScannerService
+        # ScannerService imports ParseWorkPool as ScanWorkPool
+        with patch("src.parsers.scanner_service.ScanWorkPool.get_instance") as mock_pool_cls:
             mock_pool = MagicMock()
             mock_pool_cls.return_value = mock_pool
 
@@ -39,21 +35,23 @@ class TestDeepScanMinMax:
                     }
                 ],
             ]
-            mock_pool.getResults.return_value = results
+            mock_pool.get_results.return_value = results
 
             facade = BackendFacade()
-            # Mock glob to return 2 dummy files
-            with patch("pathlib.Path.rglob", return_value=["file1", "file2"]):
+            # Mock Path and exists to allow execution
+            with patch("src.parsers.scanner_service.Path") as mock_path:
+                mock_path.return_value.exists.return_value = True
+                mock_path.return_value.rglob.return_value = ["f1", "f2"]
                 vars = facade.scan_stats_variables("/tmp", limit=5)
 
             assert len(vars) == 1
             dist = vars[0]
             assert dist["name"] == "dist_var"
-            assert dist["minimum"] == -5  # Min of 0 and -5
-            assert dist["maximum"] == 10  # Max of 10 and 5
+            assert dist["minimum"] == -5
+            assert dist["maximum"] == 10
 
     def test_grouping_logic_propagates_min_max(self):
-        # Mock scan_stats_variables to return raw vars
+        """Test that grouping logic in ScannerService propagates merged min/max."""
         facade = BackendFacade()
 
         raw_vars = [
@@ -61,7 +59,8 @@ class TestDeepScanMinMax:
             {"name": "system.cpu1.dist", "type": "distribution", "minimum": 10, "maximum": 20},
         ]
 
-        with patch.object(facade, "scan_stats_variables", return_value=raw_vars):
+        # Patch ScannerService.scan_stats_variables directly to test grouping logic
+        with patch("src.parsers.scanner_service.ScannerService.scan_stats_variables", return_value=raw_vars):
             grouped = facade.scan_stats_variables_with_grouping("/tmp")
 
         assert len(grouped) == 1

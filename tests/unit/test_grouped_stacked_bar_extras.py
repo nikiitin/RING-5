@@ -53,13 +53,43 @@ def test_render_advanced_options_defaults(sample_data, mock_streamlit):
 
 
 def test_specific_advanced_options_overrides(sample_data, mock_streamlit):
-    GroupedStackedBarPlot(1, "Test Plot")
-    # Mock streamlit manually or rely on defaults logic
-    # Since we can't easily mock streamlit active loop here without framework,
-    # we simulate what the method does if it reads from saved_config + defaults.
-    # But wait, render_advanced_options calls st.slider which returns a value.
-    # We can't test UI rendering easily in unit tests without extensive mocking.
-    pass
+    """Test that advanced options correctly capture user overrides."""
+    plot = GroupedStackedBarPlot(1, "Test Plot")
+
+    # Mock interactions for general and bar settings:
+    # 1. st.checkbox("Error Bars") -> True
+    # 2. st.number_input("Y-axis Step") -> 5.0
+    # 3. st.selectbox("Download Format") -> "pdf"
+    # 4. st.selectbox("Export Scale") -> 2
+    # 5. st.slider("X-axis Rotation") -> 15
+    # 6. st.slider("Bar Gap") -> 0.3
+    # 7. st.slider("Bar Group Gap") -> 0.1
+    # 8. st.slider("Bar Border Width") -> 1.5
+    # 9. st.checkbox("Enable Interactive Editing") -> True
+
+    # Note: GroupedStackedBarPlot doesn't have the "Series Renaming" checkbox from BasePlot.
+    mock_streamlit.checkbox.side_effect = [True, True]  # Error Bars, Editable
+    mock_streamlit.number_input.return_value = 5.0
+    # Selectbox needs to match specific keys or order.
+    # General section has 2 (fmt, scale). Reorderable list uses none.
+    # But StyleManager.render_series_renaming_ui is called, it doesn't use selectbox.
+    # BasePlot._render_shapes_ui uses 1 selectbox.
+    mock_streamlit.selectbox.side_effect = ["pdf", 2, "line"]
+    mock_streamlit.slider.side_effect = [15, 0.3, 0.1, 1.5]
+
+    saved_config = {"x": "Benchmark", "group": "Config", "y_columns": ["Ticks"]}
+
+    config = plot.render_advanced_options(saved_config, sample_data)
+
+    assert config["show_error_bars"] is True
+    assert config["yaxis_dtick"] == 5.0
+    assert config["download_format"] == "pdf"
+    assert config["export_scale"] == 2
+    assert config["xaxis_tickangle"] == 15
+    assert config["bargap"] == 0.3
+    assert config["bargroupgap"] == 0.1
+    assert config["bar_border_width"] == 1.5
+    assert config.get("enable_editable") is True
 
 
 def test_create_figure_renaming(sample_data, mock_streamlit):

@@ -2,8 +2,8 @@
 
 import pytest
 
-from src.parsers.types import StatTypeRegistry
 from src.parsers.parser import Gem5StatsParser
+from src.parsers.types import StatTypeRegistry
 
 
 class TestGem5StatsParser:
