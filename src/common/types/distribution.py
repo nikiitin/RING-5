@@ -225,6 +225,4 @@ class Distribution(StatType):
         return self.reduced_content
 
     def __str__(self) -> str:
-        return (
-            f"Distribution(range=[{self._minimum}, {self._maximum}], repeat={self._repeat})"
-        )
+        return f"Distribution(range=[{self._minimum}, {self._maximum}], repeat={self._repeat})"

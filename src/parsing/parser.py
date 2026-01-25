@@ -236,6 +236,7 @@ class ParserBuilder:
         self._variables: List[Dict[str, Any]] = []
 
         import tempfile
+
         self._output_dir: str = os.path.join(tempfile.gettempdir(), "ring5_output")
 
     def with_path(self, path: str) -> "ParserBuilder":

@@ -15,12 +15,12 @@ Usage:
     3. Shuts down the app
 """
 
-import pytest
-import time
 import subprocess
-import requests
+import time
 from pathlib import Path
 
+import pytest
+import requests
 
 # Configuration
 APP_URL = "http://localhost:8502"
@@ -34,7 +34,7 @@ class TestBrowserE2E:
     def app_server(self):
         """
         Start the Streamlit app server for testing.
-        
+
         This fixture starts the app before tests and stops it after.
         Skip if the app is already running.
         """
@@ -77,7 +77,7 @@ class TestBrowserE2E:
     def test_app_is_reachable(self, app_server):
         """
         Verify the app is accessible via HTTP.
-        
+
         This is a basic connectivity test before running browser tests.
         """
         response = requests.get(APP_URL, timeout=10)
@@ -87,12 +87,12 @@ class TestBrowserE2E:
     def test_navigation_elements_present(self, app_server):
         """
         Verify that navigation elements are rendered in the page source.
-        
+
         Note: This is a basic check. Full browser interaction tests
         should use the browser_subagent tool.
         """
         response = requests.get(APP_URL, timeout=10)
-        
+
         # Check for key navigation elements (these might be in JavaScript)
         # This is a sanity check; full testing requires browser rendering
         assert response.status_code == 200

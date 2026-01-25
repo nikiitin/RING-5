@@ -143,7 +143,14 @@ class BackendFacade:
                         "repeat": len(matched_ids),
                     }
                     # Propagate type-specific configurations
-                    for key in ["bins", "max_range", "minimum", "maximum", "vectorEntries", "statistics"]:
+                    for key in [
+                        "bins",
+                        "max_range",
+                        "minimum",
+                        "maximum",
+                        "vectorEntries",
+                        "statistics",
+                    ]:
                         if key in var:
                             var_config[key] = var[key]
 

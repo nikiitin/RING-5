@@ -14,17 +14,14 @@ class TestDistributionUnconfiguredStats:
     def test_distribution_ignores_unconfigured_stats(self):
         """
         Verify Distribution does not crash when receiving unconfigured stats.
-        
+
         Scientific Integrity: The parser may encounter statistics in the gem5
         output that were not requested by the user. These should be silently
         ignored rather than causing a crash.
         """
         # Create distribution WITHOUT 'samples' in statistics
         dist = StatTypeRegistry.create(
-            "distribution", 
-            minimum=0, 
-            maximum=10, 
-            statistics=[]  # No stats requested
+            "distribution", minimum=0, maximum=10, statistics=[]  # No stats requested
         )
 
         # Input content contains 'samples' (simulating parser output)
@@ -37,7 +34,7 @@ class TestDistributionUnconfiguredStats:
 
         # Should NOT raise TypeError - verify no exception
         dist.content = content
-        
+
         # Verify the expected buckets are still accessible
         assert "0" in dist.content
         assert "10" in dist.content
@@ -47,10 +44,7 @@ class TestDistributionUnconfiguredStats:
         Verify Distribution correctly processes configured statistics.
         """
         dist = StatTypeRegistry.create(
-            "distribution",
-            minimum=0,
-            maximum=2,
-            statistics=["samples", "mean"]
+            "distribution", minimum=0, maximum=2, statistics=["samples", "mean"]
         )
 
         content = {

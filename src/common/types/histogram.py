@@ -88,7 +88,9 @@ class Histogram(StatType):
             num_bins = self._bins
             max_val = self._max_range
             bin_width = max_val / num_bins
-            result.extend([f"{int(b * bin_width)}-{int((b + 1) * bin_width)}" for b in range(num_bins)])
+            result.extend(
+                [f"{int(b * bin_width)}-{int((b + 1) * bin_width)}" for b in range(num_bins)]
+            )
         # Priority 3: Discovered raw buckets
         else:
             result.extend(sorted(list(object.__getattribute__(self, "_content").keys())))

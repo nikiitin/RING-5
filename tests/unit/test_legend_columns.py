@@ -4,8 +4,8 @@ Verifies that legend positioning and styling properties are correctly
 applied to Plotly figures following publication-quality standards.
 """
 
-import pytest
 import plotly.graph_objects as go
+import pytest
 
 from src.plotting.styles.applicator import StyleApplicator
 
@@ -70,7 +70,7 @@ class TestLegendStyling:
     def test_legend_no_columns_default_behavior(self, applicator):
         """
         Verify that ncols=0 does not set a fixed entrywidth.
-        
+
         This allows Plotly's default behavior for single-column legends.
         """
         fig = go.Figure()
