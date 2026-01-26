@@ -1,0 +1,55 @@
+{
+  "makefile.configureOnOpen": false,
+  "r.lsp.promptToInstall": false,
+  
+  // Python configuration
+  "python.defaultInterpreterPath": "${workspaceFolder}/python_venv/bin/python",
+  "python.terminal.activateEnvironment": true,
+  "python.analysis.typeCheckingMode": "basic",
+  
+  // GitHub Copilot
+  "github.copilot.enable": {
+    "*": true,
+    "python": true,
+    "markdown": true
+  },
+  
+  // Editor settings for AI assistance
+  "editor.inlineSuggest.enabled": true,
+  "editor.suggestSelection": "first",
+  "editor.formatOnSave": true,
+  
+  // Python formatting
+  "python.formatting.provider": "black",
+  "python.linting.enabled": true,
+  "python.linting.pylintEnabled": false,
+  "python.linting.flake8Enabled": true,
+  
+  // Testing
+  "python.testing.pytestEnabled": true,
+  "python.testing.pytestArgs": [
+    "tests"
+  ],
+  "python.testing.unittestEnabled": false,
+  
+  // File associations
+  "files.associations": {
+    "*.md": "markdown",
+    ".cursorrules": "yaml",
+    ".agent/**": "markdown"
+  },
+  
+  // Search exclusions (keep AI focused on relevant code)
+  "search.exclude": {
+    "**/python_venv": true,
+    "**/.pytest_cache": true,
+    "**/__pycache__": true,
+    "**/*.egg-info": true
+  },
+  
+  // Files to watch (for AI context)
+  "files.watcherExclude": {
+    "**/python_venv/**": true,
+    "**/.pytest_cache/**": true
+  }
+}
