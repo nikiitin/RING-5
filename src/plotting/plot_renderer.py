@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional
 import pandas as pd
 import streamlit as st
 
+from src.core.performance import timed
 from src.plotting.export import ExportService
 from src.web.ui.components.interactive_plot import interactive_plotly_chart
 
@@ -71,6 +72,7 @@ class PlotRenderer:
         return legend_labels
 
     @staticmethod
+    @timed
     def render_plot(plot: BasePlot, should_generate: bool = False) -> None:
         """
         Render the plot visualization.

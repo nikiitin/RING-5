@@ -5,7 +5,7 @@ import pandas as pd
 
 from src.plotting import BasePlot
 from src.web.services.paths import PathService
-from src.web.state_manager import StateManager
+from src.web.repositories import ParserStateRepository
 
 
 class PortfolioService:
@@ -46,9 +46,9 @@ class PortfolioService:
             "config": config,
             "parse_variables": parse_variables or [],
             # Persist stats location & scanning results
-            "stats_path": StateManager.get_stats_path(),
-            "stats_pattern": StateManager.get_stats_pattern(),
-            "scanned_variables": StateManager.get_scanned_variables(),
+            "stats_path": ParserStateRepository.get_stats_path(),
+            "stats_pattern": ParserStateRepository.get_stats_pattern(),
+            "scanned_variables": ParserStateRepository.get_scanned_variables(),
         }
 
         save_path = PathService.get_portfolios_dir() / f"{name}.json"

@@ -22,6 +22,7 @@ def run_app():
     from src.web.pages.data_managers import show_data_managers_page
     from src.web.pages.data_source import DataSourcePage
     from src.web.pages.manage_plots import show_manage_plots_page
+    from src.web.pages.performance import render_performance_page
     from src.web.pages.portfolio import show_portfolio_page
     from src.web.pages.upload_data import UploadDataPage
     from src.web.state_manager import StateManager
@@ -90,6 +91,7 @@ def run_app():
                 "Data Managers",
                 "Manage Plots",
                 "Save/Load Portfolio",
+                "⚡ Performance",
             ],
             label_visibility="collapsed",
         )
@@ -120,6 +122,8 @@ def run_app():
         show_manage_plots_page()
     elif page == "Save/Load Portfolio":
         show_portfolio_page()
+    elif page == "⚡ Performance":
+        render_performance_page()
 
 
 if __name__ == "__main__":
