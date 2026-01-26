@@ -46,11 +46,12 @@ def clean_pool_singleton():
     yield
     ScanWorkPool._singleton = None
 
-
 def test_scan_work_pool_singleton(clean_pool_singleton):
     pool1 = ScanWorkPool.get_instance()
     pool2 = ScanWorkPool.get_instance()
     assert pool1 is pool2
+
+
 
 
 def test_scan_work_pool_add_work(clean_pool_singleton):
@@ -67,21 +68,37 @@ def test_scan_work_pool_add_work(clean_pool_singleton):
         assert len(scan_pool._futures) == 1
 
 
-def test_scan_work_pool_get_results(clean_pool_singleton):
+def test_scan_work_pool_async_flow(clean_pool_singleton):
+    """Test the core async flow of the pool."""
+    from concurrent.futures import Future
+    import time
+
     with patch("src.core.multiprocessing.pool.WorkPool.get_instance"):
         scan_pool = ScanWorkPool.get_instance()
 
-        # Mock futures
-        mock_future1 = MagicMock()
-        mock_future1.result.return_value = "res1"
+        work1 = MagicMock(spec=Gem5ScanWork)
+        work2 = MagicMock(spec=Gem5ScanWork)
 
-        mock_future2 = MagicMock()
-        mock_future2.result.return_value = "res2"
-
-        scan_pool._futures = [mock_future1, mock_future2]
-
-        results = scan_pool.get_results()
-
-        assert results == ["res1", "res2"]
-        # Futures should be cleared
-        assert len(scan_pool._futures) == 0
+        # Mock add_work to return futures
+        f1 = Future()
+        f1.set_result("res1")
+        f2 = Future()
+        f2.set_result("res2")
+        
+        # We need to test the actual submit_batch_async flow
+        # Instead of mocking add_work, we'll mock the internal _workPool
+        scan_pool._workPool.submit.side_effect = [f1, f2]
+        
+        scan_pool.submit_batch_async([work1, work2])
+        
+        # Poll for completion
+        while scan_pool.get_status()["status"] == "running":
+            time.sleep(0.01)
+            
+        status = scan_pool.get_status()
+        assert status["status"] == "done"
+        assert status["current"] == 2
+        
+        results = scan_pool.get_results_async_snapshot()
+        assert "res1" in results
+        assert "res2" in results

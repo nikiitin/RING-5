@@ -4,6 +4,7 @@ Preprocessor Manager
 
 import streamlit as st
 
+from src.web.services.data_processing_service import DataProcessingService
 from src.web.ui.data_managers.base_manager import DataManager
 
 
@@ -48,8 +49,6 @@ class PreprocessorManager(DataManager):
 
         with col1:
             src_col1 = st.selectbox("Source Column 1", options=numeric_cols, key="preproc_src1")
-
-        from src.web.services.data_processing_service import DataProcessingService
 
         with col2:
             operation = st.selectbox(

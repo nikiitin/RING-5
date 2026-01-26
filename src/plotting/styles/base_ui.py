@@ -4,6 +4,8 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 import streamlit as st
 
+from src.plotting.styles.colors import get_palette_colors, to_hex
+
 
 class BaseStyleUI:
     """
@@ -295,8 +297,10 @@ class BaseStyleUI:
             legend_valign = st.selectbox(
                 "Vertical Align",
                 options=["middle", "top", "bottom"],
-                index=["middle", "top", "bottom"].index(
-                    saved_config.get("legend_valign", "middle")
+                index=(
+                    ["middle", "top", "bottom"].index(saved_config.get("legend_valign", "middle"))
+                    if saved_config.get("legend_valign", "middle") in ["middle", "top", "bottom"]
+                    else 0
                 ),
                 key=f"{key_prefix}leg_valign_{self.plot_id}",
             )
@@ -311,8 +315,13 @@ class BaseStyleUI:
             legend_xanchor = st.selectbox(
                 "X Anchor",
                 options=["auto", "left", "center", "right"],
-                index=["auto", "left", "center", "right"].index(
-                    saved_config.get("legend_xanchor", "auto")
+                index=(
+                    ["auto", "left", "center", "right"].index(
+                        saved_config.get("legend_xanchor", "auto")
+                    )
+                    if saved_config.get("legend_xanchor", "auto")
+                    in ["auto", "left", "center", "right"]
+                    else 0
                 ),
                 key=f"{key_prefix}leg_xanc_{self.plot_id}",
             )
@@ -327,8 +336,13 @@ class BaseStyleUI:
             legend_yanchor = st.selectbox(
                 "Y Anchor",
                 options=["auto", "top", "middle", "bottom"],
-                index=["auto", "top", "middle", "bottom"].index(
-                    saved_config.get("legend_yanchor", "auto")
+                index=(
+                    ["auto", "top", "middle", "bottom"].index(
+                        saved_config.get("legend_yanchor", "auto")
+                    )
+                    if saved_config.get("legend_yanchor", "auto")
+                    in ["auto", "top", "middle", "bottom"]
+                    else 0
                 ),
                 key=f"{key_prefix}leg_yanc_{self.plot_id}",
             )
@@ -596,8 +610,6 @@ class BaseStyleUI:
         # Use current selection if available, else saved config
         palette_name = current_palette or saved_config.get("color_palette", "plotly")
 
-        from src.plotting.styles.colors import get_palette_colors, to_hex
-
         palette_colors = get_palette_colors(palette_name)
 
         if unique_vals:
@@ -631,7 +643,7 @@ class BaseStyleUI:
         current_style: Dict[str, Any],
         val_hash: str,
         key_prefix: str = "",
-        palette_context: str = "",
+        palette_name: str = "",
     ):
         c2, c3 = st.columns([1, 2])
 
@@ -643,7 +655,7 @@ class BaseStyleUI:
             st.color_picker(
                 "Original",
                 default_color,
-                key=f"{key_prefix}orig_col_{self.plot_id}_{val_hash}_{palette_context}",
+                key=f"{key_prefix}orig_col_{self.plot_id}_{val_hash}_{palette_name}",
                 disabled=True,
                 label_visibility="collapsed",
             )
@@ -751,8 +763,6 @@ class BaseStyleUI:
 
                 for val in unique_x:
                     s_val = str(val)
-                    import hashlib
-
                     val_hash = hashlib.md5(s_val.encode(), usedforsecurity=False).hexdigest()[:8]
 
                     col_l, col_r = st.columns([1, 2])
@@ -799,121 +809,120 @@ class BaseStyleUI:
         show_values = st.checkbox(
             "Show Values",
             value=saved_config.get("show_values", False),
-            key=f"{key_prefix}show_vals_{self.plot_id}",
-            help="Display data values on the bars/points.",
+            key=f"{key_prefix}show_val_{self.plot_id}",
         )
 
-        config_update = {"show_values": show_values}
+        text_color_mode = st.selectbox(
+            "Value Color Mode",
+            options=["auto", "contrast", "custom"],
+            index=(
+                ["auto", "contrast", "custom"].index(saved_config.get("text_color_mode", "auto"))
+                if saved_config.get("text_color_mode", "auto") in ["auto", "contrast", "custom"]
+                else 0
+            ),
+            key=f"{key_prefix}tx_col_mode_{self.plot_id}",
+            help="Auto: uses theme default. Contrast: white on dark, black on light. Custom: fixed color.",
+        )
 
-        if show_values:
-            c1, c2 = st.columns(2)
-            with c1:
-                text_position = st.selectbox(
-                    "Position",
-                    options=["auto", "inside", "outside"],
-                    index=["auto", "inside", "outside"].index(
-                        saved_config.get("text_position") or "auto"
-                    ),
-                    key=f"{key_prefix}txt_pos_{self.plot_id}",
-                )
-
-                # Show Anchor only if inside
-                if text_position == "inside":
-                    text_anchor = st.selectbox(
-                        "Anchor (Inside)",
-                        options=["auto", "start", "middle", "end"],
-                        index=["auto", "start", "middle", "end"].index(
-                            saved_config.get("text_anchor") or "auto"
-                        ),
-                        key=f"{key_prefix}txt_anc_{self.plot_id}",
-                        help="Start=Bottom/Left, End=Top/Right",
-                    )
-                else:
-                    text_anchor = None
-
-            with c2:
-                # Text Color Mode
-                color_mode = st.radio(
-                    "Color Mode",
-                    options=["Custom", "Auto Contrast"],
-                    index=0 if saved_config.get("text_color_mode", "Custom") == "Custom" else 1,
-                    horizontal=True,
-                    key=f"{key_prefix}txt_mode_{self.plot_id}",
-                    help="Auto Contrast flips text color (black/white) based on bar brightness.",
-                )
-
-                if color_mode == "Custom":
-                    text_color = st.color_picker(
-                        "Text Color",
-                        saved_config.get("text_color", "#000000"),
-                        key=f"{key_prefix}txt_col_{self.plot_id}",
-                    )
-                else:
-                    text_color = None  # handled in applicator
-
-                text_font_size = st.number_input(
-                    "Font Size",
-                    value=int(saved_config.get("text_font_size") or 12),
-                    min_value=6,
-                    max_value=100,
-                    step=1,
-                    key=f"{key_prefix}txt_fs_{self.plot_id}",
-                )
-
-                text_rotation = st.number_input(
-                    "Rotation",
-                    value=int(saved_config.get("text_rotation") or 0),
-                    min_value=-360,
-                    max_value=360,
-                    step=90,
-                    key=f"{key_prefix}txt_rot_{self.plot_id}",
-                )
-
-                text_format = st.text_input(
-                    "Format Template",
-                    value=saved_config.get("text_format", "%{y:.2f}"),
-                    key=f"{key_prefix}txt_fmt_{self.plot_id}",
-                    help="Plotly d3 formatting. e.g. %{y:.2f} for 2 decimals.",
-                )
-
-                # Conditional Display
-                display_logic = st.selectbox(
-                    "Display Logic",
-                    options=["Always Show", "If > Threshold"],
-                    index=["Always Show", "If > Threshold"].index(
-                        saved_config.get("text_display_logic") or "Always Show"
-                    ),
-                    key=f"{key_prefix}txt_logic_{self.plot_id}",
-                )
-
-                threshold = 0.0
-                if display_logic == "If > Threshold":
-                    threshold = st.number_input(
-                        "Threshold Value",
-                        value=float(saved_config.get("text_threshold") or 0.0),
-                        key=f"{key_prefix}txt_thresh_{self.plot_id}",
-                    )
-
-                text_constraint = st.checkbox(
-                    "Constrain to Bar",
-                    value=saved_config.get("text_constraint", False),
-                    key=f"{key_prefix}txt_constrain_{self.plot_id}",
-                    help="Force text to fit inside the bar (prevents overlap).",
-                )
-
-            config_update.update(
-                {
-                    "text_position": text_position,
-                    "text_anchor": text_anchor,
-                    "text_color_mode": color_mode,
-                    "text_color": text_color,
-                    "text_font_size": text_font_size,
-                    "text_rotation": text_rotation,
-                    "text_format": text_format,
-                    "text_display_logic": display_logic,
-                    "text_threshold": threshold,
-                    "text_constraint": text_constraint,
-                }
+        text_color = "#000000"
+        if text_color_mode == "custom":
+            text_color = st.color_picker(
+                "Value Color",
+                saved_config.get("text_color", "#000000"),
+                key=f"{key_prefix}tx_col_{self.plot_id}",
             )
 
-        return config_update
+        text_font_size = st.number_input(
+            "Value Font Size",
+            min_value=6,
+            max_value=40,
+            value=saved_config.get("text_font_size", 10),
+            key=f"{key_prefix}tx_font_sz_{self.plot_id}",
+        )
+
+        text_rotation = st.slider(
+            "Value Rotation",
+            -90,
+            90,
+            saved_config.get("text_rotation", 0),
+            15,
+            key=f"{key_prefix}tx_rot_{self.plot_id}",
+        )
+
+        text_position = st.selectbox(
+            "Value Position",
+            options=["auto", "inside", "outside"],
+            index=(
+                ["auto", "inside", "outside"].index(saved_config.get("text_position", "auto"))
+                if saved_config.get("text_position", "auto") in ["auto", "inside", "outside"]
+                else 0
+            ),
+            key=f"{key_prefix}tx_pos_{self.plot_id}",
+        )
+
+        text_anchor = st.selectbox(
+            "Value Anchor",
+            options=["auto", "top", "middle", "bottom"],
+            index=(
+                ["auto", "top", "middle", "bottom"].index(saved_config.get("text_anchor", "auto"))
+                if saved_config.get("text_anchor", "auto") in ["auto", "top", "middle", "bottom"]
+                else 0
+            ),
+            key=f"{key_prefix}tx_anc_{self.plot_id}",
+        )
+
+        text_format = st.text_input(
+            "Value Number Format (d3-format)",
+            value=saved_config.get("text_format", ".2f"),
+            key=f"{key_prefix}tx_fmt_{self.plot_id}",
+            help="e.g. .2f for 2 decimals, .2s for scientific suffix, .1% for percentage.",
+        )
+
+        st.caption("Display Thresholds")
+        text_display_logic = st.selectbox(
+            "Display Logic",
+            options=["all", "above_threshold", "below_threshold"],
+            index=(
+                ["all", "above_threshold", "below_threshold"].index(
+                    saved_config.get("text_display_logic", "all")
+                )
+                if saved_config.get("text_display_logic", "all")
+                in ["all", "above_threshold", "below_threshold"]
+                else 0
+            ),
+            key=f"{key_prefix}tx_logic_{self.plot_id}",
+        )
+
+        text_threshold = 0.0
+        if text_display_logic != "all":
+            text_threshold = st.number_input(
+                "Threshold Value",
+                value=float(saved_config.get("text_threshold", 0.0)),
+                key=f"{key_prefix}tx_thresh_{self.plot_id}",
+            )
+
+        text_constraint = st.selectbox(
+            "Size Constraint",
+            options=["none", "inside"],
+            index=(
+                ["none", "inside"].index(saved_config.get("text_constraint", "none"))
+                if saved_config.get("text_constraint", "none") in ["none", "inside"]
+                else 0
+            ),
+            key=f"{key_prefix}tx_const_{self.plot_id}",
+            help="If inside, text will be resized or hidden to fit within the bars.",
+        )
+
+        return {
+            "show_values": show_values,
+            "text_color_mode": text_color_mode,
+            "text_color": text_color,
+            "text_font_size": text_font_size,
+            "text_rotation": text_rotation,
+            "text_position": text_position,
+            "text_anchor": text_anchor,
+            "text_format": text_format,
+            "text_display_logic": text_display_logic,
+            "text_threshold": text_threshold,
+            "text_constraint": text_constraint,
+        }

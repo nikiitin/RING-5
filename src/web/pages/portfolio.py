@@ -1,12 +1,15 @@
 """Portfolio management page - save and load complete analysis snapshots."""
 
 import copy
+import logging
 
 import streamlit as st
 
 from src.web.services.pipeline_service import PipelineService
 from src.web.services.portfolio_service import PortfolioService
 from src.web.state_manager import StateManager
+
+logger = logging.getLogger(__name__)
 
 
 def show_portfolio_page():
@@ -33,6 +36,7 @@ def show_portfolio_page():
         if st.button("Save Portfolio", type="primary", width="stretch"):
             if not StateManager.has_data():
                 st.error("No data loaded. Please load data first.")
+                logger.warning("PORTFOLIO: Attempted to save portfolio without data.")
             else:
                 try:
                     PortfolioService.save_portfolio(
@@ -47,6 +51,7 @@ def show_portfolio_page():
                     st.success(f"Portfolio saved: {portfolio_name}")
                 except Exception as e:
                     st.error(f"Failed to save portfolio: {e}")
+                    logger.error("PORTFOLIO: Failed to save portfolio '%s': %s", portfolio_name, e, exc_info=True)
 
     with col2:
         st.markdown("### Load Portfolio")
@@ -66,6 +71,7 @@ def show_portfolio_page():
                     st.rerun()
                 except Exception as e:
                     st.error(f"Failed to load portfolio: {e}")
+                    logger.error("PORTFOLIO: Failed to load portfolio '%s': %s", selected_portfolio, e, exc_info=True)
         else:
             st.warning("No portfolios found. Save one first!")
 
@@ -114,6 +120,7 @@ def show_portfolio_page():
                         st.success(f"Pipeline saved: {pipeline_name}")
                     except Exception as e:
                         st.error(f"Failed to save pipeline: {e}")
+                        logger.error("PIPELINE: Failed to save pipeline '%s': %s", pipeline_name, e, exc_info=True)
         else:
             st.info("Create some plots first to extract pipelines.")
 
@@ -151,6 +158,7 @@ def show_portfolio_page():
                         st.success(f"Applied pipeline to {count} plots.")
                     except Exception as e:
                         st.error(f"Failed to apply pipeline: {e}")
+                        logger.error("PIPELINE: Failed to apply pipeline '%s': %s", selected_pipeline_name, e, exc_info=True)
             else:
                 st.info("No plots available to apply pipeline to.")
         else:

@@ -1,8 +1,9 @@
-"""Vector stat type for arrays with named entries."""
-
+import logging
 from typing import Any, Dict, List
 
 from src.parsers.types.base import StatType, register_type
+
+logger = logging.getLogger(__name__)
 
 
 @register_type("vector")
@@ -97,12 +98,17 @@ class Vector(StatType):
         expected_keys = set(self._entries)
         unknown_keys = found_keys - expected_keys
 
-        if unknown_keys:
-            print(
-                f"\nVECTOR: Entries in file are not the same as configured entries:\n"
-                f"Expected: {self._entries}\n"
-                f"Found: {list(value.keys())}\n"
-                f"Skipping unknown entries: {unknown_keys}"
+        # Silent skip for standard statistics which might be present but not requested
+        standard_stats = {"total", "mean", "samples", "stdev", "gmean"}
+        unknown_keys_to_warn = unknown_keys - standard_stats
+
+        if unknown_keys_to_warn:
+            logger.warning(
+                "VECTOR: Entries in file are not the same as configured entries: "
+                "Expected: %s, Found: %s. Skipping unknown entries: %s",
+                self._entries,
+                list(value.keys()),
+                unknown_keys_to_warn,
             )
 
         # Only keep entries that are in our configured list

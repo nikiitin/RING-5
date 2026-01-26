@@ -118,7 +118,7 @@ class TestParserVariableMapping:
         parser = (
             Gem5StatsParser.builder()
             .with_path("/tmp")
-            .with_variable("hist", "histogram", bins=10, max_range=100.0, statistics="samples,mean")
+            .with_variable("hist", "histogram", bins=11, max_range=100.0, statistics="samples,mean")
             .with_output("/tmp")
             .build()
         )

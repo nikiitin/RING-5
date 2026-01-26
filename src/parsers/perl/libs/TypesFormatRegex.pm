@@ -160,32 +160,32 @@ sub classifyLine {
         return { type => 'configuration', name => $1, entry => undef };
     } 
     # Scalar: name value # comment
-    elsif ($line =~ /^($varNameRegex)\s+$scalarValueRegex\s+$commentRegex?$/) {
+    elsif ($line =~ /^($varNameRegex)\s+$scalarValueRegex$commentRegex?$/) {
         return { type => 'scalar', name => $1, entry => undef };
     } 
     # Histogram: name::range ...
-    elsif ($line =~ /^($varNameRegex)($histogramEntryRangeRegex)\s+$complexValueRegex\s+$commentRegex?$/) {
+    elsif ($line =~ /^($varNameRegex)($histogramEntryRangeRegex)\s+$complexValueRegex$commentRegex?$/) {
         my $name = $1;
         my $entry = $2;
         $entry =~ s/^:://; 
         return { type => 'histogram', name => $name, entry => $entry }; 
     } 
     # Distribution: name::val ...
-    elsif ($line =~ /^($varNameRegex)($distEntry)\s+$complexValueRegex\s+$commentRegex?$/) {
+    elsif ($line =~ /^($varNameRegex)($distEntry)\s+$complexValueRegex$commentRegex?$/) {
         my $name = $1;
         my $entry = $2;
         $entry =~ s/^:://;
         return { type => 'distribution', name => $name, entry => $entry };
     } 
     # Summary: name::total ...
-    elsif ($line =~ /^($varNameRegex)($summariesEntryRegex)\s+$scalarValueRegex\s+$commentRegex?$/) {
+    elsif ($line =~ /^($varNameRegex)($summariesEntryRegex)\s+$scalarValueRegex$commentRegex?$/) {
         my $name = $1;
         my $entry = $2;
         $entry =~ s/^:://;
         return { type => 'summary', name => $name, entry => $entry };
     } 
     # Vector: name::entry ...
-    elsif ($line =~ /^($varNameRegex)($vectorEntryRegex)\s+(?:$complexValueRegex|$scalarValueRegex)\s+$commentRegex?$/) {
+    elsif ($line =~ /^($varNameRegex)($vectorEntryRegex)\s+(?:$complexValueRegex|$scalarValueRegex)$commentRegex?$/) {
         my $name = $1;
         my $entry = $2;
         $entry =~ s/^:://;

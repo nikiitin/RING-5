@@ -3,11 +3,13 @@ Variable Editor Component for RING-5.
 Handles rendering and interaction for defining parser variables (scalars, vectors, distributions).
 """
 
+import re
 from typing import Any, Dict, List, Optional
 
 import streamlit as st
 
 from src.web.facade import BackendFacade
+from src.web.state_manager import StateManager
 
 
 class VariableEditor:
@@ -285,8 +287,9 @@ class VariableEditor:
         else:  # Vector Statistics mode
             cls._render_vector_statistics_selection(var_config, original_var, var_id)
 
-    @staticmethod
+    @classmethod
     def _handle_deep_scan(
+        cls,
         var_name: str,
         var_id: str,
         entry_mode: str,
@@ -315,65 +318,136 @@ class VariableEditor:
             help_text = "Scan ALL stats files to find all possible entries for this variable."
 
         if should_show_scan:
-            if st.button(
-                btn_label,
-                key=f"deep_scan_{var_id}",
-                help=help_text,
-            ):
-                with st.spinner(f"Scanning all files for {var_name}..."):
-                    facade = BackendFacade()
+            if st.button(btn_label, key=f"deep_scan_{var_id}", help=help_text):
+                st.session_state[f"scan_active_{var_id}"] = True
+                st.session_state[f"scan_cancelled_{var_id}"] = False
+                facade = BackendFacade()
+                facade.submit_scan_async(stats_path, stats_pattern, limit=-1)
+                st.rerun()
 
-                    if is_distribution:
-                        result = facade.scan_distribution_range(stats_path, var_name, stats_pattern)
-                        if result and (
-                            result["minimum"] is not None or result["maximum"] is not None
-                        ):
-                            # Update session state if possible, though number_input value is local
-                            st.success(f"Found range: {result['minimum']} to {result['maximum']}")
-                            # Store in session state for number_input default usage
-                            st.session_state[f"dist_range_result_{var_id}"] = result
-                            st.rerun()
-                        else:
-                            st.warning("No distribution data found.")
-                    else:
-                        all_entries = facade.scan_entries_for_variable(
-                            stats_path, var_name, stats_pattern
-                        )
+            if st.session_state.get(f"scan_active_{var_id}", False):
+                cls._show_scan_dialog(var_name, var_id, stats_path, stats_pattern, is_distribution)
 
-                        if all_entries:
-                            # Update session state available variables
-                            if (
-                                "available_variables" in st.session_state
-                                and st.session_state.available_variables
-                            ):
-                                for v in st.session_state.available_variables:
-                                    if v["name"] == var_name:
-                                        v["entries"] = all_entries
-                                        break
+    @classmethod
+    @st.dialog("Deep Scan", dismissible=False)
+    def _show_scan_dialog(
+        cls,
+        var_name: str,
+        var_id: str,
+        stats_path: str,
+        stats_pattern: str,
+        is_distribution: bool
+    ):
+        """Non-blocking dialog for async scanning."""
+        facade = BackendFacade()
+        status = facade.get_scan_status()
+        state = status["status"]
+        current = status["current"]
+        total = status["total"]
 
-                            st.success(f"Found {len(all_entries)} entries!")
-                            st.rerun()
-                        else:
-                            st.warning("No entries found.")
+        st.write(f"Variable: `{var_name}`")
+        
+        progress_bar = st.progress(0, text="Initializing...")
+        if total > 0:
+            pct = min(current / total, 1.0)
+            progress_bar.progress(pct, text=f"Scanned {current}/{total} files")
 
-    @staticmethod
+        # Cancellation logic
+        if state == "running":
+            if st.button("Cancel Scan", key=f"cancel_{var_id}"):
+                facade.cancel_scan()
+                st.session_state[f"scan_cancelled_{var_id}"] = True
+                st.rerun()
+        
+        if state == "done":
+            st.success("Scan Complete!")
+            snapshot = facade.get_scan_results_snapshot()
+
+            if is_distribution:
+                global_min, global_max = None, None
+                for var in snapshot:
+                    if (var["name"] == var_name or re.fullmatch(var_name, var["name"])) and var.get("type") == "distribution":
+                        m, M = var.get("minimum"), var.get("maximum")
+                        if m is not None:
+                            global_min = min(global_min, m) if global_min is not None else m
+                        if M is not None:
+                            global_max = max(global_max, M) if global_max is not None else M
+
+                if global_min is not None or global_max is not None:
+                     st.session_state[f"dist_range_result_{var_id}"] = {"minimum": global_min, "maximum": global_max}
+                     st.success(f"Final Range: [{global_min}, {global_max}]")
+                else:
+                     st.warning(f"No distribution data found matching '{var_name}'.")
+            else:
+                 found_entries = set()
+                 for var in snapshot:
+                     if (var["name"] == var_name or re.fullmatch(var_name, var["name"])) and "entries" in var:
+                         found_entries.update(var["entries"])
+
+                 # SCIENTIFIC FILTER: Remove internal stats from the count and storage
+                 internal_stats = {"total", "mean", "gmean", "stdev", "samples", "overflows", "underflows"}
+                 filtered_entries = sorted([e for e in found_entries if e.lower() not in internal_stats])
+
+                 if filtered_entries:
+                      scanned_vars = StateManager.get_scanned_variables() or []
+                      var_found = False
+                      for v in scanned_vars:
+                          if v["name"] == var_name:
+                               v["entries"] = filtered_entries
+                               var_found = True
+                               break
+                      if not var_found:
+                          scanned_vars.append({"name": var_name, "type": "vector", "entries": filtered_entries})
+
+                      StateManager.set_scanned_variables(scanned_vars)
+                      st.success(f"Discovered {len(filtered_entries)} unique entries!")
+                 else:
+                      st.warning(f"No valid entries found matching '{var_name}'.")
+
+            if st.button("Finish & Close", key=f"finish_{var_id}"):
+                st.session_state[f"scan_active_{var_id}"] = False
+                st.rerun()
+
+        elif state == "cancelled" or st.session_state.get(f"scan_cancelled_{var_id}", False):
+            st.warning("Scan was cancelled.")
+            if st.button("Close", key=f"close_cancel_{var_id}"):
+                st.session_state[f"scan_active_{var_id}"] = False
+                st.rerun()
+        elif state == "error":
+            st.error(f"Scan failed: {status.get('errors', 'Unknown error')}")
+            if st.button("Close", key=f"close_err_{var_id}"):
+                st.session_state[f"scan_active_{var_id}"] = False
+                st.rerun()
+        else:
+            # Poll again with a small delay
+            import time
+            time.sleep(0.5)
+            st.rerun()
+
+    @classmethod
     def _render_vector_discovered_selection(
+        cls,
         var_config: Dict[str, Any],
         original_var: Dict[str, Any],
         var_id: str,
         discovered_entries: List[str],
     ):
         """Render multiselect for discovered vector entries."""
+        # SCIENTIFIC FILTER: Remove internal gem5 statistics from the entry list
+        # These are handled via the 'Statistics' checkboxes
+        internal_stats = {"total", "mean", "gmean", "stdev", "samples", "overflows", "underflows"}
+        filtered_entries = [e for e in discovered_entries if e.lower() not in internal_stats]
+
         current_entries = original_var.get("vectorEntries", [])
         if isinstance(current_entries, str):
             current_entries = [e.strip() for e in current_entries.split(",") if e.strip()]
 
         # Filter defaults to ensure they exist in discovered list
-        valid_defaults = [e for e in current_entries if e in discovered_entries]
+        valid_defaults = [e for e in current_entries if e in filtered_entries]
 
         selected_entries = st.multiselect(
             "Select entries to extract:",
-            options=discovered_entries,
+            options=filtered_entries,
             default=valid_defaults,
             key=f"vector_entries_select_{var_id}",
         )

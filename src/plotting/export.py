@@ -9,6 +9,7 @@ import logging
 from typing import Any, Dict
 
 import plotly.graph_objects as go
+import plotly.io as pio
 import streamlit as st
 
 logger = logging.getLogger(__name__)
@@ -47,8 +48,6 @@ class ExportService:
     @staticmethod
     def _render_html_download(plot_name: str, fig: go.Figure) -> None:
         """Render download button for HTML format."""
-        import plotly.io as pio
-
         html_str = pio.to_html(fig, include_plotlyjs=True)
         st.download_button(
             label="Download Interactive HTML",

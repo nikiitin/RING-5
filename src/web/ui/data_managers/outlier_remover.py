@@ -4,6 +4,7 @@ Outlier Remover Manager
 
 import streamlit as st
 
+from src.web.services.data_processing_service import DataProcessingService
 from src.web.ui.data_managers.base_manager import DataManager
 
 
@@ -91,10 +92,6 @@ class OutlierRemoverManager(DataManager):
         if st.button("Apply Outlier Remover", key="apply_outlier"):
             try:
                 # Use the existing DataManager implementation via facade
-                from src.web.services.data_processing_service import (
-                    DataProcessingService,
-                )
-
                 filtered_df = DataProcessingService.remove_outliers(
                     df=data, outlier_col=outlier_column, group_by_cols=group_by_cols
                 )

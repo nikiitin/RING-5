@@ -11,9 +11,12 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
+from src.parsers.parser import Gem5StatsParser
+from src.parsers.scanner_service import ScannerService
 from src.web.services.config_service import ConfigService
 from src.web.services.csv_pool_service import CsvPoolService
 from src.web.services.paths import PathService
+from src.web.services.shapers.factory import ShaperFactory
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +115,7 @@ class BackendFacade:
         Returns:
             Path to the generated results file.
         """
-        from src.parsers.parser import Gem5StatsParser
+        logger.info("FACADE: Starting gem5 stats ingestion from: %s", stats_path)
 
         Gem5StatsParser.reset()
 
@@ -128,10 +131,10 @@ class BackendFacade:
             # Pattern Recognition: Identify variables meant for cross-controller aggregation
             # e.g. system.cpu\d+.ipc
             if "\\d+" in var_name or "*" in var_name:
-                # Discover concrete matches to determine 'repeat' factor and IDs
-                concrete_matches = self.scan_stats_variables(stats_path, stats_pattern, limit=3)
+                # Processed via previously cached async scan results
+                scanned_vars = self.get_scan_results_snapshot()
                 matched_ids = [
-                    cv["name"] for cv in concrete_matches if re.fullmatch(var_name, cv["name"])
+                    cv["name"] for cv in scanned_vars if re.fullmatch(var_name, cv["name"])
                 ]
 
                 if matched_ids:
@@ -182,6 +185,7 @@ class BackendFacade:
         )
 
         csv_path = parser.parse()
+        logger.info("FACADE: Ingestion successful. CSV generated at: %s", csv_path)
 
         if progress_callback:
             progress_callback(10, 1.0, "Ingestion Complete.")
@@ -190,70 +194,25 @@ class BackendFacade:
 
     # ==================== Variable Discovery & Scanning ====================
 
-    def scan_stats_variables(
-        self, stats_path: str, stats_pattern: str = "stats.txt", limit: int = 5
-    ) -> List[Dict[str, Any]]:
-        """
-        Parallel scan of stats files to discover available metrics.
-        Delegates to ScannerService.
-        """
-        from src.parsers.scanner_service import ScannerService
 
-        return ScannerService.scan_stats_variables(stats_path, stats_pattern, limit)
 
-    def scan_stats_variables_with_grouping(
-        self, stats_path: str, file_pattern: str = "stats.txt", limit: int = 5
-    ) -> List[Dict[str, Any]]:
-        """
-        Scan and group variables using Regex (heuristic for reduction).
-        Delegates to ScannerService.
-        """
-        from src.parsers.scanner_service import ScannerService
+    def submit_scan_async(
+        self, stats_path: str, stats_pattern: str = "stats.txt", limit: int = -1
+    ) -> None:
+        """Submit an asynchronous scan request."""
+        ScannerService.submit_scan_async(stats_path, stats_pattern, limit)
 
-        return ScannerService.scan_stats_variables_with_grouping(stats_path, file_pattern, limit)
+    def cancel_scan(self) -> None:
+        """Cancel the currently running scan."""
+        ScannerService.cancel_scan()
 
-    def scan_entries_for_variable(
-        self, stats_path: str, var_name: str, file_pattern: str = "stats.txt", limit: int = 10
-    ) -> List[str]:
-        """
-        Deep scan to find all unique sub-keys (entries) for a complex variable.
-        Uses ScannerService's deep scan capability (via scan_stats_variables primarily).
-        """
-        # Filter logic is here but deep scan delegated to Service
+    def get_scan_status(self) -> Dict[str, Any]:
+        """Get status of the running scan."""
+        return ScannerService.get_scan_status()
 
-        from src.parsers.scanner_service import ScannerService
-
-        # Refactoring to use ScannerService for raw data
-        raw_vars = ScannerService.scan_stats_variables(stats_path, file_pattern, limit)
-        found_entries: set[str] = set()
-
-        for var in raw_vars:
-            if var["name"] == var_name and "entries" in var:
-                found_entries.update(var["entries"])
-
-        return sorted(list(found_entries))
-
-    def scan_distribution_range(
-        self, stats_path: str, var_name: str, file_pattern: str = "stats.txt"
-    ) -> Dict[str, Optional[int]]:
-        """
-        Determine the global operational range for a distribution variable.
-        """
-        from src.parsers.scanner_service import ScannerService
-
-        # Deep scan across 20 samples to ensure range coverage
-        discovered_vars = ScannerService.scan_stats_variables(stats_path, file_pattern, limit=20)
-
-        global_min: Optional[int] = None
-        global_max: Optional[int] = None
-
-        for var in discovered_vars:
-            if var["name"] == var_name and var.get("type") == "distribution":
-                global_min = var.get("minimum")
-                global_max = var.get("maximum")
-                break
-
-        return {"minimum": global_min, "maximum": global_max}
+    def get_scan_results_snapshot(self) -> List[Dict[str, Any]]:
+        """Get snapshot of current scan results."""
+        return ScannerService.get_scan_results_snapshot()
 
     # ==================== Utility Methods ====================
 
@@ -261,7 +220,6 @@ class BackendFacade:
         self, data: pd.DataFrame, shapers_config: List[Dict[str, Any]]
     ) -> pd.DataFrame:
         """Apply a sequence of business logic transformations to a dataset."""
-        from src.web.services.shapers.factory import ShaperFactory
 
         result = data.copy()
         for cfg in shapers_config:
@@ -279,6 +237,4 @@ class BackendFacade:
             "null_counts": data.isnull().sum().to_dict(),
         }
 
-    def scan_vector_entries(self, *args, **kwargs) -> List[str]:
-        """Backward compatibility alias."""
-        return self.scan_entries_for_variable(*args, **kwargs)
+

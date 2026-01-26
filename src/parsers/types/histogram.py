@@ -84,13 +84,20 @@ class Histogram(StatType):
         if self._entries:
             result.extend(self._entries)
         # Priority 2: Rebinned buckets
+        # Priority 2: Rebinned buckets
         elif self._bins > 0 and self._max_range > 0:
-            num_bins = self._bins
-            max_val = self._max_range
-            bin_width = max_val / num_bins
-            result.extend(
-                [f"{int(b * bin_width)}-{int((b + 1) * bin_width)}" for b in range(num_bins)]
-            )
+            if self._bins > 1:
+                num_std = self._bins - 1
+                bin_width = self._max_range / num_std
+                result.extend(
+                    [f"{int(b * bin_width)}-{int((b + 1) * bin_width)}" for b in range(num_std)]
+                )
+                result.append(f"{int(self._max_range)}+")
+            else:
+                bin_width = self._max_range / self._bins
+                result.extend(
+                    [f"{int(b * bin_width)}-{int((b + 1) * bin_width)}" for b in range(self._bins)]
+                )
         # Priority 3: Discovered raw buckets
         else:
             result.extend(sorted(list(object.__getattribute__(self, "_content").keys())))
@@ -196,14 +203,9 @@ class Histogram(StatType):
         """Perform reduction by rebinning each simulation's data into target uniform buckets."""
         num_bins = self._bins
         max_val = self._max_range
-        bin_width = max_val / num_bins
 
-        # Initialize target result set
-        target_reduced = {}
-        # Pre-fill standard buckets to guarantee alignment and order
-        for b in range(num_bins):
-            key = f"{int(b * bin_width)}-{int((b + 1) * bin_width)}"
-            target_reduced[key] = 0.0
+        # Initialize target result set from expected entries
+        target_reduced = {key: 0.0 for key in self.entries}
 
         # Process each simulation independently
         for i in range(self._repeat):
@@ -234,10 +236,20 @@ class Histogram(StatType):
 
         Uses linear interpolation to map raw mass to target bins.
         """
-        bin_width = max_val / num_bins
+        if num_bins > 1:
+            num_std_bins = num_bins - 1
+            bin_width = max_val / num_std_bins
+            overflow_key = f"{int(max_val)}+"
+        else:
+            num_std_bins = num_bins
+            bin_width = max_val / num_bins
+            overflow_key = None
+
         rebinned = {
-            f"{int(b * bin_width)}-{int((b + 1) * bin_width)}": 0.0 for b in range(num_bins)
+            f"{int(b * bin_width)}-{int((b + 1) * bin_width)}": 0.0 for b in range(num_std_bins)
         }
+        if overflow_key:
+            rebinned[overflow_key] = 0.0
 
         for raw_key, value in data.items():
             if value == 0:
@@ -250,31 +262,44 @@ class Histogram(StatType):
                 continue
 
             raw_start, raw_end = bounds
-            if raw_start >= max_val:
-                continue
-
-            actual_end = min(raw_end, max_val)
-            if actual_end <= raw_start:
-                continue
-
             raw_span = raw_end - raw_start
             if raw_span <= 0:
                 continue
 
-            # Redistribute 'value' across target bins based on overlap
-            for b in range(num_bins):
-                b_start = b * bin_width
-                b_end = (b + 1) * bin_width
+            # Determine effective range to process for distribution
+            # We treat max_val as a soft limit: anything above it goes to the overflow buckets.
 
-                overlap_start = max(raw_start, b_start)
-                overlap_end = min(actual_end, b_end)
+            # 1. Calculate and distribute the portion strictly within the [0, max_val] range
+            effective_end = min(raw_end, max_val)
+            if effective_end > raw_start:
+                # Redistribute 'value' across target bins based on overlap
+                for b in range(num_std_bins):
+                    b_start = b * bin_width
+                    b_end = (b + 1) * bin_width
 
-                if overlap_end > overlap_start:
-                    overlap_width = overlap_end - overlap_start
-                    # Scientific Assumption: Uniform distribution within raw gems5 buckets
-                    proportion = overlap_width / raw_span
-                    target_key = f"{int(b_start)}-{int(b_end)}"
-                    rebinned[target_key] += value * proportion
+                    overlap_start = max(raw_start, b_start)
+                    overlap_end = min(effective_end, b_end)
+
+                    if overlap_end > overlap_start:
+                        overlap_width = overlap_end - overlap_start
+                        proportion = overlap_width / raw_span
+                        target_key = f"{int(b_start)}-{int(b_end)}"
+                        rebinned[target_key] += value * proportion
+
+            # 2. Handle Overflow: Add any mass above max_val to the overflow bucket (or last bin)
+            overflow_length = max(0.0, raw_end - max(raw_start, max_val))
+            if overflow_length > 0:
+                proportion = overflow_length / raw_span
+
+                if overflow_key:
+                    rebinned[overflow_key] += value * proportion
+                else:
+                    # Fallback to last regular bin if no dedicated overflow
+                    last_b_idx = num_std_bins - 1
+                    last_start = last_b_idx * bin_width
+                    last_end = (last_b_idx + 1) * bin_width
+                    last_key = f"{int(last_start)}-{int(last_end)}"
+                    rebinned[last_key] += value * proportion
 
         return rebinned
 

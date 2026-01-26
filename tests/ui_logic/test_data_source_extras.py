@@ -90,14 +90,13 @@ def test_render_csv_pool_delete(mock_streamlit, mock_facade, mock_card_component
 
 
 def test_render_parser_config(mock_streamlit, mock_facade, mock_state_manager):
-    mock_streamlit.button.side_effect = lambda label, **k: "Scan" in label
-
-    mock_facade.scan_stats_variables_with_grouping.return_value = [{"name": "var1"}]
+    # Simulate clicking "Quick Scan" button
+    mock_streamlit.button.side_effect = lambda label, **k: "Quick Scan" in label
 
     DataSourceComponents.render_parser_config(mock_facade)
 
-    mock_facade.scan_stats_variables_with_grouping.assert_called()
-    mock_state_manager.set_scanned_variables.assert_called()
+    mock_facade.submit_scan_async.assert_called()
+    mock_streamlit.info.assert_called_with(ANY)
     mock_streamlit.rerun.assert_called()
 
 

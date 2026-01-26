@@ -4,6 +4,7 @@ Centralized session state management for the Streamlit application.
 Ensures Backend-Frontend synchronization and type safety.
 """
 
+import io
 import logging
 import shutil
 import uuid
@@ -13,6 +14,8 @@ from typing import Any, Callable, Dict, List, Optional
 
 import pandas as pd
 import streamlit as st
+
+from src.plotting import BasePlot
 
 logger = logging.getLogger(__name__)
 
@@ -316,10 +319,6 @@ class StateManager:
 
     @staticmethod
     def restore_session(portfolio_data: Dict[str, Any]):
-        import io
-
-        from src.plotting import BasePlot
-
         StateManager.clear_widget_state()
         st.session_state[StateManager.PARSE_VARIABLES] = portfolio_data.get("parse_variables", [])
         st.session_state[StateManager.STATS_PATH] = portfolio_data.get("stats_path", "")

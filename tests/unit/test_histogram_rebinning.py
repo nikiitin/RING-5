@@ -16,12 +16,19 @@ def test_histogram_selection_priority():
     assert hist.entries == ["mean"]
     assert hist.reduced_content["mean"] == 50.0
     # Rebinned buckets should be in reduced_content but not in entries
-    assert "0-100" in hist.reduced_content
+    # 0-100 overlaps with first bin (0-111 using new logic if bins=10 -> 9 std bins)
+    # Just check key existence
+    keys = list(hist.content.keys()) 
+    # Rebinned keys are not in 'content' (raw), but computed in 'reduced_content'
+    # Check that a rebinned key exists. For 1000/9 ~ 111. Key "0-111"
+    assert "0-111" in hist.reduced_content
 
 
 def test_histogram_rebinning_with_summary_stats():
     """Verify that rebinning preserves non-range statistics in reduced_content."""
-    hist = Histogram(repeat=1, bins=2, max_range=100)
+    # bins=3, max=100.
+    # Regular bins: 2 (0-50, 50-100). Overflow: 1 (100+)
+    hist = Histogram(repeat=1, bins=3, max_range=100)
 
     # Raw data has a bucket and a summary stat
     hist.content = {"0-100": [100], "mean": [50]}
@@ -30,6 +37,7 @@ def test_histogram_rebinning_with_summary_stats():
 
     # Rebinned buckets should exist
     assert hist.reduced_content["0-50"] == 50.0
+    # Overlap 50-100 (50 units)
     assert hist.reduced_content["50-100"] == 50.0
     # Summary stat should be preserved
     assert hist.reduced_content["mean"] == 50.0
@@ -48,22 +56,48 @@ def test_histogram_rebinning_fallback_to_raw():
 
 
 def test_histogram_rebinning_exact_values():
-    """Regression test for the user's specific case: max_range=2048, bins=10."""
-    hist = Histogram(repeat=1, bins=10, max_range=2048)
-    bin_width = 204.8
+    """Regression test for rebinning distribution logic."""
+    # bins=3. max=200.
+    # Regular=2. Width=100. Keys: 0-100, 100-200, 200+
+    hist = Histogram(repeat=1, bins=3, max_range=200)
 
-    # Add a raw bucket that overlaps with multiple target bins
-    # 0-512 has 512 units.
-    # Target bins are: [0-204], [204-409], [409-614]...
-    hist.content = {"0-512": [512]}
+    # Add a raw bucket 0-150 with value 150
+    # Should split: 100 to 0-100, 50 to 100-200.
+    hist.content = {"0-150": [150]}
     hist.balance_content()
     hist.reduce_duplicates()
 
-    # Expected buckets
-    expected_keys = [f"{int(b*bin_width)}-{int((b+1)*bin_width)}" for b in range(10)]
-    assert hist.entries == expected_keys
+    expected_buckets = ["0-100", "100-200", "200+"]
+    assert hist.entries == expected_buckets
 
-    # Check first target bin [0-204]: overlap with [0-512] is 204.8 units -> 204.8 value
-    assert hist.reduced_content[expected_keys[0]] == 204.8
-    # Third target bin [409-614]: overlap with [0-512] is [409.6 - 512] = 102.4 units
-    assert pytest.approx(hist.reduced_content[expected_keys[2]]) == 102.4
+    assert pytest.approx(hist.reduced_content["0-100"]) == 100.0
+    assert pytest.approx(hist.reduced_content["100-200"]) == 50.0
+    assert pytest.approx(hist.reduced_content["200+"]) == 0.0
+
+
+def test_histogram_rebinning_overflow():
+    """Verify that values above max_range are added to the dedicated overflow bucket."""
+    # Max range 100, 2 bins.
+    # Logic: 1 regular bin (0-100), 1 overflow bin (100+)
+    hist = Histogram(repeat=1, bins=2, max_range=100)
+
+    # Bucket 150-200 (val 10): Entirely overflow -> 100+
+    # Bucket 90-110 (val 20): Overlap 90-100 (10 units) -> 0-100. Overflow 100-110 (10 units) -> 100+
+
+    hist.content = {
+        "150-200": [10],
+        "90-110": [20]
+    }
+    hist.balance_content()
+    hist.reduce_duplicates()
+
+    # Checks
+    # 0-100 should contain 10 (from 90-110)
+    assert "0-100" in hist.reduced_content
+    # The first bin (0-100) got exactly 10 units from 90-110 (50% of 20)
+    assert pytest.approx(hist.reduced_content["0-100"]) == 10.0
+
+    # 100+ should contain 10 (from 150-200) + 10 (from 90-110) = 20
+    overflow_key = "100+"
+    assert overflow_key in hist.reduced_content
+    assert pytest.approx(hist.reduced_content[overflow_key]) == 20.0

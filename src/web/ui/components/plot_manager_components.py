@@ -1,4 +1,5 @@
 import copy
+import logging
 from typing import Optional
 
 import streamlit as st
@@ -8,6 +9,8 @@ from src.web.services.pipeline_service import PipelineService
 from src.web.services.plot_service import PlotService
 from src.web.state_manager import StateManager
 from src.web.ui.shaper_config import apply_shapers, configure_shaper
+
+logger = logging.getLogger(__name__)
 
 
 class PlotManagerComponents:
@@ -156,6 +159,7 @@ class PlotManagerComponents:
                 st.rerun()
             except Exception as e:
                 st.error(f"Error loading: {e}")
+                logger.error("PLOT: Failed to load pipeline for plot '%s': %s", plot.name, e, exc_info=True)
 
         if st.button("Cancel", key=f"cancel_load_{plot.plot_id}"):
             st.session_state[f"show_load_for_plot_{plot.plot_id}"] = False
@@ -247,6 +251,8 @@ class PlotManagerComponents:
                             st.dataframe(out.head(5))
                         except Exception as e:
                             st.error(f"Preview error: {e}")
+                            logger.error("PIPELINE: Preview failure for shaper index %d in plot '%s': %s",
+                                         idx, plot.name, e, exc_info=True)
 
         # Finalize
         if plot.pipeline:
@@ -370,6 +376,7 @@ class PlotManagerComponents:
             if st.button("Export All", type="primary", width="stretch", key="export_all_btn"):
                 if not export_path:
                     st.error("Please provide a path.")
+                    logger.warning("EXPORT: Attempted export without providing path.")
                 else:
                     st.session_state["last_export_path"] = export_path
                     plots = StateManager.get_plots()
@@ -400,6 +407,7 @@ class PlotManagerComponents:
                             st.success(f"Successfully exported {count} plots to '{export_path}'")
                         if errors:
                             st.error(f"Failed to export {len(errors)} plots.")
+                            logger.error("EXPORT: Failed to export some plots. Errors: %s", errors)
                             with st.expander("Show Errors"):
                                 for e in errors:
                                     st.write(e)

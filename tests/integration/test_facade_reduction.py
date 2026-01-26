@@ -55,7 +55,18 @@ class TestFacadeReduction:
         # 1. Define variable with Regex Pattern
         variables = [{"name": "system.cpu\\d+.ipc", "type": "scalar"}]
 
-        # 2. Run Facade Parse
+        # 2. Pre-scan to populate regex matching cache
+        facade.submit_scan_async(stats_path, "stats.txt*", limit=10)
+        
+        # Poll for completion
+        import time
+        start = time.time()
+        while facade.get_scan_status()["status"] == "running":
+            if time.time() - start > 5:
+                pytest.fail("Async scan timed out in integration test")
+            time.sleep(0.1)
+
+        # 3. Run Facade Parse
         csv_path = facade.parse_gem5_stats(
             stats_path=stats_path,
             stats_pattern="stats.txt*",

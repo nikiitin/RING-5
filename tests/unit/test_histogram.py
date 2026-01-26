@@ -14,7 +14,7 @@ def test_histogram_creation():
 
 def test_histogram_entries_merging():
     # Verify that entries merges buckets and statistics correctly
-    h = Histogram(repeat=1, bins=2, max_range=10.0, statistics=["samples"])
+    h = Histogram(repeat=1, bins=3, max_range=10.0, statistics=["samples"])
     entries = h.entries
     assert "samples" in entries
     assert "0-5" in entries

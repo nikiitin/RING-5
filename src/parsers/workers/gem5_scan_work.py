@@ -1,8 +1,10 @@
 import os
+import logging
 from typing import Any, Dict, List
 
 from src.parsers.workers.scan_work import ScanWork
 
+logger = logging.getLogger(__name__)
 
 class Gem5ScanWork(ScanWork):
     """
@@ -20,13 +22,13 @@ class Gem5ScanWork(ScanWork):
         Returns full list of variables with types and entries.
         """
         from pathlib import Path
-
         from src.parsers.scanner import Gem5StatsScanner
 
         try:
             scanner = Gem5StatsScanner.get_instance()
             return scanner.scan_file(Path(self.file_path))
-        except Exception:
+        except Exception as e:
+            logger.error(f"SCANNER: Failed to scan {self.file_path}: {e}")
             return []
 
     def __str__(self) -> str:

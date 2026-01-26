@@ -27,8 +27,17 @@ class TestGem5Parsing:
         if not self.TEST_DATA_DIR.exists():
             pytest.skip("Test data not found")
 
-        variables = facade.scan_stats_variables(str(self.TEST_DATA_DIR), "stats.txt", limit=10)
-
+        # Use modern async API
+        facade.submit_scan_async(str(self.TEST_DATA_DIR), "stats.txt", limit=10)
+        
+        import time
+        start = time.time()
+        while facade.get_scan_status()["status"] == "running":
+            if time.time() - start > 10:
+                pytest.fail("Async scan timed out")
+            time.sleep(0.1)
+            
+        variables = facade.get_scan_results_snapshot()
         assert len(variables) > 0
 
         # Check for common gem5 stats
@@ -46,17 +55,25 @@ class TestGem5Parsing:
         output_dir.mkdir()
 
         # 1. Scan for variables
-        all_variables = facade.scan_stats_variables(str(self.TEST_DATA_DIR), "stats.txt", limit=10)
+        facade.submit_scan_async(str(self.TEST_DATA_DIR), "stats.txt", limit=10)
+        
+        import time
+        start = time.time()
+        while facade.get_scan_status()["status"] == "running":
+            if time.time() - start > 10:
+                pytest.fail("Async scan timed out")
+            time.sleep(0.1)
+            
+        all_variables = facade.get_scan_results_snapshot()
 
         # 2. Select a few scalar variables
-        # Filter for scalar types and pick top 5
         selected_vars = [
             v
             for v in all_variables
             if v["type"] == "scalar"
-            and "simTicks" in v["name"]
+            and ("simTicks" in v["name"]
             or "ipc" in v["name"]
-            or "cycles" in v["name"]
+            or "cycles" in v["name"])
         ][:5]
 
         if not selected_vars:
@@ -121,14 +138,20 @@ system.mem.ctrl::1024-2047                    5      50.00%     100.00%      # H
 
         try:
             # 1. Scan
-            # Should detect system.mem.ctrl as Histogram (due to our Perl update)
-            vars_found = facade.scan_stats_variables(str(stats_dir), "stats.txt")
+            facade.submit_scan_async(str(stats_dir), "stats.txt", limit=-1)
+            
+            import time
+            start = time.time()
+            while facade.get_scan_status()["status"] == "running":
+                if time.time() - start > 5:
+                    pytest.fail("Async scan timed out")
+                time.sleep(0.1)
+                
+            vars_found = facade.get_scan_results_snapshot()
             hist_var = next((v for v in vars_found if v["name"] == "system.mem.ctrl"), None)
 
             assert hist_var is not None
             assert hist_var["type"] == "histogram"
-            # Check buckets if scanner returns them (it returns entries for vector/dist/hist)
-            # Perl scanner puts buckets in 'entries'
             assert "0-1023" in hist_var.get("entries", [])
             assert "1024-2047" in hist_var.get("entries", [])
 

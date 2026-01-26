@@ -1,3 +1,4 @@
+import logging
 from typing import List
 
 import pandas as pd
@@ -7,6 +8,8 @@ from src.core.multiprocessing.job import Job
 from src.web.services.shapers.factory import ShaperFactory
 from src.web.services.shapers.multi_df_shaper import MultiDfShaper
 from src.web.services.shapers.uni_df_shaper import UniDfShaper
+
+logger = logging.getLogger(__name__)
 
 
 class ShaperWork(Job):
@@ -76,7 +79,7 @@ class ShaperWork(Job):
         Execute the shaper task.
         """
         if len(self._srcCsv) == 0:
-            print(f"Error: No source CSV files found for work {self._work_id}")
+            logger.error("No source CSV files found for work %s", self._work_id)
             return False
 
         utils.checkFilesExistOrException(self._srcCsv)

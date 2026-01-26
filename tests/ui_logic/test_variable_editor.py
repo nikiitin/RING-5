@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.web.ui.components.variable_editor import VariableEditor
+
 
 
 @pytest.fixture
@@ -31,6 +31,12 @@ def mock_streamlit():
         mock_st_var.success = mock_st.success
         mock_st_var.checkbox = mock_st.checkbox
         mock_st_var.session_state = mock_st.session_state
+        # Mock st.dialog as a pass-through decorator, supporting **kwargs like dismissible
+        def dialog_mock(title, **kwargs):
+            def decorator(f):
+                return f
+            return decorator
+        mock_st_var.dialog.side_effect = dialog_mock
 
         # Mock columns to return list of mocks
         def columns_side_effect(spec, **kwargs):
@@ -68,6 +74,7 @@ def test_variable_editor_render_existing(mock_streamlit):
     mock_streamlit.text_input.side_effect = ["v1", "ali"]  # Name, Alias
     mock_streamlit.selectbox.return_value = "scalar"
 
+    from src.web.ui.components.variable_editor import VariableEditor
     updated = VariableEditor.render(vars_config)
 
     assert len(updated) == 1
@@ -83,6 +90,7 @@ def test_variable_editor_add_manual(mock_streamlit):
     mock_streamlit.button.side_effect = lambda label, **k: label == "+ Add Manual"
 
     # Rerun should be called
+    from src.web.ui.components.variable_editor import VariableEditor
     VariableEditor.render(vars_config)
 
     assert len(vars_config) == 1
@@ -107,29 +115,35 @@ def test_variable_editor_deep_scan(mock_streamlit, mock_facade):
     mock_streamlit.text_input.return_value = "vec"
     mock_streamlit.selectbox.return_value = "vector"
 
-    # Trigger Deep Scan path: requires stats_path, no discovered entries, manual entry mode.
-
-    # Simulate "Select from Discovered Entries" mode to trigger specific path
+    # Trigger Deep Scan path
     mock_streamlit.radio.return_value = "Select from Discovered Entries"
 
-    # Simulate clicking the Deep Scan button.
-    # Mocking button interactions using key prefix check
+    # Simulate clicking the Deep Scan button
     def button_side_effect(label, key=None, **kwargs):
         if key and key.startswith("deep_scan"):
             return True
         return False
-
     mock_streamlit.button.side_effect = button_side_effect
 
-    # Mock Facade
-    mock_facade.scan_entries_for_variable.return_value = ["e1", "e2"]
+    # Mock Async Pipeline
+    mock_facade.get_scan_status.return_value = {"status": "done", "current": 1, "total": 1, "errors": []}
+    mock_facade.get_scan_results_snapshot.return_value = [
+        {"name": "vec", "type": "vector", "entries": ["e1", "e2"]}
+    ]
 
-    VariableEditor.render(vars_config, available_variables=[], stats_path="/path")
-
-    mock_facade.scan_entries_for_variable.assert_called_with("/path", "vec", "stats.txt")
-    # Execution continues because mock rerun doesn't stop it, so we check ANY call
-    mock_streamlit.success.assert_any_call("Found 2 entries!")
-    mock_streamlit.rerun.assert_called()
+    from src.web.ui.components.variable_editor import VariableEditor
+    with patch.object(VariableEditor, "_show_scan_dialog") as mock_dialog:
+        VariableEditor.render(vars_config, available_variables=[], stats_path="/path")
+        
+        # Verify it was called with the right args
+        mock_dialog.assert_called_once()
+        args, _ = mock_dialog.call_args
+        # args[0] is var_name ("vec"), args[2] is stats_path ("/path")
+        assert args[0] == "vec"
+        assert args[2] == "/path"
+        
+    # submit_scan_async is called INSIDE _show_scan_dialog, which we mocked.
+    # So we don't assert it here anymore.
 
 
 def test_variable_editor_vector_stats_checkboxes(mock_streamlit):
@@ -147,6 +161,7 @@ def test_variable_editor_vector_stats_checkboxes(mock_streamlit):
 
     mock_streamlit.checkbox.side_effect = checkbox_side_effect
 
+    from src.web.ui.components.variable_editor import VariableEditor
     updated = VariableEditor.render(vars_config)
 
     assert updated[0]["useSpecialMembers"] is True

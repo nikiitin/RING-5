@@ -1,5 +1,4 @@
 from unittest.mock import MagicMock, patch
-
 import pandas as pd
 import pytest
 
@@ -18,6 +17,9 @@ class MockPlot(BasePlot):
     def create_figure(self, data, config):
         fig = MagicMock()
         fig.data = []
+        # Ensure to_json returns a string to avoid serialization errors
+        # if the real interactive_plotly_chart is accidentally hit
+        fig.to_json.return_value = "{}"
         return fig
 
     def render_config_ui(self, data, config):
@@ -29,12 +31,21 @@ class MockPlot(BasePlot):
 
 @pytest.fixture
 def mock_streamlit():
-    with patch("src.plotting.plot_renderer.st") as mock_st:
+    with patch("src.plotting.plot_renderer.st") as mock_st, \
+         patch("src.plotting.base_plot.StyleManager") as MockStyleManager:
+
+        # Configure StyleManager mock
+        style_manager_instance = MockStyleManager.return_value
+        style_manager_instance.apply_styles.side_effect = lambda fig, config: fig
+
+        # Configure session_state
+        mock_st.session_state = {}
+
         yield mock_st
 
 
 @pytest.fixture
-def mock_plot():
+def mock_plot(mock_streamlit):
     return MockPlot()
 
 
@@ -66,19 +77,27 @@ def test_render_legend_customization_with_col(mock_streamlit, mock_plot):
     assert mock_plot.legend_mappings_by_column["C"] == result
 
 
-@patch("src.web.ui.components.interactive_plot.interactive_plotly_chart")
-def test_render_plot_regenerate(mock_interactive_chart, mock_streamlit, mock_plot):
+@patch("src.plotting.plot_renderer.ExportService")
+@patch("src.plotting.plot_renderer.interactive_plotly_chart")
+def test_render_plot_regenerate(mock_interactive_chart, mock_export_service, mock_streamlit, mock_plot):
     mock_plot.processed_data = pd.DataFrame({"x": [1]})
 
     PlotRenderer.render_plot(mock_plot, should_generate=True)
+
+    # Check that st.error wasn't called (which would indicate an exception)
+    if mock_streamlit.error.called:
+        pytest.fail(f"st.error called with: {mock_streamlit.error.call_args}")
 
     assert mock_plot.last_generated_fig is not None
     mock_interactive_chart.assert_called()
 
 
-@patch("src.web.ui.components.interactive_plot.interactive_plotly_chart")
-def test_render_plot_cached(mock_interactive_chart, mock_streamlit, mock_plot):
+@patch("src.plotting.plot_renderer.ExportService")
+@patch("src.plotting.plot_renderer.interactive_plotly_chart")
+def test_render_plot_cached(mock_interactive_chart, mock_export_service, mock_streamlit, mock_plot):
     fig = MagicMock()
+    # Safely mock to_json in case real code is hit
+    fig.to_json.return_value = "{}"
     mock_plot.last_generated_fig = fig
 
     PlotRenderer.render_plot(mock_plot, should_generate=False)
@@ -89,12 +108,17 @@ def test_render_plot_cached(mock_interactive_chart, mock_streamlit, mock_plot):
         mock_create.assert_not_called()
 
     # Verify interactive chart called instead of st.plotly_chart
+    # Check that st.error wasn't called
+    if mock_streamlit.error.called:
+        pytest.fail(f"st.error called with: {mock_streamlit.error.call_args}")
+
+    mock_interactive_chart.assert_called()
     args, kwargs = mock_interactive_chart.call_args
     assert args[0] == fig
     assert "config" in kwargs
 
 
-@patch("src.plotting.export.ExportService")
+@patch("src.plotting.plot_renderer.ExportService")
 def test_export_delegation(mock_export_service, mock_plot):
     fig = MagicMock()
 

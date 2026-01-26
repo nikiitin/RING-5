@@ -5,6 +5,9 @@ from typing import Any, Dict, Optional
 import pandas as pd
 import streamlit as st
 
+from src.plotting.export import ExportService
+from src.web.ui.components.interactive_plot import interactive_plotly_chart
+
 from .base_plot import BasePlot
 
 
@@ -98,12 +101,6 @@ class PlotRenderer:
             try:
                 fig = plot.last_generated_fig
 
-                # Display the plot using custom interactive component
-                # This enables capturing zoom/pan/drag events to sync with backend
-                from src.web.ui.components.interactive_plot import (
-                    interactive_plotly_chart,
-                )
-
                 # Reconstruct config for interactivity
                 # Enforce editable=True (scoped) to allow legend dragging
                 # but restrict other edits via 'edits' if needed in future
@@ -192,8 +189,6 @@ class PlotRenderer:
             plot: Plot instance
             fig: Plotly figure
         """
-        from src.plotting.export import ExportService
-
         ExportService.render_download_button(
             plot_name=plot.name,
             plot_id=plot.plot_id,

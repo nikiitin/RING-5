@@ -1,12 +1,15 @@
 """Base plot class with common functionality."""
 
+import math
 from abc import ABC, abstractmethod
+from io import StringIO
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from src.plotting.styles import StyleManager
 from src.web.ui.components.plot_config_components import PlotConfigComponents
 
 
@@ -34,8 +37,6 @@ class BasePlot(ABC):
         self.legend_mappings: Dict[str, str] = {}
 
         # Initialize Style Manager
-        from src.plotting.styles import StyleManager
-
         self.style_manager = StyleManager(self.plot_id, self.plot_type)
 
     @abstractmethod
@@ -80,7 +81,6 @@ class BasePlot(ABC):
         def update_if_new(key, val):
             current = self.config.get(key)
             # Check for float equality if both are lists of numbers (ranges)
-            import math
 
             def is_close(a, b):
                 try:
@@ -284,8 +284,6 @@ class BasePlot(ABC):
 
         # Deserialize processed_data if it exists
         if data.get("processed_data"):
-            from io import StringIO
-
             plot.processed_data = pd.read_csv(StringIO(data["processed_data"]))
 
         return plot
@@ -414,6 +412,7 @@ class BasePlot(ABC):
             key=f"editable_{self.plot_id}",
             help="Allows you to drag the legend/title and click to edit text directly on the plot.",
         )
+
         # 6. Series Styling (Color, Shape, Pattern, Name)
         if st.checkbox(
             "Show Series Renaming", value=False, key=f"show_series_style_{self.plot_id}"

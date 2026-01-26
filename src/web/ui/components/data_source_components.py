@@ -1,3 +1,4 @@
+import logging
 import tempfile
 from pathlib import Path
 
@@ -8,6 +9,8 @@ from src.web.state_manager import StateManager
 from src.web.ui.components.card_components import CardComponents
 from src.web.ui.components.data_components import DataComponents
 from src.web.ui.components.variable_editor import VariableEditor
+
+logger = logging.getLogger(__name__)
 
 
 class DataSourceComponents:
@@ -34,6 +37,7 @@ class DataSourceComponents:
 
             if not csv_path.exists():
                 st.error(f"File no longer exists: {csv_info['name']}")
+                logger.warning("CSV POOL: File not found on disk: %s", csv_info['path'])
                 continue
 
             load_clicked, preview_clicked, delete_clicked = CardComponents.file_info_card(
@@ -54,6 +58,7 @@ class DataSourceComponents:
                     st.info("Data loaded! Proceed to **Configure Pipeline** to process it.")
                 except Exception as e:
                     st.error(f"Error loading file: {e}")
+                    logger.error("CSV POOL: Failed to load CSV file '%s': %s", csv_path, e, exc_info=True)
 
             if preview_clicked:
                 try:
@@ -68,6 +73,7 @@ class DataSourceComponents:
                     st.rerun()
                 else:
                     st.error("Error deleting file")
+                    logger.error("CSV POOL: Failed to delete metadata for: %s", csv_path)
 
     @staticmethod
     def render_parser_config(facade: BackendFacade):
@@ -117,18 +123,16 @@ class DataSourceComponents:
             deep_scan = st.checkbox(
                 "Deep Scan (check all files)", help="Scan ALL files for variables (slower)"
             )
-            if st.button("🔍 Scan for Variables", help="Scan files to auto-discover variables"):
-                with st.spinner("Scanning stats files..."):
-                    try:
-                        # Use a large limit for deep scan, default 5 for quick scan
-                        scan_limit = 1000000 if deep_scan else 5
-                        scanned_vars = facade.scan_stats_variables_with_grouping(
-                            stats_path, stats_pattern, limit=scan_limit
-                        )
-                        StateManager.set_scanned_variables(scanned_vars)
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Scan failed: {e}")
+            if st.button("🔍 Quick Scan", help="Scan files to auto-discover variables"):
+                try:
+                    # Submit async scan with limit based on checkbox
+                    scan_limit = -1 if deep_scan else 10
+                    facade.submit_scan_async(stats_path, stats_pattern, limit=scan_limit)
+                    st.info(f"{'Deep' if deep_scan else 'Quick'} scan started! Results will appear in the 'Add Variable' list shortly.")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Scan failed: {e}")
+                    logger.error("SCANNER: Quick scan failed at %s: %s", stats_path, e, exc_info=True)
 
         scanned_vars = StateManager.get_scanned_variables()
         if scanned_vars:
@@ -349,9 +353,11 @@ class DataSourceComponents:
                     st.info("Data ready! Proceed to **Configure Pipeline**")
                 else:
                     st.error("Parser did not generate CSV file")
+                    logger.error("PARSER: Extraction failed. No CSV generated at %s for input %s", output_dir, stats_path)
 
             except Exception as e:
                 st.error(f"Error during parsing: {e}")
+                logger.error("PARSER: Extraction crash for input %s: %s", stats_path, e, exc_info=True)
                 import traceback
 
                 st.code(traceback.format_exc())

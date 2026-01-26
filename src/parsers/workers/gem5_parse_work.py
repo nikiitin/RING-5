@@ -3,6 +3,7 @@ Perl Parse Work - Worker unit for parsing a single gem5 stats file.
 Executed in parallel across multiple stats files.
 """
 
+import logging
 import os
 import shutil
 import subprocess
@@ -10,6 +11,8 @@ from typing import Any, Dict, Optional
 
 import src.utils.utils as utils
 from src.parsers.workers.parse_work import ParseWork
+
+logger = logging.getLogger(__name__)
 
 
 class Gem5ParseWork(ParseWork):
@@ -198,7 +201,7 @@ class Gem5ParseWork(ParseWork):
             key = varID.split("__")[0]
             if key.startswith("-"):
                 # Avoid flag injection
-                print(f"Warning: Skipping potentially unsafe key: {key}")
+                logger.warning("Skipping potentially unsafe key: %s", key)
                 continue
             safe_keys.append(key)
 
@@ -212,9 +215,10 @@ class Gem5ParseWork(ParseWork):
             result = subprocess.run(cmd, capture_output=True, text=True, check=True, shell=False)
             return result.stdout
         except subprocess.CalledProcessError as e:
-            print(f"Error calling Perl script: {cmd}")
+            logger.error("Error calling Perl script: %s", cmd)
             # subprocess.run with text=True ensures e.stdout and e.stderr are strings.
-            print(f"Output: {e.stdout}")
+            logger.error("Perl Output: %s", e.stdout)
+            logger.error("Perl Error: %s", e.stderr)
             raise
 
     def __call__(self) -> dict:

@@ -4,11 +4,14 @@ Normalization Shaper
 Implements data normalization relative to a baseline configuration.
 """
 
+import logging
 from typing import Any, Dict, List
 
 import pandas as pd
 
 from src.web.services.shapers.uni_df_shaper import UniDfShaper
+
+logger = logging.getLogger(__name__)
 
 
 class Normalize(UniDfShaper):
@@ -208,7 +211,7 @@ if __name__ == "__main__":
         }
     )
 
-    print("Pre-normalization:")
-    print(test_df)
-    print("\nPost-normalization:")
-    print(normalizer(test_df))
+    logger.debug("Pre-normalization:")
+    logger.debug(test_df)
+    logger.debug("\nPost-normalization:")
+    logger.debug(normalizer(test_df))
