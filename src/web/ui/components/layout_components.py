@@ -10,7 +10,7 @@ class LayoutComponents:
     """Reusable layout components and generic buttons."""
 
     @staticmethod
-    def sidebar_info():
+    def sidebar_info() -> None:
         """Display sidebar information about RING-5."""
         st.markdown("### About RING-5")
         st.info(
@@ -47,7 +47,7 @@ class LayoutComponents:
         )
 
     @staticmethod
-    def progress_display(step: int, total_steps: int, message: str):
+    def progress_display(step: int, total_steps: int, message: str) -> None:
         """
         Display a progress indicator.
 

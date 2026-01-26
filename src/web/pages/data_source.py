@@ -18,7 +18,7 @@ class DataSourcePage:
         """Initialize the data source page."""
         self.facade = facade
 
-    def render(self):
+    def render(self) -> None:
         """Render the data source page."""
         st.markdown(AppStyles.step_header("Step 1: Choose Data Source"), unsafe_allow_html=True)
 

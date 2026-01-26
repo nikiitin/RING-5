@@ -3,7 +3,7 @@
 import math
 from abc import ABC, abstractmethod
 from io import StringIO
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Protocol, TypedDict, Union
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -13,10 +13,46 @@ from src.plotting.styles import StyleManager
 from src.web.ui.components.plot_config_components import PlotConfigComponents
 
 
+class ShapeConfig(TypedDict, total=False):
+    """Type definition for annotation shape configuration."""
+    
+    type: str  # "line", "circle", "rect"
+    x0: Union[float, str]
+    y0: Union[float, str]
+    x1: Union[float, str]
+    y1: Union[float, str]
+    line: Dict[str, Any]  # Contains color, width
+
+
+class SeriesStyle(TypedDict, total=False):
+    """Type definition for series styling (color, shape, name)."""
+    
+    name: str  # Display name
+    color: str  # Hex color code
+    marker_symbol: str  # For scatter plots
+    pattern_shape: str  # For bars
+
+
+class RelayoutData(TypedDict, total=False):
+    """Type definition for Plotly relayout event data."""
+    
+    # Axis ranges
+    xaxis_range: List[float]
+    yaxis_range: List[float]
+    xaxis_autorange: bool
+    yaxis_autorange: bool
+    # Legend position
+    legend_x: float
+    legend_y: float
+    legend_xanchor: str
+    legend_yanchor: str
+    legend_title_text: str
+
+
 class BasePlot(ABC):
     """Abstract base class for all plot types."""
 
-    def __init__(self, plot_id: int, name: str, plot_type: str):
+    def __init__(self, plot_id: int, name: str, plot_type: str) -> None:
         """
         Initialize base plot.
 
@@ -25,19 +61,19 @@ class BasePlot(ABC):
             name: Display name for the plot
             plot_type: Type of plot (bar, line, etc.)
         """
-        self.plot_id = plot_id
-        self.name = name
-        self.plot_type = plot_type
+        self.plot_id: int = plot_id
+        self.name: str = name
+        self.plot_type: str = plot_type
         self.config: Dict[str, Any] = {}
         self.processed_data: Optional[pd.DataFrame] = None
         self.last_generated_fig: Optional[go.Figure] = None
         self.pipeline: List[Dict[str, Any]] = []
-        self.pipeline_counter = 0
+        self.pipeline_counter: int = 0
         self.legend_mappings_by_column: Dict[str, Dict[str, str]] = {}
         self.legend_mappings: Dict[str, str] = {}
 
         # Initialize Style Manager
-        self.style_manager = StyleManager(self.plot_id, self.plot_type)
+        self.style_manager: StyleManager = StyleManager(self.plot_id, self.plot_type)
 
     @abstractmethod
     def render_config_ui(self, data: pd.DataFrame, saved_config: Dict[str, Any]) -> Dict[str, Any]:
@@ -70,23 +106,28 @@ class BasePlot(ABC):
     def update_from_relayout(self, relayout_data: Dict[str, Any]) -> bool:
         """
         Update config from client-side relayout data (zoom/pan, legend drag).
-        Returns True if config changed.
+        
+        Args:
+            relayout_data: Dictionary of relayout events from Plotly
+            
+        Returns:
+            True if config changed, False otherwise
         """
-        changed = False
+        changed: bool = False
 
         if not relayout_data:
             return False
 
         # Helper to safely update
-        def update_if_new(key, val):
-            current = self.config.get(key)
+        def update_if_new(key: str, val: Any) -> bool:
+            current: Any = self.config.get(key)
             # Check for float equality if both are lists of numbers (ranges)
 
-            def is_close(a, b):
+            def is_close(a: Any, b: Any) -> bool:
                 try:
                     return math.isclose(float(a), float(b), rel_tol=1e-9)
                 except (ValueError, TypeError):
-                    return a == b
+                    return bool(a == b)
 
             if isinstance(current, list) and isinstance(val, list) and len(current) == len(val):
                 if all(is_close(c, v) for c, v in zip(current, val)):
@@ -105,7 +146,7 @@ class BasePlot(ABC):
         # Plotly sends ranges as array [min, max]
         # x-axis
         if "xaxis.range[0]" in relayout_data and "xaxis.range[1]" in relayout_data:
-            new_range = [relayout_data["xaxis.range[0]"], relayout_data["xaxis.range[1]"]]
+            new_range: List[Any] = [relayout_data["xaxis.range[0]"], relayout_data["xaxis.range[1]"]]
             if update_if_new("range_x", new_range):
                 changed = True
         elif "xaxis.range" in relayout_data:
@@ -141,14 +182,15 @@ class BasePlot(ABC):
             if not key.startswith("legend"):
                 continue
 
-            parts = key.split(".")
+            parts: List[str] = key.split(".")
             if len(parts) != 2:
                 continue
 
-            legend_name = parts[0]  # "legend" or "legend2", etc.
-            prop = parts[1]  # "x", "y", "xanchor", etc.
+            legend_name: str = parts[0]  # "legend" or "legend2", etc.
+            prop: str = parts[1]  # "x", "y", "xanchor", etc.
 
             # Build config key: legend.x -> legend_x, legend2.x -> legend2_x
+            config_key: str
             if legend_name == "legend":
                 config_key = f"legend_{prop}"
             else:
@@ -158,6 +200,7 @@ class BasePlot(ABC):
                 if update_if_new(config_key, val):
                     changed = True
                     # Also set anchor when position changes
+                    anchor_key: str
                     if prop == "x":
                         anchor_key = config_key.replace("_x", "_xanchor")
                         self.config[anchor_key] = "left"
@@ -388,7 +431,7 @@ class BasePlot(ABC):
         Returns:
             Configuration dictionary with advanced options
         """
-        config = {}
+        config: Dict[str, Any] = {}
 
         # 1. General & Axis Settings
         self._render_general_settings(saved_config, config)
@@ -487,8 +530,13 @@ class BasePlot(ABC):
                     )
         return config
 
-    def _render_general_settings(self, saved_config: Dict[str, Any], config: Dict[str, Any]):
-        """Helper to render general settings."""
+    def _render_general_settings(self, saved_config: Dict[str, Any], config: Dict[str, Any]) -> None:
+        """Helper to render general settings.
+        
+        Args:
+            saved_config: Previously saved configuration
+            config: Current configuration to update
+        """
         st.markdown("#### General & Axis")
         col1, col2 = st.columns(2)
         with col1:
@@ -499,7 +547,7 @@ class BasePlot(ABC):
             )
 
             # Y-axis Stepping
-            dtick = st.number_input(
+            dtick: float = st.number_input(
                 "Y-axis Step Size (0 for auto)",
                 min_value=0.0,
                 value=float(saved_config.get("yaxis_dtick") or 0.0),
@@ -509,8 +557,8 @@ class BasePlot(ABC):
                 config["yaxis_dtick"] = dtick
 
         with col2:
-            download_formats = ["html", "png", "pdf", "svg"]
-            default_fmt_idx = 0
+            download_formats: List[str] = ["html", "png", "pdf", "svg"]
+            default_fmt_idx: int = 0
             if saved_config.get("download_format") in download_formats:
                 default_fmt_idx = download_formats.index(saved_config["download_format"])
 
@@ -531,9 +579,9 @@ class BasePlot(ABC):
             )
 
             # Dimension Preview
-            w = saved_config.get("width", 800)
-            h = saved_config.get("height", 500)
-            s = config["export_scale"]
+            w: int = saved_config.get("width", 800)
+            h: int = saved_config.get("height", 500)
+            s: int = config["export_scale"]
             st.caption(f"Export Size: {w * s} x {h * s} px")
             st.caption("Change base dimensions in 'Theme & Style' -> 'Dimensions'.")
 
@@ -549,14 +597,20 @@ class BasePlot(ABC):
 
     def _render_ordering_ui(
         self, saved_config: Dict[str, Any], data: pd.DataFrame, config: Dict[str, Any]
-    ):
-        """Helper to render ordering UI."""
+    ) -> None:
+        """Helper to render ordering UI.
+        
+        Args:
+            saved_config: Previously saved configuration
+            data: Data being plotted
+            config: Current configuration to update
+        """
         st.markdown("#### Ordering Control")
 
         # X-axis Order
         if saved_config.get("x") and saved_config["x"] in data.columns:
             with st.expander("Reorder X-axis Labels"):
-                unique_x = sorted(data[saved_config["x"]].unique().tolist())
+                unique_x: List[Any] = sorted(data[saved_config["x"]].unique().tolist())
                 config["xaxis_order"] = self.render_reorderable_list(
                     "X-axis Order", unique_x, "xaxis", default_order=saved_config.get("xaxis_order")
                 )
@@ -564,7 +618,7 @@ class BasePlot(ABC):
         # Group Order
         if saved_config.get("group") and saved_config["group"] in data.columns:
             with st.expander("Reorder Groups"):
-                unique_g = sorted(data[saved_config["group"]].unique().tolist())
+                unique_g: List[Any] = sorted(data[saved_config["group"]].unique().tolist())
                 config["group_order"] = self.render_reorderable_list(
                     "Group Order",
                     unique_g,
@@ -576,7 +630,7 @@ class BasePlot(ABC):
         # Legend Order (Color)
         if saved_config.get("color") and saved_config["color"] in data.columns:
             with st.expander("Reorder Legend Items"):
-                unique_c = sorted(data[saved_config["color"]].unique().tolist())
+                unique_c: List[Any] = sorted(data[saved_config["color"]].unique().tolist())
                 config["legend_order"] = self.render_reorderable_list(
                     "Legend Order",
                     unique_c,
@@ -585,34 +639,41 @@ class BasePlot(ABC):
                     default_order=saved_config.get("legend_order"),
                 )
 
-    def _render_shapes_ui(self, saved_config: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Helper to render Shapes UI."""
-        shapes = saved_config.get("shapes", [])
+    def _render_shapes_ui(self, saved_config: Dict[str, Any]) -> List[ShapeConfig]:
+        """Helper to render Shapes UI.
+        
+        Args:
+            saved_config: Previously saved configuration
+            
+        Returns:
+            List of shape configuration dictionaries
+        """
+        shapes: List[ShapeConfig] = saved_config.get("shapes", [])
 
         # Add new shape
         with st.expander("Add New Shape"):
-            new_shape_type = st.selectbox(
+            new_shape_type: str = st.selectbox(
                 "Type", ["line", "circle", "rect"], key=f"new_shape_type_{self.plot_id}"
             )
             c1, c2, c3, c4 = st.columns(4)
             with c1:
-                x0 = st.text_input("x0", key=f"s_x0_{self.plot_id}")
+                x0: str = st.text_input("x0", key=f"s_x0_{self.plot_id}")
             with c2:
-                y0 = st.text_input("y0", key=f"s_y0_{self.plot_id}")
+                y0: str = st.text_input("y0", key=f"s_y0_{self.plot_id}")
             with c3:
-                x1 = st.text_input("x1", key=f"s_x1_{self.plot_id}")
+                x1: str = st.text_input("x1", key=f"s_x1_{self.plot_id}")
             with c4:
-                y1 = st.text_input("y1", key=f"s_y1_{self.plot_id}")
+                y1: str = st.text_input("y1", key=f"s_y1_{self.plot_id}")
 
             c5, c6 = st.columns(2)
             with c5:
-                s_color = st.color_picker("Color", "#000000", key=f"s_color_{self.plot_id}")
+                s_color: str = st.color_picker("Color", "#000000", key=f"s_color_{self.plot_id}")
             with c6:
-                s_width = st.number_input("Width", 1, 10, 2, key=f"s_width_{self.plot_id}")
+                s_width: int = st.number_input("Width", 1, 10, 2, key=f"s_width_{self.plot_id}")
 
             if st.button("Add Shape", key=f"add_shape_{self.plot_id}"):
 
-                def try_float(v):
+                def try_float(v: str) -> Union[float, str]:
                     try:
                         return float(v)
                     except ValueError:
@@ -649,35 +710,35 @@ class BasePlot(ABC):
             for i, shape in enumerate(shapes):
                 c1, c2, c3, c4, c5, c6 = st.columns([1, 1, 1, 1, 1, 0.5])
 
-                def try_float(v):
+                def try_float(v: Any) -> Union[float, str]:  # type: ignore[misc]
                     try:
                         return float(v)
                     except (ValueError, TypeError):
-                        return v
+                        return str(v)
 
                 with c1:
-                    new_x0 = st.text_input(
+                    new_x0: str = st.text_input(
                         "x0",
                         value=str(shape["x0"]),
                         key=f"edit_x0_{i}_{self.plot_id}",
                         label_visibility="collapsed",
                     )
                 with c2:
-                    new_y0 = st.text_input(
+                    new_y0: str = st.text_input(
                         "y0",
                         value=str(shape["y0"]),
                         key=f"edit_y0_{i}_{self.plot_id}",
                         label_visibility="collapsed",
                     )
                 with c3:
-                    new_x1 = st.text_input(
+                    new_x1: str = st.text_input(
                         "x1",
                         value=str(shape["x1"]),
                         key=f"edit_x1_{i}_{self.plot_id}",
                         label_visibility="collapsed",
                     )
                 with c4:
-                    new_y1 = st.text_input(
+                    new_y1: str = st.text_input(
                         "y1",
                         value=str(shape["y1"]),
                         key=f"edit_y1_{i}_{self.plot_id}",
@@ -707,27 +768,37 @@ class BasePlot(ABC):
     ) -> List[Any]:
         """
         Render a list that can be reordered using up/down buttons.
+        
+        Args:
+            label: Display label for the list
+            items: List of items to reorder
+            key_prefix: Prefix for session state keys
+            legend_labels: Optional mapping of item values to display labels
+            default_order: Optional default ordering
+            
+        Returns:
+            Reordered list of items
         """
         st.markdown(f"**{label}**")
 
         # Initialize in session state if needed
-        ss_key = f"{key_prefix}_order_{self.plot_id}"
+        ss_key: str = f"{key_prefix}_order_{self.plot_id}"
         if ss_key not in st.session_state:
             # Use default_order if provided, but validate against current items
             if default_order:
                 # Filter default_order to only include items currently in data
-                valid_defaults = [x for x in default_order if x in items]
+                valid_defaults: List[Any] = [x for x in default_order if x in items]
                 # Append any new items from data that weren't in default_order
-                missing_items = [x for x in items if x not in valid_defaults]
+                missing_items: List[Any] = [x for x in items if x not in valid_defaults]
                 st.session_state[ss_key] = valid_defaults + missing_items
             else:
                 st.session_state[ss_key] = list(items)
 
         # Sync if items changed (e.g. data update) but keep existing order for common items
-        current_items = st.session_state[ss_key]
+        current_items: List[Any] = st.session_state[ss_key]
         if set(current_items) != set(items):
             # Keep existing items in order, append new ones
-            new_items = [x for x in current_items if x in items]
+            new_items: List[Any] = [x for x in current_items if x in items]
             new_items.extend([x for x in items if x not in current_items])
             st.session_state[ss_key] = new_items
             current_items = new_items
@@ -736,7 +807,7 @@ class BasePlot(ABC):
         for i, item in enumerate(current_items):
             c1, c2, c3 = st.columns([6, 1, 1])
             with c1:
-                display_text = str(item)
+                display_text: str = str(item)
                 if legend_labels and str(item) in legend_labels:
                     display_text = f"{legend_labels[str(item)]} ({item})"
                 st.text(display_text)

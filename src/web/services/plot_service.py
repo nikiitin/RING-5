@@ -1,5 +1,6 @@
 import copy
 import os
+from typing import Optional
 
 from src.plotting import BasePlot, PlotFactory
 from src.web.state_manager import StateManager
@@ -74,7 +75,7 @@ class PlotService:
         return new_plot
 
     @staticmethod
-    def export_plot_to_file(plot: BasePlot, directory: str, format: str = None) -> str:
+    def export_plot_to_file(plot: BasePlot, directory: str, format: Optional[str] = None) -> Optional[str]:
         """Export a plot to a file in the specified directory."""
         if not os.path.exists(directory):
             os.makedirs(directory)

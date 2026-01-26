@@ -1,7 +1,14 @@
-"""Manage plots page using modern plot class hierarchy."""
+"""
+Manage Plots Page
+
+Modern plot management interface using plot class hierarchy.
+Provides functionality to create, configure, and manage multiple plots
+with independent data processing pipelines.
+"""
 
 import sys
 from pathlib import Path
+from typing import Optional
 
 import streamlit as st
 
@@ -17,7 +24,7 @@ from src.web.ui.components.plot_manager_components import (  # noqa: E402
 )
 
 
-def show_manage_plots_page():
+def show_manage_plots_page() -> None:
     """Main interface for managing multiple plots with pipelines."""
     st.markdown("## Manage Plots")
     st.markdown("Create and configure multiple plots with independent data processing pipelines.")

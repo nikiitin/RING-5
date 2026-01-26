@@ -18,7 +18,7 @@ class UploadDataPage:
         """Initialize the upload page."""
         self.facade = facade
 
-    def render(self):
+    def render(self) -> None:
         """Render the upload data page."""
         # Check if parser mode and data already loaded
         if StateManager.is_using_parser():

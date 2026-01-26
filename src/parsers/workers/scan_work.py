@@ -9,7 +9,7 @@ class ScanWork(Job):
     Inherits from the core Job class to be compatible with WorkPool.
     """
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         pass
 
     def __call__(self) -> Any:

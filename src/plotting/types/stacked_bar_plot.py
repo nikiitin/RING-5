@@ -187,7 +187,7 @@ class StackedBarPlot(BasePlot):
         rotation = config.get("total_rotation", 0)
         threshold = config.get("total_threshold", 0.0)
 
-        def fmt_val(val):
+        def fmt_val(val: float) -> str:
             try:
                 return f"{val:{total_fmt}}"
             except ValueError:
@@ -220,7 +220,7 @@ class StackedBarPlot(BasePlot):
 
         return annotations
 
-    def _get_total_position(self, val: float, position_option: str, anchor_option: str) -> tuple:
+    def _get_total_position(self, val: float, position_option: str, anchor_option: str) -> tuple[float, str]:
         """Calculate Y position and anchor for total annotation."""
         if position_option == "Outside":
             return val, "bottom"

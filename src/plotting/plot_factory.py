@@ -1,6 +1,6 @@
 """Factory for creating plot instances."""
 
-from typing import Dict
+from typing import Dict, List, Type
 
 from .base_plot import BasePlot
 from .types import (
@@ -14,9 +14,15 @@ from .types import (
 
 
 class PlotFactory:
-    """Factory for creating plot instances."""
+    """
+    Factory for creating plot instances.
+    
+    Uses the Factory pattern to centralize plot creation and maintain
+    a registry of available plot types. Supports runtime registration
+    of new plot types for extensibility.
+    """
 
-    _plot_classes: Dict[str, type] = {
+    _plot_classes: Dict[str, Type[BasePlot]] = {
         "bar": BarPlot,
         "grouped_bar": GroupedBarPlot,
         "stacked_bar": StackedBarPlot,
@@ -31,40 +37,44 @@ class PlotFactory:
         Create a plot instance of the specified type.
 
         Args:
-            plot_type: Type of plot to create
+            plot_type: Type of plot to create (bar, line, scatter, etc.)
             plot_id: Unique identifier for the plot
             name: Display name for the plot
 
         Returns:
-            Plot instance
+            Plot instance of the requested type
 
         Raises:
             ValueError: If plot_type is not recognized
         """
-        plot_class = cls._plot_classes.get(plot_type)
+        plot_class: Type[BasePlot] | None = cls._plot_classes.get(plot_type)
         if plot_class is None:
             raise ValueError(f"Unknown plot type: {plot_type}")
 
-        return plot_class(plot_id, name)
+        # Subclasses add plot_type in their __init__ before calling super()
+        return plot_class(plot_id, name)  # type: ignore[call-arg]
 
     @classmethod
-    def get_available_plot_types(cls) -> list:
+    def get_available_plot_types(cls) -> List[str]:
         """
         Get list of available plot types.
 
         Returns:
-            List of plot type identifiers
+            List of plot type identifiers (e.g., ['bar', 'line', 'scatter'])
         """
         return list(cls._plot_classes.keys())
 
     @classmethod
-    def register_plot_type(cls, plot_type: str, plot_class: type):
+    def register_plot_type(cls, plot_type: str, plot_class: Type[BasePlot]) -> None:
         """
         Register a new plot type (for extensibility).
 
         Args:
-            plot_type: Identifier for the plot type
-            plot_class: Class implementing BasePlot
+            plot_type: Identifier for the plot type (e.g., 'heatmap')
+            plot_class: Class implementing BasePlot interface
+
+        Raises:
+            ValueError: If plot_class is not a subclass of BasePlot
         """
         if not issubclass(plot_class, BasePlot):
             raise ValueError("plot_class must be a subclass of BasePlot")

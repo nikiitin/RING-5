@@ -1,19 +1,32 @@
-"""Portfolio management page - save and load complete analysis snapshots."""
+"""
+Portfolio Management Page
+
+Provides functionality to save and load complete analysis snapshots including
+data, plots, and all configurations as portfolio files.
+"""
 
 import copy
 import logging
+from typing import Optional, List, cast
 
+import pandas as pd
 import streamlit as st
 
 from src.web.services.pipeline_service import PipelineService
 from src.web.services.portfolio_service import PortfolioService
+from src.web.state_manager import StateManager, PortfolioData
 from src.web.state_manager import StateManager
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
-def show_portfolio_page():
-    """Save and load complete portfolio snapshots."""
+def show_portfolio_page() -> None:
+    """
+    Display the portfolio management page.
+    
+    Allows users to save complete snapshots of their work including data,
+    plots, and configurations, and restore previously saved portfolios.
+    """
     st.markdown("## Portfolio Management")
     st.markdown(
         "Save and load complete snapshots of your work including data, plots, and all "
@@ -39,14 +52,18 @@ def show_portfolio_page():
                 logger.warning("PORTFOLIO: Attempted to save portfolio without data.")
             else:
                 try:
+                    current_data = StateManager.get_data()
+                    if current_data is None:
+                        st.error("No data available to save")
+                        return
                     PortfolioService.save_portfolio(
                         name=portfolio_name,
-                        data=StateManager.get_data(),
+                        data=current_data,
                         plots=StateManager.get_plots(),
                         config=StateManager.get_config(),
                         plot_counter=StateManager.get_plot_counter(),
                         csv_path=StateManager.get_csv_path(),
-                        parse_variables=StateManager.get_parse_variables(),
+                        parse_variables=cast(Optional[List[str]], StateManager.get_parse_variables()),
                     )
                     st.success(f"Portfolio saved: {portfolio_name}")
                 except Exception as e:
@@ -66,7 +83,7 @@ def show_portfolio_page():
             if st.button("Load Portfolio", type="primary", width="stretch"):
                 try:
                     data = PortfolioService.load_portfolio(selected_portfolio)
-                    StateManager.restore_session_state(data)
+                    StateManager.restore_session_state(cast(PortfolioData, data))
                     st.success(f"Portfolio loaded: {selected_portfolio}")
                     st.rerun()
                 except Exception as e:

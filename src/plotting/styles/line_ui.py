@@ -8,7 +8,7 @@ from .base_ui import BaseStyleUI
 class LineStyleUI(BaseStyleUI):
     def _render_specific_series_visuals(
         self, current_style: Dict[str, Any], key_suffix: str, key_prefix: str = ""
-    ):
+    ) -> None:
         with st.expander("Marker & Line", expanded=False):
             symbols = ["circle", "square", "diamond", "cross", "x", "triangle-up", "triangle-down"]
             new_symbol = st.selectbox(

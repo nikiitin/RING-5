@@ -11,7 +11,7 @@ import logging
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ class Gem5StatsScanner:
 
     _instance: Optional["Gem5StatsScanner"] = None
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initialize the scanner and verify environment dependencies.
 
@@ -123,7 +123,8 @@ class Gem5StatsScanner:
         all_vars = self.scan_file(file_path)
         for var in all_vars:
             if var["name"] == var_name and var.get("type") in ("vector", "histogram"):
-                return var.get("entries", [])
+                entries_raw = var.get("entries", [])
+                return cast(List[str], entries_raw) if isinstance(entries_raw, list) else []
         return []
 
     def scan_vector_entries(self, file_path: Path, vector_name: str) -> List[str]:

@@ -136,7 +136,8 @@ class Gem5StatsParser:
             pool.add_work(Gem5ParseWork(file_path, var_map))
 
         logger.info("PARSER: Waiting for parallel worker completion...")
-        self._results = pool.get_results()
+        futures = pool.get_all_futures()
+        self._results = [f.result() for f in futures]
 
     def _persist_results(self) -> Optional[str]:
         """
@@ -212,7 +213,7 @@ class ParserBuilder:
     Encapsulates configuration logic away from the core execution engine.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize with sensible scientific defaults."""
         self._stats_path: str = ""
         self._stats_pattern: str = "stats.txt"
@@ -232,7 +233,7 @@ class ParserBuilder:
         self._stats_pattern = pattern
         return self
 
-    def with_variable(self, name: str, var_type: str, **kwargs) -> "ParserBuilder":
+    def with_variable(self, name: str, var_type: str, **kwargs: Any) -> "ParserBuilder":
         """Define a single metric to extract."""
         var = {"name": name, "type": var_type, **kwargs}
         self._variables.append(var)

@@ -2,6 +2,8 @@ import tempfile
 from io import StringIO
 from pathlib import Path
 
+from typing import Any
+
 import pandas as pd
 import streamlit as st
 
@@ -13,20 +15,21 @@ class UploadComponents:
     """UI Components for the Upload Data Page."""
 
     @staticmethod
-    def render_parsed_data_preview():
+    def render_parsed_data_preview() -> None:
         """Render preview if data is already parsed/loaded."""
         st.markdown("## Step 2: Parsed Data Preview")
 
         st.success("Data loaded from parser!")
 
         data = StateManager.get_data()
-        DataComponents.show_data_preview(data)
-        DataComponents.show_column_details(data)
+        if data is not None:
+            DataComponents.show_data_preview(data)
+            DataComponents.show_column_details(data)
 
         st.info("Proceed to **Configure Pipeline** to process your data")
 
     @staticmethod
-    def render_file_upload_tab(facade):
+    def render_file_upload_tab(facade: Any) -> None:
         """Render the file upload interface."""
         st.markdown("### Upload gem5 Statistics CSV")
         uploaded_file = st.file_uploader(
@@ -42,9 +45,11 @@ class UploadComponents:
                     StateManager.set_temp_dir(tempfile.mkdtemp())
 
                 # Save file
-                csv_path = Path(StateManager.get_temp_dir()) / uploaded_file.name
-                with open(csv_path, "wb") as f:
-                    f.write(uploaded_file.getbuffer())
+                temp_dir = StateManager.get_temp_dir()
+                if temp_dir:
+                    csv_path = Path(temp_dir) / uploaded_file.name
+                    with open(csv_path, "wb") as f:
+                        f.write(uploaded_file.getbuffer())
 
                 # Load data
                 data = facade.load_csv_file(str(csv_path))
@@ -60,7 +65,7 @@ class UploadComponents:
                 st.error(f"Error loading file: {e}")
 
     @staticmethod
-    def render_paste_data_tab():
+    def render_paste_data_tab() -> None:
         """Render the paste data interface."""
         st.markdown("### Paste CSV Data")
         csv_text = st.text_area(

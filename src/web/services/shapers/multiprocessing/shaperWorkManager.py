@@ -1,6 +1,7 @@
 import logging
 import os
-from typing import Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, cast
+from concurrent.futures import Future
 
 from tqdm import tqdm
 
@@ -17,7 +18,7 @@ class ShaperWorkManager:
     Solves dependencies and uses futures to execute shapers as they become ready.
     """
 
-    def __init__(self, json_config: dict, csv_path: str, plot_shaper_ids: Set[str]):
+    def __init__(self, json_config: Dict[str, Any], csv_path: str, plot_shaper_ids: Set[str]):
         self._work_pool = WorkPool.get_instance()
         self._json = json_config
         self._csv_path = csv_path
@@ -27,7 +28,7 @@ class ShaperWorkManager:
         self._completed_works: Dict[str, str] = {}  # work_id : dst_csv_path
 
         self._is_finished = False
-        self._pbar: Optional[tqdm] = None
+        self._pbar: Optional[tqdm[Any]] = None
 
         # Build work objects and identify initial tasks
         for work_id, work_info in self._json.items():
@@ -47,9 +48,10 @@ class ShaperWorkManager:
                 self._executing_works[work_id] = work
             else:
                 # Check for cyclic dependencies
-                if self._check_cyclic_dependencies(work_id, deps):
+                deps_list = cast(List[str], deps) if isinstance(deps, list) else []
+                if self._check_cyclic_dependencies(work_id, deps_list):
                     raise ValueError(f"Work {work_id} has a cyclic dependency.")
-                work.deps = deps
+                work.deps = deps_list
                 self._dependencies[work_id] = work
 
         # Filter to only keep works needed for the requested plots
@@ -76,7 +78,7 @@ class ShaperWorkManager:
         else:
             raise ValueError(f"Work {work_id} is not tracked.")
 
-    def _filter_queues(self, used_ids: Set[str]):
+    def _filter_queues(self, used_ids: Set[str]) -> None:
         real_used_works = set()
         for work_id in used_ids:
             if work_id in self._json:  # Ensure it exists in config
@@ -101,13 +103,13 @@ class ShaperWorkManager:
                     return True
         return False
 
-    def _submit_work(self, work_id: str, work: ShaperWork):
+    def _submit_work(self, work_id: str, work: ShaperWork) -> None:
         # Use ThreadPool (use_threads=True) as shaping is typically IO/Mixed
         # and may interact with shared memory/objects more safely in threads
         future = self._work_pool.submit(work, use_threads=True)
         future.add_done_callback(lambda f: self._handle_work_finish(work_id, f))
 
-    def _handle_work_finish(self, work_id: str, future):
+    def _handle_work_finish(self, work_id: str, future: Future[Any]) -> None:
         try:
             if not future.result():
                 raise Exception(f"Work {work_id} returned failure status")
@@ -144,13 +146,13 @@ class ShaperWorkManager:
             if self._pbar:
                 self._pbar.close()
 
-    def __call__(self):
+    def __call__(self) -> None:
         total_works = len(self._executing_works) + len(self._dependencies)
         if total_works == 0:
             self._is_finished = True
             return
 
-        self._pbar = tqdm(total=total_works, desc="Shaping data")
+        self._pbar = tqdm[Any](total=total_works, desc="Shaping data")
         self._is_finished = False
 
         # Submit initial works
@@ -158,7 +160,7 @@ class ShaperWorkManager:
         for work_id, work in initial_works:
             self._submit_work(work_id, work)
 
-    def __del__(self):
+    def __del__(self) -> None:
         # Cleanup temporary files
         import contextlib
 

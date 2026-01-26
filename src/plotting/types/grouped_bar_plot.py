@@ -1,6 +1,6 @@
 """Grouped bar plot implementation."""
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -67,9 +67,11 @@ class GroupedBarPlot(BasePlot):
 
         return super().render_advanced_options(saved_config, data)
 
-    def render_theme_options(self, saved_config: Dict[str, Any]) -> Dict[str, Any]:
+    def render_theme_options(
+        self, saved_config: Dict[str, Any], items: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
         """Add specific styling options for Grouped Bar."""
-        config = super().render_theme_options(saved_config)
+        config = super().render_theme_options(saved_config, items)
 
         # Visual Distinction Section
         st.markdown("**Visual Distinction**")
@@ -159,14 +161,14 @@ class GroupedBarPlot(BasePlot):
             else:
                 ordered_groups = sorted(data[group_col].unique())
         else:
-            ordered_groups = [None]  # Dummy for iteration
+            ordered_groups = []  # Empty list instead of [None]
 
         # 2. Calculate Manual X Coordinates
         # GroupedBarPlot uses Plotly's native 'group' barmode, so we only need one X coordinate
         # per Category (Major Group). The sub-groups are handled by Plotly automatically offsetting traces.
-        # So we pass groups=[None] to the utility to get simple category-based coordinates.
+        # So we pass groups=[] to the utility to get simple category-based coordinates.
         coord_result = GroupedBarUtils.calculate_grouped_coordinates(
-            categories=ordered_x, groups=[None], config=config
+            categories=ordered_x, groups=[], config=config
         )
 
         # Adapt keys: Utility returns cat (string) when groups=[None]

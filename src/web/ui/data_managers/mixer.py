@@ -15,7 +15,7 @@ class MixerManager(DataManager):
     def name(self) -> str:
         return "Mixer (Merge Columns)"
 
-    def render(self):
+    def render(self) -> None:
         """Render the Mixer UI."""
         st.markdown("### Mixer (Merge Columns)")
 

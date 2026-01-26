@@ -2,6 +2,8 @@ import logging
 import tempfile
 from pathlib import Path
 
+from typing import Any, List
+
 import streamlit as st
 
 from src.web.facade import BackendFacade
@@ -17,7 +19,7 @@ class DataSourceComponents:
     """UI Components for the Data Source Page."""
 
     @staticmethod
-    def render_csv_pool(facade: BackendFacade):
+    def render_csv_pool(facade: BackendFacade) -> None:
         """Display and manage the CSV pool."""
         st.markdown("---")
         st.markdown("### Recent CSV Files")
@@ -76,7 +78,7 @@ class DataSourceComponents:
                     logger.error("CSV POOL: Failed to delete metadata for: %s", csv_path)
 
     @staticmethod
-    def render_parser_config(facade: BackendFacade):
+    def render_parser_config(facade: BackendFacade) -> None:
         """Display parser configuration interface."""
         st.markdown("---")
         st.markdown("### gem5 Stats Parser Configuration")
@@ -190,7 +192,7 @@ class DataSourceComponents:
 
     @staticmethod
     @st.dialog("Add Variable")
-    def variable_config_dialog():
+    def variable_config_dialog() -> None:
         """Dialog to add a new variable."""
         scanned_vars = StateManager.get_scanned_variables() or []
 
@@ -213,7 +215,7 @@ class DataSourceComponents:
                 st.warning("No variables scanned yet. Run 'Scan for Variables' first.")
             else:
 
-                def format_func(v):
+                def format_func(v: Any) -> str:
                     label = f"{v['name']} ({v['type']})"
                     if v["type"] == "vector" and "entries" in v:
                         label += f" [{len(v['entries'])} items]"
@@ -272,7 +274,11 @@ class DataSourceComponents:
                 )
             elif var_type == "distribution":
                 VariableEditor.render_distribution_config(
-                    var_config=config, original_var=defaults, var_id=temp_id
+                    var_config=config,
+                    original_var=defaults,
+                    var_id=temp_id,
+                    stats_path=StateManager.get_stats_path(),
+                    stats_pattern=StateManager.get_stats_pattern(),
                 )
             elif var_type == "configuration":
                 VariableEditor.render_configuration_config(
@@ -287,8 +293,9 @@ class DataSourceComponents:
                     help="If variable repeats in strict sequence (Perl parser specific)",
                     key="adv_repeat",
                 )
-                if repeat > 1:
-                    config["repeat"] = repeat
+                repeat_int = int(repeat) if repeat is not None else 1
+                if repeat_int > 1:
+                    config["repeat"] = str(repeat_int)
 
             st.write("")
             if st.button("Add to Configuration", type="primary", use_container_width=True):
@@ -317,7 +324,7 @@ class DataSourceComponents:
 
     @staticmethod
     @st.dialog("Parsing gem5 Stats", dismissible=False)
-    def _show_parse_dialog(facade: BackendFacade, futures: list, output_dir: str):
+    def _show_parse_dialog(facade: BackendFacade, futures: List[Any], output_dir: str) -> None:
         """Render the parsing progress dialog using blocking futures."""
         from concurrent.futures import as_completed
 

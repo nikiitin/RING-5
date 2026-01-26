@@ -15,7 +15,7 @@ class OutlierRemoverManager(DataManager):
     def name(self) -> str:
         return "Outlier Remover"
 
-    def render(self):
+    def render(self) -> None:
         """Render the Outlier Remover UI."""
         st.markdown("### Outlier Remover")
 

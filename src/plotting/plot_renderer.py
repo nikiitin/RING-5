@@ -181,7 +181,7 @@ class PlotRenderer:
                 # Explicit error is better for debugging main loop
 
     @staticmethod
-    def _render_download_button(plot: BasePlot, fig) -> None:
+    def _render_download_button(plot: BasePlot, fig: Any) -> None:
         """
         Render download button for the plot.
 

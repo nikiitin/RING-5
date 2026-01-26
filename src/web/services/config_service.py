@@ -6,7 +6,7 @@ Manages saving and loading of configuration files.
 import datetime
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from src.web.services.paths import PathService
 
@@ -55,7 +55,7 @@ class ConfigService:
     def save_configuration(
         name: str,
         description: str,
-        shapers_config: List[Dict],
+        shapers_config: List[Dict[str, Any]],
         csv_path: Optional[str] = None,
     ) -> str:
         """
@@ -99,7 +99,7 @@ class ConfigService:
             Configuration dictionary.
         """
         with open(config_path, "r") as f:
-            return json.load(f)
+            return cast(Dict[str, Any], json.load(f))
 
     @staticmethod
     def delete_configuration(config_path: str) -> bool:

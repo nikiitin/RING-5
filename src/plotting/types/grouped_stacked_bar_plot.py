@@ -44,9 +44,12 @@ class GroupedStackedBarPlot(StackedBarPlot):
             if saved_config.get("group") and saved_config["group"] in categorical_cols:
                 group_default_idx = categorical_cols.index(saved_config["group"])
 
+            # Filter out None from categorical_cols for selectbox
+            filtered_cols: List[str] = [col for col in categorical_cols if col is not None]
+            options_list: List[Optional[str]] = [None] + filtered_cols
             group_column = st.selectbox(
                 "X-Axis / Minor Grouping (Inner)",
-                options=[None] + categorical_cols,
+                options=options_list,
                 index=group_default_idx + 1 if saved_config.get("group") else 0,
                 key=f"group_{self.plot_id}",
                 help="The variable displayed on the X-axis within the major group (e.g., Configuration)",
@@ -114,7 +117,9 @@ class GroupedStackedBarPlot(StackedBarPlot):
             "_needs_advanced": True,
         }
 
-    def _render_stack_total_options(self, saved_config: Dict[str, Any], config: Dict[str, Any]):
+    def _render_stack_total_options(
+        self, saved_config: Dict[str, Any], config: Dict[str, Any]
+    ) -> None:
         """Render options for Stack Totals."""
         st.markdown("**Stack Totals**")
         c1, c2 = st.columns(2)
@@ -199,7 +204,9 @@ class GroupedStackedBarPlot(StackedBarPlot):
                 help="Only show totals greater than this value.",
             )
 
-    def render_theme_options(self, saved_config: Dict[str, Any]) -> Dict[str, Any]:
+    def render_theme_options(
+        self, saved_config: Dict[str, Any], items: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
         """Override to add specific styling options."""
         # Get base theme options
         # Fix: Pass stacks as items to ensure correct Series Styling
@@ -286,7 +293,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame] = None
     ) -> Dict[str, Any]:
         """Custom Advanced Options for Grouped Stacked Bar."""
-        config = {}
+        config: Dict[str, Any] = {}
 
         # 1. General Settings
         self._render_general_settings(saved_config, config)
@@ -504,7 +511,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
 
     def _get_ordered_categories_and_groups(
         self, data: pd.DataFrame, x_col: str, group_col: str, config: Dict[str, Any]
-    ) -> tuple:
+    ) -> tuple[List[str], List[str]]:
         """Get ordered lists of categories and groups."""
         # Categories
         if config.get("xaxis_order"):
@@ -534,7 +541,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         categories: List[str],
         groups: List[str],
         config: Dict[str, Any],
-    ) -> tuple:
+    ) -> tuple[pd.DataFrame, List[str], List[str]]:
         """Apply renames to data and ordered lists."""
         # X-axis renames
         x_renames = config.get("xaxis_labels", {})
@@ -567,7 +574,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         )
 
     def _build_category_annotations(
-        self, cat_centers: List[tuple], config: Dict[str, Any]
+        self, cat_centers: List[tuple[float, str]], config: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
         """Build annotations for category labels (grouped bars only)."""
         return GroupedBarUtils.build_category_annotations(

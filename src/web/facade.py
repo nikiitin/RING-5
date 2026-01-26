@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
+from src.parsers.scanner_service import ScannedVariable
 from src.web.services.config_service import ConfigService
 from src.web.services.csv_pool_service import CsvPoolService
 from src.web.services.paths import PathService
@@ -28,7 +29,7 @@ class BackendFacade:
     (Layer B) and ingestion (Layer A).
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the facade with persistent storage paths."""
         self.ring5_data_dir = PathService.get_data_dir()
         self.csv_pool_dir = CsvPoolService.get_pool_dir()
@@ -188,7 +189,7 @@ class BackendFacade:
         from src.parsers.scanner_service import ScannerService
         ScannerService.cancel_scan()
 
-    def finalize_scan(self, results: List[Any]) -> List[Dict[str, Any]]:
+    def finalize_scan(self, results: List[Any]) -> List[ScannedVariable]:
         """Process and aggregate scan results."""
         from src.parsers.scanner_service import ScannerService
         return ScannerService.aggregate_scan_results(results)

@@ -15,7 +15,7 @@ class PreprocessorManager(DataManager):
     def name(self) -> str:
         return "Preprocessor (Basic)"
 
-    def render(self):
+    def render(self) -> None:
         """Render the Preprocessor UI."""
         st.markdown("### Preprocessor (Basic)")
 

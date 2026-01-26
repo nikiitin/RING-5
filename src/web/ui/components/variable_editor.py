@@ -80,7 +80,7 @@ class VariableEditor:
         return updated_vars
 
     @staticmethod
-    def _render_common_fields(idx: int, var: Dict[str, Any], var_id: str):
+    def _render_common_fields(idx: int, var: Dict[str, Any], var_id: str) -> tuple[str, str, str, bool]:
         """Render common variable fields (Name, Alias, Type)."""
         col1, col2, col3, col4 = st.columns([3, 2, 2, 1])
 
@@ -131,7 +131,7 @@ class VariableEditor:
         available_variables: Optional[List[Dict[str, Any]]],
         stats_path: Optional[str],
         stats_pattern: str,
-    ):
+    ) -> None:
         """Render configuration for histogram variables."""
         var_name = var_config.get("name", "")
         if var_name:
@@ -228,7 +228,7 @@ class VariableEditor:
         available_variables: Optional[List[Dict[str, Any]]],
         stats_path: Optional[str],
         stats_pattern: str,
-    ):
+    ) -> None:
         """Render configuration for vector variables."""
         var_name = var_config.get("name", "")
         # Header is optional or can be external
@@ -297,7 +297,7 @@ class VariableEditor:
         stats_path: Optional[str],
         stats_pattern: str,
         var_type: str = "vector",
-    ):
+    ) -> None:
         """Handle deep scan logic and button."""
         if not stats_path:
             return
@@ -333,9 +333,9 @@ class VariableEditor:
         var_name: str,
         var_id: str,
         facade: Any,
-        futures: list,
+        futures: List[Any],
         is_distribution: bool
-    ):
+    ) -> None:
         """Blocking dialog for async scanning using futures."""
         from concurrent.futures import as_completed
 
@@ -427,7 +427,7 @@ class VariableEditor:
         original_var: Dict[str, Any],
         var_id: str,
         discovered_entries: List[str],
-    ):
+    ) -> None:
         """Render multiselect for discovered vector entries."""
         # SCIENTIFIC FILTER: Remove internal gem5 statistics from the entry list
         # These are handled via the 'Statistics' checkboxes
@@ -458,7 +458,7 @@ class VariableEditor:
     @staticmethod
     def _render_vector_manual_entry(
         var_config: Dict[str, Any], original_var: Dict[str, Any], var_id: str
-    ):
+    ) -> None:
         """Render text input for manual vector entries."""
         default_entries = original_var.get("vectorEntries", "")
         if isinstance(default_entries, list):
@@ -486,7 +486,7 @@ class VariableEditor:
     @staticmethod
     def _render_vector_statistics_selection(
         var_config: Dict[str, Any], original_var: Dict[str, Any], var_id: str
-    ):
+    ) -> None:
         """Render checkboxes for vector statistics."""
         st.markdown("**Select statistics to extract from the vector:**")
         col_stat1, col_stat2 = st.columns(2)
@@ -541,7 +541,7 @@ class VariableEditor:
         var_id: str,
         stats_path: Optional[str],
         stats_pattern: str,
-    ):
+    ) -> None:
         """Render configuration for distribution variables."""
         var_name = var_config.get("name", "")
         if var_name:
@@ -577,7 +577,7 @@ class VariableEditor:
     @staticmethod
     def _render_distribution_statistics_selection(
         var_config: Dict[str, Any], original_var: Dict[str, Any], var_id: str
-    ):
+    ) -> None:
         """Render checkboxes for distribution statistics."""
         st.markdown("**Extract additional statistics:**")
         col_stat1, col_stat2 = st.columns(2)
@@ -633,7 +633,7 @@ class VariableEditor:
     @staticmethod
     def render_configuration_config(
         var_config: Dict[str, Any], original_var: Dict[str, Any], var_id: str
-    ):
+    ) -> None:
         """Render configuration for configuration variables."""
         var_name = var_config.get("name", "")
         if var_name:
@@ -650,7 +650,7 @@ class VariableEditor:
     @staticmethod
     def _render_add_variable_section(
         variables: List[Dict[str, Any]], available_variables: Optional[List[Dict[str, Any]]]
-    ):
+    ) -> None:
         """Render the 'Add Variable' section with search and manual add options."""
         st.markdown("---")
         st.markdown("### Add Variable")

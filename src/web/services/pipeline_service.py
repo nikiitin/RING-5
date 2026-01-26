@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, List
+from typing import Any, Dict, List, cast
 
 import pandas as pd
 
@@ -46,7 +46,7 @@ class PipelineService:
             raise FileNotFoundError(f"Pipeline '{name}' not found")
 
         with open(load_path, "r") as f:
-            return json.load(f)
+            return cast(Dict[str, Any], json.load(f))
 
     @staticmethod
     def delete_pipeline(name: str) -> None:

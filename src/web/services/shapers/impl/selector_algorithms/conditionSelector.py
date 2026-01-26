@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 import pandas as pd
 
@@ -89,9 +89,10 @@ class ConditionSelector(Selector):
         elif self.mode == "less_than":
             return data_frame[data_frame[col] < self.threshold]
         elif self.mode == "equals":
-            return data_frame[data_frame[col] == self.value]
+            return data_frame[data_frame[col] == self.value]  # type: ignore
         elif self.mode == "contains":
-            return data_frame[data_frame[col].astype(str).str.contains(str(self.value), na=False)]
+            mask = data_frame[col].astype(str).str.contains(str(self.value), na=False)
+            return data_frame[mask]
 
         # 4. Legacy Operator/Value pair
         if self.condition is not None and self.value is not None:
@@ -112,6 +113,6 @@ class ConditionSelector(Selector):
                 "!=": lambda x, y: x != y,
             }
             if self.condition in ops:
-                return data_frame[ops[self.condition](data_frame[col], val)]
+                return cast(pd.DataFrame, data_frame[ops[self.condition](data_frame[col], val)])
 
         return data_frame

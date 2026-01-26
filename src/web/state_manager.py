@@ -10,14 +10,56 @@ import shutil
 import uuid
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, cast, Dict, List, Optional, TypedDict
 
 import pandas as pd
 import streamlit as st
 
 from src.plotting import BasePlot
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
+
+
+class ParseVariable(TypedDict, total=False):
+    """Type definition for a parse variable configuration."""
+    
+    name: str
+    type: str  # "scalar", "vector", "distribution", "histogram", "configuration"
+    _id: str  # UUID for UI tracking
+    entries: List[str]  # For vector types
+    minimum: Optional[float]  # For distribution types
+    maximum: Optional[float]  # For distribution types
+
+
+class CsvPoolEntry(TypedDict):
+    """Type definition for CSV pool registry entry."""
+    
+    path: str
+    name: str
+    added_at: str
+
+
+class ConfigEntry(TypedDict):
+    """Type definition for saved configuration entry."""
+    
+    path: str
+    name: str
+    description: str
+
+
+class PortfolioData(TypedDict, total=False):
+    """Type definition for portfolio restoration data."""
+    
+    parse_variables: List[ParseVariable]
+    stats_path: str
+    stats_pattern: str
+    csv_path: str
+    use_parser: bool
+    scanned_variables: List[Dict[str, Any]]
+    data_csv: str
+    plots: List[Dict[str, Any]]
+    plot_counter: int
+    config: Dict[str, Any]
 
 
 class StateKey(Enum):
@@ -66,9 +108,9 @@ class StateManager:
     CURRENT_PLOT_ID = StateKey.CURRENT_PLOT_ID.value
 
     @staticmethod
-    def initialize():
+    def initialize() -> None:
         """Initialize all session state variables with scientific defaults."""
-        defaults = {
+        defaults: Dict[str, Any] = {
             StateManager.DATA: None,
             StateManager.PROCESSED_DATA: None,
             StateManager.CONFIG: {},
@@ -102,12 +144,12 @@ class StateManager:
         return st.session_state.get(StateManager.DATA)
 
     @staticmethod
-    def set_data(data: pd.DataFrame, on_change: Optional[Callable] = None):
+    def set_data(data: Optional[pd.DataFrame], on_change: Optional[Callable[[], None]] = None) -> None:
         """Set the current data and enforce categorical constraints."""
         if data is not None:
             try:
-                variables = StateManager.get_parse_variables()
-                config_vars = [v["name"] for v in variables if v.get("type") == "configuration"]
+                variables: List[Dict[str, Any]] = StateManager.get_parse_variables()
+                config_vars: List[str] = [v["name"] for v in variables if v.get("type") == "configuration"]
                 for col in config_vars:
                     if col in data.columns:
                         data[col] = data[col].astype(str)
@@ -120,18 +162,21 @@ class StateManager:
 
     @staticmethod
     def get_processed_data() -> Optional[pd.DataFrame]:
+        """Get the processed/transformed dataset."""
         return st.session_state.get(StateManager.PROCESSED_DATA)
 
     @staticmethod
-    def set_processed_data(data: pd.DataFrame):
+    def set_processed_data(data: Optional[pd.DataFrame]) -> None:
+        """Set the processed/transformed dataset."""
         st.session_state[StateManager.PROCESSED_DATA] = data
 
     @staticmethod
     def has_data() -> bool:
+        """Check if any data is loaded."""
         return StateManager.get_data() is not None
 
     @staticmethod
-    def clear_data():
+    def clear_data() -> None:
         """Reset data-related state and clean up temp storage."""
         temp_dir = st.session_state.get(StateManager.TEMP_DIR)
         if temp_dir and Path(temp_dir).exists():
@@ -149,7 +194,8 @@ class StateManager:
         st.session_state[StateManager.CURRENT_PLOT_ID] = None
 
     @staticmethod
-    def clear_all():
+    def clear_all() -> None:
+        """Clear all session state."""
         StateManager.clear_data()
         st.session_state[StateManager.CONFIG] = {}
         st.session_state[StateManager.USE_PARSER] = False
@@ -166,15 +212,18 @@ class StateManager:
 
     @staticmethod
     def get_config() -> Dict[str, Any]:
-        return st.session_state.get(StateManager.CONFIG, {})
+        """Get the complete configuration dictionary."""
+        return cast(Dict[str, Any], st.session_state.get(StateManager.CONFIG, {}))
 
     @staticmethod
-    def set_config(config: Dict[str, Any]):
+    def set_config(config: Dict[str, Any]) -> None:
+        """Set the complete configuration dictionary."""
         st.session_state[StateManager.CONFIG] = config
 
     @staticmethod
-    def update_config(key: str, value: Any):
-        config = StateManager.get_config()
+    def update_config(key: str, value: Any) -> None:
+        """Update a specific configuration key."""
+        config: Dict[str, Any] = StateManager.get_config()
         config[key] = value
         StateManager.set_config(config)
 
@@ -183,47 +232,58 @@ class StateManager:
         return st.session_state.get(StateManager.TEMP_DIR)
 
     @staticmethod
-    def set_temp_dir(path: str):
+    def set_temp_dir(path: str) -> None:
+        """Set the temporary directory path."""
         st.session_state[StateManager.TEMP_DIR] = path
 
     @staticmethod
     def get_csv_path() -> Optional[str]:
+        """Get the current CSV file path."""
         return st.session_state.get(StateManager.CSV_PATH)
 
     @staticmethod
-    def set_csv_path(path: str):
+    def set_csv_path(path: str) -> None:
+        """Set the current CSV file path."""
         st.session_state[StateManager.CSV_PATH] = path
 
     @staticmethod
     def is_using_parser() -> bool:
-        return st.session_state.get(StateManager.USE_PARSER, False)
+        """Check if using gem5 parser mode."""
+        return cast(bool, st.session_state.get(StateManager.USE_PARSER, False))
 
     @staticmethod
-    def set_use_parser(use: bool):
+    def set_use_parser(use: bool) -> None:
+        """Set parser mode flag."""
         st.session_state[StateManager.USE_PARSER] = use
 
     @staticmethod
     def get_csv_pool() -> List[Dict[str, Any]]:
-        return st.session_state.get(StateManager.CSV_POOL, [])
+        """Get the CSV pool registry."""
+        return cast(List[Dict[str, Any]], st.session_state.get(StateManager.CSV_POOL, []))
 
     @staticmethod
-    def set_csv_pool(pool: List[Dict[str, Any]]):
+    def set_csv_pool(pool: List[Dict[str, Any]]) -> None:
+        """Set the CSV pool registry."""
         st.session_state[StateManager.CSV_POOL] = pool
 
     @staticmethod
     def get_saved_configs() -> List[Dict[str, Any]]:
-        return st.session_state.get(StateManager.SAVED_CONFIGS, [])
+        """Get list of saved configurations."""
+        return cast(List[Dict[str, Any]], st.session_state.get(StateManager.SAVED_CONFIGS, []))
 
     @staticmethod
-    def set_saved_configs(configs: List[Dict[str, Any]]):
+    def set_saved_configs(configs: List[Dict[str, Any]]) -> None:
+        """Set the list of saved configurations."""
         st.session_state[StateManager.SAVED_CONFIGS] = configs
 
     @staticmethod
     def get_parse_variables() -> List[Dict[str, Any]]:
-        return st.session_state.get(StateManager.PARSE_VARIABLES, [])
+        """Get parse variables list."""
+        return cast(List[Dict[str, Any]], st.session_state.get(StateManager.PARSE_VARIABLES, []))
 
     @staticmethod
-    def set_parse_variables(variables: List[Dict[str, Any]]):
+    def set_parse_variables(variables: List[Dict[str, Any]]) -> None:
+        """Set parse variables, ensuring each has a unique ID."""
         for var in variables:
             if "_id" not in var:
                 var["_id"] = str(uuid.uuid4())
@@ -231,71 +291,86 @@ class StateManager:
 
     @staticmethod
     def get_stats_path() -> str:
-        return st.session_state.get(StateManager.STATS_PATH, "")
+        """Get the gem5 stats base path."""
+        return cast(str, st.session_state.get(StateManager.STATS_PATH, ""))
 
     @staticmethod
-    def set_stats_path(path: str):
+    def set_stats_path(path: str) -> None:
+        """Set the gem5 stats base path."""
         st.session_state[StateManager.STATS_PATH] = path
 
     @staticmethod
     def get_stats_pattern() -> str:
-        return st.session_state.get(StateManager.STATS_PATTERN, "stats.txt")
+        """Get the stats file pattern."""
+        return cast(str, st.session_state.get(StateManager.STATS_PATTERN, "stats.txt"))
 
     @staticmethod
-    def set_stats_pattern(pattern: str):
+    def set_stats_pattern(pattern: str) -> None:
+        """Set the stats file pattern."""
         st.session_state[StateManager.STATS_PATTERN] = pattern
 
     @staticmethod
     def get_scanned_variables() -> List[Dict[str, Any]]:
-        return st.session_state.get(StateManager.SCANNED_VARIABLES, [])
+        """Get the scanned variables list."""
+        return cast(List[Dict[str, Any]], st.session_state.get(StateManager.SCANNED_VARIABLES, []))
 
     @staticmethod
-    def set_scanned_variables(variables: List[Dict[str, Any]]):
+    def set_scanned_variables(variables: List[Dict[str, Any]]) -> None:
+        """Set the scanned variables list."""
         st.session_state[StateManager.SCANNED_VARIABLES] = variables
 
     # ==================== Plot Orchestration ====================
 
     @staticmethod
-    def get_plots() -> List[Any]:
-        return st.session_state.get(StateManager.PLOTS_OBJECTS, [])
+    def get_plots() -> List[BasePlot]:
+        """Get all plot objects."""
+        return cast(List[BasePlot], st.session_state.get(StateManager.PLOTS_OBJECTS, []))
 
     @staticmethod
-    def set_plots(plots: List[Any]):
+    def set_plots(plots: List[BasePlot]) -> None:
+        """Set the complete list of plot objects."""
         st.session_state[StateManager.PLOTS_OBJECTS] = plots
 
     @staticmethod
-    def add_plot(plot_obj: Any):
-        plots = StateManager.get_plots()
+    def add_plot(plot_obj: BasePlot) -> None:
+        """Add a new plot to the collection."""
+        plots: List[BasePlot] = StateManager.get_plots()
         plots.append(plot_obj)
         st.session_state[StateManager.PLOTS_OBJECTS] = plots
 
     @staticmethod
     def get_plot_counter() -> int:
-        return st.session_state.get(StateManager.PLOT_COUNTER, 0)
+        """Get the current plot counter."""
+        return cast(int, st.session_state.get(StateManager.PLOT_COUNTER, 0))
 
     @staticmethod
-    def set_plot_counter(counter: int):
+    def set_plot_counter(counter: int) -> None:
+        """Set the plot counter."""
         st.session_state[StateManager.PLOT_COUNTER] = counter
 
     @staticmethod
     def start_next_plot_id() -> int:
-        counter = StateManager.get_plot_counter()
+        """Increment and return next plot ID."""
+        counter: int = StateManager.get_plot_counter()
         StateManager.set_plot_counter(counter + 1)
         return counter
 
     @staticmethod
     def get_current_plot_id() -> Optional[int]:
+        """Get the currently active plot ID."""
         return st.session_state.get(StateManager.CURRENT_PLOT_ID)
 
     @staticmethod
-    def set_current_plot_id(plot_id: Optional[int]):
+    def set_current_plot_id(plot_id: Optional[int]) -> None:
+        """Set the currently active plot ID."""
         st.session_state[StateManager.CURRENT_PLOT_ID] = plot_id
 
     # ==================== Session Restoration ====================
 
     @staticmethod
-    def clear_widget_state():
-        markers = [
+    def clear_widget_state() -> None:
+        """Clear widget-specific state markers from session."""
+        markers: List[str] = [
             "_order_",
             "leg_ren_",
             "xaxis_angle_",
@@ -313,12 +388,16 @@ class StateManager:
             "leg_y_",
             "leg_orient_",
         ]
-        keys_to_del = [k for k in st.session_state.keys() if any(marker in k for marker in markers)]
+        keys_to_del: List[str] = [
+            k for k in st.session_state.keys() 
+            if isinstance(k, str) and any(marker in k for marker in markers)
+        ]
         for k in keys_to_del:
             del st.session_state[k]
 
     @staticmethod
-    def restore_session(portfolio_data: Dict[str, Any]):
+    def restore_session(portfolio_data: PortfolioData) -> None:
+        """Restore complete session state from portfolio data."""
         StateManager.clear_widget_state()
         st.session_state[StateManager.PARSE_VARIABLES] = portfolio_data.get("parse_variables", [])
         st.session_state[StateManager.STATS_PATH] = portfolio_data.get("stats_path", "")
@@ -332,10 +411,10 @@ class StateManager:
         )
 
         if "data_csv" in portfolio_data:
-            df = pd.read_csv(io.StringIO(portfolio_data["data_csv"]))
+            df: pd.DataFrame = pd.read_csv(io.StringIO(portfolio_data["data_csv"]))
             StateManager.set_data(df)
 
-        loaded_plots = []
+        loaded_plots: List[BasePlot] = []
         for plot_data in portfolio_data.get("plots", []):
             try:
                 if "plot_type" in plot_data:
@@ -350,6 +429,6 @@ class StateManager:
         st.session_state[StateManager.CONFIG] = portfolio_data.get("config", {})
 
     @staticmethod
-    def restore_session_state(portfolio_data: Dict[str, Any]):
+    def restore_session_state(portfolio_data: PortfolioData) -> None:
         """Legacy alias for restore_session."""
         StateManager.restore_session(portfolio_data)

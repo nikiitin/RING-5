@@ -87,5 +87,5 @@ class StyleManager:
         return self.applicator.apply_styles(fig, config)
 
     # Helper proxy if needed directly
-    def _get_unique_values(self, saved_config, data, items):
+    def _get_unique_values(self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame], items: Optional[List[str]]) -> List[Any]:
         return self.ui_manager._get_unique_values(saved_config, data, items)

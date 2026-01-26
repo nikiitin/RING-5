@@ -7,11 +7,12 @@ Coordinates the ParseWorkPool and handles result aggregation.
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from src.parsers.type_mapper import TypeMapper
 from src.parsers.workers.gem5_parse_work import Gem5ParseWork
 from src.parsers.workers.pool import ParseWorkPool
+from src.parsers.workers.parse_work import ParseWork
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +45,7 @@ class ParseService:
         # Reset pool futures if desired, or just submit new batch
         # For simplicity in this architecture, we submit and get specifically these futures
         batch_work = [Gem5ParseWork(str(file_path), var_map) for file_path in files]
-        return pool.submit_batch_async(batch_work)
+        return pool.submit_batch_async(cast(List[ParseWork], batch_work))
 
     @staticmethod
     def cancel_parse() -> None:

@@ -14,7 +14,7 @@ class StatTypeRegistry:
     _types: Dict[str, Type["StatType"]] = {}
 
     @classmethod
-    def register(cls, type_name: str):
+    def register(cls, type_name: str) -> Any:
         """Decorator to register a stat type class."""
 
         def decorator(klass: Type["StatType"]) -> Type["StatType"]:
@@ -25,7 +25,7 @@ class StatTypeRegistry:
         return decorator
 
     @classmethod
-    def create(cls, type_name: str, repeat: int = 1, **kwargs) -> "StatType":
+    def create(cls, type_name: str, repeat: int = 1, **kwargs: Any) -> "StatType":
         """Create a stat type instance by name."""
         if type_name not in cls._types:
             available = ", ".join(cls._types.keys())
@@ -77,7 +77,7 @@ class StatType:
         }
     )
 
-    def __init__(self, repeat: int = 1, **kwargs):
+    def __init__(self, repeat: int = 1, **kwargs: Any) -> None:
         # Use object.__setattr__ to bypass our protective __setattr__
         object.__setattr__(self, "_repeat", int(repeat))
         object.__setattr__(self, "_content", [])
@@ -121,7 +121,7 @@ class StatType:
 
     @property
     def repeat(self) -> int:
-        return object.__getattribute__(self, "_repeat")
+        return int(object.__getattribute__(self, "_repeat"))
 
     @property
     def content(self) -> Any:
@@ -151,21 +151,23 @@ class StatType:
 
     def _set_content(self, value: Any) -> None:
         """Override to customize how content is stored."""
-        self._content.append(value)
+        content_list: List[Any] = self._content
+        content_list.append(value)
 
     def balance_content(self) -> None:
         """Ensure content has exactly `repeat` entries, padding with zeros if needed."""
         object.__setattr__(self, "_balanced", True)
-        content_len = len(self._content)
-        repeat = self._repeat
+        content_list: List[Any] = self._content
+        content_len: int = len(content_list)
+        repeat: int = self._repeat
 
         if content_len < repeat:
-            padding = repeat - content_len
-            self._content.extend([0] * padding)
+            padding: int = repeat - content_len
+            content_list.extend([0] * padding)
         elif content_len > repeat:
             raise RuntimeError(
                 f"{self._type_name.upper()}: More values ({content_len}) than "
-                f"expected ({repeat}). Values: {self._content}"
+                f"expected ({repeat}). Values: {content_list}"
             )
 
     def reduce_duplicates(self) -> None:

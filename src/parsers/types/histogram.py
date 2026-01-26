@@ -50,8 +50,8 @@ class Histogram(StatType):
         bins: int = 0,
         max_range: float = 0.0,
         statistics: Optional[List[str]] = None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         """
         Initialize Histogram type.
 
@@ -73,7 +73,7 @@ class Histogram(StatType):
         object.__setattr__(self, "_statistics", list(statistics) if statistics else [])
 
         # Pre-initialize content with statistics to ensure column presence
-        content = {stat: [] for stat in self._statistics}
+        content: Dict[str, List[Any]] = {stat: [] for stat in self._statistics}
         object.__setattr__(self, "_content", content)
 
     @property
@@ -100,7 +100,8 @@ class Histogram(StatType):
                 )
         # Priority 3: Discovered raw buckets
         else:
-            result.extend(sorted(list(object.__getattribute__(self, "_content").keys())))
+            raw_content = object.__getattribute__(self, "_content")
+            result.extend(sorted(list(raw_content.keys())))
 
         # Always include extra statistics if they were discovered or configured
         for stat in self._statistics:
@@ -112,7 +113,8 @@ class Histogram(StatType):
     @property
     def content(self) -> Dict[str, List[float]]:
         """Get the raw accumulated content mapping."""
-        return object.__getattribute__(self, "_content")
+        content_dict: Dict[str, List[float]] = object.__getattribute__(self, "_content")
+        return content_dict
 
     @content.setter
     def content(self, value: Dict[str, Any]) -> None:
@@ -320,7 +322,8 @@ class Histogram(StatType):
                 "HISTOGRAM: Cannot access reduced_content before calling "
                 "balance_content() AND reduce_duplicates()"
             )
-        return object.__getattribute__(self, "_reduced_content")
+        reduced_dict: Dict[str, float] = object.__getattribute__(self, "_reduced_content")
+        return reduced_dict
 
     @property
     def reducedContent(self) -> Dict[str, float]:

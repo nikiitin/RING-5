@@ -1,11 +1,11 @@
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 import pandas as pd
 
 from src.plotting import BasePlot
 from src.web.services.paths import PathService
-from src.web.state_manager import StateManager
+from src.web.state_manager import StateManager, PortfolioData
 
 
 class PortfolioService:
@@ -63,7 +63,7 @@ class PortfolioService:
             raise FileNotFoundError(f"Portfolio '{name}' not found")
 
         with open(load_path, "r") as f:
-            return json.load(f)
+            return cast(Dict[str, Any], json.load(f))
 
     @staticmethod
     def delete_portfolio(name: str) -> None:

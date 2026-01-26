@@ -15,7 +15,7 @@ class SeedsReducerManager(DataManager):
     def name(self) -> str:
         return "Seeds Reducer"
 
-    def render(self):
+    def render(self) -> None:
         """Render the Seeds Reducer UI."""
         st.markdown("### Seeds Reducer")
 

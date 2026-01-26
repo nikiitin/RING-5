@@ -1,6 +1,8 @@
 """
 RING-5 Data Managers Page
+
 Visualize and configure data managers with live effects preview.
+Handles loading, filtering, and transforming data from various sources.
 """
 
 import streamlit as st
@@ -16,8 +18,8 @@ from src.web.ui.data_managers.preprocessor import PreprocessorManager
 from src.web.ui.data_managers.seeds_reducer import SeedsReducerManager
 
 
-def show_data_managers_page():
-    """Render the data managers page."""
+def show_data_managers_page() -> None:
+    """Render the data managers page with transformation capabilities."""
 
     st.markdown(AppStyles.step_header("Data Managers & Transformations"), unsafe_allow_html=True)
 
@@ -36,7 +38,11 @@ def show_data_managers_page():
         st.warning("No data loaded. Please load data from **Data Source** or **Upload Data** page.")
         return
 
-    data = StateManager.get_data()
+    data_or_none = StateManager.get_data()
+    if data_or_none is None:
+        st.error("Failed to retrieve data.")
+        return
+    data = data_or_none
 
     # Initialize Managers
     seeds_mgr = SeedsReducerManager()
