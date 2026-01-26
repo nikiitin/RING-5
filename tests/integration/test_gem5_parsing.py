@@ -27,17 +27,17 @@ class TestGem5Parsing:
         if not self.TEST_DATA_DIR.exists():
             pytest.skip("Test data not found")
 
-        # Use modern async API
-        facade.submit_scan_async(str(self.TEST_DATA_DIR), "stats.txt", limit=10)
+        # Use async API
+        futures = facade.submit_scan_async(str(self.TEST_DATA_DIR), "stats.txt", limit=10)
         
-        import time
-        start = time.time()
-        while facade.get_scan_status()["status"] == "running":
-            if time.time() - start > 10:
-                pytest.fail("Async scan timed out")
-            time.sleep(0.1)
+        # Wait for all futures to complete
+        results = []
+        for future in futures:
+            result = future.result(timeout=10)  # 10 second timeout
+            if result:
+                results.append(result)
             
-        variables = facade.get_scan_results_snapshot()
+        variables = facade.finalize_scan(results)
         assert len(variables) > 0
 
         # Check for common gem5 stats
@@ -55,16 +55,16 @@ class TestGem5Parsing:
         output_dir.mkdir()
 
         # 1. Scan for variables
-        facade.submit_scan_async(str(self.TEST_DATA_DIR), "stats.txt", limit=10)
+        scan_futures = facade.submit_scan_async(str(self.TEST_DATA_DIR), "stats.txt", limit=10)
         
-        import time
-        start = time.time()
-        while facade.get_scan_status()["status"] == "running":
-            if time.time() - start > 10:
-                pytest.fail("Async scan timed out")
-            time.sleep(0.1)
+        # Wait for scan to complete
+        scan_results = []
+        for future in scan_futures:
+            result = future.result(timeout=10)
+            if result:
+                scan_results.append(result)
             
-        all_variables = facade.get_scan_results_snapshot()
+        all_variables = facade.finalize_scan(scan_results)
 
         # 2. Select a few scalar variables
         selected_vars = [
@@ -83,12 +83,22 @@ class TestGem5Parsing:
         print(f"Selected variables for parsing: {[v['name'] for v in selected_vars]}")
 
         # 3. Run Parser
-        csv_path = facade.parse_gem5_stats(
+        parse_futures = facade.submit_parse_async(
             stats_path=str(self.TEST_DATA_DIR),
             stats_pattern="stats.txt",
             variables=selected_vars,
             output_dir=str(output_dir),
+            scanned_vars=all_variables
         )
+        
+        # Wait for parsing to complete
+        parse_results = []
+        for future in parse_futures:
+            result = future.result(timeout=30)
+            if result:
+                parse_results.append(result)
+        
+        csv_path = facade.finalize_parsing(str(output_dir), parse_results)
 
         assert csv_path is not None
         assert os.path.exists(csv_path)
@@ -138,16 +148,16 @@ system.mem.ctrl::1024-2047                    5      50.00%     100.00%      # H
 
         try:
             # 1. Scan
-            facade.submit_scan_async(str(stats_dir), "stats.txt", limit=-1)
+            scan_futures = facade.submit_scan_async(str(stats_dir), "stats.txt", limit=-1)
             
-            import time
-            start = time.time()
-            while facade.get_scan_status()["status"] == "running":
-                if time.time() - start > 5:
-                    pytest.fail("Async scan timed out")
-                time.sleep(0.1)
+            # Wait for scan to complete
+            scan_results = []
+            for future in scan_futures:
+                result = future.result(timeout=5)
+                if result:
+                    scan_results.append(result)
                 
-            vars_found = facade.get_scan_results_snapshot()
+            vars_found = facade.finalize_scan(scan_results)
             hist_var = next((v for v in vars_found if v["name"] == "system.mem.ctrl"), None)
 
             assert hist_var is not None
@@ -159,9 +169,18 @@ system.mem.ctrl::1024-2047                    5      50.00%     100.00%      # H
             # Configure variables
             variables = [{"name": "system.mem.ctrl", "type": "histogram"}]
 
-            csv_path = facade.parse_gem5_stats(
-                str(stats_dir), "stats.txt", variables, str(output_dir)
+            parse_futures = facade.submit_parse_async(
+                str(stats_dir), "stats.txt", variables, str(output_dir), scanned_vars=vars_found
             )
+            
+            # Wait for parsing to complete
+            parse_results = []
+            for future in parse_futures:
+                result = future.result(timeout=10)
+                if result:
+                    parse_results.append(result)
+            
+            csv_path = facade.finalize_parsing(str(output_dir), parse_results)
 
             assert csv_path is not None
             assert os.path.exists(csv_path)

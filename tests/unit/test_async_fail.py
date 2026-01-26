@@ -1,18 +1,12 @@
+"""
+Tests for async scanning behavior with Futures-based API.
+"""
 import pytest
 import time
+from concurrent.futures import as_completed
 from src.parsers.workers.pool import ScanWorkPool
 from src.parsers.workers.scan_work import ScanWork
 
-@pytest.fixture
-def clean_pool_singleton():
-    """Reset the singleton instance of ScanWorkPool."""
-    instance = ScanWorkPool.get_instance()
-    # Reset internal state
-    instance._cancel_event.clear()
-    instance._progress = {"total": 0, "current": 0, "status": "idle", "errors": []}
-    instance._results = []
-    instance._futures = []
-    return instance
 
 class MockWork(ScanWork):
     def __init__(self, val, duration=0.1):
@@ -23,72 +17,80 @@ class MockWork(ScanWork):
         time.sleep(self.duration)
         return {"name": f"var_{self.val}", "type": "scalar"}
 
-def test_async_scan_flow(clean_pool_singleton):
-    """Test full async flow with progress tracking."""
+
+def test_async_scan_flow():
+    """Test full async flow with futures."""
     pool = ScanWorkPool.get_instance()
     
     works = [MockWork(i, 0.05) for i in range(5)]
-    pool.submit_batch_async(works)
+    futures = pool.submit_batch_async(works)
     
-    # Check running status
-    status = pool.get_status()
-    assert status["total"] == 5
-    # Might be running or done depending on speed, but status dict structure should be valid
-    assert status["status"] in ("running", "done")
+    # Should return list of futures
+    assert isinstance(futures, list)
+    assert len(futures) == 5
     
-    # Wait for completion
-    timeout = 2.0
-    start = time.time()
-    while pool.get_status()["status"] == "running":
-        if time.time() - start > timeout:
-            pytest.fail("Async scan timed out")
-        time.sleep(0.05)
-    final_status = pool.get_status()
-    assert final_status["status"] == "done"
-    assert final_status["current"] == 5
-    assert not final_status["errors"]
+    # Collect results
+    results = []
+    for future in as_completed(futures):
+        res = future.result()
+        if res:
+            results.append(res)
     
-    results = pool.get_results_async_snapshot()
     assert len(results) == 5
+    for i, result in enumerate(sorted(results, key=lambda x: x["name"])):
+        assert result["name"] == f"var_{i}"
+        assert result["type"] == "scalar"
 
-def test_async_scan_cancellation(clean_pool_singleton):
-    """Test cancellation of async scan."""
+
+def test_async_scan_cancellation():
+    """Test cancellation of async scan via futures."""
     pool = ScanWorkPool.get_instance()
     
     # Long duration works
     works = [MockWork(i, 0.5) for i in range(5)]
-    pool.submit_batch_async(works)
+    futures = pool.submit_batch_async(works)
     
-    # Let it start
-    time.sleep(0.1)
-    status = pool.get_status()
-    assert status["status"] == "running"
+    # Cancel all immediately
+    pool.cancel_all()
     
-    # Cancel
-    pool.cancel_current_job()
+    # Try to collect results - some may be cancelled
+    results = []
+    cancelled_count = 0
+    for future in futures:
+        if future.cancelled():
+            cancelled_count += 1
+        else:
+            try:
+                res = future.result(timeout=0.1)
+                if res:
+                    results.append(res)
+            except Exception:
+                # Future may have been cancelled or timed out
+                pass
     
-    # Wait for status update
-    time.time()
-    while pool.get_status()["status"] == "running":
-        time.sleep(0.05)
-    final_status = pool.get_status()
-    assert final_status["status"] == "cancelled"
-    # Should not have completed all
-    assert final_status["current"] < 5
+    # At least some should have been cancelled
+    # (exact number depends on timing, but we should have fewer than 5 results)
+    assert len(results) < 5 or cancelled_count > 0
 
-def test_async_scan_busy_lock(clean_pool_singleton):
-    """Test that submitting while busy raises RuntimeError."""
+
+def test_multiple_batch_submissions():
+    """Test that multiple batch submissions work independently."""
     pool = ScanWorkPool.get_instance()
-    works = [MockWork(i, 0.5) for i in range(2)]
-    pool.submit_batch_async(works)
     
-    # Immediate second submit should fail
-    with pytest.raises(RuntimeError) as excinfo:
-        pool.submit_batch_async(works)
+    # First batch
+    works1 = [MockWork(i, 0.05) for i in range(3)]
+    futures1 = pool.submit_batch_async(works1)
     
-    # Error message comes from ScanWorkPool.submit_batch_async logic
-    # "Scanner is currently busy..." or "Scanner thread is still running"
-    assert "busy" in str(excinfo.value) or "running" in str(excinfo.value)
+    # Second batch (should work fine with new stateless design)
+    works2 = [MockWork(i + 10, 0.05) for i in range(3)]
+    futures2 = pool.submit_batch_async(works2)
     
-    # Clean up (cancel running job)
-    pool.cancel_current_job()
+    # Collect all results
+    all_futures = futures1 + futures2
+    results = []
+    for future in as_completed(all_futures):
+        res = future.result()
+        if res:
+            results.append(res)
+    
+    assert len(results) == 6

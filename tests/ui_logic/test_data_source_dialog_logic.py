@@ -12,7 +12,8 @@ def components_bundle():
     """Patch st and reload module to capture decorator."""
 
     # 1. Patch streamlit.dialog globally so the decorator is intercepted during reload
-    with patch("streamlit.dialog", side_effect=lambda title=None: lambda func: func):
+    # Accept both positional and keyword arguments to handle dismissible parameter
+    with patch("streamlit.dialog", side_effect=lambda title=None, **kwargs: lambda func: func):
         importlib.reload(ds_module)
 
     # 2. Patch the module's st attribute for runtime widget mocking

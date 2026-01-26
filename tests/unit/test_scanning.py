@@ -71,7 +71,6 @@ def test_scan_work_pool_add_work(clean_pool_singleton):
 def test_scan_work_pool_async_flow(clean_pool_singleton):
     """Test the core async flow of the pool."""
     from concurrent.futures import Future
-    import time
 
     with patch("src.core.multiprocessing.pool.WorkPool.get_instance"):
         scan_pool = ScanWorkPool.get_instance()
@@ -85,20 +84,15 @@ def test_scan_work_pool_async_flow(clean_pool_singleton):
         f2 = Future()
         f2.set_result("res2")
         
-        # We need to test the actual submit_batch_async flow
-        # Instead of mocking add_work, we'll mock the internal _workPool
+        # Mock the internal _workPool to return our futures
         scan_pool._workPool.submit.side_effect = [f1, f2]
         
-        scan_pool.submit_batch_async([work1, work2])
+        futures = scan_pool.submit_batch_async([work1, work2])
         
-        # Poll for completion
-        while scan_pool.get_status()["status"] == "running":
-            time.sleep(0.01)
-            
-        status = scan_pool.get_status()
-        assert status["status"] == "done"
-        assert status["current"] == 2
+        # Should return futures
+        assert len(futures) == 2
         
-        results = scan_pool.get_results_async_snapshot()
+        # Collect results
+        results = [f.result() for f in futures]
         assert "res1" in results
         assert "res2" in results

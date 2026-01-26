@@ -166,8 +166,27 @@ class DataSourceComponents:
 
         # Parse button
         st.markdown("---")
-        if st.button("Parse gem5 Stats Files", type="primary", width="stretch"):
-            DataSourceComponents.execute_parser(facade, stats_path, stats_pattern)
+        if st.button("Parse gem5 Stats Files", type="primary", use_container_width=True):
+            if not stats_path:
+                st.error("Please specify a stats directory path.")
+            else:
+                # Reset state for new run
+                output_dir = tempfile.mkdtemp()
+                StateManager.set_temp_dir(output_dir)
+
+                try:
+                    futures = facade.submit_parse_async(
+                        stats_path,
+                        stats_pattern,
+                        StateManager.get_parse_variables(),
+                        output_dir,
+                        scanned_vars=StateManager.get_scanned_variables()
+                    )
+                    DataSourceComponents._show_parse_dialog(facade, futures, output_dir)
+                except Exception as e:
+                    st.error(f"Failed to submit parsing job: {e}")
+                    logger.error("UI: Parsing submission failed: %s", e, exc_info=True)
+
 
     @staticmethod
     @st.dialog("Add Variable")
@@ -297,67 +316,73 @@ class DataSourceComponents:
                         st.rerun()
 
     @staticmethod
-    def execute_parser(facade: BackendFacade, stats_path: str, stats_pattern: str):
-        """Run the parser with progress tracking."""
-        if not stats_path or stats_path == "/path/to/gem5/stats":
-            st.error("Please specify a valid stats directory path!")
+    @st.dialog("Parsing gem5 Stats", dismissible=False)
+    def _show_parse_dialog(facade: BackendFacade, futures: list, output_dir: str):
+        """Render the parsing progress dialog using blocking futures."""
+        from concurrent.futures import as_completed
+
+        st.write(f"Processing {len(futures)} files...")
+        progress_bar = st.progress(0, text="Starting...")
+        status_text = st.empty()
+
+        results = []
+        errors = []
+
+        # User defined rule: "futures could be asked for only once... use these in the UI"
+        completed_count = 0
+        total = len(futures)
+
+        # Note: We cannot easily use a 'Stop' button inside a blocking loop in Streamlit
+        # without some trickery, but we can check a session state flag or just rely on
+        # the user closing the dialog (which might not kill threads, but user said "call cancel_parse").
+        # If we block here, `st.button` inside the loop won't work well.
+        # However, `as_completed` is an iterator. We can iterate it.
+
+        try:
+            for future in as_completed(futures):
+                try:
+                    res = future.result()
+                    if res:
+                        results.append(res)
+                except Exception as e:
+                    errors.append(str(e))
+
+                completed_count += 1
+                if total > 0:
+                    pct = min(completed_count / total, 1.0)
+                    progress_bar.progress(pct, text=f"Processed {completed_count}/{total}")
+
+        except KeyboardInterrupt:
+            # Fallback if something interrupts
+            for f in futures:
+                f.cancel()
+            st.warning("Parsing interrupted.")
             return
 
-        if not Path(stats_path).exists():
-            st.error(f"Directory not found: {stats_path}")
+        if errors:
+            st.error(f"Encountered {len(errors)} errors during parsing.")
+            with st.expander("Show Errors"):
+                for err in errors:
+                    st.write(err)
+
+        if not results and not errors:
+            st.warning("No results generated.")
             return
 
-        files_found = facade.find_stats_files(stats_path, stats_pattern)
-        if len(files_found) == 0:
-            st.warning("No files found matching pattern")
-            return
+        status_text.text("Finalizing CSV...")
 
-        st.info(f"Found {len(files_found)} files to parse")
+        try:
+            csv_path = facade.finalize_parsing(output_dir, results)
+            if csv_path and Path(csv_path).exists():
+                pool_path = facade.add_to_csv_pool(csv_path)
+                data = facade.load_csv_file(pool_path)
+                StateManager.set_data(data)
+                StateManager.set_csv_path(pool_path)
+                st.success(f"Done! Generated {len(data)} rows.")
+                if st.button("Close & Reload", key="finish_parse_futures_btn"):
+                    st.rerun()
+            else:
+                st.error("Failed to generate final CSV.")
+        except Exception as e:
+             st.error(f"Finalization failed: {e}")
 
-        # Always create a fresh temp directory for each parsing run
-        # This avoids reusing cached results from previous runs
-        output_dir = tempfile.mkdtemp()
-        StateManager.set_temp_dir(output_dir)
-
-        progress_container = st.container()
-        with progress_container:
-            st.markdown("### Processing Progress")
-            overall_progress = st.progress(0)
-            status_text = st.empty()
-            file_details = st.empty()
-
-            def update_progress(step, progress, message):
-                overall_progress.progress(progress)
-                status_text.text(message)
-                if step == 3:
-                    file_details.text(f"Processing {len(files_found)} files...")
-
-            try:
-                csv_path = facade.parse_gem5_stats(
-                    stats_path=stats_path,
-                    stats_pattern=stats_pattern,
-                    variables=StateManager.get_parse_variables(),
-                    output_dir=output_dir,
-                    progress_callback=update_progress,
-                )
-
-                if csv_path and Path(csv_path).exists():
-                    facade.add_to_csv_pool(csv_path)
-                    data = facade.load_csv_file(csv_path)
-
-                    StateManager.set_data(data)
-                    StateManager.set_csv_path(csv_path)
-
-                    st.success(f"Successfully parsed {len(data)} rows! CSV saved to pool.")
-                    DataComponents.show_data_preview(data, "Parsed Data Preview")
-                    st.info("Data ready! Proceed to **Configure Pipeline**")
-                else:
-                    st.error("Parser did not generate CSV file")
-                    logger.error("PARSER: Extraction failed. No CSV generated at %s for input %s", output_dir, stats_path)
-
-            except Exception as e:
-                st.error(f"Error during parsing: {e}")
-                logger.error("PARSER: Extraction crash for input %s: %s", stats_path, e, exc_info=True)
-                import traceback
-
-                st.code(traceback.format_exc())

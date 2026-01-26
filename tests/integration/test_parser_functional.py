@@ -26,34 +26,47 @@ class TestParserFunctional:
 
     def test_parse_real_stats(self, test_data_path):
         """
-        Test parsing actual gem5 stats files from the provided directory.
-        Verifies that simTicks and IPC are correctly extracted.
+        Test parsing actual gem5 stats files using the Backend Facade.
+        Verifies the full async pipeline: Submit -> Wait Futures -> Finalize -> Load.
         """
+        from src.web.facade import BackendFacade
+        from concurrent.futures import as_completed, wait
+
         with tempfile.TemporaryDirectory() as output_dir:
-            # Reset singleton
+            # We must reset the singleton to ensure clean state
+            from src.parsers.parser import Gem5StatsParser
             Gem5StatsParser.reset()
 
-            # Build parser with variables
-            parser = (
-                Gem5StatsParser.builder()
-                .with_path(test_data_path)
-                .with_pattern("stats.txt")
-                .with_variable("simTicks", "scalar")
-                .with_variable("system.cpu0.ipc", "scalar")
-                .with_variable("benchmark_name", "configuration", onEmpty="Unknown")
-                .with_output(output_dir)
-                .build()
+            facade = BackendFacade()
+            variables = [
+                {"name": "simTicks", "type": "scalar"},
+                {"name": "system.cpu0.ipc", "type": "scalar"},
+                {"name": "benchmark_name", "type": "configuration", "onEmpty": "Unknown"}
+            ]
+
+            # Trigger async parsing - REFACTORED to return FUTURES
+            futures = facade.submit_parse_async(
+                test_data_path, "stats.txt", variables, output_dir
             )
 
-            # Execute parsing
-            parser.parse()
+            assert isinstance(futures, list)
+            assert len(futures) > 0
 
-            # Verify results
-            expected_csv = Path(output_dir) / "results.csv"
-            assert expected_csv.exists(), "results.csv was not created"
+            # Wait for completion (Matching new explicit Wait Mechanism)
+            results = []
+            for future in as_completed(futures):
+                res = future.result()
+                if res:
+                   results.append(res)
+            
+            assert len(results) > 0
+
+            # Finalize
+            csv_path = facade.finalize_parsing(output_dir, results)
+            assert csv_path and Path(csv_path).exists(), "results.csv was not created"
 
             # Check content
-            df = pd.read_csv(expected_csv)
+            df = pd.read_csv(csv_path)
 
             # Verify headers
             assert "simTicks" in df.columns

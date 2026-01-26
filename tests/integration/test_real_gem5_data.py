@@ -89,12 +89,21 @@ class TestRealGem5DataParsing:
 
         try:
             # Parse the stats
-            csv_path = facade.parse_gem5_stats(
+            parse_futures = facade.submit_parse_async(
                 stats_path=str(first_subdir),
                 stats_pattern="**/stats.txt",
                 variables=variables,
                 output_dir=temp_output_dir,
             )
+            
+            # Wait for parsing
+            parse_results = []
+            for future in parse_futures:
+                result = future.result(timeout=30)
+                if result:
+                    parse_results.append(result)
+            
+            csv_path = facade.finalize_parsing(temp_output_dir, parse_results)
 
             if csv_path is None:
                 # Some configurations may not have matching variables
@@ -134,12 +143,21 @@ class TestRealDataWithShapers:
         ]
 
         try:
-            csv_path = facade.parse_gem5_stats(
+            parse_futures = facade.submit_parse_async(
                 stats_path=str(first_subdir),
                 stats_pattern="**/stats.txt",
                 variables=variables,
                 output_dir=temp_output_dir,
             )
+            
+            # Wait for parsing
+            parse_results = []
+            for future in parse_futures:
+                result = future.result(timeout=30)
+                if result:
+                    parse_results.append(result)
+            
+            csv_path = facade.finalize_parsing(temp_output_dir, parse_results)
 
             if csv_path is None or not Path(csv_path).exists():
                 pytest.skip("Parsing failed or no data")
@@ -248,7 +266,10 @@ class TestCompleteWorkflow:
 
         # Check essential methods exist
         assert hasattr(facade, "find_stats_files")
-        assert hasattr(facade, "parse_gem5_stats")
+        assert hasattr(facade, "submit_parse_async")
+        assert hasattr(facade, "finalize_parsing")
+        assert hasattr(facade, "submit_scan_async")
+        assert hasattr(facade, "finalize_scan")
         assert hasattr(facade, "apply_shapers")
         assert hasattr(facade, "load_csv_file")
         assert hasattr(facade, "save_configuration")

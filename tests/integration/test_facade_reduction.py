@@ -56,23 +56,34 @@ class TestFacadeReduction:
         variables = [{"name": "system.cpu\\d+.ipc", "type": "scalar"}]
 
         # 2. Pre-scan to populate regex matching cache
-        facade.submit_scan_async(stats_path, "stats.txt*", limit=10)
+        scan_futures = facade.submit_scan_async(stats_path, "stats.txt*", limit=10)
         
-        # Poll for completion
-        import time
-        start = time.time()
-        while facade.get_scan_status()["status"] == "running":
-            if time.time() - start > 5:
-                pytest.fail("Async scan timed out in integration test")
-            time.sleep(0.1)
+        # Wait for scan completion
+        scan_results = []
+        for future in scan_futures:
+            result = future.result(timeout=5)
+            if result:
+                scan_results.append(result)
+        
+        scanned_vars = facade.finalize_scan(scan_results)
 
         # 3. Run Facade Parse
-        csv_path = facade.parse_gem5_stats(
+        parse_futures = facade.submit_parse_async(
             stats_path=stats_path,
             stats_pattern="stats.txt*",
             variables=variables,
             output_dir=output_dir,
+            scanned_vars=scanned_vars
         )
+        
+        # Wait for parsing
+        parse_results = []
+        for future in parse_futures:
+            result = future.result(timeout=10)
+            if result:
+                parse_results.append(result)
+        
+        csv_path = facade.finalize_parsing(output_dir, parse_results)
 
         assert csv_path is not None
         assert os.path.exists(csv_path)

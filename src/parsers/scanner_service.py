@@ -21,8 +21,8 @@ class ScannerService:
     @staticmethod
     def submit_scan_async(
         stats_path: str, stats_pattern: str = "stats.txt", limit: int = 5
-    ) -> None:
-        """Submit async scan job."""
+    ) -> List[Any]:
+        """Submit async scan job and return futures."""
         
         search_path = Path(stats_path)
         if not search_path.exists():
@@ -40,24 +40,18 @@ class ScannerService:
         pool = ScanWorkPool.get_instance()
         from src.parsers.workers.gem5_scan_work import Gem5ScanWork
         batch_work = [Gem5ScanWork(str(file_path)) for file_path in files_to_sample]
-        pool.submit_batch_async(batch_work)
+        return pool.submit_batch_async(batch_work)
 
     @staticmethod
     def cancel_scan() -> None:
         """Cancel current scan."""
-        ScanWorkPool.get_instance().cancel_current_job()
+        ScanWorkPool.get_instance().cancel_all()
 
     @staticmethod
-    def get_scan_status() -> Dict[str, Any]:
-        """Get scan status."""
-        return ScanWorkPool.get_instance().get_status()
-
-    @staticmethod
-    def get_scan_results_snapshot() -> List[Dict[str, Any]]:
-        """Get processed results from async scan."""
-        pool = ScanWorkPool.get_instance()
-        results = pool.get_results_async_snapshot()
-        
+    def aggregate_scan_results(results: List[Any]) -> List[Dict[str, Any]]:
+        """
+        Aggregate results from async scan.
+        """
         merged_registry: Dict[str, Dict[str, Any]] = {}
         for file_vars in results:
              for var in file_vars:

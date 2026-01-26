@@ -319,14 +319,12 @@ class VariableEditor:
 
         if should_show_scan:
             if st.button(btn_label, key=f"deep_scan_{var_id}", help=help_text):
-                st.session_state[f"scan_active_{var_id}"] = True
-                st.session_state[f"scan_cancelled_{var_id}"] = False
                 facade = BackendFacade()
-                facade.submit_scan_async(stats_path, stats_pattern, limit=-1)
-                st.rerun()
-
-            if st.session_state.get(f"scan_active_{var_id}", False):
-                cls._show_scan_dialog(var_name, var_id, stats_path, stats_pattern, is_distribution)
+                try:
+                    futures = facade.submit_scan_async(stats_path, stats_pattern, limit=-1)
+                    cls._show_scan_dialog(var_name, var_id, facade, futures, is_distribution)
+                except Exception as e:
+                    st.error(f"Failed to start scan: {e}")
 
     @classmethod
     @st.dialog("Deep Scan", dismissible=False)
@@ -334,94 +332,92 @@ class VariableEditor:
         cls,
         var_name: str,
         var_id: str,
-        stats_path: str,
-        stats_pattern: str,
+        facade: Any,
+        futures: list,
         is_distribution: bool
     ):
-        """Non-blocking dialog for async scanning."""
-        facade = BackendFacade()
-        status = facade.get_scan_status()
-        state = status["status"]
-        current = status["current"]
-        total = status["total"]
+        """Blocking dialog for async scanning using futures."""
+        from concurrent.futures import as_completed
 
         st.write(f"Variable: `{var_name}`")
-        
-        progress_bar = st.progress(0, text="Initializing...")
-        if total > 0:
-            pct = min(current / total, 1.0)
-            progress_bar.progress(pct, text=f"Scanned {current}/{total} files")
+        st.write(f"Scanning {len(futures)} files...")
+        progress_bar = st.progress(0, text="Starting scan...")
 
-        # Cancellation logic
-        if state == "running":
-            if st.button("Cancel Scan", key=f"cancel_{var_id}"):
-                facade.cancel_scan()
-                st.session_state[f"scan_cancelled_{var_id}"] = True
-                st.rerun()
-        
-        if state == "done":
-            st.success("Scan Complete!")
-            snapshot = facade.get_scan_results_snapshot()
+        results = []
+        errors = []
+        completed = 0
+        total = len(futures)
 
-            if is_distribution:
-                global_min, global_max = None, None
-                for var in snapshot:
-                    if (var["name"] == var_name or re.fullmatch(var_name, var["name"])) and var.get("type") == "distribution":
-                        m, M = var.get("minimum"), var.get("maximum")
-                        if m is not None:
-                            global_min = min(global_min, m) if global_min is not None else m
-                        if M is not None:
-                            global_max = max(global_max, M) if global_max is not None else M
+        try:
+            for future in as_completed(futures):
+                try:
+                    res = future.result()
+                    if res:
+                        results.append(res)
+                except Exception as e:
+                    errors.append(str(e))
 
-                if global_min is not None or global_max is not None:
-                     st.session_state[f"dist_range_result_{var_id}"] = {"minimum": global_min, "maximum": global_max}
-                     st.success(f"Final Range: [{global_min}, {global_max}]")
-                else:
-                     st.warning(f"No distribution data found matching '{var_name}'.")
+                completed += 1
+                if total > 0:
+                    pct = min(completed / total, 1.0)
+                    progress_bar.progress(pct, text=f"Scanned {completed}/{total} files")
+        except KeyboardInterrupt:
+            st.warning("Scan interrupted.")
+            return
+
+        if errors:
+            st.warning(f"Encountered {len(errors)} errors during scan.")
+
+        if not results:
+            st.warning("No results found.")
+            return
+
+        # Aggregate results
+        snapshot = facade.finalize_scan(results)
+
+        # Process results based on type
+        if is_distribution:
+            global_min, global_max = None, None
+            for var in snapshot:
+                if (var["name"] == var_name or re.fullmatch(var_name, var["name"])) and var.get("type") == "distribution":
+                    m, M = var.get("minimum"), var.get("maximum")
+                    if m is not None:
+                        global_min = min(global_min, m) if global_min is not None else m
+                    if M is not None:
+                        global_max = max(global_max, M) if global_max is not None else M
+
+            if global_min is not None or global_max is not None:
+                st.session_state[f"dist_range_result_{var_id}"] = {"minimum": global_min, "maximum": global_max}
+                st.success(f"Final Range: [{global_min}, {global_max}]")
             else:
-                 found_entries = set()
-                 for var in snapshot:
-                     if (var["name"] == var_name or re.fullmatch(var_name, var["name"])) and "entries" in var:
-                         found_entries.update(var["entries"])
-
-                 # SCIENTIFIC FILTER: Remove internal stats from the count and storage
-                 internal_stats = {"total", "mean", "gmean", "stdev", "samples", "overflows", "underflows"}
-                 filtered_entries = sorted([e for e in found_entries if e.lower() not in internal_stats])
-
-                 if filtered_entries:
-                      scanned_vars = StateManager.get_scanned_variables() or []
-                      var_found = False
-                      for v in scanned_vars:
-                          if v["name"] == var_name:
-                               v["entries"] = filtered_entries
-                               var_found = True
-                               break
-                      if not var_found:
-                          scanned_vars.append({"name": var_name, "type": "vector", "entries": filtered_entries})
-
-                      StateManager.set_scanned_variables(scanned_vars)
-                      st.success(f"Discovered {len(filtered_entries)} unique entries!")
-                 else:
-                      st.warning(f"No valid entries found matching '{var_name}'.")
-
-            if st.button("Finish & Close", key=f"finish_{var_id}"):
-                st.session_state[f"scan_active_{var_id}"] = False
-                st.rerun()
-
-        elif state == "cancelled" or st.session_state.get(f"scan_cancelled_{var_id}", False):
-            st.warning("Scan was cancelled.")
-            if st.button("Close", key=f"close_cancel_{var_id}"):
-                st.session_state[f"scan_active_{var_id}"] = False
-                st.rerun()
-        elif state == "error":
-            st.error(f"Scan failed: {status.get('errors', 'Unknown error')}")
-            if st.button("Close", key=f"close_err_{var_id}"):
-                st.session_state[f"scan_active_{var_id}"] = False
-                st.rerun()
+                st.warning(f"No distribution data found matching '{var_name}'.")
         else:
-            # Poll again with a small delay
-            import time
-            time.sleep(0.5)
+            found_entries = set()
+            for var in snapshot:
+                if (var["name"] == var_name or re.fullmatch(var_name, var["name"])) and "entries" in var:
+                    found_entries.update(var["entries"])
+
+            # SCIENTIFIC FILTER: Remove internal stats from the count and storage
+            internal_stats = {"total", "mean", "gmean", "stdev", "samples", "overflows", "underflows"}
+            filtered_entries = sorted([e for e in found_entries if e.lower() not in internal_stats])
+
+            if filtered_entries:
+                scanned_vars = StateManager.get_scanned_variables() or []
+                var_found = False
+                for v in scanned_vars:
+                    if v["name"] == var_name:
+                        v["entries"] = filtered_entries
+                        var_found = True
+                        break
+                if not var_found:
+                    scanned_vars.append({"name": var_name, "type": "vector", "entries": filtered_entries})
+
+                StateManager.set_scanned_variables(scanned_vars)
+                st.success(f"Discovered {len(filtered_entries)} unique entries!")
+            else:
+                st.warning(f"No valid entries found matching '{var_name}'.")
+
+        if st.button("Close", key=f"finish_{var_id}"):
             st.rerun()
 
     @classmethod

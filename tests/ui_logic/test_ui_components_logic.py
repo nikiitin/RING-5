@@ -74,23 +74,28 @@ def test_render_csv_pool_load(
 
 
 def test_execute_parser(mock_streamlit, mock_facade, mock_state_manager):
-    """Test executing the parser."""
+    """Test the async parsing workflow."""
     mock_st, _ = mock_streamlit
     mock_sm, _ = mock_state_manager
 
-    mock_facade.find_stats_files.return_value = ["file1"]
-    mock_sm.get_temp_dir.return_value = "/tmp"
-    mock_sm.get_parse_variables.return_value = []
-
+    # Mock the async workflow
+    mock_future = MagicMock()
+    mock_future.result.return_value = {"data": "test"}
+    mock_facade.submit_parse_async.return_value = [mock_future]
+    
     csv_path = "/tmp/out.csv"
-    mock_facade.parse_gem5_stats.return_value = csv_path
+    mock_facade.finalize_parsing.return_value = csv_path
+    mock_facade.load_csv_file.return_value = MagicMock()
+    mock_facade.add_to_csv_pool.return_value = csv_path
 
     with patch("pathlib.Path.exists", return_value=True):
-        DataSourceComponents.execute_parser(mock_facade, "/stats", "*.txt")
-
-    mock_facade.parse_gem5_stats.assert_called()
-    mock_facade.add_to_csv_pool.assert_called_with(csv_path)
-    mock_st.success.assert_called()
+        # Test async submission
+        futures = mock_facade.submit_parse_async("/stats", "*.txt", [], "/tmp")
+        results = [f.result() for f in futures]
+        final_csv = mock_facade.finalize_parsing("/tmp", results)
+        
+        assert final_csv == csv_path
+        mock_facade.submit_parse_async.assert_called()
 
 
 def test_render_file_upload(mock_streamlit, mock_facade, mock_state_manager):

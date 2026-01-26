@@ -11,8 +11,6 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
-from src.parsers.parser import Gem5StatsParser
-from src.parsers.scanner_service import ScannerService
 from src.web.services.config_service import ConfigService
 from src.web.services.csv_pool_service import CsvPoolService
 from src.web.services.paths import PathService
@@ -94,45 +92,14 @@ class BackendFacade:
 
     # ==================== Core Extraction Orchestration ====================
 
-    def parse_gem5_stats(
-        self,
-        stats_path: str,
-        stats_pattern: str,
-        variables: List[Dict[str, Any]],
-        output_dir: str,
-        progress_callback: Optional[Any] = None,
-    ) -> Optional[str]:
-        """
-        Execute the parallel gem5 stats ingestion pipeline.
-
-        Args:
-            stats_path: Root directory of simulation folders.
-            stats_pattern: Filename filter (e.g. stats.txt).
-            variables: List of variable definitions from the UI.
-            output_dir: Destination for results.csv.
-            progress_callback: UI hook for status updates.
-
-        Returns:
-            Path to the generated results file.
-        """
-        logger.info("FACADE: Starting gem5 stats ingestion from: %s", stats_path)
-
-        Gem5StatsParser.reset()
-
-        if progress_callback:
-            progress_callback(1, 0.1, "Analyzing Variable Patterns...")
-
-        # Scientific Variable Resolution:
-        # Before parsing, we must expand regex patterns into concrete variable identifiers.
+    def _resolve_variables(self, variables: List[Dict[str, Any]], scanned_vars: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Resolve regex variables into concrete variable lists."""
         processed_vars = []
         for var in variables:
             var_name = var["name"]
-
             # Pattern Recognition: Identify variables meant for cross-controller aggregation
             # e.g. system.cpu\d+.ipc
             if "\\d+" in var_name or "*" in var_name:
-                # Processed via previously cached async scan results
-                scanned_vars = self.get_scan_results_snapshot()
                 matched_ids = [
                     cv["name"] for cv in scanned_vars if re.fullmatch(var_name, cv["name"])
                 ]
@@ -171,48 +138,60 @@ class BackendFacade:
                     var_config[key] = val
 
             processed_vars.append(var_config)
+        return processed_vars
 
-        if progress_callback:
-            progress_callback(3, 0.5, "Executing Parallel Ingestion...")
+    def submit_parse_async(
+        self,
+        stats_path: str,
+        stats_pattern: str,
+        variables: List[Dict[str, Any]],
+        output_dir: str,
+        scanned_vars: Optional[List[Dict[str, Any]]] = None,
+    ) -> List[Any]:
+        """
+        Submit an asynchronous parsing job.
+        Returns a list of Futures (User requested direct control).
+        """
+        # Resolve regex variables first (Scientific Accuracy)
+        # Use provided scanned_vars or default to empty list if none provided
+        # (e.g. when parsing without prior scan or using only explicit vars)
+        resolved_scanned_vars = scanned_vars if scanned_vars is not None else []
+        processed_vars = self._resolve_variables(variables, resolved_scanned_vars)
 
-        parser = (
-            Gem5StatsParser.builder()
-            .with_path(stats_path)
-            .with_pattern(stats_pattern)
-            .with_variables(processed_vars)
-            .with_output(output_dir)
-            .build()
-        )
+        from src.parsers.parse_service import ParseService
+        return ParseService.submit_parse_async(stats_path, stats_pattern, processed_vars, output_dir)
 
-        csv_path = parser.parse()
-        logger.info("FACADE: Ingestion successful. CSV generated at: %s", csv_path)
+    def cancel_parse(self) -> None:
+        """Cancel the current parsing job."""
+        from src.parsers.parse_service import ParseService
+        ParseService.cancel_parse()
 
-        if progress_callback:
-            progress_callback(10, 1.0, "Ingestion Complete.")
-
-        return csv_path
+    def finalize_parsing(self, output_dir: str, results: List[Any]) -> Optional[str]:
+        """Aggregate partial results into final CSV."""
+        from src.parsers.parse_service import ParseService
+        return ParseService.construct_final_csv(output_dir, results)
 
     # ==================== Variable Discovery & Scanning ====================
 
-
-
     def submit_scan_async(
         self, stats_path: str, stats_pattern: str = "stats.txt", limit: int = -1
-    ) -> None:
-        """Submit an asynchronous scan request."""
-        ScannerService.submit_scan_async(stats_path, stats_pattern, limit)
+    ) -> List[Any]:
+        """
+        Submit an asynchronous scan request.
+        Returns a list of Futures.
+        """
+        from src.parsers.scanner_service import ScannerService
+        return ScannerService.submit_scan_async(stats_path, stats_pattern, limit)
 
     def cancel_scan(self) -> None:
         """Cancel the currently running scan."""
+        from src.parsers.scanner_service import ScannerService
         ScannerService.cancel_scan()
 
-    def get_scan_status(self) -> Dict[str, Any]:
-        """Get status of the running scan."""
-        return ScannerService.get_scan_status()
-
-    def get_scan_results_snapshot(self) -> List[Dict[str, Any]]:
-        """Get snapshot of current scan results."""
-        return ScannerService.get_scan_results_snapshot()
+    def finalize_scan(self, results: List[Any]) -> List[Dict[str, Any]]:
+        """Process and aggregate scan results."""
+        from src.parsers.scanner_service import ScannerService
+        return ScannerService.aggregate_scan_results(results)
 
     # ==================== Utility Methods ====================
 

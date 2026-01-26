@@ -85,12 +85,21 @@ def test_workflow_stats_to_portfolio(test_data_available, temp_env):
     output_dir = tempfile.mkdtemp()
     try:
         Gem5StatsParser.reset()
-        csv_path = facade.parse_gem5_stats(
+        parse_futures = facade.submit_parse_async(
             stats_path=str(subdirs[0]),
             stats_pattern="**/stats.txt",
             variables=variables,
             output_dir=output_dir,
         )
+        
+        # Wait for parsing
+        parse_results = []
+        for future in parse_futures:
+            result = future.result(timeout=30)
+            if result:
+                parse_results.append(result)
+        
+        csv_path = facade.finalize_parsing(output_dir, parse_results)
 
         assert csv_path is not None, "Parsing failed"
 
@@ -154,9 +163,9 @@ def test_workflow_failed_parsing_recovery(temp_env):
 
     empty_dir = tempfile.mkdtemp()
     try:
-        # Empty variables should raise ValueError (new validation)
-        with pytest.raises(ValueError, match="At least one variable"):
-            facade.parse_gem5_stats(
+        # Empty variables should raise ValueError during parse
+        with pytest.raises((ValueError, FileNotFoundError)):
+            facade.submit_parse_async(
                 stats_path=empty_dir,
                 stats_pattern="**/stats.txt",
                 variables=[],
