@@ -1,7 +1,6 @@
 import tempfile
 from io import StringIO
 from pathlib import Path
-
 from typing import Any
 
 import pandas as pd

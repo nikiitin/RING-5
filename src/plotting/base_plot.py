@@ -3,7 +3,7 @@
 import math
 from abc import ABC, abstractmethod
 from io import StringIO
-from typing import Any, Callable, Dict, List, Optional, Protocol, TypedDict, Union
+from typing import Any, Dict, List, Optional, TypedDict, Union
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -15,7 +15,7 @@ from src.web.ui.components.plot_config_components import PlotConfigComponents
 
 class ShapeConfig(TypedDict, total=False):
     """Type definition for annotation shape configuration."""
-    
+
     type: str  # "line", "circle", "rect"
     x0: Union[float, str]
     y0: Union[float, str]
@@ -26,7 +26,7 @@ class ShapeConfig(TypedDict, total=False):
 
 class SeriesStyle(TypedDict, total=False):
     """Type definition for series styling (color, shape, name)."""
-    
+
     name: str  # Display name
     color: str  # Hex color code
     marker_symbol: str  # For scatter plots
@@ -35,7 +35,7 @@ class SeriesStyle(TypedDict, total=False):
 
 class RelayoutData(TypedDict, total=False):
     """Type definition for Plotly relayout event data."""
-    
+
     # Axis ranges
     xaxis_range: List[float]
     yaxis_range: List[float]
@@ -106,10 +106,10 @@ class BasePlot(ABC):
     def update_from_relayout(self, relayout_data: Dict[str, Any]) -> bool:
         """
         Update config from client-side relayout data (zoom/pan, legend drag).
-        
+
         Args:
             relayout_data: Dictionary of relayout events from Plotly
-            
+
         Returns:
             True if config changed, False otherwise
         """
@@ -146,7 +146,10 @@ class BasePlot(ABC):
         # Plotly sends ranges as array [min, max]
         # x-axis
         if "xaxis.range[0]" in relayout_data and "xaxis.range[1]" in relayout_data:
-            new_range: List[Any] = [relayout_data["xaxis.range[0]"], relayout_data["xaxis.range[1]"]]
+            new_range: List[Any] = [
+                relayout_data["xaxis.range[0]"],
+                relayout_data["xaxis.range[1]"],
+            ]
             if update_if_new("range_x", new_range):
                 changed = True
         elif "xaxis.range" in relayout_data:
@@ -530,9 +533,11 @@ class BasePlot(ABC):
                     )
         return config
 
-    def _render_general_settings(self, saved_config: Dict[str, Any], config: Dict[str, Any]) -> None:
+    def _render_general_settings(
+        self, saved_config: Dict[str, Any], config: Dict[str, Any]
+    ) -> None:
         """Helper to render general settings.
-        
+
         Args:
             saved_config: Previously saved configuration
             config: Current configuration to update
@@ -599,7 +604,7 @@ class BasePlot(ABC):
         self, saved_config: Dict[str, Any], data: pd.DataFrame, config: Dict[str, Any]
     ) -> None:
         """Helper to render ordering UI.
-        
+
         Args:
             saved_config: Previously saved configuration
             data: Data being plotted
@@ -641,10 +646,10 @@ class BasePlot(ABC):
 
     def _render_shapes_ui(self, saved_config: Dict[str, Any]) -> List[ShapeConfig]:
         """Helper to render Shapes UI.
-        
+
         Args:
             saved_config: Previously saved configuration
-            
+
         Returns:
             List of shape configuration dictionaries
         """
@@ -768,14 +773,14 @@ class BasePlot(ABC):
     ) -> List[Any]:
         """
         Render a list that can be reordered using up/down buttons.
-        
+
         Args:
             label: Display label for the list
             items: List of items to reorder
             key_prefix: Prefix for session state keys
             legend_labels: Optional mapping of item values to display labels
             default_order: Optional default ordering
-            
+
         Returns:
             Reordered list of items
         """

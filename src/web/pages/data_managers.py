@@ -23,16 +23,14 @@ def show_data_managers_page() -> None:
 
     st.markdown(AppStyles.step_header("Data Managers & Transformations"), unsafe_allow_html=True)
 
-    st.info(
-        """
+    st.info("""
     **Data Managers** handle loading, filtering, and transforming data from various sources.
 
     - View your current data
     - Apply filters and transformations
     - See effects in real-time
     - Manage multiple data sources
-    """
-    )
+    """)
 
     if not StateManager.has_data():
         st.warning("No data loaded. Please load data from **Data Source** or **Upload Data** page.")

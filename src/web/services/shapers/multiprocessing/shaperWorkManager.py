@@ -1,7 +1,7 @@
 import logging
 import os
-from typing import Any, Dict, List, Optional, Set, cast
 from concurrent.futures import Future
+from typing import Any, Dict, List, Optional, Set, cast
 
 from tqdm import tqdm
 

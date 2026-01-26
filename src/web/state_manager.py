@@ -10,7 +10,7 @@ import shutil
 import uuid
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, List, Optional, TypedDict
+from typing import Any, Callable, Dict, List, Optional, TypedDict, cast
 
 import pandas as pd
 import streamlit as st
@@ -22,7 +22,7 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 class ParseVariable(TypedDict, total=False):
     """Type definition for a parse variable configuration."""
-    
+
     name: str
     type: str  # "scalar", "vector", "distribution", "histogram", "configuration"
     _id: str  # UUID for UI tracking
@@ -33,7 +33,7 @@ class ParseVariable(TypedDict, total=False):
 
 class CsvPoolEntry(TypedDict):
     """Type definition for CSV pool registry entry."""
-    
+
     path: str
     name: str
     added_at: str
@@ -41,7 +41,7 @@ class CsvPoolEntry(TypedDict):
 
 class ConfigEntry(TypedDict):
     """Type definition for saved configuration entry."""
-    
+
     path: str
     name: str
     description: str
@@ -49,7 +49,7 @@ class ConfigEntry(TypedDict):
 
 class PortfolioData(TypedDict, total=False):
     """Type definition for portfolio restoration data."""
-    
+
     parse_variables: List[ParseVariable]
     stats_path: str
     stats_pattern: str
@@ -144,12 +144,16 @@ class StateManager:
         return st.session_state.get(StateManager.DATA)
 
     @staticmethod
-    def set_data(data: Optional[pd.DataFrame], on_change: Optional[Callable[[], None]] = None) -> None:
+    def set_data(
+        data: Optional[pd.DataFrame], on_change: Optional[Callable[[], None]] = None
+    ) -> None:
         """Set the current data and enforce categorical constraints."""
         if data is not None:
             try:
                 variables: List[Dict[str, Any]] = StateManager.get_parse_variables()
-                config_vars: List[str] = [v["name"] for v in variables if v.get("type") == "configuration"]
+                config_vars: List[str] = [
+                    v["name"] for v in variables if v.get("type") == "configuration"
+                ]
                 for col in config_vars:
                     if col in data.columns:
                         data[col] = data[col].astype(str)
@@ -389,7 +393,8 @@ class StateManager:
             "leg_orient_",
         ]
         keys_to_del: List[str] = [
-            k for k in st.session_state.keys() 
+            k
+            for k in st.session_state.keys()
             if isinstance(k, str) and any(marker in k for marker in markers)
         ]
         for k in keys_to_del:

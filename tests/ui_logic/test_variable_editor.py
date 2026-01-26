@@ -3,8 +3,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 
-
-
 @pytest.fixture
 def mock_streamlit():
     # Patch st in all 3 modules used
@@ -31,11 +29,14 @@ def mock_streamlit():
         mock_st_var.success = mock_st.success
         mock_st_var.checkbox = mock_st.checkbox
         mock_st_var.session_state = mock_st.session_state
+
         # Mock st.dialog as a pass-through decorator, supporting **kwargs like dismissible
         def dialog_mock(title, **kwargs):
             def decorator(f):
                 return f
+
             return decorator
+
         mock_st_var.dialog.side_effect = dialog_mock
 
         # Mock columns to return list of mocks
@@ -75,6 +76,7 @@ def test_variable_editor_render_existing(mock_streamlit):
     mock_streamlit.selectbox.return_value = "scalar"
 
     from src.web.ui.components.variable_editor import VariableEditor
+
     updated = VariableEditor.render(vars_config)
 
     assert len(updated) == 1
@@ -91,6 +93,7 @@ def test_variable_editor_add_manual(mock_streamlit):
 
     # Rerun should be called
     from src.web.ui.components.variable_editor import VariableEditor
+
     VariableEditor.render(vars_config)
 
     assert len(vars_config) == 1
@@ -123,6 +126,7 @@ def test_variable_editor_deep_scan(mock_streamlit, mock_facade):
         if key and key.startswith("deep_scan"):
             return True
         return False
+
     mock_streamlit.button.side_effect = button_side_effect
 
     # Mock Async Pipeline - simulate that scan completed
@@ -131,13 +135,14 @@ def test_variable_editor_deep_scan(mock_streamlit, mock_facade):
     mock_facade.submit_scan_async.return_value = [mock_future]
 
     from src.web.ui.components.variable_editor import VariableEditor
+
     with patch.object(VariableEditor, "_show_scan_dialog") as mock_dialog:
         VariableEditor.render(vars_config, available_variables=[], stats_path="/path")
-        
+
         # Verify it was called
         mock_dialog.assert_called_once()
         # Just verify it was called - the exact arguments depend on implementation details
-        
+
     # submit_scan_async is called INSIDE _show_scan_dialog, which we mocked.
     # So we don't assert it here anymore.
 
@@ -158,6 +163,7 @@ def test_variable_editor_vector_stats_checkboxes(mock_streamlit):
     mock_streamlit.checkbox.side_effect = checkbox_side_effect
 
     from src.web.ui.components.variable_editor import VariableEditor
+
     updated = VariableEditor.render(vars_config)
 
     assert updated[0]["useSpecialMembers"] is True

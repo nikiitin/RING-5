@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Protocol, TypedDict
+from typing import Any, Dict, TypedDict
 
 import pandas as pd
 
 
 class ShaperConfig(TypedDict, total=False):
     """Type definition for shaper configuration parameters."""
-    
+
     type: str  # Shaper type identifier
     params: Dict[str, Any]  # Type-specific parameters
 
@@ -79,7 +79,7 @@ class Shaper(ABC):
 
         Returns:
             The transformed dataframe
-            
+
         Raises:
             ValueError: If preconditions are not met
         """

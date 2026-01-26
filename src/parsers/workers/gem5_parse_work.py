@@ -10,7 +10,7 @@ import subprocess
 from typing import Any, Dict, List, Optional, Tuple
 
 import src.utils.utils as utils
-from src.parsers.workers.parse_work import ParseWork, ParsedVarsDict
+from src.parsers.workers.parse_work import ParsedVarsDict, ParseWork
 
 # Type aliases for clarity
 # EntryBuffer: baseID -> {entryKey -> [values]}
@@ -34,11 +34,11 @@ class Gem5ParseWork(ParseWork):
     def __init__(self, fileToParse: str, varsToParse: VarsDictType) -> None:
         """
         Initialize the gem5 parse work unit.
-        
+
         Args:
             fileToParse: Absolute path to the gem5 stats.txt file
             varsToParse: Dictionary mapping variable IDs to StatType instances
-            
+
         Raises:
             RuntimeError: If varsToParse is empty
         """
@@ -57,7 +57,7 @@ class Gem5ParseWork(ParseWork):
     def _bufferEntry(self, varID: str, varValue: str) -> None:
         """
         Buffer an entry-based value (Vector, Distribution, Histogram).
-        
+
         Args:
             varID: Variable identifier with entry key (format: baseID::entryKey)
             varValue: String value to buffer for this entry
@@ -76,7 +76,7 @@ class Gem5ParseWork(ParseWork):
     def _applyBufferedEntries(self, varsToParse: VarsDictType) -> None:
         """
         Apply buffered entries to their corresponding variable objects.
-        
+
         Args:
             varsToParse: Dictionary of variables to update with buffered content
         """
@@ -89,10 +89,10 @@ class Gem5ParseWork(ParseWork):
     def _parseLine(self, line: str) -> Tuple[str, str, str]:
         """
         Parse a Perl output line into its components.
-        
+
         Args:
             line: Output line in format "Type/VarID/Value"
-            
+
         Returns:
             Tuple of (varType, varID, varValue)
         """
@@ -102,13 +102,13 @@ class Gem5ParseWork(ParseWork):
     def _getExpectedType(self, var: Any) -> str:
         """
         Get the normalized type name from a StatType variable object.
-        
+
         Args:
             var: StatType instance (using Any to avoid circular import with src.parsers.types.base)
-            
+
         Returns:
             Normalized type name (e.g., 'scalar', 'vector', 'distribution')
-            
+
         Note:
             Uses Any for var parameter because StatType is defined in src.parsers.types.base
             and importing it here would create a circular dependency. At runtime, var is
@@ -123,13 +123,13 @@ class Gem5ParseWork(ParseWork):
     ) -> Optional[str]:
         """
         Process entry-based types (Vector, Distribution, Histogram).
-        
+
         Args:
             varType: Raw type from Perl output
             varID: Variable identifier with entry key
             varValue: String value for this entry
             varsToParse: Dictionary of variables being parsed
-            
+
         Returns:
             Normalized type name if successful, None if variable is unknown
         """
@@ -160,11 +160,11 @@ class Gem5ParseWork(ParseWork):
     def _processSummary(self, varID: str, varValue: str, varsToParse: VarsDictType) -> None:
         """
         Process Summary lines from Perl output.
-        
+
         Summaries can be:
         1. Entry of a Vector/Distribution (e.g., ::total, ::mean)
         2. Standalone summary request (varID__get_summary)
-        
+
         Args:
             varID: Variable identifier (may include ::entry_key)
             varValue: Summary value as string
@@ -190,11 +190,11 @@ class Gem5ParseWork(ParseWork):
     def _processLine(self, line: str, varsToParse: VarsDictType) -> None:
         """
         Process a single output line from the Perl parser.
-        
+
         Args:
             line: Output line in format "Type/VarID/Value"
             varsToParse: Dictionary of variables being parsed
-            
+
         Raises:
             RuntimeError: If variable type mismatch or unknown type encountered
         """
@@ -207,7 +207,9 @@ class Gem5ParseWork(ParseWork):
         normalizedType: str = TypeMapper.normalize_type(rawType)
 
         if TypeMapper.is_entry_type(normalizedType):
-            resolvedType: Optional[str] = self._processEntryType(rawType, varID, varValue, varsToParse)
+            resolvedType: Optional[str] = self._processEntryType(
+                rawType, varID, varValue, varsToParse
+            )
             if resolvedType is None:
                 return  # Unknown variable, skip
 
@@ -236,10 +238,10 @@ class Gem5ParseWork(ParseWork):
     def _validateVars(self, varsToParse: VarsDictType) -> VarsDictType:
         """
         Ensure all variables have content, applying defaults where needed.
-        
+
         Args:
             varsToParse: Dictionary of parsed variables
-            
+
         Returns:
             The same dictionary after validation and default application
         """
@@ -258,11 +260,11 @@ class Gem5ParseWork(ParseWork):
     def _processOutput(self, output: str, varsToParse: VarsDictType) -> VarsDictType:
         """
         Process the complete Perl script output.
-        
+
         Args:
             output: Complete stdout from Perl parser script
             varsToParse: Dictionary of variables to populate
-            
+
         Returns:
             Dictionary of variables with parsed and validated content
         """
@@ -278,10 +280,10 @@ class Gem5ParseWork(ParseWork):
     def _runPerlScript(self) -> str:
         """
         Execute the Perl parser script and return output.
-        
+
         Returns:
             Complete stdout from the Perl script
-            
+
         Raises:
             RuntimeError: If Perl not found, script not found, or file to parse doesn't exist
             subprocess.CalledProcessError: If Perl script execution fails
@@ -331,10 +333,10 @@ class Gem5ParseWork(ParseWork):
     def __call__(self) -> ParsedVarsDict:
         """
         Execute the parse work and return populated variables.
-        
+
         Returns:
             Dictionary mapping variable IDs to their populated StatType instances
-            
+
         Raises:
             RuntimeError: If parsing fails or type mismatches occur
             subprocess.CalledProcessError: If Perl script fails

@@ -18,22 +18,18 @@ logger = logging.getLogger(__name__)
 JsonValue = Union[bool, int, float, str, List[Any], Dict[Any, Any], None]
 
 
-def getElementValue(
-    jsonElement: Dict[str, Any],
-    key: str,
-    optional: bool = True
-) -> JsonValue:
+def getElementValue(jsonElement: Dict[str, Any], key: str, optional: bool = True) -> JsonValue:
     """
     Get the value of a key in a JSON element.
-    
+
     Args:
         jsonElement: Dictionary representing JSON data
         key: Key to retrieve from the dictionary
         optional: If False, raises ValueError when value is None
-        
+
     Returns:
         Value associated with the key, or None if optional and missing
-        
+
     Raises:
         KeyError: If key is not found in jsonElement
         ValueError: If value is None and optional is False
@@ -54,11 +50,11 @@ def getElementValue(
 def checkElementExists(jsonElement: Dict[str, Any], key: str) -> None:
     """
     Check if a key exists in a JSON element, raise exception if not.
-    
+
     Args:
         jsonElement: Dictionary to check
         key: Key to verify
-        
+
     Raises:
         KeyError: If key is not found
     """
@@ -69,28 +65,25 @@ def checkElementExists(jsonElement: Dict[str, Any], key: str) -> None:
 def checkElementExistNoException(jsonElement: Dict[str, Any], key: str) -> bool:
     """
     Check if a key exists in a JSON element without raising exception.
-    
+
     Args:
         jsonElement: Dictionary to check
         key: Key to verify
-        
+
     Returns:
         True if key exists, False otherwise
     """
     return key in jsonElement
 
 
-def checkEnumExistsNoException(
-    jsonElement: Dict[str, Any],
-    enum: enum.EnumMeta
-) -> bool:
+def checkEnumExistsNoException(jsonElement: Dict[str, Any], enum: enum.EnumMeta) -> bool:
     """
     Check if any key in jsonElement matches an enum member.
-    
+
     Args:
         jsonElement: Dictionary to check
         enum: Enum type to match against
-        
+
     Returns:
         True if any key matches an enum member, False otherwise
     """
@@ -100,17 +93,14 @@ def checkEnumExistsNoException(
     return False
 
 
-def getEnumValue(
-    jsonElement: Dict[str, Any],
-    enumType: enum.EnumMeta
-) -> Optional[str]:
+def getEnumValue(jsonElement: Dict[str, Any], enumType: enum.EnumMeta) -> Optional[str]:
     """
     Get the first enum value that matches a key in jsonElement.
-    
+
     Args:
         jsonElement: Dictionary to search
         enumType: Enum type to match against
-        
+
     Returns:
         Matched enum value as string, or None if no match
     """
@@ -125,10 +115,10 @@ def getEnumValue(
 def checkFilesExistOrException(filePaths: List[Union[str, Path]]) -> None:
     """
     Check if all files exist, raise exception for first missing file.
-    
+
     Args:
         filePaths: List of file paths to check
-        
+
     Raises:
         FileNotFoundError: If any file does not exist
     """
@@ -139,10 +129,10 @@ def checkFilesExistOrException(filePaths: List[Union[str, Path]]) -> None:
 def checkDirsExistOrException(dirPaths: List[Union[str, Path]]) -> None:
     """
     Check if all directories exist, raise exception for first missing directory.
-    
+
     Args:
         dirPaths: List of directory paths to check
-        
+
     Raises:
         FileNotFoundError: If any directory does not exist
     """
@@ -153,10 +143,10 @@ def checkDirsExistOrException(dirPaths: List[Union[str, Path]]) -> None:
 def checkFileExistsOrException(filePath: Union[str, Path]) -> None:
     """
     Check if a file exists, raise exception if not.
-    
+
     Args:
         filePath: Path to file
-        
+
     Raises:
         FileNotFoundError: If file does not exist
     """
@@ -167,10 +157,10 @@ def checkFileExistsOrException(filePath: Union[str, Path]) -> None:
 def checkFileExists(filePath: Union[str, Path]) -> bool:
     """
     Check if a file exists.
-    
+
     Args:
         filePath: Path to file
-        
+
     Returns:
         True if file exists, False otherwise
     """
@@ -180,10 +170,10 @@ def checkFileExists(filePath: Union[str, Path]) -> bool:
 def checkDirExistsOrException(dirPath: Union[str, Path]) -> None:
     """
     Check if a directory exists, raise exception if not.
-    
+
     Args:
         dirPath: Path to directory
-        
+
     Raises:
         FileNotFoundError: If directory does not exist
     """
@@ -194,10 +184,10 @@ def checkDirExistsOrException(dirPath: Union[str, Path]) -> None:
 def checkDirExists(dirPath: Union[str, Path]) -> bool:
     """
     Check if a directory exists.
-    
+
     Args:
         dirPath: Path to directory
-        
+
     Returns:
         True if directory exists, False otherwise
     """
@@ -207,7 +197,7 @@ def checkDirExists(dirPath: Union[str, Path]) -> bool:
 def createDir(dirPath: Union[str, Path]) -> None:
     """
     Create a directory if it doesn't exist.
-    
+
     Args:
         dirPath: Path to directory to create
     """
@@ -220,7 +210,7 @@ def createDir(dirPath: Union[str, Path]) -> None:
 def createTmpFile() -> str:
     """
     Create a temporary file and return its path.
-    
+
     Returns:
         Path to the created temporary file
     """
@@ -234,17 +224,15 @@ def createTmpFile() -> str:
 def checkVarType(var: Any, varType: type) -> None:
     """
     Check if a variable is of the expected type, raise exception if not.
-    
+
     Args:
         var: Variable to check
         varType: Expected type
-        
+
     Raises:
         TypeError: If variable is not of expected type
     """
     if not isinstance(var, varType):
-        raise TypeError(
-            f"Variable is not of type {varType.__name__}, got {type(var).__name__}"
-        )
+        raise TypeError(f"Variable is not of type {varType.__name__}, got {type(var).__name__}")
     if not isinstance(var, varType):
         raise TypeError("Variable is not of type " + str(varType) + ": " + str(var))

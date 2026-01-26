@@ -220,7 +220,9 @@ class StackedBarPlot(BasePlot):
 
         return annotations
 
-    def _get_total_position(self, val: float, position_option: str, anchor_option: str) -> tuple[float, str]:
+    def _get_total_position(
+        self, val: float, position_option: str, anchor_option: str
+    ) -> tuple[float, str]:
         """Calculate Y position and anchor for total annotation."""
         if position_option == "Outside":
             return val, "bottom"

@@ -22,10 +22,10 @@ T = TypeVar("T")
 class ScanWorkPool:
     """
     Facade for scanning work pool.
-    
+
     Delegates to the unified WorkPool manager.
     Simple submission wrapper that returns Futures for external tracking.
-    
+
     Usage:
         pool = ScanWorkPool.get_instance()
         futures = pool.submit_batch_async(work_items)
@@ -38,7 +38,7 @@ class ScanWorkPool:
     def get_instance(cls) -> "ScanWorkPool":
         """
         Get the singleton instance of ScanWorkPool.
-        
+
         Returns:
             The singleton ScanWorkPool instance
         """
@@ -59,10 +59,10 @@ class ScanWorkPool:
     def submit_batch_async(self, works: List[ScanWork]) -> List[Future[Any]]:
         """
         Submit a batch of scan works.
-        
+
         Args:
             works: List of ScanWork instances to execute in parallel
-            
+
         Returns:
             List of Future objects for tracking execution status
         """
@@ -77,7 +77,7 @@ class ScanWorkPool:
     def add_work(self, work: ScanWork) -> None:
         """
         Add a single scan work unit to the pool.
-        
+
         Args:
             work: ScanWork instance to execute
         """
@@ -88,7 +88,7 @@ class ScanWorkPool:
     def get_all_futures(self) -> List[Future[Any]]:
         """
         Get all tracked futures from submitted work.
-        
+
         Returns:
             List of all Future objects tracked by this pool
         """
@@ -97,7 +97,7 @@ class ScanWorkPool:
     def cancel_all(self) -> None:
         """
         Cancel all pending futures in the pool.
-        
+
         This attempts to cancel all submitted work that hasn't started yet.
         """
         for f in self._futures:
@@ -107,10 +107,10 @@ class ScanWorkPool:
 class ParseWorkPool:
     """
     Facade for parsing work pool.
-    
+
     Delegates to the unified WorkPool manager.
     Simple submission wrapper that returns Futures for external tracking.
-    
+
     Usage:
         pool = ParseWorkPool.get_instance()
         futures = pool.submit_batch_async(work_items)
@@ -123,7 +123,7 @@ class ParseWorkPool:
     def get_instance(cls) -> "ParseWorkPool":
         """
         Get the singleton instance of ParseWorkPool.
-        
+
         Returns:
             The singleton ParseWorkPool instance
         """
@@ -135,7 +135,7 @@ class ParseWorkPool:
     def reset(cls) -> None:
         """
         Reset the singleton instance.
-        
+
         Used primarily for testing to clear the singleton state.
         """
         cls._instance = None
@@ -152,10 +152,10 @@ class ParseWorkPool:
     def submit_batch_async(self, works: List[ParseWork]) -> List[Future[Any]]:
         """
         Submit a batch of parsing works.
-        
+
         Args:
             works: List of ParseWork instances to execute in parallel
-            
+
         Returns:
             List of Future objects for tracking execution status
         """
@@ -170,7 +170,7 @@ class ParseWorkPool:
     def add_work(self, work: ParseWork) -> None:
         """
         Add a single parsing task to the pool.
-        
+
         Args:
             work: ParseWork instance to execute
         """
@@ -181,7 +181,7 @@ class ParseWorkPool:
     def get_all_futures(self) -> List[Future[Any]]:
         """
         Get all tracked futures from submitted work.
-        
+
         Returns:
             List of all Future objects tracked by this pool
         """
@@ -190,7 +190,7 @@ class ParseWorkPool:
     def cancel_all(self) -> None:
         """
         Cancel all pending futures in the pool.
-        
+
         This attempts to cancel all submitted work that hasn't started yet.
         """
         for f in self._futures:

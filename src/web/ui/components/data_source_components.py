@@ -1,7 +1,6 @@
 import logging
 import tempfile
 from pathlib import Path
-
 from typing import Any, List
 
 import streamlit as st
@@ -39,7 +38,7 @@ class DataSourceComponents:
 
             if not csv_path.exists():
                 st.error(f"File no longer exists: {csv_info['name']}")
-                logger.warning("CSV POOL: File not found on disk: %s", csv_info['path'])
+                logger.warning("CSV POOL: File not found on disk: %s", csv_info["path"])
                 continue
 
             load_clicked, preview_clicked, delete_clicked = CardComponents.file_info_card(
@@ -60,7 +59,9 @@ class DataSourceComponents:
                     st.info("Data loaded! Proceed to **Configure Pipeline** to process it.")
                 except Exception as e:
                     st.error(f"Error loading file: {e}")
-                    logger.error("CSV POOL: Failed to load CSV file '%s': %s", csv_path, e, exc_info=True)
+                    logger.error(
+                        "CSV POOL: Failed to load CSV file '%s': %s", csv_path, e, exc_info=True
+                    )
 
             if preview_clicked:
                 try:
@@ -130,11 +131,15 @@ class DataSourceComponents:
                     # Submit async scan with limit based on checkbox
                     scan_limit = -1 if deep_scan else 10
                     facade.submit_scan_async(stats_path, stats_pattern, limit=scan_limit)
-                    st.info(f"{'Deep' if deep_scan else 'Quick'} scan started! Results will appear in the 'Add Variable' list shortly.")
+                    st.info(
+                        f"{'Deep' if deep_scan else 'Quick'} scan started! Results will appear in the 'Add Variable' list shortly."
+                    )
                     st.rerun()
                 except Exception as e:
                     st.error(f"Scan failed: {e}")
-                    logger.error("SCANNER: Quick scan failed at %s: %s", stats_path, e, exc_info=True)
+                    logger.error(
+                        "SCANNER: Quick scan failed at %s: %s", stats_path, e, exc_info=True
+                    )
 
         scanned_vars = StateManager.get_scanned_variables()
         if scanned_vars:
@@ -182,13 +187,12 @@ class DataSourceComponents:
                         stats_pattern,
                         StateManager.get_parse_variables(),
                         output_dir,
-                        scanned_vars=StateManager.get_scanned_variables()
+                        scanned_vars=StateManager.get_scanned_variables(),
                     )
                     DataSourceComponents._show_parse_dialog(facade, futures, output_dir)
                 except Exception as e:
                     st.error(f"Failed to submit parsing job: {e}")
                     logger.error("UI: Parsing submission failed: %s", e, exc_info=True)
-
 
     @staticmethod
     @st.dialog("Add Variable")
@@ -391,5 +395,4 @@ class DataSourceComponents:
             else:
                 st.error("Failed to generate final CSV.")
         except Exception as e:
-             st.error(f"Finalization failed: {e}")
-
+            st.error(f"Finalization failed: {e}")

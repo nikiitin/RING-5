@@ -59,7 +59,9 @@ class WorkPool:
         executor = self._get_thread_executor() if use_threads else self._get_process_executor()
         return executor.submit(task)
 
-    def map(self, tasks: List[Union[Job, Callable[[], Any]]], use_threads: bool = False) -> List[Any]:
+    def map(
+        self, tasks: List[Union[Job, Callable[[], Any]]], use_threads: bool = False
+    ) -> List[Any]:
         """Map a list of tasks to the pool."""
         executor = self._get_thread_executor() if use_threads else self._get_process_executor()
         # Execute each task individually since they may be different callables

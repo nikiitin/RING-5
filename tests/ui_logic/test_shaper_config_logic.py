@@ -59,8 +59,6 @@ def test_configure_column_selector(mock_streamlit, sample_data):
     assert kwargs["default"] == ["dataset"]
 
 
-
-
 def test_configure_filter_numeric(mock_streamlit, sample_data):
     """Test Numeric Filter configuration UI."""
     # Filter on 'metric'

@@ -19,8 +19,7 @@ class SeedsReducerManager(DataManager):
         """Render the Seeds Reducer UI."""
         st.markdown("### Seeds Reducer")
 
-        st.info(
-            """
+        st.info("""
         **Seeds Reducer** groups data by categorical columns and calculates statistics across
         different random seeds.
 
@@ -28,8 +27,7 @@ class SeedsReducerManager(DataManager):
         - Groups by categorical columns
         - Calculates mean and standard deviation for numeric columns
         - Useful for averaging results across multiple simulation runs
-        """
-        )
+        """)
 
         # Get current data
         data = self.get_data()
@@ -89,15 +87,13 @@ class SeedsReducerManager(DataManager):
                 key="seeds_numeric",
             )
 
-        st.info(
-            """
+        st.info("""
         **Note on Standard Deviation:**
         - Seeds Reducer will create `.sd` columns for standard deviations
         - When you later normalize data (in Configure Pipeline), the `.sd` columns will be
           automatically normalized by the same baseline value
         - This ensures error bars are correctly scaled in normalized plots
-        """
-        )
+        """)
 
         if st.button("Apply Seeds Reducer", key="apply_seeds"):
             if not selected_categorical:

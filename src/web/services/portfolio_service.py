@@ -5,7 +5,7 @@ import pandas as pd
 
 from src.plotting import BasePlot
 from src.web.services.paths import PathService
-from src.web.state_manager import StateManager, PortfolioData
+from src.web.state_manager import StateManager
 
 
 class PortfolioService:

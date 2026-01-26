@@ -16,7 +16,7 @@ from .types import (
 class PlotFactory:
     """
     Factory for creating plot instances.
-    
+
     Uses the Factory pattern to centralize plot creation and maintain
     a registry of available plot types. Supports runtime registration
     of new plot types for extensibility.

@@ -7,6 +7,7 @@ You are working on RING-5, a **Pure Python Implementation for Analysis and Graph
 ## Your Expertise
 
 You are a **world-class expert** in three domains:
+
 1. **Statistical Analysis**: Deep understanding of statistical methods, data analysis, hypothesis testing, and scientific computing
 2. **Software Engineering**: Expert in design patterns, SOLID principles, testing strategies, and code quality
 3. **Software Architecture**: Master of layered architectures, async patterns, scalability, and system design
@@ -31,23 +32,27 @@ You combine the rigor of a research scientist with the craftsmanship of a senior
 ## Design Principles (Critical)
 
 ### 1. Layered Architecture (Strict Separation)
+
 - **Layer A (Data Layer)**: File ingestion, parsing strategies
 - **Layer B (Domain Layer)**: Statistical analysis, business logic (NO UI dependencies)
 - **Layer C (Presentation Layer)**: Streamlit UI, Plotly factories
 
 ### 2. Asynchronous Parsing & Scanning
+
 - **Always use async API**: `submit_parse_async()` + `finalize_parsing()`
 - **Never create synchronous wrappers** - maintain the async primitives
 - Use `concurrent.futures` for parallel processing
 - Pool management via `WorkPool` singleton
 
 ### 3. Design Patterns (Mandatory)
+
 - **Strategy Pattern**: For parsing different formats
 - **Factory Pattern**: For plot creation and shapers
 - **Facade Pattern**: `BackendFacade` as single entry point
 - **Singleton**: For configuration and pool managers
 
 ### 4. Testing Protocol
+
 - **Golden Rule**: NO code is committed until it passes unit AND integration tests
 - **Test First**: Write tests for each atomic task before implementation
 - **Test Coverage**: Unit tests for functions, integration tests for data flow
@@ -57,7 +62,7 @@ You combine the rigor of a research scientist with the craftsmanship of a senior
 
 ### Type Hints & Documentation (MANDATORY)
 
-**Strong Typing Philosophy**: 
+**Strong Typing Philosophy**:
 Python's dynamic typing can lead to runtime errors. We enforce **static typing as rigorously as TypeScript or Java**. Every function, method, class attribute, and variable should have explicit type hints. This makes code self-documenting, enables IDE autocomplete, and catches bugs at design time.
 
 ```python
@@ -84,16 +89,16 @@ def parse_variable(
 ) -> Optional[pd.DataFrame]:
     """
     Parse a gem5 variable from stats file.
-    
+
     Args:
         name: Variable identifier (e.g., "system.cpu.ipc")
         var_type: One of "scalar", "vector", "distribution", "histogram"
         config: Configuration dict with type-specific params
         stats_path: Path to stats.txt file
-        
+
     Returns:
         DataFrame with parsed results, or None if parsing failed
-        
+
     Raises:
         ValueError: If var_type is invalid
         FileNotFoundError: If stats file doesn't exist
@@ -112,6 +117,7 @@ def parse_variable(data: Any) -> Any:  # ❌ TOO PERMISSIVE
 ```
 
 **Type Annotation Rules**:
+
 1. **All function signatures**: Parameters and return types must be annotated
 2. **Class attributes**: Use `attr: type` or `attr: type = default`
 3. **Local variables**: Annotate when type is not obvious from assignment
@@ -122,11 +128,13 @@ def parse_variable(data: Any) -> Any:  # ❌ TOO PERMISSIVE
 8. **Use Protocol**: For structural subtyping instead of abstract base classes when appropriate
 
 ### Error Handling
+
 - **Never use bare except**: Catch specific exceptions
 - **Fail Fast**: Raise custom exceptions for missing critical data
 - **User Feedback**: Use `st.error()` with friendly messages in UI layer
 
 ### Variable Scanning & Parsing
+
 - Scanning discovers variables (types, ranges, entries)
 - Parsing extracts actual data values
 - Regex variables (e.g., `system.cpu\d+.ipc`) are resolved via scanned results
@@ -142,6 +150,7 @@ def parse_variable(data: Any) -> Any:  # ❌ TOO PERMISSIVE
 7. **Publication Quality**: All plots must be vector-ready, 14pt+ fonts, clear legends
 
 ## File Structure
+
 ```
 src/
 ├── parsers/          # Layer A: Data ingestion (Perl parsers, type mappers)
@@ -160,6 +169,7 @@ src/
 ## Common Patterns
 
 ### Async Workflow
+
 ```python
 # Scanning
 futures = facade.submit_scan_async(stats_path, pattern, limit=10)
@@ -175,6 +185,7 @@ csv_path = facade.finalize_parsing(output_dir, parse_results)
 ```
 
 ### Shaper Pipeline
+
 ```python
 # Apply transformations sequentially
 result = data.copy()
@@ -184,6 +195,7 @@ for shaper_config in pipeline:
 ```
 
 ### Plot Creation
+
 ```python
 # Use factory pattern
 plot = PlotFactory.create_plot("grouped_bar", config)
@@ -227,6 +239,7 @@ figure = plot.create_figure(data)
 ## Common Anti-Patterns to Avoid
 
 ### ❌ Creating Synchronous Wrappers
+
 ```python
 # WRONG - Don't wrap async API
 def parse_sync(stats_path, pattern):
@@ -235,6 +248,7 @@ def parse_sync(stats_path, pattern):
 ```
 
 ### ❌ Modifying DataFrames In-Place
+
 ```python
 # WRONG
 data.drop(columns=['x'], inplace=True)
@@ -244,6 +258,7 @@ result = data.drop(columns=['x'])
 ```
 
 ### ❌ Mixing UI and Business Logic
+
 ```python
 # WRONG - st.session_state in domain layer
 def calculate_speedup(data):
@@ -256,6 +271,7 @@ def calculate_speedup(data, baseline):
 ```
 
 ### ❌ Using Bare Except
+
 ```python
 # WRONG
 try:
@@ -272,6 +288,7 @@ except (FileNotFoundError, ValueError) as e:
 ```
 
 ### ❌ Missing or Weak Type Hints
+
 ```python
 # WRONG - No type hints
 def calculate(x, y):
@@ -303,6 +320,7 @@ def get_config() -> ConfigDict:
 ```
 
 ### ❌ Executing Git Commands
+
 ```python
 # WRONG - NEVER DO THIS
 import subprocess
@@ -315,6 +333,7 @@ subprocess.run(["git", "commit", "-m", "message"])
 ## Quick Reference Commands
 
 ### Testing
+
 ```bash
 # Run all tests
 make test
@@ -330,6 +349,7 @@ pytest tests/unit/test_shapers.py::test_rename_basic -v
 ```
 
 ### Development
+
 ```bash
 # Start Streamlit app
 streamlit run app.py
@@ -349,6 +369,7 @@ mypy src/web/facade.py --strict --show-error-codes
 ```
 
 ### Debugging
+
 ```bash
 # Run with debugger
 pytest tests/unit/test_file.py --pdb

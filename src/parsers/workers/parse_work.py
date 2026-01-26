@@ -14,10 +14,10 @@ ParsedVarsDict = Dict[str, Any]
 class ParseWork(Job):
     """
     Base class for parallel parsing work units.
-    
+
     Subclasses must implement __call__ to return a dictionary mapping
     variable identifiers to their parsed StatType instances.
-    
+
     The return type uses Any for values to avoid circular imports with StatType.
     In practice, all values are StatType instances from src.parsers.types.base.
     """
@@ -25,7 +25,7 @@ class ParseWork(Job):
     def __init__(self, **kwargs: Any) -> None:
         """
         Initialize the parse work unit.
-        
+
         Args:
             **kwargs: Subclass-specific initialization parameters
         """
@@ -34,10 +34,10 @@ class ParseWork(Job):
     def __call__(self) -> ParsedVarsDict:
         """
         Execute the parsing work.
-        
+
         Returns:
             Dictionary mapping variable IDs to their populated StatType instances
-            
+
         Raises:
             NotImplementedError: If subclass doesn't implement this method
         """
@@ -46,7 +46,7 @@ class ParseWork(Job):
     def __str__(self) -> str:
         """
         Get string representation of the work unit.
-        
+
         Returns:
             Class name of the work unit
         """

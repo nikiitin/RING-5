@@ -199,6 +199,7 @@ class TestDirectoryOperations:
     def test_create_dir_existing(self, caplog):
         """Test creating an existing directory logs message."""
         import logging
+
         with caplog.at_level(logging.DEBUG):
             with tempfile.TemporaryDirectory() as temp_dir:
                 utils.createDir(temp_dir)  # Already exists
@@ -216,9 +217,6 @@ class TestTempFile:
             assert os.path.isfile(temp_path)
         finally:
             os.unlink(temp_path)
-
-
-
 
 
 class TestVarTypeCheck:

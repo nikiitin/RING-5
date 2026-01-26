@@ -11,11 +11,13 @@ root_dir = Path(__file__).parent
 if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
+
 def run_app():
     """Main application entry point."""
     # LATE IMPORTS: Avoid loading UI/Plotting modules when this file is imported by background workers.
     # This prevents the "missing ScriptRunContext" warnings.
     import streamlit as st
+
     from src.web.facade import BackendFacade
     from src.web.pages.data_managers import show_data_managers_page
     from src.web.pages.data_source import DataSourcePage

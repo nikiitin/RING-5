@@ -19,16 +19,14 @@ class OutlierRemoverManager(DataManager):
         """Render the Outlier Remover UI."""
         st.markdown("### Outlier Remover")
 
-        st.info(
-            """
+        st.info("""
         **Outlier Remover** filters out outlier values based on the 3rd quartile (Q3).
 
         - Groups data by categorical columns
         - Calculates Q3 for the selected numeric column within each group
         - Removes rows where the value exceeds Q3 for that group
         - Helps remove extreme outliers from experiments
-        """
-        )
+        """)
 
         # Get current data
         data = self.get_data()

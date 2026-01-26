@@ -11,11 +11,13 @@ Common issues with async parsing/scanning and how to resolve them.
 ## Problem 1: Futures Timing Out
 
 ### Symptoms
+
 ```python
 concurrent.futures._base.TimeoutError: Future did not complete within 30 seconds
 ```
 
 ### Diagnosis
+
 ```python
 # Add logging to see what's happening
 import logging
@@ -36,11 +38,13 @@ for i, future in enumerate(futures):
 ### Solutions
 
 1. **Increase timeout**:
+
    ```python
    result = future.result(timeout=120)  # 2 minutes instead of 30s
    ```
 
 2. **Check Perl script execution**:
+
    ```bash
    # Test Perl script directly
    perl src/parsers/perl/parse_scalar.pl \
@@ -50,26 +54,28 @@ for i, future in enumerate(futures):
    ```
 
 3. **Verify file paths**:
+
    ```python
    from pathlib import Path
-   
+
    stats_path = Path(stats_file)
    if not stats_path.exists():
        raise FileNotFoundError(f"Stats file not found: {stats_path}")
-   
+
    output_dir = Path(output_directory)
    if not output_dir.exists():
        output_dir.mkdir(parents=True, exist_ok=True)
    ```
 
 4. **Check pool capacity**:
+
    ```python
    from src.parsers.workers.work_pool import WorkPool
-   
+
    pool = WorkPool.get_instance()
    print(f"Pool size: {pool.max_workers}")
    print(f"Active tasks: {len(pool.futures)}")
-   
+
    # If pool is exhausted, wait for completion
    pool.wait_for_completion()
    ```
@@ -77,6 +83,7 @@ for i, future in enumerate(futures):
 ## Problem 2: Empty Results After Parsing
 
 ### Symptoms
+
 ```python
 csv_path = facade.finalize_parsing(output_dir, parse_results)
 data = facade.load_csv(csv_path)
@@ -103,13 +110,14 @@ for i, result in enumerate(parse_results):
 ### Solutions
 
 1. **Check regex pattern matches**:
+
    ```python
    # Test pattern matching
    import re
-   
+
    pattern = "system\\.cpu\\.ipc"
    test_line = "system.cpu.ipc                        1.500000"
-   
+
    if re.match(pattern, test_line):
        print("Pattern matches!")
    else:
@@ -117,36 +125,38 @@ for i, result in enumerate(parse_results):
    ```
 
 2. **Verify scanned variables**:
+
    ```python
    # Ensure scan detected variables
    scan_futures = facade.submit_scan_async(stats_path, pattern, limit=10)
    scan_results = [f.result(timeout=30) for f in scan_futures]
    scanned_vars = facade.finalize_scan(scan_results)
-   
+
    print(f"Scanned variables: {len(scanned_vars)}")
    for var in scanned_vars:
        print(f"  - {var['name']} ({var['type']})")
-   
+
    if not scanned_vars:
        raise ValueError("No variables found - check pattern and stats file")
    ```
 
 3. **Check Perl parser output**:
+
    ```python
    # Run parser manually and inspect output
    import subprocess
-   
+
    result = subprocess.run([
        "perl", "src/parsers/perl/parse_scalar.pl",
        "--stats-file=data/stats.txt",
        "--pattern=system.cpu.ipc",
        "--output-csv=debug_output.csv"
    ], capture_output=True, text=True)
-   
+
    print("STDOUT:", result.stdout)
    print("STDERR:", result.stderr)
    print("Return code:", result.returncode)
-   
+
    if result.returncode != 0:
        print("Perl parser failed!")
    ```
@@ -154,6 +164,7 @@ for i, result in enumerate(parse_results):
 ## Problem 3: "Variable Not Found" After Scan
 
 ### Symptoms
+
 ```python
 parse_futures = facade.submit_parse_async(
     stats_path, pattern, variables, output_dir,
@@ -178,15 +189,16 @@ if re.search(r'[.*+?^${}()|[\]\\]', pattern):
 ### Solutions
 
 1. **Use regex resolution**:
+
    ```python
    # For regex patterns, use scanner results
    pattern = "system\\.cpu\\.\\w+\\.ipc"  # Regex
-   
+
    # Scan first
    scan_futures = facade.submit_scan_async(stats_path, pattern, limit=100)
    scan_results = [f.result() for f in scan_futures]
    scanned_vars = facade.finalize_scan(scan_results)
-   
+
    # Parse using resolved variables
    parse_futures = facade.submit_parse_async(
        stats_path,
@@ -198,13 +210,14 @@ if re.search(r'[.*+?^${}()|[\]\\]', pattern):
    ```
 
 2. **For literal names, wrap in list**:
+
    ```python
    # For literal (non-regex) variable names
    variables = [
        {"name": "system.cpu0.ipc", "type": "scalar"},
        {"name": "system.cpu1.ipc", "type": "scalar"}
    ]
-   
+
    # No scan needed for literals
    parse_futures = facade.submit_parse_async(
        stats_path,
@@ -218,6 +231,7 @@ if re.search(r'[.*+?^${}()|[\]\\]', pattern):
 ## Problem 4: CSV Merge Failures
 
 ### Symptoms
+
 ```python
 csv_path = facade.finalize_parsing(output_dir, parse_results)
 # Error: Cannot concatenate DataFrames - column mismatch
@@ -237,6 +251,7 @@ for result in parse_results:
 ### Solutions
 
 1. **Ensure consistent variable types**:
+
    ```python
    # Don't mix variable types in one parse
    # BAD: mixing scalar and vector
@@ -244,27 +259,28 @@ for result in parse_results:
        {"name": "system.cpu.ipc", "type": "scalar"},
        {"name": "system.cpu.opcodes", "type": "vector"}  # Different columns!
    ]
-   
+
    # GOOD: separate by type
    scalar_vars = [{"name": "system.cpu.ipc", "type": "scalar"}]
    vector_vars = [{"name": "system.cpu.opcodes", "type": "vector"}]
-   
+
    # Parse separately
    scalar_futures = facade.submit_parse_async(stats_path, "", scalar_vars, output_dir)
    vector_futures = facade.submit_parse_async(stats_path, "", vector_vars, output_dir)
    ```
 
 2. **Use type-specific output directories**:
+
    ```python
    from pathlib import Path
-   
+
    base_dir = Path("output")
    scalar_dir = base_dir / "scalar"
    vector_dir = base_dir / "vector"
-   
+
    scalar_dir.mkdir(parents=True, exist_ok=True)
    vector_dir.mkdir(parents=True, exist_ok=True)
-   
+
    # Parse with separate directories
    scalar_futures = facade.submit_parse_async(
        stats_path, pattern, scalar_vars, str(scalar_dir)
@@ -277,6 +293,7 @@ for result in parse_results:
 ## Problem 5: Memory Issues with Large Files
 
 ### Symptoms
+
 ```python
 MemoryError: Unable to allocate array
 # or
@@ -286,6 +303,7 @@ Process killed (OOM)
 ### Solutions
 
 1. **Limit scan results**:
+
    ```python
    # Don't scan everything
    scan_futures = facade.submit_scan_async(
@@ -296,11 +314,12 @@ Process killed (OOM)
    ```
 
 2. **Process in batches**:
+
    ```python
    # Parse in smaller batches
    batch_size = 50
    all_results = []
-   
+
    for i in range(0, len(variables), batch_size):
        batch = variables[i:i+batch_size]
        futures = facade.submit_parse_async(
@@ -308,12 +327,13 @@ Process killed (OOM)
        )
        results = [f.result() for f in futures]
        all_results.extend(results)
-       
+
        # Clean up between batches
        WorkPool.get_instance().wait_for_completion()
    ```
 
 3. **Use chunked CSV reading**:
+
    ```python
    # For huge CSV files
    chunks = []
@@ -321,7 +341,7 @@ Process killed (OOM)
        # Process chunk
        processed = process(chunk)
        chunks.append(processed)
-   
+
    result = pd.concat(chunks, ignore_index=True)
    ```
 
@@ -343,6 +363,7 @@ When async parsing fails:
 ## Useful Debug Snippets
 
 ### Enable verbose logging
+
 ```python
 import logging
 
@@ -355,6 +376,7 @@ logging.basicConfig(
 ```
 
 ### Inspect pool state
+
 ```python
 from src.parsers.workers.work_pool import WorkPool
 from src.parsers.workers.scan_work_pool import ScanWorkPool
@@ -367,6 +389,7 @@ print(f"Scan pool: {scan_pool.max_workers} workers, {len(scan_pool.futures)} act
 ```
 
 ### Test pattern matching
+
 ```python
 import re
 

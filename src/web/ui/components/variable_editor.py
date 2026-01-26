@@ -80,7 +80,9 @@ class VariableEditor:
         return updated_vars
 
     @staticmethod
-    def _render_common_fields(idx: int, var: Dict[str, Any], var_id: str) -> tuple[str, str, str, bool]:
+    def _render_common_fields(
+        idx: int, var: Dict[str, Any], var_id: str
+    ) -> tuple[str, str, str, bool]:
         """Render common variable fields (Name, Alias, Type)."""
         col1, col2, col3, col4 = st.columns([3, 2, 2, 1])
 
@@ -329,12 +331,7 @@ class VariableEditor:
     @classmethod
     @st.dialog("Deep Scan", dismissible=False)
     def _show_scan_dialog(
-        cls,
-        var_name: str,
-        var_id: str,
-        facade: Any,
-        futures: List[Any],
-        is_distribution: bool
+        cls, var_name: str, var_id: str, facade: Any, futures: List[Any], is_distribution: bool
     ) -> None:
         """Blocking dialog for async scanning using futures."""
         from concurrent.futures import as_completed
@@ -379,7 +376,9 @@ class VariableEditor:
         if is_distribution:
             global_min, global_max = None, None
             for var in snapshot:
-                if (var["name"] == var_name or re.fullmatch(var_name, var["name"])) and var.get("type") == "distribution":
+                if (var["name"] == var_name or re.fullmatch(var_name, var["name"])) and var.get(
+                    "type"
+                ) == "distribution":
                     m, M = var.get("minimum"), var.get("maximum")
                     if m is not None:
                         global_min = min(global_min, m) if global_min is not None else m
@@ -387,18 +386,31 @@ class VariableEditor:
                         global_max = max(global_max, M) if global_max is not None else M
 
             if global_min is not None or global_max is not None:
-                st.session_state[f"dist_range_result_{var_id}"] = {"minimum": global_min, "maximum": global_max}
+                st.session_state[f"dist_range_result_{var_id}"] = {
+                    "minimum": global_min,
+                    "maximum": global_max,
+                }
                 st.success(f"Final Range: [{global_min}, {global_max}]")
             else:
                 st.warning(f"No distribution data found matching '{var_name}'.")
         else:
             found_entries = set()
             for var in snapshot:
-                if (var["name"] == var_name or re.fullmatch(var_name, var["name"])) and "entries" in var:
+                if (
+                    var["name"] == var_name or re.fullmatch(var_name, var["name"])
+                ) and "entries" in var:
                     found_entries.update(var["entries"])
 
             # SCIENTIFIC FILTER: Remove internal stats from the count and storage
-            internal_stats = {"total", "mean", "gmean", "stdev", "samples", "overflows", "underflows"}
+            internal_stats = {
+                "total",
+                "mean",
+                "gmean",
+                "stdev",
+                "samples",
+                "overflows",
+                "underflows",
+            }
             filtered_entries = sorted([e for e in found_entries if e.lower() not in internal_stats])
 
             if filtered_entries:
@@ -410,7 +422,9 @@ class VariableEditor:
                         var_found = True
                         break
                 if not var_found:
-                    scanned_vars.append({"name": var_name, "type": "vector", "entries": filtered_entries})
+                    scanned_vars.append(
+                        {"name": var_name, "type": "vector", "entries": filtered_entries}
+                    )
 
                 StateManager.set_scanned_variables(scanned_vars)
                 st.success(f"Discovered {len(filtered_entries)} unique entries!")

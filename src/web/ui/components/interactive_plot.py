@@ -22,21 +22,19 @@ _component_func = components.declare_component("interactive_plotly", path=compon
 
 
 def interactive_plotly_chart(
-    fig: go.Figure,
-    config: Optional[Dict[str, Any]] = None,
-    key: Optional[str] = None
+    fig: go.Figure, config: Optional[Dict[str, Any]] = None, key: Optional[str] = None
 ) -> Optional[Dict[str, Any]]:
     """
     Render a Plotly figure with custom interactivity.
-    
+
     Uses a custom HTML component that listens for relayout events from
     user interactions like zoom, pan, and legend clicks.
-    
+
     Args:
         fig: Plotly Figure object to render
         config: Optional Plotly configuration dictionary
         key: Optional Streamlit component key for state management
-        
+
     Returns:
         Dictionary containing relayoutData if an interaction occurred,
         None otherwise
@@ -46,10 +44,7 @@ def interactive_plotly_chart(
 
     # Render component
     component_value: Optional[Dict[str, Any]] = _component_func(
-        spec=fig_json,
-        config=json.dumps(config) if config else "{}",
-        key=key,
-        default=None
+        spec=fig_json, config=json.dumps(config) if config else "{}", key=key, default=None
     )
 
     return component_value

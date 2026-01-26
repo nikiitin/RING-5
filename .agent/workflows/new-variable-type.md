@@ -61,6 +61,7 @@ system.cpu.bandwidth_formula             2.456789   # bytes / time
 ```
 
 **Characteristics**:
+
 - Single numeric value (like scalar)
 - Has formula expression in comment
 - May have special naming convention (`_formula` suffix)
@@ -106,17 +107,17 @@ print $csv_fh "variable,value,formula\n";
 # Parse file
 while (my $line = <$stats_fh>) {
     chomp $line;
-    
+
     # Match formula variable line
     # Format: "variable_name    value    # formula_expression"
     if ($line =~ /^($pattern)\s+([0-9.e+-]+)\s*#\s*(.+)$/) {
         my $variable = $1;
         my $value = $2;
         my $formula = $3;
-        
+
         # Clean up formula (remove extra whitespace)
         $formula =~ s/^\s+|\s+$//g;
-        
+
         # Write to CSV
         print $csv_fh "$variable,$value,\"$formula\"\n";
     }
@@ -135,7 +136,7 @@ print "Formula parsing complete: $output_csv\n";
 ```python
 class TypeMapper:
     """Maps variable types to their parsing strategies."""
-    
+
     # Mapping of variable types to Perl parser scripts
     TYPE_TO_SCRIPT = {
         "scalar": "parse_scalar.pl",
@@ -145,7 +146,7 @@ class TypeMapper:
         "configuration": "parse_config.pl",
         "formula": "parse_formula.pl",  # ← Add new type
     }
-    
+
     # Mapping of variable types to expected output columns
     TYPE_TO_COLUMNS = {
         "scalar": ["variable", "value"],
@@ -155,36 +156,36 @@ class TypeMapper:
         "configuration": ["variable", "value"],
         "formula": ["variable", "value", "formula"],  # ← Add columns
     }
-    
+
     @staticmethod
     def map_variable_to_parse_config(variable_config: Dict[str, Any]) -> Dict[str, Any]:
         """
         Map variable configuration to parse parameters.
-        
+
         Args:
             variable_config: Config with 'name', 'type', and type-specific params
-            
+
         Returns:
             Dict with 'type', 'pattern', 'script', and additional params
         """
         var_type = variable_config.get("type")
-        
+
         if var_type not in TypeMapper.TYPE_TO_SCRIPT:
             raise ValueError(f"Unknown variable type: {var_type}")
-        
+
         parse_config = {
             "type": var_type,
             "pattern": variable_config.get("name", ""),
             "script": TypeMapper.TYPE_TO_SCRIPT[var_type],
         }
-        
+
         # Type-specific parameters
         if var_type == "formula":
             # Formula variables may have optional parameters
             parse_config["extract_formula"] = True
-        
+
         # ... handle other types ...
-        
+
         return parse_config
 ```
 
@@ -202,16 +203,16 @@ def scan_gem5_stats(
 ) -> Dict[str, Any]:
     """
     Scan gem5 stats file for matching variables.
-    
+
     Returns:
         Dict with variable metadata including type detection
     """
     results = {}
-    
+
     with open(stats_path, 'r') as f:
         for line in f:
             # ... existing scalar/vector/distribution detection ...
-            
+
             # Detect formula variables (have "# formula" in comment)
             if re.match(rf"^{pattern}\s+[0-9.e+-]+\s*#\s*.+", line):
                 var_name = line.split()[0]
@@ -220,7 +221,7 @@ def scan_gem5_stats(
                     "name": var_name,
                     "sample_line": line.strip()
                 }
-    
+
     return results
 ```
 
@@ -239,7 +240,7 @@ from src.parsers.type_mapper import TypeMapper
 
 class TestFormulaParser:
     """Unit tests for formula variable parsing."""
-    
+
     @pytest.fixture
     def stats_file(self, tmp_path):
         """Create test stats file with formula variables."""
@@ -251,11 +252,11 @@ system.cpu.bandwidth_formula             2.456789   # bytes / time
         stats_path = tmp_path / "stats.txt"
         stats_path.write_text(content)
         return stats_path
-    
+
     def test_perl_parser_execution(self, stats_file, tmp_path):
         """Test that Perl parser executes and produces CSV."""
         output_csv = tmp_path / "output.csv"
-        
+
         # Run Perl script directly
         result = subprocess.run([
             "perl",
@@ -264,31 +265,31 @@ system.cpu.bandwidth_formula             2.456789   # bytes / time
             f"--pattern=system\\.cpu\\..+_formula",
             f"--output-csv={output_csv}"
         ], capture_output=True, text=True)
-        
+
         assert result.returncode == 0, f"Parser failed: {result.stderr}"
         assert output_csv.exists()
-        
+
         # Verify CSV content
         df = pd.read_csv(output_csv)
         assert len(df) == 2
         assert "variable" in df.columns
         assert "value" in df.columns
         assert "formula" in df.columns
-        
+
         # Check specific values
         ipc_row = df[df["variable"] == "system.cpu.ipc_formula"]
         assert float(ipc_row["value"].iloc[0]) == pytest.approx(1.745234)
         assert ipc_row["formula"].iloc[0] == "cycles / instructions"
-    
+
     def test_type_mapper_formula_config(self):
         """Test TypeMapper generates correct config for formula type."""
         variable_config = {
             "name": "system.cpu.ipc_formula",
             "type": "formula"
         }
-        
+
         parse_config = TypeMapper.map_variable_to_parse_config(variable_config)
-        
+
         assert parse_config["type"] == "formula"
         assert parse_config["script"] == "parse_formula.pl"
         assert parse_config["pattern"] == "system.cpu.ipc_formula"
@@ -308,12 +309,12 @@ from src.web.facade import BackendFacade
 
 class TestFormulaParsingIntegration:
     """Integration tests for formula variable end-to-end parsing."""
-    
+
     @pytest.fixture
     def facade(self):
         """Create BackendFacade instance."""
         return BackendFacade()
-    
+
     @pytest.fixture
     def stats_file(self, tmp_path):
         """Create realistic gem5 stats with formula variables."""
@@ -327,12 +328,12 @@ system.cpu.bandwidth_formula                 2.456789   # bytes / time
         stats_path = tmp_path / "stats.txt"
         stats_path.write_text(content)
         return stats_path
-    
+
     def test_formula_scan_and_parse(self, facade, stats_file, tmp_path):
         """Test scanning and parsing formula variables."""
         output_dir = tmp_path / "output"
         output_dir.mkdir()
-        
+
         # Step 1: Scan for formula variables
         scan_futures = facade.submit_scan_async(
             str(stats_file),
@@ -341,12 +342,12 @@ system.cpu.bandwidth_formula                 2.456789   # bytes / time
         )
         scan_results = [f.result(timeout=10) for f in scan_futures]
         scanned_vars = facade.finalize_scan(scan_results)
-        
+
         # Verify scan detected formula type
         assert len(scanned_vars) == 2
         for var in scanned_vars:
             assert var["type"] == "formula"
-        
+
         # Step 2: Parse formula variables
         parse_futures = facade.submit_parse_async(
             str(stats_file),
@@ -357,16 +358,16 @@ system.cpu.bandwidth_formula                 2.456789   # bytes / time
         )
         parse_results = [f.result(timeout=10) for f in parse_futures]
         csv_path = facade.finalize_parsing(str(output_dir), parse_results)
-        
+
         # Verify CSV output
         assert csv_path is not None
         assert Path(csv_path).exists()
-        
+
         # Load and verify data
         data = facade.load_csv(csv_path)
         assert len(data) == 2
         assert "formula" in data.columns
-        
+
         # Verify specific formula
         ipc_row = data[data["variable"] == "system.cpu.ipc_formula"]
         assert ipc_row["formula"].iloc[0] == "cycles / instructions"
@@ -387,13 +388,17 @@ system.cpu.bandwidth_formula                 2.456789   # bytes / time
 
 **Format in stats.txt**:
 ```
-variable_name    value    # formula_expression
+
+variable_name value # formula_expression
+
 ```
 
 **Example**:
 ```
-system.cpu.ipc_formula    1.745234    # cycles / instructions
-```
+
+system.cpu.ipc_formula 1.745234 # cycles / instructions
+
+````
 
 **CSV Output Columns**:
 - `variable`: Variable name
@@ -406,10 +411,11 @@ system.cpu.ipc_formula    1.745234    # cycles / instructions
     "name": "system.cpu.ipc_formula",
     "type": "formula"
 }
-```
+````
 
 **Parser**: `parse_formula.pl`
-```
+
+````
 
 ### Step 8: Update UI
 
@@ -432,7 +438,7 @@ def render_variable_type_selector():
             "formula": "Formula (derived statistic)",
         }[x]
     )
-```
+````
 
 ## Testing Checklist
 
@@ -496,13 +502,13 @@ if var_type == "advanced_histogram":
 
 ## Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| Perl parser not found | Check file path in `TypeMapper.TYPE_TO_SCRIPT` |
-| CSV columns mismatch | Update `TypeMapper.TYPE_TO_COLUMNS` |
-| Scanner doesn't detect type | Add detection regex in `scanner.py` |
-| Parser produces invalid CSV | Validate Perl output format with test data |
-| Integration test fails | Check async workflow (scan → parse → load) |
+| Issue                       | Solution                                       |
+| --------------------------- | ---------------------------------------------- |
+| Perl parser not found       | Check file path in `TypeMapper.TYPE_TO_SCRIPT` |
+| CSV columns mismatch        | Update `TypeMapper.TYPE_TO_COLUMNS`            |
+| Scanner doesn't detect type | Add detection regex in `scanner.py`            |
+| Parser produces invalid CSV | Validate Perl output format with test data     |
+| Integration test fails      | Check async workflow (scan → parse → load)     |
 
 ## References
 

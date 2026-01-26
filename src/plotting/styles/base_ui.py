@@ -605,7 +605,9 @@ class BaseStyleUI:
         Render UI for per-series coloring.
         """
         series_styles_raw = saved_config.get("series_styles", {})
-        series_styles: Dict[str, Any] = cast(Dict[str, Any], series_styles_raw) if series_styles_raw else {}
+        series_styles: Dict[str, Any] = (
+            cast(Dict[str, Any], series_styles_raw) if series_styles_raw else {}
+        )
         unique_vals = self._get_unique_values(saved_config, data, items)
 
         # Use current selection if available, else saved config
@@ -716,7 +718,9 @@ class BaseStyleUI:
         Render UI for per-series renaming.
         """
         series_styles_raw = saved_config.get("series_styles", {})
-        series_styles: Dict[str, Any] = cast(Dict[str, Any], series_styles_raw) if series_styles_raw else {}
+        series_styles: Dict[str, Any] = (
+            cast(Dict[str, Any], series_styles_raw) if series_styles_raw else {}
+        )
         unique_vals = self._get_unique_values(saved_config, data, items)
 
         if unique_vals:
@@ -754,7 +758,9 @@ class BaseStyleUI:
         Render UI for X-Axis label renaming.
         """
         xaxis_labels_raw = saved_config.get("xaxis_labels", {})
-        xaxis_labels: Dict[str, str] = cast(Dict[str, str], xaxis_labels_raw) if xaxis_labels_raw else {}
+        xaxis_labels: Dict[str, str] = (
+            cast(Dict[str, str], xaxis_labels_raw) if xaxis_labels_raw else {}
+        )
         x_col = saved_config.get("x")
 
         if data is not None and x_col and x_col in data.columns:
@@ -790,7 +796,9 @@ class BaseStyleUI:
 
         return xaxis_labels
 
-    def _get_unique_values(self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame], items: Optional[List[str]]) -> List[Any]:
+    def _get_unique_values(
+        self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame], items: Optional[List[str]]
+    ) -> List[Any]:
         """Helper to determine series items."""
         unique_vals: List[Any] = []
         if items is not None:

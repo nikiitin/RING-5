@@ -29,14 +29,14 @@ class TestGem5Parsing:
 
         # Use async API
         futures = facade.submit_scan_async(str(self.TEST_DATA_DIR), "stats.txt", limit=10)
-        
+
         # Wait for all futures to complete
         results = []
         for future in futures:
             result = future.result(timeout=10)  # 10 second timeout
             if result:
                 results.append(result)
-            
+
         variables = facade.finalize_scan(results)
         assert len(variables) > 0
 
@@ -56,14 +56,14 @@ class TestGem5Parsing:
 
         # 1. Scan for variables
         scan_futures = facade.submit_scan_async(str(self.TEST_DATA_DIR), "stats.txt", limit=10)
-        
+
         # Wait for scan to complete
         scan_results = []
         for future in scan_futures:
             result = future.result(timeout=10)
             if result:
                 scan_results.append(result)
-            
+
         all_variables = facade.finalize_scan(scan_results)
 
         # 2. Select a few scalar variables
@@ -71,9 +71,7 @@ class TestGem5Parsing:
             v
             for v in all_variables
             if v["type"] == "scalar"
-            and ("simTicks" in v["name"]
-            or "ipc" in v["name"]
-            or "cycles" in v["name"])
+            and ("simTicks" in v["name"] or "ipc" in v["name"] or "cycles" in v["name"])
         ][:5]
 
         if not selected_vars:
@@ -88,16 +86,16 @@ class TestGem5Parsing:
             stats_pattern="stats.txt",
             variables=selected_vars,
             output_dir=str(output_dir),
-            scanned_vars=all_variables
+            scanned_vars=all_variables,
         )
-        
+
         # Wait for parsing to complete
         parse_results = []
         for future in parse_futures:
             result = future.result(timeout=30)
             if result:
                 parse_results.append(result)
-        
+
         csv_path = facade.finalize_parsing(str(output_dir), parse_results)
 
         assert csv_path is not None
@@ -149,14 +147,14 @@ system.mem.ctrl::1024-2047                    5      50.00%     100.00%      # H
         try:
             # 1. Scan
             scan_futures = facade.submit_scan_async(str(stats_dir), "stats.txt", limit=-1)
-            
+
             # Wait for scan to complete
             scan_results = []
             for future in scan_futures:
                 result = future.result(timeout=5)
                 if result:
                     scan_results.append(result)
-                
+
             vars_found = facade.finalize_scan(scan_results)
             hist_var = next((v for v in vars_found if v["name"] == "system.mem.ctrl"), None)
 
@@ -172,14 +170,14 @@ system.mem.ctrl::1024-2047                    5      50.00%     100.00%      # H
             parse_futures = facade.submit_parse_async(
                 str(stats_dir), "stats.txt", variables, str(output_dir), scanned_vars=vars_found
             )
-            
+
             # Wait for parsing to complete
             parse_results = []
             for future in parse_futures:
                 result = future.result(timeout=10)
                 if result:
                     parse_results.append(result)
-            
+
             csv_path = facade.finalize_parsing(str(output_dir), parse_results)
 
             assert csv_path is not None

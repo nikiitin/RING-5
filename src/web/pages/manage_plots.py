@@ -8,7 +8,6 @@ with independent data processing pipelines.
 
 import sys
 from pathlib import Path
-from typing import Optional
 
 import streamlit as st
 

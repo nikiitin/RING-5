@@ -49,7 +49,7 @@ class ShaperFactory:
     def get_available_types(cls) -> List[str]:
         """
         Return a list of all registered shaper type identifiers.
-        
+
         Returns:
             List of shaper type strings (e.g., ['mean', 'normalize', 'sort'])
         """

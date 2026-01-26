@@ -7,11 +7,13 @@
 Skills provide step-by-step instructions for implementing specific features.
 
 ### 1. [parsing-workflow.md](skills/parsing-workflow.md)
+
 **Domain**: Data Ingestion  
 **Complexity**: Intermediate  
 **Purpose**: Complete gem5 stats parsing workflow
 
 **Covers**:
+
 - 4-phase workflow: Scanning → Selection → Parsing → Loading
 - Async API usage patterns
 - Error handling strategies
@@ -24,11 +26,13 @@ Skills provide step-by-step instructions for implementing specific features.
 ---
 
 ### 2. [new-plot-type.md](skills/new-plot-type.md)
+
 **Domain**: Visualization  
 **Complexity**: Intermediate  
 **Purpose**: Adding new plot types to the visualization system
 
 **Covers**:
+
 - Factory pattern implementation
 - BasePlot interface
 - Plotly figure creation
@@ -41,11 +45,13 @@ Skills provide step-by-step instructions for implementing specific features.
 ---
 
 ### 3. [shaper-pipeline.md](skills/shaper-pipeline.md)
+
 **Domain**: Data Transformation  
 **Complexity**: Intermediate  
 **Purpose**: Creating custom shapers and transformation pipelines
 
 **Covers**:
+
 - Shaper pattern and architecture
 - Built-in shapers (rename, filter, aggregate, compute, normalize)
 - Creating custom shapers
@@ -58,11 +64,13 @@ Skills provide step-by-step instructions for implementing specific features.
 ---
 
 ### 4. [debug-async-parsing.md](skills/debug-async-parsing.md)
+
 **Domain**: Troubleshooting  
 **Complexity**: Intermediate  
 **Purpose**: Debugging async parsing and scanning issues
 
 **Covers**:
+
 - Future timeout errors
 - Empty parse results
 - Variable not found errors
@@ -79,11 +87,13 @@ Skills provide step-by-step instructions for implementing specific features.
 Workflows define standardized processes for common development tasks.
 
 ### 1. [test-driven-development.md](workflows/test-driven-development.md)
+
 **Complexity**: Fundamental  
 **Applies to**: All code changes  
 **Purpose**: TDD process for RING-5
 
 **Covers**:
+
 - Write test → Fail → Implement → Pass → Refactor cycle
 - Test organization (unit, integration, e2e)
 - Pytest fixtures and mocking patterns
@@ -95,11 +105,13 @@ Workflows define standardized processes for common development tasks.
 ---
 
 ### 2. [new-variable-type.md](workflows/new-variable-type.md)
+
 **Complexity**: Advanced  
 **Applies to**: gem5 parser extensions  
 **Purpose**: Adding support for new gem5 variable types
 
 **Covers**:
+
 - Creating Perl parser scripts
 - Updating TypeMapper
 - Scanner integration
@@ -115,36 +127,37 @@ Workflows define standardized processes for common development tasks.
 
 ### By Task Type
 
-| Task | Use This |
-|------|----------|
-| Parse new data source | [parsing-workflow.md](skills/parsing-workflow.md) |
-| Add new chart type | [new-plot-type.md](skills/new-plot-type.md) |
-| Transform data | [shaper-pipeline.md](skills/shaper-pipeline.md) |
-| Fix parsing bugs | [debug-async-parsing.md](skills/debug-async-parsing.md) |
-| Write new feature | [test-driven-development.md](workflows/test-driven-development.md) |
-| Support new gem5 type | [new-variable-type.md](workflows/new-variable-type.md) |
+| Task                  | Use This                                                           |
+| --------------------- | ------------------------------------------------------------------ |
+| Parse new data source | [parsing-workflow.md](skills/parsing-workflow.md)                  |
+| Add new chart type    | [new-plot-type.md](skills/new-plot-type.md)                        |
+| Transform data        | [shaper-pipeline.md](skills/shaper-pipeline.md)                    |
+| Fix parsing bugs      | [debug-async-parsing.md](skills/debug-async-parsing.md)            |
+| Write new feature     | [test-driven-development.md](workflows/test-driven-development.md) |
+| Support new gem5 type | [new-variable-type.md](workflows/new-variable-type.md)             |
 
 ### By Complexity
 
-| Level | Skills | Workflows |
-|-------|--------|-----------|
-| **Fundamental** | - | TDD |
-| **Intermediate** | Parsing, Plotting, Shapers, Debugging | - |
-| **Advanced** | - | New Variable Type |
+| Level            | Skills                                | Workflows         |
+| ---------------- | ------------------------------------- | ----------------- |
+| **Fundamental**  | -                                     | TDD               |
+| **Intermediate** | Parsing, Plotting, Shapers, Debugging | -                 |
+| **Advanced**     | -                                     | New Variable Type |
 
 ### By Domain
 
-| Domain | Guides |
-|--------|--------|
-| **Data Ingestion** | parsing-workflow, debug-async-parsing |
-| **Visualization** | new-plot-type |
-| **Transformation** | shaper-pipeline |
-| **Parser Extension** | new-variable-type |
-| **Quality Assurance** | test-driven-development |
+| Domain                | Guides                                |
+| --------------------- | ------------------------------------- |
+| **Data Ingestion**    | parsing-workflow, debug-async-parsing |
+| **Visualization**     | new-plot-type                         |
+| **Transformation**    | shaper-pipeline                       |
+| **Parser Extension**  | new-variable-type                     |
+| **Quality Assurance** | test-driven-development               |
 
 ## Common Workflows
 
 ### Adding a New Feature
+
 1. Start with [test-driven-development.md](workflows/test-driven-development.md)
 2. Choose domain-specific skill:
    - Data? → [parsing-workflow.md](skills/parsing-workflow.md)
@@ -153,11 +166,13 @@ Workflows define standardized processes for common development tasks.
 3. If stuck, use [debug-async-parsing.md](skills/debug-async-parsing.md)
 
 ### Fixing a Bug
+
 1. Reproduce with test ([test-driven-development.md](workflows/test-driven-development.md))
 2. Debug using [debug-async-parsing.md](skills/debug-async-parsing.md)
 3. Fix and verify tests pass
 
 ### Extending Parser
+
 1. Follow [new-variable-type.md](workflows/new-variable-type.md)
 2. Test with [parsing-workflow.md](skills/parsing-workflow.md) examples
 3. Ensure TDD compliance ([test-driven-development.md](workflows/test-driven-development.md))
@@ -165,6 +180,7 @@ Workflows define standardized processes for common development tasks.
 ## Integration with AI Assistants
 
 ### GitHub Copilot (VS Code)
+
 - Automatically reads `.github/copilot-instructions.md`
 - Skills/workflows referenced in instructions
 - Use inline comments to trigger skill usage:
@@ -174,6 +190,7 @@ Workflows define standardized processes for common development tasks.
   ```
 
 ### Cursor/Antigravity
+
 - Reads `.cursorrules` on project open
 - Skills/workflows listed in cursorrules
 - Use chat commands:
@@ -183,6 +200,7 @@ Workflows define standardized processes for common development tasks.
   ```
 
 ### MCP-Compatible Assistants
+
 - Access via `.mcp-config.json` servers
 - Skills exposed through `ring5-skills` server
 - Workflows through `ring5-workflows` server
@@ -192,10 +210,11 @@ Workflows define standardized processes for common development tasks.
 ### Adding New Skills/Workflows
 
 1. **Create the markdown file**:
+
    ```bash
    # For skills
    touch .agent/skills/my-new-skill.md
-   
+
    # For workflows
    touch .agent/workflows/my-new-workflow.md
    ```
@@ -220,6 +239,7 @@ Workflows define standardized processes for common development tasks.
 ### Deprecating Skills/Workflows
 
 1. Mark as deprecated in header:
+
    ```markdown
    **Status**: DEPRECATED - Use [new-skill.md](new-skill.md) instead
    ```

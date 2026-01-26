@@ -1,4 +1,5 @@
 from unittest.mock import MagicMock, patch
+
 import pandas as pd
 import pytest
 
@@ -31,8 +32,9 @@ class MockPlot(BasePlot):
 
 @pytest.fixture
 def mock_streamlit():
-    with patch("src.plotting.plot_renderer.st") as mock_st, \
-         patch("src.plotting.base_plot.StyleManager") as MockStyleManager:
+    with patch("src.plotting.plot_renderer.st") as mock_st, patch(
+        "src.plotting.base_plot.StyleManager"
+    ) as MockStyleManager:
 
         # Configure StyleManager mock
         style_manager_instance = MockStyleManager.return_value
@@ -79,7 +81,9 @@ def test_render_legend_customization_with_col(mock_streamlit, mock_plot):
 
 @patch("src.plotting.plot_renderer.ExportService")
 @patch("src.plotting.plot_renderer.interactive_plotly_chart")
-def test_render_plot_regenerate(mock_interactive_chart, mock_export_service, mock_streamlit, mock_plot):
+def test_render_plot_regenerate(
+    mock_interactive_chart, mock_export_service, mock_streamlit, mock_plot
+):
     mock_plot.processed_data = pd.DataFrame({"x": [1]})
 
     PlotRenderer.render_plot(mock_plot, should_generate=True)

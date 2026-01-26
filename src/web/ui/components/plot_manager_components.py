@@ -159,7 +159,9 @@ class PlotManagerComponents:
                 st.rerun()
             except Exception as e:
                 st.error(f"Error loading: {e}")
-                logger.error("PLOT: Failed to load pipeline for plot '%s': %s", plot.name, e, exc_info=True)
+                logger.error(
+                    "PLOT: Failed to load pipeline for plot '%s': %s", plot.name, e, exc_info=True
+                )
 
         if st.button("Cancel", key=f"cancel_load_{plot.plot_id}"):
             st.session_state[f"show_load_for_plot_{plot.plot_id}"] = False
@@ -251,8 +253,13 @@ class PlotManagerComponents:
                             st.dataframe(out.head(5))
                         except Exception as e:
                             st.error(f"Preview error: {e}")
-                            logger.error("PIPELINE: Preview failure for shaper index %d in plot '%s': %s",
-                                         idx, plot.name, e, exc_info=True)
+                            logger.error(
+                                "PIPELINE: Preview failure for shaper index %d in plot '%s': %s",
+                                idx,
+                                plot.name,
+                                e,
+                                exc_info=True,
+                            )
 
         # Finalize
         if plot.pipeline:

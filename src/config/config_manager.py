@@ -14,7 +14,7 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 class OutputConfig(TypedDict):
     """Type definition for plot output configuration."""
-    
+
     filename: str
     format: str  # "png", "pdf", "svg"
     dpi: int
@@ -22,7 +22,7 @@ class OutputConfig(TypedDict):
 
 class PlotDataConfig(TypedDict, total=False):
     """Type definition for plot data configuration."""
-    
+
     x: str
     y: str
     hue: str
@@ -32,7 +32,7 @@ class PlotDataConfig(TypedDict, total=False):
 
 class PlotStyleConfig(TypedDict, total=False):
     """Type definition for plot style configuration."""
-    
+
     width: int
     height: int
     theme: str
@@ -46,7 +46,7 @@ class PlotStyleConfig(TypedDict, total=False):
 
 class PlotConfig(TypedDict):
     """Type definition for complete plot configuration."""
-    
+
     type: str
     output: OutputConfig
     data: PlotDataConfig
@@ -55,7 +55,7 @@ class PlotConfig(TypedDict):
 
 class VariableConfig(TypedDict, total=False):
     """Type definition for variable parsing configuration."""
-    
+
     name: str
     type: str  # "scalar", "vector", "distribution", "configuration"
     rename: str
@@ -63,7 +63,7 @@ class VariableConfig(TypedDict, total=False):
 
 class ParseConfig(TypedDict):
     """Type definition for parsing configuration."""
-    
+
     parser: str
     statsPath: str
     statsPattern: str
@@ -72,7 +72,7 @@ class ParseConfig(TypedDict):
 
 class DataManagersConfig(TypedDict, total=False):
     """Type definition for data managers configuration."""
-    
+
     seedsReducer: bool
     outlierRemover: Dict[str, Any]
     normalizer: Dict[str, Any]
@@ -80,7 +80,7 @@ class DataManagersConfig(TypedDict, total=False):
 
 class RingConfig(TypedDict):
     """Type definition for complete RING-5 configuration."""
-    
+
     outputPath: str
     parseConfig: ParseConfig
     dataManagers: DataManagersConfig
@@ -416,7 +416,12 @@ def create_simple_bar_plot_config(
     ConfigTemplateGenerator.enable_seeds_reducer(config_dict)
 
     # Add plot
-    plot_kwargs: Dict[str, Any] = {"title": f"{y_var} by {x_var}", "xlabel": x_var, "ylabel": y_var, "grid": True}
+    plot_kwargs: Dict[str, Any] = {
+        "title": f"{y_var} by {x_var}",
+        "xlabel": x_var,
+        "ylabel": y_var,
+        "grid": True,
+    }
 
     if hue_var:
         plot_kwargs["hue"] = hue_var

@@ -11,8 +11,8 @@ from typing import Any, Dict, List, Optional, cast
 
 from src.parsers.type_mapper import TypeMapper
 from src.parsers.workers.gem5_parse_work import Gem5ParseWork
-from src.parsers.workers.pool import ParseWorkPool
 from src.parsers.workers.parse_work import ParseWork
+from src.parsers.workers.pool import ParseWorkPool
 
 logger = logging.getLogger(__name__)
 
@@ -27,14 +27,14 @@ class ParseService:
         stats_path: str, stats_pattern: str, variables: List[Dict[str, Any]], output_dir: str
     ) -> List[Any]:
         """Submit async parsing job and return futures."""
-        
+
         search_path = Path(stats_path)
         if not search_path.exists():
             raise FileNotFoundError(f"Stats path does not exist: {stats_path}")
 
         pattern = f"**/{stats_pattern}"
         files = [str(f) for f in search_path.glob(pattern)]
-        
+
         if not files:
             raise FileNotFoundError(f"No files found matching {stats_pattern}")
 
@@ -65,7 +65,7 @@ class ParseService:
         header_parts: List[str] = []
         sample = results[0]
         column_map: Dict[str, Optional[List[str]]] = {}
-        
+
         # Use stored var names to ensure consistent order
         var_names = ParseService._active_var_names
         # Fallback if empty

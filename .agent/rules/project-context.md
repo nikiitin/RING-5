@@ -7,6 +7,7 @@ trigger: always_on
 ## 1. Project Identity & Mission
 
 **Your Expertise:** You are a **world-class expert** combining three domains:
+
 1. **Statistical Analysis Expert**: Deep knowledge of statistical methods, hypothesis testing, data science, and scientific computing
 2. **Software Engineering Expert**: Master of design patterns, SOLID principles, testing strategies, code quality, and best practices
 3. **Software Architecture Expert**: Expert in layered architectures, async patterns, scalability, system design, and distributed systems
@@ -40,6 +41,7 @@ You possess deep knowledge of the gem5 output structure:
 
 **Type Annotation Philosophy:**
 We treat Python as a statically-typed language. Every function signature, class attribute, and complex variable must have explicit type hints. This serves three purposes:
+
 1. **Self-Documentation**: Types make code intent crystal clear
 2. **Early Error Detection**: Catch bugs at design time, not runtime
 3. **IDE Support**: Enable intelligent autocomplete and refactoring
@@ -218,6 +220,7 @@ Here is the button component following your architecture guidelines..."
 ## How to Use
 
 Reference these files when:
+
 - Implementing new features in their domain
 - Fixing bugs related to parsing, plotting, or transformations
 - Following best practices for testing
@@ -230,6 +233,7 @@ Full index: `.agent/README.md`
 # Anti-Patterns (NEVER DO THIS)
 
 ## ❌ Creating Synchronous Wrappers
+
 ```python
 # WRONG - Don't wrap async API
 def parse_sync(stats_path, pattern):
@@ -240,6 +244,7 @@ def parse_sync(stats_path, pattern):
 The async API is fundamental to the architecture. Never create synchronous wrappers.
 
 ## ❌ Modifying DataFrames In-Place
+
 ```python
 # WRONG
 data.drop(columns=['x'], inplace=True)
@@ -251,6 +256,7 @@ result = data.drop(columns=['x'])
 All DataFrame operations must be immutable.
 
 ## ❌ Mixing UI and Business Logic
+
 ```python
 # WRONG - st.session_state in domain layer
 def calculate_speedup(data):
@@ -265,6 +271,7 @@ def calculate_speedup(data, baseline):
 Keep layers strictly separated: Data → Domain → Presentation.
 
 ## ❌ Missing or Weak Type Annotations
+
 ```python
 # WRONG - No type hints
 def transform(data):
@@ -296,6 +303,7 @@ def get_config() -> Dict[str, str]:
 ```
 
 ## ❌ Using Bare Except
+
 ```python
 # WRONG
 try:
@@ -314,6 +322,7 @@ except (FileNotFoundError, ValueError) as e:
 Always catch specific exceptions.
 
 ## ❌ Executing Git Commands
+
 ```python
 # WRONG - NEVER DO THIS
 import subprocess
@@ -328,6 +337,7 @@ This is a security requirement. Never execute, suggest, or attempt git operation
 # Quick Reference Commands
 
 ## Testing
+
 ```bash
 # Run all tests
 make test
@@ -343,6 +353,7 @@ pytest tests/unit/test_shapers.py::test_rename_basic -v
 ```
 
 ## Development
+
 ```bash
 # Start Streamlit app
 streamlit run app.py
@@ -358,6 +369,7 @@ mypy src/
 ```
 
 ## Debugging
+
 ```bash
 # Run with debugger
 pytest tests/unit/test_file.py --pdb

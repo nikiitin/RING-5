@@ -88,7 +88,9 @@ class ShaperWork(Job):
         task_type_raw = utils.getElementValue(self._json, "type")
         task_params_raw = utils.getElementValue(self._json, "params")
         task_type = str(task_type_raw) if task_type_raw is not None else ""
-        task_params = cast(Dict[str, Any], task_params_raw) if isinstance(task_params_raw, dict) else {}
+        task_params = (
+            cast(Dict[str, Any], task_params_raw) if isinstance(task_params_raw, dict) else {}
+        )
 
         # Create the shaper using the factory
         shaper = ShaperFactory.createShaper(task_type, task_params)

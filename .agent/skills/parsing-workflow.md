@@ -55,7 +55,7 @@ vector_vars = [v for v in discovered_variables if v["type"] == "vector"]
 import re
 cpu_ipc_pattern = r"system\.cpu\d+\.ipc"
 matching_vars = [
-    v for v in discovered_variables 
+    v for v in discovered_variables
     if re.match(cpu_ipc_pattern, v["name"])
 ]
 
@@ -149,14 +149,14 @@ if not csv_path or not Path(csv_path).exists():
 def test_parsing_workflow():
     """Test complete parsing workflow."""
     facade = BackendFacade()
-    
+
     # 1. Scan
     scan_futures = facade.submit_scan_async(test_path, "stats.txt", limit=5)
     scan_results = [f.result(timeout=10) for f in scan_futures]
     variables = facade.finalize_scan(scan_results)
-    
+
     assert len(variables) > 0
-    
+
     # 2. Parse
     selected = [v for v in variables if v["type"] == "scalar"][:3]
     parse_futures = facade.submit_parse_async(
@@ -164,10 +164,10 @@ def test_parsing_workflow():
     )
     parse_results = [f.result(timeout=10) for f in parse_futures]
     csv_path = facade.finalize_parsing(output_dir, parse_results)
-    
+
     assert csv_path is not None
     assert Path(csv_path).exists()
-    
+
     # 3. Verify
     df = pd.read_csv(csv_path)
     assert len(df) > 0
@@ -177,7 +177,7 @@ def test_parsing_workflow():
 ## Common Pitfalls
 
 ❌ **DON'T**: Create synchronous wrappers  
-✅ **DO**: Use async primitives (submit_*_async + finalize_*)
+✅ **DO**: Use async primitives (submit*\*\_async + finalize*\*)
 
 ❌ **DON'T**: Forget to pass scanned_vars for regex resolution  
 ✅ **DO**: Always pass scanned_vars when using regex patterns
@@ -206,7 +206,7 @@ if st.button("Parse Statistics"):
             if result:
                 scan_results.append(result)
             progress.progress((i + 1) / len(scan_futures))
-        
+
         variables = facade.finalize_scan(scan_results)
         StateManager.set_scanned_variables(variables)
         st.success(f"Found {len(variables)} variables!")
