@@ -1,3 +1,5 @@
+from typing import Any, Dict, List, Optional
+
 import pandas as pd
 
 from src.web.services.shapers.impl.selector import Selector
@@ -5,113 +7,111 @@ from src.web.services.shapers.impl.selector import Selector
 
 class ConditionSelector(Selector):
     """
-    ConditionSelector is a Selector that selects items based on a specified condition.
-    It supports numeric comparisons, ranges, and categorical inclusion.
+    Shaper that filters rows based on numeric or categorical conditions.
+
+    Supports:
+    - Numeric comparisons (greater_than, less_than, equals)
+    - Range queries (min <= x <= max)
+    - Categorical inclusion (isin list)
+    - Substring matching (contains)
+    - Legacy direct comparison strings (<, >, ==, etc.)
     """
 
-    def __init__(self, params: dict):
-        # Initialize attributes before super() to ensure they exist
-        self._mode = params.get("mode", "legacy")
-        self._condition = params.get("condition")
-        self._value = params.get("value")
-        self._threshold = params.get("threshold")
-        self._range = params.get("range")
-        self._values = params.get("values")
+    def __init__(self, params: Dict[str, Any]) -> None:
+        """
+        Initialize ConditionSelector.
+
+        Args:
+            params: Dictionary containing 'column' and one or more filter definitions:
+                - mode (str): 'greater_than', 'less_than', 'equals', 'contains', 'legacy'
+                - threshold (float): threshold for numeric modes
+                - range (List[float]): [min, max] for range mode
+                - values (List[Any]): Allowed values for categorical mode
+                - condition (str): operator for legacy mode
+                - value (Any): comparison value for legacy/equals/contains mode
+        """
+        # Load parameters with defaults BEFORE super().__init__
+        # because super().__init__ calls _verify_params which uses these.
+        self.mode: str = params.get("mode", "legacy")
+        self.condition: Optional[str] = params.get("condition")
+        self.value: Any = params.get("value")
+        self.threshold: Optional[float] = params.get("threshold")
+        self.range: Optional[List[float]] = params.get("range")
+        self.values: Optional[List[Any]] = params.get("values")
 
         super().__init__(params)
 
-    def _verifyParams(self) -> bool:
-        verified = super()._verifyParams()
+    def _verify_params(self) -> bool:
+        """Validate that the parameter combination is sufficient for filtering."""
+        super()._verify_params()
 
-        # Verify based on what parameters are present
-        if self._values is not None:
-            # Categorical mode
-            if not isinstance(self._values, list):
-                raise ValueError("'values' must be a list")
-        elif self._range is not None:
-            # Range mode
-            if not isinstance(self._range, list) or len(self._range) != 2:
-                raise ValueError("'range' must be a list of 2 values")
-        elif self._mode == "greater_than" or self._mode == "less_than":
-            if self._threshold is None:
-                raise ValueError(f"'{self._mode}' mode requires 'threshold'")
-        elif self._mode == "equals":
-            if self._value is None:
-                raise ValueError("'equals' mode requires 'value'")
-        elif self._condition is not None and self._value is not None:
-            # Legacy mode
-            if self._condition not in ["<", ">", "<=", ">=", "==", "!="]:
-                raise ValueError(
-                    "The 'condition' parameter must be one of: '<', '>', '<=', '>=', '==', '!='."
-                )
-        else:
-            # If we are here, we might have a missing parameter configuration
-            # But we allow initialization, validation happens at runtime or we can be strict here.
-            pass
+        if self.params.get("values") is not None:
+            if not isinstance(self.params["values"], list):
+                raise TypeError("ConditionSelector: 'values' must be a list.")
 
-        return verified
+        elif self.params.get("range") is not None:
+            r = self.params["range"]
+            if not isinstance(r, list) or len(r) != 2:
+                raise ValueError("ConditionSelector: 'range' must be a list of 2 values.")
 
-    def _verifyPreconditions(self, data_frame: pd.DataFrame) -> bool:
-        return super()._verifyPreconditions(data_frame)
+        elif self.mode == "greater_than" or self.mode == "less_than":
+            if self.params.get("threshold") is None:
+                raise ValueError(f"ConditionSelector: '{self.mode}' mode requires 'threshold'.")
+
+        elif self.mode == "equals" or self.mode == "contains":
+            if self.params.get("value") is None:
+                raise ValueError(f"ConditionSelector: '{self.mode}' mode requires 'value'.")
+
+        elif self.condition is not None and self.value is not None:
+            valid_ops = ["<", ">", "<=", ">=", "==", "!="]
+            if self.condition not in valid_ops:
+                raise ValueError(f"ConditionSelector: Invalid legacy operator '{self.condition}'.")
+
+        return True
 
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
-        super().__call__(data_frame)
+        """Execute the filtering logic."""
+        self._verify_preconditions(data_frame)
 
-        col = self._column
+        col = self.column
+        # 1. Categorical inclusion
+        if self.values is not None:
+            return data_frame[data_frame[col].isin(self.values)]
 
-        # 1. Categorical / List of values
-        if self._values is not None:
-            return data_frame[data_frame[col].isin(self._values)]
+        # 2. Numeric Range
+        if self.range is not None:
+            v_min, v_max = self.range
+            return data_frame[(data_frame[col] >= v_min) & (data_frame[col] <= v_max)]
 
-        # 2. Range
-        if self._range is not None:
-            min_val, max_val = self._range
-            return data_frame[(data_frame[col] >= min_val) & (data_frame[col] <= max_val)]
+        # 3. Explicit UI Modes
+        if self.mode == "greater_than":
+            return data_frame[data_frame[col] > self.threshold]
+        elif self.mode == "less_than":
+            return data_frame[data_frame[col] < self.threshold]
+        elif self.mode == "equals":
+            return data_frame[data_frame[col] == self.value]
+        elif self.mode == "contains":
+            return data_frame[data_frame[col].astype(str).str.contains(str(self.value), na=False)]
 
-        # 3. Explicit Modes from UI
-        if self._mode == "greater_than":
-            return data_frame[data_frame[col] > self._threshold]
-        elif self._mode == "less_than":
-            return data_frame[data_frame[col] < self._threshold]
-        elif self._mode == "equals":
-            return data_frame[data_frame[col] == self._value]
+        # 4. Legacy Operator/Value pair
+        if self.condition is not None and self.value is not None:
+            # Handle potential quoted strings in legacy values if they come from old UI/Configs
+            val = self.value
+            if isinstance(val, str) and len(val) >= 2:
+                if (val.startswith("'") and val.endswith("'")) or (
+                    val.startswith('"') and val.endswith('"')
+                ):
+                    val = val[1:-1]
 
-        # 4. Legacy Condition
-        if self._condition is not None and self._value is not None:
-            return data_frame.query(f"{col} {self._condition} {self._value}")
+            ops = {
+                "<": lambda x, y: x < y,
+                ">": lambda x, y: x > y,
+                "<=": lambda x, y: x <= y,
+                ">=": lambda x, y: x >= y,
+                "==": lambda x, y: x == y,
+                "!=": lambda x, y: x != y,
+            }
+            if self.condition in ops:
+                return data_frame[ops[self.condition](data_frame[col], val)]
 
         return data_frame
-
-
-# Main function to test the Cselector class
-def test():
-    # Create a sample data frame
-    df = pd.DataFrame(
-        {
-            "system_id": ["S1", "S1", "S1", "S1", "S2", "S2", "S2", "S2", "S3", "S3", "S3", "S3"],
-            "benchmark": ["B1", "B2", "B1", "B2", "B1", "B2", "B1", "B2", "B1", "B2", "B1", "B2"],
-            "throughput": [100, 105, 120, 118, 80, 82, 78, 85, 90, 95, 100, 102],
-            "latency": [1.2, 1.1, 1.5, 1.4, 2.0, 1.9, 2.1, 2.2, 1.8, 1.7, 1.6, 1.5],
-            "config_param": [
-                "A1",
-                "A1",
-                "A2",
-                "A2",
-                "B1",
-                "B1",
-                "B2",
-                "B2",
-                "C1",
-                "C1",
-                "C2",
-                "C2",
-            ],
-        }
-    )
-    params = {"column": "throughput", "condition": ">=", "value": 100}
-    print("input: ")
-    print(df)
-    shaper = ConditionSelector(params)
-    df = shaper(df)
-    print("result: ")
-    print(df)

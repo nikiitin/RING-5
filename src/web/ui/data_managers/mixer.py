@@ -4,6 +4,7 @@ Mixer Manager
 
 import streamlit as st
 
+from src.web.services.data_processing_service import DataProcessingService
 from src.web.ui.data_managers.base_manager import DataManager
 
 
@@ -54,8 +55,8 @@ class MixerManager(DataManager):
         else:
             # For configuration, allow all columns but prioritize string/object
             # Actually, usually config cols are object/string.
-            # Let's include all to be safe, or just non-numeric?
-            # User might want to concat a number to a string.
+            # Include all columns to allow concatenating numbers to strings
+
             available_cols = data.columns.tolist()
             operations = ["Concatenate"]
 
@@ -87,10 +88,6 @@ class MixerManager(DataManager):
                 return
 
             try:
-                from src.web.services.data_processing_service import (
-                    DataProcessingService,
-                )
-
                 result_df = DataProcessingService.apply_mixer(
                     df=data,
                     dest_col=new_col_name,

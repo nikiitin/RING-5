@@ -1,63 +1,58 @@
 import pytest
 
-from src.common.types.histogram import Histogram
+from src.parsers.types.histogram import Histogram
 
 
 def test_histogram_creation():
-    h = Histogram(repeat=1)
+    # Verify pre-initialization with statistics
+    h = Histogram(repeat=1, statistics=["samples"])
     assert h._repeat == 1
-    assert h.content == {}
+    # _content should be pre-initialized with statistical buckets
+    assert "samples" in h.content
+    assert h.content["samples"] == []
+
+
+def test_histogram_entries_merging():
+    # Verify that entries merges buckets and statistics correctly
+    h = Histogram(repeat=1, bins=3, max_range=10.0, statistics=["samples"])
+    entries = h.entries
+    assert "samples" in entries
+    assert "0-5" in entries
+    assert "5-10" in entries
 
 
 def test_histogram_content_setting():
-    h = Histogram(repeat=1)
+    h = Histogram(repeat=1, statistics=["samples"])
     # Mock data from parser: dict of range string -> values
-    data = {"0-10": ["5"], "10-20": ["10"], "20-30": [15]}
+    data = {"0-10": ["5"], "samples": ["100"]}
     h.content = data
 
-    assert len(h.content) == 3
-    assert h.content["0-10"] == ["5"]
-    assert h.content["20-30"] == [15]
+    assert h.content["0-10"] == [5.0]
+    assert h.content["samples"] == [100.0]
 
 
-def test_histogram_content_extends():
-    h = Histogram(repeat=1)
-    h.content = {"0-10": ["5"]}
-    h.content = {"0-10": ["3"], "10-20": ["2"]}
+def test_histogram_balance_with_missing_stats():
+    # Verify that balance_content pads missing statistics
+    h = Histogram(repeat=2, statistics=["samples"])
+    h.content = {"0-10": ["10", "20"]}  # samples is missing
 
-    # Behavior is extend? Or overwrite?
-    # Current implementation: self._content[str_key].extend(val_list)
-    # Wait, if repeat=1, extend means ["5", "3"]?
-    # Yes, balance_content checks length against repeat.
-    # If repeat=1, we expect 1 value. If we provide mulitple, it might fail balance.
-    # But usually parser accumulates across dumps.
-    # For a SINGLE dump parsing, repeated set calls usually imply multiple occurrences?
-    # In integration: PerlParseWork accumulates in ALL content, then sets it once or iteratively?
-    # PerlParseWork calls varsToParse[varID].content = entries (list).
-    # Wait, PerlParseWork.py _applyBufferedEntries: varsToParse[varID].content = entries
-    # It sets it directly? Or uses property setter?
-    # It uses property setter: `var.content = entries`
-    # The setter extends: `self._content[str_key].extend(vals)`
-
-    # So if we call it twice, we append.
-    pass
+    h.balance_content()
+    assert "samples" in h.content
+    assert h.content["samples"] == [0.0, 0.0]
 
 
 def test_histogram_balance_and_reduce():
-    h = Histogram(repeat=2)
-    h.content = {"0-10": ["10", "20"], "10-20": ["5"]}  # 2 values  # 1 value (needs padding)
+    h = Histogram(repeat=2, statistics=["samples"])
+    h.content = {"0-10": ["10", "20"], "samples": ["100"]}
 
     h.balance_content()
-
-    assert len(h.content["0-10"]) == 2
-    assert len(h.content["10-20"]) == 2
-    assert h.content["10-20"][1] == 0  # padded
+    assert h.content["samples"] == [100.0, 0.0]
 
     h.reduce_duplicates()
     reduced = h.reduced_content
 
     assert reduced["0-10"] == 15.0  # (10+20)/2
-    assert reduced["10-20"] == 2.5  # (5+0)/2
+    assert reduced["samples"] == 50.0  # (100+0)/2
 
 
 def test_histogram_invalid_value():

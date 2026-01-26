@@ -25,10 +25,8 @@ def temp_dir():
 
 def test_export_plot_to_file(temp_dir):
     """Test that export_plot_to_file creates a file."""
-    # Create a plot
     plot = PlotFactory.create_plot("bar", 1, "Test Plot")
 
-    # Mock data
     df = pd.DataFrame({"x": ["A", "B"], "y": [10, 20]})
     plot.processed_data = df
     plot.config["x"] = "x"
@@ -41,14 +39,12 @@ def test_export_plot_to_file(temp_dir):
     plot.config["xlabel"] = "X"
     plot.config["ylabel"] = "Y"
 
-    # Generate and Export
     path = PlotService.export_plot_to_file(plot, temp_dir)
 
     assert path is not None
     assert os.path.exists(path)
     assert path.endswith("Test_Plot.pdf")
 
-    # Verify file size > 0
     assert os.path.getsize(path) > 0
 
     print(f"Exported to {path}, size: {os.path.getsize(path)}")
@@ -61,12 +57,11 @@ def test_export_plot_format_override(temp_dir):
     plot.processed_data = df
     plot.config["x"] = "x"
     plot.config["y"] = "y"
-    plot.config["download_format"] = "png"  # Config says PNG
+    plot.config["download_format"] = "png"
     plot.config["title"] = "Test Title"
     plot.config["xlabel"] = "X"
     plot.config["ylabel"] = "Y"
 
-    # Export requesting SVG
     path = PlotService.export_plot_to_file(plot, temp_dir, format="svg")
 
     assert path.endswith("SVG_Plot.svg")
@@ -88,7 +83,6 @@ def test_export_scale_usage(mock_write_image, temp_dir):
 
     PlotService.export_plot_to_file(plot, temp_dir, format="png")
 
-    # Verify mock call
     args, kwargs = mock_write_image.call_args
     assert kwargs.get("scale") == 3
     assert kwargs.get("format") == "png"

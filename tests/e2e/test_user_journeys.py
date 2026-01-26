@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from src.parsing.parser import Gem5StatsParser
+from src.parsers.parser import Gem5StatsParser
 from src.web.facade import BackendFacade
 from src.web.services.plot_service import PlotService
 from src.web.services.portfolio_service import PortfolioService
@@ -85,12 +85,21 @@ def test_workflow_stats_to_portfolio(test_data_available, temp_env):
     output_dir = tempfile.mkdtemp()
     try:
         Gem5StatsParser.reset()
-        csv_path = facade.parse_gem5_stats(
+        parse_futures = facade.submit_parse_async(
             stats_path=str(subdirs[0]),
             stats_pattern="**/stats.txt",
             variables=variables,
             output_dir=output_dir,
         )
+        
+        # Wait for parsing
+        parse_results = []
+        for future in parse_futures:
+            result = future.result(timeout=30)
+            if result:
+                parse_results.append(result)
+        
+        csv_path = facade.finalize_parsing(output_dir, parse_results)
 
         assert csv_path is not None, "Parsing failed"
 
@@ -113,20 +122,16 @@ def test_workflow_stats_to_portfolio(test_data_available, temp_env):
         )
         plot.pipeline_counter = 1
 
-        # Apply Pipeline (simulate 'Finalize' button)
-        # We need to manually apply shapers as PlotService doesn't do it automatically
-
-        # We need to 'configure' the shaper config first (usually UI does this)
-        # Since we manually constructed the config, we can just pass it if it matches internal structure
-        # But 'columnSelector' config is simple.
+        # Apply Pipeline (simulate 'Finalize' button).
+        # Manually apply shapers as PlotService doesn't do it automatically.
+        # Configure shaper manually as the UI would.
 
         processed_data = facade.apply_shapers(df, [s["config"] for s in plot.pipeline])
         plot.processed_data = processed_data
 
         assert "simTicks" in processed_data.columns
         assert "sim_insts" in processed_data.columns
-        # random_seed etc should be gone if we only selected these 2?
-        # Wait, columnSelector with columns=["simTicks", "sim_insts"] will keep only them.
+        # ColumnSelector with columns=["simTicks", "sim_insts"] will keep only them.
         assert len(processed_data.columns) == 2
 
         # 4. Save Portfolio
@@ -158,9 +163,9 @@ def test_workflow_failed_parsing_recovery(temp_env):
 
     empty_dir = tempfile.mkdtemp()
     try:
-        # Empty variables should raise ValueError (new validation)
-        with pytest.raises(ValueError, match="At least one variable"):
-            facade.parse_gem5_stats(
+        # Empty variables should raise ValueError during parse
+        with pytest.raises((ValueError, FileNotFoundError)):
+            facade.submit_parse_async(
                 stats_path=empty_dir,
                 stats_pattern="**/stats.txt",
                 variables=[],

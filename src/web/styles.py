@@ -3,6 +3,8 @@ RING-5 Web Application Styles
 Centralized styling and theming for the Streamlit application.
 """
 
+import streamlit as st
+
 
 class AppStyles:
     """Central repository for application CSS styles."""
@@ -99,8 +101,6 @@ class PageConfig:
     @staticmethod
     def apply():
         """Apply page configuration (should be called once at app start)."""
-        import streamlit as st
-
         st.set_page_config(
             page_title=PageConfig.TITLE,
             page_icon=PageConfig.ICON,

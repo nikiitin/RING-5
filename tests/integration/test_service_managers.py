@@ -194,7 +194,7 @@ class TestServiceManagersIntegration:
         assert len(after_seeds) == 2
         assert "cycles.sd" in after_seeds.columns
 
-        # Then remove outliers (though there shouldn't be any in this case)
+        # Then remove outliers.
         after_outlier = DataProcessingService.remove_outliers(
             df=after_seeds, outlier_col="cycles", group_by_cols=["benchmark", "config"]
         )
@@ -215,7 +215,7 @@ class TestServiceManagersIntegration:
 
         assert "ipc" in after_preprocess.columns
 
-        # Then reduce seeds (should include new IPC column)
+        # Then reduce seeds.
         after_seeds = DataProcessingService.reduce_seeds(
             df=after_preprocess,
             categorical_cols=["benchmark", "config"],

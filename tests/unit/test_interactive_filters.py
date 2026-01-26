@@ -78,7 +78,6 @@ class TestGroupedStackedBarPlotFilters:
         }
         fig = plot.create_figure(sample_data, config)
 
-        # ticktext contains group names, annotation contains category names?
         # Checked code: annotations are used for categories.
 
         annotation_texts = [ann.text for ann in fig.layout.annotations]
@@ -117,8 +116,7 @@ class TestHoverTotal:
         # Check that customdata is present in traces
         for trace in fig.data:
             assert trace.customdata is not None
-            # For this sample data, 'value' is the only stacked column, so total == value.
-            # But let's check a case with multiple stacks if possible, or just verify presence.
+            # Verify presence of customdata in hover template.
             assert "customdata" in trace.hovertemplate
 
     def test_hover_total_calculation(self):
@@ -142,8 +140,7 @@ class TestHoverTotal:
         # Traces:
         # Trace 0 (val1): customdata should be [15, 25, 35] (aligned with x coords)
 
-        # Since logic sorts data, we need to be careful about order.
-        # But we can check that for every point, trace.y + trace.other_y == customdata if we could find the pair.
+        # Validate that customdata values contain the expected totals.
         # Simpler: just check that customdata values are 15, 25, 35 in some order.
 
         trace0 = fig.data[0]

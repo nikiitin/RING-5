@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.parsing.workers import Gem5ParseWork
+from src.parsers.workers import Gem5ParseWork
 
 
 class MockType:
@@ -77,7 +77,6 @@ vector/vector_var::0/101
 distribution/dist_var::min/5
 distribution/dist_var::max/15
 """
-    # Verify vector_var entries are populated if needed?
     # Logic in _addBufferedVars copies from dict to var.content
 
     parsed = parser._processOutput(output, parser._varsToParse)
@@ -138,7 +137,7 @@ def test_validate_vars_config_no_default_fail():
 def test_call_subprocess(parser):
     # Test __call__ flow mocking subprocess.run
     # Note: We must patch where it is USED, i.e., in the worker module
-    with patch("src.parsing.workers.gem5_parse_work.subprocess.run") as mock_run:
+    with patch("src.parsers.workers.gem5_parse_work.subprocess.run") as mock_run:
         with patch("src.utils.utils.checkFileExistsOrException"):
             # Success Case
             mock_result = MagicMock()
@@ -153,3 +152,37 @@ def test_call_subprocess(parser):
 
             assert result["scalar_var"].content == "10"
             assert result["vector_var"].content["0"] == ["20"]
+
+
+def test_distribution_with_stats(parser):
+    # Test processing distribution with stats entries (mean, samples)
+    # Mock variables first
+    from src.parsers.types import StatTypeRegistry
+
+    # Use small range to satisfy validation of all buckets
+    # Initialize with configured statistics to pass validation
+    dist_var = StatTypeRegistry.create(
+        "distribution",
+        minimum=0,
+        maximum=1,
+        statistics=["samples", "mean", "underflows", "overflows"],
+    )
+    parser._varsToParse = {"dist_var": dist_var}
+    parser._entryBuffer = {}
+
+    # Simulate lines from scanner (now scanner sends 'distribution' for these)
+    output = (
+        "distribution/dist_var::0/10\n"
+        "distribution/dist_var::1/20\n"
+        "distribution/dist_var::underflows/0\n"
+        "distribution/dist_var::overflows/0\n"
+        "distribution/dist_var::samples/100\n"
+        "distribution/dist_var::mean/5.5"
+    )
+
+    parser._processOutput(output, parser._varsToParse)
+
+    assert dist_var.content["0"] == [10.0]
+    assert dist_var.content["1"] == [20.0]
+    assert dist_var.content["samples"] == [100.0]
+    assert dist_var.content["mean"] == [5.5]

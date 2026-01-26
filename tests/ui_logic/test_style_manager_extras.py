@@ -62,27 +62,20 @@ def test_render_series_colors_ui_full(mock_streamlit):
     # A: Original, Custom, Override, Expander(Marker), Symbol, MarkerSize, LineWidth
     # B: Original, Custom, Override, Expander(Marker), Symbol, MarkerSize, LineWidth
 
-    # We need to mock the returns for the new widgets
-    # ColorPicker: 4 calls
+    # Mock calls setup for: ColorPicker (x4), Checkbox (x2), Selectbox (x2), NumberInput (x4)
     mock_streamlit.color_picker.side_effect = ["#aaaaaa", "#ff0000", "#bbbbbb", "#00ff00"]
-    # Checkbox: 2 calls
     mock_streamlit.checkbox.side_effect = [True, False]
-    # Selectbox (Symbol): 2 calls (one for A, one for B)
     mock_streamlit.selectbox.side_effect = ["circle", "square"]
-    # NumberInput: 4 calls (MarkerSize A, LineWidth A, MarkerSize B, LineWidth B)
     mock_streamlit.number_input.side_effect = [10, 3, 12, 4]
 
     styles = sm.render_series_colors_ui(config, df)
 
-    # A
     assert styles["A"]["use_color"] is True
     assert styles["A"]["color"] == "#ff0000"
-    # Specific options should be collected
     assert styles["A"]["symbol"] == "circle"
     assert styles["A"]["marker_size"] == 10
     assert styles["A"]["line_width"] == 3
 
-    # B
     assert styles["B"]["use_color"] is False
     assert styles["B"]["color"] == "#00ff00"
     assert styles["B"]["symbol"] == "square"
@@ -93,13 +86,12 @@ def test_render_xaxis_labels_ui_filtering(mock_streamlit):
     config = {"x": "x", "xaxis_labels": {"a": "A_lbl"}}
     sm = StyleManager(1, "bar")
 
-    # text_input calls: 'a' -> 'A_new', 'b' -> ''
     mock_streamlit.text_input.side_effect = ["A_new", ""]
 
     labels = sm.render_xaxis_labels_ui(config, df)
 
     assert labels["a"] == "A_new"
-    assert "b" not in labels  # Not added because empty string input
+    assert "b" not in labels
 
 
 def test_apply_styles_palette_and_series(mock_streamlit):
@@ -109,7 +101,7 @@ def test_apply_styles_palette_and_series(mock_streamlit):
     fig.add_trace(go.Scatter(x=[2], y=[2], name="B"))
 
     config = {
-        "color_palette": "Set1",  # Non-Plotly palette
+        "color_palette": "Set1",
         "series_styles": {
             "A": {
                 "use_color": True,
@@ -119,21 +111,18 @@ def test_apply_styles_palette_and_series(mock_streamlit):
                 "line_width": 5,
             }
         },
-        "enable_stripes": True,  # Should be ignored for scatter
+        "enable_stripes": True,
     }
 
     sm.apply_styles(fig, config)
 
-    # Trace A (Custom)
     trace_a = fig.data[0]
     assert trace_a.marker.color == "#123456"
     assert trace_a.marker.symbol == "square"
     assert trace_a.marker.size == 15
     assert trace_a.line.width == 5
 
-    # Trace B (Palette)
     trace_b = fig.data[1]
-    # Set1 palette first color is usually red-ish, checking it's applied (not default)
     assert trace_b.marker.color is not None
     assert trace_b.marker.color != "#123456"
 
@@ -145,15 +134,12 @@ def test_apply_styles_axis_labels_sorting(mock_streamlit):
 
     config = {
         "xaxis_labels": {"a": "Alpha", "b": "Beta"},
-        # No xaxis_order, reliant on sorting
     }
 
     sm.apply_styles(fig, config)
 
-    # Check layoutxaxis tickvals/ticktext
     layout = fig.layout
     assert layout.xaxis.tickmode == "array"
-    # Should be sorted 'a', 'b'
     assert list(layout.xaxis.tickvals) == ["a", "b"]
     assert list(layout.xaxis.ticktext) == ["Alpha", "Beta"]
 
@@ -168,9 +154,6 @@ def test_apply_styles_axis_order(mock_streamlit):
     sm.apply_styles(fig, config)
 
     layout = fig.layout
-    # Should follow order
     assert list(layout.xaxis.categoryarray) == ["c", "a", "b"]
-    # tickvals/text should also honor order if applied
     assert list(layout.xaxis.tickvals) == ["c", "a", "b"]
-    # 'a' mapped, others default
     assert list(layout.xaxis.ticktext) == ["c", "Alpha", "b"]

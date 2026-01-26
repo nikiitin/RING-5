@@ -581,13 +581,11 @@ class StyleApplicator:
         # Default color matches simple axis color logic or black
         font_color = config.get("axis_color", "#444444")
 
-        # We need to simulate 'standoff' with xshift.
-        # Standoff moves left (negative xshift).
-        # We also need to clear enough space, but annotations don't reserve margin automatically
-        # like titles do. User might need to adjust left margin manually if it clips.
-        x_shift = (
-            -standoff - 40
-        )  # -40 is a heuristic for tick labels space since we are at x=0 (paper)
+        # Simulate standoff with xshift
+        # Clear enough space (annotations don't reserve margin automatically)
+        # -40 is a heuristic for tick labels space since we are at x=0 (paper)
+        xaxis_title_standoff = -(standoff + 40)
+        textangle = -90
 
         fig.add_annotation(
             text=text,
@@ -597,9 +595,9 @@ class StyleApplicator:
             yref="paper",
             xanchor="right",
             yanchor="middle",
-            textangle=-90,
+            textangle=textangle,
             yshift=vshift,
-            xshift=x_shift,
+            xshift=xaxis_title_standoff,
             showarrow=False,
             font=dict(size=font_size, color=font_color),
         )

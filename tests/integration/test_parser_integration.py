@@ -32,14 +32,22 @@ def test_parser_integration():
 
     try:
         print("Running parser integration test...")
-        facade.parse_gem5_stats(
+        parse_futures = facade.submit_parse_async(
             stats_path=stats_dir,
             stats_pattern="stats.txt",
-            compress=False,
             variables=variables,
             output_dir=output_dir,
         )
-        print("Parser finished successfully.")
+        
+        # Wait for completion
+        parse_results = []
+        for future in parse_futures:
+            result = future.result(timeout=10)
+            if result:
+                parse_results.append(result)
+        
+        csv_path = facade.finalize_parsing(output_dir, parse_results)
+        print(f"Parser finished successfully. CSV: {csv_path}")
     except Exception as e:
         print(f"Parser failed: {e}")
     finally:

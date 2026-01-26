@@ -6,71 +6,50 @@ Modern, interactive dashboard for gem5 data analysis and visualization.
 import sys
 from pathlib import Path
 
-import streamlit as st
-
 # Add project root to path
 root_dir = Path(__file__).parent
 if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
-from src.web.facade import BackendFacade  # noqa: E402
-from src.web.pages.data_managers import show_data_managers_page  # noqa: E402
-from src.web.pages.data_source import DataSourcePage  # noqa: E402
-from src.web.pages.manage_plots import show_manage_plots_page  # noqa: E402
-from src.web.pages.portfolio import show_portfolio_page  # noqa: E402
-from src.web.pages.upload_data import UploadDataPage  # noqa: E402
-from src.web.state_manager import StateManager  # noqa: E402
-
-# Page configuration
-st.set_page_config(
-    page_title="RING-5 Interactive Analyzer",
-    page_icon="⚡",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
-
-# Custom CSS
-st.markdown(
-    """
-<style>
-    .main-header {
-        font-size: 3rem;
-        font-weight: bold;
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        text-align: center;
-        padding: 1rem 0;
-    }
-    .step-header {
-        border-radius: 0.5rem;
-        margin: 1rem 0;
-    }
-    .step-header h2 {
-        margin: 0;
-    }
-    .success-box {
-        background-color: #d4edda;
-        border: 1px solid #c3e6cb;
-        border-radius: 0.5rem;
-        padding: 1rem;
-        margin: 1rem 0;
-    }
-    .info-box {
-        background-color: #d1ecf1;
-        border: 1px solid #bee5eb;
-        border-radius: 0.5rem;
-        padding: 1rem;
-        margin: 1rem 0;
-    }
-</style>
-""",
-    unsafe_allow_html=True,
-)
-
-
-def main():
+def run_app():
     """Main application entry point."""
+    # LATE IMPORTS: Avoid loading UI/Plotting modules when this file is imported by background workers.
+    # This prevents the "missing ScriptRunContext" warnings.
+    import streamlit as st
+    from src.web.facade import BackendFacade
+    from src.web.pages.data_managers import show_data_managers_page
+    from src.web.pages.data_source import DataSourcePage
+    from src.web.pages.manage_plots import show_manage_plots_page
+    from src.web.pages.portfolio import show_portfolio_page
+    from src.web.pages.upload_data import UploadDataPage
+    from src.web.state_manager import StateManager
+
+    # Page configuration
+    st.set_page_config(
+        page_title="RING-5 Interactive Analyzer",
+        page_icon="⚡",
+        layout="wide",
+        initial_sidebar_state="expanded",
+    )
+
+    # Custom CSS
+    st.markdown(
+        """
+    <style>
+        .main-header {
+            font-size: 3rem;
+            font-weight: bold;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+            padding: 1rem 0;
+        }
+    </style>
+    """,
+        unsafe_allow_html=True,
+    )
+
     # Initialize Core Components
     StateManager.initialize()
     facade = BackendFacade()
@@ -133,7 +112,6 @@ def main():
         DataSourcePage(facade).render()
     elif page == "Upload Data":
         UploadDataPage(facade).render()
-
     elif page == "Data Managers":
         show_data_managers_page()
     elif page == "Manage Plots":
@@ -143,4 +121,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # Note: Streamlit re-imports the main script.
+    # By wrapping imports inside run_app(), we ensure they are NOT executed
+    # when this script is imported as a module by multiprocessing workers.
+    run_app()

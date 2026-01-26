@@ -63,7 +63,6 @@ def test_render_create_plot_section(
     mock_state_manager.get_plot_counter.return_value = 0
     mock_plot_factory.get_available_plot_types.return_value = ["Bar"]
 
-    # Interactions: Input Name, Select Type, Click Button
     mock_streamlit.text_input.return_value = "New Plot"
     mock_streamlit.selectbox.return_value = "Bar"
     mock_streamlit.button.return_value = True
@@ -81,7 +80,6 @@ def test_render_plot_selector(mock_streamlit, mock_state_manager):
     mock_state_manager.get_plots.return_value = [plot1, plot2]
     mock_state_manager.get_current_plot_id.return_value = 1
 
-    # Select second plot
     mock_streamlit.radio.return_value = "Plot 2"
 
     selected = PlotManagerComponents.render_plot_selector()
@@ -94,12 +92,8 @@ def test_render_plot_controls(mock_streamlit, mock_plot_service):
     """Test plot controls (rename, delete, duplicate)."""
     plot = MockPlot(1, "Original Name", "Bar")
 
-    # Test Rename (Text Input change)
     mock_streamlit.text_input.return_value = "New Name"
 
-    # Test Delete Button Click
-    # Use side effect to trigger specific button
-    # Buttons: Save Pipe, Load Pipe, Delete, Duplicate
     def button_side_effect(label, key=None, **kwargs):
         if key == f"delete_plot_{plot.plot_id}":
             return True
@@ -121,8 +115,6 @@ def test_render_pipeline_editor_add_shaper(mock_streamlit, mock_state_manager):
 
     mock_state_manager.get_data.return_value = pd.DataFrame({"A": [1]})
 
-    # Add Shaper Flow
-    # Select "Sort", Click "Add to Pipeline"
     mock_streamlit.selectbox.return_value = "Sort"
 
     def button_side_effect(label, key=None, **kwargs):
@@ -146,7 +138,6 @@ def test_render_pipeline_editor_finalize(mock_streamlit, mock_state_manager):
     df = pd.DataFrame({"A": [2, 1]})
     mock_state_manager.get_data.return_value = df
 
-    # Click Finalize
     def button_side_effect(label, key=None, **kwargs):
         if key == f"finalize_{plot.plot_id}":
             return True
@@ -172,8 +163,6 @@ def test_render_plot_display(mock_streamlit, mock_plot_factory, mock_plot_servic
 
     mock_plot_factory.get_available_plot_types.return_value = ["Bar", "Line"]
 
-    # Change Type Flow
-    # Select "Line" (diff from "Bar")
     mock_streamlit.selectbox.return_value = "Line"
 
     PlotManagerComponents.render_plot_display(plot)

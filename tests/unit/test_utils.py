@@ -196,12 +196,13 @@ class TestDirectoryOperations:
             utils.createDir(new_dir)
             assert os.path.isdir(new_dir)
 
-    def test_create_dir_existing(self, capsys):
-        """Test creating an existing directory prints message."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            utils.createDir(temp_dir)  # Already exists
-            captured = capsys.readouterr()
-            assert "already exists" in captured.out
+    def test_create_dir_existing(self, caplog):
+        """Test creating an existing directory logs message."""
+        import logging
+        with caplog.at_level(logging.DEBUG):
+            with tempfile.TemporaryDirectory() as temp_dir:
+                utils.createDir(temp_dir)  # Already exists
+                assert "Directory already exists" in caplog.text
 
 
 class TestTempFile:

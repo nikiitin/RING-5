@@ -2,8 +2,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.scanning.workers.gem5_scan_work import Gem5ScanWork
-from src.scanning.workers.pool import ScanWorkPool
+from src.parsers.workers.gem5_scan_work import Gem5ScanWork
+from src.parsers.workers.pool import ScanWorkPool
 
 
 def test_stats_scan_work_success():
@@ -11,7 +11,7 @@ def test_stats_scan_work_success():
 
     mock_vars = [{"name": "var1", "type": "scalar"}, {"name": "var2", "type": "vector"}]
 
-    with patch("src.scanning.scanner.Gem5StatsScanner.get_instance") as mock_scanner_cls:
+    with patch("src.parsers.scanner.Gem5StatsScanner.get_instance") as mock_scanner_cls:
         mock_instance = MagicMock()
         mock_scanner_cls.return_value = mock_instance
         mock_instance.scan_file.return_value = mock_vars
@@ -26,7 +26,7 @@ def test_stats_scan_work_success():
 def test_stats_scan_work_failure():
     work = Gem5ScanWork("test_file.txt")
 
-    with patch("src.scanning.scanner.Gem5StatsScanner.get_instance") as mock_scanner_cls:
+    with patch("src.parsers.scanner.Gem5StatsScanner.get_instance") as mock_scanner_cls:
         mock_instance = MagicMock()
         mock_scanner_cls.return_value = mock_instance
         mock_instance.scan_file.side_effect = Exception("Scan error")
@@ -46,11 +46,12 @@ def clean_pool_singleton():
     yield
     ScanWorkPool._singleton = None
 
-
 def test_scan_work_pool_singleton(clean_pool_singleton):
-    pool1 = ScanWorkPool.getInstance()
-    pool2 = ScanWorkPool.getInstance()
+    pool1 = ScanWorkPool.get_instance()
+    pool2 = ScanWorkPool.get_instance()
     assert pool1 is pool2
+
+
 
 
 def test_scan_work_pool_add_work(clean_pool_singleton):
@@ -58,30 +59,40 @@ def test_scan_work_pool_add_work(clean_pool_singleton):
         mock_internal_pool = MagicMock()
         mock_wp_cls.return_value = mock_internal_pool
 
-        scan_pool = ScanWorkPool.getInstance()
+        scan_pool = ScanWorkPool.get_instance()
         work = Gem5ScanWork("f")
 
-        scan_pool.addWork(work)
+        scan_pool.add_work(work)
 
         mock_internal_pool.submit.assert_called_once_with(work)
         assert len(scan_pool._futures) == 1
 
 
-def test_scan_work_pool_get_results(clean_pool_singleton):
+def test_scan_work_pool_async_flow(clean_pool_singleton):
+    """Test the core async flow of the pool."""
+    from concurrent.futures import Future
+
     with patch("src.core.multiprocessing.pool.WorkPool.get_instance"):
-        scan_pool = ScanWorkPool.getInstance()
+        scan_pool = ScanWorkPool.get_instance()
 
-        # Mock futures
-        mock_future1 = MagicMock()
-        mock_future1.result.return_value = "res1"
+        work1 = MagicMock(spec=Gem5ScanWork)
+        work2 = MagicMock(spec=Gem5ScanWork)
 
-        mock_future2 = MagicMock()
-        mock_future2.result.return_value = "res2"
-
-        scan_pool._futures = [mock_future1, mock_future2]
-
-        results = scan_pool.getResults()
-
-        assert results == ["res1", "res2"]
-        # Futures should be cleared
-        assert len(scan_pool._futures) == 0
+        # Mock add_work to return futures
+        f1 = Future()
+        f1.set_result("res1")
+        f2 = Future()
+        f2.set_result("res2")
+        
+        # Mock the internal _workPool to return our futures
+        scan_pool._workPool.submit.side_effect = [f1, f2]
+        
+        futures = scan_pool.submit_batch_async([work1, work2])
+        
+        # Should return futures
+        assert len(futures) == 2
+        
+        # Collect results
+        results = [f.result() for f in futures]
+        assert "res1" in results
+        assert "res2" in results

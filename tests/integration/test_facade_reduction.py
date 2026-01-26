@@ -55,13 +55,35 @@ class TestFacadeReduction:
         # 1. Define variable with Regex Pattern
         variables = [{"name": "system.cpu\\d+.ipc", "type": "scalar"}]
 
-        # 2. Run Facade Parse
-        csv_path = facade.parse_gem5_stats(
+        # 2. Pre-scan to populate regex matching cache
+        scan_futures = facade.submit_scan_async(stats_path, "stats.txt*", limit=10)
+        
+        # Wait for scan completion
+        scan_results = []
+        for future in scan_futures:
+            result = future.result(timeout=5)
+            if result:
+                scan_results.append(result)
+        
+        scanned_vars = facade.finalize_scan(scan_results)
+
+        # 3. Run Facade Parse
+        parse_futures = facade.submit_parse_async(
             stats_path=stats_path,
             stats_pattern="stats.txt*",
             variables=variables,
             output_dir=output_dir,
+            scanned_vars=scanned_vars
         )
+        
+        # Wait for parsing
+        parse_results = []
+        for future in parse_futures:
+            result = future.result(timeout=10)
+            if result:
+                parse_results.append(result)
+        
+        csv_path = facade.finalize_parsing(output_dir, parse_results)
 
         assert csv_path is not None
         assert os.path.exists(csv_path)
@@ -86,5 +108,5 @@ class TestFacadeReduction:
 
     def test_vector_reduction(self, facade, temp_dirs):
         # Test vector reduction if possible
-        # Need to create vector stats dummy?
-        pass  # Skipping complex vector mock for now, trusting scalar proof-of-concept
+        # Skipping complex vector mock setup for brevity, relying on scalar reduction coverage.
+        pass

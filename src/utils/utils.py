@@ -1,6 +1,9 @@
+import logging
 import enum
 import os
 import tempfile
+
+logger = logging.getLogger(__name__)
 
 # Description: Utility functions for the project
 
@@ -85,7 +88,7 @@ def createDir(dirPath):
     if not checkDirExists(dirPath):
         os.mkdir(dirPath)
     else:
-        print("Directory already exists: " + dirPath)
+        logger.debug("Directory already exists: %s", dirPath)
 
 
 def createTmpFile():

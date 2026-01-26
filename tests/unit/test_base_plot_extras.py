@@ -50,13 +50,8 @@ def test_render_advanced_options_shapes_add(mock_streamlit):
     mock_streamlit.text_input.side_effect = ["0", "0", "1", "1", "0", "0", "1", "1"]
     mock_streamlit.color_picker.return_value = "#000000"
     mock_streamlit.number_input.return_value = 2
-    # Button return check - we need to target the specific button key if possible,
-    # but side_effect is easier for sequential calls.
-    # There are many buttons potentially (reordering etc).
-    # But usually shapes come late.
-    # Let's just mock the specific Add Shape button return
-    # key=f"add_shape_{self.plot_id}"
 
+    # Mock specific button return for "Add Shape".
     def button_side_effect(label, key=None, **kwargs):
         if key == "add_shape_1":
             return True
@@ -93,14 +88,9 @@ def test_render_advanced_options_shapes_edit_delete(mock_streamlit):
     mock_streamlit.button.side_effect = button_side_effect
     mock_streamlit.number_input.return_value = 0.0  # yaxis_dtick etc
 
-    # Inputs for text_input (x0..y1) will be called for display/edit.
-    # We assume 'Add New Shape' inputs are rendered first (4),
-    # THEN existing shapes (4 * N).
-    # Even if we delete, the iteration happens before or after?
-    # render_advanced_options renders "Add New Shape" inputs (4) at lines 412-418.
-    # THEN it loops existing shapes.
-
-    # So we need 4 dummy values for the "Add New" section, THEN the 4 values for the existing shape we are about to delete.
+    # Inputs for text_input (x0..y1).
+    # 'Add New Shape' inputs are rendered first (4), then existing shapes (4 * N).
+    # Provide 4 dummy values for "Add New", then 4 for the shape about to be deleted.
 
     mock_streamlit.text_input.side_effect = [
         "new_x0",
@@ -145,8 +135,7 @@ def test_render_reorderable_list(mock_streamlit):
     plot.render_reorderable_list("List", items, "test")
 
     # A should swap with B -> [B, A, C]
-    # The return value might still be the old one if it returns `current_items` before reference break?
-    # No, it modifies `current_items` in place then writes back to session state.
+    # Logic modifies `current_items` in place then writes back to session state.
 
     expected = ["B", "A", "C"]
     assert mock_streamlit.session_state["test_order_1"] == expected

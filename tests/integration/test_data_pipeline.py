@@ -36,8 +36,8 @@ class TestDataPipeline:
         assert reduced[reduced["group"] == "A"]["value"].iloc[0] == 11.0  # (10+12)/2
 
     def test_outlier_removal(self, sample_data):
-        # C is clearly outlierish compared to A and B, but outlier logic works on IQR
-        # Let's create a clearer outlier case within a group
+        # Outlier logic works on IQR.
+        # Create a clear outlier case within a group.
         df = pd.DataFrame(
             {
                 "group": ["A"] * 10,

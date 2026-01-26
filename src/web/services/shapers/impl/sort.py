@@ -1,121 +1,72 @@
-#!/usr/bin/env python3
-from typing import Any
+from typing import Any, Dict, List
 
 import pandas as pd
 
-import src.utils.utils as utils
 from src.web.services.shapers.uni_df_shaper import UniDfShaper
 
 
 class Sort(UniDfShaper):
+    """
+    Shaper that sorts a DataFrame based on a custom categorical order for multiple columns.
+    """
 
-    # Getters and setters
-    @property
-    def order_dict(self) -> dict:
-        return self.order_dict_data
+    def __init__(self, params: Dict[str, Any]) -> None:
+        """
+        Initialize Sort shaper.
 
-    @order_dict.setter
-    def order_dict(self, value: Any) -> None:
-        utils.checkVarType(value, dict)
-        for key, content in value.items():
-            utils.checkVarType(key, str)
-            utils.checkVarType(content, list)
-            for item in content:
-                utils.checkVarType(item, str)
-        self.order_dict_data = value
-
-    def __init__(self, params: dict) -> None:
+        Args:
+            params: Must contain 'order_dict' which maps column names to
+                    a list of values defining the preferred sort order.
+        """
+        self.order_dict: Dict[str, List[str]] = params.get("order_dict", {})
         super().__init__(params)
-        self.order_dict = utils.getElementValue(self._params, "order_dict")
 
-    def __call__(self, data_frame: Any) -> pd.DataFrame:
-        data_frame = super().__call__(data_frame)
-        # Make a copy to avoid SettingWithCopyWarning
+    def _verify_params(self) -> bool:
+        """Verify that 'order_dict' is correctly structured."""
+        super()._verify_params()
+        if "order_dict" not in self.params:
+            raise ValueError("Sort requires 'order_dict' parameter.")
+
+        order_dict = self.params["order_dict"]
+        if not isinstance(order_dict, dict):
+            raise TypeError("Sort 'order_dict' parameter must be a dictionary.")
+
+        for col, values in order_dict.items():
+            if not isinstance(col, str):
+                raise TypeError(f"Sort column name '{col}' must be a string.")
+            if not isinstance(values, list):
+                raise TypeError(f"Sort order values for column '{col}' must be a list.")
+
+        return True
+
+    def _verify_preconditions(self, data_frame: pd.DataFrame) -> bool:
+        """Verify that all columns in 'order_dict' exist in the dataframe."""
+        super()._verify_preconditions(data_frame)
+
+        missing = [c for c in self.order_dict.keys() if c not in data_frame.columns]
+        if missing:
+            raise ValueError(f"Sort: Columns not found in dataframe: {missing}")
+
+        return True
+
+    def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
+        """
+        Applies categorical sorting to the dataframe.
+        """
+        self._verify_preconditions(data_frame)
+
+        # Avoid modifying the input dataframe
         result = data_frame.copy()
 
-        print("order_dict: ", self.order_dict)
+        # Apply categorical ordering to each column specified in order_dict
         for column, orders in self.order_dict.items():
-            print("column: ", column)
-            print("orders: ", orders)
-            print(pd.Categorical(result[column], categories=orders, ordered=True))
             result[column] = pd.Categorical(result[column], categories=orders, ordered=True)
 
-        # Use stable sort (kind='stable') to preserve previous ordering
-        # This ensures that when sorting by one column, rows with equal values
-        # maintain their previous order (from earlier sort operations)
+        # Sort values using stable sort to preserve existing relative order for equal categories
         result = result.sort_values(by=list(self.order_dict.keys()), kind="stable")
 
+        # Convert categorical columns back to strings to prevent downstream issues
         for column in self.order_dict:
             result[column] = result[column].astype(str)
 
         return result
-
-
-# Main function to test the sort class
-def test():
-    # Create a sample data frame
-    df = pd.DataFrame(
-        {
-            "system_id": [
-                "S1",
-                "S1",
-                "S1",
-                "S1",
-                "S2",
-                "S2",
-                "S2",
-                "S2",
-                "S3",
-                "S3",
-                "S3",
-                "S3",
-                "S3",
-            ],
-            "benchmark": [
-                "B1",
-                "B2",
-                "B1",
-                "B2",
-                "B1",
-                "B2",
-                "B1",
-                "B2",
-                "B1",
-                "B2",
-                "B1",
-                "B2",
-                "B2",
-            ],
-            "throughput": [100, 105, 120, 118, 80, 82, 78, 85, 90, 95, 100, 102, 84],
-            "latency": [1.2, 1.1, 1.5, 1.4, 2.0, 1.9, 2.1, 2.2, 1.8, 1.7, 1.6, 1.5, 1.2],
-            "config_param": [
-                "A1",
-                "A1",
-                "A2",
-                "A2",
-                "B1",
-                "B1",
-                "B2",
-                "B2",
-                "C1",
-                "C1",
-                "C2",
-                "C2",
-                "C1",
-            ],
-        }
-    )
-    params = {
-        "order_dict": {
-            "system_id": ["S1", "S2", "S3"],
-            "config_param": ["C1", "C2", "A1", "A2", "B1", "B2"],
-        },
-        "srcCsv": "normtest.csv",
-        "dstCsv": "output_data.csv",
-    }
-    print("input: ")
-    print(df)
-    sort_shaper = Sort(params)
-    df = sort_shaper(df)
-    print("result: ")
-    print(df)

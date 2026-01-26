@@ -41,12 +41,7 @@ def test_mixer_render_numeric_op(mock_streamlit, sample_data):
     manager.get_data = MagicMock(return_value=sample_data)
     manager.set_data = MagicMock()
 
-    # Interactions:
-    # Radio Mode -> "Numerical Operations"
-    # Multiselect Cols -> ["A", "B"]
-    # Selectbox Op -> "Sum"
-    # TextInput Name -> "merged"
-    # Button Preview -> True
+    # Interaction parameters.
 
     mock_st.radio.return_value = "Numerical Operations"
     mock_st.multiselect.return_value = ["A", "B"]
@@ -79,7 +74,7 @@ def test_mixer_confirm(mock_streamlit, sample_data):
     result_df = pd.DataFrame({"merged": [1]})
     mock_st.session_state["mixer_result"] = result_df
 
-    # Button interactions: Preview=False, Confirm=True
+    # Simulate button interactions: Confirm clicked
     mock_st.button.side_effect = lambda label, key=None, **kwargs: key == "confirm_mixer"
 
     manager.render()
@@ -95,12 +90,7 @@ def test_preprocessor_render_op(mock_streamlit, sample_data):
     manager = PreprocessorManager()
     manager.get_data = MagicMock(return_value=sample_data)
 
-    # Interactions:
-    # Select Src1 -> A
-    # Select Op -> Divide
-    # Select Src2 -> B
-    # Text Name -> "new_col"
-    # Button Preview -> True
+    # Interaction parameters.
 
     mock_st.selectbox.side_effect = ["A", "Divide", "B"]
     mock_st.text_input.return_value = "new_col"

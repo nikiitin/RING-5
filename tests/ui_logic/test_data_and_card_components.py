@@ -10,9 +10,10 @@ from src.web.ui.components.data_components import DataComponents
 @pytest.fixture
 def mock_streamlit():
     # We need to patch st in both modules where it is used
-    with patch("src.web.ui.components.data_components.st") as mock_st_data, \
-         patch("src.web.ui.components.card_components.st") as mock_st_card:
-        
+    with patch("src.web.ui.components.data_components.st") as mock_st_data, patch(
+        "src.web.ui.components.card_components.st"
+    ) as mock_st_card:
+
         # Unify mocks for easier assertion
         mock_st = MagicMock()
         mock_st_data.markdown = mock_st.markdown
@@ -21,7 +22,7 @@ def mock_streamlit():
         mock_st_data.expander = mock_st.expander
         mock_st_data.download_button = mock_st.download_button
         mock_st_data.columns = mock_st.columns
-        
+
         mock_st_card.expander = mock_st.expander
         mock_st_card.button = mock_st.button
         mock_st_card.columns = mock_st.columns
@@ -105,7 +106,7 @@ def test_download_buttons(mock_streamlit):
 
         mock_tmp.return_value.name = os.path.join(tempfile.gettempdir(), "test.xlsx")
 
-        # Mock pandas to_excel to avoid openpyxl/fs logic
+        # Mock pandas to_excel to avoid openpyxl/fs logic.
         with patch("pandas.DataFrame.to_excel") as mock_to_excel:
 
             # Mock open to return bytes
@@ -115,14 +116,11 @@ def test_download_buttons(mock_streamlit):
 
                 DataComponents.download_buttons(df, "test_prefix")
 
-                # Check calls
+                # Validate to_excel and download_button calls.
                 assert mock_to_excel.called
                 assert mock_streamlit.download_button.call_count == 3
 
-                # Verify Excel button specifically
-                # args[1] is data, args[2] is file_name, args[3] is mime in download_button params...
-                # Actually checking call_args is better.
-                # Last call should be Excel
+                # Verify Excel button specifically.
                 _, kwargs = mock_streamlit.download_button.call_args
                 assert kwargs["file_name"] == "test_prefix.xlsx"
                 assert kwargs["data"] == b"dummy_excel_data"

@@ -162,63 +162,21 @@ class GroupedBarPlot(BasePlot):
             ordered_groups = [None]  # Dummy for iteration
 
         # 2. Calculate Manual X Coordinates
-        # We place each X-category at a specific integer/float position.
+        # GroupedBarPlot uses Plotly's native 'group' barmode, so we only need one X coordinate
+        # per Category (Major Group). The sub-groups are handled by Plotly automatically offsetting traces.
+        # So we pass groups=[None] to the utility to get simple category-based coordinates.
+        coord_result = GroupedBarUtils.calculate_grouped_coordinates(
+            categories=ordered_x, groups=[None], config=config
+        )
 
-        current_x = 0.0
-        x_map = {}  # Category -> Coordinate
-        tick_vals = []
-        tick_text = []
-
-        # Shapes
-        distinction_shapes = []
-        show_separators = config.get("show_separators", False)
-        sep_color = config.get("separator_color", "#E0E0E0")
-        shade_alternate = config.get("shade_alternate", False)
-        shade_color = config.get("shade_color", "#F5F5F5")
-        isolate_last = config.get("isolate_last_group", False)
-        isolation_gap = config.get("isolation_gap", 0.5)
-
-        # Get Renaming Map
-        rename_map = config.get("xaxis_labels", {})
-
-        for i, cat in enumerate(ordered_x):
-            # Check for Isolation of Last Group
-            if isolate_last and i == len(ordered_x) - 1 and i > 0:
-                # Add extra isolation gap
-                current_x += isolation_gap
-
-                # Draw Special Separator
-                prev_center = x_map[ordered_x[i - 1]]
-                sep_x = (prev_center + current_x) / 2.0
-                distinction_shapes.append(GroupedBarUtils.create_isolation_separator(sep_x))
-
-            x_map[cat] = current_x
-            tick_vals.append(current_x)
-
-            # Apply Rename
-            display_name = rename_map.get(cat, cat)
-            tick_text.append(display_name)
-
-            # Shading
-            if shade_alternate and (i % 2 == 1):
-                # Standard width is 1.0 (from -0.5 to +0.5 relative to center)
-                rect_x0 = current_x - 0.5
-                rect_x1 = current_x + 0.5
-                distinction_shapes.append(
-                    GroupedBarUtils.create_shade_shape(rect_x0, rect_x1, shade_color)
-                )
-
-            # Standard Separator (if not isolating next)
-            next_is_last_isolated = isolate_last and (i == len(ordered_x) - 2)
-            if show_separators and i < len(ordered_x) - 1:
-                if not next_is_last_isolated:
-                    # Standard midpoint
-                    sep_x = current_x + 0.5
-                    distinction_shapes.append(
-                        GroupedBarUtils.create_separator_shape(sep_x, sep_color)
-                    )
-
-            current_x += 1.0
+        # Adapt keys: Utility returns cat (string) when groups=[None]
+        # or (cat, grp) when groups are provided.
+        x_map = {
+            (k[0] if isinstance(k, tuple) else k): v for k, v in coord_result["coord_map"].items()
+        }
+        tick_vals = coord_result["tick_vals"]
+        tick_text = coord_result["tick_text"]
+        distinction_shapes = coord_result["shapes"]
 
         # 3. Create Traces
         fig = go.Figure()
@@ -229,14 +187,6 @@ class GroupedBarPlot(BasePlot):
             for grp in ordered_groups:
                 # Filter data for this group
                 grp_data = data[data[group_col] == grp]
-
-                # Map X values to manual coords
-                # We need to preserve alignment.
-                # It's easiest to reindex or merge.
-
-                # Create a series for X coords
-                # Ensure we have all X categories represented (even if empty, for alignment)?
-                # No, plotly handles sparse data well if we give x/y arrays.
 
                 x_coords = grp_data[x_col].map(x_map)
 

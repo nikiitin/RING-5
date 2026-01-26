@@ -86,8 +86,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
             legend_title = label_config["legend_title"]
 
         # Renaming Options (Delegated to Advanced Options now)
-        # We removed the manual 'legend_renames' in favor of the standardized 'Series Configuration'
-        # in the Advanced Options menu to avoid conflicts.
+        # Renaming handled by standardized 'Series Configuration' in Advanced Options.
 
         # Filter Options
         st.markdown("#### Filter Data")
@@ -562,86 +561,10 @@ class GroupedStackedBarPlot(StackedBarPlot):
         group_col: str,
         config: Dict[str, Any],
     ) -> Dict[str, Any]:
-        """Build coordinate mapping for grouped bars."""
-        bargap = config.get("bargap", 0.2)
-        bargroupgap = config.get("bargroupgap", 0.0)
-        bar_width = 1.0 - bargap
-
-        tick_vals = []
-        tick_text = []
-        cat_centers = []
-        shapes = []
-        coord_map = {}
-
-        show_separators = config.get("show_separators", False)
-        sep_color = config.get("separator_color", "#E0E0E0")
-        shade_alternate = config.get("shade_alternate", False)
-        shade_color = config.get("shade_color", "#F5F5F5")
-        isolate_last = config.get("isolate_last_group", False)
-        isolation_gap = config.get("isolation_gap", 0.5)
-
-        current_x = 0.0
-
-        for i, cat in enumerate(categories):
-            start_x = current_x
-
-            for grp in groups:
-                coord_map[(cat, grp)] = current_x
-                tick_vals.append(current_x)
-                tick_text.append(grp)
-                current_x += 1.0
-
-            center = (start_x + (current_x - 1.0)) / 2.0
-            cat_centers.append((center, cat))
-
-            # Shading
-            if shade_alternate and (i % 2 == 1):
-                shapes.append(
-                    self._create_shade_shape(start_x, current_x, bargroupgap, shade_color)
-                )
-
-            # Separators
-            next_is_last_isolated = isolate_last and (i == len(categories) - 2)
-            if show_separators and i < len(categories) - 1:
-                if not next_is_last_isolated:
-                    shapes.append(self._create_separator_shape(current_x, bargroupgap, sep_color))
-
-            current_x += bargroupgap
-
-            # Isolation gap
-            if next_is_last_isolated:
-                current_x += isolation_gap
-                gap_total = bargroupgap + isolation_gap
-                shapes.append(self._create_isolation_separator(current_x, gap_total))
-
-        return {
-            "coord_map": coord_map,
-            "tick_vals": tick_vals,
-            "tick_text": tick_text,
-            "cat_centers": cat_centers,
-            "shapes": shapes,
-            "bar_width": bar_width,
-        }
-
-    def _create_shade_shape(
-        self, start_x: float, current_x: float, bargroupgap: float, shade_color: str
-    ) -> Dict[str, Any]:
-        """Create a shading rectangle shape."""
-        x0 = start_x - 0.5 - (bargroupgap / 2.0)
-        x1 = current_x - 0.5 + (bargroupgap / 2.0)
-        return GroupedBarUtils.create_shade_shape(x0, x1, shade_color)
-
-    def _create_separator_shape(
-        self, current_x: float, bargroupgap: float, sep_color: str
-    ) -> Dict[str, Any]:
-        """Create a separator line shape."""
-        sep_x = (current_x - 0.5) + (bargroupgap / 2.0)
-        return GroupedBarUtils.create_separator_shape(sep_x, sep_color)
-
-    def _create_isolation_separator(self, current_x: float, gap_total: float) -> Dict[str, Any]:
-        """Create an isolation separator line."""
-        sep_x = current_x - 0.5 - (gap_total / 2.0)
-        return GroupedBarUtils.create_isolation_separator(sep_x)
+        """Build coordinate mapping for grouped bars using centralized utility."""
+        return GroupedBarUtils.calculate_grouped_coordinates(
+            categories=categories, groups=groups, config=config
+        )
 
     def _build_category_annotations(
         self, cat_centers: List[tuple], config: Dict[str, Any]

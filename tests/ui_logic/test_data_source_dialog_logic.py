@@ -12,7 +12,8 @@ def components_bundle():
     """Patch st and reload module to capture decorator."""
 
     # 1. Patch streamlit.dialog globally so the decorator is intercepted during reload
-    with patch("streamlit.dialog", side_effect=lambda title=None: lambda func: func):
+    # Accept both positional and keyword arguments to handle dismissible parameter
+    with patch("streamlit.dialog", side_effect=lambda title=None, **kwargs: lambda func: func):
         importlib.reload(ds_module)
 
     # 2. Patch the module's st attribute for runtime widget mocking
@@ -51,7 +52,7 @@ def test_variable_config_dialog_manual_entry_scalar(components_bundle, mock_stat
     """Test manual entry of a scalar variable."""
     mock_streamlit, DataSourceComponents = components_bundle
 
-    # Interactions: Input Name, Select Type, Click Button
+    # Interaction parameters.
     mock_streamlit.radio.return_value = "Manual Entry"
     mock_streamlit.text_input.return_value = "my_var"
     mock_streamlit.selectbox.return_value = "scalar"
@@ -110,9 +111,7 @@ def test_variable_config_dialog_search_scanned(components_bundle, mock_state_man
     mock_streamlit.text_input.return_value = "IPC"
     mock_streamlit.button.return_value = True
 
-    # Reset side effect for selectbox if needed, or rely on it handling one call well?
-    # Actually, if selectbox is called more than expected, side effect might run out?
-    # But here we only expect 1 call for search index.
+    # Expect 1 call for search index.
 
     DataSourceComponents.variable_config_dialog()
 

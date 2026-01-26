@@ -27,8 +27,17 @@ class TestGem5Parsing:
         if not self.TEST_DATA_DIR.exists():
             pytest.skip("Test data not found")
 
-        variables = facade.scan_stats_variables(str(self.TEST_DATA_DIR), "stats.txt", limit=10)
-
+        # Use async API
+        futures = facade.submit_scan_async(str(self.TEST_DATA_DIR), "stats.txt", limit=10)
+        
+        # Wait for all futures to complete
+        results = []
+        for future in futures:
+            result = future.result(timeout=10)  # 10 second timeout
+            if result:
+                results.append(result)
+            
+        variables = facade.finalize_scan(results)
         assert len(variables) > 0
 
         # Check for common gem5 stats
@@ -46,17 +55,25 @@ class TestGem5Parsing:
         output_dir.mkdir()
 
         # 1. Scan for variables
-        all_variables = facade.scan_stats_variables(str(self.TEST_DATA_DIR), "stats.txt", limit=10)
+        scan_futures = facade.submit_scan_async(str(self.TEST_DATA_DIR), "stats.txt", limit=10)
+        
+        # Wait for scan to complete
+        scan_results = []
+        for future in scan_futures:
+            result = future.result(timeout=10)
+            if result:
+                scan_results.append(result)
+            
+        all_variables = facade.finalize_scan(scan_results)
 
         # 2. Select a few scalar variables
-        # Filter for scalar types and pick top 5
         selected_vars = [
             v
             for v in all_variables
             if v["type"] == "scalar"
-            and "simTicks" in v["name"]
+            and ("simTicks" in v["name"]
             or "ipc" in v["name"]
-            or "cycles" in v["name"]
+            or "cycles" in v["name"])
         ][:5]
 
         if not selected_vars:
@@ -66,12 +83,22 @@ class TestGem5Parsing:
         print(f"Selected variables for parsing: {[v['name'] for v in selected_vars]}")
 
         # 3. Run Parser
-        csv_path = facade.parse_gem5_stats(
+        parse_futures = facade.submit_parse_async(
             stats_path=str(self.TEST_DATA_DIR),
             stats_pattern="stats.txt",
             variables=selected_vars,
             output_dir=str(output_dir),
+            scanned_vars=all_variables
         )
+        
+        # Wait for parsing to complete
+        parse_results = []
+        for future in parse_futures:
+            result = future.result(timeout=30)
+            if result:
+                parse_results.append(result)
+        
+        csv_path = facade.finalize_parsing(str(output_dir), parse_results)
 
         assert csv_path is not None
         assert os.path.exists(csv_path)
@@ -87,26 +114,20 @@ class TestGem5Parsing:
 
         # Check Columns
         # Expect selected variables + standard config columns (from directory structure or config.json if implicit)
-        # Note: The Perl parser attempts to extract config from path if config.json not present?
-        # Actually without config.json, it might relies on path structure if configured.
-        # But 'simTicks' should be there.
+        # Note: The Perl parser attempts to extract config from path if config.json not present.
+        # Without config.json, it relies on path structure if configured.
 
         for var in selected_vars:
             assert var["name"] in df.columns
 
-        # Check for inferred columns (benchmark, config, seed)
-        # The parser logic usually adds 'benchmark', 'config' etc if it can infer them or if provided in separate config.
-        # Let's check what we got.
+        # Verify presence of inferred columns.
 
     def test_histogram_parsing(self):
         """Test scanning and parsing a file containing histograms."""
         import shutil
         import tempfile
 
-        # setup_env is unlikely to yield a path if it's not defined in this file.
-        # But looking at previous code, there is no setup_env fixture usage in TestGem5Parsing methods shown.
-        # test_scan_variables uses self.TEST_DATA_DIR.
-        # We will create a fresh temp dir for this test.
+        # Create a fresh temp dir for this test.
 
         tmp_dir = Path(tempfile.mkdtemp())
         stats_dir = tmp_dir / "stats"
@@ -127,14 +148,20 @@ system.mem.ctrl::1024-2047                    5      50.00%     100.00%      # H
 
         try:
             # 1. Scan
-            # Should detect system.mem.ctrl as Histogram (due to our Perl update)
-            vars_found = facade.scan_stats_variables(str(stats_dir), "stats.txt")
+            scan_futures = facade.submit_scan_async(str(stats_dir), "stats.txt", limit=-1)
+            
+            # Wait for scan to complete
+            scan_results = []
+            for future in scan_futures:
+                result = future.result(timeout=5)
+                if result:
+                    scan_results.append(result)
+                
+            vars_found = facade.finalize_scan(scan_results)
             hist_var = next((v for v in vars_found if v["name"] == "system.mem.ctrl"), None)
 
             assert hist_var is not None
             assert hist_var["type"] == "histogram"
-            # Check buckets if scanner returns them (it returns entries for vector/dist/hist)
-            # Perl scanner puts buckets in 'entries'
             assert "0-1023" in hist_var.get("entries", [])
             assert "1024-2047" in hist_var.get("entries", [])
 
@@ -142,9 +169,18 @@ system.mem.ctrl::1024-2047                    5      50.00%     100.00%      # H
             # Configure variables
             variables = [{"name": "system.mem.ctrl", "type": "histogram"}]
 
-            csv_path = facade.parse_gem5_stats(
-                str(stats_dir), "stats.txt", variables, str(output_dir)
+            parse_futures = facade.submit_parse_async(
+                str(stats_dir), "stats.txt", variables, str(output_dir), scanned_vars=vars_found
             )
+            
+            # Wait for parsing to complete
+            parse_results = []
+            for future in parse_futures:
+                result = future.result(timeout=10)
+                if result:
+                    parse_results.append(result)
+            
+            csv_path = facade.finalize_parsing(str(output_dir), parse_results)
 
             assert csv_path is not None
             assert os.path.exists(csv_path)

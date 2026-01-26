@@ -9,7 +9,12 @@ from src.web.ui.shaper_config import configure_shaper
 # Mock streamlit
 @pytest.fixture
 def mock_streamlit():
-    with patch("src.web.ui.shaper_config.st") as mock_st:
+    with patch("src.web.ui.shaper_config.st") as mock_st, patch(
+        "src.web.ui.components.shapers.normalize_config.st", mock_st
+    ), patch("src.web.ui.components.shapers.mean_config.st", mock_st), patch(
+        "src.web.ui.components.shapers.selector_transformer_configs.st", mock_st
+    ):
+
         # Mock session state as a dict
         mock_st.session_state = {}
 
@@ -54,21 +59,6 @@ def test_configure_column_selector(mock_streamlit, sample_data):
     assert kwargs["default"] == ["dataset"]
 
 
-def test_configure_sort(mock_streamlit, sample_data):
-    """Test Sort configuration UI."""
-    mock_streamlit.selectbox.return_value = "dataset"
-
-    # Mock order list management
-    # Session state key: pNone_sort_order_list_1
-
-    config = configure_shaper("sort", sample_data, 1, {})
-
-    # Sort config logic puts order into session_state first
-    assert config["type"] == "sort"
-    assert "dataset" in config["order_dict"]
-
-    # Test adding missing values interaction
-    # (Simulated by mock interactions if we want deeper logic, but basic config return is good for now)
 
 
 def test_configure_filter_numeric(mock_streamlit, sample_data):

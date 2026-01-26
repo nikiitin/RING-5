@@ -1,3 +1,4 @@
+import logging
 from typing import List
 
 import pandas as pd
@@ -7,6 +8,8 @@ from src.core.multiprocessing.job import Job
 from src.web.services.shapers.factory import ShaperFactory
 from src.web.services.shapers.multi_df_shaper import MultiDfShaper
 from src.web.services.shapers.uni_df_shaper import UniDfShaper
+
+logger = logging.getLogger(__name__)
 
 
 class ShaperWork(Job):
@@ -76,7 +79,7 @@ class ShaperWork(Job):
         Execute the shaper task.
         """
         if len(self._srcCsv) == 0:
-            print(f"Error: No source CSV files found for work {self._work_id}")
+            logger.error("No source CSV files found for work %s", self._work_id)
             return False
 
         utils.checkFilesExistOrException(self._srcCsv)
@@ -91,11 +94,7 @@ class ShaperWork(Job):
 
         # Perform the shaper operation
         if isinstance(shaper, UniDfShaper):
-            # UniDfShaper usually takes the first (or relevant) CSV
-            # Original code used srcCsv[1] which might be a bug or specific to its logic
-            # Let's check original: df = cls.getDataFrame(work.srcCsv[1])
-            # Wait, if it has one source, it's index 0. If it has dependencies, maybe index 1?
-            # Looking at ShaperWorkManager, it appends to srcCsv.
+            # UniDfShaper uses the second source if available (dependency output), otherwise first.
             source_idx = 1 if len(self._srcCsv) > 1 else 0
             df = self._getDataFrame(self._srcCsv[source_idx])
             shaper(df)

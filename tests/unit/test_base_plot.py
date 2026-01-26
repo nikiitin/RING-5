@@ -127,7 +127,7 @@ def test_render_reorderable_list(concrete_plot, mock_streamlit):
     # We have loops. Up on index 1 should trigger swap.
     # Pattern: up_{i}
     def button_side_effect(label, key, **kwargs):
-        if key == f"test_key_up_1_{concrete_plot.plot_id}":  # Button UP for 'B'
+        if key == f"test_key_up_1_{concrete_plot.plot_id}":
             return True
         return False
 
@@ -156,14 +156,12 @@ def test_render_advanced_options_shapes(concrete_plot, mock_streamlit):
 
     concrete_plot.render_advanced_options(config)
 
-    # Should have appended a shape to config['shapes'] (passed by ref or updated in place?)
+    # Should have appended a shape to config['shapes']
     # The code does shapes.append() which modifies the list in place if it came from config
-    # BUT render_advanced_options creates local shapes var from config.get.
-    # Ah, `shapes = saved_config.get("shapes", [])`. If list exists in config, it updates config list.
+    # `shapes = saved_config.get("shapes", [])`. If list exists in config, it updates config list.
     assert len(config["shapes"]) == 1
-    assert config["shapes"][0]["type"] == "line"  # Default mocked text_input??
-    # Mock text input is tricky here as it returns same for all by default unless side effected.
-    # But checking list length is enough to prove logic path.
+    assert config["shapes"][0]["type"] == "line"
+    # Validate that the shape list length increased.
     mock_streamlit.rerun.assert_called()
 
 
@@ -178,6 +176,6 @@ def test_render_advanced_options_display(concrete_plot, mock_streamlit):
     # mock_streamlit fixture returns MagicMock for everything by default.
     # We should update side_effect strictly or use loose assertions.
 
-    # Let's trust logic existence.
+    # Validate existence of expected configuration keys.
     assert "show_error_bars" in res
     assert "xaxis_tickangle" in res

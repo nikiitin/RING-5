@@ -3,10 +3,13 @@ JSON Schema validator and template generator for RING-5 configuration files.
 """
 
 import json
+import logging
 import os
 from typing import Any, Dict, Optional
 
 from jsonschema import Draft7Validator, validate
+
+logger = logging.getLogger(__name__)
 
 
 class ConfigValidator:
@@ -259,7 +262,7 @@ class ConfigTemplateGenerator:
 
         Args:
             config: Configuration dictionary
-            baseline: Baseline configuration for normalization
+            baseline: Baseline configuration
             columns: Columns to normalize
             group_by: Grouping columns
 
@@ -286,7 +289,7 @@ class ConfigTemplateGenerator:
         with open(output_path, "w") as f:
             json.dump(config, f, indent=2)
 
-        print(f"Configuration saved to: {output_path}")
+        logger.info("Configuration saved to: %s", output_path)
 
     @staticmethod
     def load_template(template_name: str = "config_template.json") -> Dict[str, Any]:

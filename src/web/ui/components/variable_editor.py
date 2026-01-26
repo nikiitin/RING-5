@@ -3,11 +3,13 @@ Variable Editor Component for RING-5.
 Handles rendering and interaction for defining parser variables (scalars, vectors, distributions).
 """
 
+import re
 from typing import Any, Dict, List, Optional
 
 import streamlit as st
 
 from src.web.facade import BackendFacade
+from src.web.state_manager import StateManager
 
 
 class VariableEditor:
@@ -62,7 +64,11 @@ class VariableEditor:
                     var_config, var, var_id, available_variables, stats_path, stats_pattern
                 )
             elif var_type == "distribution":
-                cls.render_distribution_config(var_config, var, var_id)
+                cls.render_distribution_config(var_config, var, var_id, stats_path, stats_pattern)
+            elif var_type == "histogram":
+                cls.render_histogram_config(
+                    var_config, var, var_id, available_variables, stats_path, stats_pattern
+                )
             elif var_type == "configuration":
                 cls.render_configuration_config(var_config, var, var_id)
 
@@ -98,7 +104,7 @@ class VariableEditor:
 
         with col3:
             current_type = var.get("type", "scalar")
-            options = ["scalar", "vector", "distribution", "configuration"]
+            options = ["scalar", "vector", "distribution", "histogram", "configuration"]
 
             if current_type not in options:
                 current_type = "scalar"
@@ -115,6 +121,103 @@ class VariableEditor:
             delete_clicked = st.button("X", key=f"delete_var_{var_id}")
 
         return var_name, var_alias, var_type, delete_clicked
+
+    @classmethod
+    def render_histogram_config(
+        cls,
+        var_config: Dict[str, Any],
+        original_var: Dict[str, Any],
+        var_id: str,
+        available_variables: Optional[List[Dict[str, Any]]],
+        stats_path: Optional[str],
+        stats_pattern: str,
+    ):
+        """Render configuration for histogram variables."""
+        var_name = var_config.get("name", "")
+        if var_name:
+            st.markdown(f"**Histogram Configuration for `{var_name}`:**")
+
+        st.info(
+            "Histograms require buckets (ranges) to be specified. "
+            "You can use **Deep Scan** to find all range buckets found across all simulations."
+        )
+
+        discovered_entries = []
+        if available_variables:
+            for v in available_variables:
+                if v["name"] == var_name and "entries" in v:
+                    discovered_entries = v["entries"]
+                    break
+
+        options = ["Manual Entry Names", "Histogram Statistics"]
+        if discovered_entries:
+            options.insert(0, "Select from Discovered Entries")
+
+        current_mode_index = 0
+        if original_var.get("useSpecialMembers", False):
+            if "Histogram Statistics" in options:
+                current_mode_index = options.index("Histogram Statistics")
+            else:
+                current_mode_index = 1
+
+        entry_mode = st.radio(
+            "How to specify histogram entries:",
+            options=options,
+            index=current_mode_index,
+            key=f"hist_entry_mode_{var_id}",
+            horizontal=True,
+        )
+
+        cls._handle_deep_scan(
+            var_name,
+            var_id,
+            entry_mode,
+            discover_entries_available=bool(discovered_entries),
+            stats_path=stats_path,
+            stats_pattern=stats_pattern,
+            var_type="histogram",
+        )
+
+        # Target Buckets Configuration (Rebinning)
+        st.write("---")
+        enable_rebin = st.checkbox(
+            "Normalize to Fixed Buckets (Rebinning)",
+            value=original_var.get("enableRebin", False),
+            key=f"hist_rebin_{var_id}",
+            help="Normalizes histograms with inconsistent bucket ranges across simulations",
+        )
+
+        if enable_rebin:
+            c1, c2 = st.columns(2)
+            with c1:
+                bins = st.number_input(
+                    "Target Buckets",
+                    min_value=1,
+                    max_value=1000,
+                    value=int(original_var.get("bins", 10)),
+                    key=f"hist_bins_{var_id}",
+                )
+            with c2:
+                max_range = st.number_input(
+                    "Max Range",
+                    min_value=1.0,
+                    value=float(original_var.get("max_range", 1024.0)),
+                    key=f"hist_max_range_{var_id}",
+                )
+            var_config["bins"] = bins
+            var_config["max_range"] = max_range
+            original_var["enableRebin"] = True
+            original_var["bins"] = bins
+            original_var["max_range"] = max_range
+
+        if entry_mode == "Select from Discovered Entries":
+            cls._render_vector_discovered_selection(
+                var_config, original_var, var_id, discovered_entries
+            )
+        elif entry_mode == "Manual Entry Names":
+            cls._render_vector_manual_entry(var_config, original_var, var_id)
+        else:
+            cls._render_distribution_statistics_selection(var_config, original_var, var_id)
 
     @classmethod
     def render_vector_config(
@@ -184,67 +287,163 @@ class VariableEditor:
         else:  # Vector Statistics mode
             cls._render_vector_statistics_selection(var_config, original_var, var_id)
 
-    @staticmethod
+    @classmethod
     def _handle_deep_scan(
+        cls,
         var_name: str,
         var_id: str,
         entry_mode: str,
         discover_entries_available: bool,
         stats_path: Optional[str],
         stats_pattern: str,
+        var_type: str = "vector",
     ):
         """Handle deep scan logic and button."""
         if not stats_path:
             return
 
-        should_show_scan = entry_mode == "Select from Discovered Entries" or (
-            not discover_entries_available and entry_mode == "Manual Entry Names"
-        )
+        is_distribution = var_type == "distribution"
+
+        if is_distribution:
+            should_show_scan = True
+            btn_label = f"Deep Scan Range for '{var_name}'"
+            help_text = (
+                "Scan ALL stats files to find the total min/max bucket range for this distribution."
+            )
+        else:
+            should_show_scan = entry_mode == "Select from Discovered Entries" or (
+                not discover_entries_available and entry_mode == "Manual Entry Names"
+            )
+            btn_label = f"Deep Scan Entries for '{var_name}'"
+            help_text = "Scan ALL stats files to find all possible entries for this variable."
 
         if should_show_scan:
-            if st.button(
-                f"Deep Scan Entries for '{var_name}'",
-                key=f"deep_scan_{var_id}",
-                help="Scan ALL stats files to find all possible entries for this vector.",
-            ):
-                with st.spinner(f"Scanning all files for {var_name}..."):
-                    facade = BackendFacade()
-                    all_entries = facade.scan_vector_entries(stats_path, var_name, stats_pattern)
+            if st.button(btn_label, key=f"deep_scan_{var_id}", help=help_text):
+                facade = BackendFacade()
+                try:
+                    futures = facade.submit_scan_async(stats_path, stats_pattern, limit=-1)
+                    cls._show_scan_dialog(var_name, var_id, facade, futures, is_distribution)
+                except Exception as e:
+                    st.error(f"Failed to start scan: {e}")
 
-                    if all_entries:
-                        # Update session state available variables
-                        if (
-                            "available_variables" in st.session_state
-                            and st.session_state.available_variables
-                        ):
-                            for v in st.session_state.available_variables:
-                                if v["name"] == var_name:
-                                    v["entries"] = all_entries
-                                    break
+    @classmethod
+    @st.dialog("Deep Scan", dismissible=False)
+    def _show_scan_dialog(
+        cls,
+        var_name: str,
+        var_id: str,
+        facade: Any,
+        futures: list,
+        is_distribution: bool
+    ):
+        """Blocking dialog for async scanning using futures."""
+        from concurrent.futures import as_completed
 
-                        st.success(f"Found {len(all_entries)} entries!")
-                        st.rerun()
-                    else:
-                        st.warning("No entries found.")
+        st.write(f"Variable: `{var_name}`")
+        st.write(f"Scanning {len(futures)} files...")
+        progress_bar = st.progress(0, text="Starting scan...")
 
-    @staticmethod
+        results = []
+        errors = []
+        completed = 0
+        total = len(futures)
+
+        try:
+            for future in as_completed(futures):
+                try:
+                    res = future.result()
+                    if res:
+                        results.append(res)
+                except Exception as e:
+                    errors.append(str(e))
+
+                completed += 1
+                if total > 0:
+                    pct = min(completed / total, 1.0)
+                    progress_bar.progress(pct, text=f"Scanned {completed}/{total} files")
+        except KeyboardInterrupt:
+            st.warning("Scan interrupted.")
+            return
+
+        if errors:
+            st.warning(f"Encountered {len(errors)} errors during scan.")
+
+        if not results:
+            st.warning("No results found.")
+            return
+
+        # Aggregate results
+        snapshot = facade.finalize_scan(results)
+
+        # Process results based on type
+        if is_distribution:
+            global_min, global_max = None, None
+            for var in snapshot:
+                if (var["name"] == var_name or re.fullmatch(var_name, var["name"])) and var.get("type") == "distribution":
+                    m, M = var.get("minimum"), var.get("maximum")
+                    if m is not None:
+                        global_min = min(global_min, m) if global_min is not None else m
+                    if M is not None:
+                        global_max = max(global_max, M) if global_max is not None else M
+
+            if global_min is not None or global_max is not None:
+                st.session_state[f"dist_range_result_{var_id}"] = {"minimum": global_min, "maximum": global_max}
+                st.success(f"Final Range: [{global_min}, {global_max}]")
+            else:
+                st.warning(f"No distribution data found matching '{var_name}'.")
+        else:
+            found_entries = set()
+            for var in snapshot:
+                if (var["name"] == var_name or re.fullmatch(var_name, var["name"])) and "entries" in var:
+                    found_entries.update(var["entries"])
+
+            # SCIENTIFIC FILTER: Remove internal stats from the count and storage
+            internal_stats = {"total", "mean", "gmean", "stdev", "samples", "overflows", "underflows"}
+            filtered_entries = sorted([e for e in found_entries if e.lower() not in internal_stats])
+
+            if filtered_entries:
+                scanned_vars = StateManager.get_scanned_variables() or []
+                var_found = False
+                for v in scanned_vars:
+                    if v["name"] == var_name:
+                        v["entries"] = filtered_entries
+                        var_found = True
+                        break
+                if not var_found:
+                    scanned_vars.append({"name": var_name, "type": "vector", "entries": filtered_entries})
+
+                StateManager.set_scanned_variables(scanned_vars)
+                st.success(f"Discovered {len(filtered_entries)} unique entries!")
+            else:
+                st.warning(f"No valid entries found matching '{var_name}'.")
+
+        if st.button("Close", key=f"finish_{var_id}"):
+            st.rerun()
+
+    @classmethod
     def _render_vector_discovered_selection(
+        cls,
         var_config: Dict[str, Any],
         original_var: Dict[str, Any],
         var_id: str,
         discovered_entries: List[str],
     ):
         """Render multiselect for discovered vector entries."""
+        # SCIENTIFIC FILTER: Remove internal gem5 statistics from the entry list
+        # These are handled via the 'Statistics' checkboxes
+        internal_stats = {"total", "mean", "gmean", "stdev", "samples", "overflows", "underflows"}
+        filtered_entries = [e for e in discovered_entries if e.lower() not in internal_stats]
+
         current_entries = original_var.get("vectorEntries", [])
         if isinstance(current_entries, str):
             current_entries = [e.strip() for e in current_entries.split(",") if e.strip()]
 
         # Filter defaults to ensure they exist in discovered list
-        valid_defaults = [e for e in current_entries if e in discovered_entries]
+        valid_defaults = [e for e in current_entries if e in filtered_entries]
 
         selected_entries = st.multiselect(
             "Select entries to extract:",
-            options=discovered_entries,
+            options=filtered_entries,
             default=valid_defaults,
             key=f"vector_entries_select_{var_id}",
         )
@@ -334,27 +533,102 @@ class VariableEditor:
         else:
             st.warning("Please select at least one statistic to extract")
 
-    @staticmethod
+    @classmethod
     def render_distribution_config(
-        var_config: Dict[str, Any], original_var: Dict[str, Any], var_id: str
+        cls,
+        var_config: Dict[str, Any],
+        original_var: Dict[str, Any],
+        var_id: str,
+        stats_path: Optional[str],
+        stats_pattern: str,
     ):
         """Render configuration for distribution variables."""
         var_name = var_config.get("name", "")
         if var_name:
             st.markdown(f"**Distribution Configuration for `{var_name}`:**")
 
+        # Range inputs with potential deep-scan overrides
+        range_result = st.session_state.get(f"dist_range_result_{var_id}", {})
+        default_min = range_result.get("minimum", original_var.get("minimum", 0))
+        default_max = range_result.get("maximum", original_var.get("maximum", 100))
+
         col_min, col_max = st.columns(2)
         with col_min:
-            min_val = st.number_input(
-                "Minimum value", value=original_var.get("minimum", 0), key=f"dist_min_{var_id}"
-            )
+            min_val = st.number_input("Minimum value", value=default_min, key=f"dist_min_{var_id}")
         with col_max:
-            max_val = st.number_input(
-                "Maximum value", value=original_var.get("maximum", 100), key=f"dist_max_{var_id}"
-            )
+            max_val = st.number_input("Maximum value", value=default_max, key=f"dist_max_{var_id}")
 
         var_config["minimum"] = min_val
         var_config["maximum"] = max_val
+
+        cls._handle_deep_scan(
+            var_name,
+            var_id,
+            "",
+            False,
+            stats_path,
+            stats_pattern,
+            var_type="distribution",
+        )
+
+        st.write("")
+        cls._render_distribution_statistics_selection(var_config, original_var, var_id)
+
+    @staticmethod
+    def _render_distribution_statistics_selection(
+        var_config: Dict[str, Any], original_var: Dict[str, Any], var_id: str
+    ):
+        """Render checkboxes for distribution statistics."""
+        st.markdown("**Extract additional statistics:**")
+        col_stat1, col_stat2 = st.columns(2)
+
+        current_stats = original_var.get("statistics", [])
+
+        with col_stat1:
+            extract_mean = st.checkbox(
+                "mean", value="mean" in current_stats, key=f"dist_stat_mean_{var_id}"
+            )
+            extract_stdev = st.checkbox(
+                "stdev", value="stdev" in current_stats, key=f"dist_stat_stdev_{var_id}"
+            )
+            extract_samples = st.checkbox(
+                "samples", value="samples" in current_stats, key=f"dist_stat_samples_{var_id}"
+            )
+            extract_underflows = st.checkbox(
+                "underflows",
+                value="underflows" in current_stats,
+                key=f"dist_stat_underflows_{var_id}",
+            )
+
+        with col_stat2:
+            extract_total = st.checkbox(
+                "total", value="total" in current_stats, key=f"dist_stat_total_{var_id}"
+            )
+            extract_gmean = st.checkbox(
+                "gmean", value="gmean" in current_stats, key=f"dist_stat_gmean_{var_id}"
+            )
+            extract_overflows = st.checkbox(
+                "overflows", value="overflows" in current_stats, key=f"dist_stat_overflows_{var_id}"
+            )
+
+        selected_stats = []
+        if extract_mean:
+            selected_stats.append("mean")
+        if extract_stdev:
+            selected_stats.append("stdev")
+        if extract_samples:
+            selected_stats.append("samples")
+        if extract_total:
+            selected_stats.append("total")
+        if extract_gmean:
+            selected_stats.append("gmean")
+        if extract_underflows:
+            selected_stats.append("underflows")
+        if extract_overflows:
+            selected_stats.append("overflows")
+
+        if selected_stats:
+            var_config["statistics"] = selected_stats
 
     @staticmethod
     def render_configuration_config(

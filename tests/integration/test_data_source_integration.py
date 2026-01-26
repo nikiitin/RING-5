@@ -23,8 +23,12 @@ def facade(tmp_path):
 
     # Patch PathService.get_data_dir to return our temp dir
     with patch("src.web.services.paths.PathService.get_data_dir", return_value=ring5_dir):
-        with patch("src.web.services.csv_pool_service.PathService.get_data_dir", return_value=ring5_dir):
-            with patch("src.web.services.config_service.PathService.get_data_dir", return_value=ring5_dir):
+        with patch(
+            "src.web.services.csv_pool_service.PathService.get_data_dir", return_value=ring5_dir
+        ):
+            with patch(
+                "src.web.services.config_service.PathService.get_data_dir", return_value=ring5_dir
+            ):
                 # Initialize facade (will use patched paths)
                 f = BackendFacade()
                 # Override paths on facade too for backward compatibility
@@ -51,7 +55,6 @@ def test_csv_pool_operations(facade, tmp_path):
     pool = facade.load_csv_pool()
     assert len(pool) == 1
     assert pool[0]["path"] == str(added_path)
-    # Check if original name is preserved or timestamp added?
     # Logic: f"parsed_{timestamp}.csv" -> Name is changed.
     assert "parsed_" in pool[0]["name"]
 

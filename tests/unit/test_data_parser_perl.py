@@ -2,8 +2,8 @@
 
 import pytest
 
-from src.common.types import StatTypeRegistry
-from src.parsing.parser import Gem5StatsParser
+from src.parsers.parser import Gem5StatsParser
+from src.parsers.types import StatTypeRegistry
 
 
 class TestGem5StatsParser:
@@ -112,6 +112,25 @@ class TestParserVariableMapping:
         assert type(var_map["dist"]).__name__ == "Distribution"
         assert var_map["dist"].minimum == 0
         assert var_map["dist"].maximum == 5
+
+    def test_map_histogram_variable(self):
+        """Test mapping histogram variable with statistics."""
+        parser = (
+            Gem5StatsParser.builder()
+            .with_path("/tmp")
+            .with_variable("hist", "histogram", bins=11, max_range=100.0, statistics="samples,mean")
+            .with_output("/tmp")
+            .build()
+        )
+
+        var_map = parser._map_variables()
+        assert "hist" in var_map
+        assert type(var_map["hist"]).__name__ == "Histogram"
+        # Verify that statistics are correctly merged into entries
+        entries = var_map["hist"].entries
+        assert "samples" in entries
+        assert "mean" in entries
+        assert "0-10" in entries
 
     def test_map_configuration_variable(self):
         """Test mapping configuration variable."""

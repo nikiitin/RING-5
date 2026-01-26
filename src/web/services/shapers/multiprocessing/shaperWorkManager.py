@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import Dict, List, Optional, Set
 
@@ -6,6 +7,8 @@ from tqdm import tqdm
 import src.utils.utils as utils
 from src.core.multiprocessing.pool import WorkPool
 from src.web.services.shapers.multiprocessing.shaperWork import ShaperWork
+
+logger = logging.getLogger(__name__)
 
 
 class ShaperWorkManager:
@@ -109,7 +112,7 @@ class ShaperWorkManager:
             if not future.result():
                 raise Exception(f"Work {work_id} returned failure status")
         except Exception as e:
-            print(f"Error: Work {work_id} failed: {e}")
+            logger.error("Work %s failed: %s", work_id, e, exc_info=True)
             # We might want to handle failures more gracefully
             return
 

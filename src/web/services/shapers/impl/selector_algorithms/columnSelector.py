@@ -1,87 +1,51 @@
-from typing import Any
+from typing import Any, Dict, List
 
 import pandas as pd
 
-import src.utils.utils as utils
-from src.web.services.shapers.impl.selector import Selector
+from src.web.services.shapers.uni_df_shaper import UniDfShaper
 
 
-class ColumnSelector(Selector):
+class ColumnSelector(UniDfShaper):
     """
-    ColumnSelector is a Selector that selects columns based on a specified list of strings.
+    Shaper that subsets columns in the dataframe.
     """
 
-    # Getters and setters
-    @property
-    def _columns(self) -> list:
-        return self._columns_data
+    def __init__(self, params: Dict[str, Any]) -> None:
+        """
+        Initialize ColumnSelector.
 
-    @_columns.setter
-    def _columns(self, value: Any) -> None:
-        utils.checkVarType(value, list)
-        # Check the strings are not empty
-        for col in value:
-            utils.checkVarType(col, str)
-            if col == "":
-                raise ValueError("The 'columns' parameter must not contain empty strings.")
-        self._columns_data = value
+        Args:
+            params: Must contain 'columns' (List[str]).
+        """
+        self.columns: List[str] = params.get("columns", [])
+        super().__init__(params)
 
-    def __init__(self, params: dict) -> None:
-        self._params = params
-        self._columns = utils.getElementValue(self._params, "columns")
+    def _verify_params(self) -> bool:
+        """Verify 'columns' parameter exists and is a non-empty list of strings."""
+        super()._verify_params()
+        if "columns" not in self.params:
+            raise ValueError("ColumnSelector requires 'columns' parameter.")
 
-    def _verifyParams(self) -> bool:
-        verified = super()._verifyParams()
-        utils.checkElementExists(self._params, "columns")
-        return verified
+        cols = self.params["columns"]
+        if not isinstance(cols, list):
+            raise TypeError("ColumnSelector 'columns' parameter must be a list.")
 
-    def _verifyPreconditions(self, data_frame: pd.DataFrame) -> bool:
-        # Don't call Selector's preconditions as it expects _column (singular)
-        # Call UniDfShaper's _verifyPreconditions instead
-        from src.web.services.shapers.uni_df_shaper import UniDfShaper
+        if not all(isinstance(c, str) and c for c in cols):
+            raise ValueError("ColumnSelector 'columns' must be a list of non-empty strings.")
 
-        verified = UniDfShaper._verifyPreconditions(self, data_frame)
-        # Check that all columns exist in the data frame
-        for column in self._columns:
-            if column not in data_frame.columns:
-                verified = False
-                print(f"Warning: The column '{column}' does not exist in the data frame.")
-        return verified
+        return True
+
+    def _verify_preconditions(self, data_frame: pd.DataFrame) -> bool:
+        """Verify that all requested columns exist in the dataframe."""
+        super()._verify_preconditions(data_frame)
+
+        missing = [c for c in self.columns if c not in data_frame.columns]
+        if missing:
+            raise ValueError(f"ColumnSelector: Columns not found: {missing}")
+
+        return True
 
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
-        # Select the columns
-        return data_frame[self._columns]
-
-
-# Main function to test the Cselector class
-def test():
-    # Create a sample data frame
-    df = pd.DataFrame(
-        {
-            "system_id": ["S1", "S1", "S1", "S1", "S2", "S2", "S2", "S2", "S3", "S3", "S3", "S3"],
-            "benchmark": ["B1", "B2", "B1", "B2", "B1", "B2", "B1", "B2", "B1", "B2", "B1", "B2"],
-            "throughput": [100, 105, 120, 118, 80, 82, 78, 85, 90, 95, 100, 102],
-            "latency": [1.2, 1.1, 1.5, 1.4, 2.0, 1.9, 2.1, 2.2, 1.8, 1.7, 1.6, 1.5],
-            "config_param": [
-                "A1",
-                "A1",
-                "A2",
-                "A2",
-                "B1",
-                "B1",
-                "B2",
-                "B2",
-                "C1",
-                "C1",
-                "C2",
-                "C2",
-            ],
-        }
-    )
-    params = {"columns": ["throughput", "latency", "config_param", "benchmark"]}
-    print("input: ")
-    print(df)
-    shaper = ColumnSelector(params)
-    df = shaper(df)
-    print("result: ")
-    print(df)
+        """Subsets the dataframe to only include specified columns."""
+        self._verify_preconditions(data_frame)
+        return data_frame[self.columns]
