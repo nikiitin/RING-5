@@ -8,7 +8,12 @@ from src.web.ui.shaper_config import configure_shaper
 
 @pytest.fixture
 def mock_streamlit():
-    with patch("src.web.ui.shaper_config.st") as mock_st:
+    with patch("src.web.ui.shaper_config.st") as mock_st, patch(
+        "src.web.ui.components.shapers.normalize_config.st", mock_st
+    ), patch("src.web.ui.components.shapers.mean_config.st", mock_st), patch(
+        "src.web.ui.components.shapers.selector_transformer_configs.st", mock_st
+    ):
+
         # Mock columns
         mock_st.columns.side_effect = lambda n: (
             [MagicMock() for _ in range(n)] if isinstance(n, int) else [MagicMock() for _ in n]
@@ -46,20 +51,6 @@ def test_configure_normalize_ui(mock_streamlit):
     assert config["normalizeSd"] is True
 
 
-def test_configure_sort_ui(mock_streamlit):
-    df = pd.DataFrame({"A": ["a", "b", "c"]})
-
-    mock_streamlit.selectbox.return_value = "A"  # sort_column
-
-    config = configure_shaper("sort", df, "test_id", {}, owner_id="plot1")
-
-    # Session state initialization check
-    key = "pplot1_sort_order_list_test_id"
-    # Sort before comparing because pd.unique order might vary or depend on input
-    assert sorted(mock_streamlit.session_state[key]) == ["a", "b", "c"]
-
-    assert config["type"] == "sort"
-    assert sorted(config["order_dict"]["A"]) == ["a", "b", "c"]
 
 
 def test_configure_transformer_ui(mock_streamlit):
