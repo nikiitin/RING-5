@@ -2,8 +2,12 @@
 Seeds Reducer Manager
 """
 
+from typing import Optional
+
+import pandas as pd
 import streamlit as st
 
+from src.web.repositories import PreviewRepository
 from src.web.services.data_processing_service import DataProcessingService
 from src.web.ui.data_managers.base_manager import DataManager
 
@@ -96,15 +100,19 @@ class SeedsReducerManager(DataManager):
         """)
 
         if st.button("Apply Seeds Reducer", key="apply_seeds"):
-            if not selected_categorical:
-                st.error("Please select at least one categorical column for grouping.")
-                return
-            if not selected_numeric:
-                st.error("Please select at least one numeric column for statistics.")
+            # Validate inputs first
+            validation_errors = DataProcessingService.validate_seeds_reducer_inputs(
+                df=data,
+                categorical_cols=selected_categorical,
+                statistic_cols=selected_numeric,
+            )
+
+            if validation_errors:
+                for error in validation_errors:
+                    st.error(error)
                 return
 
             try:
-                # Use DataProcessingService
                 result_df = DataProcessingService.reduce_seeds(
                     df=data,
                     categorical_cols=selected_categorical,
@@ -122,16 +130,20 @@ class SeedsReducerManager(DataManager):
                 st.markdown("**Result Preview:**")
                 st.dataframe(result_df.head(20), width="stretch")
 
-                # Store result in session state for confirmation
-                st.session_state["seeds_result"] = result_df
+                # Store in PreviewRepository instead of session_state
+                PreviewRepository.set_preview("seeds_reduction", result_df)
 
             except Exception as e:
                 st.error(f"Error applying Seeds Reducer: {e}")
 
         # Separate confirmation button outside the first button's scope
-        if "seeds_result" in st.session_state:
+        if PreviewRepository.has_preview("seeds_reduction"):
             if st.button("Confirm and Apply Seeds Reducer", key="confirm_seeds", type="primary"):
-                self.set_data(st.session_state["seeds_result"])
-                del st.session_state["seeds_result"]
-                st.success("✓ Seeds-reduced data is now active!")
-                st.rerun()
+                confirmed_df: Optional[pd.DataFrame] = PreviewRepository.get_preview(
+                    "seeds_reduction"
+                )
+                if confirmed_df is not None:
+                    self.set_data(confirmed_df)
+                    PreviewRepository.clear_preview("seeds_reduction")
+                    st.success("✓ Seeds-reduced data is now active!")
+                    st.rerun()

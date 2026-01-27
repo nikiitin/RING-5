@@ -47,4 +47,3 @@ class TestMultiDfShaper:
         # Empty list passes validation (vacuously true that all items are DataFrames)
         with pytest.raises(AttributeError):
             shaper([])
-

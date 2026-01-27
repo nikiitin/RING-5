@@ -8,6 +8,7 @@ from src.web.repositories.config_repository import ConfigRepository
 from src.web.repositories.data_repository import DataRepository
 from src.web.repositories.parser_state_repository import ParserStateRepository
 from src.web.repositories.plot_repository import PlotRepository
+from src.web.repositories.preview_repository import PreviewRepository
 from src.web.repositories.session_repository import SessionRepository
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     "ParserStateRepository",
     "ConfigRepository",
     "SessionRepository",
+    "PreviewRepository",
 ]

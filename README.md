@@ -4,10 +4,13 @@
 
 A modernized, data analyzer for gem5 simulator output, designed for computer architecture research.
 
-[![Tests](https://img.shields.io/badge/tests-507%20passing-success)](tests/)
+[![CI](https://img.shields.io/badge/CI-passing-success)](https://github.com/vnicolas/RING-5/actions)
+[![Tests](https://img.shields.io/badge/tests-653%20passing-success)](tests/)
 [![Coverage](https://img.shields.io/badge/coverage-77%25-green)](htmlcov/)
 [![Python](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/)
-[![Type Checking](https://img.shields.io/badge/mypy-strict-blue)](https://mypy.readthedocs.io/)
+[![Type Checking](https://img.shields.io/badge/mypy-strict%20(0%20errors)-blue)](https://mypy.readthedocs.io/)
+[![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 ## Features
 

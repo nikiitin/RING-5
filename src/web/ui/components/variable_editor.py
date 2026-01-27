@@ -9,6 +9,8 @@ from typing import Any, Dict, List, Optional
 import streamlit as st
 
 from src.web.facade import BackendFacade
+from src.web.services.variable_service import VariableService
+from src.web.services.variable_validation_service import VariableValidationService
 from src.web.state_manager import StateManager
 
 
@@ -35,13 +37,18 @@ class VariableEditor:
         Returns:
             Updated list of variable configurations
         """
+        # Ensure all variables have IDs (mutate in-place)
+        for var in variables:
+            if "_id" not in var:
+                var["_id"] = VariableService.generate_variable_id()
+
         st.markdown("**Current Variables:**")
 
         updated_vars = []
         deleted_indices = []
 
         for idx, var in enumerate(variables):
-            # Ensure ID exists
+            # Get ID (should exist after ensuring IDs above)
             var_id = var.get("_id", f"fallback_{idx}")
 
             # Common fields (Name, Alias, Type)
@@ -57,7 +64,6 @@ class VariableEditor:
             if var_alias:
                 var_config["alias"] = var_alias
 
-            # Type-specific configuration
             # Type-specific configuration
             if var_type == "vector":
                 cls.render_vector_config(
@@ -374,16 +380,9 @@ class VariableEditor:
 
         # Process results based on type
         if is_distribution:
-            global_min, global_max = None, None
-            for var in snapshot:
-                if (var["name"] == var_name or re.fullmatch(var_name, var["name"])) and var.get(
-                    "type"
-                ) == "distribution":
-                    m, M = var.get("minimum"), var.get("maximum")
-                    if m is not None:
-                        global_min = min(global_min, m) if global_min is not None else m
-                    if M is not None:
-                        global_max = max(global_max, M) if global_max is not None else M
+            global_min, global_max = VariableService.aggregate_distribution_range(
+                snapshot, var_name
+            )
 
             if global_min is not None or global_max is not None:
                 st.session_state[f"dist_range_result_{var_id}"] = {
@@ -394,24 +393,8 @@ class VariableEditor:
             else:
                 st.warning(f"No distribution data found matching '{var_name}'.")
         else:
-            found_entries = set()
-            for var in snapshot:
-                if (
-                    var["name"] == var_name or re.fullmatch(var_name, var["name"])
-                ) and "entries" in var:
-                    found_entries.update(var["entries"])
-
-            # SCIENTIFIC FILTER: Remove internal stats from the count and storage
-            internal_stats = {
-                "total",
-                "mean",
-                "gmean",
-                "stdev",
-                "samples",
-                "overflows",
-                "underflows",
-            }
-            filtered_entries = sorted([e for e in found_entries if e.lower() not in internal_stats])
+            # Aggregate entries using VariableService
+            filtered_entries = VariableService.aggregate_discovered_entries(snapshot, var_name)
 
             if filtered_entries:
                 scanned_vars = StateManager.get_scanned_variables() or []
@@ -443,14 +426,12 @@ class VariableEditor:
         discovered_entries: List[str],
     ) -> None:
         """Render multiselect for discovered vector entries."""
-        # SCIENTIFIC FILTER: Remove internal gem5 statistics from the entry list
-        # These are handled via the 'Statistics' checkboxes
-        internal_stats = {"total", "mean", "gmean", "stdev", "samples", "overflows", "underflows"}
-        filtered_entries = [e for e in discovered_entries if e.lower() not in internal_stats]
+        # Filter internal gem5 statistics using VariableService
+        filtered_entries = VariableService.filter_internal_stats(discovered_entries)
 
         current_entries = original_var.get("vectorEntries", [])
         if isinstance(current_entries, str):
-            current_entries = [e.strip() for e in current_entries.split(",") if e.strip()]
+            current_entries = VariableService.parse_comma_separated_entries(current_entries)
 
         # Filter defaults to ensure they exist in discovered list
         valid_defaults = [e for e in current_entries if e in filtered_entries]
@@ -476,7 +457,7 @@ class VariableEditor:
         """Render text input for manual vector entries."""
         default_entries = original_var.get("vectorEntries", "")
         if isinstance(default_entries, list):
-            default_entries = ", ".join(default_entries)
+            default_entries = VariableService.format_entries_as_string(default_entries)
 
         vector_entries_input = st.text_input(
             "Vector entries (comma-separated)",
@@ -487,7 +468,7 @@ class VariableEditor:
         )
 
         if vector_entries_input.strip():
-            entries = [e.strip() for e in vector_entries_input.split(",") if e.strip()]
+            entries = VariableService.parse_comma_separated_entries(vector_entries_input)
             var_config["vectorEntries"] = entries
             var_config["useSpecialMembers"] = False
             st.success(
@@ -686,12 +667,16 @@ class VariableEditor:
                     var_type = selected_option.split(" (")[1][:-1]
 
                     if st.button("Add Selected", key="add_selected_var"):
-                        variables.append({"name": name, "type": var_type})
+                        new_var = {"name": name, "type": var_type}
+                        # Mutate in-place for Streamlit state management
+                        variables.append(new_var)
                         st.rerun()
             else:
                 st.info("Scan stats files to enable variable search.")
 
         with col_add2:
             if st.button("+ Add Manual", key="add_manual_var"):
-                variables.append({"name": "new_variable", "type": "scalar"})
+                new_var = {"name": "new_variable", "type": "scalar"}
+                # Mutate in-place for Streamlit state management
+                variables.append(new_var)
                 st.rerun()
