@@ -275,14 +275,17 @@ class Normalize(UniDfShaper):
         fingerprint = "|".join(fingerprint_parts)
         return hashlib.md5(fingerprint.encode(), usedforsecurity=False).hexdigest()[:16]
 
-    @cached(ttl=300, maxsize=32)  # Cache for 5 minutes, max 32 normalized datasets
-    def _cached_normalize(self, data_frame: pd.DataFrame, fingerprint: str) -> pd.DataFrame:
+    @cached(ttl=300, maxsize=32, key_func=lambda self, df, fp: fp)
+    def _normalize_with_cache(self, data_frame: pd.DataFrame, fingerprint: str) -> pd.DataFrame:
         """
-        Cached normalization execution.
+        Execute normalization with fingerprint-based caching.
+
+        The @cached decorator uses the fingerprint parameter as the cache key,
+        avoiding inefficient DataFrame stringification.
 
         Args:
             data_frame: Input data
-            fingerprint: Data fingerprint for cache key
+            fingerprint: Data fingerprint for cache key (used by decorator)
 
         Returns:
             Normalized DataFrame
@@ -296,7 +299,10 @@ class Normalize(UniDfShaper):
                 category=FutureWarning,
                 message=".*DataFrameGroupBy.apply operated on the grouping columns.*",
             )
-            return data_frame.groupby(self._group_by, group_keys=False).apply(self._normalize_group)
+            result: pd.DataFrame = data_frame.groupby(self._group_by, group_keys=False).apply(
+                self._normalize_group
+            )
+        return result
 
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
         """
@@ -310,11 +316,11 @@ class Normalize(UniDfShaper):
         """
         self._verify_preconditions(data_frame)
 
-        # Compute fingerprint for caching
+        # Compute fingerprint for caching (only hash metadata, not entire DataFrame)
         fingerprint = self._compute_data_fingerprint(data_frame, self._params)
 
-        # Use cached version
-        result: DataFrame = self._cached_normalize(data_frame, fingerprint)
+        # Use cache with fingerprint as key (NOT the DataFrame itself)
+        result: DataFrame = self._normalize_with_cache(data_frame, fingerprint)
         return result
 
 

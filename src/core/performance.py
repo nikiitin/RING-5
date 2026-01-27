@@ -91,40 +91,54 @@ def cached(
     ttl: Optional[float] = None,
     maxsize: int = 128,
     cache_instance: Optional[SimpleCache] = None,
+    key_func: Optional[Callable[..., str]] = None,
 ) -> Callable[[Callable[..., T]], Callable[..., T]]:
     """
-    Decorator to cache function results.
+    Decorator to cache function results with optional custom key generation.
 
     Args:
         ttl: Time-to-live in seconds
         maxsize: Maximum cache size
         cache_instance: Existing cache to use
+        key_func: Optional function to generate cache key from args/kwargs.
+                  If None, uses default stringification.
+                  Signature: key_func(*args, **kwargs) -> str
 
     Example:
+        # Simple caching (default key generation)
         @cached(ttl=60)
-        def expensive_operation(data: pd.DataFrame) -> pd.DataFrame:
-            # ... expensive computation
-            return result
+        def simple_operation(x: int) -> int:
+            return x * 2
+
+        # Custom key for DataFrame caching (avoid stringifying large data)
+        @cached(ttl=300, key_func=lambda df, fingerprint: fingerprint)
+        def dataframe_operation(data: pd.DataFrame, fingerprint: str) -> pd.DataFrame:
+            # fingerprint is used as cache key, NOT the DataFrame
+            return expensive_transform(data)
     """
     cache = cache_instance or SimpleCache(maxsize=maxsize, ttl=ttl)
 
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> T:
-            # Create cache key from function name and arguments
-            key = f"{func.__name__}:{str(args)}:{str(kwargs)}"
+            # Generate cache key using custom function or default
+            if key_func is not None:
+                cache_key = key_func(*args, **kwargs)
+            else:
+                # Default: stringify all arguments (works for primitives)
+                cache_key = f"{func.__name__}:{str(args)}:{str(kwargs)}"
 
             # Try cache first
-            cached_value = cache.get(key)
+            cached_value = cache.get(cache_key)
             if cached_value is not None:
-                logger.debug(f"Cache HIT: {func.__name__}")
+                logger.debug(f"Cache HIT: {func.__name__} (key={cache_key[:32]}...)")
                 # Cache returns Any, but we trust it matches T
                 return cached_value  # type: ignore[no-any-return]
 
             # Compute and cache
-            logger.debug(f"Cache MISS: {func.__name__}")
+            logger.debug(f"Cache MISS: {func.__name__} (key={cache_key[:32]}...)")
             result: T = func(*args, **kwargs)
-            cache.set(key, result)
+            cache.set(cache_key, result)
             return result
 
         # Attach cache management methods
