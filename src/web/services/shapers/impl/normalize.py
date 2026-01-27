@@ -2,13 +2,17 @@
 """
 Normalization Shaper
 Implements data normalization relative to a baseline configuration.
+
+Performance: Caches normalized results based on data fingerprint.
 """
 
+import hashlib
 import logging
 from typing import Any, Dict, List
 
 import pandas as pd
 
+from src.core.performance import cached
 from src.web.services.shapers.uni_df_shaper import UniDfShaper
 
 logger = logging.getLogger(__name__)
@@ -42,6 +46,9 @@ class Normalize(UniDfShaper):
         self._group_by: List[str] = params.get("groupBy", [])
         self._normalizer_vars: List[str] = params.get("normalizerVars", self._normalize_vars)
         self._normalize_sd: bool = params.get("normalizeSd", True)
+
+        # Store params for caching fingerprint
+        self._params = params
 
         super().__init__(params)
 
@@ -167,9 +174,65 @@ class Normalize(UniDfShaper):
 
         return result
 
+    @staticmethod
+    def _compute_data_fingerprint(data: pd.DataFrame, params: Dict[str, Any]) -> str:
+        """
+        Compute fingerprint for caching normalization results.
+
+        Args:
+            data: Input DataFrame
+            params: Normalization parameters
+
+        Returns:
+            Hash string representing data+params combination
+        """
+        # Combine data shape, relevant columns, and params
+        relevant_cols = (
+            params.get("normalizeVars", [])
+            + params.get("groupBy", [])
+            + [params.get("normalizerColumn", "")]
+        )
+
+        fingerprint_parts = [
+            f"shape:{data.shape}",
+            f"cols:{sorted(relevant_cols)}",
+            f"params:{sorted(params.items())}",
+        ]
+
+        # Add sample of actual data for change detection
+        if len(data) > 0:
+            sample_rows = data[relevant_cols].head(2).to_json() if relevant_cols else ""
+            fingerprint_parts.append(f"sample:{sample_rows}")
+
+        fingerprint = "|".join(fingerprint_parts)
+        return hashlib.md5(fingerprint.encode(), usedforsecurity=False).hexdigest()[:16]
+
+    @cached(ttl=300, maxsize=32)  # Cache for 5 minutes, max 32 normalized datasets
+    def _cached_normalize(self, data_frame: pd.DataFrame, fingerprint: str) -> pd.DataFrame:
+        """
+        Cached normalization execution.
+
+        Args:
+            data_frame: Input data
+            fingerprint: Data fingerprint for cache key
+
+        Returns:
+            Normalized DataFrame
+        """
+        import warnings
+
+        with warnings.catch_warnings():
+            # Suppress pandas warning about group keys
+            warnings.filterwarnings(
+                "ignore",
+                category=FutureWarning,
+                message=".*DataFrameGroupBy.apply operated on the grouping columns.*",
+            )
+            return data_frame.groupby(self._group_by, group_keys=False).apply(self._normalize_group)
+
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
         """
-        Execute the normalization pipeline.
+        Execute the normalization pipeline with caching.
 
         Args:
             data_frame: Input data.
@@ -179,16 +242,11 @@ class Normalize(UniDfShaper):
         """
         self._verify_preconditions(data_frame)
 
-        import warnings
+        # Compute fingerprint for caching
+        fingerprint = self._compute_data_fingerprint(data_frame, self._params)
 
-        with warnings.catch_warnings():
-            # Suppress pandas warning about group keys being dropped during apply
-            warnings.filterwarnings(
-                "ignore",
-                category=FutureWarning,
-                message=".*DataFrameGroupBy.apply operated on the grouping columns.*",
-            )
-            return data_frame.groupby(self._group_by, group_keys=False).apply(self._normalize_group)
+        # Use cached version
+        return self._cached_normalize(data_frame, fingerprint)
 
 
 if __name__ == "__main__":

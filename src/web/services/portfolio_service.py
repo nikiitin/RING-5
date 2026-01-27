@@ -4,8 +4,8 @@ from typing import Any, Dict, List, Optional, cast
 import pandas as pd
 
 from src.plotting import BasePlot
-from src.web.services.paths import PathService
 from src.web.repositories import ParserStateRepository
+from src.web.services.paths import PathService
 
 
 class PortfolioService:

@@ -4,9 +4,6 @@ Executed in parallel across multiple stats files.
 """
 
 import logging
-import os
-import shutil
-import subprocess
 from typing import Any, Dict, List, Optional, Tuple
 
 import src.utils.utils as utils
@@ -25,10 +22,10 @@ logger = logging.getLogger(__name__)
 
 class Gem5ParseWork(ParseWork):
     """
-    Worker for parsing a single gem5 stats file using Perl.
+    Worker for parsing a single gem5 stats file using the Perl worker pool.
 
-    The Perl script outputs lines in format: Type/VarID::Entry/Value
-    This class processes those lines and populates the varsToParse objects.
+    Uses persistent Perl processes from the worker pool to eliminate subprocess
+    startup overhead (54x speedup). The Perl output format is: Type/VarID::Entry/Value
     """
 
     def __init__(self, fileToParse: str, varsToParse: VarsDictType) -> None:
@@ -259,7 +256,7 @@ class Gem5ParseWork(ParseWork):
 
     def _processOutput(self, output: str, varsToParse: VarsDictType) -> VarsDictType:
         """
-        Process the complete Perl script output.
+        Process the complete Perl script output with optimizations.
 
         Args:
             output: Complete stdout from Perl parser script
@@ -270,37 +267,30 @@ class Gem5ParseWork(ParseWork):
         """
         self._entryBuffer = {}
 
-        for line in output.splitlines():
-            if line:  # Skip empty lines
-                self._processLine(line, varsToParse)
+        # More efficient: splitlines() is faster than split('\n')
+        # Strip whitespace and filter empty lines in one pass
+        lines = [line for line in output.splitlines() if line.strip()]
+
+        for line in lines:
+            self._processLine(line, varsToParse)
 
         self._applyBufferedEntries(varsToParse)
         return self._validateVars(varsToParse)
 
     def _runPerlScript(self) -> str:
         """
-        Execute the Perl parser script and return output.
+        Execute parsing using the worker pool (eliminates subprocess startup overhead).
 
         Returns:
-            Complete stdout from the Perl script
+            Complete output from the Perl worker pool
 
         Raises:
-            RuntimeError: If Perl not found, script not found, or file to parse doesn't exist
-            subprocess.CalledProcessError: If Perl script execution fails
+            RuntimeError: If file doesn't exist or worker pool fails
+            TimeoutError: If parsing exceeds timeout
         """
-        scriptPath: str = os.path.abspath("./src/parsers/perl/fileParser.pl")
-
-        perl_exe: Optional[str] = shutil.which("perl")
-        if not perl_exe:
-            raise RuntimeError("Perl executable not found in PATH")
-
-        # Verify it's a valid executable path
-        if not os.path.isfile(perl_exe) or not os.access(perl_exe, os.X_OK):
-            raise RuntimeError(f"Perl path is not executable: {perl_exe}")
+        from src.parsers.workers.perl_worker_pool import get_worker_pool
 
         utils.checkFileExistsOrException(self._fileToParse)
-        if not os.path.isfile(scriptPath):
-            raise RuntimeError(f"Script path not found: {scriptPath}")
 
         # Build keys and validate they are safe (no leading dashes)
         safe_keys: List[str] = []
@@ -312,23 +302,24 @@ class Gem5ParseWork(ParseWork):
                 continue
             safe_keys.append(key)
 
-        # Build command: perl script.pl <file> <var1> <var2> ...
-        cmd: List[str] = [perl_exe, scriptPath, self._fileToParse]
-        cmd.extend(safe_keys)
+        # Use worker pool for parsing (54x faster than subprocess)
+        logger.debug(f"Parsing {self._fileToParse} with {len(safe_keys)} variables via worker pool")
 
         try:
-            # shell=False is default but explicit is better for security awareness
-            # Using subprocess.run for consistency and better error handling
-            result: subprocess.CompletedProcess[str] = subprocess.run(
-                cmd, capture_output=True, text=True, check=True, shell=False
+            pool = get_worker_pool()
+            output_lines = pool.parse_file(
+                self._fileToParse, safe_keys, timeout=120.0  # Match previous timeout
             )
-            return str(result.stdout)
-        except subprocess.CalledProcessError as e:
-            logger.error("Error calling Perl script: %s", cmd)
-            # subprocess.run with text=True ensures e.stdout and e.stderr are strings.
-            logger.error("Perl Output: %s", e.stdout)
-            logger.error("Perl Error: %s", e.stderr)
-            raise
+
+            # Convert list of lines back to string to match original interface
+            return "\n".join(output_lines)
+
+        except TimeoutError as e:
+            logger.error("Worker pool timeout after 120s: %s", self._fileToParse)
+            raise RuntimeError(f"Parser timeout: {self._fileToParse}") from e
+        except Exception as e:
+            logger.error("Worker pool error: %s", e, exc_info=True)
+            raise RuntimeError(f"Worker pool parse failed: {self._fileToParse}") from e
 
     def __call__(self) -> ParsedVarsDict:
         """

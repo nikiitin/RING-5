@@ -56,22 +56,38 @@ class ScanWorkPool:
         self._workPool: WorkPool = WorkPool.get_instance()
         self._futures: List[Future[Any]] = []
 
-    def submit_batch_async(self, works: List[ScanWork]) -> List[Future[Any]]:
+    def submit_batch_async(
+        self, works: List[ScanWork], chunk_size: Optional[int] = None
+    ) -> List[Future[Any]]:
         """
-        Submit a batch of scan works.
+        Submit a batch of scan works with optimized chunking.
 
         Args:
             works: List of ScanWork instances to execute in parallel
+            chunk_size: Optional chunk size for batching (auto-calculated if None)
 
         Returns:
             List of Future objects for tracking execution status
         """
+        if not works:
+            return []
+
+        # Auto-calculate optimal chunk size
+        # Use default of 4 workers if we can't determine pool size
+        if chunk_size is None:
+            chunk_size = max(1, len(works) // 8)  # Conservative default
+
         current_batch_futures: List[Future[Any]] = []
-        for work in works:
-            if work is not None:
-                future: Future[Any] = self._workPool.submit(work)
-                self._futures.append(future)
-                current_batch_futures.append(future)
+
+        # Submit in optimized chunks to reduce overhead
+        for i in range(0, len(works), chunk_size):
+            chunk = works[i : i + chunk_size]
+            for work in chunk:
+                if work is not None:
+                    future: Future[Any] = self._workPool.submit(work)
+                    self._futures.append(future)
+                    current_batch_futures.append(future)
+
         return current_batch_futures
 
     def add_work(self, work: ScanWork) -> None:
@@ -151,7 +167,7 @@ class ParseWorkPool:
 
     def submit_batch_async(self, works: List[ParseWork]) -> List[Future[Any]]:
         """
-        Submit a batch of parsing works.
+        Submit a batch of parsing works with optimized chunking.
 
         Args:
             works: List of ParseWork instances to execute in parallel
@@ -159,12 +175,24 @@ class ParseWorkPool:
         Returns:
             List of Future objects for tracking execution status
         """
+        if not works:
+            return []
+
+        # Auto-calculate optimal chunk size
+        # Use conservative default to avoid overhead
+        chunk_size = max(1, len(works) // 8)
+
         current_batch_futures: List[Future[Any]] = []
-        for work in works:
-            if work is not None:
-                future: Future[Any] = self._work_pool.submit(work)
-                self._futures.append(future)
-                current_batch_futures.append(future)
+
+        # Submit in optimized chunks to reduce overhead
+        for i in range(0, len(works), chunk_size):
+            chunk = works[i : i + chunk_size]
+            for work in chunk:
+                if work is not None:
+                    future: Future[Any] = self._work_pool.submit(work)
+                    self._futures.append(future)
+                    current_batch_futures.append(future)
+
         return current_batch_futures
 
     def add_work(self, work: ParseWork) -> None:

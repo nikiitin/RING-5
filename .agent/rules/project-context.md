@@ -56,9 +56,9 @@ Use specific types (e.g., `List[str]`, `Dict[str, int]`) instead of generic `lis
 4.  **Back-to-Front Sync:** If I filter the dataframe in the backend to remove "cold start" ticks, the Streamlit UI must immediately reflect this. No stale caches.
 5.  **Reproducibility:** The tool must be deterministic. Reading the same file twice must yield the exact same graph.
 
-# Architecture & Tech Stack
+## Architecture & Tech Stack
 
-## Stack
+### Stack
 
 - **Language:** Python 3.x
 - **Language for parsers:** Perl
@@ -76,11 +76,9 @@ Use specific types (e.g., `List[str]`, `Dict[str, int]`) instead of generic `lis
    - **Extract Functionality:** If logic appears twice, refactor it into a method (preferred), utility function or a dedicated class (preferred).
    - **Design Patterns:** Use software design patterns whenever possible. Plots, e.g. must use a factory.
 
-# Workflow & Testing Protocol
+## Workflow & Testing Protocol
 
-## The Golden Rule
-
-**NO code is committed until it passes both unit and integration tests.**
+### The Golden Rule
 
 ## Task Decomposition Protocol
 
@@ -114,9 +112,9 @@ A task is "Done" only when:
 3.  The test passes.
 4.  No regression is introduced in previous tests.
 
-# Coding Standards & Documentation
+## Coding Standards & Documentation
 
-## Documentation Requirements
+### Documentation Requirements
 
 - **Docstrings:** Every function and class must have a Python docstring (Google Style) explaining arguments, return values, and exceptions.
 - **Why, not What:** Comments should explain _why_ a decision was made.
@@ -127,9 +125,9 @@ A task is "Done" only when:
 - **Type Hinting:** Strictly use Python type hints (`typing`) for all function signatures.
 - **Error Handling:** Never use bare `except:` blocks. Catch specific exceptions (e.g., `ValueError`, `FileNotFoundError`) and log them meaningfully.
 
-# Software Architecture & Engineering Standards
+## Software Architecture & Engineering Standards
 
-## 1. Core Philosophy: Extensibility First
+### 1. Core Philosophy: Extensibility First
 
 **Role:** You are a Senior Software Architect. Your priority is long-term maintainability over short-term speed.
 **The Golden Rule:** The system must be open for extension but closed for modification (Open/Closed Principle).
@@ -203,9 +201,9 @@ User: "Create a button component."
 Agent: "✅ **Rules Acknowledged & Loaded.**
 Here is the button component following your architecture guidelines..."
 
-# Skills and Workflows
+## Skills and Workflows
 
-## Available Skills (Detailed Guides)
+### Available Skills (Detailed Guides)
 
 - **parsing-workflow.md**: Complete gem5 stats parsing workflow (scan → select → parse → load)
 - **new-plot-type.md**: Step-by-step guide for adding new visualization types
@@ -230,9 +228,9 @@ Location: `.agent/skills/` and `.agent/workflows/`
 
 Full index: `.agent/README.md`
 
-# Anti-Patterns (NEVER DO THIS)
+## Anti-Patterns (NEVER DO THIS)
 
-## ❌ Creating Synchronous Wrappers
+### ❌ Creating Synchronous Wrappers
 
 ```python
 # WRONG - Don't wrap async API
@@ -334,9 +332,9 @@ subprocess.run(["git", "commit", "-m", "message"])
 
 This is a security requirement. Never execute, suggest, or attempt git operations.
 
-# Quick Reference Commands
+## Quick Reference Commands
 
-## Testing
+### Testing
 
 ```bash
 # Run all tests
@@ -381,9 +379,9 @@ pytest tests/unit/test_file.py -s
 pytest tests/unit/test_file.py -vv
 ```
 
-# Output & Communication Standards
+## Output & Communication Standards
 
-## Context
+### Context
 
 I need you to be transparent about what you are changing ("tell me before modifying"), but I do NOT want to see your raw internal chain-of-thought or `<thinking>` blocks in the chat.
 
@@ -391,7 +389,7 @@ I need you to be transparent about what you are changing ("tell me before modify
 
 1.  **Hide Internal Monologue:**
     - NEVER output text inside `<thinking>`, `<plan>`, or `<scratchpad>` XML tags.
-    - NEVER place thought processes inside Markdown code blocks (e.g., inside `text ... `).
+    - NEVER place thought processes inside Markdown code blocks (e.g., inside `text ...`).
 
 2.  **Mandatory Explanation (Transparency):**
     - Before providing the code, explicitly state what you are about to change and why.

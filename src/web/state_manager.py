@@ -12,28 +12,27 @@ This class acts as a FACADE over specialized repositories:
 - SessionRepository: Session lifecycle
 """
 
-import io
 import logging
 import shutil
-import uuid
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, TypedDict, cast
+from typing import Any, Callable, Dict, List, Optional, TypedDict
 
 import pandas as pd
-import streamlit as st
 
 from src.plotting import BasePlot
-# Import shared types
-from src.web.types import PortfolioData
+
 # Import new repository layer
 from src.web.repositories import (
-    DataRepository,
-    PlotRepository,
-    ParserStateRepository,
     ConfigRepository,
+    DataRepository,
+    ParserStateRepository,
+    PlotRepository,
     SessionRepository,
 )
+
+# Import shared types
+from src.web.types import PortfolioData
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -114,7 +113,7 @@ class StateManager:
     def initialize() -> None:
         """
         Initialize all session state variables with scientific defaults.
-        
+
         DELEGATED TO: SessionRepository
         """
         SessionRepository.initialize_session()
@@ -126,7 +125,7 @@ class StateManager:
     def get_data() -> Optional[pd.DataFrame]:
         """
         Get the current base dataset.
-        
+
         DELEGATED TO: DataRepository
         """
         return DataRepository.get_data()
@@ -137,7 +136,7 @@ class StateManager:
     ) -> None:
         """
         Set the current data and enforce categorical constraints.
-        
+
         DELEGATED TO: DataRepository
         Note: Type enforcement for configuration variables applied here
         """
@@ -159,7 +158,7 @@ class StateManager:
     def get_processed_data() -> Optional[pd.DataFrame]:
         """
         Get the processed/transformed dataset.
-        
+
         DELEGATED TO: DataRepository
         """
         return DataRepository.get_processed_data()
@@ -168,7 +167,7 @@ class StateManager:
     def set_processed_data(data: Optional[pd.DataFrame]) -> None:
         """
         Set the processed/transformed dataset.
-        
+
         DELEGATED TO: DataRepository
         """
         DataRepository.set_processed_data(data)
@@ -177,7 +176,7 @@ class StateManager:
     def has_data() -> bool:
         """
         Check if any data is loaded.
-        
+
         DELEGATED TO: DataRepository
         """
         return DataRepository.has_data()
@@ -186,7 +185,7 @@ class StateManager:
     def clear_data() -> None:
         """
         Reset data-related state and clean up temp storage.
-        
+
         PARTIALLY DELEGATED: Temp dir cleanup here, data clearing to DataRepository
         """
         temp_dir = ConfigRepository.get_temp_dir()
@@ -207,7 +206,7 @@ class StateManager:
     def clear_all() -> None:
         """
         Clear all session state.
-        
+
         DELEGATED TO: SessionRepository
         """
         SessionRepository.clear_all()
@@ -219,7 +218,7 @@ class StateManager:
     def get_config() -> Dict[str, Any]:
         """
         Get the complete configuration dictionary.
-        
+
         DELEGATED TO: ConfigRepository
         """
         return ConfigRepository.get_config()
@@ -228,7 +227,7 @@ class StateManager:
     def set_config(config: Dict[str, Any]) -> None:
         """
         Set the complete configuration dictionary.
-        
+
         DELEGATED TO: ConfigRepository
         """
         ConfigRepository.set_config(config)
@@ -237,7 +236,7 @@ class StateManager:
     def update_config(key: str, value: Any) -> None:
         """
         Update a specific configuration key.
-        
+
         DELEGATED TO: ConfigRepository
         """
         ConfigRepository.update_config(key, value)
@@ -246,7 +245,7 @@ class StateManager:
     def get_temp_dir() -> Optional[str]:
         """
         Get temporary directory path.
-        
+
         DELEGATED TO: ConfigRepository
         """
         return ConfigRepository.get_temp_dir()
@@ -255,7 +254,7 @@ class StateManager:
     def set_temp_dir(path: str) -> None:
         """
         Set the temporary directory path.
-        
+
         DELEGATED TO: ConfigRepository
         """
         ConfigRepository.set_temp_dir(path)
@@ -264,7 +263,7 @@ class StateManager:
     def get_csv_path() -> Optional[str]:
         """
         Get the current CSV file path.
-        
+
         DELEGATED TO: ConfigRepository
         """
         return ConfigRepository.get_csv_path()
@@ -273,7 +272,7 @@ class StateManager:
     def set_csv_path(path: str) -> None:
         """
         Set the current CSV file path.
-        
+
         DELEGATED TO: ConfigRepository
         """
         ConfigRepository.set_csv_path(path)
@@ -282,7 +281,7 @@ class StateManager:
     def is_using_parser() -> bool:
         """
         Check if using gem5 parser mode.
-        
+
         DELEGATED TO: ParserStateRepository
         """
         return ParserStateRepository.is_using_parser()
@@ -291,7 +290,7 @@ class StateManager:
     def set_use_parser(use: bool) -> None:
         """
         Set parser mode flag.
-        
+
         DELEGATED TO: ParserStateRepository
         """
         ParserStateRepository.set_using_parser(use)
@@ -300,7 +299,7 @@ class StateManager:
     def get_csv_pool() -> List[Dict[str, Any]]:
         """
         Get the CSV pool registry.
-        
+
         DELEGATED TO: ConfigRepository
         """
         return ConfigRepository.get_csv_pool()
@@ -309,7 +308,7 @@ class StateManager:
     def set_csv_pool(pool: List[Dict[str, Any]]) -> None:
         """
         Set the CSV pool registry.
-        
+
         DELEGATED TO: ConfigRepository
         """
         ConfigRepository.set_csv_pool(pool)
@@ -318,7 +317,7 @@ class StateManager:
     def get_saved_configs() -> List[Dict[str, Any]]:
         """
         Get list of saved configurations.
-        
+
         DELEGATED TO: ConfigRepository
         """
         return ConfigRepository.get_saved_configs()
@@ -327,7 +326,7 @@ class StateManager:
     def set_saved_configs(configs: List[Dict[str, Any]]) -> None:
         """
         Set the list of saved configurations.
-        
+
         DELEGATED TO: ConfigRepository
         """
         ConfigRepository.set_saved_configs(configs)
@@ -336,7 +335,7 @@ class StateManager:
     def get_parse_variables() -> List[Dict[str, Any]]:
         """
         Get parse variables list.
-        
+
         DELEGATED TO: ParserStateRepository
         """
         return ParserStateRepository.get_parse_variables()
@@ -345,7 +344,7 @@ class StateManager:
     def set_parse_variables(variables: List[Dict[str, Any]]) -> None:
         """
         Set parse variables.
-        
+
         DELEGATED TO: ParserStateRepository
         """
         ParserStateRepository.set_parse_variables(variables)
@@ -354,7 +353,7 @@ class StateManager:
     def get_stats_path() -> str:
         """
         Get the gem5 stats base path.
-        
+
         DELEGATED TO: ParserStateRepository
         """
         return ParserStateRepository.get_stats_path()
@@ -363,7 +362,7 @@ class StateManager:
     def set_stats_path(path: str) -> None:
         """
         Set the gem5 stats base path.
-        
+
         DELEGATED TO: ParserStateRepository
         """
         ParserStateRepository.set_stats_path(path)
@@ -372,7 +371,7 @@ class StateManager:
     def get_stats_pattern() -> str:
         """
         Get the stats file pattern.
-        
+
         DELEGATED TO: ParserStateRepository
         """
         return ParserStateRepository.get_stats_pattern()
@@ -381,7 +380,7 @@ class StateManager:
     def set_stats_pattern(pattern: str) -> None:
         """
         Set the stats file pattern.
-        
+
         DELEGATED TO: ParserStateRepository
         """
         ParserStateRepository.set_stats_pattern(pattern)
@@ -390,7 +389,7 @@ class StateManager:
     def get_scanned_variables() -> List[Dict[str, Any]]:
         """
         Get the scanned variables list.
-        
+
         DELEGATED TO: ParserStateRepository
         """
         return ParserStateRepository.get_scanned_variables()
@@ -399,7 +398,7 @@ class StateManager:
     def set_scanned_variables(variables: List[Dict[str, Any]]) -> None:
         """
         Set the scanned variables list.
-        
+
         DELEGATED TO: ParserStateRepository
         """
         ParserStateRepository.set_scanned_variables(variables)
@@ -410,7 +409,7 @@ class StateManager:
     def get_plots() -> List[BasePlot]:
         """
         Get all plot objects.
-        
+
         DELEGATED TO: PlotRepository
         """
         return PlotRepository.get_plots()
@@ -419,7 +418,7 @@ class StateManager:
     def set_plots(plots: List[BasePlot]) -> None:
         """
         Set the complete list of plot objects.
-        
+
         DELEGATED TO: PlotRepository
         """
         PlotRepository.set_plots(plots)
@@ -428,7 +427,7 @@ class StateManager:
     def add_plot(plot_obj: BasePlot) -> None:
         """
         Add a new plot to the collection.
-        
+
         DELEGATED TO: PlotRepository
         """
         PlotRepository.add_plot(plot_obj)
@@ -437,7 +436,7 @@ class StateManager:
     def get_plot_counter() -> int:
         """
         Get the current plot counter.
-        
+
         DELEGATED TO: PlotRepository
         """
         return PlotRepository.get_plot_counter()
@@ -446,7 +445,7 @@ class StateManager:
     def set_plot_counter(counter: int) -> None:
         """
         Set the plot counter.
-        
+
         DELEGATED TO: PlotRepository
         """
         PlotRepository.set_plot_counter(counter)
@@ -455,7 +454,7 @@ class StateManager:
     def start_next_plot_id() -> int:
         """
         Increment and return next plot ID.
-        
+
         DELEGATED TO: PlotRepository
         """
         return PlotRepository.increment_plot_counter()
@@ -464,7 +463,7 @@ class StateManager:
     def get_current_plot_id() -> Optional[int]:
         """
         Get the currently active plot ID.
-        
+
         DELEGATED TO: PlotRepository
         """
         return PlotRepository.get_current_plot_id()
@@ -473,7 +472,7 @@ class StateManager:
     def set_current_plot_id(plot_id: Optional[int]) -> None:
         """
         Set the currently active plot ID.
-        
+
         DELEGATED TO: PlotRepository
         """
         PlotRepository.set_current_plot_id(plot_id)
@@ -484,7 +483,7 @@ class StateManager:
     def clear_widget_state() -> None:
         """
         Clear widget-specific state markers from session.
-        
+
         DELEGATED TO: SessionRepository
         """
         SessionRepository.clear_widget_state()
@@ -493,7 +492,7 @@ class StateManager:
     def restore_session(portfolio_data: PortfolioData) -> None:
         """
         Restore complete session state from portfolio data.
-        
+
         DELEGATED TO: SessionRepository
         """
         SessionRepository.restore_from_portfolio(portfolio_data)
@@ -502,7 +501,7 @@ class StateManager:
     def restore_session_state(portfolio_data: PortfolioData) -> None:
         """
         Legacy alias for restore_session.
-        
+
         DELEGATED TO: SessionRepository
         """
         SessionRepository.restore_from_portfolio(portfolio_data)

@@ -4,13 +4,14 @@ Type definitions for the web layer.
 This module contains shared type definitions used across the web layer
 to avoid circular imports.
 """
+
 from typing import Any, Dict, List, TypedDict
 
 
 class PortfolioData(TypedDict, total=False):
     """
     Type definition for portfolio restoration data.
-    
+
     Attributes:
         parse_variables: List of parser variable configurations
         stats_path: Base path to gem5 stats files
@@ -23,6 +24,7 @@ class PortfolioData(TypedDict, total=False):
         plot_counter: Current plot ID counter
         config: Application configuration dictionary
     """
+
     parse_variables: List[Dict[str, Any]]
     stats_path: str
     stats_pattern: str

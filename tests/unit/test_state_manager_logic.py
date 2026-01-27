@@ -9,12 +9,16 @@ from src.web.state_manager import StateManager
 @pytest.fixture
 def mock_streamlit():
     # Patch st at multiple levels since repositories access it directly
-    with patch("src.web.repositories.data_repository.st") as mock_data_st, \
-         patch("src.web.repositories.plot_repository.st") as mock_plot_st, \
-         patch("src.web.repositories.parser_state_repository.st") as mock_parser_st, \
-         patch("src.web.repositories.config_repository.st") as mock_config_st, \
-         patch("src.web.repositories.session_repository.st") as mock_session_st:
-        
+    with patch("src.web.repositories.data_repository.st") as mock_data_st, patch(
+        "src.web.repositories.plot_repository.st"
+    ) as mock_plot_st, patch(
+        "src.web.repositories.parser_state_repository.st"
+    ) as mock_parser_st, patch(
+        "src.web.repositories.config_repository.st"
+    ) as mock_config_st, patch(
+        "src.web.repositories.session_repository.st"
+    ) as mock_session_st:
+
         # All repositories share the same session_state dict
         shared_state = {}
         mock_data_st.session_state = shared_state
@@ -22,7 +26,7 @@ def mock_streamlit():
         mock_parser_st.session_state = shared_state
         mock_config_st.session_state = shared_state
         mock_session_st.session_state = shared_state
-        
+
         yield mock_data_st
 
 

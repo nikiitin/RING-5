@@ -103,6 +103,7 @@ def test_render_plot_cached(mock_interactive_chart, mock_export_service, mock_st
     # Safely mock to_json in case real code is hit
     fig.to_json.return_value = "{}"
     mock_plot.last_generated_fig = fig
+    mock_plot.processed_data = pd.DataFrame({"x": [1]})  # Add required data
 
     PlotRenderer.render_plot(mock_plot, should_generate=False)
 
