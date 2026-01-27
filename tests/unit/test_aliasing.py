@@ -31,20 +31,23 @@ class TestAliasing:
         mock_instance.build.return_value.parse.return_value = "/tmp/result.csv"
 
         # Mock parser execution
-        with patch("src.parsers.parse_service.ParseService.submit_parse_async") as mock_submit, \
-             patch("src.parsers.parse_service.ParseService.construct_final_csv") as mock_construct:
-            
+        with patch(
+            "src.parsers.parse_service.ParseService.submit_parse_async"
+        ) as mock_submit, patch(
+            "src.parsers.parse_service.ParseService.construct_final_csv"
+        ) as mock_construct:
+
             # Mock futures properly
             mock_future = MagicMock()
             mock_future.result = MagicMock(return_value={"data": "test"})
             mock_submit.return_value = [mock_future]
             mock_construct.return_value = "/tmp/result.csv"
-            
+
             # Execute async parse
             parse_futures = facade.submit_parse_async(stats_path, stats_pattern, variables, "/tmp")
             results = [f.result() for f in parse_futures]
-            csv_path = facade.finalize_parsing("/tmp", results)
-            
+            facade.finalize_parsing("/tmp", results)
+
             # Verify variables passed to parse service
             call_args = mock_submit.call_args
             assert call_args is not None, "submit_parse_async not called"

@@ -28,9 +28,9 @@ def test_sidebar_info(mock_streamlit):
 
 def test_navigation_menu(mock_streamlit):
     mock_streamlit.radio.return_value = "Data Source"
-    
+
     selected = LayoutComponents.navigation_menu()
-    
+
     assert selected == "Data Source"
     mock_streamlit.radio.assert_called_with(
         "Navigation",
@@ -48,7 +48,7 @@ def test_navigation_menu(mock_streamlit):
 
 def test_progress_display(mock_streamlit):
     LayoutComponents.progress_display(1, 5, "Processing...")
-    
+
     # 1/5 = 0.2
     mock_streamlit.progress.assert_called_with(0.2)
     mock_streamlit.text.assert_called_with("Processing...")
@@ -58,11 +58,11 @@ def test_add_variable_button(mock_streamlit):
     # Case 1: Button clicked
     mock_streamlit.button.return_value = True
     assert LayoutComponents.add_variable_button() is True
-    
+
     # Case 2: Button not clicked
     mock_streamlit.button.return_value = False
     assert LayoutComponents.add_variable_button() is False
-    
+
     mock_streamlit.columns.assert_called_with([1, 4])
 
 

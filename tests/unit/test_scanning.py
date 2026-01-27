@@ -46,12 +46,11 @@ def clean_pool_singleton():
     yield
     ScanWorkPool._singleton = None
 
+
 def test_scan_work_pool_singleton(clean_pool_singleton):
     pool1 = ScanWorkPool.get_instance()
     pool2 = ScanWorkPool.get_instance()
     assert pool1 is pool2
-
-
 
 
 def test_scan_work_pool_add_work(clean_pool_singleton):
@@ -83,15 +82,15 @@ def test_scan_work_pool_async_flow(clean_pool_singleton):
         f1.set_result("res1")
         f2 = Future()
         f2.set_result("res2")
-        
+
         # Mock the internal _workPool to return our futures
         scan_pool._workPool.submit.side_effect = [f1, f2]
-        
+
         futures = scan_pool.submit_batch_async([work1, work2])
-        
+
         # Should return futures
         assert len(futures) == 2
-        
+
         # Collect results
         results = [f.result() for f in futures]
         assert "res1" in results

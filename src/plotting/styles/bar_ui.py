@@ -8,7 +8,7 @@ from .base_ui import BaseStyleUI
 class BarStyleUI(BaseStyleUI):
     def _render_specific_series_visuals(
         self, current_style: Dict[str, Any], key_suffix: str, key_prefix: str = ""
-    ):
+    ) -> None:
         patterns = ["", "/", "\\", "x", "-", "|", "+", "."]
         cur_pat = current_style.get("pattern", "")
         if isinstance(cur_pat, dict):

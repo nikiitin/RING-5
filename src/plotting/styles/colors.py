@@ -2,7 +2,7 @@
 Shared color utilities for consistent palette loading.
 """
 
-from typing import List
+from typing import List, cast
 
 import plotly.colors as pc
 
@@ -14,21 +14,23 @@ def get_palette_colors(palette_name: str) -> List[str]:
     Defaults to Plotly's default qualitative palette if not found.
     """
     # Default fallback
-    default_palette = pc.qualitative.Plotly
+    default_palette: List[str] = cast(List[str], pc.qualitative.Plotly)
 
     if not palette_name:
         return default_palette
 
     # 1. Try direct attribute access (exact match)
     if hasattr(pc.qualitative, palette_name):
-        return getattr(pc.qualitative, palette_name)
+        palette: List[str] = list(getattr(pc.qualitative, palette_name))
+        return palette
 
     # 2. Try case-insensitive match
     for p_attr in dir(pc.qualitative):
         if p_attr.lower() == palette_name.lower():
-            return getattr(pc.qualitative, p_attr)
+            palette = list(getattr(pc.qualitative, p_attr))
+            return palette
 
-    return default_palette
+    return list(default_palette)
 
 
 def to_hex(color_str: str) -> str:
@@ -71,7 +73,8 @@ def to_hex(color_str: str) -> str:
     import logging
 
     try:
-        return pc.convert_colors_to_same_type(color_str, "hex")[0][0]
+        result: List[tuple[str, ...]] = pc.convert_colors_to_same_type(color_str, "hex")
+        return str(result[0][0])
     except Exception:
         logging.warning(f"Could not convert color {color_str} to hex. Fallback to black.")
 

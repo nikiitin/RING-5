@@ -95,14 +95,14 @@ class TestRealGem5DataParsing:
                 variables=variables,
                 output_dir=temp_output_dir,
             )
-            
+
             # Wait for parsing
             parse_results = []
             for future in parse_futures:
                 result = future.result(timeout=30)
                 if result:
                     parse_results.append(result)
-            
+
             csv_path = facade.finalize_parsing(temp_output_dir, parse_results)
 
             if csv_path is None:
@@ -149,14 +149,14 @@ class TestRealDataWithShapers:
                 variables=variables,
                 output_dir=temp_output_dir,
             )
-            
+
             # Wait for parsing
             parse_results = []
             for future in parse_futures:
                 result = future.result(timeout=30)
                 if result:
                     parse_results.append(result)
-            
+
             csv_path = facade.finalize_parsing(temp_output_dir, parse_results)
 
             if csv_path is None or not Path(csv_path).exists():

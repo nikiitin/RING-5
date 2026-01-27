@@ -2,8 +2,12 @@
 Mixer Manager
 """
 
+from typing import Optional
+
+import pandas as pd
 import streamlit as st
 
+from src.web.repositories import PreviewRepository
 from src.web.services.data_processing_service import DataProcessingService
 from src.web.ui.data_managers.base_manager import DataManager
 
@@ -15,20 +19,18 @@ class MixerManager(DataManager):
     def name(self) -> str:
         return "Mixer (Merge Columns)"
 
-    def render(self):
+    def render(self) -> None:
         """Render the Mixer UI."""
         st.markdown("### Mixer (Merge Columns)")
 
-        st.info(
-            """
+        st.info("""
         **Mixer** aggregates multiple columns into one by applying an operation (Sum or Mean).
         
         - **Automatic Error Propagation**: If columns have associated `.sd` or `_stdev` columns, 
           the new standard deviation is calculated using standard error formulas:
           - Sum: sqrt(sd1^2 + sd2^2 + ...)
           - Mean: sqrt(sd1^2 + sd2^2 + ...) / N
-        """
-        )
+        """)
 
         data = self.get_data()
         if data is None:
@@ -83,16 +85,25 @@ class MixerManager(DataManager):
         new_col_name = st.text_input("New Column Name", value=default_name, key="mixer_new_name")
 
         if st.button("Preview Merge", key="mixer_preview"):
-            if len(selected_cols) < 2:
-                st.warning("Please select at least 2 columns to merge.")
+            # Validate inputs first
+            validation_errors = DataProcessingService.validate_merge_inputs(
+                df=data,
+                columns=selected_cols,
+                operation=operation,
+                new_column_name=new_col_name,
+            )
+
+            if validation_errors:
+                for error in validation_errors:
+                    st.error(error)
                 return
 
             try:
-                result_df = DataProcessingService.apply_mixer(
+                result_df = DataProcessingService.merge_columns(
                     df=data,
-                    dest_col=new_col_name,
-                    source_cols=selected_cols,
+                    columns=selected_cols,
                     operation=operation,
+                    new_column_name=new_col_name,
                     separator=separator,
                 )
 
@@ -107,15 +118,18 @@ class MixerManager(DataManager):
 
                 st.dataframe(result_df[cols_to_show].head(), width="stretch")
 
-                st.session_state["mixer_result"] = result_df
+                # Store in PreviewRepository instead of session_state
+                PreviewRepository.set_preview("mixer", result_df)
 
             except Exception as e:
                 st.error(f"Error during merge: {e}")
 
         # Separate confirmation
-        if "mixer_result" in st.session_state:
+        if PreviewRepository.has_preview("mixer"):
             if st.button("Confirm and Merge", key="confirm_mixer", type="primary"):
-                self.set_data(st.session_state["mixer_result"])
-                del st.session_state["mixer_result"]
-                st.success("✓ Merged data active!")
-                st.rerun()
+                confirmed_df: Optional[pd.DataFrame] = PreviewRepository.get_preview("mixer")
+                if confirmed_df is not None:
+                    self.set_data(confirmed_df)
+                    PreviewRepository.clear_preview("mixer")
+                    st.success("✓ Merged data active!")
+                    st.rerun()

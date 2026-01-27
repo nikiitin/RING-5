@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from src.parsers.types.base import StatType, register_type
 
@@ -36,7 +36,7 @@ class Vector(StatType):
         }
     )
 
-    def __init__(self, repeat: int = 1, entries: List[str] = None, **kwargs):
+    def __init__(self, repeat: int = 1, entries: Optional[List[str]] = None, **kwargs: Any) -> None:
         super().__init__(repeat, **kwargs)
         if entries is None:
             raise ValueError("VECTOR: entries parameter is required")
@@ -50,11 +50,13 @@ class Vector(StatType):
 
     @property
     def entries(self) -> List[str]:
-        return object.__getattribute__(self, "_entries")
+        entries_list: List[str] = object.__getattribute__(self, "_entries")
+        return entries_list
 
     @property
     def content(self) -> Dict[str, List[Any]]:
-        return object.__getattribute__(self, "_content")
+        content_dict: Dict[str, List[Any]] = object.__getattribute__(self, "_content")
+        return content_dict
 
     @content.setter
     def content(self, value: Dict[str, List[Any]]) -> None:
@@ -170,7 +172,8 @@ class Vector(StatType):
                 "VECTOR: Cannot access reducedContent before calling "
                 "balance_content() AND reduce_duplicates()"
             )
-        return object.__getattribute__(self, "_reduced_content")
+        reduced_dict: Dict[str, float] = object.__getattribute__(self, "_reduced_content")
+        return reduced_dict
 
     # Backward compatibility
     @property

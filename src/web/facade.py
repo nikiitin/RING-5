@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
+from src.parsers.scanner_service import ScannedVariable
 from src.web.services.config_service import ConfigService
 from src.web.services.csv_pool_service import CsvPoolService
 from src.web.services.paths import PathService
@@ -28,7 +29,7 @@ class BackendFacade:
     (Layer B) and ingestion (Layer A).
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the facade with persistent storage paths."""
         self.ring5_data_dir = PathService.get_data_dir()
         self.csv_pool_dir = CsvPoolService.get_pool_dir()
@@ -92,7 +93,9 @@ class BackendFacade:
 
     # ==================== Core Extraction Orchestration ====================
 
-    def _resolve_variables(self, variables: List[Dict[str, Any]], scanned_vars: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _resolve_variables(
+        self, variables: List[Dict[str, Any]], scanned_vars: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """Resolve regex variables into concrete variable lists."""
         processed_vars = []
         for var in variables:
@@ -159,16 +162,21 @@ class BackendFacade:
         processed_vars = self._resolve_variables(variables, resolved_scanned_vars)
 
         from src.parsers.parse_service import ParseService
-        return ParseService.submit_parse_async(stats_path, stats_pattern, processed_vars, output_dir)
+
+        return ParseService.submit_parse_async(
+            stats_path, stats_pattern, processed_vars, output_dir
+        )
 
     def cancel_parse(self) -> None:
         """Cancel the current parsing job."""
         from src.parsers.parse_service import ParseService
+
         ParseService.cancel_parse()
 
     def finalize_parsing(self, output_dir: str, results: List[Any]) -> Optional[str]:
         """Aggregate partial results into final CSV."""
         from src.parsers.parse_service import ParseService
+
         return ParseService.construct_final_csv(output_dir, results)
 
     # ==================== Variable Discovery & Scanning ====================
@@ -181,16 +189,19 @@ class BackendFacade:
         Returns a list of Futures.
         """
         from src.parsers.scanner_service import ScannerService
+
         return ScannerService.submit_scan_async(stats_path, stats_pattern, limit)
 
     def cancel_scan(self) -> None:
         """Cancel the currently running scan."""
         from src.parsers.scanner_service import ScannerService
+
         ScannerService.cancel_scan()
 
-    def finalize_scan(self, results: List[Any]) -> List[Dict[str, Any]]:
+    def finalize_scan(self, results: List[Any]) -> List[ScannedVariable]:
         """Process and aggregate scan results."""
         from src.parsers.scanner_service import ScannerService
+
         return ScannerService.aggregate_scan_results(results)
 
     # ==================== Utility Methods ====================
@@ -215,5 +226,3 @@ class BackendFacade:
             "total_rows": len(data),
             "null_counts": data.isnull().sum().to_dict(),
         }
-
-

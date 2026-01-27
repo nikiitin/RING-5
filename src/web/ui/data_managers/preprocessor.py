@@ -2,8 +2,12 @@
 Preprocessor Manager
 """
 
+from typing import Optional
+
+import pandas as pd
 import streamlit as st
 
+from src.web.repositories import PreviewRepository
 from src.web.services.data_processing_service import DataProcessingService
 from src.web.ui.data_managers.base_manager import DataManager
 
@@ -15,20 +19,18 @@ class PreprocessorManager(DataManager):
     def name(self) -> str:
         return "Preprocessor (Basic)"
 
-    def render(self):
+    def render(self) -> None:
         """Render the Preprocessor UI."""
         st.markdown("### Preprocessor (Basic)")
 
-        st.info(
-            """
+        st.info("""
         **Preprocessor** creates new columns by combining existing ones with mathematical
         operations.
 
         - **Divide**: Create ratios (e.g., IPC = instructions / cycles)
         - **Sum**: Add columns together (e.g., total_time = user_time + system_time)
         - Results are added as new columns to your dataset
-        """
-        )
+        """)
 
         # Get current data
         data = self.get_data()
@@ -75,7 +77,6 @@ class PreprocessorManager(DataManager):
 
         if st.button("Preview Result", key="preview_preproc"):
             try:
-                # Use DataProcessingService
                 preview_data = DataProcessingService.apply_operation(
                     df=data,
                     operation=operation,
@@ -93,18 +94,22 @@ class PreprocessorManager(DataManager):
                 st.markdown("**Statistics:**")
                 st.dataframe(preview_data[new_col_name].describe().to_frame(), width="stretch")
 
-                # Store result in session state for confirmation
-                st.session_state["preproc_result"] = preview_data
+                # Store in PreviewRepository instead of session_state
+                PreviewRepository.set_preview("preprocessor", preview_data)
 
             except Exception as e:
                 st.error(f"Error creating column: {e}")
 
         # Separate confirmation button outside the first button's scope
-        if "preproc_result" in st.session_state:
+        if PreviewRepository.has_preview("preprocessor"):
             if st.button(
                 "Confirm and Add Column to Dataset", key="confirm_preproc", type="primary"
             ):
-                self.set_data(st.session_state["preproc_result"])
-                del st.session_state["preproc_result"]
-                st.success("✓ Column added to dataset!")
-                st.rerun()
+                confirmed_data: Optional[pd.DataFrame] = PreviewRepository.get_preview(
+                    "preprocessor"
+                )
+                if confirmed_data is not None:
+                    self.set_data(confirmed_data)
+                    PreviewRepository.clear_preview("preprocessor")
+                    st.success("✓ Column added to dataset!")
+                    st.rerun()

@@ -2,8 +2,12 @@
 Outlier Remover Manager
 """
 
+from typing import Optional
+
+import pandas as pd
 import streamlit as st
 
+from src.web.repositories import PreviewRepository
 from src.web.services.data_processing_service import DataProcessingService
 from src.web.ui.data_managers.base_manager import DataManager
 
@@ -15,20 +19,18 @@ class OutlierRemoverManager(DataManager):
     def name(self) -> str:
         return "Outlier Remover"
 
-    def render(self):
+    def render(self) -> None:
         """Render the Outlier Remover UI."""
         st.markdown("### Outlier Remover")
 
-        st.info(
-            """
+        st.info("""
         **Outlier Remover** filters out outlier values based on the 3rd quartile (Q3).
 
         - Groups data by categorical columns
         - Calculates Q3 for the selected numeric column within each group
         - Removes rows where the value exceeds Q3 for that group
         - Helps remove extreme outliers from experiments
-        """
-        )
+        """)
 
         # Get current data
         data = self.get_data()
@@ -90,8 +92,19 @@ class OutlierRemoverManager(DataManager):
             st.metric("Mean", f"{data[outlier_column].mean():.4f}")
 
         if st.button("Apply Outlier Remover", key="apply_outlier"):
+            # Validate inputs first
+            validation_errors = DataProcessingService.validate_outlier_inputs(
+                df=data,
+                outlier_col=outlier_column,
+                group_by_cols=group_by_cols,
+            )
+
+            if validation_errors:
+                for error in validation_errors:
+                    st.error(error)
+                return
+
             try:
-                # Use the existing DataManager implementation via facade
                 filtered_df = DataProcessingService.remove_outliers(
                     df=data, outlier_col=outlier_column, group_by_cols=group_by_cols
                 )
@@ -112,18 +125,22 @@ class OutlierRemoverManager(DataManager):
                 st.markdown("**Filtered Data Preview:**")
                 st.dataframe(filtered_df.head(20), width="stretch")
 
-                # Store result in session state for confirmation
-                st.session_state["outlier_result"] = filtered_df
+                # Store in PreviewRepository instead of session_state
+                PreviewRepository.set_preview("outlier_removal", filtered_df)
 
             except Exception as e:
                 st.error(f"Error applying Outlier Remover: {e}")
 
         # Separate confirmation button outside the first button's scope
-        if "outlier_result" in st.session_state:
+        if PreviewRepository.has_preview("outlier_removal"):
             if st.button(
                 "Confirm and Apply Outlier Remover", key="confirm_outlier", type="primary"
             ):
-                self.set_data(st.session_state["outlier_result"])
-                del st.session_state["outlier_result"]
-                st.success("✓ Outlier-filtered data is now active!")
-                st.rerun()
+                confirmed_df: Optional[pd.DataFrame] = PreviewRepository.get_preview(
+                    "outlier_removal"
+                )
+                if confirmed_df is not None:
+                    self.set_data(confirmed_df)
+                    PreviewRepository.clear_preview("outlier_removal")
+                    st.success("✓ Outlier-filtered data is now active!")
+                    st.rerun()

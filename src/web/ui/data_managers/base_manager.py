@@ -21,7 +21,7 @@ class DataManager(ABC):
         pass
 
     @abstractmethod
-    def render(self):
+    def render(self) -> None:
         """Render the manager's UI."""
         pass
 
@@ -29,6 +29,6 @@ class DataManager(ABC):
         """Helper to get current data from StateManager."""
         return StateManager.get_data()
 
-    def set_data(self, data: pd.DataFrame):
+    def set_data(self, data: pd.DataFrame) -> None:
         """Helper to update application data."""
         StateManager.set_data(data)

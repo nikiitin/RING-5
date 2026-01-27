@@ -57,14 +57,14 @@ class TestFacadeReduction:
 
         # 2. Pre-scan to populate regex matching cache
         scan_futures = facade.submit_scan_async(stats_path, "stats.txt*", limit=10)
-        
+
         # Wait for scan completion
         scan_results = []
         for future in scan_futures:
             result = future.result(timeout=5)
             if result:
                 scan_results.append(result)
-        
+
         scanned_vars = facade.finalize_scan(scan_results)
 
         # 3. Run Facade Parse
@@ -73,16 +73,16 @@ class TestFacadeReduction:
             stats_pattern="stats.txt*",
             variables=variables,
             output_dir=output_dir,
-            scanned_vars=scanned_vars
+            scanned_vars=scanned_vars,
         )
-        
+
         # Wait for parsing
         parse_results = []
         for future in parse_futures:
             result = future.result(timeout=10)
             if result:
                 parse_results.append(result)
-        
+
         csv_path = facade.finalize_parsing(output_dir, parse_results)
 
         assert csv_path is not None

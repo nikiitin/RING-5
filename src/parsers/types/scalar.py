@@ -41,7 +41,7 @@ class Scalar(StatType):
     def _set_content(self, value: Any) -> None:
         """Convert to numeric and append to content list."""
         try:
-            numeric_value = int(value)
+            numeric_value: float = float(int(value))
         except (TypeError, ValueError):
             numeric_value = float(value)
         self._content.append(numeric_value)

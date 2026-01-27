@@ -1,6 +1,6 @@
 """Shared utilities for grouped bar plots."""
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 
 class GroupedBarUtils:
@@ -92,7 +92,7 @@ class GroupedBarUtils:
 
     @staticmethod
     def build_category_annotations(
-        cat_centers: List[tuple],
+        cat_centers: List[tuple[float, str]],
         font_size: int = 14,
         font_color: str = "#000000",
         y_offset: float = -0.15,
@@ -154,7 +154,11 @@ class GroupedBarUtils:
 
         # Determine strict bar width based on gaps
         # If groups is empty (simple bar), treat as single group
-        actual_groups = groups if groups else [None]
+        actual_groups: List[Optional[str]]
+        if groups:
+            actual_groups = list(groups)  # Copy to satisfy variance
+        else:
+            actual_groups = [None]
 
         # Each bar occupies 1.0 unit of width in the 'simulation' space.
 

@@ -1,5 +1,5 @@
 import hashlib
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 import pandas as pd
 import streamlit as st
@@ -604,7 +604,10 @@ class BaseStyleUI:
         """
         Render UI for per-series coloring.
         """
-        series_styles = saved_config.get("series_styles", {})
+        series_styles_raw = saved_config.get("series_styles", {})
+        series_styles: Dict[str, Any] = (
+            cast(Dict[str, Any], series_styles_raw) if series_styles_raw else {}
+        )
         unique_vals = self._get_unique_values(saved_config, data, items)
 
         # Use current selection if available, else saved config
@@ -644,7 +647,7 @@ class BaseStyleUI:
         val_hash: str,
         key_prefix: str = "",
         palette_name: str = "",
-    ):
+    ) -> Dict[str, Any]:
         c2, c3 = st.columns([1, 2])
 
         # Keys for widgets
@@ -680,14 +683,16 @@ class BaseStyleUI:
 
         with c3:
             saved_col = current_style.get("color", default_color)
-            new_color = st.color_picker(
+            new_color_raw = st.color_picker(
                 "Custom", saved_col, key=picker_key, label_visibility="collapsed"
             )
+            new_color: str = str(new_color_raw) if new_color_raw is not None else default_color
             st.caption(f"{new_color}")
 
-            use_custom = st.checkbox(
+            use_custom_raw = st.checkbox(
                 "Override", value=current_style.get("use_color", False), key=override_key
             )
+            use_custom: bool = bool(use_custom_raw) if use_custom_raw is not None else False
 
             current_style["color"] = new_color
             current_style["use_color"] = use_custom
@@ -699,7 +704,7 @@ class BaseStyleUI:
 
     def _render_specific_series_visuals(
         self, current_style: Dict[str, Any], key_suffix: str, key_prefix: str = ""
-    ):
+    ) -> None:
         """Hook for subclasses to render specific style options."""
         pass
 
@@ -712,7 +717,10 @@ class BaseStyleUI:
         """
         Render UI for per-series renaming.
         """
-        series_styles = saved_config.get("series_styles", {})
+        series_styles_raw = saved_config.get("series_styles", {})
+        series_styles: Dict[str, Any] = (
+            cast(Dict[str, Any], series_styles_raw) if series_styles_raw else {}
+        )
         unique_vals = self._get_unique_values(saved_config, data, items)
 
         if unique_vals:
@@ -726,13 +734,14 @@ class BaseStyleUI:
                 with c1:
                     st.markdown(f"**{val_str}**")
                 with c2:
-                    new_name = st.text_input(
+                    new_name_raw = st.text_input(
                         "Display Name",
                         value=current_style.get("name", val_str),
                         key=f"name_{self.plot_id}_{val_hash}",
                         label_visibility="collapsed",
                         placeholder=val_str,
                     )
+                    new_name: str = str(new_name_raw) if new_name_raw is not None else val_str
                     current_style["name"] = new_name
 
                 series_styles[val_str] = current_style
@@ -748,7 +757,10 @@ class BaseStyleUI:
         """
         Render UI for X-Axis label renaming.
         """
-        xaxis_labels = saved_config.get("xaxis_labels", {})
+        xaxis_labels_raw = saved_config.get("xaxis_labels", {})
+        xaxis_labels: Dict[str, str] = (
+            cast(Dict[str, str], xaxis_labels_raw) if xaxis_labels_raw else {}
+        )
         x_col = saved_config.get("x")
 
         if data is not None and x_col and x_col in data.columns:
@@ -769,13 +781,14 @@ class BaseStyleUI:
                     with col_l:
                         st.markdown(f"**{val}**")
                     with col_r:
-                        new_label = st.text_input(
+                        new_label_raw = st.text_input(
                             "Display As",
                             value=xaxis_labels.get(s_val, ""),
                             key=f"{key_prefix}_{self.plot_id}_{val_hash}",
                             label_visibility="collapsed",
                             placeholder=s_val,
                         )
+                        new_label: str = str(new_label_raw) if new_label_raw is not None else ""
                         if new_label and new_label != s_val:
                             xaxis_labels[s_val] = new_label
                         elif s_val in xaxis_labels:
@@ -783,9 +796,11 @@ class BaseStyleUI:
 
         return xaxis_labels
 
-    def _get_unique_values(self, saved_config, data, items) -> List[Any]:
+    def _get_unique_values(
+        self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame], items: Optional[List[str]]
+    ) -> List[Any]:
         """Helper to determine series items."""
-        unique_vals = []
+        unique_vals: List[Any] = []
         if items is not None:
             unique_vals = sorted([str(i) for i in items])
         elif data is not None:

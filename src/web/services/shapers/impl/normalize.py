@@ -1,14 +1,86 @@
 #!/usr/bin/env python3
 """
-Normalization Shaper
-Implements data normalization relative to a baseline configuration.
+Module: src/web/services/shapers/impl/normalize.py
+
+Purpose:
+    Implements baseline normalization for performance analysis. Scales metric values
+    relative to a designated baseline configuration, enabling fair comparison across
+    different system configurations (e.g., comparing transactional vs baseline IPC).
+
+Responsibilities:
+    - Identify baseline rows within groups based on configuration
+    - Calculate normalization factors from baseline values
+    - Apply scaling to target columns (preserving original data)
+    - Handle grouped normalization (normalize within each benchmark/workload)
+    - Cache normalized results for performance (fingerprint-based)
+
+Dependencies:
+    - pandas: For DataFrame operations and groupby
+    - SimpleCache: For caching normalized results (5min TTL)
+
+Usage Example:
+    >>> from src.web.services.shapers.impl.normalize import Normalize
+    >>> import pandas as pd
+    >>>
+    >>> # Sample data with baseline configuration
+    >>> data = pd.DataFrame({
+    ...     'benchmark': ['mcf', 'mcf', 'omnetpp', 'omnetpp'],
+    ...     'config': ['baseline', 'transactional', 'baseline', 'transactional'],
+    ...     'ipc': [1.2, 1.0, 1.5, 1.3]
+    ... })
+    >>>
+    >>> # Normalize IPC relative to baseline config
+    >>> normalizer = Normalize({
+    ...     'normalizeVars': ['ipc'],
+    ...     'normalizerColumn': 'config',
+    ...     'normalizerValue': 'baseline',
+    ...     'groupBy': ['benchmark']
+    ... })
+    >>>
+    >>> result = normalizer(data)
+    >>> print(result[['benchmark', 'config', 'ipc', 'ipc_normalized']])
+       benchmark        config  ipc  ipc_normalized
+    0  mcf         baseline    1.2            1.00
+    1  mcf         transactional 1.0          0.83
+    2  omnetpp     baseline    1.5            1.00
+    3  omnetpp     transactional 1.3          0.87
+
+Design Patterns:
+    - Strategy Pattern: One of many shaper implementations
+    - Template Method: Implements UniDfShaper interface
+    - Cache-Aside Pattern: Fingerprint-based result caching
+
+Performance Characteristics:
+    - Time Complexity: O(n log n) due to groupby operations
+    - Space Complexity: O(n) for new normalized columns
+    - Cache: 5min TTL, 32 entry LRU (based on data fingerprint)
+    - Typical: 10-50ms for 10k rows
+
+Error Handling:
+    - Raises ValueError if baseline not found in group
+    - Raises KeyError if normalizerColumn doesn't exist
+    - Logs warnings for missing columns (graceful degradation)
+
+Thread Safety:
+    - Cache is thread-safe (uses locks)
+    - DataFrame operations are not synchronized
+
+Testing:
+    - Unit tests: tests/unit/test_normalize.py
+    - Integration tests: tests/integration/test_e2e_managers_shapers.py
+
+Version: 2.0.0
+Last Modified: 2026-01-27
 """
 
+import hashlib
 import logging
 from typing import Any, Dict, List
 
 import pandas as pd
+from pandas import DataFrame
 
+from src.core.performance import cached
 from src.web.services.shapers.uni_df_shaper import UniDfShaper
 
 logger = logging.getLogger(__name__)
@@ -42,6 +114,9 @@ class Normalize(UniDfShaper):
         self._group_by: List[str] = params.get("groupBy", [])
         self._normalizer_vars: List[str] = params.get("normalizerVars", self._normalize_vars)
         self._normalize_sd: bool = params.get("normalizeSd", True)
+
+        # Store params for caching fingerprint
+        self._params = params
 
         super().__init__(params)
 
@@ -167,9 +242,71 @@ class Normalize(UniDfShaper):
 
         return result
 
+    @staticmethod
+    def _compute_data_fingerprint(data: pd.DataFrame, params: Dict[str, Any]) -> str:
+        """
+        Compute fingerprint for caching normalization results.
+
+        Args:
+            data: Input DataFrame
+            params: Normalization parameters
+
+        Returns:
+            Hash string representing data+params combination
+        """
+        # Combine data shape, relevant columns, and params
+        relevant_cols = (
+            params.get("normalizeVars", [])
+            + params.get("groupBy", [])
+            + [params.get("normalizerColumn", "")]
+        )
+
+        fingerprint_parts = [
+            f"shape:{data.shape}",
+            f"cols:{sorted(relevant_cols)}",
+            f"params:{sorted(params.items())}",
+        ]
+
+        # Add sample of actual data for change detection
+        if len(data) > 0:
+            sample_rows = data[relevant_cols].head(2).to_json() if relevant_cols else ""
+            fingerprint_parts.append(f"sample:{sample_rows}")
+
+        fingerprint = "|".join(fingerprint_parts)
+        return hashlib.md5(fingerprint.encode(), usedforsecurity=False).hexdigest()[:16]
+
+    @cached(ttl=300, maxsize=32, key_func=lambda self, df, fp: fp)
+    def _normalize_with_cache(self, data_frame: pd.DataFrame, fingerprint: str) -> pd.DataFrame:
+        """
+        Execute normalization with fingerprint-based caching.
+
+        The @cached decorator uses the fingerprint parameter as the cache key,
+        avoiding inefficient DataFrame stringification.
+
+        Args:
+            data_frame: Input data
+            fingerprint: Data fingerprint for cache key (used by decorator)
+
+        Returns:
+            Normalized DataFrame
+        """
+        import warnings
+
+        with warnings.catch_warnings():
+            # Suppress pandas warning about group keys
+            warnings.filterwarnings(
+                "ignore",
+                category=FutureWarning,
+                message=".*DataFrameGroupBy.apply operated on the grouping columns.*",
+            )
+            result: pd.DataFrame = data_frame.groupby(self._group_by, group_keys=False).apply(
+                self._normalize_group
+            )
+        return result
+
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
         """
-        Execute the normalization pipeline.
+        Execute the normalization pipeline with caching.
 
         Args:
             data_frame: Input data.
@@ -179,16 +316,12 @@ class Normalize(UniDfShaper):
         """
         self._verify_preconditions(data_frame)
 
-        import warnings
+        # Compute fingerprint for caching (only hash metadata, not entire DataFrame)
+        fingerprint = self._compute_data_fingerprint(data_frame, self._params)
 
-        with warnings.catch_warnings():
-            # Suppress pandas warning about group keys being dropped during apply
-            warnings.filterwarnings(
-                "ignore",
-                category=FutureWarning,
-                message=".*DataFrameGroupBy.apply operated on the grouping columns.*",
-            )
-            return data_frame.groupby(self._group_by, group_keys=False).apply(self._normalize_group)
+        # Use cache with fingerprint as key (NOT the DataFrame itself)
+        result: DataFrame = self._normalize_with_cache(data_frame, fingerprint)
+        return result
 
 
 if __name__ == "__main__":

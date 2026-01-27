@@ -77,17 +77,21 @@ def test_seeds_reducer_apply(mock_streamlit, sample_data):
     with patch(
         "src.web.services.data_processing_service.DataProcessingService.reduce_seeds"
     ) as mock_reduce:
-        mock_reduce.return_value = pd.DataFrame(
-            {"benchmark": ["b1"], "value": [11], "value.sd": [1.4]}
-        )
+        with patch(
+            "src.web.repositories.preview_repository.PreviewRepository.set_preview"
+        ) as mock_set_preview:
+            mock_reduce.return_value = pd.DataFrame(
+                {"benchmark": ["b1"], "value": [11], "value.sd": [1.4]}
+            )
 
-        manager.render()
+            manager.render()
 
-        # Check processing called
-        mock_reduce.assert_called_once()
+            # Check processing called
+            mock_reduce.assert_called_once()
 
-        # Check result stored in session state
-        assert "seeds_result" in mock_st.session_state
+            # Check result stored in PreviewRepository
+            mock_set_preview.assert_called_once()
+            assert mock_set_preview.call_args[0][0] == "seeds_reduction"
 
 
 def test_seeds_reducer_confirm(mock_streamlit, sample_data):
@@ -99,21 +103,35 @@ def test_seeds_reducer_confirm(mock_streamlit, sample_data):
     manager.get_data = MagicMock(return_value=sample_data)
     manager.set_data = MagicMock()
 
-    # Pre-load session state with result
+    # Pre-load result
     result_df = pd.DataFrame({"benchmark": ["b1"]})
-    mock_st.session_state["seeds_result"] = result_df
 
     # Mock Interactions
     # Apply Button -> False
     # Confirm Button -> True
     mock_st.button.side_effect = lambda label, key=None, **kwargs: key == "confirm_seeds"
 
-    manager.render()
+    with patch(
+        "src.web.repositories.preview_repository.PreviewRepository.has_preview"
+    ) as mock_has_preview:
+        with patch(
+            "src.web.repositories.preview_repository.PreviewRepository.get_preview"
+        ) as mock_get_preview:
+            with patch(
+                "src.web.repositories.preview_repository.PreviewRepository.clear_preview"
+            ) as mock_clear_preview:
+                mock_has_preview.return_value = True
+                mock_get_preview.return_value = result_df
 
-    # Check set_data called
-    manager.set_data.assert_called_once_with(result_df)
-    assert "seeds_result" not in mock_st.session_state
-    mock_st.rerun.assert_called_once()
+                manager.render()
+
+                # Check get_preview called
+                mock_get_preview.assert_called_once_with("seeds_reduction")
+                # Check set_data called
+                manager.set_data.assert_called_once_with(result_df)
+                # Check clear_preview called
+                mock_clear_preview.assert_called_once_with("seeds_reduction")
+                mock_st.rerun.assert_called_once()
 
 
 def test_outlier_remover_run(mock_streamlit, sample_data):
@@ -135,9 +153,14 @@ def test_outlier_remover_run(mock_streamlit, sample_data):
     with patch(
         "src.web.services.data_processing_service.DataProcessingService.remove_outliers"
     ) as mock_remove:
-        mock_remove.return_value = sample_data
+        with patch(
+            "src.web.repositories.preview_repository.PreviewRepository.set_preview"
+        ) as mock_set_preview:
+            mock_remove.return_value = sample_data
 
-        manager.render()
+            manager.render()
 
-        mock_remove.assert_called_once()
-        assert "outlier_result" in mock_st.session_state
+            mock_remove.assert_called_once()
+            # Check result stored in PreviewRepository
+            mock_set_preview.assert_called_once()
+            assert mock_set_preview.call_args[0][0] == "outlier_removal"

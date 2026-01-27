@@ -150,3 +150,190 @@ class DataProcessingService:
                     result[new_sd_col] = np.sqrt(variance_series) / n
 
         return result
+
+    @staticmethod
+    def merge_columns(
+        df: pd.DataFrame,
+        columns: List[str],
+        operation: str,
+        new_column_name: str,
+        separator: str = "_",
+    ) -> pd.DataFrame:
+        """
+        Merge multiple columns into a single column.
+
+        This is an alias for apply_mixer with clearer naming for the UI layer.
+        Supports Sum, Mean, and Concatenate operations with automatic SD propagation.
+
+        Args:
+            df: Input DataFrame
+            columns: List of column names to merge
+            operation: Operation to perform ("Sum", "Mean", "Concatenate")
+            new_column_name: Name for the new merged column
+            separator: Separator for concatenate operation (default: "_")
+
+        Returns:
+            DataFrame with new merged column
+
+        Raises:
+            ValueError: If columns list is empty or operation is invalid
+
+        Example:
+            >>> data = pd.DataFrame({
+            ...     "a": [1, 2, 3],
+            ...     "b": [4, 5, 6]
+            ... })
+            >>> result = DataProcessingService.merge_columns(
+            ...     data, ["a", "b"], "Sum", "total"
+            ... )
+            >>> assert "total" in result.columns
+        """
+        return DataProcessingService.apply_mixer(
+            df=df,
+            dest_col=new_column_name,
+            source_cols=columns,
+            operation=operation,
+            separator=separator,
+        )
+
+    @staticmethod
+    def validate_merge_inputs(
+        df: pd.DataFrame,
+        columns: List[str],
+        operation: str,
+        new_column_name: str,
+    ) -> List[str]:
+        """
+        Validate inputs for merge_columns operation.
+
+        Args:
+            df: Input DataFrame
+            columns: Columns to merge
+            operation: Operation type
+            new_column_name: Name for merged column
+
+        Returns:
+            List of error messages (empty if valid)
+
+        Example:
+            >>> data = pd.DataFrame({"a": [1], "b": [2]})
+            >>> errors = DataProcessingService.validate_merge_inputs(
+            ...     data, ["a", "b"], "Sum", "total"
+            ... )
+            >>> assert len(errors) == 0
+        """
+        errors: List[str] = []
+
+        if not columns:
+            errors.append("At least one column must be selected")
+        elif len(columns) < 2:
+            errors.append("At least two columns must be selected for merging")
+
+        # Check columns exist
+        missing = [col for col in columns if col not in df.columns]
+        if missing:
+            errors.append(f"Columns not found in DataFrame: {', '.join(missing)}")
+
+        # Validate operation
+        valid_ops = {"Sum", "Mean", "Mean (Average)", "Concatenate"}
+        if operation not in valid_ops:
+            errors.append(f"Invalid operation: '{operation}'. Valid: {', '.join(valid_ops)}")
+
+        # Validate new column name
+        if not new_column_name:
+            errors.append("New column name cannot be empty")
+        elif new_column_name in df.columns:
+            errors.append(f"Column '{new_column_name}' already exists in DataFrame")
+
+        return errors
+
+    @staticmethod
+    def validate_outlier_inputs(
+        df: pd.DataFrame, outlier_col: str, group_by_cols: List[str]
+    ) -> List[str]:
+        """
+        Validate inputs for remove_outliers operation.
+
+        Args:
+            df: Input DataFrame
+            outlier_col: Column to detect outliers in
+            group_by_cols: Columns to group by
+
+        Returns:
+            List of error messages (empty if valid)
+
+        Example:
+            >>> data = pd.DataFrame({"val": [1, 2, 100], "group": ["A", "A", "A"]})
+            >>> errors = DataProcessingService.validate_outlier_inputs(
+            ...     data, "val", ["group"]
+            ... )
+            >>> assert len(errors) == 0
+        """
+        errors: List[str] = []
+
+        if not outlier_col:
+            errors.append("Outlier column must be specified")
+        elif outlier_col not in df.columns:
+            errors.append(f"Outlier column '{outlier_col}' not found in DataFrame")
+
+        # Check numeric
+        if outlier_col in df.columns:
+            if not pd.api.types.is_numeric_dtype(df[outlier_col]):
+                errors.append(f"Outlier column '{outlier_col}' must be numeric")
+
+        # Validate group_by columns
+        if group_by_cols:
+            missing = [col for col in group_by_cols if col not in df.columns]
+            if missing:
+                errors.append(f"Group by columns not found: {', '.join(missing)}")
+
+        return errors
+
+    @staticmethod
+    def validate_seeds_reducer_inputs(
+        df: pd.DataFrame, categorical_cols: List[str], statistic_cols: List[str]
+    ) -> List[str]:
+        """
+        Validate inputs for reduce_seeds operation.
+
+        Args:
+            df: Input DataFrame
+            categorical_cols: Columns to group by
+            statistic_cols: Columns to calculate statistics for
+
+        Returns:
+            List of error messages (empty if valid)
+
+        Example:
+            >>> data = pd.DataFrame({
+            ...     "bench": ["A", "A", "B"],
+            ...     "value": [1.0, 2.0, 3.0],
+            ...     "seed": [1, 2, 1]
+            ... })
+            >>> errors = DataProcessingService.validate_seeds_reducer_inputs(
+            ...     data, ["bench"], ["value"]
+            ... )
+            >>> assert len(errors) == 0
+        """
+        errors: List[str] = []
+
+        if not categorical_cols:
+            errors.append("At least one categorical column must be selected")
+        if not statistic_cols:
+            errors.append("At least one statistic column must be selected")
+
+        # Check categorical columns exist
+        missing_cat = [col for col in categorical_cols if col not in df.columns]
+        if missing_cat:
+            errors.append(f"Categorical columns not found: {', '.join(missing_cat)}")
+
+        # Check statistic columns exist and are numeric
+        missing_stat = [col for col in statistic_cols if col not in df.columns]
+        if missing_stat:
+            errors.append(f"Statistic columns not found: {', '.join(missing_stat)}")
+
+        for col in statistic_cols:
+            if col in df.columns and not pd.api.types.is_numeric_dtype(df[col]):
+                errors.append(f"Statistic column '{col}' must be numeric")
+
+        return errors

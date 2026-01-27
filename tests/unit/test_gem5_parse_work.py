@@ -135,18 +135,19 @@ def test_validate_vars_config_no_default_fail():
 
 
 def test_call_subprocess(parser):
-    # Test __call__ flow mocking subprocess.run
-    # Note: We must patch where it is USED, i.e., in the worker module
-    with patch("src.parsers.workers.gem5_parse_work.subprocess.run") as mock_run:
+    # Test __call__ flow mocking worker pool instead of subprocess
+    # Note: Worker pool is now the PRIMARY mechanism
+    # Patch at perl_worker_pool module since get_worker_pool is imported inside function
+    with patch("src.parsers.workers.perl_worker_pool.get_worker_pool") as mock_get_pool:
         with patch("src.utils.utils.checkFileExistsOrException"):
             # Success Case
-            mock_result = MagicMock()
-            mock_result.stdout = (
-                "scalar/scalar_var/10\n"
-                "vector/vector_var::0/20\n"
-                "distribution/dist_var::min/5\n"
-            )
-            mock_run.return_value = mock_result
+            mock_pool = MagicMock()
+            mock_pool.parse_file.return_value = [
+                "scalar/scalar_var/10",
+                "vector/vector_var::0/20",
+                "distribution/dist_var::min/5",
+            ]
+            mock_get_pool.return_value = mock_pool
 
             result = parser()
 

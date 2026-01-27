@@ -1,6 +1,6 @@
 """Configuration stat type for metadata values."""
 
-from typing import Any
+from typing import Any, Optional
 
 from src.parsers.types.base import StatType, register_type
 
@@ -34,13 +34,13 @@ class Configuration(StatType):
         }
     )
 
-    def __init__(self, repeat: int = 1, onEmpty: str = None, **kwargs):
+    def __init__(self, repeat: int = 1, onEmpty: Optional[str] = None, **kwargs: Any) -> None:
         super().__init__(repeat, **kwargs)
         object.__setattr__(self, "_on_empty", onEmpty or "None")
 
     @property
     def onEmpty(self) -> str:
-        return object.__getattribute__(self, "_on_empty")
+        return str(object.__getattribute__(self, "_on_empty"))
 
     def _validate_content(self, value: Any) -> None:
         """Ensure value can be converted to string."""

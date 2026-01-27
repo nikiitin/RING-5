@@ -1,6 +1,6 @@
 import copy
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 import streamlit as st
 
@@ -17,7 +17,7 @@ class PlotManagerComponents:
     """UI Components for the Plot Management Page."""
 
     @staticmethod
-    def render_create_plot_section():
+    def render_create_plot_section() -> None:
         """Render the section to create a new plot."""
         col1, col2, col3 = st.columns([2, 1, 1])
         with col1:
@@ -67,7 +67,7 @@ class PlotManagerComponents:
         return selected_plot
 
     @staticmethod
-    def render_plot_controls(plot: BasePlot):
+    def render_plot_controls(plot: BasePlot) -> None:
         """Render controls for renaming and managing the current plot."""
         col1, col2, col3, col4 = st.columns(4)
 
@@ -110,7 +110,7 @@ class PlotManagerComponents:
             PlotManagerComponents._render_load_pipeline_dialog(plot)
 
     @staticmethod
-    def _render_save_pipeline_dialog(plot: BasePlot):
+    def _render_save_pipeline_dialog(plot: BasePlot) -> None:
         st.markdown("---")
         st.markdown(f"### Save Pipeline for '{plot.name}'")
         col1, col2 = st.columns([3, 1])
@@ -136,7 +136,7 @@ class PlotManagerComponents:
                 st.rerun()
 
     @staticmethod
-    def _render_load_pipeline_dialog(plot: BasePlot):
+    def _render_load_pipeline_dialog(plot: BasePlot) -> None:
         st.markdown("---")
         st.markdown("### Load Pipeline")
         pipelines = PipelineService.list_pipelines()
@@ -159,14 +159,16 @@ class PlotManagerComponents:
                 st.rerun()
             except Exception as e:
                 st.error(f"Error loading: {e}")
-                logger.error("PLOT: Failed to load pipeline for plot '%s': %s", plot.name, e, exc_info=True)
+                logger.error(
+                    "PLOT: Failed to load pipeline for plot '%s': %s", plot.name, e, exc_info=True
+                )
 
         if st.button("Cancel", key=f"cancel_load_{plot.plot_id}"):
             st.session_state[f"show_load_for_plot_{plot.plot_id}"] = False
             st.rerun()
 
     @staticmethod
-    def render_pipeline_editor(plot: BasePlot):
+    def render_pipeline_editor(plot: BasePlot) -> None:
         """Render the Data Processing Pipeline editor."""
         st.markdown("### Data Processing Pipeline")
 
@@ -251,8 +253,13 @@ class PlotManagerComponents:
                             st.dataframe(out.head(5))
                         except Exception as e:
                             st.error(f"Preview error: {e}")
-                            logger.error("PIPELINE: Preview failure for shaper index %d in plot '%s': %s",
-                                         idx, plot.name, e, exc_info=True)
+                            logger.error(
+                                "PIPELINE: Preview failure for shaper index %d in plot '%s': %s",
+                                idx,
+                                plot.name,
+                                e,
+                                exc_info=True,
+                            )
 
         # Finalize
         if plot.pipeline:
@@ -272,7 +279,7 @@ class PlotManagerComponents:
                     st.error(f"Error: {e}")
 
     @staticmethod
-    def render_plot_display(plot: BasePlot):
+    def render_plot_display(plot: BasePlot) -> None:
         """Render the plot display section with controls."""
         if plot.processed_data is None:
             st.warning("No processed data available.")
@@ -343,7 +350,7 @@ class PlotManagerComponents:
         PlotRenderer.render_plot(plot, should_gen)
 
     @staticmethod
-    def render_workspace_management(_PortfolioServiceClass):
+    def render_workspace_management(_PortfolioServiceClass: Any) -> None:
         """Render workspace management buttons."""
         st.markdown("---")
         st.markdown("### Workspace Management")
@@ -393,13 +400,14 @@ class PlotManagerComponents:
                         progress = st.progress(0)
                         for i, p in enumerate(plots):
                             try:
+                                fmt_to_use = fmt_arg if fmt_arg else "png"
                                 res = PlotService.export_plot_to_file(
-                                    p, export_path, format=fmt_arg
+                                    p, export_path, format=fmt_to_use
                                 )
                                 if res:
                                     count += 1
-                            except Exception as e:
-                                errors.append(f"{p.name}: {e}")
+                            except Exception as exc:
+                                errors.append(f"{p.name}: {exc}")
                             progress.progress((i + 1) / len(plots))
 
                         progress.empty()
@@ -409,8 +417,8 @@ class PlotManagerComponents:
                             st.error(f"Failed to export {len(errors)} plots.")
                             logger.error("EXPORT: Failed to export some plots. Errors: %s", errors)
                             with st.expander("Show Errors"):
-                                for e in errors:
-                                    st.write(e)
+                                for error_msg in errors:
+                                    st.write(error_msg)
 
         st.markdown("---")
         c1, c2 = st.columns(2)

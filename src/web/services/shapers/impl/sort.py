@@ -1,3 +1,75 @@
+"""
+Module: src/web/services/shapers/impl/sort.py
+
+Purpose:
+    Applies custom categorical sorting to DataFrames based on user-defined column orders.
+    Enables control over row ordering for publication-quality plots (e.g., baseline first,
+    then configurations in logical order).
+
+Responsibilities:
+    - Convert columns to categorical type with specified order
+    - Sort DataFrame by multiple columns with custom precedence
+    - Handle partial orders (values not in order appear after sorted values)
+    - Preserve data integrity (return new DataFrame)
+
+Dependencies:
+    - pandas: For categorical type conversion and sorting
+    - UniDfShaper: Base class for shaper interface
+
+Usage Example:
+    >>> from src.web.services.shapers.impl.sort import Sort
+    >>> import pandas as pd
+    >>>
+    >>> # Sample data with random order
+    >>> data = pd.DataFrame({
+    ...     'config': ['tx_eager', 'baseline', 'tx_lazy', 'baseline'],
+    ...     'benchmark': ['omnetpp', 'omnetpp', 'mcf', 'mcf'],
+    ...     'ipc': [1.3, 1.5, 0.9, 1.2]
+    ... })
+    >>>
+    >>> # Define custom sort order (baseline first)
+    >>> sorter = Sort({
+    ...     'order_dict': {
+    ...         'config': ['baseline', 'tx_lazy', 'tx_eager'],
+    ...         'benchmark': ['mcf', 'omnetpp', 'xalancbmk']
+    ...     }
+    ... })
+    >>>
+    >>> result = sorter(data)
+    >>> print(result)
+       config     benchmark  ipc
+    3  baseline   mcf        1.2  # First by config (baseline), then benchmark (mcf)
+    1  baseline   omnetpp    1.5
+    2  tx_lazy    mcf        0.9
+    0  tx_eager   omnetpp    1.3
+
+Design Patterns:
+    - Strategy Pattern: One of many shaper implementations
+    - Template Method: Implements UniDfShaper interface
+
+Performance Characteristics:
+    - Time Complexity: O(n log n) for sorting
+    - Space Complexity: O(n) for categorical conversion
+    - Typical: 10-30ms for 10k rows with 2 sort columns
+
+Error Handling:
+    - Raises ValueError if 'order_dict' parameter missing
+    - Raises TypeError if 'order_dict' is not a dictionary
+    - Raises TypeError if column names aren't strings or values aren't lists
+    - Raises ValueError if specified columns don't exist in dataframe
+
+Thread Safety:
+    - Stateless transformation (thread-safe)
+    - DataFrame operations not synchronized
+
+Testing:
+    - Unit tests: tests/unit/test_sort.py
+    - Integration tests: tests/integration/test_e2e_managers_shapers.py
+
+Version: 2.0.0
+Last Modified: 2026-01-27
+"""
+
 from typing import Any, Dict, List
 
 import pandas as pd

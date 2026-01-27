@@ -1,7 +1,14 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any, Dict, TypedDict
 
 import pandas as pd
+
+
+class ShaperConfig(TypedDict, total=False):
+    """Type definition for shaper configuration parameters."""
+
+    type: str  # Shaper type identifier
+    params: Dict[str, Any]  # Type-specific parameters
 
 
 class Shaper(ABC):
@@ -9,7 +16,8 @@ class Shaper(ABC):
     Abstract base class for all data shapers.
 
     A Shaper defines a transformation on simulation data, such as filtering,
-    aggregation, or normalization.
+    aggregation, or normalization. Follows the Strategy pattern for
+    interchangeable data transformations.
     """
 
     def __init__(self, params: Dict[str, Any]) -> None:
@@ -17,15 +25,15 @@ class Shaper(ABC):
         Initialize the shaper with configuration parameters.
 
         Args:
-            params: Dictionary of configuration parameters.
+            params: Dictionary of configuration parameters
 
         Raises:
-            ValueError: If parameters are invalid.
+            ValueError: If parameters are invalid or not a dictionary
         """
         if not isinstance(params, dict):
             raise ValueError("Shaper parameters must be a dictionary.")
 
-        self.params = params
+        self.params: Dict[str, Any] = params
         self._verify_params()
 
     @abstractmethod
@@ -34,10 +42,10 @@ class Shaper(ABC):
         Verify that the initialization parameters are valid.
 
         Returns:
-            True if valid.
+            True if valid
 
         Raises:
-            ValueError: If mandatory parameters are missing or incorrect.
+            ValueError: If mandatory parameters are missing or incorrect
         """
         if self.params is None:
             raise ValueError("Shaper: parameters cannot be None.")
@@ -48,13 +56,13 @@ class Shaper(ABC):
         Verify that the dataframe state is compatible with this shaper.
 
         Args:
-            data_frame: Data to check.
+            data_frame: Data to check
 
         Returns:
-            True if compatible.
+            True if compatible
 
         Raises:
-            ValueError: If preconditions are not met.
+            ValueError: If preconditions are not met (None or empty)
         """
         if data_frame is None:
             raise ValueError("Shaper: Input dataframe cannot be None.")
@@ -62,15 +70,18 @@ class Shaper(ABC):
             raise ValueError("Shaper: Cannot operate on an empty dataframe.")
         return True
 
-    def __call__(self, data_frame: Any) -> pd.DataFrame:
+    def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
         """
         Execute the transformation on the data.
 
         Args:
-            data_frame: The data to transform.
+            data_frame: The data to transform
 
         Returns:
-            The transformed dataframe.
+            The transformed dataframe
+
+        Raises:
+            ValueError: If preconditions are not met
         """
         self._verify_preconditions(data_frame)
         return data_frame

@@ -8,10 +8,26 @@ from src.web.state_manager import StateManager
 
 @pytest.fixture
 def mock_streamlit():
-    with patch("src.web.state_manager.st") as mock_st:
-        # Crucial: st.session_state behaves like a dict in tests
-        mock_st.session_state = {}
-        yield mock_st
+    # Patch st at multiple levels since repositories access it directly
+    with patch("src.web.repositories.data_repository.st") as mock_data_st, patch(
+        "src.web.repositories.plot_repository.st"
+    ) as mock_plot_st, patch(
+        "src.web.repositories.parser_state_repository.st"
+    ) as mock_parser_st, patch(
+        "src.web.repositories.config_repository.st"
+    ) as mock_config_st, patch(
+        "src.web.repositories.session_repository.st"
+    ) as mock_session_st:
+
+        # All repositories share the same session_state dict
+        shared_state = {}
+        mock_data_st.session_state = shared_state
+        mock_plot_st.session_state = shared_state
+        mock_parser_st.session_state = shared_state
+        mock_config_st.session_state = shared_state
+        mock_session_st.session_state = shared_state
+
+        yield mock_data_st
 
 
 def test_initialize_defaults(mock_streamlit):
@@ -55,8 +71,9 @@ def test_set_parse_variables_generate_ids(mock_streamlit):
     # Setup variables without IDs
     vars_config = [{"name": "v1"}]
 
-    # set_parse_variables should add IDs
-    with patch("uuid.uuid4", return_value="uuid-1"):
+    # set_parse_variables should add IDs (done in ParserStateRepository now)
+    with patch("src.web.repositories.parser_state_repository.uuid") as mock_uuid:
+        mock_uuid.uuid4.return_value = "uuid-1"
         StateManager.set_parse_variables(vars_config)
 
     vars_out = StateManager.get_parse_variables()
@@ -75,8 +92,8 @@ def test_start_next_plot_id(mock_streamlit):
 
 
 def test_restore_session_state(mock_streamlit):
-    # Mock BasePlot.from_dict
-    with patch("src.plotting.base_plot.BasePlot.from_dict") as mock_from_dict:
+    # Mock BasePlot.from_dict at repository level
+    with patch("src.web.repositories.session_repository.BasePlot.from_dict") as mock_from_dict:
         mock_plot = MagicMock()
         mock_from_dict.return_value = mock_plot
 

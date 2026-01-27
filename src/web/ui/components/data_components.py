@@ -11,7 +11,7 @@ class DataComponents:
     """Reusable components for data visualization and export."""
 
     @staticmethod
-    def show_data_preview(data: pd.DataFrame, title: str = "Data Preview", rows: int = 20):
+    def show_data_preview(data: pd.DataFrame, title: str = "Data Preview", rows: int = 20) -> None:
         """
         Display a data preview with statistics.
 
@@ -37,7 +37,7 @@ class DataComponents:
             st.metric("Categorical Columns", len(categorical_cols))
 
     @staticmethod
-    def show_column_details(data: pd.DataFrame):
+    def show_column_details(data: pd.DataFrame) -> None:
         """
         Display detailed column information in an expander.
 
@@ -57,7 +57,7 @@ class DataComponents:
             st.dataframe(col_info, width="stretch")
 
     @staticmethod
-    def download_buttons(data: pd.DataFrame, prefix: str = "processed_data"):
+    def download_buttons(data: pd.DataFrame, prefix: str = "processed_data") -> None:
         """
         Display download buttons for different formats.
 
