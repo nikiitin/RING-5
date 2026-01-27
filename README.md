@@ -70,6 +70,7 @@ RING-5 follows a **layered architecture** with clear separation of concerns:
 ```
 
 **Key Design Patterns**:
+
 - **Service Layer**: Encapsulates business logic
 - **Repository Pattern**: Abstracts state management
 - **Factory Pattern**: Creates plots and shapers dynamically
@@ -178,7 +179,6 @@ Open browser to **[http://localhost:8501](http://localhost:8501)(Port could vary
    - Save complete workspace (data + plots + pipelines)
    - Load previous analyses for reproducibility
 
-
 ## Configuration Guide
 
 RING-5 uses a single JSON configuration file with three main sections:
@@ -255,11 +255,13 @@ make lint
 ### Development Workflow
 
 1. **Create Feature Branch**:
+
    ```bash
    git checkout -b feature/my-new-feature
    ```
 
 2. **Write Tests First (TDD)**:
+
    ```python
    # tests/unit/test_my_feature.py
    def test_my_feature():
@@ -278,6 +280,7 @@ make lint
    - Use dependency injection
 
 4. **Verify Quality**:
+
    ```bash
    make test        # All tests pass
    make type-check  # No type errors
@@ -306,6 +309,7 @@ Domain Layer (parsers/, plotting/)
 ```
 
 **Key Principles**:
+
 - **Separation of Concerns**: UI never imports domain logic directly
 - **Dependency Injection**: Pass dependencies as parameters
 - **Type Safety**: All code is strictly typed (mypy --strict)
@@ -371,20 +375,20 @@ def test_my_shaper():
 
 See [.agent/workflows/new-variable-type.md](.agent/workflows/new-variable-type.md) for workflow.
 
-
 ### Performance Benchmarks
 
-| Operation | Before (subprocess) | After (worker pool) | Speedup |
-|-----------|---------------------|---------------------|---------|
-| Parse 20 variables | 54.3s | 1.0s | **54.3x** |
-| Scan 1000 variables | 120s | 8s | **15x** |
-| Full pipeline | 180s | 12s | **15x** |
+| Operation           | Before (subprocess) | After (worker pool) | Speedup   |
+| ------------------- | ------------------- | ------------------- | --------- |
+| Parse 20 variables  | 54.3s               | 1.0s                | **54.3x** |
+| Scan 1000 variables | 120s                | 8s                  | **15x**   |
+| Full pipeline       | 180s                | 12s                 | **15x**   |
 
 ### Contributing
 
 See full guidelines in `CONTRIBUTING.md`.
 
 **Quick Checklist**:
+
 - [ ] All tests pass (`make test`)
 - [ ] Type checking passes (`make type-check`)
 - [ ] Code formatted (`black src/ tests/`)

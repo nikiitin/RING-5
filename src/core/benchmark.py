@@ -65,7 +65,7 @@ class BenchmarkSuite:
         self.results: List[BenchmarkResult] = []
 
     @contextmanager
-    def measure(self, operation_name: str):
+    def measure(self, operation_name: str) -> Any:
         """
         Context manager to measure operation duration.
 
@@ -119,7 +119,7 @@ class BenchmarkSuite:
         bench_result = BenchmarkResult(operation_name, elapsed, iterations)
         self.results.append(bench_result)
 
-        return result
+        return result  # type: ignore[return-value]
 
     def summary(self) -> pd.DataFrame:
         """
@@ -181,7 +181,9 @@ class BenchmarkSuite:
         return comparison
 
 
-def benchmark_decorator(iterations: int = 1, name: Optional[str] = None):
+def benchmark_decorator(
+    iterations: int = 1, name: Optional[str] = None
+) -> Callable[[Callable[..., T]], Callable[..., T]]:
     """
     Decorator to benchmark a function.
 
@@ -217,7 +219,7 @@ def benchmark_decorator(iterations: int = 1, name: Optional[str] = None):
                     f"({avg:.2f}ms avg over {iterations} iterations)"
                 )
 
-            return result
+            return result  # type: ignore[return-value]
 
         return wrapper
 
@@ -225,7 +227,7 @@ def benchmark_decorator(iterations: int = 1, name: Optional[str] = None):
 
 
 @contextmanager
-def timer(name: str):
+def timer(name: str) -> Any:
     """
     Simple context manager timer.
 

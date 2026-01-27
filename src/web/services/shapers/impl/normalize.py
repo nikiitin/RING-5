@@ -78,6 +78,7 @@ import logging
 from typing import Any, Dict, List
 
 import pandas as pd
+from pandas import DataFrame
 
 from src.core.performance import cached
 from src.web.services.shapers.uni_df_shaper import UniDfShaper
@@ -313,7 +314,8 @@ class Normalize(UniDfShaper):
         fingerprint = self._compute_data_fingerprint(data_frame, self._params)
 
         # Use cached version
-        return self._cached_normalize(data_frame, fingerprint)
+        result: DataFrame = self._cached_normalize(data_frame, fingerprint)
+        return result
 
 
 if __name__ == "__main__":

@@ -47,10 +47,11 @@ class ParserStateRepository:
         Returns:
             List of parse variable configurations
         """
-        return st.session_state.get(
+        result: List[Dict[str, Any]] = st.session_state.get(
             ParserStateRepository.PARSE_VARIABLES_KEY,
             ParserStateRepository.DEFAULT_PARSE_VARIABLES.copy(),
         )
+        return result
 
     @staticmethod
     def set_parse_variables(variables: List[Dict[str, Any]]) -> None:
@@ -108,7 +109,10 @@ class ParserStateRepository:
         Returns:
             Path pattern (e.g., "/path/to/gem5/stats")
         """
-        return st.session_state.get(ParserStateRepository.STATS_PATH_KEY, "/path/to/gem5/stats")
+        result: str = st.session_state.get(
+            ParserStateRepository.STATS_PATH_KEY, "/path/to/gem5/stats"
+        )
+        return result
 
     @staticmethod
     def set_stats_path(path: str) -> None:
@@ -129,7 +133,8 @@ class ParserStateRepository:
         Returns:
             Filename pattern (e.g., "stats.txt")
         """
-        return st.session_state.get(ParserStateRepository.STATS_PATTERN_KEY, "stats.txt")
+        result: str = st.session_state.get(ParserStateRepository.STATS_PATTERN_KEY, "stats.txt")
+        return result
 
     @staticmethod
     def set_stats_pattern(pattern: str) -> None:
@@ -150,7 +155,10 @@ class ParserStateRepository:
         Returns:
             List of scanned variable metadata
         """
-        return st.session_state.get(ParserStateRepository.SCANNED_VARIABLES_KEY, [])
+        result: List[Dict[str, Any]] = st.session_state.get(
+            ParserStateRepository.SCANNED_VARIABLES_KEY, []
+        )
+        return result
 
     @staticmethod
     def set_scanned_variables(variables: List[Dict[str, Any]]) -> None:
@@ -171,7 +179,8 @@ class ParserStateRepository:
         Returns:
             True if parser should be used for data ingestion
         """
-        return st.session_state.get(ParserStateRepository.USE_PARSER_KEY, False)
+        result: bool = st.session_state.get(ParserStateRepository.USE_PARSER_KEY, False)
+        return result
 
     @staticmethod
     def set_using_parser(use_parser: bool) -> None:

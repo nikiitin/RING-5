@@ -66,6 +66,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
+from pandas import DataFrame
 
 from src.core.performance import SimpleCache
 from src.web.services.paths import PathService
@@ -173,28 +174,29 @@ class CsvPoolService:
         cache_key = CsvPoolService._compute_file_hash(csv_path)
         cached_df = CsvPoolService._dataframe_cache.get(cache_key)
         if cached_df is not None:
-            return cached_df
+            # Trust cache contains DataFrame
+            return cached_df  # type: ignore[no-any-return]
 
         # Load with optimizations
         # Note: low_memory doesn't work with python engine, so we use C engine when possible
-        df = pd.read_csv(
+        result: DataFrame = pd.read_csv(
             csv_path,
             sep=None,
             engine="python",
         )
 
         # Cache the DataFrame
-        CsvPoolService._dataframe_cache.set(cache_key, df)
+        CsvPoolService._dataframe_cache.set(cache_key, result)
 
         # Also cache metadata
         metadata = {
-            "columns": list(df.columns),
-            "rows": len(df),
-            "dtypes": {col: str(dtype) for col, dtype in df.dtypes.items()},
+            "columns": list(result.columns),
+            "rows": len(result),
+            "dtypes": {col: str(dtype) for col, dtype in result.dtypes.items()},
         }
         CsvPoolService._metadata_cache.set(csv_path, metadata)
 
-        return df
+        return result
 
     @staticmethod
     def _compute_file_hash(file_path: str) -> str:
@@ -228,7 +230,8 @@ class CsvPoolService:
         # Check cache
         cached = CsvPoolService._metadata_cache.get(csv_path)
         if cached is not None:
-            return cached
+            result: Dict[str, Any] | None = cached
+            return result
 
         # Compute metadata by reading just the header and counting rows
         try:

@@ -103,7 +103,8 @@ class PlotRepository:
         Returns:
             Current counter value (0 if not initialized)
         """
-        return st.session_state.get(PlotRepository.PLOT_COUNTER_KEY, 0)
+        result: int = st.session_state.get(PlotRepository.PLOT_COUNTER_KEY, 0)
+        return result
 
     @staticmethod
     def set_plot_counter(counter: int) -> None:

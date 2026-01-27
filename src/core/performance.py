@@ -70,16 +70,17 @@ class SimpleCache:
         self._hits = 0
         self._misses = 0
 
-    def stats(self) -> Dict[str, int]:
+    def stats(self) -> Dict[str, int | float]:
         """Get cache statistics."""
         total = self._hits + self._misses
         hit_rate = (self._hits / total * 100) if total > 0 else 0
-        return {
+        stats: Dict[str, int | float] = {
             "hits": self._hits,
             "misses": self._misses,
             "size": len(self._cache),
             "hit_rate": round(hit_rate, 2),
         }
+        return stats
 
 
 # Global cache instance for plot figure generation
@@ -90,7 +91,7 @@ def cached(
     ttl: Optional[float] = None,
     maxsize: int = 128,
     cache_instance: Optional[SimpleCache] = None,
-) -> Callable:
+) -> Callable[[Callable[..., T]], Callable[..., T]]:
     """
     Decorator to cache function results.
 
@@ -117,11 +118,12 @@ def cached(
             cached_value = cache.get(key)
             if cached_value is not None:
                 logger.debug(f"Cache HIT: {func.__name__}")
-                return cached_value
+                # Cache returns Any, but we trust it matches T
+                return cached_value  # type: ignore[no-any-return]
 
             # Compute and cache
             logger.debug(f"Cache MISS: {func.__name__}")
-            result = func(*args, **kwargs)
+            result: T = func(*args, **kwargs)
             cache.set(key, result)
             return result
 
