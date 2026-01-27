@@ -132,7 +132,7 @@ class DataSourceComponents:
                     scan_limit = -1 if deep_scan else 10
                     facade.submit_scan_async(stats_path, stats_pattern, limit=scan_limit)
                     st.info(
-                        f"{'Deep' if deep_scan else 'Quick'} scan started! Results will appear in the 'Add Variable' list shortly."
+                        f"{'Deep' if deep_scan else 'Quick'} scan started! Results will appear in the 'Add Variable' list shortly."  # noqa: E501
                     )
                     st.rerun()
                 except Exception as e:
@@ -345,7 +345,7 @@ class DataSourceComponents:
 
         # Note: We cannot easily use a 'Stop' button inside a blocking loop in Streamlit
         # without some trickery, but we can check a session state flag or just rely on
-        # the user closing the dialog (which might not kill threads, but user said "call cancel_parse").
+        # the user closing the dialog (which might not kill threads, but user said "call cancel_parse").  # noqa: E501
         # If we block here, `st.button` inside the loop won't work well.
         # However, `as_completed` is an iterator. We can iterate it.
 

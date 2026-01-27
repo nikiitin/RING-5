@@ -231,7 +231,7 @@ class PlotRenderer:
                     if relayout_data != last_event:
                         if plot.update_from_relayout(relayout_data):
                             # Store updates for the next run to avoid "widget instantiated" errors
-                            # Cannot modify widget keys immediately because they were already rendered in this frame.
+                            # Cannot modify widget keys immediately because they were already rendered in this frame.  # noqa: E501
                             updates = {}
                             for prefix in ["", "theme_"]:
                                 # Position Keys

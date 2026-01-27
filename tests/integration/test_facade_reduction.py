@@ -26,20 +26,20 @@ class TestFacadeReduction:
         with open(os.path.join(stats_dir, "stats.txt"), "w") as f:
             f.write("---------- Begin Simulation Statistics ----------\n")
             f.write(
-                "system.cpu0.ipc                                      10.000000                       # IPC\n"
+                "system.cpu0.ipc                                      10.000000                       # IPC\n"  # noqa: E501
             )
             f.write(
-                "system.cpu1.ipc                                      20.000000                       # IPC\n"
+                "system.cpu1.ipc                                      20.000000                       # IPC\n"  # noqa: E501
             )
             f.write("---------- End Simulation Statistics   ----------\n")
 
         with open(os.path.join(stats_dir, "stats.txt.bak"), "w") as f:
             f.write("---------- Begin Simulation Statistics ----------\n")
             f.write(
-                "system.cpu0.ipc                                      10.000000                       # IPC\n"
+                "system.cpu0.ipc                                      10.000000                       # IPC\n"  # noqa: E501
             )
             f.write(
-                "system.cpu1.ipc                                      30.000000                       # IPC\n"
+                "system.cpu1.ipc                                      30.000000                       # IPC\n"  # noqa: E501
             )
             f.write("---------- End Simulation Statistics   ----------\n")
 

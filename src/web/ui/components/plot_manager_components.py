@@ -357,7 +357,7 @@ class PlotManagerComponents:
 
         st.markdown("#### Export All Plots")
         st.caption(
-            "Export all plots to a local directory (e.g., your LaTeX repository). Uses individual plot settings (Scale/Format)."
+            "Export all plots to a local directory (e.g., your LaTeX repository). Uses individual plot settings (Scale/Format)."  # noqa: E501
         )
 
         ec1, ec2, ec3 = st.columns([2, 1, 1])

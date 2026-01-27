@@ -165,7 +165,7 @@ class GroupedBarPlot(BasePlot):
 
         # 2. Calculate Manual X Coordinates
         # GroupedBarPlot uses Plotly's native 'group' barmode, so we only need one X coordinate
-        # per Category (Major Group). The sub-groups are handled by Plotly automatically offsetting traces.
+        # per Category (Major Group). The sub-groups are handled by Plotly automatically offsetting traces.  # noqa: E501
         # So we pass groups=[] to the utility to get simple category-based coordinates.
         coord_result = GroupedBarUtils.calculate_grouped_coordinates(
             categories=ordered_x, groups=[], config=config

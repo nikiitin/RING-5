@@ -82,7 +82,7 @@ def test_histogram_rebinning_overflow():
     hist = Histogram(repeat=1, bins=2, max_range=100)
 
     # Bucket 150-200 (val 10): Entirely overflow -> 100+
-    # Bucket 90-110 (val 20): Overlap 90-100 (10 units) -> 0-100. Overflow 100-110 (10 units) -> 100+
+    # Bucket 90-110 (val 20): Overlap 90-100 (10 units) -> 0-100. Overflow 100-110 (10 units) -> 100+  # noqa: E501
 
     hist.content = {"150-200": [10], "90-110": [20]}
     hist.balance_content()

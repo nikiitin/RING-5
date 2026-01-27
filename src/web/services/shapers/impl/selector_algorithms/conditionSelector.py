@@ -89,7 +89,7 @@ class ConditionSelector(Selector):
         elif self.mode == "less_than":
             return data_frame[data_frame[col] < self.threshold]
         elif self.mode == "equals":
-            return data_frame[data_frame[col] == self.value]  # type: ignore
+            return data_frame[data_frame[col] == self.value]  # type: ignore[no-any-return]
         elif self.mode == "contains":
             mask = data_frame[col].astype(str).str.contains(str(self.value), na=False)
             return data_frame[mask]

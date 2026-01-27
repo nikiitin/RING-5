@@ -25,8 +25,8 @@ class MixerManager(DataManager):
 
         st.info("""
         **Mixer** aggregates multiple columns into one by applying an operation (Sum or Mean).
-        
-        - **Automatic Error Propagation**: If columns have associated `.sd` or `_stdev` columns, 
+
+        - **Automatic Error Propagation**: If columns have associated `.sd` or `_stdev` columns,
           the new standard deviation is calculated using standard error formulas:
           - Sum: sqrt(sd1^2 + sd2^2 + ...)
           - Mean: sqrt(sd1^2 + sd2^2 + ...) / N

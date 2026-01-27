@@ -34,9 +34,8 @@ Last Modified: 2026-01-27 (Phase 2 Refactoring)
 """
 
 import logging
-from typing import Any, Optional
+from typing import Optional
 
-import pandas as pd
 import streamlit as st
 from pandas import DataFrame
 

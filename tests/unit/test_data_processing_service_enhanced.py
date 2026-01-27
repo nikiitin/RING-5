@@ -6,7 +6,6 @@ Tests new merge_columns method and validation functions.
 
 import numpy as np
 import pandas as pd
-import pytest
 
 from src.web.services.data_processing_service import DataProcessingService
 

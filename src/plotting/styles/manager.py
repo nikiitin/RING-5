@@ -62,7 +62,7 @@ class StyleManager:
         items: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """Render series renaming UI."""
-        # Renaming doesn't usually conflict as it's not reused in the same way, but could add prefix if needed.
+        # Renaming doesn't usually conflict as it's not reused in the same way, but could add prefix if needed.  # noqa: E501
         return self.ui_manager.render_series_renaming_ui(saved_config, data, items=items)
 
     def render_xaxis_labels_ui(

@@ -1,7 +1,5 @@
 """Tests for color utilities."""
 
-import pytest
-
 from src.plotting.styles.colors import get_palette_colors, to_hex
 
 

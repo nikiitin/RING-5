@@ -100,7 +100,7 @@ class TestShaperPerformance:
                 data_rows.append(
                     {
                         "benchmark": bench,
-                        "config": f"config_{i%10}",  # Various configs, not baseline
+                        "config": f"config_{i % 10}",  # Various configs, not baseline
                         "cycles": 1000 + i,
                         "energy": 50.0 + i * 0.1,
                     }

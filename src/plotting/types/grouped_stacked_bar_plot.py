@@ -52,7 +52,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
                 options=options_list,
                 index=group_default_idx + 1 if saved_config.get("group") else 0,
                 key=f"group_{self.plot_id}",
-                help="The variable displayed on the X-axis within the major group (e.g., Configuration)",
+                help="The variable displayed on the X-axis within the major group (e.g., Configuration)",  # noqa: E501
             )
 
         with col2:

@@ -1,6 +1,6 @@
 """
 Variable Service for RING-5.
-Handles CRUD operations for parser variables (scalar, vector, distribution, histogram, configuration).
+Handles CRUD operations for parser variables (scalar, vector, distribution, histogram, configuration).  # noqa: E501
 Provides business logic for variable management without UI dependencies.
 """
 
@@ -87,7 +87,7 @@ class VariableService:
         Examples:
             >>> service = VariableService()
             >>> vars = [{"name": "old", "type": "scalar", "_id": "123"}]
-            >>> vars = service.update_variable(vars, 0, {"name": "new", "type": "vector", "_id": "123"})
+            >>> vars = service.update_variable(vars, 0, {"name": "new", "type": "vector", "_id": "123"})  # noqa: E501
             >>> vars[0]["name"]
             'new'
         """
@@ -270,7 +270,7 @@ class VariableService:
         Examples:
             >>> service = VariableService()
             >>> snapshot = [
-            ...     {"name": "system.latency", "type": "distribution", "minimum": 10, "maximum": 100},
+            ...     {"name": "system.latency", "type": "distribution", "minimum": 10, "maximum": 100},  # noqa: E501
             ...     {"name": "system.latency", "type": "distribution", "minimum": 5, "maximum": 150}
             ... ]
             >>> min_val, max_val = service.aggregate_distribution_range(snapshot, "system.latency")

@@ -1,8 +1,4 @@
 import os
-import sys
-
-# Add src to path
-sys.path.insert(0, os.getcwd())
 
 from src.web.facade import BackendFacade
 

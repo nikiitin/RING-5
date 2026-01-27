@@ -41,11 +41,11 @@ def sample_stats_dir(tmp_path: Path) -> Path:
         stats_file = bench_dir / "stats.txt"
         stats_content = """
 ---------- Begin Simulation Statistics ----------
-simSeconds                                   0.100000                       # Number of seconds simulated
-system.cpu.numCycles                          100000                       # number of cpu cycles simulated
-system.cpu.ipc                                  1.50                       # IPC: instructions per cycle
-system.cpu.dcache.overall_miss_rate::total     0.0234                       # miss rate for overall accesses
-system.cpu.icache.overall_miss_rate::total     0.0156                       # miss rate for overall accesses
+simSeconds                                   0.100000                       # Number of seconds simulated  # noqa: E501
+system.cpu.numCycles                          100000                       # number of cpu cycles simulated  # noqa: E501
+system.cpu.ipc                                  1.50                       # IPC: instructions per cycle  # noqa: E501
+system.cpu.dcache.overall_miss_rate::total     0.0234                       # miss rate for overall accesses  # noqa: E501
+system.cpu.icache.overall_miss_rate::total     0.0156                       # miss rate for overall accesses  # noqa: E501
 ---------- End Simulation Statistics   ----------
 """
         stats_file.write_text(stats_content)

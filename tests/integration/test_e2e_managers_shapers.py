@@ -7,9 +7,6 @@ from pathlib import Path
 
 import pandas as pd
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-
 from src.web.services.shapers.impl.mean import Mean
 from src.web.services.shapers.impl.normalize import Normalize
 from src.web.services.shapers.impl.selector_algorithms.columnSelector import (
@@ -153,7 +150,7 @@ class TestE2EShapers:
             {
                 "normalizeVars": ["simTicks"],
                 "normalizerColumn": "config_description_abbrev",
-                "normalizerValue": "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt",
+                "normalizerValue": "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt",  # noqa: E501
                 "groupBy": ["benchmark_name"],
             }
         )
@@ -168,7 +165,7 @@ class TestE2EShapers:
         # Check that baseline configuration exists for each benchmark
         baseline_rows = result_df[
             result_df["config_description_abbrev"]
-            == "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt"
+            == "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt"  # noqa: E501
         ]
         assert len(baseline_rows) > 0, "No baseline rows found"
 
@@ -182,7 +179,7 @@ class TestE2EShapers:
         # At least some non-baseline rows should exist
         non_baseline_rows = result_df[
             result_df["config_description_abbrev"]
-            != "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt"
+            != "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt"  # noqa: E501
         ]
         assert len(non_baseline_rows) > 0, "Should have non-baseline rows"
 
@@ -283,7 +280,7 @@ class TestE2EIntegration:
         assert len(shaped_data) == len(data)
         assert len(shaped_data.columns) == 4
         print(
-            f"\n✅ Column selection: reduced from {len(data.columns)} to {len(shaped_data.columns)} columns"
+            f"\n✅ Column selection: reduced from {len(data.columns)} to {len(shaped_data.columns)} columns"  # noqa: E501
         )
 
         # Step 2: Sort - order by benchmark
@@ -366,7 +363,7 @@ class TestE2EIntegration:
             {
                 "normalizeVars": ["simTicks"],
                 "normalizerColumn": "config_description_abbrev",
-                "normalizerValue": "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt",
+                "normalizerValue": "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt",  # noqa: E501
                 "groupBy": ["benchmark_name"],
             }
         )
@@ -375,7 +372,7 @@ class TestE2EIntegration:
         # Verify baseline is 1.0
         baseline_rows = data[
             data["config_description_abbrev"]
-            == "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt"
+            == "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt"  # noqa: E501
         ]
         assert all(baseline_rows["simTicks"] == 1.0), "Baseline should be normalized to 1.0"
 
@@ -483,7 +480,7 @@ class TestE2EIntegration:
         # Verify baseline normalization is still preserved after all transformations
         final_baseline_rows = data[
             data["config_description_abbrev"]
-            == "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt"
+            == "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt"  # noqa: E501
         ]
         non_mean_baseline = final_baseline_rows[
             final_baseline_rows["benchmark_name"] != "arithmean"

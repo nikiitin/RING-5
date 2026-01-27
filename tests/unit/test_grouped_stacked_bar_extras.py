@@ -143,7 +143,7 @@ def test_create_figure_major_minor_renaming(sample_data, mock_streamlit):
     # Major Group Check
     assert "<b>Alpha</b>" in labels
 
-    # Bug 1 Check: Minor Group labels should NOT be numeric indices if they were strings ("Small", "Large")
+    # Bug 1 Check: Minor Group labels should NOT be numeric indices if they were strings ("Small", "Large")  # noqa: E501
     ticktext = fig.layout.xaxis.ticktext
     # We expect "Tiny" and "Large" in ticktext.
     # If they turned into numbers (like 0, 1), this assertion will fail or we can assert explicitly.

@@ -101,7 +101,7 @@ class Mean(UniDfShaper):
                 - meanVars (List[str]): Columns to average.
                 - meanAlgorithm (str): 'arithmean', 'geomean', or 'hmean'.
                 - groupingColumns (List[str]): Columns to group by.
-                - replacingColumn (str): Column where the algorithm name will be stored in the new rows.
+                - replacingColumn (str): Column where the algorithm name will be stored in the new rows.  # noqa: E501
         """
         # Assigning attributes before super().__init__
         self.mean_vars: List[str] = params.get("meanVars", [])

@@ -5,7 +5,7 @@ Centralizes all validation logic for gem5 variable configurations.
 This service is stateless and UI-independent, enabling comprehensive unit testing.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import re
 
@@ -339,7 +339,7 @@ class VariableValidationService:
             if isinstance(min_val, (int, float)) and isinstance(max_val, (int, float)):
                 if min_val >= max_val:
                     errors.append(
-                        f"Distribution 'minimum' ({min_val}) must be less than 'maximum' ({max_val})"
+                        f"Distribution 'minimum' ({min_val}) must be less than 'maximum' ({max_val})"  # noqa: E501
                     )
 
         return errors

@@ -190,7 +190,7 @@ class GroupedBarUtils:
                 if grp:
                     tick_text.append(str(grp))
                 else:
-                    # If no groups, tick text is the category itself (handled by caller usually, but okay)
+                    # If no groups, tick text is the category itself (handled by caller usually, but okay)  # noqa: E501
                     tick_text.append(str(cat))
 
                 current_x += 1.0

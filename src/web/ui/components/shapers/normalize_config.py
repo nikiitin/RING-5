@@ -84,7 +84,7 @@ class NormalizeConfig:
                 "Automatically normalize standard deviation columns",
                 value=existing_config.get("normalizeSd", True),
                 key=f"{key_prefix}norm_sd_{shaper_id}",
-                help="If enabled, .sd columns will be automatically normalized using the sum of their base normalizer columns",
+                help="If enabled, .sd columns will be automatically normalized using the sum of their base normalizer columns",  # noqa: E501
             )
 
         return {

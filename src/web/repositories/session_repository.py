@@ -184,7 +184,7 @@ class SessionRepository:
 
         logger.info(
             f"SESSION_REPO: Session restored - "
-            f"{len(loaded_plots)} plots, parser={'ON' if portfolio_data.get('use_parser') else 'OFF'}"
+            f"{len(loaded_plots)} plots, parser={'ON' if portfolio_data.get('use_parser') else 'OFF'}"  # noqa: E501
         )
 
     @staticmethod

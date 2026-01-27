@@ -3,14 +3,12 @@ Variable Editor Component for RING-5.
 Handles rendering and interaction for defining parser variables (scalars, vectors, distributions).
 """
 
-import re
 from typing import Any, Dict, List, Optional
 
 import streamlit as st
 
 from src.web.facade import BackendFacade
 from src.web.services.variable_service import VariableService
-from src.web.services.variable_validation_service import VariableValidationService
 from src.web.state_manager import StateManager
 
 

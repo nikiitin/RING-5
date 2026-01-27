@@ -112,28 +112,28 @@ def render_performance_page() -> None:
 
     st.markdown("""
     ### Optimization Strategy
-    
+
     1. **Data Loading**
        - Use CSV pool to avoid re-parsing gem5 stats
        - Enable parser caching for repeated variables
-    
+
     2. **Plot Generation**
        - Plots are cached automatically based on config
        - Avoid unnecessary `should_generate=True` calls
        - Legend customization invalidates cache
-    
+
     3. **Shaper Pipeline**
        - Keep pipelines short (< 5 shapers)
        - Use filters early to reduce data size
        - Combine multiple renames into one
-    
+
     4. **Session State**
        - Clear unused plots regularly
        - Portfolio save/load is optimized
        - Widget state is automatically cleaned
-    
+
     ### When to Clear Cache
-    
+
     - After major config changes
     - When debugging plot rendering
     - If memory usage is high
