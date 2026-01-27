@@ -34,6 +34,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -e .
         pip install pytest pytest-cov pytest-timeout black flake8 mypy
+        pip install pandas-stubs types-jsonschema types-tqdm scipy-stubs
     
     - name: Check code formatting with black
       run: |
@@ -46,7 +47,7 @@ jobs:
     
     - name: Type check with mypy
       run: |
-        mypy src/ --strict || true
+        mypy src/ --strict --show-error-codes --pretty
     
     - name: Run unit tests with coverage
       run: |

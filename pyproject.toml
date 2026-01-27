@@ -47,6 +47,7 @@ dev = [
   "pandas-stubs>=2.2.3.240909",
   "types-jsonschema>=4.23.0.20240813",
   "types-tqdm>=4.67.0.20250809",
+  "scipy-stubs>=1.5.0",
 ]
 
 [project.urls]
