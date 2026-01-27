@@ -81,7 +81,7 @@ class ScanWorkPool:
 
         # Submit in optimized chunks to reduce overhead
         for i in range(0, len(works), chunk_size):
-            chunk = works[i:i + chunk_size]
+            chunk = works[i : i + chunk_size]
             for work in chunk:
                 if work is not None:
                     future: Future[Any] = self._workPool.submit(work)
@@ -186,7 +186,7 @@ class ParseWorkPool:
 
         # Submit in optimized chunks to reduce overhead
         for i in range(0, len(works), chunk_size):
-            chunk = works[i:i + chunk_size]
+            chunk = works[i : i + chunk_size]
             for work in chunk:
                 if work is not None:
                     future: Future[Any] = self._work_pool.submit(work)
