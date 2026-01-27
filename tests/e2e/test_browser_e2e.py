@@ -24,7 +24,7 @@ import requests
 
 # Configuration
 APP_URL = "http://localhost:8502"
-APP_STARTUP_TIMEOUT = 30  # seconds
+APP_STARTUP_TIMEOUT = 90  # seconds - increased for CI environments
 
 
 class TestBrowserE2E:
