@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 import plotly.graph_objects as go
 
@@ -124,8 +124,9 @@ class StyleApplicator:
             yaxis_settings["dtick"] = config["yaxis_dtick"]
 
         if config.get("range_y"):
-            yaxis_settings["range"] = config["range_y"]
-            yaxis_settings["autorange"] = False
+            range_y_val = config["range_y"]
+            yaxis_settings["range"] = range_y_val
+            yaxis_settings["autorange"] = False  # type: ignore[assignment]
 
         # Axis color styling
         self._apply_axis_colors(fig, config)
@@ -323,14 +324,16 @@ class StyleApplicator:
 
         # Conditional display logic
         display_logic = config.get("text_display_logic") or "Always Show"
+        text_threshold_val = config.get("text_threshold")
         try:
-            threshold = float(config.get("text_threshold") or 0.0)
+            threshold = float(text_threshold_val or 0.0)
         except (ValueError, TypeError):
             threshold = 0.0
 
         if display_logic == "If > Threshold":
+            text_anc_final = text_anc if text_anc else "auto"
             self._apply_conditional_labels(
-                fig, config, trace_update, text_fmt, text_pos, text_anc, text_rot, threshold
+                fig, config, trace_update, text_fmt, text_pos, text_anc_final, text_rot, threshold
             )
         else:
             fig.update_traces(**trace_update)
@@ -429,7 +432,7 @@ class StyleApplicator:
         fig: go.Figure,
         config: Dict[str, Any],
         base_legend_update: Dict[str, Any],
-    ):
+    ) -> None:
         """
         Apply legend layout logic.
         When ncols > 1, create multiple legend objects for true column layout.
@@ -527,13 +530,13 @@ class StyleApplicator:
             # Single legend (default behavior)
             fig.update_layout(legend=base_legend_update)
 
-    def _apply_series_styling(self, fig: go.Figure, config: Dict[str, Any]):
+    def _apply_series_styling(self, fig: go.Figure, config: Dict[str, Any]) -> None:
         """
         Apply per-series styling (colors, symbols, etc.)
         """
         series_styles = config.get("series_styles", {})
 
-        palette_colors = None
+        palette_colors: Optional[List[str]] = None
         if config.get("color_palette"):
             from src.plotting.styles.colors import get_palette_colors
 

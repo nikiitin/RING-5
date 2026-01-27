@@ -109,7 +109,7 @@ def test_execute_parser_success(mock_streamlit, mock_facade, mock_state_manager)
     mock_future = MagicMock()
     mock_future.result.return_value = {"data": "test"}
     mock_facade.submit_parse_async.return_value = [mock_future]
-    
+
     generated_csv = "/output.csv"
     mock_facade.finalize_parsing.return_value = generated_csv
     mock_facade.load_csv_file.return_value = MagicMock()
@@ -118,7 +118,7 @@ def test_execute_parser_success(mock_streamlit, mock_facade, mock_state_manager)
         # Test the async submission
         futures = mock_facade.submit_parse_async(stats_path, pattern, [], "/tmp")
         assert len(futures) == 1
-        
+
         # Test finalization
         results = [f.result() for f in futures]
         csv_path = mock_facade.finalize_parsing("/tmp", results)
@@ -131,6 +131,6 @@ def test_execute_parser_no_files(mock_streamlit, mock_facade):
     # is raised by the real ParseService when Path doesn't exist
     # Here we're just testing the UI layer doesn't break
     mock_facade.submit_parse_async.side_effect = FileNotFoundError("No files found")
-    
+
     with pytest.raises(FileNotFoundError):
         mock_facade.submit_parse_async("/p", "*.txt", [], "/tmp")

@@ -25,31 +25,40 @@ my @storedFilters;
 sub getRealVariableNameFromLine {
     my ($line) = @_;
     
-    # Extract the actual name part of the line to match against filters
-    # format is: name::entry, name value, or name=value
+    # Optimization: Extract name part more efficiently
+    # Use index() which is faster than regex for simple character search
     my $namePart = $line;
-    if ($line =~ /::/) { $namePart = $`; }
-    elsif ($line =~ /\s+/) { $namePart = $`; }
-    elsif ($line =~ /=/) { $namePart = $`; }
+    my $sep_pos;
+    
+    # Find first separator: ::, space, or =
+    if (($sep_pos = index($line, '::')) != -1) {
+        $namePart = substr($line, 0, $sep_pos);
+    }
+    elsif (($sep_pos = index($line, ' ')) != -1) {
+        $namePart = substr($line, 0, $sep_pos);
+    }
+    elsif (($sep_pos = index($line, '=')) != -1) {
+        $namePart = substr($line, 0, $sep_pos);
+    }
 
-    # Return the original regex string that caused the match.
-    # We match specifically against the name part to avoid cross-contamination.
+    # Optimization: Try exact match first (fastest path)
     foreach my $filter (@storedFilters) {
-        if ($namePart =~ /^$filter$/ || $namePart eq $filter) {
-            return $filter;
-        }
+        return $filter if $namePart eq $filter;
     }
     
-    # Fallback for complex regexes that might need the full context
+    # Then try anchored regex match
     foreach my $filter (@storedFilters) {
-        if ($namePart =~ /$filter/) {
-            return $filter;
-        }
+        return $filter if $namePart =~ /^$filter$/;
+    }
+    
+    # Fallback for complex regexes
+    foreach my $filter (@storedFilters) {
+        return $filter if $namePart =~ /$filter/;
     }
 
-    # Ultimate fallback to match if something goes wrong
-    $line =~ /($filtersRegexes)/;
-    return $1;
+    # Ultimate fallback
+    return $1 if $line =~ /($filtersRegexes)/;
+    return '';
 }
 
 sub getEntryNameFromLine {
@@ -83,22 +92,34 @@ sub getEntryNameFromLine {
 
 sub getValueFromLine {
     my ($line) = @_;
-    # For configurations we will only use
-    # value
-    # Complex types won't use percentages
-    # Values are always split by spaces or
-    # equals (configurations)
-    my @lineSplits = $line =~ $confRegex ?
-        split /=/, $line :
-        split /\s+/, $line;
-    # Leave only values
-    return $lineSplits[1];
+    
+    # Optimization: Use index() to detect separator type (faster than regex)
+    my $sep_pos = index($line, '=');
+    my @lineSplits;
+    
+    if ($sep_pos != -1) {
+        # Configuration line (has =)
+        @lineSplits = split /=/, $line, 2;  # Limit splits to 2 parts
+    } else {
+        # Complex type (space-separated)
+        @lineSplits = split /\s+/, $line, 3;  # Limit splits to 3 parts (name, value, rest)
+    }
+    
+    # Return value (second element)
+    return defined($lineSplits[1]) ? $lineSplits[1] : '';
 }
 
 sub removeCommentFromLine {
     my ($line) = @_;
-    # Remove trailing comments starting with # or (Unspecified)
-    $line =~ s/\s+(?:#.*|\(Unspecified\)\s*)$//;
+    # Optimization: Use index() to check for comment existence first
+    my $comment_pos = index($line, '#');
+    if ($comment_pos != -1) {
+        $line = substr($line, 0, $comment_pos);
+    }
+    # Remove (Unspecified) if present
+    $line =~ s/\(Unspecified\)\s*$//;
+    # Trim trailing whitespace
+    $line =~ s/\s+$//;
     return $line;
 }
 
@@ -127,27 +148,38 @@ sub setFilterRegexes {
 
 sub parseAndPrintLineWithFormat {
     my ($line) = @_;
-    if ($line !~ $filtersRegexes) {
-        return;
-    }
-    # Check if the line match any defined type
-    # we have specified in this file.
-    if ($line =~ $confRegex) {
-        print "configuration/" . formatLine($line) . "\n";
-    } elsif ($line =~ $scalarRegex) {
+    
+    # Early return optimization: check filter first
+    return unless $line =~ $filtersRegexes;
+    
+    # Optimization: Check types in order of frequency (most common first)
+    # and use elsif to avoid multiple regex matches
+    
+    # Scalar is most common - check first
+    if ($line =~ $scalarRegex) {
         print "scalar/" . formatLine($line) . "\n";
-    } elsif ($line =~ $histogramRegex) {
-        print "histogram/" . formatLine($line) . "\n";
-    } elsif ($line =~ $distRegex) {
-        print "distribution/" . formatLine($line) . "\n";
-    } elsif ($line =~ $summaryRegex) {
-        # Do not print summaries
-        print "summary/" . formatLine($line) . "\n";
-    } elsif ($line =~ $vectorRegex) {
-        print "vector/" . formatLine($line) . "\n";
-    } else {
-        # Unknown data type found
     }
+    # Vector is second most common
+    elsif ($line =~ $vectorRegex) {
+        print "vector/" . formatLine($line) . "\n";
+    }
+    # Distribution
+    elsif ($line =~ $distRegex) {
+        print "distribution/" . formatLine($line) . "\n";
+    }
+    # Histogram
+    elsif ($line =~ $histogramRegex) {
+        print "histogram/" . formatLine($line) . "\n";
+    }
+    # Summary
+    elsif ($line =~ $summaryRegex) {
+        print "summary/" . formatLine($line) . "\n";
+    }
+    # Configuration (least common)
+    elsif ($line =~ $confRegex) {
+        print "configuration/" . formatLine($line) . "\n";
+    }
+    # Unknown type - silently skip (optimization: no else block)
 }
 
 sub classifyLine {

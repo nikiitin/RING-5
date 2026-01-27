@@ -8,7 +8,7 @@ class DataManagerComponents:
     """UI Components for the Data Managers Page."""
 
     @staticmethod
-    def render_summary_tab(data: pd.DataFrame):
+    def render_summary_tab(data: pd.DataFrame) -> None:
         """Display current data with statistics."""
         st.markdown("### Dataset Summary")
 
@@ -52,7 +52,7 @@ class DataManagerComponents:
                 st.info("No categorical columns")
 
     @staticmethod
-    def render_visualization_tab(data: pd.DataFrame):
+    def render_visualization_tab(data: pd.DataFrame) -> None:
         """Full data visualization with search and filtering."""
         st.markdown("### Full Data Visualization")
 
@@ -111,11 +111,12 @@ class DataManagerComponents:
             f"### Data Table ({len(display_data)} rows × {len(display_data.columns)} columns)"
         )
 
-        if rows_per_page == "All":
+        rows_per_page_str = str(rows_per_page)
+        if rows_per_page_str == "All":
             st.dataframe(display_data, width="stretch", height=600)
         else:
             total_rows = len(display_data)
-            rows_per_page_int = int(rows_per_page)
+            rows_per_page_int = int(rows_per_page_str)
             total_pages = (total_rows - 1) // rows_per_page_int + 1
 
             # Ensure page is within range

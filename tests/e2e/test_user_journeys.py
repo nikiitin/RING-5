@@ -91,14 +91,14 @@ def test_workflow_stats_to_portfolio(test_data_available, temp_env):
             variables=variables,
             output_dir=output_dir,
         )
-        
+
         # Wait for parsing
         parse_results = []
         for future in parse_futures:
             result = future.result(timeout=30)
             if result:
                 parse_results.append(result)
-        
+
         csv_path = facade.finalize_parsing(output_dir, parse_results)
 
         assert csv_path is not None, "Parsing failed"

@@ -1,19 +1,30 @@
-"""Portfolio management page - save and load complete analysis snapshots."""
+"""
+Portfolio Management Page
+
+Provides functionality to save and load complete analysis snapshots including
+data, plots, and all configurations as portfolio files.
+"""
 
 import copy
 import logging
+from typing import List, Optional, cast
 
 import streamlit as st
 
 from src.web.services.pipeline_service import PipelineService
 from src.web.services.portfolio_service import PortfolioService
-from src.web.state_manager import StateManager
+from src.web.state_manager import PortfolioData, StateManager
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
-def show_portfolio_page():
-    """Save and load complete portfolio snapshots."""
+def show_portfolio_page() -> None:
+    """
+    Display the portfolio management page.
+
+    Allows users to save complete snapshots of their work including data,
+    plots, and configurations, and restore previously saved portfolios.
+    """
     st.markdown("## Portfolio Management")
     st.markdown(
         "Save and load complete snapshots of your work including data, plots, and all "
@@ -39,19 +50,30 @@ def show_portfolio_page():
                 logger.warning("PORTFOLIO: Attempted to save portfolio without data.")
             else:
                 try:
+                    current_data = StateManager.get_data()
+                    if current_data is None:
+                        st.error("No data available to save")
+                        return
                     PortfolioService.save_portfolio(
                         name=portfolio_name,
-                        data=StateManager.get_data(),
+                        data=current_data,
                         plots=StateManager.get_plots(),
                         config=StateManager.get_config(),
                         plot_counter=StateManager.get_plot_counter(),
                         csv_path=StateManager.get_csv_path(),
-                        parse_variables=StateManager.get_parse_variables(),
+                        parse_variables=cast(
+                            Optional[List[str]], StateManager.get_parse_variables()
+                        ),
                     )
                     st.success(f"Portfolio saved: {portfolio_name}")
                 except Exception as e:
                     st.error(f"Failed to save portfolio: {e}")
-                    logger.error("PORTFOLIO: Failed to save portfolio '%s': %s", portfolio_name, e, exc_info=True)
+                    logger.error(
+                        "PORTFOLIO: Failed to save portfolio '%s': %s",
+                        portfolio_name,
+                        e,
+                        exc_info=True,
+                    )
 
     with col2:
         st.markdown("### Load Portfolio")
@@ -66,12 +88,17 @@ def show_portfolio_page():
             if st.button("Load Portfolio", type="primary", width="stretch"):
                 try:
                     data = PortfolioService.load_portfolio(selected_portfolio)
-                    StateManager.restore_session_state(data)
+                    StateManager.restore_session_state(cast(PortfolioData, data))
                     st.success(f"Portfolio loaded: {selected_portfolio}")
                     st.rerun()
                 except Exception as e:
                     st.error(f"Failed to load portfolio: {e}")
-                    logger.error("PORTFOLIO: Failed to load portfolio '%s': %s", selected_portfolio, e, exc_info=True)
+                    logger.error(
+                        "PORTFOLIO: Failed to load portfolio '%s': %s",
+                        selected_portfolio,
+                        e,
+                        exc_info=True,
+                    )
         else:
             st.warning("No portfolios found. Save one first!")
 
@@ -120,7 +147,12 @@ def show_portfolio_page():
                         st.success(f"Pipeline saved: {pipeline_name}")
                     except Exception as e:
                         st.error(f"Failed to save pipeline: {e}")
-                        logger.error("PIPELINE: Failed to save pipeline '%s': %s", pipeline_name, e, exc_info=True)
+                        logger.error(
+                            "PIPELINE: Failed to save pipeline '%s': %s",
+                            pipeline_name,
+                            e,
+                            exc_info=True,
+                        )
         else:
             st.info("Create some plots first to extract pipelines.")
 
@@ -158,7 +190,12 @@ def show_portfolio_page():
                         st.success(f"Applied pipeline to {count} plots.")
                     except Exception as e:
                         st.error(f"Failed to apply pipeline: {e}")
-                        logger.error("PIPELINE: Failed to apply pipeline '%s': %s", selected_pipeline_name, e, exc_info=True)
+                        logger.error(
+                            "PIPELINE: Failed to apply pipeline '%s': %s",
+                            selected_pipeline_name,
+                            e,
+                            exc_info=True,
+                        )
             else:
                 st.info("No plots available to apply pipeline to.")
         else:

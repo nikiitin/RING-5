@@ -51,8 +51,6 @@ def test_configure_normalize_ui(mock_streamlit):
     assert config["normalizeSd"] is True
 
 
-
-
 def test_configure_transformer_ui(mock_streamlit):
     df = pd.DataFrame({"A": [1, 2, 3]})
 

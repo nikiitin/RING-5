@@ -4,7 +4,7 @@ Handles information cards for files, configurations, etc.
 """
 
 import datetime
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 
 import streamlit as st
 
@@ -13,7 +13,7 @@ class CardComponents:
     """Reusable information card components."""
 
     @staticmethod
-    def file_info_card(file_info: Dict[str, Any], index: int):
+    def file_info_card(file_info: Dict[str, Any], index: int) -> Tuple[bool, bool, bool]:
         """
         Display a file information card with actions.
 
@@ -45,7 +45,7 @@ class CardComponents:
             return load_clicked, preview_clicked, delete_clicked
 
     @staticmethod
-    def config_info_card(config_info: Dict[str, Any], index: int):
+    def config_info_card(config_info: Dict[str, Any], index: int) -> Tuple[bool, bool]:
         """
         Display a configuration information card with actions.
 

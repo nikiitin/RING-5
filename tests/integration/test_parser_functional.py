@@ -6,8 +6,6 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from src.parsers.parser import Gem5StatsParser
-
 
 class TestParserFunctional:
 
@@ -29,25 +27,25 @@ class TestParserFunctional:
         Test parsing actual gem5 stats files using the Backend Facade.
         Verifies the full async pipeline: Submit -> Wait Futures -> Finalize -> Load.
         """
+        from concurrent.futures import as_completed
+
         from src.web.facade import BackendFacade
-        from concurrent.futures import as_completed, wait
 
         with tempfile.TemporaryDirectory() as output_dir:
             # We must reset the singleton to ensure clean state
             from src.parsers.parser import Gem5StatsParser
+
             Gem5StatsParser.reset()
 
             facade = BackendFacade()
             variables = [
                 {"name": "simTicks", "type": "scalar"},
                 {"name": "system.cpu0.ipc", "type": "scalar"},
-                {"name": "benchmark_name", "type": "configuration", "onEmpty": "Unknown"}
+                {"name": "benchmark_name", "type": "configuration", "onEmpty": "Unknown"},
             ]
 
             # Trigger async parsing - REFACTORED to return FUTURES
-            futures = facade.submit_parse_async(
-                test_data_path, "stats.txt", variables, output_dir
-            )
+            futures = facade.submit_parse_async(test_data_path, "stats.txt", variables, output_dir)
 
             assert isinstance(futures, list)
             assert len(futures) > 0
@@ -57,8 +55,8 @@ class TestParserFunctional:
             for future in as_completed(futures):
                 res = future.result()
                 if res:
-                   results.append(res)
-            
+                    results.append(res)
+
             assert len(results) > 0
 
             # Finalize

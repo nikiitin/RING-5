@@ -10,11 +10,10 @@ class LayoutComponents:
     """Reusable layout components and generic buttons."""
 
     @staticmethod
-    def sidebar_info():
+    def sidebar_info() -> None:
         """Display sidebar information about RING-5."""
         st.markdown("### About RING-5")
-        st.info(
-            """
+        st.info("""
         **Pure Python** implementation for gem5 data analysis.
 
         - Parse gem5 stats OR upload CSV
@@ -22,8 +21,7 @@ class LayoutComponents:
         - Interactive configuration
         - Real-time visualization
         - Professional plots
-        """
-        )
+        """)
 
     @staticmethod
     def navigation_menu() -> str:
@@ -47,7 +45,7 @@ class LayoutComponents:
         )
 
     @staticmethod
-    def progress_display(step: int, total_steps: int, message: str):
+    def progress_display(step: int, total_steps: int, message: str) -> None:
         """
         Display a progress indicator.
 

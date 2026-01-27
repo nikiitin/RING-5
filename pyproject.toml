@@ -38,7 +38,16 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=9.0.2", "pytest-cov>=7.0.0", "black>=26.1.0", "flake8>=7.3.0"]
+dev = [
+  "pytest>=9.0.2",
+  "pytest-cov>=7.0.0",
+  "black>=26.1.0",
+  "flake8>=7.3.0",
+  "mypy>=1.13.0",
+  "pandas-stubs>=2.2.3.240909",
+  "types-jsonschema>=4.23.0.20240813",
+  "types-tqdm>=4.67.0.20250809",
+]
 
 [project.urls]
 Homepage = "https://github.com/your-org/ring5"

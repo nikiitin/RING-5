@@ -99,11 +99,13 @@ class PageConfig:
     SIDEBAR_STATE = "expanded"
 
     @staticmethod
-    def apply():
+    def apply() -> None:
         """Apply page configuration (should be called once at app start)."""
+        layout_value: str = "wide"  # Explicit literal for mypy
+        sidebar_state: str = "expanded"
         st.set_page_config(
             page_title=PageConfig.TITLE,
             page_icon=PageConfig.ICON,
-            layout=PageConfig.LAYOUT,
-            initial_sidebar_state=PageConfig.SIDEBAR_STATE,
+            layout=layout_value,  # type: ignore[arg-type]
+            initial_sidebar_state=sidebar_state,  # type: ignore[arg-type]
         )

@@ -49,8 +49,8 @@ class Distribution(StatType):
         minimum: int = 0,
         maximum: int = 100,
         statistics: Optional[List[str]] = None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         """
         Initialize Distribution type.
 
@@ -77,7 +77,7 @@ class Distribution(StatType):
             )
 
         # Pre-initialize buckets for deterministic output ordering
-        content = {"underflows": []}
+        content: Dict[str, List[Any]] = {"underflows": []}
         for i in range(self._minimum, self._maximum + 1):
             content[str(i)] = []
         content["overflows"] = []
@@ -91,27 +91,29 @@ class Distribution(StatType):
     @property
     def minimum(self) -> int:
         """Get the configured minimum bucket value."""
-        return object.__getattribute__(self, "_minimum")
+        return int(object.__getattribute__(self, "_minimum"))
 
     @property
     def maximum(self) -> int:
         """Get the configured maximum bucket value."""
-        return object.__getattribute__(self, "_maximum")
+        return int(object.__getattribute__(self, "_maximum"))
 
     @property
     def statistics(self) -> List[str]:
         """Get the list of extra statistics being extracted."""
-        return object.__getattribute__(self, "_statistics")
+        return list(object.__getattribute__(self, "_statistics"))
 
     @property
     def entries(self) -> List[str]:
         """Return all bucket names in order for layout reconstruction."""
-        return list(object.__getattribute__(self, "_content").keys())
+        content_dict = object.__getattribute__(self, "_content")
+        return list(content_dict.keys())
 
     @property
     def content(self) -> Dict[str, List[float]]:
         """Get the raw accumulated frequency lists."""
-        return object.__getattribute__(self, "_content")
+        content_dict: Dict[str, List[float]] = object.__getattribute__(self, "_content")
+        return content_dict
 
     @content.setter
     def content(self, value: Dict[str, Any]) -> None:
@@ -217,7 +219,8 @@ class Distribution(StatType):
             raise AttributeError(
                 "DISTRIBUTION: Process incomplete. Call balance_content() and reduce_duplicates()."
             )
-        return object.__getattribute__(self, "_reduced_content")
+        reduced_dict: Dict[str, float] = object.__getattribute__(self, "_reduced_content")
+        return reduced_dict
 
     @property
     def reducedContent(self) -> Dict[str, float]:

@@ -82,7 +82,7 @@ def test_execute_parser(mock_streamlit, mock_facade, mock_state_manager):
     mock_future = MagicMock()
     mock_future.result.return_value = {"data": "test"}
     mock_facade.submit_parse_async.return_value = [mock_future]
-    
+
     csv_path = "/tmp/out.csv"
     mock_facade.finalize_parsing.return_value = csv_path
     mock_facade.load_csv_file.return_value = MagicMock()
@@ -93,7 +93,7 @@ def test_execute_parser(mock_streamlit, mock_facade, mock_state_manager):
         futures = mock_facade.submit_parse_async("/stats", "*.txt", [], "/tmp")
         results = [f.result() for f in futures]
         final_csv = mock_facade.finalize_parsing("/tmp", results)
-        
+
         assert final_csv == csv_path
         mock_facade.submit_parse_async.assert_called()
 

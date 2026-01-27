@@ -1,10 +1,13 @@
-"""Plot rendering utilities."""
+"""Plot rendering utilities with intelligent figure caching."""
 
+import hashlib
+import json
 from typing import Any, Dict, Optional
 
 import pandas as pd
 import streamlit as st
 
+from src.core.performance import get_plot_cache, timed
 from src.plotting.export import ExportService
 from src.web.ui.components.interactive_plot import interactive_plotly_chart
 
@@ -12,7 +15,72 @@ from .base_plot import BasePlot
 
 
 class PlotRenderer:
-    """Handles rendering plots and their UI elements."""
+    """Handles rendering plots and their UI elements with intelligent caching."""
+
+    @staticmethod
+    def _compute_figure_cache_key(plot_id: int, config: Dict[str, Any], data_hash: str) -> str:
+        """
+        Compute stable cache key for plot figure.
+
+        Uses config hash + data hash to detect when regeneration is needed.
+        Ignores transient UI state (legend positions, etc.).
+
+        Args:
+            plot_id: Unique plot identifier
+            config: Plot configuration dict
+            data_hash: Hash of the processed data
+
+        Returns:
+            Cache key string
+        """
+        # Filter out transient config that shouldn't invalidate cache
+        cache_relevant_config = {
+            k: v
+            for k, v in config.items()
+            if k
+            not in {
+                "legend_x",
+                "legend_y",
+                "legend_xanchor",
+                "legend_yanchor",
+                "xaxis_range",
+                "yaxis_range",  # User zoom/pan state
+            }
+        }
+
+        # Create stable JSON representation of config
+        config_json = json.dumps(cache_relevant_config, sort_keys=True, default=str)
+        config_hash = hashlib.md5(config_json.encode(), usedforsecurity=False).hexdigest()[:8]
+
+        return f"plot_{plot_id}_{config_hash}_{data_hash}"
+
+    @staticmethod
+    def _compute_data_hash(data: pd.DataFrame) -> str:
+        """
+        Compute fast hash of DataFrame for cache invalidation.
+
+        Uses shape + first/last row hashes for speed.
+
+        Args:
+            data: DataFrame to hash
+
+        Returns:
+            Hash string
+        """
+        # Fast fingerprint: shape + sample of data
+        shape_str = f"{data.shape[0]}x{data.shape[1]}"
+
+        # Hash first and last rows for change detection
+        if len(data) > 0:
+            first_row = str(data.iloc[0].values.tolist())
+            last_row = str(data.iloc[-1].values.tolist())
+            columns = str(data.columns.tolist())
+
+            content = f"{shape_str}|{columns}|{first_row}|{last_row}"
+        else:
+            content = shape_str
+
+        return hashlib.md5(content.encode(), usedforsecurity=False).hexdigest()[:12]
 
     @staticmethod
     def render_legend_customization(
@@ -71,16 +139,34 @@ class PlotRenderer:
         return legend_labels
 
     @staticmethod
+    @timed
     def render_plot(plot: BasePlot, should_generate: bool = False) -> None:
         """
-        Render the plot visualization.
+        Render the plot visualization with intelligent figure caching.
+
+        Performance: Uses config+data hash to cache generated figures.
+        Only regenerates when config or data actually changes.
 
         Args:
             plot: Plot instance
-            should_generate: Whether to regenerate the figure
+            should_generate: Whether to force regeneration (bypasses cache)
         """
+        if plot.processed_data is None:
+            return
+
+        # Compute cache key from config + data fingerprint
+        data_hash = PlotRenderer._compute_data_hash(plot.processed_data)
+        cache_key = PlotRenderer._compute_figure_cache_key(plot.plot_id, plot.config, data_hash)
+
+        # Try cache first (unless forced regeneration)
+        cache = get_plot_cache()
+        if not should_generate and plot.last_generated_fig is None:
+            cached_fig = cache.get(cache_key)
+            if cached_fig is not None:
+                plot.last_generated_fig = cached_fig
+
         # 1. Generate Figure if needed (Forced OR Cache Missing)
-        if (should_generate or plot.last_generated_fig is None) and plot.processed_data is not None:
+        if should_generate or plot.last_generated_fig is None:
             try:
                 fig = plot.create_figure(plot.processed_data, plot.config)
                 fig = plot.apply_common_layout(fig, plot.config)
@@ -90,8 +176,9 @@ class PlotRenderer:
                 if legend_labels:
                     fig = plot.apply_legend_labels(fig, legend_labels)
 
-                # Store the figure
+                # Store and cache the figure
                 plot.last_generated_fig = fig
+                cache.set(cache_key, fig)
             except Exception as e:
                 st.error(f"Error generating plot: {e}")
                 return
@@ -181,7 +268,7 @@ class PlotRenderer:
                 # Explicit error is better for debugging main loop
 
     @staticmethod
-    def _render_download_button(plot: BasePlot, fig) -> None:
+    def _render_download_button(plot: BasePlot, fig: Any) -> None:
         """
         Render download button for the plot.
 

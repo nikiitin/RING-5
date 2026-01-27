@@ -50,16 +50,21 @@ def test_mixer_render_numeric_op(mock_streamlit, sample_data):
     mock_st.button.side_effect = lambda label, key=None, **kwargs: key == "mixer_preview"
 
     with patch(
-        "src.web.services.data_processing_service.DataProcessingService.apply_mixer"
-    ) as mock_apply:
-        result_df = pd.DataFrame({"A": [1], "B": [4], "merged": [5]})
-        mock_apply.return_value = result_df
+        "src.web.services.data_processing_service.DataProcessingService.merge_columns"
+    ) as mock_merge:
+        with patch(
+            "src.web.repositories.preview_repository.PreviewRepository.set_preview"
+        ) as mock_set_preview:
+            result_df = pd.DataFrame({"A": [1], "B": [4], "merged": [5]})
+            mock_merge.return_value = result_df
 
-        manager.render()
+            manager.render()
 
-        mock_apply.assert_called_once()
-        assert "mixer_result" in mock_st.session_state
-        mock_st.success.assert_called()
+            mock_merge.assert_called_once()
+            # Check result stored in PreviewRepository
+            mock_set_preview.assert_called_once()
+            assert mock_set_preview.call_args[0][0] == "mixer"
+            mock_st.success.assert_called()
 
 
 def test_mixer_confirm(mock_streamlit, sample_data):
@@ -70,17 +75,28 @@ def test_mixer_confirm(mock_streamlit, sample_data):
     manager.get_data = MagicMock(return_value=sample_data)
     manager.set_data = MagicMock()
 
-    # Pre-populate session state
+    # Pre-populate result
     result_df = pd.DataFrame({"merged": [1]})
-    mock_st.session_state["mixer_result"] = result_df
 
     # Simulate button interactions: Confirm clicked
     mock_st.button.side_effect = lambda label, key=None, **kwargs: key == "confirm_mixer"
 
-    manager.render()
+    with patch(
+        "src.web.repositories.preview_repository.PreviewRepository.has_preview"
+    ) as mock_has_preview:
+        with patch(
+            "src.web.repositories.preview_repository.PreviewRepository.get_preview"
+        ) as mock_get_preview:
+            with patch(
+                "src.web.repositories.preview_repository.PreviewRepository.clear_preview"
+            ) as mock_clear_preview:
+                mock_has_preview.return_value = True
+                mock_get_preview.return_value = result_df
 
-    manager.set_data.assert_called_with(result_df)
-    assert "mixer_result" not in mock_st.session_state
+                manager.render()
+
+                manager.set_data.assert_called_with(result_df)
+                mock_clear_preview.assert_called_once_with("mixer")
 
 
 def test_preprocessor_render_op(mock_streamlit, sample_data):
@@ -103,19 +119,20 @@ def test_preprocessor_render_op(mock_streamlit, sample_data):
         with patch(
             "src.web.services.data_processing_service.DataProcessingService.list_operators"
         ) as mock_list:
-            mock_list.return_value = ["Divide"]
-            result_df = pd.DataFrame({"A": [1], "B": [4], "new_col": [0.25]})
-            mock_op.return_value = result_df
+            with patch(
+                "src.web.repositories.preview_repository.PreviewRepository.set_preview"
+            ) as mock_set_preview:
+                mock_list.return_value = ["Divide"]
+                result_df = pd.DataFrame({"A": [1], "B": [4], "new_col": [0.25]})
+                mock_op.return_value = result_df
 
-            manager.render()
+                manager.render()
 
-            mock_op.assert_called_once()
+                mock_op.assert_called_once()
 
-            # Debug failure if it happens
-            if "preproc_result" not in mock_st.session_state:
-                print(f"ST ERROR CALLS: {mock_st.error.call_args_list}")
-
-            assert "preproc_result" in mock_st.session_state
+                # Check result stored in PreviewRepository
+                mock_set_preview.assert_called_once()
+                assert mock_set_preview.call_args[0][0] == "preprocessor"
 
 
 def test_preprocessor_no_numeric_cols(mock_streamlit):

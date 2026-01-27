@@ -1,0 +1,58 @@
+{
+  "mcpServers": {
+    "ring5-source": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "${workspaceFolder}/src"
+      ],
+      "env": {
+        "READONLY": "true"
+      },
+      "capabilities": {
+        "tools": true,
+        "resources": true
+      },
+      "description": "Read-only access to RING-5 source code for context"
+    },
+    "ring5-tests": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "${workspaceFolder}/tests"
+      ],
+      "env": {
+        "READONLY": "true"
+      },
+      "capabilities": {
+        "tools": true,
+        "resources": true
+      },
+      "description": "Read-only access to test suite for understanding patterns"
+    },
+    "ring5-docs": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "${workspaceFolder}/.agent",
+        "${workspaceFolder}/.github",
+        "${workspaceFolder}/.ai-assistant-guide.md"
+      ],
+      "env": {
+        "READONLY": "true"
+      },
+      "capabilities": {
+        "tools": true,
+        "resources": true
+      },
+      "description": "Read-only access to project documentation and rules"
+    }
+  },
+  "security": {
+    "prohibitedOperations": ["git", "rm -rf", "sudo", "chmod", "chown"],
+    "note": "Git operations are STRICTLY FORBIDDEN. Never execute git commands."
+  }
+}

@@ -1,5 +1,6 @@
 import logging
-from typing import List
+from pathlib import Path
+from typing import Any, Dict, List, Union, cast
 
 import pandas as pd
 
@@ -18,12 +19,12 @@ class ShaperWork(Job):
     Follows the Command pattern via the Job interface.
     """
 
-    def __init__(self, work_id: str, json_config: dict):
+    def __init__(self, work_id: str, json_config: Dict[str, Any]):
         self._work_id = work_id
         self._json = json_config
-        self._srcCsv = []
+        self._srcCsv: List[str] = []
         self._dstCsv = ""
-        self._deps = []
+        self._deps: List[str] = []
 
     @property
     def deps(self) -> List[str]:
@@ -41,7 +42,7 @@ class ShaperWork(Job):
         return self._work_id
 
     @property
-    def json(self) -> dict:
+    def json(self) -> Dict[str, Any]:
         return self._json
 
     @property
@@ -82,10 +83,14 @@ class ShaperWork(Job):
             logger.error("No source CSV files found for work %s", self._work_id)
             return False
 
-        utils.checkFilesExistOrException(self._srcCsv)
+        utils.checkFilesExistOrException(cast(List[Union[str, Path]], self._srcCsv))
 
-        task_type = utils.getElementValue(self._json, "type")
-        task_params = utils.getElementValue(self._json, "params")
+        task_type_raw = utils.getElementValue(self._json, "type")
+        task_params_raw = utils.getElementValue(self._json, "params")
+        task_type = str(task_type_raw) if task_type_raw is not None else ""
+        task_params = (
+            cast(Dict[str, Any], task_params_raw) if isinstance(task_params_raw, dict) else {}
+        )
 
         # Create the shaper using the factory
         shaper = ShaperFactory.createShaper(task_type, task_params)

@@ -1,10 +1,11 @@
-import os
 import logging
+import os
 from typing import Any, Dict, List
 
 from src.parsers.workers.scan_work import ScanWork
 
 logger = logging.getLogger(__name__)
+
 
 class Gem5ScanWork(ScanWork):
     """
@@ -22,6 +23,7 @@ class Gem5ScanWork(ScanWork):
         Returns full list of variables with types and entries.
         """
         from pathlib import Path
+
         from src.parsers.scanner import Gem5StatsScanner
 
         try:

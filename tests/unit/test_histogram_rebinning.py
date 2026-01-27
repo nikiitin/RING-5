@@ -18,7 +18,7 @@ def test_histogram_selection_priority():
     # Rebinned buckets should be in reduced_content but not in entries
     # 0-100 overlaps with first bin (0-111 using new logic if bins=10 -> 9 std bins)
     # Just check key existence
-    keys = list(hist.content.keys()) 
+    list(hist.content.keys())
     # Rebinned keys are not in 'content' (raw), but computed in 'reduced_content'
     # Check that a rebinned key exists. For 1000/9 ~ 111. Key "0-111"
     assert "0-111" in hist.reduced_content
@@ -84,10 +84,7 @@ def test_histogram_rebinning_overflow():
     # Bucket 150-200 (val 10): Entirely overflow -> 100+
     # Bucket 90-110 (val 20): Overlap 90-100 (10 units) -> 0-100. Overflow 100-110 (10 units) -> 100+
 
-    hist.content = {
-        "150-200": [10],
-        "90-110": [20]
-    }
+    hist.content = {"150-200": [10], "90-110": [20]}
     hist.balance_content()
     hist.reduce_duplicates()
 

@@ -1,7 +1,8 @@
 import multiprocessing
 import os
 from concurrent.futures import Future, ProcessPoolExecutor, ThreadPoolExecutor
-from typing import Callable, List, Optional, Union
+from multiprocessing.context import SpawnContext
+from typing import Any, Callable, List, Optional, Union
 
 from .job import Job
 
@@ -13,14 +14,15 @@ class WorkPool:
     """
 
     _instance: Optional["WorkPool"] = None
+    _initialized: bool
 
-    def __new__(cls):
+    def __new__(cls) -> "WorkPool":
         if cls._instance is None:
             cls._instance = super(WorkPool, cls).__new__(cls)
             cls._instance._initialized = False
         return cls._instance
 
-    def __init__(self):
+    def __init__(self) -> None:
         if self._initialized:
             return
 
@@ -30,7 +32,7 @@ class WorkPool:
 
         # Use spawn context for processes to avoid fork warnings
         try:
-            self._mp_context = multiprocessing.get_context("spawn")
+            self._mp_context: Optional[SpawnContext] = multiprocessing.get_context("spawn")
         except ValueError:
             self._mp_context = None
 
@@ -52,17 +54,21 @@ class WorkPool:
             self._thread_executor = ThreadPoolExecutor(max_workers=self._num_workers * 2)
         return self._thread_executor
 
-    def submit(self, task: Union[Job, Callable], use_threads: bool = False) -> Future:
+    def submit(self, task: Union[Job, Callable[[], Any]], use_threads: bool = False) -> Future[Any]:
         """Submit a single task to the pool."""
         executor = self._get_thread_executor() if use_threads else self._get_process_executor()
         return executor.submit(task)
 
-    def map(self, tasks: List[Union[Job, Callable]], use_threads: bool = False):
+    def map(
+        self, tasks: List[Union[Job, Callable[[], Any]]], use_threads: bool = False
+    ) -> List[Any]:
         """Map a list of tasks to the pool."""
         executor = self._get_thread_executor() if use_threads else self._get_process_executor()
-        return list(executor.map(tasks))
+        # Execute each task individually since they may be different callables
+        results = [executor.submit(task).result() for task in tasks]
+        return results
 
-    def shutdown(self, wait: bool = True):
+    def shutdown(self, wait: bool = True) -> None:
         """Shutdown the executors."""
         if self._process_executor:
             self._process_executor.shutdown(wait=wait)
@@ -71,6 +77,6 @@ class WorkPool:
             self._thread_executor.shutdown(wait=wait)
             self._thread_executor = None
 
-    def reset(self):
+    def reset(self) -> None:
         """Force reset the executors."""
         self.shutdown(wait=False)

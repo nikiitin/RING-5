@@ -2,22 +2,68 @@
 RING-5 State Manager
 Centralized session state management for the Streamlit application.
 Ensures Backend-Frontend synchronization and type safety.
+
+ARCHITECTURE NOTE:
+This class acts as a FACADE over specialized repositories:
+- DataRepository: Primary and processed data
+- PlotRepository: Plot objects and counters
+- ParserStateRepository: gem5 parser state
+- ConfigRepository: Configuration management
+- SessionRepository: Session lifecycle
 """
 
-import io
 import logging
 import shutil
-import uuid
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, TypedDict
 
 import pandas as pd
-import streamlit as st
 
 from src.plotting import BasePlot
 
-logger = logging.getLogger(__name__)
+# Import new repository layer
+from src.web.repositories import (
+    ConfigRepository,
+    DataRepository,
+    ParserStateRepository,
+    PlotRepository,
+    SessionRepository,
+)
+
+# Import shared types
+from src.web.types import PortfolioData
+
+__all__ = ["StateManager", "PortfolioData", "ParseVariable"]
+
+logger: logging.Logger = logging.getLogger(__name__)
+
+
+class ParseVariable(TypedDict, total=False):
+    """Type definition for a parse variable configuration."""
+
+    name: str
+    type: str  # "scalar", "vector", "distribution", "histogram", "configuration"
+    _id: str  # UUID for UI tracking
+    entries: List[str]  # For vector types
+    minimum: Optional[float]  # For distribution types
+    maximum: Optional[float]  # For distribution types
+
+
+class CsvPoolEntry(TypedDict):
+    """Type definition for CSV pool registry entry."""
+
+    path: str
+    name: str
+    added_at: str
+
+
+class ConfigEntry(TypedDict):
+    """Type definition for saved configuration entry."""
+
+    path: str
+    name: str
+    description: str
 
 
 class StateKey(Enum):
@@ -66,290 +112,398 @@ class StateManager:
     CURRENT_PLOT_ID = StateKey.CURRENT_PLOT_ID.value
 
     @staticmethod
-    def initialize():
-        """Initialize all session state variables with scientific defaults."""
-        defaults = {
-            StateManager.DATA: None,
-            StateManager.PROCESSED_DATA: None,
-            StateManager.CONFIG: {},
-            StateManager.TEMP_DIR: None,
-            StateManager.CSV_PATH: None,
-            StateManager.USE_PARSER: False,
-            StateManager.CSV_POOL: [],
-            StateManager.SAVED_CONFIGS: [],
-            StateManager.PARSE_VARIABLES: [
-                {"name": "simTicks", "type": "scalar", "_id": str(uuid.uuid4())},
-                {"name": "benchmark_name", "type": "configuration", "_id": str(uuid.uuid4())},
-                {"name": "config_description", "type": "configuration", "_id": str(uuid.uuid4())},
-            ],
-            StateManager.PLOTS_OBJECTS: [],
-            StateManager.PLOT_COUNTER: 0,
-            StateManager.CURRENT_PLOT_ID: None,
-            StateManager.STATS_PATH: "/path/to/gem5/stats",
-            StateManager.STATS_PATTERN: "stats.txt",
-            StateManager.SCANNED_VARIABLES: [],
-        }
+    def initialize() -> None:
+        """
+        Initialize all session state variables with scientific defaults.
 
-        for key, value in defaults.items():
-            if key not in st.session_state:
-                st.session_state[key] = value
+        DELEGATED TO: SessionRepository
+        """
+        SessionRepository.initialize_session()
 
     # ==================== Data Management ====================
+    # DELEGATED TO: DataRepository
 
     @staticmethod
     def get_data() -> Optional[pd.DataFrame]:
-        """Get the current base dataset."""
-        return st.session_state.get(StateManager.DATA)
+        """
+        Get the current base dataset.
+
+        DELEGATED TO: DataRepository
+        """
+        return DataRepository.get_data()
 
     @staticmethod
-    def set_data(data: pd.DataFrame, on_change: Optional[Callable] = None):
-        """Set the current data and enforce categorical constraints."""
+    def set_data(
+        data: Optional[pd.DataFrame], on_change: Optional[Callable[[], None]] = None
+    ) -> None:
+        """
+        Set the current data and enforce categorical constraints.
+
+        DELEGATED TO: DataRepository
+        Note: Type enforcement for configuration variables applied here
+        """
         if data is not None:
             try:
-                variables = StateManager.get_parse_variables()
-                config_vars = [v["name"] for v in variables if v.get("type") == "configuration"]
+                variables: List[Dict[str, Any]] = ParserStateRepository.get_parse_variables()
+                config_vars: List[str] = [
+                    v["name"] for v in variables if v.get("type") == "configuration"
+                ]
                 for col in config_vars:
                     if col in data.columns:
                         data[col] = data[col].astype(str)
             except Exception as e:
                 logger.error(f"STATE: Type enforcement failed: {e}")
 
-        st.session_state[StateManager.DATA] = data
-        if on_change:
-            on_change()
+        DataRepository.set_data(data, on_change)
 
     @staticmethod
     def get_processed_data() -> Optional[pd.DataFrame]:
-        return st.session_state.get(StateManager.PROCESSED_DATA)
+        """
+        Get the processed/transformed dataset.
+
+        DELEGATED TO: DataRepository
+        """
+        return DataRepository.get_processed_data()
 
     @staticmethod
-    def set_processed_data(data: pd.DataFrame):
-        st.session_state[StateManager.PROCESSED_DATA] = data
+    def set_processed_data(data: Optional[pd.DataFrame]) -> None:
+        """
+        Set the processed/transformed dataset.
+
+        DELEGATED TO: DataRepository
+        """
+        DataRepository.set_processed_data(data)
 
     @staticmethod
     def has_data() -> bool:
-        return StateManager.get_data() is not None
+        """
+        Check if any data is loaded.
+
+        DELEGATED TO: DataRepository
+        """
+        return DataRepository.has_data()
 
     @staticmethod
-    def clear_data():
-        """Reset data-related state and clean up temp storage."""
-        temp_dir = st.session_state.get(StateManager.TEMP_DIR)
+    def clear_data() -> None:
+        """
+        Reset data-related state and clean up temp storage.
+
+        PARTIALLY DELEGATED: Temp dir cleanup here, data clearing to DataRepository
+        """
+        temp_dir = ConfigRepository.get_temp_dir()
         if temp_dir and Path(temp_dir).exists():
             try:
                 shutil.rmtree(temp_dir)
             except OSError as e:
                 logger.warning(f"STATE: Cleanup failed for {temp_dir}: {e}")
 
-        st.session_state[StateManager.DATA] = None
-        st.session_state[StateManager.PROCESSED_DATA] = None
-        st.session_state[StateManager.CSV_PATH] = None
-        st.session_state[StateManager.TEMP_DIR] = None
-        st.session_state[StateManager.PLOTS_OBJECTS] = []
-        st.session_state[StateManager.PLOT_COUNTER] = 0
-        st.session_state[StateManager.CURRENT_PLOT_ID] = None
+        DataRepository.clear_data()
+        ConfigRepository.set_csv_path("")
+        ConfigRepository.set_temp_dir("")
+        PlotRepository.clear_plots()
+        PlotRepository.set_plot_counter(0)
+        PlotRepository.set_current_plot_id(None)
 
     @staticmethod
-    def clear_all():
-        StateManager.clear_data()
-        st.session_state[StateManager.CONFIG] = {}
-        st.session_state[StateManager.USE_PARSER] = False
-        st.session_state[StateManager.STATS_PATH] = "/path/to/gem5/stats"
-        st.session_state[StateManager.STATS_PATTERN] = "stats.txt"
-        st.session_state[StateManager.SCANNED_VARIABLES] = []
-        st.session_state[StateManager.PARSE_VARIABLES] = [
-            {"name": "simTicks", "type": "scalar", "_id": str(uuid.uuid4())},
-            {"name": "benchmark_name", "type": "configuration", "_id": str(uuid.uuid4())},
-            {"name": "config_description", "type": "configuration", "_id": str(uuid.uuid4())},
-        ]
+    def clear_all() -> None:
+        """
+        Clear all session state.
+
+        DELEGATED TO: SessionRepository
+        """
+        SessionRepository.clear_all()
 
     # ==================== Configuration & Parser State ====================
+    # DELEGATED TO: ConfigRepository and ParserStateRepository
 
     @staticmethod
     def get_config() -> Dict[str, Any]:
-        return st.session_state.get(StateManager.CONFIG, {})
+        """
+        Get the complete configuration dictionary.
+
+        DELEGATED TO: ConfigRepository
+        """
+        return ConfigRepository.get_config()
 
     @staticmethod
-    def set_config(config: Dict[str, Any]):
-        st.session_state[StateManager.CONFIG] = config
+    def set_config(config: Dict[str, Any]) -> None:
+        """
+        Set the complete configuration dictionary.
+
+        DELEGATED TO: ConfigRepository
+        """
+        ConfigRepository.set_config(config)
 
     @staticmethod
-    def update_config(key: str, value: Any):
-        config = StateManager.get_config()
-        config[key] = value
-        StateManager.set_config(config)
+    def update_config(key: str, value: Any) -> None:
+        """
+        Update a specific configuration key.
+
+        DELEGATED TO: ConfigRepository
+        """
+        ConfigRepository.update_config(key, value)
 
     @staticmethod
     def get_temp_dir() -> Optional[str]:
-        return st.session_state.get(StateManager.TEMP_DIR)
+        """
+        Get temporary directory path.
+
+        DELEGATED TO: ConfigRepository
+        """
+        return ConfigRepository.get_temp_dir()
 
     @staticmethod
-    def set_temp_dir(path: str):
-        st.session_state[StateManager.TEMP_DIR] = path
+    def set_temp_dir(path: str) -> None:
+        """
+        Set the temporary directory path.
+
+        DELEGATED TO: ConfigRepository
+        """
+        ConfigRepository.set_temp_dir(path)
 
     @staticmethod
     def get_csv_path() -> Optional[str]:
-        return st.session_state.get(StateManager.CSV_PATH)
+        """
+        Get the current CSV file path.
+
+        DELEGATED TO: ConfigRepository
+        """
+        return ConfigRepository.get_csv_path()
 
     @staticmethod
-    def set_csv_path(path: str):
-        st.session_state[StateManager.CSV_PATH] = path
+    def set_csv_path(path: str) -> None:
+        """
+        Set the current CSV file path.
+
+        DELEGATED TO: ConfigRepository
+        """
+        ConfigRepository.set_csv_path(path)
 
     @staticmethod
     def is_using_parser() -> bool:
-        return st.session_state.get(StateManager.USE_PARSER, False)
+        """
+        Check if using gem5 parser mode.
+
+        DELEGATED TO: ParserStateRepository
+        """
+        return ParserStateRepository.is_using_parser()
 
     @staticmethod
-    def set_use_parser(use: bool):
-        st.session_state[StateManager.USE_PARSER] = use
+    def set_use_parser(use: bool) -> None:
+        """
+        Set parser mode flag.
+
+        DELEGATED TO: ParserStateRepository
+        """
+        ParserStateRepository.set_using_parser(use)
 
     @staticmethod
     def get_csv_pool() -> List[Dict[str, Any]]:
-        return st.session_state.get(StateManager.CSV_POOL, [])
+        """
+        Get the CSV pool registry.
+
+        DELEGATED TO: ConfigRepository
+        """
+        return ConfigRepository.get_csv_pool()
 
     @staticmethod
-    def set_csv_pool(pool: List[Dict[str, Any]]):
-        st.session_state[StateManager.CSV_POOL] = pool
+    def set_csv_pool(pool: List[Dict[str, Any]]) -> None:
+        """
+        Set the CSV pool registry.
+
+        DELEGATED TO: ConfigRepository
+        """
+        ConfigRepository.set_csv_pool(pool)
 
     @staticmethod
     def get_saved_configs() -> List[Dict[str, Any]]:
-        return st.session_state.get(StateManager.SAVED_CONFIGS, [])
+        """
+        Get list of saved configurations.
+
+        DELEGATED TO: ConfigRepository
+        """
+        return ConfigRepository.get_saved_configs()
 
     @staticmethod
-    def set_saved_configs(configs: List[Dict[str, Any]]):
-        st.session_state[StateManager.SAVED_CONFIGS] = configs
+    def set_saved_configs(configs: List[Dict[str, Any]]) -> None:
+        """
+        Set the list of saved configurations.
+
+        DELEGATED TO: ConfigRepository
+        """
+        ConfigRepository.set_saved_configs(configs)
 
     @staticmethod
     def get_parse_variables() -> List[Dict[str, Any]]:
-        return st.session_state.get(StateManager.PARSE_VARIABLES, [])
+        """
+        Get parse variables list.
+
+        DELEGATED TO: ParserStateRepository
+        """
+        return ParserStateRepository.get_parse_variables()
 
     @staticmethod
-    def set_parse_variables(variables: List[Dict[str, Any]]):
-        for var in variables:
-            if "_id" not in var:
-                var["_id"] = str(uuid.uuid4())
-        st.session_state[StateManager.PARSE_VARIABLES] = variables
+    def set_parse_variables(variables: List[Dict[str, Any]]) -> None:
+        """
+        Set parse variables.
+
+        DELEGATED TO: ParserStateRepository
+        """
+        ParserStateRepository.set_parse_variables(variables)
 
     @staticmethod
     def get_stats_path() -> str:
-        return st.session_state.get(StateManager.STATS_PATH, "")
+        """
+        Get the gem5 stats base path.
+
+        DELEGATED TO: ParserStateRepository
+        """
+        return ParserStateRepository.get_stats_path()
 
     @staticmethod
-    def set_stats_path(path: str):
-        st.session_state[StateManager.STATS_PATH] = path
+    def set_stats_path(path: str) -> None:
+        """
+        Set the gem5 stats base path.
+
+        DELEGATED TO: ParserStateRepository
+        """
+        ParserStateRepository.set_stats_path(path)
 
     @staticmethod
     def get_stats_pattern() -> str:
-        return st.session_state.get(StateManager.STATS_PATTERN, "stats.txt")
+        """
+        Get the stats file pattern.
+
+        DELEGATED TO: ParserStateRepository
+        """
+        return ParserStateRepository.get_stats_pattern()
 
     @staticmethod
-    def set_stats_pattern(pattern: str):
-        st.session_state[StateManager.STATS_PATTERN] = pattern
+    def set_stats_pattern(pattern: str) -> None:
+        """
+        Set the stats file pattern.
+
+        DELEGATED TO: ParserStateRepository
+        """
+        ParserStateRepository.set_stats_pattern(pattern)
 
     @staticmethod
     def get_scanned_variables() -> List[Dict[str, Any]]:
-        return st.session_state.get(StateManager.SCANNED_VARIABLES, [])
+        """
+        Get the scanned variables list.
+
+        DELEGATED TO: ParserStateRepository
+        """
+        return ParserStateRepository.get_scanned_variables()
 
     @staticmethod
-    def set_scanned_variables(variables: List[Dict[str, Any]]):
-        st.session_state[StateManager.SCANNED_VARIABLES] = variables
+    def set_scanned_variables(variables: List[Dict[str, Any]]) -> None:
+        """
+        Set the scanned variables list.
+
+        DELEGATED TO: ParserStateRepository
+        """
+        ParserStateRepository.set_scanned_variables(variables)
 
     # ==================== Plot Orchestration ====================
 
     @staticmethod
-    def get_plots() -> List[Any]:
-        return st.session_state.get(StateManager.PLOTS_OBJECTS, [])
+    def get_plots() -> List[BasePlot]:
+        """
+        Get all plot objects.
+
+        DELEGATED TO: PlotRepository
+        """
+        return PlotRepository.get_plots()
 
     @staticmethod
-    def set_plots(plots: List[Any]):
-        st.session_state[StateManager.PLOTS_OBJECTS] = plots
+    def set_plots(plots: List[BasePlot]) -> None:
+        """
+        Set the complete list of plot objects.
+
+        DELEGATED TO: PlotRepository
+        """
+        PlotRepository.set_plots(plots)
 
     @staticmethod
-    def add_plot(plot_obj: Any):
-        plots = StateManager.get_plots()
-        plots.append(plot_obj)
-        st.session_state[StateManager.PLOTS_OBJECTS] = plots
+    def add_plot(plot_obj: BasePlot) -> None:
+        """
+        Add a new plot to the collection.
+
+        DELEGATED TO: PlotRepository
+        """
+        PlotRepository.add_plot(plot_obj)
 
     @staticmethod
     def get_plot_counter() -> int:
-        return st.session_state.get(StateManager.PLOT_COUNTER, 0)
+        """
+        Get the current plot counter.
+
+        DELEGATED TO: PlotRepository
+        """
+        return PlotRepository.get_plot_counter()
 
     @staticmethod
-    def set_plot_counter(counter: int):
-        st.session_state[StateManager.PLOT_COUNTER] = counter
+    def set_plot_counter(counter: int) -> None:
+        """
+        Set the plot counter.
+
+        DELEGATED TO: PlotRepository
+        """
+        PlotRepository.set_plot_counter(counter)
 
     @staticmethod
     def start_next_plot_id() -> int:
-        counter = StateManager.get_plot_counter()
-        StateManager.set_plot_counter(counter + 1)
-        return counter
+        """
+        Increment and return next plot ID.
+
+        DELEGATED TO: PlotRepository
+        """
+        return PlotRepository.increment_plot_counter()
 
     @staticmethod
     def get_current_plot_id() -> Optional[int]:
-        return st.session_state.get(StateManager.CURRENT_PLOT_ID)
+        """
+        Get the currently active plot ID.
+
+        DELEGATED TO: PlotRepository
+        """
+        return PlotRepository.get_current_plot_id()
 
     @staticmethod
-    def set_current_plot_id(plot_id: Optional[int]):
-        st.session_state[StateManager.CURRENT_PLOT_ID] = plot_id
+    def set_current_plot_id(plot_id: Optional[int]) -> None:
+        """
+        Set the currently active plot ID.
+
+        DELEGATED TO: PlotRepository
+        """
+        PlotRepository.set_current_plot_id(plot_id)
 
     # ==================== Session Restoration ====================
 
     @staticmethod
-    def clear_widget_state():
-        markers = [
-            "_order_",
-            "leg_ren_",
-            "xaxis_angle_",
-            "ydtick_",
-            "bargap_",
-            "editable_",
-            "show_error_bars",
-            "colsel_",
-            "norm_",
-            "mean_",
-            "sort_",
-            "filter_",
-            "trans_",
-            "leg_x_",
-            "leg_y_",
-            "leg_orient_",
-        ]
-        keys_to_del = [k for k in st.session_state.keys() if any(marker in k for marker in markers)]
-        for k in keys_to_del:
-            del st.session_state[k]
+    def clear_widget_state() -> None:
+        """
+        Clear widget-specific state markers from session.
+
+        DELEGATED TO: SessionRepository
+        """
+        SessionRepository.clear_widget_state()
 
     @staticmethod
-    def restore_session(portfolio_data: Dict[str, Any]):
-        StateManager.clear_widget_state()
-        st.session_state[StateManager.PARSE_VARIABLES] = portfolio_data.get("parse_variables", [])
-        st.session_state[StateManager.STATS_PATH] = portfolio_data.get("stats_path", "")
-        st.session_state[StateManager.STATS_PATTERN] = portfolio_data.get(
-            "stats_pattern", "stats.txt"
-        )
-        st.session_state[StateManager.CSV_PATH] = portfolio_data.get("csv_path", "")
-        st.session_state[StateManager.USE_PARSER] = portfolio_data.get("use_parser", False)
-        st.session_state[StateManager.SCANNED_VARIABLES] = portfolio_data.get(
-            "scanned_variables", []
-        )
+    def restore_session(portfolio_data: PortfolioData) -> None:
+        """
+        Restore complete session state from portfolio data.
 
-        if "data_csv" in portfolio_data:
-            df = pd.read_csv(io.StringIO(portfolio_data["data_csv"]))
-            StateManager.set_data(df)
-
-        loaded_plots = []
-        for plot_data in portfolio_data.get("plots", []):
-            try:
-                if "plot_type" in plot_data:
-                    loaded_plots.append(BasePlot.from_dict(plot_data))
-            except Exception as e:
-                logger.error(f"STATE: Failed to restore plot: {e}")
-
-        st.session_state[StateManager.PLOTS_OBJECTS] = loaded_plots
-        st.session_state[StateManager.PLOT_COUNTER] = portfolio_data.get(
-            "plot_counter", len(loaded_plots)
-        )
-        st.session_state[StateManager.CONFIG] = portfolio_data.get("config", {})
+        DELEGATED TO: SessionRepository
+        """
+        SessionRepository.restore_from_portfolio(portfolio_data)
 
     @staticmethod
-    def restore_session_state(portfolio_data: Dict[str, Any]):
-        """Legacy alias for restore_session."""
-        StateManager.restore_session(portfolio_data)
+    def restore_session_state(portfolio_data: PortfolioData) -> None:
+        """
+        Legacy alias for restore_session.
+
+        DELEGATED TO: SessionRepository
+        """
+        SessionRepository.restore_from_portfolio(portfolio_data)

@@ -5,8 +5,6 @@
 *.tar
 *.pyc
 __pycache__
-.vscode
-.proj*
 python_venv/
 .pytest_cache/
 .ring5
@@ -16,5 +14,24 @@ build/
 .coverage
 config_files
 
+# VS Code - keep settings but ignore user-specific files
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
 # Un-ignore test data for LFS
 !tests/data/**/*.txt
+
+# AI Assistant - keep configuration, ignore personal settings
+.mcp-config.local.json
+.cursor/
+*.ai-session
+
+# Keep these AI config files (explicitly)
+!.github/copilot-instructions.md
+!.agent/
+!.cursorrules
+!.ai-assistant-guide.md
+!AI-SETUP.md

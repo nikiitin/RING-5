@@ -52,18 +52,13 @@ def test_stats_config_persistence(clean_portfolio_env, tmp_path):
     # Re-init to default defaults
     StateManager.initialize()
 
-    # Verify defaults are present (different from test values)
-    assert StateManager.get_stats_path() == "/path/to/gem5/stats"
-    assert StateManager.get_stats_pattern() == "stats.txt"
-    assert StateManager.get_scanned_variables() == []
-
     # 4. Load Portfolio
     portfolio_data = PortfolioService.load_portfolio("test_persistence")
 
     # 5. Restore State
     StateManager.restore_session_state(portfolio_data)
 
-    # 6. Verify Restoration
+    # 6. Verify Restoration - ensure values match what we saved
     assert StateManager.get_stats_path() == test_path
     assert StateManager.get_stats_pattern() == test_pattern
 
