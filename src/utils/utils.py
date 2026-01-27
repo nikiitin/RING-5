@@ -234,5 +234,3 @@ def checkVarType(var: Any, varType: type) -> None:
     """
     if not isinstance(var, varType):
         raise TypeError(f"Variable is not of type {varType.__name__}, got {type(var).__name__}")
-    if not isinstance(var, varType):
-        raise TypeError("Variable is not of type " + str(varType) + ": " + str(var))
