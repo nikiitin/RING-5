@@ -8,6 +8,7 @@ import pandas as pd
 import streamlit as st
 
 from src.core.performance import get_plot_cache, timed
+from src.plotting.export import LaTeXExportService
 from src.web.ui.components.interactive_plot import interactive_plotly_chart
 
 from .base_plot import BasePlot
@@ -269,14 +270,83 @@ class PlotRenderer:
     @staticmethod
     def _render_download_button(plot: BasePlot, fig: Any) -> None:
         """
-        Render download button for the plot.
+        Render export dialog for publication-quality LaTeX export.
 
-        DEPRECATED: Legacy download functionality removed.
-        Export functionality will be reimplemented with MatplotlibConverter in Phase 6.
+        Provides dropdown selection for journal presets and format,
+        then generates downloadable file using MatplotlibConverter.
 
         Args:
             plot: Plot instance
-            fig: Plotly figure
+            fig: Plotly figure with user's interactive adjustments
         """
-        # TODO: Implement new export dialog with MatplotlibConverter
-        pass
+        with st.expander("📥 Export for LaTeX", expanded=False):
+            st.markdown("**Publication-Quality Export**")
+            st.caption(
+                "Export to LaTeX-optimized formats. "
+                "Preserves your legend positions, zoom, and layout adjustments."
+            )
+
+            # Initialize service
+            service = LaTeXExportService()
+            presets = service.list_presets()
+
+            # UI for export settings
+            col1, col2 = st.columns(2)
+
+            with col1:
+                preset_name = st.selectbox(
+                    "Journal Preset",
+                    options=presets,
+                    index=0,  # Default to first preset
+                    help="Select journal/conference column width preset",
+                )
+
+            with col2:
+                format_choice = st.selectbox(
+                    "Export Format",
+                    options=["pdf", "pgf", "eps"],
+                    index=0,  # Default to PDF
+                    help=(
+                        "• PDF: Recommended for most use cases\n"
+                        "• PGF: Best for direct LaTeX inclusion\n"
+                        "• EPS: Legacy format"
+                    ),
+                )
+
+            # Export button
+            if st.button("Generate Export", use_container_width=True):
+                with st.spinner(f"Generating {format_choice.upper()}..."):
+                    # Call service
+                    result = service.export(fig, preset=preset_name, format=format_choice)
+
+                    if result["success"] and result["data"] is not None:
+                        # Success - provide download
+                        file_extension = result["format"]
+                        file_name = f"figure.{file_extension}"
+
+                        st.download_button(
+                            label=f"Download {file_extension.upper()}",
+                            data=result["data"],  # Now guaranteed non-None
+                            file_name=file_name,
+                            mime=_get_mime_type(file_extension),
+                            use_container_width=True,
+                        )
+
+                        st.success(f"✓ Export successful " f"({len(result['data']) / 1024:.1f} KB)")
+                    else:
+                        # Error - show message
+                        error_msg = result.get("error", "Unknown error")
+                        st.error(f"Export failed: {error_msg}")
+                        st.info(
+                            "Tip: Ensure LaTeX is installed on your system " "for PGF/EPS formats."
+                        )
+
+
+def _get_mime_type(file_extension: str) -> str:
+    """Get MIME type for file extension."""
+    mime_types = {
+        "pdf": "application/pdf",
+        "pgf": "application/x-tex",
+        "eps": "application/postscript",
+    }
+    return mime_types.get(file_extension, "application/octet-stream")
