@@ -11,6 +11,7 @@ This guide explains how to keep RING-5's dependencies up-to-date automatically a
 **Location**: `.github/dependabot.yml`
 
 **What it does**:
+
 - ✅ Automatically checks for updates weekly (every Monday at 9 AM)
 - ✅ Creates individual PRs for security updates
 - ✅ Groups minor/patch updates together (reduces PR spam)
@@ -19,18 +20,21 @@ This guide explains how to keep RING-5's dependencies up-to-date automatically a
 - ✅ Runs your CI pipeline for each PR (auto-validates changes)
 
 **Configuration**:
+
 - **Production deps** (pandas, numpy, streamlit, plotly): Grouped together
 - **Dev deps** (black, mypy, pytest): Grouped separately
 - **Major updates**: Individual PRs (require manual review)
 - **PR limit**: 10 open PRs max
 
 **How to use**:
+
 1. Dependabot creates a PR → "deps: Update pandas from 2.3.3 to 2.4.0"
 2. GitHub Actions runs automatically (tests, type checking, linting)
 3. If ✅ green: Review and merge
 4. If ❌ red: Review breaking changes, fix code, merge
 
 **Pros**:
+
 - 🆓 Free for public repos
 - 🔄 Fully automated
 - 🧪 Auto-tested via CI
@@ -38,6 +42,7 @@ This guide explains how to keep RING-5's dependencies up-to-date automatically a
 - 📧 Email notifications
 
 **Cons**:
+
 - Can create many PRs (mitigated by grouping)
 - Major version bumps need manual review
 
@@ -46,16 +51,19 @@ This guide explains how to keep RING-5's dependencies up-to-date automatically a
 **Location**: `.github/workflows/dependency-check.yml`
 
 **What it does**:
+
 - 📊 Weekly report of outdated packages
 - 🔒 Security vulnerability scanning via `pip-audit`
 - 📝 Creates GitHub issues when updates are needed
 - 📤 Uploads outdated package list as artifact
 
 **Trigger**:
+
 - Automatically: Every Monday at 9 AM UTC
 - Manually: GitHub UI → Actions → "Dependency Update Check" → Run workflow
 
 **Output**:
+
 - Summary in Actions tab
 - GitHub issue with list of outdated packages
 - Downloadable artifact with full details
@@ -95,6 +103,7 @@ dependencies = [
 ```
 
 **Why?**
+
 - Major versions often have breaking changes
 - Scientific computing tools (pandas/numpy) need stability
 - Publication-quality plots must remain reproducible
@@ -113,6 +122,7 @@ dev = [
 ```
 
 **Why?**
+
 - Dev tools rarely break your code
 - Better type checking and linting over time
 - New features improve DX
@@ -149,13 +159,16 @@ black --check src/ tests/
 ## 🚨 When to Update Immediately
 
 **Security Vulnerabilities**:
+
 - `pip-audit` reports CVE → Update ASAP
 - Dependabot Security Alert → Update ASAP
 
 **Critical Bugs**:
+
 - Blocker bug in your dependency → Update to patched version
 
 **New Python Version Support**:
+
 - Python 3.13 released → Update dependencies for compatibility
 
 ## ⚠️ Caution: Major Version Updates
@@ -185,18 +198,20 @@ View dependency health:
 
 ## 🔧 Configuration Tuning
 
-### If too many PRs:
+### If too many PRs
 
 Edit `.github/dependabot.yml`:
+
 ```yaml
-open-pull-requests-limit: 5  # Reduce from 10
+open-pull-requests-limit: 5 # Reduce from 10
 schedule:
-  interval: "monthly"          # Reduce frequency
+  interval: "monthly" # Reduce frequency
 ```
 
-### If you want auto-merge for patches:
+### If you want auto-merge for patches
 
 Add to `.github/workflows/`:
+
 ```yaml
 name: Auto-merge Dependabot
 on: pull_request
@@ -225,12 +240,14 @@ jobs:
    - Or just push the `.github/dependabot.yml` file
 
 2. **Test the workflows**:
+
    ```bash
    # Trigger dependency check manually
    gh workflow run dependency-check.yml
    ```
 
 3. **Review current state**:
+
    ```bash
    make check-outdated
    make security-audit

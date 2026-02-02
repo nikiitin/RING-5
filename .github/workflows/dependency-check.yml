@@ -1,10 +1,13 @@
 name: Dependency Update Check
 
+permissions:
+  contents: read
+
 on:
   schedule:
     # Run every Monday at 9 AM UTC
-    - cron: '0 9 * * 1'
-  workflow_dispatch:  # Allow manual trigger
+    - cron: 0 9 * * 1
+  workflow_dispatch: # Allow manual trigger
 
 jobs:
   check-outdated:
@@ -12,68 +15,68 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Python 3.12
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.12'
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e ".[dev]"
-        pip install pip-audit
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+          pip install pip-audit
 
-    - name: Check for outdated packages
-      id: outdated
-      run: |
-        echo "## Outdated Packages" >> $GITHUB_STEP_SUMMARY
-        pip list --outdated --format=columns >> outdated.txt
-        cat outdated.txt >> $GITHUB_STEP_SUMMARY
+      - name: Check for outdated packages
+        id: outdated
+        run: |
+          echo "## Outdated Packages" >> $GITHUB_STEP_SUMMARY
+          pip list --outdated --format=columns >> outdated.txt
+          cat outdated.txt >> $GITHUB_STEP_SUMMARY
 
-        # Check if any packages are outdated
-        if [ -s outdated.txt ]; then
-          echo "outdated=true" >> $GITHUB_OUTPUT
-        else
-          echo "outdated=false" >> $GITHUB_OUTPUT
-        fi
+          # Check if any packages are outdated
+          if [ -s outdated.txt ]; then
+            echo "outdated=true" >> $GITHUB_OUTPUT
+          else
+            echo "outdated=false" >> $GITHUB_OUTPUT
+          fi
 
-    - name: Security audit
-      run: |
-        echo "## Security Audit" >> $GITHUB_STEP_SUMMARY
-        pip-audit --format markdown >> $GITHUB_STEP_SUMMARY || true
+      - name: Security audit
+        run: |
+          echo "## Security Audit" >> $GITHUB_STEP_SUMMARY
+          pip-audit --format markdown >> $GITHUB_STEP_SUMMARY || true
 
-    - name: Upload outdated list
-      if: steps.outdated.outputs.outdated == 'true'
-      uses: actions/upload-artifact@v4
-      with:
-        name: outdated-dependencies
-        path: outdated.txt
+      - name: Upload outdated list
+        if: steps.outdated.outputs.outdated == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: outdated-dependencies
+          path: outdated.txt
 
-    - name: Create issue if outdated
-      if: steps.outdated.outputs.outdated == 'true'
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const fs = require('fs');
-          const outdated = fs.readFileSync('outdated.txt', 'utf8');
+      - name: Create issue if outdated
+        if: steps.outdated.outputs.outdated == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const outdated = fs.readFileSync('outdated.txt', 'utf8');
 
-          const issues = await github.rest.issues.listForRepo({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            state: 'open',
-            labels: 'dependencies,automated'
-          });
-
-          // Only create issue if one doesn't exist
-          if (issues.data.length === 0) {
-            await github.rest.issues.create({
+            const issues = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: '📦 Outdated dependencies detected',
-              body: `Automated check found outdated dependencies:\n\n\`\`\`\n${outdated}\n\`\`\`\n\n**Action Required:**\n1. Review the changes in each package\n2. Update \`pyproject.toml\` with new versions\n3. Run tests locally\n4. Create PR with updates\n\nOr enable Dependabot to handle this automatically.`,
-              labels: ['dependencies', 'automated', 'maintenance']
+              state: 'open',
+              labels: 'dependencies,automated'
             });
-          }
+
+            // Only create issue if one doesn't exist
+            if (issues.data.length === 0) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: '📦 Outdated dependencies detected',
+                body: `Automated check found outdated dependencies:\n\n\`\`\`\n${outdated}\n\`\`\`\n\n**Action Required:**\n1. Review the changes in each package\n2. Update \`pyproject.toml\` with new versions\n3. Run tests locally\n4. Create PR with updates\n\nOr enable Dependabot to handle this automatically.`,
+                labels: ['dependencies', 'automated', 'maintenance']
+              });
+            }

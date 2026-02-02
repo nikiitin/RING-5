@@ -1,50 +1,50 @@
 version: 2
 updates:
   # Python dependencies
-  - package-ecosystem: "pip"
-    directory: "/"
+  - package-ecosystem: pip
+    directory: /
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
+      interval: weekly
+      day: monday
+      time: 09:00
     open-pull-requests-limit: 10
     reviewers:
-      - "vnicolas"
+      - vnicolas
     labels:
-      - "dependencies"
-      - "automated"
+      - dependencies
+      - automated
     commit-message:
-      prefix: "deps"
-      include: "scope"
+      prefix: deps
+      include: scope
     # Group minor and patch updates together
     groups:
       dev-dependencies:
         patterns:
-          - "black"
-          - "flake8"
-          - "mypy"
-          - "pytest*"
+          - black
+          - flake8
+          - mypy
+          - pytest*
         update-types:
-          - "minor"
-          - "patch"
+          - minor
+          - patch
       production-dependencies:
         patterns:
-          - "pandas"
-          - "numpy"
-          - "streamlit"
-          - "plotly"
+          - pandas
+          - numpy
+          - streamlit
+          - plotly
         update-types:
-          - "minor"
-          - "patch"
+          - minor
+          - patch
 
   # GitHub Actions
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: github-actions
+    directory: /
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: weekly
+      day: monday
     reviewers:
-      - "vnicolas"
+      - vnicolas
     labels:
-      - "ci"
-      - "automated"
+      - ci
+      - automated
