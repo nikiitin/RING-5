@@ -1,4 +1,4 @@
-"""
+r"""
 Pattern Aggregator
 Consolidates repeated variables with numeric indices into regex pattern variables.
 
@@ -7,7 +7,7 @@ Example:
     system.cpu1.numCycles
     system.cpu2.numCycles
 
-    → system.cpu\\d+.numCycles (vector variable with entries: ["0", "1", "2"])
+    → system.cpu\d+.numCycles (vector variable with entries: ["0", "1", "2"])
 """
 
 import logging

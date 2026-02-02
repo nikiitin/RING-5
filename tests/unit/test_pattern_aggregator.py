@@ -3,7 +3,6 @@ Unit Tests for Pattern Aggregator
 Tests the pattern detection and aggregation logic for repeated gem5 variables.
 """
 
-import pytest
 from src.parsers.pattern_aggregator import PatternAggregator
 
 
@@ -79,7 +78,7 @@ class TestPatternAggregation:
 
         # Should have: cpu pattern + 2 non-patterns
         assert len(result) == 3
-        
+
         names = [v["name"] for v in result]
         assert "global.simulation_time" in names
         assert "system.total_cycles" in names
@@ -115,7 +114,7 @@ class TestPatternAggregation:
 
         # Should have 3 patterns: cpu, l0_cntrl, l1_cntrl
         assert len(result) == 3
-        
+
         names = [v["name"] for v in result]
         assert r"system.cpu\d+.ipc" in names
         assert r"system.ruby.l\d+_cntrl\d+.hits" in names
@@ -204,10 +203,7 @@ class TestPatternAggregation:
 
     def test_aggregate_large_number_range(self) -> None:
         """Test aggregating 16 CPUs (cpu0-cpu15)."""
-        variables = [
-            {"name": f"system.cpu{i}.numCycles", "type": "scalar"}
-            for i in range(16)
-        ]
+        variables = [{"name": f"system.cpu{i}.numCycles", "type": "scalar"} for i in range(16)]
 
         result = PatternAggregator.aggregate_patterns(variables)
 
@@ -265,7 +261,7 @@ class TestEdgeCases:
         ]
 
         result = PatternAggregator.aggregate_patterns(variables)
-        
+
         # Should still aggregate, defaulting to scalar -> vector
         assert len(result) == 1
         assert result[0]["type"] == "vector"

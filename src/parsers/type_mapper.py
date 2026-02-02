@@ -63,17 +63,34 @@ class TypeMapper:
         norm_type = cls.normalize_type(var_type)
 
         if norm_type == "vector":
-            kwargs["entries"] = var_config.get("vectorEntries") or var_config.get("entries")
+            # If statisticsOnly=True, don't set entries (empty list)
+            if var_config.get("statisticsOnly", False):
+                kwargs["entries"] = var_config.get("statistics") or []
+            else:
+                kwargs["entries"] = var_config.get("vectorEntries") or var_config.get("entries")
 
         elif norm_type == "distribution":
-            kwargs["minimum"] = var_config.get("minimum", 0)
-            kwargs["maximum"] = var_config.get("maximum", 100)
+            statistics_only = var_config.get("statisticsOnly", False)
+            kwargs["statistics_only"] = statistics_only
+            if statistics_only:
+                # When only parsing statistics, use minimal range
+                kwargs["minimum"] = 0
+                kwargs["maximum"] = 0
+            else:
+                kwargs["minimum"] = var_config.get("minimum", 0)
+                kwargs["maximum"] = var_config.get("maximum", 100)
             kwargs["statistics"] = var_config.get("vectorEntries") or var_config.get("statistics")
 
         elif norm_type == "histogram":
-            kwargs["bins"] = var_config.get("bins", 0)
-            kwargs["max_range"] = var_config.get("max_range", 0.0)
-            kwargs["entries"] = var_config.get("entries")
+            # If statisticsOnly=True, don't set entries/bins, only statistics
+            if var_config.get("statisticsOnly", False):
+                kwargs["bins"] = 0
+                kwargs["max_range"] = 0.0
+                kwargs["entries"] = None
+            else:
+                kwargs["bins"] = var_config.get("bins", 0)
+                kwargs["max_range"] = var_config.get("max_range", 0.0)
+                kwargs["entries"] = var_config.get("entries")
             kwargs["statistics"] = var_config.get("statistics") or var_config.get("vectorEntries")
 
         elif norm_type == "configuration":

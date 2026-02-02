@@ -28,7 +28,9 @@ class ConditionSelectorConfig:
     def render(
         data: pd.DataFrame, existing_config: Dict[str, Any], key_prefix: str, shaper_id: str
     ) -> Dict[str, Any]:
-        categorical_cols = data.select_dtypes(include=["object", "category"]).columns.tolist()
+        categorical_cols = data.select_dtypes(
+            include=["object", "string", "category"]
+        ).columns.tolist()
         numeric_cols = data.select_dtypes(include=["number"]).columns.tolist()
         all_cols = categorical_cols + numeric_cols
 

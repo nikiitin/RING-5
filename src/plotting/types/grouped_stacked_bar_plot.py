@@ -21,7 +21,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
     def render_config_ui(self, data: pd.DataFrame, saved_config: Dict[str, Any]) -> Dict[str, Any]:
         """Render configuration UI for grouped stacked bar plot."""
         numeric_cols = data.select_dtypes(include=["number"]).columns.tolist()
-        categorical_cols = data.select_dtypes(include=["object"]).columns.tolist()
+        categorical_cols = data.select_dtypes(include=["object", "string"]).columns.tolist()
 
         col1, col2 = st.columns(2)
 

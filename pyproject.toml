@@ -8,12 +8,13 @@ version = "1.0.0"
 description = "Modern gem5 Data Analysis and Visualization Tool"
 readme = "README.md"
 requires-python = ">=3.8"
-license = { text = "MIT" }
+license = { text = "GPL-3.0-or-later" }
 authors = [{ name = "RING-5 Development Team" }]
 keywords = ["gem5", "data-analysis", "visualization", "performance-analysis"]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
@@ -24,12 +25,10 @@ classifiers = [
 
 dependencies = [
   "tqdm>=4.67.1",
-  "pytest>=9.0.2",
   "pandas>=2.3.3",
   "scipy>=1.17.0",
   "numpy>=2.4.1",
   "matplotlib>=3.10.8",
-  "seaborn>=0.13.2",
   "jsonschema>=4.26.0",
   "streamlit>=1.53.1",
   "openpyxl>=3.1.5",
@@ -44,6 +43,7 @@ dev = [
   "black>=26.1.0",
   "flake8>=7.3.0",
   "mypy>=1.13.0",
+  "pre-commit>=4.5.0",
   "pandas-stubs>=2.2.3.240909",
   "types-jsonschema>=4.23.0.20240813",
   "types-tqdm>=4.67.0.20250809",
@@ -68,8 +68,12 @@ python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
 addopts = "-v --tb=short"
+markers = [
+  "benchmark: marks tests as performance benchmarks (deselect with '-m \"not benchmark\"')",
+]
 filterwarnings = [
   "ignore:.*Support for the 'engine' argument is deprecated.*:DeprecationWarning",
+  "ignore::DeprecationWarning:plotly.io._kaleido",
 ]
 
 [tool.black]

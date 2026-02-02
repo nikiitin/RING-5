@@ -98,6 +98,13 @@ def test_normalization_logic(base_data):
 
     result = n(base_data)
 
+    # Verify columns exist
+    assert (
+        "bench" in result.columns
+    ), f"Column 'bench' not found. Available: {result.columns.tolist()}"
+    assert "config" in result.columns
+    assert "metric" in result.columns
+
     # Bench b1: baseline=10. test=20. Ratio should be 1.0 and 2.0
     b1 = result[result["bench"] == "b1"]
     assert b1[b1["config"] == "baseline"]["metric"].iloc[0] == 1.0
@@ -121,6 +128,13 @@ def test_normalization_sd(base_data):
     )
 
     result = n(base_data)
+
+    # Verify columns exist
+    assert (
+        "bench" in result.columns
+    ), f"Column 'bench' not found. Available: {result.columns.tolist()}"
+    assert "config" in result.columns
+    assert "metric.sd" in result.columns
 
     # Bench b1: baseline=10 (metric).
     b1 = result[result["bench"] == "b1"]

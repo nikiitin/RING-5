@@ -33,7 +33,7 @@ class DataComponents:
             numeric_cols = data.select_dtypes(include=["number"]).columns
             st.metric("Numeric Columns", len(numeric_cols))
         with col4:
-            categorical_cols = data.select_dtypes(include=["object"]).columns
+            categorical_cols = data.select_dtypes(include=["object", "string"]).columns
             st.metric("Categorical Columns", len(categorical_cols))
 
     @staticmethod

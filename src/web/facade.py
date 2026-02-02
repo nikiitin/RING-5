@@ -232,7 +232,9 @@ class BackendFacade:
         return {
             "total_columns": len(data.columns),
             "numeric_columns": data.select_dtypes(include=["number"]).columns.tolist(),
-            "categorical_columns": data.select_dtypes(include=["object"]).columns.tolist(),
+            "categorical_columns": data.select_dtypes(
+                include=["object", "string"]
+            ).columns.tolist(),
             "total_rows": len(data),
             "null_counts": data.isnull().sum().to_dict(),
         }

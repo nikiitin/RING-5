@@ -37,6 +37,7 @@ class Distribution(StatType):
             "_minimum",
             "_maximum",
             "_statistics",
+            "_statistics_only",
             "balancedContent",
             "reducedDuplicates",
             "reducedContent",
@@ -49,6 +50,7 @@ class Distribution(StatType):
         minimum: int = 0,
         maximum: int = 100,
         statistics: Optional[List[str]] = None,
+        statistics_only: bool = False,
         **kwargs: Any,
     ) -> None:
         """
@@ -59,25 +61,38 @@ class Distribution(StatType):
             minimum: The lowest expected value for standard buckets.
             maximum: The highest expected value for standard buckets.
             statistics: List of additional statistics to extract (mean, samples, etc.)
+            statistics_only: If True, only extract statistics, skip bucket data
             **kwargs: Additional attributes passed to parent.
 
         Raises:
             ValueError: If the range exceeds SAFETY_MAX_BUCKETS.
         """
         super().__init__(repeat, **kwargs)
-        object.__setattr__(self, "_minimum", int(minimum))
-        object.__setattr__(self, "_maximum", int(maximum))
-        object.__setattr__(self, "_statistics", statistics or [])
+        object.__setattr__(self, "_statistics_only", statistics_only)
 
-        num_buckets = self._maximum - self._minimum + 1
-        if num_buckets > SAFETY_MAX_BUCKETS:
-            raise ValueError(
-                f"DISTRIBUTION: Range {self._minimum}-{self._maximum} ({num_buckets} buckets) "
-                f"exceeds safety limit of {SAFETY_MAX_BUCKETS}. Check your config."
-            )
+        # If statistics_only, use minimal bucket range
+        if statistics_only:
+            object.__setattr__(self, "_minimum", 0)
+            object.__setattr__(self, "_maximum", 0)
+            object.__setattr__(self, "_statistics", statistics or [])
+            # Initialize content with only statistics keys
+            content: Dict[str, List[Any]] = {}
+            for stat in statistics or []:
+                content[stat] = []
+        else:
+            object.__setattr__(self, "_minimum", int(minimum))
+            object.__setattr__(self, "_maximum", int(maximum))
+            object.__setattr__(self, "_statistics", statistics or [])
 
-        # Pre-initialize buckets for deterministic output ordering
-        content: Dict[str, List[Any]] = {"underflows": []}
+            num_buckets = self._maximum - self._minimum + 1
+            if num_buckets > SAFETY_MAX_BUCKETS:
+                raise ValueError(
+                    f"DISTRIBUTION: Range {self._minimum}-{self._maximum} ({num_buckets} buckets) "
+                    f"exceeds safety limit of {SAFETY_MAX_BUCKETS}. Check your config."
+                )
+
+            # Pre-initialize buckets for deterministic output ordering
+            content: Dict[str, List[Any]] = {"underflows": []}
         for i in range(self._minimum, self._maximum + 1):
             content[str(i)] = []
         content["overflows"] = []
@@ -121,37 +136,45 @@ class Distribution(StatType):
         Set and aggregate content from a dictionary.
 
         Handles aggregation of multiple matches from the same file.
-        Fails loudly if critical buckets (under/overflows) are missing.
+        Fails loudly if critical buckets (under/overflows) are missing (unless statistics_only).
         """
         if not isinstance(value, dict):
             raise TypeError(f"DISTRIBUTION: Content must be dict, got {type(value).__name__}")
 
         keys = set(value.keys())
         stats_keys = set(self._statistics)
+        statistics_only = object.__getattribute__(self, "_statistics_only")
 
-        # Mandatory Presence Check (Zero Hallucination)
-        if "underflows" not in keys or "overflows" not in keys:
-            raise TypeError(
-                f"DISTRIBUTION: Missing mandatory keys 'underflows' or 'overflows'. "
-                f"Found: {keys}"
-            )
+        # Mandatory Presence Check (Zero Hallucination) - skip if statistics_only mode
+        if not statistics_only:
+            if "underflows" not in keys or "overflows" not in keys:
+                raise TypeError(
+                    f"DISTRIBUTION: Missing mandatory keys 'underflows' or 'overflows'. "
+                    f"Found: {keys}"
+                )
 
-        if str(self._minimum) not in keys or str(self._maximum) not in keys:
-            raise RuntimeError(
-                f"DISTRIBUTION: Boundary buckets {self._minimum} or {self._maximum} missing. "
-                "Check for format mismatch in stats file."
-            )
+            if str(self._minimum) not in keys or str(self._maximum) not in keys:
+                raise RuntimeError(
+                    f"DISTRIBUTION: Boundary buckets {self._minimum} or {self._maximum} missing. "
+                    "Check for format mismatch in stats file."
+                )
 
         # Logical Set of expected buckets
-        expected: Set[str] = {"underflows", "overflows"}
-        expected.update(str(i) for i in range(self._minimum, self._maximum + 1))
-        expected.update(stats_keys)
+        if statistics_only:
+            expected: Set[str] = stats_keys
+        else:
+            expected: Set[str] = {"underflows", "overflows"}
+            expected.update(str(i) for i in range(self._minimum, self._maximum + 1))
+            expected.update(stats_keys)
 
         for key, vals in value.items():
             str_key = str(key)
 
-            # Strict Range Validation
+            # Strict Range Validation - skip if not in expected set
             if str_key not in expected:
+                if statistics_only:
+                    # In statistics_only mode, skip any keys that aren't statistics
+                    continue
                 try:
                     int(str_key)
                     # It's a number but out of our configured [min, max] range
@@ -162,6 +185,10 @@ class Distribution(StatType):
                 except ValueError:
                     # It's a non-numeric extra stat we're not tracking, skip it
                     continue
+
+            # Initialize key in content if not present (for statistics_only mode)
+            if str_key not in self._content:
+                self._content[str_key] = []
 
             # Accumulate values with strict numerical validation
             if isinstance(vals, list):

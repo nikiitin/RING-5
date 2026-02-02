@@ -51,8 +51,10 @@ def test_set_data_enforce_config_types(mock_streamlit):
     StateManager.set_data(df)
 
     stored_df = mock_streamlit.session_state[StateManager.DATA]
-    # "cfg" should be string/object now
-    assert pd.api.types.is_object_dtype(stored_df["cfg"])
+    # "cfg" should be string/object now (pandas 3.0 uses 'string' dtype)
+    assert pd.api.types.is_string_dtype(stored_df["cfg"]) or pd.api.types.is_object_dtype(
+        stored_df["cfg"]
+    )
     assert stored_df["cfg"].tolist() == ["1", "2", "3"]
 
 

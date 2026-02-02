@@ -53,7 +53,7 @@ class SeedsReducerManager(DataManager):
             return
 
         # Identify categorical and numeric columns
-        categorical_cols = data.select_dtypes(include=["object"]).columns.tolist()
+        categorical_cols = data.select_dtypes(include=["object", "string"]).columns.tolist()
         numeric_cols = data.select_dtypes(include=["number"]).columns.tolist()
 
         # Remove random_seed from categorical if present

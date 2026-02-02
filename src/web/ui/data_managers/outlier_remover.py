@@ -40,7 +40,7 @@ class OutlierRemoverManager(DataManager):
             return
 
         # Identify columns
-        categorical_cols = data.select_dtypes(include=["object"]).columns.tolist()
+        categorical_cols = data.select_dtypes(include=["object", "string"]).columns.tolist()
         numeric_cols = data.select_dtypes(include=["number"]).columns.tolist()
 
         if not numeric_cols:

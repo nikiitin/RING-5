@@ -41,7 +41,7 @@ class DataManagerComponents:
 
         with col2:
             st.markdown("**Categorical Columns Summary:**")
-            categorical_data = data.select_dtypes(include=["object"])
+            categorical_data = data.select_dtypes(include=["object", "string"])
             if not categorical_data.empty:
                 for col in categorical_data.columns:
                     unique_count = data[col].nunique()

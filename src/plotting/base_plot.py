@@ -348,7 +348,9 @@ class BasePlot(ABC):
             Configuration dictionary with common options
         """
         numeric_cols = data.select_dtypes(include=["number"]).columns.tolist()
-        categorical_cols = data.select_dtypes(include=["object", "category"]).columns.tolist()
+        categorical_cols = data.select_dtypes(
+            include=["object", "string", "category"]
+        ).columns.tolist()
 
         col1, col2 = st.columns(2)
 
