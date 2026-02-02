@@ -173,16 +173,21 @@ class PatternAggregator:
         base_type = first_var.get("type", "scalar")
         
         # If all instances are scalars, the pattern is a vector
-        # If instances are already vectors, we need to merge entries
+        # If instances are already vectors, we need to keep pattern indices AND vector entries
         if base_type == "scalar":
             result_type = "vector"
             result_entries = entries
+            pattern_indices = None  # Not needed for scalar -> vector conversion
         else:
-            # Merge vector/histogram entries
+            # For vectors/histograms/distributions, we need BOTH:
+            # - pattern_indices: numeric IDs from variable names (for pattern selection)
+            # - entries: the actual vector/histogram entry names (after ::)
             result_type = base_type
-            result_entries = []
             
-            # Collect all unique entries from all instances
+            # Pattern indices (numeric IDs from variable names like "0_0", "1_0")
+            pattern_indices = entries
+            
+            # Collect all unique vector/histogram entries from all instances
             all_entries: set[str] = set()
             for _, var in instances:
                 if "entries" in var:
@@ -195,6 +200,10 @@ class PatternAggregator:
             "type": result_type,
             "entries": result_entries
         }
+        
+        # Add pattern indices for non-scalar patterns (vectors, histograms, distributions)
+        if pattern_indices is not None:
+            result["pattern_indices"] = pattern_indices
 
         # Handle distribution min/max if applicable
         if base_type == "distribution":

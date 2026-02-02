@@ -400,7 +400,13 @@ class VariableEditor:
                 var_found = False
                 for v in scanned_vars:
                     if v["name"] == var_name:
-                        v["entries"] = filtered_entries
+                        # For pattern variables, check if we have pattern_indices
+                        if "pattern_indices" in v:
+                            # Keep pattern_indices, update entries only
+                            v["entries"] = filtered_entries
+                        else:
+                            # Regular variable or scalar pattern, just update entries
+                            v["entries"] = filtered_entries
                         var_found = True
                         break
                 if not var_found:
@@ -432,15 +438,27 @@ class VariableEditor:
         
         # Check if this is a pattern variable and render pattern selector
         if PatternIndexSelector.is_pattern_variable(var_name):
+            # For pattern variables, use pattern_indices if available, otherwise fall back to entries
+            scanned_vars = StateManager.get_scanned_variables() or []
+            pattern_indices = None
+            
+            for v in scanned_vars:
+                if v["name"] == var_name and "pattern_indices" in v:
+                    pattern_indices = v["pattern_indices"]
+                    break
+            
+            # If no pattern_indices found, use filtered_entries (backward compatibility)
+            indices_to_use = pattern_indices if pattern_indices else filtered_entries
+            
             current_selection = original_var.get("patternSelection", None)
             use_filter, pattern_filtered = PatternIndexSelector.render_selector(
-                var_name, filtered_entries, var_id, current_selection
+                var_name, indices_to_use, var_id, current_selection
             )
             
             if use_filter:
                 # Store pattern selection for future reference
                 var_config["patternSelection"] = pattern_filtered
-                filtered_entries = pattern_filtered
+                # Don't filter the vector entries - pattern filtering is separate
         
         # Continue with normal entry selection
         current_entries = original_var.get("vectorEntries", [])

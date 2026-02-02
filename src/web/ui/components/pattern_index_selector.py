@@ -36,17 +36,21 @@ class PatternIndexSelector:
         Returns:
             List of position labels like ["l", "cntrl"]
         """
-        # Find all pattern positions with their context
-        # Look for word\d+ pattern (not including preceding underscore)
-        # We want to match: word characters followed by \d+, but not including leading _
-        pattern = r"(?:^|\.)([a-zA-Z][a-zA-Z0-9_]*)\\d\+"
+        # Find all positions where \d+ appears and extract the preceding label
+        # Match: (non-digit word characters) followed by \d+
+        # This handles: l\d+, cntrl\d+, cpu\d+, etc.
+        pattern = r"([a-zA-Z_]+[a-zA-Z0-9_]*)\\d\+"
         matches = re.findall(pattern, var_name)
-
-        # Also check for underscore-prefixed patterns like _cntrl\d+
-        pattern_with_underscore = r"_([a-zA-Z][a-zA-Z0-9_]*)\\d\+"
-        matches.extend(re.findall(pattern_with_underscore, var_name))
-
-        return matches
+        
+        # Clean up the matches to remove leading underscores
+        cleaned = []
+        for match in matches:
+            # Remove leading underscores (e.g., "_cntrl" -> "cntrl")
+            label = match.lstrip("_")
+            if label:
+                cleaned.append(label)
+        
+        return cleaned
 
     @staticmethod
     def parse_entry_indices(entries: List[str]) -> Dict[int, set[str]]:
@@ -73,7 +77,10 @@ class PatternIndexSelector:
 
         for entry in entries:
             parts = entry.split("_")
+            # Handle entries with different numbers of parts
             for i, part in enumerate(parts):
+                if i not in position_values:
+                    position_values[i] = set()
                 position_values[i].add(part)
 
         return position_values
@@ -110,7 +117,7 @@ class PatternIndexSelector:
         if not positions or not position_values:
             return False, entries
 
-        st.markdown("**🎯 Pattern Index Selection:**")
+        st.markdown("**Pattern Index Selection:**")
         st.caption(f"Variable: `{var_name}`")
 
         # Option to use all entries or filter
@@ -122,7 +129,7 @@ class PatternIndexSelector:
         )
 
         if not use_filter:
-            st.info(f"📦 Will parse ALL {len(entries)} matching instances")
+            st.info(f"Will parse ALL {len(entries)} matching instances")
             return False, entries
 
         # Render selection for each position
@@ -179,7 +186,7 @@ class PatternIndexSelector:
             else:
                 examples = filtered_entries[:5] + ["..."] + filtered_entries[-2:]
 
-            with st.expander("📋 Show selected instances"):
+            with st.expander("Show selected instances"):
                 for entry in examples:
                     if entry != "...":
                         formatted = cls._format_entry_display(entry, positions)
