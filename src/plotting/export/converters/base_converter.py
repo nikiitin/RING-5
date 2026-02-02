@@ -26,26 +26,35 @@ class BaseConverter(ABC):
 
     Example:
         class MatplotlibConverter(BaseConverter):
-            def convert(self, figure, preset):
+            def __init__(self, preset: LaTeXPreset):
+                self.preset = preset
+
+            def convert(self, figure, format):
                 # Convert via Matplotlib
                 return result
     """
+
+    def __init__(self, preset: LaTeXPreset) -> None:
+        """
+        Initialize converter with LaTeX preset.
+
+        Args:
+            preset: LaTeX export configuration
+        """
+        self.preset = preset
 
     @abstractmethod
     def convert(
         self,
         figure: go.Figure,
-        preset: LaTeXPreset,
-        preserve_layout: bool = True,
+        format: str,
     ) -> ExportResult:
         """
         Convert Plotly figure to target format.
 
         Args:
             figure: Plotly figure to convert
-            preset: LaTeX preset with dimensions, fonts, DPI
-            preserve_layout: If True, preserve user's interactive layout choices
-                           (axis limits, legend position, etc.)
+            format: Output format (e.g., "pdf", "pgf", "eps")
 
         Returns:
             ExportResult with binary data and metadata
@@ -64,15 +73,14 @@ class BaseConverter(ABC):
         """
         return []
 
-    def validate_figure(self, figure: go.Figure) -> None:
+    def validate_figure(self, figure: go.Figure) -> bool:
         """
         Validate that figure is compatible with this converter.
 
         Args:
             figure: Plotly figure to validate
 
-        Raises:
-            ValueError: If figure is invalid (empty, unsupported trace types, etc.)
+        Returns:
+            True if valid, False otherwise
         """
-        if not figure.data:
-            raise ValueError("Figure has no data (no traces)")
+        return bool(figure.data)
