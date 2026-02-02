@@ -217,6 +217,19 @@ class VariableEditor:
             original_var["bins"] = bins
             original_var["max_range"] = max_range
 
+        # Option to parse only statistics or include bucket entries
+        parse_mode = st.radio(
+            "Parsing mode:",
+            options=["Statistics Only", "Statistics + Bucket Entries"],
+            index=0 if original_var.get("statisticsOnly", True) else 1,
+            key=f"hist_parse_mode_{var_id}",
+            help="Statistics Only: Parse mean, stdev, etc. without individual buckets (faster). "
+            "Statistics + Bucket Entries: Parse all histogram buckets (slower, more data).",
+            horizontal=True,
+        )
+
+        var_config["statisticsOnly"] = parse_mode == "Statistics Only"
+
         if entry_mode == "Select from Discovered Entries":
             cls._render_vector_discovered_selection(
                 var_config, original_var, var_id, discovered_entries
@@ -273,6 +286,22 @@ class VariableEditor:
             key=f"entry_mode_{var_id}",
             horizontal=True,
         )
+
+        # If using Vector Statistics mode, this is statistics-only
+        if entry_mode == "Vector Statistics":
+            var_config["statisticsOnly"] = True
+        else:
+            # Otherwise, offer the choice
+            parse_mode = st.radio(
+                "Parsing mode:",
+                options=["Statistics Only", "Entries + Statistics"],
+                index=0 if original_var.get("statisticsOnly", False) else 1,
+                key=f"vec_parse_mode_{var_id}",
+                help="Statistics Only: Parse total, mean, stdev, etc. without individual entries (faster). "
+                "Entries + Statistics: Parse selected entries plus statistics (slower, more data).",
+                horizontal=True,
+            )
+            var_config["statisticsOnly"] = parse_mode == "Statistics Only"
 
         cls._handle_deep_scan(
             var_name,
@@ -334,7 +363,7 @@ class VariableEditor:
                     st.error(f"Failed to start scan: {e}")
 
     @classmethod
-    @st.dialog("Deep Scan", dismissible=False)
+    @st.dialog("Deep Scan", dismissible=True)
     def _show_scan_dialog(
         cls, var_name: str, var_id: str, facade: Any, futures: List[Any], is_distribution: bool
     ) -> None:
@@ -435,31 +464,31 @@ class VariableEditor:
         filtered_entries = VariableService.filter_internal_stats(discovered_entries)
 
         var_name = var_config.get("name", "")
-        
+
         # Check if this is a pattern variable and render pattern selector
         if PatternIndexSelector.is_pattern_variable(var_name):
             # For pattern variables, use pattern_indices if available, otherwise fall back to entries
             scanned_vars = StateManager.get_scanned_variables() or []
             pattern_indices = None
-            
+
             for v in scanned_vars:
                 if v["name"] == var_name and "pattern_indices" in v:
                     pattern_indices = v["pattern_indices"]
                     break
-            
+
             # If no pattern_indices found, use filtered_entries (backward compatibility)
             indices_to_use = pattern_indices if pattern_indices else filtered_entries
-            
+
             current_selection = original_var.get("patternSelection", None)
             use_filter, pattern_filtered = PatternIndexSelector.render_selector(
                 var_name, indices_to_use, var_id, current_selection
             )
-            
+
             if use_filter:
                 # Store pattern selection for future reference
                 var_config["patternSelection"] = pattern_filtered
                 # Don't filter the vector entries - pattern filtering is separate
-        
+
         # Continue with normal entry selection
         current_entries = original_var.get("vectorEntries", [])
         if isinstance(current_entries, str):
@@ -587,6 +616,19 @@ class VariableEditor:
 
         var_config["minimum"] = min_val
         var_config["maximum"] = max_val
+
+        # Option to parse only statistics or include bucket entries
+        parse_mode = st.radio(
+            "Parsing mode:",
+            options=["Statistics Only", "Statistics + Bucket Entries"],
+            index=0 if original_var.get("statisticsOnly", True) else 1,
+            key=f"dist_parse_mode_{var_id}",
+            help="Statistics Only: Parse mean, stdev, etc. without individual buckets (faster). "
+            "Statistics + Bucket Entries: Parse all distribution buckets (slower, more data).",
+            horizontal=True,
+        )
+
+        var_config["statisticsOnly"] = parse_mode == "Statistics Only"
 
         cls._handle_deep_scan(
             var_name,

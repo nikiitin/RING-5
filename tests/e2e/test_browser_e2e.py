@@ -38,14 +38,19 @@ class TestBrowserE2E:
         This fixture starts the app before tests and stops it after.
         Skip if the app is already running.
         """
-        # Check if app is already running
-        try:
-            response = requests.get(APP_URL, timeout=5)
-            if response.status_code == 200:
-                yield "already_running"
-                return
-        except requests.exceptions.ConnectionError:
-            pass
+        # Check if app is already running (with retries for slow CI environments)
+        for attempt in range(3):
+            try:
+                response = requests.get(APP_URL, timeout=10)
+                if response.status_code == 200:
+                    # App is already running, use it
+                    yield "already_running"
+                    return
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+                if attempt < 2:
+                    time.sleep(2)  # Wait before retrying
+                else:
+                    break  # Give up, try to start the app
 
         # Start the app
         process = subprocess.Popen(
@@ -57,22 +62,40 @@ class TestBrowserE2E:
 
         # Wait for app to be ready
         start_time = time.time()
+        app_started = False
         while time.time() - start_time < APP_STARTUP_TIMEOUT:
             try:
-                response = requests.get(APP_URL, timeout=2)
+                response = requests.get(APP_URL, timeout=5)
                 if response.status_code == 200:
+                    app_started = True
                     break
-            except requests.exceptions.ConnectionError:
-                time.sleep(1)
-        else:
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+                time.sleep(2)
+
+        if not app_started:
+            # Try to get error output
+            try:
+                stdout, stderr = process.communicate(timeout=2)
+                error_msg = f"App did not start within {APP_STARTUP_TIMEOUT} seconds.\n"
+                error_msg += f"STDOUT: {stdout.decode()[:500]}\n"
+                error_msg += f"STDERR: {stderr.decode()[:500]}"
+            except subprocess.TimeoutExpired:
+                error_msg = (
+                    f"App did not start within {APP_STARTUP_TIMEOUT} seconds (still running)"
+                )
+
             process.terminate()
-            pytest.fail(f"App did not start within {APP_STARTUP_TIMEOUT} seconds")
+            pytest.fail(error_msg)
 
         yield process
 
         # Cleanup
-        process.terminate()
-        process.wait(timeout=10)
+        try:
+            process.terminate()
+            process.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait()
 
     def test_app_is_reachable(self, app_server):
         """

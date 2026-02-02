@@ -103,9 +103,19 @@ class BackendFacade:
             # Pattern Recognition: Identify variables meant for cross-controller aggregation
             # e.g. system.cpu\d+.ipc
             if "\\d+" in var_name or "*" in var_name:
-                matched_ids = [
-                    cv["name"] for cv in scanned_vars if re.fullmatch(var_name, cv["name"])
-                ]
+                # First check if scanned_vars has pattern_indices for this pattern
+                matched_ids = []
+                for cv in scanned_vars:
+                    if cv["name"] == var_name and "pattern_indices" in cv:
+                        # Use pre-aggregated pattern indices from scanner
+                        matched_ids = cv["pattern_indices"]
+                        break
+
+                # Fallback to regex matching if no pattern_indices found
+                if not matched_ids:
+                    matched_ids = [
+                        cv["name"] for cv in scanned_vars if re.fullmatch(var_name, cv["name"])
+                    ]
 
                 if matched_ids:
                     var_config = {

@@ -202,10 +202,18 @@ class ParseService:
             if not name:
                 continue
 
-            stat_obj = TypeMapper.create_stat(var)
+            # Handle multi-ID mapping for regex patterns
+            parsed_ids = var.get("parsed_ids", [])
+            if parsed_ids:
+                # Set repeat count to number of matched IDs for proper reduction
+                var_with_repeat = var.copy()
+                var_with_repeat["repeat"] = len(parsed_ids)
+                stat_obj = TypeMapper.create_stat(var_with_repeat)
+            else:
+                stat_obj = TypeMapper.create_stat(var)
+
             var_map[name] = stat_obj
 
-            parsed_ids = var.get("parsed_ids", [])
             for pid in parsed_ids:
                 if pid != name:
                     var_map[pid] = stat_obj

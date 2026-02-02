@@ -139,10 +139,8 @@ class DataSourceComponents:
                         # Process and store results
                         scanned_vars = facade.finalize_scan(scan_results)
                         StateManager.set_scanned_variables(scanned_vars)
-                    
-                    st.success(
-                        f"✅ Scan complete! Found {len(scanned_vars)} variables."
-                    )
+
+                    st.success(f"✅ Scan complete! Found {len(scanned_vars)} variables.")
                     st.rerun()
                 except Exception as e:
                     st.error(f"Scan failed: {e}")
@@ -336,7 +334,7 @@ class DataSourceComponents:
                         st.rerun()
 
     @staticmethod
-    @st.dialog("Parsing gem5 Stats", dismissible=False)
+    @st.dialog("Parsing gem5 Stats", dismissible=True)
     def _show_parse_dialog(facade: BackendFacade, futures: List[Any], output_dir: str) -> None:
         """Render the parsing progress dialog using blocking futures."""
         from concurrent.futures import as_completed

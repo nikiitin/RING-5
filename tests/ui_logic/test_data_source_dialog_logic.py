@@ -76,7 +76,12 @@ def test_variable_config_dialog_manual_entry_vector(components_bundle, mock_stat
     """Test manual entry of a vector variable."""
     mock_streamlit, DataSourceComponents = components_bundle
 
-    mock_streamlit.radio.side_effect = ["Manual Entry", "Manual Entry Names"]
+    # Added return value for new statistics-only parsing mode radio
+    mock_streamlit.radio.side_effect = [
+        "Manual Entry",
+        "Manual Entry Names",
+        "Entries + Statistics",
+    ]
 
     mock_streamlit.text_input.side_effect = ["vec", "cpu0"]
 

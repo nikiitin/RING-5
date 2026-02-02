@@ -93,14 +93,21 @@ class Gem5StatsParser:
             # Registry Inversion: Extract type-specific entries via consolidated Mapper
             from src.parsers.type_mapper import TypeMapper
 
-            stat_obj = TypeMapper.create_stat(var)
+            # Handle multi-ID mapping (Variables matched via regex scanning)
+            # For regex patterns that match multiple variables, set repeat count
+            parsed_ids = var.get("parsed_ids", [])
+            if parsed_ids:
+                # Set repeat count to number of matched IDs for proper reduction
+                var_with_repeat = var.copy()
+                var_with_repeat["repeat"] = len(parsed_ids)
+                stat_obj = TypeMapper.create_stat(var_with_repeat)
+            else:
+                stat_obj = TypeMapper.create_stat(var)
 
             var_map[name] = stat_obj
 
-            # Handle multi-ID mapping (Variables matched via regex scanning)
             # This allows multiple physical IDs in stats.txt to contribute to
             # one logical variable (Sacred Scanning rule).
-            parsed_ids = var.get("parsed_ids", [])
             for pid in parsed_ids:
                 if pid != name:
                     var_map[pid] = stat_obj

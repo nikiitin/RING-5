@@ -41,7 +41,7 @@ class PatternIndexSelector:
         # This handles: l\d+, cntrl\d+, cpu\d+, etc.
         pattern = r"([a-zA-Z_]+[a-zA-Z0-9_]*)\\d\+"
         matches = re.findall(pattern, var_name)
-        
+
         # Clean up the matches to remove leading underscores
         cleaned = []
         for match in matches:
@@ -49,7 +49,7 @@ class PatternIndexSelector:
             label = match.lstrip("_")
             if label:
                 cleaned.append(label)
-        
+
         return cleaned
 
     @staticmethod
