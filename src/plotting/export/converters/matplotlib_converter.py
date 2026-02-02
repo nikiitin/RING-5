@@ -244,13 +244,40 @@ class MatplotlibConverter(BaseConverter):
         x = trace.x if trace.x is not None else []
         y = trace.y if trace.y is not None else []
 
+        # Convert to list if needed (handles numpy arrays, pandas Series, etc.)
+        if hasattr(x, "tolist"):
+            x = x.tolist()
+        if hasattr(y, "tolist"):
+            y = y.tolist()
+
+        # Ensure we have lists
+        if not isinstance(x, list):
+            x = list(x) if x is not None else []
+        if not isinstance(y, list):
+            y = list(y) if y is not None else []
+
         # Handle color
         color = None
         if trace.marker and trace.marker.color:
             color = trace.marker.color
 
-        # For grouped bars, we need x positions as numbers
-        if isinstance(x[0] if x else None, str):
+        # Check if x contains strings (categorical data)
+        # Must check length first to avoid empty list issues
+        has_categorical_x = False
+        try:
+            if x and len(x) > 0:
+                # Check first element type - handle both strings and bytes
+                first_x = x[0]
+                has_categorical_x = isinstance(first_x, (str, bytes)) or (
+                    hasattr(first_x, "__class__")
+                    and first_x.__class__.__name__ in ("str", "str_", "bytes_")
+                )
+        except (TypeError, IndexError):
+            # If we can't check, assume numeric
+            has_categorical_x = False
+
+        if has_categorical_x:
+            # For categorical x-axis, use numeric positions
             x_pos = list(range(len(x)))
             ax.bar(
                 x=x_pos,
@@ -262,6 +289,7 @@ class MatplotlibConverter(BaseConverter):
             ax.set_xticks(x_pos)
             ax.set_xticklabels(x, rotation=45, ha="right")
         else:
+            # For numeric x-axis
             ax.bar(
                 x=x,
                 height=y,
