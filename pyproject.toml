@@ -33,7 +33,6 @@ dependencies = [
   "streamlit>=1.53.1",
   "openpyxl>=3.1.5",
   "plotly>=6.5.2",
-  "kaleido>=1.2.0",
 ]
 
 [project.optional-dependencies]
@@ -74,7 +73,6 @@ markers = [
 ]
 filterwarnings = [
   "ignore:.*Support for the 'engine' argument is deprecated.*:DeprecationWarning",
-  "ignore::DeprecationWarning:plotly.io._kaleido",
 ]
 
 [tool.black]

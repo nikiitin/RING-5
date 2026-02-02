@@ -1,5 +1,11 @@
-"""LaTeX export system."""
+"""
+Export module - LaTeX-optimized export with Matplotlib.
 
-from .export_service_legacy import ExportService
+Legacy Kaleido-based export has been removed. Use MatplotlibConverter for
+publication-quality PDF/PGF/EPS export.
+"""
 
-__all__ = ["ExportService"]
+from src.plotting.export.converters.matplotlib_converter import MatplotlibConverter
+from src.plotting.export.presets.preset_manager import PresetManager
+
+__all__ = ["MatplotlibConverter", "PresetManager"]

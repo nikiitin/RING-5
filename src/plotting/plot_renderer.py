@@ -8,7 +8,6 @@ import pandas as pd
 import streamlit as st
 
 from src.core.performance import get_plot_cache, timed
-from src.plotting.export import ExportService
 from src.web.ui.components.interactive_plot import interactive_plotly_chart
 
 from .base_plot import BasePlot
@@ -272,14 +271,12 @@ class PlotRenderer:
         """
         Render download button for the plot.
 
+        DEPRECATED: Legacy download functionality removed.
+        Export functionality will be reimplemented with MatplotlibConverter in Phase 6.
+
         Args:
             plot: Plot instance
             fig: Plotly figure
         """
-        ExportService.render_download_button(
-            plot_name=plot.name,
-            plot_id=plot.plot_id,
-            fig=fig,
-            config=plot.config,
-            key_prefix="dl_btn",
-        )
+        # TODO: Implement new export dialog with MatplotlibConverter
+        pass
