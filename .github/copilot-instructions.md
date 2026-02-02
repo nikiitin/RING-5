@@ -101,7 +101,7 @@ git tag
 
 ## Project Context
 
-You are working on RING-5, a **Pure Python Implementation for Analysis and Graphic generation on gem-5**. This is a scientific data analysis tool for gem5 simulator output targeting top-tier computer architecture conferences (ISCA, MICRO, ASPLOS).
+You are working on RING-5, **Reproducible Instrumentation for Numerical Graphics for gem5**. This is a scientific data analysis tool for gem5 simulator output targeting top-tier computer architecture conferences (ISCA, MICRO, ASPLOS).
 
 ## Your Expertise
 

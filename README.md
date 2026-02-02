@@ -1,8 +1,8 @@
 # RING-5
 
-**Pure Python I**mplementation for a**N**alysis and **G**raphic generation on **gem-5**
+**R**eproducible **I**nstrumentation for **N**umerical **G**raphics for gem5
 
-A modernized, data analyzer for gem5 simulator output, designed for computer architecture research.
+A modern, reproducible analysis and visualization framework for gem5 simulator output, designed for computer architecture research.
 
 [![CI](https://img.shields.io/badge/CI-passing-success)](https://github.com/vnicolas/RING-5/actions)
 [![Tests](https://img.shields.io/badge/tests-653%20passing-success)](tests/)
