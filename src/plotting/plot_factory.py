@@ -7,6 +7,7 @@ from .types import (
     BarPlot,
     GroupedBarPlot,
     GroupedStackedBarPlot,
+    HistogramPlot,
     LinePlot,
     ScatterPlot,
     StackedBarPlot,
@@ -27,6 +28,7 @@ class PlotFactory:
         "grouped_bar": GroupedBarPlot,
         "stacked_bar": StackedBarPlot,
         "grouped_stacked_bar": GroupedStackedBarPlot,
+        "histogram": HistogramPlot,
         "line": LinePlot,
         "scatter": ScatterPlot,
     }

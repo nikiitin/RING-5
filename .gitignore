@@ -13,6 +13,7 @@ python_venv/
 build/
 .coverage
 config_files
+.mypy_cache/
 
 # VS Code - keep settings but ignore user-specific files
 .vscode/*

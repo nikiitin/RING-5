@@ -130,9 +130,18 @@ class DataSourceComponents:
                 try:
                     # Submit async scan with limit based on checkbox
                     scan_limit = -1 if deep_scan else 10
-                    facade.submit_scan_async(stats_path, stats_pattern, limit=scan_limit)
-                    st.info(
-                        f"{'Deep' if deep_scan else 'Quick'} scan started! Results will appear in the 'Add Variable' list shortly."  # noqa: E501
+                    with st.spinner(f"{'Deep' if deep_scan else 'Quick'} scanning..."):
+                        scan_futures = facade.submit_scan_async(
+                            stats_path, stats_pattern, limit=scan_limit
+                        )
+                        # Wait for scan to complete
+                        scan_results = [f.result() for f in scan_futures]
+                        # Process and store results
+                        scanned_vars = facade.finalize_scan(scan_results)
+                        StateManager.set_scanned_variables(scanned_vars)
+                    
+                    st.success(
+                        f"✅ Scan complete! Found {len(scanned_vars)} variables."
                     )
                     st.rerun()
                 except Exception as e:

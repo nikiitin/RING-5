@@ -150,6 +150,9 @@ class Gem5ParseWork(ParseWork):
                 normalizedVarType = expectedType
         elif normalizedVarType == "vector" and expectedType == "distribution":
             normalizedVarType = "distribution"
+        elif normalizedVarType == "vector" and expectedType == "histogram":
+            # Vector statistics (::samples, ::mean, ::total) are part of histogram
+            normalizedVarType = "histogram"
 
         self._bufferEntry(varID, varValue)
         return normalizedVarType

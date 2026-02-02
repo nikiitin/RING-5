@@ -1,8 +1,54 @@
-# Skills and Workflows Reference
+# RING-5 AI Agent Configuration
 
-**Purpose**: Quick index of all available skills and workflows for AI assistants working on RING-5.
+**Purpose**: AI assistant rules, workflows, and skills for RING-5 development.
 
-## Skills (Detailed How-To Guides)
+## 🎯 Quick Start
+
+### For Google Antigravity Users
+- **Rules**: [rules/project-context.md](rules/project-context.md) - Always active
+- **Workflows**: Invoke with `/workflow-name` (see [workflows/](workflows/))
+- **Skills**: Auto-activate based on task (see [skills/](skills/))
+- **Guide**: [ANTIGRAVITY_README.md](ANTIGRAVITY_README.md)
+
+### For GitHub Copilot (VSCode) Users
+- **Instructions**: [../.github/copilot-instructions.md](../.github/copilot-instructions.md)
+- **Skills**: Available in [skills/*.md](skills/) (legacy format)
+- **Workflows**: Referenced as documentation patterns
+
+### Dual IDE Support
+See [DUAL_IDE_SETUP.md](DUAL_IDE_SETUP.md) for complete dual-IDE configuration guide.
+
+---
+
+## 📚 Directory Structure
+
+```
+.agent/
+├── rules/                         # Constraints and guidelines
+│   └── project-context.md        # Core project rules (12K char limit)
+├── workflows/                     # Step-by-step processes
+│   ├── test-driven-development.md
+│   ├── new-variable-type.md
+│   └── README.md                 # Workflow catalog
+├── skills/                        # Reusable knowledge packages
+│   ├── parsing-workflow/
+│   │   └── SKILL.md              # Antigravity format (YAML frontmatter)
+│   ├── new-plot-type/
+│   │   └── SKILL.md
+│   ├── shaper-pipeline/
+│   │   └── SKILL.md
+│   ├── debug-async-parsing/
+│   │   └── SKILL.md
+│   ├── *.md                      # Legacy format (Copilot compatible)
+│   └── README.md                 # Skills catalog
+├── ANTIGRAVITY_README.md          # Antigravity-specific guide
+├── DUAL_IDE_SETUP.md              # Dual IDE configuration guide
+└── README.md                      # This file
+```
+
+---
+
+## 📖 Skills (Detailed How-To Guides)
 
 Skills provide step-by-step instructions for implementing specific features.
 

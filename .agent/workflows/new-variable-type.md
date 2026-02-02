@@ -1,8 +1,9 @@
-# Workflow: Adding Support for New gem5 Variable Types
+# Adding Support for New gem5 Variable Types
 
-**Workflow ID**: `new-variable-type`  
-**Complexity**: Advanced  
-**Domain**: Parsing
+> **Invoke with**: `/new-variable-type`  
+> **Purpose**: Extend parser to support new gem5 statistics variable types  
+> **Complexity**: Advanced  
+> **Domain**: Parsing
 
 ## Overview
 

@@ -1,8 +1,8 @@
-# Workflow: Test-Driven Development
+# Test-Driven Development Workflow
 
-**Workflow ID**: `tdd-workflow`  
-**Complexity**: Fundamental  
-**Applies to**: All code changes
+> **Invoke with**: `/test-driven-development`  
+> **Purpose**: Guide all code changes through TDD process  
+> **Applies to**: All new features, bug fixes, and refactoring
 
 ## Overview
 

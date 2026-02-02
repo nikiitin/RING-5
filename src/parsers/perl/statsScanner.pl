@@ -39,10 +39,13 @@ sub processSummary {
              $vars->{$name}{type} = 'vector';
          }
          # Upgrade Vector to Distribution if summary implies advanced stats
+         # BUT: Do NOT downgrade Histogram to Distribution!
+         # Histograms with summary stats remain Histograms
          if ($vars->{$name}{type} eq 'vector' &&
             ($entry eq 'samples' || $entry eq 'mean' || $entry eq 'stdev' || $entry eq 'gmean')) {
              $vars->{$name}{type} = 'distribution';
          }
+         # Note: If type is already 'histogram', we keep it as histogram
     } else {
          # First time seeing it. Check if summary implies distribution
          my $init_type = 'vector';

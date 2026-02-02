@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, TypedDict, cast
 
 from src.parsers.workers.pool import ScanWorkPool
+from src.parsers.pattern_aggregator import PatternAggregator
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -87,7 +88,16 @@ class ScannerService:
         for file_vars in results:
             for var in file_vars:
                 ScannerService._merge_variable(merged_registry, var)
-        return sorted(list(merged_registry.values()), key=lambda x: x["name"])
+        
+        merged_vars = sorted(list(merged_registry.values()), key=lambda x: x["name"])
+        
+        # Apply pattern aggregation to consolidate repeated numeric patterns
+        # Cast to List[Dict[str, Any]] for pattern aggregator
+        merged_vars_dict = cast(List[Dict[str, Any]], merged_vars)
+        aggregated_vars_dict = PatternAggregator.aggregate_patterns(merged_vars_dict)
+        aggregated_vars = cast(List[ScannedVariable], aggregated_vars_dict)
+        
+        return aggregated_vars
 
     @staticmethod
     def _merge_variable(registry: Dict[str, ScannedVariable], var: Dict[str, Any]) -> None:
