@@ -159,14 +159,33 @@ class StackedBarPlot(BasePlot):
             if sd_col in data.columns:
                 error_y = dict(type="data", array=data[sd_col], visible=True)
 
+        # Get series styling configuration
+        series_styles = config.get("series_styles", {})
+        style = series_styles.get(y_col, {})
+
+        # Use custom name if defined, otherwise use y_col
+        trace_name = style.get("name", y_col)
+
+        # Apply color if defined in series_styles
+        marker_dict = {}
+        if style.get("color"):
+            marker_dict["color"] = style["color"]
+
+        # Apply pattern if defined
+        if style.get("pattern"):
+            marker_dict["pattern"] = {"shape": style["pattern"], "fillmode": "replace"}
+
         trace_kwargs = dict(
             x=data[x_col],
             y=data[y_col],
-            name=y_col,
+            name=trace_name,
             error_y=error_y,
             customdata=data["__total"].tolist(),
             hovertemplate=hover_template,
         )
+
+        if marker_dict:
+            trace_kwargs["marker"] = marker_dict
 
         if bar_width is not None:
             trace_kwargs["width"] = bar_width
