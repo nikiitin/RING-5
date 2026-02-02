@@ -297,8 +297,11 @@ class VariableEditor:
                 options=["Statistics Only", "Entries + Statistics"],
                 index=0 if original_var.get("statisticsOnly", False) else 1,
                 key=f"vec_parse_mode_{var_id}",
-                help="Statistics Only: Parse total, mean, stdev, etc. without individual entries (faster). "
-                "Entries + Statistics: Parse selected entries plus statistics (slower, more data).",
+                help=(
+                    "Statistics Only: Parse total, mean, stdev, etc. without "
+                    "individual entries (faster). Entries + Statistics: Parse "
+                    "selected entries plus statistics (slower, more data)."
+                ),
                 horizontal=True,
             )
             var_config["statisticsOnly"] = parse_mode == "Statistics Only"
@@ -467,7 +470,8 @@ class VariableEditor:
 
         # Check if this is a pattern variable and render pattern selector
         if PatternIndexSelector.is_pattern_variable(var_name):
-            # For pattern variables, use pattern_indices if available, otherwise fall back to entries
+            # For pattern variables, use pattern_indices if available,
+            # otherwise fall back to entries
             scanned_vars = StateManager.get_scanned_variables() or []
             pattern_indices = None
 

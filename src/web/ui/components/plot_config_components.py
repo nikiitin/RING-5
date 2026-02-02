@@ -104,13 +104,14 @@ class PlotConfigComponents:
         elif not valid_ys and numeric_cols:
             valid_ys = numeric_cols[:1]
 
-        return st.multiselect(
+        result = st.multiselect(
             label,
             options=numeric_cols,
             default=valid_ys,
             key=f"y_multiselect_{plot_id}",
             help=help_text,
         )
+        return list(result) if isinstance(result, list) else []
 
     @staticmethod
     def render_title_labels_section(

@@ -235,4 +235,5 @@ class GroupedBarPlot(BasePlot):
 
     def get_legend_column(self, config: Dict[str, Any]) -> Optional[str]:
         """Get legend column for grouped bar plot."""
-        return config.get("group")
+        result = config.get("group")
+        return str(result) if result is not None else None

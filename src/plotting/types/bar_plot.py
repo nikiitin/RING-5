@@ -72,4 +72,5 @@ class BarPlot(BasePlot):
 
     def get_legend_column(self, config: Dict[str, Any]) -> Optional[str]:
         """Get legend column for bar plot."""
-        return config.get("color")
+        result = config.get("color")
+        return str(result) if result is not None else None

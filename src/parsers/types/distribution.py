@@ -1,6 +1,6 @@
 """Distribution stat type for fixed-bucket frequency distributions."""
 
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
 from src.parsers.types.base import StatType, register_type
 
@@ -92,10 +92,10 @@ class Distribution(StatType):
                 )
 
             # Pre-initialize buckets for deterministic output ordering
-            content: Dict[str, List[Any]] = {"underflows": []}
-        for i in range(self._minimum, self._maximum + 1):
-            content[str(i)] = []
-        content["overflows"] = []
+            content = {"underflows": []}
+            for i in range(self._minimum, self._maximum + 1):
+                content[str(i)] = []
+            content["overflows"] = []
 
         # Initialize configured additional statistics
         for stat in self._statistics:
@@ -161,9 +161,9 @@ class Distribution(StatType):
 
         # Logical Set of expected buckets
         if statistics_only:
-            expected: Set[str] = stats_keys
+            expected = stats_keys
         else:
-            expected: Set[str] = {"underflows", "overflows"}
+            expected = {"underflows", "overflows"}
             expected.update(str(i) for i in range(self._minimum, self._maximum + 1))
             expected.update(stats_keys)
 

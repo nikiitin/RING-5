@@ -137,7 +137,8 @@ class PlotRepository:
         Returns:
             Active plot ID or None if no plot is active
         """
-        return st.session_state.get(PlotRepository.CURRENT_PLOT_ID_KEY)
+        result = st.session_state.get(PlotRepository.CURRENT_PLOT_ID_KEY)
+        return int(result) if result is not None else None
 
     @staticmethod
     def set_current_plot_id(plot_id: Optional[int]) -> None:

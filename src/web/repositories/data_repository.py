@@ -37,7 +37,8 @@ class DataRepository:
         Returns:
             Primary DataFrame or None if not set
         """
-        return st.session_state.get(DataRepository.DATA_KEY)
+        result = st.session_state.get(DataRepository.DATA_KEY)
+        return result if result is None or isinstance(result, pd.DataFrame) else None
 
     @staticmethod
     def set_data(
@@ -71,7 +72,8 @@ class DataRepository:
         Returns:
             Processed DataFrame or None if not set
         """
-        return st.session_state.get(DataRepository.PROCESSED_DATA_KEY)
+        result = st.session_state.get(DataRepository.PROCESSED_DATA_KEY)
+        return result if result is None or isinstance(result, pd.DataFrame) else None
 
     @staticmethod
     def set_processed_data(data: Optional[pd.DataFrame]) -> None:

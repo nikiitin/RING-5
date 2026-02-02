@@ -9,8 +9,8 @@ from concurrent.futures import Future
 from pathlib import Path
 from typing import Any, Dict, List, Optional, TypedDict, cast
 
-from src.parsers.workers.pool import ScanWorkPool
 from src.parsers.pattern_aggregator import PatternAggregator
+from src.parsers.workers.pool import ScanWorkPool
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -88,15 +88,15 @@ class ScannerService:
         for file_vars in results:
             for var in file_vars:
                 ScannerService._merge_variable(merged_registry, var)
-        
+
         merged_vars = sorted(list(merged_registry.values()), key=lambda x: x["name"])
-        
+
         # Apply pattern aggregation to consolidate repeated numeric patterns
         # Cast to List[Dict[str, Any]] for pattern aggregator
         merged_vars_dict = cast(List[Dict[str, Any]], merged_vars)
         aggregated_vars_dict = PatternAggregator.aggregate_patterns(merged_vars_dict)
         aggregated_vars = cast(List[ScannedVariable], aggregated_vars_dict)
-        
+
         return aggregated_vars
 
     @staticmethod

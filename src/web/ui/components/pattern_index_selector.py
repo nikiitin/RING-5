@@ -125,7 +125,10 @@ class PatternIndexSelector:
             "Select specific indices",
             value=current_selection is not None,
             key=f"use_pattern_filter_{var_id}",
-            help="Filter which pattern indices to parse (e.g., only L0 caches, specific controllers)",
+            help=(
+                "Filter which pattern indices to parse "
+                "(e.g., only L0 caches, specific controllers)"
+            ),
         )
 
         if not use_filter:

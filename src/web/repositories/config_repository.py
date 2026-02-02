@@ -98,7 +98,8 @@ class ConfigRepository:
         Returns:
             Temporary directory path or None if not set
         """
-        return st.session_state.get(ConfigRepository.TEMP_DIR_KEY)
+        result = st.session_state.get(ConfigRepository.TEMP_DIR_KEY)
+        return str(result) if result is not None else None
 
     @staticmethod
     def set_temp_dir(path: str) -> None:
@@ -119,7 +120,8 @@ class ConfigRepository:
         Returns:
             CSV file path or None if not set
         """
-        return st.session_state.get(ConfigRepository.CSV_PATH_KEY)
+        result = st.session_state.get(ConfigRepository.CSV_PATH_KEY)
+        return str(result) if result is not None else None
 
     @staticmethod
     def set_csv_path(path: str) -> None:

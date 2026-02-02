@@ -1,7 +1,7 @@
 import logging
 import tempfile
 from pathlib import Path
-from typing import Any, List
+from typing import Any, Dict, List
 
 import streamlit as st
 
@@ -137,10 +137,12 @@ class DataSourceComponents:
                         # Wait for scan to complete
                         scan_results = [f.result() for f in scan_futures]
                         # Process and store results
-                        scanned_vars = facade.finalize_scan(scan_results)
-                        StateManager.set_scanned_variables(scanned_vars)
+                        scanned_vars_result: List[Dict[str, Any]] = facade.finalize_scan(
+                            scan_results
+                        )  # type: ignore[assignment]
+                        StateManager.set_scanned_variables(scanned_vars_result)
 
-                    st.success(f"✅ Scan complete! Found {len(scanned_vars)} variables.")
+                    st.success(f"✅ Scan complete! Found {len(scanned_vars_result)} variables.")
                     st.rerun()
                 except Exception as e:
                     st.error(f"Scan failed: {e}")
@@ -148,7 +150,7 @@ class DataSourceComponents:
                         "SCANNER: Quick scan failed at %s: %s", stats_path, e, exc_info=True
                     )
 
-        scanned_vars = StateManager.get_scanned_variables()
+        scanned_vars: List[Dict[str, Any]] = StateManager.get_scanned_variables()
         if scanned_vars:
             st.success(
                 f"Scanner found {len(scanned_vars)} variables. Use 'Add Variable' to select them."
