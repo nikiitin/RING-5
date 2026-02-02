@@ -1,7 +1,7 @@
 # Test-Driven Development Workflow
 
-> **Invoke with**: `/test-driven-development`  
-> **Purpose**: Guide all code changes through TDD process  
+> **Invoke with**: `/test-driven-development`
+> **Purpose**: Guide all code changes through TDD process
 > **Applies to**: All new features, bug fixes, and refactoring
 
 ## Overview

@@ -54,8 +54,8 @@ Skills provide step-by-step instructions for implementing specific features.
 
 ### 1. [parsing-workflow.md](skills/parsing-workflow.md)
 
-**Domain**: Data Ingestion  
-**Complexity**: Intermediate  
+**Domain**: Data Ingestion
+**Complexity**: Intermediate
 **Purpose**: Complete gem5 stats parsing workflow
 
 **Covers**:
@@ -73,8 +73,8 @@ Skills provide step-by-step instructions for implementing specific features.
 
 ### 2. [new-plot-type.md](skills/new-plot-type.md)
 
-**Domain**: Visualization  
-**Complexity**: Intermediate  
+**Domain**: Visualization
+**Complexity**: Intermediate
 **Purpose**: Adding new plot types to the visualization system
 
 **Covers**:
@@ -92,8 +92,8 @@ Skills provide step-by-step instructions for implementing specific features.
 
 ### 3. [shaper-pipeline.md](skills/shaper-pipeline.md)
 
-**Domain**: Data Transformation  
-**Complexity**: Intermediate  
+**Domain**: Data Transformation
+**Complexity**: Intermediate
 **Purpose**: Creating custom shapers and transformation pipelines
 
 **Covers**:
@@ -111,8 +111,8 @@ Skills provide step-by-step instructions for implementing specific features.
 
 ### 4. [debug-async-parsing.md](skills/debug-async-parsing.md)
 
-**Domain**: Troubleshooting  
-**Complexity**: Intermediate  
+**Domain**: Troubleshooting
+**Complexity**: Intermediate
 **Purpose**: Debugging async parsing and scanning issues
 
 **Covers**:
@@ -134,8 +134,8 @@ Workflows define standardized processes for common development tasks.
 
 ### 1. [test-driven-development.md](workflows/test-driven-development.md)
 
-**Complexity**: Fundamental  
-**Applies to**: All code changes  
+**Complexity**: Fundamental
+**Applies to**: All code changes
 **Purpose**: TDD process for RING-5
 
 **Covers**:
@@ -152,8 +152,8 @@ Workflows define standardized processes for common development tasks.
 
 ### 2. [new-variable-type.md](workflows/new-variable-type.md)
 
-**Complexity**: Advanced  
-**Applies to**: gem5 parser extensions  
+**Complexity**: Advanced
+**Applies to**: gem5 parser extensions
 **Purpose**: Adding support for new gem5 variable types
 
 **Covers**:

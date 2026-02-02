@@ -1,7 +1,7 @@
 # Skill: Adding New Plot Types
 
-**Skill ID**: `new-plot-type`  
-**Domain**: Visualization  
+**Skill ID**: `new-plot-type`
+**Domain**: Visualization
 **Complexity**: Intermediate
 
 ## Purpose

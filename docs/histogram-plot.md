@@ -6,11 +6,11 @@ The **Histogram Plot** visualizes distribution data from gem5 simulator histogra
 
 ## Features
 
-✅ **Single Histogram** - Display distribution for one variable  
-✅ **Grouped Histograms** - Multiple histograms by categorical variable  
-✅ **Configurable Bucket Size** - Rebin data to different granularities  
-✅ **Normalization Modes** - Count, probability, percent, or density  
-✅ **Cumulative Distribution** - Show CDF instead of PDF  
+✅ **Single Histogram** - Display distribution for one variable
+✅ **Grouped Histograms** - Multiple histograms by categorical variable
+✅ **Configurable Bucket Size** - Rebin data to different granularities
+✅ **Normalization Modes** - Count, probability, percent, or density
+✅ **Cumulative Distribution** - Show CDF instead of PDF
 ✅ **Publication Quality** - Plotly-based with full styling support
 
 ## Usage

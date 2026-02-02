@@ -5,8 +5,8 @@ Workflows are step-by-step processes for common development tasks. In Google Ant
 ## Available Workflows
 
 ### `/test-driven-development`
-**Purpose**: Guide all code changes through the TDD process  
-**When to use**: Every time you write new code, fix bugs, or refactor  
+**Purpose**: Guide all code changes through the TDD process
+**When to use**: Every time you write new code, fix bugs, or refactor
 **Complexity**: Fundamental
 
 Enforces the golden rule: Write Test → See it Fail → Write Code → See it Pass → Refactor
@@ -25,8 +25,8 @@ Key steps:
 ---
 
 ### `/new-variable-type`
-**Purpose**: Add support for new gem5 statistics variable types  
-**When to use**: Extending parser for new gem5 stat formats  
+**Purpose**: Add support for new gem5 statistics variable types
+**When to use**: Extending parser for new gem5 stat formats
 **Complexity**: Advanced
 
 Guides through complete implementation:
@@ -67,8 +67,8 @@ Workflows can call other workflows. For example, `/new-variable-type` internally
 ```markdown
 # Workflow Title
 
-> **Invoke with**: `/workflow-name`  
-> **Purpose**: Clear description  
+> **Invoke with**: `/workflow-name`
+> **Purpose**: Clear description
 > **Complexity**: Simple/Intermediate/Advanced
 
 ## Overview

@@ -24,12 +24,12 @@ my @storedFilters;
 
 sub getRealVariableNameFromLine {
     my ($line) = @_;
-    
+
     # Optimization: Extract name part more efficiently
     # Use index() which is faster than regex for simple character search
     my $namePart = $line;
     my $sep_pos;
-    
+
     # Find first separator: ::, space, or =
     if (($sep_pos = index($line, '::')) != -1) {
         $namePart = substr($line, 0, $sep_pos);
@@ -45,12 +45,12 @@ sub getRealVariableNameFromLine {
     foreach my $filter (@storedFilters) {
         return $filter if $namePart eq $filter;
     }
-    
+
     # Then try anchored regex match
     foreach my $filter (@storedFilters) {
         return $filter if $namePart =~ /^$filter$/;
     }
-    
+
     # Fallback for complex regexes
     foreach my $filter (@storedFilters) {
         return $filter if $namePart =~ /$filter/;
@@ -92,11 +92,11 @@ sub getEntryNameFromLine {
 
 sub getValueFromLine {
     my ($line) = @_;
-    
+
     # Optimization: Use index() to detect separator type (faster than regex)
     my $sep_pos = index($line, '=');
     my @lineSplits;
-    
+
     if ($sep_pos != -1) {
         # Configuration line (has =)
         @lineSplits = split /=/, $line, 2;  # Limit splits to 2 parts
@@ -104,7 +104,7 @@ sub getValueFromLine {
         # Complex type (space-separated)
         @lineSplits = split /\s+/, $line, 3;  # Limit splits to 3 parts (name, value, rest)
     }
-    
+
     # Return value (second element)
     return defined($lineSplits[1]) ? $lineSplits[1] : '';
 }
@@ -148,13 +148,13 @@ sub setFilterRegexes {
 
 sub parseAndPrintLineWithFormat {
     my ($line) = @_;
-    
+
     # Early return optimization: check filter first
     return unless $line =~ $filtersRegexes;
-    
+
     # Optimization: Check types in order of frequency (most common first)
     # and use elsif to avoid multiple regex matches
-    
+
     # Scalar is most common - check first
     if ($line =~ $scalarRegex) {
         print "scalar/" . formatLine($line) . "\n";
@@ -184,38 +184,38 @@ sub parseAndPrintLineWithFormat {
 
 sub classifyLine {
     my ($line) = @_;
-    
+
     # Check types in order with explicit captures
-    
+
     # Configuration: name=value
     if ($line =~ /^($varNameRegex)=$confValueRegex$/) {
         return { type => 'configuration', name => $1, entry => undef };
-    } 
+    }
     # Scalar: name value # comment
     elsif ($line =~ /^($varNameRegex)\s+$scalarValueRegex$commentRegex?$/) {
         return { type => 'scalar', name => $1, entry => undef };
-    } 
+    }
     # Histogram: name::range ...
     elsif ($line =~ /^($varNameRegex)($histogramEntryRangeRegex)\s+$complexValueRegex$commentRegex?$/) {
         my $name = $1;
         my $entry = $2;
-        $entry =~ s/^:://; 
-        return { type => 'histogram', name => $name, entry => $entry }; 
-    } 
+        $entry =~ s/^:://;
+        return { type => 'histogram', name => $name, entry => $entry };
+    }
     # Distribution: name::val ...
     elsif ($line =~ /^($varNameRegex)($distEntry)\s+$complexValueRegex$commentRegex?$/) {
         my $name = $1;
         my $entry = $2;
         $entry =~ s/^:://;
         return { type => 'distribution', name => $name, entry => $entry };
-    } 
+    }
     # Summary: name::total ...
     elsif ($line =~ /^($varNameRegex)($summariesEntryRegex)\s+$scalarValueRegex$commentRegex?$/) {
         my $name = $1;
         my $entry = $2;
         $entry =~ s/^:://;
         return { type => 'summary', name => $name, entry => $entry };
-    } 
+    }
     # Vector: name::entry ...
     elsif ($line =~ /^($varNameRegex)($vectorEntryRegex)\s+(?:$complexValueRegex|$scalarValueRegex)$commentRegex?$/) {
         my $name = $1;
@@ -223,7 +223,7 @@ sub classifyLine {
         $entry =~ s/^:://;
         return { type => 'vector', name => $name, entry => $entry };
     }
-    
+
     return undef;
 }
 

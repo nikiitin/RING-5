@@ -3,6 +3,7 @@
 Verification script for RING-5 installation and configuration.
 Tests core functionality without requiring all dependencies.
 """
+
 import json
 import sys
 from pathlib import Path

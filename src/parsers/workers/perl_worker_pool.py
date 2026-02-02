@@ -12,7 +12,8 @@ Features:
 
 import logging
 import queue
-import subprocess
+import shutil
+import subprocess  # nosec B404 - Required for persistent Perl worker processes
 import threading
 import time
 from dataclasses import dataclass
@@ -42,16 +43,18 @@ class PerlWorker:
     error detection, and recovery.
     """
 
-    def __init__(self, worker_id: int, script_path: str):
+    def __init__(self, worker_id: int, script_path: str, perl_exe: str):
         """
         Initialize a Perl worker.
 
         Args:
             worker_id: Unique identifier for this worker
             script_path: Path to the Perl server script
+            perl_exe: Full path to Perl executable
         """
         self.worker_id = worker_id
         self.script_path = script_path
+        self.perl_exe = perl_exe
         self.process: Optional[subprocess.Popen[str]] = None
         self.is_healthy = False
         self.requests_served = 0
@@ -68,9 +71,10 @@ class PerlWorker:
         try:
             logger.info(f"[Worker-{self.worker_id}] Starting Perl worker process...")
 
-            # Start Perl server
+            # Start Perl server with full executable path
+            # nosec B603 - Command constructed from validated paths, no shell execution
             self.process = subprocess.Popen(
-                ["perl", self.script_path],
+                [self.perl_exe, self.script_path],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -335,6 +339,12 @@ class PerlWorkerPool:
         self._health_check_interval = 30.0  # seconds
         self._health_monitor_thread: Optional[threading.Thread] = None
 
+        # Locate Perl executable (full path for security)
+        self.perl_exe = shutil.which("perl")
+        if not self.perl_exe:
+            logger.error("❌ Perl executable not found in PATH")
+            raise RuntimeError("Perl executable not found in PATH")
+
         # Locate Perl server script
         self.script_path = str(Path(__file__).parent.parent / "perl" / "fileParserServer.pl")
 
@@ -353,7 +363,9 @@ class PerlWorkerPool:
 
         for i in range(self.pool_size):
             try:
-                worker = PerlWorker(worker_id=i, script_path=self.script_path)
+                worker = PerlWorker(
+                    worker_id=i, script_path=self.script_path, perl_exe=self.perl_exe
+                )
                 self.workers.append(worker)
                 self.worker_queue.put(worker)
                 logger.info(f"✅ Worker {i} initialized")

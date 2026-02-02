@@ -15,7 +15,7 @@ Example from gem5 output:
 
 import tempfile
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 import pytest
 
@@ -56,9 +56,7 @@ class TestHistogramWithStatistics:
         )
 
         assert htm_var is not None, "htm_transaction_commit_cycles not found in scan"
-        assert htm_var["type"] == "histogram", (
-            f"Expected histogram type, got {htm_var['type']}"
-        )
+        assert htm_var["type"] == "histogram", f"Expected histogram type, got {htm_var['type']}"
 
         # Check that both bucket entries and statistics are present
         entries = htm_var.get("entries", [])
@@ -163,11 +161,7 @@ class TestHistogramWithStatistics:
             assert len(df) > 0, "No data in parsed CSV"
 
             # Check that columns were created for the histogram
-            histogram_cols = [
-                c
-                for c in df.columns
-                if "htm_transaction_commit_cycles" in c
-            ]
+            histogram_cols = [c for c in df.columns if "htm_transaction_commit_cycles" in c]
             assert len(histogram_cols) > 0, "No histogram columns in output"
 
     def test_histogram_buckets_and_statistics_both_parsed(

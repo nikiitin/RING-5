@@ -5,8 +5,8 @@ description: Debugging guide for async parsing workflows and concurrent.futures 
 
 # Skill: Debugging Async Parsing Issues
 
-**Skill ID**: `debug-async-parsing`  
-**Domain**: Troubleshooting  
+**Skill ID**: `debug-async-parsing`
+**Domain**: Troubleshooting
 **Complexity**: Intermediate
 
 ## Overview
@@ -422,4 +422,3 @@ test_pattern(r"system\.cpu\d*\.ipc", test_lines)
 - Work Pool Implementation: `src/parsers/workers/work_pool.py`
 - Perl Parsers: `src/parsers/perl/`
 - Integration Tests: `tests/integration/test_gem5_parsing.py`
-

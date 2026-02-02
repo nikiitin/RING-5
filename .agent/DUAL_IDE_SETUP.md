@@ -157,10 +157,10 @@ Both agents MUST NEVER:
 2. Format:
    ```markdown
    # Workflow Title
-   
-   > **Invoke with**: `/workflow-name`  
+
+   > **Invoke with**: `/workflow-name`
    > **Purpose**: Description
-   
+
    ## Steps
    ...
    ```

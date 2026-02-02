@@ -5,9 +5,8 @@ Centralizes all validation logic for gem5 variable configurations.
 This service is stateless and UI-independent, enabling comprehensive unit testing.
 """
 
-from typing import Any, Dict, List
-
 import re
+from typing import Any, Dict, List
 
 
 class VariableValidationService:

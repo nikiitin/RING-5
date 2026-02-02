@@ -1,0 +1,189 @@
+# LaTeX Export Presets for RING-5
+# Publication-quality figure configurations for various journals and conferences
+#
+# All dimensions follow LaTeX column widths and journal guidelines.
+# Font sizes use standard LaTeX pt values.
+# DPI settings ensure crisp rendering for print and digital publications.
+
+presets:
+  single_column:
+    description: Standard single-column figure (3.5 inches wide)
+    typical_use: Most conference papers and journal articles (ACM, IEEE, Springer)
+    width_inches: 3.5
+    height_inches: 2.625  # 3:4 aspect ratio
+    font_family: serif  # Computer Modern (LaTeX default)
+    font_size_base: 9
+    font_size_labels: 8
+    font_size_title: 10
+    font_size_ticks: 7
+    line_width: 1.0
+    marker_size: 4
+    dpi: 300
+
+  double_column:
+    description: Full-width double-column figure (7 inches wide)
+    typical_use: Wide figures spanning both columns in two-column layouts
+    width_inches: 7.0
+    height_inches: 5.25  # 3:4 aspect ratio
+    font_family: serif
+    font_size_base: 10
+    font_size_labels: 9
+    font_size_title: 12
+    font_size_ticks: 8
+    line_width: 1.2
+    marker_size: 5
+    dpi: 300
+
+  nature:
+    description: Nature journal format (high DPI, Arial font)
+    typical_use: Nature, Nature Communications, Scientific Reports
+    width_inches: 3.5
+    height_inches: 3.5  # Square preferred by Nature
+    font_family: Arial  # Nature requires sans-serif (Arial or Helvetica)
+    font_size_base: 8
+    font_size_labels: 7
+    font_size_title: 9
+    font_size_ticks: 6
+    line_width: 0.8
+    marker_size: 3
+    dpi: 600  # Nature requires 300-600 DPI
+
+  nature_double:
+    description: Nature journal full-width figure
+    typical_use: Wide figures for Nature journals
+    width_inches: 7.0
+    height_inches: 5.25
+    font_family: Arial
+    font_size_base: 9
+    font_size_labels: 8
+    font_size_title: 10
+    font_size_ticks: 7
+    line_width: 0.9
+    marker_size: 4
+    dpi: 600
+
+  ieee_single:
+    description: IEEE conference/journal single column
+    typical_use: IEEE transactions, conferences (ISCA, MICRO, ASPLOS)
+    width_inches: 3.5
+    height_inches: 2.625
+    font_family: Times  # IEEE prefers Times New Roman
+    font_size_base: 8
+    font_size_labels: 7
+    font_size_title: 9
+    font_size_ticks: 6
+    line_width: 1.0
+    marker_size: 4
+    dpi: 300
+
+  ieee_double:
+    description: IEEE conference/journal double column
+    typical_use: Wide IEEE figures
+    width_inches: 7.0
+    height_inches: 5.25
+    font_family: Times
+    font_size_base: 9
+    font_size_labels: 8
+    font_size_title: 10
+    font_size_ticks: 7
+    line_width: 1.2
+    marker_size: 5
+    dpi: 300
+
+  acm_single:
+    description: ACM conference/journal single column
+    typical_use: ACM conferences and journals
+    width_inches: 3.33  # ACM specific width
+    height_inches: 2.5
+    font_family: serif  # LaTeX Computer Modern
+    font_size_base: 8
+    font_size_labels: 7
+    font_size_title: 9
+    font_size_ticks: 6
+    line_width: 1.0
+    marker_size: 4
+    dpi: 300
+
+  acm_double:
+    description: ACM conference/journal double column
+    typical_use: Wide ACM figures
+    width_inches: 6.875  # ACM specific full width
+    height_inches: 5.156
+    font_family: serif
+    font_size_base: 9
+    font_size_labels: 8
+    font_size_title: 10
+    font_size_ticks: 7
+    line_width: 1.2
+    marker_size: 5
+    dpi: 300
+
+  springer_single:
+    description: Springer journal single column
+    typical_use: Springer journals (LNCS, etc.)
+    width_inches: 3.39  # Springer specific width
+    height_inches: 2.54
+    font_family: serif
+    font_size_base: 8
+    font_size_labels: 7
+    font_size_title: 9
+    font_size_ticks: 6
+    line_width: 1.0
+    marker_size: 4
+    dpi: 300
+
+  elsevier_single:
+    description: Elsevier journal single column
+    typical_use: Elsevier journals
+    width_inches: 3.54  # Elsevier specific width
+    height_inches: 2.66
+    font_family: serif
+    font_size_base: 8
+    font_size_labels: 7
+    font_size_title: 9
+    font_size_ticks: 6
+    line_width: 1.0
+    marker_size: 4
+    dpi: 300
+
+  poster:
+    description: Conference poster figure (large scale)
+    typical_use: Poster presentations
+    width_inches: 10.0
+    height_inches: 7.5
+    font_family: sans-serif  # Better readability at distance
+    font_size_base: 14
+    font_size_labels: 12
+    font_size_title: 16
+    font_size_ticks: 10
+    line_width: 2.0
+    marker_size: 8
+    dpi: 150  # Lower DPI sufficient for poster size
+
+  presentation:
+    description: Presentation slide figure (16:9 aspect)
+    typical_use: PowerPoint/Beamer presentations
+    width_inches: 8.0
+    height_inches: 4.5  # 16:9 aspect ratio
+    font_family: sans-serif
+    font_size_base: 12
+    font_size_labels: 11
+    font_size_title: 14
+    font_size_ticks: 9
+    line_width: 1.5
+    marker_size: 6
+    dpi: 150
+
+  thesis:
+    description: PhD thesis figure (generous sizing)
+    typical_use: Dissertations and theses
+    width_inches: 5.0
+    height_inches: 3.75
+    font_family: serif
+    font_size_base: 10
+    font_size_labels: 9
+    font_size_title: 12
+    font_size_ticks: 8
+    line_width: 1.2
+    marker_size: 5
+    dpi: 300
