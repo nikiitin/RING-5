@@ -11,6 +11,7 @@ Complete walkthrough of your first gem5 data analysis with RING-5.
 ## Overview
 
 This guide covers:
+
 1. Launching the web application
 2. Loading gem5 data via parsing
 3. Visualizing statistics
@@ -53,6 +54,7 @@ Choose **Parse gem5 Stats** for this tutorial.
 
 **What is scanning?**
 Scanning discovers all available statistics in your gem5 output without parsing values. It identifies:
+
 - Variable names (e.g., `system.cpu.ipc`)
 - Variable types (scalar, vector, histogram, distribution)
 - Available entries for vector variables
@@ -72,6 +74,7 @@ Notice variables like `system.cpu\d+.ipc` - these are pattern aggregations where
 ### Wait for Parsing
 
 Parsing extracts actual data values from stats.txt files:
+
 - Progress bar shows completion percentage
 - Parsing runs asynchronously for speed
 - Large datasets may take several minutes
@@ -129,6 +132,7 @@ Add transformations in the **Data Processing Pipeline**:
 4. **Sort**: Order data for better visualization
 
 Example pipeline:
+
 ```python
 # 1. Select columns
 {"type": "columnSelector", "columns": ["config", "benchmark", "ipc"]}
@@ -190,6 +194,7 @@ Save your complete analysis session:
 5. Click **Save**
 
 **What gets saved?**
+
 - All loaded data
 - All plot configurations
 - All data pipelines
@@ -217,6 +222,7 @@ Restore a previous session:
 ### "Parsing takes too long"
 
 **Solutions**:
+
 - Reduce number of files: Use `limit` parameter in scan
 - Select fewer variables: Parse only needed statistics
 - Check file size: Very large stats.txt files take longer
@@ -224,6 +230,7 @@ Restore a previous session:
 ### "Plot shows no data"
 
 **Solutions**:
+
 - Check data pipeline: Filters may be excluding all data
 - Verify column names: Ensure mapped columns exist
 - Review data: Use Data Managers to inspect loaded data

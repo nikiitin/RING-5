@@ -9,10 +9,12 @@ Line plots show trends and relationships over continuous variables. Essential fo
 ## Configuration
 
 **Required**:
+
 - X-axis: Continuous variable (time, iteration, address)
 - Y-axis: Metric (ipc, throughput, latency)
 
 **Optional**:
+
 - Trace by: Multiple series (config, benchmark)
 - Line style: solid, dashed, dotted
 - Markers: points, circles, squares
@@ -22,6 +24,7 @@ Line plots show trends and relationships over continuous variables. Essential fo
 ### Time-Series Analysis
 
 Track performance over simulation time:
+
 ```python
 X: simTicks
 Y: ipc
@@ -32,6 +35,7 @@ Trace by: config
 ### Convergence Plots
 
 Monitor algorithm convergence:
+
 ```python
 X: iteration
 Y: error_rate
@@ -42,6 +46,7 @@ Trace by: algorithm
 ### Workload Progression
 
 Analyze behavior across workload phases:
+
 ```python
 X: instruction_count
 Y: cache_miss_rate
@@ -66,6 +71,7 @@ Trace by: cache_level
 ### Colors
 
 Use distinct colors per trace:
+
 - Maximum 7 traces per plot
 - Colorblind-friendly palette
 - Consistent across related plots
@@ -75,6 +81,7 @@ Use distinct colors per trace:
 ### Filtering
 
 Remove warmup phase:
+
 ```python
 {
     "type": "conditionSelector",
@@ -87,6 +94,7 @@ Remove warmup phase:
 ### Sorting
 
 Ensure chronological order:
+
 ```python
 {
     "type": "sort",

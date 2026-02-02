@@ -92,27 +92,28 @@ fig = plot.create_figure(data, config)
 
 ## Configuration Options
 
-| Parameter | Type | Description | Options |
-|-----------|------|-------------|---------|
-| `histogram_variable` | str | Base variable name (before "..") | Any histogram variable |
-| `title` | str | Plot title | Any string |
-| `xlabel` | str | X-axis label | Any string |
-| `ylabel` | str | Y-axis label | Any string |
-| `bucket_size` | int | Size of histogram buckets | Positive integer |
-| `normalization` | str | How to normalize heights | `count`, `probability`, `percent`, `density` |
-| `group_by` | str\|None | Categorical variable for grouping | Column name or None |
-| `cumulative` | bool | Show cumulative distribution | `true` or `false` |
+| Parameter            | Type      | Description                       | Options                                      |
+| -------------------- | --------- | --------------------------------- | -------------------------------------------- |
+| `histogram_variable` | str       | Base variable name (before "..")  | Any histogram variable                       |
+| `title`              | str       | Plot title                        | Any string                                   |
+| `xlabel`             | str       | X-axis label                      | Any string                                   |
+| `ylabel`             | str       | Y-axis label                      | Any string                                   |
+| `bucket_size`        | int       | Size of histogram buckets         | Positive integer                             |
+| `normalization`      | str       | How to normalize heights          | `count`, `probability`, `percent`, `density` |
+| `group_by`           | str\|None | Categorical variable for grouping | Column name or None                          |
+| `cumulative`         | bool      | Show cumulative distribution      | `true` or `false`                            |
 
 ## Data Format
 
 The histogram plot expects data with columns in this format:
 
-```
+```text
 variable_name..bucket_range
 ```
 
 Example columns:
-```
+
+```text
 latency..0-100
 latency..100-200
 latency..200-300
@@ -136,23 +137,30 @@ data = pd.DataFrame({
 ## Normalization Modes
 
 ### Count (Default)
+
 Raw counts from the data.
 
 ### Probability
+
 Normalized to sum to 1.0:
-```
+
+```text
 probability = count / total_count
 ```
 
 ### Percent
+
 Normalized to sum to 100:
-```
+
+```text
 percent = (count / total_count) * 100
 ```
 
 ### Density
+
 Normalized by bin width:
-```
+
+```text
 density = count / (total_count * bin_width)
 ```
 

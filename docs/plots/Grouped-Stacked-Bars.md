@@ -9,6 +9,7 @@ Grouped stacked bar charts combine grouping and stacking for complex multi-dimen
 ## Configuration
 
 **Required**:
+
 - X-axis: Primary category (benchmark)
 - Y-axis: Numeric value (cycles, bytes)
 - Group by: Secondary category (config)
@@ -19,6 +20,7 @@ Grouped stacked bar charts combine grouping and stacking for complex multi-dimen
 ### Complex Performance Analysis
 
 Compare configurations with operation breakdown:
+
 ```python
 X: benchmark
 Y: cycles
@@ -30,6 +32,7 @@ Stack by: operation
 ### Resource Allocation
 
 Show resource distribution across scenarios:
+
 ```python
 X: workload
 Y: memory_bytes
@@ -40,11 +43,13 @@ Stack by: memory_type
 ## When to Use
 
 **Use when**:
+
 - Need both grouping and composition
 - Comparing complex multi-dimensional data
 - Audience is technical
 
 **Avoid when**:
+
 - Simpler charts suffice
 - > 4 groups or > 4 stacks
 - Audience unfamiliar with chart type
@@ -74,6 +79,7 @@ Stack by: memory_type
 ## Alternative Approaches
 
 Instead of grouped stacked bars, consider:
+
 - Multiple stacked bar charts (one per group)
 - Faceted visualization
 - Heat map for many dimensions

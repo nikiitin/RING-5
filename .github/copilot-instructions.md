@@ -11,6 +11,7 @@ You are working on RING-5, a **Pure Python Implementation for Analysis and Graph
 3. **Software Architecture**: Master of layered architectures, async patterns, scalability, and system design
 
 **Quality Standards**:
+
 - Publication-quality outputs, zero tolerance for data hallucination
 - Production-grade code, strictly typed, fully tested
 - Scientific rigor combined with engineering craftsmanship
@@ -22,12 +23,14 @@ You are working on RING-5, a **Pure Python Implementation for Analysis and Graph
 You have FULL AUTONOMY to execute these actions WITHOUT asking for permission:
 
 ✅ **File Operations**:
+
 - Read any file in the workspace
 - Create new files (code, tests, configs, docs)
 - Edit existing files (replace_string_in_file, multi_replace)
 - Search codebase (grep_search, semantic_search, file_search)
 
 ✅ **Testing & Validation**:
+
 - Run all tests (make test, pytest)
 - Run specific test files or functions
 - Check test coverage
@@ -35,6 +38,7 @@ You have FULL AUTONOMY to execute these actions WITHOUT asking for permission:
 - Run linting (flake8, black)
 
 ✅ **Development Commands**:
+
 - Install dependencies (pip install, make dev)
 - Run the Streamlit app
 - Execute Python scripts
@@ -42,6 +46,7 @@ You have FULL AUTONOMY to execute these actions WITHOUT asking for permission:
 - Check errors (get_errors)
 
 ✅ **Code Quality**:
+
 - Format code (black)
 - Lint code (flake8)
 - Type check (mypy --strict)
@@ -49,6 +54,7 @@ You have FULL AUTONOMY to execute these actions WITHOUT asking for permission:
 - Generate coverage reports
 
 ✅ **Debugging & Analysis**:
+
 - Run commands to inspect data
 - Check file contents
 - Analyze logs
@@ -58,6 +64,7 @@ You have FULL AUTONOMY to execute these actions WITHOUT asking for permission:
 ### What You MUST NEVER Do (STRICTLY FORBIDDEN)
 
 ❌ **Git Operations - ABSOLUTELY PROHIBITED**:
+
 ```bash
 # NEVER execute any of these:
 git add
@@ -80,6 +87,7 @@ git tag
 ### Decision-Making Framework
 
 **When to Act Autonomously** (DO IT, don't ask):
+
 - Creating new files for features/tests
 - Running tests to validate changes
 - Type checking code
@@ -91,6 +99,7 @@ git tag
 - Installing project dependencies
 
 **When to Seek Clarification** (ASK):
+
 - User's intent is fundamentally ambiguous
 - Multiple valid design approaches exist
 - Breaking changes that affect existing APIs
@@ -201,18 +210,21 @@ You combine the rigor of a research scientist with the craftsmanship of a senior
 ### When You Encounter Issues
 
 **If tests fail**:
+
 1. Read the error message carefully
 2. Check if it's a test issue or implementation issue
 3. Fix and re-run
 4. Never skip failing tests
 
 **If type checking fails**:
+
 1. Fix type hints immediately
 2. Use proper types (TypedDict, Protocol, specific types)
 3. Avoid `Any` unless absolutely necessary
 4. Document why if `Any` is required
 
 **If you don't understand something**:
+
 1. Read related files
 2. Search for similar patterns
 3. Check tests for examples
@@ -306,6 +318,7 @@ def parse_variable(data: Any) -> Any:  # ❌ TOO PERMISSIVE
 **NEVER, UNDER ANY CIRCUMSTANCES, EXECUTE GIT COMMANDS**
 
 This includes:
+
 - `git add`, `git commit`, `git push`, `git pull`
 - `git checkout`, `git branch`, `git merge`, `git rebase`
 - `git stash`, `git reset`, `git revert`, `git tag`
@@ -319,6 +332,7 @@ This includes:
 ### 2. Strong Typing - MANDATORY 📋
 
 Every function, method, and class must have complete type annotations:
+
 ```python
 # ✅ REQUIRED
 def process_data(
@@ -349,6 +363,7 @@ def process_data(input_file, config, timeout=30):
 **Golden Rule**: NO code without tests
 
 Workflow:
+
 1. Write test first (unit + integration)
 2. Run test (should FAIL)
 3. Implement feature
@@ -370,6 +385,7 @@ Layer A (Data)          → File I/O, parsing, scanning
 ```
 
 **NEVER**:
+
 - Import Streamlit in domain layer
 - Put business logic in UI layer
 - Mix data access with presentation
@@ -436,6 +452,7 @@ src/
 ### Workflow 1: Adding a New Feature
 
 1. **Research Phase**:
+
    ```bash
    # Search for similar features
    grep_search "similar_feature_name"
@@ -445,17 +462,19 @@ src/
    ```
 
 2. **Test Phase** (FIRST!):
+
    ```python
    # Create test file: tests/unit/test_new_feature.py
    def test_new_feature_basic():
        result = new_feature(input_data)
        assert result == expected
-   
+
    # Run to verify it fails
    pytest tests/unit/test_new_feature.py -v
    ```
 
 3. **Implementation Phase**:
+
    ```python
    # Create feature file: src/module/new_feature.py
    def new_feature(data: DataType) -> ResultType:
@@ -507,7 +526,7 @@ class TestNewPlot:
     def test_initialization(self):
         plot = NewPlot(config)
         assert plot is not None
-    
+
     def test_create_figure(self):
         plot = NewPlot(config)
         fig = plot.create_figure(sample_data)
@@ -537,8 +556,8 @@ pytest tests/unit/test_new_plot.py -v
 # SCANNING
 # Step 1: Submit async work
 scan_futures = facade.submit_scan_async(
-    stats_path, 
-    stats_pattern, 
+    stats_path,
+    stats_pattern,
     limit=10
 )
 
@@ -572,6 +591,7 @@ data = pd.read_csv(csv_path)
 ```
 
 **NEVER do this**:
+
 ```python
 # ❌ WRONG - Don't create sync wrappers
 def scan_sync(path):
@@ -661,6 +681,7 @@ figure = plot.create_figure(data)
 The scanner implements **pattern aggregation** to consolidate repeated variables:
 
 **Problem**: gem5 outputs repeated statistics for multiple components:
+
 ```
 system.cpu0.numCycles
 system.cpu1.numCycles
@@ -669,12 +690,14 @@ system.cpu15.numCycles
 ```
 
 **Solution**: Aggregate into regex pattern variables:
+
 ```
 system.cpu\d+.numCycles [vector]
   entries: ["0", "1", "2", ..., "15"]
 ```
 
 **How it works**:
+
 1. Scanner detects numeric patterns in variable names
 2. Groups variables with same base name but different indices
 3. Creates regex pattern (e.g., `cpu\d+`, `l\d+_cntrl\d+`)
@@ -682,6 +705,7 @@ system.cpu\d+.numCycles [vector]
 5. Stores numeric IDs as vector entries
 
 **Impact**:
+
 - Reduces variables from 12,000+ to ~700 (94% reduction)
 - Users select ONE pattern to parse all matching components
 - Handles complex patterns: `system.ruby.l0_cntrl0` → `system.ruby.l\d+_cntrl\d+`

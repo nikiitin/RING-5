@@ -1,10 +1,13 @@
 # Bar Charts
 
+<!-- markdownlint-disable MD024 -->
+
 Complete reference for bar chart visualizations in RING-5.
 
 ## Overview
 
 Bar charts display categorical data with rectangular bars representing values. RING-5 supports four bar chart variants:
+
 - Simple Bar Chart
 - Grouped Bar Chart
 - Stacked Bar Chart
@@ -19,10 +22,12 @@ Compare values across categories with one bar per category.
 ### Configuration
 
 **Required**:
+
 - X-axis: Categorical column (benchmark, config)
 - Y-axis: Numeric column (ipc, throughput)
 
 **Optional**:
+
 - Color: Single color or column-based
 - Title and labels
 - Legend settings
@@ -30,6 +35,7 @@ Compare values across categories with one bar per category.
 ### Example Use Cases
 
 **Performance Comparison**:
+
 ```python
 X: config
 Y: ipc
@@ -37,6 +43,7 @@ Y: ipc
 ```
 
 **Benchmark Analysis**:
+
 ```python
 X: benchmark
 Y: execution_time
@@ -59,11 +66,13 @@ Compare multiple groups side-by-side within each category.
 ### Configuration
 
 **Required**:
+
 - X-axis: Primary category (benchmark)
 - Y-axis: Numeric value (ipc)
 - Group by: Secondary category (config)
 
 **Optional**:
+
 - Color scheme per group
 - Bar width and spacing
 - Legend position
@@ -71,6 +80,7 @@ Compare multiple groups side-by-side within each category.
 ### Example Use Cases
 
 **Multi-Configuration Comparison**:
+
 ```python
 X: benchmark
 Y: ipc
@@ -79,6 +89,7 @@ Group by: config
 ```
 
 **A/B Testing**:
+
 ```python
 X: workload
 Y: throughput
@@ -102,11 +113,13 @@ Show composition of totals with components stacked vertically.
 ### Configuration
 
 **Required**:
+
 - X-axis: Category (benchmark)
 - Y-axis: Numeric value (cycles, bytes)
 - Stack by: Component (operation_type, cache_level)
 
 **Optional**:
+
 - Normalize to 100% (percentage stacking)
 - Color per stack component
 - Show totals on top
@@ -114,6 +127,7 @@ Show composition of totals with components stacked vertically.
 ### Example Use Cases
 
 **Cache Hierarchy**:
+
 ```python
 X: benchmark
 Y: misses
@@ -122,6 +136,7 @@ Stack by: cache_level
 ```
 
 **Operation Breakdown**:
+
 ```python
 X: config
 Y: cycles
@@ -145,12 +160,14 @@ Combine grouping and stacking for complex multi-dimensional comparisons.
 ### Configuration
 
 **Required**:
+
 - X-axis: Primary category
 - Y-axis: Numeric value
 - Group by: Groups within category
 - Stack by: Components within groups
 
 **Example**:
+
 ```python
 X: benchmark
 Y: memory_bytes
@@ -171,15 +188,18 @@ Stack by: allocation_type
 ### Colors
 
 **For Simple Bars**:
+
 - Single color: Professional blue/gray
 - Color by category: Use consistent palette
 
 **For Grouped Bars**:
+
 - Sequential colors per group
 - High contrast between groups
 - Colorblind-friendly palettes
 
 **For Stacked Bars**:
+
 - Diverging colors for components
 - Consistent colors across charts
 - Ordered by intensity
@@ -187,6 +207,7 @@ Stack by: allocation_type
 ### Labels
 
 **Axis Labels**:
+
 ```python
 X-axis: "Configuration"
 Y-axis: "Instructions Per Cycle (IPC)"
@@ -194,6 +215,7 @@ Title: "IPC Comparison Across Configurations"
 ```
 
 **Value Labels**:
+
 - Show for < 10 bars
 - Hide for dense charts
 - Format consistently (2 decimal places)
@@ -201,6 +223,7 @@ Title: "IPC Comparison Across Configurations"
 ### Fonts
 
 **Publication Quality**:
+
 - Title: 18-20pt bold
 - Axis labels: 14-16pt
 - Tick labels: 12-14pt
@@ -211,6 +234,7 @@ Title: "IPC Comparison Across Configurations"
 ### Column Selection
 
 Use Column Selector shaper:
+
 ```python
 {
     "type": "columnSelector",
@@ -221,6 +245,7 @@ Use Column Selector shaper:
 ### Sorting
 
 Control bar order with Sort shaper:
+
 ```python
 {
     "type": "sort",
@@ -233,6 +258,7 @@ Control bar order with Sort shaper:
 ### Normalization
 
 Show relative performance:
+
 ```python
 {
     "type": "normalize",

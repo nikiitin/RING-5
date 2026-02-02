@@ -9,10 +9,12 @@ Scatter plots visualize relationships between two continuous variables. Essentia
 ## Configuration
 
 **Required**:
+
 - X-axis: First variable (cache_miss_rate)
 - Y-axis: Second variable (ipc)
 
 **Optional**:
+
 - Color by: Category (config, benchmark)
 - Size by: Third variable (execution_time)
 - Shape by: Another category
@@ -22,6 +24,7 @@ Scatter plots visualize relationships between two continuous variables. Essentia
 ### Correlation Analysis
 
 Identify relationships between metrics:
+
 ```python
 X: cache_miss_rate
 Y: ipc
@@ -32,6 +35,7 @@ Color by: config
 ### Outlier Detection
 
 Find anomalous data points:
+
 ```python
 X: memory_bandwidth
 Y: execution_time
@@ -42,6 +46,7 @@ Color by: benchmark
 ### Multi-Dimensional Visualization
 
 Show three dimensions:
+
 ```python
 X: cache_misses
 Y: ipc
@@ -69,6 +74,7 @@ Color by: config
 ### Filtering
 
 Remove outliers if needed:
+
 ```python
 {
     "type": "conditionSelector",
@@ -82,6 +88,7 @@ Remove outliers if needed:
 ### Normalization
 
 Scale variables for comparison:
+
 ```python
 {
     "type": "normalize",

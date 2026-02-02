@@ -3,9 +3,9 @@ layout: default
 title: RING-5 Documentation
 ---
 
-# RING-5
+<!-- markdownlint-disable MD025 -->
 
-**Reproducible Instrumentation for Numerical Graphics for gem5**
+# Reproducible Instrumentation for Numerical Graphics for gem5
 
 A modern, reproducible analysis and visualization framework for gem5 simulator output, designed for computer architecture research.
 
@@ -13,7 +13,7 @@ A modern, reproducible analysis and visualization framework for gem5 simulator o
 [![Tests](https://img.shields.io/badge/tests-653%20passing-success)](tests/)
 [![Coverage](https://img.shields.io/badge/coverage-77%25-green)](htmlcov/)
 [![Python](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/)
-[![Type Checking](https://img.shields.io/badge/mypy-strict%20(0%20errors)-blue)](https://mypy.readthedocs.io/)
+[![Type Checking](<https://img.shields.io/badge/mypy-strict%20(0%20errors)-blue>)](https://mypy.readthedocs.io/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 ---
@@ -81,40 +81,40 @@ Access at: `http://localhost:8501`
 
 ### For Users
 
-| Section | Description |
-|---------|-------------|
-| [Quick Start](Quick-Start.md) | 5-minute setup and first analysis |
-| [Installation](Installation.md) | Complete installation for all platforms |
-| [First Analysis](First-Analysis.md) | Detailed walkthrough of your first analysis |
-| [Web Interface Guide](Web-Interface.md) | Complete Streamlit UI reference |
-| [Data Transformations](Data-Transformations.md) | Shaper system and pipelines |
-| [Creating Plots](Creating-Plots.md) | All plot types and configuration |
-| [Portfolios](Portfolios.md) | Save and manage analysis snapshots |
+| Section                                         | Description                                 |
+| ----------------------------------------------- | ------------------------------------------- |
+| [Quick Start](Quick-Start.md)                   | 5-minute setup and first analysis           |
+| [Installation](Installation.md)                 | Complete installation for all platforms     |
+| [First Analysis](First-Analysis.md)             | Detailed walkthrough of your first analysis |
+| [Web Interface Guide](Web-Interface.md)         | Complete Streamlit UI reference             |
+| [Data Transformations](Data-Transformations.md) | Shaper system and pipelines                 |
+| [Creating Plots](Creating-Plots.md)             | All plot types and configuration            |
+| [Portfolios](Portfolios.md)                     | Save and manage analysis snapshots          |
 
 ### For Developers
 
-| Section | Description |
-|---------|-------------|
-| [Development Setup](Development-Setup.md) | Dev environment and workflow |
-| [Testing Guide](Testing-Guide.md) | TDD approach and testing patterns |
-| [Adding Plot Types](Adding-Plot-Types.md) | Extend plotting system |
-| [Adding Shapers](Adding-Shapers.md) | Create custom transformations |
-| [AI Agent Setup](AI-Agent-Setup.md) | Configure AI assistants for development |
+| Section                                   | Description                             |
+| ----------------------------------------- | --------------------------------------- |
+| [Development Setup](Development-Setup.md) | Dev environment and workflow            |
+| [Testing Guide](Testing-Guide.md)         | TDD approach and testing patterns       |
+| [Adding Plot Types](Adding-Plot-Types.md) | Extend plotting system                  |
+| [Adding Shapers](Adding-Shapers.md)       | Create custom transformations           |
+| [AI Agent Setup](AI-Agent-Setup.md)       | Configure AI assistants for development |
 
 ### API Reference
 
-| Section | Description |
-|---------|-------------|
-| [Parsing API](api/Parsing-API.md) | Scanner and parser services |
-| [Plotting API](api/Plotting-API.md) | Plot factory and renderers |
-| [Shaper API](api/Shaper-API.md) | Transformation system |
-| [Backend Facade](api/Backend-Facade.md) | Unified backend interface |
+| Section                                 | Description                 |
+| --------------------------------------- | --------------------------- |
+| [Parsing API](api/Parsing-API.md)       | Scanner and parser services |
+| [Plotting API](api/Plotting-API.md)     | Plot factory and renderers  |
+| [Shaper API](api/Shaper-API.md)         | Transformation system       |
+| [Backend Facade](api/Backend-Facade.md) | Unified backend interface   |
 
 ### Advanced Topics
 
-| Section | Description |
-|---------|-------------|
-| [Architecture](Architecture.md) | System design and patterns |
+| Section                           | Description                  |
+| --------------------------------- | ---------------------------- |
+| [Architecture](Architecture.md)   | System design and patterns   |
 | [Parsing Guide](Parsing-Guide.md) | gem5 stats parsing deep dive |
 
 ---

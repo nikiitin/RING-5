@@ -5,6 +5,7 @@ Complete guide to saving and managing analysis portfolios in RING-5.
 ## Overview
 
 Portfolios are snapshots of your complete analysis session:
+
 - All loaded data
 - All plot configurations
 - All data pipelines
@@ -45,6 +46,7 @@ All data, plots, and pipelines are restored.
 ### Naming Conventions
 
 **Good Names**:
+
 - `ipc_comparison_2026-02`
 - `cache_miss_analysis_specjbb`
 - `speedup_tx_vs_baseline`

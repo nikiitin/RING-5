@@ -7,6 +7,7 @@ Guide to creating custom data transformation shapers.
 Shapers transform DataFrames in the analysis pipeline. They follow the **Strategy Pattern** and are composable (pipelines).
 
 **Key Concepts**:
+
 - All shapers inherit from base interface
 - Immutable transformations (return new DataFrame)
 - Registered in `ShaperFactory`
@@ -18,7 +19,7 @@ Shapers transform DataFrames in the analysis pipeline. They follow the **Strateg
 
 Create in `src/web/services/shapers/`:
 
-```
+```text
 src/web/services/shapers/
 ├── my_shaper.py       # Your new shaper
 ├── column_selector.py
@@ -365,4 +366,4 @@ def test_shaper_in_pipeline():
 
 - Pipeline Building: [Data-Transformations.md](Data-Transformations.md)
 - Testing: [Testing-Guide.md](Testing-Guide.md)
-- Pandas Reference: https://pandas.pydata.org/docs/
+- Pandas Reference: <https://pandas.pydata.org/docs/>

@@ -8,73 +8,73 @@ This documentation is organized into several categories to help you find what yo
 
 ### Getting Started (New Users Start Here!)
 
-| Document | Description |
-|----------|-------------|
-| [**Quick Start Guide**](Quick-Start.md) | Get up and running in 5 minutes |
-| [**Installation**](Installation.md) | Detailed installation for all platforms |
+| Document                                | Description                             |
+| --------------------------------------- | --------------------------------------- |
+| [**Quick Start Guide**](Quick-Start.md) | Get up and running in 5 minutes         |
+| [**Installation**](Installation.md)     | Detailed installation for all platforms |
 | [**First Analysis**](First-Analysis.md) | Step-by-step first analysis walkthrough |
 
 ### User Guides
 
-| Document | Description |
-|----------|-------------|
-| [**Web Interface Guide**](Web-Interface.md) | Master the Streamlit dashboard |
-| [**Parsing gem5 Stats**](Parsing-Guide.md) | Complete parsing workflow |
-| [**Data Transformations**](Data-Transformations.md) | Using shapers and pipelines |
-| [**Creating Plots**](Creating-Plots.md) | Visualization guide |
-| [**Portfolio Management**](Portfolios.md) | Saving and sharing analyses |
+| Document                                            | Description                    |
+| --------------------------------------------------- | ------------------------------ |
+| [**Web Interface Guide**](Web-Interface.md)         | Master the Streamlit dashboard |
+| [**Parsing gem5 Stats**](Parsing-Guide.md)          | Complete parsing workflow      |
+| [**Data Transformations**](Data-Transformations.md) | Using shapers and pipelines    |
+| [**Creating Plots**](Creating-Plots.md)             | Visualization guide            |
+| [**Portfolio Management**](Portfolios.md)           | Saving and sharing analyses    |
 
 ### Plot Type References
 
-| Document | Description |
-|----------|-------------|
-| [**Bar Charts**](plots/Bar-Charts.md) | Single and grouped bar charts |
-| [**Line Plots**](plots/Line-Plots.md) | Time-series and trend analysis |
-| [**Scatter Plots**](plots/Scatter-Plots.md) | Correlation and distribution |
-| [**Histogram Plots**](histogram-plot.md) | Distribution visualization |
-| [**Grouped Stacked Bars**](plots/Grouped-Stacked-Bars.md) | Complex comparisons |
+| Document                                                  | Description                    |
+| --------------------------------------------------------- | ------------------------------ |
+| [**Bar Charts**](plots/Bar-Charts.md)                     | Single and grouped bar charts  |
+| [**Line Plots**](plots/Line-Plots.md)                     | Time-series and trend analysis |
+| [**Scatter Plots**](plots/Scatter-Plots.md)               | Correlation and distribution   |
+| [**Histogram Plots**](histogram-plot.md)                  | Distribution visualization     |
+| [**Grouped Stacked Bars**](plots/Grouped-Stacked-Bars.md) | Complex comparisons            |
 
 ### Developer Guides
 
-| Document | Description |
-|----------|-------------|
-| [**Architecture Overview**](Architecture.md) | System design and patterns |
+| Document                                      | Description                |
+| --------------------------------------------- | -------------------------- |
+| [**Architecture Overview**](Architecture.md)  | System design and patterns |
 | [**Development Setup**](Development-Setup.md) | Setting up dev environment |
-| [**Testing Guide**](Testing-Guide.md) | Writing and running tests |
-| [**Adding Plot Types**](Adding-Plot-Types.md) | Extending visualization |
-| [**Adding Shapers**](Adding-Shapers.md) | Custom transformations |
-| [**AI Agent Setup**](AI-Agent-Setup.md) | Using AI for development |
+| [**Testing Guide**](Testing-Guide.md)         | Writing and running tests  |
+| [**Adding Plot Types**](Adding-Plot-Types.md) | Extending visualization    |
+| [**Adding Shapers**](Adding-Shapers.md)       | Custom transformations     |
+| [**AI Agent Setup**](AI-Agent-Setup.md)       | Using AI for development   |
 
 ### API Reference
 
-| Document | Description |
-|----------|-------------|
-| [**Parsing API**](api/Parsing-API.md) | Parse service and scanner |
-| [**Plotting API**](api/Plotting-API.md) | Plot factory and renderers |
-| [**Shaper API**](api/Shaper-API.md) | Data transformation interface |
-| [**Backend Facade**](api/Backend-Facade.md) | Main API entry point |
+| Document                                    | Description                   |
+| ------------------------------------------- | ----------------------------- |
+| [**Parsing API**](api/Parsing-API.md)       | Parse service and scanner     |
+| [**Plotting API**](api/Plotting-API.md)     | Plot factory and renderers    |
+| [**Shaper API**](api/Shaper-API.md)         | Data transformation interface |
+| [**Backend Facade**](api/Backend-Facade.md) | Main API entry point          |
 
 ### Advanced Topics
 
-| Document | Description |
-|----------|-------------|
-| [**Pattern Aggregation**](Pattern-Aggregation.md) | Handling repeated variables |
-| [**Async Parsing**](Async-Parsing.md) | Parallel processing internals |
-| [**Type System**](Type-System.md) | gem5 variable types |
-| [**Performance**](Performance.md) | Optimization tips |
-| [**Debugging**](Debugging.md) | Troubleshooting guide |
+| Document                                          | Description                   |
+| ------------------------------------------------- | ----------------------------- |
+| [**Pattern Aggregation**](Pattern-Aggregation.md) | Handling repeated variables   |
+| [**Async Parsing**](Async-Parsing.md)             | Parallel processing internals |
+| [**Type System**](Type-System.md)                 | gem5 variable types           |
+| [**Performance**](Performance.md)                 | Optimization tips             |
+| [**Debugging**](Debugging.md)                     | Troubleshooting guide         |
 
 ### Contributing
 
-| Document | Description |
-|----------|-------------|
-| [**Contributing Guide**](../CONTRIBUTING.md) | How to contribute |
-| [**Code Style**](Code-Style.md) | Conventions and standards |
-| [**PR Process**](PR-Process.md) | Submitting changes |
+| Document                                     | Description               |
+| -------------------------------------------- | ------------------------- |
+| [**Contributing Guide**](../CONTRIBUTING.md) | How to contribute         |
+| [**Code Style**](Code-Style.md)              | Conventions and standards |
+| [**PR Process**](PR-Process.md)              | Submitting changes        |
 
 ## Quick Navigation
 
-### I want to...
+### I want to
 
 - **Install RING-5** → [Installation Guide](Installation.md)
 - **Start using RING-5** → [Quick Start](Quick-Start.md)
@@ -204,4 +204,4 @@ Choose your path:
 - **Ready to contribute?** → Check [Contributing Guide](../CONTRIBUTING.md)
 - **Need specific info?** → Use the navigation sidebar or search above
 
-**Happy analyzing!** 
+**Happy analyzing!**

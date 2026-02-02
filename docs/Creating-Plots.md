@@ -5,6 +5,7 @@ Comprehensive guide to creating and customizing visualizations in RING-5.
 ## Overview
 
 RING-5 provides seven plot types for gem5 data visualization:
+
 - Bar Chart
 - Grouped Bar Chart
 - Stacked Bar Chart
@@ -36,10 +37,12 @@ All plots are built with Plotly for interactivity and publication quality.
 **Purpose**: Compare values across categories
 
 **Configuration**:
+
 - **X-axis**: Categorical variable (e.g., `config`, `benchmark`)
 - **Y-axis**: Numeric variable (e.g., `ipc`, `throughput`)
 
 **Use Cases**:
+
 - Compare configurations
 - Show single metric per category
 - Simple performance comparisons
@@ -49,11 +52,13 @@ All plots are built with Plotly for interactivity and publication quality.
 **Purpose**: Compare multiple groups side-by-side
 
 **Configuration**:
+
 - **X-axis**: Primary category (e.g., `benchmark`)
 - **Y-axis**: Numeric variable (e.g., `ipc`)
 - **Group by**: Secondary category (e.g., `config`)
 
 **Use Cases**:
+
 - Multi-configuration comparisons per benchmark
 - Side-by-side performance metrics
 - A/B testing results
@@ -63,11 +68,13 @@ All plots are built with Plotly for interactivity and publication quality.
 **Purpose**: Show composition of totals
 
 **Configuration**:
+
 - **X-axis**: Category (e.g., `benchmark`)
 - **Y-axis**: Numeric variable (e.g., `cache_misses`)
 - **Stack by**: Component (e.g., `cache_level`)
 
 **Use Cases**:
+
 - Cache hierarchy breakdown
 - Memory allocation visualization
 - Component contribution analysis
@@ -77,12 +84,14 @@ All plots are built with Plotly for interactivity and publication quality.
 **Purpose**: Combine grouping and stacking
 
 **Configuration**:
+
 - **X-axis**: Primary category
 - **Y-axis**: Numeric variable
 - **Group by**: Groups (e.g., `config`)
 - **Stack by**: Stack components (e.g., `operation_type`)
 
 **Use Cases**:
+
 - Complex multi-dimensional comparisons
 - Showing both configuration and breakdown
 - Advanced performance analysis
@@ -92,11 +101,13 @@ All plots are built with Plotly for interactivity and publication quality.
 **Purpose**: Show trends over continuous variables
 
 **Configuration**:
+
 - **X-axis**: Continuous variable (e.g., `time`, `iteration`)
 - **Y-axis**: Metric (e.g., `ipc`, `throughput`)
 - **Trace by**: Multiple series (e.g., `config`)
 
 **Use Cases**:
+
 - Time-series analysis
 - Convergence plots
 - Performance over workload progression
@@ -106,12 +117,14 @@ All plots are built with Plotly for interactivity and publication quality.
 **Purpose**: Visualize relationships between two variables
 
 **Configuration**:
+
 - **X-axis**: First variable (e.g., `cache_miss_rate`)
 - **Y-axis**: Second variable (e.g., `ipc`)
 - **Color by**: Category (e.g., `config`)
 - **Size by**: Third variable (optional)
 
 **Use Cases**:
+
 - Correlation analysis
 - Identifying outliers
 - Multi-dimensional visualization
@@ -121,11 +134,13 @@ All plots are built with Plotly for interactivity and publication quality.
 **Purpose**: Show distribution of values
 
 **Configuration**:
+
 - **Values**: Variable to analyze (e.g., `ipc`)
 - **Bins**: Number of bins (default: auto)
 - **Group by**: Optional grouping (e.g., `config`)
 
 **Use Cases**:
+
 - Distribution analysis
 - Identifying data patterns
 - Performance variability assessment
@@ -141,6 +156,7 @@ Map DataFrame columns to plot axes:
 3. **Validate**: Ensure correct data types
 
 **Tips**:
+
 - X-axis: Usually categorical or time-series
 - Y-axis: Always numeric
 - Group/Stack: Categorical variables

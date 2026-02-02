@@ -5,6 +5,7 @@ Complete guide to data transformations using the shaper system in RING-5.
 ## Overview
 
 RING-5 provides a powerful shaper system for transforming data before visualization:
+
 - **Shapers**: Individual transformation functions
 - **Pipelines**: Sequential chains of shapers
 - **Immutability**: All operations return new DataFrames
@@ -12,6 +13,7 @@ RING-5 provides a powerful shaper system for transforming data before visualizat
 ## What is a Shaper?
 
 A shaper is a data transformation function that:
+
 - Takes a DataFrame as input
 - Returns a new DataFrame (never modifies in-place)
 - Performs one specific transformation
@@ -24,6 +26,7 @@ A shaper is a data transformation function that:
 **Purpose**: Select specific columns from the dataset
 
 **Configuration**:
+
 ```python
 {
     "type": "columnSelector",
@@ -34,6 +37,7 @@ A shaper is a data transformation function that:
 **Use Case**: Remove unnecessary columns before plotting
 
 **Example**:
+
 ```python
 # Before: 50 columns
 # After: 3 columns (benchmark, config, ipc)
@@ -44,6 +48,7 @@ A shaper is a data transformation function that:
 **Purpose**: Sort data by custom column order
 
 **Configuration**:
+
 ```python
 {
     "type": "sort",
@@ -57,6 +62,7 @@ A shaper is a data transformation function that:
 **Use Case**: Control the display order in plots
 
 **Example**:
+
 ```python
 # Sort benchmarks alphabetically
 # Then sort configurations by performance
@@ -67,6 +73,7 @@ A shaper is a data transformation function that:
 **Purpose**: Compute aggregated means (arithmetic, geometric, harmonic)
 
 **Configuration**:
+
 ```python
 {
     "type": "mean",
@@ -80,6 +87,7 @@ A shaper is a data transformation function that:
 **Use Case**: Add geomean rows for multi-benchmark comparisons
 
 **Example**:
+
 ```python
 # Original data: mcf, omnetpp, xalancbmk
 # Result: mcf, omnetpp, xalancbmk, geomean
@@ -90,6 +98,7 @@ A shaper is a data transformation function that:
 **Purpose**: Normalize values to a baseline
 
 **Configuration**:
+
 ```python
 {
     "type": "normalize",
@@ -103,6 +112,7 @@ A shaper is a data transformation function that:
 **Use Case**: Show relative performance improvements
 
 **Example**:
+
 ```python
 # Baseline IPC = 1.5
 # tx_lazy IPC = 1.8
@@ -114,6 +124,7 @@ A shaper is a data transformation function that:
 **Purpose**: Filter rows based on conditions
 
 **Configuration**:
+
 ```python
 {
     "type": "conditionSelector",
@@ -126,6 +137,7 @@ A shaper is a data transformation function that:
 **Use Case**: Focus on specific benchmarks or configurations
 
 **Example**:
+
 ```python
 # Filter: ipc > 1.0
 # Removes low-performing configurations
@@ -136,6 +148,7 @@ A shaper is a data transformation function that:
 **Purpose**: Convert column data types
 
 **Configuration**:
+
 ```python
 {
     "type": "transformer",
@@ -148,6 +161,7 @@ A shaper is a data transformation function that:
 **Use Case**: Control categorical ordering in plots
 
 **Example**:
+
 ```python
 # Convert config to categorical
 # Set specific order for legend/axis
@@ -271,6 +285,7 @@ pipeline = [
 3. Save JSON file locally
 
 **Format**:
+
 ```json
 {
   "pipeline": [
@@ -295,6 +310,7 @@ pipeline = [
 3. Pipeline is loaded into plot
 
 **Use Cases**:
+
 - Reuse pipelines across different datasets
 - Share pipelines with collaborators
 - Maintain consistent transformations
@@ -368,6 +384,7 @@ Group by multiple levels:
 **Symptoms**: Error message, plot doesn't update
 
 **Solutions**:
+
 - Check column names: Typos in column names
 - Verify data exists: Filters may exclude all data
 - Review shaper order: Some shapers depend on previous transformations
@@ -378,6 +395,7 @@ Group by multiple levels:
 **Symptoms**: Plot shows incorrect data
 
 **Solutions**:
+
 - Preview each step: Apply shapers one at a time
 - Check data types: Ensure numeric columns are numeric
 - Verify normalization baseline: Baseline value must exist in data
@@ -388,6 +406,7 @@ Group by multiple levels:
 **Symptoms**: Slow pipeline execution
 
 **Solutions**:
+
 - Reduce data size: Filter early in pipeline
 - Simplify aggregations: Avoid complex nested grouping
 - Use column selector: Remove unused columns immediately
@@ -399,9 +418,9 @@ Group by multiple levels:
 
 ```python
 pipeline = [
-    {"type": "normalize", "normalizeVars": ["execution_time"], 
+    {"type": "normalize", "normalizeVars": ["execution_time"],
      "normalizerColumn": "config", "normalizerValue": "baseline"},
-    {"type": "mean", "meanVars": ["execution_time"], 
+    {"type": "mean", "meanVars": ["execution_time"],
      "meanAlgorithm": "geomean", "groupingColumns": ["config"]}
 ]
 # Result: Speedup relative to baseline
@@ -412,7 +431,7 @@ pipeline = [
 ```python
 pipeline = [
     {"type": "sort", "order_dict": {"ipc": "descending"}},
-    {"type": "conditionSelector", "column": "rank", 
+    {"type": "conditionSelector", "column": "rank",
      "mode": "less_than", "threshold": 10}
 ]
 # Result: Top 10 configurations by IPC
@@ -422,9 +441,9 @@ pipeline = [
 
 ```python
 pipeline = [
-    {"type": "conditionSelector", "column": "ipc", 
+    {"type": "conditionSelector", "column": "ipc",
      "mode": "greater_than", "threshold": 0.5},
-    {"type": "conditionSelector", "column": "ipc", 
+    {"type": "conditionSelector", "column": "ipc",
      "mode": "less_than", "threshold": 10.0}
 ]
 # Result: Remove outliers outside [0.5, 10.0]
@@ -439,12 +458,14 @@ pipeline = [
 3. Use shapers for plot-specific transformations
 
 **When to use which**:
+
 - **Data Managers**: Global transformations for all plots
 - **Shapers**: Plot-specific transformations
 
 ### With Portfolios
 
 Pipelines are saved with plots in portfolios:
+
 - Load portfolio → Pipelines restored
 - Pipelines are reusable across sessions
 

@@ -45,6 +45,7 @@ print(f"Found {len(variables)} variables")
 ```
 
 **What Scanning Does**:
+
 - Reads gem5 stats files
 - Detects variable types (scalar, vector, histogram, etc.)
 - Identifies vector entries
@@ -73,6 +74,7 @@ selected = [
 ```
 
 **Variable Structure**:
+
 ```python
 {
  "name": "system.cpu.ipc",
@@ -132,12 +134,13 @@ print(data.head())
 
 Single numeric values:
 
-```
+```text
 simTicks 123456789 # Total simulation ticks
 system.cpu.ipc 1.23 # Instructions per cycle
 ```
 
 Parse as:
+
 ```python
 {"name": "simTicks", "type": "scalar"}
 ```
@@ -146,13 +149,14 @@ Parse as:
 
 Arrays with named entries:
 
-```
+```text
 system.cpu.op_class::IntAlu 1234
 system.cpu.op_class::IntMult 567
 system.cpu.op_class::FloatAdd 890
 ```
 
 Parse as:
+
 ```python
 {
  "name": "system.cpu.op_class",
@@ -165,7 +169,7 @@ Parse as:
 
 Distribution with buckets:
 
-```
+```text
 system.cpu.latency::histogram
  0-10: 45
  10-20: 123
@@ -173,6 +177,7 @@ system.cpu.latency::histogram
 ```
 
 Parse as:
+
 ```python
 {
  "name": "system.cpu.latency",
@@ -186,7 +191,7 @@ Parse as:
 
 Statistical distribution with min/max:
 
-```
+```text
 system.mem.latency
  min: 10
  max: 500
@@ -194,6 +199,7 @@ system.mem.latency
 ```
 
 Parse as:
+
 ```python
 {"name": "system.mem.latency", "type": "distribution"}
 ```
@@ -202,12 +208,13 @@ Parse as:
 
 gem5 configuration values:
 
-```
+```text
 system.cpu.type AtomicSimpleCPU
 system.mem.size 2GB
 ```
 
 Parse as:
+
 ```python
 {"name": "system.cpu.type", "type": "configuration"}
 ```
@@ -217,7 +224,8 @@ Parse as:
 RING-5 automatically consolidates repeated variables:
 
 ### Before Aggregation
-```
+
+```text
 system.cpu0.numCycles
 system.cpu1.numCycles
 system.cpu2.numCycles
@@ -226,7 +234,8 @@ system.cpu15.numCycles
 ```
 
 ### After Aggregation
-```
+
+```text
 system.cpu\d+.numCycles [vector]
  entries: ["0", "1", "2", ..., "15"]
 ```
@@ -314,23 +323,27 @@ if failed:
 ## Common Issues
 
 ### No Variables Found
+
 - Verify stats.txt files exist
 - Check file pattern matches
 - Ensure files are not empty
 - Verify file permissions
 
 ### Parsing Timeouts
+
 - Increase timeout value
 - Reduce number of files
 - Check for corrupted files
 - Verify sufficient memory
 
 ### Pattern Variables Not Resolving
+
 - Always pass `scanned_vars` parameter
 - Verify patterns match variable names
 - Check entries are correct
 
 ### Memory Issues
+
 - Parse fewer files at once
 - Clear data between analyses
 - Use CSV pooling
@@ -351,14 +364,16 @@ In the Streamlit interface:
 
 ## Best Practices
 
- **DO**:
+**DO**:
+
 - Scan before parsing
 - Start with small limits for testing
 - Cache scanned variables
 - Handle timeouts gracefully
 - Validate data after parsing
 
- **DON'T**:
+  **DON'T**:
+
 - Skip scanning step
 - Parse without selecting variables
 - Forget scanned_vars for patterns

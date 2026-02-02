@@ -37,7 +37,8 @@ python verify_installation.py
 ```
 
 You should see:
-```
+
+```python
  All dependencies installed correctly
  RING-5 is ready to use
 ```
@@ -91,9 +92,11 @@ Apply transformations in the **Data Transformation** tab:
 1. Go to **Visualization** tab
 2. Select plot type: `Bar Chart`
 3. Configure:
- - **X-axis**: benchmark name
- - **Y-axis**: IPC values
- - **Title**: "IPC Comparison"
+
+- **X-axis**: benchmark name
+- **Y-axis**: IPC values
+- **Title**: "IPC Comparison"
+
 4. Click **Generate Plot**
 
 ### 7. Export Results
@@ -191,11 +194,11 @@ fig.show()
 
 ## Tips for Success
 
- **Start Small**: Parse 5-10 files first, then scale up 
- **Use Patterns**: Leverage pattern aggregation (cpu0, cpu1 → cpu\d+) 
- **Save Portfolios**: Preserve your analysis for reproducibility 
- **Test Transformations**: Preview data after each shaper 
- **Export Early**: Save intermediate results as you go 
+**Start Small**: Parse 5-10 files first, then scale up
+**Use Patterns**: Leverage pattern aggregation (cpu0, cpu1 → cpu\d+)
+**Save Portfolios**: Preserve your analysis for reproducibility
+**Test Transformations**: Preview data after each shaper
+**Export Early**: Save intermediate results as you go
 
 ## Getting Help
 

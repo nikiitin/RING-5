@@ -35,7 +35,7 @@ make dev
 
 ## Project Structure
 
-```
+```text
 RING-5/
 ├── src/                    # Source code
 │   ├── parsers/           # Data layer (parsing)
@@ -169,6 +169,7 @@ pytest --cov=src --cov-report=html tests/
 ### Writing Tests
 
 Follow TDD approach:
+
 1. Write failing test
 2. Implement feature
 3. Test passes
@@ -187,6 +188,7 @@ mypy src/ --strict
 ```
 
 **Requirements**:
+
 - Type hints on all functions
 - No implicit `Any`
 - No untyped defs

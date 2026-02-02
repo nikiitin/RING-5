@@ -18,7 +18,7 @@ RING-5's plotting system uses the **Factory Pattern** to create plot instances. 
 
 Create new file in `src/plotting/types/`:
 
-```
+```text
 src/plotting/types/
 ├── my_new_plot.py     # Your new plot
 ├── bar_plot.py
@@ -362,14 +362,17 @@ fig.add_trace(go.Scatter(
 ## Troubleshooting
 
 **Plot not showing up**:
+
 - Check `plot_type` matches factory key
 - Verify registration in `PlotFactory._plot_types`
 
 **Config not working**:
+
 - Check UI component is updating `plot.config`
 - Verify config keys in `create_figure()`
 
 **Data errors**:
+
 - Add validation for required columns
 - Check for empty DataFrames
 
@@ -377,4 +380,4 @@ fig.add_trace(go.Scatter(
 
 - Plot Styling: [Creating-Plots.md](Creating-Plots.md)
 - Testing: [Testing-Guide.md](Testing-Guide.md)
-- Plotly Reference: https://plotly.com/python/
+- Plotly Reference: <https://plotly.com/python/>

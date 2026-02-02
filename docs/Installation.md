@@ -5,11 +5,13 @@ Complete installation instructions for RING-5 on all platforms.
 ## System Requirements
 
 ### Hardware
+
 - **RAM**: 4GB minimum, 8GB+ recommended
 - **Storage**: 500MB for installation, additional space for data
 - **CPU**: Multi-core recommended for parallel parsing
 
 ### Software
+
 - **Python**: 3.12 or higher
 - **Operating System**: Linux, macOS, or Windows
 - **Git**: For cloning repository
@@ -117,18 +119,21 @@ black src/ tests/
 ## Dependencies
 
 ### Core Dependencies
+
 - **streamlit** - Web interface
 - **pandas** - Data manipulation
 - **plotly** - Interactive plotting
 - **pyyaml** - Configuration files
 
 ### Development Dependencies
+
 - **pytest** - Testing framework
 - **mypy** - Type checking
 - **black** - Code formatting
 - **flake8** - Linting
 
 ### Full List
+
 See `pyproject.toml` for complete dependency list.
 
 ## Troubleshooting

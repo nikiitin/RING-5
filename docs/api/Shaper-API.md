@@ -5,6 +5,7 @@ Complete API reference for RING-5's data transformation system.
 ## Overview
 
 Shapers transform DataFrames in the analysis pipeline. All shapers:
+
 - Follow the Strategy Pattern
 - Are immutable (return new DataFrames)
 - Are chainable in pipelines
@@ -25,6 +26,7 @@ Factory for creating shaper instances.
 Create shaper instance by type.
 
 **Parameters**:
+
 - `shaper_type` (str): Shaper type identifier
 - `config` (Dict[str, Any]): Configuration dictionary
 
@@ -33,6 +35,7 @@ Create shaper instance by type.
 **Raises**: `ValueError` - If shaper type unknown
 
 **Supported Shaper Types**:
+
 - `"column_selector"` - Select/rename columns
 - `"sort"` - Sort rows
 - `"mean_calculator"` - Calculate means by group
@@ -41,6 +44,7 @@ Create shaper instance by type.
 - `"transformer"` - Apply custom transformations
 
 **Example**:
+
 ```python
 from src.web.services.shapers.shaper_factory import ShaperFactory
 import pandas as pd
@@ -61,6 +65,7 @@ result = shaper(data)  # Callable interface
 Select and optionally rename columns.
 
 **Configuration**:
+
 ```python
 {
     "columns": List[str],              # Columns to keep
@@ -69,6 +74,7 @@ Select and optionally rename columns.
 ```
 
 **Example**:
+
 ```python
 config = {
     "columns": ["benchmark", "ipc", "cache_misses"],
@@ -85,6 +91,7 @@ result = shaper(data)
 Sort DataFrame by column(s).
 
 **Configuration**:
+
 ```python
 {
     "column": str | List[str],         # Column(s) to sort by
@@ -93,6 +100,7 @@ Sort DataFrame by column(s).
 ```
 
 **Example**:
+
 ```python
 # Single column
 config = {"column": "ipc", "ascending": False}
@@ -112,6 +120,7 @@ config = {
 Calculate mean values grouped by dimension(s).
 
 **Configuration**:
+
 ```python
 {
     "group_by": str | List[str],       # Grouping column(s)
@@ -120,6 +129,7 @@ Calculate mean values grouped by dimension(s).
 ```
 
 **Example**:
+
 ```python
 config = {
     "group_by": "benchmark",
@@ -136,6 +146,7 @@ result = shaper(data)  # Aggregated data
 Normalize values to baseline or range.
 
 **Configuration**:
+
 ```python
 {
     "method": str,                     # "baseline" | "minmax" | "zscore"
@@ -146,11 +157,13 @@ Normalize values to baseline or range.
 ```
 
 **Methods**:
+
 - `"baseline"`: Divide by baseline value
 - `"minmax"`: Scale to [0, 1] range
 - `"zscore"`: Standardize to mean=0, std=1
 
 **Example (Baseline)**:
+
 ```python
 config = {
     "method": "baseline",
@@ -162,6 +175,7 @@ result = shaper(data)
 ```
 
 **Example (Min-Max)**:
+
 ```python
 config = {
     "method": "minmax",
@@ -177,6 +191,7 @@ shaper = ShaperFactory.create_shaper("normalize", config)
 Filter rows based on conditions.
 
 **Configuration**:
+
 ```python
 {
     "column": str,                     # Column to filter
@@ -186,6 +201,7 @@ Filter rows based on conditions.
 ```
 
 **Supported Operators**:
+
 - `">"`, `">="` - Greater than
 - `"<"`, `"<="` - Less than
 - `"=="`, `"!="` - Equality
@@ -193,6 +209,7 @@ Filter rows based on conditions.
 - `"in"` - Value in list
 
 **Example (Numeric)**:
+
 ```python
 config = {
     "column": "ipc",
@@ -204,6 +221,7 @@ result = shaper(data)  # Only rows where ipc > 1.5
 ```
 
 **Example (String)**:
+
 ```python
 config = {
     "column": "benchmark",
@@ -220,6 +238,7 @@ shaper = ShaperFactory.create_shaper("filter", config)
 Apply custom transformation functions.
 
 **Configuration**:
+
 ```python
 {
     "transformations": List[Dict],     # List of transformations
@@ -227,6 +246,7 @@ Apply custom transformation functions.
 ```
 
 **Transformation Dict**:
+
 ```python
 {
     "type": str,                       # Transformation type
@@ -237,6 +257,7 @@ Apply custom transformation functions.
 ```
 
 **Supported Transformations**:
+
 - `"multiply"`: Multiply by constant
 - `"add"`: Add constant
 - `"log"`: Logarithm
@@ -244,6 +265,7 @@ Apply custom transformation functions.
 - `"inverse"`: 1/x
 
 **Example**:
+
 ```python
 config = {
     "transformations": [
@@ -275,12 +297,14 @@ Apply multiple shapers sequentially.
 **Location**: `src/web/services/shapers/pipeline.py`
 
 **Parameters**:
+
 - `data` (pd.DataFrame): Input data
 - `pipeline` (List[Dict]): List of shaper configurations
 
 **Returns**: `pd.DataFrame` - Transformed data
 
 **Example**:
+
 ```python
 from src.web.services.shapers.pipeline import apply_shaper_pipeline
 
@@ -377,6 +401,7 @@ class ShaperFactory:
 ### Common Exceptions
 
 **KeyError** (missing column):
+
 ```python
 try:
     result = shaper(data)
@@ -385,6 +410,7 @@ except KeyError as e:
 ```
 
 **ValueError** (invalid config):
+
 ```python
 try:
     shaper = ShaperFactory.create_shaper("sort", {})
@@ -416,11 +442,13 @@ class ShaperConfig(TypedDict, total=False):
 ## Performance
 
 **Memory Usage**:
+
 - Each shaper creates new DataFrame (copy)
 - Pipeline of N shapers creates N DataFrames
 - Use efficient pandas operations (vectorized)
 
 **Optimization Tips**:
+
 - Filter early in pipeline (reduce data size)
 - Select columns before expensive operations
 - Use vectorized pandas operations, avoid loops
@@ -429,4 +457,4 @@ class ShaperConfig(TypedDict, total=False):
 
 - Data Transformations: [../Data-Transformations.md](../Data-Transformations.md)
 - Adding Shapers: [../Adding-Shapers.md](../Adding-Shapers.md)
-- Pandas Reference: https://pandas.pydata.org/docs/
+- Pandas Reference: <https://pandas.pydata.org/docs/>

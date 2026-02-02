@@ -4,24 +4,24 @@ RING-5 follows a **clean layered architecture** with strict separation of concer
 
 ## High-Level Architecture
 
-```
+```text
 
- Layer C: Presentation (Streamlit) 
- • UI Components • Pages • State Management 
+ Layer C: Presentation (Streamlit)
+ • UI Components • Pages • State Management
 
  BackendFacade
- 
 
- Layer B: Domain (Business Logic) 
- • Plotting • Transformations • Analysis 
- • NO UI imports • Pure functions • Testable 
 
- 
- 
+ Layer B: Domain (Business Logic)
+ • Plotting • Transformations • Analysis
+ • NO UI imports • Pure functions • Testable
 
- Layer A: Data (Ingestion & Parsing) 
- • File I/O • Perl parsers • Type mapping 
- • Async workers • Pattern aggregation 
+
+
+
+ Layer A: Data (Ingestion & Parsing)
+ • File I/O • Perl parsers • Type mapping
+ • Async workers • Pattern aggregation
 
 ```
 
@@ -30,18 +30,21 @@ RING-5 follows a **clean layered architecture** with strict separation of concer
 ### 1. Layered Architecture
 
 **Layer A (Data)**: File ingestion and parsing
+
 - Parse service and scanner service
 - Perl parser integration
 - Type mappers for gem5 variables
 - **NO** business logic
 
 **Layer B (Domain)**: Business logic and analysis
+
 - Statistical computations
 - Plot generation
 - Data transformations
 - **NO** UI dependencies
 
 **Layer C (Presentation)**: User interface
+
 - Streamlit components
 - State management
 - User interactions
@@ -64,6 +67,7 @@ def scan_sync(path): # Anti-pattern
 ```
 
 **Key Rules**:
+
 - Always use `submit_*_async()` + `finalize_*()` pattern
 - Never block the UI thread
 - Use WorkPool for parallel execution
@@ -72,12 +76,14 @@ def scan_sync(path): # Anti-pattern
 ### 3. Design Patterns
 
 **Factory Pattern** (Plots and Shapers):
+
 ```python
 plot = PlotFactory.create_plot("bar", plot_id=1, name="My Plot")
 shaper = ShaperFactory.create_shaper("normalize", config)
 ```
 
 **Facade Pattern** (Backend Access):
+
 ```python
 facade = BackendFacade() # Single entry point
 data = facade.load_csv_file(path)
@@ -85,6 +91,7 @@ plot = facade.create_plot("bar", config)
 ```
 
 **Strategy Pattern** (Parsing):
+
 ```python
 # Different strategies for different variable types
 scalar_parser = get_parser("scalar")
@@ -92,6 +99,7 @@ vector_parser = get_parser("vector")
 ```
 
 **Singleton** (Configuration and Pools):
+
 ```python
 WorkPool.initialize(max_workers=8)
 ConfigManager.load_config(path)
@@ -100,6 +108,7 @@ ConfigManager.load_config(path)
 ### 4. Type Safety
 
 **Strict typing everywhere**:
+
 ```python
 def process_data(
  input_file: Path,
@@ -112,6 +121,7 @@ def process_data(
 ```
 
 **Type checking**:
+
 - mypy in strict mode
 - No implicit `Any`
 - All function signatures typed
@@ -127,12 +137,12 @@ result = data.drop(columns=['x'])
 filtered = result[result['value'] > 0]
 
 # WRONG: In-place modification
-data.drop(columns=['x'], inplace=True) # 
+data.drop(columns=['x'], inplace=True) #
 ```
 
 ## Project Structure
 
-```
+```text
 RING-5/
  src/
  core/ # Shared utilities
@@ -189,7 +199,7 @@ RING-5/
 
 ### Parsing Workflow
 
-```
+```text
 1. User selects stats directory
  ↓
 2. Scanner discovers variables (async)
@@ -213,7 +223,7 @@ RING-5/
 
 ### Transformation Pipeline
 
-```
+```text
 Raw Data
  ↓
 ColumnSelector: Keep relevant columns
@@ -233,7 +243,7 @@ Transformed Data → Ready for plotting
 
 ### Plotting Workflow
 
-```
+```text
 Transformed Data + Plot Config
  ↓
 PlotFactory.create_plot(type, id, name)
@@ -258,15 +268,15 @@ class BackendFacade:
  # Scanning
  def submit_scan_async(...)
  def finalize_scan(...)
- 
+
  # Parsing
  def submit_parse_async(...)
  def finalize_parsing(...)
- 
+
  # Data Access
  def load_csv_file(...)
  def apply_shapers(...)
- 
+
  # Plotting
  def create_plot(...)
  def render_plot(...)
@@ -275,6 +285,7 @@ class BackendFacade:
 ### StateManager
 
 **Manages Streamlit session state**:
+
 - Scanned variables
 - Selected variables
 - Loaded data
@@ -284,6 +295,7 @@ class BackendFacade:
 ### WorkPool
 
 **Manages concurrent execution**:
+
 - Fixed thread pool
 - Task submission
 - Result collection
@@ -292,6 +304,7 @@ class BackendFacade:
 ### ShaperFactory
 
 **Creates data transformers**:
+
 - Column selector
 - Filter
 - Normalize
@@ -303,16 +316,19 @@ class BackendFacade:
 ## Testing Strategy
 
 ### Unit Tests
+
 - Pure functions tested in isolation
 - Mock external dependencies
 - Fast execution (<1s per test)
 
 ### Integration Tests
+
 - Multi-component workflows
 - Real data parsing
 - Database interactions
 
 ### End-to-End Tests
+
 - Full user workflows
 - UI interactions (planned)
 - Browser automation (planned)
@@ -322,16 +338,19 @@ class BackendFacade:
 ## Performance Considerations
 
 ### Async Parsing
+
 - Parallel file processing
 - Non-blocking I/O
 - Progress reporting
 
 ### Memory Management
+
 - CSV pooling
 - Lazy loading
 - Garbage collection hints
 
 ### Caching
+
 - Scanned variable cache
 - Compiled regex patterns
 - Plot layout templates
@@ -339,12 +358,14 @@ class BackendFacade:
 ## Error Handling
 
 ### Fail Fast
+
 ```python
 if not stats_path.exists():
  raise FileNotFoundError(f"Path not found: {stats_path}")
 ```
 
 ### User-Friendly Messages
+
 ```python
 try:
  data = parse_file(path)
@@ -354,6 +375,7 @@ except ParseError as e:
 ```
 
 ### Graceful Degradation
+
 ```python
 # Continue with other files if one fails
 for future in futures:
@@ -368,6 +390,7 @@ for future in futures:
 ## Extension Points
 
 ### Adding New Plot Types
+
 1. Create class inheriting `BasePlot`
 2. Implement `create_figure()`
 3. Register in `PlotFactory`
@@ -376,6 +399,7 @@ for future in futures:
 See [Adding Plot Types](Adding-Plot-Types.md)
 
 ### Adding New Shapers
+
 1. Create class with `transform()` method
 2. Register in `ShaperFactory`
 3. Add UI controls
@@ -383,6 +407,7 @@ See [Adding Plot Types](Adding-Plot-Types.md)
 See [Adding Shapers](Adding-Shapers.md)
 
 ### Adding New Variable Types
+
 1. Create Perl parser script
 2. Add to `TypeMapper`
 3. Update scanner logic
@@ -393,6 +418,7 @@ See [API Reference](api/) for details
 ## Best Practices
 
 ### DO
+
 - Follow layered architecture
 - Use async patterns
 - Write tests first (TDD)
@@ -402,6 +428,7 @@ See [API Reference](api/) for details
 - Document public APIs
 
 ### DON'T
+
 - Mix UI and business logic
 - Create sync wrappers for async APIs
 - Modify DataFrames in-place

@@ -1,5 +1,7 @@
 # Plotting API
 
+<!-- markdownlint-disable MD024 -->
+
 Complete API reference for RING-5's plotting system.
 
 ## Overview
@@ -21,6 +23,7 @@ Factory for creating plot instances.
 Create plot instance by type.
 
 **Parameters**:
+
 - `plot_type` (str): Plot type identifier
 - `plot_id` (int): Unique plot ID
 - `name` (str): Plot name
@@ -30,6 +33,7 @@ Create plot instance by type.
 **Raises**: `ValueError` - If plot type unknown
 
 **Supported Plot Types**:
+
 - `"bar"` - Simple bar chart
 - `"grouped_bar"` - Grouped bar chart
 - `"stacked_bar"` - Stacked bar chart
@@ -39,6 +43,7 @@ Create plot instance by type.
 - `"histogram"` - Histogram plot
 
 **Example**:
+
 ```python
 from src.plotting.plot_factory import PlotFactory
 
@@ -85,11 +90,13 @@ Abstract base class for all plots.
 Generate Plotly figure from data (must be implemented by subclasses).
 
 **Parameters**:
+
 - `data` (pd.DataFrame): Input data
 
 **Returns**: `go.Figure` - Plotly figure
 
 **Raises**:
+
 - `KeyError` - Required columns missing
 - `ValueError` - Invalid configuration
 
@@ -98,9 +105,11 @@ Generate Plotly figure from data (must be implemented by subclasses).
 Update plot configuration.
 
 **Parameters**:
+
 - `new_config` (Dict[str, Any]): New configuration
 
 **Example**:
+
 ```python
 plot.update_config({
     "title": "New Title",
@@ -115,6 +124,7 @@ plot.update_config({
 Simple bar chart.
 
 **Configuration**:
+
 ```python
 {
     "x_column": str,      # X-axis data (categories)
@@ -126,6 +136,7 @@ Simple bar chart.
 ```
 
 **Example**:
+
 ```python
 plot = PlotFactory.create_plot("bar", 1)
 plot.config = {
@@ -143,6 +154,7 @@ fig = plot.create_figure(data)
 Grouped bar chart (multiple bars per category).
 
 **Configuration**:
+
 ```python
 {
     "x_column": str,      # X-axis (categories)
@@ -154,6 +166,7 @@ Grouped bar chart (multiple bars per category).
 ```
 
 **Example**:
+
 ```python
 plot = PlotFactory.create_plot("grouped_bar", 1)
 plot.config = {
@@ -174,6 +187,7 @@ fig = plot.create_figure(data)
 Stacked bar chart (bars stacked vertically).
 
 **Configuration**:
+
 ```python
 {
     "x_column": str,      # X-axis
@@ -189,6 +203,7 @@ Stacked bar chart (bars stacked vertically).
 Grouped stacked bars (complex multi-dimensional).
 
 **Configuration**:
+
 ```python
 {
     "x_column": str,
@@ -205,6 +220,7 @@ Grouped stacked bars (complex multi-dimensional).
 Line plot for time-series or continuous data.
 
 **Configuration**:
+
 ```python
 {
     "x_column": str,      # X-axis
@@ -217,6 +233,7 @@ Line plot for time-series or continuous data.
 ```
 
 **Example**:
+
 ```python
 plot = PlotFactory.create_plot("line", 1)
 plot.config = {
@@ -235,6 +252,7 @@ fig = plot.create_figure(data)
 Scatter plot for correlation analysis.
 
 **Configuration**:
+
 ```python
 {
     "x_column": str,
@@ -247,6 +265,7 @@ Scatter plot for correlation analysis.
 ```
 
 **Example**:
+
 ```python
 plot = PlotFactory.create_plot("scatter", 1)
 plot.config = {
@@ -263,6 +282,7 @@ fig = plot.create_figure(data)
 Histogram for distribution visualization.
 
 **Configuration**:
+
 ```python
 {
     "column": str,        # Data column
@@ -287,10 +307,12 @@ Renders plots in Streamlit UI.
 Render plot in Streamlit.
 
 **Parameters**:
+
 - `plot` (BasePlot): Plot instance
 - `data` (pd.DataFrame): Data to visualize
 
 **Example**:
+
 ```python
 from src.plotting.plot_renderer import PlotRenderer
 
@@ -307,11 +329,13 @@ Export plot to file.
 **Location**: `src/plotting/export.py`
 
 **Parameters**:
+
 - `fig` (go.Figure): Plotly figure
 - `filename` (str): Output filename
 - `format` (str): Output format ("png", "svg", "pdf", "html")
 
 **Example**:
+
 ```python
 from src.plotting.export import export_plot
 
@@ -329,12 +353,14 @@ Apply publication-quality styling to figure.
 **Location**: `src/plotting/styles/publication.py`
 
 **Features**:
+
 - 14pt+ fonts
 - High DPI
 - Clean layout
 - Vector-ready
 
 **Example**:
+
 ```python
 from src.plotting.styles.publication import apply_publication_style
 
@@ -351,6 +377,7 @@ Get predefined color palette.
 **Location**: `src/plotting/styles/colors.py`
 
 **Palettes**:
+
 - `"default"` - Plotly default
 - `"colorblind"` - Colorblind-friendly
 - `"grayscale"` - Grayscale (for printing)
@@ -359,6 +386,7 @@ Get predefined color palette.
 **Returns**: `List[str]` - List of hex colors
 
 **Example**:
+
 ```python
 from src/plotting.styles.colors import get_color_palette
 
@@ -382,6 +410,7 @@ plot.config["color_map"] = {
 ### Common Exceptions
 
 **KeyError** (missing column):
+
 ```python
 try:
     fig = plot.create_figure(data)
@@ -390,6 +419,7 @@ except KeyError as e:
 ```
 
 **ValueError** (invalid config):
+
 ```python
 try:
     plot.config = {"invalid": "config"}

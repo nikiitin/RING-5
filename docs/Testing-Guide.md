@@ -5,6 +5,7 @@ Comprehensive guide to testing in RING-5.
 ## Overview
 
 RING-5 uses pytest for all testing with three test levels:
+
 - **Unit Tests**: Individual functions and classes
 - **Integration Tests**: Component interactions
 - **E2E Tests**: Full application workflows
@@ -13,7 +14,7 @@ RING-5 uses pytest for all testing with three test levels:
 
 ## Test Structure
 
-```
+```text
 tests/
 ├── unit/                   # Unit tests
 │   ├── test_shapers.py
@@ -281,6 +282,7 @@ open htmlcov/index.html
 ## Continuous Integration
 
 Tests run automatically on:
+
 - Every commit (pre-commit hook)
 - Every pull request (GitHub Actions)
 - Before deployment

@@ -1,10 +1,13 @@
 # Parsing API
 
+<!-- markdownlint-disable MD024 -->
+
 Complete API reference for RING-5's parsing and scanning services.
 
 ## Overview
 
 The parsing system consists of two main services:
+
 - **ScannerService**: Discovers available variables in gem5 stats
 - **ParseService**: Extracts data from matched variables
 
@@ -25,6 +28,7 @@ Discovers gem5 variables in stats files.
 Submit asynchronous scan jobs.
 
 **Parameters**:
+
 - `stats_path` (str | Path): Directory containing stats files
 - `stats_pattern` (str): Filename pattern (e.g., "stats.txt")
 - `limit` (int | None): Maximum variables to return (None = all)
@@ -32,6 +36,7 @@ Submit asynchronous scan jobs.
 **Returns**: `List[Future]` - List of Future objects for scan results
 
 **Example**:
+
 ```python
 from src.parsers.scanner_service import ScannerService
 
@@ -51,11 +56,13 @@ results = [f.result() for f in futures]
 Aggregate scan results from multiple futures.
 
 **Parameters**:
+
 - `scan_results` (List[Dict]): List of scan result dictionaries
 
 **Returns**: `Dict[str, VariableInfo]` - Consolidated variables map
 
 **Structure of VariableInfo**:
+
 ```python
 {
     "name": str,          # Variable name
@@ -68,6 +75,7 @@ Aggregate scan results from multiple futures.
 ```
 
 **Example**:
+
 ```python
 variables = scanner.finalize_scan(results)
 
@@ -92,6 +100,7 @@ Extracts data from gem5 stats files.
 Submit asynchronous parse jobs.
 
 **Parameters**:
+
 - `stats_path` (str | Path): Directory containing stats files
 - `stats_pattern` (str): Filename pattern
 - `variables` (List[str]): Variable names to parse
@@ -101,6 +110,7 @@ Submit asynchronous parse jobs.
 **Returns**: `List[Future]` - List of Future objects for parse results
 
 **Example**:
+
 ```python
 from src.parsers.parse_service import ParseService
 
@@ -122,12 +132,14 @@ results = [f.result() for f in futures]
 Consolidate individual CSV files into single DataFrame.
 
 **Parameters**:
+
 - `output_dir` (str | Path): Output directory
 - `parse_results` (List[Dict]): List of parse result dictionaries
 
 **Returns**: `str` - Path to consolidated CSV file
 
 **Example**:
+
 ```python
 csv_path = parser.finalize_parsing("/path/to/output", results)
 
@@ -182,7 +194,8 @@ print(data.head())
 The scanner automatically aggregates repeated variables into regex patterns.
 
 **Example**:
-```
+
+```text
 Input variables:
   system.cpu0.ipc
   system.cpu1.ipc
@@ -195,6 +208,7 @@ Output (aggregated):
 ```
 
 **Usage**:
+
 ```python
 # Scan discovers pattern
 variables = scanner.finalize_scan(scan_results)
@@ -228,6 +242,7 @@ Get singleton WorkPool instance.
 Submit task to thread pool.
 
 **Parameters**:
+
 - `func` (Callable): Function to execute
 - `*args`: Positional arguments
 - `**kwargs`: Keyword arguments
@@ -235,6 +250,7 @@ Submit task to thread pool.
 **Returns**: `Future`
 
 **Example**:
+
 ```python
 from src.parsers.workers.work_pool import WorkPool
 
@@ -248,6 +264,7 @@ result = future.result()
 ### Common Exceptions
 
 **FileNotFoundError**:
+
 ```python
 try:
     futures = scanner.submit_scan_async("/invalid/path", "stats.txt")
@@ -256,6 +273,7 @@ except FileNotFoundError as e:
 ```
 
 **ValueError** (invalid variable type):
+
 ```python
 try:
     variables = scanner.finalize_scan(results)
@@ -264,6 +282,7 @@ except ValueError as e:
 ```
 
 **KeyError** (missing variable):
+
 ```python
 try:
     futures = parser.submit_parse_async(
@@ -302,15 +321,18 @@ class VariableInfo(TypedDict, total=False):
 ## Performance
 
 **Parallel Processing**:
+
 - Both services use thread pools
 - Each stats file processed in parallel
 - Scales linearly with CPU cores
 
 **Memory Usage**:
+
 - Scanner: O(variables) - stores variable metadata
 - Parser: O(data points) - loads all parsed data
 
 **Optimization Tips**:
+
 - Limit scanned variables with `limit` parameter
 - Parse only needed variables
 - Use pattern aggregation to reduce variable count

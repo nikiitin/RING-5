@@ -5,6 +5,7 @@ Comprehensive guide to the RING-5 Streamlit web interface.
 ## Overview
 
 The RING-5 web application provides an interactive dashboard for:
+
 - Parsing gem5 simulator output
 - Transforming and filtering data
 - Creating publication-quality visualizations
@@ -27,6 +28,7 @@ The sidebar provides access to all pages:
 ### Current Dataset Display
 
 When data is loaded, the main page shows:
+
 - **Rows**: Number of data points
 - **Columns**: Number of variables
 - **Source**: Data origin (parsed path or uploaded file)
@@ -40,6 +42,7 @@ When data is loaded, the main page shows:
 #### Parse gem5 Stats
 
 **Workflow**:
+
 1. Select gem5 output directory
 2. Configure stats file pattern (default: `stats.txt`)
 3. Click **Scan Variables**
@@ -52,6 +55,7 @@ When data is loaded, the main page shows:
 Variables with repeated indices (cpu0, cpu1, cpu2) are consolidated into regex patterns (cpu\d+).
 
 **Scan Configuration**:
+
 - **Limit**: Number of files to scan (-1 for all)
 - **Pattern**: Glob pattern for stats files
 - **Recursive**: Search subdirectories
@@ -59,12 +63,14 @@ Variables with repeated indices (cpu0, cpu1, cpu2) are consolidated into regex p
 #### Upload CSV
 
 **Workflow**:
+
 1. Click **Browse** to select CSV file
 2. Review preview
 3. Click **Upload**
 4. Data is loaded into session
 
 **CSV Requirements**:
+
 - First row must be column headers
 - UTF-8 encoding recommended
 - Comma-separated values
@@ -76,6 +82,7 @@ Variables with repeated indices (cpu0, cpu1, cpu2) are consolidated into regex p
 #### Tabs
 
 **Visualization Tab**:
+
 - Full data table view
 - Search functionality
 - Column filtering
@@ -83,6 +90,7 @@ Variables with repeated indices (cpu0, cpu1, cpu2) are consolidated into regex p
 - Download filtered view as CSV
 
 **Operations**:
+
 - Search across all columns
 - Filter by column value
 - Sort by columns
@@ -90,24 +98,28 @@ Variables with repeated indices (cpu0, cpu1, cpu2) are consolidated into regex p
 
 **Seeds Reducer**:
 Aggregate multiple seeds/runs:
+
 - Group by configuration and benchmark
 - Apply aggregation function (mean, median, geomean)
 - Reduce variance from multiple runs
 
 **Mixer**:
 Merge multiple datasets:
+
 - Combine data from different sources
 - Join on common columns
 - Useful for multi-experiment comparisons
 
 **Outlier Remover**:
 Identify and remove statistical outliers:
+
 - Z-score method
 - IQR method
 - Custom threshold
 
 **Preprocessor**:
 Clean and prepare data:
+
 - Handle missing values
 - Convert data types
 - Rename columns
@@ -135,6 +147,7 @@ Clean and prepare data:
 Each plot has independent configuration:
 
 **Data Mapping**:
+
 - **X-axis**: Variable for horizontal axis
 - **Y-axis**: Variable for vertical axis
 - **Group by**: Variable for grouping (grouped plots)
@@ -143,6 +156,7 @@ Each plot has independent configuration:
 
 **Data Processing Pipeline**:
 Add transformations sequentially:
+
 1. **Column Selector**: Keep specific columns
 2. **Sort**: Order data
 3. **Mean Calculator**: Add aggregated means
@@ -151,6 +165,7 @@ Add transformations sequentially:
 6. **Transformer**: Custom transformations
 
 **Plot Styling**:
+
 - Title and labels
 - Legend position
 - Color scheme
@@ -164,6 +179,7 @@ Add transformations sequentially:
 Dropdown to switch between plots
 
 **Plot Controls**:
+
 - **Rename**: Update plot name
 - **Delete**: Remove plot
 - **Duplicate**: Create copy
@@ -175,12 +191,14 @@ Dropdown to switch between plots
 **Purpose**: Direct CSV file upload
 
 **Features**:
+
 - Drag-and-drop support
 - File preview before upload
 - Column type detection
 - Error handling for malformed CSV
 
 **Use Cases**:
+
 - Pre-processed data
 - External analysis results
 - Manual data entry exports
@@ -197,6 +215,7 @@ Dropdown to switch between plots
 4. Click **Save**
 
 **Saved Content**:
+
 - All loaded data (DataFrame)
 - All plot objects (configurations + pipelines)
 - All transformations
@@ -216,6 +235,7 @@ Portfolios are saved as JSON files containing serialized data and configurations
 **Purpose**: Monitor application performance and resource usage
 
 **Metrics**:
+
 - **Parse Operations**: Number of parse tasks
 - **Worker Pool Size**: Concurrent workers
 - **CSV Cache**: Cached CSV files
@@ -223,6 +243,7 @@ Portfolios are saved as JSON files containing serialized data and configurations
 - **Memory Usage**: DataFrame sizes
 
 **Actions**:
+
 - **Clear All Caches**: Reset CSV pool cache
 - **Monitor Performance**: Real-time metrics
 
@@ -231,6 +252,7 @@ Portfolios are saved as JSON files containing serialized data and configurations
 ### Session State
 
 RING-5 uses Streamlit session state for:
+
 - Loaded data (`data`)
 - Plot objects (`plots_objects`)
 - Parsed variables (`parse_variables`)
@@ -263,6 +285,7 @@ if StateManager.has_data():
 ### Plotly Interactivity
 
 All plots support:
+
 - **Zoom**: Box zoom, scroll zoom
 - **Pan**: Click and drag
 - **Hover**: Inspect data points
@@ -273,6 +296,7 @@ All plots support:
 ### Real-time Updates
 
 Changes trigger automatic updates:
+
 - Adding/removing shapers
 - Updating plot configuration
 - Changing data mapping
@@ -286,7 +310,7 @@ Changes trigger automatic updates:
 
 ## Data Flow
 
-```
+```text
 gem5 Output Directory
         ↓
     [Scan Variables]
@@ -346,6 +370,7 @@ gem5 Output Directory
 ### Application Not Loading
 
 **Solutions**:
+
 - Check terminal for errors
 - Ensure port 8501 is not in use
 - Restart application: `Ctrl+C` then `./launch_webapp.sh`
@@ -353,6 +378,7 @@ gem5 Output Directory
 ### Data Not Appearing
 
 **Solutions**:
+
 - Verify data was loaded (check Current Dataset)
 - Check session state: Performance page
 - Try reloading: Press `R` key
@@ -360,6 +386,7 @@ gem5 Output Directory
 ### Plot Not Updating
 
 **Solutions**:
+
 - Click **Update Plot** button
 - Check pipeline for errors
 - Review data mapping
@@ -368,6 +395,7 @@ gem5 Output Directory
 ### Session State Lost
 
 **Solutions**:
+
 - Session state resets on browser close
 - Save portfolios before closing
 - Use portfolio to restore session
@@ -377,6 +405,7 @@ gem5 Output Directory
 ### Custom Plotly Configuration
 
 Access Plotly config in plot settings:
+
 - Modebar buttons
 - Display logo
 - Responsive sizing
@@ -385,6 +414,7 @@ Access Plotly config in plot settings:
 ### Pipeline Import/Export
 
 Share pipeline configurations:
+
 1. Export pipeline as JSON
 2. Share file with collaborators
 3. Import on different dataset
@@ -393,6 +423,7 @@ Share pipeline configurations:
 ### Data Manager Chaining
 
 Chain multiple data managers:
+
 1. Outlier Remover → Remove statistical outliers
 2. Seeds Reducer → Aggregate runs
 3. Preprocessor → Clean column names

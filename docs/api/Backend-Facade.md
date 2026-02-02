@@ -27,6 +27,7 @@ The facade is typically instantiated once and accessed through the UI layer.
 Submit asynchronous variable scanning jobs.
 
 **Parameters**:
+
 - `stats_path` (str | Path): Directory containing stats files
 - `stats_pattern` (str): Filename pattern (e.g., "stats.txt")
 - `limit` (int | None): Maximum variables to discover
@@ -34,6 +35,7 @@ Submit asynchronous variable scanning jobs.
 **Returns**: `List[Future]` - Future objects for scan results
 
 **Example**:
+
 ```python
 futures = facade.submit_scan_async(
     "/path/to/results",
@@ -50,11 +52,13 @@ results = [f.result() for f in futures]
 Aggregate scan results into unified variable map.
 
 **Parameters**:
+
 - `scan_results` (List[Dict]): Results from scan futures
 
 **Returns**: `Dict[str, VariableInfo]` - Variable information map
 
 **Example**:
+
 ```python
 variables = facade.finalize_scan(results)
 
@@ -70,6 +74,7 @@ for name, info in variables.items():
 Submit asynchronous parsing jobs.
 
 **Parameters**:
+
 - `stats_path` (str | Path): Stats directory
 - `stats_pattern` (str): Filename pattern
 - `variables` (List[str]): Variables to parse
@@ -79,6 +84,7 @@ Submit asynchronous parsing jobs.
 **Returns**: `List[Future]` - Future objects for parse results
 
 **Example**:
+
 ```python
 futures = facade.submit_parse_async(
     stats_path="/path/to/results",
@@ -96,12 +102,14 @@ results = [f.result() for f in futures]
 Consolidate parsed CSVs into single file.
 
 **Parameters**:
+
 - `output_dir` (str | Path): Output directory
 - `parse_results` (List[Dict]): Results from parse futures
 
 **Returns**: `str` - Path to consolidated CSV
 
 **Example**:
+
 ```python
 csv_path = facade.finalize_parsing("/output", results)
 ```
@@ -113,6 +121,7 @@ csv_path = facade.finalize_parsing("/output", results)
 Load CSV file into DataFrame.
 
 **Parameters**:
+
 - `csv_path` (str | Path): Path to CSV file
 
 **Returns**: `pd.DataFrame` - Loaded data
@@ -120,6 +129,7 @@ Load CSV file into DataFrame.
 **Raises**: `FileNotFoundError` - If file doesn't exist
 
 **Example**:
+
 ```python
 data = facade.load_csv_file("/output/consolidated.csv")
 print(data.head())
@@ -130,11 +140,13 @@ print(data.head())
 Get column names from CSV without loading full data.
 
 **Parameters**:
+
 - `csv_path` (str | Path): Path to CSV
 
 **Returns**: `List[str]` - Column names
 
 **Example**:
+
 ```python
 columns = facade.get_csv_columns("/output/data.csv")
 print(f"Available columns: {columns}")
@@ -145,11 +157,13 @@ print(f"Available columns: {columns}")
 List all CSV files in directory.
 
 **Parameters**:
+
 - `directory` (str | Path): Directory to search
 
 **Returns**: `List[Path]` - List of CSV file paths
 
 **Example**:
+
 ```python
 csv_files = facade.list_csv_files("/output")
 for csv in csv_files:
@@ -163,12 +177,14 @@ for csv in csv_files:
 Get configuration value.
 
 **Parameters**:
+
 - `key` (str): Configuration key
 - `default` (Any): Default value if key not found
 
 **Returns**: Configuration value
 
 **Example**:
+
 ```python
 max_workers = facade.get_config("max_workers", default=4)
 output_dir = facade.get_config("output_directory")
@@ -179,10 +195,12 @@ output_dir = facade.get_config("output_directory")
 Set configuration value.
 
 **Parameters**:
+
 - `key` (str): Configuration key
 - `value` (Any): Configuration value
 
 **Example**:
+
 ```python
 facade.set_config("max_workers", 8)
 facade.set_config("output_directory", "/custom/output")
@@ -274,6 +292,7 @@ StateManager.set_current_data(data)
 ### Common Patterns
 
 **Scanning errors**:
+
 ```python
 try:
     futures = facade.submit_scan_async(stats_path, pattern)
@@ -286,6 +305,7 @@ except Exception as e:
 ```
 
 **Parsing errors**:
+
 ```python
 try:
     futures = facade.submit_parse_async(...)
@@ -298,6 +318,7 @@ except ValueError as e:
 ```
 
 **CSV loading errors**:
+
 ```python
 try:
     data = facade.load_csv_file(csv_path)
@@ -310,15 +331,18 @@ except pd.errors.ParserError:
 ## Performance Considerations
 
 **Async Operations**:
+
 - Scanning and parsing use thread pools
 - Number of workers: `facade.get_config("max_workers", default=4)`
 - Scales with CPU cores
 
 **Memory Usage**:
+
 - CSV loading loads full DataFrame into memory
 - For large files, use chunked reading or filtering
 
 **Optimization Tips**:
+
 1. Limit scan results: `limit=100` parameter
 2. Parse only needed variables
 3. Apply column selection shaper early
