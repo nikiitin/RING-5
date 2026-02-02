@@ -107,12 +107,27 @@ class LayoutMapper:
         if layout.annotations:
             annotations: List[Dict[str, Any]] = []
             for ann in layout.annotations:
-                ann_dict = {
+                ann_dict: Dict[str, Any] = {
                     "x": ann.x,
                     "y": ann.y,
                     "text": ann.text,
                     "showarrow": ann.showarrow,
                 }
+
+                # Extract text angle (rotation)
+                if hasattr(ann, "textangle") and ann.textangle is not None:
+                    ann_dict["textangle"] = ann.textangle
+
+                # Extract font properties
+                if hasattr(ann, "font") and ann.font is not None:
+                    font_dict: Dict[str, Any] = {}
+                    if hasattr(ann.font, "size") and ann.font.size is not None:
+                        font_dict["size"] = ann.font.size
+                    if hasattr(ann.font, "color") and ann.font.color is not None:
+                        font_dict["color"] = ann.font.color
+                    if font_dict:
+                        ann_dict["font"] = font_dict
+
                 annotations.append(ann_dict)
             layout_dict["annotations"] = annotations
 
@@ -181,9 +196,38 @@ class LayoutMapper:
         # Apply annotations
         if "annotations" in layout:
             for ann in layout["annotations"]:
-                ax.annotate(
-                    ann["text"],
-                    xy=(ann["x"], ann["y"]),
-                    xytext=(ann["x"], ann["y"]),
-                    arrowprops=dict(arrowstyle="->") if ann.get("showarrow") else None,
-                )
+                # Clean HTML tags from text (e.g., <b>genome</b> → genome)
+                import re
+
+                text = ann["text"]
+                text = re.sub(r"<b>(.*?)</b>", r"\1", text)  # Remove <b> tags
+                text = re.sub(r"<i>(.*?)</i>", r"\1", text)  # Remove <i> tags
+
+                # Build font properties
+                font_props = {}
+                if "font" in ann:
+                    if "size" in ann["font"]:
+                        font_props["fontsize"] = ann["font"]["size"]
+                    if "color" in ann["font"]:
+                        font_props["color"] = ann["font"]["color"]
+
+                # Build annotation kwargs
+                ann_kwargs: Dict[str, Any] = {
+                    "xy": (ann["x"], ann["y"]),
+                    "xytext": (ann["x"], ann["y"]),
+                    "ha": "center",
+                    "va": "center",
+                }
+
+                # Add rotation if present
+                if "textangle" in ann:
+                    ann_kwargs["rotation"] = ann["textangle"]
+
+                # Add font properties
+                ann_kwargs.update(font_props)
+
+                # Add arrow if needed
+                if ann.get("showarrow"):
+                    ann_kwargs["arrowprops"] = dict(arrowstyle="->")
+
+                ax.annotate(text, **ann_kwargs)
