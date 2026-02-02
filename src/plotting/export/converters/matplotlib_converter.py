@@ -509,6 +509,25 @@ class MatplotlibConverter(BaseConverter):
         ax.grid(True, alpha=0.3, linestyle="--", linewidth=0.5)
         applied["grid"] = True
 
+        # Configure legend with multi-column support
+        # Use 2 columns if there are many traces (> 4), otherwise 1 column
+        handles, labels = ax.get_legend_handles_labels()
+        if handles:  # Only add legend if there are traces with labels
+            ncol = 2 if len(handles) > 4 else 1
+            ax.legend(
+                handles=handles,
+                labels=labels,
+                ncol=ncol,
+                frameon=True,
+                fancybox=False,
+                shadow=False,
+                framealpha=1.0,
+                edgecolor="black",
+                loc="best",
+            )
+            applied["legend_ncols"] = ncol
+            applied["legend_items"] = len(handles)
+
         # Tight layout for clean borders
         plt.tight_layout()
 
