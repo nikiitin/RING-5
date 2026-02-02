@@ -43,7 +43,8 @@ install-latex:
 		if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
 			sudo apt-get update && \
 			sudo apt-get install -y texlive-latex-base texlive-fonts-recommended \
-			                       texlive-fonts-extra cm-super texlive-xetex && \
+			                       texlive-fonts-extra cm-super texlive-xetex \\
+			                       texlive-latex-extra && \\
 			echo "" && \
 			echo "✅ LaTeX packages installed successfully!" && \
 			echo "" && \

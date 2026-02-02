@@ -19,23 +19,38 @@ RING-5 provides a **Matplotlib-based export system** specifically designed for a
 ```bash
 # Basic LaTeX support (PDF/EPS formats):
 sudo apt-get install texlive-latex-base texlive-fonts-recommended \
-                     texlive-fonts-extra cm-super
+                     texlive-fonts-extra cm-super texlive-latex-extra
 
 # For PGF format support (optional):
 sudo apt-get install texlive-xetex
+
+# Automated installation (recommended):
+make install-latex
 ```
 
 **Package Details**:
-- `texlive-latex-base`: Core LaTeX engine (pdflatex)
+- `texlive-latex-base`: Core LaTeX engine (pdflatex) + amsmath, amssymb
 - `texlive-fonts-recommended`: Standard LaTeX fonts
 - `texlive-fonts-extra`: Additional font packages (~629 MB)
+- `texlive-latex-extra`: Additional LaTeX packages
 - `cm-super`: Type 1 Computer Modern fonts (provides type1ec.sty)
 - `texlive-xetex`: XeLaTeX engine (required for PGF format only)
+
+**LaTeX Packages Used by Matplotlib**:
+The export automatically includes these LaTeX packages in the preamble:
+- `inputenc[utf8]`: UTF-8 input encoding
+- `fontenc[T1]`: T1 font encoding (prevents \mathdefault errors)
+- `amsmath`: Advanced math typesetting
+- `amssymb`: Mathematical symbols
+
+**Important Note**: Avoid Unicode characters (α, β, etc.) in plot titles/labels.
+Use LaTeX math mode instead: `$\\alpha$`, `$\\beta$`, etc.
 
 **Verification**:
 ```bash
 latex --version    # Should show TeX Live version
 xelatex --version  # Required for PGF format
+make check-latex   # Automated verification
 ```
 
 ---

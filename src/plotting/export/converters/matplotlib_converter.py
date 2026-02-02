@@ -169,9 +169,19 @@ class MatplotlibConverter(BaseConverter):
         """
         # Enable LaTeX text rendering
         rc("text", usetex=True)
-        rc("text.latex", preamble=r"\usepackage{mathptmx}")
 
-        logger.info("LaTeX text rendering enabled")
+        # Proper LaTeX preamble for font encoding and math support
+        # This ensures \mathdefault and other font commands work correctly
+        # Note: Unicode characters in labels should be avoided or use LaTeX commands
+        preamble = r"""
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+"""
+        rc("text.latex", preamble=preamble)
+
+        logger.info("LaTeX text rendering enabled with full font support")
 
         # Font configuration
         rc("font", family=self.preset["font_family"])
