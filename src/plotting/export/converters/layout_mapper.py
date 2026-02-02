@@ -90,6 +90,19 @@ class LayoutMapper:
         if layout.yaxis.type is not None:
             layout_dict["y_type"] = layout.yaxis.type
 
+        # Extract custom tick positions and labels (for grouped-stacked bars)
+        if layout.xaxis.tickmode == "array":
+            if layout.xaxis.tickvals is not None:
+                layout_dict["x_tickvals"] = list(layout.xaxis.tickvals)
+            if layout.xaxis.ticktext is not None:
+                layout_dict["x_ticktext"] = [str(t) for t in layout.xaxis.ticktext]
+
+        if layout.yaxis.tickmode == "array":
+            if layout.yaxis.tickvals is not None:
+                layout_dict["y_tickvals"] = list(layout.yaxis.tickvals)
+            if layout.yaxis.ticktext is not None:
+                layout_dict["y_ticktext"] = [str(t) for t in layout.yaxis.ticktext]
+
         # Extract annotations
         if layout.annotations:
             annotations: List[Dict[str, Any]] = []
@@ -145,6 +158,15 @@ class LayoutMapper:
 
         if "y_grid" in layout:
             ax.yaxis.grid(layout["y_grid"])
+
+        # Apply custom tick positions and labels (for grouped-stacked bars)
+        if "x_tickvals" in layout and "x_ticktext" in layout:
+            ax.set_xticks(layout["x_tickvals"])
+            ax.set_xticklabels(layout["x_ticktext"], rotation=45, ha="right")
+
+        if "y_tickvals" in layout and "y_ticktext" in layout:
+            ax.set_yticks(layout["y_tickvals"])
+            ax.set_yticklabels(layout["y_ticktext"])
 
         # Apply legend position if present
         if "legend" in layout:

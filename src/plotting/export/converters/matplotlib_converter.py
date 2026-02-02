@@ -46,6 +46,9 @@ class MatplotlibConverter(BaseConverter):
         """
         super().__init__(preset)
         self.layout_mapper = LayoutMapper()
+        self._barmode: str = "group"  # Track bar layout mode
+        self._bar_traces: List[Any] = []  # Track bar traces for positioning
+        self._categorical_labels: List[str] = []  # Track x-axis labels
 
     def get_supported_formats(self) -> List[str]:
         """
@@ -90,6 +93,14 @@ class MatplotlibConverter(BaseConverter):
             # Step 2: Configure LaTeX rendering
             self._configure_latex_rendering()
 
+            # Step 2.5: Extract barmode from layout
+            if hasattr(fig, "layout") and hasattr(fig.layout, "barmode"):
+                self._barmode = str(fig.layout.barmode) if fig.layout.barmode else "group"
+            else:
+                self._barmode = "group"
+            self._bar_traces = []
+            self._categorical_labels = []
+
             # Step 3: Convert Plotly traces to Matplotlib
             traces_converted = self._convert_traces(fig, mpl_ax)
 
@@ -113,6 +124,8 @@ class MatplotlibConverter(BaseConverter):
                 "marker_size": self.preset["marker_size"],
                 "traces_converted": traces_converted,
                 "layout_preserved": layout_preserved,
+                "barmode": self._barmode,
+                "bar_traces_count": len(self._bar_traces),
             }
 
             return ExportResult(
@@ -209,10 +222,16 @@ class MatplotlibConverter(BaseConverter):
         """
         traces_converted = 0
 
+        # First pass: collect bar traces
         for trace in plotly_fig.data:
+            if trace.type == "bar":
+                self._bar_traces.append(trace)
+
+        # Second pass: convert traces with proper positioning
+        for idx, trace in enumerate(plotly_fig.data):
             try:
                 if trace.type == "bar":
-                    self._convert_bar_trace(trace, ax, traces_converted)
+                    self._convert_bar_trace(trace, ax, idx)
                     traces_converted += 1
                 elif trace.type == "scatter":
                     if trace.mode and "markers" in trace.mode:
@@ -232,14 +251,19 @@ class MatplotlibConverter(BaseConverter):
 
         return traces_converted
 
-    def _convert_bar_trace(self, trace: go.Bar, ax: Axes, offset: int) -> None:
+    def _convert_bar_trace(self, trace: go.Bar, ax: Axes, trace_idx: int) -> None:
         """
-        Convert Plotly Bar trace to Matplotlib bar chart.
+        Convert Plotly Bar trace to Matplotlib bar chart with proper grouped/stacked positioning.
+
+        Handles three cases:
+        1. Categorical x-axis (strings): Use integer positions with labels
+        2. Numeric x-axis with gaps (grouped-stacked): Use actual numeric positions
+        3. Simple numeric x-axis: Use values as-is
 
         Args:
             trace: Plotly Bar trace
             ax: Matplotlib axes
-            offset: Position offset for grouped bars
+            trace_idx: Index of this trace in the figure
         """
         x = trace.x if trace.x is not None else []
         y = trace.y if trace.y is not None else []
@@ -262,34 +286,138 @@ class MatplotlibConverter(BaseConverter):
             color = trace.marker.color
 
         # Check if x contains strings (categorical data)
-        # Must check length first to avoid empty list issues
         has_categorical_x = False
+        has_numeric_x = False
         try:
             if x and len(x) > 0:
-                # Check first element type - handle both strings and bytes
                 first_x = x[0]
                 has_categorical_x = isinstance(first_x, (str, bytes)) or (
                     hasattr(first_x, "__class__")
                     and first_x.__class__.__name__ in ("str", "str_", "bytes_")
                 )
+                # Check if numeric
+                if not has_categorical_x:
+                    try:
+                        float(first_x)
+                        has_numeric_x = True
+                    except (ValueError, TypeError):
+                        pass
         except (TypeError, IndexError):
-            # If we can't check, assume numeric
             has_categorical_x = False
 
         if has_categorical_x:
-            # For categorical x-axis, use numeric positions
-            x_pos = list(range(len(x)))
+            # Case 1: Categorical x-axis (strings) - convert to integer positions
+            # Store labels from first trace
+            if trace_idx == 0 or not self._categorical_labels:
+                self._categorical_labels = [str(label) for label in x]
+
+            # Calculate positioning based on barmode
+            n_bars = len(self._bar_traces)
+            n_positions = len(x)
+            x_positions = list(range(n_positions))
+
+            if self._barmode == "stack":
+                # Stacked bars: all at same position
+                # Need to calculate bottom positions
+                bottom = [0.0] * n_positions
+                if trace_idx > 0:
+                    # Calculate cumulative sum from previous traces
+                    for prev_trace in self._bar_traces[:trace_idx]:
+                        prev_y = prev_trace.y if prev_trace.y is not None else []
+                        if hasattr(prev_y, "tolist"):
+                            prev_y = prev_y.tolist()
+                        for i, val in enumerate(prev_y):
+                            if i < len(bottom):
+                                bottom[i] += float(val) if val is not None else 0.0
+
+                ax.bar(
+                    x=x_positions,
+                    height=y,
+                    bottom=bottom,
+                    label=trace.name or "",
+                    color=color,
+                    width=0.8,
+                    edgecolor="white",
+                    linewidth=0.5,
+                )
+            else:
+                # Grouped bars: offset each bar
+                if n_bars > 1:
+                    bar_width = 0.8 / n_bars  # Divide space among bars
+                    offset = -0.4 + (trace_idx + 0.5) * bar_width  # Center the group
+                    x_positions_grouped: List[float] = [pos + offset for pos in x_positions]
+                else:
+                    bar_width = 0.8
+                    x_positions_grouped = [float(pos) for pos in x_positions]
+
+                ax.bar(
+                    x=x_positions_grouped,
+                    height=y,
+                    label=trace.name or "",
+                    color=color,
+                    width=bar_width,
+                    edgecolor="white",
+                    linewidth=0.5,
+                )
+
+            # Set x-axis labels only once (from first trace)
+            if trace_idx == 0:
+                ax.set_xticks(list(range(n_positions)))
+                # Smart rotation: only rotate if labels are long
+                max_label_len = max(len(str(label)) for label in self._categorical_labels)
+                if max_label_len > 8 or n_positions > 10:
+                    ax.set_xticklabels(self._categorical_labels, rotation=45, ha="right")
+                else:
+                    ax.set_xticklabels(self._categorical_labels, rotation=0, ha="center")
+        elif has_numeric_x and self._barmode == "stack":
+            # Case 2: Numeric x-axis with stacked bars (grouped-stacked pattern)
+            # Use the actual numeric x positions from Plotly figure
+            x_numeric_positions = [float(xi) for xi in x]
+            n_positions = len(x_numeric_positions)
+
+            # Calculate bottom positions for stacking
+            bottom = [0.0] * n_positions
+            if trace_idx > 0:
+                # Calculate cumulative sum from previous traces
+                for prev_trace in self._bar_traces[:trace_idx]:
+                    prev_x = prev_trace.x if prev_trace.x is not None else []
+                    prev_y = prev_trace.y if prev_trace.y is not None else []
+                    if hasattr(prev_x, "tolist"):
+                        prev_x = prev_x.tolist()
+                    if hasattr(prev_y, "tolist"):
+                        prev_y = prev_y.tolist()
+
+                    # Match x positions to accumulate bottom values
+                    for i, xi in enumerate(x_numeric_positions):
+                        for j, prev_xi in enumerate(prev_x):
+                            if abs(float(xi) - float(prev_xi)) < 1e-6:  # Same position
+                                bottom[i] += float(prev_y[j]) if prev_y[j] is not None else 0.0
+                                break
+
+            # Determine bar width from x-axis spacing (for grouped-stacked patterns)
+            if len(x_numeric_positions) > 1:
+                # Find minimum spacing to determine bar width
+                spacings = [
+                    x_numeric_positions[i + 1] - x_numeric_positions[i]
+                    for i in range(len(x_numeric_positions) - 1)
+                ]
+                min_spacing = min(s for s in spacings if s > 0.1)  # Ignore tiny gaps
+                bar_width = min_spacing * 0.8  # 80% of minimum spacing
+            else:
+                bar_width = 0.8
+
             ax.bar(
-                x=x_pos,
+                x=x_numeric_positions,
                 height=y,
+                bottom=bottom,
                 label=trace.name or "",
                 color=color,
-                width=0.8,
+                width=bar_width,
+                edgecolor="white",
+                linewidth=0.5,
             )
-            ax.set_xticks(x_pos)
-            ax.set_xticklabels(x, rotation=45, ha="right")
         else:
-            # For numeric x-axis
+            # Case 3: Simple numeric x-axis (no stacking, or regular grouped bars)
             ax.bar(
                 x=x,
                 height=y,
