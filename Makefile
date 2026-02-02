@@ -18,6 +18,101 @@ dev: venv
 	@echo ""
 	@echo "📋 Don't forget to install pre-commit hooks:"
 	@echo "   make pre-commit-install"
+	@echo ""
+	@echo "📋 For LaTeX export support, install system packages:"
+	@echo "   make install-latex"
+
+# Install system dependencies for LaTeX export
+install-latex:
+	@echo "=== Installing LaTeX system dependencies ==="
+	@echo ""
+	@echo "📦 Installing packages for LaTeX export (PDF/PGF/EPS)..."
+	@echo ""
+	@if command -v apt-get >/dev/null 2>&1; then \
+		echo "Using apt-get (Debian/Ubuntu)..."; \
+		echo ""; \
+		echo "Required packages:"; \
+		echo "  • texlive-latex-base    - Core LaTeX engine"; \
+		echo "  • texlive-fonts-recommended - Standard fonts"; \
+		echo "  • texlive-fonts-extra   - Additional fonts (~629 MB)"; \
+		echo "  • cm-super             - Type 1 Computer Modern fonts"; \
+		echo "  • texlive-xetex        - XeLaTeX for PGF format"; \
+		echo ""; \
+		read -p "Install these packages? [y/N] " -r REPLY; \
+		echo; \
+		if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
+			sudo apt-get update && \
+			sudo apt-get install -y texlive-latex-base texlive-fonts-recommended \
+			                       texlive-fonts-extra cm-super texlive-xetex && \
+			echo "" && \
+			echo "✅ LaTeX packages installed successfully!" && \
+			echo "" && \
+			echo "Verify with: latex --version && xelatex --version"; \
+		else \
+			echo "❌ Installation cancelled"; \
+			echo "   Run manually: sudo apt-get install texlive-latex-base texlive-fonts-recommended texlive-fonts-extra cm-super texlive-xetex"; \
+		fi; \
+	elif command -v brew >/dev/null 2>&1; then \
+		echo "Using Homebrew (macOS)..."; \
+		echo ""; \
+		read -p "Install MacTeX? [y/N] " -r REPLY; \
+		echo; \
+		if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
+			brew install --cask mactex && \
+			echo "" && \
+			echo "✅ MacTeX installed successfully!" && \
+			echo "" && \
+			echo "⚠️  You may need to restart your terminal to update PATH" && \
+			echo "Verify with: latex --version && xelatex --version"; \
+		else \
+			echo "❌ Installation cancelled"; \
+			echo "   Run manually: brew install --cask mactex"; \
+		fi; \
+	else \
+		echo "⚠️  Unknown package manager"; \
+		echo ""; \
+		echo "Please install LaTeX manually:"; \
+		echo ""; \
+		echo "Ubuntu/Debian:"; \
+		echo "  sudo apt-get install texlive-latex-base texlive-fonts-recommended \\"; \
+		echo "                       texlive-fonts-extra cm-super texlive-xetex"; \
+		echo ""; \
+		echo "macOS:"; \
+		echo "  brew install --cask mactex"; \
+		echo ""; \
+		echo "Other systems: Install TeX Live from https://www.tug.org/texlive/"; \
+	fi
+	@echo ""
+	@echo "📖 For more details, see: docs/LaTeX-Export-Guide.md"
+
+# Check LaTeX installation
+check-latex:
+	@echo "=== Checking LaTeX installation ==="
+	@echo ""
+	@if command -v latex >/dev/null 2>&1; then \
+		echo "✅ LaTeX installed: $$(latex --version | head -1)"; \
+	else \
+		echo "❌ LaTeX not found"; \
+		echo "   Install with: make install-latex"; \
+	fi
+	@echo ""
+	@if command -v xelatex >/dev/null 2>&1; then \
+		echo "✅ XeLaTeX installed: $$(xelatex --version | head -1)"; \
+		echo "   (Required for PGF format)"; \
+	else \
+		echo "⚠️  XeLaTeX not found (PGF format will not work)"; \
+		echo "   Install with: sudo apt-get install texlive-xetex"; \
+	fi
+	@echo ""
+	@if kpsewhich type1ec.sty >/dev/null 2>&1; then \
+		echo "✅ cm-super package installed"; \
+		echo "   (Found: $$(kpsewhich type1ec.sty))"; \
+	else \
+		echo "❌ cm-super package not found"; \
+		echo "   Install with: sudo apt-get install cm-super"; \
+	fi
+	@echo ""
+	@echo "For complete setup, run: make install-latex"
 
 test:
 	$(pytest)
