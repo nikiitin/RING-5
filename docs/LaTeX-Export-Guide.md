@@ -11,7 +11,25 @@ RING-5 provides a **Matplotlib-based export system** specifically designed for a
 - ✅ **Layout Preservation**: Maintains legend positions, zoom, log scales from interactive UI
 - ✅ **Multiple Formats**: PDF (recommended), PGF (LaTeX-native), EPS (legacy)
 - ✅ **Type-Safe**: Full mypy strict compliance
-- ✅ **Zero Dependencies**: No Kaleido required (uses pure Matplotlib + LaTeX)
+- ✅ **LaTeX Text Rendering**: Uses LaTeX for perfect font matching
+
+## Prerequisites
+
+**Required System Packages**:
+```bash
+sudo apt-get install texlive-latex-base texlive-fonts-recommended texlive-fonts-extra cm-super
+```
+
+These packages provide:
+- `texlive-latex-base`: Core LaTeX engine
+- `texlive-fonts-recommended`: Standard LaTeX fonts
+- `texlive-fonts-extra`: Additional font packages
+- `cm-super`: Type 1 Computer Modern fonts (required for proper rendering)
+
+**Verification**:
+```bash
+latex --version  # Should show TeX Live version
+```
 
 ---
 
@@ -265,37 +283,33 @@ This ensures exported figures match your **final visual intent**, not intermedia
 
 ## Troubleshooting
 
-### Error: "LaTeX was not able to process..."
+### Error: "File `type1ec.sty` not found"
 
-**Cause**: Missing LaTeX system packages (required for PGF/EPS with text rendering)
+**Cause**: Missing `cm-super` font package (required for LaTeX text rendering)
 
 **Solution**:
 ```bash
-# Ubuntu/Debian
-sudo apt-get install texlive texlive-latex-extra cm-super dvipng
+sudo apt-get install cm-super texlive-fonts-extra
+```
+
+**Explanation**: The `type1ec.sty` file is part of the `cm-super` package, which provides Type 1 Computer Modern fonts. This is required for proper LaTeX text rendering in Matplotlib.
+
+---
+
+### Error: "LaTeX was not able to process..."
+
+**Cause**: Missing LaTeX system packages
+
+**Solution**:
+```bash
+# Ubuntu/Debian - Complete installation
+sudo apt-get install texlive-latex-base texlive-fonts-recommended texlive-fonts-extra cm-super dvipng
 
 # macOS
 brew install --cask mactex
 
-# Verify
+# Verify installation
 latex --version
-```
-
-**Alternative**: Use PDF format (does not require LaTeX for simple exports)
-
----
-
-### Error: "File `type1ec.sty` not found"
-
-**Cause**: Missing LaTeX font packages
-
-**Solution**:
-```bash
-# Ubuntu/Debian
-sudo apt-get install texlive-fonts-recommended texlive-fonts-extra
-
-# macOS
-# Already included in MacTeX
 ```
 
 ---

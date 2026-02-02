@@ -150,19 +150,27 @@ class MatplotlibConverter(BaseConverter):
 
     def _configure_latex_rendering(self) -> None:
         """
-        Configure Matplotlib for LaTeX rendering.
+        Configure Matplotlib for LaTeX text rendering.
 
-        Sets up fonts, sizes, and LaTeX text rendering.
+        Enables LaTeX rendering for publication-quality output.
+        Requires full LaTeX installation with necessary font packages.
+
+        Required system packages:
+        - texlive-latex-base
+        - texlive-fonts-recommended
+        - texlive-fonts-extra
+        - cm-super
+
+        Install with:
+            sudo apt-get install texlive-fonts-recommended texlive-fonts-extra cm-super
         """
-        # Note: usetex requires LaTeX installation on system
-        # For testing/development, we'll make this optional
-        try:
-            rc("text", usetex=True)
-            rc("text.latex", preamble=r"\usepackage{amsmath}")
-        except Exception as e:
-            logger.warning(f"LaTeX rendering unavailable: {e}. Using standard rendering.")
+        # Enable LaTeX text rendering
+        rc("text", usetex=True)
+        rc("text.latex", preamble=r"\usepackage{mathptmx}")
 
-        # Font configuration (works with or without LaTeX)
+        logger.info("LaTeX text rendering enabled")
+
+        # Font configuration
         rc("font", family=self.preset["font_family"])
         rc("font", size=self.preset["font_size_base"])
         rc("axes", labelsize=self.preset["font_size_labels"])
