@@ -83,4 +83,19 @@ class BaseConverter(ABC):
         Returns:
             True if valid, False otherwise
         """
-        return bool(figure.data)
+        if not figure.data:
+            return False
+
+        # Check if any trace has actual data
+        for trace in figure.data:
+            # Check common data properties (x, y, z, values, etc.)
+            if hasattr(trace, "x") and trace.x is not None and len(trace.x) > 0:
+                return True
+            if hasattr(trace, "y") and trace.y is not None and len(trace.y) > 0:
+                return True
+            if hasattr(trace, "z") and trace.z is not None and len(trace.z) > 0:
+                return True
+            if hasattr(trace, "values") and trace.values is not None and len(trace.values) > 0:
+                return True
+
+        return False

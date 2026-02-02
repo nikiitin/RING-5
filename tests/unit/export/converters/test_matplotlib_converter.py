@@ -163,7 +163,8 @@ class TestLayoutPreservation:
 
         assert result["success"] is True
         layout = result["metadata"]["layout_preserved"]
-        assert "xaxis_range" in layout or "xlim" in layout
+        assert "x_range" in layout
+        assert "y_range" in layout
 
     def test_preserve_log_scale(self, single_column_preset):
         """Verify logarithmic scale is preserved."""

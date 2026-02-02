@@ -17,18 +17,25 @@ RING-5 provides a **Matplotlib-based export system** specifically designed for a
 
 **Required System Packages**:
 ```bash
-sudo apt-get install texlive-latex-base texlive-fonts-recommended texlive-fonts-extra cm-super
+# Basic LaTeX support (PDF/EPS formats):
+sudo apt-get install texlive-latex-base texlive-fonts-recommended \
+                     texlive-fonts-extra cm-super
+
+# For PGF format support (optional):
+sudo apt-get install texlive-xetex
 ```
 
-These packages provide:
-- `texlive-latex-base`: Core LaTeX engine
+**Package Details**:
+- `texlive-latex-base`: Core LaTeX engine (pdflatex)
 - `texlive-fonts-recommended`: Standard LaTeX fonts
-- `texlive-fonts-extra`: Additional font packages
-- `cm-super`: Type 1 Computer Modern fonts (required for proper rendering)
+- `texlive-fonts-extra`: Additional font packages (~629 MB)
+- `cm-super`: Type 1 Computer Modern fonts (provides type1ec.sty)
+- `texlive-xetex`: XeLaTeX engine (required for PGF format only)
 
 **Verification**:
 ```bash
-latex --version  # Should show TeX Live version
+latex --version    # Should show TeX Live version
+xelatex --version  # Required for PGF format
 ```
 
 ---
@@ -293,6 +300,35 @@ sudo apt-get install cm-super texlive-fonts-extra
 ```
 
 **Explanation**: The `type1ec.sty` file is part of the `cm-super` package, which provides Type 1 Computer Modern fonts. This is required for proper LaTeX text rendering in Matplotlib.
+
+---
+
+### Error: "'xelatex' not found"
+
+**Cause**: Missing XeLaTeX engine (required for PGF format only)
+
+**Solution**:
+```bash
+sudo apt-get install texlive-xetex
+```
+
+**Alternative**: Use PDF or EPS format instead of PGF (PDF is recommended for most use cases).
+
+---
+
+### Error: "Cannot export empty figure"
+
+**Cause**: Figure has no data traces, or all traces have empty data arrays
+
+**Solution**: Ensure your figure contains at least one trace with non-empty data:
+```python
+fig = go.Figure()
+fig.add_trace(go.Bar(x=[1, 2, 3], y=[4, 5, 6]))  # ✅ Has data
+
+# ❌ These will fail:
+empty_fig = go.Figure()  # No traces
+bad_fig = go.Figure(data=[go.Bar(x=[], y=[])])  # Empty data
+```
 
 ---
 

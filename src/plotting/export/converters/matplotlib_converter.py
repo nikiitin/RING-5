@@ -79,7 +79,10 @@ class MatplotlibConverter(BaseConverter):
         try:
             # Validate figure has data
             if not self.validate_figure(fig):
-                logger.warning("Figure has no traces, creating empty plot")
+                raise ValueError(
+                    "Cannot export empty figure. "
+                    "Figure must contain at least one trace with data."
+                )
 
             # Step 1: Create Matplotlib figure with LaTeX dimensions
             mpl_fig, mpl_ax = self._create_matplotlib_figure()
