@@ -432,13 +432,9 @@ class VariableEditor:
                 var_found = False
                 for v in scanned_vars:
                     if v["name"] == var_name:
-                        # For pattern variables, check if we have pattern_indices
-                        if "pattern_indices" in v:
-                            # Keep pattern_indices, update entries only
-                            v["entries"] = filtered_entries
-                        else:
-                            # Regular variable or scalar pattern, just update entries
-                            v["entries"] = filtered_entries
+                        # Update entries while preserving any existing pattern_indices
+                        # (only the 'entries' field is modified here)
+                        v["entries"] = filtered_entries
                         var_found = True
                         break
                 if not var_found:
