@@ -107,13 +107,17 @@ class LaTeXExportService:
 
     def get_preset_info(self, preset_name: str) -> LaTeXPreset:
         """
-        Get detailed information about a preset.
+        Get the full configuration for a preset.
+
+        This is a convenience wrapper around ``PresetManager.load_preset`` and
+        returns the complete LaTeX export preset configuration, not just
+        summary metadata.
 
         Args:
-            preset_name: Name of preset to inspect
+            preset_name: Name of preset to inspect.
 
         Returns:
-            Preset configuration dictionary
+            LaTeXPreset: Full preset configuration dictionary.
 
         Example:
             >>> info = service.get_preset_info("single_column")
