@@ -5,6 +5,7 @@ Following TDD approach: Tests written FIRST, then implementation.
 """
 
 import pytest
+import logging
 
 from src.plotting.export.converters.matplotlib_converter import MatplotlibConverter
 from src.plotting.export.presets.preset_manager import PresetManager
@@ -304,11 +305,12 @@ class TestErrorHandling:
         # Get initial figure count
         initial_count = len(plt.get_fignums())
 
-        # This might fail, but should cleanup
+        # This might fail, but should cleanup. We intentionally do not re-raise
+        # the exception here so we can still verify that figure cleanup occurs.
         try:
             converter.convert(fig, "pdf")
         except Exception:
-            pass
+            logging.exception("MatplotlibConverter.convert raised an exception during cleanup test")
 
         # Figure count should be back to initial (cleanup happened)
         final_count = len(plt.get_fignums())
