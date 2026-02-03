@@ -64,13 +64,15 @@ def render_performance_page() -> None:
 
     with col3:
         st.subheader("Cache Management")
-        st.markdown("""
+        st.markdown(
+            """
         **How caching works:**
         - Plot figures cached by config + data
         - CSV metadata cached (columns, rows)
         - DataFrames cached for reuse
         - TTL: 5-10 minutes
-        """)
+        """
+        )
 
         if st.button("Clear All Caches", type="primary"):
             clear_all_caches()
@@ -110,7 +112,8 @@ def render_performance_page() -> None:
     # Performance Tips
     st.header("📊 Performance Tips")
 
-    st.markdown("""
+    st.markdown(
+        """
     ### Optimization Strategy
 
     1. **Data Loading**
@@ -138,7 +141,8 @@ def render_performance_page() -> None:
     - When debugging plot rendering
     - If memory usage is high
     - Before performance benchmarking
-    """)
+    """
+    )
 
     st.markdown("---")
 

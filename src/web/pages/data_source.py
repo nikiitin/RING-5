@@ -22,13 +22,15 @@ class DataSourcePage:
         """Render the data source page."""
         st.markdown(AppStyles.step_header("Step 1: Choose Data Source"), unsafe_allow_html=True)
 
-        st.info("""
+        st.info(
+            """
         **RING-5 supports two data input methods:**
 
         - **Parse gem5 Stats Files**: For raw gem5 output (stats.txt files)
         - **Upload CSV Directly**: If you already have parsed CSV data
         - **Load from Recent**: Quick access to previously parsed CSV files
-        """)
+        """
+        )
 
         choice = st.radio(
             "Select your data source:",

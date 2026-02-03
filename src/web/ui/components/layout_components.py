@@ -13,7 +13,8 @@ class LayoutComponents:
     def sidebar_info() -> None:
         """Display sidebar information about RING-5."""
         st.markdown("### About RING-5")
-        st.info("""
+        st.info(
+            """
         **Pure Python** implementation for gem5 data analysis.
 
         - Parse gem5 stats OR upload CSV
@@ -21,7 +22,8 @@ class LayoutComponents:
         - Interactive configuration
         - Real-time visualization
         - Professional plots
-        """)
+        """
+        )
 
     @staticmethod
     def navigation_menu() -> str:

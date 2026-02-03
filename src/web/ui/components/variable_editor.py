@@ -429,19 +429,19 @@ class VariableEditor:
         filtered_entries = VariableService.filter_internal_stats(discovered_entries)
 
         var_name = var_config.get("name", "")
-        
+
         # Check if this is a pattern variable and render pattern selector
         if PatternIndexSelector.is_pattern_variable(var_name):
             current_selection = original_var.get("patternSelection", None)
             use_filter, pattern_filtered = PatternIndexSelector.render_selector(
                 var_name, filtered_entries, var_id, current_selection
             )
-            
+
             if use_filter:
                 # Store pattern selection for future reference
                 var_config["patternSelection"] = pattern_filtered
                 filtered_entries = pattern_filtered
-        
+
         # Continue with normal entry selection
         current_entries = original_var.get("vectorEntries", [])
         if isinstance(current_entries, str):

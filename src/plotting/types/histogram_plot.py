@@ -30,9 +30,7 @@ class HistogramPlot(BasePlot):
         """
         super().__init__(plot_id, name, "histogram")
 
-    def render_config_ui(
-        self, data: pd.DataFrame, saved_config: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def render_config_ui(self, data: pd.DataFrame, saved_config: Dict[str, Any]) -> Dict[str, Any]:
         """
         Render configuration UI for histogram plot.
 
@@ -101,9 +99,7 @@ class HistogramPlot(BasePlot):
         # Normalization mode
         norm_options = ["count", "probability", "percent", "density"]
         norm_default = saved_config.get("normalization", "count")
-        norm_default_idx = (
-            norm_options.index(norm_default) if norm_default in norm_options else 0
-        )
+        norm_default_idx = norm_options.index(norm_default) if norm_default in norm_options else 0
 
         normalization = st.selectbox(
             "Normalization",
@@ -130,9 +126,7 @@ class HistogramPlot(BasePlot):
             "cumulative": cumulative,
         }
 
-    def create_figure(
-        self, data: pd.DataFrame, config: Dict[str, Any]
-    ) -> go.Figure:
+    def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
         """
         Create histogram plot figure.
 
@@ -154,14 +148,11 @@ class HistogramPlot(BasePlot):
         bucket_cols = [
             col
             for col in data.columns
-            if col.startswith(f"{histogram_var}..")
-            and not col.endswith(".sd")
+            if col.startswith(f"{histogram_var}..") and not col.endswith(".sd")
         ]
 
         if not bucket_cols:
-            raise ValueError(
-                f"No histogram bucket columns found for variable: {histogram_var}"
-            )
+            raise ValueError(f"No histogram bucket columns found for variable: {histogram_var}")
 
         # Parse bucket ranges and prepare data
         bucket_data = self._extract_bucket_data(data, bucket_cols, config)
@@ -274,8 +265,7 @@ class HistogramPlot(BasePlot):
             for group in groups:
                 group_data = data[data[group_by] == group]
                 values = [
-                    group_data[col].sum() if col in group_data.columns else 0
-                    for col in bucket_cols
+                    group_data[col].sum() if col in group_data.columns else 0 for col in bucket_cols
                 ]
                 result["data"][str(group)] = values
 
@@ -350,9 +340,7 @@ class HistogramPlot(BasePlot):
                 )
             )
 
-    def _normalize_values(
-        self, values: List[float], config: Dict[str, Any]
-    ) -> List[float]:
+    def _normalize_values(self, values: List[float], config: Dict[str, Any]) -> List[float]:
         """
         Normalize histogram values according to config.
 

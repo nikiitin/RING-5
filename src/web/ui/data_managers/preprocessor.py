@@ -23,14 +23,16 @@ class PreprocessorManager(DataManager):
         """Render the Preprocessor UI."""
         st.markdown("### Preprocessor (Basic)")
 
-        st.info("""
+        st.info(
+            """
         **Preprocessor** creates new columns by combining existing ones with mathematical
         operations.
 
         - **Divide**: Create ratios (e.g., IPC = instructions / cycles)
         - **Sum**: Add columns together (e.g., total_time = user_time + system_time)
         - Results are added as new columns to your dataset
-        """)
+        """
+        )
 
         # Get current data
         data = self.get_data()

@@ -112,13 +112,15 @@ class DataSourceComponents:
 
         # Variables configuration
         st.markdown("#### Variables to Extract")
-        st.markdown("""
+        st.markdown(
+            """
         Define which variables to extract from gem5 stats files:
         - **Scalar**: Single numeric values (e.g., simTicks, IPC)
         - **Vector**: Arrays of values with specified entries
         - **Distribution**: Statistical distributions with min/max range
         - **Configuration**: Metadata (benchmark name, config ID, seed)
-        """)
+        """
+        )
 
         # Scanner UI
         col_scan1, col_scan2 = st.columns([1, 3])
@@ -139,10 +141,8 @@ class DataSourceComponents:
                         # Process and store results
                         scanned_vars = facade.finalize_scan(scan_results)
                         StateManager.set_scanned_variables(scanned_vars)
-                    
-                    st.success(
-                        f"✅ Scan complete! Found {len(scanned_vars)} variables."
-                    )
+
+                    st.success(f"✅ Scan complete! Found {len(scanned_vars)} variables.")
                     st.rerun()
                 except Exception as e:
                     st.error(f"Scan failed: {e}")
