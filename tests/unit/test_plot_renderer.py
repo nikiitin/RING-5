@@ -144,7 +144,9 @@ def test_render_plot_regenerate(
 
 @patch("src.plotting.plot_renderer.LaTeXExportService")
 @patch("src.plotting.plot_renderer.interactive_plotly_chart")
-def test_render_plot_cached(mock_interactive_chart, mock_export_service, mock_streamlit, mock_plot, mock_preset_config):
+def test_render_plot_cached(
+    mock_interactive_chart, mock_export_service, mock_streamlit, mock_plot, mock_preset_config
+):
     # Configure the LaTeXExportService mock
     mock_service_instance = mock_export_service.return_value
     mock_service_instance.list_presets.return_value = ["single_column", "double_column"]
