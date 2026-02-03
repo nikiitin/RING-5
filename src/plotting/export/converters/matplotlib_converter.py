@@ -304,7 +304,9 @@ class MatplotlibConverter(BaseConverter):
                         float(first_x)
                         has_numeric_x = True
                     except (ValueError, TypeError):
-                        pass
+                        # first_x is not numeric; treat x as non-numeric and
+                        # keep has_numeric_x as False
+                        has_numeric_x = False
         except (TypeError, IndexError):
             has_categorical_x = False
 
