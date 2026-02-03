@@ -3,6 +3,8 @@ Unit Tests for Pattern Index Selector
 Tests pattern detection and index filtering logic.
 """
 
+import time
+
 from src.web.ui.components.pattern_index_selector import PatternIndexSelector
 
 
@@ -244,8 +246,6 @@ class TestReDoSSecurity:
 
     def test_no_redos_with_pathological_input(self) -> None:
         """Test that pathological inputs don't cause exponential backtracking."""
-        import time
-
         # Pathological case: many repeating characters that could cause
         # catastrophic backtracking with overlapping character classes
         pathological_input = "A" + "a" * 30
@@ -262,8 +262,6 @@ class TestReDoSSecurity:
 
     def test_no_redos_with_complex_input(self) -> None:
         """Test that complex inputs with many underscores complete quickly."""
-        import time
-
         # Input with many underscores and letters that could trigger backtracking
         complex_input = "_" * 20 + "a" * 20 + "A" * 20
 

@@ -39,7 +39,7 @@ class PatternIndexSelector:
         # Find all positions where \d+ appears and extract the preceding label
         # Match: (identifier starting with letter/underscore) followed by \d+
         # This handles: l\d+, cntrl\d+, cpu\d+, etc.
-        # Using explicit character class [a-zA-Z0-9_] instead of \w to avoid ReDoS
+        # Using explicit [a-zA-Z0-9_]* avoids overlap with initial [a-zA-Z_], preventing ReDoS
         pattern = r"([a-zA-Z_][a-zA-Z0-9_]*)\\d\+"
         matches = re.findall(pattern, var_name)
 
