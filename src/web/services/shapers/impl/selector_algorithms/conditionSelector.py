@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Callable, Dict, List, Optional, cast
 
 import pandas as pd
 
@@ -81,7 +81,8 @@ class ConditionSelector(Selector):
         # 2. Numeric Range
         if self.range is not None:
             v_min, v_max = self.range
-            return data_frame[(data_frame[col] >= v_min) & (data_frame[col] <= v_max)]
+            mask = (data_frame[col] >= v_min) & (data_frame[col] <= v_max)
+            return data_frame[mask]
 
         # 3. Explicit UI Modes
         if self.mode == "greater_than":
@@ -89,7 +90,8 @@ class ConditionSelector(Selector):
         elif self.mode == "less_than":
             return data_frame[data_frame[col] < self.threshold]
         elif self.mode == "equals":
-            return data_frame[data_frame[col] == self.value]  # type: ignore[no-any-return]
+            # Equality comparison may return Any in some pandas contexts
+            return cast(pd.DataFrame, data_frame[data_frame[col] == self.value])
         elif self.mode == "contains":
             mask = data_frame[col].astype(str).str.contains(str(self.value), na=False)
             return data_frame[mask]
@@ -112,7 +114,11 @@ class ConditionSelector(Selector):
                 "==": lambda x, y: x == y,
                 "!=": lambda x, y: x != y,
             }
-            if self.condition in ops:
-                return cast(pd.DataFrame, data_frame[ops[self.condition](data_frame[col], val)])
+            typed_ops: Dict[str, Callable[[Any, Any], Any]] = ops
+            if self.condition in typed_ops:
+                # Lambda returns Any - cast to document DataFrame return
+                return cast(
+                    pd.DataFrame, data_frame[typed_ops[self.condition](data_frame[col], val)]
+                )
 
         return data_frame

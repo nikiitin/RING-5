@@ -109,7 +109,6 @@ class BenchmarkSuite:
         """
         operation_name = name or func.__name__
 
-        result = None
         start = time.perf_counter()
 
         for _ in range(iterations):
@@ -119,6 +118,7 @@ class BenchmarkSuite:
         bench_result = BenchmarkResult(operation_name, elapsed, iterations)
         self.results.append(bench_result)
 
+        # result is guaranteed to be T after at least one iteration
         return result
 
     def summary(self) -> pd.DataFrame:
@@ -202,7 +202,6 @@ def benchmark_decorator(
         def wrapper(*args: Any, **kwargs: Any) -> T:
             operation_name = name or func.__name__
 
-            result = None
             start = time.perf_counter()
 
             for _ in range(iterations):
@@ -219,6 +218,7 @@ def benchmark_decorator(
                     f"({avg:.2f}ms avg over {iterations} iterations)"
                 )
 
+            # result is guaranteed to be T after at least one iteration
             return result
 
         return wrapper

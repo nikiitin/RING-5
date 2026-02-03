@@ -6,7 +6,7 @@ monolithic apply_to_matplotlib() into focused, testable methods.
 """
 
 import re
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Literal, Optional, cast
 
 from matplotlib.axes import Axes
 from matplotlib.transforms import ScaledTranslation, blended_transform_factory
@@ -84,7 +84,7 @@ class LayoutApplier:
             xtick_pad=preset.get("xtick_pad", 5.0),
             ytick_pad=preset.get("ytick_pad", 5.0),
             xtick_rotation=preset.get("xtick_rotation", 45.0),
-            xtick_ha=xtick_ha_value,  # type: ignore[arg-type]
+            xtick_ha=cast(Literal["left", "center", "right"], xtick_ha_value),
             xtick_offset=preset.get("xtick_offset", 0.0),
             xaxis_margin=preset.get("xaxis_margin", 0.02),
             group_label_offset=preset.get("group_label_offset", -0.12),
@@ -111,7 +111,7 @@ class LayoutApplier:
 
         return SeparatorConfig(
             enabled=preset.get("group_separator", False),
-            style=style_value,  # type: ignore[arg-type]
+            style=cast(Literal["solid", "dashed", "dotted", "dashdot"], style_value),
             color=preset.get("group_separator_color", "gray"),
         )
 

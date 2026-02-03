@@ -4,7 +4,7 @@ Single Responsibility: Manage plot objects and plot counter state.
 """
 
 import logging
-from typing import List, Optional
+from typing import List, Optional, cast
 
 import streamlit as st
 
@@ -40,7 +40,9 @@ class PlotRepository:
             List of BasePlot instances (empty list if none exist)
         """
         plots = st.session_state.get(PlotRepository.PLOTS_KEY, [])
-        return plots if plots else []
+        if plots:
+            return cast(List[BasePlot], plots)
+        return []
 
     @staticmethod
     def set_plots(plots: List[BasePlot]) -> None:

@@ -14,7 +14,7 @@ if str(root_dir) not in sys.path:
 
 def run_app():
     """Main application entry point."""
-    # LATE IMPORTS: Avoid loading UI/Plotting modules when this file is imported by background workers.
+    # LATE IMPORTS: Avoid loading UI/Plotting modules when this file is imported by workers.
     # This prevents the "missing ScriptRunContext" warnings.
     import streamlit as st
 

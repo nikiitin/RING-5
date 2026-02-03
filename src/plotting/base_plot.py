@@ -714,14 +714,17 @@ class BasePlot(ABC):
             with h5:
                 st.caption("Type")
 
+        # Helper function for editing shapes (different from add shape's try_float)
+        def try_float_edit(v: Any) -> Union[float, str]:
+            """Try to convert value to float, fallback to string."""
+            try:
+                return float(v)
+            except (ValueError, TypeError):
+                return str(v)
+
+        if st.session_state.get(f"edit_shapes_{self.plot_id}", False):
             for i, shape in enumerate(shapes):
                 c1, c2, c3, c4, c5, c6 = st.columns([1, 1, 1, 1, 1, 0.5])
-
-                def try_float(v: Any) -> Union[float, str]:  # type: ignore[misc]
-                    try:
-                        return float(v)
-                    except (ValueError, TypeError):
-                        return str(v)
 
                 with c1:
                     new_x0: str = st.text_input(
@@ -758,10 +761,10 @@ class BasePlot(ABC):
                         shapes.pop(i)
                         st.rerun()
 
-                shape["x0"] = try_float(new_x0)
-                shape["y0"] = try_float(new_y0)
-                shape["x1"] = try_float(new_x1)
-                shape["y1"] = try_float(new_y1)
+                shape["x0"] = try_float_edit(new_x0)
+                shape["y0"] = try_float_edit(new_y0)
+                shape["x1"] = try_float_edit(new_x1)
+                shape["y1"] = try_float_edit(new_y1)
 
         return shapes
 

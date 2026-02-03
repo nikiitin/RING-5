@@ -366,7 +366,7 @@ class VariableEditor:
                     st.error(f"Failed to start scan: {e}")
 
     @classmethod
-    @st.dialog("Deep Scan", dismissible=True)
+    @st.dialog("Deep Scan", dismissible=True)  # type: ignore[misc]
     def _show_scan_dialog(
         cls, var_name: str, var_id: str, facade: Any, futures: List[Any], is_distribution: bool
     ) -> None:

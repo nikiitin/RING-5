@@ -7,7 +7,7 @@ dimension control, and layout preservation.
 
 import io
 import logging
-from typing import Any, Dict, List, Literal, Tuple
+from typing import Any, Dict, List, Literal, Tuple, cast
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -112,7 +112,8 @@ class MatplotlibConverter(BaseConverter):
             if format not in ["pdf", "pgf", "eps"]:
                 raise ValueError(f"Unsupported format: {format}")
 
-            data = self._export_figure(mpl_fig, format)  # type: ignore[arg-type]
+            validated_format = cast(Literal["pdf", "pgf", "eps"], format)
+            data = self._export_figure(mpl_fig, validated_format)
 
             # Prepare metadata
             metadata: Dict[str, Any] = {

@@ -54,6 +54,7 @@ class PlotFactory:
             raise ValueError(f"Unknown plot type: {plot_type}")
 
         # Subclasses add plot_type in their __init__ before calling super()
+        # Type checker doesn't know subclass signatures, but we validate at runtime
         return plot_class(plot_id, name)  # type: ignore[call-arg]
 
     @classmethod

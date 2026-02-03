@@ -76,6 +76,9 @@ def test_render_advanced_options_shapes_edit_delete(mock_streamlit):
         "shapes": [{"type": "line", "x0": 0, "y0": 0, "x1": 1, "y1": 1, "line": {"color": "red"}}]
     }
 
+    # Enable edit mode in session state
+    mock_streamlit.session_state["edit_shapes_1"] = True
+
     # Mock inputs for editing
     # We want to delete the shape.
     # key=f"del_shape_{i}_{self.plot_id}" -> "del_shape_0_1"
@@ -102,6 +105,9 @@ def test_render_advanced_options_shapes_edit_delete(mock_streamlit):
         "1",
         "1",
     ]
+
+    # Mock st.rerun to prevent actual rerun
+    mock_streamlit.rerun = MagicMock()
 
     plot.render_advanced_options(config, None)
 

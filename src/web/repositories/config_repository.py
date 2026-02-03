@@ -4,7 +4,7 @@ Single Responsibility: Manage application configuration state.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 import streamlit as st
 
@@ -42,7 +42,9 @@ class ConfigRepository:
             Configuration dictionary (empty dict if not initialized)
         """
         config = st.session_state.get(ConfigRepository.CONFIG_KEY, {})
-        return config if config else {}
+        if config:
+            return cast(Dict[str, Any], config)
+        return {}
 
     @staticmethod
     def set_config(config: Dict[str, Any]) -> None:
@@ -143,7 +145,9 @@ class ConfigRepository:
             List of CSV pool entries (empty list if not initialized)
         """
         pool = st.session_state.get(ConfigRepository.CSV_POOL_KEY, [])
-        return pool if pool else []
+        if pool:
+            return cast(List[Dict[str, Any]], pool)
+        return []
 
     @staticmethod
     def set_csv_pool(pool: List[Dict[str, Any]]) -> None:
@@ -164,8 +168,10 @@ class ConfigRepository:
         Returns:
             List of saved configurations (empty list if not initialized)
         """
+        from typing import cast
+
         configs = st.session_state.get(ConfigRepository.SAVED_CONFIGS_KEY, [])
-        return configs if configs else []
+        return cast(List[Dict[str, Any]], configs if configs else [])
 
     @staticmethod
     def set_saved_configs(configs: List[Dict[str, Any]]) -> None:

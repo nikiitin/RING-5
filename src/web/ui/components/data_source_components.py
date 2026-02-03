@@ -5,6 +5,7 @@ from typing import Any, Dict, List
 
 import streamlit as st
 
+from src.parsers.scanner_service import ScannedVariable
 from src.web.facade import BackendFacade
 from src.web.state_manager import StateManager
 from src.web.ui.components.card_components import CardComponents
@@ -136,11 +137,13 @@ class DataSourceComponents:
                         )
                         # Wait for scan to complete
                         scan_results = [f.result() for f in scan_futures]
-                        # Process and store results
-                        scanned_vars_result: List[Dict[str, Any]] = facade.finalize_scan(
+                        # Process and store results - returns List[ScannedVariable]
+                        scanned_vars_result: List[ScannedVariable] = facade.finalize_scan(
                             scan_results
-                        )  # type: ignore[assignment]
-                        StateManager.set_scanned_variables(scanned_vars_result)
+                        )
+                        # Convert to dict format for StateManager
+                        scanned_vars_dicts = [dict(v) for v in scanned_vars_result]
+                        StateManager.set_scanned_variables(scanned_vars_dicts)
 
                     st.success(f"✅ Scan complete! Found {len(scanned_vars_result)} variables.")
                     st.rerun()
@@ -204,7 +207,7 @@ class DataSourceComponents:
                     logger.error("UI: Parsing submission failed: %s", e, exc_info=True)
 
     @staticmethod
-    @st.dialog("Add Variable")
+    @st.dialog("Add Variable")  # type: ignore[misc]
     def variable_config_dialog() -> None:
         """Dialog to add a new variable."""
         scanned_vars = StateManager.get_scanned_variables() or []
@@ -336,7 +339,7 @@ class DataSourceComponents:
                         st.rerun()
 
     @staticmethod
-    @st.dialog("Parsing gem5 Stats", dismissible=True)
+    @st.dialog("Parsing gem5 Stats", dismissible=True)  # type: ignore[misc]
     def _show_parse_dialog(facade: BackendFacade, futures: List[Any], output_dir: str) -> None:
         """Render the parsing progress dialog using blocking futures."""
         from concurrent.futures import as_completed

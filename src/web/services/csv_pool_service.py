@@ -175,7 +175,9 @@ class CsvPoolService:
         cached_df = CsvPoolService._dataframe_cache.get(cache_key)
         if cached_df is not None:
             # Trust cache contains DataFrame
-            return cached_df  # type: ignore[no-any-return]
+            from typing import cast
+
+            return cast(DataFrame, cached_df)
 
         # Load with optimizations
         # Note: low_memory doesn't work with python engine, so we use C engine when possible

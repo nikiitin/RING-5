@@ -24,4 +24,4 @@ class MultiDfShaper(Shaper):
         for df in data_frames:
             if not isinstance(df, pd.DataFrame):
                 raise ValueError("The data frame is not a pandas dataframe! Stopping")
-        return super().__call__(data_frames)  # type: ignore[arg-type]
+        return super().__call__(data_frames)
