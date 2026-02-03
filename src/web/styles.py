@@ -3,6 +3,8 @@ RING-5 Web Application Styles
 Centralized styling and theming for the Streamlit application.
 """
 
+from typing import Literal
+
 import streamlit as st
 
 
@@ -101,11 +103,11 @@ class PageConfig:
     @staticmethod
     def apply() -> None:
         """Apply page configuration (should be called once at app start)."""
-        layout_value: str = "wide"  # Explicit literal for mypy
-        sidebar_state: str = "expanded"
+        layout_value: Literal["centered", "wide"] = "wide"
+        sidebar_state: Literal["auto", "expanded", "collapsed"] = "expanded"
         st.set_page_config(
             page_title=PageConfig.TITLE,
             page_icon=PageConfig.ICON,
-            layout=layout_value,  # type: ignore[arg-type]
-            initial_sidebar_state=sidebar_state,  # type: ignore[arg-type]
+            layout=layout_value,
+            initial_sidebar_state=sidebar_state,
         )

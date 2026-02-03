@@ -93,7 +93,7 @@ class BenchmarkSuite:
         iterations: int = 1,
         name: Optional[str] = None,
         **kwargs: Any,
-    ) -> T:
+    ) -> Optional[T]:
         """
         Benchmark a function call.
 
@@ -119,7 +119,7 @@ class BenchmarkSuite:
         bench_result = BenchmarkResult(operation_name, elapsed, iterations)
         self.results.append(bench_result)
 
-        return result  # type: ignore[return-value]
+        return result
 
     def summary(self) -> pd.DataFrame:
         """
@@ -183,7 +183,7 @@ class BenchmarkSuite:
 
 def benchmark_decorator(
     iterations: int = 1, name: Optional[str] = None
-) -> Callable[[Callable[..., T]], Callable[..., T]]:
+) -> Callable[[Callable[..., T]], Callable[..., Optional[T]]]:
     """
     Decorator to benchmark a function.
 
@@ -197,9 +197,9 @@ def benchmark_decorator(
             return df.sort_values('column')
     """
 
-    def decorator(func: Callable[..., T]) -> Callable[..., T]:
+    def decorator(func: Callable[..., T]) -> Callable[..., Optional[T]]:
         @functools.wraps(func)
-        def wrapper(*args: Any, **kwargs: Any) -> T:
+        def wrapper(*args: Any, **kwargs: Any) -> Optional[T]:
             operation_name = name or func.__name__
 
             result = None
@@ -211,15 +211,15 @@ def benchmark_decorator(
             elapsed = (time.perf_counter() - start) * 1000  # ms
 
             if iterations == 1:
-                print(f"⏱️  {operation_name}: {elapsed:.2f}ms")
+                print(f"{operation_name}: {elapsed:.2f}ms")
             else:
                 avg = elapsed / iterations
                 print(
-                    f"⏱️  {operation_name}: {elapsed:.2f}ms total "
+                    f"{operation_name}: {elapsed:.2f}ms total "
                     f"({avg:.2f}ms avg over {iterations} iterations)"
                 )
 
-            return result  # type: ignore[return-value]
+            return result
 
         return wrapper
 
@@ -243,4 +243,4 @@ def timer(name: str) -> Any:
         yield
     finally:
         elapsed = (time.perf_counter() - start) * 1000
-        print(f"⏱️  {name}: {elapsed:.2f}ms")
+        print(f"{name}: {elapsed:.2f}ms")
