@@ -57,6 +57,41 @@ def mock_plot(mock_streamlit):
     return MockPlot()
 
 
+@pytest.fixture
+def mock_preset_config():
+    """Fixture providing common mock preset configuration for LaTeXExportService."""
+    return {
+        "width_inches": 3.5,
+        "height_inches": 2.5,
+        "dpi": 300,
+        "legend_columnspacing": 1.0,
+        "legend_labelspacing": 0.3,
+        "legend_handlelength": 1.5,
+        "legend_handleheight": 0.7,
+        "legend_handletextpad": 0.5,
+        "legend_borderpad": 0.3,
+        "legend_borderaxespad": 0.3,
+        "font_size_title": 10,
+        "font_size_xlabel": 9,
+        "font_size_ylabel": 9,
+        "font_size_legend": 8,
+        "font_size_ticks": 7,
+        "font_size_annotations": 6,
+        "bold_title": False,
+        "bold_xlabel": False,
+        "bold_ylabel": False,
+        "bold_ticks": False,
+        "bold_legend": False,
+        "bold_annotations": True,
+        "ylabel_pad": 10.0,
+        "ylabel_y_position": 0.5,
+        "xtick_pad": 5.0,
+        "ytick_pad": 5.0,
+        "xtick_rotation": 0.0,
+        "xtick_ha": "center",
+    }
+
+
 def test_render_legend_customization_no_col(mock_plot):
     mock_plot.config = {}  # No legend_col
     data = pd.DataFrame()
@@ -88,41 +123,12 @@ def test_render_legend_customization_with_col(mock_streamlit, mock_plot):
 @patch("src.plotting.plot_renderer.LaTeXExportService")
 @patch("src.plotting.plot_renderer.interactive_plotly_chart")
 def test_render_plot_regenerate(
-    mock_interactive_chart, mock_export_service, mock_streamlit, mock_plot
+    mock_interactive_chart, mock_export_service, mock_streamlit, mock_plot, mock_preset_config
 ):
     # Configure the LaTeXExportService mock
     mock_service_instance = mock_export_service.return_value
     mock_service_instance.list_presets.return_value = ["single_column", "double_column"]
-    mock_service_instance.get_preset_info.return_value = {
-        "width_inches": 3.5,
-        "height_inches": 2.5,
-        "dpi": 300,
-        "legend_columnspacing": 1.0,
-        "legend_labelspacing": 0.3,
-        "legend_handlelength": 1.5,
-        "legend_handleheight": 0.7,
-        "legend_handletextpad": 0.5,
-        "legend_borderpad": 0.3,
-        "legend_borderaxespad": 0.3,
-        "font_size_title": 10,
-        "font_size_xlabel": 9,
-        "font_size_ylabel": 9,
-        "font_size_legend": 8,
-        "font_size_ticks": 7,
-        "font_size_annotations": 6,
-        "bold_title": False,
-        "bold_xlabel": False,
-        "bold_ylabel": False,
-        "bold_ticks": False,
-        "bold_legend": False,
-        "bold_annotations": True,
-        "ylabel_pad": 10.0,
-        "ylabel_y_position": 0.5,
-        "xtick_pad": 5.0,
-        "ytick_pad": 5.0,
-        "xtick_rotation": 0.0,
-        "xtick_ha": "center",
-    }
+    mock_service_instance.get_preset_info.return_value = mock_preset_config
 
     mock_plot.processed_data = pd.DataFrame({"x": [1]})
 
@@ -138,40 +144,11 @@ def test_render_plot_regenerate(
 
 @patch("src.plotting.plot_renderer.LaTeXExportService")
 @patch("src.plotting.plot_renderer.interactive_plotly_chart")
-def test_render_plot_cached(mock_interactive_chart, mock_export_service, mock_streamlit, mock_plot):
+def test_render_plot_cached(mock_interactive_chart, mock_export_service, mock_streamlit, mock_plot, mock_preset_config):
     # Configure the LaTeXExportService mock
     mock_service_instance = mock_export_service.return_value
     mock_service_instance.list_presets.return_value = ["single_column", "double_column"]
-    mock_service_instance.get_preset_info.return_value = {
-        "width_inches": 3.5,
-        "height_inches": 2.5,
-        "legend_columnspacing": 1.0,
-        "legend_labelspacing": 0.3,
-        "legend_handlelength": 1.5,
-        "legend_handleheight": 0.7,
-        "legend_handletextpad": 0.5,
-        "legend_borderpad": 0.3,
-        "legend_borderaxespad": 0.3,
-        "font_size_title": 10,
-        "font_size_xlabel": 9,
-        "font_size_ylabel": 9,
-        "font_size_legend": 8,
-        "dpi": 300,
-        "font_size_ticks": 7,
-        "font_size_annotations": 6,
-        "bold_title": False,
-        "bold_xlabel": False,
-        "bold_ylabel": False,
-        "bold_ticks": False,
-        "bold_legend": False,
-        "bold_annotations": True,
-        "ylabel_pad": 10.0,
-        "ylabel_y_position": 0.5,
-        "xtick_pad": 5.0,
-        "ytick_pad": 5.0,
-        "xtick_rotation": 0.0,
-        "xtick_ha": "center",
-    }
+    mock_service_instance.get_preset_info.return_value = mock_preset_config
 
     fig = MagicMock()
     # Safely mock to_json in case real code is hit
@@ -198,40 +175,11 @@ def test_render_plot_cached(mock_interactive_chart, mock_export_service, mock_st
 
 
 @patch("src.plotting.plot_renderer.LaTeXExportService")
-def test_export_delegation(mock_export_service, mock_streamlit, mock_plot):
+def test_export_delegation(mock_export_service, mock_streamlit, mock_plot, mock_preset_config):
     # Configure the LaTeXExportService mock
     mock_service_instance = mock_export_service.return_value
     mock_service_instance.list_presets.return_value = ["single_column", "double_column"]
-    mock_service_instance.get_preset_info.return_value = {
-        "width_inches": 3.5,
-        "height_inches": 2.5,
-        "legend_columnspacing": 1.0,
-        "legend_labelspacing": 0.3,
-        "legend_handlelength": 1.5,
-        "legend_handleheight": 0.7,
-        "legend_handletextpad": 0.5,
-        "legend_borderpad": 0.3,
-        "legend_borderaxespad": 0.3,
-        "font_size_title": 10,
-        "font_size_xlabel": 9,
-        "dpi": 300,
-        "font_size_ylabel": 9,
-        "font_size_legend": 8,
-        "font_size_ticks": 7,
-        "font_size_annotations": 6,
-        "bold_title": False,
-        "bold_xlabel": False,
-        "bold_ylabel": False,
-        "bold_ticks": False,
-        "bold_legend": False,
-        "bold_annotations": True,
-        "ylabel_pad": 10.0,
-        "ylabel_y_position": 0.5,
-        "xtick_pad": 5.0,
-        "ytick_pad": 5.0,
-        "xtick_rotation": 0.0,
-        "xtick_ha": "center",
-    }
+    mock_service_instance.get_preset_info.return_value = mock_preset_config
 
     fig = MagicMock()
 
