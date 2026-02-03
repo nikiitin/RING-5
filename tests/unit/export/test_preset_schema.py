@@ -40,11 +40,11 @@ class TestLaTeXPreset:
         """Verify LaTeXPreset has correct type annotations."""
         hints = get_type_hints(LaTeXPreset)
 
-        assert hints["width_inches"] == float
-        assert hints["height_inches"] == float
-        assert hints["font_family"] == str
-        assert hints["font_size_base"] == int
-        assert hints["dpi"] == int
+        assert hints["width_inches"] is float
+        assert hints["height_inches"] is float
+        assert hints["font_family"] is str
+        assert hints["font_size_base"] is int
+        assert hints["dpi"] is int
 
     def test_latex_preset_accepts_valid_values(self) -> None:
         """Test LaTeXPreset accepts valid preset configurations."""
@@ -116,8 +116,8 @@ class TestExportResult:
         """Verify ExportResult has correct type annotations."""
         hints = get_type_hints(ExportResult)
 
-        assert hints["success"] == bool
-        assert hints["format"] == str
+        assert hints["success"] is bool
+        assert hints["format"] is str
         # Optional types are represented as Union in get_type_hints
 
     def test_export_result_metadata_can_store_layout_info(self) -> None:
