@@ -188,7 +188,7 @@ def test_latex_dependencies():
     # Check for cm-super package (type1ec.sty)
     if shutil.which("kpsewhich"):
         try:
-            result = subprocess.run(  # nosec B607 - kpsewhich is from TeX Live
+            result = subprocess.run(  # nosec B603 - kpsewhich is from TeX Live
                 ["kpsewhich", "type1ec.sty"],
                 capture_output=True,
                 text=True,
