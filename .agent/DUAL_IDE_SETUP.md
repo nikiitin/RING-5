@@ -4,17 +4,18 @@ RING-5 supports **both Google Antigravity IDE and GitHub Copilot (VSCode)** with
 
 ## 📋 Quick Reference
 
-| Feature | Google Antigravity | GitHub Copilot (VSCode) |
-|---------|-------------------|------------------------|
-| **Rules** | `.agent/rules/*.md` | `.github/copilot-instructions.md` |
-| **Workflows** | `.agent/workflows/*.md` → `/workflow-name` | Referenced as documentation |
-| **Skills** | `.agent/skills/*/SKILL.md` | `.agent/skills/*.md` (legacy) |
-| **Activation** | Automatic (by description) | Context-aware |
-| **Location** | Mission Control view | Chat panel |
+| Feature        | Google Antigravity                         | GitHub Copilot (VSCode)           |
+| -------------- | ------------------------------------------ | --------------------------------- |
+| **Rules**      | `.agent/rules/*.md`                        | `.github/copilot-instructions.md` |
+| **Workflows**  | `.agent/workflows/*.md` → `/workflow-name` | Referenced as documentation       |
+| **Skills**     | `.agent/skills/*/SKILL.md`                 | `.agent/skills/*.md` (legacy)     |
+| **Activation** | Automatic (by description)                 | Context-aware                     |
+| **Location**   | Mission Control view                       | Chat panel                        |
 
 ## 🎯 Configuration Files
 
 ### Google Antigravity IDE
+
 ```
 .agent/
 ├── rules/
@@ -36,6 +37,7 @@ RING-5 supports **both Google Antigravity IDE and GitHub Copilot (VSCode)** with
 ```
 
 ### GitHub Copilot (VSCode)
+
 ```
 .github/
 └── copilot-instructions.md         # All instructions in one file
@@ -57,9 +59,11 @@ RING-5 supports **both Google Antigravity IDE and GitHub Copilot (VSCode)** with
    - Contains core guidelines, patterns, and constraints
 
 2. **Workflows**: Invoke by name
+
    ```
    /test-driven-development
    ```
+
    Agent guides you through each step sequentially
 
 3. **Skills**: Automatically activated
@@ -86,14 +90,16 @@ RING-5 supports **both Google Antigravity IDE and GitHub Copilot (VSCode)** with
 Both IDEs follow the same:
 
 ### Core Principles
+
 - ✅ **Test-Driven Development**: NO code without passing tests
 - ✅ **Strong Typing**: mypy --strict on all code
-- ✅ **Async-First Architecture**: Use submit_*_async + finalize_* pattern
+- ✅ **Async-First Architecture**: Use submit*\*\_async + finalize*\* pattern
 - ✅ **Layered Architecture**: Data (A) → Domain (B) → Presentation (C)
 - ✅ **Zero Hallucination**: Never invent data or values
 - ❌ **NO Git Operations**: STRICTLY forbidden for AI agents
 
 ### Architectural Patterns
+
 - Factory Pattern for plots and shapers
 - Facade Pattern for backend access
 - Strategy Pattern for parsing
@@ -101,6 +107,7 @@ Both IDEs follow the same:
 - Immutable DataFrame transformations
 
 ### Code Quality
+
 - Type hints on ALL functions and classes
 - Unit tests before implementation
 - Integration tests for workflows
@@ -109,7 +116,9 @@ Both IDEs follow the same:
 - Mypy strict mode
 
 ### Autonomous Behavior
+
 Both agents have FULL AUTONOMY to:
+
 - Read/create/edit files
 - Run tests and type checking
 - Execute development commands
@@ -117,6 +126,7 @@ Both agents have FULL AUTONOMY to:
 - Debug and analyze code
 
 Both agents MUST NEVER:
+
 - Execute git commands
 - Commit or push changes
 - Manipulate version control
@@ -124,12 +134,14 @@ Both agents MUST NEVER:
 ## 📖 Documentation
 
 ### For Users
+
 - [`.agent/README.md`](.agent/README.md) - General overview
 - [`.agent/ANTIGRAVITY_README.md`](.agent/ANTIGRAVITY_README.md) - Antigravity-specific guide
 - [`.agent/workflows/README.md`](.agent/workflows/README.md) - Workflow catalog
 - [`.agent/skills/README.md`](.agent/skills/README.md) - Skills catalog
 
 ### For Developers
+
 - [`.github/copilot-instructions.md`](../.github/copilot-instructions.md) - Complete Copilot setup
 - [`.agent/rules/project-context.md`](.agent/rules/project-context.md) - Core rules
 - [`CONTRIBUTING.md`](../CONTRIBUTING.md) - Contribution guidelines
@@ -155,6 +167,7 @@ Both agents MUST NEVER:
 
 1. Create `.agent/workflows/workflow-name.md`
 2. Format:
+
    ```markdown
    # Workflow Title
 
@@ -162,8 +175,10 @@ Both agents MUST NEVER:
    > **Purpose**: Description
 
    ## Steps
+
    ...
    ```
+
 3. Add entry to `.agent/workflows/README.md`
 4. Test invocation in Antigravity
 
@@ -182,12 +197,14 @@ To ensure dual-IDE compatibility:
 ## 🎓 Learning Resources
 
 ### Google Antigravity
+
 - [Official Documentation](https://antigravity.google/docs)
 - [Rules & Workflows Guide](https://antigravity.google/docs/rules-workflows)
 - [Skills Documentation](https://antigravity.google/docs/skills)
 - [Agent Skills Standard](https://agentskills.io/)
 
 ### GitHub Copilot
+
 - [Copilot Documentation](https://docs.github.com/copilot)
 - [Workspace Instructions](https://code.visualstudio.com/docs/copilot/copilot-customization)
 

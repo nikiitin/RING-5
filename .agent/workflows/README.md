@@ -5,6 +5,7 @@ Workflows are step-by-step processes for common development tasks. In Google Ant
 ## Available Workflows
 
 ### `/test-driven-development`
+
 **Purpose**: Guide all code changes through the TDD process
 **When to use**: Every time you write new code, fix bugs, or refactor
 **Complexity**: Fundamental
@@ -12,6 +13,7 @@ Workflows are step-by-step processes for common development tasks. In Google Ant
 Enforces the golden rule: Write Test → See it Fail → Write Code → See it Pass → Refactor
 
 Key steps:
+
 1. Write the test first (unit or integration)
 2. Run test to see it fail
 3. Implement minimum code to pass
@@ -25,11 +27,13 @@ Key steps:
 ---
 
 ### `/new-variable-type`
+
 **Purpose**: Add support for new gem5 statistics variable types
 **When to use**: Extending parser for new gem5 stat formats
 **Complexity**: Advanced
 
 Guides through complete implementation:
+
 1. Analyze gem5 stat format
 2. Create Perl parser script
 3. Register in TypeMapper
@@ -45,6 +49,7 @@ Covers: Parser implementation, testing, type mapping, and validation.
 ## Using Workflows
 
 ### In Google Antigravity
+
 Simply type `/workflow-name` in the Agent input:
 
 ```
@@ -54,9 +59,11 @@ Simply type `/workflow-name` in the Agent input:
 The agent will guide you through each step sequentially.
 
 ### In GitHub Copilot (VSCode)
+
 Workflows are available as reference documentation. The agent will follow the patterns described when appropriate.
 
 ### Chaining Workflows
+
 Workflows can call other workflows. For example, `/new-variable-type` internally follows `/test-driven-development` principles.
 
 ## Creating New Workflows
@@ -78,9 +85,11 @@ Brief explanation of what the workflow achieves.
 ## Steps
 
 ### Step 1: [Action]
+
 Detailed instructions...
 
 ### Step 2: [Action]
+
 Detailed instructions...
 
 ...

@@ -56,6 +56,7 @@ discovered_variables = facade.finalize_scan(scan_results)
 ```
 
 **Key points**:
+
 - Always use `submit_scan_async()` + `finalize_scan()` pattern
 - Never create synchronous wrappers
 - Pattern aggregation happens automatically (cpu0, cpu1 → cpu\d+)
@@ -199,7 +200,7 @@ def test_parsing_workflow():
 ## Common Anti-Patterns
 
 ❌ **DON'T**: Create synchronous wrappers around async API
-✅ **DO**: Use async primitives (submit_*_async + finalize_*)
+✅ **DO**: Use async primitives (submit*\*\_async + finalize*\*)
 
 ❌ **DON'T**: Forget to pass scanned_vars for regex resolution
 ✅ **DO**: Always pass scanned_vars when using regex patterns

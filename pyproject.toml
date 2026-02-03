@@ -72,7 +72,10 @@ markers = [
   "benchmark: marks tests as performance benchmarks (deselect with '-m \"not benchmark\"')",
 ]
 filterwarnings = [
-  "ignore:.*Support for the 'engine' argument is deprecated.*:DeprecationWarning",
+  # Plotly 6.5.2 has deprecated 'engine' parameter code that should have been removed Sept 2025
+  # We're now in Feb 2026 - this is plotly's internal code, not ours. Will break when they remove it.
+  # See: https://github.com/plotly/plotly.py (track plotly updates for fix)
+  "ignore::DeprecationWarning:plotly.io._kaleido",
 ]
 
 [tool.black]

@@ -7,6 +7,7 @@ Complete guide to exporting publication-quality plots from RING-5 for LaTeX/PDF 
 RING-5 provides a **Matplotlib-based export system** specifically designed for academic publication. Export plots to PDF, PGF, or EPS formats optimized for LaTeX documents, with automatic preservation of your interactive adjustments (legend positioning, zoom levels, layout customizations).
 
 **Key Features**:
+
 - ✅ **Publication-Ready**: Journal-specific presets (single/double column, Nature, IEEE, etc.)
 - ✅ **Layout Preservation**: Maintains legend positions, zoom, log scales from interactive UI
 - ✅ **Multiple Formats**: PDF (recommended), PGF (LaTeX-native), EPS (legacy)
@@ -16,6 +17,7 @@ RING-5 provides a **Matplotlib-based export system** specifically designed for a
 ## Prerequisites
 
 **Required System Packages**:
+
 ```bash
 # Basic LaTeX support (PDF/EPS formats):
 sudo apt-get install texlive-latex-base texlive-fonts-recommended \
@@ -29,6 +31,7 @@ make install-latex
 ```
 
 **Package Details**:
+
 - `texlive-latex-base`: Core LaTeX engine (pdflatex) + amsmath, amssymb
 - `texlive-fonts-recommended`: Standard LaTeX fonts
 - `texlive-fonts-extra`: Additional font packages (~629 MB)
@@ -38,6 +41,7 @@ make install-latex
 
 **LaTeX Packages Used by Matplotlib**:
 The export automatically includes these LaTeX packages in the preamble:
+
 - `inputenc[utf8]`: UTF-8 input encoding
 - `fontenc[T1]`: T1 font encoding (prevents \mathdefault errors)
 - `amsmath`: Advanced math typesetting
@@ -47,6 +51,7 @@ The export automatically includes these LaTeX packages in the preamble:
 Use LaTeX math mode instead: `$\\alpha$`, `$\\beta$`, etc.
 
 **Verification**:
+
 ```bash
 latex --version    # Should show TeX Live version
 xelatex --version  # Required for PGF format
@@ -60,6 +65,7 @@ make check-latex   # Automated verification
 ### 1. Using the Web Interface (Recommended)
 
 **Steps**:
+
 1. Create your plot in RING-5's web interface
 2. Adjust legend position, zoom, layout as desired
 3. Click **"📥 Export for LaTeX"** expander below the plot
@@ -70,7 +76,8 @@ make check-latex   # Automated verification
 6. Download the file using the provided button
 
 **Example Workflow**:
-```
+
+```text
 1. Load data → Create bar chart
 2. Drag legend to top-right corner
 3. Zoom to interesting region
@@ -124,12 +131,14 @@ else:
 **Use When**: General-purpose export for LaTeX documents
 
 **Advantages**:
+
 - Works everywhere (LaTeX, Word, PowerPoint)
 - Self-contained (fonts embedded)
 - Vector format (scales to any size)
 - Easy to include: `\includegraphics{figure.pdf}`
 
 **LaTeX Usage**:
+
 ```latex
 \begin{figure}[htbp]
   \centering
@@ -146,16 +155,19 @@ else:
 **Use When**: You want LaTeX to render text natively
 
 **Advantages**:
+
 - Text rendered by LaTeX (matches document fonts perfectly)
 - Supports LaTeX math in labels: `$\alpha$`, `$\sum_{i=1}^n$`
 - Smallest file size (text is source code, not embedded)
 
 **Disadvantages**:
+
 - Requires LaTeX compilation
 - Slower to compile
 - Harder to preview outside LaTeX
 
 **LaTeX Usage**:
+
 ```latex
 \usepackage{pgf}
 
@@ -174,14 +186,17 @@ else:
 **Use When**: Required by old journals/conferences
 
 **Advantages**:
+
 - Universally supported (even ancient TeX systems)
 - Vector format
 
 **Disadvantages**:
+
 - Larger file size than PDF
 - Outdated (PDF preferred in modern LaTeX)
 
 **LaTeX Usage**:
+
 ```latex
 \usepackage{graphicx}
 \usepackage{epstopdf}  % Auto-converts EPS → PDF
@@ -200,16 +215,17 @@ else:
 
 RING-5 includes presets for common publication formats:
 
-| Preset Name       | Width    | Height   | Font Size | Use Case                          |
-|-------------------|----------|----------|-----------|-----------------------------------|
-| `single_column`   | 3.5"     | 2.625"   | 9pt       | Single-column papers (default)    |
-| `double_column`   | 7.0"     | 5.25"    | 10pt      | Double-column spanning figures    |
-| `nature`          | 3.46"    | 2.6"     | 8pt       | Nature journals                   |
-| `ieee`            | 3.5"     | 2.625"   | 8pt       | IEEE conferences/journals         |
-| `acm_sigconf`     | 3.33"    | 2.5"     | 9pt       | ACM conferences                   |
-| `presentation`    | 6.0"     | 4.5"     | 12pt      | Slides/presentations              |
+| Preset Name     | Width | Height | Font Size | Use Case                       |
+| --------------- | ----- | ------ | --------- | ------------------------------ |
+| `single_column` | 3.5"  | 2.625" | 9pt       | Single-column papers (default) |
+| `double_column` | 7.0"  | 5.25"  | 10pt      | Double-column spanning figures |
+| `nature`        | 3.46" | 2.6"   | 8pt       | Nature journals                |
+| `ieee`          | 3.5"  | 2.625" | 8pt       | IEEE conferences/journals      |
+| `acm_sigconf`   | 3.33" | 2.5"   | 9pt       | ACM conferences                |
+| `presentation`  | 6.0"  | 4.5"   | 12pt      | Slides/presentations           |
 
 **View All Presets**:
+
 ```python
 service = LaTeXExportService()
 presets = service.list_presets()
@@ -217,6 +233,7 @@ print(presets)  # ['single_column', 'double_column', ...]
 ```
 
 **Inspect Preset Details**:
+
 ```python
 info = service.get_preset_info("single_column")
 print(info)
@@ -277,6 +294,7 @@ RING-5 automatically preserves your interactive adjustments:
 **Export**: Axis ranges preserved (`xaxis.range`, `yaxis.range`)
 
 **Example**:
+
 ```python
 # User zooms to [0.5, 2.5] on x-axis in web UI
 fig.layout.xaxis.range = [0.5, 2.5]  # Automatically captured
@@ -310,6 +328,7 @@ This ensures exported figures match your **final visual intent**, not intermedia
 **Cause**: Missing `cm-super` font package (required for LaTeX text rendering)
 
 **Solution**:
+
 ```bash
 sudo apt-get install cm-super texlive-fonts-extra
 ```
@@ -323,6 +342,7 @@ sudo apt-get install cm-super texlive-fonts-extra
 **Cause**: Missing XeLaTeX engine (required for PGF format only)
 
 **Solution**:
+
 ```bash
 sudo apt-get install texlive-xetex
 ```
@@ -336,6 +356,7 @@ sudo apt-get install texlive-xetex
 **Cause**: Figure has no data traces, or all traces have empty data arrays
 
 **Solution**: Ensure your figure contains at least one trace with non-empty data:
+
 ```python
 fig = go.Figure()
 fig.add_trace(go.Bar(x=[1, 2, 3], y=[4, 5, 6]))  # ✅ Has data
@@ -352,6 +373,7 @@ bad_fig = go.Figure(data=[go.Bar(x=[], y=[])])  # Empty data
 **Cause**: Missing LaTeX system packages
 
 **Solution**:
+
 ```bash
 # Ubuntu/Debian - Complete installation
 sudo apt-get install texlive-latex-base texlive-fonts-recommended texlive-fonts-extra cm-super dvipng
@@ -368,12 +390,14 @@ latex --version
 ### Export Succeeds but Figure Looks Wrong
 
 **Check**:
+
 1. **Preset matches journal**: Use correct column width preset
 2. **Data visible**: Ensure data points aren't outside axis ranges
-3. **Font sizes**: Adjust font_size_* in custom preset if too small/large
+3. **Font sizes**: Adjust font*size*\* in custom preset if too small/large
 4. **DPI**: Increase `dpi` (default 300) for higher resolution
 
 **Debug**:
+
 ```python
 result = service.export(fig, preset="single_column", format="pdf")
 print(result["metadata"])  # Check what was applied
@@ -386,11 +410,13 @@ print(result["metadata"])  # Check what was applied
 **Cause**: LaTeX text rendering is slow for PGF/EPS formats
 
 **Solutions**:
+
 - Use PDF format (faster, no LaTeX required)
 - Reduce number of data points (downsample before plotting)
 - Disable LaTeX text rendering (future feature)
 
 **Typical Times**:
+
 - PDF: 1-2 seconds
 - PGF: 5-10 seconds (LaTeX compilation)
 - EPS: 5-10 seconds (LaTeX compilation)
@@ -408,11 +434,13 @@ Main API for exporting figures.
 Export Plotly figure to LaTeX-optimized format.
 
 **Parameters**:
+
 - `fig` (plotly.graph_objects.Figure): Figure to export
 - `preset` (str | LaTeXPreset): Preset name or custom dict
 - `format` (str): Output format - "pdf", "pgf", or "eps"
 
 **Returns**: ExportResult TypedDict:
+
 ```python
 {
     "success": bool,       # True if export succeeded
@@ -424,6 +452,7 @@ Export Plotly figure to LaTeX-optimized format.
 ```
 
 **Example**:
+
 ```python
 service = LaTeXExportService()
 result = service.export(fig, "single_column", "pdf")
@@ -442,6 +471,7 @@ Get list of available journal presets.
 **Returns**: List[str] - Preset names
 
 **Example**:
+
 ```python
 presets = service.list_presets()
 # ['single_column', 'double_column', 'nature', 'ieee', ...]
@@ -454,11 +484,13 @@ presets = service.list_presets()
 Get detailed information about a preset.
 
 **Parameters**:
+
 - `preset_name` (str): Name of preset to inspect
 
 **Returns**: LaTeXPreset dict with configuration
 
 **Example**:
+
 ```python
 info = service.get_preset_info("nature")
 print(f"Width: {info['width_inches']} inches")
@@ -550,7 +582,7 @@ for name, fig in figures.items():
 
 The export system uses a **layered architecture**:
 
-```
+```text
 ┌─────────────────────────────────────┐
 │  Web UI (plot_renderer.py)          │  ← Phase 6
 │  - Export dialog                    │
@@ -577,6 +609,7 @@ The export system uses a **layered architecture**:
 ```
 
 **Key Components**:
+
 - **LaTeXExportService**: Simple API for users (Facade pattern)
 - **MatplotlibConverter**: Converts Plotly → Matplotlib with LaTeX rendering
 - **PresetManager**: Loads and validates journal presets
@@ -600,12 +633,14 @@ pytest tests/unit/export/converters/test_matplotlib_converter.py -v
 ```
 
 **Test Coverage**:
+
 - Phase 1-2: 23 tests (presets, layout mapper, base converter)
 - Phase 3: 27 tests (Matplotlib converter)
 - Phase 5: 17 tests (export service)
 - **Total**: 67 tests
 
 **Type Checking**:
+
 ```bash
 mypy src/plotting/export/ --strict  # Must pass
 ```
@@ -618,18 +653,19 @@ RING-5 previously used Kaleido for export. This has been **completely removed** 
 
 ### What Changed
 
-| Feature              | Legacy (Kaleido)      | New (Matplotlib)     |
-|----------------------|-----------------------|----------------------|
-| Export formats       | PNG, SVG, PDF         | PDF, PGF, EPS        |
-| Dependencies         | Kaleido binary        | Matplotlib + LaTeX   |
-| Layout preservation  | None                  | Full (legend, zoom)  |
-| Journal presets      | None                  | 6+ built-in          |
-| Type safety          | Partial               | mypy --strict        |
-| Test coverage        | Limited               | 67 comprehensive     |
+| Feature             | Legacy (Kaleido) | New (Matplotlib)    |
+| ------------------- | ---------------- | ------------------- |
+| Export formats      | PNG, SVG, PDF    | PDF, PGF, EPS       |
+| Dependencies        | Kaleido binary   | Matplotlib + LaTeX  |
+| Layout preservation | None             | Full (legend, zoom) |
+| Journal presets     | None             | 6+ built-in         |
+| Type safety         | Partial          | mypy --strict       |
+| Test coverage       | Limited          | 67 comprehensive    |
 
 ### Migration Steps
 
 **Old Code**:
+
 ```python
 # DEPRECATED - DO NOT USE
 from src.plotting.export import ExportService
@@ -638,6 +674,7 @@ service.render_download_button(plot, fig)  # Old API
 ```
 
 **New Code**:
+
 ```python
 # Use LaTeXExportService instead
 from src.plotting.export import LaTeXExportService
@@ -663,6 +700,7 @@ result = service.export(fig, "single_column", "pdf")
 **Questions**: Open an issue on GitHub with the `export` label
 
 **Bug Reports**: Include:
+
 1. Operating system
 2. Python version (`python --version`)
 3. LaTeX version (`latex --version`)

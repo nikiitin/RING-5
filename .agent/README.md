@@ -5,17 +5,20 @@
 ## 🎯 Quick Start
 
 ### For Google Antigravity Users
+
 - **Rules**: [rules/project-context.md](rules/project-context.md) - Always active
 - **Workflows**: Invoke with `/workflow-name` (see [workflows/](workflows/))
 - **Skills**: Auto-activate based on task (see [skills/](skills/))
 - **Guide**: [ANTIGRAVITY_README.md](ANTIGRAVITY_README.md)
 
 ### For GitHub Copilot (VSCode) Users
+
 - **Instructions**: [../.github/copilot-instructions.md](../.github/copilot-instructions.md)
-- **Skills**: Available in [skills/*.md](skills/) (legacy format)
+- **Skills**: Available in [skills/\*.md](skills/) (legacy format)
 - **Workflows**: Referenced as documentation patterns
 
 ### Dual IDE Support
+
 See [DUAL_IDE_SETUP.md](DUAL_IDE_SETUP.md) for complete dual-IDE configuration guide.
 
 ---

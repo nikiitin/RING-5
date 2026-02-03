@@ -270,10 +270,13 @@ class LayoutApplier:
         if "legend" in layout:
             legend_config = layout["legend"]
             if "x" in legend_config and "y" in legend_config:
-                ax.legend(
-                    bbox_to_anchor=(legend_config["x"], legend_config["y"]),
-                    loc="upper left",
-                )
+                # Only create legend if there are labeled artists
+                handles, labels = ax.get_legend_handles_labels()
+                if handles:
+                    ax.legend(
+                        bbox_to_anchor=(legend_config["x"], legend_config["y"]),
+                        loc="upper left",
+                    )
 
     def _apply_annotations(self, ax: Axes, layout: Dict[str, Any]) -> None:
         """

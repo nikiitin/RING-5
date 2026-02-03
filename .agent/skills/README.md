@@ -5,11 +5,13 @@ Skills are reusable packages of knowledge that extend what the agent can do. The
 ## Available Skills
 
 ### `parsing-workflow`
+
 **Activates when**: Working with gem5 stats parsing, scanning variables, or data loading
 **Contains**: Complete async-first parsing workflow patterns
 **Format**: [SKILL.md](parsing-workflow/SKILL.md)
 
 Key knowledge:
+
 - 4-phase workflow: Scan → Select → Parse → Load
 - Async API patterns with concurrent.futures
 - Error handling and validation
@@ -19,11 +21,13 @@ Key knowledge:
 ---
 
 ### `new-plot-type`
+
 **Activates when**: Adding new visualizations or custom chart types
 **Contains**: Step-by-step plot implementation guide
 **Format**: [SKILL.md](new-plot-type/SKILL.md)
 
 Key knowledge:
+
 - Factory pattern implementation
 - BasePlot interface
 - Plotly figure creation
@@ -33,11 +37,13 @@ Key knowledge:
 ---
 
 ### `shaper-pipeline`
+
 **Activates when**: Implementing data transformations or processing pipelines
 **Contains**: Shaper creation and pipeline patterns
 **Format**: [SKILL.md](shaper-pipeline/SKILL.md)
 
 Key knowledge:
+
 - Shaper interface and protocol
 - Pipeline composition
 - Built-in shapers catalog
@@ -47,11 +53,13 @@ Key knowledge:
 ---
 
 ### `debug-async-parsing`
+
 **Activates when**: Troubleshooting parsing failures or async issues
 **Contains**: Debugging guide for async parsing workflows
 **Format**: [SKILL.md](debug-async-parsing/SKILL.md)
 
 Key knowledge:
+
 - Common failure modes
 - Timeout diagnostics
 - Concurrent.futures debugging
@@ -105,6 +113,7 @@ Step-by-step guidance and conventions.
 ### Automatic Activation
 
 You don't need to explicitly invoke skills. The agent decides based on:
+
 - Your task description
 - Current context
 - Skill descriptions
@@ -123,6 +132,7 @@ However, you can mention a skill by name to ensure it's used.
 ### Best Practices
 
 ✅ **DO**:
+
 - Keep skills focused on one domain
 - Write specific, keyword-rich descriptions
 - Include decision trees for complex scenarios
@@ -130,6 +140,7 @@ However, you can mention a skill by name to ensure it's used.
 - Provide complete code examples
 
 ❌ **DON'T**:
+
 - Create "do everything" mega-skills
 - Use vague descriptions
 - Forget to update when code changes
@@ -142,6 +153,7 @@ However, you can mention a skill by name to ensure it's used.
 **Use a Workflow when**: You want a specific sequence of steps to execute
 
 **Example**:
+
 - Skill: "How to implement shapers" (knowledge)
 - Workflow: "Create a new percentage shaper" (specific task)
 
