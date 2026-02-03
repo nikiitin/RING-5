@@ -237,3 +237,39 @@ class TestRealisticScenarios:
 
         expected = ["0_0", "0_1", "2_0", "2_1"]
         assert filtered == expected
+
+
+class TestReDoSSecurity:
+    """Test that the regex pattern doesn't have ReDoS vulnerabilities."""
+
+    def test_no_redos_with_pathological_input(self) -> None:
+        """Test that pathological inputs don't cause exponential backtracking."""
+        import time
+
+        # Pathological case: many repeating characters that could cause
+        # catastrophic backtracking with overlapping character classes
+        pathological_input = "A" + "a" * 30
+
+        # Measure time to ensure it completes quickly (< 0.1 seconds)
+        start = time.time()
+        result = PatternIndexSelector.extract_index_positions(pathological_input)
+        elapsed = time.time() - start
+
+        # Should return empty list since input doesn't contain \d+ pattern
+        assert result == []
+        # Should complete very quickly (< 100ms indicates no exponential backtracking)
+        assert elapsed < 0.1, f"Pattern matching took too long: {elapsed}s"
+
+    def test_no_redos_with_complex_input(self) -> None:
+        """Test that complex inputs with many underscores complete quickly."""
+        import time
+
+        # Input with many underscores and letters that could trigger backtracking
+        complex_input = "_" * 20 + "a" * 20 + "A" * 20
+
+        start = time.time()
+        result = PatternIndexSelector.extract_index_positions(complex_input)
+        elapsed = time.time() - start
+
+        assert result == []
+        assert elapsed < 0.1, f"Pattern matching took too long: {elapsed}s"
