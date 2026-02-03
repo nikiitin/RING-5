@@ -132,7 +132,6 @@ def main():
         "streamlit",
         "openpyxl",
         "plotly",
-        "kaleido",
     }
 
     print("✅ USED packages (found in code):")
@@ -156,7 +155,6 @@ def main():
         for pkg in sorted(unused):
             print(f"  • {pkg}")
         print("\n  Note: Some packages may be:")
-        print("    - Used at runtime (kaleido for plotly exports)")
         print("    - Required transitively")
         print("    - Used in tests only")
 
@@ -173,9 +171,6 @@ def main():
     # Special checks
     print("\n💡 Special notes:")
     print("-" * 50)
-
-    if "kaleido" not in used_packages:
-        print("  • kaleido: Not imported directly (used by plotly for exports)")
 
     if "openpyxl" not in used_packages:
         print("  • openpyxl: Not imported directly (used by pandas for Excel)")

@@ -74,7 +74,23 @@ class PlotService:
     def export_plot_to_file(
         plot: BasePlot, directory: str, format: Optional[str] = None
     ) -> Optional[str]:
-        """Export a plot to a file in the specified directory."""
+        """
+        Export a plot to a file in the specified directory.
+
+        Supports HTML and PDF export. PDF export uses matplotlib/LaTeX backend
+        for publication-quality output.
+
+        Args:
+            plot: The plot to export
+            directory: Output directory path
+            format: Export format ("html", "pdf", "pgf", or "eps"). Defaults to "pdf"
+
+        Returns:
+            Path to exported file, or None if export failed
+
+        Note:
+            For publication-quality exports, use LaTeXExportService directly.
+        """
         if not os.path.exists(directory):
             os.makedirs(directory)
 
@@ -86,7 +102,6 @@ class PlotService:
             return None
 
         fmt = format or plot.config.get("download_format", "pdf")
-        scale = plot.config.get("export_scale", 1)
 
         # Clean name
         safe_name = "".join([c if c.isalnum() else "_" for c in plot.name])
@@ -95,6 +110,21 @@ class PlotService:
 
         if fmt == "html":
             fig.write_html(path)
+        elif fmt in ["pdf", "pgf", "eps"]:
+            # Use LaTeX export service for publication-quality output
+            from src.plotting.export.latex_export_service import LaTeXExportService
+
+            service = LaTeXExportService()
+            result = service.export(fig=fig, preset="single_column", format=fmt)
+
+            if result["success"]:
+                with open(path, "wb") as f:
+                    f.write(result["data"])
+            else:
+                raise RuntimeError(f"LaTeX export failed: {result.get('error', 'Unknown error')}")
         else:
-            fig.write_image(path, format=fmt, scale=scale)
+            raise ValueError(
+                f"Unsupported export format '{fmt}'. " "Supported formats: html, pdf, pgf, eps"
+            )
+
         return path

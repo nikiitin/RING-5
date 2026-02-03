@@ -217,7 +217,7 @@ check-unused:
 	@echo "💡 Summary:"
 	@echo "  • seaborn: Declared but NOT used → Safe to remove"
 	@echo "  • openpyxl: Used by pandas for Excel export → Keep"
-	@echo "  • kaleido: Used by plotly for image export → Keep"
+	@echo "  • kaleido: REMOVED (replaced by matplotlib/LaTeX export)"
 	@echo "  • pytest: Move to dev dependencies only"
 
 # Clean unused dependencies interactively
