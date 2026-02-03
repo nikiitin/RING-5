@@ -119,7 +119,7 @@ class BenchmarkSuite:
         bench_result = BenchmarkResult(operation_name, elapsed, iterations)
         self.results.append(bench_result)
 
-        return result  # type: ignore[return-value]
+        return result
 
     def summary(self) -> pd.DataFrame:
         """
@@ -211,15 +211,15 @@ def benchmark_decorator(
             elapsed = (time.perf_counter() - start) * 1000  # ms
 
             if iterations == 1:
-                print(f"⏱️  {operation_name}: {elapsed:.2f}ms")
+                print(f"{operation_name}: {elapsed:.2f}ms")
             else:
                 avg = elapsed / iterations
                 print(
-                    f"⏱️  {operation_name}: {elapsed:.2f}ms total "
+                    f"{operation_name}: {elapsed:.2f}ms total "
                     f"({avg:.2f}ms avg over {iterations} iterations)"
                 )
 
-            return result  # type: ignore[return-value]
+            return result
 
         return wrapper
 
@@ -243,4 +243,4 @@ def timer(name: str) -> Any:
         yield
     finally:
         elapsed = (time.perf_counter() - start) * 1000
-        print(f"⏱️  {name}: {elapsed:.2f}ms")
+        print(f"{name}: {elapsed:.2f}ms")

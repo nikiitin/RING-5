@@ -106,6 +106,6 @@ class PageConfig:
         st.set_page_config(
             page_title=PageConfig.TITLE,
             page_icon=PageConfig.ICON,
-            layout=layout_value,  # type: ignore[arg-type]
-            initial_sidebar_state=sidebar_state,  # type: ignore[arg-type]
+            layout=layout_value,
+            initial_sidebar_state=sidebar_state,
         )

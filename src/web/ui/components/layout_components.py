@@ -31,7 +31,7 @@ class LayoutComponents:
         Returns:
             Selected page name
         """
-        return st.radio(
+        return st.radio(  # type: ignore[no-any-return]
             "Navigation",
             [
                 "Data Source",
@@ -68,7 +68,7 @@ class LayoutComponents:
         """
         col1, col2 = st.columns([1, 4])
         with col1:
-            return st.button("+ Add Variable", width="stretch")
+            return st.button("+ Add Variable", width="stretch")  # type: ignore[no-any-return]
         return False
 
     @staticmethod
@@ -79,4 +79,4 @@ class LayoutComponents:
         Returns:
             True if button was clicked
         """
-        return st.button("Clear All Data", width="stretch")
+        return st.button("Clear All Data", width="stretch")  # type: ignore[no-any-return]

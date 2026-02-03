@@ -91,7 +91,7 @@ logger = logging.getLogger(__name__)
 # Worker pool configuration - PRIMARY MECHANISM!
 
 _WORKER_POOL_SIZE = int(os.environ.get("RING5_WORKER_POOL_SIZE", "4"))
-logger.info(f"🚀 Worker pool is the PRIMARY parsing mechanism ({_WORKER_POOL_SIZE} workers)")
+logger.info(f"Worker pool is the PRIMARY parsing mechanism ({_WORKER_POOL_SIZE} workers)")
 
 
 class ParseService:

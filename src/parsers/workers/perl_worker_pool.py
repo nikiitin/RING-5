@@ -94,7 +94,7 @@ class PerlWorker:
             )
 
         except Exception as e:
-            logger.error(f"[Worker-{self.worker_id}] ❌ FAILED to start worker: {e}", exc_info=True)
+            logger.error(f"[Worker-{self.worker_id}] FAILED to start worker: {e}", exc_info=True)
             self.is_healthy = False
             raise
 
@@ -132,7 +132,7 @@ class PerlWorker:
         thread.join(timeout=timeout)
 
         if thread.is_alive():
-            logger.error(f"[Worker-{self.worker_id}] ⏱️ Read timeout after {timeout}s")
+            logger.error(f"[Worker-{self.worker_id}] Read timeout after {timeout}s")
             raise TimeoutError(f"Read timeout after {timeout}s")
 
         if error:
@@ -163,7 +163,7 @@ class PerlWorker:
                 raise RuntimeError(f"Worker-{self.worker_id} is not healthy")
 
             try:
-                logger.debug(f"[Worker-{self.worker_id}] 📥 Parsing file: {file_path}")
+                logger.debug(f"[Worker-{self.worker_id}] Parsing file: {file_path}")
 
                 # Build command with || separator to allow spaces in paths
                 args = [file_path] + variables
@@ -183,7 +183,7 @@ class PerlWorker:
                 while True:
                     elapsed = time.time() - start_time
                     if elapsed > timeout:
-                        logger.error(f"[Worker-{self.worker_id}] ⏱️ TIMEOUT after {timeout}s")
+                        logger.error(f"[Worker-{self.worker_id}] TIMEOUT after {timeout}s")
                         self.errors_encountered += 1
                         self.is_healthy = False
                         raise TimeoutError(f"Parse timeout after {timeout}s")
@@ -193,11 +193,11 @@ class PerlWorker:
                     if line == "END_PARSE":
                         break
                     elif line.startswith("ERROR"):
-                        logger.error(f"[Worker-{self.worker_id}] ❌ Perl error: {line}")
+                        logger.error(f"[Worker-{self.worker_id}] Perl error: {line}")
                         self.errors_encountered += 1
                         # Continue reading to END_PARSE
                     elif line == "RESTART_NEEDED":
-                        logger.warning(f"[Worker-{self.worker_id}] 🔄 Worker needs restart")
+                        logger.warning(f"[Worker-{self.worker_id}] Worker needs restart")
                         self.is_healthy = False
                         # Will be restarted by pool manager
                     else:
@@ -207,14 +207,14 @@ class PerlWorker:
                 self.last_used = time.time()
 
                 logger.debug(
-                    f"[Worker-{self.worker_id}] ✅ Completed: {len(output_lines)} lines "
+                    f"[Worker-{self.worker_id}] Completed: {len(output_lines)} lines "
                     f"in {elapsed:.2f}s"
                 )
 
                 return output_lines, True
 
             except Exception as e:
-                logger.error(f"[Worker-{self.worker_id}] ❌ Parse failed: {e}", exc_info=True)
+                logger.error(f"[Worker-{self.worker_id}] Parse failed: {e}", exc_info=True)
                 self.errors_encountered += 1
                 self.is_healthy = False
                 return [], False
@@ -228,12 +228,12 @@ class PerlWorker:
         """
         with self._lock:
             if not self.process or self.process.poll() is not None:
-                logger.warning(f"[Worker-{self.worker_id}] ⚠️ Process is dead")
+                logger.warning(f"[Worker-{self.worker_id}] Process is dead")
                 self.is_healthy = False
                 return False
 
             if self.process.stdin is None:
-                logger.error(f"[Worker-{self.worker_id}] ❌ stdin is None")
+                logger.error(f"[Worker-{self.worker_id}] stdin is None")
                 self.is_healthy = False
                 return False
 
@@ -250,13 +250,13 @@ class PerlWorker:
                     return True
                 else:
                     logger.warning(
-                        f"[Worker-{self.worker_id}] ⚠️ Unexpected ping response: {response}"
+                        f"[Worker-{self.worker_id}] Unexpected ping response: {response}"
                     )
                     self.is_healthy = False
                     return False
 
             except Exception as e:
-                logger.error(f"[Worker-{self.worker_id}] ❌ Health check failed: {e}")
+                logger.error(f"[Worker-{self.worker_id}] Health check failed: {e}")
                 self.is_healthy = False
                 return False
 
@@ -267,7 +267,7 @@ class PerlWorker:
         Returns:
             True if restart successful
         """
-        logger.warning(f"[Worker-{self.worker_id}] 🔄 Restarting worker...")
+        logger.warning(f"[Worker-{self.worker_id}] Restarting worker...")
 
         # Shutdown old process
         self.shutdown()
@@ -276,10 +276,10 @@ class PerlWorker:
         try:
             self._start_worker()
             self.restarts += 1
-            logger.info(f"[Worker-{self.worker_id}] ✅ Worker restarted successfully")
+            logger.info(f"[Worker-{self.worker_id}] Worker restarted successfully")
             return True
         except Exception as e:
-            logger.error(f"[Worker-{self.worker_id}] ❌ Restart failed: {e}")
+            logger.error(f"[Worker-{self.worker_id}] Restart failed: {e}")
             return False
 
     def shutdown(self) -> None:
@@ -340,26 +340,28 @@ class PerlWorkerPool:
         self._health_monitor_thread: Optional[threading.Thread] = None
 
         # Locate Perl executable (full path for security)
-        self.perl_exe = shutil.which("perl")
-        if not self.perl_exe:
-            logger.error("❌ Perl executable not found in PATH")
+        perl_exe_path = shutil.which("perl")
+        if not perl_exe_path:
+            logger.error("Perl executable not found in PATH")
             raise RuntimeError("Perl executable not found in PATH")
+        # After validation, we know it's not None
+        self.perl_exe: str = perl_exe_path
 
         # Locate Perl server script
         self.script_path = str(Path(__file__).parent.parent / "perl" / "fileParserServer.pl")
 
         if not Path(self.script_path).exists():
-            logger.error(f"❌ Perl server script not found: {self.script_path}")
+            logger.error(f"Perl server script not found: {self.script_path}")
             raise FileNotFoundError(f"Perl server script not found: {self.script_path}")
 
         # Initialize pool - this is the ONLY mechanism now!
         self._initialize_pool()
         self._start_health_monitor()
-        logger.info(f"✅ Worker pool initialized as PRIMARY mechanism ({pool_size} workers)")
+        logger.info(f"Worker pool initialized as PRIMARY mechanism ({pool_size} workers)")
 
     def _initialize_pool(self) -> None:
         """Initialize worker processes."""
-        logger.info(f"🚀 Initializing {self.pool_size} Perl workers...")
+        logger.info(f"Initializing {self.pool_size} Perl workers...")
 
         for i in range(self.pool_size):
             try:
@@ -368,24 +370,24 @@ class PerlWorkerPool:
                 )
                 self.workers.append(worker)
                 self.worker_queue.put(worker)
-                logger.info(f"✅ Worker {i} initialized")
+                logger.info(f"Worker {i} initialized")
             except Exception as e:
-                logger.error(f"❌ Failed to initialize worker {i}: {e}")
+                logger.error(f"Failed to initialize worker {i}: {e}")
                 # Continue with fewer workers
 
         if not self.workers:
-            raise RuntimeError("❌ CRITICAL: No workers could be started!")
+            raise RuntimeError("CRITICAL: No workers could be started!")
 
         if len(self.workers) < self.pool_size:
             logger.warning(
-                f"⚠️ Only {len(self.workers)}/{self.pool_size} workers started successfully"
+                f"Only {len(self.workers)}/{self.pool_size} workers started successfully"
             )
 
     def _start_health_monitor(self) -> None:
         """Start background health monitoring thread."""
 
         def monitor() -> None:
-            logger.info("🏥 Health monitor started")
+            logger.info("Health monitor started")
             while not self._shutdown:
                 time.sleep(self._health_check_interval)
                 self._check_worker_health()
@@ -395,16 +397,16 @@ class PerlWorkerPool:
 
     def _check_worker_health(self) -> None:
         """Check health of all workers and restart unhealthy ones."""
-        logger.debug("🏥 Running health checks...")
+        logger.debug("Running health checks...")
 
         with self._lock:
             for worker in self.workers:
                 if not worker.health_check():
-                    logger.warning(f"⚠️ Worker-{worker.worker_id} is unhealthy, restarting...")
+                    logger.warning(f"Worker-{worker.worker_id} is unhealthy, restarting...")
                     if worker.restart():
-                        logger.info(f"✅ Worker-{worker.worker_id} restarted successfully")
+                        logger.info(f"Worker-{worker.worker_id} restarted successfully")
                     else:
-                        logger.error(f"❌ Worker-{worker.worker_id} restart failed!")
+                        logger.error(f"Worker-{worker.worker_id} restart failed!")
 
     def parse_file(self, file_path: str, variables: List[str], timeout: float = 120.0) -> List[str]:
         """
@@ -435,26 +437,26 @@ class PerlWorkerPool:
                         return output_lines
                     else:
                         logger.warning(
-                            f"⚠️ Worker-{worker.worker_id} failed, retrying with different worker"
+                            f"Worker-{worker.worker_id} failed, retrying with different worker"
                         )
                         # Don't return worker to queue yet, health monitor will handle it
 
                 except Exception as e:
-                    logger.error(f"❌ Parse error with worker-{worker.worker_id}: {e}")
+                    logger.error(f"Parse error with worker-{worker.worker_id}: {e}")
                 finally:
                     # Return worker to queue if still healthy
                     if worker.is_healthy:
                         self.worker_queue.put(worker)
                     else:
-                        logger.warning(f"⚠️ Worker-{worker.worker_id} marked unhealthy")
+                        logger.warning(f"Worker-{worker.worker_id} marked unhealthy")
                         # Health monitor will restart it
 
             except queue.Empty as e:
-                logger.error("❌ Timeout waiting for available worker")
+                logger.error("Timeout waiting for available worker")
                 raise TimeoutError("No workers available within timeout") from e
 
         # All workers failed
-        logger.error("❌ CRITICAL: All workers failed to parse file!")
+        logger.error("CRITICAL: All workers failed to parse file!")
         raise RuntimeError("All workers failed")
 
     def get_stats(self) -> Dict[str, Any]:
@@ -471,7 +473,7 @@ class PerlWorkerPool:
 
     def shutdown(self) -> None:
         """Shutdown the worker pool."""
-        logger.info("🛑 Shutting down worker pool...")
+        logger.info("Shutting down worker pool...")
 
         self._shutdown = True
 
@@ -480,7 +482,7 @@ class PerlWorkerPool:
             for worker in self.workers:
                 worker.shutdown()
 
-        logger.info("✅ Worker pool shutdown complete")
+        logger.info("Worker pool shutdown complete")
 
 
 # Singleton instance

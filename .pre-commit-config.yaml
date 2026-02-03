@@ -2,6 +2,9 @@
 # Install: pip install pre-commit && pre-commit install
 # Run manually: pre-commit run --all-files
 
+# Global exclusions
+exclude: '^tests/data/|^python_venv/'
+
 repos:
   # Code formatting
   - repo: https://github.com/psf/black
