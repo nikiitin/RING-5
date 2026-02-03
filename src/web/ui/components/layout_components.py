@@ -3,8 +3,6 @@ Layout Components for RING-5.
 Handles application layout, specific buttons, navigation, and sidebar.
 """
 
-from typing import cast
-
 import streamlit as st
 
 
@@ -33,21 +31,17 @@ class LayoutComponents:
         Returns:
             Selected page name
         """
-        # cast() works whether streamlit has stubs or not
-        return cast(
-            str,
-            st.radio(
-                "Navigation",
-                [
-                    "Data Source",
-                    "Upload Data",
-                    "Data Managers",
-                    "Configure Pipeline",
-                    "Generate Plots",
-                    "Load Configuration",
-                ],
-                label_visibility="collapsed",
-            ),
+        return st.radio(  # type: ignore[no-any-return]
+            "Navigation",
+            [
+                "Data Source",
+                "Upload Data",
+                "Data Managers",
+                "Configure Pipeline",
+                "Generate Plots",
+                "Load Configuration",
+            ],
+            label_visibility="collapsed",
         )
 
     @staticmethod
@@ -74,7 +68,7 @@ class LayoutComponents:
         """
         col1, col2 = st.columns([1, 4])
         with col1:
-            return cast(bool, st.button("+ Add Variable", width="stretch"))
+            return st.button("+ Add Variable", width="stretch")  # type: ignore[no-any-return]
         return False
 
     @staticmethod
@@ -85,4 +79,4 @@ class LayoutComponents:
         Returns:
             True if button was clicked
         """
-        return cast(bool, st.button("Clear All Data", width="stretch"))
+        return st.button("Clear All Data", width="stretch")  # type: ignore[no-any-return]
