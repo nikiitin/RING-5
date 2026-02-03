@@ -172,8 +172,7 @@ class PatternAggregator:
             result_type = "vector"
             result_entries = entries
             # For scalars, store the actual matched variable names for proper reduction
-            matched_names = [var["name"] for _, var in instances]
-            pattern_indices = matched_names  # Store full variable names, not just numeric IDs
+            pattern_indices = [var["name"] for _, var in instances]  # Store full variable names, not just numeric IDs
         else:
             # For vectors/histograms/distributions, we need BOTH:
             # - pattern_indices: numeric IDs from variable names (for pattern selection)
