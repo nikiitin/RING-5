@@ -156,9 +156,10 @@ def apply_shapers(data: pd.DataFrame, shapers_config: List[Dict[str, Any]]) -> p
 
         # Validate configuration before creating shaper
         is_valid, missing_fields = validate_shaper_config(shaper_type, shaper_cfg)
-        if not is_valid and missing_fields:
+        if not is_valid:
             # Configuration incomplete - show user-friendly warning, don't raise exception
-            missing_str = ", ".join(f"'{f}'" for f in missing_fields)
+            fields_to_report = missing_fields or ["<unspecified>"]
+            missing_str = ", ".join(f"'{f}'" for f in fields_to_report)
             warning_msg = (
                 f"⚠️ Pipeline step {idx + 1} ({shaper_type}): "
                 f"Configuration incomplete. Missing or empty fields: {missing_str}. "
