@@ -33,6 +33,7 @@ class LayoutComponents:
         Returns:
             Selected page name
         """
+        # cast() works whether streamlit has stubs or not
         return cast(
             str,
             st.radio(

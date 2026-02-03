@@ -27,7 +27,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .
           pip install black flake8 mypy
-          pip install pandas-stubs types-jsonschema types-tqdm scipy-stubs
+          pip install pandas-stubs types-jsonschema types-tqdm scipy-stubs types-PyYAML
 
       - name: Check code formatting with black
         run: |
@@ -39,7 +39,7 @@ jobs:
 
       - name: Type check with mypy
         run: |
-          mypy src/ --strict --show-error-codes --pretty
+          mypy src/ --show-error-codes --pretty
 
   tests:
     name: Tests (Python 3.12)

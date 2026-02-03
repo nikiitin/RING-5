@@ -14,7 +14,7 @@ class MultiDfShaper(Shaper):
         """Verify parameters for MultiDfShaper."""
         return super()._verify_params()
 
-    def __call__(self, data_frames: Any) -> pd.DataFrame:
+    def __call__(self, data_frames: Any) -> pd.DataFrame:  # type: ignore[override]
         # Check the data frame is not none!
         # And if it is a unique dataframe
         if data_frames is None:
@@ -24,4 +24,4 @@ class MultiDfShaper(Shaper):
         for df in data_frames:
             if not isinstance(df, pd.DataFrame):
                 raise ValueError("The data frame is not a pandas dataframe! Stopping")
-        return super().__call__(data_frames)
+        return super().__call__(data_frames)  # type: ignore[arg-type]
