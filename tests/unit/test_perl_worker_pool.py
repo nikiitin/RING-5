@@ -44,6 +44,22 @@ system.mem.readReqs                            500                       # Total
 
 
 @pytest.fixture
+def perl_exe():
+    """Provide perl executable path, ensuring it exists."""
+    perl_path = shutil.which("perl")
+    assert perl_path is not None, "Perl executable not found"
+    return perl_path
+
+
+@pytest.fixture
+def perl_script_path():
+    """Provide path to the Perl parser script."""
+    return str(
+        Path(__file__).parent.parent.parent / "src" / "parsers" / "perl" / "fileParserServer.pl"
+    )
+
+
+@pytest.fixture
 def worker_pool():
     """Create a worker pool for testing."""
     # Small pool for testing
@@ -55,15 +71,9 @@ def worker_pool():
 class TestPerlWorker:
     """Test individual Perl worker functionality."""
 
-    def test_worker_startup(self):
+    def test_worker_startup(self, perl_exe, perl_script_path):
         """Worker should start successfully and be healthy."""
-        script_path = str(
-            Path(__file__).parent.parent.parent / "src" / "parsers" / "perl" / "fileParserServer.pl"
-        )
-        perl_exe = shutil.which("perl")
-        assert perl_exe is not None, "Perl executable not found"
-
-        worker = PerlWorker(worker_id=0, script_path=script_path, perl_exe=perl_exe)
+        worker = PerlWorker(worker_id=0, script_path=perl_script_path, perl_exe=perl_exe)
 
         try:
             assert worker.is_healthy
@@ -73,15 +83,9 @@ class TestPerlWorker:
         finally:
             worker.shutdown()
 
-    def test_worker_health_check(self):
+    def test_worker_health_check(self, perl_exe, perl_script_path):
         """Health check should work correctly."""
-        script_path = str(
-            Path(__file__).parent.parent.parent / "src" / "parsers" / "perl" / "fileParserServer.pl"
-        )
-        perl_exe = shutil.which("perl")
-        assert perl_exe is not None, "Perl executable not found"
-
-        worker = PerlWorker(worker_id=0, script_path=script_path, perl_exe=perl_exe)
+        worker = PerlWorker(worker_id=0, script_path=perl_script_path, perl_exe=perl_exe)
 
         try:
             # Should be healthy
@@ -96,15 +100,9 @@ class TestPerlWorker:
         finally:
             worker.shutdown()
 
-    def test_worker_parse_file(self, test_stats_file):
+    def test_worker_parse_file(self, test_stats_file, perl_exe, perl_script_path):
         """Worker should parse files correctly."""
-        script_path = str(
-            Path(__file__).parent.parent.parent / "src" / "parsers" / "perl" / "fileParserServer.pl"
-        )
-        perl_exe = shutil.which("perl")
-        assert perl_exe is not None, "Perl executable not found"
-
-        worker = PerlWorker(worker_id=0, script_path=script_path, perl_exe=perl_exe)
+        worker = PerlWorker(worker_id=0, script_path=perl_script_path, perl_exe=perl_exe)
 
         try:
             output, success = worker.parse_file(
@@ -125,15 +123,9 @@ class TestPerlWorker:
         finally:
             worker.shutdown()
 
-    def test_worker_restart(self):
+    def test_worker_restart(self, perl_exe, perl_script_path):
         """Worker should restart successfully."""
-        script_path = str(
-            Path(__file__).parent.parent.parent / "src" / "parsers" / "perl" / "fileParserServer.pl"
-        )
-        perl_exe = shutil.which("perl")
-        assert perl_exe is not None, "Perl executable not found"
-
-        worker = PerlWorker(worker_id=0, script_path=script_path, perl_exe=perl_exe)
+        worker = PerlWorker(worker_id=0, script_path=perl_script_path, perl_exe=perl_exe)
 
         try:
             original_pid = worker.process.pid
