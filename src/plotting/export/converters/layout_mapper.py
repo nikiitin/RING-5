@@ -315,7 +315,6 @@ class LayoutMapper:
         return extractor.extract_layout(figure)
 
     @staticmethod
-    @staticmethod
     def apply_to_matplotlib(
         ax: Axes, layout: Dict[str, Any], preset: LaTeXPreset | None = None
     ) -> None:
