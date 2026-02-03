@@ -142,9 +142,10 @@ class TestLayoutMapper:
 
         layout = LayoutMapper.extract_layout(plotly_fig)
 
-        # Apply to Matplotlib
+        # Apply to Matplotlib with zero margin preset
         mpl_fig, mpl_ax = plt.subplots()
-        LayoutMapper.apply_to_matplotlib(mpl_ax, layout)
+        preset_no_margin = {"xaxis_margin": 0.0, "xtick_rotation": 0.0}
+        LayoutMapper.apply_to_matplotlib(mpl_ax, layout, preset=preset_no_margin)
 
         # Verify settings applied
         assert mpl_ax.get_xlim() == (0, 10)
@@ -173,10 +174,11 @@ class TestLayoutMapper:
             showgrid=False,
         )
 
-        # Extract and apply
+        # Extract and apply with zero margin preset
         layout = LayoutMapper.extract_layout(plotly_fig)
         mpl_fig, mpl_ax = plt.subplots()
-        LayoutMapper.apply_to_matplotlib(mpl_ax, layout)
+        preset_no_margin = {"xaxis_margin": 0.0, "xtick_rotation": 0.0}
+        LayoutMapper.apply_to_matplotlib(mpl_ax, layout, preset=preset_no_margin)
 
         # Verify exact preservation
         assert mpl_ax.get_xlim() == (0.5, 3.5)

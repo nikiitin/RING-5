@@ -1,53 +1,133 @@
-# LaTeX Export Presets for RING-5
-# Publication-quality figure configurations for various journals and conferences
-#
-# All dimensions follow LaTeX column widths and journal guidelines.
-# Font sizes use standard LaTeX pt values.
-# DPI settings ensure crisp rendering for print and digital publications.
-
 presets:
   single_column:
     description: Standard single-column figure (3.5 inches wide)
     typical_use: Most conference papers and journal articles (ACM, IEEE, Springer)
     width_inches: 3.5
-    height_inches: 2.625  # 3:4 aspect ratio
-    font_family: serif  # Computer Modern (LaTeX default)
+    height_inches: 1.96875
+    font_family: serif
     font_size_base: 9
-    font_size_labels: 8
     font_size_title: 10
+    font_size_xlabel: 8
+    font_size_ylabel: 8
+    font_size_legend: 7
     font_size_ticks: 7
+    font_size_annotations: 6
+    bold_title: false
+    bold_xlabel: false
+    bold_ylabel: false
+    bold_legend: false
+    bold_ticks: false
+    bold_annotations: true
     line_width: 1.0
     marker_size: 4
     dpi: 300
-
+    legend_columnspacing: 0.5
+    legend_handletextpad: 0.4
+    legend_labelspacing: 0.3
+    legend_handlelength: 1.2
+    legend_handleheight: 0.7
+    legend_borderpad: 0.3
+    legend_borderaxespad: 0.5
+    ylabel_pad: 10.0
+    ylabel_y_position: 0.5
+    xtick_pad: 5.0
+    ytick_pad: 5.0
+    group_label_offset: -0.12
+    group_label_alternate: true
+    xaxis_margin: 0.02
+    bar_width_scale: 1.0
+    xtick_rotation: 45.0
+    xtick_ha: right
+    xtick_offset: 0.0
+    group_separator: false
+    group_separator_style: dashed
+    group_separator_color: gray
   double_column:
     description: Full-width double-column figure (7 inches wide)
     typical_use: Wide figures spanning both columns in two-column layouts
     width_inches: 7.0
-    height_inches: 5.25  # 3:4 aspect ratio
+    height_inches: 5.25
     font_family: serif
     font_size_base: 10
-    font_size_labels: 9
     font_size_title: 12
+    font_size_xlabel: 9
+    font_size_ylabel: 9
+    font_size_legend: 8
     font_size_ticks: 8
+    font_size_annotations: 6
+    bold_title: false
+    bold_xlabel: false
+    bold_ylabel: false
+    bold_legend: false
+    bold_ticks: false
+    bold_annotations: true
     line_width: 1.2
     marker_size: 5
     dpi: 300
-
+    legend_columnspacing: 0.2
+    legend_handletextpad: 0.3
+    legend_labelspacing: 0.2
+    legend_handlelength: 1.0
+    legend_handleheight: 0.7
+    legend_borderpad: 0.2
+    legend_borderaxespad: 0.5
+    ylabel_pad: 10.0
+    ylabel_y_position: 0.5
+    xtick_pad: 5.0
+    ytick_pad: 5.0
+    group_label_offset: -0.12
+    group_label_alternate: true
+    xaxis_margin: 0.02
+    bar_width_scale: 1.0
+    xtick_rotation: 45.0
+    xtick_ha: right
+    xtick_offset: 0.0
+    group_separator: false
+    group_separator_style: dashed
+    group_separator_color: gray
   nature:
     description: Nature journal format (high DPI, Arial font)
     typical_use: Nature, Nature Communications, Scientific Reports
     width_inches: 3.5
-    height_inches: 3.5  # Square preferred by Nature
-    font_family: Arial  # Nature requires sans-serif (Arial or Helvetica)
+    height_inches: 3.5
+    font_family: Arial
     font_size_base: 8
-    font_size_labels: 7
     font_size_title: 9
+    font_size_xlabel: 7
+    font_size_ylabel: 7
+    font_size_legend: 8
     font_size_ticks: 6
+    font_size_annotations: 5
+    bold_title: false
+    bold_xlabel: false
+    bold_ylabel: false
+    bold_legend: false
+    bold_ticks: false
+    bold_annotations: true
     line_width: 0.8
     marker_size: 3
-    dpi: 600  # Nature requires 300-600 DPI
-
+    dpi: 600
+    legend_columnspacing: 0.6
+    legend_handletextpad: 0.5
+    legend_labelspacing: 0.4
+    legend_handlelength: 1.5
+    legend_handleheight: 0.7
+    legend_borderpad: 0.4
+    legend_borderaxespad: 0.5
+    ylabel_pad: 10.0
+    ylabel_y_position: 0.5
+    xtick_pad: 5.0
+    ytick_pad: 5.0
+    group_label_offset: -0.12
+    group_label_alternate: true
+    xaxis_margin: 0.02
+    bar_width_scale: 1.0
+    xtick_rotation: 45.0
+    xtick_ha: right
+    xtick_offset: 0.0
+    group_separator: false
+    group_separator_style: dashed
+    group_separator_color: gray
   nature_double:
     description: Nature journal full-width figure
     typical_use: Wide figures for Nature journals
@@ -55,27 +135,85 @@ presets:
     height_inches: 5.25
     font_family: Arial
     font_size_base: 9
-    font_size_labels: 8
     font_size_title: 10
+    font_size_xlabel: 8
+    font_size_ylabel: 8
+    font_size_legend: 7
     font_size_ticks: 7
+    font_size_annotations: 6
+    bold_title: false
+    bold_xlabel: false
+    bold_ylabel: false
+    bold_legend: false
+    bold_ticks: false
+    bold_annotations: true
     line_width: 0.9
     marker_size: 4
     dpi: 600
-
+    legend_columnspacing: 0.5
+    legend_handletextpad: 0.4
+    legend_labelspacing: 0.3
+    legend_handlelength: 1.3
+    legend_handleheight: 0.7
+    legend_borderpad: 0.3
+    legend_borderaxespad: 0.5
+    ylabel_pad: 10.0
+    ylabel_y_position: 0.5
+    xtick_pad: 5.0
+    ytick_pad: 5.0
+    group_label_offset: -0.12
+    group_label_alternate: true
+    xaxis_margin: 0.02
+    bar_width_scale: 1.0
+    xtick_rotation: 45.0
+    xtick_ha: right
+    xtick_offset: 0.0
+    group_separator: false
+    group_separator_style: dashed
+    group_separator_color: gray
   ieee_single:
     description: IEEE conference/journal single column
     typical_use: IEEE transactions, conferences (ISCA, MICRO, ASPLOS)
     width_inches: 3.5
     height_inches: 2.625
-    font_family: Times  # IEEE prefers Times New Roman
+    font_family: Times
     font_size_base: 8
-    font_size_labels: 7
     font_size_title: 9
+    font_size_xlabel: 7
+    font_size_ylabel: 7
+    font_size_legend: 8
     font_size_ticks: 6
+    font_size_annotations: 5
+    bold_title: false
+    bold_xlabel: false
+    bold_ylabel: false
+    bold_legend: false
+    bold_ticks: false
+    bold_annotations: true
     line_width: 1.0
     marker_size: 4
     dpi: 300
-
+    legend_columnspacing: 0.5
+    legend_handletextpad: 0.4
+    legend_labelspacing: 0.3
+    legend_handlelength: 1.2
+    legend_handleheight: 0.7
+    legend_borderpad: 0.3
+    legend_borderaxespad: 0.5
+    ylabel_pad: 10.0
+    ylabel_y_position: 0.5
+    xtick_pad: 5.0
+    ytick_pad: 5.0
+    group_label_offset: -0.12
+    group_label_alternate: true
+    xaxis_margin: 0.02
+    bar_width_scale: 1.0
+    xtick_rotation: 45.0
+    xtick_ha: right
+    xtick_offset: 0.0
+    group_separator: false
+    group_separator_style: dashed
+    group_separator_color: gray
   ieee_double:
     description: IEEE conference/journal double column
     typical_use: Wide IEEE figures
@@ -83,97 +221,300 @@ presets:
     height_inches: 5.25
     font_family: Times
     font_size_base: 9
-    font_size_labels: 8
     font_size_title: 10
+    font_size_xlabel: 8
+    font_size_ylabel: 8
+    font_size_legend: 7
     font_size_ticks: 7
+    font_size_annotations: 6
+    bold_title: false
+    bold_xlabel: false
+    bold_ylabel: false
+    bold_legend: false
+    bold_ticks: false
+    bold_annotations: true
     line_width: 1.2
     marker_size: 5
     dpi: 300
-
+    legend_columnspacing: 0.3
+    legend_handletextpad: 0.3
+    legend_labelspacing: 0.2
+    legend_handlelength: 1.1
+    legend_handleheight: 0.7
+    legend_borderpad: 0.2
+    legend_borderaxespad: 0.5
+    ylabel_pad: 10.0
+    ylabel_y_position: 0.5
+    xtick_pad: 5.0
+    ytick_pad: 5.0
+    group_label_offset: -0.12
+    group_label_alternate: true
+    xaxis_margin: 0.02
+    bar_width_scale: 1.0
+    xtick_rotation: 45.0
+    xtick_ha: right
+    xtick_offset: 0.0
+    group_separator: false
+    group_separator_style: dashed
+    group_separator_color: gray
   acm_single:
     description: ACM conference/journal single column
     typical_use: ACM conferences and journals
-    width_inches: 3.33  # ACM specific width
+    width_inches: 3.33
     height_inches: 2.5
-    font_family: serif  # LaTeX Computer Modern
+    font_family: serif
     font_size_base: 8
-    font_size_labels: 7
     font_size_title: 9
+    font_size_xlabel: 7
+    font_size_ylabel: 7
+    font_size_legend: 8
     font_size_ticks: 6
+    font_size_annotations: 5
+    bold_title: false
+    bold_xlabel: false
+    bold_ylabel: false
+    bold_legend: false
+    bold_ticks: false
+    bold_annotations: true
     line_width: 1.0
     marker_size: 4
     dpi: 300
-
+    legend_columnspacing: 0.5
+    legend_handletextpad: 0.4
+    legend_labelspacing: 0.3
+    legend_handlelength: 1.2
+    legend_handleheight: 0.7
+    legend_borderpad: 0.3
+    legend_borderaxespad: 0.5
+    ylabel_pad: 10.0
+    ylabel_y_position: 0.5
+    xtick_pad: 5.0
+    ytick_pad: 5.0
+    group_label_offset: -0.12
+    group_label_alternate: true
+    xaxis_margin: 0.02
+    bar_width_scale: 1.0
+    xtick_rotation: 45.0
+    xtick_ha: right
+    xtick_offset: 0.0
+    group_separator: false
+    group_separator_style: dashed
+    group_separator_color: gray
   acm_double:
     description: ACM conference/journal double column
     typical_use: Wide ACM figures
-    width_inches: 6.875  # ACM specific full width
+    width_inches: 6.875
     height_inches: 5.156
     font_family: serif
     font_size_base: 9
-    font_size_labels: 8
     font_size_title: 10
+    font_size_xlabel: 8
+    font_size_ylabel: 8
+    font_size_legend: 7
     font_size_ticks: 7
+    font_size_annotations: 6
+    bold_title: false
+    bold_xlabel: false
+    bold_ylabel: false
+    bold_legend: false
+    bold_ticks: false
+    bold_annotations: true
     line_width: 1.2
     marker_size: 5
     dpi: 300
-
+    legend_columnspacing: 0.3
+    legend_handletextpad: 0.3
+    legend_labelspacing: 0.2
+    legend_handlelength: 1.1
+    legend_handleheight: 0.7
+    legend_borderpad: 0.2
+    legend_borderaxespad: 0.5
+    ylabel_pad: 10.0
+    ylabel_y_position: 0.5
+    xtick_pad: 5.0
+    ytick_pad: 5.0
+    group_label_offset: -0.12
+    group_label_alternate: true
+    xaxis_margin: 0.02
+    bar_width_scale: 1.0
+    xtick_rotation: 45.0
+    xtick_ha: right
+    xtick_offset: 0.0
+    group_separator: false
+    group_separator_style: dashed
+    group_separator_color: gray
   springer_single:
     description: Springer journal single column
     typical_use: Springer journals (LNCS, etc.)
-    width_inches: 3.39  # Springer specific width
+    width_inches: 3.39
     height_inches: 2.54
     font_family: serif
     font_size_base: 8
-    font_size_labels: 7
     font_size_title: 9
+    font_size_xlabel: 7
+    font_size_ylabel: 7
+    font_size_legend: 8
     font_size_ticks: 6
+    font_size_annotations: 5
+    bold_title: false
+    bold_xlabel: false
+    bold_ylabel: false
+    bold_legend: false
+    bold_ticks: false
+    bold_annotations: true
     line_width: 1.0
     marker_size: 4
     dpi: 300
-
+    legend_columnspacing: 0.5
+    legend_handletextpad: 0.4
+    legend_labelspacing: 0.3
+    legend_handlelength: 1.2
+    legend_handleheight: 0.7
+    legend_borderpad: 0.3
+    legend_borderaxespad: 0.5
+    ylabel_pad: 10.0
+    ylabel_y_position: 0.5
+    xtick_pad: 5.0
+    ytick_pad: 5.0
+    group_label_offset: -0.12
+    group_label_alternate: true
+    xaxis_margin: 0.02
+    bar_width_scale: 1.0
+    xtick_rotation: 45.0
+    xtick_ha: right
+    xtick_offset: 0.0
+    group_separator: false
+    group_separator_style: dashed
+    group_separator_color: gray
   elsevier_single:
     description: Elsevier journal single column
     typical_use: Elsevier journals
-    width_inches: 3.54  # Elsevier specific width
+    width_inches: 3.54
     height_inches: 2.66
     font_family: serif
     font_size_base: 8
-    font_size_labels: 7
     font_size_title: 9
+    font_size_xlabel: 7
+    font_size_ylabel: 7
+    font_size_legend: 8
     font_size_ticks: 6
+    font_size_annotations: 5
+    bold_title: false
+    bold_xlabel: false
+    bold_ylabel: false
+    bold_legend: false
+    bold_ticks: false
+    bold_annotations: true
     line_width: 1.0
     marker_size: 4
     dpi: 300
-
+    legend_columnspacing: 0.5
+    legend_handletextpad: 0.4
+    legend_labelspacing: 0.3
+    legend_handlelength: 1.2
+    legend_handleheight: 0.7
+    legend_borderpad: 0.3
+    legend_borderaxespad: 0.5
+    ylabel_pad: 10.0
+    ylabel_y_position: 0.5
+    xtick_pad: 5.0
+    ytick_pad: 5.0
+    group_label_offset: -0.12
+    group_label_alternate: true
+    xaxis_margin: 0.02
+    bar_width_scale: 1.0
+    xtick_rotation: 45.0
+    xtick_ha: right
+    xtick_offset: 0.0
+    group_separator: false
+    group_separator_style: dashed
+    group_separator_color: gray
   poster:
     description: Conference poster figure (large scale)
     typical_use: Poster presentations
     width_inches: 10.0
     height_inches: 7.5
-    font_family: sans-serif  # Better readability at distance
+    font_family: sans-serif
     font_size_base: 14
-    font_size_labels: 12
     font_size_title: 16
+    font_size_xlabel: 12
+    font_size_ylabel: 12
+    font_size_legend: 11
     font_size_ticks: 10
+    font_size_annotations: 8
+    bold_title: false
+    bold_xlabel: false
+    bold_ylabel: false
+    bold_legend: false
+    bold_ticks: false
+    bold_annotations: true
     line_width: 2.0
     marker_size: 8
-    dpi: 150  # Lower DPI sufficient for poster size
-
+    dpi: 150
+    legend_columnspacing: 1.0
+    legend_handletextpad: 0.8
+    legend_labelspacing: 0.5
+    legend_handlelength: 2.0
+    legend_handleheight: 1.0
+    legend_borderpad: 0.5
+    legend_borderaxespad: 0.8
+    ylabel_pad: 10.0
+    ylabel_y_position: 0.5
+    xtick_pad: 5.0
+    ytick_pad: 5.0
+    group_label_offset: -0.12
+    group_label_alternate: true
+    xaxis_margin: 0.02
+    bar_width_scale: 1.0
+    xtick_rotation: 45.0
+    xtick_ha: right
+    xtick_offset: 0.0
+    group_separator: false
+    group_separator_style: dashed
+    group_separator_color: gray
   presentation:
     description: Presentation slide figure (16:9 aspect)
     typical_use: PowerPoint/Beamer presentations
     width_inches: 8.0
-    height_inches: 4.5  # 16:9 aspect ratio
+    height_inches: 4.5
     font_family: sans-serif
     font_size_base: 12
-    font_size_labels: 11
     font_size_title: 14
+    font_size_xlabel: 11
+    font_size_ylabel: 11
+    font_size_legend: 10
     font_size_ticks: 9
+    font_size_annotations: 7
+    bold_title: false
+    bold_xlabel: false
+    bold_ylabel: false
+    bold_legend: false
+    bold_ticks: false
+    bold_annotations: true
     line_width: 1.5
     marker_size: 6
     dpi: 150
-
+    legend_columnspacing: 0.8
+    legend_handletextpad: 0.6
+    legend_labelspacing: 0.4
+    legend_handlelength: 1.8
+    legend_handleheight: 0.9
+    legend_borderpad: 0.4
+    legend_borderaxespad: 0.6
+    ylabel_pad: 10.0
+    ylabel_y_position: 0.5
+    xtick_pad: 5.0
+    ytick_pad: 5.0
+    group_label_offset: -0.12
+    group_label_alternate: true
+    xaxis_margin: 0.02
+    bar_width_scale: 1.0
+    xtick_rotation: 45.0
+    xtick_ha: right
+    xtick_offset: 0.0
+    group_separator: false
+    group_separator_style: dashed
+    group_separator_color: gray
   thesis:
     description: PhD thesis figure (generous sizing)
     typical_use: Dissertations and theses
@@ -181,9 +522,39 @@ presets:
     height_inches: 3.75
     font_family: serif
     font_size_base: 10
-    font_size_labels: 9
     font_size_title: 12
+    font_size_xlabel: 9
+    font_size_ylabel: 9
+    font_size_legend: 8
     font_size_ticks: 8
+    font_size_annotations: 6
+    bold_title: false
+    bold_xlabel: false
+    bold_ylabel: false
+    bold_legend: false
+    bold_ticks: false
+    bold_annotations: true
     line_width: 1.2
     marker_size: 5
     dpi: 300
+    legend_columnspacing: 0.7
+    legend_handletextpad: 0.5
+    legend_labelspacing: 0.4
+    legend_handlelength: 1.5
+    legend_handleheight: 0.8
+    legend_borderpad: 0.4
+    legend_borderaxespad: 0.6
+    ylabel_pad: 10.0
+    ylabel_y_position: 0.5
+    xtick_pad: 5.0
+    ytick_pad: 5.0
+    group_label_offset: -0.12
+    group_label_alternate: true
+    xaxis_margin: 0.02
+    bar_width_scale: 1.0
+    xtick_rotation: 45.0
+    xtick_ha: right
+    xtick_offset: 0.0
+    group_separator: false
+    group_separator_style: dashed
+    group_separator_color: gray

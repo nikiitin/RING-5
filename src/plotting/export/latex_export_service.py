@@ -120,3 +120,47 @@ class LaTeXExportService:
             >>> print(f"Width: {info['width_inches']} inches")
         """
         return self.preset_manager.load_preset(preset_name)
+
+    def generate_preview(
+        self,
+        fig: go.Figure,
+        preset: Union[str, LaTeXPreset],
+        preview_dpi: int = 150,
+    ) -> bytes:
+        """
+        Generate a PNG preview of how the exported figure will look.
+
+        Useful for showing users the export result before generating
+        the full-resolution file.
+
+        Args:
+            fig: Plotly Figure to preview
+            preset: Preset name or custom preset dict
+            preview_dpi: DPI for preview image (default 150 for fast rendering)
+
+        Returns:
+            PNG image data as bytes
+
+        Example:
+            >>> preview_png = service.generate_preview(fig, "single_column")
+            >>> with open("preview.png", "wb") as f:
+            ...     f.write(preview_png)
+        """
+        try:
+            # Load or validate preset
+            if isinstance(preset, str):
+                preset_dict = self.preset_manager.load_preset(preset)
+            else:
+                preset_dict = preset
+                self.preset_manager.validate_preset(preset_dict)
+
+            # Create converter and generate preview
+            converter = MatplotlibConverter(preset_dict)
+            preview_data = converter.generate_preview(fig, preview_dpi=preview_dpi)
+
+            logger.info(f"Generated preview ({len(preview_data)} bytes)")
+            return preview_data
+
+        except Exception as e:
+            logger.error(f"Preview generation failed: {e}", exc_info=True)
+            raise

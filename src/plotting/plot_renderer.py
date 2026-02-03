@@ -2,13 +2,14 @@
 
 import hashlib
 import json
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 import pandas as pd
 import streamlit as st
 
 from src.core.performance import get_plot_cache, timed
 from src.plotting.export import LaTeXExportService
+from src.plotting.export.presets.preset_schema import LaTeXPreset
 from src.web.ui.components.interactive_plot import interactive_plotly_chart
 
 from .base_plot import BasePlot
@@ -294,52 +295,502 @@ class PlotRenderer:
             col1, col2 = st.columns(2)
 
             with col1:
+                # Load saved preset if available
+                saved_preset_name = None
+                if "export_preset" in plot.config:
+                    # If it's a dict, try to identify which preset it came from
+                    if isinstance(plot.config["export_preset"], dict):
+                        # Use the saved preset directly
+                        saved_preset_name = "custom"
+                    else:
+                        saved_preset_name = plot.config.get("export_preset")
+
+                # Find index of saved preset or default to 0
+                default_index = 0
+                if saved_preset_name and saved_preset_name in presets:
+                    default_index = presets.index(saved_preset_name)
+
                 preset_name = st.selectbox(
                     "Journal Preset",
                     options=presets,
-                    index=0,  # Default to first preset
+                    index=default_index,
                     help="Select journal/conference column width preset",
+                    key=f"export_preset_{plot.plot_id}",
                 )
 
             with col2:
+                # Load saved format if available
+                saved_format = plot.config.get("export_format", "pdf")
+                format_index = (
+                    ["pdf", "pgf", "eps"].index(saved_format)
+                    if saved_format in ["pdf", "pgf", "eps"]
+                    else 0
+                )
+
                 format_choice = st.selectbox(
                     "Export Format",
                     options=["pdf", "pgf", "eps"],
-                    index=0,  # Default to PDF
+                    index=format_index,
                     help=(
                         "• PDF: Recommended for most use cases\n"
                         "• PGF: Best for direct LaTeX inclusion\n"
                         "• EPS: Legacy format"
                     ),
+                    key=f"export_format_{plot.plot_id}",
                 )
 
-            # Export button
-            if st.button("Generate Export", use_container_width=True):
-                with st.spinner(f"Generating {format_choice.upper()}..."):
-                    # Call service
-                    result = service.export(fig, preset=preset_name, format=format_choice)
+            # Load preset info for preview and advanced settings
+            preset_info = service.get_preset_info(preset_name)
 
-                    if result["success"] and result["data"] is not None:
-                        # Success - provide download
-                        file_extension = result["format"]
-                        file_name = f"figure.{file_extension}"
+            # Initialize preset to use (default to preset name)
+            preset_to_use: Union[str, LaTeXPreset] = preset_name
 
-                        st.download_button(
-                            label=f"Download {file_extension.upper()}",
-                            data=result["data"],  # Now guaranteed non-None
-                            file_name=file_name,
-                            mime=_get_mime_type(file_extension),
-                            use_container_width=True,
-                        )
+            # Advanced settings for legend spacing
+            with st.expander("⚙️ Advanced: Legend Spacing", expanded=False):
+                st.caption("Customize legend appearance (optional)")
 
-                        st.success(f"✓ Export successful " f"({len(result['data']) / 1024:.1f} KB)")
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    col_spacing = st.slider(
+                        "Column Spacing",
+                        min_value=-1.0,
+                        max_value=2.0,
+                        value=preset_info["legend_columnspacing"],
+                        step=0.1,
+                        help="Space between legend columns (negative = overlap)",
+                        key=f"legend_colspace_{plot.plot_id}",
+                    )
+                    label_spacing = st.slider(
+                        "Item Spacing",
+                        min_value=-0.5,
+                        max_value=1.0,
+                        value=preset_info["legend_labelspacing"],
+                        step=0.05,
+                        help="Vertical space between legend items (negative = tighter)",
+                        key=f"legend_labelspace_{plot.plot_id}",
+                    )
+                    box_length = st.slider(
+                        "Color Box Length",
+                        min_value=0.5,
+                        max_value=3.0,
+                        value=preset_info["legend_handlelength"],
+                        step=0.1,
+                        help="Length of color indicator boxes",
+                        key=f"legend_boxlen_{plot.plot_id}",
+                    )
+
+                with col_b:
+                    text_pad = st.slider(
+                        "Box-Text Spacing",
+                        min_value=-0.5,
+                        max_value=1.5,
+                        value=preset_info["legend_handletextpad"],
+                        step=0.05,
+                        help="Space between color box and label text (negative = overlap)",
+                        key=f"legend_textpad_{plot.plot_id}",
+                    )
+                    border_pad = st.slider(
+                        "Border Padding",
+                        min_value=-0.5,
+                        max_value=1.0,
+                        value=preset_info["legend_borderpad"],
+                        step=0.05,
+                        help="Space inside legend border (negative = tighter)",
+                        key=f"legend_borderpad_{plot.plot_id}",
+                    )
+
+                # Apply custom spacing to preset
+                if (
+                    col_spacing != preset_info["legend_columnspacing"]
+                    or text_pad != preset_info["legend_handletextpad"]
+                    or label_spacing != preset_info["legend_labelspacing"]
+                    or box_length != preset_info["legend_handlelength"]
+                    or border_pad != preset_info["legend_borderpad"]
+                ):
+                    # Create custom preset with user adjustments
+                    custom_preset = preset_info.copy()
+                    custom_preset["legend_columnspacing"] = col_spacing
+                    custom_preset["legend_handletextpad"] = text_pad
+                    custom_preset["legend_labelspacing"] = label_spacing
+                    custom_preset["legend_handlelength"] = box_length
+                    custom_preset["legend_borderpad"] = border_pad
+                    preset_to_use = custom_preset
+                    st.info("✏️ Using custom legend spacing")
+                else:
+                    preset_to_use = preset_name
+
+            # Advanced settings for font sizes
+            with st.expander("🔤 Advanced: Font Sizes & Bold", expanded=False):
+                st.caption("Customize font sizes and bold styling (optional)")
+
+                col_f1, col_f2, col_f3 = st.columns(3)
+                with col_f1:
+                    font_title = st.slider(
+                        "Title Font Size",
+                        min_value=6,
+                        max_value=18,
+                        value=preset_info["font_size_title"],
+                        step=1,
+                        help="Title font size in points",
+                        key=f"font_title_{plot.plot_id}",
+                    )
+                    font_xlabel = st.slider(
+                        "X-Axis Label",
+                        min_value=5,
+                        max_value=14,
+                        value=preset_info.get("font_size_xlabel", 9),
+                        step=1,
+                        help="X-axis label (benchmark names below axis)",
+                        key=f"font_xlabel_{plot.plot_id}",
+                    )
+                    font_ylabel = st.slider(
+                        "Y-Axis Label",
+                        min_value=5,
+                        max_value=14,
+                        value=preset_info.get("font_size_ylabel", 9),
+                        step=1,
+                        help="Y-axis label (e.g., 'Normalized Performance')",
+                        key=f"font_ylabel_{plot.plot_id}",
+                    )
+
+                with col_f2:
+                    font_legend = st.slider(
+                        "Legend",
+                        min_value=4,
+                        max_value=12,
+                        value=preset_info.get("font_size_legend", 8),
+                        step=1,
+                        help="Legend text font size",
+                        key=f"font_legend_{plot.plot_id}",
+                    )
+                    font_ticks = st.slider(
+                        "Tick Labels",
+                        min_value=4,
+                        max_value=12,
+                        value=preset_info["font_size_ticks"],
+                        step=1,
+                        help="Axis tick labels (TS_RS, TS_LA, etc.)",
+                        key=f"font_ticks_{plot.plot_id}",
+                    )
+                    font_annotations = st.slider(
+                        "Bar Values",
+                        min_value=3,
+                        max_value=10,
+                        value=preset_info.get("font_size_annotations", 6),
+                        step=1,
+                        help="Font size for bar total values",
+                        key=f"font_annot_{plot.plot_id}",
+                    )
+
+                with col_f3:
+                    st.write("**Bold Styling:**")
+                    bold_title = st.checkbox(
+                        "Title",
+                        value=preset_info.get("bold_title", False),
+                        key=f"bold_title_{plot.plot_id}",
+                    )
+                    bold_xlabel = st.checkbox(
+                        "X-Axis Label",
+                        value=preset_info.get("bold_xlabel", False),
+                        key=f"bold_xlabel_{plot.plot_id}",
+                    )
+                    bold_ylabel = st.checkbox(
+                        "Y-Axis Label",
+                        value=preset_info.get("bold_ylabel", False),
+                        key=f"bold_ylabel_{plot.plot_id}",
+                    )
+                    bold_legend = st.checkbox(
+                        "Legend",
+                        value=preset_info.get("bold_legend", False),
+                        key=f"bold_legend_{plot.plot_id}",
+                    )
+                    bold_ticks = st.checkbox(
+                        "Tick Labels",
+                        value=preset_info.get("bold_ticks", False),
+                        key=f"bold_ticks_{plot.plot_id}",
+                    )
+                    bold_annotations = st.checkbox(
+                        "Bar Values",
+                        value=preset_info.get("bold_annotations", True),
+                        help="Bar totals in bold (default: True)",
+                        key=f"bold_annot_{plot.plot_id}",
+                    )
+
+                # Apply custom font sizes and bold to preset
+                if (
+                    font_title != preset_info["font_size_title"]
+                    or font_xlabel != preset_info.get("font_size_xlabel", 9)
+                    or font_ylabel != preset_info.get("font_size_ylabel", 9)
+                    or font_legend != preset_info.get("font_size_legend", 8)
+                    or font_ticks != preset_info["font_size_ticks"]
+                    or font_annotations != preset_info.get("font_size_annotations", 6)
+                    or bold_title != preset_info.get("bold_title", False)
+                    or bold_xlabel != preset_info.get("bold_xlabel", False)
+                    or bold_ylabel != preset_info.get("bold_ylabel", False)
+                    or bold_legend != preset_info.get("bold_legend", False)
+                    or bold_ticks != preset_info.get("bold_ticks", False)
+                    or bold_annotations != preset_info.get("bold_annotations", True)
+                ):
+                    # Ensure preset_to_use is a dict (not just a name)
+                    if isinstance(preset_to_use, str):
+                        preset_to_use = preset_info.copy()
                     else:
-                        # Error - show message
-                        error_msg = result.get("error", "Unknown error")
-                        st.error(f"Export failed: {error_msg}")
-                        st.info(
-                            "Tip: Ensure LaTeX is installed on your system " "for PGF/EPS formats."
-                        )
+                        preset_to_use = preset_to_use.copy()
+                    preset_to_use["font_size_title"] = font_title
+                    preset_to_use["font_size_xlabel"] = font_xlabel
+                    preset_to_use["font_size_ylabel"] = font_ylabel
+                    preset_to_use["font_size_legend"] = font_legend
+                    preset_to_use["font_size_ticks"] = font_ticks
+                    preset_to_use["font_size_annotations"] = font_annotations
+                    preset_to_use["bold_title"] = bold_title
+                    preset_to_use["bold_xlabel"] = bold_xlabel
+                    preset_to_use["bold_ylabel"] = bold_ylabel
+                    preset_to_use["bold_legend"] = bold_legend
+                    preset_to_use["bold_ticks"] = bold_ticks
+                    preset_to_use["bold_annotations"] = bold_annotations
+                    st.info("✏️ Using custom font sizes/bold styling")
+
+            # Advanced settings for positioning
+            with st.expander("📐 Advanced: Positioning", expanded=False):
+                st.caption("Fine-tune element positions (optional)")
+
+                col_p1, col_p2 = st.columns(2)
+                with col_p1:
+                    ylabel_pad = st.slider(
+                        "Y-Axis Label Distance",
+                        min_value=0.0,
+                        max_value=80.0,
+                        value=float(preset_info.get("ylabel_pad", 10.0)),
+                        step=2.0,
+                        help=(
+                            "Distance from Y-axis label to tick labels "
+                            "(points). Higher = more space."
+                        ),
+                        key=f"ylabel_pad_{plot.plot_id}",
+                    )
+                    ylabel_y_position = st.slider(
+                        "Y-Axis Label Vertical Position",
+                        min_value=0.0,
+                        max_value=1.0,
+                        value=float(preset_info.get("ylabel_y_position", 0.5)),
+                        step=0.05,
+                        help=(
+                            "Vertical position of Y-axis label along "
+                            "the axis (0=bottom, 0.5=center, 1=top)"
+                        ),
+                        key=f"ylabel_y_position_{plot.plot_id}",
+                    )
+                    xtick_pad = st.slider(
+                        "X-Tick Label Distance",
+                        min_value=0.0,
+                        max_value=20.0,
+                        value=float(preset_info.get("xtick_pad", 5.0)),
+                        step=0.5,
+                        help="Distance from X-axis tick labels to axis (points)",
+                        key=f"xtick_pad_{plot.plot_id}",
+                    )
+                    ytick_pad = st.slider(
+                        "Y-Tick Label Distance",
+                        min_value=0.0,
+                        max_value=20.0,
+                        value=float(preset_info.get("ytick_pad", 5.0)),
+                        step=0.5,
+                        help="Distance from Y-axis tick labels to axis (points)",
+                        key=f"ytick_pad_{plot.plot_id}",
+                    )
+
+                with col_p2:
+                    group_label_offset = st.slider(
+                        "Group Label Position",
+                        min_value=-0.25,
+                        max_value=0.0,
+                        value=float(preset_info.get("group_label_offset", -0.12)),
+                        step=0.01,
+                        help="Vertical position of grouping labels (genome, intruder, etc.)",
+                        key=f"group_offset_{plot.plot_id}",
+                    )
+                    group_label_alternate = st.checkbox(
+                        "Alternate Group Labels (up/down)",
+                        value=bool(preset_info.get("group_label_alternate", True)),
+                        help="Alternate grouping labels vertically to avoid overlap",
+                        key=f"group_alt_{plot.plot_id}",
+                    )
+
+                st.markdown("---")
+                st.caption("Axis & Bar Spacing")
+                col_p3, col_p4 = st.columns(2)
+                with col_p3:
+                    xaxis_margin = st.slider(
+                        "X-Axis Margin",
+                        min_value=-0.05,
+                        max_value=0.2,
+                        value=float(preset_info.get("xaxis_margin", 0.02)),
+                        step=0.01,
+                        help="Left/right margin on X-axis (negative = use whitespace)",
+                        key=f"xaxis_margin_{plot.plot_id}",
+                    )
+                    xtick_rotation = st.slider(
+                        "X-Tick Rotation",
+                        min_value=0.0,
+                        max_value=90.0,
+                        value=float(preset_info.get("xtick_rotation", 45.0)),
+                        step=5.0,
+                        help="Rotation angle for X-axis tick labels",
+                        key=f"xtick_rotation_{plot.plot_id}",
+                    )
+                    xtick_offset = st.slider(
+                        "X-Tick Horizontal Offset",
+                        min_value=-20.0,
+                        max_value=20.0,
+                        value=float(preset_info.get("xtick_offset", 0.0)),
+                        step=1.0,
+                        help="Shift X-tick labels left (-) or right (+) in points",
+                        key=f"xtick_offset_{plot.plot_id}",
+                    )
+
+                with col_p4:
+                    bar_width_scale = st.slider(
+                        "Bar Width Scale",
+                        min_value=0.5,
+                        max_value=1.5,
+                        value=float(preset_info.get("bar_width_scale", 1.0)),
+                        step=0.05,
+                        help="Scale factor for bar widths (>1 = wider bars)",
+                        key=f"bar_width_scale_{plot.plot_id}",
+                    )
+                    xtick_ha = st.selectbox(
+                        "X-Tick Alignment",
+                        options=["right", "center", "left"],
+                        index=["right", "center", "left"].index(
+                            preset_info.get("xtick_ha", "right")
+                        ),
+                        help="Horizontal alignment of X-tick labels",
+                        key=f"xtick_ha_{plot.plot_id}",
+                    )
+
+                st.markdown("---")
+                st.caption("Group Separator (for arithmetic mean)")
+                col_sep1, col_sep2 = st.columns(2)
+                with col_sep1:
+                    group_separator = st.checkbox(
+                        "Draw Separator Before Last Group",
+                        value=bool(preset_info.get("group_separator", False)),
+                        help="Draw a vertical line before the last group (e.g., arithmean)",
+                        key=f"group_sep_{plot.plot_id}",
+                    )
+                with col_sep2:
+                    group_separator_style = st.selectbox(
+                        "Separator Style",
+                        options=["dashed", "dotted", "solid", "dashdot"],
+                        index=["dashed", "dotted", "solid", "dashdot"].index(
+                            preset_info.get("group_separator_style", "dashed")
+                        ),
+                        help="Line style for the group separator",
+                        key=f"group_sep_style_{plot.plot_id}",
+                        disabled=not group_separator,
+                    )
+
+                # Apply custom positioning to preset
+                if (
+                    ylabel_pad != preset_info.get("ylabel_pad", 10.0)
+                    or ylabel_y_position != preset_info.get("ylabel_y_position", 0.5)
+                    or xtick_pad != preset_info.get("xtick_pad", 5.0)
+                    or ytick_pad != preset_info.get("ytick_pad", 5.0)
+                    or group_label_offset != preset_info.get("group_label_offset", -0.12)
+                    or group_label_alternate != preset_info.get("group_label_alternate", True)
+                    or xaxis_margin != preset_info.get("xaxis_margin", 0.02)
+                    or bar_width_scale != preset_info.get("bar_width_scale", 1.0)
+                    or xtick_rotation != preset_info.get("xtick_rotation", 45.0)
+                    or xtick_ha != preset_info.get("xtick_ha", "right")
+                    or xtick_offset != preset_info.get("xtick_offset", 0.0)
+                    or group_separator != preset_info.get("group_separator", False)
+                    or group_separator_style != preset_info.get("group_separator_style", "dashed")
+                ):
+                    # Ensure preset_to_use is a dict
+                    if isinstance(preset_to_use, str):
+                        preset_to_use = preset_info.copy()
+                    else:
+                        preset_to_use = preset_to_use.copy()
+                    preset_to_use["ylabel_pad"] = ylabel_pad
+                    preset_to_use["ylabel_y_position"] = ylabel_y_position
+                    preset_to_use["xtick_pad"] = xtick_pad
+                    preset_to_use["ytick_pad"] = ytick_pad
+                    preset_to_use["group_label_offset"] = group_label_offset
+                    preset_to_use["group_label_alternate"] = group_label_alternate
+                    preset_to_use["xaxis_margin"] = xaxis_margin
+                    preset_to_use["bar_width_scale"] = bar_width_scale
+                    preset_to_use["xtick_rotation"] = xtick_rotation
+                    preset_to_use["xtick_ha"] = xtick_ha
+                    preset_to_use["xtick_offset"] = xtick_offset
+                    preset_to_use["group_separator"] = group_separator
+                    preset_to_use["group_separator_style"] = group_separator_style
+                    st.info("✏️ Using custom positioning")
+
+            # Preview button
+            col_preview, col_export = st.columns(2)
+
+            with col_preview:
+                if st.button(
+                    "🔍 Preview Export", use_container_width=True, key=f"preview_btn_{plot.plot_id}"
+                ):
+                    with st.spinner("Generating preview..."):
+                        try:
+                            preview_png = service.generate_preview(
+                                fig, preset=preset_to_use, preview_dpi=100
+                            )
+                            st.image(preview_png, caption="Export Preview (scaled for display)")
+                            st.caption(
+                                f"Actual export size: "
+                                f"{preset_info['width_inches']}\" × "
+                                f"{preset_info['height_inches']}\" @ "
+                                f"{preset_info['dpi']} DPI"
+                            )
+                        except Exception as e:
+                            st.error(f"Preview failed: {e}")
+
+            # Export button
+            with col_export:
+                if st.button(
+                    "📥 Generate Export",
+                    use_container_width=True,
+                    type="primary",
+                    key=f"export_btn_{plot.plot_id}",
+                ):
+                    # Save export preset to plot config for portfolio persistence
+                    plot.config["export_preset"] = (
+                        preset_to_use if isinstance(preset_to_use, dict) else preset_info
+                    )
+                    plot.config["export_format"] = format_choice
+
+                    with st.spinner(f"Generating {format_choice.upper()}..."):
+                        # Call service
+                        result = service.export(fig, preset=preset_to_use, format=format_choice)
+
+                        if result["success"] and result["data"] is not None:
+                            # Success - provide download
+                            file_extension = result["format"]
+                            file_name = f"figure.{file_extension}"
+
+                            st.download_button(
+                                label=f"Download {file_extension.upper()}",
+                                data=result["data"],  # Now guaranteed non-None
+                                file_name=file_name,
+                                mime=_get_mime_type(file_extension),
+                                use_container_width=True,
+                                key=f"download_btn_{plot.plot_id}",
+                            )
+
+                            st.success(
+                                f"✓ Export successful " f"({len(result['data']) / 1024:.1f} KB)"
+                            )
+                        else:
+                            # Error - show message
+                            error_msg = result.get("error", "Unknown error")
+                            st.error(f"Export failed: {error_msg}")
+                            st.info(
+                                "Tip: Ensure LaTeX is installed on your system "
+                                "for PGF/EPS formats."
+                            )
 
 
 def _get_mime_type(file_extension: str) -> str:

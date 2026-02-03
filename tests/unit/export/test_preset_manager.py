@@ -10,6 +10,53 @@ from src.plotting.export.presets.preset_manager import PresetManager
 from src.plotting.export.presets.preset_schema import LaTeXPreset
 
 
+def create_valid_preset(**overrides: float | str | int | bool) -> LaTeXPreset:
+    """Create a valid test preset with optional overrides."""
+    default_preset: LaTeXPreset = {
+        "width_inches": 3.5,
+        "height_inches": 1.96875,
+        "font_family": "serif",
+        "font_size_base": 9,
+        "font_size_title": 10,
+        "font_size_xlabel": 8,
+        "font_size_ylabel": 8,
+        "font_size_legend": 7,
+        "font_size_ticks": 7,
+        "font_size_annotations": 6,
+        "bold_title": False,
+        "bold_xlabel": False,
+        "bold_ylabel": False,
+        "bold_legend": False,
+        "bold_ticks": False,
+        "bold_annotations": True,
+        "line_width": 1.0,
+        "marker_size": 4,
+        "dpi": 300,
+        "legend_columnspacing": 0.5,
+        "legend_handletextpad": 0.4,
+        "legend_labelspacing": 0.3,
+        "legend_handlelength": 1.2,
+        "legend_handleheight": 0.7,
+        "legend_borderpad": 0.3,
+        "legend_borderaxespad": 0.5,
+        "ylabel_pad": 10.0,
+        "ylabel_y_position": 0.5,
+        "xtick_pad": 5.0,
+        "ytick_pad": 5.0,
+        "group_label_offset": -0.12,
+        "group_label_alternate": True,
+        "xaxis_margin": 0.02,
+        "bar_width_scale": 1.0,
+        "xtick_rotation": 45.0,
+        "xtick_ha": "right",
+        "xtick_offset": 0.0,
+        "group_separator": False,
+        "group_separator_style": "dashed",
+        "group_separator_color": "gray",
+    }
+    return {**default_preset, **overrides}  # type: ignore[return-value]
+
+
 class TestPresetManager:
     """Test PresetManager functionality."""
 
@@ -18,7 +65,7 @@ class TestPresetManager:
         preset = PresetManager.load_preset("single_column")
 
         assert preset["width_inches"] == 3.5
-        assert preset["height_inches"] == 2.625
+        assert preset["height_inches"] == 1.96875  # Updated 9:16 aspect ratio
         assert preset["font_family"] == "serif"
         assert preset["dpi"] == 300
 
@@ -63,54 +110,21 @@ class TestPresetManager:
 
     def test_validate_preset_with_valid_data(self) -> None:
         """Verify validation passes for valid preset."""
-        valid_preset: LaTeXPreset = {
-            "width_inches": 3.5,
-            "height_inches": 2.625,
-            "font_family": "serif",
-            "font_size_base": 9,
-            "font_size_labels": 8,
-            "font_size_title": 10,
-            "font_size_ticks": 7,
-            "line_width": 1.0,
-            "marker_size": 4,
-            "dpi": 300,
-        }
+        valid_preset = create_valid_preset()
 
         # Should not raise
         PresetManager.validate_preset(valid_preset)
 
     def test_validate_preset_with_negative_width_raises_error(self) -> None:
         """Verify validation catches negative width."""
-        invalid_preset = {
-            "width_inches": -1.0,  # Invalid: negative
-            "height_inches": 2.625,
-            "font_family": "serif",
-            "font_size_base": 9,
-            "font_size_labels": 8,
-            "font_size_title": 10,
-            "font_size_ticks": 7,
-            "line_width": 1.0,
-            "marker_size": 4,
-            "dpi": 300,
-        }
+        invalid_preset = create_valid_preset(width_inches=-1.0)
 
         with pytest.raises(ValueError, match="width_inches must be positive"):
             PresetManager.validate_preset(invalid_preset)
 
     def test_validate_preset_with_zero_dpi_raises_error(self) -> None:
         """Verify validation catches invalid DPI."""
-        invalid_preset = {
-            "width_inches": 3.5,
-            "height_inches": 2.625,
-            "font_family": "serif",
-            "font_size_base": 9,
-            "font_size_labels": 8,
-            "font_size_title": 10,
-            "font_size_ticks": 7,
-            "line_width": 1.0,
-            "marker_size": 4,
-            "dpi": 0,  # Invalid: zero
-        }
+        invalid_preset = create_valid_preset(dpi=0)
 
         with pytest.raises(ValueError, match="dpi must be positive"):
             PresetManager.validate_preset(invalid_preset)
@@ -127,18 +141,7 @@ class TestPresetManager:
 
     def test_validate_preset_with_negative_font_size_raises_error(self) -> None:
         """Verify validation catches negative font sizes."""
-        invalid_preset = {
-            "width_inches": 3.5,
-            "height_inches": 2.625,
-            "font_family": "serif",
-            "font_size_base": -5,  # Invalid: negative
-            "font_size_labels": 8,
-            "font_size_title": 10,
-            "font_size_ticks": 7,
-            "line_width": 1.0,
-            "marker_size": 4,
-            "dpi": 300,
-        }
+        invalid_preset = create_valid_preset(font_size_base=-5)
 
         with pytest.raises(ValueError, match="font_size_base must be positive"):
             PresetManager.validate_preset(invalid_preset)

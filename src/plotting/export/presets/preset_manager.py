@@ -85,12 +85,50 @@ class PresetManager:
             "height_inches": raw_preset["height_inches"],
             "font_family": raw_preset["font_family"],
             "font_size_base": raw_preset["font_size_base"],
-            "font_size_labels": raw_preset["font_size_labels"],
+            # Font sizes for different elements
             "font_size_title": raw_preset["font_size_title"],
+            "font_size_xlabel": raw_preset.get(
+                "font_size_xlabel", raw_preset.get("font_size_labels", 9)
+            ),
+            "font_size_ylabel": raw_preset.get(
+                "font_size_ylabel", raw_preset.get("font_size_labels", 9)
+            ),
+            "font_size_legend": raw_preset.get("font_size_legend", 8),
             "font_size_ticks": raw_preset["font_size_ticks"],
+            "font_size_annotations": raw_preset.get("font_size_annotations", 6),
+            # Bold styling controls
+            "bold_title": raw_preset.get("bold_title", False),
+            "bold_xlabel": raw_preset.get("bold_xlabel", False),
+            "bold_ylabel": raw_preset.get("bold_ylabel", False),
+            "bold_legend": raw_preset.get("bold_legend", False),
+            "bold_ticks": raw_preset.get("bold_ticks", False),
+            "bold_annotations": raw_preset.get("bold_annotations", True),
             "line_width": raw_preset["line_width"],
             "marker_size": raw_preset["marker_size"],
             "dpi": raw_preset["dpi"],
+            "legend_columnspacing": raw_preset["legend_columnspacing"],
+            "legend_handletextpad": raw_preset["legend_handletextpad"],
+            "legend_labelspacing": raw_preset["legend_labelspacing"],
+            "legend_handlelength": raw_preset["legend_handlelength"],
+            "legend_handleheight": raw_preset["legend_handleheight"],
+            "legend_borderpad": raw_preset["legend_borderpad"],
+            "legend_borderaxespad": raw_preset["legend_borderaxespad"],
+            # Positioning parameters
+            "ylabel_pad": raw_preset.get("ylabel_pad", 10.0),
+            "ylabel_y_position": raw_preset.get("ylabel_y_position", 0.5),
+            "xtick_pad": raw_preset.get("xtick_pad", 5.0),
+            "ytick_pad": raw_preset.get("ytick_pad", 5.0),
+            "group_label_offset": raw_preset.get("group_label_offset", -0.12),
+            "group_label_alternate": raw_preset.get("group_label_alternate", True),
+            # Axis and bar spacing parameters
+            "xaxis_margin": raw_preset.get("xaxis_margin", 0.02),
+            "bar_width_scale": raw_preset.get("bar_width_scale", 1.0),
+            "xtick_rotation": raw_preset.get("xtick_rotation", 45.0),
+            "xtick_ha": raw_preset.get("xtick_ha", "right"),
+            "xtick_offset": raw_preset.get("xtick_offset", 0.0),
+            "group_separator": raw_preset.get("group_separator", False),
+            "group_separator_style": raw_preset.get("group_separator_style", "dashed"),
+            "group_separator_color": raw_preset.get("group_separator_color", "gray"),
         }
 
         # Validate before caching
@@ -154,12 +192,22 @@ class PresetManager:
             "height_inches",
             "font_family",
             "font_size_base",
-            "font_size_labels",
             "font_size_title",
+            "font_size_xlabel",
+            "font_size_ylabel",
+            "font_size_legend",
             "font_size_ticks",
+            "font_size_annotations",
             "line_width",
             "marker_size",
             "dpi",
+            "legend_columnspacing",
+            "legend_handletextpad",
+            "legend_labelspacing",
+            "legend_handlelength",
+            "legend_handleheight",
+            "legend_borderpad",
+            "legend_borderaxespad",
         ]
 
         for field in required_fields:
@@ -177,11 +225,17 @@ class PresetManager:
         if preset["font_size_base"] <= 0:
             raise ValueError("font_size_base must be positive")
 
-        if preset["font_size_labels"] <= 0:
-            raise ValueError("font_size_labels must be positive")
-
         if preset["font_size_title"] <= 0:
             raise ValueError("font_size_title must be positive")
+
+        if preset["font_size_xlabel"] <= 0:
+            raise ValueError("font_size_xlabel must be positive")
+
+        if preset["font_size_ylabel"] <= 0:
+            raise ValueError("font_size_ylabel must be positive")
+
+        if preset["font_size_legend"] <= 0:
+            raise ValueError("font_size_legend must be positive")
 
         if preset["font_size_ticks"] <= 0:
             raise ValueError("font_size_ticks must be positive")

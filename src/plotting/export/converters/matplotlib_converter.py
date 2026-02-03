@@ -185,13 +185,11 @@ class MatplotlibConverter(BaseConverter):
 
         # Proper LaTeX preamble for font encoding and math support
         # This ensures \mathdefault and other font commands work correctly
-        # Note: Unicode characters in labels should be avoided or use LaTeX commands
-        preamble = r"""
-\usepackage[utf8]{inputenc}
-\usepackage[T1]{fontenc}
-\usepackage{amsmath}
-\usepackage{amssymb}
-"""
+        # Note: Unicode characters in labels should be avoided
+        preamble = (
+            r"\usepackage[utf8]{inputenc}\usepackage[T1]{fontenc}"
+            r"\usepackage{amsmath}\usepackage{amssymb}"
+        )
         rc("text.latex", preamble=preamble)
 
         logger.info("LaTeX text rendering enabled with full font support")
@@ -199,11 +197,11 @@ class MatplotlibConverter(BaseConverter):
         # Font configuration
         rc("font", family=self.preset["font_family"])
         rc("font", size=self.preset["font_size_base"])
-        rc("axes", labelsize=self.preset["font_size_labels"])
+        rc("axes", labelsize=self.preset.get("font_size_xlabel", 9))  # X label default
         rc("axes", titlesize=self.preset["font_size_title"])
         rc("xtick", labelsize=self.preset["font_size_ticks"])
         rc("ytick", labelsize=self.preset["font_size_ticks"])
-        rc("legend", fontsize=self.preset["font_size_labels"])
+        rc("legend", fontsize=self.preset.get("font_size_legend", 8))
 
         # Line and marker defaults
         rc("lines", linewidth=self.preset["line_width"])
@@ -264,7 +262,12 @@ class MatplotlibConverter(BaseConverter):
             trace: Plotly Bar trace
             ax: Matplotlib axes
             trace_idx: Index of this trace in the figure
+
+        Uses bar_width_scale from preset to adjust bar widths.
         """
+        # Get bar width scale from preset
+        bar_width_scale = self.preset.get("bar_width_scale", 1.0)
+
         x = trace.x if trace.x is not None else []
         y = trace.y if trace.y is not None else []
 
@@ -336,18 +339,18 @@ class MatplotlibConverter(BaseConverter):
                     bottom=bottom,
                     label=trace.name or "",
                     color=color,
-                    width=0.8,
+                    width=0.8 * bar_width_scale,
                     edgecolor="white",
                     linewidth=0.5,
                 )
             else:
                 # Grouped bars: offset each bar
                 if n_bars > 1:
-                    bar_width = 0.8 / n_bars  # Divide space among bars
-                    offset = -0.4 + (trace_idx + 0.5) * bar_width  # Center the group
+                    bar_width = (0.8 * bar_width_scale) / n_bars  # Divide space among bars
+                    offset = (-0.4 * bar_width_scale) + (trace_idx + 0.5) * bar_width
                     x_positions_grouped: List[float] = [pos + offset for pos in x_positions]
                 else:
-                    bar_width = 0.8
+                    bar_width = 0.8 * bar_width_scale
                     x_positions_grouped = [float(pos) for pos in x_positions]
 
                 ax.bar(
@@ -394,17 +397,20 @@ class MatplotlibConverter(BaseConverter):
                                 bottom[i] += float(prev_y[j]) if prev_y[j] is not None else 0.0
                                 break
 
-            # Determine bar width from x-axis spacing (for grouped-stacked patterns)
-            if len(x_numeric_positions) > 1:
-                # Find minimum spacing to determine bar width
+            # Determine bar width from Plotly trace or x-axis spacing
+            # First, try to get width from trace
+            if hasattr(trace, "width") and trace.width is not None:
+                bar_width = float(trace.width) * bar_width_scale
+            elif len(x_numeric_positions) > 1:
+                # Fallback: calculate from minimum spacing
                 spacings = [
                     x_numeric_positions[i + 1] - x_numeric_positions[i]
                     for i in range(len(x_numeric_positions) - 1)
                 ]
                 min_spacing = min(s for s in spacings if s > 0.1)  # Ignore tiny gaps
-                bar_width = min_spacing * 0.8  # 80% of minimum spacing
+                bar_width = min_spacing * 0.8 * bar_width_scale  # 80% of min spacing
             else:
-                bar_width = 0.8
+                bar_width = 0.8 * bar_width_scale
 
             ax.bar(
                 x=x_numeric_positions,
@@ -423,7 +429,7 @@ class MatplotlibConverter(BaseConverter):
                 height=y,
                 label=trace.name or "",
                 color=color,
-                width=0.8,
+                width=0.8 * bar_width_scale,
             )
 
     def _convert_line_trace(self, trace: go.Scatter, ax: Axes) -> None:
@@ -488,22 +494,16 @@ class MatplotlibConverter(BaseConverter):
         Returns:
             Dictionary of applied layout properties
         """
-        layout = plotly_fig.layout
         applied = {}
 
         # Extract layout using LayoutMapper
         extracted_layout = self.layout_mapper.extract_layout(plotly_fig)
 
-        # Apply to Matplotlib using LayoutMapper
-        self.layout_mapper.apply_to_matplotlib(ax, extracted_layout)
+        # Apply to Matplotlib using LayoutMapper, passing preset for font sizes
+        self.layout_mapper.apply_to_matplotlib(ax, extracted_layout, preset=self.preset)
 
         # Track what was applied
         applied.update(extracted_layout)
-
-        # Additional layout elements
-        if layout.title and layout.title.text:
-            ax.set_title(layout.title.text)
-            applied["title"] = layout.title.text
 
         # Grid (default styling)
         ax.grid(True, alpha=0.3, linestyle="--", linewidth=0.5)
@@ -514,7 +514,13 @@ class MatplotlibConverter(BaseConverter):
         handles, labels = ax.get_legend_handles_labels()
         if handles:  # Only add legend if there are traces with labels
             ncol = 2 if len(handles) > 4 else 1
-            ax.legend(
+
+            # Get font size and bold from preset
+            legend_fontsize = self.preset.get("font_size_legend", 8)
+            legend_bold = self.preset.get("bold_legend", False)
+
+            # Get legend spacing from preset (with defaults matching matplotlib)
+            legend = ax.legend(
                 handles=handles,
                 labels=labels,
                 ncol=ncol,
@@ -524,14 +530,95 @@ class MatplotlibConverter(BaseConverter):
                 framealpha=1.0,
                 edgecolor="black",
                 loc="best",
+                fontsize=legend_fontsize,
+                # Spacing from preset - user configurable
+                columnspacing=self.preset.get("legend_columnspacing", 0.5),
+                handletextpad=self.preset.get("legend_handletextpad", 0.3),
+                labelspacing=self.preset.get("legend_labelspacing", 0.2),
+                handlelength=self.preset.get("legend_handlelength", 1.0),
+                handleheight=self.preset.get("legend_handleheight", 0.7),
+                borderpad=self.preset.get("legend_borderpad", 0.2),
+                borderaxespad=self.preset.get("legend_borderaxespad", 0.5),
             )
+
+            # Apply bold to legend text if requested
+            if legend_bold:
+                for text in legend.get_texts():
+                    text.set_fontweight("bold")
             applied["legend_ncols"] = ncol
             applied["legend_items"] = len(handles)
+            applied["legend_fontsize"] = legend_fontsize
 
-        # Tight layout for clean borders
-        plt.tight_layout()
+        # Skip tight_layout() - let bbox_inches='tight' in savefig handle it
+        # This avoids UserWarning about margins not accommodating decorations
 
         return applied
+
+    def generate_preview(self, fig: go.Figure, preview_dpi: int = 150) -> bytes:
+        """
+        Generate a PNG preview of the matplotlib figure at lower DPI.
+
+        Useful for showing users what the exported figure will look like
+        before generating the full-resolution export.
+
+        Args:
+            fig: Plotly figure to convert
+            preview_dpi: DPI for preview (default 150, lower than export DPI)
+
+        Returns:
+            PNG image data as bytes
+
+        Example:
+            >>> converter = MatplotlibConverter(preset)
+            >>> preview_png = converter.generate_preview(fig, preview_dpi=150)
+            >>> st.image(preview_png, caption="Export Preview")
+        """
+        # Temporarily override DPI for preview
+        original_dpi = self.preset["dpi"]
+        self.preset["dpi"] = preview_dpi
+
+        # Save LaTeX settings and disable for preview (PNG doesn't need LaTeX)
+        original_usetex = plt.rcParams["text.usetex"]
+        plt.rcParams["text.usetex"] = False
+
+        try:
+            # Convert to matplotlib
+            mpl_fig, ax = self._create_matplotlib_figure()
+
+            # Skip LaTeX rendering for preview - use matplotlib's native rendering
+            # This avoids requiring dvipng and makes preview generation much faster
+
+            # Extract barmode
+            if hasattr(fig, "layout") and hasattr(fig.layout, "barmode"):
+                self._barmode = str(fig.layout.barmode) if fig.layout.barmode else "group"
+            else:
+                self._barmode = "group"
+            self._bar_traces = []
+            self._categorical_labels = []
+
+            # Convert traces and apply layout
+            self._convert_traces(fig, ax)
+            self._apply_layout(fig, ax)
+
+            # Export as PNG
+            buf = io.BytesIO()
+            mpl_fig.savefig(
+                buf,
+                format="png",
+                bbox_inches="tight",
+                pad_inches=0.05,
+                dpi=preview_dpi,
+            )
+            buf.seek(0)
+            png_data = buf.read()
+
+            plt.close(mpl_fig)
+            return png_data
+
+        finally:
+            # Restore original settings
+            self.preset["dpi"] = original_dpi
+            plt.rcParams["text.usetex"] = original_usetex
 
     def _export_figure(self, fig: Figure, format: Literal["pdf", "pgf", "eps"]) -> bytes:
         """
