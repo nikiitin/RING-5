@@ -1,0 +1,45 @@
+# CodeQL Configuration for RING-5
+# This file allows you to customize which files and queries CodeQL analyzes
+
+name: "RING-5 CodeQL Config"
+
+# Paths to exclude from analysis
+paths-ignore:
+  - "tests/data/**"
+  - "python_venv/**"
+  - "**/*.egg-info/**"
+  - "**/__pycache__/**"
+  - ".pytest_cache/**"
+  - "docs/**"
+  - "*.md"
+
+# Paths to include (optional - by default all paths are included)
+# paths:
+#   - src/**
+#   - tests/**
+
+# Disable default queries and use only custom ones (optional)
+# disable-default-queries: false
+
+# Additional query packs to run
+# packs:
+#   - codeql/python-queries
+
+# Query filters to include/exclude specific queries
+# query-filters:
+#   - include:
+#       tags contain: security
+#   - exclude:
+#       id: py/unused-import
+
+# Specific queries to run (in addition to or instead of default queries)
+# queries:
+#   - name: Python security queries
+#     uses: security-and-quality
+#   - name: Python maintainability queries
+#     uses: security-extended
+
+# Database configuration
+# database:
+#   # For interpreted languages like Python, specify source root
+#   source-root: src
