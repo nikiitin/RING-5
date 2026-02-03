@@ -16,6 +16,7 @@ Welcome to the **RING-5** documentation! This wiki provides comprehensive guides
 - [**Parsing gem5 Stats**](Parsing-Guide.md) - Complete parsing workflow
 - [**Data Transformations**](Data-Transformations.md) - Using shapers and pipelines
 - [**Creating Plots**](Creating-Plots.md) - Visualization guide
+- [**LaTeX Export Guide**](LaTeX-Export-Guide.md) - Publication-quality export (NEW!)
 - [**Portfolio Management**](Portfolios.md) - Saving and sharing analyses
 
 ### Plot Types

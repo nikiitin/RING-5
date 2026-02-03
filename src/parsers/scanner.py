@@ -9,7 +9,7 @@ the Fail-Fast principle.
 import json
 import logging
 import shutil
-import subprocess
+import subprocess  # nosec B404 - Required for gem5 Perl parser execution
 from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
 
@@ -85,6 +85,7 @@ class Gem5StatsScanner:
             cmd.append(",".join(str(v) for v in config_vars))
 
         try:
+            # nosec B603 - Command constructed from validated paths, shell=False enforced
             result = subprocess.run(
                 cmd, capture_output=True, text=True, check=True, shell=False, timeout=60
             )

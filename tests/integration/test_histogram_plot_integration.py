@@ -37,9 +37,7 @@ class TestHistogramPlotIntegration:
         assert plot.plot_type == "histogram"
         assert plot.name == "Test Histogram"
 
-    def test_histogram_with_parsed_gem5_data(
-        self, facade: BackendFacade, stats_dir: Path
-    ) -> None:
+    def test_histogram_with_parsed_gem5_data(self, facade: BackendFacade, stats_dir: Path) -> None:
         """Test histogram plot with parsed gem5 histogram data."""
         # 1. Scan for histogram variables
         scan_futures = facade.submit_scan_async(str(stats_dir), "stats.txt", limit=-1)
@@ -51,8 +49,7 @@ class TestHistogramPlotIntegration:
             (
                 v
                 for v in vars_found
-                if "htm_transaction_commit_cycles" in v["name"]
-                and v["type"] == "histogram"
+                if "htm_transaction_commit_cycles" in v["name"] and v["type"] == "histogram"
             ),
             None,
         )
@@ -90,7 +87,9 @@ class TestHistogramPlotIntegration:
 
             # 5. Configure plot
             config = {
-                "histogram_variable": "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles",
+                "histogram_variable": (
+                    "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles"
+                ),
                 "title": "Transaction Commit Cycles Distribution",
                 "xlabel": "Cycles",
                 "ylabel": "Count",
@@ -107,15 +106,11 @@ class TestHistogramPlotIntegration:
             assert len(fig.data) > 0
             assert fig.layout.title.text == "Transaction Commit Cycles Distribution"
 
-    def test_histogram_with_grouping(
-        self, facade: BackendFacade, stats_dir: Path
-    ) -> None:
+    def test_histogram_with_grouping(self, facade: BackendFacade, stats_dir: Path) -> None:
         """Test histogram plot with categorical grouping."""
         # Parse with configuration variable for grouping
         with tempfile.TemporaryDirectory() as tmpdir:
-            scan_futures = facade.submit_scan_async(
-                str(stats_dir), "stats.txt", limit=-1
-            )
+            scan_futures = facade.submit_scan_async(str(stats_dir), "stats.txt", limit=-1)
             scan_results = [f.result() for f in scan_futures]
             vars_found = facade.finalize_scan(scan_results)
 
@@ -124,8 +119,7 @@ class TestHistogramPlotIntegration:
                 (
                     v
                     for v in vars_found
-                    if "htm_transaction_commit_cycles" in v["name"]
-                    and v["type"] == "histogram"
+                    if "htm_transaction_commit_cycles" in v["name"] and v["type"] == "histogram"
                 ),
                 None,
             )
@@ -163,7 +157,9 @@ class TestHistogramPlotIntegration:
             plot = PlotFactory.create_plot("histogram", plot_id=1, name="Grouped Histogram")
 
             config = {
-                "histogram_variable": "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles",
+                "histogram_variable": (
+                    "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles"
+                ),
                 "title": "Cycles by Benchmark",
                 "xlabel": "Cycles",
                 "ylabel": "Count",

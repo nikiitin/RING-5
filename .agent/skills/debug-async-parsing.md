@@ -1,7 +1,7 @@
 # Skill: Debugging Async Parsing Issues
 
-**Skill ID**: `debug-async-parsing`  
-**Domain**: Troubleshooting  
+**Skill ID**: `debug-async-parsing`
+**Domain**: Troubleshooting
 **Complexity**: Intermediate
 
 ## Overview

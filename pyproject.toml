@@ -33,7 +33,6 @@ dependencies = [
   "streamlit>=1.53.1",
   "openpyxl>=3.1.5",
   "plotly>=6.5.2",
-  "kaleido>=1.2.0",
 ]
 
 [project.optional-dependencies]
@@ -47,6 +46,7 @@ dev = [
   "pandas-stubs>=2.2.3.240909",
   "types-jsonschema>=4.23.0.20240813",
   "types-tqdm>=4.67.0.20250809",
+  "types-PyYAML>=6.0.12",
   "scipy-stubs>=1.5.0",
 ]
 
@@ -73,9 +73,13 @@ markers = [
 ]
 filterwarnings = [
   "ignore:.*Support for the 'engine' argument is deprecated.*:DeprecationWarning",
-  "ignore::DeprecationWarning:plotly.io._kaleido",
 ]
 
 [tool.black]
 line-length = 100
 target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
+
+[tool.bandit]
+# B603: subprocess without shell - we explicitly use shell=False with validated paths
+# B404: import subprocess - required for Perl parser execution
+skips = ["B603", "B404"]

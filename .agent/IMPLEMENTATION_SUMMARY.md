@@ -205,7 +205,7 @@ Copilot: [References .agent/skills/new-plot-type.md]
 
 **Status**: ✅ COMPLETE - Dual IDE support fully implemented
 
-**Tested**: 
+**Tested**:
 - ✅ File structure verified
 - ✅ YAML frontmatter format correct
 - ✅ Skill descriptions optimized for auto-activation

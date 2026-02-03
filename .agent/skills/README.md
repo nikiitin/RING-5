@@ -5,8 +5,8 @@ Skills are reusable packages of knowledge that extend what the agent can do. The
 ## Available Skills
 
 ### `parsing-workflow`
-**Activates when**: Working with gem5 stats parsing, scanning variables, or data loading  
-**Contains**: Complete async-first parsing workflow patterns  
+**Activates when**: Working with gem5 stats parsing, scanning variables, or data loading
+**Contains**: Complete async-first parsing workflow patterns
 **Format**: [SKILL.md](parsing-workflow/SKILL.md)
 
 Key knowledge:
@@ -19,8 +19,8 @@ Key knowledge:
 ---
 
 ### `new-plot-type`
-**Activates when**: Adding new visualizations or custom chart types  
-**Contains**: Step-by-step plot implementation guide  
+**Activates when**: Adding new visualizations or custom chart types
+**Contains**: Step-by-step plot implementation guide
 **Format**: [SKILL.md](new-plot-type/SKILL.md)
 
 Key knowledge:
@@ -33,8 +33,8 @@ Key knowledge:
 ---
 
 ### `shaper-pipeline`
-**Activates when**: Implementing data transformations or processing pipelines  
-**Contains**: Shaper creation and pipeline patterns  
+**Activates when**: Implementing data transformations or processing pipelines
+**Contains**: Shaper creation and pipeline patterns
 **Format**: [SKILL.md](shaper-pipeline/SKILL.md)
 
 Key knowledge:
@@ -47,8 +47,8 @@ Key knowledge:
 ---
 
 ### `debug-async-parsing`
-**Activates when**: Troubleshooting parsing failures or async issues  
-**Contains**: Debugging guide for async parsing workflows  
+**Activates when**: Troubleshooting parsing failures or async issues
+**Contains**: Debugging guide for async parsing workflows
 **Format**: [SKILL.md](debug-async-parsing/SKILL.md)
 
 Key knowledge:

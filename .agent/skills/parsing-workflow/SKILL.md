@@ -220,7 +220,7 @@ from src.web.state_manager import StateManager
 if st.button("Parse Statistics"):
     with st.spinner("Scanning for variables..."):
         scan_futures = facade.submit_scan_async(stats_path, pattern, limit=10)
-        
+
         # Show progress
         progress = st.progress(0)
         scan_results = []

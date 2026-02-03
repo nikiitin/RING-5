@@ -1,8 +1,8 @@
 # Adding Support for New gem5 Variable Types
 
-> **Invoke with**: `/new-variable-type`  
-> **Purpose**: Extend parser to support new gem5 statistics variable types  
-> **Complexity**: Advanced  
+> **Invoke with**: `/new-variable-type`
+> **Purpose**: Extend parser to support new gem5 statistics variable types
+> **Complexity**: Advanced
 > **Domain**: Parsing
 
 ## Overview

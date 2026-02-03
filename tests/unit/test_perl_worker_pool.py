@@ -5,6 +5,7 @@ Tests connection pooling, error handling, worker recovery, and health monitoring
 """
 
 import logging
+import shutil
 import tempfile
 import time
 from pathlib import Path
@@ -59,8 +60,10 @@ class TestPerlWorker:
         script_path = str(
             Path(__file__).parent.parent.parent / "src" / "parsers" / "perl" / "fileParserServer.pl"
         )
+        perl_exe = shutil.which("perl")
+        assert perl_exe is not None, "Perl executable not found"
 
-        worker = PerlWorker(worker_id=0, script_path=script_path)
+        worker = PerlWorker(worker_id=0, script_path=script_path, perl_exe=perl_exe)
 
         try:
             assert worker.is_healthy
@@ -75,8 +78,10 @@ class TestPerlWorker:
         script_path = str(
             Path(__file__).parent.parent.parent / "src" / "parsers" / "perl" / "fileParserServer.pl"
         )
+        perl_exe = shutil.which("perl")
+        assert perl_exe is not None, "Perl executable not found"
 
-        worker = PerlWorker(worker_id=0, script_path=script_path)
+        worker = PerlWorker(worker_id=0, script_path=script_path, perl_exe=perl_exe)
 
         try:
             # Should be healthy
@@ -96,8 +101,10 @@ class TestPerlWorker:
         script_path = str(
             Path(__file__).parent.parent.parent / "src" / "parsers" / "perl" / "fileParserServer.pl"
         )
+        perl_exe = shutil.which("perl")
+        assert perl_exe is not None, "Perl executable not found"
 
-        worker = PerlWorker(worker_id=0, script_path=script_path)
+        worker = PerlWorker(worker_id=0, script_path=script_path, perl_exe=perl_exe)
 
         try:
             output, success = worker.parse_file(
@@ -123,8 +130,10 @@ class TestPerlWorker:
         script_path = str(
             Path(__file__).parent.parent.parent / "src" / "parsers" / "perl" / "fileParserServer.pl"
         )
+        perl_exe = shutil.which("perl")
+        assert perl_exe is not None, "Perl executable not found"
 
-        worker = PerlWorker(worker_id=0, script_path=script_path)
+        worker = PerlWorker(worker_id=0, script_path=script_path, perl_exe=perl_exe)
 
         try:
             original_pid = worker.process.pid

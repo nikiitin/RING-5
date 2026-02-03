@@ -100,11 +100,38 @@ git clone <repository-url>
 cd RING-5
 
 # Build and install (creates virtual environment and installs all dependencies)
-make build
+make dev
+
+# Install pre-commit hooks (optional but recommended)
+make pre-commit-install
+
+# Install LaTeX dependencies for publication-quality exports (optional)
+make install-latex
 
 # Activate the virtual environment
 source python_venv/bin/activate
 ```
+
+### System Dependencies
+
+**For LaTeX Export** (optional - enables PDF/PGF/EPS export):
+
+```bash
+# Automated installation
+make install-latex
+
+# Manual installation (Ubuntu/Debian)
+sudo apt-get install texlive-latex-base texlive-fonts-recommended \
+                     texlive-fonts-extra cm-super texlive-xetex
+
+# Manual installation (macOS)
+brew install --cask mactex
+
+# Verify installation
+make check-latex
+```
+
+See [LaTeX Export Guide](docs/LaTeX-Export-Guide.md) for details.
 
 ### Building Distribution Packages
 

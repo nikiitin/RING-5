@@ -3,6 +3,7 @@
 Verification script for RING-5 installation and configuration.
 Tests core functionality without requiring all dependencies.
 """
+
 import json
 import sys
 from pathlib import Path
@@ -154,6 +155,69 @@ def test_dependencies():
         return True
 
 
+def test_latex_dependencies():
+    """Check if LaTeX system packages are installed (for export feature)."""
+    print("\nChecking LaTeX dependencies (for export feature)...")
+    import shutil
+    import subprocess
+
+    checks = [
+        ("latex", "LaTeX engine (pdflatex)", "Basic PDF export"),
+        ("xelatex", "XeLaTeX engine", "PGF format export"),
+    ]
+
+    all_good = True
+    for command, name, purpose in checks:
+        if shutil.which(command):
+            try:
+                result = subprocess.run(
+                    [command, "--version"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                )
+                version = result.stdout.split("\n")[0]
+                print(f"  ✓ {name:25s} - {purpose}")
+                print(f"    {version}")
+            except Exception as e:
+                print(f"  ⚠ {name:25s} - Found but cannot verify: {e}")
+        else:
+            print(f"  ✗ {name:25s} - {purpose} (NOT INSTALLED)")
+            all_good = False
+
+    # Check for cm-super package (type1ec.sty)
+    if shutil.which("kpsewhich"):
+        try:
+            result = subprocess.run(  # nosec B607 - kpsewhich is from TeX Live
+                ["kpsewhich", "type1ec.sty"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if result.returncode == 0:
+                print(f"  ✓ {'cm-super package':25s} - Type 1 fonts for LaTeX")
+            else:
+                print(f"  ✗ {'cm-super package':25s} - Type 1 fonts (NOT INSTALLED)")
+                all_good = False
+        except Exception:
+            print(f"  ⚠ {'cm-super package':25s} - Cannot verify")
+    else:
+        print(f"  ⚠ {'cm-super package':25s} - Cannot verify (kpsewhich not found)")
+
+    if not all_good:
+        print("\n  ⚠️  LaTeX export features will not work without these packages")
+        print("\n  Install with:")
+        print("    make install-latex")
+        print("  Or manually:")
+        print("    sudo apt-get install texlive-latex-base texlive-fonts-recommended \\")
+        print("                         texlive-fonts-extra cm-super texlive-xetex")
+        print("\n  📖 See docs/LaTeX-Export-Guide.md for details")
+        return False
+    else:
+        print("\n  ✓ All LaTeX dependencies installed")
+        return True
+
+
 def main():
     """Run all verification tests."""
     print("=" * 60)
@@ -163,6 +227,7 @@ def main():
     results = {
         "File Structure": test_file_structure(),
         "Dependencies": test_dependencies(),
+        "LaTeX Dependencies": test_latex_dependencies(),
         "Config Validation": test_config_validation(),
         "Template Generation": test_template_generation(),
         "Schema Validation": test_schema_validation(),
@@ -190,7 +255,8 @@ def main():
     else:
         print("\n✗ Some tests failed")
         print("\nInstall missing dependencies:")
-        print("  pip install -r requirements.txt")
+        print("  Python packages: pip install -r requirements.txt")
+        print("  LaTeX packages:  make install-latex")
 
     print("=" * 60)
 

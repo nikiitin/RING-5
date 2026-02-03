@@ -23,7 +23,7 @@ repos:
     rev: v1.19.1
     hooks:
       - id: mypy
-        additional_dependencies: [pandas-stubs, types-jsonschema, types-tqdm]
+        additional_dependencies: [pandas-stubs, types-jsonschema, types-tqdm, types-PyYAML]
         args: [--ignore-missing-imports, --no-strict-optional]
         files: ^src/
 
@@ -42,6 +42,7 @@ repos:
       - id: end-of-file-fixer
       - id: check-yaml
       - id: check-json
+        exclude: ^\.vscode/
       - id: check-toml
       - id: check-merge-conflict
       - id: check-added-large-files
