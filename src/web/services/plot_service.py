@@ -103,6 +103,14 @@ class PlotService:
 
         fmt = format or plot.config.get("download_format", "pdf")
 
+        # Validate format BEFORE constructing path (security: prevent path traversal)
+        allowed_formats = ["html", "pdf", "pgf", "eps"]
+        if fmt not in allowed_formats:
+            raise ValueError(
+                f"Unsupported export format '{fmt}'. "
+                f"Supported formats: {', '.join(allowed_formats)}"
+            )
+
         # Clean name
         safe_name = "".join([c if c.isalnum() else "_" for c in plot.name])
         filename = f"{safe_name}.{fmt}"
@@ -118,13 +126,12 @@ class PlotService:
             result = service.export(fig=fig, preset="single_column", format=fmt)
 
             if result["success"]:
+                data = result["data"]
+                if data is None:
+                    raise RuntimeError("LaTeX export succeeded but returned no data")
                 with open(path, "wb") as f:
-                    f.write(result["data"])
+                    f.write(data)
             else:
                 raise RuntimeError(f"LaTeX export failed: {result.get('error', 'Unknown error')}")
-        else:
-            raise ValueError(
-                f"Unsupported export format '{fmt}'. " "Supported formats: html, pdf, pgf, eps"
-            )
 
         return path

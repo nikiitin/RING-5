@@ -66,3 +66,27 @@ def test_export_plot_format_override(temp_dir):
 
     assert path.endswith("HTML_Plot.html")
     assert os.path.exists(path)
+
+
+def test_export_rejects_invalid_format(temp_dir):
+    """Test that invalid formats are rejected (security: prevent path traversal)."""
+    plot = PlotFactory.create_plot("bar", 3, "Security Test")
+    df = pd.DataFrame({"x": ["A"], "y": [1]})
+    plot.processed_data = df
+    plot.config["x"] = "x"
+    plot.config["y"] = "y"
+    plot.config["title"] = "Test Title"
+    plot.config["xlabel"] = "X"
+    plot.config["ylabel"] = "Y"
+
+    # Test path traversal attempt
+    with pytest.raises(ValueError, match="Unsupported export format"):
+        PlotService.export_plot_to_file(plot, temp_dir, format="../../../etc/passwd")
+
+    # Test invalid extension
+    with pytest.raises(ValueError, match="Unsupported export format"):
+        PlotService.export_plot_to_file(plot, temp_dir, format="png")
+
+    # Test empty format should use default (pdf) which is valid
+    path = PlotService.export_plot_to_file(plot, temp_dir, format=None)
+    assert path.endswith(".pdf")
