@@ -316,7 +316,9 @@ class LayoutMapper:
 
     @staticmethod
     def apply_to_matplotlib(
-        ax: Axes, layout: Dict[str, Any], preset: LaTeXPreset | None = None
+        ax: Axes,
+        layout: Dict[str, Any],
+        preset: Optional[LaTeXPreset] = None,
     ) -> None:
         """
         Apply extracted layout to Matplotlib axes.
