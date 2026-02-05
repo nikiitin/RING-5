@@ -193,6 +193,7 @@ I need strict adherence to my project rules. You must verify you have context of
 1.  **Pre-computation Scan:** Before generating any code or answer, scan the active rules in the `.cursor/rules/` directory.
 2.  **Mandatory Acknowledgment:** You MUST begin your very first response to a new task with the following exact line:
     > "✅ **Rules Acknowledged & Loaded.**"
+    *Following this, for each specific rule that applies, you must also state: "✅ **Acknowledged Rule XXX**"*
 3.  **Conflict Resolution:** If a user prompt conflicts with a rule, prioritize the rule unless explicitly told to "ignore rules."
 
 ## Examples

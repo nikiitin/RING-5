@@ -1,200 +1,48 @@
-# Quick Start: Using AI Agents in RING-5
+# Agent Quickstart Guide
 
-Choose your IDE and follow the corresponding guide.
+## 🚀 Development Commands
 
-## 🚀 Google Antigravity IDE
-
-### First Time Setup
-1. Open RING-5 in Antigravity IDE
-2. Rules are automatically loaded from `.agent/rules/`
-3. Skills appear in Customizations panel
-4. You're ready to go!
-
-### Using Workflows
-Invoke workflows by typing slash commands in Agent input:
-
-```
-/test-driven-development
+### Environment Setup
+```bash
+# Install dependencies
+pip install -r requirements.txt
 ```
 
-Available workflows:
-- `/test-driven-development` - TDD process for all code changes
-- `/new-variable-type` - Add support for new gem5 variable types
-
-### Using Skills
-Skills activate automatically when relevant. No action needed!
-
-Just describe your task:
-```
-"I need to parse gem5 stats from this directory"
-→ parsing-workflow skill auto-activates
+### Running the Application
+```bash
+# Start the Streamlit UI
+streamlit run app.py
 ```
 
-Available skills:
-- `parsing-workflow` - gem5 statistics parsing
-- `new-plot-type` - Adding visualizations
-- `shaper-pipeline` - Data transformations
-- `debug-async-parsing` - Debugging async issues
+### Running Tests
+```bash
+# Run all tests
+pytest
 
-### Using Rules
-Rules are always active. The agent follows them automatically:
-- TDD mandatory
-- Strong typing (mypy --strict)
-- Async-first patterns
-- Zero hallucination
-- NO git operations
+# Run with coverage report
+pytest --cov=src
 
----
-
-## 💻 GitHub Copilot (VSCode)
-
-### First Time Setup
-1. Open RING-5 in VSCode
-2. GitHub Copilot loads `.github/copilot-instructions.md` automatically
-3. Chat with Copilot using Cmd/Ctrl + I
-4. You're ready to go!
-
-### Using Skills
-Skills are available as reference documentation:
-- Located in `.agent/skills/*.md`
-- Copilot references them contextually
-- No explicit invocation needed
-
-Example:
-```
-You: "How do I add a new plot type?"
-Copilot: [References .agent/skills/new-plot-type.md]
+# Run type checking
+mypy src/
 ```
 
-### Using Workflows
-Workflows are patterns Copilot follows automatically:
-- Test-Driven Development enforced
-- Architecture patterns applied
-- Code quality standards maintained
+## 🛠 Common Workflows
 
-### Using Rules
-All rules from `.github/copilot-instructions.md` are always active:
-- Same rules as Antigravity
-- Same patterns enforced
-- Same quality standards
+### 1. Adding a New Metric
+*   Update the relevant `ParserStrategy` in `src/parsers/` to capture the new key.
+*   Add a test case in `tests/integration/` with a sample `stats.txt` snippet.
 
----
+### 2. Creating a New Plot
+*   Implement the visualizer in `src/plotting/visualizers/`.
+*   Register the plot type in the `PlotFactory`.
+*   Standard Font Sizes: Title (16pt), Axes (14pt), Legends (12pt).
 
-## 🎯 Common Tasks
+### 3. Modifying Data Logic
+*   Ensure all transformations return a **new** DataFrame (no `inplace=True`).
+*   Verify that the logic is vectorized (uses NumPy/Pandas operations).
 
-### Task: Parse gem5 Statistics
-
-**Antigravity**:
-```
-User: I need to parse gem5 stats from /data/stats
-Agent: [Activates parsing-workflow skill]
-      I'll guide you through the 4-phase workflow:
-      1. Scanning for variables...
-```
-
-**Copilot**:
-```
-User: Parse gem5 stats from /data/stats
-Copilot: I'll implement the async parsing workflow:
-         [Follows patterns from parsing-workflow.md]
-```
-
-### Task: Add New Plot Type
-
-**Antigravity**:
-```
-User: I want to create a radar chart visualization
-Agent: [Activates new-plot-type skill]
-      Following the Factory pattern approach...
-```
-
-**Copilot**:
-```
-User: Create a radar chart visualization
-Copilot: I'll implement a new plot type:
-         [Follows patterns from new-plot-type.md]
-```
-
-### Task: Write New Feature with TDD
-
-**Antigravity**:
-```
-/test-driven-development
-Agent: Step 1: Write the test first...
-```
-
-**Copilot**:
-```
-User: Add percentage shaper
-Copilot: Following TDD:
-         1. First, let's write the test...
-```
-
----
-
-## 📊 Comparison
-
-| Feature | Antigravity | Copilot |
-|---------|------------|---------|
-| Rules | Auto-applied | Auto-applied |
-| Workflows | `/workflow-name` | Patterns followed |
-| Skills | Auto-activate | Contextual reference |
-| Invocation | Explicit commands | Natural language |
-| Monitoring | Task Groups view | Chat history |
-| Multi-agent | Mission Control | Single agent |
-
----
-
-## 💡 Pro Tips
-
-### Both IDEs
-- ✅ Be specific in your requests
-- ✅ Reference file paths when relevant
-- ✅ Ask for tests first (TDD)
-- ✅ Request type checking after changes
-- ❌ Don't ask for git operations (forbidden)
-
-### Antigravity Specific
-- Use `/workflow-name` for step-by-step guidance
-- Mention skill names to ensure activation
-- Check Task Groups for progress tracking
-- Use feedback artifacts to guide refinements
-
-### Copilot Specific
-- Use "How do I..." to get skill guidance
-- Ask "Following TDD..." to invoke workflow patterns
-- Request "Check the existing pattern..." for consistency
-- Use inline suggestions for quick edits
-
----
-
-## 🆘 Troubleshooting
-
-### Skills Not Activating (Antigravity)
-1. Check skill descriptions are clear
-2. Mention skill name explicitly
-3. Verify SKILL.md has YAML frontmatter
-
-### Rules Not Being Followed (Either IDE)
-1. Verify `.agent/rules/project-context.md` exists (Antigravity)
-2. Verify `.github/copilot-instructions.md` exists (Copilot)
-3. Restart IDE to reload configurations
-
-### Workflows Not Working (Antigravity)
-1. Ensure `/` prefix in command
-2. Check workflow file exists in `.agent/workflows/`
-3. Verify proper markdown format
-
----
-
-## 📚 Learn More
-
-- **Dual IDE Guide**: [.agent/DUAL_IDE_SETUP.md](.agent/DUAL_IDE_SETUP.md)
-- **Antigravity Guide**: [.agent/ANTIGRAVITY_README.md](.agent/ANTIGRAVITY_README.md)
-- **Workflows Catalog**: [.agent/workflows/README.md](.agent/workflows/README.md)
-- **Skills Catalog**: [.agent/skills/README.md](.agent/skills/README.md)
-- **Implementation Summary**: [.agent/IMPLEMENTATION_SUMMARY.md](.agent/IMPLEMENTATION_SUMMARY.md)
-
----
-
-**Result**: Consistent AI behavior across both IDEs with same rules, patterns, and quality standards! 🎉
+## 📋 Rule Checklist
+- [ ] **Type Hints:** Are all function signatures typed?
+- [ ] **No Git:** Did I avoid running any git commands?
+- [ ] **Tests:** Did I write/update a test in `tests/`?
+- [ ] **Docstrings:** Does the new code have Google-style docstrings?

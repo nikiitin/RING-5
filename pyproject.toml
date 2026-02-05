@@ -40,6 +40,11 @@ dependencies = [
 dev = [
   "pytest>=9.0.2",
   "pytest-cov>=7.0.0",
+  "pytest-xdist>=3.6.1",
+  "pytest-benchmark>=4.0.0",
+  "pytest-bdd>=7.1.0",
+  "hypothesis>=6.98.0",
+  "tox>=4.14.0",
   "black>=26.1.0",
   "flake8>=7.3.0",
   "mypy>=1.13.0",
@@ -64,15 +69,20 @@ py-modules = ["argumentParser", "ring5"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+norecursedirs = ["tests/tests_principle_compliance"]
 pythonpath = ["."]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
-addopts = "-v --tb=short"
+addopts = "-v --tb=short --strict-markers"
+xfail_strict = true
 markers = [
     "requires_latex: Tests that require LaTeX installation",
     "requires_browser: Tests that require a running browser/server",
     "benchmark: marks tests as performance benchmarks (deselect with '-m \"not benchmark\"')",
+    "smoke: Quick smoke tests",
+    "data_value: Inject data value into fixtures",
+    "slow: Marks tests as slow (deselect with '-m \"not slow\"')",
 ]
 
 [tool.black]
