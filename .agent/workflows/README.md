@@ -110,7 +110,9 @@ Detailed instructions...
 ## See Also
 
 ### 📜 Rule System (The Brain)
+
 All workflows must adhere to the rules defined in `.cursor/rules/`:
+
 - **Identity (`000`)**: Zero Hallucination Policy.
 - **Architecture (`001`)**: Layers (A/B/C) and Separation of Concerns.
 - **Data Science (`002`)**: Vectorization Standards.
@@ -118,5 +120,6 @@ All workflows must adhere to the rules defined in `.cursor/rules/`:
 - **QA (`004`)**: Fixtures as Architecture.
 
 ### 📚 Skills
+
 - [Skills](../skills/) - Reusable knowledge packages
 - [GitHub Copilot Instructions](../../.github/copilot-instructions.md) - VSCode AI configuration

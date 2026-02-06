@@ -13,14 +13,16 @@ Gem5 parsing follows a **Dual-Strategy** approach (Rule 000). You must support b
 ### 1. Strategy Selection (Rule 000)
 
 Identify the target strategy:
-*   **LegacyGem5Parser**: Logic for standalone stats.
-*   **ModernGem5Parser**: Logic for topology-aware stats.
+
+- **LegacyGem5Parser**: Logic for standalone stats.
+- **ModernGem5Parser**: Logic for topology-aware stats.
 
 ### 2. Performance Engineering (Rule 002)
 
 For large trace files (> 1GB):
-*   **Mandatory:** Use `np.memmap` if binary formats are available.
-*   **Parsing:** Use Regex for text extraction (compiled once).
+
+- **Mandatory:** Use `np.memmap` if binary formats are available.
+- **Parsing:** Use Regex for text extraction (compiled once).
 
 ### 3. TDD - Write the Test Case
 
@@ -36,9 +38,9 @@ def test_parse_legacy_format(mock_filesystem):
 
 ### 4. Implementation Constraints
 
-*   **Extraction:** Regex based.
-*   **Simpoints:** Handle `begin`/`end` dumps.
-*   **Output:** **Long Format** (Entity-Attribute-Value) DataFrame initially.
+- **Extraction:** Regex based.
+- **Simpoints:** Handle `begin`/`end` dumps.
+- **Output:** **Long Format** (Entity-Attribute-Value) DataFrame initially.
 
 ### 5. Integration Verification
 
