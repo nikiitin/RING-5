@@ -76,10 +76,20 @@ def test_schema_validation():
         }
 
         validator = ConfigValidator()
-        validator.validate(invalid_config)
-    except Exception:
-        # Expected failure - invalid config should raise validation error
-        pass  # nosec B110 - Intentional validation test
+        validation_failed = False
+        try:
+            validator.validate(invalid_config)
+        except Exception:
+            # Expected failure - invalid config should raise validation error
+            validation_failed = True
+
+        if not validation_failed:
+            print("  ✗ Schema validation did not raise exception for invalid config")
+            return False
+
+    except Exception as e:
+        print(f"  ✗ Unexpected error during validation test: {e}")
+        return False
 
     # Test valid config logic is already covered by test_config_validation
     print("  ✓ Schema validation logic works")
