@@ -53,9 +53,9 @@ class SimpleStatsStrategy:
             logger.warning(f"PARSER: No files found matching '{stats_pattern}' in {stats_path}")
             return []
 
-        return [
-            Gem5ParseWork(str(file_path), self._map_variables(variables)) for file_path in files
-        ]
+        variable_map = self._map_variables(variables)
+
+        return [Gem5ParseWork(str(file_path), variable_map) for file_path in files]
 
     def post_process(self, results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Perform any post-processing on aggregated results."""
