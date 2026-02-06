@@ -2,10 +2,10 @@
 Compliance test for TDD Chapter 8 rules.
 Demonstrates: Coverage (pragma usage), Plugin patterns (without actual plugins).
 """
-import time
-import random
-import pytest
 
+import time
+
+import pytest
 
 # --- Logic ---
 

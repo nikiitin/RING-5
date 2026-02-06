@@ -7,22 +7,13 @@ Moves complex domain logic out of the Web Facade.
 import logging
 from concurrent.futures import Future
 from pathlib import Path
-from typing import Any, Dict, List, Optional, TypedDict, cast
+from typing import Any, Dict, List
 
+from src.parsers.models import ScannedVariable
 from src.parsers.pattern_aggregator import PatternAggregator
 from src.parsers.workers.pool import ScanWorkPool
 
 logger: logging.Logger = logging.getLogger(__name__)
-
-
-class ScannedVariable(TypedDict, total=False):
-    """Type definition for a scanned variable from gem5 stats."""
-
-    name: str
-    type: str  # "scalar", "vector", "distribution", "histogram", "configuration"
-    entries: List[str]  # For vector/histogram types
-    minimum: Optional[float]  # For distribution type
-    maximum: Optional[float]  # For distribution type
 
 
 class ScannerService:
@@ -74,7 +65,7 @@ class ScannerService:
         ScanWorkPool.get_instance().cancel_all()
 
     @staticmethod
-    def aggregate_scan_results(results: List[List[Dict[str, Any]]]) -> List[ScannedVariable]:
+    def aggregate_scan_results(results: List[List[ScannedVariable]]) -> List[ScannedVariable]:
         """
         Aggregate results from async scan into unified variable list.
 
@@ -89,18 +80,16 @@ class ScannerService:
             for var in file_vars:
                 ScannerService._merge_variable(merged_registry, var)
 
-        merged_vars = sorted(list(merged_registry.values()), key=lambda x: x["name"])
+        merged_vars = sorted(list(merged_registry.values()), key=lambda x: x.name)
 
         # Apply pattern aggregation to consolidate repeated numeric patterns
-        # Cast to List[Dict[str, Any]] for pattern aggregator
-        merged_vars_dict = cast(List[Dict[str, Any]], merged_vars)
-        aggregated_vars_dict = PatternAggregator.aggregate_patterns(merged_vars_dict)
-        aggregated_vars = cast(List[ScannedVariable], aggregated_vars_dict)
+        # Use models for aggregation
+        aggregated_vars = PatternAggregator.aggregate_patterns(merged_vars)
 
         return aggregated_vars
 
     @staticmethod
-    def _merge_variable(registry: Dict[str, ScannedVariable], var: Dict[str, Any]) -> None:
+    def _merge_variable(registry: Dict[str, ScannedVariable], var: Any) -> None:
         """
         Merge a single variable into the registry.
 
@@ -110,35 +99,38 @@ class ScannerService:
 
         Args:
             registry: Mutable registry dict to update
-            var: Variable dict to merge in
+            var: Variable model (or dict) to merge in
         """
-        name: str = var["name"]
+        from dataclasses import replace
+
+        # Handle raw dicts (from legacy or testing code)
+        if isinstance(var, dict):
+            var = ScannedVariable.from_dict(var)
+
+        name: str = var.name
         if name not in registry:
-            registry[name] = var  # type: ignore[assignment]
+            registry[name] = var
         else:
-            var_type: str = var.get("type", "")
-            if var_type in ("vector", "histogram") and "entries" in var:
-                existing_entries: set[str] = set(registry[name].get("entries", []))
-                existing_entries.update(var["entries"])
-                registry[name]["entries"] = sorted(list(existing_entries))
+            existing = registry[name]
+            if var.type in ("vector", "histogram"):
+                new_entries = sorted(list(set(existing.entries) | set(var.entries)))
+                # Preserve other fields (like pattern_indices) while updating entries
+                registry[name] = replace(existing, entries=new_entries)
 
-            if var_type == "distribution":
-                _merge_distribution_ranges(cast(Dict[str, Any], registry[name]), var)
+            elif var.type == "distribution":
+                # Handle distribution range merging
+                cur_min = existing.minimum
+                cur_max = existing.maximum
 
+                new_min = (
+                    min(cur_min, var.minimum)
+                    if cur_min is not None and var.minimum is not None
+                    else (var.minimum or cur_min)
+                )
+                new_max = (
+                    max(cur_max, var.maximum)
+                    if cur_max is not None and var.maximum is not None
+                    else (var.maximum or cur_max)
+                )
 
-def _merge_distribution_ranges(target: Dict[str, Any], source: Dict[str, Any]) -> None:
-    """
-    Merge min/max ranges from source into target distribution.
-
-    Args:
-        target: Target distribution dict to update (mutated in place)
-        source: Source distribution with min/max to merge
-    """
-    if "minimum" in source:
-        cur_min: Optional[float] = target.get("minimum")
-        source_min: float = source["minimum"]
-        target["minimum"] = min(cur_min, source_min) if cur_min is not None else source_min
-    if "maximum" in source:
-        cur_max: Optional[float] = target.get("maximum")
-        source_max: float = source["maximum"]
-        target["maximum"] = max(cur_max, source_max) if cur_max is not None else source_max
+                registry[name] = replace(existing, minimum=new_min, maximum=new_max)

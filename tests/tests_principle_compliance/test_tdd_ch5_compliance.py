@@ -2,10 +2,11 @@
 Compliance test for TDD Chapter 5 rules.
 Demonstrates: Yield Fixtures (Teardown), Scope Isolation, and Fixture Injection.
 """
-from typing import Generator
-import pytest
-from pathlib import Path
 
+from pathlib import Path
+from typing import Generator
+
+import pytest
 
 # --- Fixtures ---
 
@@ -20,9 +21,9 @@ def database_connection(tmp_path: Path) -> Generator[Path, None, None]:
     """
     db_file = tmp_path / "test.db"
     db_file.write_text("CONNECTED")  # Setup
-    
+
     yield db_file
-    
+
     # Teardown
     assert db_file.exists(), "DB file missing during teardown!"
     db_file.unlink()
@@ -41,7 +42,7 @@ def test_yield_teardown(database_connection: Path) -> None:
     """Demonstrates using a yield fixture for resource management."""
     # Act
     content = database_connection.read_text()
-    
+
     # Assert
     assert content == "CONNECTED"
     # Teardown logic runs after this function returns
@@ -56,7 +57,7 @@ def test_scope_isolation(expensive_resource: str) -> None:
 @pytest.mark.parametrize("i", [1, 2, 3])
 def test_autouse_caution(i: int) -> None:
     """
-    Demonstrates Iteration. 
+    Demonstrates Iteration.
     Rule 004 cautions against autouse=True, so we strictly inject what we need.
     """
     assert i > 0

@@ -2,19 +2,14 @@
 Compliance test for TDD Chapter 3 rules.
 Demonstrates: I/O Decoupling (Dependency Injection) and avoiding direct I/O.
 """
-from typing import Callable, List
-import pytest
 
+from typing import Callable, List
 
 # --- Domain Logic ---
 
 
 class TodoApp:
-    def __init__(
-        self,
-        input_func: Callable[[], str],
-        output_func: Callable[[str], None]
-    ):
+    def __init__(self, input_func: Callable[[], str], output_func: Callable[[str], None]):
         """Injectable I/O for testability (TDD Ch. 3)."""
         self.input_func = input_func
         self.output_func = output_func
@@ -25,12 +20,12 @@ class TodoApp:
         command = self.input_func()
         if command == "quit":
             return False
-        
+
         if command.startswith("add "):
             item = command[4:]
             self.todos.append(item)
             self.output_func(f"Added: {item}")
-        
+
         return True
 
 
@@ -43,7 +38,7 @@ def test_io_decoupling() -> None:
     # Simulated User Input (Scripted)
     user_inputs = ["add Buy Milk", "quit"]
     input_iterator = iter(user_inputs)
-    
+
     # Simulated User Output (Capture)
     captured_output: List[str] = []
 
@@ -55,7 +50,7 @@ def test_io_decoupling() -> None:
 
     # Act
     app = TodoApp(input_func=mock_input, output_func=mock_output)
-    
+
     # Run loop strictly controlled
     while app.run_one_step():
         pass

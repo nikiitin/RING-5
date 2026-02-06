@@ -79,10 +79,10 @@ Last Modified: 2026-01-27
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional, Sequence, cast
 
+from src.parsers.models import StatConfig
 from src.parsers.type_mapper import TypeMapper
-from src.parsers.workers.gem5_parse_work import Gem5ParseWork
 from src.parsers.workers.parse_work import ParseWork
 from src.parsers.workers.pool import ParseWorkPool
 
@@ -101,7 +101,11 @@ class ParseService:
 
     @staticmethod
     def submit_parse_async(
-        stats_path: str, stats_pattern: str, variables: List[Dict[str, Any]], output_dir: str
+        stats_path: str,
+        stats_pattern: str,
+        variables: List[StatConfig],
+        output_dir: str,
+        strategy_type: str = "simple",
     ) -> List[Any]:
         """Submit async parsing job and return futures."""
 
@@ -109,20 +113,27 @@ class ParseService:
         if not search_path.exists():
             raise FileNotFoundError(f"Stats path does not exist: {stats_path}")
 
-        pattern = f"**/{stats_pattern}"
-        files = [str(f) for f in search_path.glob(pattern)]
+        # Resolve strategy
+        from src.parsers.strategies.config_aware import ConfigAwareStrategy
+        from src.parsers.strategies.simple import SimpleStatsStrategy
 
-        if not files:
-            raise FileNotFoundError(f"No files found matching {stats_pattern}")
+        strategy: Any
+        if strategy_type == "simple":
+            strategy = SimpleStatsStrategy()
+        elif strategy_type == "config_aware":
+            strategy = ConfigAwareStrategy()
+        else:
+            raise ValueError(f"Unknown strategy type: {strategy_type}")
 
-        var_map = ParseService._map_variables(variables)
-        ParseService._active_var_names = [v.get("name") or v.get("id", "") for v in variables]
+        # Get work items from strategy
+        batch_work = strategy.get_work_items(stats_path, stats_pattern, variables)
+        if not batch_work:
+            return []
+
+        ParseService._active_var_names = [v.name for v in variables]
 
         pool = ParseWorkPool.get_instance()
-        # Reset pool futures if desired, or just submit new batch
-        # For simplicity in this architecture, we submit and get specifically these futures
-        batch_work = [Gem5ParseWork(str(file_path), var_map) for file_path in files]
-        return pool.submit_batch_async(cast(List[ParseWork], batch_work))
+        return pool.submit_batch_async(cast(Sequence[ParseWork], batch_work))
 
     @staticmethod
     def cancel_parse() -> None:
@@ -130,12 +141,37 @@ class ParseService:
         ParseWorkPool.get_instance().cancel_all()
 
     @staticmethod
+    def finalize_parsing(
+        output_dir: str, results: List[Any], strategy_type: str = "simple"
+    ) -> Optional[str]:
+        """
+        Post-process and aggregate provided results into final CSV.
+        """
+        if not results:
+            logger.warning("PARSER: No results to persist.")
+            return None
+
+        # Resolve strategy for post-processing
+        from src.parsers.strategies.config_aware import ConfigAwareStrategy
+        from src.parsers.strategies.simple import SimpleStatsStrategy
+
+        strategy: Any
+        if strategy_type == "simple":
+            strategy = SimpleStatsStrategy()
+        elif strategy_type == "config_aware":
+            strategy = ConfigAwareStrategy()
+        else:
+            strategy = SimpleStatsStrategy()
+
+        processed_results = strategy.post_process(results)
+        return ParseService.construct_final_csv(output_dir, processed_results)
+
+    @staticmethod
     def construct_final_csv(output_dir: str, results: List[Any]) -> Optional[str]:
         """
         Aggregate provided results and save to CSV.
         """
         if not results:
-            logger.warning("PARSER: No results to persist.")
             return None
 
         # Logic adapted from Gem5StatsParser._persist_results
@@ -176,39 +212,46 @@ class ParseService:
                         continue
 
                     var = file_stats[var_name]
-                    var.balance_content()
-                    var.reduce_duplicates()
 
-                    entries = column_map[var_name]
-                    if entries is not None:
-                        reduced = var.reduced_content
-                        for e in entries:
-                            val = reduced.get(e, "NaN")
-                            row_parts.append(str(val))
+                    # Handle Stat objects vs Raw Data (from ConfigAwareStrategy)
+                    if hasattr(var, "balance_content"):
+                        var.balance_content()
+                        var.reduce_duplicates()
+
+                        entries = column_map[var_name]
+                        if entries is not None:
+                            reduced = var.reduced_content
+                            for e in entries:
+                                val = reduced.get(e, "NaN")
+                                row_parts.append(str(val))
+                        else:
+                            row_parts.append(str(var.reduced_content))
                     else:
-                        row_parts.append(str(var.reduced_content))
+                        # Raw data (string/int/etc.)
+                        row_parts.append(str(var))
 
                 f.write(",".join(row_parts) + "\n")
 
         return output_path
 
     @staticmethod
-    def _map_variables(variables: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Map configuration to Stat objects."""
+    def _map_variables(variables: List[StatConfig]) -> Dict[str, Any]:
+        """Map configuration models to Stat objects."""
         var_map: Dict[str, Any] = {}
 
         for var in variables:
-            name = var.get("name") or var.get("id")
+            name = var.name
             if not name:
                 continue
 
             # Handle multi-ID mapping for regex patterns
-            parsed_ids = var.get("parsed_ids", [])
+            parsed_ids = var.params.get("parsed_ids", [])
+
             if parsed_ids:
-                # Set repeat count to number of matched IDs for proper reduction
-                var_with_repeat = var.copy()
-                var_with_repeat["repeat"] = len(parsed_ids)
-                stat_obj = TypeMapper.create_stat(var_with_repeat)
+                from dataclasses import replace
+
+                # Update repeat count for the logical variable
+                stat_obj = TypeMapper.create_stat(replace(var, repeat=len(parsed_ids)))
             else:
                 stat_obj = TypeMapper.create_stat(var)
 

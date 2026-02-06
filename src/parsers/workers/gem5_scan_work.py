@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import logging
 import os
-from typing import Any, Dict, List
+from typing import List
 
+from src.parsers.models import ScannedVariable
 from src.parsers.workers.scan_work import ScanWork
 
 logger = logging.getLogger(__name__)
@@ -17,7 +20,7 @@ class Gem5ScanWork(ScanWork):
         super().__init__()
         self.file_path = str(file_path)
 
-    def __call__(self) -> List[Dict[str, Any]]:
+    def __call__(self) -> List[ScannedVariable]:
         """
         Execute scanning using the Gem5StatsScanner.
         Returns full list of variables with types and entries.

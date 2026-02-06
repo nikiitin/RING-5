@@ -12,11 +12,15 @@ class TestScannerFunctional:
 
     @pytest.fixture
     def test_data_path(self):
-        """Path to the test data provided by the user."""
-        base_path = Path("/home/vnicolas/workspace/micro26-sens/results-micro26-sens")
-        if not base_path.exists():
-            pytest.skip(f"Test data not found at {base_path}")
-        return str(base_path)
+        """Path to the test data directory."""
+        candidates = [
+            Path("tests/data/results-micro26-sens"),
+            Path("/home/vnicolas/workspace/micro26-sens/results-micro26-sens"),
+        ]
+        for p in candidates:
+            if p.exists():
+                return str(p)
+        pytest.skip("Test data not found")
 
     def test_scan_real_stats(self, test_data_path):
         """
@@ -46,5 +50,5 @@ class TestScannerFunctional:
 
         # Check integrity of a variable
         sample_var = scanned_vars[0]
-        assert "name" in sample_var
-        assert "type" in sample_var
+        assert sample_var.name is not None
+        assert sample_var.type is not None

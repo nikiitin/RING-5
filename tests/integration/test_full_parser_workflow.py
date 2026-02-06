@@ -18,6 +18,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from src.parsers.models import StatConfig
 from src.parsers.parse_service import ParseService
 from src.parsers.scanner_service import ScannerService
 from src.web.facade import BackendFacade
@@ -76,14 +77,14 @@ class TestFullParserWorkflow:
 
         # Verify scanning found expected variables
         assert len(scanned_vars) > 0
-        var_names = [v["name"] for v in scanned_vars]
+        var_names = [v.name for v in scanned_vars]
         assert "system.cpu.ipc" in var_names
         assert "system.cpu.numCycles" in var_names
 
         # Step 2: Select variables to parse
         variables = [
-            {"name": "system.cpu.ipc", "type": "scalar", "params": {}},
-            {"name": "system.cpu.numCycles", "type": "scalar", "params": {}},
+            StatConfig(name="system.cpu.ipc", type="scalar"),
+            StatConfig(name="system.cpu.numCycles", type="scalar"),
         ]
 
         # Step 3: Parse variables asynchronously
@@ -140,7 +141,7 @@ class TestFullParserWorkflow:
 
         # Step 3: Parse selected variables
         variables = [
-            {"name": "system.cpu.ipc", "type": "scalar", "params": {}},
+            StatConfig(name="system.cpu.ipc", type="scalar"),
         ]
 
         with tempfile.TemporaryDirectory() as output_dir:
@@ -178,7 +179,7 @@ class TestFullParserWorkflow:
 
         # Test with invalid variable configuration
         with tempfile.TemporaryDirectory() as output_dir:
-            invalid_variables = [{"name": "invalid.var", "type": "unknown_type", "params": {}}]
+            invalid_variables = [StatConfig(name="invalid.var", type="unknown_type")]
 
             # This should handle gracefully (may log warnings but not crash)
             try:

@@ -9,7 +9,12 @@ from src.parsers.workers.pool import ScanWorkPool
 def test_stats_scan_work_success():
     work = Gem5ScanWork("test_file.txt")
 
-    mock_vars = [{"name": "var1", "type": "scalar"}, {"name": "var2", "type": "vector"}]
+    from src.parsers.models import ScannedVariable
+
+    mock_vars = [
+        ScannedVariable(name="var1", type="scalar"),
+        ScannedVariable(name="var2", type="vector"),
+    ]
 
     with patch("src.parsers.scanner.Gem5StatsScanner.get_instance") as mock_scanner_cls:
         mock_instance = MagicMock()
@@ -20,7 +25,7 @@ def test_stats_scan_work_success():
 
         mock_instance.scan_file.assert_called_once()
         assert len(result) == 2
-        assert result[0]["name"] == "var1"
+        assert result[0].name == "var1"
 
 
 def test_stats_scan_work_failure():

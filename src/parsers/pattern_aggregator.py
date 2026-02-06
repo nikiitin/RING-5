@@ -12,7 +12,9 @@ Example:
 
 import logging
 import re
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
+
+from src.parsers.models import ScannedVariable
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -30,39 +32,39 @@ class PatternAggregator:
     """
 
     @staticmethod
-    def aggregate_patterns(variables: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def aggregate_patterns(variables: List[ScannedVariable]) -> List[ScannedVariable]:
         r"""
         Aggregate variables with repeated numeric patterns into regex patterns.
 
         Args:
-            variables: List of scanned variables (with name, type, entries, etc.)
+            variables: List of scanned variable models.
 
         Returns:
-            Aggregated list where repeated patterns are consolidated
+            Aggregated list of variable models.
 
         Example:
             Input:
                 [
-                    {"name": "system.cpu0.numCycles", "type": "scalar"},
-                    {"name": "system.cpu1.numCycles", "type": "scalar"},
-                    {"name": "system.cpu2.numCycles", "type": "scalar"}
+                    ScannedVariable(name="system.cpu0.numCycles", type="scalar"),
+                    ScannedVariable(name="system.cpu1.numCycles", type="scalar"),
+                    ScannedVariable(name="system.cpu2.numCycles", type="scalar")
                 ]
 
             Output:
                 [
-                    {
-                        "name": "system.cpu\\d+.numCycles",
-                        "type": "vector",
-                        "entries": ["0", "1", "2"]
-                    }
+                    ScannedVariable(
+                        name="system.cpu\\d+.numCycles",
+                        type="vector",
+                        entries=["0", "1", "2"]
+                    )
                 ]
         """
         # Group variables by their pattern signature
-        pattern_groups: Dict[str, List[Tuple[str, Dict[str, Any]]]] = {}
-        non_pattern_vars: List[Dict[str, Any]] = []
+        pattern_groups: Dict[str, List[Tuple[str, ScannedVariable]]] = {}
+        non_pattern_vars: List[ScannedVariable] = []
 
         for var in variables:
-            var_name: str = var["name"]
+            var_name: str = var.name
 
             # Try to extract numeric pattern
             pattern_info = PatternAggregator._extract_pattern(var_name)
@@ -79,7 +81,7 @@ class PatternAggregator:
                 pattern_groups[pattern_signature].append((numeric_id, var))
 
         # Convert pattern groups to aggregated variables
-        aggregated_vars: List[Dict[str, Any]] = []
+        aggregated_vars: List[ScannedVariable] = []
 
         for pattern_signature, instances in pattern_groups.items():
             if len(instances) == 1:
@@ -95,7 +97,7 @@ class PatternAggregator:
 
         # Combine and sort
         result = non_pattern_vars + aggregated_vars
-        return sorted(result, key=lambda x: x["name"])
+        return sorted(result, key=lambda x: x.name)
 
     @staticmethod
     def _extract_pattern(var_name: str) -> Tuple[str, str] | None:
@@ -144,8 +146,8 @@ class PatternAggregator:
 
     @staticmethod
     def _create_pattern_variable(
-        pattern_signature: str, instances: List[Tuple[str, Dict[str, Any]]]
-    ) -> Dict[str, Any]:
+        pattern_signature: str, instances: List[Tuple[str, ScannedVariable]]
+    ) -> ScannedVariable:
         """
         Create a regex pattern variable from multiple instances.
 
@@ -164,7 +166,7 @@ class PatternAggregator:
 
         # Get type from first instance (should be consistent)
         first_var = instances[0][1]
-        base_type = first_var.get("type", "scalar")
+        base_type = first_var.type
 
         # If all instances are scalars, the pattern is a vector
         # If instances are already vectors, we need to keep pattern indices AND vector entries
@@ -172,8 +174,8 @@ class PatternAggregator:
             result_type = "vector"
             result_entries = entries
             # For scalars, store the actual matched variable names for proper reduction
-            pattern_indices = [
-                var["name"] for _, var in instances
+            pattern_indices: Optional[List[str]] = [
+                var.name for _, var in instances
             ]  # Store full variable names, not just numeric IDs
         else:
             # For vectors/histograms/distributions, we need BOTH:
@@ -187,39 +189,36 @@ class PatternAggregator:
             # Collect all unique vector/histogram entries from all instances
             all_entries: set[str] = set()
             for _, var in instances:
-                if "entries" in var:
-                    all_entries.update(var["entries"])
+                if var.entries:
+                    all_entries.update(var.entries)
 
             result_entries = sorted(list(all_entries))
 
-        result: Dict[str, Any] = {
-            "name": regex_pattern,
-            "type": result_type,
-            "entries": result_entries,
-        }
-
-        # Add pattern indices for non-scalar patterns (vectors, histograms, distributions)
-        if pattern_indices is not None:
-            result["pattern_indices"] = pattern_indices
-
         # Handle distribution min/max if applicable
+        kwargs: Dict[str, Any] = {}
         if base_type == "distribution":
-            min_val: float | None = None
-            max_val: float | None = None
+            min_val: Optional[float] = None
+            max_val: Optional[float] = None
 
             for _, var in instances:
-                if "minimum" in var:
-                    var_min = var["minimum"]
+                if var.minimum is not None:
+                    var_min = var.minimum
                     min_val = var_min if min_val is None else min(min_val, var_min)
-                if "maximum" in var:
-                    var_max = var["maximum"]
+                if var.maximum is not None:
+                    var_max = var.maximum
                     max_val = var_max if max_val is None else max(max_val, var_max)
 
             if min_val is not None:
-                result["minimum"] = min_val
+                kwargs["minimum"] = min_val
             if max_val is not None:
-                result["maximum"] = max_val
+                kwargs["maximum"] = max_val
 
         logger.info(f"Aggregated {len(instances)} instances into pattern: {regex_pattern}")
 
-        return result
+        return ScannedVariable(
+            name=regex_pattern,
+            type=result_type,
+            entries=result_entries,
+            pattern_indices=pattern_indices,
+            **kwargs,
+        )

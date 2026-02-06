@@ -1,6 +1,4 @@
 import os
-import shutil
-import tempfile
 
 import pandas as pd
 import pytest
@@ -14,16 +12,19 @@ class TestFacadeReduction:
         return BackendFacade()
 
     @pytest.fixture
-    def temp_dirs(self):
+    def temp_dirs(self, tmp_path):
         # Create temp dirs for stats and output
-        stats_dir = tempfile.mkdtemp()
-        output_dir = tempfile.mkdtemp()
+        stats_dir = tmp_path / "stats"
+        output_dir = tmp_path / "output"
+        stats_dir.mkdir()
+        output_dir.mkdir()
 
         # Create dummy stats files
         # File 1: cpu0=10, cpu1=20
         # File 2: cpu0=10, cpu1=30
 
-        with open(os.path.join(stats_dir, "stats.txt"), "w") as f:
+        stats_file = stats_dir / "stats.txt"
+        with open(stats_file, "w") as f:
             f.write("---------- Begin Simulation Statistics ----------\n")
             f.write(
                 "system.cpu0.ipc                                      10.000000                       # IPC\n"  # noqa: E501
@@ -33,7 +34,8 @@ class TestFacadeReduction:
             )
             f.write("---------- End Simulation Statistics   ----------\n")
 
-        with open(os.path.join(stats_dir, "stats.txt.bak"), "w") as f:
+        stats_bak = stats_dir / "stats.txt.bak"
+        with open(stats_bak, "w") as f:
             f.write("---------- Begin Simulation Statistics ----------\n")
             f.write(
                 "system.cpu0.ipc                                      10.000000                       # IPC\n"  # noqa: E501
@@ -43,11 +45,7 @@ class TestFacadeReduction:
             )
             f.write("---------- End Simulation Statistics   ----------\n")
 
-        yield stats_dir, output_dir
-
-        # Cleanup
-        shutil.rmtree(stats_dir)
-        shutil.rmtree(output_dir)
+        return str(stats_dir), str(output_dir)
 
     def test_reduction_end_to_end(self, facade, temp_dirs):
         stats_path, output_dir = temp_dirs

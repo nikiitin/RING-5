@@ -1,11 +1,9 @@
-"""Integration test for statistics-only parsing mode with real gem5 data."""
-
-import tempfile
 from pathlib import Path
 
 import pandas as pd
 import pytest
 
+from src.parsers.models import StatConfig
 from src.parsers.parse_service import ParseService
 
 
@@ -42,148 +40,164 @@ system.mem.latency_dist::total               500
         stats_path.write_text(stats_content)
         return stats_path
 
-    def test_distribution_statistics_only_parsing(self, stats_file: Path):
+    def test_distribution_statistics_only_parsing(self, stats_file: Path, tmp_path: Path):
         """Test parsing distribution with only statistics (no buckets)."""
         # Configure variable with statisticsOnly=True
         variables = [
-            {
-                "name": "system.mem.latency_dist",
-                "type": "distribution",
-                "minimum": 0,
-                "maximum": 10,
-                "statistics": ["samples", "mean", "stdev", "total"],
-                "statisticsOnly": True,
-            }
+            StatConfig(
+                name="system.mem.latency_dist",
+                type="distribution",
+                statistics_only=True,
+                params={
+                    "minimum": 0,
+                    "maximum": 10,
+                    "statistics": ["samples", "mean", "stdev", "total"],
+                },
+            )
         ]
 
-        with tempfile.TemporaryDirectory() as output_dir:
-            # Parse with statistics-only mode
-            parse_futures = ParseService.submit_parse_async(
-                stats_path=str(stats_file.parent),
-                stats_pattern="stats.txt",
-                variables=variables,
-                output_dir=output_dir,
-            )
-            parse_results = [f.result() for f in parse_futures]
-            csv_path = ParseService.construct_final_csv(output_dir, parse_results)
+        output_dir = str(tmp_path / "stats_only_output_1")
+        Path(output_dir).mkdir()
 
-            # Load and verify CSV
-            df = pd.read_csv(csv_path)
+        # Parse with statistics-only mode
+        parse_futures = ParseService.submit_parse_async(
+            stats_path=str(stats_file.parent),
+            stats_pattern="stats.txt",
+            variables=variables,
+            output_dir=output_dir,
+        )
+        parse_results = [f.result() for f in parse_futures]
+        csv_path = ParseService.construct_final_csv(output_dir, parse_results)
 
-            # Should have 1 row (1 simpoint)
-            assert len(df) == 1
+        # Load and verify CSV
+        df = pd.read_csv(csv_path)
 
-            # Should have only statistics columns, no bucket columns
-            # Column names use ".." separator for distribution statistics
-            assert "system.mem.latency_dist..samples" in df.columns
-            assert "system.mem.latency_dist..mean" in df.columns
-            assert "system.mem.latency_dist..stdev" in df.columns
-            assert "system.mem.latency_dist..total" in df.columns
+        # Should have 1 row (1 simpoint)
+        assert len(df) == 1
 
-            # Verify NO bucket columns exist (or very few)
-            # In statistics_only mode, bucket columns should not be present
-            # But the parser might still return some, so we just check the count is small
-            assert len(df.columns) <= 7  # simpoint + 4 stats + maybe 1-2 extras
+        # Should have only statistics columns, no bucket columns
+        # Column names use ".." separator for distribution statistics
+        assert "system.mem.latency_dist..samples" in df.columns
+        assert "system.mem.latency_dist..mean" in df.columns
+        assert "system.mem.latency_dist..stdev" in df.columns
+        assert "system.mem.latency_dist..total" in df.columns
 
-            # Verify values
-            assert df["system.mem.latency_dist..samples"].iloc[0] == 500
-            assert df["system.mem.latency_dist..mean"].iloc[0] == 10.5
-            assert df["system.mem.latency_dist..stdev"].iloc[0] == 2.3
-            assert df["system.mem.latency_dist..total"].iloc[0] == 500
+        # Verify NO bucket columns exist (or very few)
+        # In statistics_only mode, bucket columns should not be present
+        # But the parser might still return some, so we just check the count is small
+        assert len(df.columns) <= 7  # simpoint + 4 stats + maybe 1-2 extras
 
-    def test_distribution_full_mode_parsing(self, stats_file: Path):
+        # Verify values
+        assert df["system.mem.latency_dist..samples"].iloc[0] == 500
+        assert df["system.mem.latency_dist..mean"].iloc[0] == 10.5
+        assert df["system.mem.latency_dist..stdev"].iloc[0] == 2.3
+        assert df["system.mem.latency_dist..total"].iloc[0] == 500
+
+    def test_distribution_full_mode_parsing(self, stats_file: Path, tmp_path: Path):
         """Test parsing distribution with full buckets (statisticsOnly=False)."""
         # Configure variable with statisticsOnly=False
         variables = [
-            {
-                "name": "system.mem.latency_dist",
-                "type": "distribution",
-                "minimum": 0,
-                "maximum": 10,
-                "statistics": ["samples", "mean", "stdev", "total"],
-                "statisticsOnly": False,
-            }
+            StatConfig(
+                name="system.mem.latency_dist",
+                type="distribution",
+                statistics_only=False,
+                params={
+                    "minimum": 0,
+                    "maximum": 10,
+                    "statistics": ["samples", "mean", "stdev", "total"],
+                },
+            )
         ]
 
-        with tempfile.TemporaryDirectory() as output_dir:
-            # Parse with full mode
-            parse_futures = ParseService.submit_parse_async(
-                stats_path=str(stats_file.parent),
-                stats_pattern="stats.txt",
-                variables=variables,
-                output_dir=output_dir,
-            )
-            parse_results = [f.result() for f in parse_futures]
-            csv_path = ParseService.construct_final_csv(output_dir, parse_results)
+        output_dir = str(tmp_path / "stats_only_output_2")
+        Path(output_dir).mkdir()
 
-            # Load and verify CSV
-            df = pd.read_csv(csv_path)
+        # Parse with full mode
+        parse_futures = ParseService.submit_parse_async(
+            stats_path=str(stats_file.parent),
+            stats_pattern="stats.txt",
+            variables=variables,
+            output_dir=output_dir,
+        )
+        parse_results = [f.result() for f in parse_futures]
+        csv_path = ParseService.construct_final_csv(output_dir, parse_results)
 
-            # Should have 1 row (1 simpoint)
-            assert len(df) == 1
+        # Load and verify CSV
+        df = pd.read_csv(csv_path)
 
-            # Should have statistics columns
-            assert "system.mem.latency_dist..samples" in df.columns
-            assert "system.mem.latency_dist..mean" in df.columns
+        # Should have 1 row (1 simpoint)
+        assert len(df) == 1
 
-            # Should ALSO have bucket columns in full mode
-            # Note: Column names vary - could be .. or _ depending on parser output
-            # Just check that we have significantly more columns than statistics_only mode
-            assert len(df.columns) > 10  # Should have many bucket columns
+        # Should have statistics columns
+        assert "system.mem.latency_dist..samples" in df.columns
+        assert "system.mem.latency_dist..mean" in df.columns
 
-    def test_statistics_only_reduces_column_count(self, stats_file: Path):
+        # Should ALSO have bucket columns in full mode
+        # Note: Column names vary - could be .. or _ depending on parser output
+        # Just check that we have significantly more columns than statistics_only mode
+        assert len(df.columns) > 10  # Should have many bucket columns
+
+    def test_statistics_only_reduces_column_count(self, stats_file: Path, tmp_path: Path):
         """Verify that statistics-only mode significantly reduces column count."""
         variables_full = [
-            {
-                "name": "system.mem.latency_dist",
-                "type": "distribution",
-                "minimum": 0,
-                "maximum": 10,
-                "statistics": ["samples", "mean", "stdev", "total"],
-                "statisticsOnly": False,
-            }
+            StatConfig(
+                name="system.mem.latency_dist",
+                type="distribution",
+                statistics_only=False,
+                params={
+                    "minimum": 0,
+                    "maximum": 10,
+                    "statistics": ["samples", "mean", "stdev", "total"],
+                },
+            )
         ]
 
         variables_stats_only = [
-            {
-                "name": "system.mem.latency_dist",
-                "type": "distribution",
-                "minimum": 0,
-                "maximum": 10,
-                "statistics": ["samples", "mean", "stdev", "total"],
-                "statisticsOnly": True,
-            }
+            StatConfig(
+                name="system.mem.latency_dist",
+                type="distribution",
+                statistics_only=True,
+                params={
+                    "minimum": 0,
+                    "maximum": 10,
+                    "statistics": ["samples", "mean", "stdev", "total"],
+                },
+            )
         ]
 
-        with tempfile.TemporaryDirectory() as output_dir:
-            # Parse full mode
-            parse_futures_full = ParseService.submit_parse_async(
-                stats_path=str(stats_file.parent),
-                stats_pattern="stats.txt",
-                variables=variables_full,
-                output_dir=output_dir,
-            )
-            results_full = [f.result() for f in parse_futures_full]
-            csv_full = ParseService.construct_final_csv(output_dir, results_full)
-            df_full = pd.read_csv(csv_full)
+        output_dir_full = str(tmp_path / "stats_only_full")
+        Path(output_dir_full).mkdir()
 
-        with tempfile.TemporaryDirectory() as output_dir:
-            # Parse statistics-only mode
-            parse_futures_stats = ParseService.submit_parse_async(
-                stats_path=str(stats_file.parent),
-                stats_pattern="stats.txt",
-                variables=variables_stats_only,
-                output_dir=output_dir,
-            )
-            results_stats = [f.result() for f in parse_futures_stats]
-            csv_stats = ParseService.construct_final_csv(output_dir, results_stats)
-            df_stats = pd.read_csv(csv_stats)
+        # Parse full mode
+        parse_futures_full = ParseService.submit_parse_async(
+            stats_path=str(stats_file.parent),
+            stats_pattern="stats.txt",
+            variables=variables_full,
+            output_dir=output_dir_full,
+        )
+        results_full = [f.result() for f in parse_futures_full]
+        csv_full = ParseService.construct_final_csv(output_dir_full, results_full)
+        df_full = pd.read_csv(csv_full)
 
-            # Statistics-only should have fewer columns
-            # Full mode will have all bucket columns (underflows, 0-10, overflows)
-            # Statistics-only should only have the 4 statistics
-            assert len(df_stats.columns) < len(df_full.columns)
-            # Stats-only: simpoint + 4 statistics = 5 columns (or close to it)
-            # Full: simpoint + 4 stats + 13 buckets (underflows, 0-10, overflows) = 18+
-            assert len(df_stats.columns) <= 7  # Allow some extras
-            assert len(df_full.columns) >= 15  # Should have many bucket columns
+        output_dir_stats = str(tmp_path / "stats_only_stats")
+        Path(output_dir_stats).mkdir()
+
+        # Parse statistics-only mode
+        parse_futures_stats = ParseService.submit_parse_async(
+            stats_path=str(stats_file.parent),
+            stats_pattern="stats.txt",
+            variables=variables_stats_only,
+            output_dir=output_dir_stats,
+        )
+        results_stats = [f.result() for f in parse_futures_stats]
+        csv_stats = ParseService.construct_final_csv(output_dir_stats, results_stats)
+        df_stats = pd.read_csv(csv_stats)
+
+        # Statistics-only should have fewer columns
+        # Full mode will have all bucket columns (underflows, 0-10, overflows)
+        # Statistics-only should only have the 4 statistics
+        assert len(df_stats.columns) < len(df_full.columns)
+        # Stats-only: simpoint + 4 statistics = 5 columns (or close to it)
+        # Full: simpoint + 4 stats + 13 buckets (underflows, 0-10, overflows) = 18+
+        assert len(df_stats.columns) <= 7  # Allow some extras
+        assert len(df_full.columns) >= 15  # Should have many bucket columns

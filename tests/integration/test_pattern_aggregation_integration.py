@@ -37,7 +37,7 @@ class TestScannerPatternAggregation:
         scanned_vars = ScannerService.aggregate_scan_results(scan_results)
 
         # Check that we have pattern variables (not individual cpu0, cpu1, etc.)
-        var_names = [v["name"] for v in scanned_vars]
+        var_names = [v.name for v in scanned_vars]
 
         # Should have regex pattern for CPUs
         cpu_pattern_vars = [name for name in var_names if r"cpu\d+" in name]
@@ -62,7 +62,7 @@ class TestScannerPatternAggregation:
         scan_results = [f.result() for f in futures]
         scanned_vars = ScannerService.aggregate_scan_results(scan_results)
 
-        var_names = [v["name"] for v in scanned_vars]
+        var_names = [v.name for v in scanned_vars]
 
         # Check for controller patterns
         controller_patterns = [
@@ -85,7 +85,7 @@ class TestScannerPatternAggregation:
         scan_results = [f.result() for f in futures]
         scanned_vars = ScannerService.aggregate_scan_results(scan_results)
 
-        var_names = [v["name"] for v in scanned_vars]
+        var_names = [v.name for v in scanned_vars]
 
         # Should have some non-pattern variables (global stats, etc.)
         # These typically don't have numeric indices
@@ -106,22 +106,22 @@ class TestScannerPatternAggregation:
         scanned_vars = ScannerService.aggregate_scan_results(scan_results)
 
         # Find a CPU pattern variable
-        cpu_vars = [v for v in scanned_vars if r"cpu\d+" in v["name"]]
+        cpu_vars = [v for v in scanned_vars if r"cpu\d+" in v.name]
 
         if cpu_vars:
             cpu_var = cpu_vars[0]
 
             # Should be type vector (aggregated scalars)
-            assert cpu_var["type"] in ["vector", "distribution", "histogram"]
+            assert cpu_var.type in ["vector", "distribution", "histogram"]
 
             # Should have entries list
-            assert "entries" in cpu_var
-            assert isinstance(cpu_var["entries"], list)
-            assert len(cpu_var["entries"]) > 0
+            assert cpu_var.entries is not None
+            assert isinstance(cpu_var.entries, list)
+            assert len(cpu_var.entries) > 0
 
             # Entries should be numeric IDs like "0", "1", "2", etc.
             # (or could be entry names for vector types)
-            assert all(isinstance(e, str) for e in cpu_var["entries"])
+            assert all(isinstance(e, str) for e in cpu_var.entries)
 
     def test_scan_reduces_variable_count(self, stats_dir: Path) -> None:
         """Test that aggregation reduces total variable count."""
@@ -167,7 +167,7 @@ class TestScannerPatternAggregation:
 
         # Find a simple CPU scalar pattern (converted to vector)
         cpu_scalar_patterns = [
-            v for v in scanned_vars if r"cpu\d+" in v["name"] and v["type"] == "vector"
+            v for v in scanned_vars if r"cpu\d+" in v.name and v.type == "vector"
         ]
 
         if not cpu_scalar_patterns:
@@ -177,14 +177,14 @@ class TestScannerPatternAggregation:
         pattern_var = cpu_scalar_patterns[0]
 
         # Verify it has the structure needed for parsing
-        assert "name" in pattern_var
-        assert "type" in pattern_var
-        assert "entries" in pattern_var
+        assert pattern_var.name is not None
+        assert pattern_var.type is not None
+        assert pattern_var.entries is not None
 
         # The name should be a valid regex
         import re
 
         try:
-            re.compile(pattern_var["name"])
+            re.compile(pattern_var.name)
         except re.error:
-            pytest.fail(f"Pattern variable name is not valid regex: {pattern_var['name']}")
+            pytest.fail(f"Pattern variable name is not valid regex: {pattern_var.name}")

@@ -2,9 +2,8 @@
 Compliance test for TDD Chapter 6 rules.
 Demonstrates: Dynamic Fixture Parametrization, Request Introspection, and Marker usage.
 """
-from typing import Any
-import pytest
 
+import pytest
 
 # --- Fixtures ---
 

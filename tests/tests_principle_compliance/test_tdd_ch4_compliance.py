@@ -2,17 +2,19 @@
 Compliance test for TDD Chapter 4 rules.
 Demonstrates: Separation of Testing Buckets (Commit vs Nightly vs Benchmark) behavior pattern.
 """
-import time
-import pytest
 
+import time
+
+import pytest
 
 # --- Logic ---
 
 
 def heavy_computation() -> int:
     """Simulates a heavy E2E task (e.g., real network/DB)."""
-    time.sleep(0.1) # Simulate delay
+    time.sleep(0.1)  # Simulate delay
     return 42
+
 
 def light_computation() -> int:
     """Simulates a fast unit task."""

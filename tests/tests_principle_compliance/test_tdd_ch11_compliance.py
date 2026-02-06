@@ -2,9 +2,9 @@
 Compliance test for TDD Chapter 11 rules.
 Demonstrates: Mocking external APIs (Network isolation) vs WSGI-like structure.
 """
+
 from typing import Any
 from unittest.mock import MagicMock
-
 
 # --- Domains ---
 
@@ -22,6 +22,7 @@ class ExternalClient:
 
 
 # --- Tests ---
+
 
 def test_external_api_mocking() -> None:
     """

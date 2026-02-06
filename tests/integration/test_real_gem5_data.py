@@ -1,14 +1,11 @@
-"""
-Comprehensive integration tests using real gem5 data.
-Tests the complete workflow from parsing to plotting.
-"""
-
-import shutil
-import tempfile
 from pathlib import Path
 
 import pandas as pd
 import pytest
+
+from src.parsers.models import StatConfig
+from src.parsers.parser import Gem5StatsParser
+from src.web.facade import BackendFacade
 
 # Path to real gem5 test data
 TEST_DATA_PATH = Path(__file__).parent.parent / "data" / "results-micro26-sens"
@@ -23,21 +20,21 @@ def test_data_available():
 
 
 @pytest.fixture
-def temp_output_dir():
-    """Create a temporary output directory."""
-    temp_dir = tempfile.mkdtemp()
-    yield temp_dir
-    shutil.rmtree(temp_dir)
+def temp_output_dir(tmp_path: Path) -> Path:
+    """Create a temporary output directory using tmp_path."""
+    output_dir = tmp_path / "real_data_output"
+    output_dir.mkdir()
+    return output_dir
 
 
-class TestRealGem5DataParsing:
+@pytest.fixture
+def facade() -> BackendFacade:
+    """Create a BackendFacade instance."""
+    return BackendFacade()
     """Tests for parsing real gem5 stats files."""
 
-    def test_find_stats_files(self, test_data_available):
+    def test_find_stats_files(self, test_data_available: Path, facade: BackendFacade) -> None:
         """Test finding stats files in the test data directory."""
-        from src.web.facade import BackendFacade
-
-        facade = BackendFacade()
         stats_files = facade.find_stats_files(str(test_data_available), "stats.txt")
 
         # Should find multiple stats files
@@ -47,11 +44,8 @@ class TestRealGem5DataParsing:
         for f in stats_files:
             assert Path(f).exists()
 
-    def test_stats_file_structure(self, test_data_available):
+    def test_stats_file_structure(self, test_data_available: Path, facade: BackendFacade) -> None:
         """Test that stats files have expected structure."""
-        from src.web.facade import BackendFacade
-
-        facade = BackendFacade()
         stats_files = facade.find_stats_files(str(test_data_available), "stats.txt")
 
         if not stats_files:
@@ -64,15 +58,12 @@ class TestRealGem5DataParsing:
         # gem5 stats files typically have certain patterns
         assert len(content) > 0
 
-    def test_parse_gem5_stats_subset(self, test_data_available, temp_output_dir):
+    def test_parse_gem5_stats_subset(
+        self, test_data_available: Path, temp_output_dir: Path, facade: BackendFacade
+    ) -> None:
         """Test parsing a subset of gem5 stats files."""
-        from src.parsers.parser import Gem5StatsParser
-        from src.web.facade import BackendFacade
-
         # Reset parser singleton
         Gem5StatsParser.reset()
-
-        facade = BackendFacade()
 
         # Get first subdirectory with stats
         subdirs = [d for d in test_data_available.iterdir() if d.is_dir()]
@@ -83,8 +74,8 @@ class TestRealGem5DataParsing:
 
         # Define variables to parse
         variables = [
-            {"name": "simTicks", "type": "scalar"},
-            {"name": "sim_insts", "type": "scalar"},
+            StatConfig(name="simTicks", type="scalar"),
+            StatConfig(name="sim_insts", type="scalar"),
         ]
 
         try:
@@ -93,7 +84,7 @@ class TestRealGem5DataParsing:
                 stats_path=str(first_subdir),
                 stats_pattern="**/stats.txt",
                 variables=variables,
-                output_dir=temp_output_dir,
+                output_dir=str(temp_output_dir),
             )
 
             # Wait for parsing
@@ -103,7 +94,7 @@ class TestRealGem5DataParsing:
                 if result:
                     parse_results.append(result)
 
-            csv_path = facade.finalize_parsing(temp_output_dir, parse_results)
+            csv_path = facade.finalize_parsing(str(temp_output_dir), parse_results)
 
             if csv_path is None:
                 # Some configurations may not have matching variables
@@ -123,14 +114,11 @@ class TestRealDataWithShapers:
     """Tests applying shapers to real parsed data."""
 
     @pytest.fixture
-    def parsed_data(self, test_data_available, temp_output_dir):
+    def parsed_data(
+        self, test_data_available: Path, temp_output_dir: Path, facade: BackendFacade
+    ) -> pd.DataFrame:
         """Parse real data and return DataFrame."""
-        from src.parsers.parser import Gem5StatsParser
-        from src.web.facade import BackendFacade
-
         Gem5StatsParser.reset()
-
-        facade = BackendFacade()
 
         subdirs = [d for d in test_data_available.iterdir() if d.is_dir()]
         if not subdirs:
@@ -139,7 +127,7 @@ class TestRealDataWithShapers:
         first_subdir = subdirs[0]
 
         variables = [
-            {"name": "simTicks", "type": "scalar"},
+            StatConfig(name="simTicks", type="scalar"),
         ]
 
         try:
@@ -147,7 +135,7 @@ class TestRealDataWithShapers:
                 stats_path=str(first_subdir),
                 stats_pattern="**/stats.txt",
                 variables=variables,
-                output_dir=temp_output_dir,
+                output_dir=str(temp_output_dir),
             )
 
             # Wait for parsing
@@ -157,7 +145,7 @@ class TestRealDataWithShapers:
                 if result:
                     parse_results.append(result)
 
-            csv_path = facade.finalize_parsing(temp_output_dir, parse_results)
+            csv_path = facade.finalize_parsing(str(temp_output_dir), parse_results)
 
             if csv_path is None or not Path(csv_path).exists():
                 pytest.skip("Parsing failed or no data")
@@ -258,12 +246,8 @@ class TestRealDataWithManagers:
 class TestCompleteWorkflow:
     """Test complete workflows from parsing to visualization."""
 
-    def test_facade_methods_available(self):
+    def test_facade_methods_available(self, facade: BackendFacade):
         """Test that all facade methods are available."""
-        from src.web.facade import BackendFacade
-
-        facade = BackendFacade()
-
         # Check essential methods exist
         assert hasattr(facade, "find_stats_files")
         assert hasattr(facade, "submit_parse_async")
@@ -304,11 +288,10 @@ class TestCompleteWorkflow:
 class TestConfigurationPersistence:
     """Tests for configuration save/load."""
 
-    def test_save_and_load_configuration(self, temp_output_dir):
+    def test_save_and_load_configuration(
+        self, temp_output_dir: Path, facade: BackendFacade
+    ) -> None:
         """Test saving and loading configuration."""
-        from src.web.facade import BackendFacade
-
-        facade = BackendFacade()
         # Override config dir
         facade.config_pool_dir = Path(temp_output_dir) / "configs"
         facade.config_pool_dir.mkdir(parents=True, exist_ok=True)
@@ -330,11 +313,9 @@ class TestConfigurationPersistence:
         assert loaded["description"] == "Test configuration"
         assert len(loaded["shapers"]) == 1
 
-    def test_load_csv_pool(self, temp_output_dir):
+    def test_load_csv_pool(self, temp_output_dir: Path, facade: BackendFacade) -> None:
         """Test loading CSV pool."""
         from unittest.mock import patch
-
-        from src.web.facade import BackendFacade
 
         temp_path = Path(temp_output_dir)
         csv_pool = temp_path / "csv_pool"
@@ -348,7 +329,6 @@ class TestConfigurationPersistence:
         with patch(
             "src.web.services.csv_pool_service.PathService.get_data_dir", return_value=temp_path
         ):
-            facade = BackendFacade()
             facade.csv_pool_dir = csv_pool
 
             # Load pool

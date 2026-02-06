@@ -2,8 +2,8 @@
 Compliance test for TDD Chapter 2 rules.
 Demonstrates: Test Doubles (Stub, Spy, Fake) and spec=True usage.
 """
-from unittest.mock import create_autospec
 
+from unittest.mock import create_autospec
 
 # --- Domain Interfaces ---
 
@@ -59,12 +59,14 @@ def test_spy_double() -> None:
 
 class FakeNetworkService:
     """A Fake implementation (lightweight logic)."""
+
     def __init__(self) -> None:
         self.messages: list[str] = []
 
     def send(self, message: str) -> bool:
         self.messages.append(message)
         return True
+
 
 def test_fake_double() -> None:
     """Demonstrates a Fake (Working implementation)."""

@@ -2,20 +2,25 @@
 Compliance test for TDD Chapter 10 rules.
 Demonstrates: Property-Based Testing (Hypothesis) and Invariant checking.
 """
-from typing import List
-from hypothesis import given, strategies as st
-import base64
 
+import base64
+from typing import List
+
+from hypothesis import given
+from hypothesis import strategies as st
 
 # --- Logic to Test ---
 
+
 def encode(s: str) -> str:
     """Encodes string to base64."""
-    return base64.b64encode(s.encode('utf-8')).decode('utf-8')
+    return base64.b64encode(s.encode("utf-8")).decode("utf-8")
+
 
 def decode(s: str) -> str:
     """Decodes base64 to string."""
-    return base64.b64decode(s.encode('utf-8')).decode('utf-8')
+    return base64.b64decode(s.encode("utf-8")).decode("utf-8")
+
 
 def my_sort(items: List[int]) -> List[int]:
     """Standard sort."""

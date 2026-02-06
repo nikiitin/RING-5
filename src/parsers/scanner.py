@@ -11,7 +11,10 @@ import logging
 import shutil
 import subprocess  # nosec B404 - Required for gem5 Perl parser execution
 from pathlib import Path
-from typing import Any, Dict, List, Optional, cast
+from typing import List, Optional
+
+from src.parsers.models import ScannedVariable
+from src.parsers.type_mapper import TypeMapper
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +65,7 @@ class Gem5StatsScanner:
 
     def scan_file(
         self, file_path: Path, config_vars: Optional[List[str]] = None
-    ) -> List[Dict[str, Any]]:
+    ) -> List[ScannedVariable]:
         """
         Scan a single stats file to discover variable schemas.
 
@@ -95,10 +98,7 @@ class Gem5StatsScanner:
 
             results = json.loads(result.stdout)
 
-            # Map types using TypeMapper
-            from src.parsers.type_mapper import TypeMapper
-
-            return [TypeMapper.map_scan_result(r) for r in results]
+            return [ScannedVariable.from_dict(TypeMapper.map_scan_result(r)) for r in results]
 
         except subprocess.TimeoutExpired as e:
             logger.error(f"SCANNER: Timeout scanning {file_path}")
@@ -123,9 +123,9 @@ class Gem5StatsScanner:
         """
         all_vars = self.scan_file(file_path)
         for var in all_vars:
-            if var["name"] == var_name and var.get("type") in ("vector", "histogram"):
-                entries_raw = var.get("entries", [])
-                return cast(List[str], entries_raw) if isinstance(entries_raw, list) else []
+            if var.name == var_name and var.type in ("vector", "histogram"):
+                entries_raw = var.entries
+                return entries_raw if isinstance(entries_raw, list) else []
         return []
 
     def scan_vector_entries(self, file_path: Path, vector_name: str) -> List[str]:

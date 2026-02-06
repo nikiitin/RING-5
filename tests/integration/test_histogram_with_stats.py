@@ -13,10 +13,10 @@ Example from gem5 output:
     ...
 """
 
-import tempfile
 from pathlib import Path
 from typing import Any, Dict, List
 
+import pandas as pd
 import pytest
 
 from src.web.facade import BackendFacade
@@ -51,15 +51,15 @@ class TestHistogramWithStatistics:
 
         # Find the variable
         htm_var = next(
-            (v for v in vars_found if "htm_transaction_commit_cycles" in v["name"]),
+            (v for v in vars_found if "htm_transaction_commit_cycles" in v.name),
             None,
         )
 
         assert htm_var is not None, "htm_transaction_commit_cycles not found in scan"
-        assert htm_var["type"] == "histogram", f"Expected histogram type, got {htm_var['type']}"
+        assert htm_var.type == "histogram", f"Expected histogram type, got {htm_var.type}"
 
         # Check that both bucket entries and statistics are present
-        entries = htm_var.get("entries", [])
+        entries = htm_var.entries or []
         assert len(entries) > 0, "No entries found"
 
         # Should have histogram buckets (ranges)
@@ -71,7 +71,7 @@ class TestHistogramWithStatistics:
         assert len(stat_entries) > 0, "No statistics entries found"
 
     def test_parse_htm_transaction_commit_cycles_as_histogram(
-        self, facade: BackendFacade, stats_dir: Path
+        self, facade: BackendFacade, stats_dir: Path, tmp_path: Path
     ) -> None:
         """
         Test parsing htm_transaction_commit_cycles configured as histogram.
@@ -86,33 +86,34 @@ class TestHistogramWithStatistics:
         vars_found = facade.finalize_scan(scan_results)
 
         # 2. Parse with histogram configuration
-        with tempfile.TemporaryDirectory() as tmpdir:
-            variables: List[Dict[str, Any]] = [
-                {
-                    "name": "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles",
-                    "type": "histogram",
-                    "useSpecialMembers": True,
-                    "statistics": ["samples", "mean", "total"],
-                }
-            ]
+        output_dir = tmp_path / "hist_stats_output"
+        output_dir.mkdir()
 
-            parse_futures = facade.submit_parse_async(
-                str(stats_dir),
-                "stats.txt",
-                variables,
-                tmpdir,
-                scanned_vars=vars_found,
-            )
+        variables: List[Dict[str, Any]] = [
+            {
+                "name": "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles",
+                "type": "histogram",
+                "useSpecialMembers": True,
+                "statistics": ["samples", "mean", "total"],
+            }
+        ]
 
-            # Should not raise RuntimeError: "Variable type mismatch"
-            parse_results = [f.result() for f in parse_futures]
-            csv_path = facade.finalize_parsing(tmpdir, parse_results)
+        parse_futures = facade.submit_parse_async(
+            str(stats_dir),
+            "stats.txt",
+            variables,
+            str(output_dir),
+            scanned_vars=vars_found,
+        )
 
-            assert csv_path is not None, "Parsing failed"
-            assert Path(csv_path).exists(), f"CSV file not created: {csv_path}"
+        parse_results = [f.result() for f in parse_futures]
+        csv_path = facade.finalize_parsing(str(output_dir), parse_results)
+
+        assert csv_path is not None, "Parsing failed"
+        assert Path(csv_path).exists(), f"CSV file not created: {csv_path}"
 
     def test_parse_htm_transaction_commit_cycles_with_regex(
-        self, facade: BackendFacade, stats_dir: Path
+        self, facade: BackendFacade, stats_dir: Path, tmp_path: Path
     ) -> None:
         r"""
         Test parsing htm_transaction_commit_cycles using regex pattern.
@@ -128,44 +129,43 @@ class TestHistogramWithStatistics:
         vars_found = facade.finalize_scan(scan_results)
 
         # 2. Parse with regex pattern
-        with tempfile.TemporaryDirectory() as tmpdir:
-            pattern = r"system.ruby.l\d+_cntrl\d+.xact_mgr.htm_transaction_commit_cycles"
-            variables: List[Dict[str, Any]] = [
-                {
-                    "name": pattern,
-                    "type": "histogram",
-                    "useSpecialMembers": True,
-                    "statistics": ["samples", "mean", "total"],
-                }
-            ]
+        output_dir = tmp_path / "hist_regex_output"
+        output_dir.mkdir()
 
-            parse_futures = facade.submit_parse_async(
-                str(stats_dir),
-                "stats.txt",
-                variables,
-                tmpdir,
-                scanned_vars=vars_found,
-            )
+        pattern = r"system.ruby.l\d+_cntrl\d+.xact_mgr.htm_transaction_commit_cycles"
+        variables: List[Dict[str, Any]] = [
+            {
+                "name": pattern,
+                "type": "histogram",
+                "useSpecialMembers": True,
+                "statistics": ["samples", "mean", "total"],
+            }
+        ]
 
-            # Should not raise "Variable type mismatch" error
-            parse_results = [f.result() for f in parse_futures]
-            csv_path = facade.finalize_parsing(tmpdir, parse_results)
+        parse_futures = facade.submit_parse_async(
+            str(stats_dir),
+            "stats.txt",
+            variables,
+            str(output_dir),
+            scanned_vars=vars_found,
+        )
 
-            assert csv_path is not None, "Parsing with regex pattern failed"
-            assert Path(csv_path).exists(), f"CSV file not created: {csv_path}"
+        parse_results = [f.result() for f in parse_futures]
+        csv_path = facade.finalize_parsing(str(output_dir), parse_results)
 
-            # Verify data was parsed
-            import pandas as pd
+        assert csv_path is not None, "Parsing with regex pattern failed"
+        assert Path(csv_path).exists(), f"CSV file not created: {csv_path}"
 
-            df = pd.read_csv(csv_path)
-            assert len(df) > 0, "No data in parsed CSV"
+        # Verify data was parsed
+        df = pd.read_csv(csv_path)
+        assert len(df) > 0, "No data in parsed CSV"
 
-            # Check that columns were created for the histogram
-            histogram_cols = [c for c in df.columns if "htm_transaction_commit_cycles" in c]
-            assert len(histogram_cols) > 0, "No histogram columns in output"
+        # Check that columns were created for the histogram
+        histogram_cols = [c for c in df.columns if "htm_transaction_commit_cycles" in c]
+        assert len(histogram_cols) > 0, "No histogram columns in output"
 
     def test_histogram_buckets_and_statistics_both_parsed(
-        self, facade: BackendFacade, stats_dir: Path
+        self, facade: BackendFacade, stats_dir: Path, tmp_path: Path
     ) -> None:
         """
         Test that both histogram buckets and statistics are correctly parsed.
@@ -179,40 +179,40 @@ class TestHistogramWithStatistics:
         vars_found = facade.finalize_scan(scan_results)
 
         # 2. Parse with explicit statistics
-        with tempfile.TemporaryDirectory() as tmpdir:
-            variables: List[Dict[str, Any]] = [
-                {
-                    "name": "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles",
-                    "type": "histogram",
-                    "useSpecialMembers": True,
-                    "statistics": ["samples", "mean"],
-                }
-            ]
+        output_dir = tmp_path / "hist_explicit_stats_output"
+        output_dir.mkdir()
 
-            parse_futures = facade.submit_parse_async(
-                str(stats_dir),
-                "stats.txt",
-                variables,
-                tmpdir,
-                scanned_vars=vars_found,
-            )
+        variables: List[Dict[str, Any]] = [
+            {
+                "name": "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles",
+                "type": "histogram",
+                "useSpecialMembers": True,
+                "statistics": ["samples", "mean"],
+            }
+        ]
 
-            parse_results = [f.result() for f in parse_futures]
-            csv_path = facade.finalize_parsing(tmpdir, parse_results)
+        parse_futures = facade.submit_parse_async(
+            str(stats_dir),
+            "stats.txt",
+            variables,
+            str(output_dir),
+            scanned_vars=vars_found,
+        )
 
-            assert csv_path is not None
+        parse_results = [f.result() for f in parse_futures]
+        csv_path = facade.finalize_parsing(str(output_dir), parse_results)
 
-            # Read and verify
-            import pandas as pd
+        assert csv_path is not None
 
-            df = pd.read_csv(csv_path)
+        # Read and verify
+        df = pd.read_csv(csv_path)
 
-            # Should have columns for the requested statistics
-            expected_stats = [
-                "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles..samples",
-                "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles..mean",
-            ]
+        # Should have columns for the requested statistics
+        expected_stats = [
+            "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles..samples",
+            "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles..mean",
+        ]
 
-            for stat_col in expected_stats:
-                assert stat_col in df.columns, f"Missing expected column: {stat_col}"
-                assert not df[stat_col].isna().all(), f"Column has no data: {stat_col}"
+        for stat_col in expected_stats:
+            assert stat_col in df.columns, f"Missing expected column: {stat_col}"
+            assert not df[stat_col].isna().all(), f"Column has no data: {stat_col}"

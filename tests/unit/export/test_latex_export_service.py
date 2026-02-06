@@ -4,22 +4,29 @@ Unit tests for LaTeXExportService - main API for LaTeX export.
 Tests the facade layer that orchestrates MatplotlibConverter and PresetManager.
 """
 
+import shutil
+
 import plotly.graph_objects as go
+import pytest
 
 from src.plotting.export.latex_export_service import LaTeXExportService
 from src.plotting.export.presets.preset_schema import LaTeXPreset
+
+# Check for XeLaTeX availability common marker
+has_xelatex = shutil.which("xelatex") is not None
+requires_xelatex = pytest.mark.skipif(not has_xelatex, reason="XeLaTeX not found")
 
 
 class TestServiceInitialization:
     """Test service creation and basic operations."""
 
-    def test_service_initializes_successfully(self):
+    def test_service_initializes_successfully(self) -> None:
         """Service should initialize without errors."""
         service = LaTeXExportService()
         assert service is not None
         assert hasattr(service, "preset_manager")
 
-    def test_list_presets_returns_available_options(self):
+    def test_list_presets_returns_available_options(self) -> None:
         """Should list all available journal presets."""
         service = LaTeXExportService()
         presets = service.list_presets()
@@ -29,7 +36,7 @@ class TestServiceInitialization:
         assert "double_column" in presets
         assert len(presets) >= 2
 
-    def test_get_preset_info_returns_valid_preset(self):
+    def test_get_preset_info_returns_valid_preset(self) -> None:
         """Should retrieve preset configuration."""
         service = LaTeXExportService()
         info = service.get_preset_info("single_column")
@@ -43,7 +50,7 @@ class TestServiceInitialization:
 class TestExportWithPresetName:
     """Test export using preset names (most common use case)."""
 
-    def test_export_simple_figure_to_pdf(self):
+    def test_export_simple_figure_to_pdf(self) -> None:
         """Should export bar chart to PDF successfully."""
         # Arrange
         fig = go.Figure(
@@ -62,7 +69,8 @@ class TestExportWithPresetName:
         assert result["format"] == "pdf"
         assert result["error"] is None
 
-    def test_export_figure_to_pgf(self):
+    @requires_xelatex
+    def test_export_figure_to_pgf(self) -> None:
         """Should export to PGF for direct LaTeX inclusion."""
         fig = go.Figure(data=[go.Scatter(x=[1, 2], y=[3, 4])])
         service = LaTeXExportService()
@@ -75,7 +83,7 @@ class TestExportWithPresetName:
         pgf_content = result["data"].decode("utf-8")
         assert "\\begin{pgfpicture}" in pgf_content
 
-    def test_export_figure_to_eps(self):
+    def test_export_figure_to_eps(self) -> None:
         """Should export to EPS for legacy support."""
         fig = go.Figure(data=[go.Bar(x=["X"], y=[10])])
         service = LaTeXExportService()
@@ -90,7 +98,7 @@ class TestExportWithPresetName:
 class TestExportWithCustomPreset:
     """Test export using custom preset dictionaries."""
 
-    def test_export_with_custom_preset_dict(self):
+    def test_export_with_custom_preset_dict(self) -> None:
         """Should accept and use custom preset configuration."""
         fig = go.Figure(data=[go.Bar(x=["A"], y=[5])])
 
@@ -143,7 +151,7 @@ class TestExportWithCustomPreset:
         assert result["success"] is True
         assert result["data"] is not None
 
-    def test_export_with_invalid_preset_dict_fails(self):
+    def test_export_with_invalid_preset_dict_fails(self) -> None:
         """Should fail gracefully with invalid preset."""
         fig = go.Figure(data=[go.Bar(x=["A"], y=[5])])
 
@@ -163,7 +171,7 @@ class TestExportWithCustomPreset:
 class TestErrorHandling:
     """Test service error handling and edge cases."""
 
-    def test_export_with_unknown_preset_name_fails(self):
+    def test_export_with_unknown_preset_name_fails(self) -> None:
         """Should fail gracefully with unknown preset."""
         fig = go.Figure(data=[go.Bar(x=["A"], y=[1])])
         service = LaTeXExportService()
@@ -174,7 +182,7 @@ class TestErrorHandling:
         assert result["error"] is not None
         assert "preset" in result["error"].lower()
 
-    def test_export_with_invalid_format_fails(self):
+    def test_export_with_invalid_format_fails(self) -> None:
         """Should fail gracefully with unsupported format."""
         fig = go.Figure(data=[go.Bar(x=["A"], y=[1])])
         service = LaTeXExportService()
@@ -184,7 +192,7 @@ class TestErrorHandling:
         assert result["success"] is False
         assert result["error"] is not None
 
-    def test_export_with_empty_figure_fails(self):
+    def test_export_with_empty_figure_fails(self) -> None:
         """Should fail gracefully with empty figure."""
         fig = go.Figure()  # No data
         service = LaTeXExportService()
@@ -194,7 +202,7 @@ class TestErrorHandling:
         assert result["success"] is False
         assert result["error"] is not None
 
-    def test_export_handles_conversion_errors(self):
+    def test_export_handles_conversion_errors(self) -> None:
         """Should catch and report converter errors."""
         # Create figure with problematic data
         fig = go.Figure(data=[go.Bar(x=[], y=[])])
@@ -210,7 +218,7 @@ class TestErrorHandling:
 class TestMetadataAndLogging:
     """Test metadata generation and logging behavior."""
 
-    def test_export_includes_metadata(self):
+    def test_export_includes_metadata(self) -> None:
         """Should include metadata in successful export."""
         fig = go.Figure(data=[go.Bar(x=["A", "B"], y=[1, 2])])
         service = LaTeXExportService()
@@ -222,7 +230,7 @@ class TestMetadataAndLogging:
         # Metadata populated by MatplotlibConverter
         assert result["metadata"] is not None
 
-    def test_export_returns_consistent_error_structure(self):
+    def test_export_returns_consistent_error_structure(self) -> None:
         """Error results should have consistent structure."""
         fig = go.Figure()
         service = LaTeXExportService()
@@ -241,7 +249,7 @@ class TestMetadataAndLogging:
 class TestIntegrationScenarios:
     """Test realistic end-to-end workflows."""
 
-    def test_export_workflow_with_multiple_formats(self):
+    def test_export_workflow_with_multiple_formats(self) -> None:
         """Should export same figure to multiple formats."""
         fig = go.Figure(
             data=[go.Bar(x=["Q1", "Q2", "Q3"], y=[10, 20, 15])],
@@ -253,15 +261,16 @@ class TestIntegrationScenarios:
         pdf_result = service.export(fig, preset="single_column", format="pdf")
         assert pdf_result["success"] is True
 
-        # Export to PGF
-        pgf_result = service.export(fig, preset="single_column", format="pgf")
-        assert pgf_result["success"] is True
+        # Export to PGF (Conditional)
+        if has_xelatex:
+            pgf_result = service.export(fig, preset="single_column", format="pgf")
+            assert pgf_result["success"] is True
 
         # Export to EPS
         eps_result = service.export(fig, preset="single_column", format="eps")
         assert eps_result["success"] is True
 
-    def test_export_preserves_interactive_adjustments(self):
+    def test_export_preserves_interactive_adjustments(self) -> None:
         """Should preserve user's legend and zoom adjustments."""
         fig = go.Figure(
             data=[
@@ -283,7 +292,7 @@ class TestIntegrationScenarios:
         # Metadata should indicate layout was preserved
         # (implementation detail - converter adds this)
 
-    def test_service_reusable_for_multiple_exports(self):
+    def test_service_reusable_for_multiple_exports(self) -> None:
         """Single service instance should handle multiple exports."""
         service = LaTeXExportService()
 
@@ -291,7 +300,10 @@ class TestIntegrationScenarios:
         fig2 = go.Figure(data=[go.Scatter(x=[1], y=[2])])
 
         result1 = service.export(fig1, preset="single_column", format="pdf")
-        result2 = service.export(fig2, preset="double_column", format="pgf")
+
+        # Use PGF if available, otherwise EPS
+        format2 = "pgf" if has_xelatex else "eps"
+        result2 = service.export(fig2, preset="double_column", format=format2)
 
         assert result1["success"] is True
         assert result2["success"] is True

@@ -1,11 +1,12 @@
 import logging
 import os
 import threading
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from tqdm import tqdm
-
+from src.parsers.models import StatConfig
+from src.parsers.strategies.config_aware import ConfigAwareStrategy
+from src.parsers.strategies.interface import ParserStrategy
+from src.parsers.strategies.simple import SimpleStatsStrategy
 from src.parsers.workers import ParseWorkPool
 
 logger = logging.getLogger(__name__)
@@ -15,8 +16,7 @@ class Gem5StatsParser:
     """
     Ingestion engine for gem5 statistics.
 
-    Coordinates parallel parsing of stats.txt files and maintains a unified
-    registry of variables for analysis.
+    Coordinates parsing using a configurable Strategy.
     """
 
     _instance: Optional["Gem5StatsParser"] = None
@@ -26,8 +26,9 @@ class Gem5StatsParser:
         self,
         stats_path: str,
         stats_pattern: str,
-        variables: List[Dict[str, Any]],
+        variables: List[StatConfig],
         output_dir: str,
+        strategy: ParserStrategy,
     ):
         """
         Initialize the parser with simulation context.
@@ -37,13 +38,15 @@ class Gem5StatsParser:
             stats_pattern: Filename pattern (e.g., 'stats.txt').
             variables: List of variable configurations defining what to extract.
             output_dir: Directory where results will be persisted.
+            strategy: The parsing strategy to employ.
         """
         self._stats_path = stats_path
         self._stats_pattern = stats_pattern
         self._variables = variables
         self._output_dir = output_dir
+        self._strategy = strategy
         self._results: List[Dict[str, Any]] = []
-        self._var_names: List[str] = []
+        self._var_names: List[str] = [v.name for v in variables]
 
     @classmethod
     def get_instance(cls) -> Optional["Gem5StatsParser"]:
@@ -64,87 +67,15 @@ class Gem5StatsParser:
 
     def parse(self) -> Optional[str]:
         """
-        Execute the full parsing workflow.
+        Execute the full parsing workflow via the injected strategy.
 
         Returns:
             Absolute path to the generated CSV file, or None if no files were processed.
         """
-        self._parse_stats()
+        self._results = self._strategy.execute(
+            self._stats_path, self._stats_pattern, self._variables
+        )
         return self._persist_results()
-
-    def _map_variables(self) -> Dict[str, Any]:
-        """
-        Convert raw dictionary configurations into typed Stat objects.
-
-        Handles multi-ID mapping (e.g., regex variables matching multiple controllers).
-        """
-        var_map: Dict[str, Any] = {}
-
-        for var in self._variables:
-            # Domain Layer #4: Use 'name' as primary key for internal mapping
-            name = var.get("name") or var.get("id")
-            if not name:
-                raise ValueError("PARSER: Variable config missing 'name' or 'id'.")
-
-            if name in var_map:
-                raise RuntimeError(f"PARSER: Duplicate variable definition: {name}")
-
-            # Registry Inversion: Extract type-specific entries
-            # Registry Inversion: Extract type-specific entries via consolidated Mapper
-            from src.parsers.type_mapper import TypeMapper
-
-            # Handle multi-ID mapping (Variables matched via regex scanning)
-            # For regex patterns that match multiple variables, set repeat count
-            parsed_ids = var.get("parsed_ids", [])
-            if parsed_ids:
-                # Set repeat count to number of matched IDs for proper reduction
-                var_with_repeat = var.copy()
-                var_with_repeat["repeat"] = len(parsed_ids)
-                stat_obj = TypeMapper.create_stat(var_with_repeat)
-            else:
-                stat_obj = TypeMapper.create_stat(var)
-
-            var_map[name] = stat_obj
-
-            # This allows multiple physical IDs in stats.txt to contribute to
-            # one logical variable (Sacred Scanning rule).
-            for pid in parsed_ids:
-                if pid != name:
-                    var_map[pid] = stat_obj
-
-        return var_map
-
-    def _get_files(self) -> List[str]:
-        """Find all stats files matching the pattern in the target path."""
-        # Use scientific path resolution
-        base = Path(self._stats_path)
-        pattern = f"**/{self._stats_pattern}"
-        files = [str(f) for f in base.glob(pattern)]
-        logger.info(f"PARSER: Found {len(files)} candidate files in {self._stats_path}")
-        return files
-
-    def _parse_stats(self) -> None:
-        """Parse all discovered stats files using the parallel ParseWorkPool."""
-        from src.parsers.workers import Gem5ParseWork
-
-        files = self._get_files()
-        if not files:
-            logger.warning(f"PARSER: No files found matching '{self._stats_pattern}'")
-            return
-
-        var_map = self._map_variables()
-        self._var_names = [v.get("name") or v.get("id", "") for v in self._variables]
-
-        pool = ParseWorkPool.get_instance()
-        pool.start_pool()
-
-        logger.info("PARSER: Queueing simulation data for digestion...")
-        for file_path in tqdm(files, desc="Queueing"):
-            pool.add_work(Gem5ParseWork(file_path, var_map))
-
-        logger.info("PARSER: Waiting for parallel worker completion...")
-        futures = pool.get_all_futures()
-        self._results = [f.result() for f in futures]
 
     def _persist_results(self) -> Optional[str]:
         """
@@ -157,24 +88,45 @@ class Gem5StatsParser:
 
         # Presentation Layer Logic: Build header and record column layout
         header_parts: List[str] = []
+        # Fallback if results is empty or first item is weird, but we checked empty above
         sample = self._results[0]
         column_map: Dict[str, Optional[List[str]]] = {}
 
         for var_name in self._var_names:
             if var_name not in sample:
+                # It's possible the strategy didn't find the var in the first sample
+                # We still want to include it in the header
+                # OR we accept that some vars might be missing entirely if config didn't match
+                # For safety, we keep the original logic: only complain if it's missing in sample
+                # But actually, the header should depend on CONFIG, not Sample for consistency.
+                # However, to avoid breaking changes, we stick to existing logic for now.
+                if var_name in sample:
+                    pass  # handled below
+                else:
+                    # If missing in sample, we assume scalar/none for now or log error
+                    pass
+
+            # Check if present
+            if var_name in sample:
+                var = sample[var_name]
+                # Use polymorphism to get entries (Scientific Reproducibility)
+                if hasattr(var, "entries"):  # Check if it's a Stat object
+                    entries = var.entries
+                    if entries:
+                        column_map[var_name] = entries
+                        header_parts.extend(f"{var_name}..{e}" for e in entries)
+                    else:
+                        column_map[var_name] = None
+                        header_parts.append(var_name)
+                else:
+                    # Might be raw data from Config strategy
+                    column_map[var_name] = None
+                    header_parts.append(var_name)
+            else:
+                # Missing variable handling for header?
+                # Previous implementation skipped it. We stick to that.
                 logger.error(f"PARSER: Critical variable '{var_name}' missing in results.")
                 continue
-
-            var = sample[var_name]
-
-            # Use polymorphism to get entries (Scientific Reproducibility)
-            entries = var.entries
-            if entries:
-                column_map[var_name] = entries
-                header_parts.extend(f"{var_name}..{e}" for e in entries)
-            else:
-                column_map[var_name] = None
-                header_parts.append(var_name)
 
         # File Handling (Data Layer)
         os.makedirs(self._output_dir, exist_ok=True)
@@ -187,6 +139,9 @@ class Gem5StatsParser:
             for file_stats in self._results:
                 row_parts: List[str] = []
                 for var_name in self._var_names:
+                    if var_name not in column_map:
+                        continue  # Skip variables that weren't in the header map
+
                     if var_name not in file_stats:
                         # Zero Hallucination: Log missing data instead of guessing 0
                         logger.warning(f"PARSER: Variable '{var_name}' missing for simulation.")
@@ -194,19 +149,25 @@ class Gem5StatsParser:
                         continue
 
                     var = file_stats[var_name]
-                    # Data Domain Layer: Finalize aggregations
-                    var.balance_content()
-                    var.reduce_duplicates()
 
-                    entries = column_map[var_name]
-                    if entries is not None:
-                        reduced = var.reduced_content
-                        for e in entries:
-                            # Zero Hallucination: Use explicit string 'NaN' for missing buckets
-                            val = reduced.get(e, "NaN")
-                            row_parts.append(str(val))
+                    # Handle Stat objects vs Raw Data
+                    if hasattr(var, "balance_content"):
+                        # Data Domain Layer: Finalize aggregations
+                        var.balance_content()
+                        var.reduce_duplicates()
+
+                        entries = column_map[var_name]
+                        if entries is not None:
+                            reduced = var.reduced_content
+                            for e in entries:
+                                # Zero Hallucination: Use explicit string 'NaN' for missing buckets
+                                val = reduced.get(e, "NaN")
+                                row_parts.append(str(val))
+                        else:
+                            row_parts.append(str(var.reduced_content))
                     else:
-                        row_parts.append(str(var.reduced_content))
+                        # Raw data (e.g. string/int from config)
+                        row_parts.append(str(var))
 
                 f.write(",".join(row_parts) + "\n")
 
@@ -224,7 +185,9 @@ class ParserBuilder:
         """Initialize with sensible scientific defaults."""
         self._stats_path: str = ""
         self._stats_pattern: str = "stats.txt"
-        self._variables: List[Dict[str, Any]] = []
+        self._variables: List[StatConfig] = []
+        # Default strategy
+        self._strategy_type: str = "simple"
 
         import tempfile
 
@@ -242,18 +205,35 @@ class ParserBuilder:
 
     def with_variable(self, name: str, var_type: str, **kwargs: Any) -> "ParserBuilder":
         """Define a single metric to extract."""
-        var = {"name": name, "type": var_type, **kwargs}
+        repeat = kwargs.pop("repeat", 1)
+        statistics_only = kwargs.pop("statistics_only", False)
+        var = StatConfig(
+            name=name, type=var_type, repeat=repeat, statistics_only=statistics_only, params=kwargs
+        )
         self._variables.append(var)
         return self
 
-    def with_variables(self, variables: List[Dict[str, Any]]) -> "ParserBuilder":
+    def with_variables(self, variables: List[StatConfig | Dict[str, Any]]) -> "ParserBuilder":
         """Apply a bulk list of variable definitions."""
-        self._variables.extend(variables)
+        for var in variables:
+            if isinstance(var, dict):
+                # Unpack dict and handle expected keys
+                v_copy = var.copy()
+                name = v_copy.pop("name")
+                var_type = v_copy.pop("type")
+                self.with_variable(name, var_type, **v_copy)
+            else:
+                self._variables.append(var)
         return self
 
     def with_output(self, output_dir: str) -> "ParserBuilder":
         """Set destination for the generated results.csv."""
         self._output_dir = output_dir
+        return self
+
+    def with_strategy(self, strategy_type: str) -> "ParserBuilder":
+        """Set the parsing strategy ('simple' or 'config_aware')."""
+        self._strategy_type = strategy_type.lower()
         return self
 
     def build(self) -> Gem5StatsParser:
@@ -268,11 +248,21 @@ class ParserBuilder:
         if not self._variables:
             raise ValueError("At least one variable is required")
 
+        # Select Strategy
+        strategy: ParserStrategy
+        if self._strategy_type == "simple":
+            strategy = SimpleStatsStrategy()
+        elif self._strategy_type == "config_aware":
+            strategy = ConfigAwareStrategy()
+        else:
+            raise ValueError(f"Unknown strategy type: {self._strategy_type}")
+
         with Gem5StatsParser._lock:
             Gem5StatsParser._instance = Gem5StatsParser(
                 stats_path=self._stats_path,
                 stats_pattern=self._stats_pattern,
                 variables=self._variables,
                 output_dir=self._output_dir,
+                strategy=strategy,
             )
         return Gem5StatsParser._instance

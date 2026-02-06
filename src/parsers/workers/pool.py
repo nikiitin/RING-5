@@ -7,7 +7,7 @@ Follows the Facade Pattern to simplify async job submission and tracking.
 
 import logging
 from concurrent.futures import Future
-from typing import Any, List, Optional, TypeVar
+from typing import Any, List, Optional, Sequence, TypeVar
 
 from src.core.multiprocessing.pool import WorkPool
 from src.parsers.workers.parse_work import ParseWork
@@ -57,7 +57,7 @@ class ScanWorkPool:
         self._futures: List[Future[Any]] = []
 
     def submit_batch_async(
-        self, works: List[ScanWork], chunk_size: Optional[int] = None
+        self, works: Sequence[ScanWork], chunk_size: Optional[int] = None
     ) -> List[Future[Any]]:
         """
         Submit a batch of scan works with optimized chunking.
@@ -165,7 +165,7 @@ class ParseWorkPool:
         """Ensure the underlying pool is ready (no-op for compatibility)."""
         pass
 
-    def submit_batch_async(self, works: List[ParseWork]) -> List[Future[Any]]:
+    def submit_batch_async(self, works: Sequence[ParseWork]) -> List[Future[Any]]:
         """
         Submit a batch of parsing works with optimized chunking.
 
