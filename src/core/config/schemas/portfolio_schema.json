@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "RING-5 Portfolio",
+  "description": "Schema for complete portfolio snapshots including data and plots.",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Portfolio format version"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "data_csv": {
+      "type": "string",
+      "description": "Full CSV content of the dataset"
+    },
+    "csv_path": {
+      "type": ["string", "null"],
+      "description": "Original path of the CSV file"
+    },
+    "plots": {
+      "type": "array",
+      "description": "List of serialized plots",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string" },
+          "plot_type": { "type": "string" },
+          "config": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "processed_data": {
+            "type": ["string", "null"],
+            "description": "CSV content of processed data for this plot"
+          },
+          "pipeline": {
+            "type": "array",
+            "items": { "type": "object", "additionalProperties": true }
+          },
+          "pipeline_counter": { "type": "integer" },
+          "legend_mappings_by_column": { "type": "object" },
+          "legend_mappings": { "type": "object" }
+        },
+        "required": ["id", "name", "plot_type"]
+      }
+    },
+    "plot_counter": {
+      "type": "integer",
+      "description": "Current counter state for generating plot IDs"
+    },
+    "config": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Global application configuration"
+    }
+  },
+  "required": ["version", "data_csv", "plots"]
+}
