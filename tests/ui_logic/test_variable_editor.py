@@ -64,9 +64,12 @@ def mock_streamlit():
 def mock_api():
     api = MagicMock()
     api.state_manager = MagicMock()
+    api.backend = MagicMock()
+    api.portfolio_service = MagicMock()
     # Mock some basic returns if needed
     api.state_manager.get_scanned_variables.return_value = []
     api.state_manager.get_parse_variables.return_value = []
+    api.backend.submit_scan_async = MagicMock()
     return api
 
 
