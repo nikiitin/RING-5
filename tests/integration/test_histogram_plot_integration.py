@@ -7,8 +7,8 @@ from typing import Any, Dict, List
 import pandas as pd
 import pytest
 
-from src.plotting.plot_factory import PlotFactory
-from src.web.facade import BackendFacade
+from src.core.application_api import ApplicationAPI
+from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
 
 class TestHistogramPlotIntegration:
@@ -25,9 +25,9 @@ class TestHistogramPlotIntegration:
         )
 
     @pytest.fixture
-    def facade(self) -> BackendFacade:
+    def facade(self) -> ApplicationAPI:
         """Create facade instance."""
-        return BackendFacade()
+        return ApplicationAPI()
 
     def test_histogram_plot_creation_from_factory(self) -> None:
         """Test creating histogram plot from factory."""
@@ -37,7 +37,7 @@ class TestHistogramPlotIntegration:
         assert plot.plot_type == "histogram"
         assert plot.name == "Test Histogram"
 
-    def test_histogram_with_parsed_gem5_data(self, facade: BackendFacade, stats_dir: Path) -> None:
+    def test_histogram_with_parsed_gem5_data(self, facade: ApplicationAPI, stats_dir: Path) -> None:
         """Test histogram plot with parsed gem5 histogram data."""
         # 1. Scan for histogram variables
         scan_futures = facade.submit_scan_async(str(stats_dir), "stats.txt", limit=-1)
@@ -107,7 +107,7 @@ class TestHistogramPlotIntegration:
             assert fig.layout.title.text == "Transaction Commit Cycles Distribution"
 
     def test_histogram_with_grouping(
-        self, facade: BackendFacade, stats_dir: Path, tmp_path: Path
+        self, facade: ApplicationAPI, stats_dir: Path, tmp_path: Path
     ) -> None:
         """Test histogram plot with categorical grouping."""
         # Parse with configuration variable for grouping

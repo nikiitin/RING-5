@@ -7,7 +7,10 @@ from typing import List
 
 import pytest
 
-from src.parsers.workers.perl_worker_pool import PerlWorkerPool, shutdown_worker_pool
+from src.core.parsing.workers.perl_worker_pool import (
+    PerlWorkerPool,
+    shutdown_worker_pool,
+)
 
 
 @pytest.fixture

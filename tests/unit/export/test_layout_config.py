@@ -5,7 +5,7 @@ Tests FontStyleConfig, PositioningConfig, and SeparatorConfig to ensure
 proper defaults, type safety, and construction from presets.
 """
 
-from src.plotting.export.converters.layout_config import (
+from src.web.pages.ui.plotting.export.converters.layout_config import (
     FontStyleConfig,
     PositioningConfig,
     SeparatorConfig,

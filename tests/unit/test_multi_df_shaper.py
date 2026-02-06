@@ -3,7 +3,7 @@
 import pandas as pd
 import pytest
 
-from src.web.services.shapers.multi_df_shaper import MultiDfShaper
+from src.core.services.shapers.multi_df_shaper import MultiDfShaper
 
 
 class TestMultiDfShaper:

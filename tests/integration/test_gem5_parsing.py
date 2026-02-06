@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from src.web.facade import BackendFacade
+from src.core.application_api import ApplicationAPI
 
 
 class TestGem5Parsing:
@@ -14,8 +14,8 @@ class TestGem5Parsing:
 
     @pytest.fixture
     def facade(self):
-        """Create a BackendFacade instance."""
-        return BackendFacade()
+        """Create a ApplicationAPI instance."""
+        return ApplicationAPI()
 
     @pytest.fixture
     def output_dir(self, tmp_path):
@@ -142,7 +142,7 @@ system.mem.ctrl::1024-2047                    5      50.00%     100.00%      # H
         with open(stats_dir / "stats.txt", "w") as f:
             f.write(hist_content)
 
-        facade = BackendFacade()
+        facade = ApplicationAPI()
 
         try:
             # 1. Scan

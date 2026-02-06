@@ -10,8 +10,10 @@ from typing import Any
 
 import pytest
 
-from src.plotting.export.converters.matplotlib_converter import MatplotlibConverter
-from src.plotting.export.presets.preset_manager import PresetManager
+from src.web.pages.ui.plotting.export.converters.matplotlib_converter import (
+    MatplotlibConverter,
+)
+from src.web.pages.ui.plotting.export.presets.preset_manager import PresetManager
 from tests.fixtures.sample_figures import (
     create_figure_with_custom_legend,
     create_figure_with_log_scale,
@@ -51,7 +53,9 @@ class TestMatplotlibConverterBasics:
 
     def test_converter_inherits_from_base(self, single_column_preset: dict[str, Any]) -> None:
         """Converter should inherit from BaseConverter."""
-        from src.plotting.export.converters.base_converter import BaseConverter
+        from src.web.pages.ui.plotting.export.converters.base_converter import (
+            BaseConverter,
+        )
 
         converter = MatplotlibConverter(single_column_preset)
         assert isinstance(converter, BaseConverter)

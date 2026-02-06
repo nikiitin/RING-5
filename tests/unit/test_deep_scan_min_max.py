@@ -1,7 +1,7 @@
 class TestDeepScanMinMax:
     def test_merging_logic_in_async_pipeline(self):
         """Test that the async pipeline correctly merges distribution ranges from multiple files."""
-        from src.parsers.scanner_service import ScannerService
+        from src.core.parsing.scanner_service import ScannerService
 
         # Mock the finalize_scan to return aggregated results
         raw_results = [
@@ -21,7 +21,7 @@ class TestDeepScanMinMax:
 
     def test_grouping_logic_in_facade(self):
         """Test that grouping logic works via finalize_scan."""
-        from src.parsers.scanner_service import ScannerService
+        from src.core.parsing.scanner_service import ScannerService
 
         # Test that finalize_scan handles grouping/merging
         raw_results = [

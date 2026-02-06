@@ -6,8 +6,8 @@ Tests loading, validation, and management of LaTeX export presets.
 
 import pytest
 
-from src.plotting.export.presets.preset_manager import PresetManager
-from src.plotting.export.presets.preset_schema import LaTeXPreset
+from src.web.pages.ui.plotting.export.presets.preset_manager import PresetManager
+from src.web.pages.ui.plotting.export.presets.preset_schema import LaTeXPreset
 
 
 def create_valid_preset(**overrides: float | str | int | bool) -> LaTeXPreset:

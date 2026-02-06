@@ -5,7 +5,7 @@ Tests pattern detection and index filtering logic.
 
 import time
 
-from src.web.ui.components.pattern_index_selector import PatternIndexSelector
+from src.web.pages.ui.components.pattern_index_selector import PatternIndexSelector
 
 
 class TestPatternDetection:

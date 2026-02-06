@@ -6,8 +6,10 @@ Tests: font size, constraint to bar, uniformtext, and style application flow.
 import pandas as pd
 import pytest
 
-from src.plotting.styles.applicator import StyleApplicator
-from src.plotting.types.grouped_stacked_bar_plot import GroupedStackedBarPlot
+from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
+from src.web.pages.ui.plotting.types.grouped_stacked_bar_plot import (
+    GroupedStackedBarPlot,
+)
 
 
 @pytest.fixture

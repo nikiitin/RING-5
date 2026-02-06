@@ -9,8 +9,8 @@ import shutil
 import plotly.graph_objects as go
 import pytest
 
-from src.plotting.export.latex_export_service import LaTeXExportService
-from src.plotting.export.presets.preset_schema import LaTeXPreset
+from src.web.pages.ui.plotting.export.latex_export_service import LaTeXExportService
+from src.web.pages.ui.plotting.export.presets.preset_schema import LaTeXPreset
 
 # Check for XeLaTeX availability common marker
 has_xelatex = shutil.which("xelatex") is not None

@@ -3,12 +3,12 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from src.web.ui.components.data_manager_components import DataManagerComponents
+from src.web.pages.ui.components.data_manager_components import DataManagerComponents
 
 
 @pytest.fixture
 def mock_streamlit():
-    with patch("src.web.ui.components.data_manager_components.st") as mock_st:
+    with patch("src.web.pages.ui.components.data_manager_components.st") as mock_st:
         # Mock session_state to support both attribute (state.x) and item (state['x']) access
         class MockState(dict):
             def __getattr__(self, key):

@@ -2,12 +2,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.web.ui.components.plot_manager_components import PlotManagerComponents
+from src.web.pages.ui.components.plot_manager_components import PlotManagerComponents
 
 
 @pytest.fixture
 def mock_streamlit():
-    with patch("src.web.ui.components.plot_manager_components.st") as mock_st:
+    with patch("src.web.pages.ui.components.plot_manager_components.st") as mock_st:
         mock_st.session_state = {}
 
         # Mock columns
@@ -27,7 +27,7 @@ def mock_streamlit():
 
 @pytest.fixture
 def mock_pipeline_service():
-    with patch("src.web.ui.components.plot_manager_components.PipelineService") as mock_ps:
+    with patch("src.web.pages.ui.components.plot_manager_components.PipelineService") as mock_ps:
         yield mock_ps
 
 

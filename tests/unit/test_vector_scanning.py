@@ -1,6 +1,6 @@
 import re
 
-from src.parsers.scanner_service import ScannerService
+from src.core.parsing.scanner_service import ScannerService
 
 
 class TestVectorScanning:

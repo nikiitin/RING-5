@@ -15,9 +15,9 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from src.web.facade import BackendFacade
-from src.web.services.pipeline_service import PipelineService
-from src.web.services.shapers.factory import ShaperFactory
+from src.core.application_api import ApplicationAPI
+from src.core.services.pipeline_service import PipelineService
+from src.core.services.shapers.factory import ShaperFactory
 
 
 @pytest.fixture
@@ -37,9 +37,9 @@ def sample_benchmark_data() -> pd.DataFrame:
 
 
 @pytest.fixture
-def facade() -> BackendFacade:
-    """Create BackendFacade instance for testing."""
-    return BackendFacade()
+def facade() -> ApplicationAPI:
+    """Create ApplicationAPI instance for testing."""
+    return ApplicationAPI()
 
 
 class TestTransformationPipeline:
@@ -76,7 +76,7 @@ class TestTransformationPipeline:
         assert abs(tx_rows[tx_rows["benchmark"] == "mcf"]["ipc"].iloc[0] - expected_mcf) < 0.01
 
     def test_multi_shaper_pipeline(
-        self, sample_benchmark_data: pd.DataFrame, facade: BackendFacade
+        self, sample_benchmark_data: pd.DataFrame, facade: ApplicationAPI
     ) -> None:
         """
         Test multi-stage shaper pipeline:
@@ -162,7 +162,7 @@ class TestTransformationPipeline:
             }
         ]
 
-        facade = BackendFacade()
+        facade = ApplicationAPI()
         result = facade.apply_shapers(sample_benchmark_data, pipeline)
 
         # Verify mean rows were added
@@ -176,7 +176,7 @@ class TestTransformationPipeline:
         """
         Test error handling in pipeline execution.
         """
-        facade = BackendFacade()
+        facade = ApplicationAPI()
 
         # Test with invalid shaper type
         invalid_pipeline = [{"type": "invalid_shaper", "params": {}}]
@@ -208,7 +208,7 @@ class TestTransformationPipeline:
         4. Load pipeline
         5. Apply to new data
         """
-        facade = BackendFacade()
+        facade = ApplicationAPI()
 
         # Save sample data to CSV
         csv_path = tmp_path / "sample.csv"

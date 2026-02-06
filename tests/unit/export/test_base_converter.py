@@ -9,8 +9,11 @@ from typing import List
 import plotly.graph_objects as go
 import pytest
 
-from src.plotting.export.converters.base_converter import BaseConverter
-from src.plotting.export.presets.preset_schema import ExportResult, LaTeXPreset
+from src.web.pages.ui.plotting.export.converters.base_converter import BaseConverter
+from src.web.pages.ui.plotting.export.presets.preset_schema import (
+    ExportResult,
+    LaTeXPreset,
+)
 
 
 class MockConverter(BaseConverter):

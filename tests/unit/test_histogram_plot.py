@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
-from src.plotting.types.histogram_plot import HistogramPlot
+from src.web.pages.ui.plotting.types.histogram_plot import HistogramPlot
 
 
 class TestHistogramPlotInitialization:
@@ -40,7 +40,7 @@ class TestHistogramPlotConfiguration:
 
         saved_config: Dict[str, Any] = {}
 
-        with patch("src.plotting.types.histogram_plot.st") as mock_st:
+        with patch("src.web.pages.ui.plotting.types.histogram_plot.st") as mock_st:
             # Mock selectbox returns
             mock_st.selectbox.side_effect = ["latency", None, 20, "count"]
             mock_st.number_input.return_value = 10
@@ -67,7 +67,7 @@ class TestHistogramPlotConfiguration:
 
         saved_config: Dict[str, Any] = {"group_by": "benchmark"}
 
-        with patch("src.plotting.types.histogram_plot.st") as mock_st:
+        with patch("src.web.pages.ui.plotting.types.histogram_plot.st") as mock_st:
             mock_st.selectbox.side_effect = ["latency", "benchmark", 20, "count"]
             mock_st.number_input.return_value = 5
             mock_st.checkbox.return_value = False

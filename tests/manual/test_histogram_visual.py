@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.plotting.plot_factory import PlotFactory
+from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
 
 def main() -> None:

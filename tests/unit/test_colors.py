@@ -1,6 +1,6 @@
 """Tests for color utilities."""
 
-from src.plotting.styles.colors import get_palette_colors, to_hex
+from src.web.pages.ui.plotting.styles.colors import get_palette_colors, to_hex
 
 
 class TestGetPaletteColors:

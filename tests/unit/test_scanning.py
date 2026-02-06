@@ -2,21 +2,21 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.parsers.workers.gem5_scan_work import Gem5ScanWork
-from src.parsers.workers.pool import ScanWorkPool
+from src.core.parsing.workers.gem5_scan_work import Gem5ScanWork
+from src.core.parsing.workers.pool import ScanWorkPool
 
 
 def test_stats_scan_work_success():
     work = Gem5ScanWork("test_file.txt")
 
-    from src.parsers.models import ScannedVariable
+    from src.core.parsing.models import ScannedVariable
 
     mock_vars = [
         ScannedVariable(name="var1", type="scalar"),
         ScannedVariable(name="var2", type="vector"),
     ]
 
-    with patch("src.parsers.scanner.Gem5StatsScanner.get_instance") as mock_scanner_cls:
+    with patch("src.core.parsing.scanner.Gem5StatsScanner.get_instance") as mock_scanner_cls:
         mock_instance = MagicMock()
         mock_scanner_cls.return_value = mock_instance
         mock_instance.scan_file.return_value = mock_vars
@@ -31,7 +31,7 @@ def test_stats_scan_work_success():
 def test_stats_scan_work_failure():
     work = Gem5ScanWork("test_file.txt")
 
-    with patch("src.parsers.scanner.Gem5StatsScanner.get_instance") as mock_scanner_cls:
+    with patch("src.core.parsing.scanner.Gem5StatsScanner.get_instance") as mock_scanner_cls:
         mock_instance = MagicMock()
         mock_scanner_cls.return_value = mock_instance
         mock_instance.scan_file.side_effect = Exception("Scan error")

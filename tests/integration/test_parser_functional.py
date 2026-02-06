@@ -4,9 +4,9 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from src.parsers.models import StatConfig
-from src.parsers.parser import Gem5StatsParser
-from src.web.facade import BackendFacade
+from src.core.application_api import ApplicationAPI
+from src.core.parsing.models import StatConfig
+from src.core.parsing.parser import Gem5StatsParser
 
 
 class TestParserFunctional:
@@ -37,7 +37,7 @@ class TestParserFunctional:
         Path(output_dir).mkdir()
 
         Gem5StatsParser.reset()
-        facade = BackendFacade()
+        facade = ApplicationAPI()
 
         variables = [
             StatConfig(name="simTicks", type="scalar"),

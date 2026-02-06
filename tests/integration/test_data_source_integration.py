@@ -4,13 +4,13 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
-from src.web.facade import BackendFacade
+from src.core.application_api import ApplicationAPI
 
 
 @pytest.fixture
 def facade(tmp_path):
     """
-    Fixture creates a BackendFacade instance with temporary directories.
+    Fixture creates a ApplicationAPI instance with temporary directories.
     Patches PathService to use temp directories for isolation.
     """
     # Create temp structure
@@ -22,15 +22,15 @@ def facade(tmp_path):
     config_pool.mkdir()
 
     # Patch PathService.get_data_dir to return our temp dir
-    with patch("src.web.services.paths.PathService.get_data_dir", return_value=ring5_dir):
+    with patch("src.core.services.paths.PathService.get_data_dir", return_value=ring5_dir):
         with patch(
-            "src.web.services.csv_pool_service.PathService.get_data_dir", return_value=ring5_dir
+            "src.core.services.csv_pool_service.PathService.get_data_dir", return_value=ring5_dir
         ):
             with patch(
-                "src.web.services.config_service.PathService.get_data_dir", return_value=ring5_dir
+                "src.core.services.config_service.PathService.get_data_dir", return_value=ring5_dir
             ):
                 # Initialize facade (will use patched paths)
-                f = BackendFacade()
+                f = ApplicationAPI()
                 # Override paths on facade too for backward compatibility
                 f.ring5_data_dir = ring5_dir
                 f.csv_pool_dir = csv_pool

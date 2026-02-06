@@ -1,6 +1,6 @@
 import pytest
 
-from src.parsers.types.histogram import Histogram
+from src.core.parsing.types.histogram import Histogram
 
 
 def test_histogram_selection_priority():

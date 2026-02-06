@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock
 
-from src.plotting.base_plot import BasePlot
+from src.web.pages.ui.plotting.base_plot import BasePlot
 
 
 class MockPlot(BasePlot):
