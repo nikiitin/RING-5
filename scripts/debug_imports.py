@@ -1,5 +1,6 @@
 try:
-    print("Importing src.web.ui.plotting...")
+    print("Importing src.web.pages.ui.plotting...")
+    from src.web.pages.ui.plotting.base_plot import BasePlot  # noqa: F401
 
     print("SUCCESS: BasePlot imported")
 except Exception:
@@ -9,7 +10,8 @@ except Exception:
     traceback.print_exc()
 
 try:
-    print("\nImporting src.web.state_manager...")
+    print("\nImporting src.core.state.state_manager...")
+    import src.core.state.state_manager  # noqa: F401
 
     print("SUCCESS: StateManager imported")
 except Exception:
@@ -20,6 +22,7 @@ except Exception:
 
 try:
     print("\nImporting app.py...")
+    import app  # noqa: F401
 
     print("SUCCESS: app.py imported")
 except Exception:
