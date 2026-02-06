@@ -132,7 +132,7 @@ class ParseService:
                     for sv in scanned_vars:
                         # Handle both dict and ScannedVariable objects
                         sv_name = sv.name if hasattr(sv, "name") else str(sv.get("name", ""))
-                        if pattern.match(sv_name) or config.name == sv_name:
+                        if config.name == sv_name or pattern.fullmatch(sv_name):
                             # If sv is already an aggregated pattern, use its constituents
                             if hasattr(sv, "pattern_indices") and sv.pattern_indices:
                                 matched_ids.extend(sv.pattern_indices)
