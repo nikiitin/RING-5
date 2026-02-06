@@ -3,7 +3,7 @@
 # Run manually: pre-commit run --all-files
 
 # Global exclusions
-exclude: '^tests/data/|^python_venv/'
+exclude: ^tests/data/|^python_venv/
 
 repos:
   # Code formatting
