@@ -144,8 +144,8 @@ class SessionRepository:
         self.plot_repo.set_current_plot_id(None)
         self.parser_repo.clear_parser_state()
         self.config_repo.clear_config()
-        self.config_repo.set_csv_path(None)
-        self.config_repo.set_temp_dir(None)
+        self.config_repo.set_csv_path("")
+        self.config_repo.set_temp_dir("")
 
         # Clear widget state
         self.clear_widget_state()
