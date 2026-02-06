@@ -49,13 +49,13 @@ class UploadComponents:
                     with open(csv_path, "wb") as f:
                         f.write(uploaded_file.getbuffer())
 
-                # Load data using backend service via API
-                # Note: api.backend.load_csv_file is exposed via facade in ApplicationAPI
-                # We assume api.backend has load_csv_file or equivalent.
-                # Checking ApplicationAPI definition, it has 'backend' which is BackendFacade.
-                data = api.load_csv_file(str(csv_path))
-                api.state_manager.set_data(data)
-                api.state_manager.set_csv_path(str(csv_path))
+                # Load data using the public ApplicationAPI CSV-loading method.
+                # ApplicationAPI exposes load_data(...), which stores the DataFrame
+                # in the state manager; we then retrieve it from there.
+                api.load_data(str(csv_path))
+                data = api.state_manager.get_data()
+                if data is None:
+                    raise ValueError("Data failed to load from CSV via ApplicationAPI.")
 
                 st.success(f"Successfully loaded {len(data)} rows × {len(data.columns)} columns!")
 
