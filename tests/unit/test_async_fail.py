@@ -5,8 +5,8 @@ Tests for async scanning behavior with Futures-based API.
 import time
 from concurrent.futures import as_completed
 
-from src.parsers.workers.pool import ScanWorkPool
-from src.parsers.workers.scan_work import ScanWork
+from src.core.parsing.workers.pool import ScanWorkPool
+from src.core.parsing.workers.scan_work import ScanWork
 
 
 class MockWork(ScanWork):

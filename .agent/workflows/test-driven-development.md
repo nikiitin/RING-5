@@ -19,13 +19,15 @@ Write Test → See it Fail → Write Code → See it Pass → Refactor → Repea
 ### 1. Architectural Alignment (Rule 001)
 
 Before writing tests, identify the **Layer**:
-*   **Layer A (Data)**: Repository/Parser. Test with `fake_filesystem`.
-*   **Layer B (Domain)**: Pure Logic (Entities/Shapers). Test with **Property-Based Testing** (Hypothesis).
-*   **Layer C (Presentation)**: UI. Test with `BackendFacade` mocks.
+
+- **Layer A (Data)**: Repository/Parser. Test with `fake_filesystem`.
+- **Layer B (Domain)**: Pure Logic (Entities/Shapers). Test with **Property-Based Testing** (Hypothesis).
+- **Layer C (Presentation)**: UI. Test with `BackendFacade` mocks.
 
 ### 2. Strategy: Fixtures as Architecture (Rule 004)
 
 **DO NOT** create ad-hoc setup in your test file.
+
 1.  Check `tests/conftest.py` (Root) for shared fixtures (`session`).
 2.  Check `tests/<component>/conftest.py` for component specifics.
 3.  **Mandatory:** Use `conftest` fixtures for Dependency Injection.
@@ -58,13 +60,14 @@ def test_normalization_never_crashes(values):
 ### 5. Verified Implementation
 
 Write code that satisfies the test AND Rule 003 (Strong Typing).
-*   **Vectorization (Rule 002):** No loops over DataFrames.
-*   **Typing:** Full `mypy` compliance.
+
+- **Vectorization (Rule 002):** No loops over DataFrames.
+- **Typing:** Full `mypy` compliance.
 
 ### 6. Refactor
 
-*   **Rule of Three:** Extract duplicates.
-*   **Naming:** Ensure "Ubiquitous Language".
+- **Rule of Three:** Extract duplicates.
+- **Naming:** Ensure "Ubiquitous Language".
 
 ## Checklist before Commit
 

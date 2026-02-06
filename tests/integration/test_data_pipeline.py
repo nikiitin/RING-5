@@ -2,8 +2,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.web.services.data_processing_service import DataProcessingService
-from src.web.services.shapers.factory import ShaperFactory
+from src.core.services.arithmetic_service import ArithmeticService
+from src.core.services.outlier_service import OutlierService
+from src.core.services.reduction_service import ReductionService
+from src.core.services.shapers.factory import ShaperFactory
 
 
 class TestDataPipeline:
@@ -25,7 +27,7 @@ class TestDataPipeline:
         df["random_seed"] = [1, 2, 1, 2, 1, 2]
 
         # Reduce
-        reduced = DataProcessingService.reduce_seeds(
+        reduced = ReductionService.reduce_seeds(
             df, categorical_cols=["group"], statistic_cols=["value"]
         )
 
@@ -45,9 +47,7 @@ class TestDataPipeline:
             }
         )
 
-        cleaned = DataProcessingService.remove_outliers(
-            df, outlier_col="value", group_by_cols=["group"]
-        )
+        cleaned = OutlierService.remove_outliers(df, outlier_col="value", group_by_cols=["group"])
 
         assert len(cleaned) == 9
         assert 1000 not in cleaned["value"].values
@@ -75,8 +75,8 @@ class TestDataPipeline:
         df["noise.sd"] = [0.1] * 6
 
         # Sum
-        result = DataProcessingService.apply_mixer(
-            df, dest_col="mixed", source_cols=["value", "noise"], operation="Sum"
+        result = ArithmeticService.merge_columns(
+            df, source_cols=["value", "noise"], operation="Sum", dest_col="mixed"
         )
 
         assert "mixed" in result.columns

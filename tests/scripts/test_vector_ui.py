@@ -5,7 +5,7 @@ Test script to verify the vector UI configuration is working
 
 import inspect
 
-from src.web.ui.components.variable_editor import VariableEditor
+from src.web.pages.ui.components.variable_editor import VariableEditor
 
 # Get the source code
 source = inspect.getsource(VariableEditor.render_vector_config)

@@ -55,6 +55,9 @@ Use specific types (e.g., `List[str]`, `Dict[str, int]`) instead of generic `lis
 3.  **Variable Scanning is Sacred:** The logic that scrapes `stats.txt` is the single point of failure. It must be robust against whitespace changes, version differences (gem5 v21 vs v24), and missing keys.
 4.  **Back-to-Front Sync:** If I filter the dataframe in the backend to remove "cold start" ticks, the Streamlit UI must immediately reflect this. No stale caches.
 5.  **Reproducibility:** The tool must be deterministic. Reading the same file twice must yield the exact same graph.
+6.  **NO SYSTEM-WIDE INSTALLATIONS:** PROHIBITED from installing any package system-wide on the host. Use the Docker container for all dependencies.
+7.  **DIRECTORY ACCESS RESTRICTION:** STRICTLY FORBIDDEN from accessing or modifying anything outside of the `RING-5` directory or the Docker container root.
+8.  **DOCKER MANDATORY:** All commands MUST be wrapped in `docker-compose run --rm ring5-dev`.
 
 ## Architecture & Tech Stack
 
@@ -193,7 +196,7 @@ I need strict adherence to my project rules. You must verify you have context of
 1.  **Pre-computation Scan:** Before generating any code or answer, scan the active rules in the `.cursor/rules/` directory.
 2.  **Mandatory Acknowledgment:** You MUST begin your very first response to a new task with the following exact line:
     > "✅ **Rules Acknowledged & Loaded.**"
-    *Following this, for each specific rule that applies, you must also state: "✅ **Acknowledged Rule XXX**"*
+    > _Following this, for each specific rule that applies, you must also state: "✅ **Acknowledged Rule XXX**"_
 3.  **Conflict Resolution:** If a user prompt conflicts with a rule, prioritize the rule unless explicitly told to "ignore rules."
 
 ## Examples
@@ -339,45 +342,45 @@ This is a security requirement. Never execute, suggest, or attempt git operation
 
 ```bash
 # Run all tests
-make test
+docker-compose run --rm ring5-dev ./python_venv/bin/python3 -m pytest
 
 # Run specific test file
-pytest tests/unit/test_shapers.py -v
+docker-compose run --rm ring5-dev ./python_venv/bin/python3 -m pytest tests/unit/test_shapers.py -v
 
 # Run with coverage
-pytest --cov=src tests/ --cov-report=html
+docker-compose run --rm ring5-dev ./python_venv/bin/python3 -m pytest --cov=src tests/ --cov-report=html
 
 # Run specific test function
-pytest tests/unit/test_shapers.py::test_rename_basic -v
+docker-compose run --rm ring5-dev ./python_venv/bin/python3 -m pytest tests/unit/test_shapers.py::test_rename_basic -v
 ```
 
 ## Development
 
 ```bash
 # Start Streamlit app
-streamlit run app.py
+docker-compose run --rm ring5-dev ./python_venv/bin/python3 -m streamlit run app.py
 
 # Format code
-black src/ tests/
+docker-compose run --rm ring5-dev ./python_venv/bin/python3 -m black src/ tests/
 
 # Lint code
-flake8 src/ tests/
+docker-compose run --rm ring5-dev ./python_venv/bin/python3 -m flake8 src/ tests/
 
 # Type check
-mypy src/
+docker-compose run --rm ring5-dev ./python_venv/bin/python3 -m mypy src/
 ```
 
 ## Debugging
 
 ```bash
 # Run with debugger
-pytest tests/unit/test_file.py --pdb
+docker-compose run --rm ring5-dev ./python_venv/bin/python3 -m pytest tests/unit/test_file.py --pdb
 
 # Show print statements
-pytest tests/unit/test_file.py -s
+docker-compose run --rm ring5-dev ./python_venv/bin/python3 -m pytest tests/unit/test_file.py -s
 
 # Verbose output
-pytest tests/unit/test_file.py -vv
+docker-compose run --rm ring5-dev ./python_venv/bin/python3 -m pytest tests/unit/test_file.py -vv
 ```
 
 ## Output & Communication Standards

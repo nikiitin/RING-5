@@ -4,7 +4,7 @@ Unit tests for VariableValidationService.
 Tests comprehensive validation logic for gem5 variable configurations.
 """
 
-from src.web.services.variable_validation_service import VariableValidationService
+from src.core.services.variable_validation_service import VariableValidationService
 
 
 class TestVariableNameValidation:

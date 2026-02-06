@@ -5,12 +5,14 @@
 The AI has **FULL AUTONOMY** to execute these actions:
 
 ### ✅ File Operations
+
 - Read any file in the workspace
 - Create new files (code, tests, configs, documentation)
 - Edit existing files
 - Search codebase (grep, semantic search, file search)
 
 ### ✅ Testing & Quality
+
 - Run all tests (`make test`, `pytest`)
 - Run specific test files or functions
 - Check test coverage
@@ -19,6 +21,7 @@ The AI has **FULL AUTONOMY** to execute these actions:
 - Format with black
 
 ### ✅ Development
+
 - Install dependencies
 - Run Streamlit app
 - Execute Python scripts
@@ -27,6 +30,7 @@ The AI has **FULL AUTONOMY** to execute these actions:
 - Generate demo outputs
 
 ### ✅ Code Quality
+
 - Automatic formatting
 - Automatic linting
 - Strict type checking
@@ -38,6 +42,7 @@ The AI has **FULL AUTONOMY** to execute these actions:
 ### Git Commands - NEVER ALLOWED
 
 The AI must **NEVER** execute any git commands:
+
 - `git add`, `git commit`, `git push`, `git pull`
 - `git checkout`, `git branch`, `git merge`, `git rebase`
 - `git stash`, `git reset`, `git revert`, `git tag`
@@ -48,6 +53,7 @@ The AI must **NEVER** execute any git commands:
 ## 📋 Core Operating Principles
 
 ### 1. Test-Driven Development
+
 - Write tests FIRST
 - Run test (should fail)
 - Implement feature
@@ -55,18 +61,21 @@ The AI must **NEVER** execute any git commands:
 - Run all tests (no regression)
 
 ### 2. Strong Typing
+
 - ALL functions must have type hints
 - Use mypy strict mode
 - No implicit `Any`
 - TypedDict for structured data
 
 ### 3. Zero Hallucination
+
 - Never invent data
 - Never guess values
 - If data doesn't exist, say so
 - Fail fast on errors
 
 ### 4. Architectural Layers
+
 ```
 Layer C (Presentation) → Streamlit UI
          ↓
@@ -76,6 +85,7 @@ Layer A (Data)        → File I/O, parsing
 ```
 
 ### 5. Async Patterns
+
 ```python
 # Always follow this pattern:
 futures = service.submit_async(...)
@@ -84,6 +94,7 @@ data = service.finalize(results)
 ```
 
 ### 6. Immutability
+
 ```python
 # ✅ CORRECT
 result = data.drop(columns=['x'])
@@ -93,6 +104,7 @@ data.drop(columns=['x'], inplace=True)
 ```
 
 ### 7. Publication Quality
+
 - Vector-ready plots
 - 14pt+ fonts
 - Clear legends
@@ -110,6 +122,7 @@ data.drop(columns=['x'], inplace=True)
 ## 🔄 Common Workflows
 
 ### Adding a Feature
+
 1. Search for similar features
 2. Write tests (should fail)
 3. Implement feature
@@ -117,12 +130,14 @@ data.drop(columns=['x'], inplace=True)
 5. Type check + format
 
 ### Fixing a Bug
+
 1. Create test that reproduces bug
 2. Locate bug in code
 3. Fix and verify test passes
 4. Run all tests (no regression)
 
 ### Adding a Plot
+
 1. Write unit tests
 2. Implement plot class
 3. Register in factory
@@ -130,6 +145,7 @@ data.drop(columns=['x'], inplace=True)
 5. Validate with real data
 
 ### Async Operations
+
 1. Submit async work
 2. Wait for futures
 3. Finalize/aggregate results
@@ -138,6 +154,7 @@ data.drop(columns=['x'], inplace=True)
 ## 🎯 Domain Knowledge
 
 ### gem5 Statistics
+
 - **Scalar**: Single values
 - **Vector**: Arrays with entries
 - **Distribution**: Min/max ranges
@@ -145,6 +162,7 @@ data.drop(columns=['x'], inplace=True)
 - **Configuration**: Metadata
 
 ### Pattern Aggregation
+
 ```
 system.cpu0.numCycles  ┐
 system.cpu1.numCycles  ├→ system.cpu\d+.numCycles [vector]
@@ -156,6 +174,7 @@ system.cpu2.numCycles  ┘   entries: ["0", "1", "2"]
 ## 📊 Quick Commands
 
 ### Testing
+
 ```bash
 make test                    # Run all tests
 pytest tests/unit/file.py -v # Run specific file
@@ -163,6 +182,7 @@ pytest --cov=src tests/      # With coverage
 ```
 
 ### Code Quality
+
 ```bash
 black src/ tests/            # Format code
 flake8 src/ tests/           # Lint code
@@ -170,6 +190,7 @@ mypy src/ --strict           # Type check
 ```
 
 ### Development
+
 ```bash
 streamlit run app.py         # Start app
 ./python_venv/bin/pytest     # Run tests
@@ -178,6 +199,7 @@ streamlit run app.py         # Start app
 ## 🎓 Decision Framework
 
 ### Act Autonomously (DO IT)
+
 - Creating files
 - Running tests
 - Type checking
@@ -188,12 +210,14 @@ streamlit run app.py         # Start app
 - Installing dependencies
 
 ### Ask First
+
 - User intent is ambiguous
 - Multiple valid approaches
 - Breaking API changes
 - Architecture decisions
 
 ### Default Behavior
+
 When in doubt: Implement the most reasonable solution based on existing patterns, test it, then report what was done and why.
 
 ## 📚 Key Files

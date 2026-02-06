@@ -7,7 +7,7 @@ in LaTeX exports.
 
 import plotly.graph_objects as go
 
-from src.plotting.export.converters.layout_mapper import LayoutMapper
+from src.web.pages.ui.plotting.export.converters.layout_mapper import LayoutMapper
 
 
 class TestLayoutMapper:

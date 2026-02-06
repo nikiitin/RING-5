@@ -3,8 +3,8 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from src.parsers.models import StatConfig
-from src.parsers.parse_service import ParseService
+from src.core.parsing.models import StatConfig
+from src.core.parsing.parse_service import ParseService
 
 
 class TestStatisticsOnlyIntegration:

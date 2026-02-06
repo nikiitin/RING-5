@@ -1,0 +1,320 @@
+import logging
+from typing import Any, Dict, List, cast
+
+from src.core.services.csv_pool_service import CsvPoolService
+from src.core.services.portfolio_service import PortfolioService
+from src.core.state.state_manager import RepositoryStateManager
+
+logger = logging.getLogger(__name__)
+
+
+class ApplicationAPI:
+    """
+    Layer B Orchestrator: The single entry point for the Presentation Layer (UI).
+
+    Responsibilities:
+    1. Holds the single source of truth (RepositoryStateManager).
+    2. Orchestrates data flow between Core Services and StateManager (Persistence/Memory).
+    3. Provides semantic actions for the UI.
+    4. Enforce the boundary between UI and Domain.
+    """
+
+    def __init__(self) -> None:
+        """
+        Initialize the Application API.
+
+        This constructor creates the long-lived state manager instance.
+        """
+        self.state_manager = RepositoryStateManager()
+
+        # Initialize services
+        self.portfolio_service = PortfolioService(self.state_manager)
+
+        logger.info("ApplicationAPI initialized (Singleton Service)")
+
+    def load_data(self, csv_path: str) -> None:
+        """
+        Orchestrate loading data from a file path:
+        1. Load via CsvPoolService
+        2. Persist via StateManager
+        """
+        try:
+            # 1. Operation: Load
+            df = CsvPoolService.load_csv_file(csv_path)
+
+            # 2. Persistence: Save
+            self.state_manager.set_data(df)
+            self.state_manager.set_processed_data(None)  # Reset derived state
+            self.state_manager.set_csv_path(csv_path)
+
+            logger.info(f"Loaded and registered data from {csv_path}")
+        except Exception as e:
+            logger.error(f"Failed to load data from {csv_path}: {e}")
+            raise
+
+    def load_from_pool(self, csv_path: str) -> None:
+        """Load a dataset from the CSV pool."""
+        # Using pure string path from pool
+        self.load_data(csv_path)
+
+    def get_current_view(self) -> Dict[str, Any]:
+        """Assemble the current data pipeline state for UI consumption."""
+        return {
+            "raw_data": self.state_manager.get_data(),
+            "processed_data": self.state_manager.get_processed_data(),
+            "config": self.state_manager.get_config(),
+        }
+
+    def reset_session(self) -> None:
+        """Clear all session data."""
+        self.state_manager.clear_data()
+        self.state_manager.clear_all()
+
+    # =========================================================================
+    # Parsing & Scanning
+    # =========================================================================
+
+    def find_stats_files(self, search_path: str, pattern: str = "stats.txt") -> list[str]:
+        """Find stats files in a directory."""
+        from pathlib import Path
+
+        path = Path(search_path)
+        if not path.exists():
+            return []
+        return [str(p) for p in path.rglob(pattern)]
+
+    def submit_parse_async(
+        self,
+        stats_path: str,
+        stats_pattern: str,
+        variables: list[Any],
+        output_dir: str,
+        strategy_type: str = "simple",
+        **kwargs: Any,
+    ) -> list[Any]:
+        """
+        Submit parsing job to the service.
+
+        Converts variable dictionaries to StatConfig objects.
+        Repetition and regex expansion are handled by the parsing module.
+        """
+        from src.core.parsing.models import StatConfig
+        from src.core.parsing.parse_service import ParseService
+
+        stat_configs: List[StatConfig] = []
+        for var in variables:
+            if isinstance(var, dict):
+                # Normalize type for consistency
+                v_type = str(var.get("type", "scalar")).lower()
+
+                # Check for aliasing (legacy compatibility)
+                name = str(var.get("name", ""))
+                alias = var.get("alias")
+                params = var.copy()
+
+                if alias:
+                    params["parsed_ids"] = [name]
+                    name = alias
+
+                config = StatConfig(
+                    name=name,
+                    type=v_type,
+                    repeat=int(var.get("repeat", 1)),
+                    statistics_only=bool(
+                        var.get("statistics_only", var.get("statisticsOnly", False))
+                    ),
+                    params=params,
+                )
+            elif hasattr(var, "name") and hasattr(var, "type") and not hasattr(var, "params"):
+                # It's likely a ScannedVariable, convert to StatConfig
+                config = StatConfig(
+                    name=var.name,
+                    type=var.type,
+                    params={"entries": getattr(var, "entries", [])},
+                )
+            else:
+                config = cast(StatConfig, var)
+
+            stat_configs.append(config)
+
+        scanned_vars = kwargs.get("scanned_vars")
+        return ParseService.submit_parse_async(
+            stats_path, stats_pattern, stat_configs, output_dir, strategy_type, scanned_vars
+        )
+
+    def finalize_parsing(
+        self, output_dir: str, results: list[Any], strategy_type: str = "simple"
+    ) -> str | None:
+        """Finalize parsing results into a CSV."""
+        from src.core.parsing.parse_service import ParseService
+
+        return ParseService.finalize_parsing(output_dir, results, strategy_type)
+
+    def submit_scan_async(
+        self, stats_path: str, stats_pattern: str = "stats.txt", limit: int = 5
+    ) -> list[Any]:
+        """Submit scanning job."""
+        from src.core.parsing.scanner_service import ScannerService
+
+        return ScannerService.submit_scan_async(stats_path, stats_pattern, limit)
+
+    def finalize_scan(self, results: list[list[Any]]) -> list[Any]:
+        """Aggregate scan results."""
+        from src.core.parsing.scanner_service import ScannerService
+
+        return ScannerService.aggregate_scan_results(results)
+
+    def get_parse_status(self) -> str:
+        """Get current parsing status."""
+        # TODO: Implement proper status tracking if needed by UI
+        return "idle"
+
+    def get_scanner_status(self) -> str:
+        """Get current scanner status."""
+        return "idle"
+
+    # =========================================================================
+    # Shapers & Pipelines
+    # =========================================================================
+
+    def apply_shapers(self, data: Any, pipeline_config: list[dict[str, Any]]) -> Any:
+        """Apply a sequence of shapers to a DataFrame."""
+        from src.core.services.pipeline_service import PipelineService
+
+        return PipelineService.process_pipeline(data, pipeline_config)
+
+    # =========================================================================
+    # Configuration Management
+    # =========================================================================
+
+    def save_configuration(
+        self,
+        name: str,
+        description: str,
+        shapers_config: list[dict[str, Any]],
+        csv_path: str | None = None,
+    ) -> str:
+        """Save current configuration to disk."""
+        import json
+        from pathlib import Path
+
+        # Ensure config pool directory exists (default or overridden)
+        config_dir = getattr(self, "config_pool_dir", Path.home() / ".ring5" / "configs")
+        config_dir.mkdir(parents=True, exist_ok=True)
+
+        config_data = {
+            "name": name,
+            "description": description,
+            "shapers": shapers_config,
+            "csv_path": csv_path,
+        }
+
+        # Create filename from name (sanitize)
+        safe_name = "".join(c for c in name if c.isalnum() or c in ("-", "_"))
+        file_path = config_dir / f"{safe_name}.json"
+
+        with open(file_path, "w") as f:
+            json.dump(config_data, f, indent=2)
+
+        return str(file_path)
+
+    def load_configuration(self, config_path: str) -> dict[str, Any]:
+        """Load configuration from file."""
+        import json
+
+        with open(config_path, "r") as f:
+            return json.load(f)
+
+    def load_csv_pool(self) -> list[dict[str, Any]]:
+        """List available CSV files in the pool."""
+        return CsvPoolService.load_pool()
+
+    def load_saved_configs(self) -> list[dict[str, Any]]:
+        """List all saved configurations."""
+        import json
+        from pathlib import Path
+
+        config_dir = getattr(self, "config_pool_dir", Path.home() / ".ring5" / "configs")
+        if not config_dir.exists():
+            return []
+
+        configs = []
+        for f in config_dir.glob("*.json"):
+            try:
+                with open(f, "r") as fp:
+                    data = json.load(fp)
+                    configs.append(data)
+            except Exception as e:
+                logger.warning(f"Failed to load config {fp}: {e}")
+        return configs
+
+    def delete_configuration(self, config_path: str) -> bool:
+        """Delete a configuration file."""
+        import os
+        from pathlib import Path
+
+        path = Path(config_path)
+        if path.exists():
+            os.remove(path)
+            return True
+        return False
+
+    def add_to_csv_pool(self, file_path: str) -> str:
+        """Add a file to the CSV pool."""
+        return CsvPoolService.add_to_pool(file_path)
+
+    def delete_from_pool(self, file_path: str) -> bool:
+        """Delete a file from the CSV pool."""
+        return CsvPoolService.delete_from_pool(file_path)
+
+    def delete_from_csv_pool(self, file_path: str) -> bool:
+        """Alias for delete_from_pool."""
+        return self.delete_from_pool(file_path)
+
+    def load_csv_file(self, file_path: str) -> Any:
+        """Load a CSV file directly returning DataFrame."""
+        return CsvPoolService.load_csv_file(file_path)
+
+    def get_column_info(self, df: Any) -> Dict[str, Any]:
+        """Get summary information about DataFrame columns for UI."""
+        import numpy as np
+
+        if df is None:
+            return {
+                "total_columns": 0,
+                "total_rows": 0,
+                "numeric_columns": [],
+                "categorical_columns": [],
+                "columns": [],
+            }
+
+        numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+        categorical_cols = df.select_dtypes(exclude=[np.number]).columns.tolist()
+
+        return {
+            "total_columns": len(df.columns),
+            "total_rows": len(df),
+            "numeric_columns": numeric_cols,
+            "categorical_columns": categorical_cols,
+            "columns": df.columns.tolist(),
+        }
+
+    # =========================================================================
+    # Previews (Delegated to StateManager)
+    # =========================================================================
+
+    def set_preview(self, operation_name: str, data: Any) -> None:
+        """Store a preview DataFrame for an operation."""
+        self.state_manager.set_preview(operation_name, data)
+
+    def get_preview(self, operation_name: str) -> Any:
+        """Retrieve a preview DataFrame for an operation."""
+        return self.state_manager.get_preview(operation_name)
+
+    def has_preview(self, operation_name: str) -> bool:
+        """Check if a preview exists for an operation."""
+        return self.state_manager.has_preview(operation_name)
+
+    def clear_preview(self, operation_name: str) -> None:
+        """Clear a preview for an operation."""
+        self.state_manager.clear_preview(operation_name)

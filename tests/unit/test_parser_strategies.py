@@ -3,9 +3,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.parsers.models import StatConfig
-from src.parsers.strategies.config_aware import ConfigAwareStrategy
-from src.parsers.strategies.simple import SimpleStatsStrategy
+from src.core.parsing.models import StatConfig
+from src.core.parsing.strategies.config_aware import ConfigAwareStrategy
+from src.core.parsing.strategies.simple import SimpleStatsStrategy
 
 
 @pytest.fixture
@@ -18,8 +18,8 @@ def mock_variables() -> List[StatConfig]:
 
 class TestSimpleStatsStrategy:
 
-    @patch("src.parsers.strategies.simple.ParseWorkPool")
-    @patch("src.parsers.strategies.simple.Path")
+    @patch("src.core.parsing.strategies.simple.ParseWorkPool")
+    @patch("src.core.parsing.strategies.simple.Path")
     def test_execute_flow(
         self, mock_path: MagicMock, mock_pool_cls: MagicMock, mock_variables: List[StatConfig]
     ) -> None:
@@ -64,9 +64,9 @@ class TestSimpleStatsStrategy:
 
 class TestConfigAwareStrategy:
 
-    @patch("src.parsers.strategies.config_aware.configparser")
-    @patch("src.parsers.strategies.simple.ParseWorkPool")  # Parent class dependency
-    @patch("src.parsers.strategies.simple.Path")  # Parent class dependency
+    @patch("src.core.parsing.strategies.config_aware.configparser")
+    @patch("src.core.parsing.strategies.simple.ParseWorkPool")  # Parent class dependency
+    @patch("src.core.parsing.strategies.simple.Path")  # Parent class dependency
     def test_config_augmentation(
         self,
         mock_path: MagicMock,
@@ -113,7 +113,7 @@ class TestConfigAwareStrategy:
 
         # Act
         with patch.object(strategy, "_parse_config") as mock_parse_config:
-            with patch("src.parsers.strategies.config_aware.Path") as mock_path_cls:
+            with patch("src.core.parsing.strategies.config_aware.Path") as mock_path_cls:
                 mock_config_path = MagicMock()
                 mock_config_path.exists.return_value = True
                 mock_path_cls.return_value.parent.__truediv__.return_value = mock_config_path

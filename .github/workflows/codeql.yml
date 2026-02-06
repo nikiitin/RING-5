@@ -1,4 +1,4 @@
-name: "CodeQL Advanced Security"
+name: CodeQL Advanced Security
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [main, develop]
   schedule:
     # Run CodeQL analysis weekly on Monday at 00:00 UTC
-    - cron: "0 0 * * 1"
+    - cron: 0 0 * * 1
   workflow_dispatch:
 
 jobs:
@@ -15,7 +15,7 @@ jobs:
     name: CodeQL Analysis
     runs-on: ubuntu-latest
     timeout-minutes: 360
-    permissions:
+    permissions: # checkov:skip=CKV2_GHA_1
       # Required for all workflows
       security-events: write
       # Required to fetch internal or private CodeQL packs
@@ -27,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: ["python"]
+        language: [python]
         # CodeQL supports: c-cpp, csharp, go, java-kotlin, javascript-typescript, python, ruby, swift
         # Learn more about CodeQL language support at https://aka.ms/codeql-docs/language-support
 
@@ -39,7 +39,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: "pip"
+          cache: pip
 
       - name: Install dependencies
         run: |

@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.plotting.base_plot import BasePlot
+from src.web.pages.ui.plotting.base_plot import BasePlot
 
 
 # Concrete implementation for testing abstract class
@@ -19,7 +19,7 @@ class ConcretePlot(BasePlot):
 
 @pytest.fixture
 def mock_streamlit():
-    with patch("src.plotting.base_plot.st") as mock_st:
+    with patch("src.web.pages.ui.plotting.base_plot.st") as mock_st:
         # Mock columns
         mock_st.columns.side_effect = lambda n: (
             [MagicMock() for _ in range(n)] if isinstance(n, int) else [MagicMock() for _ in n]

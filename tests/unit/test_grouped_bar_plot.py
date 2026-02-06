@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import pytest
 
-from src.plotting.types.grouped_bar_plot import GroupedBarPlot
+from src.web.pages.ui.plotting.types.grouped_bar_plot import GroupedBarPlot
 
 
 @pytest.fixture
@@ -21,8 +21,8 @@ def sample_data():
 
 @pytest.fixture
 def mock_streamlit():
-    with patch("src.plotting.types.grouped_bar_plot.st") as mock_st, patch(
-        "src.web.ui.components.plot_config_components.st", mock_st
+    with patch("src.web.pages.ui.plotting.types.grouped_bar_plot.st") as mock_st, patch(
+        "src.web.pages.ui.components.plot_config_components.st", mock_st
     ):
         # Mock columns
         mock_st.columns.side_effect = lambda n: (
@@ -123,7 +123,7 @@ def test_render_advanced_options_filtering(sample_data):
     config = {"x": "Category", "group": "Group", "x_filter": ["Bench1"], "group_filter": ["X"]}
 
     with patch(
-        "src.plotting.types.grouped_bar_plot.BasePlot.render_advanced_options"
+        "src.web.pages.ui.plotting.types.grouped_bar_plot.BasePlot.render_advanced_options"
     ) as mock_super:
         plot.render_advanced_options(config, sample_data)
 

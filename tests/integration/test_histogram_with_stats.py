@@ -19,7 +19,7 @@ from typing import Any, Dict, List
 import pandas as pd
 import pytest
 
-from src.web.facade import BackendFacade
+from src.core.application_api import ApplicationAPI
 
 
 class TestHistogramWithStatistics:
@@ -36,12 +36,12 @@ class TestHistogramWithStatistics:
         )
 
     @pytest.fixture
-    def facade(self) -> BackendFacade:
+    def facade(self) -> ApplicationAPI:
         """Create facade instance."""
-        return BackendFacade()
+        return ApplicationAPI()
 
     def test_scan_htm_transaction_commit_cycles(
-        self, facade: BackendFacade, stats_dir: Path
+        self, facade: ApplicationAPI, stats_dir: Path
     ) -> None:
         """Test scanning detects htm_transaction_commit_cycles as histogram."""
         # Scan
@@ -71,7 +71,7 @@ class TestHistogramWithStatistics:
         assert len(stat_entries) > 0, "No statistics entries found"
 
     def test_parse_htm_transaction_commit_cycles_as_histogram(
-        self, facade: BackendFacade, stats_dir: Path, tmp_path: Path
+        self, facade: ApplicationAPI, stats_dir: Path, tmp_path: Path
     ) -> None:
         """
         Test parsing htm_transaction_commit_cycles configured as histogram.
@@ -113,7 +113,7 @@ class TestHistogramWithStatistics:
         assert Path(csv_path).exists(), f"CSV file not created: {csv_path}"
 
     def test_parse_htm_transaction_commit_cycles_with_regex(
-        self, facade: BackendFacade, stats_dir: Path, tmp_path: Path
+        self, facade: ApplicationAPI, stats_dir: Path, tmp_path: Path
     ) -> None:
         r"""
         Test parsing htm_transaction_commit_cycles using regex pattern.
@@ -165,7 +165,7 @@ class TestHistogramWithStatistics:
         assert len(histogram_cols) > 0, "No histogram columns in output"
 
     def test_histogram_buckets_and_statistics_both_parsed(
-        self, facade: BackendFacade, stats_dir: Path, tmp_path: Path
+        self, facade: ApplicationAPI, stats_dir: Path, tmp_path: Path
     ) -> None:
         """
         Test that both histogram buckets and statistics are correctly parsed.

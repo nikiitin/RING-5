@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.web.services.pipeline_service import PipelineService
+from src.core.services.pipeline_service import PipelineService
 
 
 class TestPipelineService:
@@ -14,7 +14,8 @@ class TestPipelineService:
     def test_list_pipelines_empty(self, tmp_path):
         """Test listing pipelines when none exist."""
         with patch(
-            "src.web.services.pipeline_service.PathService.get_pipelines_dir", return_value=tmp_path
+            "src.core.services.pipeline_service.PathService.get_pipelines_dir",
+            return_value=tmp_path,
         ):
             pipelines = PipelineService.list_pipelines()
             assert pipelines == []
@@ -23,7 +24,7 @@ class TestPipelineService:
         """Test listing pipelines when directory doesn't exist."""
         non_existent = tmp_path / "nonexistent"
         with patch(
-            "src.web.services.pipeline_service.PathService.get_pipelines_dir",
+            "src.core.services.pipeline_service.PathService.get_pipelines_dir",
             return_value=non_existent,
         ):
             pipelines = PipelineService.list_pipelines()
@@ -36,7 +37,8 @@ class TestPipelineService:
         (tmp_path / "not_json.txt").touch()
 
         with patch(
-            "src.web.services.pipeline_service.PathService.get_pipelines_dir", return_value=tmp_path
+            "src.core.services.pipeline_service.PathService.get_pipelines_dir",
+            return_value=tmp_path,
         ):
             pipelines = PipelineService.list_pipelines()
             assert len(pipelines) == 2
@@ -46,7 +48,8 @@ class TestPipelineService:
     def test_save_pipeline(self, tmp_path):
         """Test saving a pipeline."""
         with patch(
-            "src.web.services.pipeline_service.PathService.get_pipelines_dir", return_value=tmp_path
+            "src.core.services.pipeline_service.PathService.get_pipelines_dir",
+            return_value=tmp_path,
         ):
             config = [{"type": "columnSelector", "columns": ["a"]}]
             PipelineService.save_pipeline("test_pipeline", config, "Test description")
@@ -71,7 +74,8 @@ class TestPipelineService:
         (tmp_path / "mytest.json").write_text(json.dumps(test_data))
 
         with patch(
-            "src.web.services.pipeline_service.PathService.get_pipelines_dir", return_value=tmp_path
+            "src.core.services.pipeline_service.PathService.get_pipelines_dir",
+            return_value=tmp_path,
         ):
             loaded = PipelineService.load_pipeline("mytest")
             assert loaded["name"] == "test"
@@ -79,7 +83,8 @@ class TestPipelineService:
     def test_load_pipeline_not_found(self, tmp_path):
         """Test loading non-existent pipeline raises."""
         with patch(
-            "src.web.services.pipeline_service.PathService.get_pipelines_dir", return_value=tmp_path
+            "src.core.services.pipeline_service.PathService.get_pipelines_dir",
+            return_value=tmp_path,
         ):
             with pytest.raises(FileNotFoundError, match="not found"):
                 PipelineService.load_pipeline("nonexistent")
@@ -91,7 +96,8 @@ class TestPipelineService:
         assert pipeline_file.exists()
 
         with patch(
-            "src.web.services.pipeline_service.PathService.get_pipelines_dir", return_value=tmp_path
+            "src.core.services.pipeline_service.PathService.get_pipelines_dir",
+            return_value=tmp_path,
         ):
             PipelineService.delete_pipeline("to_delete")
             assert not pipeline_file.exists()
@@ -99,7 +105,8 @@ class TestPipelineService:
     def test_delete_pipeline_non_existent(self, tmp_path):
         """Test deleting non-existent pipeline doesn't raise."""
         with patch(
-            "src.web.services.pipeline_service.PathService.get_pipelines_dir", return_value=tmp_path
+            "src.core.services.pipeline_service.PathService.get_pipelines_dir",
+            return_value=tmp_path,
         ):
             # Should not raise
             PipelineService.delete_pipeline("nonexistent")

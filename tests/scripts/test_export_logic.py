@@ -9,8 +9,8 @@ from unittest.mock import MagicMock
 import pandas as pd
 import pytest
 
-from src.plotting import PlotFactory
-from src.web.services.plot_service import PlotService
+from src.web.pages.ui.plotting import PlotFactory
+from src.web.pages.ui.plotting.plot_service import PlotService
 
 if "streamlit" not in sys.modules:
     sys.modules["streamlit"] = MagicMock()

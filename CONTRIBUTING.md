@@ -29,6 +29,7 @@ pre-commit install
 ```
 
 This will run:
+
 - **black**: Code formatting
 - **flake8**: Linting
 - **mypy**: Type checking
@@ -93,11 +94,13 @@ vulture src/ tests/ --min-confidence 80
 Every push and pull request triggers automated checks:
 
 **Jobs**:
+
 1. **test**: Runs full test suite with coverage
 2. **type-safety**: Enforces mypy strict compliance
 3. **code-quality**: Checks formatting and linting
 
 **Requirements for Merge**:
+
 - ✅ All tests passing (653/653)
 - ✅ Type safety (0 mypy errors)
 - ✅ Code formatted with black
@@ -204,6 +207,7 @@ Data Layer (Parsing, CSV)
 ```
 
 **Rules**:
+
 - ❌ UI components NEVER contain business logic
 - ❌ Services NEVER import Streamlit
 - ✅ All business logic goes in services
@@ -261,6 +265,7 @@ git commit -m "feat: add new feature description"
 ```
 
 **Commit Message Format**:
+
 - `feat:` New feature
 - `fix:` Bug fix
 - `docs:` Documentation only
@@ -280,6 +285,7 @@ Then create a Pull Request on GitHub.
 ### 6. PR Requirements
 
 Your PR will be automatically checked by CI. Required:
+
 - ✅ All tests pass
 - ✅ No type errors
 - ✅ Code formatted with black

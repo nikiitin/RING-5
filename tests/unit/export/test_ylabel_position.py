@@ -8,9 +8,9 @@ all layers: schema, preset management, layout application, UI, and portfolio.
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 
-from src.plotting.export.converters.layout_applier import LayoutApplier
-from src.plotting.export.converters.layout_mapper import LayoutExtractor
-from src.plotting.export.presets.preset_manager import PresetManager
+from src.web.pages.ui.plotting.export.converters.layout_applier import LayoutApplier
+from src.web.pages.ui.plotting.export.converters.layout_mapper import LayoutExtractor
+from src.web.pages.ui.plotting.export.presets.preset_manager import PresetManager
 
 
 class TestYLabelPositionFeature:

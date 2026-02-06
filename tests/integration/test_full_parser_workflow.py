@@ -18,10 +18,10 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from src.parsers.models import StatConfig
-from src.parsers.parse_service import ParseService
-from src.parsers.scanner_service import ScannerService
-from src.web.facade import BackendFacade
+from src.core.application_api import ApplicationAPI
+from src.core.parsing.models import StatConfig
+from src.core.parsing.parse_service import ParseService
+from src.core.parsing.scanner_service import ScannerService
 
 
 @pytest.fixture
@@ -119,11 +119,11 @@ class TestFullParserWorkflow:
 
     def test_facade_integration_workflow(self, sample_stats_dir: Path) -> None:
         """
-        Test workflow using BackendFacade (user-facing API).
+        Test workflow using ApplicationAPI (user-facing API).
 
         This simulates the actual user workflow through the Streamlit UI.
         """
-        facade = BackendFacade()
+        facade = ApplicationAPI()
 
         # Step 1: Find stats files
         stats_files = facade.find_stats_files(str(sample_stats_dir), "stats.txt")

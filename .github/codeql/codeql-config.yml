@@ -1,16 +1,16 @@
 # CodeQL Configuration for RING-5
 # This file allows you to customize which files and queries CodeQL analyzes
 
-name: "RING-5 CodeQL Config"
+name: RING-5 CodeQL Config
 
 # Paths to exclude from analysis
 paths-ignore:
-  - "tests/data/**"
-  - "python_venv/**"
+  - tests/data/**
+  - python_venv/**
   - "**/*.egg-info/**"
   - "**/__pycache__/**"
-  - ".pytest_cache/**"
-  - "docs/**"
+  - .pytest_cache/**
+  - docs/**
   - "*.md"
 
 # Paths to include (optional - by default all paths are included)

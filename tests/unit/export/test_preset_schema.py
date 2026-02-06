@@ -6,7 +6,7 @@ Tests TypedDict structures for type safety and documentation.
 
 from typing import get_type_hints
 
-from src.plotting.export.presets.preset_schema import (
+from src.web.pages.ui.plotting.export.presets.preset_schema import (
     ExportResult,
     LaTeXPreset,
 )

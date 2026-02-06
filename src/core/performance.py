@@ -142,9 +142,9 @@ def cached(
             return result
 
         # Attach cache management methods (dynamic attributes)
-        setattr(wrapper, "cache", cache)
-        setattr(wrapper, "cache_clear", cache.clear)
-        setattr(wrapper, "cache_stats", cache.stats)
+        wrapper.cache = cache
+        wrapper.cache_clear = cache.clear
+        wrapper.cache_stats = cache.stats
 
         return wrapper
 

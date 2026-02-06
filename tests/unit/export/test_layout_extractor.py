@@ -7,7 +7,7 @@ extract_layout() into smaller, focused methods.
 
 import plotly.graph_objects as go
 
-from src.plotting.export.converters.layout_mapper import LayoutExtractor
+from src.web.pages.ui.plotting.export.converters.layout_mapper import LayoutExtractor
 
 
 class TestLayoutExtractor:

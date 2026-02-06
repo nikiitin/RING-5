@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from src.web.facade import BackendFacade
+from src.core.application_api import ApplicationAPI
 
 
 class TestScannerFunctional:
@@ -26,7 +26,7 @@ class TestScannerFunctional:
         """
         Test scanning actual gem5 stats files using valid futures.
         """
-        facade = BackendFacade()
+        facade = ApplicationAPI()
 
         # 1. Submit Scan
         futures = facade.submit_scan_async(test_data_path, "stats.txt", limit=5)

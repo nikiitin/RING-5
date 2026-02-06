@@ -13,10 +13,13 @@ from unittest.mock import patch
 
 import pytest
 
-from src.parsers.models import StatConfig
-from src.parsers.parse_service import ParseService
-from src.parsers.workers.gem5_parse_work import Gem5ParseWork
-from src.parsers.workers.perl_worker_pool import get_worker_pool, shutdown_worker_pool
+from src.core.parsing.models import StatConfig
+from src.core.parsing.parse_service import ParseService
+from src.core.parsing.workers.gem5_parse_work import Gem5ParseWork
+from src.core.parsing.workers.perl_worker_pool import (
+    get_worker_pool,
+    shutdown_worker_pool,
+)
 
 
 @pytest.fixture(scope="module")
@@ -48,7 +51,7 @@ class TestWorkerPoolIntegration:
 
     def test_gem5_parse_work_uses_worker_pool(self, test_stats_file: str) -> None:
         """Verify Gem5ParseWork uses worker pool instead of subprocess."""
-        from src.parsers.type_mapper import TypeMapper
+        from src.core.parsing.type_mapper import TypeMapper
 
         # Create a minimal variable config
         var_config = StatConfig(name="system.cpu.numCycles", type="scalar")
@@ -107,7 +110,7 @@ class TestWorkerPoolIntegration:
 
     def test_worker_pool_reused_across_multiple_parses(self, test_stats_file: str) -> None:
         """Verify same worker pool is reused across multiple parse operations."""
-        from src.parsers.type_mapper import TypeMapper
+        from src.core.parsing.type_mapper import TypeMapper
 
         var_config = StatConfig(name="system.cpu.numCycles", type="scalar")
 
@@ -134,7 +137,7 @@ class TestWorkerPoolIntegration:
         """Verify worker pool provides significant speedup over theoretical subprocess approach."""
         import time
 
-        from src.parsers.type_mapper import TypeMapper
+        from src.core.parsing.type_mapper import TypeMapper
 
         var_config = StatConfig(name="system.cpu.numCycles", type="scalar")
 
@@ -163,7 +166,7 @@ class TestWorkerPoolErrorHandling:
 
     def test_missing_file_raises_error(self) -> None:
         """Verify proper error handling for missing files."""
-        from src.parsers.type_mapper import TypeMapper
+        from src.core.parsing.type_mapper import TypeMapper
 
         var_config = StatConfig(name="system.cpu.numCycles", type="scalar")
 
@@ -179,7 +182,7 @@ class TestWorkerPoolErrorHandling:
 
     def test_invalid_variable_handled_gracefully(self, test_stats_file: str) -> None:
         """Verify invalid variables don't crash the worker pool."""
-        from src.parsers.type_mapper import TypeMapper
+        from src.core.parsing.type_mapper import TypeMapper
 
         var_config = StatConfig(
             name="invalid.variable.that.does.not.exist",
@@ -208,12 +211,12 @@ class TestWorkerPoolConfigurationLoading:
         # Reimport to pick up new env var
         import importlib
 
-        import src.parsers.parse_service
+        import src.core.parsing.parse_service
 
-        importlib.reload(src.parsers.parse_service)
+        importlib.reload(src.core.parsing.parse_service)
 
         # Verify the size is read from env
-        assert src.parsers.parse_service._WORKER_POOL_SIZE == 8
+        assert src.core.parsing.parse_service._WORKER_POOL_SIZE == 8
 
 
 if __name__ == "__main__":

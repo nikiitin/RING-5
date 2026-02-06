@@ -3,13 +3,13 @@ import os
 import pandas as pd
 import pytest
 
-from src.web.facade import BackendFacade
+from src.core.application_api import ApplicationAPI
 
 
 class TestFacadeReduction:
     @pytest.fixture
     def facade(self):
-        return BackendFacade()
+        return ApplicationAPI()
 
     @pytest.fixture
     def temp_dirs(self, tmp_path):
