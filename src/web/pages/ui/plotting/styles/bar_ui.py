@@ -1,3 +1,10 @@
+"""
+Bar Style UI - Bar Chart Styling Configuration.
+
+Implements style UI configuration specific to bar charts, including
+bar-specific visual options and parameters.
+"""
+
 from typing import Any, Dict
 
 import streamlit as st

@@ -1,3 +1,10 @@
+"""
+Style Manager - Plot Styling Orchestration Facade.
+
+Coordinates application of visual styles to plots. Delegates to StyleUIFactory
+for UI configuration and StyleApplicator for Plotly implementation.
+"""
+
 from typing import Any, Dict, List, Optional
 
 import pandas as pd

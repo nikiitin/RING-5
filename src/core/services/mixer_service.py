@@ -1,3 +1,11 @@
+"""
+Mixer Service - Multi-Column Merge and Aggregation.
+
+Combines multiple columns into a single derived column with proper standard
+deviation propagation. Supports sum, mean, and other aggregation operations
+for creating composite metrics from base statistics.
+"""
+
 from typing import List
 
 import numpy as np

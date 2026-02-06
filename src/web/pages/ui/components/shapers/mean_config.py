@@ -1,3 +1,10 @@
+"""
+Mean Config - UI Configuration for Mean Aggregation Shaper.
+
+Provides Streamlit components for configuring the Mean shaper, which
+aggregates values across specified columns or groups.
+"""
+
 from typing import Any, Dict
 
 import pandas as pd

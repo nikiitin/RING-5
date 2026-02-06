@@ -1,3 +1,11 @@
+"""
+Base Style UI - Abstract Plot Style Configuration Logic.
+
+Abstract base for plot type-specific style managers. Handles configuration
+of visual parameters: colors, fonts, layouts, legends, and styling options
+through Streamlit UI components.
+"""
+
 import hashlib
 from typing import Any, Dict, List, Optional, cast
 

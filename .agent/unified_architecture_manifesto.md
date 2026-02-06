@@ -29,6 +29,12 @@
     - Directory Structure
     - The Golden Path
     - Configuration Strategy
+6.  Part V: The Code Review Protocol - Guardian of Quality
+    - The Review Philosophy
+    - The Ten Phases of Release Review
+    - Blocking Criteria
+    - The Review Mindset
+    - Review Anti-Patterns
 
 ---
 
@@ -716,6 +722,101 @@ We apply **Bounded Contexts** to split the domain vertically.
 
 Each context can theoretically have its own Architecture. The Ingestion context might be detailed DDD. The Analysis context might be a functional pipeline.
 The Service Layer acts as the translator between these contexts.
+
+---
+
+## Part V: The Code Review Protocol - Guardian of Quality
+
+> "A release is not a commit, it's a contract." — The Antigravity Council
+
+Code review is not a bureaucratic hurdle. It is the **final quality gate** before code becomes part of the permanent historical record. In scientific software, this is especially critical: a bug that passes review may corrupt months of simulation data.
+
+### 5.1 The Review Philosophy
+
+We distinguish between two review intensities:
+
+**Standard Review** (Feature branches → develop):
+
+- Quick turnaround (1-2 hours)
+- Focus on correctness and tests
+- Single reviewer sufficient
+
+**Release Review** (develop → main, major features):
+
+- Thorough multi-phase analysis
+- Focus on architecture, security, and long-term maintainability
+- Multiple reviewers or extended single review
+
+### 5.2 The Ten Phases of Release Review
+
+For merges to protected branches, we execute a systematic 10-phase review:
+
+| Phase                          | Focus               | Goal                     |
+| ------------------------------ | ------------------- | ------------------------ |
+| **1. Scope Assessment**        | Quantify changes    | Understand risk level    |
+| **2. Commit History**          | Hygiene check       | Clean, logical history   |
+| **3. Architectural Integrity** | Layer boundaries    | No dependency violations |
+| **4. Type Safety**             | mypy --strict       | No type holes            |
+| **5. Test Coverage**           | Tests exist & pass  | No untested paths        |
+| **6. Security Scan**           | Bandit, pip-audit   | No vulnerabilities       |
+| **7. Performance**             | Complexity analysis | No O(n²) surprises       |
+| **8. Documentation**           | API docs current    | No undocumented APIs     |
+| **9. Code Quality**            | Smells detection    | No technical debt        |
+| **10. Integration**            | Full test suite     | No regressions           |
+
+See `.agent/workflows/release-branch-review.md` for the complete protocol.
+
+### 5.3 Blocking Criteria (Non-Negotiable)
+
+A merge is **BLOCKED** if any of these fail:
+
+1. **Tests**: Any test failure blocks the merge. Period.
+2. **Type Safety**: `mypy --strict` must pass with zero errors.
+3. **Security**: Critical or High severity vulnerabilities block.
+4. **Architecture**: Layer boundary violations block.
+5. **Regressions**: Any functionality that previously worked must continue to work.
+
+### 5.4 The Review Mindset
+
+**As a Reviewer, Ask:**
+
+- "If I inherit this code in 6 months, will I understand it?"
+- "Does this code fail gracefully or silently corrupt data?"
+- "Are the tests actually testing behavior, or just lines of code?"
+- "Could this change break something I haven't considered?"
+- "Is this the simplest solution that could work?"
+
+**As an Author, Provide:**
+
+- Clear PR description explaining the "why"
+- Link to related issues or documentation
+- Note any areas you're uncertain about
+- Self-review before requesting others
+
+### 5.5 Review Anti-Patterns
+
+**The Rubber Stamp:**
+
+> "LGTM" after 30 seconds on a 500-line PR.
+
+**The Gate Keeper:**
+
+> Blocking PRs for stylistic preferences not in the style guide.
+
+**The Archaeologist:**
+
+> Demanding rewrites of unrelated legacy code in every PR.
+
+**The Silent Disapprover:**
+
+> Leaving comments without marking approval or requesting changes.
+
+**The Correctness:**
+
+- Review thoroughly or decline to review
+- Apply guidelines consistently
+- Stay focused on the PR's scope
+- Be explicit about approval status
 
 ---
 

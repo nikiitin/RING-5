@@ -1,3 +1,10 @@
+"""
+Style Applicator - Plotly Figure Styling Implementation.
+
+Applies computed style configuration to Plotly figures, implementing
+low-level visual customization (colors, fonts, layouts, themes, etc.).
+"""
+
 from typing import Any, Dict, List, Optional
 
 import plotly.graph_objects as go

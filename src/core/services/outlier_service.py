@@ -1,3 +1,10 @@
+"""
+Outlier Service - Statistical Outlier Removal.
+
+Detects and removes statistical outliers from data using quartile-based
+methods. Supports global and grouped outlier removal for robust analysis.
+"""
+
 from typing import List
 
 import pandas as pd

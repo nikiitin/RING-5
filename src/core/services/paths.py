@@ -1,3 +1,11 @@
+"""
+Path Service - Centralized File System Navigation.
+
+Manages all file system paths for the application including root directory,
+data directory, pipeline storage, and other critical paths. Provides
+consistent, testable access to file system locations.
+"""
+
 from pathlib import Path
 
 

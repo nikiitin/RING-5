@@ -1,3 +1,11 @@
+"""
+Shaper Work - Parallel Transformation Execution Task.
+
+Encapsulates the execution of a data shaper (transformation) as a parallelizable
+work unit in the worker pool. Enables multi-threaded or multi-process application
+of transformations to large datasets.
+"""
+
 import logging
 from pathlib import Path
 from typing import Any, Dict, List, Union, cast

@@ -142,9 +142,9 @@ def cached(
             return result
 
         # Attach cache management methods (dynamic attributes)
-        wrapper.cache = cache
-        wrapper.cache_clear = cache.clear
-        wrapper.cache_stats = cache.stats
+        wrapper.cache = cache  # type: ignore[attr-defined]
+        wrapper.cache_clear = cache.clear  # type: ignore[attr-defined]
+        wrapper.cache_stats = cache.stats  # type: ignore[attr-defined]
 
         return wrapper
 

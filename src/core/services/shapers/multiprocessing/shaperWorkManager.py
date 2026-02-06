@@ -1,3 +1,17 @@
+"""
+Shaper Work Manager - Parallel Transformation Orchestration.
+
+Manages the execution of multiple data shapers with dependency resolution.
+Coordinates parallel execution via the WorkPool, ensuring shapers execute
+in correct order and dependencies are satisfied before execution.
+
+Features:
+- Dependency graph analysis and topological sorting
+- Parallel work scheduling with futures
+- Progress tracking with progress bars
+- Error handling and recovery
+"""
+
 import logging
 import os
 from concurrent.futures import Future

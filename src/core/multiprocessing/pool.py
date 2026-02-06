@@ -1,3 +1,17 @@
+"""
+Work Pool - Unified Parallel Execution Manager.
+
+Implements a singleton pattern for managing parallel task execution using
+both process and thread pools. Provides a unified interface for spawning
+CPU-bound and IO-bound work across multiple worker processes.
+
+Features:
+- Process pooling for heavy computation (parsing, analysis)
+- Thread pooling for IO operations (file I/O, network)
+- Dynamic worker scaling based on system CPU count
+- Job queue management and result tracking
+"""
+
 import multiprocessing
 import os
 from concurrent.futures import Future, ProcessPoolExecutor, ThreadPoolExecutor

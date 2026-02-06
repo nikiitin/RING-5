@@ -1,3 +1,10 @@
+"""
+Line Style UI - Line and Scatter Chart Styling Configuration.
+
+Implements style UI configuration specific to line charts and scatter plots,
+including line-specific visual options and curve parameters.
+"""
+
 from typing import Any, Dict
 
 import streamlit as st

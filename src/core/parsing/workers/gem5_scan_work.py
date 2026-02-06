@@ -1,3 +1,11 @@
+"""
+Gem5 Scan Work - Parallel Variable Discovery Task.
+
+Encapsulates the work of scanning a single gem5 stats file to discover
+available variables and their properties. Executed in worker pool for
+parallel discovery across multiple files and simulation outputs.
+"""
+
 from __future__ import annotations
 
 import logging

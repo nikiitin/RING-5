@@ -1,16 +1,19 @@
 # Commit Plan for Architecture Refactor
 
 ## Overview
+
 This refactoring represents a complete migration from a layered architecture (Layer A/B/C) to Clean Architecture with Domain-Driven Design (DDD) principles. The work involved moving from `src/parsers/`, `src/plotting/`, `src/config/` to a new `src/core/` structure following SOLID principles.
 
 ## Commit Sequence
 
 ### Commit 1: Core Domain Layer - Add domain models and entities
+
 **Type:** feat (new feature)
 **Scope:** core
 **Message:** `feat(core): implement domain layer with plot and parser models`
 
 **Files:**
+
 - `src/core/__init__.py`
 - `src/core/domain/plot.py`
 - `src/core/domain/models.py`
@@ -21,11 +24,13 @@ This refactoring represents a complete migration from a layered architecture (La
 ---
 
 ### Commit 2: Core Parsing Layer - Implement parsing domain services
+
 **Type:** feat
 **Scope:** parsing
 **Message:** `feat(parsing): implement Clean Architecture parsing layer with type system`
 
 **Files:**
+
 - `src/core/parsing/__init__.py`
 - `src/core/parsing/base.py`
 - `src/core/parsing/type_mapper.py`
@@ -43,11 +48,13 @@ This refactoring represents a complete migration from a layered architecture (La
 ---
 
 ### Commit 3: Core Services Layer - Configuration and data processing
+
 **Type:** feat
 **Scope:** services
 **Message:** `feat(services): add configuration and data processing services`
 
 **Files:**
+
 - `src/core/config/__init__.py`
 - `src/core/config/config_manager.py`
 - `src/core/config/schemas/`
@@ -64,11 +71,13 @@ This refactoring represents a complete migration from a layered architecture (La
 ---
 
 ### Commit 4: Core Plotting Layer - Plotting domain with exports
+
 **Type:** feat
 **Scope:** plotting
 **Message:** `feat(plotting): migrate plotting subsystem to core with LaTeX export`
 
 **Files:**
+
 - `src/core/plotting/__init__.py`
 - `src/core/plotting/base_plot.py`
 - `src/core/plotting/plot_factory.py`
@@ -83,11 +92,13 @@ This refactoring represents a complete migration from a layered architecture (La
 ---
 
 ### Commit 5: State Management Layer - Repositories and state manager
+
 **Type:** feat
 **Scope:** state
 **Message:** `feat(state): implement repository pattern for state management`
 
 **Files:**
+
 - `src/core/state/__init__.py`
 - `src/core/state/state_manager.py`
 - `src/core/state/repositories/__init__.py`
@@ -103,11 +114,13 @@ This refactoring represents a complete migration from a layered architecture (La
 ---
 
 ### Commit 6: Infrastructure - Multiprocessing and benchmarking
+
 **Type:** feat
 **Scope:** infrastructure
 **Message:** `feat(infrastructure): add multiprocessing pool and performance monitoring`
 
 **Files:**
+
 - `src/core/multiprocessing/__init__.py`
 - `src/core/multiprocessing/pool.py`
 - `src/core/multiprocessing/job.py`
@@ -120,11 +133,13 @@ This refactoring represents a complete migration from a layered architecture (La
 ---
 
 ### Commit 7: Presentation Layer - UI components migration
+
 **Type:** refactor
 **Scope:** ui
 **Message:** `refactor(ui): migrate Streamlit UI to new architecture`
 
 **Files:**
+
 - `src/web/pages/ui/` (all new UI components)
 - `src/web/pages/__init__.py`
 - `src/web/pages/data_managers.py`
@@ -141,11 +156,13 @@ This refactoring represents a complete migration from a layered architecture (La
 ---
 
 ### Commit 8: Tests - Comprehensive test suite updates
+
 **Type:** test
 **Scope:** all
 **Message:** `test: update entire test suite for new architecture`
 
 **Files:**
+
 - All new test files in `tests/unit/`:
   - `test_application_api.py`
   - `test_benchmark.py`
@@ -170,11 +187,13 @@ This refactoring represents a complete migration from a layered architecture (La
 ---
 
 ### Commit 9: Cleanup - Remove deprecated architecture
+
 **Type:** refactor
 **Scope:** cleanup
 **Message:** `refactor: remove deprecated layered architecture`
 
 **Files to DELETE:**
+
 - `src/parsers/` (entire directory)
 - `src/plotting/` (entire directory)
 - `src/config/` (entire directory)
@@ -197,11 +216,13 @@ This refactoring represents a complete migration from a layered architecture (La
 ---
 
 ### Commit 10: Documentation - Update AI agent instructions
+
 **Type:** docs
 **Scope:** agent
 **Message:** `docs(agent): update AI instructions for Clean Architecture`
 
 **Files:**
+
 - `.agent/.cursorrules`
 - `.agent/ARCHITECTURE.md`
 - `.agent/QUICKSTART.md`
@@ -224,11 +245,13 @@ This refactoring represents a complete migration from a layered architecture (La
 ---
 
 ### Commit 11: Documentation - Update contributor and CI/CD docs
+
 **Type:** docs
 **Scope:** contributing
 **Message:** `docs: update CONTRIBUTING guide and GitHub Actions documentation`
 
 **Files:**
+
 - `CONTRIBUTING.md`
 - `.github/AI-CAPABILITIES.md`
 - `.github/CODEQL-SETUP.md`
@@ -239,11 +262,13 @@ This refactoring represents a complete migration from a layered architecture (La
 ---
 
 ### Commit 12: Build System - Enhanced Makefile and project config
+
 **Type:** build
 **Scope:** config
 **Message:** `build: enhance Makefile with new targets and update dependencies`
 
 **Files:**
+
 - `Makefile`
 - `pyproject.toml`
 
@@ -252,11 +277,13 @@ This refactoring represents a complete migration from a layered architecture (La
 ---
 
 ### Commit 13: CI/CD - Update CodeQL and pre-commit configuration
+
 **Type:** ci
 **Scope:** security
 **Message:** `ci: update CodeQL config and pre-commit hooks for new structure`
 
 **Files:**
+
 - `.github/workflows/codeql.yml`
 - `.github/codeql/codeql-config.yml`
 - `.pre-commit-config.yaml`
@@ -266,11 +293,13 @@ This refactoring represents a complete migration from a layered architecture (La
 ---
 
 ### Commit 14: Infrastructure - Add Docker containerization
+
 **Type:** feat
 **Scope:** docker
 **Message:** `feat(docker): add containerization with compose support`
 
 **Files:**
+
 - `Dockerfile`
 - `docker-compose.yml`
 - `.dockerignore`
@@ -280,11 +309,13 @@ This refactoring represents a complete migration from a layered architecture (La
 ---
 
 ### Commit 15: Utilities - Add development helper scripts
+
 **Type:** chore
 **Scope:** scripts
 **Message:** `chore: add debugging and installation verification scripts`
 
 **Files:**
+
 - `scripts/debug_imports.py`
 - `scripts/verify_installation.py`
 
@@ -296,6 +327,7 @@ This refactoring represents a complete migration from a layered architecture (La
 
 **Total Commits:** 15
 **Major Categories:**
+
 - 6 feature commits (domain, parsing, services, plotting, state, infrastructure)
 - 2 refactor commits (UI migration, cleanup)
 - 1 test commit (comprehensive test updates)
@@ -303,10 +335,12 @@ This refactoring represents a complete migration from a layered architecture (La
 - 2 build/CI commits (Makefile, CodeQL, pre-commit)
 
 **Architecture Transformation:**
+
 - **Before:** Layered architecture (Layer A/B/C) with `src/parsers/`, `src/plotting/`, `src/config/`
 - **After:** Clean Architecture with DDD - `src/core/` containing domain, services, state, infrastructure
 
 **Benefits:**
+
 - ✅ Dependency inversion (UI depends on core, not vice versa)
 - ✅ Clear boundaries between layers
 - ✅ Repository pattern for testability

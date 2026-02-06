@@ -1,3 +1,11 @@
+"""
+Arithmetic Service - Column-Based Mathematical Operations.
+
+Provides utilities for performing arithmetic transformations on DataFrame
+columns: division, sum, subtraction, multiplication. Used to create derived
+metrics from base statistics.
+"""
+
 from typing import Any, List
 
 import numpy as np

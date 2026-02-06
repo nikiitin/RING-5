@@ -1,3 +1,10 @@
+"""
+Selector and Transformer Configs - UI Configuration for Selection Shapers.
+
+Provides Streamlit components for configuring data selection and filtering shapers:
+column selection, conditional filtering, and item-based selection.
+"""
+
 from typing import Any, Dict
 
 import pandas as pd

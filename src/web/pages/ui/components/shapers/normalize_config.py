@@ -1,3 +1,10 @@
+"""
+Normalize Config - UI Configuration for Normalization Shaper.
+
+Provides Streamlit components for configuring the Normalize shaper, which
+applies numerical normalization (min-max, z-score, etc.) to data columns.
+"""
+
 from typing import Any, Dict
 
 import pandas as pd

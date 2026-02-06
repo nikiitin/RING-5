@@ -1,3 +1,11 @@
+"""
+Condition Selector - Row-Level Filtering by Predicates.
+
+Filters DataFrame rows based on numeric or categorical conditions.
+Supports comparisons, range queries, categorical inclusion, and substring matching.
+Part of the selector algorithm family for flexible data filtering.
+"""
+
 from typing import Any, Callable, Dict, List, Optional, cast
 
 import pandas as pd

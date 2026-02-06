@@ -1,3 +1,17 @@
+"""
+Application API Layer - Single Entry Point for UI.
+
+Provides a unified facade for the presentation layer (web/UI) to interact with
+core domain services. Acts as the orchestrator between UI and business logic,
+enforcing clean architecture boundaries and managing application state.
+
+Key Responsibilities:
+- Parse and load gem5 statistics from various sources
+- Manage data pipelines (scanning, parsing, transformations)
+- Orchestrate portfolio management and plotting
+- Maintain application state and session persistence
+"""
+
 import logging
 from typing import Any, Dict, List, cast
 
@@ -223,7 +237,7 @@ class ApplicationAPI:
         import json
 
         with open(config_path, "r") as f:
-            return json.load(f)
+            return json.load(f)  # type: ignore[no-any-return]
 
     def load_csv_pool(self) -> list[dict[str, Any]]:
         """List available CSV files in the pool."""

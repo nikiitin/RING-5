@@ -142,7 +142,7 @@ class TestScannerFix:
         mock_api.submit_scan_async.assert_called()
 
     def test_upload_components_calls_api_directly(self, mock_api, mock_streamlit):
-        """Test that UploadComponents calls api.load_csv_file"""
+        """Test that UploadComponents calls api.load_data (not load_csv_file)"""
         # Setup
         # Mock file uploader returning a file
         mock_file = MagicMock()
@@ -153,9 +153,6 @@ class TestScannerFix:
         # Mock temp dir setup
         mock_api.state_manager.get_temp_dir.return_value = "/tmp"
 
-        # Mock load_csv_file
-        mock_api.load_csv_file.return_value = pd.DataFrame()
-
         # Mock built-in open
         with patch("builtins.open", MagicMock()):
             try:
@@ -163,8 +160,8 @@ class TestScannerFix:
             except AttributeError as e:
                 pytest.fail(f"AttributeError raised: {e}")
 
-        # Verify
-        mock_api.load_csv_file.assert_called_once()
+        # Verify - API now uses load_data instead of load_csv_file
+        mock_api.load_data.assert_called_once()
 
     def test_parser_dialog_calls_finalize_parsing_correctly(self, mock_api, mock_streamlit):
         """Test that _show_parse_dialog calls finalize_parsing with

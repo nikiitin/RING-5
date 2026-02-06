@@ -1,3 +1,14 @@
+"""
+Base Shaper - Abstract Data Transformation Interface.
+
+Defines the abstraction for all data transformation operations (shapers).
+Implements the Strategy pattern to support pluggable, composable transformations
+like filtering, aggregation, normalization, sorting, and selection.
+
+Core concept: Shapers transform DataFrames through a plugin architecture,
+enabling users to create custom analysis pipelines.
+"""
+
 from abc import ABC, abstractmethod
 from typing import Any, Dict, TypedDict
 

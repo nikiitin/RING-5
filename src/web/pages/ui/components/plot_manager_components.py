@@ -1,3 +1,10 @@
+"""
+Plot Manager Components - UI for Plot Creation and Configuration.
+
+Provides Streamlit components for plot management: creation, configuration,
+data transformation pipelines, rendering, and export operations.
+"""
+
 import copy
 import logging
 from typing import Any, Optional
@@ -64,7 +71,7 @@ class PlotManagerComponents:
         if selected_plot.plot_id != current_id:
             api.state_manager.set_current_plot_id(selected_plot.plot_id)
 
-        return selected_plot
+        return selected_plot  # type: ignore[return-value]
 
     @staticmethod
     def render_plot_controls(api: ApplicationAPI, plot: BasePlot) -> None:
@@ -401,7 +408,7 @@ class PlotManagerComponents:
                             try:
                                 fmt_to_use = fmt_arg if fmt_arg else "png"
                                 res = PlotService.export_plot_to_file(
-                                    p, export_path, format=fmt_to_use
+                                    p, export_path, format=fmt_to_use  # type: ignore[arg-type]
                                 )
                                 if res:
                                     count += 1

@@ -1,4 +1,17 @@
-from typing import Any, Dict, List, Protocol, runtime_checkable
+"""
+Plot Protocol and Type Definitions.
+
+Defines the core interface (protocol) for plot objects, decoupling the core
+layer from web layer implementation details. This allows core services to work
+with plots without depending on concrete web implementations.
+
+Maintains publication-quality plot abstraction with support for complex
+configurations, transformations, and metadata management.
+"""
+
+from typing import Any, Dict, List, Optional, Protocol, runtime_checkable
+
+import pandas as pd
 
 
 @runtime_checkable
@@ -16,5 +29,6 @@ class PlotProtocol(Protocol):
     pipeline_counter: int
     legend_mappings_by_column: Dict[str, Dict[str, str]]
     legend_mappings: Dict[str, str]
+    processed_data: Optional[pd.DataFrame]
 
     def to_dict(self) -> Dict[str, Any]: ...

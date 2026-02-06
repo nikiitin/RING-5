@@ -1,3 +1,17 @@
+"""
+Config Aware Strategy - Advanced Gem5 Parser with Metadata Extraction.
+
+Extends SimpleStatsStrategy to automatically extract and integrate gem5
+configuration metadata (config.ini) alongside statistics. Enriches parsed
+data with system configuration context.
+
+Features:
+- Inherits base stats parsing from SimpleStatsStrategy
+- Auto-discovers and parses config.ini in same directory
+- Attaches configuration metadata to results
+- Enables configuration-aware analysis and filtering
+"""
+
 import configparser
 import logging
 from pathlib import Path

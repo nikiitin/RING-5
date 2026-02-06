@@ -1,3 +1,17 @@
+"""
+Simple Stats Strategy - Standard Gem5 File Parser.
+
+Implements traditional line-by-line parsing for standard gem5 stats.txt output.
+Straightforward extraction without configuration awareness, suitable for
+basic statistical analysis.
+
+Workflow:
+1. discovers all matching stats files
+2. Submits parallel parse jobs to worker pool
+3. Aggregates results into unified DataFrame
+4. Handles type conversion and validation
+"""
+
 import logging
 from pathlib import Path
 from typing import Any, Dict, List, Sequence

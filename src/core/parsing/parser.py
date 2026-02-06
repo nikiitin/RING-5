@@ -1,3 +1,21 @@
+"""
+Gem5 Statistics Parser - Configurable Strategy-Based Ingestion Engine.
+
+Coordinates the parsing of gem5 statistics files using pluggable parsing
+strategies. Supports multiple output formats and automatically selects the
+appropriate strategy based on file structure and user configuration.
+
+Strategies:
+- SimpleStatsStrategy: Basic line-by-line parsing for standard gem5 output
+- ConfigAwareStrategy: Advanced parsing with gem5 configuration awareness
+
+Features:
+- Singleton instantiation with thread-safe initialization
+- Variable type detection (scalar, vector, distribution, histogram)
+- Parallel work pool execution for performance
+- Progress tracking and error recovery
+"""
+
 import logging
 import os
 import threading

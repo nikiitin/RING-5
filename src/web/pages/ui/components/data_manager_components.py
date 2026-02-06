@@ -1,3 +1,10 @@
+"""
+Data Manager Components - UI for Data Transformation Operations.
+
+Provides Streamlit components for data management: summary display,
+seed reduction, mixing, and outlier removal operations.
+"""
+
 import pandas as pd
 import streamlit as st
 

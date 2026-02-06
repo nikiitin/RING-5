@@ -1,3 +1,10 @@
+"""
+Upload Components - UI for File and Data Upload.
+
+Provides Streamlit components for uploading and ingesting data: CSV file upload,
+paste data, and CSV preview functionality.
+"""
+
 import tempfile
 from io import StringIO
 from pathlib import Path

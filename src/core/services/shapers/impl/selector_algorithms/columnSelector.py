@@ -1,3 +1,10 @@
+"""
+Column Selector - DataFrame Column Subsetting.
+
+Filters a DataFrame to include only specified columns. Part of the
+selector algorithm family for data filtering and subsetting.
+"""
+
 from typing import Any, Dict, List
 
 import pandas as pd

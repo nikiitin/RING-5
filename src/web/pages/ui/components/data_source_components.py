@@ -1,3 +1,10 @@
+"""
+Data Source Components - UI for Data Ingestion and Parsing.
+
+Provides Streamlit components for gem5 statistics parsing: CSV pool management,
+parser configuration, variable selection, and data preview.
+"""
+
 import logging
 import tempfile
 from pathlib import Path
@@ -226,7 +233,7 @@ class DataSourceComponents:
                     logger.error("UI: Parsing submission failed: %s", e, exc_info=True)
 
     @staticmethod
-    @st.dialog("Add Variable")  # type: ignore[misc]
+    @st.dialog("Add Variable")
     def variable_config_dialog(api: ApplicationAPI) -> None:
         """Dialog to add a new variable."""
         scanned_vars = api.state_manager.get_scanned_variables() or []
@@ -310,6 +317,7 @@ class DataSourceComponents:
                 )
             elif var_type == "distribution":
                 VariableEditor.render_distribution_config(
+                    api=api,
                     var_config=config,
                     original_var=defaults,
                     var_id=temp_id,
@@ -359,7 +367,7 @@ class DataSourceComponents:
                         st.rerun()
 
     @staticmethod
-    @st.dialog("Parsing gem5 Stats", dismissible=True)  # type: ignore[misc]
+    @st.dialog("Parsing gem5 Stats", dismissible=True)
     def _show_parse_dialog(api: ApplicationAPI, futures: List[Any], output_dir: str) -> None:
         """Render the parsing progress dialog using blocking futures."""
         from concurrent.futures import as_completed

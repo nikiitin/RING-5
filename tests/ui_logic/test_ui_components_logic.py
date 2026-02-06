@@ -98,7 +98,7 @@ def test_render_file_upload(mock_streamlit, mock_api):
 
     # Mock CSV file loading
     df = pd.DataFrame({"col": [1, 2]})
-    mock_api.load_csv_file.return_value = df
+    mock_api.state_manager.get_data.return_value = df
     mock_st.file_uploader.return_value = uploaded_file
 
     mock_api.state_manager.get_temp_dir.return_value = "/tmp"
@@ -108,14 +108,11 @@ def test_render_file_upload(mock_streamlit, mock_api):
         with patch("src.web.pages.ui.components.upload_components.Path") as mock_path:
             mock_path.return_value.__truediv__.return_value = "/tmp/upload.csv"
 
-            df = pd.DataFrame({"col": [1]})
-            mock_api.load_csv_file.return_value = df
-
+            # API now uses load_data instead of load_csv_file
             UploadComponents.render_file_upload_tab(mock_api)
 
             m_open.assert_called()
-            mock_api.load_csv_file.assert_called_with("/tmp/upload.csv")
-            mock_api.state_manager.set_data.assert_called_with(df)
+            mock_api.load_data.assert_called_with("/tmp/upload.csv")
 
 
 def test_render_paste_data(mock_streamlit, mock_api):

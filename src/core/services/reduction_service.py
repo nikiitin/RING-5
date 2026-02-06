@@ -1,3 +1,11 @@
+"""
+Reduction Service - Multi-Seed Data Aggregation.
+
+Aggregates results across multiple simulation seeds by grouping on categorical
+columns and computing mean and standard deviation. Enables robust statistical
+analysis across different random seeds.
+"""
+
 from typing import List
 
 import pandas as pd

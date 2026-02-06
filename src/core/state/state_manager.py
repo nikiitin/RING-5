@@ -1,3 +1,22 @@
+"""
+RING-5 State Manager - Centralized Session State Management.
+
+Manages application state through a repository-based architecture, providing
+a single source of truth for data, plots, configurations, and analysis results.
+
+Architecture:
+- AbstractStateManager: Protocol defining the state management interface
+- RepositoryStateManager: Concrete implementation using in-memory repositories
+- Individual repositories: Manage different aspects (data, plots, parsing, etc.)
+
+Responsibilities:
+- Persist and retrieve application data
+- Manage plot lifecycle and portfolio state
+- Track parsing/scanning progress and results
+- Store configuration and session metadata
+- Provide atomic operations for complex state transitions
+"""
+
 import logging
 import shutil
 from pathlib import Path
@@ -8,15 +27,6 @@ import pandas as pd
 from src.core.domain.models import PortfolioData
 from src.core.domain.plot import PlotProtocol
 from src.core.state.repositories.session_repository import SessionRepository
-
-"""
-RING-5 State Manager
-Centralized session state management definition.
-
-ARCHITECTURE NOTE:
-- AbstractStateManager: Protocol defining the interface for state management.
-- RepositoryStateManager: Concrete implementation using in-memory repositories.
-"""
 
 logger: logging.Logger = logging.getLogger(__name__)
 

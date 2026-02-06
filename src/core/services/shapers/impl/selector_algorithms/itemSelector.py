@@ -1,3 +1,11 @@
+"""
+Item Selector - Value-Based Row Filtering.
+
+Filters DataFrame rows based on value membership (exact match or substring).
+Supports both exact value matching and partial string matching.
+Part of the selector algorithm family for value-based filtering.
+"""
+
 from typing import Any, Dict, List
 
 import pandas as pd

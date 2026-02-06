@@ -1,3 +1,11 @@
+"""
+Single-DataFrame Shaper - Base for Single-Input Transformations.
+
+Abstract base class for shapers that operate on a single DataFrame,
+enabling transformations like filtering, sorting, normalization, aggregation,
+and selection on individual datasets.
+"""
+
 from typing import Any
 
 import pandas as pd

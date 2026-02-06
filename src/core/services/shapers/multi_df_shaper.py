@@ -1,3 +1,11 @@
+"""
+Multi-DataFrame Shaper - Base for Multi-Input Transformations.
+
+Abstract base class for shapers that operate on multiple input dataframes,
+enabling complex transformations that combine or aggregate data from different
+sources (e.g., merging, blending, synthesis operations).
+"""
+
 from typing import Any
 
 import pandas as pd
@@ -14,7 +22,7 @@ class MultiDfShaper(Shaper):
         """Verify parameters for MultiDfShaper."""
         return super()._verify_params()
 
-    def __call__(self, data_frames: Any) -> pd.DataFrame:  # type: ignore[override]
+    def __call__(self, data_frames: Any) -> pd.DataFrame:
         # Check the data frame is not none!
         # And if it is a unique dataframe
         if data_frames is None:

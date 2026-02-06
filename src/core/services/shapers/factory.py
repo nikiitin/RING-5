@@ -1,3 +1,13 @@
+"""
+Shaper Factory - Dynamic Transformation Instantiation.
+
+Implements the Factory pattern for creating shaper instances from configuration.
+Dispatches to appropriate shaper class based on type identifier, supporting
+all available transformation types (filter, sort, normalize, mean, etc.).
+
+Enables runtime shaper selection and dynamic pipeline construction.
+"""
+
 from typing import Any, Dict, List, Optional, Type
 
 from src.core.services.shapers.base_shaper import Shaper

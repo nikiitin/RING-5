@@ -1,3 +1,13 @@
+"""
+Vector Type - Named Array Statistics Parser.
+
+Handles vector statistics from gem5, which contain named entries with
+associated values. Examples: per-CPU statistics, per-core metrics, regional data.
+
+Parses vector output format and validates entries against configured schema.
+Implements type registry pattern for stat type dispatch.
+"""
+
 import logging
 from typing import Any, Dict, List, Optional
 

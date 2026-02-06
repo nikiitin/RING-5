@@ -1,3 +1,14 @@
+"""
+Parser Strategy Interface - Protocol Definition.
+
+Defines the contract for all parsing strategies, enabling pluggable
+implementations for different gem5 output formats and parsing approaches.
+
+Strategy Pattern Implementation:
+Different strategies can handle various gem5 configurations, versions, and
+output formats while maintaining a common interface.
+"""
+
 from typing import Any, Dict, List, Protocol, Sequence
 
 from src.core.parsing.models import StatConfig

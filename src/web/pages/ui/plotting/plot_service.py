@@ -1,3 +1,10 @@
+"""
+Plot Service - Plot Lifecycle Management.
+
+Handles creation, rendering, and management of plot objects in the web UI.
+Coordinates plot factory, state persistence, and configuration updates.
+"""
+
 import copy
 import os
 from typing import TYPE_CHECKING, Optional

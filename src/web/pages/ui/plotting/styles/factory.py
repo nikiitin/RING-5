@@ -1,3 +1,10 @@
+"""
+Style UI Factory - Plot Type-Specific Style UI Selection.
+
+Factory pattern implementation for dispatching to type-specific style UI
+managers (BarStyleUI, LineStyleUI, etc.) based on plot type.
+"""
+
 from .bar_ui import BarStyleUI
 from .base_ui import BaseStyleUI
 from .line_ui import LineStyleUI, ScatterStyleUI

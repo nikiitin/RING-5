@@ -1,12 +1,21 @@
+"""
+Plot Repository - Manages Plot Objects and Lifecycle State.
+
+Implements the Repository pattern for plot management, providing operations
+to store, retrieve, and manage plot objects throughout their lifecycle.
+
+Responsibilities:
+- Maintain plot collection and active plot tracking
+- Manage plot ID Counter for unique identification
+- Support plot CRUD operations (add, remove, clear)
+- Validate plot state transitions
+- Track plot serialization and metadata
+"""
+
 from __future__ import annotations
 
 import logging
 from typing import List, Optional
-
-"""
-Plot Repository
-Single Responsibility: Manage plot objects and plot counter state.
-"""
 
 from src.core.domain.plot import PlotProtocol
 

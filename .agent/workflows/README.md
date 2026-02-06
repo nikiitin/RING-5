@@ -4,6 +4,32 @@ Workflows are step-by-step processes for common development tasks. In Google Ant
 
 ## Available Workflows
 
+### `/release-branch-review` ⭐ NEW
+
+**Purpose**: Comprehensive, publication-grade review before merging to main/develop
+**When to use**: Before any merge to protected branches (main, develop)
+**Complexity**: Advanced
+**Estimated Time**: 30-60 minutes
+
+The ultimate pre-merge review workflow - leaves no stone unturned.
+
+**10 Review Phases:**
+
+1. **Scope Assessment** - Quantify and classify the change
+2. **Commit History Audit** - Verify commit hygiene and logical sequencing
+3. **Architectural Integrity** - Check layer boundaries and patterns
+4. **Type Safety Audit** - Ensure complete type coverage
+5. **Test Coverage Analysis** - Verify tests exist and pass
+6. **Security Scan** - Static analysis and vulnerability check
+7. **Performance Review** - Algorithmic and Pandas anti-patterns
+8. **Documentation Review** - API docs and changelogs
+9. **Code Quality Deep Dive** - Code smells and naming conventions
+10. **Integration & Regression** - Full test suite and smoke tests
+
+**Critical**: No merge without sign-off on all blocking criteria.
+
+---
+
 ### `/test-driven-development`
 
 **Purpose**: Guide all code changes through the TDD process

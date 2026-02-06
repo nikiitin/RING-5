@@ -1,3 +1,11 @@
+"""
+Scan Work - Abstract Base for Variable Discovery Jobs.
+
+Defines the interface for all scanning work units that discover variables
+in gem5 statistics files. Used by scanner service for parallel discovery
+of scalar, vector, and other statistics.
+"""
+
 from typing import Any
 
 from src.core.multiprocessing.job import Job
