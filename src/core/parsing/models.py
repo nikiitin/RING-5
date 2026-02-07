@@ -72,7 +72,7 @@ class ScannedVariable:
 class StatConfig:
     """
     Configuration for a specific statistic extraction.
-    Input to the ParserStrategy.
+    Input to the FileParserStrategy implementations.
     """
 
     name: str

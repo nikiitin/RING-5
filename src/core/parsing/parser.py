@@ -23,7 +23,7 @@ from typing import Any, Dict, List, Optional
 
 from src.core.parsing.models import StatConfig
 from src.core.parsing.strategies.config_aware import ConfigAwareStrategy
-from src.core.parsing.strategies.interface import ParserStrategy
+from src.core.parsing.strategies.interface import FileParserStrategy
 from src.core.parsing.strategies.simple import SimpleStatsStrategy
 from src.core.parsing.workers import ParseWorkPool
 
@@ -46,7 +46,7 @@ class Gem5StatsParser:
         stats_pattern: str,
         variables: List[StatConfig],
         output_dir: str,
-        strategy: ParserStrategy,
+        strategy: FileParserStrategy,
     ):
         """
         Initialize the parser with simulation context.
@@ -267,7 +267,7 @@ class ParserBuilder:
             raise ValueError("At least one variable is required")
 
         # Select Strategy
-        strategy: ParserStrategy
+        strategy: FileParserStrategy
         if self._strategy_type == "simple":
             strategy = SimpleStatsStrategy()
         elif self._strategy_type == "config_aware":
