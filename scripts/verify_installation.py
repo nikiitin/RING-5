@@ -136,8 +136,8 @@ def test_dependencies():
         ("jsonschema", "JSON Schema validation"),
         ("pandas", "Data processing"),
         ("numpy", "Numerical operations"),
-        ("matplotlib", "Plotting"),
-        ("seaborn", "Statistical plotting"),
+        ("plotly", "Interactive plotting"),
+        ("streamlit", "Web framework"),
     ]
 
     missing = []
