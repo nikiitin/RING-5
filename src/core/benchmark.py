@@ -106,7 +106,13 @@ class BenchmarkSuite:
 
         Returns:
             Result from last function call
+
+        Raises:
+            ValueError: If iterations < 1
         """
+        if iterations < 1:
+            raise ValueError("iterations must be at least 1")
+
         operation_name = name or func.__name__
 
         start = time.perf_counter()
@@ -195,7 +201,12 @@ def benchmark_decorator(
         @benchmark_decorator(iterations=10, name="Sort DataFrame")
         def sort_large_df(df):
             return df.sort_values('column')
+
+    Raises:
+        ValueError: If iterations < 1
     """
+    if iterations < 1:
+        raise ValueError("iterations must be at least 1")
 
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         @functools.wraps(func)

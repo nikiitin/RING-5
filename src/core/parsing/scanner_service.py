@@ -89,7 +89,9 @@ class ScannerService:
         return aggregated_vars
 
     @staticmethod
-    def _merge_variable(registry: Dict[str, ScannedVariable], var: Any) -> None:
+    def _merge_variable(
+        registry: Dict[str, ScannedVariable], var: ScannedVariable | Dict[str, Any]
+    ) -> None:
         """
         Merge a single variable into the registry.
 

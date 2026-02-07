@@ -49,7 +49,7 @@ class Histogram(StatType):
         entries: Optional[List[str]] = None,
         bins: int = 0,
         max_range: float = 0.0,
-        statistics: Optional[List[str]] = None,
+        statistics: str | List[str] | None = None,
         **kwargs: Any,
     ) -> None:
         """
@@ -64,7 +64,7 @@ class Histogram(StatType):
         """
         super().__init__(repeat, **kwargs)
         # Content is a dict of {range_key: [value1, value2...]}
-        if isinstance(statistics, str) and statistics is not None:
+        if isinstance(statistics, str):
             statistics = [s.strip() for s in statistics.split(",")]
 
         object.__setattr__(self, "_bins", int(bins))

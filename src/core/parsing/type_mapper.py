@@ -109,4 +109,4 @@ class TypeMapper:
         elif norm_type == "configuration":
             kwargs["onEmpty"] = params.get("onEmpty", "None")
 
-        return StatTypeRegistry.create(var_type, **kwargs)
+        return StatTypeRegistry.create(norm_type, **kwargs)

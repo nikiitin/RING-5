@@ -200,7 +200,7 @@ def test_parsing_workflow():
 ## Common Anti-Patterns
 
 ❌ **DON'T**: Create synchronous wrappers around async API
-✅ **DO**: Use async primitives (submit*\*\_async + finalize*\*)
+✅ **DO**: Use async primitives (`submit_*_async + finalize_*`)
 
 ❌ **DON'T**: Forget to pass scanned_vars for regex resolution
 ✅ **DO**: Always pass scanned_vars when using regex patterns

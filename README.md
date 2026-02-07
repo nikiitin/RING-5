@@ -10,7 +10,7 @@ A modern, reproducible analysis and visualization framework for gem5 simulator o
 [![Python](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/)
 [![Type Checking](<https://img.shields.io/badge/mypy-strict%20(0%20errors)-blue>)](https://mypy.readthedocs.io/)
 [![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![License](https://img.shields.io/badge/license-GPL--3.0--or--later-green)](LICENSE)
 
 ## Features
 
