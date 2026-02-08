@@ -183,8 +183,9 @@ class TestScannerFix:
         with patch("streamlit.dialog", lambda *a, **k: lambda f: f):
             # Re-import to get fresh version with patched decorator
             import importlib
+            import sys
 
-            import src.web.pages.ui.components.data_source_components as dsc_module
+            dsc_module = sys.modules["src.web.pages.ui.components.data_source_components"]
 
             importlib.reload(dsc_module)
 

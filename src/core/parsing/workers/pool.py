@@ -13,7 +13,8 @@ from src.core.multiprocessing.pool import WorkPool
 from src.core.parsing.workers.parse_work import ParseWork
 from src.core.parsing.workers.scan_work import ScanWork
 
-logger: logging.Logger = logging.getLogger(__name__)
+# Module-level logger kept for future diagnostic use
+_logger: logging.Logger = logging.getLogger(__name__)
 
 # Type variable for generic Future results
 T = TypeVar("T")

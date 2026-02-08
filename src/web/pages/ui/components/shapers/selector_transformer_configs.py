@@ -116,7 +116,6 @@ class ConditionSelectorConfig:
                 key=f"{key_prefix}filter_values_{shaper_id}",
             )
             return {"column": filter_column, "values": selected_values}
-        return {}
 
 
 class TransformerConfig:

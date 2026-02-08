@@ -111,7 +111,7 @@ class ParseService:
         import re
         from dataclasses import replace
 
-        search_path = Path(stats_path)
+        search_path = Path(stats_path).resolve()
         if not search_path.exists():
             raise FileNotFoundError(f"Stats path does not exist: {stats_path}")
 

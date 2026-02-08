@@ -27,6 +27,7 @@ class TestParserFunctional:
                     return str(subdirs[0])
 
         pytest.skip("Test data not found")
+        return None  # Unreachable, but makes return type explicit
 
     def test_parse_real_stats(self, test_data_path, tmp_path):
         """

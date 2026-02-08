@@ -210,13 +210,14 @@ class TestWorkerPoolConfigurationLoading:
 
         # Reimport to pick up new env var
         import importlib
+        import sys
 
-        import src.core.parsing.parse_service
+        parse_service_module = sys.modules["src.core.parsing.parse_service"]
 
-        importlib.reload(src.core.parsing.parse_service)
+        importlib.reload(parse_service_module)
 
         # Verify the size is read from env
-        assert src.core.parsing.parse_service._WORKER_POOL_SIZE == 8
+        assert parse_service_module._WORKER_POOL_SIZE == 8
 
 
 if __name__ == "__main__":

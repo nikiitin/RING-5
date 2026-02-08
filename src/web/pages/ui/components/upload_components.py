@@ -51,10 +51,12 @@ class UploadComponents:
 
                 # Save file
                 temp_dir = api.state_manager.get_temp_dir()
-                if temp_dir:
-                    csv_path = Path(temp_dir) / uploaded_file.name
-                    with open(csv_path, "wb") as f:
-                        f.write(uploaded_file.getbuffer())
+                if not temp_dir:
+                    raise RuntimeError("Failed to create temporary directory")
+
+                csv_path = Path(temp_dir) / uploaded_file.name
+                with open(csv_path, "wb") as f:
+                    f.write(uploaded_file.getbuffer())
 
                 # Load data using the public ApplicationAPI CSV-loading method.
                 # ApplicationAPI exposes load_data(...), which stores the DataFrame

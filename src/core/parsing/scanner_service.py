@@ -43,7 +43,7 @@ class ScannerService:
         Raises:
             FileNotFoundError: If stats_path doesn't exist or no files found
         """
-        search_path: Path = Path(stats_path)
+        search_path: Path = Path(stats_path).resolve()
         if not search_path.exists():
             raise FileNotFoundError(f"Stats path does not exist: {stats_path}")
 

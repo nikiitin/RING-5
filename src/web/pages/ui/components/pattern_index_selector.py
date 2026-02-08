@@ -37,10 +37,10 @@ class PatternIndexSelector:
             List of position labels like ["l", "cntrl"]
         """
         # Find all positions where \d+ appears and extract the preceding label
-        # Match: (identifier starting with letter/underscore) followed by \d+
+        # Match: (identifier) followed by \d+
         # This handles: l\d+, cntrl\d+, cpu\d+, etc.
-        # Using explicit [a-zA-Z0-9_]* avoids overlap with initial [a-zA-Z_], preventing ReDoS
-        pattern = r"([a-zA-Z_][a-zA-Z0-9_]*)\\d\+"
+        # Using \w+? (non-greedy) prevents backtracking issues (ReDoS safe)
+        pattern = r"(\w+?)\\d\+"
         matches = re.findall(pattern, var_name)
 
         # Clean up the matches to remove leading underscores

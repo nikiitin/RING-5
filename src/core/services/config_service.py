@@ -47,7 +47,7 @@ class ConfigService:
                     }
                 )
             except (OSError, json.JSONDecodeError):
-                pass
+                pass  # Skip unreadable/invalid config files gracefully
 
         return configs
 

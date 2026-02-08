@@ -103,7 +103,7 @@ class TestConfigAwareStrategy:
 
         # This is tricky with global Path patch.
         # Instead of complex Path mocking, we can mock the _parse_config method for isolation
-        pass
+        pytest.skip("Complex Path mocking required - tested via _parse_config mock instead")
 
     def test_augment_results(self) -> None:
         # Arrange

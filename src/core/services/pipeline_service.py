@@ -90,6 +90,9 @@ class PipelineService:
         if not name:
             raise ValueError("Pipeline name cannot be empty")
 
+        # Sanitize name to prevent path traversal
+        safe_name: str = name.replace("/", "_").replace("\\", "_").replace("..", "_")
+
         data = {
             "name": name,
             "description": description,
@@ -97,14 +100,16 @@ class PipelineService:
             "timestamp": pd.Timestamp.now().isoformat(),
         }
 
-        save_path = PathService.get_pipelines_dir() / f"{name}.json"
+        save_path = PathService.get_pipelines_dir() / f"{safe_name}.json"
         with open(save_path, "w") as f:
             json.dump(data, f, indent=2)
 
     @staticmethod
     def load_pipeline(name: str) -> Dict[str, Any]:
         """Load a pipeline configuration by name."""
-        load_path = PathService.get_pipelines_dir() / f"{name}.json"
+        # Sanitize name to prevent path traversal
+        safe_name: str = name.replace("/", "_").replace("\\", "_").replace("..", "_")
+        load_path = PathService.get_pipelines_dir() / f"{safe_name}.json"
 
         if not load_path.exists():
             raise FileNotFoundError(f"Pipeline '{name}' not found")

@@ -220,7 +220,6 @@ class GroupedBarUtils:
                     # Midpoint of the gap we just added
                     # gap starts at (current_x - bargroupgap)
                     # gap ends at current_x
-                    sep_x = current_x - (bargroupgap / 2.0) - 0.5
 
                     # Consistent Logic:
                     # Coordinate system: Centers are integers 0, 1, 2...

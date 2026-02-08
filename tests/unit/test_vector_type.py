@@ -325,7 +325,7 @@ class TestVectorReduceDuplicates:
         # This is tricky because validation checks int/float conversion
         # Actually this path might be defensive/unreachable
         # Skip this test as validation catches all bad values
-        pass
+        pytest.skip("Defensive path: validation catches all bad values before aggregation")
 
 
 class TestVectorReducedContentAccess:

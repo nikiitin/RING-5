@@ -775,7 +775,7 @@ class BaseStyleUI:
             st.markdown("#### X-Axis Label Overrides")
             with st.expander("Rename X-Axis Labels"):
                 unique_x_raw = data[x_col].unique()
-                unique_x = sorted(unique_x_raw, key=lambda x: str(x))
+                unique_x = sorted(unique_x_raw, key=str)
 
                 if len(unique_x) > 50:
                     st.warning("Too many X-axis values to list all. Showing first 50.")

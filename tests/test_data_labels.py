@@ -358,7 +358,7 @@ class TestEdgeCasesAndValidation:
         }
         fig = plot.create_figure(sample_data, config)
         # Should not raise
-        fig = applicator.apply_styles(fig, config)
+        _ = applicator.apply_styles(fig, config)
 
     def test_none_values_handled(self, plot, sample_data, applicator):
         """Test that None values are handled gracefully."""

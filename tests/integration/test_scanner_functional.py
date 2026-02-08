@@ -21,6 +21,7 @@ class TestScannerFunctional:
             if p.exists():
                 return str(p)
         pytest.skip("Test data not found")
+        return None  # Unreachable, but makes return type explicit
 
     def test_scan_real_stats(self, test_data_path):
         """

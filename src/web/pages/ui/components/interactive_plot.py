@@ -14,7 +14,7 @@ import streamlit.components.v1 as components
 
 # Create a reference to the component
 # Use absolute path to ensure robustness
-_RELEASE = True
+_RELEASE: bool = True  # noqa: F841 - reserved for component dev/release mode toggle
 
 # Point to local directory
 component_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "custom_plotly"))

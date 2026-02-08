@@ -29,9 +29,11 @@ def temp_output_dir(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def facade() -> ApplicationAPI:
-    """Create a ApplicationAPI instance."""
+    """Create a ApplicationAPI instance.
+
+    Tests for parsing real gem5 stats files.
+    """
     return ApplicationAPI()
-    """Tests for parsing real gem5 stats files."""
 
     def test_find_stats_files(self, test_data_available: Path, facade: ApplicationAPI) -> None:
         """Test finding stats files in the test data directory."""

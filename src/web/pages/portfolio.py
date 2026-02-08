@@ -69,8 +69,8 @@ def show_portfolio_page(api: ApplicationAPI) -> None:
                 except Exception as e:
                     st.error(f"Failed to save portfolio: {e}")
                     logger.error(
-                        "PORTFOLIO: Failed to save portfolio '%s': %s",
-                        portfolio_name,
+                        "PORTFOLIO: Failed to save portfolio %r: %s",
+                        str(portfolio_name).replace("\n", ""),
                         e,
                         exc_info=True,
                     )
@@ -148,8 +148,8 @@ def show_portfolio_page(api: ApplicationAPI) -> None:
                     except Exception as e:
                         st.error(f"Failed to save pipeline: {e}")
                         logger.error(
-                            "PIPELINE: Failed to save pipeline '%s': %s",
-                            pipeline_name,
+                            "PIPELINE: Failed to save pipeline %r: %s",
+                            str(pipeline_name).replace("\n", ""),
                             e,
                             exc_info=True,
                         )

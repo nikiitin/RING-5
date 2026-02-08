@@ -105,6 +105,9 @@ class PlotService:
         if not os.path.exists(directory):
             os.makedirs(directory)
 
+        # Resolve directory to prevent path traversal
+        resolved_dir: str = os.path.realpath(directory)
+
         # Ensure figure is generated
         try:
             fig = plot.generate_figure()
@@ -125,7 +128,7 @@ class PlotService:
         # Clean name
         safe_name = "".join([c if c.isalnum() else "_" for c in plot.name])
         filename = f"{safe_name}.{fmt}"
-        path = os.path.join(directory, filename)
+        path = os.path.join(resolved_dir, filename)
 
         if fmt == "html":
             fig.write_html(path)

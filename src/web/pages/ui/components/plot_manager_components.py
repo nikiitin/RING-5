@@ -167,7 +167,10 @@ class PlotManagerComponents:
             except Exception as e:
                 st.error(f"Error loading: {e}")
                 logger.error(
-                    "PLOT: Failed to load pipeline for plot '%s': %s", plot.name, e, exc_info=True
+                    "PLOT: Failed to load pipeline for plot %r: %s",
+                    str(plot.name).replace("\n", ""),
+                    e,
+                    exc_info=True,
                 )
 
         if st.button("Cancel", key=f"cancel_load_{plot.plot_id}"):
@@ -261,9 +264,9 @@ class PlotManagerComponents:
                         except Exception as e:
                             st.error(f"Preview error: {e}")
                             logger.error(
-                                "PIPELINE: Preview failure for shaper index %d in plot '%s': %s",
+                                "PIPELINE: Preview failure for shaper index %d in plot %r: %s",
                                 idx,
-                                plot.name,
+                                str(plot.name).replace("\n", ""),
                                 e,
                                 exc_info=True,
                             )

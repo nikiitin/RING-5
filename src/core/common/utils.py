@@ -234,3 +234,64 @@ def checkVarType(var: Any, varType: type) -> None:
     """
     if not isinstance(var, varType):
         raise TypeError(f"Variable is not of type {varType.__name__}, got {type(var).__name__}")
+
+
+def sanitize_log_value(value: object) -> str:
+    """Sanitize a value for safe inclusion in log messages.
+
+    Removes newlines and control characters to prevent log injection attacks.
+
+    Args:
+        value: The value to sanitize for logging.
+
+    Returns:
+        A sanitized string safe for log output.
+    """
+    text: str = str(value)
+    # Remove newlines and carriage returns that could forge log entries
+    text = text.replace("\n", "\\n").replace("\r", "\\r")
+    # Remove other ASCII control characters (0x00-0x1f except tab)
+    return "".join(c if c == "\t" or ord(c) >= 0x20 else "" for c in text)
+
+
+def sanitize_filename(name: str) -> str:
+    """Sanitize a filename to prevent path traversal.
+
+    Strips path separators and directory traversal sequences,
+    returning only the base filename component.
+
+    Args:
+        name: The filename to sanitize.
+
+    Returns:
+        A safe filename without directory components.
+    """
+    # Remove any directory separators and traversal sequences
+    name = name.replace("/", "_").replace("\\", "_")
+    name = name.replace("..", "_")
+    # Remove leading dots (hidden files on Unix)
+    name = name.lstrip(".")
+    return name if name else "unnamed"
+
+
+def validate_path_within(path: Path, allowed_base: Path) -> Path:
+    """Validate that a resolved path is within an allowed base directory.
+
+    Resolves both paths to absolute form and checks containment
+    to prevent path traversal attacks.
+
+    Args:
+        path: The path to validate.
+        allowed_base: The base directory the path must reside within.
+
+    Returns:
+        The resolved path if valid.
+
+    Raises:
+        ValueError: If the path escapes the allowed base directory.
+    """
+    resolved: Path = path.resolve()
+    base: Path = allowed_base.resolve()
+    if not str(resolved).startswith(str(base)):
+        raise ValueError(f"Path traversal detected: {resolved} is outside {base}")
+    return resolved

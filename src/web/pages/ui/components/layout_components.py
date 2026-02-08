@@ -69,7 +69,6 @@ class LayoutComponents:
         col1, col2 = st.columns([1, 4])
         with col1:
             return st.button("+ Add Variable", width="stretch")  # type: ignore[no-any-return]
-        return False
 
     @staticmethod
     def clear_data_button() -> bool:

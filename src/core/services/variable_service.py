@@ -8,6 +8,29 @@ import re
 import uuid
 from typing import Any, Dict, List, Optional, Set
 
+# Maximum allowed regex pattern length to prevent ReDoS abuse
+_MAX_REGEX_LEN: int = 500
+
+
+def _compile_safe_pattern(pattern: str) -> Optional[re.Pattern[str]]:
+    """Compile a regex pattern with safety checks against ReDoS/injection.
+
+    Validates the pattern length and syntax before compiling.
+    Returns None if the pattern is invalid or too long.
+
+    Args:
+        pattern: The regex pattern string to compile.
+
+    Returns:
+        Compiled regex pattern, or None if unsafe/invalid.
+    """
+    if len(pattern) > _MAX_REGEX_LEN:
+        return None
+    try:
+        return re.compile(pattern)
+    except re.error:
+        return None
+
 
 class VariableService:
     """Service for managing parser variables with CRUD operations."""
@@ -247,10 +270,10 @@ class VariableService:
             entries = var.entries if hasattr(var, "entries") else var.get("entries", [])
 
             var_name_match = name == var_name
-            try:
-                var_name_match = var_name_match or bool(re.fullmatch(var_name, name))
-            except re.error:
-                pass
+            if not var_name_match:
+                compiled = _compile_safe_pattern(var_name)
+                if compiled is not None:
+                    var_name_match = bool(compiled.fullmatch(name))
 
             if var_name_match and entries:
                 found_entries.update(entries)
@@ -292,10 +315,10 @@ class VariableService:
             v_max = var.maximum if hasattr(var, "maximum") else var.get("maximum")
 
             var_name_match = name == var_name
-            try:
-                var_name_match = var_name_match or bool(re.fullmatch(var_name, name))
-            except re.error:
-                pass
+            if not var_name_match:
+                compiled = _compile_safe_pattern(var_name)
+                if compiled is not None:
+                    var_name_match = bool(compiled.fullmatch(name))
 
             if var_name_match and v_type == "distribution":
                 if v_min is not None:

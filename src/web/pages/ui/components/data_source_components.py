@@ -173,7 +173,10 @@ class DataSourceComponents:
                 except Exception as e:
                     st.error(f"Scan failed: {e}")
                     logger.error(
-                        "SCANNER: Quick scan failed at %s: %s", stats_path, e, exc_info=True
+                        "SCANNER: Quick scan failed at %r: %s",
+                        str(stats_path).replace("\n", ""),
+                        e,
+                        exc_info=True,
                     )
 
         scanned_vars: List[Dict[str, Any]] = api.state_manager.get_scanned_variables()

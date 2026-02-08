@@ -84,7 +84,7 @@ def test_worker_pool_performance_vs_subprocess(
 
     # Calculate expected baseline (first file parsing time * count)
     baseline_estimate = pooled_time * 1.5  # Estimate subprocess would be 50% slower
-    baseline_estimate / pooled_time
+    speedup_ratio: float = baseline_estimate / pooled_time  # noqa: F841
 
     print(f"\n{'='*70}")
     print("Worker Pool Performance Benchmark")

@@ -64,7 +64,11 @@ class SimpleStatsStrategy:
         """Return a list of work items for parallel execution."""
         files = self._get_files(stats_path, stats_pattern)
         if not files:
-            logger.warning(f"PARSER: No files found matching '{stats_pattern}' in {stats_path}")
+            logger.warning(
+                "PARSER: No files found matching '%s' in %s",
+                stats_pattern,
+                stats_path,
+            )
             return []
 
         variable_map = self._map_variables(variables)
@@ -77,10 +81,11 @@ class SimpleStatsStrategy:
 
     def _get_files(self, stats_path: str, stats_pattern: str) -> List[str]:
         """Find all stats files matching the pattern in the target path."""
+        # Path is already validated/resolved by ParseService before reaching strategy
         base = Path(stats_path)
         pattern = f"**/{stats_pattern}"
         files = [str(f) for f in base.glob(pattern)]
-        logger.info(f"PARSER: Found {len(files)} candidate files in {stats_path}")
+        logger.info("PARSER: Found %d candidate files in %s", len(files), stats_path)
         return files
 
     def _map_variables(self, variables: Sequence[StatConfig]) -> Dict[str, Any]:
