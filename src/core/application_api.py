@@ -69,9 +69,6 @@ class ApplicationAPI:
         # Initialize services via unified facade
         self._services = DefaultServicesAPI(self.state_manager)
 
-        # Backward-compatible alias (prefer api.portfolio)
-        self.portfolio_service = self._services.portfolio
-
         logger.info("ApplicationAPI initialized (Singleton Service)")
 
     # =========================================================================

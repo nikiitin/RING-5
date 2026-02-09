@@ -14,7 +14,7 @@ class TestPortfolioFix:
         """Mock the ApplicationAPI."""
         api = MagicMock(spec=ApplicationAPI)
         api.state_manager = MagicMock()
-        api.portfolio_service = MagicMock()
+        api.portfolio = MagicMock()
         return api
 
     @pytest.fixture
@@ -39,8 +39,8 @@ class TestPortfolioFix:
         is valid at runtime.
         """
         # Setup mocks
-        mock_api.portfolio_service.list_portfolios.return_value = ["p1"]
-        mock_api.portfolio_service.load_portfolio.return_value = {"some": "data"}
+        mock_api.portfolio.list_portfolios.return_value = ["p1"]
+        mock_api.portfolio.load_portfolio.return_value = {"some": "data"}
 
         # Simulate user clicking "Load Portfolio"
         mock_streamlit.button.side_effect = [
@@ -59,4 +59,4 @@ class TestPortfolioFix:
             pass
 
         # Verify that the code path was at least attempted
-        mock_api.portfolio_service.list_portfolios.assert_called()
+        mock_api.portfolio.list_portfolios.assert_called()

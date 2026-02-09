@@ -109,7 +109,7 @@ class TestApplicationAPI:
 
         # Check services initialized
         assert api.state_manager is not None
-        assert api.portfolio_service is not None
+        assert api.portfolio is not None
 
         # Check CsvPoolService access (static service)
         # API doesn't allow direct property access to csv_pool_dir by default but uses service

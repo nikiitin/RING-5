@@ -53,7 +53,7 @@ def show_portfolio_page(api: ApplicationAPI) -> None:
                     if current_data is None:
                         st.error("No data available to save")
                         return
-                    api.portfolio_service.save_portfolio(
+                    api.portfolio.save_portfolio(
                         name=portfolio_name,
                         data=current_data,
                         plots=api.state_manager.get_plots(),
@@ -78,7 +78,7 @@ def show_portfolio_page(api: ApplicationAPI) -> None:
         st.markdown("### Load Portfolio")
         st.markdown("Restore a previously saved portfolio with all data and plot configurations.")
 
-        portfolios = api.portfolio_service.list_portfolios()
+        portfolios = api.portfolio.list_portfolios()
         if portfolios:
             selected_portfolio = st.selectbox(
                 "Select Portfolio", portfolios, key="portfolio_load_select"
@@ -86,7 +86,7 @@ def show_portfolio_page(api: ApplicationAPI) -> None:
 
             if st.button("Load Portfolio", type="primary", width="stretch"):
                 try:
-                    data = api.portfolio_service.load_portfolio(selected_portfolio)
+                    data = api.portfolio.load_portfolio(selected_portfolio)
                     api.state_manager.restore_session(cast(PortfolioData, data))
                     st.success(f"Portfolio loaded: {selected_portfolio}")
                     st.rerun()
@@ -105,12 +105,12 @@ def show_portfolio_page(api: ApplicationAPI) -> None:
     st.markdown("---")
     st.markdown("### Manage Saved Portfolios")
 
-    portfolios = api.portfolio_service.list_portfolios()
+    portfolios = api.portfolio.list_portfolios()
     if portfolios:
         for pname in portfolios:
             with st.expander(f"{pname}"):
                 if st.button("Delete", key=f"del_portfolio_{pname}"):
-                    api.portfolio_service.delete_portfolio(pname)
+                    api.portfolio.delete_portfolio(pname)
                     st.success(f"Deleted {pname}")
                     st.rerun()
 
