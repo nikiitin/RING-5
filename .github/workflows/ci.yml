@@ -49,8 +49,21 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Cache test data
+        id: cache-test-data
+        uses: actions/cache@v4
         with:
-          lfs: true
+          path: tests/data
+          key: test-data-v1
+
+      - name: Download test data from releases
+        if: steps.cache-test-data.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p tests/data
+          echo "Downloading test data from GitHub Releases..."
+          curl -L https://github.com/nikiitin/RING-5/releases/download/test-data-v1/test_data.tar.gz \
+            | tar xz -C tests/data
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
