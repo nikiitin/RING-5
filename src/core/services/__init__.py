@@ -9,7 +9,6 @@ from .pipeline_service import PipelineService
 from .portfolio_service import PortfolioService
 from .reduction_service import ReductionService
 from .variable_service import VariableService
-from .variable_validation_service import VariableValidationService
 
 __all__ = [
     "ArithmeticService",
@@ -17,7 +16,6 @@ __all__ = [
     "VariableService",
     "ReductionService",
     "OutlierService",
-    "VariableValidationService",
     "PortfolioService",
     "PathService",
     "ConfigService",
