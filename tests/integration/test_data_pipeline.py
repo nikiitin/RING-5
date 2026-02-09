@@ -57,12 +57,14 @@ class TestDataPipeline:
 
         # To strictly test the factory and execution
         # 1. Column Selector
-        col_selector = ShaperFactory.createShaper("columnSelector", {"columns": ["group", "value"]})
+        col_selector = ShaperFactory.create_shaper(
+            "columnSelector", {"columns": ["group", "value"]}
+        )
         df_cols = col_selector(sample_data)
         assert "noise" not in df_cols.columns
 
         # 2. Condition Selector (Filter)
-        filter_shaper = ShaperFactory.createShaper(
+        filter_shaper = ShaperFactory.create_shaper(
             "conditionSelector", {"column": "value", "mode": "less_than", "threshold": 50}
         )
         df_filtered = filter_shaper(sample_data)

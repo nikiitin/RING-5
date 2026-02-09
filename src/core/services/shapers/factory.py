@@ -12,13 +12,13 @@ from typing import Any, Dict, List, Optional, Type
 
 from src.core.services.shapers.impl.mean import Mean
 from src.core.services.shapers.impl.normalize import Normalize
-from src.core.services.shapers.impl.selector_algorithms.columnSelector import (
+from src.core.services.shapers.impl.selector_algorithms.column_selector import (
     ColumnSelector,
 )
-from src.core.services.shapers.impl.selector_algorithms.conditionSelector import (
+from src.core.services.shapers.impl.selector_algorithms.condition_selector import (
     ConditionSelector,
 )
-from src.core.services.shapers.impl.selector_algorithms.itemSelector import ItemSelector
+from src.core.services.shapers.impl.selector_algorithms.item_selector import ItemSelector
 from src.core.services.shapers.impl.sort import Sort
 from src.core.services.shapers.impl.transformer import Transformer
 from src.core.services.shapers.shaper import Shaper
@@ -87,8 +87,3 @@ class ShaperFactory:
                 f"FACTORY: Unknown shaper type '{shaper_type}'. " f"Available types: {available}"
             )
         return shaper_class(params)
-
-    @classmethod
-    def createShaper(cls, shaper_type: str, params: Dict[str, Any]) -> Shaper:
-        """Backward compatibility alias for create_shaper."""
-        return cls.create_shaper(shaper_type, params)

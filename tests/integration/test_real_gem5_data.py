@@ -92,7 +92,7 @@ class TestRealDataWithShapers:
 
         # Select first column
         config = {"type": "columnSelector", "columns": [available_cols[0]]}
-        shaper = ShaperFactory.createShaper("columnSelector", config)
+        shaper = ShaperFactory.create_shaper("columnSelector", config)
 
         result = shaper(parsed_data)
 
@@ -185,7 +185,7 @@ class TestCompleteWorkflow:
         from src.core.services.shapers.factory import ShaperFactory
 
         # Create column selector with proper required parameters
-        col_selector = ShaperFactory.createShaper(
+        col_selector = ShaperFactory.create_shaper(
             "columnSelector", {"type": "columnSelector", "columns": ["a"]}
         )
         assert col_selector is not None

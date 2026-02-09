@@ -9,7 +9,7 @@ import pandas as pd
 
 from src.core.services.shapers.impl.mean import Mean
 from src.core.services.shapers.impl.normalize import Normalize
-from src.core.services.shapers.impl.selector_algorithms.columnSelector import (
+from src.core.services.shapers.impl.selector_algorithms.column_selector import (
     ColumnSelector,
 )
 from src.core.services.shapers.impl.sort import Sort
