@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
 
+from src.core.common.utils import sanitize_filename, validate_path_within
 from src.core.services.data_services.path_service import PathService
 
 
@@ -71,8 +72,10 @@ class ConfigService:
             Path to the saved configuration file.
         """
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        config_filename = f"{name}_{timestamp}.json"
-        config_path = ConfigService.get_config_dir() / config_filename
+        safe_name = sanitize_filename(name)
+        config_filename = f"{safe_name}_{timestamp}.json"
+        config_dir = ConfigService.get_config_dir()
+        config_path = validate_path_within(config_dir / config_filename, config_dir)
 
         config_data = {
             "name": name,
@@ -98,7 +101,9 @@ class ConfigService:
         Returns:
             Configuration dictionary.
         """
-        with open(config_path, "r") as f:
+        config_dir = ConfigService.get_config_dir()
+        validated_path = validate_path_within(Path(config_path), config_dir)
+        with open(validated_path, "r") as f:
             return cast(Dict[str, Any], json.load(f))
 
     @staticmethod
@@ -113,7 +118,9 @@ class ConfigService:
             True if deleted successfully.
         """
         try:
-            Path(config_path).unlink()
+            config_dir = ConfigService.get_config_dir()
+            validated_path = validate_path_within(Path(config_path), config_dir)
+            validated_path.unlink()
             return True
         except Exception:
             return False

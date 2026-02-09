@@ -16,7 +16,7 @@ import logging
 from dataclasses import replace
 from typing import Any, Dict, List, Sequence
 
-from src.core.common.utils import normalize_user_path, sanitize_log_value
+from src.core.common.utils import normalize_user_path, sanitize_glob_pattern, sanitize_log_value
 from src.core.models import StatConfig
 from src.core.parsing.gem5.impl.pool.pool import ParseWorkPool
 from src.core.parsing.gem5.impl.strategies.gem5_parse_work import Gem5ParseWork
@@ -80,7 +80,8 @@ class SimpleStatsStrategy:
         """Find all stats files matching the pattern in the target path."""
         # Path is already validated/resolved by ParseService before reaching strategy
         base = normalize_user_path(stats_path)
-        pattern = f"**/{stats_pattern}"
+        safe_pattern = sanitize_glob_pattern(stats_pattern)
+        pattern = f"**/{safe_pattern}"
         files = [str(f) for f in base.glob(pattern)]
         logger.info(
             "PARSER: Found %d candidate files in %s",

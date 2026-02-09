@@ -71,6 +71,7 @@ from typing import Any, Dict, List, Optional, cast
 
 import pandas as pd
 
+from src.core.common.utils import sanitize_filename, validate_path_within
 from src.core.models import PlotProtocol
 from src.core.services.data_services.path_service import PathService
 from src.core.state.state_manager import StateManager
@@ -125,13 +126,19 @@ class PortfolioService:
             "scanned_variables": self.state_manager.get_scanned_variables(),
         }
 
-        save_path = PathService.get_portfolios_dir() / f"{name}.json"
+        save_path = validate_path_within(
+            PathService.get_portfolios_dir() / f"{sanitize_filename(name)}.json",
+            PathService.get_portfolios_dir(),
+        )
         with open(save_path, "w") as f:
             json.dump(portfolio_data, f, indent=2)
 
     def load_portfolio(self, name: str) -> Dict[str, Any]:
         """Load a portfolio JSON by name."""
-        load_path = PathService.get_portfolios_dir() / f"{name}.json"
+        load_path = validate_path_within(
+            PathService.get_portfolios_dir() / f"{sanitize_filename(name)}.json",
+            PathService.get_portfolios_dir(),
+        )
         if not load_path.exists():
             raise FileNotFoundError(f"Portfolio '{name}' not found")
 
@@ -139,6 +146,9 @@ class PortfolioService:
             return cast(Dict[str, Any], json.load(f))
 
     def delete_portfolio(self, name: str) -> None:
-        path = PathService.get_portfolios_dir() / f"{name}.json"
+        path = validate_path_within(
+            PathService.get_portfolios_dir() / f"{sanitize_filename(name)}.json",
+            PathService.get_portfolios_dir(),
+        )
         if path.exists():
             path.unlink()

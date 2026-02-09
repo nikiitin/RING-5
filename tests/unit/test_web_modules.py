@@ -211,14 +211,21 @@ class TestApplicationAPI:
         """Test loading configuration."""
         from src.core.application_api import ApplicationAPI
 
-        # Create test config
+        # Create test config within a proper config dir
+        config_dir = self.test_dir / "saved_configs"
+        config_dir.mkdir(parents=True, exist_ok=True)
+
         test_config = {"name": "test", "description": "Test config", "shapers": [{"type": "test"}]}
-        config_file = self.test_dir / "config.json"
+        config_file = config_dir / "config.json"
         with open(config_file, "w") as f:
             json.dump(test_config, f)
 
         api = ApplicationAPI()
-        loaded_config = api.load_configuration(str(config_file))
+        with patch(
+            "src.core.services.data_services.config_service.ConfigService.get_config_dir",
+            return_value=config_dir,
+        ):
+            loaded_config = api.load_configuration(str(config_file))
 
         assert loaded_config["name"] == "test"
         assert loaded_config["description"] == "Test config"

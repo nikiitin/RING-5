@@ -236,12 +236,13 @@ class VariableService:
                 if var_name == name:
                     return var
             else:
-                # Regex pattern matching
-                try:
-                    if re.fullmatch(name, var_name):
+                # Regex pattern matching via safe compilation
+                compiled = _compile_safe_pattern(name)
+                if compiled is not None:
+                    if compiled.fullmatch(var_name):
                         return var
-                except re.error:
-                    # Invalid regex, fall back to exact match
+                else:
+                    # Pattern failed safety check, fall back to exact match
                     if var_name == name:
                         return var
         return None

@@ -3,7 +3,6 @@ Pattern Index Selector Component
 Allows users to select specific indices from pattern variables (e.g., l{0,1}_cntrl{1,2,3})
 """
 
-import re
 from typing import Dict, List, Optional, Tuple
 
 import streamlit as st
@@ -36,18 +35,22 @@ class PatternIndexSelector:
         Returns:
             List of position labels like ["l", "cntrl"]
         """
-        # Find all positions where \d+ appears and extract the preceding label
-        # Match: (identifier) followed by \d+
-        # This handles: l\d+, cntrl\d+, cpu\d+, etc.
-        # Using [a-zA-Z_]+ avoids backtracking (chars disjoint with \\)
-        pattern = r"([a-zA-Z_]+)\\d\+"
-        matches = re.findall(pattern, var_name)
-
-        # Clean up the matches to remove leading underscores
-        cleaned = []
-        for match in matches:
+        # Find all positions where \d+ appears and extract the preceding label.
+        # Use string splitting instead of regex to avoid ReDoS on user input.
+        cleaned: List[str] = []
+        marker = r"\d+"
+        parts = var_name.split(marker)
+        # Each part (except the last) ends with the label before \d+
+        for part in parts[:-1]:
+            # Extract trailing identifier: letters/underscores before the split
+            label = ""
+            for ch in reversed(part):
+                if ch.isalpha() or ch == "_":
+                    label = ch + label
+                else:
+                    break
             # Remove leading underscores (e.g., "_cntrl" -> "cntrl")
-            label = match.lstrip("_")
+            label = label.lstrip("_")
             if label:
                 cleaned.append(label)
 

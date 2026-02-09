@@ -10,7 +10,7 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any, Dict, List
 
-from src.core.common.utils import normalize_user_path
+from src.core.common.utils import normalize_user_path, sanitize_glob_pattern
 from src.core.models import ScannedVariable
 from src.core.parsing.gem5.impl.pool.pool import ScanWorkPool
 from src.core.parsing.gem5.impl.scanning.gem5_scan_work import Gem5ScanWork
@@ -50,7 +50,8 @@ class ScannerService:
         if not search_path.exists():
             raise FileNotFoundError(f"Stats path does not exist: {stats_path}")
 
-        files: List[Path] = list(search_path.rglob(stats_pattern))
+        safe_pattern: str = sanitize_glob_pattern(stats_pattern)
+        files: List[Path] = list(search_path.rglob(safe_pattern))
         if not files:
             raise FileNotFoundError("No stats files found.")
 

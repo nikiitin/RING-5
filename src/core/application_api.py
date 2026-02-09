@@ -24,11 +24,11 @@ Architecture:
 """
 
 import logging
-from pathlib import Path
 from typing import Any, Dict, List, cast
 
 import numpy as np
 
+from src.core.common.utils import normalize_user_path, sanitize_glob_pattern
 from src.core.models import StatConfig
 from src.core.parsing import ParseService, ScannerService
 from src.core.services.data_services.data_services_api import DataServicesAPI
@@ -128,10 +128,11 @@ class ApplicationAPI:
 
     def find_stats_files(self, search_path: str, pattern: str = "stats.txt") -> list[str]:
         """Find stats files in a directory."""
-        path = Path(search_path)
+        path = normalize_user_path(search_path)
         if not path.exists():
             return []
-        return [str(p) for p in path.rglob(pattern)]
+        safe_pattern = sanitize_glob_pattern(pattern)
+        return [str(p) for p in path.rglob(safe_pattern)]
 
     def submit_parse_async(
         self,

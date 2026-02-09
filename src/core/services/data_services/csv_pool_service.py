@@ -68,6 +68,7 @@ from typing import Any, Dict, List, Optional, cast
 import pandas as pd
 from pandas import DataFrame
 
+from src.core.common.utils import validate_path_within
 from src.core.performance import SimpleCache
 from src.core.services.data_services.path_service import PathService
 
@@ -138,8 +139,10 @@ class CsvPoolService:
             Path to the file in the pool.
         """
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        pool_path = CsvPoolService.get_pool_dir() / f"parsed_{timestamp}.csv"
-        shutil.copy(csv_path, pool_path)
+        pool_dir = CsvPoolService.get_pool_dir()
+        pool_path = validate_path_within(pool_dir / f"parsed_{timestamp}.csv", pool_dir)
+        source_path = Path(csv_path).resolve()
+        shutil.copy(str(source_path), pool_path)
         return str(pool_path)
 
     @staticmethod
@@ -154,7 +157,9 @@ class CsvPoolService:
             True if deleted successfully.
         """
         try:
-            Path(csv_path).unlink()
+            pool_dir = CsvPoolService.get_pool_dir()
+            validated_path = validate_path_within(Path(csv_path), pool_dir)
+            validated_path.unlink()
             return True
         except Exception:
             return False
@@ -170,8 +175,11 @@ class CsvPoolService:
         Returns:
             DataFrame with the CSV data.
         """
+        # Resolve path to prevent traversal in any path components
+        resolved_path = str(Path(csv_path).resolve())
+
         # Check cache first
-        cache_key = CsvPoolService._compute_file_hash(csv_path)
+        cache_key = CsvPoolService._compute_file_hash(resolved_path)
         cached_df = CsvPoolService._dataframe_cache.get(cache_key)
         if cached_df is not None:
             # Trust cache contains DataFrame
@@ -180,7 +188,7 @@ class CsvPoolService:
         # Load with optimizations
         # Note: low_memory doesn't work with python engine, so we use C engine when possible
         result: DataFrame = pd.read_csv(
-            csv_path,
+            resolved_path,
             sep=None,
             engine="python",
         )
@@ -194,7 +202,7 @@ class CsvPoolService:
             "rows": len(result),
             "dtypes": {col: str(dtype) for col, dtype in result.dtypes.items()},
         }
-        CsvPoolService._metadata_cache.set(csv_path, metadata)
+        CsvPoolService._metadata_cache.set(resolved_path, metadata)
 
         return result
 
@@ -235,12 +243,15 @@ class CsvPoolService:
 
         # Compute metadata by reading just the header and counting rows
         try:
+            # Resolve path to prevent traversal
+            resolved_path = str(Path(csv_path).resolve())
+
             # Fast row count without loading entire file
-            with open(csv_path, "r") as f:
+            with open(resolved_path, "r") as f:
                 row_count = sum(1 for _ in f) - 1  # Subtract header
 
             # Read just first row to get columns and types
-            sample_df = pd.read_csv(csv_path, sep=None, engine="python", nrows=100)
+            sample_df = pd.read_csv(resolved_path, sep=None, engine="python", nrows=100)
 
             metadata = {
                 "columns": list(sample_df.columns),

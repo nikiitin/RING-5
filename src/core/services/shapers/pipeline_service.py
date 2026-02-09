@@ -127,7 +127,8 @@ class PipelineService:
 
     def delete_pipeline(self, name: str) -> None:
         """Delete a pipeline configuration."""
-        path = self._pipelines_dir / f"{name}.json"
+        safe_name: str = sanitize_filename(name)
+        path = validate_path_within(self._pipelines_dir / f"{safe_name}.json", self._pipelines_dir)
         if path.exists():
             path.unlink()
 

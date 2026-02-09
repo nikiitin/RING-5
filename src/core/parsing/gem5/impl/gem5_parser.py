@@ -218,8 +218,8 @@ class Gem5Parser:
                 column_map[var_name] = None
                 header_parts.append(var_name)
 
-        os.makedirs(output_dir, exist_ok=True)
-        output_path = os.path.join(output_dir, "results.csv")
+        os.makedirs(str(normalize_user_path(output_dir)), exist_ok=True)
+        output_path = os.path.join(str(normalize_user_path(output_dir)), "results.csv")
 
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(",".join(header_parts) + "\n")

@@ -82,7 +82,7 @@ import re
 from dataclasses import replace
 from typing import Any, Dict, List, Optional
 
-from src.core.common.utils import normalize_user_path
+from src.core.common.utils import normalize_user_path, sanitize_glob_pattern
 from src.core.models import StatConfig
 from src.core.parsing.gem5.impl.pool.pool import ParseWorkPool
 from src.core.parsing.gem5.impl.strategies.factory import StrategyFactory
@@ -113,6 +113,8 @@ class ParseService:
         search_path = normalize_user_path(stats_path)
         if not search_path.exists():
             raise FileNotFoundError(f"Stats path does not exist: {stats_path}")
+
+        safe_pattern: str = sanitize_glob_pattern(stats_pattern)
 
         # 1. Regex Expansion (Centralized Logic)
         # If scanned_vars are provided, we expand patterns (e.g., cpu\d+)
@@ -160,7 +162,7 @@ class ParseService:
         strategy = StrategyFactory.create(strategy_type)
 
         # 3. Get work items from strategy
-        batch_work = strategy.get_work_items(stats_path, stats_pattern, processed_configs)
+        batch_work = strategy.get_work_items(stats_path, safe_pattern, processed_configs)
         if not batch_work:
             return []
 
@@ -218,8 +220,8 @@ class ParseService:
                 column_map[var_name] = None
                 header_parts.append(var_name)
 
-        os.makedirs(output_dir, exist_ok=True)
-        output_path = os.path.join(output_dir, "results.csv")
+        os.makedirs(str(normalize_user_path(output_dir)), exist_ok=True)
+        output_path = os.path.join(str(normalize_user_path(output_dir)), "results.csv")
 
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(",".join(header_parts) + "\n")

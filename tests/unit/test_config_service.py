@@ -296,19 +296,19 @@ class TestConfigurationLoading:
         assert loaded_config["description"] == sample_config_dict["description"]
         assert loaded_config["shapers"] == sample_config_dict["shapers"]
 
-    def test_load_configuration_raises_on_missing_file(self, tmp_path: Path):
+    def test_load_configuration_raises_on_missing_file(self, empty_config_dir: Path):
         """Verify FileNotFoundError for missing config."""
-        # Arrange
-        missing_file = tmp_path / "missing.json"
+        # Arrange - use a path within the config dir (matching real usage)
+        missing_file = empty_config_dir / "missing.json"
 
         # Act & Assert
         with pytest.raises(FileNotFoundError):
             ConfigService.load_configuration(str(missing_file))
 
-    def test_load_configuration_raises_on_invalid_json(self, tmp_path: Path):
+    def test_load_configuration_raises_on_invalid_json(self, empty_config_dir: Path):
         """Verify JSONDecodeError for malformed files."""
-        # Arrange
-        invalid_file = tmp_path / "invalid.json"
+        # Arrange - create invalid JSON within the config dir
+        invalid_file = empty_config_dir / "invalid.json"
         invalid_file.write_text("{ broken json")
 
         # Act & Assert

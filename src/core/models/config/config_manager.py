@@ -5,9 +5,12 @@ JSON Schema validator and template generator for RING-5 configuration files.
 import json
 import logging
 import os
+from pathlib import Path
 from typing import Any, Dict, List, Optional, TypedDict, cast
 
 from jsonschema import Draft7Validator, validate
+
+from src.core.common.utils import sanitize_filename, validate_path_within
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -97,10 +100,13 @@ class ConfigValidator:
         Args:
             schema_path: Path to JSON schema file. If None, uses default schema
         """
+        schemas_dir = os.path.join(os.path.dirname(__file__), "schemas")
         if schema_path is None:
-            schema_path = os.path.join(os.path.dirname(__file__), "schemas", "pipeline_schema.json")
+            schema_path = os.path.join(schemas_dir, "pipeline_schema.json")
 
-        with open(schema_path, "r") as f:
+        # Validate schema_path is within the schemas directory
+        validated_schema = validate_path_within(Path(schema_path), Path(schemas_dir))
+        with open(validated_schema, "r") as f:
             self.schema: Dict[str, Any] = json.load(f)
 
         self.validator: Draft7Validator = Draft7Validator(self.schema)
@@ -134,7 +140,8 @@ class ConfigValidator:
         Raises:
             ValidationError: If validation fails
         """
-        with open(config_path, "r") as f:
+        resolved_path = Path(config_path).resolve()
+        with open(resolved_path, "r") as f:
             config = json.load(f)
 
         return self.validate(config)
@@ -361,10 +368,11 @@ class ConfigTemplateGenerator:
             config: Configuration dictionary
             output_path: Output file path
         """
-        with open(output_path, "w") as f:
+        resolved_path = Path(output_path).resolve()
+        with open(resolved_path, "w") as f:
             json.dump(config, f, indent=2)
 
-        logger.info("Configuration saved to: %s", output_path)
+        logger.info("Configuration saved to: %s", resolved_path)
 
     @staticmethod
     def load_template(template_name: str = "config_template.json") -> Dict[str, Any]:
@@ -377,8 +385,11 @@ class ConfigTemplateGenerator:
         Returns:
             Template configuration dictionary
         """
-        template_path: str = os.path.join(
-            os.path.dirname(__file__), "..", "..", "templates", template_name
+        templates_dir = os.path.join(os.path.dirname(__file__), "..", "..", "templates")
+        safe_name = sanitize_filename(template_name)
+        template_path = validate_path_within(
+            Path(os.path.join(templates_dir, safe_name)),
+            Path(templates_dir),
         )
 
         with open(template_path, "r") as f:

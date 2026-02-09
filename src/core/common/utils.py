@@ -8,6 +8,7 @@ and path management used throughout the application.
 import enum
 import logging
 import os
+import re
 import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
@@ -277,27 +278,60 @@ def sanitize_filename(name: str) -> str:
 def validate_path_within(path: Path, allowed_base: Path) -> Path:
     """Validate that a resolved path is within an allowed base directory.
 
-    Resolves both paths to absolute form and checks containment
-    to prevent path traversal attacks.
+    Uses ``os.path.normpath`` followed by ``str.startswith`` -- the exact
+    pattern recognised by CodeQL as a path-sanitisation barrier -- to
+    prevent path-traversal attacks.
 
     Args:
         path: The path to validate.
         allowed_base: The base directory the path must reside within.
 
     Returns:
-        The resolved path if valid.
+        The normalised, absolute path if valid.
 
     Raises:
         ValueError: If the path escapes the allowed base directory.
     """
-    resolved: Path = path.resolve()
-    base: Path = allowed_base.resolve()
-    if not str(resolved).startswith(str(base)):
+    # Normalise both paths with os.path.normpath (CodeQL-recognised sanitizer)
+    resolved: str = os.path.normpath(str(path.resolve()))
+    base: str = os.path.normpath(str(allowed_base.resolve()))
+    if not resolved.startswith(base):
         raise ValueError(f"Path traversal detected: {resolved} is outside {base}")
-    return resolved
+    return Path(resolved)
 
 
 _DEFAULT_STATS_PATH: str = "."
+
+# Allowlist for glob patterns: only alphanumeric, dots, underscores, asterisks, question marks
+_SAFE_GLOB_RE: re.Pattern[str] = re.compile(r"^[a-zA-Z0-9_.*?]+$")
+
+_DEFAULT_STATS_PATTERN: str = "stats.txt"
+
+
+def sanitize_glob_pattern(pattern: str, default: str = _DEFAULT_STATS_PATTERN) -> str:
+    """Sanitize a user-provided glob pattern for safe use with rglob/glob.
+
+    Validates the pattern against an allowlist of safe characters.
+    Rejects patterns containing path separators or traversal sequences.
+    Falls back to *default* when *pattern* is empty or invalid.
+
+    Args:
+        pattern: Raw glob pattern from user input.
+        default: Fallback pattern when *pattern* is empty or invalid.
+
+    Returns:
+        A validated glob pattern string.
+    """
+    if not pattern or not pattern.strip():
+        return default
+    clean: str = pattern.strip()
+    # Reject patterns with path separators or traversal
+    if "/" in clean or "\\" in clean or ".." in clean:
+        return default
+    # Only allow safe characters
+    if not _SAFE_GLOB_RE.match(clean):
+        return default
+    return clean
 
 
 def normalize_user_path(user_path: str, default: str = _DEFAULT_STATS_PATH) -> Path:

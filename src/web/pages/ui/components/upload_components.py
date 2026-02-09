@@ -13,6 +13,7 @@ import pandas as pd
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
+from src.core.common.utils import sanitize_filename
 from src.web.pages.ui.components.data_components import DataComponents
 
 
@@ -54,7 +55,7 @@ class UploadComponents:
                 if not temp_dir:
                     raise RuntimeError("Failed to create temporary directory")
 
-                csv_path = Path(temp_dir) / uploaded_file.name
+                csv_path = Path(temp_dir) / sanitize_filename(uploaded_file.name)
                 with open(csv_path, "wb") as f:
                     f.write(uploaded_file.getbuffer())
 
