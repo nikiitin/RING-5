@@ -3,6 +3,7 @@
 *.pdf
 *.txt
 *.tar
+*.tar.gz
 *.pyc
 __pycache__
 python_venv/
