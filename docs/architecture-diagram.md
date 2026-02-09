@@ -50,30 +50,61 @@ flowchart TB
 
     subgraph SERVICES["⚙️ SERVICES LAYER"]
         direction TB
-        path_svc["path_service.py"]
-        config_svc["config_service.py"]
-        csv_svc["csv_pool_service.py"]
-        pipeline_svc["pipeline_service.py"]
-        portfolio_svc["portfolio_service.py"]
-        var_svc["variable_service.py<br>variable_validation.py"]
-        compute_svc["arithmetic_service.py<br>mixer_service.py<br>reduction_service.py<br>outlier_service.py"]
+        svc_api["ServicesAPI / DefaultServicesAPI<br><i>(Facade + Composition Root)</i>"]
+
+        subgraph MANAGERS["managers/"]
+            direction TB
+            mgr_api["ManagersAPI<br>DefaultManagersAPI"]
+            arith_svc["arithmetic_service.py"]
+            outlier_svc["outlier_service.py"]
+            reduction_svc["reduction_service.py"]
+            mgr_api --> arith_svc
+            mgr_api --> outlier_svc
+            mgr_api --> reduction_svc
+        end
+
+        subgraph DATA_SVC["data_services/"]
+            direction TB
+            ds_api["DataServicesAPI<br>DefaultDataServicesAPI"]
+            path_svc["path_service.py"]
+            config_svc["config_service.py"]
+            csv_svc["csv_pool_service.py"]
+            var_svc["variable_service.py"]
+            portfolio_svc["portfolio_service.py"]
+            ds_api --> path_svc
+            ds_api --> config_svc
+            ds_api --> csv_svc
+            ds_api --> var_svc
+            ds_api --> portfolio_svc
+            config_svc --> path_svc
+            csv_svc --> path_svc
+            csv_svc --> perf
+            portfolio_svc --> state_mgr
+        end
 
         subgraph SHAPERS["shapers/"]
+            direction TB
+            sh_api["ShapersAPI<br>DefaultShapersAPI"]
+            pipeline_svc["pipeline_service.py"]
+
             shaper_base["shaper.py (abstract)"]
-            shaper_impl["uni_df_shaper.py<br>multi_df_shaper.py"]
+            shaper_impl["uni_df_shaper.py"]
             shaper_factory["factory.py"]
             shaper_types["impl/<br>mean, normalize, sort,<br>transformer, selectors"]
             shaper_impl --> shaper_base
             shaper_types --> shaper_impl
             shaper_factory --> shaper_types
+
+            sh_api --> pipeline_svc
+            sh_api --> shaper_factory
+            pipeline_svc --> shaper_factory
+            pipeline_svc --> common
         end
 
-        config_svc --> path_svc
-        csv_svc --> path_svc
-        csv_svc --> perf
-        pipeline_svc --> shaper_factory
-        pipeline_svc --> common
-        portfolio_svc --> state_mgr
+        svc_api --> mgr_api
+        svc_api --> ds_api
+        svc_api --> sh_api
+        svc_api -->|"injects pipelines_dir: Path"| sh_api
     end
 
     subgraph APP_API["🎯 APPLICATION API (Facade)"]
@@ -82,9 +113,7 @@ flowchart TB
 
     app_api --> factory_parse
     app_api --> models
-    app_api --> csv_svc
-    app_api --> pipeline_svc
-    app_api --> portfolio_svc
+    app_api --> svc_api
     app_api --> state_mgr
 
     subgraph WEB["🖥️ WEB LAYER (Streamlit UI)"]
@@ -121,7 +150,7 @@ flowchart TB
         pages_list --> PLOTTING
         data_comp --> app_api
         data_comp --> models
-        dm_list --> compute_svc
+        dm_list --> mgr_api
         PLOTTING --> perf
         shaper_config --> shaper_factory
         shaper_config --> shaper_ui
@@ -164,13 +193,13 @@ gem5 simulator output parsing with Strategy pattern:
   - **impl/strategies/**: Parsing strategies (simple, config-aware)
 
 ### ⚙️ SERVICES LAYER
-Business logic services:
-- **path_service.py**: Centralized file system navigation
-- **csv_pool_service.py**: CSV file discovery and caching
-- **pipeline_service.py**: Shaper pipeline composition
-- **portfolio_service.py**: Analysis state persistence
-- **shapers/**: Data transformation strategies (mean, normalize, sort, select)
-- **Compute services**: arithmetic, mixer, reduction, outlier
+Business logic services organized into three domain-aligned submodules:
+- **ServicesAPI / DefaultServicesAPI**: Top-level facade and composition root
+- **managers/**: Stateless data transformation operations (arithmetic, outlier removal, seed reduction)
+- **data_services/**: Data storage and retrieval (CSV pool, config persistence, path navigation, variable management, portfolio snapshots)
+- **shapers/**: Pipeline CRUD, shaper execution, and data transformation strategies (mean, normalize, sort, select)
+
+Each submodule has its own Protocol (API) and default implementation. Cross-module dependencies are resolved via dependency injection at the composition root.
 
 ### 🎯 APPLICATION API (Facade)
 Single entry point for all backend operations:
@@ -201,8 +230,8 @@ Presentation layer:
 | Leaf Modules | *(nothing)* |
 | State | models |
 | Parsing | models, common |
-| Services | common, performance, models, state, shapers |
-| ApplicationAPI | parsing, services, state, models |
-| Web | ApplicationAPI, services (compute), performance, models |
+| Services | common, performance, models, state |
+| ApplicationAPI | parsing, services (facade), state, models |
+| Web | ApplicationAPI, services (managers), performance, models |
 
 **Important**: The only `core→web` dependency is a `TYPE_CHECKING`-only import in `session_repository.py` for `BasePlot` type hints.
