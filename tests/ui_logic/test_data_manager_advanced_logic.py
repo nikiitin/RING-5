@@ -72,7 +72,7 @@ def test_mixer_render_numeric_op(mock_streamlit, mock_api, sample_data):
     mock_st.button.side_effect = lambda label, key=None, **kwargs: key == "mixer_preview"
 
     with patch(
-        "src.web.pages.ui.data_managers.impl.mixer.MixerService.merge_columns"
+        "src.web.pages.ui.data_managers.impl.mixer.ArithmeticService.merge_columns"
     ) as mock_merge:
         result_df = pd.DataFrame({"A": [1], "B": [4], "merged": [5]})
         mock_merge.return_value = result_df

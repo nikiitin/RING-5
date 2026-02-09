@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.core.services.mixer_service import MixerService
+from src.core.services.arithmetic_service import ArithmeticService as MixerService
 
 
 @pytest.fixture

@@ -3,7 +3,6 @@
 from .arithmetic_service import ArithmeticService
 from .config_service import ConfigService
 from .csv_pool_service import CsvPoolService
-from .mixer_service import MixerService
 from .outlier_service import OutlierService
 from .path_service import PathService
 from .pipeline_service import PipelineService
@@ -18,7 +17,6 @@ __all__ = [
     "VariableService",
     "ReductionService",
     "OutlierService",
-    "MixerService",
     "VariableValidationService",
     "PortfolioService",
     "PathService",

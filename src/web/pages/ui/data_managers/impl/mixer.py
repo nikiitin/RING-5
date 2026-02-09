@@ -7,7 +7,7 @@ from typing import Optional
 import pandas as pd
 import streamlit as st
 
-from src.core.services.mixer_service import MixerService
+from src.core.services.arithmetic_service import ArithmeticService
 from src.web.pages.ui.data_managers.data_manager import DataManager
 
 
@@ -85,7 +85,7 @@ class MixerManager(DataManager):
 
         if st.button("Preview Merge", key="mixer_preview"):
             # Validate inputs first
-            validation_errors = MixerService.validate_merge_inputs(
+            validation_errors = ArithmeticService.validate_merge_inputs(
                 df=data,
                 columns=selected_cols,
                 operation=operation,
@@ -98,7 +98,7 @@ class MixerManager(DataManager):
                 return
 
             try:
-                result_df = MixerService.merge_columns(
+                result_df = ArithmeticService.merge_columns(
                     df=data,
                     columns=selected_cols,
                     operation=operation,

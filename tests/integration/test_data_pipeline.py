@@ -75,8 +75,8 @@ class TestDataPipeline:
         df["noise.sd"] = [0.1] * 6
 
         # Sum
-        result = ArithmeticService.merge_columns(
-            df, source_cols=["value", "noise"], operation="Sum", dest_col="mixed"
+        result = ArithmeticService.apply_mixer(
+            df, dest_col="mixed", source_cols=["value", "noise"], operation="Sum"
         )
 
         assert "mixed" in result.columns
