@@ -7,12 +7,12 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.core.shapers.impl.mean import Mean
-from src.core.shapers.impl.normalize import Normalize
-from src.core.shapers.impl.selector_algorithms.column_selector import (
+from src.core.services.shapers.impl.mean import Mean
+from src.core.services.shapers.impl.normalize import Normalize
+from src.core.services.shapers.impl.selector_algorithms.column_selector import (
     ColumnSelector,
 )
-from src.core.shapers.impl.sort import Sort
+from src.core.services.shapers.impl.sort import Sort
 
 # Import test utilities
 sys.path.insert(0, str(Path(__file__).parent / "pytests"))

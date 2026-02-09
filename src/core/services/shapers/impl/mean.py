@@ -21,7 +21,7 @@ Dependencies:
     - cached: For fingerprint-based result caching
 
 Usage Example:
-    >>> from src.core.shapers.impl.mean import Mean
+    >>> from src.core.services.shapers.impl.mean import Mean
     >>> import pandas as pd
     >>>
     >>> # Sample benchmark data
@@ -83,7 +83,7 @@ import pandas as pd
 from scipy.stats import gmean, hmean
 
 from src.core.performance import cached
-from src.core.shapers.uni_df_shaper import UniDfShaper
+from src.core.services.shapers.uni_df_shaper import UniDfShaper
 
 
 class Mean(UniDfShaper):

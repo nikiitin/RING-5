@@ -17,7 +17,7 @@ Dependencies:
     - UniDfShaper: Base class for shaper interface
 
 Usage Example:
-    >>> from src.core.shapers.impl.transformer import Transformer
+    >>> from src.core.services.shapers.impl.transformer import Transformer
     >>> import pandas as pd
     >>>
     >>> # Sample data with numeric config column
@@ -82,7 +82,7 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
-from src.core.shapers.uni_df_shaper import UniDfShaper
+from src.core.services.shapers.uni_df_shaper import UniDfShaper
 
 
 class Transformer(UniDfShaper):

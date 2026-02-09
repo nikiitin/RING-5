@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.core.shapers.impl.normalize import Normalize
+from src.core.services.shapers.impl.normalize import Normalize
 
 
 @pytest.fixture

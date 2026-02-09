@@ -11,7 +11,7 @@ import pandas as pd
 import pytest
 
 from src.core.benchmark import BenchmarkSuite
-from src.core.shapers.impl.normalize import Normalize
+from src.core.services.shapers.impl.normalize import Normalize
 from src.web.pages.ui.plotting import PlotFactory
 
 

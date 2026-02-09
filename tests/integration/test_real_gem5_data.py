@@ -82,7 +82,7 @@ class TestRealDataWithShapers:
 
     def test_column_selector_on_real_data(self, parsed_data):
         """Test column selector on real data."""
-        from src.core.shapers.factory import ShaperFactory
+        from src.core.services.shapers.factory import ShaperFactory
 
         # Get available columns
         available_cols = list(parsed_data.columns)
@@ -182,7 +182,7 @@ class TestCompleteWorkflow:
 
     def test_shaper_factory_available(self):
         """Test that shaper factory can create column selector with proper config."""
-        from src.core.shapers.factory import ShaperFactory
+        from src.core.services.shapers.factory import ShaperFactory
 
         # Create column selector with proper required parameters
         col_selector = ShaperFactory.create_shaper(
