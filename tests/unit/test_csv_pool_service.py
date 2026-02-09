@@ -10,6 +10,8 @@ Test Strategy:
 - Cache testing with state verification
 """
 
+import os
+import time
 from pathlib import Path
 from unittest.mock import patch
 
@@ -256,14 +258,21 @@ class TestPoolManagement:
 
     def test_load_pool_sorts_by_modified_time_descending(self, populated_pool: Path):
         """Verify pool items sorted by modification time (newest first)."""
-        # Arrange - Touch one file to make it newer
-        newest_file = populated_pool / "parsed_20260102_120000.csv"
-        newest_file.touch()
+        # Arrange - Set explicit mtimes to ensure reliable ordering
+        # Use os.utime() instead of touch() for reliable mtime in CI
+        older_file = populated_pool / "parsed_20260101_120000.csv"
+        newer_file = populated_pool / "parsed_20260102_120000.csv"
+
+        # Set older file to 1 day ago, newer file to now
+        old_mtime = time.time() - 86400  # 1 day ago
+        new_mtime = time.time()
+        os.utime(older_file, (old_mtime, old_mtime))
+        os.utime(newer_file, (new_mtime, new_mtime))
 
         # Act
         pool = CsvPoolService.load_pool()
 
-        # Assert
+        # Assert - Newest file should be first
         assert pool[0]["name"] == "parsed_20260102_120000.csv"
         assert pool[0]["modified"] >= pool[1]["modified"]
 
@@ -392,8 +401,9 @@ class TestFileHashing:
         # Arrange
         hash1 = CsvPoolService._compute_file_hash(str(sample_csv))
 
-        # Act - Touch file to change mtime
-        sample_csv.touch()
+        # Act - Use os.utime() to explicitly change mtime (reliable in CI)
+        new_mtime = time.time() + 3600  # 1 hour in the future
+        os.utime(sample_csv, (new_mtime, new_mtime))
         hash2 = CsvPoolService._compute_file_hash(str(sample_csv))
 
         # Assert - Hash should change
