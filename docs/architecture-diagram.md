@@ -1,3 +1,8 @@
+---
+title: "Full Architecture Diagram"
+nav_order: 26
+---
+
 # RING-5 Full Project Architecture
 
 This document provides a comprehensive view of the RING-5 codebase architecture, including all modules, their dependencies, and the layered structure.

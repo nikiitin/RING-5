@@ -1,3 +1,8 @@
+---
+title: "Web Interface"
+nav_order: 5
+---
+
 # Web Interface Guide
 
 Comprehensive guide to the RING-5 Streamlit web interface.

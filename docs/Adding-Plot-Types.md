@@ -1,3 +1,8 @@
+---
+title: "Adding Plot Types"
+nav_order: 19
+---
+
 # Adding Plot Types
 
 Step-by-step guide to extending RING-5 with custom plot types.

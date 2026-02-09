@@ -1,3 +1,8 @@
+---
+title: "Scatter Plots"
+nav_order: 14
+---
+
 # Scatter Plots
 
 Complete reference for scatter plot visualizations in RING-5.

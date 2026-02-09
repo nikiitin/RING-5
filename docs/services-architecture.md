@@ -1,3 +1,8 @@
+---
+title: "Services Architecture"
+nav_order: 28
+---
+
 # Services Module Architecture
 
 This document describes the internal architecture of the `src/core/services/` module — the business logic layer of RING-5.

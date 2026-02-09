@@ -1,0 +1,44 @@
+title: RING-5 Documentation
+description: Reproducible Instrumentation for Numerical Graphics for gem5
+url: "https://nikiitin.github.io"
+baseurl: "/RING-5"
+
+remote_theme: just-the-docs/just-the-docs@v0.10.0
+
+permalink: pretty
+
+# Aux links (top-right corner)
+aux_links:
+  "GitHub":
+    - "https://github.com/nikiitin/RING-5"
+
+aux_links_new_tab: true
+
+# Footer
+footer_content: "RING-5 is licensed under GPL-3.0-or-later."
+
+# Back to top link
+back_to_top: true
+back_to_top_text: "Back to top"
+
+# Color scheme
+color_scheme: light
+
+# Search
+search_enabled: true
+search:
+  heading_level: 3
+  previews: 3
+
+# Navigation structure
+nav_enabled: true
+
+# Mermaid diagrams
+mermaid:
+  version: "11"
+
+# Exclude files from build
+exclude:
+  - README.md
+  - _Sidebar.md
+  - AI-Agent-Setup.md

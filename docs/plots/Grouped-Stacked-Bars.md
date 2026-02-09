@@ -1,3 +1,8 @@
+---
+title: "Grouped Stacked Bars"
+nav_order: 12
+---
+
 # Grouped Stacked Bar Charts
 
 Complete reference for grouped stacked bar chart visualizations in RING-5.

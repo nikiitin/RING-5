@@ -1,3 +1,8 @@
+---
+title: "Creating Plots"
+nav_order: 8
+---
+
 # Creating Plots Guide
 
 Comprehensive guide to creating and customizing visualizations in RING-5.

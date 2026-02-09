@@ -1,3 +1,8 @@
+---
+title: "Histograms"
+nav_order: 15
+---
+
 # Histogram Plot
 
 ## Overview

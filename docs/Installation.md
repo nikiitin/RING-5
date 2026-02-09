@@ -1,3 +1,8 @@
+---
+title: "Installation"
+nav_order: 3
+---
+
 # Installation Guide
 
 Complete installation instructions for RING-5 on all platforms.

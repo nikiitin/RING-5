@@ -1,3 +1,8 @@
+---
+title: "Parsing Architecture"
+nav_order: 27
+---
+
 # RING-5 Parsing Module — Complete Architecture
 
 Comprehensive architecture documentation for `src/core/parsing/`, covering every class, dependency, protocol relationship, singleton, and the complete scanning/parsing data flows.

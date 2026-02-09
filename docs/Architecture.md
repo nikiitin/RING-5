@@ -1,3 +1,8 @@
+---
+title: "Architecture"
+nav_order: 16
+---
+
 # Architecture Overview
 
 RING-5 follows a **clean layered architecture** with strict separation of concerns, async-first design, and production-grade patterns.

@@ -1,3 +1,8 @@
+---
+title: "Testing Guide"
+nav_order: 18
+---
+
 # Testing Guide
 
 Comprehensive guide to testing in RING-5.

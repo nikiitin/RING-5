@@ -1,3 +1,8 @@
+---
+title: "Data Transformations"
+nav_order: 7
+---
+
 # Data Transformations Guide
 
 Complete guide to data transformations using the shaper system in RING-5.
