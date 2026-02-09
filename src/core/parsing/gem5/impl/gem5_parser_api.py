@@ -8,7 +8,7 @@ into a single cohesive API for the gem5 simulator backend.
 from concurrent.futures import Future
 from typing import Any, List, Optional
 
-from src.core.models import ScannedVariable, StatConfig
+from src.core.models import ParseBatchResult, ScannedVariable, StatConfig
 from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser
 from src.core.parsing.gem5.impl.gem5_scanner import Gem5Scanner
 
@@ -35,7 +35,7 @@ class Gem5ParserAPI:
         output_dir: str,
         strategy_type: str = "simple",
         scanned_vars: Optional[List[Any]] = None,
-    ) -> List[Future[Any]]:
+    ) -> ParseBatchResult:
         """Submit async parsing job via Gem5Parser."""
         return Gem5Parser.submit_parse_async(
             stats_path,
@@ -51,9 +51,10 @@ class Gem5ParserAPI:
         output_dir: str,
         results: List[Any],
         strategy_type: str = "simple",
+        var_names: Optional[List[str]] = None,
     ) -> Optional[str]:
         """Post-process and aggregate results into CSV via Gem5Parser."""
-        return Gem5Parser.finalize_parsing(output_dir, results, strategy_type)
+        return Gem5Parser.finalize_parsing(output_dir, results, strategy_type, var_names=var_names)
 
     def submit_scan_async(
         self,

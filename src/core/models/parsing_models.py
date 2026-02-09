@@ -14,8 +14,24 @@ were externalised so that:
 All models are **immutable** (``frozen=True``) to guarantee reproducibility.
 """
 
+from concurrent.futures import Future
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
+
+
+@dataclass(frozen=True)
+class ParseBatchResult:
+    """
+    Thread-safe result of a parse submission.
+
+    Bundles the futures returned by the worker pool together with the
+    variable names that were submitted, so that ``construct_final_csv``
+    can guarantee column ordering without relying on shared class-level
+    mutable state.
+    """
+
+    futures: List[Future[Any]]
+    var_names: List[str]
 
 
 @dataclass(frozen=True)

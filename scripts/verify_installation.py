@@ -103,13 +103,11 @@ def test_file_structure():
     required_files = [
         "app.py",
         "pyproject.toml",
-        "requirements.txt",
         "README.md",
-        "src/core/config/schemas/parser_config_schema.json",
+        "src/core/models/config/schemas/parser_config_schema.json",
         "src/web/pages/ui/plotting/export/presets/latex_presets.yaml",
-        "src/core/config/config_manager.py",
+        "src/core/models/config/config_manager.py",
         "src/web/pages/portfolio.py",
-        "src/data_management/dataManager.py",
         "tests/unit/test_web_modules.py",
     ]
 

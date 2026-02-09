@@ -167,6 +167,8 @@ class TestScannerFix:
         """Test that _show_parse_dialog calls finalize_parsing with
         correct keyword arg 'strategy_type'.
         """
+        from src.core.models import ParseBatchResult
+
         # Setup - mock all required API methods
         mock_api.state_manager.get_parser_strategy.return_value = "simple"
         mock_api.finalize_parsing.return_value = "/tmp/out/final.csv"
@@ -178,6 +180,9 @@ class TestScannerFix:
         mock_future = MagicMock()
         mock_future.result.return_value = {"some": "data"}
         futures = [mock_future]
+
+        # Wrap in ParseBatchResult
+        batch = ParseBatchResult(futures=futures, var_names=["test_var"])
 
         # Patch streamlit imports and dialog decorator at module level
         with patch("streamlit.dialog", lambda *a, **k: lambda f: f):
@@ -213,9 +218,7 @@ class TestScannerFix:
                     "src.web.pages.ui.components.data_source_components.st.success"
                 ):
 
-                    dsc_module.DataSourceComponents._show_parse_dialog(
-                        mock_api, futures, output_dir
-                    )
+                    dsc_module.DataSourceComponents._show_parse_dialog(mock_api, batch, output_dir)
 
         # Verify finalize_parsing called with correct arguments
         mock_api.finalize_parsing.assert_called_once()
@@ -224,3 +227,4 @@ class TestScannerFix:
         _, kwargs = mock_api.finalize_parsing.call_args
         assert "strategy_type" in kwargs, f"Expected 'strategy_type' kwarg, got {kwargs.keys()}"
         assert "strategy" not in kwargs, "Should NOT use 'strategy' legacy kwarg"
+        assert "var_names" in kwargs, f"Expected 'var_names' kwarg, got {kwargs.keys()}"

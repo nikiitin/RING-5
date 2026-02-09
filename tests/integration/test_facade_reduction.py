@@ -66,7 +66,7 @@ class TestFacadeReduction:
         scanned_vars = facade.finalize_scan(scan_results)
 
         # 3. Run Facade Parse
-        parse_futures = facade.submit_parse_async(
+        batch = facade.submit_parse_async(
             stats_path=stats_path,
             stats_pattern="stats.txt*",
             variables=variables,
@@ -76,12 +76,12 @@ class TestFacadeReduction:
 
         # Wait for parsing
         parse_results = []
-        for future in parse_futures:
+        for future in batch.futures:
             result = future.result(timeout=10)
             if result:
                 parse_results.append(result)
 
-        csv_path = facade.finalize_parsing(output_dir, parse_results)
+        csv_path = facade.finalize_parsing(output_dir, parse_results, var_names=batch.var_names)
 
         assert csv_path is not None
         assert os.path.exists(csv_path)

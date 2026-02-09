@@ -15,7 +15,7 @@ from typing import Any, Dict, List
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
-from src.core.models import ScannedVariable
+from src.core.models import ParseBatchResult, ScannedVariable
 from src.web.pages.ui.components.card_components import CardComponents
 from src.web.pages.ui.components.data_components import DataComponents
 from src.web.pages.ui.components.variable_editor import VariableEditor
@@ -224,7 +224,7 @@ class DataSourceComponents:
                 api.state_manager.set_temp_dir(output_dir)
 
                 try:
-                    futures = api.submit_parse_async(
+                    batch = api.submit_parse_async(
                         stats_path,
                         stats_pattern,
                         api.state_manager.get_parse_variables(),
@@ -232,7 +232,7 @@ class DataSourceComponents:
                         scanned_vars=api.state_manager.get_scanned_variables(),
                         strategy_type=api.state_manager.get_parser_strategy(),
                     )
-                    DataSourceComponents._show_parse_dialog(api, futures, output_dir)
+                    DataSourceComponents._show_parse_dialog(api, batch, output_dir)
                 except Exception as e:
                     st.error(f"Failed to submit parsing job: {e}")
                     logger.error("UI: Parsing submission failed: %s", e, exc_info=True)
@@ -371,8 +371,9 @@ class DataSourceComponents:
 
     @staticmethod
     @st.dialog("Parsing gem5 Stats", dismissible=True)
-    def _show_parse_dialog(api: ApplicationAPI, futures: List[Any], output_dir: str) -> None:
+    def _show_parse_dialog(api: ApplicationAPI, batch: ParseBatchResult, output_dir: str) -> None:
         """Render the parsing progress dialog using blocking futures."""
+        futures = batch.futures
         st.write(f"Processing {len(futures)} files...")
         progress_bar = st.progress(0, text="Starting...")
         status_text = st.empty()
@@ -425,7 +426,12 @@ class DataSourceComponents:
 
         try:
             strategy = api.state_manager.get_parser_strategy()
-            csv_path = api.finalize_parsing(output_dir, results, strategy_type=strategy)
+            csv_path = api.finalize_parsing(
+                output_dir,
+                results,
+                strategy_type=strategy,
+                var_names=batch.var_names,
+            )
             if csv_path and Path(csv_path).exists():
                 pool_path = api.add_to_csv_pool(csv_path)
                 data = api.load_csv_file(pool_path)

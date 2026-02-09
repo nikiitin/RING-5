@@ -477,6 +477,6 @@ class TestEdgeCases:
         """Verify graceful handling of invalid file paths."""
         # Act & Assert - Should raise or return gracefully
         with pytest.raises(
-            (FileNotFoundError, pd.errors.EmptyDataError, ValueError, IsADirectoryError, OSError)
+            (FileNotFoundError, pd.errors.EmptyDataError, ValueError, IsADirectoryError)
         ):
             CsvPoolService.load_csv_file(invalid_path)

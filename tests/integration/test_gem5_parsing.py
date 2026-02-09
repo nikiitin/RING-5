@@ -85,7 +85,7 @@ class TestGem5Parsing:
         print(f"Selected variables for parsing: {[v.name for v in selected_vars]}")
 
         # 3. Run Parser
-        parse_futures = facade.submit_parse_async(
+        batch = facade.submit_parse_async(
             stats_path=str(self.TEST_DATA_DIR),
             stats_pattern="stats.txt",
             variables=selected_vars,
@@ -95,12 +95,14 @@ class TestGem5Parsing:
 
         # Wait for parsing to complete
         parse_results = []
-        for future in parse_futures:
+        for future in batch.futures:
             result = future.result(timeout=30)
             if result:
                 parse_results.append(result)
 
-        csv_path = facade.finalize_parsing(str(output_dir), parse_results)
+        csv_path = facade.finalize_parsing(
+            str(output_dir), parse_results, var_names=batch.var_names
+        )
 
         assert csv_path is not None
         assert os.path.exists(csv_path)
@@ -167,18 +169,20 @@ system.mem.ctrl::1024-2047                    5      50.00%     100.00%      # H
             # Configure variables
             variables = [{"name": "system.mem.ctrl", "type": "histogram"}]
 
-            parse_futures = facade.submit_parse_async(
+            parse_batch = facade.submit_parse_async(
                 str(stats_dir), "stats.txt", variables, str(output_dir), scanned_vars=vars_found
             )
 
             # Wait for parsing to complete
             parse_results = []
-            for future in parse_futures:
+            for future in parse_batch.futures:
                 result = future.result(timeout=10)
                 if result:
                     parse_results.append(result)
 
-            csv_path = facade.finalize_parsing(str(output_dir), parse_results)
+            csv_path = facade.finalize_parsing(
+                str(output_dir), parse_results, var_names=parse_batch.var_names
+            )
 
             assert csv_path is not None
             assert os.path.exists(csv_path)

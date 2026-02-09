@@ -5,10 +5,9 @@ Defines the contract for all parser implementations. Any simulator backend
 (gem5, SST, etc.) must implement this Protocol to integrate with RING-5.
 """
 
-from concurrent.futures import Future
 from typing import Any, List, Optional, Protocol
 
-from src.core.models import StatConfig
+from src.core.models import ParseBatchResult, StatConfig
 
 
 class ParserProtocol(Protocol):
@@ -31,9 +30,9 @@ class ParserProtocol(Protocol):
         output_dir: str,
         strategy_type: str = "simple",
         scanned_vars: Optional[List[Any]] = None,
-    ) -> List[Future[Any]]:
+    ) -> ParseBatchResult:
         """
-        Submit async parsing job and return futures.
+        Submit async parsing job and return a ParseBatchResult.
 
         Args:
             stats_path: Root directory containing simulation outputs
@@ -44,7 +43,7 @@ class ParserProtocol(Protocol):
             scanned_vars: Optional pre-scanned variable metadata for expansion
 
         Returns:
-            List of Future objects that will resolve to parse results
+            ParseBatchResult containing futures and var_names for the batch
         """
         ...
 
@@ -53,6 +52,7 @@ class ParserProtocol(Protocol):
         output_dir: str,
         results: List[Any],
         strategy_type: str = "simple",
+        var_names: Optional[List[str]] = None,
     ) -> Optional[str]:
         """
         Post-process and aggregate parsing results into final CSV.
@@ -61,6 +61,7 @@ class ParserProtocol(Protocol):
             output_dir: Directory to write output CSV
             results: Resolved parse results from submit_parse_async futures
             strategy_type: Strategy used for post-processing
+            var_names: Ordered variable names from ParseBatchResult
 
         Returns:
             Path to the generated CSV file, or None if no results
@@ -71,6 +72,7 @@ class ParserProtocol(Protocol):
     def construct_final_csv(
         output_dir: str,
         results: List[Any],
+        var_names: Optional[List[str]] = None,
     ) -> Optional[str]:
         """
         Build the final CSV from aggregated results.
@@ -78,6 +80,7 @@ class ParserProtocol(Protocol):
         Args:
             output_dir: Directory to write output CSV
             results: Post-processed results ready for CSV generation
+            var_names: Ordered variable names for column consistency
 
         Returns:
             Path to the generated CSV file, or None if no results

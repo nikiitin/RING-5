@@ -29,7 +29,7 @@ from typing import Any, Dict, List, cast
 import numpy as np
 
 from src.core.common.utils import normalize_user_path, sanitize_glob_pattern
-from src.core.models import StatConfig
+from src.core.models import ParseBatchResult, StatConfig
 from src.core.parsing import ParseService, ScannerService
 from src.core.services.data_services.data_services_api import DataServicesAPI
 from src.core.services.managers.managers_api import ManagersAPI
@@ -142,7 +142,7 @@ class ApplicationAPI:
         output_dir: str,
         strategy_type: str = "simple",
         **kwargs: Any,
-    ) -> list[Any]:
+    ) -> ParseBatchResult:
         """
         Submit parsing job to the service.
 
@@ -191,10 +191,16 @@ class ApplicationAPI:
         )
 
     def finalize_parsing(
-        self, output_dir: str, results: list[Any], strategy_type: str = "simple"
+        self,
+        output_dir: str,
+        results: list[Any],
+        strategy_type: str = "simple",
+        var_names: list[str] | None = None,
     ) -> str | None:
         """Finalize parsing results into a CSV."""
-        return ParseService.finalize_parsing(output_dir, results, strategy_type)
+        return ParseService.finalize_parsing(
+            output_dir, results, strategy_type, var_names=var_names
+        )
 
     def submit_scan_async(
         self, stats_path: str, stats_pattern: str = "stats.txt", limit: int = 5

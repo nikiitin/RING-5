@@ -7,7 +7,7 @@ name = "ring5"
 version = "1.0.0"
 description = "Modern gem5 Data Analysis and Visualization Tool"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.12"
 license = { text = "GPL-3.0-or-later" }
 authors = [{ name = "RING-5 Development Team" }]
 keywords = ["gem5", "data-analysis", "visualization", "performance-analysis"]

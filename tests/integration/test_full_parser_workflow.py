@@ -89,17 +89,19 @@ class TestFullParserWorkflow:
 
         # Step 3: Parse variables asynchronously
         with tempfile.TemporaryDirectory() as output_dir:
-            parse_futures = ParseService.submit_parse_async(
+            batch = ParseService.submit_parse_async(
                 stats_path=str(sample_stats_dir),
                 stats_pattern="stats.txt",
                 variables=variables,
                 output_dir=output_dir,
             )
 
-            parse_results = [f.result() for f in parse_futures]
+            parse_results = [f.result() for f in batch.futures]
 
             # Step 4: Construct final CSV
-            csv_path = ParseService.construct_final_csv(output_dir, parse_results)
+            csv_path = ParseService.construct_final_csv(
+                output_dir, parse_results, var_names=batch.var_names
+            )
 
             assert csv_path is not None
             assert Path(csv_path).exists()
@@ -145,15 +147,15 @@ class TestFullParserWorkflow:
         ]
 
         with tempfile.TemporaryDirectory() as output_dir:
-            parse_futures = facade.submit_parse_async(
+            batch = facade.submit_parse_async(
                 stats_path=str(sample_stats_dir),
                 stats_pattern="stats.txt",
                 variables=variables,
                 output_dir=output_dir,
             )
 
-            parse_results = [f.result() for f in parse_futures]
-            csv_path = facade.finalize_parsing(output_dir, parse_results)
+            parse_results = [f.result() for f in batch.futures]
+            csv_path = facade.finalize_parsing(output_dir, parse_results, var_names=batch.var_names)
 
             # Step 4: Load into CSV pool
             facade.add_to_csv_pool(csv_path)
@@ -183,14 +185,14 @@ class TestFullParserWorkflow:
 
             # This should handle gracefully (may log warnings but not crash)
             try:
-                parse_futures = ParseService.submit_parse_async(
+                batch = ParseService.submit_parse_async(
                     stats_path=str(tmp_path),
                     stats_pattern="stats.txt",
                     variables=invalid_variables,
                     output_dir=output_dir,
                     scanned_vars=[],
                 )
-                results = [f.result() for f in parse_futures]
+                results = [f.result() for f in batch.futures]
                 # Should return empty or error results
                 assert isinstance(results, list)
             except Exception:

@@ -295,7 +295,14 @@ def validate_path_within(path: Path, allowed_base: Path) -> Path:
     # Normalise both paths with os.path.normpath (CodeQL-recognised sanitizer)
     resolved: str = os.path.normpath(str(path.resolve()))
     base: str = os.path.normpath(str(allowed_base.resolve()))
-    if not resolved.startswith(base):
+    # Use os.path.commonpath for robust containment check
+    # (avoids sibling-path bypass, e.g. "/allowed/base_evil" matching "/allowed/base")
+    try:
+        common: str = os.path.commonpath([resolved, base])
+    except ValueError:
+        # On Windows, paths on different drives raise ValueError
+        raise ValueError(f"Path traversal detected: {resolved} is outside {base}")
+    if common != base:
         raise ValueError(f"Path traversal detected: {resolved} is outside {base}")
     return Path(resolved)
 

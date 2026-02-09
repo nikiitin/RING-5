@@ -62,7 +62,8 @@ Error Handling:
 
 Thread Safety:
     - Worker pool is thread-safe (uses locks internally)
-    - Service methods are stateless (except _active_var_names class var)
+    - Variable names are encapsulated in ParseBatchResult, no shared mutable
+      class-level state. Multiple concurrent parse batches are fully isolated.
 
 Configuration:
     - RING5_WORKER_POOL_SIZE: Environment variable for pool size (default: 4)
@@ -83,7 +84,7 @@ from dataclasses import replace
 from typing import Any, Dict, List, Optional
 
 from src.core.common.utils import normalize_user_path, sanitize_glob_pattern
-from src.core.models import StatConfig
+from src.core.models import ParseBatchResult, StatConfig
 from src.core.parsing.gem5.impl.pool.pool import ParseWorkPool
 from src.core.parsing.gem5.impl.strategies.factory import StrategyFactory
 
@@ -98,8 +99,6 @@ logger.info(f"Worker pool is the PRIMARY parsing mechanism ({_WORKER_POOL_SIZE} 
 class ParseService:
     """Service for orchestrating the parsing workflow."""
 
-    _active_var_names: List[str] = []
-
     @staticmethod
     def submit_parse_async(
         stats_path: str,
@@ -108,8 +107,8 @@ class ParseService:
         output_dir: str,
         strategy_type: str = "simple",
         scanned_vars: Optional[List[Any]] = None,
-    ) -> List[Any]:
-        """Submit async parsing job and return futures."""
+    ) -> ParseBatchResult:
+        """Submit async parsing job and return a ParseBatchResult."""
         search_path = normalize_user_path(stats_path)
         if not search_path.exists():
             raise FileNotFoundError(f"Stats path does not exist: {stats_path}")
@@ -164,16 +163,20 @@ class ParseService:
         # 3. Get work items from strategy
         batch_work = strategy.get_work_items(stats_path, safe_pattern, processed_configs)
         if not batch_work:
-            return []
+            return ParseBatchResult(futures=[], var_names=[])
 
-        ParseService._active_var_names = [v.name for v in processed_configs]
+        var_names = [v.name for v in processed_configs]
 
         pool = ParseWorkPool.get_instance()
-        return pool.submit_batch_async(batch_work)
+        futures = pool.submit_batch_async(batch_work)
+        return ParseBatchResult(futures=futures, var_names=var_names)
 
     @staticmethod
     def finalize_parsing(
-        output_dir: str, results: List[Any], strategy_type: str = "simple"
+        output_dir: str,
+        results: List[Any],
+        strategy_type: str = "simple",
+        var_names: Optional[List[str]] = None,
     ) -> Optional[str]:
         """
         Post-process and aggregate provided results into final CSV.
@@ -186,12 +189,22 @@ class ParseService:
         strategy = StrategyFactory.create(strategy_type)
 
         processed_results = strategy.post_process(results)
-        return ParseService.construct_final_csv(output_dir, processed_results)
+        return ParseService.construct_final_csv(output_dir, processed_results, var_names=var_names)
 
     @staticmethod
-    def construct_final_csv(output_dir: str, results: List[Any]) -> Optional[str]:
+    def construct_final_csv(
+        output_dir: str,
+        results: List[Any],
+        var_names: Optional[List[str]] = None,
+    ) -> Optional[str]:
         """
         Aggregate provided results and save to CSV.
+
+        Args:
+            output_dir: Directory for output CSV file.
+            results: Parsed results to aggregate.
+            var_names: Ordered variable names for column consistency.
+                       If None, falls back to keys from the first result.
         """
         if not results:
             return None
@@ -201,13 +214,10 @@ class ParseService:
         sample = results[0]
         column_map: Dict[str, Optional[List[str]]] = {}
 
-        # Use stored var names to ensure consistent order
-        var_names = ParseService._active_var_names
-        # Fallback if empty
-        if not var_names:
-            var_names = list(sample.keys())
+        # Use provided var_names to ensure consistent order
+        ordered_names: List[str] = var_names if var_names else list(sample.keys())
 
-        for var_name in var_names:
+        for var_name in ordered_names:
             if var_name not in sample:
                 continue
 
@@ -228,7 +238,7 @@ class ParseService:
 
             for file_stats in results:
                 row_parts: List[str] = []
-                for var_name in var_names:
+                for var_name in ordered_names:
                     if var_name not in file_stats:
                         row_parts.append("NaN")
                         continue

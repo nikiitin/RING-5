@@ -60,14 +60,16 @@ system.mem.latency_dist::total               500
         Path(output_dir).mkdir()
 
         # Parse with statistics-only mode
-        parse_futures = ParseService.submit_parse_async(
+        batch = ParseService.submit_parse_async(
             stats_path=str(stats_file.parent),
             stats_pattern="stats.txt",
             variables=variables,
             output_dir=output_dir,
         )
-        parse_results = [f.result() for f in parse_futures]
-        csv_path = ParseService.construct_final_csv(output_dir, parse_results)
+        parse_results = [f.result() for f in batch.futures]
+        csv_path = ParseService.construct_final_csv(
+            output_dir, parse_results, var_names=batch.var_names
+        )
 
         # Load and verify CSV
         df = pd.read_csv(csv_path)
@@ -113,14 +115,16 @@ system.mem.latency_dist::total               500
         Path(output_dir).mkdir()
 
         # Parse with full mode
-        parse_futures = ParseService.submit_parse_async(
+        batch = ParseService.submit_parse_async(
             stats_path=str(stats_file.parent),
             stats_pattern="stats.txt",
             variables=variables,
             output_dir=output_dir,
         )
-        parse_results = [f.result() for f in parse_futures]
-        csv_path = ParseService.construct_final_csv(output_dir, parse_results)
+        parse_results = [f.result() for f in batch.futures]
+        csv_path = ParseService.construct_final_csv(
+            output_dir, parse_results, var_names=batch.var_names
+        )
 
         # Load and verify CSV
         df = pd.read_csv(csv_path)
@@ -169,28 +173,32 @@ system.mem.latency_dist::total               500
         Path(output_dir_full).mkdir()
 
         # Parse full mode
-        parse_futures_full = ParseService.submit_parse_async(
+        batch_full = ParseService.submit_parse_async(
             stats_path=str(stats_file.parent),
             stats_pattern="stats.txt",
             variables=variables_full,
             output_dir=output_dir_full,
         )
-        results_full = [f.result() for f in parse_futures_full]
-        csv_full = ParseService.construct_final_csv(output_dir_full, results_full)
+        results_full = [f.result() for f in batch_full.futures]
+        csv_full = ParseService.construct_final_csv(
+            output_dir_full, results_full, var_names=batch_full.var_names
+        )
         df_full = pd.read_csv(csv_full)
 
         output_dir_stats = str(tmp_path / "stats_only_stats")
         Path(output_dir_stats).mkdir()
 
         # Parse statistics-only mode
-        parse_futures_stats = ParseService.submit_parse_async(
+        batch_stats = ParseService.submit_parse_async(
             stats_path=str(stats_file.parent),
             stats_pattern="stats.txt",
             variables=variables_stats_only,
             output_dir=output_dir_stats,
         )
-        results_stats = [f.result() for f in parse_futures_stats]
-        csv_stats = ParseService.construct_final_csv(output_dir_stats, results_stats)
+        results_stats = [f.result() for f in batch_stats.futures]
+        csv_stats = ParseService.construct_final_csv(
+            output_dir_stats, results_stats, var_names=batch_stats.var_names
+        )
         df_stats = pd.read_csv(csv_stats)
 
         # Statistics-only should have fewer columns

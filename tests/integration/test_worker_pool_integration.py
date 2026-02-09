@@ -88,7 +88,7 @@ class TestWorkerPoolIntegration:
         # Mock subprocess.run to ensure it's never called during parsing
         with patch("subprocess.run") as mock_subprocess:
             # Submit parse async
-            futures = ParseService.submit_parse_async(
+            batch = ParseService.submit_parse_async(
                 stats_path=str(Path(test_stats_file).parent),
                 stats_pattern="stats.txt",
                 variables=variables,
@@ -96,13 +96,15 @@ class TestWorkerPoolIntegration:
             )
 
             # Wait for results
-            results = [f.result() for f in futures]
+            results = [f.result() for f in batch.futures]
 
             # CRITICAL: subprocess.run should NOT be called
             mock_subprocess.assert_not_called()
 
             # Construct final CSV
-            csv_path = ParseService.construct_final_csv(str(output_dir), results)
+            csv_path = ParseService.construct_final_csv(
+                str(output_dir), results, var_names=batch.var_names
+            )
 
             # Verify output
             assert csv_path is not None

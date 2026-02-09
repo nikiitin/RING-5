@@ -174,9 +174,25 @@ class CsvPoolService:
 
         Returns:
             DataFrame with the CSV data.
+
+        Raises:
+            ValueError: If the path is empty or whitespace-only.
+            FileNotFoundError: If the resolved path does not exist.
+            IsADirectoryError: If the resolved path is a directory.
         """
+        # Validate input before resolving
+        if not csv_path or not csv_path.strip():
+            raise ValueError(f"Invalid CSV path: '{csv_path}'")
+
         # Resolve path to prevent traversal in any path components
         resolved_path = str(Path(csv_path).resolve())
+
+        # Validate the resolved path points to an existing file
+        resolved = Path(resolved_path)
+        if not resolved.exists():
+            raise FileNotFoundError(f"CSV file not found: {resolved_path}")
+        if resolved.is_dir():
+            raise IsADirectoryError(f"Path is a directory, not a file: {resolved_path}")
 
         # Check cache first
         cache_key = CsvPoolService._compute_file_hash(resolved_path)

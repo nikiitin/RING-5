@@ -18,13 +18,6 @@ def run_app():
     # This prevents the "missing ScriptRunContext" warnings.
     import streamlit as st
 
-    from src.web.pages.data_managers import show_data_managers_page
-    from src.web.pages.data_source import DataSourcePage
-    from src.web.pages.manage_plots import show_manage_plots_page
-    from src.web.pages.performance import render_performance_page
-    from src.web.pages.portfolio import show_portfolio_page
-    from src.web.pages.upload_data import UploadDataPage
-
     # Page configuration
     st.set_page_config(
         page_title="RING-5 Interactive Analyzer",
@@ -123,18 +116,30 @@ def run_app():
             api.reset_session()
             st.rerun()
 
-    # Main content
+    # Main content — lazy page imports: only the active page module is loaded
     if page == "Data Source":
+        from src.web.pages.data_source import DataSourcePage
+
         DataSourcePage(api).render()
     elif page == "Upload Data":
+        from src.web.pages.upload_data import UploadDataPage
+
         UploadDataPage(api).render()
     elif page == "Data Managers":
+        from src.web.pages.data_managers import show_data_managers_page
+
         show_data_managers_page(api)
     elif page == "Manage Plots":
+        from src.web.pages.manage_plots import show_manage_plots_page
+
         show_manage_plots_page(api)
     elif page == "Save/Load Portfolio":
+        from src.web.pages.portfolio import show_portfolio_page
+
         show_portfolio_page(api)
     elif page == "⚡ Performance":
+        from src.web.pages.performance import render_performance_page
+
         render_performance_page(api)
 
 

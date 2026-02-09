@@ -28,7 +28,7 @@ repos:
       - id: mypy
         additional_dependencies:
           [pandas-stubs, types-jsonschema, types-tqdm, types-PyYAML]
-        args: [--ignore-missing-imports, --no-strict-optional]
+        args: [--ignore-missing-imports]
         files: ^src/
 
   # Import sorting

@@ -8,7 +8,7 @@ parsing and scanning operations behind a single facade.
 from concurrent.futures import Future
 from typing import Any, List, Optional, Protocol
 
-from src.core.models import ScannedVariable, StatConfig
+from src.core.models import ParseBatchResult, ScannedVariable, StatConfig
 
 
 class ParserAPI(Protocol):
@@ -30,8 +30,8 @@ class ParserAPI(Protocol):
         output_dir: str,
         strategy_type: str = "simple",
         scanned_vars: Optional[List[Any]] = None,
-    ) -> List[Future[Any]]:
-        """Submit async parsing job and return futures."""
+    ) -> ParseBatchResult:
+        """Submit async parsing job and return a ParseBatchResult."""
         ...
 
     def finalize_parsing(
@@ -39,6 +39,7 @@ class ParserAPI(Protocol):
         output_dir: str,
         results: List[Any],
         strategy_type: str = "simple",
+        var_names: Optional[List[str]] = None,
     ) -> Optional[str]:
         """Post-process and aggregate parsing results into CSV."""
         ...

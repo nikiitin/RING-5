@@ -52,7 +52,7 @@ class TestRealDataWithShapers:
         ]
 
         try:
-            parse_futures = facade.submit_parse_async(
+            batch = facade.submit_parse_async(
                 stats_path=str(first_subdir),
                 stats_pattern="**/stats.txt",
                 variables=variables,
@@ -61,12 +61,14 @@ class TestRealDataWithShapers:
 
             # Wait for parsing
             parse_results = []
-            for future in parse_futures:
+            for future in batch.futures:
                 result = future.result(timeout=30)
                 if result:
                     parse_results.append(result)
 
-            csv_path = facade.finalize_parsing(str(temp_output_dir), parse_results)
+            csv_path = facade.finalize_parsing(
+                str(temp_output_dir), parse_results, var_names=batch.var_names
+            )
 
             if csv_path is None or not Path(csv_path).exists():
                 pytest.skip("Parsing failed or no data")

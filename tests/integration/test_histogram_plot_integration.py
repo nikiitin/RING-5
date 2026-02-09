@@ -66,7 +66,7 @@ class TestHistogramPlotIntegration:
                 }
             ]
 
-            parse_futures = facade.submit_parse_async(
+            parse_batch = facade.submit_parse_async(
                 str(stats_dir),
                 "stats.txt",
                 variables,
@@ -74,8 +74,10 @@ class TestHistogramPlotIntegration:
                 scanned_vars=vars_found,
             )
 
-            parse_results = [f.result() for f in parse_futures]
-            csv_path = facade.finalize_parsing(tmpdir, parse_results)
+            parse_results = [f.result() for f in parse_batch.futures]
+            csv_path = facade.finalize_parsing(
+                tmpdir, parse_results, var_names=parse_batch.var_names
+            )
 
             assert csv_path is not None
 
@@ -142,7 +144,7 @@ class TestHistogramPlotIntegration:
             },
         ]
 
-        parse_futures = facade.submit_parse_async(
+        parse_batch = facade.submit_parse_async(
             str(stats_dir),
             "stats.txt",
             variables,
@@ -150,8 +152,10 @@ class TestHistogramPlotIntegration:
             scanned_vars=vars_found,
         )
 
-        parse_results = [f.result() for f in parse_futures]
-        csv_path = facade.finalize_parsing(str(output_dir), parse_results)
+        parse_results = [f.result() for f in parse_batch.futures]
+        csv_path = facade.finalize_parsing(
+            str(output_dir), parse_results, var_names=parse_batch.var_names
+        )
 
         assert csv_path is not None
 

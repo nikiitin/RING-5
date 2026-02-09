@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, mock_open, patch
 
 from src.core.application_api import ApplicationAPI
+from src.core.models import ParseBatchResult
 
 
 class TestAliasing:
@@ -33,12 +34,14 @@ class TestAliasing:
             # Mock futures properly
             mock_future = MagicMock()
             mock_future.result = MagicMock(return_value={"data": "test"})
-            mock_submit.return_value = [mock_future]
+            mock_submit.return_value = ParseBatchResult(
+                futures=[mock_future], var_names=["IPC", "system.cpu.cpi"]
+            )
             mock_construct.return_value = "/tmp/result.csv"
 
             # Execute async parse
-            parse_futures = facade.submit_parse_async(stats_path, stats_pattern, variables, "/tmp")
-            [f.result() for f in parse_futures]
+            batch = facade.submit_parse_async(stats_path, stats_pattern, variables, "/tmp")
+            [f.result() for f in batch.futures]
             # ApplicationAPI may not verify finalize directly here if it just delegates.
             # But the test mainly checks `submit_parse_async` logic for variables.
             # So we can potentially skip finalize call or check implementation.

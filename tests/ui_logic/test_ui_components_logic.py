@@ -71,7 +71,12 @@ def test_execute_parser(mock_streamlit, mock_api):
     # Mock the async workflow
     mock_future = MagicMock()
     mock_future.result.return_value = {"data": "test"}
-    mock_api.submit_parse_async.return_value = [mock_future]
+
+    from src.core.models import ParseBatchResult
+
+    mock_api.submit_parse_async.return_value = ParseBatchResult(
+        futures=[mock_future], var_names=["test_var"]
+    )
 
     csv_path = "/tmp/out.csv"
     mock_api.finalize_parsing.return_value = csv_path
@@ -80,9 +85,9 @@ def test_execute_parser(mock_streamlit, mock_api):
 
     with patch("pathlib.Path.exists", return_value=True):
         # Test async submission
-        futures = mock_api.submit_parse_async("/stats", "*.txt", [], "/tmp")
-        results = [f.result() for f in futures]
-        final_csv = mock_api.finalize_parsing("/tmp", results)
+        batch = mock_api.submit_parse_async("/stats", "*.txt", [], "/tmp")
+        results = [f.result() for f in batch.futures]
+        final_csv = mock_api.finalize_parsing("/tmp", results, var_names=batch.var_names)
 
         assert final_csv == csv_path
         mock_api.submit_parse_async.assert_called()
