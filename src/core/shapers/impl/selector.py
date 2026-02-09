@@ -18,7 +18,7 @@ Dependencies:
 
 Usage Example:
     >>> # This is an abstract base class - use concrete implementations:
-    >>> from src.core.services.shapers.impl.selector.selector_algorithms import TopNSelector
+    >>> from src.core.shapers.impl.selector.selector_algorithms import TopNSelector
     >>>
     >>> # Select top 5 benchmarks by IPC
     >>> selector = TopNSelector({
@@ -62,7 +62,7 @@ from typing import Any, Dict
 
 import pandas as pd
 
-from src.core.services.shapers.uni_df_shaper import UniDfShaper
+from src.core.shapers.uni_df_shaper import UniDfShaper
 
 
 class Selector(UniDfShaper):

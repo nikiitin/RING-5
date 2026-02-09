@@ -5,7 +5,7 @@ import pytest
 from src.core.services.arithmetic_service import ArithmeticService
 from src.core.services.outlier_service import OutlierService
 from src.core.services.reduction_service import ReductionService
-from src.core.services.shapers.factory import ShaperFactory
+from src.core.shapers.factory import ShaperFactory
 
 
 class TestDataPipeline:

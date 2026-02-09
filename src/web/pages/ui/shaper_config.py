@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import pandas as pd
 import streamlit as st
 
-from src.core.services.shapers.factory import ShaperFactory
+from src.core.shapers.factory import ShaperFactory
 from src.web.pages.ui.components.shapers.mean_config import MeanConfig
 from src.web.pages.ui.components.shapers.normalize_config import NormalizeConfig
 from src.web.pages.ui.components.shapers.selector_transformer_configs import (

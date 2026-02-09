@@ -11,7 +11,7 @@ from typing import Any, Dict, List
 
 import pandas as pd
 
-from src.core.services.shapers.impl.selector import Selector
+from src.core.shapers.impl.selector import Selector
 
 
 class ItemSelector(Selector):

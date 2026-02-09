@@ -10,7 +10,7 @@ from typing import Any, Callable, Dict, List, Optional, cast
 
 import pandas as pd
 
-from src.core.services.shapers.impl.selector import Selector
+from src.core.shapers.impl.selector import Selector
 
 
 class ConditionSelector(Selector):

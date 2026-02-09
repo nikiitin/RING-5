@@ -9,7 +9,7 @@ from typing import Any, Dict, List
 
 import pandas as pd
 
-from src.core.services.shapers.uni_df_shaper import UniDfShaper
+from src.core.shapers.uni_df_shaper import UniDfShaper
 
 
 class ColumnSelector(UniDfShaper):

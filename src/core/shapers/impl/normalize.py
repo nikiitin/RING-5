@@ -19,7 +19,7 @@ Dependencies:
     - SimpleCache: For caching normalized results (5min TTL)
 
 Usage Example:
-    >>> from src.core.services.shapers.impl.normalize import Normalize
+    >>> from src.core.shapers.impl.normalize import Normalize
     >>> import pandas as pd
     >>>
     >>> # Sample data with baseline configuration
@@ -82,7 +82,7 @@ import pandas as pd
 from pandas import DataFrame
 
 from src.core.performance import cached
-from src.core.services.shapers.uni_df_shaper import UniDfShaper
+from src.core.shapers.uni_df_shaper import UniDfShaper
 
 logger = logging.getLogger(__name__)
 

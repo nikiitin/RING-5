@@ -17,7 +17,7 @@ import pytest
 
 from src.core.application_api import ApplicationAPI
 from src.core.services.pipeline_service import PipelineService
-from src.core.services.shapers.factory import ShaperFactory
+from src.core.shapers.factory import ShaperFactory
 
 
 @pytest.fixture

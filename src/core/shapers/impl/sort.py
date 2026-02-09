@@ -17,7 +17,7 @@ Dependencies:
     - UniDfShaper: Base class for shaper interface
 
 Usage Example:
-    >>> from src.core.services.shapers.impl.sort import Sort
+    >>> from src.core.shapers.impl.sort import Sort
     >>> import pandas as pd
     >>>
     >>> # Sample data with random order
@@ -74,7 +74,7 @@ from typing import Any, Dict, List
 
 import pandas as pd
 
-from src.core.services.shapers.uni_df_shaper import UniDfShaper
+from src.core.shapers.uni_df_shaper import UniDfShaper
 
 
 class Sort(UniDfShaper):
