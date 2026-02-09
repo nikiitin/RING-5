@@ -71,18 +71,16 @@ def test_mixer_render_numeric_op(mock_streamlit, mock_api, sample_data):
     mock_st.text_input.return_value = "merged"
     mock_st.button.side_effect = lambda label, key=None, **kwargs: key == "mixer_preview"
 
-    with patch(
-        "src.web.pages.ui.data_managers.impl.mixer.ArithmeticService.merge_columns"
-    ) as mock_merge:
-        result_df = pd.DataFrame({"A": [1], "B": [4], "merged": [5]})
-        mock_merge.return_value = result_df
+    result_df = pd.DataFrame({"A": [1], "B": [4], "merged": [5]})
+    mock_api.compute.validate_merge_inputs.return_value = []
+    mock_api.compute.apply_mixer.return_value = result_df
 
-        manager.render()
+    manager.render()
 
-        mock_merge.assert_called()
-        # Check result stored via api
-        mock_api.set_preview.assert_called_once_with("mixer", result_df)
-        mock_st.success.assert_called()
+    mock_api.compute.apply_mixer.assert_called()
+    # Check result stored via api
+    mock_api.set_preview.assert_called_once_with("mixer", result_df)
+    mock_st.success.assert_called()
 
 
 def test_mixer_confirm(mock_streamlit, mock_api, sample_data):
@@ -121,20 +119,16 @@ def test_preprocessor_render_op(mock_streamlit, mock_api, sample_data):
     mock_st.text_input.return_value = "new_col"
     mock_st.button.side_effect = lambda label, key=None, **kwargs: key == "preview_preproc"
 
-    with patch("src.core.services.arithmetic_service.ArithmeticService.apply_operation") as mock_op:
-        with patch(
-            "src.core.services.arithmetic_service.ArithmeticService.list_operators"
-        ) as mock_list:
-            mock_list.return_value = ["Divide"]
-            result_df = pd.DataFrame({"A": [1], "B": [4], "new_col": [0.25]})
-            mock_op.return_value = result_df
+    mock_api.compute.list_operators.return_value = ["Divide"]
+    result_df = pd.DataFrame({"A": [1], "B": [4], "new_col": [0.25]})
+    mock_api.compute.apply_operation.return_value = result_df
 
-            manager.render()
+    manager.render()
 
-            mock_op.assert_called()
+    mock_api.compute.apply_operation.assert_called()
 
-            # Check result stored via api
-            mock_api.set_preview.assert_called_once_with("preprocessor", result_df)
+    # Check result stored via api
+    mock_api.set_preview.assert_called_once_with("preprocessor", result_df)
 
 
 def test_preprocessor_no_numeric_cols(mock_streamlit, mock_api):

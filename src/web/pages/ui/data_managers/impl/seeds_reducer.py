@@ -7,7 +7,6 @@ from typing import Optional
 import pandas as pd
 import streamlit as st
 
-from src.core.services.reduction_service import ReductionService
 from src.web.pages.ui.data_managers.data_manager import DataManager
 
 
@@ -100,7 +99,7 @@ class SeedsReducerManager(DataManager):
 
         if st.button("Apply Seeds Reducer", key="apply_seeds"):
             # Validate inputs first
-            validation_errors = ReductionService.validate_seeds_reducer_inputs(
+            validation_errors = self.api.compute.validate_seeds_reducer_inputs(
                 df=data,
                 categorical_cols=selected_categorical,
                 statistic_cols=selected_numeric,
@@ -112,7 +111,7 @@ class SeedsReducerManager(DataManager):
                 return
 
             try:
-                result_df = ReductionService.reduce_seeds(
+                result_df = self.api.compute.reduce_seeds(
                     df=data,
                     categorical_cols=selected_categorical,
                     statistic_cols=selected_numeric,

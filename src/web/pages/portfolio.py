@@ -13,7 +13,6 @@ import streamlit as st
 
 from src.core.application_api import ApplicationAPI
 from src.core.models import PortfolioData
-from src.core.services.pipeline_service import PipelineService
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -139,7 +138,7 @@ def show_portfolio_page(api: ApplicationAPI) -> None:
 
                 if st.button("Save Pipeline", type="primary"):
                     try:
-                        PipelineService.save_pipeline(
+                        api.pipeline.save_pipeline(
                             pipeline_name,
                             selected_plot.pipeline,
                             description=f"Extracted from {selected_plot_name}",
@@ -158,7 +157,7 @@ def show_portfolio_page(api: ApplicationAPI) -> None:
 
     with col2:
         st.markdown("### Apply Pipeline")
-        pipelines = PipelineService.list_pipelines()
+        pipelines = api.pipeline.list_pipelines()
         if pipelines:
             selected_pipeline_name = st.selectbox(
                 "Select Pipeline", pipelines, key="pipe_load_select"
@@ -174,7 +173,7 @@ def show_portfolio_page(api: ApplicationAPI) -> None:
 
                 if st.button("Apply Pipeline", type="primary"):
                     try:
-                        pipeline_data = PipelineService.load_pipeline(selected_pipeline_name)
+                        pipeline_data = api.pipeline.load_pipeline(selected_pipeline_name)
                         new_pipeline = pipeline_data.get("pipeline", [])
 
                         count = 0

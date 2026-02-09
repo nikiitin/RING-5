@@ -10,6 +10,19 @@ Key Responsibilities:
 - Manage data pipelines (scanning, parsing, transformations)
 - Orchestrate portfolio management and plotting
 - Maintain application state and session persistence
+
+Architecture:
+    ApplicationAPI composes:
+    - ServicesAPI:  Unified facade for all service operations
+    - ParseService / ScannerService: Parsing subsystem
+    - RepositoryStateManager: Application state
+
+    The ServicesAPI sub-APIs are exposed as properties for direct access:
+    - api.data      -> DataServicesAPI
+    - api.compute   -> ComputeServicesAPI
+    - api.pipeline  -> PipelineServicesAPI
+    - api.variable  -> VariableServicesAPI
+    - api.portfolio -> PortfolioServicesAPI
 """
 
 import logging
@@ -20,10 +33,14 @@ import numpy as np
 
 from src.core.models import StatConfig
 from src.core.parsing import ParseService, ScannerService
-from src.core.services.config_service import ConfigService
-from src.core.services.csv_pool_service import CsvPoolService
-from src.core.services.pipeline_service import PipelineService
-from src.core.services.portfolio_service import PortfolioService
+from src.core.services.services_api import (
+    ComputeServicesAPI,
+    DataServicesAPI,
+    PipelineServicesAPI,
+    PortfolioServicesAPI,
+    VariableServicesAPI,
+)
+from src.core.services.services_impl import DefaultServicesAPI
 from src.core.state.repository_state_manager import RepositoryStateManager
 
 logger = logging.getLogger(__name__)
@@ -38,30 +55,63 @@ class ApplicationAPI:
     2. Orchestrates data flow between Core Services and StateManager (Persistence/Memory).
     3. Provides semantic actions for the UI.
     4. Enforce the boundary between UI and Domain.
+    5. Exposes ServicesAPI sub-APIs for direct service access.
     """
 
     def __init__(self) -> None:
         """
         Initialize the Application API.
 
-        This constructor creates the long-lived state manager instance.
+        Creates the state manager and wires up the services facade.
         """
         self.state_manager = RepositoryStateManager()
 
-        # Initialize services
-        self.portfolio_service = PortfolioService(self.state_manager)
+        # Initialize services via unified facade
+        self._services = DefaultServicesAPI(self.state_manager)
+
+        # Backward-compatible alias (prefer api.portfolio)
+        self.portfolio_service = self._services.portfolio
 
         logger.info("ApplicationAPI initialized (Singleton Service)")
+
+    # =========================================================================
+    # ServicesAPI sub-API access (for UI components)
+    # =========================================================================
+
+    @property
+    def data(self) -> DataServicesAPI:
+        """Access data storage and retrieval operations."""
+        return self._services.data
+
+    @property
+    def compute(self) -> ComputeServicesAPI:
+        """Access stateless data transformation operations."""
+        return self._services.compute
+
+    @property
+    def pipeline(self) -> PipelineServicesAPI:
+        """Access pipeline and shaper operations."""
+        return self._services.pipeline
+
+    @property
+    def variable(self) -> VariableServicesAPI:
+        """Access gem5 variable management operations."""
+        return self._services.variable
+
+    @property
+    def portfolio(self) -> PortfolioServicesAPI:
+        """Access workspace persistence operations."""
+        return self._services.portfolio
 
     def load_data(self, csv_path: str) -> None:
         """
         Orchestrate loading data from a file path:
-        1. Load via CsvPoolService
+        1. Load via data services
         2. Persist via StateManager
         """
         try:
             # 1. Operation: Load
-            df = CsvPoolService.load_csv_file(csv_path)
+            df = self._services.data.load_csv_file(csv_path)
 
             # 2. Persistence: Save
             self.state_manager.set_data(df)
@@ -189,7 +239,7 @@ class ApplicationAPI:
 
     def apply_shapers(self, data: Any, pipeline_config: list[dict[str, Any]]) -> Any:
         """Apply a sequence of shapers to a DataFrame."""
-        return PipelineService.process_pipeline(data, pipeline_config)
+        return self._services.pipeline.process_pipeline(data, pipeline_config)
 
     # =========================================================================
     # Configuration Management
@@ -203,31 +253,31 @@ class ApplicationAPI:
         csv_path: str | None = None,
     ) -> str:
         """Save current configuration to disk."""
-        return ConfigService.save_configuration(name, description, shapers_config, csv_path)
+        return self._services.data.save_configuration(name, description, shapers_config, csv_path)
 
     def load_configuration(self, config_path: str) -> dict[str, Any]:
         """Load configuration from file."""
-        return ConfigService.load_configuration(config_path)
+        return self._services.data.load_configuration(config_path)
 
     def load_csv_pool(self) -> list[dict[str, Any]]:
         """List available CSV files in the pool."""
-        return CsvPoolService.load_pool()
+        return self._services.data.load_csv_pool()
 
     def load_saved_configs(self) -> list[dict[str, Any]]:
         """List all saved configurations."""
-        return ConfigService.load_saved_configs()
+        return self._services.data.load_saved_configs()
 
     def delete_configuration(self, config_path: str) -> bool:
         """Delete a configuration file."""
-        return ConfigService.delete_configuration(config_path)
+        return self._services.data.delete_configuration(config_path)
 
     def add_to_csv_pool(self, file_path: str) -> str:
         """Add a file to the CSV pool."""
-        return CsvPoolService.add_to_pool(file_path)
+        return self._services.data.add_to_csv_pool(file_path)
 
     def delete_from_pool(self, file_path: str) -> bool:
         """Delete a file from the CSV pool."""
-        return CsvPoolService.delete_from_pool(file_path)
+        return self._services.data.delete_from_csv_pool(file_path)
 
     def delete_from_csv_pool(self, file_path: str) -> bool:
         """Alias for delete_from_pool."""
@@ -235,7 +285,7 @@ class ApplicationAPI:
 
     def load_csv_file(self, file_path: str) -> Any:
         """Load a CSV file directly returning DataFrame."""
-        return CsvPoolService.load_csv_file(file_path)
+        return self._services.data.load_csv_file(file_path)
 
     def get_column_info(self, df: Any) -> Dict[str, Any]:
         """Get summary information about DataFrame columns for UI."""

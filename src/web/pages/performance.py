@@ -10,7 +10,6 @@ import streamlit as st
 
 from src.core.application_api import ApplicationAPI
 from src.core.performance import clear_all_caches, get_cache_stats
-from src.core.services.csv_pool_service import CsvPoolService
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +24,7 @@ def render_performance_page(api: ApplicationAPI) -> None:
     st.header("Cache Statistics")
 
     stats = get_cache_stats()
-    csv_stats = CsvPoolService.get_cache_stats()
+    csv_stats = api.data.get_cache_stats()
 
     col1, col2, col3 = st.columns(3)
 
@@ -72,7 +71,7 @@ def render_performance_page(api: ApplicationAPI) -> None:
 
         if st.button("Clear All Caches", type="primary"):
             clear_all_caches()
-            CsvPoolService.clear_caches()
+            api.data.clear_caches()
             st.success("All caches cleared!")
             st.rerun()
 

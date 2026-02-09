@@ -17,7 +17,6 @@ if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
 from src.core.application_api import ApplicationAPI  # noqa: E402
-from src.core.services.portfolio_service import PortfolioService  # noqa: E402
 from src.web.pages.ui.components.plot_manager_components import (  # noqa: E402
     PlotManagerComponents,
 )
@@ -59,7 +58,7 @@ def show_manage_plots_page(api: ApplicationAPI) -> None:
         PlotManagerComponents.render_plot_display(api, current_plot)
 
     # 6. Workspace Management
-    PlotManagerComponents.render_workspace_management(api, PortfolioService)
+    PlotManagerComponents.render_workspace_management(api)
 
 
 if __name__ == "__main__":

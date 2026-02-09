@@ -49,6 +49,14 @@ def mock_api():
     api.state_manager = MagicMock()
     api.state_manager.get_scanned_variables.return_value = []
     api.state_manager.get_parse_variables.return_value = []
+
+    # Wire up variable utility methods with realistic behavior
+    api.variable.generate_variable_id.return_value = "test_id"
+    api.variable.parse_comma_separated_entries.side_effect = lambda s: [
+        e.strip() for e in s.split(",") if e.strip()
+    ]
+    api.variable.format_entries_as_string.side_effect = lambda entries: ", ".join(entries)
+    api.variable.filter_internal_stats.side_effect = lambda entries: entries
     return api
 
 

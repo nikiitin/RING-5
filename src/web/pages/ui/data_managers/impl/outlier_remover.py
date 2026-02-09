@@ -7,7 +7,6 @@ from typing import Optional
 import pandas as pd
 import streamlit as st
 
-from src.core.services.outlier_service import OutlierService
 from src.web.pages.ui.data_managers.data_manager import DataManager
 
 
@@ -92,7 +91,7 @@ class OutlierRemoverManager(DataManager):
 
         if st.button("Apply Outlier Remover", key="apply_outlier"):
             # Validate inputs first
-            validation_errors = OutlierService.validate_outlier_inputs(
+            validation_errors = self.api.compute.validate_outlier_inputs(
                 df=data,
                 outlier_col=outlier_column,
                 group_by_cols=group_by_cols,
@@ -104,7 +103,7 @@ class OutlierRemoverManager(DataManager):
                 return
 
             try:
-                filtered_df = OutlierService.remove_outliers(
+                filtered_df = self.api.compute.remove_outliers(
                     df=data, outlier_col=outlier_column, group_by_cols=group_by_cols
                 )
 

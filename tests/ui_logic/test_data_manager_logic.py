@@ -80,18 +80,18 @@ def test_seeds_reducer_apply(mock_streamlit, mock_api, sample_data):
     # Confirm Button -> False (for this pass)
     mock_st.button.side_effect = lambda label, key=None, **kwargs: key == "apply_seeds"
 
-    # Mock Processing Service
-    with patch("src.core.services.reduction_service.ReductionService.reduce_seeds") as mock_reduce:
-        result_df = pd.DataFrame({"benchmark": ["b1"], "value": [11], "value.sd": [1.4]})
-        mock_reduce.return_value = result_df
+    # Mock Computing Service via api facade
+    result_df = pd.DataFrame({"benchmark": ["b1"], "value": [11], "value.sd": [1.4]})
+    mock_api.compute.validate_seeds_reducer_inputs.return_value = []
+    mock_api.compute.reduce_seeds.return_value = result_df
 
-        manager.render()
+    manager.render()
 
-        # Check processing called
-        mock_reduce.assert_called_once()
+    # Check processing called
+    mock_api.compute.reduce_seeds.assert_called_once()
 
-        # Check result stored via api
-        mock_api.set_preview.assert_called_once_with("seeds_reduction", result_df)
+    # Check result stored via api
+    mock_api.set_preview.assert_called_once_with("seeds_reduction", result_df)
 
 
 def test_seeds_reducer_confirm(mock_streamlit, mock_api, sample_data):
@@ -137,11 +137,11 @@ def test_outlier_remover_run(mock_streamlit, mock_api, sample_data):
     # Button: Apply -> True
     mock_st.button.side_effect = lambda label, key=None, **kwargs: key == "apply_outlier"
 
-    with patch("src.core.services.outlier_service.OutlierService.remove_outliers") as mock_remove:
-        mock_remove.return_value = sample_data
+    mock_api.compute.validate_outlier_inputs.return_value = []
+    mock_api.compute.remove_outliers.return_value = sample_data
 
-        manager.render()
+    manager.render()
 
-        mock_remove.assert_called_once()
-        # Check result stored via api
-        mock_api.set_preview.assert_called_once_with("outlier_removal", sample_data)
+    mock_api.compute.remove_outliers.assert_called_once()
+    # Check result stored via api
+    mock_api.set_preview.assert_called_once_with("outlier_removal", sample_data)

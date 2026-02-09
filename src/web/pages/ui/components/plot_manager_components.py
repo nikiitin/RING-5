@@ -7,12 +7,11 @@ data transformation pipelines, rendering, and export operations.
 
 import copy
 import logging
-from typing import Any, Optional
+from typing import Optional
 
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
-from src.core.services.pipeline_service import PipelineService
 from src.web.pages.ui.plotting import BasePlot, PlotFactory, PlotRenderer
 from src.web.pages.ui.plotting.plot_service import PlotService
 from src.web.pages.ui.shaper_config import apply_shapers, configure_shaper
@@ -112,12 +111,12 @@ class PlotManagerComponents:
 
         # Dialogs
         if st.session_state.get(f"show_save_for_plot_{plot.plot_id}", False):
-            PlotManagerComponents._render_save_pipeline_dialog(plot)
+            PlotManagerComponents._render_save_pipeline_dialog(api, plot)
         if st.session_state.get(f"show_load_for_plot_{plot.plot_id}", False):
-            PlotManagerComponents._render_load_pipeline_dialog(plot)
+            PlotManagerComponents._render_load_pipeline_dialog(api, plot)
 
     @staticmethod
-    def _render_save_pipeline_dialog(plot: BasePlot) -> None:
+    def _render_save_pipeline_dialog(api: ApplicationAPI, plot: BasePlot) -> None:
         st.markdown("---")
         st.markdown(f"### Save Pipeline for '{plot.name}'")
         col1, col2 = st.columns([3, 1])
@@ -130,7 +129,7 @@ class PlotManagerComponents:
             st.write("")
             if st.button("Save", type="primary", key=f"save_p_btn_{plot.plot_id}"):
                 try:
-                    PipelineService.save_pipeline(
+                    api.pipeline.save_pipeline(
                         name, plot.pipeline, description=f"Source: {plot.name}"
                     )
                     st.success("Pipeline saved!")
@@ -143,10 +142,10 @@ class PlotManagerComponents:
                 st.rerun()
 
     @staticmethod
-    def _render_load_pipeline_dialog(plot: BasePlot) -> None:
+    def _render_load_pipeline_dialog(api: ApplicationAPI, plot: BasePlot) -> None:
         st.markdown("---")
         st.markdown("### Load Pipeline")
-        pipelines = PipelineService.list_pipelines()
+        pipelines = api.pipeline.list_pipelines()
         if not pipelines:
             st.warning("No saved pipelines found.")
             if st.button("Close", key=f"close_load_{plot.plot_id}"):
@@ -157,7 +156,7 @@ class PlotManagerComponents:
         selected = st.selectbox("Select Pipeline", pipelines, key=f"load_p_sel_{plot.plot_id}")
         if st.button("Load", type="primary", key=f"load_p_btn_{plot.plot_id}"):
             try:
-                data = PipelineService.load_pipeline(selected)
+                data = api.pipeline.load_pipeline(selected)
                 plot.pipeline = copy.deepcopy(data.get("pipeline", []))
                 plot.pipeline_counter = len(plot.pipeline)
                 plot.processed_data = None  # Reset data
@@ -359,7 +358,7 @@ class PlotManagerComponents:
         PlotRenderer.render_plot(plot, should_gen)
 
     @staticmethod
-    def render_workspace_management(api: ApplicationAPI, _PortfolioServiceClass: Any) -> None:
+    def render_workspace_management(api: ApplicationAPI) -> None:
         """Render workspace management buttons."""
         st.markdown("---")
         st.markdown("### Workspace Management")

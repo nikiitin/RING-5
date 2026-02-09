@@ -7,7 +7,6 @@ from typing import Optional
 import pandas as pd
 import streamlit as st
 
-from src.core.services.arithmetic_service import ArithmeticService
 from src.web.pages.ui.data_managers.data_manager import DataManager
 
 
@@ -53,7 +52,7 @@ class PreprocessorManager(DataManager):
 
         with col2:
             operation = st.selectbox(
-                "Operation", options=ArithmeticService.list_operators(), key="preproc_op"
+                "Operation", options=self.api.compute.list_operators(), key="preproc_op"
             )
 
         with col3:
@@ -76,7 +75,7 @@ class PreprocessorManager(DataManager):
 
         if st.button("Preview Result", key="preview_preproc"):
             try:
-                preview_data = ArithmeticService.apply_operation(
+                preview_data = self.api.compute.apply_operation(
                     df=data,
                     operation=operation,
                     src1=src_col1,
