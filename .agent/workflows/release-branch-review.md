@@ -108,11 +108,11 @@ git log --stat origin/main..HEAD
 # Check for UI imports in domain layer
 grep -rn "import streamlit\|from streamlit\|import st" src/core/ src/domain/ 2>/dev/null
 
-# Check for infrastructure imports in domain
-grep -rn "import sqlalchemy\|import requests" src/core/domain/ 2>/dev/null
+# Check for infrastructure imports in models
+grep -rn "import sqlalchemy\|import requests" src/core/models/ 2>/dev/null
 
-# Check for direct file operations in domain (should use Repository)
-grep -rn "open(\|Path(" src/core/domain/ 2>/dev/null | grep -v "typing\|pathlib"
+# Check for direct file operations in models (should use Repository)
+grep -rn "open(\|Path(" src/core/models/ 2>/dev/null | grep -v "typing\|pathlib"
 ```
 
 **Violations Found**: \_\_\_ (List any)
@@ -142,7 +142,7 @@ done
 
 ```bash
 # Ensure no direct file I/O outside adapters
-grep -rn "\.read_csv\|\.to_csv\|json\.load\|yaml\.load" src/core/domain/ 2>/dev/null
+grep -rn "\.read_csv\|\.to_csv\|json\.load\|yaml\.load" src/core/models/ 2>/dev/null
 ```
 
 **Factory Pattern:**

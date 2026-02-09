@@ -41,9 +41,11 @@ graph TD
 src/
 ├── core/                           # Layer A + B: Core Domain
 │   ├── application_api.py          # 🎯 MAIN FACADE - Single entry point
-│   ├── domain/                     # Domain models and types
-│   │   ├── models.py               # TypedDicts (PortfolioData, etc.)
-│   │   └── plot.py                 # Plot-related models
+│   ├── models/                     # Shared data models and protocols
+│   │   ├── __init__.py              # Re-exports all models
+│   │   ├── parsing_models.py        # ScannedVariable, StatConfig
+│   │   ├── portfolio_models.py      # PortfolioData TypedDict
+│   │   └── plot_protocol.py         # PlotProtocol
 │   ├── parsing/                    # Layer A: Data Ingestion
 │   │   ├── parse_service.py        # Async parsing orchestration
 │   │   ├── scanner_service.py      # Variable discovery

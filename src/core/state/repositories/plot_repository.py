@@ -17,7 +17,7 @@ from __future__ import annotations
 import logging
 from typing import List, Optional
 
-from src.core.domain.plot_protocol import PlotProtocol
+from src.core.models import PlotProtocol
 
 logger = logging.getLogger(__name__)
 

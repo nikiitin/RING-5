@@ -12,7 +12,7 @@ from typing import List, Optional, cast
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
-from src.core.domain.models import PortfolioData
+from src.core.models import PortfolioData
 from src.core.services.pipeline_service import PipelineService
 
 logger: logging.Logger = logging.getLogger(__name__)

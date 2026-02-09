@@ -1,8 +1,8 @@
 """
-Type definitions for the web layer.
+Portfolio data models.
 
-This module contains shared type definitions used across the web layer
-to avoid circular imports.
+Defines the PortfolioData TypedDict used for session serialization
+and restoration across all layers.
 """
 
 from typing import Any, Dict, List, TypedDict

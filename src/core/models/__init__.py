@@ -1,7 +1,7 @@
 """
-RING-5 Core Models — Shared data models for cross-layer communication.
+RING-5 Core Models -- Shared data models and protocols for cross-layer communication.
 
-These frozen dataclasses form the "common language" between the parsing,
+These types form the "common language" between the parsing,
 application-API, and presentation layers. They are intentionally kept
 outside any single layer so that every module can depend on them
 without introducing circular or upward imports.
@@ -9,8 +9,20 @@ without introducing circular or upward imports.
 Public API:
     - ScannedVariable: Metadata for a variable discovered in a stats file
     - StatConfig:      Configuration for a specific statistic extraction
+    - PortfolioData:   TypedDict for session serialization/restoration
+    - PlotProtocol:    Protocol defining the core plot interface
 """
 
+from src.core.models.config.config_manager import ConfigTemplateGenerator, ConfigValidator
 from src.core.models.parsing_models import ScannedVariable, StatConfig
+from src.core.models.plot_protocol import PlotProtocol
+from src.core.models.portfolio_models import PortfolioData
 
-__all__ = ["ScannedVariable", "StatConfig"]
+__all__ = [
+    "ScannedVariable",
+    "StatConfig",
+    "PortfolioData",
+    "PlotProtocol",
+    "ConfigValidator",
+    "ConfigTemplateGenerator",
+]

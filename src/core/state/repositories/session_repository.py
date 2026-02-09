@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 else:
     BasePlot = None  # type: ignore
 
-from src.core.domain.models import PortfolioData
+from src.core.models import PortfolioData
 from src.core.state.repositories.config_repository import ConfigRepository
 from src.core.state.repositories.data_repository import DataRepository
 from src.core.state.repositories.parser_state_repository import ParserStateRepository

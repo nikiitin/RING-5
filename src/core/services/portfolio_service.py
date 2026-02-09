@@ -71,7 +71,7 @@ from typing import Any, Dict, List, Optional, cast
 
 import pandas as pd
 
-from src.core.domain.plot_protocol import PlotProtocol
+from src.core.models import PlotProtocol
 from src.core.services.path_service import PathService
 from src.core.state.state_manager import StateManager
 

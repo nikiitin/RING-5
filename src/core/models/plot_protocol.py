@@ -4,9 +4,6 @@ Plot Protocol and Type Definitions.
 Defines the core interface (protocol) for plot objects, decoupling the core
 layer from web layer implementation details. This allows core services to work
 with plots without depending on concrete web implementations.
-
-Maintains publication-quality plot abstraction with support for complex
-configurations, transformations, and metadata management.
 """
 
 from typing import Any, Dict, List, Optional, Protocol, runtime_checkable

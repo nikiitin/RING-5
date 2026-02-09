@@ -13,8 +13,7 @@ from typing import Any, Callable, Dict, List, Optional, Protocol, runtime_checka
 
 import pandas as pd
 
-from src.core.domain.models import PortfolioData
-from src.core.domain.plot_protocol import PlotProtocol
+from src.core.models import PlotProtocol, PortfolioData
 
 
 @runtime_checkable

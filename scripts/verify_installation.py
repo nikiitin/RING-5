@@ -13,7 +13,7 @@ def test_config_validation():
     """Test configuration validation."""
     print("Testing configuration validation...")
     try:
-        from src.core.config.config_manager import ConfigValidator
+        from src.core.models.config.config_manager import ConfigValidator
 
         # Test with template
         with open("templates/config_template.json") as f:
@@ -32,7 +32,7 @@ def test_template_generation():
     """Test template generation."""
     print("\nTesting template generation...")
     try:
-        from src.core.config.config_manager import ConfigTemplateGenerator
+        from src.core.models.config.config_manager import ConfigTemplateGenerator
 
         config = ConfigTemplateGenerator.create_minimal_config("./output", "/path/to/stats")
 
@@ -48,7 +48,7 @@ def test_template_generation():
         config["plots"].append(plot)
 
         # Validate it
-        from src.core.config.config_manager import ConfigValidator
+        from src.core.models.config.config_manager import ConfigValidator
 
         validator = ConfigValidator()
         validator.validate(config)
@@ -67,7 +67,7 @@ def test_schema_validation():
     """Test JSON schema validation."""
     print("\nTesting JSON schema...")
     try:
-        from src.core.config.config_manager import ConfigValidator
+        from src.core.models.config.config_manager import ConfigValidator
 
         # Test invalid config
         invalid_config = {

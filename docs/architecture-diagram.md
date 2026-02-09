@@ -6,28 +6,25 @@ This document provides a comprehensive view of the RING-5 codebase architecture,
 
 ```mermaid
 flowchart TB
-    subgraph LEAF["LEAF MODULES (no src dependencies)"]
+    subgraph LEAF["🌱 LEAF MODULES (no src dependencies)"]
         direction LR
-        domain["core/domain/<br>models.py, plot_protocol.py"]
+        models["core/models/<br>parsing_models.py (ScannedVariable, StatConfig)<br>portfolio_models.py (PortfolioData)<br>plot_protocol.py (PlotProtocol)<br>config/ (ConfigValidator, ConfigTemplateGenerator)"]
         common["core/common/<br>utils.py"]
-        config_mod["core/config/<br>config_manager.py"]
         perf["core/performance.py"]
-        core_models["core/models/<br>ScannedVariable, StatConfig<br>(cross-layer data models)"]
     end
 
-    subgraph STATE["STATE LAYER"]
+    subgraph STATE["📦 STATE LAYER"]
         direction TB
         repos["state/repositories/<br>data, config, parser_state,<br>plot, preview, session"]
         state_mgr["state/state_manager.py<br>RepositoryStateManager"]
-        repos --> domain
+        repos --> models
         state_mgr --> repos
     end
 
-    subgraph PARSING["PARSING LAYER"]
+    subgraph PARSING["🔬 PARSING LAYER"]
         direction TB
         protocols["Protocols<br>parser_protocol.py<br>scanner_protocol.py<br>parser_api.py"]
         factory_parse["factory.py<br>ParserAPIFactory"]
-        p_models_shim["models.py<br>(backward-compat shim<br>re-exports from core/models/)"]
 
         subgraph GEM5["gem5/ Implementation"]
             direction TB
@@ -38,10 +35,10 @@ flowchart TB
             impl_g["impl/<br>gem5_parser.py<br>gem5_scanner.py<br>gem5_parser_api.py"]
         end
 
-        protocols --> core_models
+        protocols --> models
         factory_parse --> protocols
         factory_parse -.->|lazy| impl_g
-        types_g --> core_models
+        types_g --> models
         scanning_g --> types_g
         scanning_g --> pool_g
         strategies_g --> types_g
@@ -51,7 +48,7 @@ flowchart TB
         impl_g --> pool_g
     end
 
-    subgraph SERVICES["SERVICES LAYER"]
+    subgraph SERVICES["⚙️ SERVICES LAYER"]
         direction TB
         path_svc["path_service.py"]
         config_svc["config_service.py"]
@@ -79,18 +76,18 @@ flowchart TB
         portfolio_svc --> state_mgr
     end
 
-    subgraph APP_API["APPLICATION API (Facade)"]
+    subgraph APP_API["🎯 APPLICATION API (Facade)"]
         app_api["application_api.py<br>ApplicationAPI"]
     end
 
     app_api --> factory_parse
-    app_api --> core_models
+    app_api --> models
     app_api --> csv_svc
     app_api --> pipeline_svc
     app_api --> portfolio_svc
     app_api --> state_mgr
 
-    subgraph WEB["WEB LAYER (Streamlit UI)"]
+    subgraph WEB["🖥️ WEB LAYER (Streamlit UI)"]
         direction TB
         subgraph PAGES["pages/"]
             pages_list["data_source.py<br>upload_data.py<br>data_managers.py<br>manage_plots.py<br>portfolio.py<br>performance.py"]
@@ -123,7 +120,7 @@ flowchart TB
         pages_list --> DATA_MGR
         pages_list --> PLOTTING
         data_comp --> app_api
-        data_comp --> core_models
+        data_comp --> models
         dm_list --> compute_svc
         PLOTTING --> perf
         shaper_config --> shaper_factory
@@ -139,37 +136,34 @@ flowchart TB
     classDef core fill:#e3f2fd,stroke:#2196f3,stroke-width:1px
     classDef web fill:#fce4ec,stroke:#e91e63,stroke-width:1px
 
-    class domain,common,config_mod,perf,core_models leaf
+    class models,common,perf leaf
     class app_api facade
 ```
 
 ## Layer Descriptions
 
-### LEAF MODULES
+### 🌱 LEAF MODULES
 Foundational modules with **zero** internal dependencies. These form the stable base of the architecture:
-- **domain/**: Core type definitions (PortfolioData, PlotProtocol)
+- **models/**: Core data models, protocols, and configuration (ScannedVariable, StatConfig, PortfolioData, PlotProtocol, ConfigValidator, ConfigTemplateGenerator)
 - **common/utils.py**: Shared utilities (path normalization, JSON validation)
-- **config/**: Configuration schema validation
 - **performance.py**: Caching, profiling decorators
-- **core/models/**: Cross-layer data models (ScannedVariable, StatConfig) shared by parsing, application API, and UI layers
 
-### STATE LAYER
+### 📦 STATE LAYER
 Application state management using the Repository pattern:
 - **repositories/**: Individual state stores (data, config, parser, plot, preview, session)
 - **state_manager.py**: Facade composing all repositories
 
-### PARSING LAYER
+### 🔬 PARSING LAYER
 gem5 simulator output parsing with Strategy pattern:
 - **Protocols**: Simulator-agnostic interfaces (ParserProtocol, ScannerProtocol)
 - **Factory**: Creates parser instances by simulator type
-- **models.py**: Backward-compat re-export shim (canonical models in core/models/)
 - **gem5/**: Complete gem5 implementation
   - **types/**: Stat type handlers (scalar, vector, distribution, histogram)
   - **impl/pool/**: Work pool for parallel execution
   - **impl/scanning/**: Variable discovery and pattern aggregation
   - **impl/strategies/**: Parsing strategies (simple, config-aware)
 
-### SERVICES LAYER
+### ⚙️ SERVICES LAYER
 Business logic services:
 - **path_service.py**: Centralized file system navigation
 - **csv_pool_service.py**: CSV file discovery and caching
@@ -178,12 +172,12 @@ Business logic services:
 - **shapers/**: Data transformation strategies (mean, normalize, sort, select)
 - **Compute services**: arithmetic, mixer, reduction, outlier
 
-### APPLICATION API (Facade)
+### 🎯 APPLICATION API (Facade)
 Single entry point for all backend operations:
 - Orchestrates parsing, CSV loading, pipelines, portfolios
 - All web layer components import through this facade
 
-### WEB LAYER (Streamlit UI)
+### 🖥️ WEB LAYER (Streamlit UI)
 Presentation layer:
 - **pages/**: Page-level components (data source, upload, plots, portfolio)
 - **ui/components/**: Reusable UI widgets
@@ -205,10 +199,10 @@ Presentation layer:
 | From Layer | Can Import From |
 |------------|-----------------|
 | Leaf Modules | *(nothing)* |
-| State | domain |
+| State | models |
 | Parsing | models, common |
-| Services | common, performance, domain, state, shapers |
-| ApplicationAPI | parsing, services, state |
-| Web | ApplicationAPI, services (compute), performance |
+| Services | common, performance, models, state, shapers |
+| ApplicationAPI | parsing, services, state, models |
+| Web | ApplicationAPI, services (compute), performance, models |
 
 **Important**: The only `core→web` dependency is a `TYPE_CHECKING`-only import in `session_repository.py` for `BasePlot` type hints.
