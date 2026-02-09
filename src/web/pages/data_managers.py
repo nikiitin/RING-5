@@ -9,12 +9,12 @@ import streamlit as st
 
 from src.core.application_api import ApplicationAPI
 from src.web.pages.ui.components.data_manager_components import DataManagerComponents
-from src.web.pages.ui.data_managers.mixer import MixerManager
-from src.web.pages.ui.data_managers.outlier_remover import OutlierRemoverManager
-from src.web.pages.ui.data_managers.preprocessor import PreprocessorManager
+from src.web.pages.ui.data_managers.impl.mixer import MixerManager
+from src.web.pages.ui.data_managers.impl.outlier_remover import OutlierRemoverManager
+from src.web.pages.ui.data_managers.impl.preprocessor import PreprocessorManager
 
 # Import Sub-Managers
-from src.web.pages.ui.data_managers.seeds_reducer import SeedsReducerManager
+from src.web.pages.ui.data_managers.impl.seeds_reducer import SeedsReducerManager
 
 
 def show_data_managers_page(api: ApplicationAPI) -> None:

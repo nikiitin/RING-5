@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.parsing.workers import Gem5ParseWork
+from src.core.parsing.gem5.impl.strategies.gem5_parse_work import Gem5ParseWork
 
 
 class MockType:
@@ -138,7 +138,9 @@ def test_call_subprocess(parser):
     # Test __call__ flow mocking worker pool instead of subprocess
     # Note: Worker pool is now the PRIMARY mechanism
     # Patch at gem5_parse_work module since get_worker_pool is now imported at module level
-    with patch("src.core.parsing.workers.gem5_parse_work.get_worker_pool") as mock_get_pool:
+    with patch(
+        "src.core.parsing.gem5.impl.strategies.gem5_parse_work.get_worker_pool"
+    ) as mock_get_pool:
         with patch("src.core.common.utils.checkFileExistsOrException"):
             # Success Case
             mock_pool = MagicMock()
@@ -158,7 +160,7 @@ def test_call_subprocess(parser):
 def test_distribution_with_stats(parser):
     # Test processing distribution with stats entries (mean, samples)
     # Mock variables first
-    from src.core.parsing.types import StatTypeRegistry
+    from src.core.parsing.gem5.types import StatTypeRegistry
 
     # Use small range to satisfy validation of all buckets
     # Initialize with configured statistics to pass validation

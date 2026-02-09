@@ -16,8 +16,8 @@ Tests cover:
 
 import pytest
 
-from src.core.parsing.types.base import StatTypeRegistry
-from src.core.parsing.types.distribution import SAFETY_MAX_BUCKETS, Distribution
+from src.core.parsing.gem5.types.base import StatTypeRegistry
+from src.core.parsing.gem5.types.distribution import SAFETY_MAX_BUCKETS, Distribution
 
 
 class TestDistributionInitialization:
@@ -465,45 +465,6 @@ class TestDistributionReducedContentAccess:
         # Assert
         assert isinstance(result, dict)
         assert result["0"] == 10.0
-
-    def test_access_via_reducedContent_alias(self):
-        # Arrange
-        dist = Distribution(minimum=0, maximum=1)
-        dist.content = {"underflows": [0], "0": [50], "1": [100], "overflows": [0]}
-        dist.balance_content()
-        dist.reduce_duplicates()
-
-        # Act - backward compatibility alias
-        result = dist.reducedContent
-
-        # Assert
-        assert result["0"] == 50.0
-
-
-class TestDistributionBackwardCompatibility:
-    """Test backward compatibility aliases."""
-
-    def test_balance_content_alias(self):
-        # Arrange
-        dist = Distribution(minimum=0, maximum=1)
-
-        # Act
-        dist.balanceContent()
-
-        # Assert
-        assert dist._balanced is True
-
-    def test_reduce_duplicates_alias(self):
-        # Arrange
-        dist = Distribution(minimum=0, maximum=1)
-        dist.content = {"underflows": [0], "0": [10], "1": [20], "overflows": [0]}
-        dist.balance_content()
-
-        # Act
-        dist.reduceDuplicates()
-
-        # Assert
-        assert dist._reduced is True
 
 
 class TestDistributionTypeRegistration:

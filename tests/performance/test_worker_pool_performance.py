@@ -7,7 +7,7 @@ from typing import List
 
 import pytest
 
-from src.core.parsing.workers.perl_worker_pool import (
+from src.core.parsing.gem5.impl.strategies.perl_worker_pool import (
     PerlWorkerPool,
     shutdown_worker_pool,
 )

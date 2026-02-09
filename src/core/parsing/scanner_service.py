@@ -11,10 +11,10 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from src.core.common.utils import normalize_user_path
-from src.core.parsing.models import ScannedVariable
-from src.core.parsing.pattern_aggregator import PatternAggregator
-from src.core.parsing.workers.gem5_scan_work import Gem5ScanWork
-from src.core.parsing.workers.pool import ScanWorkPool
+from src.core.models import ScannedVariable
+from src.core.parsing.gem5.impl.pool.pool import ScanWorkPool
+from src.core.parsing.gem5.impl.scanning.gem5_scan_work import Gem5ScanWork
+from src.core.parsing.gem5.impl.scanning.pattern_aggregator import PatternAggregator
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -61,11 +61,6 @@ class ScannerService:
         return pool.submit_batch_async(batch_work)
 
     @staticmethod
-    def cancel_scan() -> None:
-        """Cancel current scan by cancelling all pending futures."""
-        ScanWorkPool.get_instance().cancel_all()
-
-    @staticmethod
     def aggregate_scan_results(results: List[List[ScannedVariable]]) -> List[ScannedVariable]:
         """
         Aggregate results from async scan into unified variable list.
@@ -85,7 +80,7 @@ class ScannerService:
 
         # Apply pattern aggregation to consolidate repeated numeric patterns
         # Use models for aggregation
-        aggregated_vars = PatternAggregator.aggregate_patterns(merged_vars)
+        aggregated_vars: List[ScannedVariable] = PatternAggregator.aggregate_patterns(merged_vars)
 
         return aggregated_vars
 

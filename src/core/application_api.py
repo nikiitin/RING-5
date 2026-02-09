@@ -20,9 +20,8 @@ from typing import Any, Dict, List, cast
 
 import numpy as np
 
-from src.core.parsing.models import StatConfig
-from src.core.parsing.parse_service import ParseService
-from src.core.parsing.scanner_service import ScannerService
+from src.core.models import StatConfig
+from src.core.parsing import ParseService, ScannerService
 from src.core.services.csv_pool_service import CsvPoolService
 from src.core.services.pipeline_service import PipelineService
 from src.core.services.portfolio_service import PortfolioService

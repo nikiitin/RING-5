@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from src.core.parsing.scanner_service import ScannerService
+from src.core.parsing.gem5.impl.gem5_scanner import Gem5Scanner as ScannerService
 
 
 class TestScannerPatternAggregation:
@@ -131,7 +131,7 @@ class TestScannerPatternAggregation:
             pytest.skip("No stats files found in test data")
 
         # Scan WITHOUT aggregation (bypass by directly calling scanner)
-        from src.core.parsing.scanner import Gem5StatsScanner
+        from src.core.parsing.gem5.impl.scanning.scanner import Gem5StatsScanner
 
         scanner = Gem5StatsScanner.get_instance()
         raw_vars = scanner.scan_file(stats_files[0])

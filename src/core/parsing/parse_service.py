@@ -83,9 +83,9 @@ from dataclasses import replace
 from typing import Any, Dict, List, Optional
 
 from src.core.common.utils import normalize_user_path
-from src.core.parsing.models import StatConfig
-from src.core.parsing.strategies.factory import StrategyFactory
-from src.core.parsing.workers.pool import ParseWorkPool
+from src.core.models import StatConfig
+from src.core.parsing.gem5.impl.pool.pool import ParseWorkPool
+from src.core.parsing.gem5.impl.strategies.factory import StrategyFactory
 
 logger = logging.getLogger(__name__)
 
@@ -168,11 +168,6 @@ class ParseService:
 
         pool = ParseWorkPool.get_instance()
         return pool.submit_batch_async(batch_work)
-
-    @staticmethod
-    def cancel_parse() -> None:
-        """Cancel current parse."""
-        ParseWorkPool.get_instance().cancel_all()
 
     @staticmethod
     def finalize_parsing(

@@ -3,14 +3,14 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from src.web.pages.ui.data_managers.mixer import MixerManager
-from src.web.pages.ui.data_managers.preprocessor import PreprocessorManager
+from src.web.pages.ui.data_managers.impl.mixer import MixerManager
+from src.web.pages.ui.data_managers.impl.preprocessor import PreprocessorManager
 
 
 @pytest.fixture
 def mock_streamlit():
-    with patch("src.web.pages.ui.data_managers.mixer.st") as mock_st_mixer, patch(
-        "src.web.pages.ui.data_managers.preprocessor.st"
+    with patch("src.web.pages.ui.data_managers.impl.mixer.st") as mock_st_mixer, patch(
+        "src.web.pages.ui.data_managers.impl.preprocessor.st"
     ) as mock_st_prep:
 
         mock_st_mixer.session_state = {}
@@ -71,7 +71,9 @@ def test_mixer_render_numeric_op(mock_streamlit, mock_api, sample_data):
     mock_st.text_input.return_value = "merged"
     mock_st.button.side_effect = lambda label, key=None, **kwargs: key == "mixer_preview"
 
-    with patch("src.web.pages.ui.data_managers.mixer.MixerService.merge_columns") as mock_merge:
+    with patch(
+        "src.web.pages.ui.data_managers.impl.mixer.MixerService.merge_columns"
+    ) as mock_merge:
         result_df = pd.DataFrame({"A": [1], "B": [4], "merged": [5]})
         mock_merge.return_value = result_df
 

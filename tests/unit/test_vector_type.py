@@ -19,8 +19,8 @@ import logging
 
 import pytest
 
-from src.core.parsing.types.base import StatTypeRegistry
-from src.core.parsing.types.vector import Vector
+from src.core.parsing.gem5.types.base import StatTypeRegistry
+from src.core.parsing.gem5.types.vector import Vector
 
 
 class TestVectorInitialization:
@@ -365,19 +365,6 @@ class TestVectorReducedContentAccess:
         # Assert
         assert result == {"e0": 10.0}
 
-    def test_access_via_reducedContent_alias(self):
-        # Arrange
-        vector = Vector(entries=["e0"])
-        vector.content = {"e0": [20]}
-        vector.balance_content()
-        vector.reduce_duplicates()
-
-        # Act - backward compatibility alias
-        result = vector.reducedContent
-
-        # Assert
-        assert result == {"e0": 20.0}
-
     def test_access_reduced_content_property_directly(self):
         # Arrange
         vector = Vector(entries=["e0"])
@@ -387,32 +374,6 @@ class TestVectorReducedContentAccess:
         # Act & Assert - direct property access
         with pytest.raises(AttributeError, match="balance_content.*reduce_duplicates"):
             _ = vector.reduced_content
-
-
-class TestVectorBackwardCompatibility:
-    """Test backward compatibility aliases."""
-
-    def test_balance_content_alias(self):
-        # Arrange
-        vector = Vector(entries=["e0"])
-
-        # Act
-        vector.balanceContent()
-
-        # Assert
-        assert vector._balanced is True
-
-    def test_reduce_duplicates_alias(self):
-        # Arrange
-        vector = Vector(entries=["e0"])
-        vector.content = {"e0": [10]}
-        vector.balance_content()
-
-        # Act
-        vector.reduceDuplicates()
-
-        # Assert
-        assert vector._reduced is True
 
 
 class TestVectorTypeRegistration:

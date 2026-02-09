@@ -3,8 +3,8 @@ Unit Tests for Pattern Aggregator
 Tests the pattern detection and aggregation logic for repeated gem5 variables.
 """
 
-from src.core.parsing.models import ScannedVariable
-from src.core.parsing.pattern_aggregator import PatternAggregator
+from src.core.models import ScannedVariable
+from src.core.parsing.gem5.impl.scanning.pattern_aggregator import PatternAggregator
 
 
 class TestPatternExtraction:

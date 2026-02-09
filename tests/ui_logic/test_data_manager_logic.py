@@ -3,15 +3,15 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from src.web.pages.ui.data_managers.outlier_remover import OutlierRemoverManager
-from src.web.pages.ui.data_managers.seeds_reducer import SeedsReducerManager
+from src.web.pages.ui.data_managers.impl.outlier_remover import OutlierRemoverManager
+from src.web.pages.ui.data_managers.impl.seeds_reducer import SeedsReducerManager
 
 
 # Mock streamlit
 @pytest.fixture
 def mock_streamlit():
-    with patch("src.web.pages.ui.data_managers.seeds_reducer.st") as mock_st_seeds, patch(
-        "src.web.pages.ui.data_managers.outlier_remover.st"
+    with patch("src.web.pages.ui.data_managers.impl.seeds_reducer.st") as mock_st_seeds, patch(
+        "src.web.pages.ui.data_managers.impl.outlier_remover.st"
     ) as mock_st_outlier:
 
         # Configure session state handling for mocks.

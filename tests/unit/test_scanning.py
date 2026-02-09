@@ -2,21 +2,23 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.parsing.workers.gem5_scan_work import Gem5ScanWork
-from src.core.parsing.workers.pool import ScanWorkPool
+from src.core.parsing.gem5.impl.pool.pool import ScanWorkPool
+from src.core.parsing.gem5.impl.scanning.gem5_scan_work import Gem5ScanWork
 
 
 def test_stats_scan_work_success():
     work = Gem5ScanWork("test_file.txt")
 
-    from src.core.parsing.models import ScannedVariable
+    from src.core.models import ScannedVariable
 
     mock_vars = [
         ScannedVariable(name="var1", type="scalar"),
         ScannedVariable(name="var2", type="vector"),
     ]
 
-    with patch("src.core.parsing.scanner.Gem5StatsScanner.get_instance") as mock_scanner_cls:
+    with patch(
+        "src.core.parsing.gem5.impl.scanning.scanner.Gem5StatsScanner.get_instance"
+    ) as mock_scanner_cls:
         mock_instance = MagicMock()
         mock_scanner_cls.return_value = mock_instance
         mock_instance.scan_file.return_value = mock_vars
@@ -31,7 +33,9 @@ def test_stats_scan_work_success():
 def test_stats_scan_work_failure():
     work = Gem5ScanWork("test_file.txt")
 
-    with patch("src.core.parsing.scanner.Gem5StatsScanner.get_instance") as mock_scanner_cls:
+    with patch(
+        "src.core.parsing.gem5.impl.scanning.scanner.Gem5StatsScanner.get_instance"
+    ) as mock_scanner_cls:
         mock_instance = MagicMock()
         mock_scanner_cls.return_value = mock_instance
         mock_instance.scan_file.side_effect = Exception("Scan error")
@@ -58,25 +62,11 @@ def test_scan_work_pool_singleton(clean_pool_singleton):
     assert pool1 is pool2
 
 
-def test_scan_work_pool_add_work(clean_pool_singleton):
-    with patch("src.core.multiprocessing.pool.WorkPool.get_instance") as mock_wp_cls:
-        mock_internal_pool = MagicMock()
-        mock_wp_cls.return_value = mock_internal_pool
-
-        scan_pool = ScanWorkPool.get_instance()
-        work = Gem5ScanWork("f")
-
-        scan_pool.add_work(work)
-
-        mock_internal_pool.submit.assert_called_once_with(work)
-        assert len(scan_pool._futures) == 1
-
-
 def test_scan_work_pool_async_flow(clean_pool_singleton):
     """Test the core async flow of the pool."""
     from concurrent.futures import Future
 
-    with patch("src.core.multiprocessing.pool.WorkPool.get_instance"):
+    with patch("src.core.parsing.gem5.impl.pool.work_pool.WorkPool.get_instance"):
         scan_pool = ScanWorkPool.get_instance()
 
         work1 = MagicMock(spec=Gem5ScanWork)

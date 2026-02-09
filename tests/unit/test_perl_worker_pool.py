@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from src.core.parsing.workers.perl_worker_pool import (
+from src.core.parsing.gem5.impl.strategies.perl_worker_pool import (
     PerlWorker,
     PerlWorkerPool,
     get_worker_pool,
@@ -59,6 +59,7 @@ def perl_script_path():
         / "src"
         / "core"
         / "parsing"
+        / "gem5"
         / "perl"
         / "fileParserServer.pl"
     )

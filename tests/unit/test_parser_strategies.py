@@ -3,9 +3,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.parsing.models import StatConfig
-from src.core.parsing.strategies.config_aware import ConfigAwareStrategy
-from src.core.parsing.strategies.simple import SimpleStatsStrategy
+from src.core.models import StatConfig
+from src.core.parsing.gem5.impl.strategies.config_aware import ConfigAwareStrategy
+from src.core.parsing.gem5.impl.strategies.simple import SimpleStatsStrategy
 
 
 @pytest.fixture
@@ -18,8 +18,8 @@ def mock_variables() -> List[StatConfig]:
 
 class TestSimpleStatsStrategy:
 
-    @patch("src.core.parsing.strategies.simple.ParseWorkPool")
-    @patch("src.core.parsing.strategies.simple.normalize_user_path")
+    @patch("src.core.parsing.gem5.impl.strategies.simple.ParseWorkPool")
+    @patch("src.core.parsing.gem5.impl.strategies.simple.normalize_user_path")
     def test_execute_flow(
         self, mock_normalize: MagicMock, mock_pool_cls: MagicMock, mock_variables: List[StatConfig]
     ) -> None:
@@ -31,13 +31,13 @@ class TestSimpleStatsStrategy:
         mock_pool = MagicMock()
         mock_pool_cls.get_instance.return_value = mock_pool
 
-        # Setup futures result
+        # Setup futures result via submit_batch_async
         expected_results = [{"sim_path": "/path/1"}, {"sim_path": "/path/2"}]
         mock_future1 = MagicMock()
         mock_future1.result.return_value = expected_results[0]
         mock_future2 = MagicMock()
         mock_future2.result.return_value = expected_results[1]
-        mock_pool.get_all_futures.return_value = [mock_future1, mock_future2]
+        mock_pool.submit_batch_async.return_value = [mock_future1, mock_future2]
 
         strategy = SimpleStatsStrategy()
 
@@ -46,8 +46,7 @@ class TestSimpleStatsStrategy:
 
         # Assert
         assert len(results) == 2
-        mock_pool.start_pool.assert_called_once()
-        assert mock_pool.add_work.call_count == 2
+        mock_pool.submit_batch_async.assert_called_once()
 
     def test_variable_mapping_logic(self) -> None:
         strategy = SimpleStatsStrategy()
@@ -64,9 +63,11 @@ class TestSimpleStatsStrategy:
 
 class TestConfigAwareStrategy:
 
-    @patch("src.core.parsing.strategies.config_aware.configparser")
-    @patch("src.core.parsing.strategies.simple.ParseWorkPool")  # Parent class dependency
-    @patch("src.core.parsing.strategies.simple.normalize_user_path")  # Parent class dependency
+    @patch("src.core.parsing.gem5.impl.strategies.config_aware.configparser")
+    @patch("src.core.parsing.gem5.impl.strategies.simple.ParseWorkPool")  # Parent class dependency
+    @patch(
+        "src.core.parsing.gem5.impl.strategies.simple.normalize_user_path"
+    )  # Parent class dependency
     def test_config_augmentation(
         self,
         mock_normalize: MagicMock,
@@ -113,7 +114,7 @@ class TestConfigAwareStrategy:
 
         # Act
         with patch.object(strategy, "_parse_config") as mock_parse_config:
-            with patch("src.core.parsing.strategies.config_aware.Path") as mock_path_cls:
+            with patch("src.core.parsing.gem5.impl.strategies.config_aware.Path") as mock_path_cls:
                 mock_config_path = MagicMock()
                 mock_config_path.exists.return_value = True
                 mock_path_cls.return_value.parent.__truediv__.return_value = mock_config_path

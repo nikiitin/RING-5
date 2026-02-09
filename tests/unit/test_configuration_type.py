@@ -15,8 +15,8 @@ Tests cover:
 
 import pytest
 
-from src.core.parsing.types.base import StatTypeRegistry
-from src.core.parsing.types.configuration import Configuration
+from src.core.parsing.gem5.types.base import StatTypeRegistry
+from src.core.parsing.gem5.types.configuration import Configuration
 
 
 class TestConfigurationInitialization:
@@ -312,7 +312,7 @@ class TestConfigurationReducedContentAccess:
 
         # Act & Assert - base class raises AttributeError
         with pytest.raises(AttributeError, match="balance_content.*reduce_duplicates"):
-            _ = config.reducedContent
+            _ = config.reduced_content
 
     def test_access_reduced_content_before_reduce_raises(self):
         # Arrange
@@ -323,7 +323,7 @@ class TestConfigurationReducedContentAccess:
 
         # Act & Assert - base class raises AttributeError
         with pytest.raises(AttributeError, match="balance_content.*reduce_duplicates"):
-            _ = config.reducedContent
+            _ = config.reduced_content
 
     def test_access_reduced_content_after_both_succeeds(self):
         # Arrange
@@ -333,36 +333,10 @@ class TestConfigurationReducedContentAccess:
         config.reduce_duplicates()
 
         # Act
-        result = config.reducedContent
+        result = config.reduced_content
 
         # Assert
         assert result == "test_value"
-
-
-class TestConfigurationBackwardCompatibility:
-    """Test backward compatibility aliases."""
-
-    def test_balance_content_alias(self):
-        # Arrange
-        config = Configuration(onEmpty="default")
-
-        # Act
-        config.balanceContent()
-
-        # Assert
-        assert config._balanced is True
-
-    def test_reduce_duplicates_alias(self):
-        # Arrange
-        config = Configuration(onEmpty="default")
-        config._set_content("value")
-        config.balance_content()
-
-        # Act
-        config.reduceDuplicates()
-
-        # Assert
-        assert config._reduced is True
 
 
 class TestConfigurationTypeRegistration:

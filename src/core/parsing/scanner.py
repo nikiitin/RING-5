@@ -13,8 +13,8 @@ import subprocess  # nosec B404 - Required for gem5 Perl parser execution
 from pathlib import Path
 from typing import List, Optional
 
-from src.core.parsing.models import ScannedVariable
-from src.core.parsing.type_mapper import TypeMapper
+from src.core.models import ScannedVariable
+from src.core.parsing.gem5.types.type_mapper import TypeMapper
 
 logger = logging.getLogger(__name__)
 
@@ -109,25 +109,3 @@ class Gem5StatsScanner:
         except json.JSONDecodeError as e:
             logger.error(f"SCANNER: Invalid JSON output from script: {result.stdout[:200]}")
             raise RuntimeError("Perl scanner produced corrupt JSON output.") from e
-
-    def scan_entries_for_variable(self, file_path: Path, var_name: str) -> List[str]:
-        """
-        Find all individual entries (keys) for a vector or histogram variable.
-
-        Args:
-            file_path: Absolute path to the stats file.
-            var_name: Name of the variable to inspect.
-
-        Returns:
-            List of entry keys (e.g., ['cpu0', 'cpu1'] for a vector).
-        """
-        all_vars = self.scan_file(file_path)
-        for var in all_vars:
-            if var.name == var_name and var.type in ("vector", "histogram"):
-                entries_raw = var.entries
-                return entries_raw if isinstance(entries_raw, list) else []
-        return []
-
-    def scan_vector_entries(self, file_path: Path, vector_name: str) -> List[str]:
-        """Alias for backward compatibility with existing components."""
-        return self.scan_entries_for_variable(file_path, vector_name)

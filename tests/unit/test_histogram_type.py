@@ -17,8 +17,8 @@ Tests cover:
 
 import pytest
 
-from src.core.parsing.types.base import StatTypeRegistry
-from src.core.parsing.types.histogram import Histogram
+from src.core.parsing.gem5.types.base import StatTypeRegistry
+from src.core.parsing.gem5.types.histogram import Histogram
 
 
 class TestHistogramInitialization:
@@ -498,45 +498,6 @@ class TestHistogramReducedContentAccess:
         # Assert
         assert isinstance(result, dict)
         assert result["0-10"] == 50.0
-
-    def test_access_via_reducedContent_alias(self):
-        # Arrange
-        hist = Histogram()
-        hist.content = {"0-10": 100}
-        hist.balance_content()
-        hist.reduce_duplicates()
-
-        # Act - backward compatibility alias
-        result = hist.reducedContent
-
-        # Assert
-        assert result["0-10"] == 100.0
-
-
-class TestHistogramBackwardCompatibility:
-    """Test backward compatibility aliases."""
-
-    def test_balance_content_alias(self):
-        # Arrange
-        hist = Histogram()
-
-        # Act
-        hist.balanceContent()
-
-        # Assert
-        assert hist._balanced is True
-
-    def test_reduce_duplicates_alias(self):
-        # Arrange
-        hist = Histogram()
-        hist.content = {"0-10": 5}
-        hist.balance_content()
-
-        # Act
-        hist.reduceDuplicates()
-
-        # Assert
-        assert hist._reduced is True
 
 
 class TestHistogramTypeRegistration:

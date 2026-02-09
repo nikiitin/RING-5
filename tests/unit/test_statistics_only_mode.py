@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.core.parsing.type_mapper import TypeMapper
+from src.core.parsing.gem5.types.type_mapper import TypeMapper
 
 
 class TestStatisticsOnlyMode:

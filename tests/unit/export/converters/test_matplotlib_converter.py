@@ -10,7 +10,7 @@ from typing import Any
 
 import pytest
 
-from src.web.pages.ui.plotting.export.converters.matplotlib_converter import (
+from src.web.pages.ui.plotting.export.converters.impl.matplotlib_converter import (
     MatplotlibConverter,
 )
 from src.web.pages.ui.plotting.export.presets.preset_manager import PresetManager

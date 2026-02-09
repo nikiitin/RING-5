@@ -10,7 +10,7 @@ Following Rule 004 (QA Testing Mastery):
 
 import pytest
 
-from src.core.parsing.types.scalar import Scalar
+from src.core.parsing.gem5.types.scalar import Scalar
 
 
 class TestScalarInitialization:
@@ -326,62 +326,20 @@ class TestScalarReducedContentAccess:
         # Assert
         assert result == 42.0
 
-    def test_access_via_reducedContent_alias(self):
-        # Arrange
-        scalar = Scalar()
-        scalar._set_content(100)
-        scalar.balance_content()
-        scalar.reduce_duplicates()
-
-        # Act
-        result = scalar.reducedContent
-
-        # Assert
-        assert result == 100.0
-
-
-class TestScalarBackwardCompatibility:
-    """Test backward compatibility aliases."""
-
-    def test_balanceContent_alias(self):
-        # Arrange
-        scalar = Scalar(repeat=3)
-        scalar._set_content(10)
-
-        # Act
-        scalar.balanceContent()
-
-        # Assert
-        assert scalar._balanced is True
-        assert len(scalar._content) == 3
-
-    def test_reduceDuplicates_alias(self):
-        # Arrange
-        scalar = Scalar()
-        scalar._set_content(50)
-        scalar.balance_content()
-
-        # Act
-        scalar.reduceDuplicates()
-
-        # Assert
-        assert scalar._reduced is True
-        assert scalar._reduced_content == 50.0
-
 
 class TestScalarTypeRegistration:
     """Test Scalar type registration."""
 
     def test_scalar_registered_with_decorator(self):
         # Arrange & Act
-        from src.core.parsing.types.base import StatTypeRegistry
+        from src.core.parsing.gem5.types.base import StatTypeRegistry
 
         # Assert
         assert "scalar" in StatTypeRegistry.get_types()
 
     def test_create_scalar_via_registry(self):
         # Arrange
-        from src.core.parsing.types.base import StatTypeRegistry
+        from src.core.parsing.gem5.types.base import StatTypeRegistry
 
         # Act
         scalar = StatTypeRegistry.create("scalar", repeat=2)

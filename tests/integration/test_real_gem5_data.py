@@ -4,8 +4,7 @@ import pandas as pd
 import pytest
 
 from src.core.application_api import ApplicationAPI
-from src.core.parsing.models import StatConfig
-from src.core.parsing.parser import Gem5StatsParser
+from src.core.models import StatConfig
 
 # Path to real gem5 test data
 TEST_DATA_PATH = Path(__file__).parent.parent / "data" / "results-micro26-sens"
@@ -41,7 +40,6 @@ class TestRealDataWithShapers:
         self, test_data_available: Path, temp_output_dir: Path, facade: ApplicationAPI
     ) -> pd.DataFrame:
         """Parse real data and return DataFrame."""
-        Gem5StatsParser.reset()
 
         subdirs = [d for d in test_data_available.iterdir() if d.is_dir()]
         if not subdirs:
@@ -80,7 +78,7 @@ class TestRealDataWithShapers:
             return df
 
         finally:
-            Gem5StatsParser.reset()
+            pass
 
     def test_column_selector_on_real_data(self, parsed_data):
         """Test column selector on real data."""

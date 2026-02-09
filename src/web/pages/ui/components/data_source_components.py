@@ -15,7 +15,7 @@ from typing import Any, Dict, List
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
-from src.core.parsing.models import ScannedVariable
+from src.core.models import ScannedVariable
 from src.web.pages.ui.components.card_components import CardComponents
 from src.web.pages.ui.components.data_components import DataComponents
 from src.web.pages.ui.components.variable_editor import VariableEditor
