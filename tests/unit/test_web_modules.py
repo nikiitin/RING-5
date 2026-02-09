@@ -181,11 +181,15 @@ class TestApplicationAPI:
         from src.core.application_api import ApplicationAPI
 
         api = ApplicationAPI()
-        # Mock config_pool_dir property or ensure it uses patched home
-        # ApplicationAPI.save_configuration uses self.config_pool_dir OR Path.home()/.ring5/configs
-        # We can patch Path.home to use self.test_dir
+        # ApplicationAPI.save_configuration delegates to ConfigService
+        # which uses PathService.get_data_dir() / "saved_configs"
+        config_dir = self.test_dir / "saved_configs"
+        config_dir.mkdir(parents=True, exist_ok=True)
 
-        with patch.object(Path, "home", return_value=self.test_dir):
+        with patch(
+            "src.core.services.config_service.ConfigService.get_config_dir",
+            return_value=config_dir,
+        ):
             config_path = api.save_configuration(
                 name="test_config",
                 description="Test description",

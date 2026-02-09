@@ -12,9 +12,7 @@ Key Responsibilities:
 - Maintain application state and session persistence
 """
 
-import json
 import logging
-import os
 from pathlib import Path
 from typing import Any, Dict, List, cast
 
@@ -22,6 +20,7 @@ import numpy as np
 
 from src.core.models import StatConfig
 from src.core.parsing import ParseService, ScannerService
+from src.core.services.config_service import ConfigService
 from src.core.services.csv_pool_service import CsvPoolService
 from src.core.services.pipeline_service import PipelineService
 from src.core.services.portfolio_service import PortfolioService
@@ -204,30 +203,11 @@ class ApplicationAPI:
         csv_path: str | None = None,
     ) -> str:
         """Save current configuration to disk."""
-        # Ensure config pool directory exists (default or overridden)
-        config_dir = getattr(self, "config_pool_dir", Path.home() / ".ring5" / "configs")
-        config_dir.mkdir(parents=True, exist_ok=True)
-
-        config_data = {
-            "name": name,
-            "description": description,
-            "shapers": shapers_config,
-            "csv_path": csv_path,
-        }
-
-        # Create filename from name (sanitize)
-        safe_name = "".join(c for c in name if c.isalnum() or c in ("-", "_"))
-        file_path = config_dir / f"{safe_name}.json"
-
-        with open(file_path, "w") as f:
-            json.dump(config_data, f, indent=2)
-
-        return str(file_path)
+        return ConfigService.save_configuration(name, description, shapers_config, csv_path)
 
     def load_configuration(self, config_path: str) -> dict[str, Any]:
         """Load configuration from file."""
-        with open(config_path, "r") as f:
-            return json.load(f)  # type: ignore[no-any-return]
+        return ConfigService.load_configuration(config_path)
 
     def load_csv_pool(self) -> list[dict[str, Any]]:
         """List available CSV files in the pool."""
@@ -235,27 +215,11 @@ class ApplicationAPI:
 
     def load_saved_configs(self) -> list[dict[str, Any]]:
         """List all saved configurations."""
-        config_dir = getattr(self, "config_pool_dir", Path.home() / ".ring5" / "configs")
-        if not config_dir.exists():
-            return []
-
-        configs = []
-        for f in config_dir.glob("*.json"):
-            try:
-                with open(f, "r") as fp:
-                    data = json.load(fp)
-                    configs.append(data)
-            except Exception as e:
-                logger.warning(f"Failed to load config {fp}: {e}")
-        return configs
+        return ConfigService.load_saved_configs()
 
     def delete_configuration(self, config_path: str) -> bool:
         """Delete a configuration file."""
-        path = Path(config_path)
-        if path.exists():
-            os.remove(path)
-            return True
-        return False
+        return ConfigService.delete_configuration(config_path)
 
     def add_to_csv_pool(self, file_path: str) -> str:
         """Add a file to the CSV pool."""
