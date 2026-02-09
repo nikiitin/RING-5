@@ -149,7 +149,36 @@ check-latex:
 	@echo ""
 	@echo "For complete setup, run: make install-latex"
 
-test:
+# Download and extract test data if not present
+TEST_DATA_DIR = tests/data/results-micro26-sens
+TEST_DATA_URL = https://github.com/nikiitin/RING-5/releases/download/test-data-v1/test_data.tar.gz
+TEST_DATA_TARBALL = test_data.tar.gz
+
+test-data:
+	@if [ ! -d "$(TEST_DATA_DIR)" ]; then \
+		echo ">> Test data not found. Downloading..."; \
+		echo ""; \
+		mkdir -p tests/data; \
+		if [ -f "$(TEST_DATA_TARBALL)" ]; then \
+			echo ">> Using local tarball: $(TEST_DATA_TARBALL)"; \
+			tar xzf "$(TEST_DATA_TARBALL)" -C tests/data; \
+		elif command -v curl >/dev/null 2>&1; then \
+			echo ">> Downloading from GitHub Releases..."; \
+			curl -L "$(TEST_DATA_URL)" | tar xz -C tests/data; \
+		elif command -v wget >/dev/null 2>&1; then \
+			echo ">> Downloading from GitHub Releases..."; \
+			wget -qO- "$(TEST_DATA_URL)" | tar xz -C tests/data; \
+		else \
+			echo "ERROR: Neither curl nor wget found, and no local tarball."; \
+			echo "       Please install curl or wget, or download test_data.tar.gz manually."; \
+			exit 1; \
+		fi; \
+		echo ""; \
+		echo ">> Test data extracted to tests/data/"; \
+		echo ""; \
+	fi
+
+test: test-data
 ifeq ($(USE_DOCKER),true)
 	$(DOCKER_RUN) python3 -m pytest
 else
