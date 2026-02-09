@@ -266,8 +266,6 @@ class TestValidatePathWithin:
 
     def test_traversal_rejected(self, tmp_path):
         """Test that path traversal is rejected."""
-        from pathlib import Path
-
         evil_path = tmp_path / ".." / "etc" / "passwd"
         with pytest.raises(ValueError, match="Path traversal detected"):
             utils.validate_path_within(evil_path, tmp_path)
@@ -278,8 +276,6 @@ class TestValidatePathWithin:
         This validates the fix for the startswith bypass where
         /allowed/base_evil could match /allowed/base.
         """
-        from pathlib import Path
-
         base = tmp_path / "base"
         base.mkdir()
         sibling = tmp_path / "base_evil"
