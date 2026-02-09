@@ -7,6 +7,7 @@ dimension control, and layout preservation.
 
 import io
 import logging
+import shutil
 from typing import Any, Dict, List, Literal, Tuple, cast
 
 import matplotlib
@@ -184,8 +185,6 @@ class MatplotlibConverter(BaseConverter):
         Install with:
             sudo apt-get install texlive-fonts-recommended texlive-fonts-extra cm-super
         """
-        import shutil
-
         # Check if LaTeX is available
         has_latex = shutil.which("latex") is not None
 

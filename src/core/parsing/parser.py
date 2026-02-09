@@ -18,6 +18,7 @@ Features:
 
 import logging
 import os
+import tempfile
 import threading
 from typing import Any, Dict, List, Optional
 
@@ -206,8 +207,6 @@ class ParserBuilder:
         self._variables: List[StatConfig] = []
         # Default strategy
         self._strategy_type: str = "simple"
-
-        import tempfile
 
         self._output_dir: str = os.path.join(tempfile.gettempdir(), "ring5_output")
 

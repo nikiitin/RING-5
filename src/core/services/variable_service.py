@@ -11,12 +11,17 @@ from typing import Any, Dict, List, Optional, Set
 # Maximum allowed regex pattern length to prevent ReDoS abuse
 _MAX_REGEX_LEN: int = 500
 
+# Allowlist: only characters expected in gem5 stat patterns (letters, digits,
+# dots, underscores, backslashes for \d+, and regex anchors/quantifiers).
+_SAFE_PATTERN_RE: re.Pattern[str] = re.compile(r"^[a-zA-Z0-9_.\\+\[\]{}()|^$*?]+$")
+
 
 def _compile_safe_pattern(pattern: str) -> Optional[re.Pattern[str]]:
     """Compile a regex pattern with safety checks against ReDoS/injection.
 
-    Validates the pattern length and syntax before compiling.
-    Returns None if the pattern is invalid or too long.
+    Validates the pattern length, character allowlist, and syntax before
+    compiling.  Returns None if the pattern is invalid, too long, or
+    contains characters outside the allowlist.
 
     Args:
         pattern: The regex pattern string to compile.
@@ -25,6 +30,8 @@ def _compile_safe_pattern(pattern: str) -> Optional[re.Pattern[str]]:
         Compiled regex pattern, or None if unsafe/invalid.
     """
     if len(pattern) > _MAX_REGEX_LEN:
+        return None
+    if not _SAFE_PATTERN_RE.match(pattern):
         return None
     try:
         return re.compile(pattern)

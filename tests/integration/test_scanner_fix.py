@@ -190,9 +190,12 @@ class TestScannerFix:
             importlib.reload(dsc_module)
 
             # Patch as_completed and Path.exists
-            with patch("concurrent.futures.as_completed", return_value=futures), patch(
-                "pathlib.Path.exists", return_value=True
-            ):
+            # Note: as_completed is now imported at module level, so patch it in the module
+            # namespace
+            with patch(
+                "src.web.pages.ui.components.data_source_components.as_completed",
+                return_value=futures,
+            ), patch("pathlib.Path.exists", return_value=True):
 
                 # Mock Streamlit objects
                 mock_progress = MagicMock()

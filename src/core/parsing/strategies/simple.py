@@ -13,11 +13,12 @@ Workflow:
 """
 
 import logging
-from pathlib import Path
+from dataclasses import replace
 from typing import Any, Dict, List, Sequence
 
 from tqdm import tqdm
 
+from src.core.common.utils import normalize_user_path, sanitize_log_value
 from src.core.parsing.models import StatConfig
 from src.core.parsing.type_mapper import TypeMapper
 from src.core.parsing.workers import Gem5ParseWork, ParseWorkPool
@@ -66,8 +67,8 @@ class SimpleStatsStrategy:
         if not files:
             logger.warning(
                 "PARSER: No files found matching '%s' in %s",
-                stats_pattern,
-                stats_path,
+                sanitize_log_value(stats_pattern),
+                sanitize_log_value(stats_path),
             )
             return []
 
@@ -82,10 +83,14 @@ class SimpleStatsStrategy:
     def _get_files(self, stats_path: str, stats_pattern: str) -> List[str]:
         """Find all stats files matching the pattern in the target path."""
         # Path is already validated/resolved by ParseService before reaching strategy
-        base = Path(stats_path)
+        base = normalize_user_path(stats_path)
         pattern = f"**/{stats_pattern}"
         files = [str(f) for f in base.glob(pattern)]
-        logger.info("PARSER: Found %d candidate files in %s", len(files), stats_path)
+        logger.info(
+            "PARSER: Found %d candidate files in %s",
+            len(files),
+            sanitize_log_value(stats_path),
+        )
         return files
 
     def _map_variables(self, variables: Sequence[StatConfig]) -> Dict[str, Any]:
@@ -94,8 +99,6 @@ class SimpleStatsStrategy:
 
         Handles multi-ID mapping (e.g., regex variables matching multiple controllers).
         """
-        from dataclasses import replace
-
         var_map: Dict[str, Any] = {}
 
         for var in variables:

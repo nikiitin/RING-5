@@ -7,7 +7,6 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from src.web.pages.ui.components.plot_config_components import PlotConfigComponents
-from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.types.stacked_bar_plot import StackedBarPlot
 from src.web.pages.ui.plotting.utils import GroupedBarUtils
 
@@ -16,9 +15,10 @@ class GroupedStackedBarPlot(StackedBarPlot):
     """Grouped stacked bar plot with support for multiple stacked statistics and grouping."""
 
     def __init__(self, plot_id: int, name: str):
-        # Call BasePlot.__init__ directly to set plot_type as "grouped_stacked_bar"
-        # (skipping StackedBarPlot.__init__ which would set "stacked_bar")
-        BasePlot.__init__(self, plot_id, name, "grouped_stacked_bar")
+        # Call through MRO (StackedBarPlot → BarPlot → BasePlot)
+        super().__init__(plot_id, name)
+        # Override plot_type set by parent chain ("stacked_bar" → "grouped_stacked_bar")
+        self.plot_type: str = "grouped_stacked_bar"
 
     def render_config_ui(self, data: pd.DataFrame, saved_config: Dict[str, Any]) -> Dict[str, Any]:
         """Render configuration UI for grouped stacked bar plot."""

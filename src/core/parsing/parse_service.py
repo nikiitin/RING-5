@@ -78,11 +78,13 @@ Last Modified: 2026-01-27
 
 import logging
 import os
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, cast
+import re
+from dataclasses import replace
+from typing import Any, Dict, List, Optional
 
+from src.core.common.utils import normalize_user_path
 from src.core.parsing.models import StatConfig
-from src.core.parsing.workers.parse_work import ParseWork
+from src.core.parsing.strategies.factory import StrategyFactory
 from src.core.parsing.workers.pool import ParseWorkPool
 
 logger = logging.getLogger(__name__)
@@ -108,10 +110,7 @@ class ParseService:
         scanned_vars: Optional[List[Any]] = None,
     ) -> List[Any]:
         """Submit async parsing job and return futures."""
-        import re
-        from dataclasses import replace
-
-        search_path = Path(stats_path).resolve()
+        search_path = normalize_user_path(stats_path)
         if not search_path.exists():
             raise FileNotFoundError(f"Stats path does not exist: {stats_path}")
 
@@ -157,17 +156,8 @@ class ParseService:
 
             processed_configs.append(expanded_config)
 
-        # 2. Resolve strategy
-        from src.core.parsing.strategies.config_aware import ConfigAwareStrategy
-        from src.core.parsing.strategies.simple import SimpleStatsStrategy
-
-        strategy: Any
-        if strategy_type == "simple":
-            strategy = SimpleStatsStrategy()
-        elif strategy_type == "config_aware":
-            strategy = ConfigAwareStrategy()
-        else:
-            raise ValueError(f"Unknown strategy type: {strategy_type}")
+        # 2. Resolve strategy via factory
+        strategy = StrategyFactory.create(strategy_type)
 
         # 3. Get work items from strategy
         batch_work = strategy.get_work_items(stats_path, stats_pattern, processed_configs)
@@ -177,7 +167,7 @@ class ParseService:
         ParseService._active_var_names = [v.name for v in processed_configs]
 
         pool = ParseWorkPool.get_instance()
-        return pool.submit_batch_async(cast(Sequence[ParseWork], batch_work))
+        return pool.submit_batch_async(batch_work)
 
     @staticmethod
     def cancel_parse() -> None:
@@ -195,17 +185,8 @@ class ParseService:
             logger.warning("PARSER: No results to persist.")
             return None
 
-        # Resolve strategy for post-processing
-        from src.core.parsing.strategies.config_aware import ConfigAwareStrategy
-        from src.core.parsing.strategies.simple import SimpleStatsStrategy
-
-        strategy: Any
-        if strategy_type == "simple":
-            strategy = SimpleStatsStrategy()
-        elif strategy_type == "config_aware":
-            strategy = ConfigAwareStrategy()
-        else:
-            strategy = SimpleStatsStrategy()
+        # Resolve strategy via factory for post-processing
+        strategy = StrategyFactory.create(strategy_type)
 
         processed_results = strategy.post_process(results)
         return ParseService.construct_final_csv(output_dir, processed_results)

@@ -31,8 +31,10 @@ class TestAliasing:
         mock_instance.build.return_value.parse.return_value = "/tmp/result.csv"
 
         # Mock parser execution
+        # Note: ParseService is now imported at module level in application_api,
+        # so we need to patch it in that module's namespace
         with patch(
-            "src.core.parsing.parse_service.ParseService.submit_parse_async"
+            "src.core.application_api.ParseService.submit_parse_async"
         ) as mock_submit, patch(
             "src.core.parsing.parse_service.ParseService.construct_final_csv"
         ) as mock_construct:

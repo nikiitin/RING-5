@@ -29,87 +29,8 @@ def temp_output_dir(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def facade() -> ApplicationAPI:
-    """Create a ApplicationAPI instance.
-
-    Tests for parsing real gem5 stats files.
-    """
+    """Create an ApplicationAPI instance."""
     return ApplicationAPI()
-
-    def test_find_stats_files(self, test_data_available: Path, facade: ApplicationAPI) -> None:
-        """Test finding stats files in the test data directory."""
-        stats_files = facade.find_stats_files(str(test_data_available), "stats.txt")
-
-        # Should find multiple stats files
-        assert len(stats_files) > 0
-
-        # All files should exist
-        for f in stats_files:
-            assert Path(f).exists()
-
-    def test_stats_file_structure(self, test_data_available: Path, facade: ApplicationAPI) -> None:
-        """Test that stats files have expected structure."""
-        stats_files = facade.find_stats_files(str(test_data_available), "stats.txt")
-
-        if not stats_files:
-            pytest.skip("No stats files found")
-
-        # Read first few lines of first stats file
-        with open(stats_files[0], "r") as f:
-            content = f.read(1000)
-
-        # gem5 stats files typically have certain patterns
-        assert len(content) > 0
-
-    def test_parse_gem5_stats_subset(
-        self, test_data_available: Path, temp_output_dir: Path, facade: ApplicationAPI
-    ) -> None:
-        """Test parsing a subset of gem5 stats files."""
-        # Reset parser singleton
-        Gem5StatsParser.reset()
-
-        # Get first subdirectory with stats
-        subdirs = [d for d in test_data_available.iterdir() if d.is_dir()]
-        if not subdirs:
-            pytest.skip("No subdirectories found")
-
-        first_subdir = subdirs[0]
-
-        # Define variables to parse
-        variables = [
-            StatConfig(name="simTicks", type="scalar"),
-            StatConfig(name="sim_insts", type="scalar"),
-        ]
-
-        try:
-            # Parse the stats
-            parse_futures = facade.submit_parse_async(
-                stats_path=str(first_subdir),
-                stats_pattern="**/stats.txt",
-                variables=variables,
-                output_dir=str(temp_output_dir),
-            )
-
-            # Wait for parsing
-            parse_results = []
-            for future in parse_futures:
-                result = future.result(timeout=30)
-                if result:
-                    parse_results.append(result)
-
-            csv_path = facade.finalize_parsing(str(temp_output_dir), parse_results)
-
-            if csv_path is None:
-                # Some configurations may not have matching variables
-                pytest.skip("No matching variables found in stats")
-
-            assert Path(csv_path).exists()
-
-            # Load and verify CSV
-            df = pd.read_csv(csv_path)
-            assert len(df) > 0
-
-        finally:
-            Gem5StatsParser.reset()
 
 
 class TestRealDataWithShapers:

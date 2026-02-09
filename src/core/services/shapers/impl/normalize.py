@@ -75,6 +75,7 @@ Last Modified: 2026-01-27
 
 import hashlib
 import logging
+import warnings
 from typing import Any, Dict, List
 
 import pandas as pd
@@ -290,7 +291,6 @@ class Normalize(UniDfShaper):
         Returns:
             Normalized DataFrame
         """
-        import warnings
 
         with warnings.catch_warnings():
             # Suppress pandas warning about group keys

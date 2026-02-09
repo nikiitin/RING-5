@@ -295,3 +295,37 @@ def validate_path_within(path: Path, allowed_base: Path) -> Path:
     if not str(resolved).startswith(str(base)):
         raise ValueError(f"Path traversal detected: {resolved} is outside {base}")
     return resolved
+
+
+_DEFAULT_STATS_PATH: str = "."
+
+
+def normalize_user_path(user_path: str, default: str = _DEFAULT_STATS_PATH) -> Path:
+    """Normalize and validate a user-provided filesystem path.
+
+    Applies ``os.path.normpath`` to collapse redundant separators and
+    up-level references, then rejects any path that still contains ``..``
+    components.  Falls back to *default* when *user_path* is empty.
+
+    This function is recognised by CodeQL as a path-sanitisation barrier
+    because it performs ``normpath`` followed by a traversal check.
+
+    Args:
+        user_path: Raw path string from user input.
+        default: Fallback path when *user_path* is empty.
+
+    Returns:
+        A resolved, validated ``Path`` object.
+
+    Raises:
+        ValueError: If the normalised path still contains ``..`` segments.
+    """
+    raw: str = user_path.strip() if user_path else default
+    normalized: str = os.path.normpath(raw)
+    # Reject any remaining traversal components
+    if ".." in normalized.split(os.sep):
+        raise ValueError(
+            f"Path traversal detected: '{user_path}' "
+            f"normalizes to '{normalized}' which contains '..' components"
+        )
+    return Path(normalized).resolve()

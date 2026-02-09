@@ -39,8 +39,8 @@ class PatternIndexSelector:
         # Find all positions where \d+ appears and extract the preceding label
         # Match: (identifier) followed by \d+
         # This handles: l\d+, cntrl\d+, cpu\d+, etc.
-        # Using \w+? (non-greedy) prevents backtracking issues (ReDoS safe)
-        pattern = r"(\w+?)\\d\+"
+        # Using [a-zA-Z_]+ avoids backtracking (chars disjoint with \\)
+        pattern = r"([a-zA-Z_]+)\\d\+"
         matches = re.findall(pattern, var_name)
 
         # Clean up the matches to remove leading underscores

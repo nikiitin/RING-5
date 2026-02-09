@@ -5,16 +5,12 @@ Provides singleton facades for submitting async work to the unified WorkPool.
 Follows the Facade Pattern to simplify async job submission and tracking.
 """
 
-import logging
 from concurrent.futures import Future
 from typing import Any, List, Optional, Sequence, TypeVar
 
 from src.core.multiprocessing.pool import WorkPool
 from src.core.parsing.workers.parse_work import ParseWork
 from src.core.parsing.workers.scan_work import ScanWork
-
-# Module-level logger kept for future diagnostic use
-_logger: logging.Logger = logging.getLogger(__name__)
 
 # Type variable for generic Future results
 T = TypeVar("T")

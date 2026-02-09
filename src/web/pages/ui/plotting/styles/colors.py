@@ -2,6 +2,8 @@
 Shared color utilities for consistent palette loading.
 """
 
+import logging
+import re
 from typing import List, cast
 
 import plotly.colors as pc
@@ -55,23 +57,17 @@ def to_hex(color_str: str) -> str:
     if color_str.startswith("rgb"):
         try:
             # Extract numbers
-            import re
-
             nums = re.findall(r"\d+", color_str)
             if len(nums) >= 3:
                 r, g, b = int(nums[0]), int(nums[1]), int(nums[2])
                 return "#{:02x}{:02x}{:02x}".format(r, g, b)
         except Exception:
-            import logging
-
             logging.warning(f"Could not parse rgb color: {color_str}")
 
     # Handle named colors via Plotly utility
     # For now, if we can't convert, return black or input.
     # Streamlit dies on bad input, so fallback to black is safer for UI.
     # Last resort fallback for Streamlit
-    import logging
-
     try:
         result: List[tuple[str, ...]] = pc.convert_colors_to_same_type(color_str, "hex")
         return str(result[0][0])

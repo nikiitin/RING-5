@@ -67,7 +67,9 @@ from typing import Any, Dict, List, cast
 
 import pandas as pd
 
+from src.core.common.utils import sanitize_filename, validate_path_within
 from src.core.services.paths import PathService
+from src.core.services.shapers.factory import ShaperFactory
 
 
 class PipelineService:
@@ -90,8 +92,7 @@ class PipelineService:
         if not name:
             raise ValueError("Pipeline name cannot be empty")
 
-        # Sanitize name to prevent path traversal
-        safe_name: str = name.replace("/", "_").replace("\\", "_").replace("..", "_")
+        safe_name: str = sanitize_filename(name)
 
         data = {
             "name": name,
@@ -100,16 +101,17 @@ class PipelineService:
             "timestamp": pd.Timestamp.now().isoformat(),
         }
 
-        save_path = PathService.get_pipelines_dir() / f"{safe_name}.json"
+        pipelines_dir = PathService.get_pipelines_dir()
+        save_path = validate_path_within(pipelines_dir / f"{safe_name}.json", pipelines_dir)
         with open(save_path, "w") as f:
             json.dump(data, f, indent=2)
 
     @staticmethod
     def load_pipeline(name: str) -> Dict[str, Any]:
         """Load a pipeline configuration by name."""
-        # Sanitize name to prevent path traversal
-        safe_name: str = name.replace("/", "_").replace("\\", "_").replace("..", "_")
-        load_path = PathService.get_pipelines_dir() / f"{safe_name}.json"
+        safe_name: str = sanitize_filename(name)
+        pipelines_dir = PathService.get_pipelines_dir()
+        load_path = validate_path_within(pipelines_dir / f"{safe_name}.json", pipelines_dir)
 
         if not load_path.exists():
             raise FileNotFoundError(f"Pipeline '{name}' not found")
@@ -136,8 +138,6 @@ class PipelineService:
         Returns:
             Transformed DataFrame
         """
-        from src.core.services.shapers.factory import ShaperFactory
-
         current_data = data.copy()
 
         for shaper_config in pipeline_config:

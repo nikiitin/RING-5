@@ -19,13 +19,13 @@ def mock_variables() -> List[StatConfig]:
 class TestSimpleStatsStrategy:
 
     @patch("src.core.parsing.strategies.simple.ParseWorkPool")
-    @patch("src.core.parsing.strategies.simple.Path")
+    @patch("src.core.parsing.strategies.simple.normalize_user_path")
     def test_execute_flow(
-        self, mock_path: MagicMock, mock_pool_cls: MagicMock, mock_variables: List[StatConfig]
+        self, mock_normalize: MagicMock, mock_pool_cls: MagicMock, mock_variables: List[StatConfig]
     ) -> None:
         # Arrange
         mock_path_obj = MagicMock()
-        mock_path.return_value = mock_path_obj
+        mock_normalize.return_value = mock_path_obj
         mock_path_obj.glob.return_value = [MagicMock(), MagicMock()]  # 2 files found
 
         mock_pool = MagicMock()
@@ -66,10 +66,10 @@ class TestConfigAwareStrategy:
 
     @patch("src.core.parsing.strategies.config_aware.configparser")
     @patch("src.core.parsing.strategies.simple.ParseWorkPool")  # Parent class dependency
-    @patch("src.core.parsing.strategies.simple.Path")  # Parent class dependency
+    @patch("src.core.parsing.strategies.simple.normalize_user_path")  # Parent class dependency
     def test_config_augmentation(
         self,
-        mock_path: MagicMock,
+        mock_normalize: MagicMock,
         mock_pool_cls: MagicMock,
         mock_configparser: MagicMock,
         mock_variables: List[StatConfig],
@@ -77,7 +77,7 @@ class TestConfigAwareStrategy:
         # Arrange
         # 1. Setup Base Strategy Execution
         mock_path_obj = MagicMock()
-        mock_path.return_value = mock_path_obj
+        mock_normalize.return_value = mock_path_obj
         # Mock glob logic more carefully since ConfigAware uses Path(sim_path)
         # We start by satisfying the base class glob
         mock_path_obj.glob.return_value = ["/sim/results/stats.txt"]

@@ -8,6 +8,7 @@ Ensures consistency between Scanner and Parser.
 from typing import Any, Dict, Union
 
 from src.core.parsing.models import StatConfig
+from src.core.parsing.types import StatTypeRegistry
 
 
 class TypeMapper:
@@ -49,8 +50,6 @@ class TypeMapper:
         Returns:
             An instance of a class registered in StatTypeRegistry.
         """
-        from src.core.parsing.types import StatTypeRegistry
-
         var_type: str = ""
         repeat: int = 1
         statistics_only: bool = False

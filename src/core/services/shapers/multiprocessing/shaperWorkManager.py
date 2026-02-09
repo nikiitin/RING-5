@@ -12,6 +12,7 @@ Features:
 - Error handling and recovery
 """
 
+import contextlib
 import logging
 import os
 from concurrent.futures import Future
@@ -176,8 +177,6 @@ class ShaperWorkManager:
 
     def __del__(self) -> None:
         # Cleanup temporary files
-        import contextlib
-
         for csv_path in self._completed_works.values():
             if os.path.exists(csv_path):
                 with contextlib.suppress(Exception):

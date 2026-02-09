@@ -3,6 +3,8 @@ Data Components for RING-5.
 Handles data visualization, inspection, and export.
 """
 
+import tempfile
+
 import pandas as pd
 import streamlit as st
 
@@ -65,8 +67,6 @@ class DataComponents:
             data: DataFrame to download
             prefix: Filename prefix
         """
-        import tempfile
-
         st.markdown("### Download Data")
 
         col1, col2, col3 = st.columns(3)

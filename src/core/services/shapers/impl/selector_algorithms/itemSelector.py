@@ -6,6 +6,7 @@ Supports both exact value matching and partial string matching.
 Part of the selector algorithm family for value-based filtering.
 """
 
+import logging
 from typing import Any, Dict, List
 
 import pandas as pd
@@ -51,8 +52,6 @@ class ItemSelector(Selector):
             mask = data_frame[self.column].astype(str).str.contains(pattern, na=False)
 
         if not mask.any():
-            import logging
-
             logging.getLogger(__name__).warning(
                 f"ItemSelector: None of the strings {self.strings} found in column '{self.column}'."
             )

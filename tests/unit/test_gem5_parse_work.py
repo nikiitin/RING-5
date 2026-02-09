@@ -137,8 +137,8 @@ def test_validate_vars_config_no_default_fail():
 def test_call_subprocess(parser):
     # Test __call__ flow mocking worker pool instead of subprocess
     # Note: Worker pool is now the PRIMARY mechanism
-    # Patch at perl_worker_pool module since get_worker_pool is imported inside function
-    with patch("src.core.parsing.workers.perl_worker_pool.get_worker_pool") as mock_get_pool:
+    # Patch at gem5_parse_work module since get_worker_pool is now imported at module level
+    with patch("src.core.parsing.workers.gem5_parse_work.get_worker_pool") as mock_get_pool:
         with patch("src.core.common.utils.checkFileExistsOrException"):
             # Success Case
             mock_pool = MagicMock()

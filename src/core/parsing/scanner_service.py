@@ -6,11 +6,14 @@ Moves complex domain logic out of the Web Facade.
 
 import logging
 from concurrent.futures import Future
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, Dict, List
 
+from src.core.common.utils import normalize_user_path
 from src.core.parsing.models import ScannedVariable
 from src.core.parsing.pattern_aggregator import PatternAggregator
+from src.core.parsing.workers.gem5_scan_work import Gem5ScanWork
 from src.core.parsing.workers.pool import ScanWorkPool
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -43,7 +46,7 @@ class ScannerService:
         Raises:
             FileNotFoundError: If stats_path doesn't exist or no files found
         """
-        search_path: Path = Path(stats_path).resolve()
+        search_path: Path = normalize_user_path(stats_path)
         if not search_path.exists():
             raise FileNotFoundError(f"Stats path does not exist: {stats_path}")
 
@@ -54,8 +57,6 @@ class ScannerService:
         files_to_sample: List[Path] = files[:limit] if limit > 0 else files
 
         pool: ScanWorkPool = ScanWorkPool.get_instance()
-        from src.core.parsing.workers.gem5_scan_work import Gem5ScanWork
-
         batch_work: List[Any] = [Gem5ScanWork(str(file_path)) for file_path in files_to_sample]
         return pool.submit_batch_async(batch_work)
 
@@ -103,8 +104,6 @@ class ScannerService:
             registry: Mutable registry dict to update
             var: Variable model (or dict) to merge in
         """
-        from dataclasses import replace
-
         # Handle raw dicts (from legacy or testing code)
         if isinstance(var, dict):
             var = ScannedVariable.from_dict(var)

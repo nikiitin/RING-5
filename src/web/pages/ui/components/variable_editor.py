@@ -3,6 +3,7 @@ Variable Editor Component for RING-5.
 Handles rendering and interaction for defining parser variables (scalars, vectors, distributions).
 """
 
+from concurrent.futures import as_completed
 from typing import Any, Dict, List, Optional
 
 import streamlit as st
@@ -382,8 +383,6 @@ class VariableEditor:
         is_distribution: bool,
     ) -> None:
         """Blocking dialog for async scanning using futures."""
-        from concurrent.futures import as_completed
-
         st.write(f"Variable: `{var_name}`")
         st.write(f"Scanning {len(futures)} files...")
         progress_bar = st.progress(0, text="Starting scan...")

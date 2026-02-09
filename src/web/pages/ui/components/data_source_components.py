@@ -7,6 +7,8 @@ parser configuration, variable selection, and data preview.
 
 import logging
 import tempfile
+import uuid
+from concurrent.futures import as_completed
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -351,8 +353,6 @@ class DataSourceComponents:
                 elif var_type == "vector" and not config.get("vectorEntries"):
                     st.error("Vector variables require at least one entry.")
                 else:
-                    import uuid
-
                     new_var = {
                         "name": name,
                         "type": var_type,
@@ -373,8 +373,6 @@ class DataSourceComponents:
     @st.dialog("Parsing gem5 Stats", dismissible=True)
     def _show_parse_dialog(api: ApplicationAPI, futures: List[Any], output_dir: str) -> None:
         """Render the parsing progress dialog using blocking futures."""
-        from concurrent.futures import as_completed
-
         st.write(f"Processing {len(futures)} files...")
         progress_bar = st.progress(0, text="Starting...")
         status_text = st.empty()

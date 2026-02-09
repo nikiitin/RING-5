@@ -9,7 +9,9 @@ import copy
 import os
 from typing import TYPE_CHECKING, Optional
 
+from src.core.common.utils import normalize_user_path
 from src.web.pages.ui.plotting.base_plot import BasePlot
+from src.web.pages.ui.plotting.export.latex_export_service import LaTeXExportService
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
 if TYPE_CHECKING:
@@ -102,11 +104,11 @@ class PlotService:
         Note:
             For publication-quality exports, use LaTeXExportService directly.
         """
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-
-        # Resolve directory to prevent path traversal
-        resolved_dir: str = os.path.realpath(directory)
+        # Normalize and validate directory path before any filesystem ops
+        resolved_dir_path = normalize_user_path(directory)
+        resolved_dir: str = str(resolved_dir_path)
+        if not resolved_dir_path.exists():
+            resolved_dir_path.mkdir(parents=True, exist_ok=True)
 
         # Ensure figure is generated
         try:
@@ -134,10 +136,6 @@ class PlotService:
             fig.write_html(path)
         elif fmt in ["pdf", "pgf", "eps"]:
             # Use LaTeX export service for publication-quality output
-            from src.web.pages.ui.plotting.export.latex_export_service import (
-                LaTeXExportService,
-            )
-
             service = LaTeXExportService()
             result = service.export(fig=fig, preset="single_column", format=fmt)
 

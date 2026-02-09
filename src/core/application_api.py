@@ -12,10 +12,19 @@ Key Responsibilities:
 - Maintain application state and session persistence
 """
 
+import json
 import logging
+import os
+from pathlib import Path
 from typing import Any, Dict, List, cast
 
+import numpy as np
+
+from src.core.parsing.models import StatConfig
+from src.core.parsing.parse_service import ParseService
+from src.core.parsing.scanner_service import ScannerService
 from src.core.services.csv_pool_service import CsvPoolService
+from src.core.services.pipeline_service import PipelineService
 from src.core.services.portfolio_service import PortfolioService
 from src.core.state.state_manager import RepositoryStateManager
 
@@ -90,8 +99,6 @@ class ApplicationAPI:
 
     def find_stats_files(self, search_path: str, pattern: str = "stats.txt") -> list[str]:
         """Find stats files in a directory."""
-        from pathlib import Path
-
         path = Path(search_path)
         if not path.exists():
             return []
@@ -112,9 +119,6 @@ class ApplicationAPI:
         Converts variable dictionaries to StatConfig objects.
         Repetition and regex expansion are handled by the parsing module.
         """
-        from src.core.parsing.models import StatConfig
-        from src.core.parsing.parse_service import ParseService
-
         stat_configs: List[StatConfig] = []
         for var in variables:
             if isinstance(var, dict):
@@ -160,22 +164,16 @@ class ApplicationAPI:
         self, output_dir: str, results: list[Any], strategy_type: str = "simple"
     ) -> str | None:
         """Finalize parsing results into a CSV."""
-        from src.core.parsing.parse_service import ParseService
-
         return ParseService.finalize_parsing(output_dir, results, strategy_type)
 
     def submit_scan_async(
         self, stats_path: str, stats_pattern: str = "stats.txt", limit: int = 5
     ) -> list[Any]:
         """Submit scanning job."""
-        from src.core.parsing.scanner_service import ScannerService
-
         return ScannerService.submit_scan_async(stats_path, stats_pattern, limit)
 
     def finalize_scan(self, results: list[list[Any]]) -> list[Any]:
         """Aggregate scan results."""
-        from src.core.parsing.scanner_service import ScannerService
-
         return ScannerService.aggregate_scan_results(results)
 
     def get_parse_status(self) -> str:
@@ -193,8 +191,6 @@ class ApplicationAPI:
 
     def apply_shapers(self, data: Any, pipeline_config: list[dict[str, Any]]) -> Any:
         """Apply a sequence of shapers to a DataFrame."""
-        from src.core.services.pipeline_service import PipelineService
-
         return PipelineService.process_pipeline(data, pipeline_config)
 
     # =========================================================================
@@ -209,9 +205,6 @@ class ApplicationAPI:
         csv_path: str | None = None,
     ) -> str:
         """Save current configuration to disk."""
-        import json
-        from pathlib import Path
-
         # Ensure config pool directory exists (default or overridden)
         config_dir = getattr(self, "config_pool_dir", Path.home() / ".ring5" / "configs")
         config_dir.mkdir(parents=True, exist_ok=True)
@@ -234,8 +227,6 @@ class ApplicationAPI:
 
     def load_configuration(self, config_path: str) -> dict[str, Any]:
         """Load configuration from file."""
-        import json
-
         with open(config_path, "r") as f:
             return json.load(f)  # type: ignore[no-any-return]
 
@@ -245,9 +236,6 @@ class ApplicationAPI:
 
     def load_saved_configs(self) -> list[dict[str, Any]]:
         """List all saved configurations."""
-        import json
-        from pathlib import Path
-
         config_dir = getattr(self, "config_pool_dir", Path.home() / ".ring5" / "configs")
         if not config_dir.exists():
             return []
@@ -264,9 +252,6 @@ class ApplicationAPI:
 
     def delete_configuration(self, config_path: str) -> bool:
         """Delete a configuration file."""
-        import os
-        from pathlib import Path
-
         path = Path(config_path)
         if path.exists():
             os.remove(path)
@@ -291,8 +276,6 @@ class ApplicationAPI:
 
     def get_column_info(self, df: Any) -> Dict[str, Any]:
         """Get summary information about DataFrame columns for UI."""
-        import numpy as np
-
         if df is None:
             return {
                 "total_columns": 0,

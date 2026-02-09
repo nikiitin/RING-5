@@ -7,7 +7,9 @@ import logging
 from typing import Any, Dict, List, Optional, Tuple
 
 import src.core.common.utils as utils
+from src.core.parsing.type_mapper import TypeMapper
 from src.core.parsing.workers.parse_work import ParsedVarsDict, ParseWork
+from src.core.parsing.workers.perl_worker_pool import get_worker_pool
 
 # Type aliases for clarity
 # EntryBuffer: baseID -> {entryKey -> [values]}
@@ -112,8 +114,6 @@ class Gem5ParseWork(ParseWork):
             and importing it here would create a circular dependency. At runtime, var is
             always a StatType instance.
         """
-        from src.core.parsing.type_mapper import TypeMapper
-
         return TypeMapper.normalize_type(type(var).__name__)
 
     def _processEntryType(
@@ -131,8 +131,6 @@ class Gem5ParseWork(ParseWork):
         Returns:
             Normalized type name if successful, None if variable is unknown
         """
-        from src.core.parsing.type_mapper import TypeMapper
-
         baseID: str = varID.split("::")[0]
         targetVar: Optional[Any] = varsToParse.get(baseID)  # Any = StatType instance
 
@@ -171,8 +169,6 @@ class Gem5ParseWork(ParseWork):
             varValue: Summary value as string
             varsToParse: Dictionary of variables being parsed
         """
-        from src.core.parsing.type_mapper import TypeMapper
-
         baseID: str = varID.split("::")[0]
         targetVar: Optional[Any] = varsToParse.get(baseID)  # Any = StatType instance
 
@@ -199,8 +195,6 @@ class Gem5ParseWork(ParseWork):
         Raises:
             RuntimeError: If variable type mismatch or unknown type encountered
         """
-        from src.core.parsing.type_mapper import TypeMapper
-
         rawType: str
         varID: str
         varValue: str
@@ -292,8 +286,6 @@ class Gem5ParseWork(ParseWork):
             RuntimeError: If file doesn't exist or worker pool fails
             TimeoutError: If parsing exceeds timeout
         """
-        from src.core.parsing.workers.perl_worker_pool import get_worker_pool
-
         utils.checkFileExistsOrException(self._fileToParse)
 
         # Build keys and validate they are safe (no leading dashes)

@@ -10,9 +10,11 @@ from __future__ import annotations
 
 import logging
 import os
+from pathlib import Path
 from typing import List
 
 from src.core.parsing.models import ScannedVariable
+from src.core.parsing.scanner import Gem5StatsScanner
 from src.core.parsing.workers.scan_work import ScanWork
 
 logger = logging.getLogger(__name__)
@@ -33,10 +35,6 @@ class Gem5ScanWork(ScanWork):
         Execute scanning using the Gem5StatsScanner.
         Returns full list of variables with types and entries.
         """
-        from pathlib import Path
-
-        from src.core.parsing.scanner import Gem5StatsScanner
-
         try:
             scanner = Gem5StatsScanner.get_instance()
             return scanner.scan_file(Path(self.file_path))
