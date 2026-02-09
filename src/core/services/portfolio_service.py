@@ -73,7 +73,7 @@ import pandas as pd
 
 from src.core.domain.plot_protocol import PlotProtocol
 from src.core.services.path_service import PathService
-from src.core.state.state_manager import AbstractStateManager
+from src.core.state.state_manager import StateManager
 
 
 class PortfolioService:
@@ -82,7 +82,7 @@ class PortfolioService:
     It interacts with the StateManager to persist/retrieve the full application state.
     """
 
-    def __init__(self, state_manager: AbstractStateManager) -> None:
+    def __init__(self, state_manager: StateManager) -> None:
         """Initialize the PortfolioService with a StateManager instance."""
         self.state_manager = state_manager
 

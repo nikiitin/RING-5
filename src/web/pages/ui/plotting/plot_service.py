@@ -15,7 +15,7 @@ from src.web.pages.ui.plotting.export.latex_export_service import LaTeXExportSer
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
 if TYPE_CHECKING:
-    from src.core.state.state_manager import RepositoryStateManager
+    from src.core.state.repository_state_manager import RepositoryStateManager
 
 
 class PlotService:

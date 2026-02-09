@@ -8,7 +8,7 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
-from src.core.state.state_manager import StateManager
+from src.core.state.repository_state_manager import RepositoryStateManager as StateManager
 
 
 @pytest.fixture

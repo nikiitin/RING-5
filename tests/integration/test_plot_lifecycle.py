@@ -1,4 +1,4 @@
-from src.core.state.state_manager import RepositoryStateManager
+from src.core.state.repository_state_manager import RepositoryStateManager
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.plot_service import PlotService
 

@@ -24,7 +24,7 @@ class TestStateManager:
 
     def test_initialize_creates_defaults(self, mock_session_state):
         """Test that initialize creates default values."""
-        from src.core.state.state_manager import StateManager
+        from src.core.state.repository_state_manager import RepositoryStateManager as StateManager
 
         # StateManager() instantiation triggers SessionRepository.initialize_session()
         mgr = StateManager()
@@ -41,7 +41,7 @@ class TestStateManager:
 
     def test_get_set_data(self, mock_session_state):
         """Test data getter and setter."""
-        from src.core.state.state_manager import StateManager
+        from src.core.state.repository_state_manager import RepositoryStateManager as StateManager
 
         mgr = StateManager()
 
@@ -55,7 +55,7 @@ class TestStateManager:
 
     def test_get_set_config(self, mock_session_state):
         """Test config getter and setter."""
-        from src.core.state.state_manager import StateManager
+        from src.core.state.repository_state_manager import RepositoryStateManager as StateManager
 
         mgr = StateManager()
 
@@ -67,7 +67,7 @@ class TestStateManager:
 
     def test_update_config(self, mock_session_state):
         """Test config update method."""
-        from src.core.state.state_manager import StateManager
+        from src.core.state.repository_state_manager import RepositoryStateManager as StateManager
 
         mgr = StateManager()
 
@@ -79,7 +79,7 @@ class TestStateManager:
 
     def test_has_data(self, mock_session_state):
         """Test has_data method."""
-        from src.core.state.state_manager import StateManager
+        from src.core.state.repository_state_manager import RepositoryStateManager as StateManager
 
         mgr = StateManager()
         assert not mgr.has_data()

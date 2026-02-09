@@ -8,44 +8,44 @@ Comprehensive architecture documentation for `src/core/parsing/`, covering every
 
 ```mermaid
 flowchart TB
-    subgraph INTERFACE["📐 INTERFACE LAYER — src/core/parsing/"]
+    subgraph INTERFACE["INTERFACE LAYER -- src/core/parsing/"]
         direction TB
 
         subgraph PROTOCOLS["Protocols"]
             direction LR
-            ParserProto["🔷 ParserProtocol\n─────────────────\n+ submit_parse_async() → List‹Future›\n+ finalize_parsing() → Optional‹str›\n+ construct_final_csv() → Optional‹str›"]
-            ScannerProto["🔷 ScannerProtocol\n─────────────────\n+ submit_scan_async() → List‹Future›\n+ aggregate_scan_results() → List‹ScannedVariable›"]
-            ParserAPI_P["🔷 ParserAPI\n─────────────────\nCombines Parser + Scanner\n(instance method signatures)"]
+            ParserProto["ParserProtocol\n-----------------\n+ submit_parse_async() -> List Future\n+ finalize_parsing() -> Optional str\n+ construct_final_csv() -> Optional str"]
+            ScannerProto["ScannerProtocol\n-----------------\n+ submit_scan_async() -> List Future\n+ aggregate_scan_results() -> List ScannedVariable"]
+            ParserAPI_P["ParserAPI\n-----------------\nCombines Parser + Scanner\n(instance method signatures)"]
         end
 
-        models_box["📦 models.py\n─────────────────\n❄ ScannedVariable (frozen)\n  name, type, entries,\n  minimum, maximum,\n  pattern_indices\n─────────────────\n❄ StatConfig (frozen)\n  name, type, repeat,\n  params, statistics_only"]
-
-        factory_box["🏭 ParserAPIFactory\n─────────────────\n+ create(simulator='gem5')\n  → ParserAPI"]
+        factory_box["ParserAPIFactory\n-----------------\n+ create(simulator='gem5')\n  -> ParserAPI"]
 
         ParserAPI_P --> ParserProto
         ParserAPI_P --> ScannerProto
         factory_box -.->|lazy import| Gem5ParserAPI_box
     end
 
-    subgraph GEM5["🔬 gem5/ IMPLEMENTATION"]
+    models_box["src/core/models/\n-----------------\nScannedVariable (frozen)\n  name, type, entries,\n  minimum, maximum,\n  pattern_indices\n-----------------\nStatConfig (frozen)\n  name, type, repeat,\n  params, statistics_only\n-----------------\nShared cross-layer data models"]
+
+    subgraph GEM5["gem5/ IMPLEMENTATION"]
         direction TB
 
         subgraph FACADE["Facade — gem5/impl/"]
-            Gem5ParserAPI_box["🎯 Gem5ParserAPI\nimplements ParserAPI\n─────────────────\nDelegates to:\n→ Gem5Parser (static)\n→ Gem5Scanner (static)"]
+            Gem5ParserAPI_box["Gem5ParserAPI\nimplements ParserAPI\n-----------------\nDelegates to:\n-> Gem5Parser (static)\n-> Gem5Scanner (static)"]
 
-            Gem5Parser_box["⚙️ Gem5Parser\nimplements ParserProtocol\n─────────────────\n+ submit_parse_async()\n  1. Regex expansion\n  2. Strategy resolution\n  3. Work item creation\n  4. Pool submission\n+ finalize_parsing()\n+ construct_final_csv()"]
+            Gem5Parser_box["Gem5Parser\nimplements ParserProtocol\n-----------------\n+ submit_parse_async()\n  1. Regex expansion\n  2. Strategy resolution\n  3. Work item creation\n  4. Pool submission\n+ finalize_parsing()\n+ construct_final_csv()"]
 
-            Gem5Scanner_box["🔍 Gem5Scanner\nimplements ScannerProtocol\n─────────────────\n+ submit_scan_async()\n  1. Path discovery\n  2. ScanWork creation\n  3. Pool submission\n+ aggregate_scan_results()\n  1. Merge across files\n  2. Pattern aggregation"]
+            Gem5Scanner_box["Gem5Scanner\nimplements ScannerProtocol\n-----------------\n+ submit_scan_async()\n  1. Path discovery\n  2. ScanWork creation\n  3. Pool submission\n+ aggregate_scan_results()\n  1. Merge across files\n  2. Pattern aggregation"]
 
             Gem5ParserAPI_box --> Gem5Parser_box
             Gem5ParserAPI_box --> Gem5Scanner_box
         end
 
-        subgraph TYPES["📋 gem5/types/ — Stat Type System"]
+        subgraph TYPES["gem5/types/ -- Stat Type System"]
             direction TB
-            Registry["🏛️ StatTypeRegistry\n─────────────────\n+ register(type_name) → decorator\n+ create(type_name) → StatType\n+ get_types() → List‹str›"]
+            Registry["StatTypeRegistry\n-----------------\n+ register(type_name) -> decorator\n+ create(type_name) -> StatType\n+ get_types() -> List str"]
 
-            StatTypeBase["🔶 StatType (base)\n─────────────────\n+ content (property)\n+ reduced_content (property)\n+ balance_content()\n+ reduce_duplicates()\n+ entries (property)"]
+            StatTypeBase["StatType (base)\n-----------------\n+ content (property)\n+ reduced_content (property)\n+ balance_content()\n+ reduce_duplicates()\n+ entries (property)"]
 
             subgraph TYPE_IMPL["Registered Types"]
                 direction LR
@@ -56,7 +56,7 @@ flowchart TB
                 Config["Configuration\n@register('configuration')\nonEmpty default"]
             end
 
-            TypeMapperBox["🔄 TypeMapper\n─────────────────\n+ normalize_type()\n+ map_scan_result()\n+ is_entry_type()\n+ create_stat(config) → StatType"]
+            TypeMapperBox["TypeMapper\n-----------------\n+ normalize_type()\n+ map_scan_result()\n+ is_entry_type()\n+ create_stat(config) -> StatType"]
 
             Registry --> StatTypeBase
             Scalar --> StatTypeBase
@@ -67,17 +67,17 @@ flowchart TB
             TypeMapperBox --> Registry
         end
 
-        subgraph POOL["🏊 gem5/impl/pool/ — Work Pool"]
+        subgraph POOL["gem5/impl/pool/ -- Work Pool"]
             direction TB
-            JobABC["🔶 Job (ABC)\n+ __call__() → Any"]
+            JobABC["Job (ABC)\n+ __call__() -> Any"]
 
-            WorkPoolBox["♻️ WorkPool «singleton»\n─────────────────\nProcessPoolExecutor\nThreadPoolExecutor\n+ submit(task) → Future"]
+            WorkPoolBox["WorkPool (singleton)\n-----------------\nProcessPoolExecutor\nThreadPoolExecutor\n+ submit(task) -> Future"]
 
-            ParseWorkABC["📄 ParseWork(Job)\n+ __call__() → ParsedVarsDict"]
-            ScanWorkABC["📄 ScanWork(Job)\n+ __call__() → Any"]
+            ParseWorkABC["ParseWork(Job)\n+ __call__() -> ParsedVarsDict"]
+            ScanWorkABC["ScanWork(Job)\n+ __call__() -> Any"]
 
-            ParseWP["♻️ ParseWorkPool «singleton»\n+ submit_batch_async(works)\n  → List‹Future›"]
-            ScanWP["♻️ ScanWorkPool «singleton»\n+ submit_batch_async(works)\n  → List‹Future›"]
+            ParseWP["ParseWorkPool (singleton)\n+ submit_batch_async(works)\n  -> List Future"]
+            ScanWP["ScanWorkPool (singleton)\n+ submit_batch_async(works)\n  -> List Future"]
 
             ParseWorkABC --> JobABC
             ScanWorkABC --> JobABC
@@ -87,31 +87,31 @@ flowchart TB
             ScanWP -.->|submits| ScanWorkABC
         end
 
-        subgraph SCANNING["🔎 gem5/impl/scanning/ — Variable Discovery"]
+        subgraph SCANNING["gem5/impl/scanning/ -- Variable Discovery"]
             direction TB
-            ScannerSingleton["♻️ Gem5StatsScanner «singleton»\n─────────────────\n+ scan_file(path)\n  → List‹ScannedVariable›\n\nCalls: perl statsScanner.pl\nParses: JSON output\nMaps: TypeMapper.map_scan_result()"]
+            ScannerSingleton["Gem5StatsScanner (singleton)\n-----------------\n+ scan_file(path)\n  -> List ScannedVariable\n\nCalls: perl statsScanner.pl\nParses: JSON output\nMaps: TypeMapper.map_scan_result()"]
 
-            PatternAgg["🧩 PatternAggregator\n─────────────────\n+ aggregate_patterns(vars)\n  → List‹ScannedVariable›\n\ncpu0,cpu1..cpu15 →\n  cpu\\d+ [vector]"]
+            PatternAgg["PatternAggregator\n-----------------\n+ aggregate_patterns(vars)\n  -> List ScannedVariable\n\ncpu0,cpu1..cpu15 ->\n  cpu\\d+ [vector]"]
 
-            Gem5ScanWorkBox["📦 Gem5ScanWork(ScanWork)\n─────────────────\n+ __call__()\n  → scanner.scan_file(path)"]
+            Gem5ScanWorkBox["Gem5ScanWork(ScanWork)\n-----------------\n+ __call__()\n  -> scanner.scan_file(path)"]
 
             Gem5ScanWorkBox --> ScannerSingleton
             Gem5ScanWorkBox --> ScanWorkABC
         end
 
-        subgraph STRATEGIES["⚔️ gem5/impl/strategies/ — Parse Strategies"]
+        subgraph STRATEGIES["gem5/impl/strategies/ -- Parse Strategies"]
             direction TB
-            StratFactoryBox["🏭 StrategyFactory\n+ create(type) → Strategy"]
+            StratFactoryBox["StrategyFactory\n+ create(type) -> Strategy"]
 
-            FileParserProto["🔷 FileParserStrategy «Protocol»\n─────────────────\n+ execute(path, pattern, vars)\n+ get_work_items() → Seq‹ParseWork›\n+ post_process(results)"]
+            FileParserProto["FileParserStrategy (Protocol)\n-----------------\n+ execute(path, pattern, vars)\n+ get_work_items() -> Seq ParseWork\n+ post_process(results)"]
 
-            SimpleBox["📗 SimpleStatsStrategy\n─────────────────\n+ execute()\n+ get_work_items()\n  1. _get_files() → glob\n  2. _map_variables() → TypeMapper\n  3. Gem5ParseWork per file"]
+            SimpleBox["SimpleStatsStrategy\n-----------------\n+ execute()\n+ get_work_items()\n  1. _get_files() -> glob\n  2. _map_variables() -> TypeMapper\n  3. Gem5ParseWork per file"]
 
-            ConfigAwareBox["📘 ConfigAwareStrategy\nextends Simple\n─────────────────\n+ post_process()\n  → augments with config.ini"]
+            ConfigAwareBox["ConfigAwareStrategy\nextends Simple\n-----------------\n+ post_process()\n  -> augments with config.ini"]
 
-            Gem5ParseWorkBox["📦 Gem5ParseWork(ParseWork)\n─────────────────\n+ __call__() → ParsedVarsDict\n  1. _runPerlScript()\n     → PerlWorkerPool\n  2. _processOutput()\n     → line-by-line parsing\n     → StatType.content = value"]
+            Gem5ParseWorkBox["Gem5ParseWork(ParseWork)\n-----------------\n+ __call__() -> ParsedVarsDict\n  1. _runPerlScript()\n     -> PerlWorkerPool\n  2. _processOutput()\n     -> line-by-line parsing\n     -> StatType.content = value"]
 
-            PerlPoolBox["🐪 PerlWorkerPool «singleton»\n─────────────────\nPersistent Perl processes\nfileParserServer.pl\n+ parse_file(path, vars)\n  → List‹str› output lines"]
+            PerlPoolBox["PerlWorkerPool (singleton)\n-----------------\nPersistent Perl processes\nfileParserServer.pl\n+ parse_file(path, vars)\n  -> List str output lines"]
 
             StratFactoryBox -.->|lazy| SimpleBox
             StratFactoryBox -.->|lazy| ConfigAwareBox
@@ -134,7 +134,7 @@ flowchart TB
         Gem5ParseWorkBox --> TypeMapperBox
     end
 
-    %% Models connections
+    %% Models connections (external cross-layer dependency)
     models_box -.->|used by| ParserProto
     models_box -.->|used by| ScannerProto
     models_box -.->|used by| Gem5Parser_box
@@ -142,10 +142,11 @@ flowchart TB
     models_box -.->|used by| ScannerSingleton
     models_box -.->|used by| PatternAgg
     models_box -.->|used by| TypeMapperBox
+    models_box -.->|used by| factory_box
 
     %% External
-    PerlScripts["🐪 Perl Scripts\n─────────────────\nstatsScanner.pl\nfileParserServer.pl\nlibs/Scanning/Type/*"]
-    CommonUtils["📦 core/common/utils\n─────────────────\nnormalize_user_path()\nsanitize_log_value()\ncheckFileExistsOrException()"]
+    PerlScripts["Perl Scripts\n-----------------\nstatsScanner.pl\nfileParserServer.pl\nlibs/Scanning/Type/*"]
+    CommonUtils["core/common/utils\n-----------------\nnormalize_user_path()\nsanitize_log_value()\ncheckFileExistsOrException()"]
 
     ScannerSingleton -->|subprocess| PerlScripts
     PerlPoolBox -->|persistent process| PerlScripts
@@ -165,7 +166,8 @@ flowchart TB
     class WorkPoolBox,ScannerSingleton,ParseWP,ScanWP,PerlPoolBox singleton
     class JobABC,ParseWorkABC,ScanWorkABC,StatTypeBase abc
     class SimpleBox,ConfigAwareBox,Gem5ParseWorkBox,Gem5ScanWorkBox,Scalar,Vector,Distrib,Histo,Config impl
-    class models_box,Registry data
+    class models_box data
+    class Registry data
     class Gem5ParserAPI_box,factory_box facade
     class PerlScripts,CommonUtils external
 ```
@@ -499,10 +501,11 @@ classDiagram
 
 | File | Depends On |
 |------|-----------|
-| `models.py` | *(none — leaf)* |
-| `parser_protocol.py` | `models` |
-| `scanner_protocol.py` | `models` |
-| `parser_api.py` | `models` |
+| `core/models/parsing_models.py` | *(none -- leaf, canonical location)* |
+| `parsing/models.py` | `core/models` *(backward-compat shim)* |
+| `parser_protocol.py` | `core/models` |
+| `scanner_protocol.py` | `core/models` |
+| `parser_api.py` | `core/models` |
 | `factory.py` | `parser_api`, `gem5_parser_api` (lazy) |
 | `__init__.py` | `gem5_parser`, `gem5_scanner` |
 | `gem5/types/base.py` | *(none — leaf)* |
@@ -511,29 +514,30 @@ classDiagram
 | `gem5/types/distribution.py` | `types/base` |
 | `gem5/types/histogram.py` | `types/base` |
 | `gem5/types/configuration.py` | `types/base` |
-| `gem5/types/type_mapper.py` | `models`, `types/__init__` |
+| `gem5/types/type_mapper.py` | `core/models`, `types/__init__` |
 | `gem5/impl/pool/job.py` | *(none — leaf)* |
 | `gem5/impl/pool/work_pool.py` | `pool/job` |
 | `gem5/impl/pool/parse_work.py` | `pool/job` |
 | `gem5/impl/pool/scan_work.py` | `pool/job` |
 | `gem5/impl/pool/pool.py` | `pool/work_pool`, `pool/parse_work`, `pool/scan_work` |
-| `gem5/impl/scanning/scanner.py` | `models`, `types/type_mapper` |
-| `gem5/impl/scanning/pattern_aggregator.py` | `models` |
-| `gem5/impl/scanning/gem5_scan_work.py` | `models`, `scanning/scanner`, `pool/scan_work` |
-| `gem5/impl/strategies/file_parser_strategy.py` | `models`, `pool/parse_work` |
+| `gem5/impl/scanning/scanner.py` | `core/models`, `types/type_mapper` |
+| `gem5/impl/scanning/pattern_aggregator.py` | `core/models` |
+| `gem5/impl/scanning/gem5_scan_work.py` | `core/models`, `scanning/scanner`, `pool/scan_work` |
+| `gem5/impl/strategies/file_parser_strategy.py` | `core/models`, `pool/parse_work` |
 | `gem5/impl/strategies/factory.py` | `strategies/file_parser_strategy`, `strategies/simple` (lazy), `strategies/config_aware` (lazy) |
 | `gem5/impl/strategies/perl_worker_pool.py` | *(none — leaf, uses subprocess)* |
 | `gem5/impl/strategies/gem5_parse_work.py` | `common/utils`, `types/type_mapper`, `pool/parse_work`, `strategies/perl_worker_pool` |
-| `gem5/impl/strategies/simple.py` | `common/utils`, `models`, `types/type_mapper`, `pool/pool`, `strategies/gem5_parse_work` |
+| `gem5/impl/strategies/simple.py` | `common/utils`, `core/models`, `types/type_mapper`, `pool/pool`, `strategies/gem5_parse_work` |
 | `gem5/impl/strategies/config_aware.py` | `strategies/simple` |
-| `gem5/impl/gem5_parser.py` | `common/utils`, `models`, `strategies/factory`, `pool/pool` |
-| `gem5/impl/gem5_scanner.py` | `common/utils`, `models`, `scanning/pattern_aggregator`, `scanning/gem5_scan_work`, `pool/pool` |
-| `gem5/impl/gem5_parser_api.py` | `gem5_parser`, `gem5_scanner`, `models` |
+| `gem5/impl/gem5_parser.py` | `common/utils`, `core/models`, `strategies/factory`, `pool/pool` |
+| `gem5/impl/gem5_scanner.py` | `common/utils`, `core/models`, `scanning/pattern_aggregator`, `scanning/gem5_scan_work`, `pool/pool` |
+| `gem5/impl/gem5_parser_api.py` | `gem5_parser`, `gem5_scanner`, `core/models` |
 
 ### External Dependencies (outside parsing/)
 
 | External Module | Used By | Purpose |
 |-----------------|---------|---------|
+| `core/models/parsing_models.py` | All protocols, all gem5 impl modules | Shared data models (ScannedVariable, StatConfig) |
 | `core/common/utils.normalize_user_path` | `Gem5Parser`, `Gem5Scanner`, `SimpleStatsStrategy` | Path resolution |
 | `core/common/utils.sanitize_log_value` | `SimpleStatsStrategy` | Safe logging |
 | `core/common/utils.checkFileExistsOrException` | `Gem5ParseWork` | File guard |

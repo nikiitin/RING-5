@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 
 from src.core.services.portfolio_service import PortfolioService
-from src.core.state.state_manager import RepositoryStateManager
+from src.core.state.repository_state_manager import RepositoryStateManager
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
 
