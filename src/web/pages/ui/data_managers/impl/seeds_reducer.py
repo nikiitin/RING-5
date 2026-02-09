@@ -99,7 +99,7 @@ class SeedsReducerManager(DataManager):
 
         if st.button("Apply Seeds Reducer", key="apply_seeds"):
             # Validate inputs first
-            validation_errors = self.api.compute.validate_seeds_reducer_inputs(
+            validation_errors = self.api.managers.validate_seeds_reducer_inputs(
                 df=data,
                 categorical_cols=selected_categorical,
                 statistic_cols=selected_numeric,
@@ -111,7 +111,7 @@ class SeedsReducerManager(DataManager):
                 return
 
             try:
-                result_df = self.api.compute.reduce_seeds(
+                result_df = self.api.managers.reduce_seeds(
                     df=data,
                     categorical_cols=selected_categorical,
                     statistic_cols=selected_numeric,

@@ -7,9 +7,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.core.services.arithmetic_service import ArithmeticService
-from src.core.services.outlier_service import OutlierService
-from src.core.services.reduction_service import ReductionService
+from src.core.services.managers.arithmetic_service import ArithmeticService
+from src.core.services.managers.outlier_service import OutlierService
+from src.core.services.managers.reduction_service import ReductionService
 
 
 class TestArithmeticService:

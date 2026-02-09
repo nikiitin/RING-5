@@ -50,7 +50,7 @@ def test_save_pipeline_dialog_success(mock_streamlit, mock_api, mock_plot):
 
     PlotManagerComponents._render_save_pipeline_dialog(mock_api, mock_plot)
 
-    mock_api.pipeline.save_pipeline.assert_called_with(
+    mock_api.shapers.save_pipeline.assert_called_with(
         "MyPipeline", mock_plot.pipeline, description="Source: TestPlot"
     )
     mock_streamlit.success.assert_called()
@@ -63,13 +63,13 @@ def test_save_pipeline_dialog_cancel(mock_streamlit, mock_api, mock_plot):
 
     PlotManagerComponents._render_save_pipeline_dialog(mock_api, mock_plot)
 
-    mock_api.pipeline.save_pipeline.assert_not_called()
+    mock_api.shapers.save_pipeline.assert_not_called()
     assert mock_streamlit.session_state["show_save_for_plot_test_id"] is False
     mock_streamlit.rerun.assert_called()
 
 
 def test_load_pipeline_dialog_empty(mock_streamlit, mock_api, mock_plot):
-    mock_api.pipeline.list_pipelines.return_value = []
+    mock_api.shapers.list_pipelines.return_value = []
 
     # Close button click
     mock_streamlit.button.side_effect = lambda label, **k: label == "Close"
@@ -82,15 +82,15 @@ def test_load_pipeline_dialog_empty(mock_streamlit, mock_api, mock_plot):
 
 
 def test_load_pipeline_dialog_success(mock_streamlit, mock_api, mock_plot):
-    mock_api.pipeline.list_pipelines.return_value = ["MyPipe"]
-    mock_api.pipeline.load_pipeline.return_value = {"pipeline": [{"type": "mean"}]}
+    mock_api.shapers.list_pipelines.return_value = ["MyPipe"]
+    mock_api.shapers.load_pipeline.return_value = {"pipeline": [{"type": "mean"}]}
 
     mock_streamlit.selectbox.return_value = "MyPipe"
     mock_streamlit.button.side_effect = lambda label, **k: label == "Load"
 
     PlotManagerComponents._render_load_pipeline_dialog(mock_api, mock_plot)
 
-    mock_api.pipeline.load_pipeline.assert_called_with("MyPipe")
+    mock_api.shapers.load_pipeline.assert_called_with("MyPipe")
     # Verify plot updated (deep copied)
     assert len(mock_plot.pipeline) == 1
     assert mock_plot.pipeline[0]["type"] == "mean"
@@ -102,10 +102,10 @@ def test_load_pipeline_dialog_success(mock_streamlit, mock_api, mock_plot):
 
 
 def test_load_pipeline_dialog_cancel(mock_streamlit, mock_api, mock_plot):
-    mock_api.pipeline.list_pipelines.return_value = ["MyPipe"]
+    mock_api.shapers.list_pipelines.return_value = ["MyPipe"]
     mock_streamlit.button.side_effect = lambda label, **k: label == "Cancel"
 
     PlotManagerComponents._render_load_pipeline_dialog(mock_api, mock_plot)
 
-    mock_api.pipeline.load_pipeline.assert_not_called()
+    mock_api.shapers.load_pipeline.assert_not_called()
     assert mock_streamlit.session_state["show_load_for_plot_test_id"] is False

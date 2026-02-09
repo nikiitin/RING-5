@@ -39,7 +39,7 @@ class VariableEditor:
         # Ensure all variables have IDs (mutate in-place)
         for var in variables:
             if "_id" not in var:
-                var["_id"] = api.variable.generate_variable_id()
+                var["_id"] = api.data_services.generate_variable_id()
 
         st.markdown("**Current Variables:**")
 
@@ -420,7 +420,9 @@ class VariableEditor:
 
         # Process results based on type
         if is_distribution:
-            global_min, global_max = api.variable.aggregate_distribution_range(snapshot, var_name)
+            global_min, global_max = api.data_services.aggregate_distribution_range(
+                snapshot, var_name
+            )
 
             if global_min is not None or global_max is not None:
                 st.session_state[f"dist_range_result_{var_id}"] = {
@@ -432,7 +434,7 @@ class VariableEditor:
                 st.warning(f"No distribution data found matching '{var_name}'.")
         else:
             # Aggregate entries using VariableServicesAPI
-            filtered_entries = api.variable.aggregate_discovered_entries(snapshot, var_name)
+            filtered_entries = api.data_services.aggregate_discovered_entries(snapshot, var_name)
 
             if filtered_entries:
                 scanned_vars = api.state_manager.get_scanned_variables() or []
@@ -468,7 +470,7 @@ class VariableEditor:
     ) -> None:
         """Render multiselect for discovered vector entries."""
         # Filter internal gem5 statistics using variable services
-        filtered_entries = api.variable.filter_internal_stats(discovered_entries)
+        filtered_entries = api.data_services.filter_internal_stats(discovered_entries)
 
         var_name = var_config.get("name", "")
 
@@ -502,7 +504,7 @@ class VariableEditor:
         # Continue with normal entry selection
         current_entries = original_var.get("vectorEntries", [])
         if isinstance(current_entries, str):
-            current_entries = api.variable.parse_comma_separated_entries(current_entries)
+            current_entries = api.data_services.parse_comma_separated_entries(current_entries)
 
         # Filter defaults to ensure they exist in discovered list
         valid_defaults = [e for e in current_entries if e in filtered_entries]
@@ -528,7 +530,7 @@ class VariableEditor:
         """Render text input for manual vector entries."""
         default_entries = original_var.get("vectorEntries", "")
         if isinstance(default_entries, list):
-            default_entries = api.variable.format_entries_as_string(default_entries)
+            default_entries = api.data_services.format_entries_as_string(default_entries)
 
         vector_entries_input = st.text_input(
             "Vector entries (comma-separated)",
@@ -539,7 +541,7 @@ class VariableEditor:
         )
 
         if vector_entries_input.strip():
-            entries = api.variable.parse_comma_separated_entries(vector_entries_input)
+            entries = api.data_services.parse_comma_separated_entries(vector_entries_input)
             var_config["vectorEntries"] = entries
             var_config["useSpecialMembers"] = False
             st.success(

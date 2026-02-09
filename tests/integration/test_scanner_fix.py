@@ -133,7 +133,7 @@ class TestScannerFix:
 
         # Mocking UUID generation just in case, though we provided _id
         with patch(
-            "src.core.services.variable_service.VariableService.generate_variable_id",
+            "src.core.services.data_services.variable_service.VariableService.generate_variable_id",
             return_value="123",
         ):
             VariableEditor.render(api=mock_api, variables=variables, stats_path="/tmp")

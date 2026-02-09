@@ -53,7 +53,7 @@ def show_portfolio_page(api: ApplicationAPI) -> None:
                     if current_data is None:
                         st.error("No data available to save")
                         return
-                    api.portfolio.save_portfolio(
+                    api.data_services.save_portfolio(
                         name=portfolio_name,
                         data=current_data,
                         plots=api.state_manager.get_plots(),
@@ -78,7 +78,7 @@ def show_portfolio_page(api: ApplicationAPI) -> None:
         st.markdown("### Load Portfolio")
         st.markdown("Restore a previously saved portfolio with all data and plot configurations.")
 
-        portfolios = api.portfolio.list_portfolios()
+        portfolios = api.data_services.list_portfolios()
         if portfolios:
             selected_portfolio = st.selectbox(
                 "Select Portfolio", portfolios, key="portfolio_load_select"
@@ -86,7 +86,7 @@ def show_portfolio_page(api: ApplicationAPI) -> None:
 
             if st.button("Load Portfolio", type="primary", width="stretch"):
                 try:
-                    data = api.portfolio.load_portfolio(selected_portfolio)
+                    data = api.data_services.load_portfolio(selected_portfolio)
                     api.state_manager.restore_session(cast(PortfolioData, data))
                     st.success(f"Portfolio loaded: {selected_portfolio}")
                     st.rerun()
@@ -105,12 +105,12 @@ def show_portfolio_page(api: ApplicationAPI) -> None:
     st.markdown("---")
     st.markdown("### Manage Saved Portfolios")
 
-    portfolios = api.portfolio.list_portfolios()
+    portfolios = api.data_services.list_portfolios()
     if portfolios:
         for pname in portfolios:
             with st.expander(f"{pname}"):
                 if st.button("Delete", key=f"del_portfolio_{pname}"):
-                    api.portfolio.delete_portfolio(pname)
+                    api.data_services.delete_portfolio(pname)
                     st.success(f"Deleted {pname}")
                     st.rerun()
 
@@ -138,7 +138,7 @@ def show_portfolio_page(api: ApplicationAPI) -> None:
 
                 if st.button("Save Pipeline", type="primary"):
                     try:
-                        api.pipeline.save_pipeline(
+                        api.shapers.save_pipeline(
                             pipeline_name,
                             selected_plot.pipeline,
                             description=f"Extracted from {selected_plot_name}",
@@ -157,7 +157,7 @@ def show_portfolio_page(api: ApplicationAPI) -> None:
 
     with col2:
         st.markdown("### Apply Pipeline")
-        pipelines = api.pipeline.list_pipelines()
+        pipelines = api.shapers.list_pipelines()
         if pipelines:
             selected_pipeline_name = st.selectbox(
                 "Select Pipeline", pipelines, key="pipe_load_select"
@@ -173,7 +173,7 @@ def show_portfolio_page(api: ApplicationAPI) -> None:
 
                 if st.button("Apply Pipeline", type="primary"):
                     try:
-                        pipeline_data = api.pipeline.load_pipeline(selected_pipeline_name)
+                        pipeline_data = api.shapers.load_pipeline(selected_pipeline_name)
                         new_pipeline = pipeline_data.get("pipeline", [])
 
                         count = 0

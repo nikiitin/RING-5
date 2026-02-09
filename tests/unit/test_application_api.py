@@ -43,7 +43,7 @@ class TestApplicationAPI:
         # Arrange
         path = "/test/data.csv"
         df = pd.DataFrame({"col": [1, 2]})
-        mock_data = application_api._mock_services.data
+        mock_data = application_api._mock_services.data_services
         mock_data.load_csv_file.return_value = df
 
         # Act
@@ -60,7 +60,7 @@ class TestApplicationAPI:
         # Arrange
         path = "/pool/data.csv"
         df = pd.DataFrame({"pool": [1]})
-        mock_data = application_api._mock_services.data
+        mock_data = application_api._mock_services.data_services
         mock_data.load_csv_file.return_value = df
 
         # Act

@@ -52,7 +52,7 @@ class PreprocessorManager(DataManager):
 
         with col2:
             operation = st.selectbox(
-                "Operation", options=self.api.compute.list_operators(), key="preproc_op"
+                "Operation", options=self.api.managers.list_operators(), key="preproc_op"
             )
 
         with col3:
@@ -75,7 +75,7 @@ class PreprocessorManager(DataManager):
 
         if st.button("Preview Result", key="preview_preproc"):
             try:
-                preview_data = self.api.compute.apply_operation(
+                preview_data = self.api.managers.apply_operation(
                     df=data,
                     operation=operation,
                     src1=src_col1,

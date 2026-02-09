@@ -203,7 +203,7 @@ class TestCsvPoolPerformance:
     def test_csv_metadata_caching(self, tmp_path):
         """CSV metadata should be cached for fast repeated access."""
 
-        from src.core.services.csv_pool_service import CsvPoolService
+        from src.core.services.data_services.csv_pool_service import CsvPoolService
 
         # Create a test CSV
         csv_path = tmp_path / "test.csv"
@@ -240,7 +240,7 @@ class TestCsvPoolPerformance:
 
     def test_csv_loading_with_cache(self, tmp_path):
         """CSV DataFrame loading should be cached."""
-        from src.core.services.csv_pool_service import CsvPoolService
+        from src.core.services.data_services.csv_pool_service import CsvPoolService
 
         # Create test CSV
         csv_path = tmp_path / "cached.csv"

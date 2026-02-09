@@ -24,7 +24,7 @@ def render_performance_page(api: ApplicationAPI) -> None:
     st.header("Cache Statistics")
 
     stats = get_cache_stats()
-    csv_stats = api.data.get_cache_stats()
+    csv_stats = api.data_services.get_cache_stats()
 
     col1, col2, col3 = st.columns(3)
 
@@ -71,7 +71,7 @@ def render_performance_page(api: ApplicationAPI) -> None:
 
         if st.button("Clear All Caches", type="primary"):
             clear_all_caches()
-            api.data.clear_caches()
+            api.data_services.clear_caches()
             st.success("All caches cleared!")
             st.rerun()
 

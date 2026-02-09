@@ -13,8 +13,8 @@ class PathService:
     @staticmethod
     def get_root_dir() -> Path:
         """Get the project root directory."""
-        # Assuming src.core.services/paths.py -> src.core.services -> src/web -> src -> root
-        return Path(__file__).parent.parent.parent.parent
+        # data_services/path_service.py -> data_services -> services -> core -> src -> root
+        return Path(__file__).parent.parent.parent.parent.parent
 
     @staticmethod
     def get_data_dir() -> Path:

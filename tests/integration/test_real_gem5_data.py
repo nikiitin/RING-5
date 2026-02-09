@@ -124,7 +124,7 @@ class TestRealDataWithManagers:
 
     def test_seeds_reducer_via_service(self, sample_real_like_data):
         """Test seeds reducer via service."""
-        from src.core.services.reduction_service import ReductionService
+        from src.core.services.managers.reduction_service import ReductionService
 
         # Apply seeds reducer through service
         result = ReductionService.reduce_seeds(
@@ -150,7 +150,7 @@ class TestRealDataWithManagers:
 
     def test_outlier_remover_via_service(self, sample_real_like_data):
         """Test outlier remover via service."""
-        from src.core.services.outlier_service import OutlierService
+        from src.core.services.managers.outlier_service import OutlierService
 
         # Add an outlier
         sample_real_like_data.loc[0, "simTicks"] = 999999999.0  # Very high value
@@ -248,7 +248,8 @@ class TestConfigurationPersistence:
 
         # Patch PathService to use temp directory
         with patch(
-            "src.core.services.csv_pool_service.PathService.get_data_dir", return_value=temp_path
+            "src.core.services.data_services.csv_pool_service.PathService.get_data_dir",
+            return_value=temp_path,
         ):
             facade.csv_pool_dir = csv_pool
 

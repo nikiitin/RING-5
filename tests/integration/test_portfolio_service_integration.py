@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
-from src.core.services.portfolio_service import PortfolioService
+from src.core.services.data_services.portfolio_service import PortfolioService
 from src.core.state.repository_state_manager import RepositoryStateManager
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
@@ -18,7 +18,8 @@ def mock_portfolios_dir(tmp_path):
 
     # Mock PathService to return this directory
     with patch(
-        "src.core.services.path_service.PathService.get_portfolios_dir", return_value=portfolios_dir
+        "src.core.services.data_services.path_service.PathService.get_portfolios_dir",
+        return_value=portfolios_dir,
     ):
         yield portfolios_dir
 

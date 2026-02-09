@@ -82,13 +82,13 @@ def test_seeds_reducer_apply(mock_streamlit, mock_api, sample_data):
 
     # Mock Computing Service via api facade
     result_df = pd.DataFrame({"benchmark": ["b1"], "value": [11], "value.sd": [1.4]})
-    mock_api.compute.validate_seeds_reducer_inputs.return_value = []
-    mock_api.compute.reduce_seeds.return_value = result_df
+    mock_api.managers.validate_seeds_reducer_inputs.return_value = []
+    mock_api.managers.reduce_seeds.return_value = result_df
 
     manager.render()
 
     # Check processing called
-    mock_api.compute.reduce_seeds.assert_called_once()
+    mock_api.managers.reduce_seeds.assert_called_once()
 
     # Check result stored via api
     mock_api.set_preview.assert_called_once_with("seeds_reduction", result_df)
@@ -137,11 +137,11 @@ def test_outlier_remover_run(mock_streamlit, mock_api, sample_data):
     # Button: Apply -> True
     mock_st.button.side_effect = lambda label, key=None, **kwargs: key == "apply_outlier"
 
-    mock_api.compute.validate_outlier_inputs.return_value = []
-    mock_api.compute.remove_outliers.return_value = sample_data
+    mock_api.managers.validate_outlier_inputs.return_value = []
+    mock_api.managers.remove_outliers.return_value = sample_data
 
     manager.render()
 
-    mock_api.compute.remove_outliers.assert_called_once()
+    mock_api.managers.remove_outliers.assert_called_once()
     # Check result stored via api
     mock_api.set_preview.assert_called_once_with("outlier_removal", sample_data)

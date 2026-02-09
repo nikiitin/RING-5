@@ -22,12 +22,17 @@ def facade(tmp_path):
     config_pool.mkdir()
 
     # Patch PathService.get_data_dir to return our temp dir
-    with patch("src.core.services.path_service.PathService.get_data_dir", return_value=ring5_dir):
+    with patch(
+        "src.core.services.data_services.path_service.PathService.get_data_dir",
+        return_value=ring5_dir,
+    ):
         with patch(
-            "src.core.services.csv_pool_service.PathService.get_data_dir", return_value=ring5_dir
+            "src.core.services.data_services.csv_pool_service.PathService.get_data_dir",
+            return_value=ring5_dir,
         ):
             with patch(
-                "src.core.services.config_service.PathService.get_data_dir", return_value=ring5_dir
+                "src.core.services.data_services.config_service.PathService.get_data_dir",
+                return_value=ring5_dir,
             ):
                 # Initialize facade (will use patched paths)
                 f = ApplicationAPI()

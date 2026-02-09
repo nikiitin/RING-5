@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from src.core.services.config_service import ConfigService
+from src.core.services.data_services.config_service import ConfigService
 
 # ============================================================================
 # Fixtures
@@ -28,7 +28,7 @@ def empty_config_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     config_dir.mkdir()
 
     monkeypatch.setattr(
-        "src.core.services.config_service.PathService.get_data_dir", lambda: tmp_path
+        "src.core.services.data_services.config_service.PathService.get_data_dir", lambda: tmp_path
     )
 
     return config_dir
@@ -73,7 +73,8 @@ class TestConfigDirectory:
         """Verify config directory is created on first access."""
         # Arrange
         monkeypatch.setattr(
-            "src.core.services.config_service.PathService.get_data_dir", lambda: tmp_path
+            "src.core.services.data_services.config_service.PathService.get_data_dir",
+            lambda: tmp_path,
         )
         expected_dir = tmp_path / "saved_configs"
 

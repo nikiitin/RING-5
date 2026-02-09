@@ -91,7 +91,7 @@ class OutlierRemoverManager(DataManager):
 
         if st.button("Apply Outlier Remover", key="apply_outlier"):
             # Validate inputs first
-            validation_errors = self.api.compute.validate_outlier_inputs(
+            validation_errors = self.api.managers.validate_outlier_inputs(
                 df=data,
                 outlier_col=outlier_column,
                 group_by_cols=group_by_cols,
@@ -103,7 +103,7 @@ class OutlierRemoverManager(DataManager):
                 return
 
             try:
-                filtered_df = self.api.compute.remove_outliers(
+                filtered_df = self.api.managers.remove_outliers(
                     df=data, outlier_col=outlier_column, group_by_cols=group_by_cols
                 )
 

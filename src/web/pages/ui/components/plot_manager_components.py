@@ -129,7 +129,7 @@ class PlotManagerComponents:
             st.write("")
             if st.button("Save", type="primary", key=f"save_p_btn_{plot.plot_id}"):
                 try:
-                    api.pipeline.save_pipeline(
+                    api.shapers.save_pipeline(
                         name, plot.pipeline, description=f"Source: {plot.name}"
                     )
                     st.success("Pipeline saved!")
@@ -145,7 +145,7 @@ class PlotManagerComponents:
     def _render_load_pipeline_dialog(api: ApplicationAPI, plot: BasePlot) -> None:
         st.markdown("---")
         st.markdown("### Load Pipeline")
-        pipelines = api.pipeline.list_pipelines()
+        pipelines = api.shapers.list_pipelines()
         if not pipelines:
             st.warning("No saved pipelines found.")
             if st.button("Close", key=f"close_load_{plot.plot_id}"):
@@ -156,7 +156,7 @@ class PlotManagerComponents:
         selected = st.selectbox("Select Pipeline", pipelines, key=f"load_p_sel_{plot.plot_id}")
         if st.button("Load", type="primary", key=f"load_p_btn_{plot.plot_id}"):
             try:
-                data = api.pipeline.load_pipeline(selected)
+                data = api.shapers.load_pipeline(selected)
                 plot.pipeline = copy.deepcopy(data.get("pipeline", []))
                 plot.pipeline_counter = len(plot.pipeline)
                 plot.processed_data = None  # Reset data

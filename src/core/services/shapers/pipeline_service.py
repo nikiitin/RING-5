@@ -1,5 +1,5 @@
 """
-Module: src.core.services/pipeline_service.py
+Module: src.core.services.shapers/pipeline_service.py
 
 Purpose:
     Manages shaper pipeline configurations for data transformation workflows.
@@ -14,11 +14,10 @@ Responsibilities:
     - Track pipeline metadata (name, description, timestamp)
 
 Dependencies:
-    - PathService: For resolving pipeline storage directory
     - json: For pipeline serialization/deserialization
 
 Usage Example:
-    >>> from src.core.services.pipeline_service import PipelineService
+    >>> from src.core.services.shapers.pipeline_service import PipelineService
     >>>
     >>> # Create pipeline configuration
     >>> pipeline_config = [
@@ -63,30 +62,36 @@ Last Modified: 2026-01-27
 """
 
 import json
+from pathlib import Path
 from typing import Any, Dict, List, cast
 
 import pandas as pd
 
 from src.core.common.utils import sanitize_filename, validate_path_within
-from src.core.services.path_service import PathService
 from src.core.services.shapers.factory import ShaperFactory
 
 
 class PipelineService:
     """Service to handle saving, loading, and managing transformation pipelines."""
 
-    @staticmethod
-    def list_pipelines() -> List[str]:
+    def __init__(self, pipelines_dir: Path) -> None:
+        """Initialize with the pipelines storage directory.
+
+        Args:
+            pipelines_dir: Path to directory where pipeline JSONs are stored.
+        """
+        self._pipelines_dir = pipelines_dir
+        self._pipelines_dir.mkdir(parents=True, exist_ok=True)
+
+    def list_pipelines(self) -> List[str]:
         """List all available saved pipelines."""
-        pipeline_dir = PathService.get_pipelines_dir()
-        if not pipeline_dir.exists():
+        if not self._pipelines_dir.exists():
             return []
 
-        return [p.stem for p in pipeline_dir.glob("*.json")]
+        return [p.stem for p in self._pipelines_dir.glob("*.json")]
 
-    @staticmethod
     def save_pipeline(
-        name: str, pipeline_config: List[Dict[str, Any]], description: str = ""
+        self, name: str, pipeline_config: List[Dict[str, Any]], description: str = ""
     ) -> None:
         """Save a pipeline configuration to disk."""
         if not name:
@@ -101,17 +106,18 @@ class PipelineService:
             "timestamp": pd.Timestamp.now().isoformat(),
         }
 
-        pipelines_dir = PathService.get_pipelines_dir()
-        save_path = validate_path_within(pipelines_dir / f"{safe_name}.json", pipelines_dir)
+        save_path = validate_path_within(
+            self._pipelines_dir / f"{safe_name}.json", self._pipelines_dir
+        )
         with open(save_path, "w") as f:
             json.dump(data, f, indent=2)
 
-    @staticmethod
-    def load_pipeline(name: str) -> Dict[str, Any]:
+    def load_pipeline(self, name: str) -> Dict[str, Any]:
         """Load a pipeline configuration by name."""
         safe_name: str = sanitize_filename(name)
-        pipelines_dir = PathService.get_pipelines_dir()
-        load_path = validate_path_within(pipelines_dir / f"{safe_name}.json", pipelines_dir)
+        load_path = validate_path_within(
+            self._pipelines_dir / f"{safe_name}.json", self._pipelines_dir
+        )
 
         if not load_path.exists():
             raise FileNotFoundError(f"Pipeline '{name}' not found")
@@ -119,10 +125,9 @@ class PipelineService:
         with open(load_path, "r") as f:
             return cast(Dict[str, Any], json.load(f))
 
-    @staticmethod
-    def delete_pipeline(name: str) -> None:
+    def delete_pipeline(self, name: str) -> None:
         """Delete a pipeline configuration."""
-        path = PathService.get_pipelines_dir() / f"{name}.json"
+        path = self._pipelines_dir / f"{name}.json"
         if path.exists():
             path.unlink()
 

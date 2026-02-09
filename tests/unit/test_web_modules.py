@@ -109,7 +109,7 @@ class TestApplicationAPI:
 
         # Check services initialized
         assert api.state_manager is not None
-        assert api.portfolio is not None
+        assert api.data_services is not None
 
         # Check CsvPoolService access (static service)
         # API doesn't allow direct property access to csv_pool_dir by default but uses service
@@ -127,7 +127,7 @@ class TestApplicationAPI:
 
         # Patch PathService to use temp directory
         with patch(
-            "src.core.services.csv_pool_service.PathService.get_data_dir",
+            "src.core.services.data_services.csv_pool_service.PathService.get_data_dir",
             return_value=self.test_dir,
         ):
             # ApplicationAPI uses CsvPoolService.load_pool
@@ -151,7 +151,7 @@ class TestApplicationAPI:
         pd.DataFrame({"a": [1, 2, 3]}).to_csv(test_csv, index=False)
 
         with patch(
-            "src.core.services.csv_pool_service.PathService.get_data_dir",
+            "src.core.services.data_services.csv_pool_service.PathService.get_data_dir",
             return_value=self.test_dir,
         ):
             api = ApplicationAPI()
@@ -187,7 +187,7 @@ class TestApplicationAPI:
         config_dir.mkdir(parents=True, exist_ok=True)
 
         with patch(
-            "src.core.services.config_service.ConfigService.get_config_dir",
+            "src.core.services.data_services.config_service.ConfigService.get_config_dir",
             return_value=config_dir,
         ):
             config_path = api.save_configuration(

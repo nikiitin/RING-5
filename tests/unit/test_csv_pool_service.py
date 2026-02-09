@@ -16,7 +16,7 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
-from src.core.services.csv_pool_service import CsvPoolService
+from src.core.services.data_services.csv_pool_service import CsvPoolService
 
 # ============================================================================
 # Fixtures (TDD Ch. 5 - Fixture-First Design)
@@ -54,7 +54,8 @@ def empty_pool_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
     # Patch PathService to return our test directory
     monkeypatch.setattr(
-        "src.core.services.csv_pool_service.PathService.get_data_dir", lambda: tmp_path
+        "src.core.services.data_services.csv_pool_service.PathService.get_data_dir",
+        lambda: tmp_path,
     )
 
     return pool_dir
@@ -98,7 +99,8 @@ class TestPoolDirectory:
         """Verify pool directory is created on first access."""
         # Arrange
         monkeypatch.setattr(
-            "src.core.services.csv_pool_service.PathService.get_data_dir", lambda: tmp_path
+            "src.core.services.data_services.csv_pool_service.PathService.get_data_dir",
+            lambda: tmp_path,
         )
         expected_dir = tmp_path / "csv_pool"
 

@@ -18,11 +18,9 @@ Architecture:
     - RepositoryStateManager: Application state
 
     The ServicesAPI sub-APIs are exposed as properties for direct access:
-    - api.data      -> DataServicesAPI
-    - api.compute   -> ComputeServicesAPI
-    - api.pipeline  -> PipelineServicesAPI
-    - api.variable  -> VariableServicesAPI
-    - api.portfolio -> PortfolioServicesAPI
+    - api.managers       -> ManagersAPI
+    - api.data_services  -> DataServicesAPI
+    - api.shapers        -> ShapersAPI
 """
 
 import logging
@@ -33,14 +31,10 @@ import numpy as np
 
 from src.core.models import StatConfig
 from src.core.parsing import ParseService, ScannerService
-from src.core.services.services_api import (
-    ComputeServicesAPI,
-    DataServicesAPI,
-    PipelineServicesAPI,
-    PortfolioServicesAPI,
-    VariableServicesAPI,
-)
+from src.core.services.data_services.data_services_api import DataServicesAPI
+from src.core.services.managers.managers_api import ManagersAPI
 from src.core.services.services_impl import DefaultServicesAPI
+from src.core.services.shapers.shapers_api import ShapersAPI
 from src.core.state.repository_state_manager import RepositoryStateManager
 
 logger = logging.getLogger(__name__)
@@ -76,29 +70,19 @@ class ApplicationAPI:
     # =========================================================================
 
     @property
-    def data(self) -> DataServicesAPI:
-        """Access data storage and retrieval operations."""
-        return self._services.data
-
-    @property
-    def compute(self) -> ComputeServicesAPI:
+    def managers(self) -> ManagersAPI:
         """Access stateless data transformation operations."""
-        return self._services.compute
+        return self._services.managers
 
     @property
-    def pipeline(self) -> PipelineServicesAPI:
+    def data_services(self) -> DataServicesAPI:
+        """Access data storage, retrieval, and domain entity management."""
+        return self._services.data_services
+
+    @property
+    def shapers(self) -> ShapersAPI:
         """Access pipeline and shaper operations."""
-        return self._services.pipeline
-
-    @property
-    def variable(self) -> VariableServicesAPI:
-        """Access gem5 variable management operations."""
-        return self._services.variable
-
-    @property
-    def portfolio(self) -> PortfolioServicesAPI:
-        """Access workspace persistence operations."""
-        return self._services.portfolio
+        return self._services.shapers
 
     def load_data(self, csv_path: str) -> None:
         """
@@ -108,7 +92,7 @@ class ApplicationAPI:
         """
         try:
             # 1. Operation: Load
-            df = self._services.data.load_csv_file(csv_path)
+            df = self._services.data_services.load_csv_file(csv_path)
 
             # 2. Persistence: Save
             self.state_manager.set_data(df)
@@ -236,7 +220,7 @@ class ApplicationAPI:
 
     def apply_shapers(self, data: Any, pipeline_config: list[dict[str, Any]]) -> Any:
         """Apply a sequence of shapers to a DataFrame."""
-        return self._services.pipeline.process_pipeline(data, pipeline_config)
+        return self._services.shapers.process_pipeline(data, pipeline_config)
 
     # =========================================================================
     # Configuration Management
@@ -250,31 +234,33 @@ class ApplicationAPI:
         csv_path: str | None = None,
     ) -> str:
         """Save current configuration to disk."""
-        return self._services.data.save_configuration(name, description, shapers_config, csv_path)
+        return self._services.data_services.save_configuration(
+            name, description, shapers_config, csv_path
+        )
 
     def load_configuration(self, config_path: str) -> dict[str, Any]:
         """Load configuration from file."""
-        return self._services.data.load_configuration(config_path)
+        return self._services.data_services.load_configuration(config_path)
 
     def load_csv_pool(self) -> list[dict[str, Any]]:
         """List available CSV files in the pool."""
-        return self._services.data.load_csv_pool()
+        return self._services.data_services.load_csv_pool()
 
     def load_saved_configs(self) -> list[dict[str, Any]]:
         """List all saved configurations."""
-        return self._services.data.load_saved_configs()
+        return self._services.data_services.load_saved_configs()
 
     def delete_configuration(self, config_path: str) -> bool:
         """Delete a configuration file."""
-        return self._services.data.delete_configuration(config_path)
+        return self._services.data_services.delete_configuration(config_path)
 
     def add_to_csv_pool(self, file_path: str) -> str:
         """Add a file to the CSV pool."""
-        return self._services.data.add_to_csv_pool(file_path)
+        return self._services.data_services.add_to_csv_pool(file_path)
 
     def delete_from_pool(self, file_path: str) -> bool:
         """Delete a file from the CSV pool."""
-        return self._services.data.delete_from_csv_pool(file_path)
+        return self._services.data_services.delete_from_csv_pool(file_path)
 
     def delete_from_csv_pool(self, file_path: str) -> bool:
         """Alias for delete_from_pool."""
@@ -282,7 +268,7 @@ class ApplicationAPI:
 
     def load_csv_file(self, file_path: str) -> Any:
         """Load a CSV file directly returning DataFrame."""
-        return self._services.data.load_csv_file(file_path)
+        return self._services.data_services.load_csv_file(file_path)
 
     def get_column_info(self, df: Any) -> Dict[str, Any]:
         """Get summary information about DataFrame columns for UI."""

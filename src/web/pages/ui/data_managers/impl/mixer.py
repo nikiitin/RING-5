@@ -84,7 +84,7 @@ class MixerManager(DataManager):
 
         if st.button("Preview Merge", key="mixer_preview"):
             # Validate inputs first
-            validation_errors = self.api.compute.validate_merge_inputs(
+            validation_errors = self.api.managers.validate_merge_inputs(
                 df=data,
                 columns=selected_cols,
                 operation=operation,
@@ -97,7 +97,7 @@ class MixerManager(DataManager):
                 return
 
             try:
-                result_df = self.api.compute.apply_mixer(
+                result_df = self.api.managers.apply_mixer(
                     df=data,
                     dest_col=new_col_name,
                     source_cols=selected_cols,

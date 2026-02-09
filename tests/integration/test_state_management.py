@@ -18,8 +18,8 @@ import pandas as pd
 import pytest
 
 from src.core.application_api import ApplicationAPI
-from src.core.services.path_service import PathService
-from src.core.services.portfolio_service import PortfolioService
+from src.core.services.data_services.path_service import PathService
+from src.core.services.data_services.portfolio_service import PortfolioService
 from src.core.state.repositories.parser_state_repository import ParserStateRepository
 from src.core.state.repository_state_manager import RepositoryStateManager
 from src.web.pages.ui.plotting.types.grouped_bar_plot import GroupedBarPlot
@@ -74,7 +74,8 @@ def portfolio_service(state_manager, tmp_path):
     """Create PortfolioService instance."""
     # Mock PathService to return tmp_path for portfolios
     with patch(
-        "src.core.services.path_service.PathService.get_portfolios_dir", return_value=tmp_path
+        "src.core.services.data_services.path_service.PathService.get_portfolios_dir",
+        return_value=tmp_path,
     ):
         service = PortfolioService(state_manager)
         yield service
