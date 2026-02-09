@@ -8,7 +8,7 @@ import pandas as pd
 import streamlit as st
 
 from src.core.services.mixer_service import MixerService
-from src.web.pages.ui.data_managers.base_manager import DataManager
+from src.web.pages.ui.data_managers.data_manager import DataManager
 
 
 class MixerManager(DataManager):

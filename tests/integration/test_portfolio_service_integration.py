@@ -18,7 +18,7 @@ def mock_portfolios_dir(tmp_path):
 
     # Mock PathService to return this directory
     with patch(
-        "src.core.services.paths.PathService.get_portfolios_dir", return_value=portfolios_dir
+        "src.core.services.path_service.PathService.get_portfolios_dir", return_value=portfolios_dir
     ):
         yield portfolios_dir
 

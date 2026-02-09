@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
 
-from src.core.services.paths import PathService
+from src.core.services.path_service import PathService
 
 
 class ConfigService:

@@ -17,7 +17,7 @@ import pytest
 
 from src.core.parsing.models import StatConfig
 from src.core.parsing.parser import Gem5StatsParser, ParserBuilder
-from src.core.parsing.strategies.interface import ParserStrategy
+from src.core.parsing.strategies.file_parser_strategy import ParserStrategy
 from src.core.parsing.types.base import StatType
 
 

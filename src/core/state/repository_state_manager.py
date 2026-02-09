@@ -18,7 +18,7 @@ from typing import Any, Callable, Dict, List, Optional
 import pandas as pd
 
 from src.core.domain.models import PortfolioData
-from src.core.domain.plot import PlotProtocol
+from src.core.domain.plot_protocol import PlotProtocol
 from src.core.state.repositories.session_repository import SessionRepository
 
 logger: logging.Logger = logging.getLogger(__name__)

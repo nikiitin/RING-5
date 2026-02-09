@@ -9,7 +9,7 @@ Usage:
     >>> strategy = StrategyFactory.create("config_aware")
 """
 
-from src.core.parsing.strategies.interface import FileParserStrategy
+from src.core.parsing.strategies.file_parser_strategy import FileParserStrategy
 
 
 class StrategyFactory:

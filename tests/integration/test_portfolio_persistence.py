@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from src.core.services.paths import PathService
+from src.core.services.path_service import PathService
 from src.core.services.portfolio_service import PortfolioService
 from src.core.state.state_manager import RepositoryStateManager
 

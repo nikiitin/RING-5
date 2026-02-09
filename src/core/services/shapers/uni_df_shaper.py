@@ -10,7 +10,7 @@ from typing import Any
 
 import pandas as pd
 
-from src.core.services.shapers.base_shaper import Shaper
+from src.core.services.shapers.shaper import Shaper
 
 
 class UniDfShaper(Shaper):

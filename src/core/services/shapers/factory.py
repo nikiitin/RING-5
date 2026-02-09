@@ -10,7 +10,6 @@ Enables runtime shaper selection and dynamic pipeline construction.
 
 from typing import Any, Dict, List, Optional, Type
 
-from src.core.services.shapers.base_shaper import Shaper
 from src.core.services.shapers.impl.mean import Mean
 from src.core.services.shapers.impl.normalize import Normalize
 from src.core.services.shapers.impl.selector_algorithms.columnSelector import (
@@ -22,6 +21,7 @@ from src.core.services.shapers.impl.selector_algorithms.conditionSelector import
 from src.core.services.shapers.impl.selector_algorithms.itemSelector import ItemSelector
 from src.core.services.shapers.impl.sort import Sort
 from src.core.services.shapers.impl.transformer import Transformer
+from src.core.services.shapers.shaper import Shaper
 
 
 class ShaperFactory:

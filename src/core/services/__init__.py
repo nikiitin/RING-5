@@ -5,7 +5,7 @@ from .config_service import ConfigService
 from .csv_pool_service import CsvPoolService
 from .mixer_service import MixerService
 from .outlier_service import OutlierService
-from .paths import PathService
+from .path_service import PathService
 from .pipeline_service import PipelineService
 from .portfolio_service import PortfolioService
 from .reduction_service import ReductionService

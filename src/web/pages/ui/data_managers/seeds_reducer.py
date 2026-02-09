@@ -8,7 +8,7 @@ import pandas as pd
 import streamlit as st
 
 from src.core.services.reduction_service import ReductionService
-from src.web.pages.ui.data_managers.base_manager import DataManager
+from src.web.pages.ui.data_managers.data_manager import DataManager
 
 
 class SeedsReducerManager(DataManager):

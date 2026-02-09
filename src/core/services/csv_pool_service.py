@@ -69,7 +69,7 @@ import pandas as pd
 from pandas import DataFrame
 
 from src.core.performance import SimpleCache
-from src.core.services.paths import PathService
+from src.core.services.path_service import PathService
 
 
 class CsvPoolService:

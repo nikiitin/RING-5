@@ -68,7 +68,7 @@ from typing import Any, Dict, List, cast
 import pandas as pd
 
 from src.core.common.utils import sanitize_filename, validate_path_within
-from src.core.services.paths import PathService
+from src.core.services.path_service import PathService
 from src.core.services.shapers.factory import ShaperFactory
 
 

@@ -23,9 +23,8 @@ import threading
 from typing import Any, Dict, List, Optional
 
 from src.core.parsing.models import StatConfig
-from src.core.parsing.strategies.config_aware import ConfigAwareStrategy
-from src.core.parsing.strategies.interface import FileParserStrategy
-from src.core.parsing.strategies.simple import SimpleStatsStrategy
+from src.core.parsing.strategies.factory import StrategyFactory
+from src.core.parsing.strategies.file_parser_strategy import FileParserStrategy
 from src.core.parsing.workers import ParseWorkPool
 
 logger = logging.getLogger(__name__)
@@ -266,13 +265,7 @@ class ParserBuilder:
             raise ValueError("At least one variable is required")
 
         # Select Strategy
-        strategy: FileParserStrategy
-        if self._strategy_type == "simple":
-            strategy = SimpleStatsStrategy()
-        elif self._strategy_type == "config_aware":
-            strategy = ConfigAwareStrategy()
-        else:
-            raise ValueError(f"Unknown strategy type: {self._strategy_type}")
+        strategy: FileParserStrategy = StrategyFactory.create(self._strategy_type)
 
         with Gem5StatsParser._lock:
             Gem5StatsParser._instance = Gem5StatsParser(

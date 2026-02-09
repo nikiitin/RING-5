@@ -14,7 +14,7 @@ from typing import Any, Callable, Dict, List, Optional, Protocol, runtime_checka
 import pandas as pd
 
 from src.core.domain.models import PortfolioData
-from src.core.domain.plot import PlotProtocol
+from src.core.domain.plot_protocol import PlotProtocol
 
 # Re-export concrete implementation so existing imports keep working:
 #   from src.core.state.state_manager import RepositoryStateManager
