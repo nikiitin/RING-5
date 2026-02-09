@@ -79,6 +79,7 @@ Last Modified: 2026-01-27
 import logging
 import os
 import re
+from concurrent.futures import Future
 from dataclasses import replace
 from typing import Any, Dict, List, Optional
 
@@ -108,7 +109,7 @@ class ParseService:
         output_dir: str,
         strategy_type: str = "simple",
         scanned_vars: Optional[List[Any]] = None,
-    ) -> List[Any]:
+    ) -> List[Future[Any]]:
         """Submit async parsing job and return futures."""
         search_path = normalize_user_path(stats_path)
         if not search_path.exists():
@@ -167,16 +168,40 @@ class ParseService:
             return []
 
         ParseService._active_var_names = [v.name for v in processed_configs]
+        ParseService._last_batch_var_names = list(ParseService._active_var_names)
 
         pool = ParseWorkPool.get_instance()
         return pool.submit_batch_async(batch_work)
 
     @staticmethod
+    def get_last_batch_var_names() -> List[str]:
+        """Return variable names from the most recent submit_parse_async call.
+
+        This allows callers to capture the per-batch variable ordering
+        immediately after submission, instead of relying on the shared
+        class-level ``_active_var_names`` which may be overwritten by a
+        concurrent batch.
+        """
+        return list(ParseService._last_batch_var_names)
+
+    _last_batch_var_names: List[str] = []
+
+    @staticmethod
     def finalize_parsing(
-        output_dir: str, results: List[Any], strategy_type: str = "simple"
+        output_dir: str,
+        results: List[Any],
+        strategy_type: str = "simple",
+        var_names: Optional[List[str]] = None,
     ) -> Optional[str]:
         """
         Post-process and aggregate provided results into final CSV.
+
+        Args:
+            output_dir: Directory for the output CSV file.
+            results: Resolved parse results from submit_parse_async futures.
+            strategy_type: Name of the strategy used for post-processing.
+            var_names: Explicit variable ordering for CSV columns.
+                       When *None*, falls back to ``_active_var_names``.
         """
         if not results:
             logger.warning("PARSER: No results to persist.")
@@ -186,12 +211,24 @@ class ParseService:
         strategy = StrategyFactory.create(strategy_type)
 
         processed_results = strategy.post_process(results)
-        return ParseService.construct_final_csv(output_dir, processed_results)
+        return ParseService.construct_final_csv(
+            output_dir, processed_results, var_names=var_names
+        )
 
     @staticmethod
-    def construct_final_csv(output_dir: str, results: List[Any]) -> Optional[str]:
+    def construct_final_csv(
+        output_dir: str,
+        results: List[Any],
+        var_names: Optional[List[str]] = None,
+    ) -> Optional[str]:
         """
         Aggregate provided results and save to CSV.
+
+        Args:
+            output_dir: Directory for the output CSV file.
+            results: Parsed results to aggregate.
+            var_names: Explicit variable ordering for CSV columns.
+                       When *None*, falls back to ``_active_var_names``.
         """
         if not results:
             return None
@@ -201,13 +238,13 @@ class ParseService:
         sample = results[0]
         column_map: Dict[str, Optional[List[str]]] = {}
 
-        # Use stored var names to ensure consistent order
-        var_names = ParseService._active_var_names
+        # Use explicit var_names if provided, then fallback to class-level state
+        ordered_names = var_names or ParseService._active_var_names
         # Fallback if empty
-        if not var_names:
-            var_names = list(sample.keys())
+        if not ordered_names:
+            ordered_names = list(sample.keys())
 
-        for var_name in var_names:
+        for var_name in ordered_names:
             if var_name not in sample:
                 continue
 
@@ -228,7 +265,7 @@ class ParseService:
 
             for file_stats in results:
                 row_parts: List[str] = []
-                for var_name in var_names:
+                for var_name in ordered_names:
                     if var_name not in file_stats:
                         row_parts.append("NaN")
                         continue

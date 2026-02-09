@@ -278,9 +278,11 @@ def sanitize_filename(name: str) -> str:
 def validate_path_within(path: Path, allowed_base: Path) -> Path:
     """Validate that a resolved path is within an allowed base directory.
 
-    Uses ``os.path.normpath`` followed by ``str.startswith`` -- the exact
-    pattern recognised by CodeQL as a path-sanitisation barrier -- to
-    prevent path-traversal attacks.
+    Uses ``os.path.normpath`` followed by a path-separator-aware prefix
+    check to prevent path-traversal attacks.  The trailing ``os.sep`` on
+    the base directory ensures that sibling directories whose names share
+    a common prefix (e.g. ``/allowed/base_evil`` vs ``/allowed/base``)
+    are correctly rejected.
 
     Args:
         path: The path to validate.
@@ -295,7 +297,10 @@ def validate_path_within(path: Path, allowed_base: Path) -> Path:
     # Normalise both paths with os.path.normpath (CodeQL-recognised sanitizer)
     resolved: str = os.path.normpath(str(path.resolve()))
     base: str = os.path.normpath(str(allowed_base.resolve()))
-    if not resolved.startswith(base):
+    # Ensure the base ends with a separator so that "/allowed/base_evil"
+    # is not accepted when the allowed base is "/allowed/base".
+    # An exact match (resolved == base) is also valid.
+    if resolved != base and not resolved.startswith(base + os.sep):
         raise ValueError(f"Path traversal detected: {resolved} is outside {base}")
     return Path(resolved)
 

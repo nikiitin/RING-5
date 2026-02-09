@@ -187,7 +187,7 @@ Documentation improvements are always welcome! See [Contributing Guide](../CONTR
 
 ## License
 
-RING-5 and its documentation are released under the MIT License. See [LICENSE](../LICENSE) for details.
+RING-5 and its documentation are released under the GNU General Public License version 3 or (at your option) any later version (GPL-3.0-or-later). See [LICENSE](../LICENSE) for details.
 
 ## Acknowledgments
 

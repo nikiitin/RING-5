@@ -40,11 +40,11 @@ paths-ignore:
 #    analysis limitation), causing false positives even with proper sanitization.
 #
 # 3. All file operations audited - sanitization applied at every entry point.
-query-filters:
-  - exclude:
-      id: py/path-injection
-  - exclude:
-      id: py/regex-injection
+# query-filters:
+#   - exclude:
+#       id: py/path-injection
+#   - exclude:
+#       id: py/regex-injection
 
 # Specific queries to run (in addition to or instead of default queries)
 # queries:

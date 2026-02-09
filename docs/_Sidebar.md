@@ -20,7 +20,7 @@
 - [Bar Charts](plots/Bar-Charts)
 - [Line Plots](plots/Line-Plots)
 - [Scatter Plots](plots/Scatter-Plots)
-- [Histogram Plots](histogram-plot)
+- [Histogram Plots](plots/Histogram-Plots)
 - [Grouped Stacked Bars](plots/Grouped-Stacked-Bars)
 
 ## Developer Guides

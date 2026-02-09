@@ -247,3 +247,43 @@ class TestVarTypeCheck:
         """Test None value check."""
         with pytest.raises(Exception, match="not of type"):
             utils.checkVarType(None, str)
+
+
+class TestValidatePathWithin:
+    """Tests for validate_path_within security function."""
+
+    def test_valid_subpath(self, tmp_path):
+        """Test that a valid subpath is accepted."""
+        child = tmp_path / "subdir"
+        child.mkdir()
+        result = utils.validate_path_within(child, tmp_path)
+        assert result == child.resolve()
+
+    def test_exact_match(self, tmp_path):
+        """Test that exact base match is accepted."""
+        result = utils.validate_path_within(tmp_path, tmp_path)
+        assert result == tmp_path.resolve()
+
+    def test_traversal_rejected(self, tmp_path):
+        """Test that path traversal is rejected."""
+        from pathlib import Path
+
+        evil_path = tmp_path / ".." / "etc" / "passwd"
+        with pytest.raises(ValueError, match="Path traversal detected"):
+            utils.validate_path_within(evil_path, tmp_path)
+
+    def test_sibling_prefix_rejected(self, tmp_path):
+        """Test that sibling dirs sharing a name prefix are rejected.
+
+        This validates the fix for the startswith bypass where
+        /allowed/base_evil could match /allowed/base.
+        """
+        from pathlib import Path
+
+        base = tmp_path / "base"
+        base.mkdir()
+        sibling = tmp_path / "base_evil"
+        sibling.mkdir()
+
+        with pytest.raises(ValueError, match="Path traversal detected"):
+            utils.validate_path_within(sibling, base)
