@@ -30,6 +30,7 @@ import numpy as np
 
 from src.core.common.utils import normalize_user_path, sanitize_glob_pattern
 from src.core.models import ParseBatchResult, StatConfig
+from src.core.models.history_models import OperationRecord
 from src.core.parsing import ParseService, ScannerService
 from src.core.services.data_services.data_services_api import DataServicesAPI
 from src.core.services.managers.managers_api import ManagersAPI
@@ -320,3 +321,25 @@ class ApplicationAPI:
     def clear_preview(self, operation_name: str) -> None:
         """Clear a preview for an operation."""
         self.state_manager.clear_preview(operation_name)
+
+    # =========================================================================
+    # History (Delegated to StateManager)
+    # =========================================================================
+
+    def add_manager_history_record(self, record: OperationRecord) -> None:
+        """Record a manager operation in both manager and portfolio history."""
+        self.state_manager.add_manager_history_record(record)
+        self.state_manager.add_portfolio_history_record(record)
+
+    def get_manager_history(self) -> List[OperationRecord]:
+        """Get the rolling manager operation history (last 20)."""
+        return self.state_manager.get_manager_history()
+
+    def get_portfolio_history(self) -> List[OperationRecord]:
+        """Get the full portfolio operation history."""
+        return self.state_manager.get_portfolio_history()
+
+    def remove_manager_history_record(self, record: OperationRecord) -> None:
+        """Remove a specific record from both manager and portfolio history."""
+        self.state_manager.remove_manager_history_record(record)
+        self.state_manager.remove_portfolio_history_record(record)

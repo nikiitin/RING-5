@@ -7,6 +7,8 @@ and restoration across all layers.
 
 from typing import Any, Dict, List, TypedDict
 
+from src.core.models.history_models import OperationRecord
+
 
 class PortfolioData(TypedDict, total=False):
     """
@@ -23,6 +25,8 @@ class PortfolioData(TypedDict, total=False):
         plots: List of plot configurations
         plot_counter: Current plot ID counter
         config: Application configuration dictionary
+        manager_history: Rolling list of last 20 manager operations
+        portfolio_history: Full list of operations performed in this portfolio
     """
 
     parse_variables: List[Dict[str, Any]]
@@ -35,3 +39,5 @@ class PortfolioData(TypedDict, total=False):
     plots: List[Dict[str, Any]]
     plot_counter: int
     config: Dict[str, Any]
+    manager_history: List[OperationRecord]
+    portfolio_history: List[OperationRecord]

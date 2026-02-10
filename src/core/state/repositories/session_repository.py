@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 from src.core.models import PortfolioData
 from src.core.state.repositories.config_repository import ConfigRepository
 from src.core.state.repositories.data_repository import DataRepository
+from src.core.state.repositories.history_repository import HistoryRepository
 from src.core.state.repositories.parser_state_repository import ParserStateRepository
 from src.core.state.repositories.plot_repository import PlotRepository
 from src.core.state.repositories.preview_repository import PreviewRepository
@@ -44,6 +45,7 @@ class SessionRepository:
         self.parser_repo = ParserStateRepository()
         self.config_repo = ConfigRepository()
         self.preview_repo = PreviewRepository()
+        self.history_repo = HistoryRepository()
 
     def initialize_session(self) -> None:
         """
@@ -132,6 +134,10 @@ class SessionRepository:
             f"parser={'ON' if portfolio_data.get('use_parser') else 'OFF'}"
         )
 
+        # Restore history
+        self.history_repo.set_manager_history(portfolio_data.get("manager_history", []))
+        self.history_repo.set_portfolio_history(portfolio_data.get("portfolio_history", []))
+
     def clear_all(self) -> None:
         """
         Clear all session state completely.
@@ -145,6 +151,7 @@ class SessionRepository:
         self.config_repo.clear_config()
         self.config_repo.set_csv_path("")
         self.config_repo.set_temp_dir("")
+        self.history_repo.clear_all()
 
         # Clear widget state
         self.clear_widget_state()

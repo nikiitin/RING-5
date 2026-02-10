@@ -18,6 +18,7 @@ from typing import Any, Callable, Dict, List, Optional
 import pandas as pd
 
 from src.core.models import PlotProtocol, PortfolioData
+from src.core.models.history_models import OperationRecord
 from src.core.state.repositories.session_repository import SessionRepository
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -203,7 +204,27 @@ class RepositoryStateManager:
     def clear_preview(self, operation_name: str) -> None:
         self._session_repo.preview_repo.clear_preview(operation_name)
 
-    # ==================== Session ====================
+    # ==================== History ====================
+
+    def add_manager_history_record(self, record: OperationRecord) -> None:
+        self._session_repo.history_repo.add_manager_record(record)
+
+    def get_manager_history(self) -> List[OperationRecord]:
+        return self._session_repo.history_repo.get_manager_history()
+
+    def add_portfolio_history_record(self, record: OperationRecord) -> None:
+        self._session_repo.history_repo.add_portfolio_record(record)
+
+    def get_portfolio_history(self) -> List[OperationRecord]:
+        return self._session_repo.history_repo.get_portfolio_history()
+
+    def remove_manager_history_record(self, record: OperationRecord) -> None:
+        self._session_repo.history_repo.remove_manager_record(record)
+
+    def remove_portfolio_history_record(self, record: OperationRecord) -> None:
+        self._session_repo.history_repo.remove_portfolio_record(record)
+
+    # ==================== Session ======================================
 
     def clear_all(self) -> None:
         self._session_repo.clear_all()
