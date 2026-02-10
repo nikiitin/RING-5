@@ -2,11 +2,14 @@
 Preprocessor Manager
 """
 
+from datetime import datetime, timezone
 from typing import Optional
 
 import pandas as pd
 import streamlit as st
 
+from src.core.models.history_models import OperationRecord
+from src.web.pages.ui.components.history_components import HistoryComponents
 from src.web.pages.ui.data_managers.data_manager import DataManager
 
 
@@ -42,6 +45,25 @@ class PreprocessorManager(DataManager):
         if not numeric_cols:
             st.warning("No numeric columns found for preprocessing.")
             return
+
+        # Handle loaded operation from history
+        loaded = st.session_state.pop("_preproc_load", None)
+        if loaded is not None:
+            op_str = loaded["operation"].replace("Preprocessor: ", "")
+            operators = self.api.managers.list_operators()
+            if op_str in operators:
+                st.session_state["preproc_op"] = op_str
+            src_cols = loaded["source_columns"]
+            valid_src = [c for c in src_cols if c in numeric_cols]
+            missing = [c for c in src_cols if c not in numeric_cols]
+            if missing:
+                st.warning(f"Columns removed (not in current data): {', '.join(missing)}")
+            if len(valid_src) >= 1:
+                st.session_state["preproc_src1"] = valid_src[0]
+            if len(valid_src) >= 2:
+                st.session_state["preproc_src2"] = valid_src[1]
+            if loaded["dest_columns"]:
+                st.session_state["preproc_name"] = loaded["dest_columns"][0]
 
         st.markdown("**Create New Column:**")
 
@@ -107,5 +129,20 @@ class PreprocessorManager(DataManager):
                 if confirmed_data is not None:
                     self.set_data(confirmed_data)
                     self.api.clear_preview("preprocessor")
+                    record: OperationRecord = {
+                        "source_columns": [src_col1, src_col2],
+                        "dest_columns": [new_col_name],
+                        "operation": f"Preprocessor: {operation}",
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    }
+                    self.api.add_manager_history_record(record)
                     st.success("✓ Column added to dataset!")
                     st.rerun()
+
+        # Show this manager's history
+        HistoryComponents.render_manager_history(
+            self.api.get_manager_history(),
+            "Preprocessor",
+            "_preproc_load",
+            self.api.remove_manager_history_record,
+        )

@@ -2,11 +2,14 @@
 Seeds Reducer Manager
 """
 
+from datetime import datetime, timezone
 from typing import Optional
 
 import pandas as pd
 import streamlit as st
 
+from src.core.models.history_models import OperationRecord
+from src.web.pages.ui.components.history_components import HistoryComponents
 from src.web.pages.ui.data_managers.data_manager import DataManager
 
 
@@ -67,6 +70,24 @@ class SeedsReducerManager(DataManager):
         if not numeric_cols:
             st.warning("No numeric columns found to calculate statistics.")
             return
+
+        # Handle loaded operation from history
+        loaded = st.session_state.pop("_seeds_load", None)
+        if loaded is not None:
+            loaded_numeric = loaded["dest_columns"]
+            loaded_categorical = [
+                c for c in loaded["source_columns"] if c not in set(loaded_numeric)
+            ]
+            valid_cat = [c for c in loaded_categorical if c in categorical_cols]
+            valid_num = [c for c in loaded_numeric if c in numeric_cols]
+            missing = [c for c in loaded_categorical if c not in categorical_cols]
+            missing += [c for c in loaded_numeric if c not in numeric_cols]
+            if missing:
+                st.warning(f"Columns removed (not in current data): {', '.join(missing)}")
+            if valid_cat:
+                st.session_state["seeds_categorical"] = valid_cat
+            if valid_num:
+                st.session_state["seeds_numeric"] = valid_num
 
         st.markdown("**Configuration:**")
 
@@ -141,5 +162,20 @@ class SeedsReducerManager(DataManager):
                 if confirmed_df is not None:
                     self.set_data(confirmed_df)
                     self.api.clear_preview("seeds_reduction")
+                    record: OperationRecord = {
+                        "source_columns": selected_categorical + selected_numeric,
+                        "dest_columns": selected_numeric,
+                        "operation": "Seeds Reduction (mean + stdev)",
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    }
+                    self.api.add_manager_history_record(record)
                     st.success("✓ Seeds-reduced data is now active!")
                     st.rerun()
+
+        # Show this manager's history
+        HistoryComponents.render_manager_history(
+            self.api.get_manager_history(),
+            "Seeds Reduction",
+            "_seeds_load",
+            self.api.remove_manager_history_record,
+        )
