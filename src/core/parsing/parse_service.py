@@ -77,6 +77,7 @@ Version: 2.0.0
 Last Modified: 2026-01-27
 """
 
+import csv
 import logging
 import os
 import re
@@ -121,7 +122,8 @@ class ParseService:
         processed_configs = []
         for config in variables:
             expanded_config = config
-            if scanned_vars and any(char in config.name for char in "*?+[]\\"):
+            # Detect regex metachars by comparing against the escaped version
+            if scanned_vars and config.name != re.escape(config.name):
                 try:
                     logger.info(
                         f"PARSER: Matching regex '{config.name}' "
@@ -233,8 +235,9 @@ class ParseService:
         os.makedirs(str(normalize_user_path(output_dir)), exist_ok=True)
         output_path = os.path.join(str(normalize_user_path(output_dir)), "results.csv")
 
-        with open(output_path, "w", encoding="utf-8") as f:
-            f.write(",".join(header_parts) + "\n")
+        with open(output_path, "w", encoding="utf-8", newline="") as f:
+            writer = csv.writer(f, quoting=csv.QUOTE_MINIMAL)
+            writer.writerow(header_parts)
 
             for file_stats in results:
                 row_parts: List[str] = []
@@ -262,6 +265,6 @@ class ParseService:
                         # Raw data (string/int/etc.)
                         row_parts.append(str(var))
 
-                f.write(",".join(row_parts) + "\n")
+                writer.writerow(row_parts)
 
         return output_path
