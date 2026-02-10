@@ -299,12 +299,12 @@ class Normalize(UniDfShaper):
                 category=FutureWarning,
                 message=".*DataFrameGroupBy.apply operated on the grouping columns.*",
             )
-            # Pandas 3.0 breaking change: groupby().apply() drops grouping columns by default
-            # We need to manually preserve them by saving first, then merging back
+            # pandas >=2.x compat: groupby().apply() may drop grouping columns
+            # (FutureWarning in 2.x, default in 3.0). Preserve them manually.
             grouped = data_frame.groupby(self._group_by, group_keys=False)
             result: pd.DataFrame = grouped.apply(self._normalize_group)
 
-            # Pandas 3.0 drops the grouping columns, so we need to add them back
+            # pandas >=2.x compat: grouping columns may be dropped, re-add them
             if not all(col in result.columns for col in self._group_by):
                 # Merge with original group columns
                 for col in self._group_by:
