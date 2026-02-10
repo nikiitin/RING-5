@@ -278,9 +278,11 @@ def sanitize_filename(name: str) -> str:
 def validate_path_within(path: Path, allowed_base: Path) -> Path:
     """Validate that a resolved path is within an allowed base directory.
 
-    Uses ``os.path.normpath`` followed by ``str.startswith`` -- the exact
-    pattern recognised by CodeQL as a path-sanitisation barrier -- to
-    prevent path-traversal attacks.
+    Uses ``os.path.normpath`` to normalize paths (a CodeQL-recognised
+    sanitizer), then ``os.path.commonpath`` for containment checking.
+    The ``commonpath`` approach prevents sibling-path bypass attacks
+    (e.g., "/allowed/base_evil" falsely matching "/allowed/base" with
+    a naive ``str.startswith`` check).
 
     Args:
         path: The path to validate.
