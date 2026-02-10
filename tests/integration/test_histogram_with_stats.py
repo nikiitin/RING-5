@@ -28,12 +28,15 @@ class TestHistogramWithStatistics:
     @pytest.fixture
     def stats_dir(self) -> Path:
         """Get test data directory with histogram variables."""
-        return Path(
+        path = Path(
             "tests/data/results-micro26-sens/"
             "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRHighwayResolutionPolicy"
             "_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt/"
             "stamp.vacation-l/0"
         )
+        if not path.exists():
+            pytest.skip(f"Test data not found at {path}")
+        return path
 
     @pytest.fixture
     def facade(self) -> ApplicationAPI:
