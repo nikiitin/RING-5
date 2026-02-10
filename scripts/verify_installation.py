@@ -255,8 +255,9 @@ def main():
     else:
         print("\n✗ Some tests failed")
         print("\nInstall missing dependencies:")
-        print("  Python packages: pip install -r requirements.txt")
-        print("  LaTeX packages:  make install-latex")
+        print("  Python packages:         pip install -e .")
+        print("  Python packages (dev):   pip install -e '.[dev]'")
+        print("  LaTeX packages:          make install-latex")
 
     print("=" * 60)
 
