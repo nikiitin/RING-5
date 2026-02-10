@@ -1,4 +1,4 @@
-from src.parsers.types.vector import Vector
+from src.core.parsing.gem5.types.vector import Vector
 
 
 def test_vector_creation():

@@ -1,5 +1,5 @@
 # Auto-detect text files and perform LF normalization
 * text=auto
 
-# Track large test data files with Git LFS
-tests/data/**/*.txt filter=lfs diff=lfs merge=lfs -text
+# Test data moved to GitHub Releases (no longer tracked by Git LFS)
+# Download from: https://github.com/nikiitin/RING-5/releases/tag/test-data-v1

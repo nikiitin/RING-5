@@ -5,10 +5,11 @@ Manual visual test for histogram plot.
 Run this script to generate a sample histogram plot and save it as HTML.
 """
 
-import pandas as pd
 from pathlib import Path
 
-from src.plotting.plot_factory import PlotFactory
+import pandas as pd
+
+from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
 
 def main() -> None:
@@ -105,7 +106,7 @@ def main() -> None:
     print(f"✅ Saved to: {output_path4.absolute()}")
 
     print("\n🎉 All histogram visualizations generated successfully!")
-    print(f"\n📁 Files created:")
+    print("\n📁 Files created:")
     print(f"   - {output_path1}")
     print(f"   - {output_path2}")
     print(f"   - {output_path3}")

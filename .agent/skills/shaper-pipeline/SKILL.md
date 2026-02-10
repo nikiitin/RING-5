@@ -539,4 +539,3 @@ result['rank'] = result.groupby('benchmark')['ipc'].rank(ascending=False)
 - Examples: `src/web/services/shapers/` (all built-in shapers)
 - Tests: `tests/unit/test_shapers.py`
 - Integration: `tests/integration/test_e2e_managers_shapers.py`
-

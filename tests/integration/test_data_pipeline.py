@@ -2,8 +2,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.web.services.data_processing_service import DataProcessingService
-from src.web.services.shapers.factory import ShaperFactory
+from src.core.services.managers.arithmetic_service import ArithmeticService
+from src.core.services.managers.outlier_service import OutlierService
+from src.core.services.managers.reduction_service import ReductionService
+from src.core.services.shapers.factory import ShaperFactory
 
 
 class TestDataPipeline:
@@ -25,7 +27,7 @@ class TestDataPipeline:
         df["random_seed"] = [1, 2, 1, 2, 1, 2]
 
         # Reduce
-        reduced = DataProcessingService.reduce_seeds(
+        reduced = ReductionService.reduce_seeds(
             df, categorical_cols=["group"], statistic_cols=["value"]
         )
 
@@ -45,9 +47,7 @@ class TestDataPipeline:
             }
         )
 
-        cleaned = DataProcessingService.remove_outliers(
-            df, outlier_col="value", group_by_cols=["group"]
-        )
+        cleaned = OutlierService.remove_outliers(df, outlier_col="value", group_by_cols=["group"])
 
         assert len(cleaned) == 9
         assert 1000 not in cleaned["value"].values
@@ -57,12 +57,14 @@ class TestDataPipeline:
 
         # To strictly test the factory and execution
         # 1. Column Selector
-        col_selector = ShaperFactory.createShaper("columnSelector", {"columns": ["group", "value"]})
+        col_selector = ShaperFactory.create_shaper(
+            "columnSelector", {"columns": ["group", "value"]}
+        )
         df_cols = col_selector(sample_data)
         assert "noise" not in df_cols.columns
 
         # 2. Condition Selector (Filter)
-        filter_shaper = ShaperFactory.createShaper(
+        filter_shaper = ShaperFactory.create_shaper(
             "conditionSelector", {"column": "value", "mode": "less_than", "threshold": 50}
         )
         df_filtered = filter_shaper(sample_data)
@@ -75,7 +77,7 @@ class TestDataPipeline:
         df["noise.sd"] = [0.1] * 6
 
         # Sum
-        result = DataProcessingService.apply_mixer(
+        result = ArithmeticService.apply_mixer(
             df, dest_col="mixed", source_cols=["value", "noise"], operation="Sum"
         )
 

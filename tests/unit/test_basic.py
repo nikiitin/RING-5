@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from src.config.config_manager import ConfigTemplateGenerator, ConfigValidator
+from src.core.models.config.config_manager import ConfigTemplateGenerator, ConfigValidator
 
 
 def test_minimal_config_validation():

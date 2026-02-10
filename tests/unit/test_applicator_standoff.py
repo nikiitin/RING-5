@@ -1,7 +1,7 @@
 import plotly.graph_objects as go
 import pytest
 
-from src.plotting.styles.applicator import StyleApplicator
+from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
 
 
 @pytest.fixture

@@ -11,14 +11,13 @@ from typing import List, Optional, cast
 
 import streamlit as st
 
-from src.web.services.pipeline_service import PipelineService
-from src.web.services.portfolio_service import PortfolioService
-from src.web.state_manager import PortfolioData, StateManager
+from src.core.application_api import ApplicationAPI
+from src.core.models import PortfolioData
 
 logger: logging.Logger = logging.getLogger(__name__)
 
 
-def show_portfolio_page() -> None:
+def show_portfolio_page(api: ApplicationAPI) -> None:
     """
     Display the portfolio management page.
 
@@ -45,32 +44,32 @@ def show_portfolio_page() -> None:
         )
 
         if st.button("Save Portfolio", type="primary", width="stretch"):
-            if not StateManager.has_data():
+            if not api.state_manager.has_data():
                 st.error("No data loaded. Please load data first.")
                 logger.warning("PORTFOLIO: Attempted to save portfolio without data.")
             else:
                 try:
-                    current_data = StateManager.get_data()
+                    current_data = api.state_manager.get_data()
                     if current_data is None:
                         st.error("No data available to save")
                         return
-                    PortfolioService.save_portfolio(
+                    api.data_services.save_portfolio(
                         name=portfolio_name,
                         data=current_data,
-                        plots=StateManager.get_plots(),
-                        config=StateManager.get_config(),
-                        plot_counter=StateManager.get_plot_counter(),
-                        csv_path=StateManager.get_csv_path(),
+                        plots=api.state_manager.get_plots(),
+                        config=api.state_manager.get_config(),
+                        plot_counter=api.state_manager.get_plot_counter(),
+                        csv_path=api.state_manager.get_csv_path(),
                         parse_variables=cast(
-                            Optional[List[str]], StateManager.get_parse_variables()
+                            Optional[List[str]], api.state_manager.get_parse_variables()
                         ),
                     )
                     st.success(f"Portfolio saved: {portfolio_name}")
                 except Exception as e:
                     st.error(f"Failed to save portfolio: {e}")
                     logger.error(
-                        "PORTFOLIO: Failed to save portfolio '%s': %s",
-                        portfolio_name,
+                        "PORTFOLIO: Failed to save portfolio %r: %s",
+                        str(portfolio_name).replace("\n", ""),
                         e,
                         exc_info=True,
                     )
@@ -79,7 +78,7 @@ def show_portfolio_page() -> None:
         st.markdown("### Load Portfolio")
         st.markdown("Restore a previously saved portfolio with all data and plot configurations.")
 
-        portfolios = PortfolioService.list_portfolios()
+        portfolios = api.data_services.list_portfolios()
         if portfolios:
             selected_portfolio = st.selectbox(
                 "Select Portfolio", portfolios, key="portfolio_load_select"
@@ -87,8 +86,8 @@ def show_portfolio_page() -> None:
 
             if st.button("Load Portfolio", type="primary", width="stretch"):
                 try:
-                    data = PortfolioService.load_portfolio(selected_portfolio)
-                    StateManager.restore_session_state(cast(PortfolioData, data))
+                    data = api.data_services.load_portfolio(selected_portfolio)
+                    api.state_manager.restore_session(cast(PortfolioData, data))
                     st.success(f"Portfolio loaded: {selected_portfolio}")
                     st.rerun()
                 except Exception as e:
@@ -106,12 +105,12 @@ def show_portfolio_page() -> None:
     st.markdown("---")
     st.markdown("### Manage Saved Portfolios")
 
-    portfolios = PortfolioService.list_portfolios()
+    portfolios = api.data_services.list_portfolios()
     if portfolios:
         for pname in portfolios:
             with st.expander(f"{pname}"):
                 if st.button("Delete", key=f"del_portfolio_{pname}"):
-                    PortfolioService.delete_portfolio(pname)
+                    api.data_services.delete_portfolio(pname)
                     st.success(f"Deleted {pname}")
                     st.rerun()
 
@@ -124,7 +123,7 @@ def show_portfolio_page() -> None:
 
     with col1:
         st.markdown("### Save Pipeline")
-        plots = StateManager.get_plots()
+        plots = api.state_manager.get_plots()
         if plots:
             plot_map = {p.name: p for p in plots}
             selected_plot_name = st.selectbox(
@@ -139,7 +138,7 @@ def show_portfolio_page() -> None:
 
                 if st.button("Save Pipeline", type="primary"):
                     try:
-                        PipelineService.save_pipeline(
+                        api.shapers.save_pipeline(
                             pipeline_name,
                             selected_plot.pipeline,
                             description=f"Extracted from {selected_plot_name}",
@@ -148,8 +147,8 @@ def show_portfolio_page() -> None:
                     except Exception as e:
                         st.error(f"Failed to save pipeline: {e}")
                         logger.error(
-                            "PIPELINE: Failed to save pipeline '%s': %s",
-                            pipeline_name,
+                            "PIPELINE: Failed to save pipeline %r: %s",
+                            str(pipeline_name).replace("\n", ""),
                             e,
                             exc_info=True,
                         )
@@ -158,13 +157,13 @@ def show_portfolio_page() -> None:
 
     with col2:
         st.markdown("### Apply Pipeline")
-        pipelines = PipelineService.list_pipelines()
+        pipelines = api.shapers.list_pipelines()
         if pipelines:
             selected_pipeline_name = st.selectbox(
                 "Select Pipeline", pipelines, key="pipe_load_select"
             )
 
-            plots = StateManager.get_plots()
+            plots = api.state_manager.get_plots()
             if plots:
                 target_plots = st.multiselect(
                     "Apply to plots:",
@@ -174,7 +173,7 @@ def show_portfolio_page() -> None:
 
                 if st.button("Apply Pipeline", type="primary"):
                     try:
-                        pipeline_data = PipelineService.load_pipeline(selected_pipeline_name)
+                        pipeline_data = api.shapers.load_pipeline(selected_pipeline_name)
                         new_pipeline = pipeline_data.get("pipeline", [])
 
                         count = 0
@@ -185,7 +184,7 @@ def show_portfolio_page() -> None:
                                 count += 1
 
                         # Update state
-                        StateManager.set_plots(plots)
+                        api.state_manager.set_plots(plots)
 
                         st.success(f"Applied pipeline to {count} plots.")
                     except Exception as e:

@@ -7,7 +7,10 @@ from typing import List
 
 import pytest
 
-from src.parsers.workers.perl_worker_pool import PerlWorkerPool, shutdown_worker_pool
+from src.core.parsing.gem5.impl.strategies.perl_worker_pool import (
+    PerlWorkerPool,
+    shutdown_worker_pool,
+)
 
 
 @pytest.fixture
@@ -81,7 +84,7 @@ def test_worker_pool_performance_vs_subprocess(
 
     # Calculate expected baseline (first file parsing time * count)
     baseline_estimate = pooled_time * 1.5  # Estimate subprocess would be 50% slower
-    baseline_estimate / pooled_time
+    speedup_ratio: float = baseline_estimate / pooled_time  # noqa: F841
 
     print(f"\n{'='*70}")
     print("Worker Pool Performance Benchmark")

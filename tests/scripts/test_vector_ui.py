@@ -5,7 +5,7 @@ Test script to verify the vector UI configuration is working
 
 import inspect
 
-from src.web.ui.components.variable_editor import VariableEditor
+from src.web.pages.ui.components.variable_editor import VariableEditor
 
 # Get the source code
 source = inspect.getsource(VariableEditor.render_vector_config)
@@ -17,10 +17,7 @@ vector_section = []
 for i, line in enumerate(lines):
     in_vector_section = True
     vector_section.append(f"Line {i}: {line}")
-    if False:
-        in_vector_section = True
-        vector_section.append(f"Line {i}: {line}")
-    elif in_vector_section:
+    if in_vector_section:
         if line.strip().startswith("elif var_type =="):
             break
         vector_section.append(f"Line {i}: {line}")

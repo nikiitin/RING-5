@@ -106,20 +106,26 @@ class BenchmarkSuite:
 
         Returns:
             Result from last function call
+
+        Raises:
+            ValueError: If iterations < 1
         """
+        if iterations < 1:
+            raise ValueError("iterations must be at least 1")
+
         operation_name = name or func.__name__
 
-        result = None
         start = time.perf_counter()
 
-        for _ in range(iterations):
+        result: T = func(*args, **kwargs)
+        for _ in range(iterations - 1):
             result = func(*args, **kwargs)
 
         elapsed = (time.perf_counter() - start) * 1000  # ms
         bench_result = BenchmarkResult(operation_name, elapsed, iterations)
         self.results.append(bench_result)
 
-        return result  # type: ignore[return-value]
+        return result
 
     def summary(self) -> pd.DataFrame:
         """
@@ -195,31 +201,37 @@ def benchmark_decorator(
         @benchmark_decorator(iterations=10, name="Sort DataFrame")
         def sort_large_df(df):
             return df.sort_values('column')
+
+    Raises:
+        ValueError: If iterations < 1
     """
+    if iterations < 1:
+        raise ValueError("iterations must be at least 1")
 
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> T:
             operation_name = name or func.__name__
 
-            result = None
             start = time.perf_counter()
 
-            for _ in range(iterations):
+            result: T = func(*args, **kwargs)
+            for _ in range(iterations - 1):
                 result = func(*args, **kwargs)
 
             elapsed = (time.perf_counter() - start) * 1000  # ms
 
             if iterations == 1:
-                print(f"⏱️  {operation_name}: {elapsed:.2f}ms")
+                print(f"{operation_name}: {elapsed:.2f}ms")
             else:
                 avg = elapsed / iterations
                 print(
-                    f"⏱️  {operation_name}: {elapsed:.2f}ms total "
+                    f"{operation_name}: {elapsed:.2f}ms total "
                     f"({avg:.2f}ms avg over {iterations} iterations)"
                 )
 
-            return result  # type: ignore[return-value]
+            # result is always bound (first call before loop)
+            return result
 
         return wrapper
 
@@ -243,4 +255,4 @@ def timer(name: str) -> Any:
         yield
     finally:
         elapsed = (time.perf_counter() - start) * 1000
-        print(f"⏱️  {name}: {elapsed:.2f}ms")
+        print(f"{name}: {elapsed:.2f}ms")

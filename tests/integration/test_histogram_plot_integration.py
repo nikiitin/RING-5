@@ -7,8 +7,8 @@ from typing import Any, Dict, List
 import pandas as pd
 import pytest
 
-from src.plotting.plot_factory import PlotFactory
-from src.web.facade import BackendFacade
+from src.core.application_api import ApplicationAPI
+from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
 
 class TestHistogramPlotIntegration:
@@ -17,17 +17,20 @@ class TestHistogramPlotIntegration:
     @pytest.fixture
     def stats_dir(self) -> Path:
         """Get test data directory with histogram variables."""
-        return Path(
+        path = Path(
             "tests/data/results-micro26-sens/"
             "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRHighwayResolutionPolicy"
             "_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_FCSabort_Rtry16_Pflt/"
             "stamp.vacation-l/0"
         )
+        if not path.exists():
+            pytest.skip(f"Test data not found at {path}")
+        return path
 
     @pytest.fixture
-    def facade(self) -> BackendFacade:
+    def facade(self) -> ApplicationAPI:
         """Create facade instance."""
-        return BackendFacade()
+        return ApplicationAPI()
 
     def test_histogram_plot_creation_from_factory(self) -> None:
         """Test creating histogram plot from factory."""
@@ -37,9 +40,7 @@ class TestHistogramPlotIntegration:
         assert plot.plot_type == "histogram"
         assert plot.name == "Test Histogram"
 
-    def test_histogram_with_parsed_gem5_data(
-        self, facade: BackendFacade, stats_dir: Path
-    ) -> None:
+    def test_histogram_with_parsed_gem5_data(self, facade: ApplicationAPI, stats_dir: Path) -> None:
         """Test histogram plot with parsed gem5 histogram data."""
         # 1. Scan for histogram variables
         scan_futures = facade.submit_scan_async(str(stats_dir), "stats.txt", limit=-1)
@@ -51,8 +52,7 @@ class TestHistogramPlotIntegration:
             (
                 v
                 for v in vars_found
-                if "htm_transaction_commit_cycles" in v["name"]
-                and v["type"] == "histogram"
+                if "htm_transaction_commit_cycles" in v.name and v.type == "histogram"
             ),
             None,
         )
@@ -65,11 +65,11 @@ class TestHistogramPlotIntegration:
                 {
                     "name": "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles",
                     "type": "histogram",
-                    "entries": htm_var["entries"][:5],  # Use first 5 buckets
+                    "entries": (htm_var.entries or [])[:5],  # Use first 5 buckets
                 }
             ]
 
-            parse_futures = facade.submit_parse_async(
+            parse_batch = facade.submit_parse_async(
                 str(stats_dir),
                 "stats.txt",
                 variables,
@@ -77,8 +77,10 @@ class TestHistogramPlotIntegration:
                 scanned_vars=vars_found,
             )
 
-            parse_results = [f.result() for f in parse_futures]
-            csv_path = facade.finalize_parsing(tmpdir, parse_results)
+            parse_results = [f.result() for f in parse_batch.futures]
+            csv_path = facade.finalize_parsing(
+                tmpdir, parse_results, var_names=parse_batch.var_names
+            )
 
             assert csv_path is not None
 
@@ -90,7 +92,9 @@ class TestHistogramPlotIntegration:
 
             # 5. Configure plot
             config = {
-                "histogram_variable": "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles",
+                "histogram_variable": (
+                    "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles"
+                ),
                 "title": "Transaction Commit Cycles Distribution",
                 "xlabel": "Cycles",
                 "ylabel": "Count",
@@ -108,76 +112,77 @@ class TestHistogramPlotIntegration:
             assert fig.layout.title.text == "Transaction Commit Cycles Distribution"
 
     def test_histogram_with_grouping(
-        self, facade: BackendFacade, stats_dir: Path
+        self, facade: ApplicationAPI, stats_dir: Path, tmp_path: Path
     ) -> None:
         """Test histogram plot with categorical grouping."""
         # Parse with configuration variable for grouping
-        with tempfile.TemporaryDirectory() as tmpdir:
-            scan_futures = facade.submit_scan_async(
-                str(stats_dir), "stats.txt", limit=-1
-            )
-            scan_results = [f.result() for f in scan_futures]
-            vars_found = facade.finalize_scan(scan_results)
+        output_dir = tmp_path / "hist_grouping_output"
+        output_dir.mkdir()
 
-            # Get a histogram variable
-            htm_var = next(
-                (
-                    v
-                    for v in vars_found
-                    if "htm_transaction_commit_cycles" in v["name"]
-                    and v["type"] == "histogram"
-                ),
-                None,
-            )
+        scan_futures = facade.submit_scan_async(str(stats_dir), "stats.txt", limit=-1)
+        scan_results = [f.result() for f in scan_futures]
+        vars_found = facade.finalize_scan(scan_results)
 
-            assert htm_var is not None
+        # Get a histogram variable
+        htm_var = next(
+            (
+                v
+                for v in vars_found
+                if "htm_transaction_commit_cycles" in v.name and v.type == "histogram"
+            ),
+            None,
+        )
 
-            variables: List[Dict[str, Any]] = [
-                {
-                    "name": "benchmark_name",
-                    "type": "configuration",
-                },
-                {
-                    "name": "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles",
-                    "type": "histogram",
-                    "entries": htm_var["entries"][:5],
-                },
-            ]
+        assert htm_var is not None
 
-            parse_futures = facade.submit_parse_async(
-                str(stats_dir),
-                "stats.txt",
-                variables,
-                tmpdir,
-                scanned_vars=vars_found,
-            )
+        variables: List[Dict[str, Any]] = [
+            {
+                "name": "benchmark_name",
+                "type": "configuration",
+            },
+            {
+                "name": "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles",
+                "type": "histogram",
+                "entries": (htm_var.entries or [])[:5],
+            },
+        ]
 
-            parse_results = [f.result() for f in parse_futures]
-            csv_path = facade.finalize_parsing(tmpdir, parse_results)
+        parse_batch = facade.submit_parse_async(
+            str(stats_dir),
+            "stats.txt",
+            variables,
+            str(output_dir),
+            scanned_vars=vars_found,
+        )
 
-            assert csv_path is not None
+        parse_results = [f.result() for f in parse_batch.futures]
+        csv_path = facade.finalize_parsing(
+            str(output_dir), parse_results, var_names=parse_batch.var_names
+        )
 
-            data = pd.read_csv(csv_path)
+        assert csv_path is not None
 
-            # Create histogram with grouping
-            plot = PlotFactory.create_plot("histogram", plot_id=1, name="Grouped Histogram")
+        data = pd.read_csv(csv_path)
 
-            config = {
-                "histogram_variable": "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles",
-                "title": "Cycles by Benchmark",
-                "xlabel": "Cycles",
-                "ylabel": "Count",
-                "bucket_size": 2048,
-                "normalization": "count",
-                "group_by": "benchmark_name",
-                "cumulative": False,
-            }
+        # Create histogram with grouping
+        plot = PlotFactory.create_plot("histogram", plot_id=1, name="Grouped Histogram")
 
-            fig = plot.create_figure(data, config)
+        config = {
+            "histogram_variable": ("system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles"),
+            "title": "Cycles by Benchmark",
+            "xlabel": "Cycles",
+            "ylabel": "Count",
+            "bucket_size": 2048,
+            "normalization": "count",
+            "group_by": "benchmark_name",
+            "cumulative": False,
+        }
 
-            assert fig is not None
-            # Should have at least one trace
-            assert len(fig.data) >= 1
+        fig = plot.create_figure(data, config)
+
+        assert fig is not None
+        # Should have at least one trace
+        assert len(fig.data) >= 1
 
     def test_histogram_normalization_modes(self) -> None:
         """Test different normalization modes."""

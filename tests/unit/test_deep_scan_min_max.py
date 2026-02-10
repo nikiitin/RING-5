@@ -1,7 +1,7 @@
 class TestDeepScanMinMax:
     def test_merging_logic_in_async_pipeline(self):
         """Test that the async pipeline correctly merges distribution ranges from multiple files."""
-        from src.parsers.scanner_service import ScannerService
+        from src.core.parsing.gem5.impl.gem5_scanner import Gem5Scanner as ScannerService
 
         # Mock the finalize_scan to return aggregated results
         raw_results = [
@@ -14,14 +14,14 @@ class TestDeepScanMinMax:
 
         assert len(vars) == 1
         dist = vars[0]
-        assert dist["name"] == "dist_var"
+        assert dist.name == "dist_var"
         # Should have merged min/max
-        assert dist["minimum"] == -10  # min of [-5, -10]
-        assert dist["maximum"] == 15  # max of [10, 15]
+        assert dist.minimum == -10  # min of [-5, -10]
+        assert dist.maximum == 15  # max of [10, 15]
 
     def test_grouping_logic_in_facade(self):
         """Test that grouping logic works via finalize_scan."""
-        from src.parsers.scanner_service import ScannerService
+        from src.core.parsing.gem5.impl.gem5_scanner import Gem5Scanner as ScannerService
 
         # Test that finalize_scan handles grouping/merging
         raw_results = [
@@ -32,6 +32,6 @@ class TestDeepScanMinMax:
 
         assert len(grouped) == 1
         group = grouped[0]
-        assert group["name"] == "system.cpu\\d+.dist"
-        assert group["minimum"] == 0
-        assert group["maximum"] == 20
+        assert group.name == "system.cpu\\d+.dist"
+        assert group.minimum == 0
+        assert group.maximum == 20

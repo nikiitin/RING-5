@@ -1,0 +1,59 @@
+# CodeQL Configuration for RING-5
+# This file allows you to customize which files and queries CodeQL analyzes
+
+name: RING-5 CodeQL Config
+
+# Paths to exclude from analysis
+paths-ignore:
+  - tests/**  # Test code not part of production
+  - scripts/**  # Utility scripts for development
+  - tests/data/**
+  - python_venv/**
+  - "**/*.egg-info/**"
+  - "**/__pycache__/**"
+  - .pytest_cache/**
+  - docs/**
+  - "*.md"
+
+# Paths to include (optional - by default all paths are included)
+# paths:
+#   - src/**
+#   - tests/**
+
+# Disable default queries and use only custom ones (optional)
+# disable-default-queries: false
+
+# Additional query packs to run
+# packs:
+#   - codeql/python-queries
+
+# Query filters to include/exclude specific queries
+#
+# Excluding path-injection and regex-injection queries because:
+# 1. All user-provided paths are sanitized using security utilities:
+#    - normalize_user_path(): Normalizes and validates paths
+#    - sanitize_filename(): Removes dangerous characters from filenames
+#    - sanitize_glob_pattern(): Escapes special characters in glob patterns
+#    - validate_path_within(): Ensures paths are within allowed directories
+#
+# 2. CodeQL cannot trace data flow through helper functions (inter-procedural
+#    analysis limitation), causing false positives even with proper sanitization.
+#
+# 3. All file operations audited - sanitization applied at every entry point.
+# query-filters:
+#   - exclude:
+#       id: py/path-injection
+#   - exclude:
+#       id: py/regex-injection
+
+# Specific queries to run (in addition to or instead of default queries)
+# queries:
+#   - name: Python security queries
+#     uses: security-and-quality
+#   - name: Python maintainability queries
+#     uses: security-extended
+
+# Database configuration
+# database:
+#   # For interpreted languages like Python, specify source root
+#   source-root: src

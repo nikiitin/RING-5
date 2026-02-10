@@ -1,7 +1,7 @@
 # Skill: gem5 Stats Parsing Workflow
 
-**Skill ID**: `parsing-workflow`  
-**Domain**: gem5 Statistics Parsing  
+**Skill ID**: `parsing-workflow`
+**Domain**: gem5 Statistics Parsing
 **Complexity**: Advanced
 
 ## Purpose
@@ -176,16 +176,16 @@ def test_parsing_workflow():
 
 ## Common Pitfalls
 
-❌ **DON'T**: Create synchronous wrappers  
+❌ **DON'T**: Create synchronous wrappers
 ✅ **DO**: Use async primitives (submit*\*\_async + finalize*\*)
 
-❌ **DON'T**: Forget to pass scanned_vars for regex resolution  
+❌ **DON'T**: Forget to pass scanned_vars for regex resolution
 ✅ **DO**: Always pass scanned_vars when using regex patterns
 
-❌ **DON'T**: Ignore timeout exceptions  
+❌ **DON'T**: Ignore timeout exceptions
 ✅ **DO**: Set reasonable timeouts and handle failures
 
-❌ **DON'T**: Parse without scanning first (for regex vars)  
+❌ **DON'T**: Parse without scanning first (for regex vars)
 ✅ **DO**: Scan → Select → Parse
 
 ## Integration with Streamlit
@@ -222,6 +222,6 @@ if st.button("Parse Statistics"):
 
 ## References
 
-- Implementation: `src/parsers/parse_service.py`, `src/parsers/scanner_service.py`
+- Implementation: `src/core/parsing/parse_service.py`, `src/core/parsing/scanner_service.py`
 - Tests: `tests/integration/test_gem5_parsing.py`
 - UI Example: `src/web/ui/components/data_source_components.py`

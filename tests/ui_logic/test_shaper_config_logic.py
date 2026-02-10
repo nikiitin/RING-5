@@ -3,16 +3,17 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from src.web.ui.shaper_config import configure_shaper
+from src.web.pages.ui.shaper_config import configure_shaper
 
 
 # Mock streamlit
 @pytest.fixture
 def mock_streamlit():
-    with patch("src.web.ui.shaper_config.st") as mock_st, patch(
-        "src.web.ui.components.shapers.normalize_config.st", mock_st
-    ), patch("src.web.ui.components.shapers.mean_config.st", mock_st), patch(
-        "src.web.ui.components.shapers.selector_transformer_configs.st", mock_st
+    with (
+        patch("src.web.pages.ui.shaper_config.st") as mock_st,
+        patch("src.web.pages.ui.components.shapers.normalize_config.st", mock_st),
+        patch("src.web.pages.ui.components.shapers.mean_config.st", mock_st),
+        patch("src.web.pages.ui.components.shapers.selector_transformer_configs.st", mock_st),
     ):
 
         # Mock session state as a dict
