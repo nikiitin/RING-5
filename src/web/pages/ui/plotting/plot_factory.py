@@ -9,6 +9,7 @@ if TYPE_CHECKING:
 
 from .types import (
     BarPlot,
+    DualAxisBarDotPlot,
     GroupedBarPlot,
     GroupedStackedBarPlot,
     HistogramPlot,
@@ -29,6 +30,7 @@ class PlotFactory:
 
     _plot_classes: Dict[str, Type[BasePlot]] = {
         "bar": BarPlot,
+        "dual_axis_bar_dot": DualAxisBarDotPlot,
         "grouped_bar": GroupedBarPlot,
         "stacked_bar": StackedBarPlot,
         "grouped_stacked_bar": GroupedStackedBarPlot,

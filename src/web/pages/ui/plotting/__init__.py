@@ -17,6 +17,7 @@ from .plot_factory import PlotFactory
 from .plot_renderer import PlotRenderer
 from .types import (
     BarPlot,
+    DualAxisBarDotPlot,
     GroupedBarPlot,
     GroupedStackedBarPlot,
     LinePlot,
@@ -26,6 +27,7 @@ from .types import (
 __all__ = [
     "BasePlot",
     "BarPlot",
+    "DualAxisBarDotPlot",
     "GroupedBarPlot",
     "GroupedStackedBarPlot",
     "LinePlot",

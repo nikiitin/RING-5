@@ -13,7 +13,10 @@ from .line_ui import LineStyleUI, ScatterStyleUI
 class StyleUIFactory:
     @staticmethod
     def get_strategy(plot_id: int, plot_type: str) -> BaseStyleUI:
-        if "line" in plot_type:
+        if plot_type == "dual_axis_bar_dot":
+            # Dual-axis combines bar + scatter; use base style
+            return BaseStyleUI(plot_id, plot_type)
+        elif "line" in plot_type:
             return LineStyleUI(plot_id, plot_type)
         elif "scatter" in plot_type:
             return ScatterStyleUI(plot_id, plot_type)
