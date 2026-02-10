@@ -164,12 +164,11 @@ class TestRegexExpansionUsesFlag:
             ),
         ]
 
-        # Re-implement the expansion logic inline to test the flag
-        expanded = config
-        name_is_regex = config.is_regex or config.name != re.escape(config.name)
-        assert name_is_regex is True
+        # Expansion logic uses only is_regex (no heuristic fallback)
+        assert config.is_regex is True
 
-        if name_is_regex:
+        expanded = config
+        if config.is_regex:
             pattern = re.compile(config.name)
             matched: List[str] = []
             for sv in scanned:
@@ -189,24 +188,20 @@ class TestRegexExpansionUsesFlag:
         ]
 
     def test_is_regex_false_skips_expansion(self) -> None:
-        """With is_regex=False and a plain name (no metachar), expansion skips."""
+        """With is_regex=False, expansion is skipped regardless of name content."""
         config = StatConfig(
-            name="simTicks",
+            name=r"system.cpu\d+.ipc",
             type="scalar",
             is_regex=False,
         )
 
-        name_is_regex = config.is_regex or config.name != re.escape(config.name)
-        assert name_is_regex is False
+        # Even though the name contains regex chars, is_regex=False means no expansion
+        assert config.is_regex is False
 
-    def test_heuristic_fallback_still_works(self) -> None:
-        """Even without is_regex=True, names with regex chars still expand."""
+    def test_is_regex_false_plain_name(self) -> None:
+        """Plain names naturally have is_regex=False."""
         config = StatConfig(
-            name=r"system.cpu\d+.ipc",
+            name="simTicks",
             type="scalar",
-            is_regex=False,  # Not explicitly set
         )
-
-        # The heuristic fallback should still detect regex
-        name_is_regex = config.is_regex or config.name != re.escape(config.name)
-        assert name_is_regex is True
+        assert config.is_regex is False
