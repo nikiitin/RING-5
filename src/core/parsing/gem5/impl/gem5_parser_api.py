@@ -34,7 +34,7 @@ class Gem5ParserAPI:
         variables: List[StatConfig],
         output_dir: str,
         strategy_type: str = "simple",
-        scanned_vars: Optional[List[Any]] = None,
+        scanned_vars: Optional[List[ScannedVariable]] = None,
     ) -> ParseBatchResult:
         """Submit async parsing job via Gem5Parser."""
         return Gem5Parser.submit_parse_async(
