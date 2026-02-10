@@ -9,6 +9,7 @@ import streamlit as st
 
 from src.core.application_api import ApplicationAPI
 from src.web.pages.ui.components.data_manager_components import DataManagerComponents
+from src.web.pages.ui.components.history_components import HistoryComponents
 from src.web.pages.ui.data_managers.impl.mixer import MixerManager
 from src.web.pages.ui.data_managers.impl.outlier_remover import OutlierRemoverManager
 from src.web.pages.ui.data_managers.impl.preprocessor import PreprocessorManager
@@ -47,7 +48,7 @@ def show_data_managers_page(api: ApplicationAPI) -> None:
     preproc_mgr = PreprocessorManager(api)
     mixer_mgr = MixerManager(api)
 
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(
         [
             "Summary",
             "Data Visualization",
@@ -55,6 +56,7 @@ def show_data_managers_page(api: ApplicationAPI) -> None:
             outlier_mgr.name,
             preproc_mgr.name,
             mixer_mgr.name,
+            "Operations History",
         ]
     )
 
@@ -75,3 +77,6 @@ def show_data_managers_page(api: ApplicationAPI) -> None:
 
     with tab6:
         mixer_mgr.render()
+
+    with tab7:
+        HistoryComponents.render_portfolio_history(api.get_portfolio_history())

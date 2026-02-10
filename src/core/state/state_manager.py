@@ -14,6 +14,7 @@ from typing import Any, Callable, Dict, List, Optional, Protocol, runtime_checka
 import pandas as pd
 
 from src.core.models import PlotProtocol, PortfolioData
+from src.core.models.history_models import OperationRecord
 
 
 @runtime_checkable
@@ -156,6 +157,25 @@ class StateManager(Protocol):
 
     def clear_preview(self, operation_name: str) -> None:
         """Clear a preview for an operation."""
+
+    # History
+    def add_manager_history_record(self, record: OperationRecord) -> None:
+        """Add an operation record to the manager history (rolling 20)."""
+
+    def get_manager_history(self) -> List[OperationRecord]:
+        """Get the manager operation history."""
+
+    def add_portfolio_history_record(self, record: OperationRecord) -> None:
+        """Add an operation record to the portfolio history (unbounded)."""
+
+    def get_portfolio_history(self) -> List[OperationRecord]:
+        """Get the portfolio operation history."""
+
+    def remove_manager_history_record(self, record: OperationRecord) -> None:
+        """Remove a specific record from manager history."""
+
+    def remove_portfolio_history_record(self, record: OperationRecord) -> None:
+        """Remove a specific record from portfolio history."""
 
     # Session
     def clear_all(self) -> None:

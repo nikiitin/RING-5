@@ -124,6 +124,9 @@ class PortfolioService:
             "stats_path": self.state_manager.get_stats_path(),
             "stats_pattern": self.state_manager.get_stats_pattern(),
             "scanned_variables": self.state_manager.get_scanned_variables(),
+            # Persist operation history
+            "manager_history": self.state_manager.get_manager_history(),
+            "portfolio_history": self.state_manager.get_portfolio_history(),
         }
 
         save_path = validate_path_within(
