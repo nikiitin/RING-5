@@ -126,8 +126,8 @@ Location: .agent/skills/ and .agent/workflows/
 # === FILE LOCATIONS ===
 Entry: app.py
 Backend API: src/web/facade.py
-Async Services: src/parsers/{parse,scanner}_service.py
-Work Pools: src/parsers/workers/pool.py
+Async Services: src/core/parsing/{parse,scanner}_service.py
+Work Pools: src/core/parsing/workers/pool.py
 Plot Factory: src/plotting/plot_factory.py
 Shaper Factory: src/web/services/shapers/factory.py
 Skills: .agent/skills/*.md
@@ -135,7 +135,12 @@ Workflows: .agent/workflows/*.md
 Rules: .agent/rules/project-context.md
 
 # === REFERENCES ===
-Full Rules: .agent/rules/project-context.md
+Rules 000 (Identity): .agent/rules/000-identity-mission.md
+Rules 001 (Architecture): .agent/rules/001-architecture-standards.md
+Rules 002 (Data Science): .agent/rules/002-data-science-mastery.md
+Rules 003 (SW Engineering): .agent/rules/003-software-engineering.md
+Rules 004 (QA Testing): .agent/rules/004-qa-testing-mastery.md
+Full Rules Context: .agent/rules/project-context.md
 Quick Guide: .ai-assistant-guide.md
 VS Code: .github/copilot-instructions.md
 Examples: tests/integration/

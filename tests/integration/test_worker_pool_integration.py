@@ -13,9 +13,13 @@ from unittest.mock import patch
 
 import pytest
 
-from src.parsers.parse_service import ParseService
-from src.parsers.workers.gem5_parse_work import Gem5ParseWork
-from src.parsers.workers.perl_worker_pool import get_worker_pool, shutdown_worker_pool
+from src.core.models import StatConfig
+from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
+from src.core.parsing.gem5.impl.strategies.gem5_parse_work import Gem5ParseWork
+from src.core.parsing.gem5.impl.strategies.perl_worker_pool import (
+    get_worker_pool,
+    shutdown_worker_pool,
+)
 
 
 @pytest.fixture(scope="module")
@@ -36,7 +40,7 @@ system.cpu.dcache.overall_miss_rate::total  0.05                    # Miss rate
 
 
 @pytest.fixture(scope="module", autouse=True)
-def cleanup_worker_pool():
+def cleanup_worker_pool() -> None:
     """Ensure worker pool is cleaned up after tests."""
     yield
     shutdown_worker_pool()
@@ -47,14 +51,14 @@ class TestWorkerPoolIntegration:
 
     def test_gem5_parse_work_uses_worker_pool(self, test_stats_file: str) -> None:
         """Verify Gem5ParseWork uses worker pool instead of subprocess."""
-        from src.parsers.type_mapper import TypeMapper
+        from src.core.parsing.gem5.types.type_mapper import TypeMapper
 
         # Create a minimal variable config
-        var_config = {"name": "system.cpu.numCycles", "type": "scalar", "params": {}}
+        var_config = StatConfig(name="system.cpu.numCycles", type="scalar")
 
         # Create StatType instance
         stat_type = TypeMapper.create_stat(var_config)
-        vars_dict = {var_config["name"]: stat_type}
+        vars_dict = {var_config.name: stat_type}
 
         # Create parse work
         work = Gem5ParseWork(test_stats_file, vars_dict)
@@ -69,7 +73,7 @@ class TestWorkerPoolIntegration:
 
             # Verify we got results
             assert result is not None
-            assert var_config["name"] in result
+            assert var_config.name in result
 
     def test_parse_service_uses_worker_pool(self, test_stats_file: str, tmp_path: Path) -> None:
         """Verify ParseService workflow uses worker pool end-to-end."""
@@ -77,14 +81,14 @@ class TestWorkerPoolIntegration:
         output_dir.mkdir()
 
         variables = [
-            {"name": "system.cpu.numCycles", "type": "scalar", "params": {}},
-            {"name": "system.cpu.ipc", "type": "scalar", "params": {}},
+            StatConfig(name="system.cpu.numCycles", type="scalar"),
+            StatConfig(name="system.cpu.ipc", type="scalar"),
         ]
 
         # Mock subprocess.run to ensure it's never called during parsing
         with patch("subprocess.run") as mock_subprocess:
             # Submit parse async
-            futures = ParseService.submit_parse_async(
+            batch = ParseService.submit_parse_async(
                 stats_path=str(Path(test_stats_file).parent),
                 stats_pattern="stats.txt",
                 variables=variables,
@@ -92,13 +96,15 @@ class TestWorkerPoolIntegration:
             )
 
             # Wait for results
-            results = [f.result() for f in futures]
+            results = [f.result() for f in batch.futures]
 
             # CRITICAL: subprocess.run should NOT be called
             mock_subprocess.assert_not_called()
 
             # Construct final CSV
-            csv_path = ParseService.construct_final_csv(str(output_dir), results)
+            csv_path = ParseService.construct_final_csv(
+                str(output_dir), results, var_names=batch.var_names
+            )
 
             # Verify output
             assert csv_path is not None
@@ -106,9 +112,9 @@ class TestWorkerPoolIntegration:
 
     def test_worker_pool_reused_across_multiple_parses(self, test_stats_file: str) -> None:
         """Verify same worker pool is reused across multiple parse operations."""
-        from src.parsers.type_mapper import TypeMapper
+        from src.core.parsing.gem5.types.type_mapper import TypeMapper
 
-        var_config = {"name": "system.cpu.numCycles", "type": "scalar", "params": {}}
+        var_config = StatConfig(name="system.cpu.numCycles", type="scalar")
 
         # Get worker pool ID before parsing
         pool_before = get_worker_pool()
@@ -117,7 +123,7 @@ class TestWorkerPoolIntegration:
         # Create and execute multiple parse works
         for _ in range(3):
             stat_type = TypeMapper.create_stat(var_config)
-            vars_dict = {var_config["name"]: stat_type}
+            vars_dict = {var_config.name: stat_type}
             work = Gem5ParseWork(test_stats_file, vars_dict)
             result = work()
             assert result is not None
@@ -133,15 +139,15 @@ class TestWorkerPoolIntegration:
         """Verify worker pool provides significant speedup over theoretical subprocess approach."""
         import time
 
-        from src.parsers.type_mapper import TypeMapper
+        from src.core.parsing.gem5.types.type_mapper import TypeMapper
 
-        var_config = {"name": "system.cpu.numCycles", "type": "scalar", "params": {}}
+        var_config = StatConfig(name="system.cpu.numCycles", type="scalar")
 
         # Parse 10 files using worker pool
         start_time = time.time()
         for _ in range(10):
             stat_type = TypeMapper.create_stat(var_config)
-            vars_dict = {var_config["name"]: stat_type}
+            vars_dict = {var_config.name: stat_type}
             work = Gem5ParseWork(test_stats_file, vars_dict)
             result = work()
             assert result is not None
@@ -162,12 +168,12 @@ class TestWorkerPoolErrorHandling:
 
     def test_missing_file_raises_error(self) -> None:
         """Verify proper error handling for missing files."""
-        from src.parsers.type_mapper import TypeMapper
+        from src.core.parsing.gem5.types.type_mapper import TypeMapper
 
-        var_config = {"name": "system.cpu.numCycles", "type": "scalar", "params": {}}
+        var_config = StatConfig(name="system.cpu.numCycles", type="scalar")
 
         stat_type = TypeMapper.create_stat(var_config)
-        vars_dict = {var_config["name"]: stat_type}
+        vars_dict = {var_config.name: stat_type}
 
         # Create work with non-existent file
         work = Gem5ParseWork("/nonexistent/stats.txt", vars_dict)
@@ -178,16 +184,15 @@ class TestWorkerPoolErrorHandling:
 
     def test_invalid_variable_handled_gracefully(self, test_stats_file: str) -> None:
         """Verify invalid variables don't crash the worker pool."""
-        from src.parsers.type_mapper import TypeMapper
+        from src.core.parsing.gem5.types.type_mapper import TypeMapper
 
-        var_config = {
-            "name": "invalid.variable.that.does.not.exist",
-            "type": "scalar",
-            "params": {},
-        }
+        var_config = StatConfig(
+            name="invalid.variable.that.does.not.exist",
+            type="scalar",
+        )
 
         stat_type = TypeMapper.create_stat(var_config)
-        vars_dict = {var_config["name"]: stat_type}
+        vars_dict = {var_config.name: stat_type}
 
         work = Gem5ParseWork(test_stats_file, vars_dict)
 
@@ -207,13 +212,14 @@ class TestWorkerPoolConfigurationLoading:
 
         # Reimport to pick up new env var
         import importlib
+        import sys
 
-        import src.parsers.parse_service
+        parse_service_module = sys.modules["src.core.parsing.gem5.impl.gem5_parser"]
 
-        importlib.reload(src.parsers.parse_service)
+        importlib.reload(parse_service_module)
 
         # Verify the size is read from env
-        assert src.parsers.parse_service._WORKER_POOL_SIZE == 8
+        assert parse_service_module._WORKER_POOL_SIZE == 8
 
 
 if __name__ == "__main__":

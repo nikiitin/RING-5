@@ -1,3 +1,8 @@
+---
+title: "Parsing Guide"
+nav_order: 6
+---
+
 # Parsing gem5 Statistics
 
 Complete guide to parsing gem5 simulator output with RING-5.

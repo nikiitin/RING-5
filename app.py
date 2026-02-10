@@ -18,15 +18,6 @@ def run_app():
     # This prevents the "missing ScriptRunContext" warnings.
     import streamlit as st
 
-    from src.web.facade import BackendFacade
-    from src.web.pages.data_managers import show_data_managers_page
-    from src.web.pages.data_source import DataSourcePage
-    from src.web.pages.manage_plots import show_manage_plots_page
-    from src.web.pages.performance import render_performance_page
-    from src.web.pages.portfolio import show_portfolio_page
-    from src.web.pages.upload_data import UploadDataPage
-    from src.web.state_manager import StateManager
-
     # Page configuration
     st.set_page_config(
         page_title="RING-5 Interactive Analyzer",
@@ -54,24 +45,38 @@ def run_app():
     )
 
     # Initialize Core Components
-    StateManager.initialize()
-    facade = BackendFacade()
+    from src.core.application_api import ApplicationAPI
+
+    @st.cache_resource
+    def get_api() -> ApplicationAPI:
+        return ApplicationAPI()
+
+    api = get_api()
+    # Store for easy access in pages (optional, but consistent)
+    st.session_state.api = api
 
     # Header
     st.markdown('<h1 class="main-header">RING-5 Interactive Analyzer</h1>', unsafe_allow_html=True)
 
     # Show current data preview if data is loaded
-    if StateManager.has_data():
+    # Access via API's state manager (exposed or via API method)
+    # The API should expose a view model
+    current_view = api.get_current_view()
+
+    if current_view["raw_data"] is not None and not current_view["raw_data"].empty:
         st.markdown("#### Current Dataset")
         col1, col2, col3 = st.columns(3)
-        data = StateManager.get_data()
+        data = current_view["raw_data"]
+        config = current_view["config"]
+
         with col1:
             st.metric("Rows", len(data))
         with col2:
             st.metric("Columns", len(data.columns))
         with col3:
-            if StateManager.get_csv_path():
-                st.metric("Source", Path(StateManager.get_csv_path()).name)
+            csv_path = config.get("csv_path")
+            if csv_path:
+                st.metric("Source", Path(csv_path).name)
             else:
                 st.metric("Source", "Uploaded")
 
@@ -99,7 +104,7 @@ def run_app():
         st.markdown("---")
 
         if st.button("Clear Data", width="stretch", help="Clear loaded CSV data and plots"):
-            StateManager.clear_data()
+            api.reset_session()
             st.rerun()
 
         if st.button(
@@ -108,22 +113,34 @@ def run_app():
             type="secondary",
             help="Reset entire application to defaults",
         ):
-            StateManager.clear_all()
+            api.reset_session()
             st.rerun()
 
-    # Main content
+    # Main content — lazy page imports: only the active page module is loaded
     if page == "Data Source":
-        DataSourcePage(facade).render()
+        from src.web.pages.data_source import DataSourcePage
+
+        DataSourcePage(api).render()
     elif page == "Upload Data":
-        UploadDataPage(facade).render()
+        from src.web.pages.upload_data import UploadDataPage
+
+        UploadDataPage(api).render()
     elif page == "Data Managers":
-        show_data_managers_page()
+        from src.web.pages.data_managers import show_data_managers_page
+
+        show_data_managers_page(api)
     elif page == "Manage Plots":
-        show_manage_plots_page()
+        from src.web.pages.manage_plots import show_manage_plots_page
+
+        show_manage_plots_page(api)
     elif page == "Save/Load Portfolio":
-        show_portfolio_page()
+        from src.web.pages.portfolio import show_portfolio_page
+
+        show_portfolio_page(api)
     elif page == "⚡ Performance":
-        render_performance_page()
+        from src.web.pages.performance import render_performance_page
+
+        render_performance_page(api)
 
 
 if __name__ == "__main__":

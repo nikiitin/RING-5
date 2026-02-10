@@ -52,6 +52,9 @@ def extract_imports_from_file(file_path: Path) -> Set[str]:
                     # Get base package (before first dot)
                     base = alias.name.split(".")[0]
                     imports.add(base)
+                    # Also capture alias name (e.g., 'pd' from 'import pandas as pd')
+                    if alias.asname:
+                        imports.add(alias.asname)
             elif isinstance(node, ast.ImportFrom):
                 if node.module:
                     # Get base package (before first dot)

@@ -1,3 +1,8 @@
+---
+title: "First Analysis"
+nav_order: 4
+---
+
 # First Analysis Guide
 
 Complete walkthrough of your first gem5 data analysis with RING-5.

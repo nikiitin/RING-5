@@ -4,6 +4,32 @@ Workflows are step-by-step processes for common development tasks. In Google Ant
 
 ## Available Workflows
 
+### `/release-branch-review` ⭐ NEW
+
+**Purpose**: Comprehensive, publication-grade review before merging to main/develop
+**When to use**: Before any merge to protected branches (main, develop)
+**Complexity**: Advanced
+**Estimated Time**: 30-60 minutes
+
+The ultimate pre-merge review workflow - leaves no stone unturned.
+
+**10 Review Phases:**
+
+1. **Scope Assessment** - Quantify and classify the change
+2. **Commit History Audit** - Verify commit hygiene and logical sequencing
+3. **Architectural Integrity** - Check layer boundaries and patterns
+4. **Type Safety Audit** - Ensure complete type coverage
+5. **Test Coverage Analysis** - Verify tests exist and pass
+6. **Security Scan** - Static analysis and vulnerability check
+7. **Performance Review** - Algorithmic and Pandas anti-patterns
+8. **Documentation Review** - API docs and changelogs
+9. **Code Quality Deep Dive** - Code smells and naming conventions
+10. **Integration & Regression** - Full test suite and smoke tests
+
+**Critical**: No merge without sign-off on all blocking criteria.
+
+---
+
 ### `/test-driven-development`
 
 **Purpose**: Guide all code changes through the TDD process
@@ -109,6 +135,17 @@ Detailed instructions...
 
 ## See Also
 
+### 📜 Rule System (The Brain)
+
+All workflows must adhere to the rules defined in `.cursor/rules/`:
+
+- **Identity (`000`)**: Zero Hallucination Policy.
+- **Architecture (`001`)**: Layers (A/B/C) and Separation of Concerns.
+- **Data Science (`002`)**: Vectorization Standards.
+- **Engineering (`003`)**: Strong Typing.
+- **QA (`004`)**: Fixtures as Architecture.
+
+### 📚 Skills
+
 - [Skills](../skills/) - Reusable knowledge packages
-- [Rules](../rules/) - Project guidelines and constraints
 - [GitHub Copilot Instructions](../../.github/copilot-instructions.md) - VSCode AI configuration

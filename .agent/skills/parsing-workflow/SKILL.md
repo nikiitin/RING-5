@@ -200,7 +200,7 @@ def test_parsing_workflow():
 ## Common Anti-Patterns
 
 ❌ **DON'T**: Create synchronous wrappers around async API
-✅ **DO**: Use async primitives (submit*\*\_async + finalize*\*)
+✅ **DO**: Use async primitives (`submit_*_async + finalize_*`)
 
 ❌ **DON'T**: Forget to pass scanned_vars for regex resolution
 ✅ **DO**: Always pass scanned_vars when using regex patterns
@@ -246,7 +246,7 @@ if st.button("Parse Statistics"):
 
 ## See Also
 
-- Implementation: [src/parsers/parse_service.py](../../../src/parsers/parse_service.py)
-- Scanner: [src/parsers/scanner_service.py](../../../src/parsers/scanner_service.py)
+- Implementation: [src/core/parsing/parse_service.py](../../../src/core/parsing/parse_service.py)
+- Scanner: [src/core/parsing/scanner_service.py](../../../src/core/parsing/scanner_service.py)
 - Tests: [tests/integration/test_gem5_parsing.py](../../../tests/integration/test_gem5_parsing.py)
 - UI Example: [src/web/ui/components/data_source_components.py](../../../src/web/ui/components/data_source_components.py)

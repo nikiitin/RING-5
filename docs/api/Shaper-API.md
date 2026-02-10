@@ -1,3 +1,8 @@
+---
+title: "Shaper API"
+nav_order: 25
+---
+
 # Shaper API
 
 Complete API reference for RING-5's data transformation system.

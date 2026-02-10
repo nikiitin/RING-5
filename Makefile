@@ -1,3 +1,24 @@
+# Help target
+help:
+	@echo "RING-5 Interactive Analyzer - Management"
+	@echo ""
+	@echo "Execution Modes:"
+	@echo "  make <target>                - Run targets on local host (default)"
+	@echo "  make <target> USE_DOCKER=true - Run targets inside Docker sandbox"
+	@echo ""
+	@echo "Common Targets:"
+	@echo "  install                      - Install project dependencies"
+	@echo "  run                          - Start the Streamlit application"
+	@echo "  test                         - Run full test suite"
+	@echo "  dev                          - Install dev dependencies (pytest, black, etc.)"
+	@echo "  clean                        - Remove caches and build artifacts"
+	@echo ""
+	@echo "Docker Specific:"
+	@echo "  docker-build                 - Build/Rebuild the Docker image"
+	@echo "  docker-shell                 - Open a bash session in the container"
+	@echo "  docker-down                  - Stop and remove containers"
+	@echo ""
+
 # Virtual environment settings
 VENV_NAME = python_venv
 VENV_BIN = ./$(VENV_NAME)/bin
@@ -5,19 +26,32 @@ PYTHON = python3
 PIP = $(VENV_BIN)/pip
 pytest = $(VENV_BIN)/pytest
 
+# Docker settings
+DOCKER_COMPOSE = docker-compose
+DOCKER_RUN = $(DOCKER_COMPOSE) run --rm ring5-dev
+USE_DOCKER ?= false
+
 # Create virtual environment if it doesn't exist
 venv:
 	test -d $(VENV_NAME) || $(PYTHON) -m venv $(VENV_NAME)
 	$(PIP) install --upgrade pip
 
 install: venv
+ifeq ($(USE_DOCKER),true)
+	$(DOCKER_COMPOSE) build
+else
 	$(PIP) install .
+endif
 
 dev: venv
+ifeq ($(USE_DOCKER),true)
+	$(DOCKER_COMPOSE) build
+else
 	$(PIP) install -e ".[dev]"
 	@echo ""
 	@echo "📋 Don't forget to install pre-commit hooks:"
 	@echo "   make pre-commit-install"
+endif
 	@echo ""
 	@echo "📋 For LaTeX export support, install system packages:"
 	@echo "   make install-latex"
@@ -115,8 +149,65 @@ check-latex:
 	@echo ""
 	@echo "For complete setup, run: make install-latex"
 
-test:
+# Download and extract test data if not present
+TEST_DATA_DIR = tests/data/results-micro26-sens
+TEST_DATA_URL = https://github.com/nikiitin/RING-5/releases/download/test-data-v1/test_data.tar.gz
+TEST_DATA_TARBALL = test_data.tar.gz
+
+test-data:
+	@if [ ! -d "$(TEST_DATA_DIR)" ]; then \
+		echo ">> Test data not found. Downloading..."; \
+		echo ""; \
+		mkdir -p tests/data; \
+		if [ -f "$(TEST_DATA_TARBALL)" ]; then \
+			echo ">> Using local tarball: $(TEST_DATA_TARBALL)"; \
+			tar xzf "$(TEST_DATA_TARBALL)" -C tests/data; \
+		elif command -v curl >/dev/null 2>&1; then \
+			echo ">> Downloading from GitHub Releases..."; \
+			curl -L "$(TEST_DATA_URL)" | tar xz -C tests/data; \
+		elif command -v wget >/dev/null 2>&1; then \
+			echo ">> Downloading from GitHub Releases..."; \
+			wget -qO- "$(TEST_DATA_URL)" | tar xz -C tests/data; \
+		else \
+			echo "ERROR: Neither curl nor wget found, and no local tarball."; \
+			echo "       Please install curl or wget, or download test_data.tar.gz manually."; \
+			exit 1; \
+		fi; \
+		echo ""; \
+		echo ">> Test data extracted to tests/data/"; \
+		echo ""; \
+	fi
+
+test: test-data
+ifeq ($(USE_DOCKER),true)
+	$(DOCKER_RUN) python3 -m pytest
+else
 	$(pytest)
+endif
+
+# Run the application
+run:
+ifeq ($(USE_DOCKER),true)
+	$(DOCKER_COMPOSE) up ring5-dev
+else
+	$(VENV_BIN)/streamlit run app.py
+endif
+
+# Docker management
+docker-build:
+	$(DOCKER_COMPOSE) build
+
+docker-up:
+	$(DOCKER_COMPOSE) up -d ring5-dev
+
+docker-down:
+	$(DOCKER_COMPOSE) down
+
+docker-rebuild:
+	$(DOCKER_COMPOSE) build --no-cache
+
+docker-shell:
+	$(DOCKER_COMPOSE) run --rm -it ring5-dev bash
 
 # Install pre-commit hooks
 pre-commit-install:
@@ -129,12 +220,20 @@ pre-commit-install:
 # Run pre-commit on all files
 pre-commit:
 	@echo "=== Running pre-commit on all files ==="
+ifeq ($(USE_DOCKER),true)
+	$(DOCKER_RUN) ./$(VENV_NAME)/bin/pre-commit run --all-files
+else
 	@$(VENV_BIN)/pre-commit run --all-files
+endif
 
 # Check for outdated dependencies
 check-outdated:
 	@echo "=== Checking for outdated packages ==="
+ifeq ($(USE_DOCKER),true)
+	$(DOCKER_RUN) pip list --outdated --format=columns
+else
 	$(PIP) list --outdated --format=columns
+endif
 	@echo ""
 	@echo "To update all packages: make update-deps"
 	@echo "To update specific package: $(PIP) install --upgrade <package>"

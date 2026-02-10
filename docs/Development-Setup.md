@@ -1,3 +1,8 @@
+---
+title: "Development Setup"
+nav_order: 17
+---
+
 # Development Setup
 
 Complete guide to setting up a RING-5 development environment.

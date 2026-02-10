@@ -1,3 +1,8 @@
+---
+title: "Installation"
+nav_order: 3
+---
+
 # Installation Guide
 
 Complete installation instructions for RING-5 on all platforms.
@@ -32,7 +37,7 @@ source python_venv/bin/activate # Linux/macOS
 make dev
 
 # Verify installation
-python verify_installation.py
+python scripts/verify_installation.py
 ```
 
 ## Platform-Specific Instructions
@@ -104,7 +109,7 @@ source python_venv/bin/activate
 make dev
 
 # Verify installation
-python verify_installation.py
+python scripts/verify_installation.py
 
 # Run tests
 make test
@@ -200,7 +205,7 @@ After installation, verify everything works:
 
 ```bash
 # Run verification script
-python verify_installation.py
+python scripts/verify_installation.py
 
 # Should output:
 # Python 3.12+ detected

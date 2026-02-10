@@ -1,3 +1,8 @@
+---
+title: "Bar Charts"
+nav_order: 11
+---
+
 # Bar Charts
 
 <!-- markdownlint-disable MD024 -->

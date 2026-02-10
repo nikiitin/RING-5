@@ -11,18 +11,21 @@ CodeQL is GitHub's semantic code analysis engine that treats code as data, allow
 ### Workflow: `.github/workflows/codeql.yml`
 
 **Triggers:**
+
 - Push to `main` or `develop` branches
 - Pull requests to `main` or `develop` branches
 - Weekly schedule (Mondays at 00:00 UTC)
 - Manual dispatch
 
 **Analysis:**
+
 - **Language**: Python
 - **Query Suite**: `security-and-quality` (includes all default + quality queries)
 - **Timeout**: 360 minutes
 - **Custom Config**: `.github/codeql/codeql-config.yml`
 
 **Permissions:**
+
 - `security-events: write` - Upload results to Security tab
 - `packages: read` - Access CodeQL packs
 - `actions: read` - Read workflow runs
@@ -31,6 +34,7 @@ CodeQL is GitHub's semantic code analysis engine that treats code as data, allow
 ### Configuration: `.github/codeql/codeql-config.yml`
 
 **Excluded Paths:**
+
 - `tests/data/**` - Test data files (gem5 simulation results)
 - `python_venv/**` - Virtual environment
 - `**/*.egg-info/**` - Python package metadata
@@ -98,7 +102,7 @@ To fail CI when high/critical issues are found, uncomment in `codeql.yml`:
 - name: Perform CodeQL Analysis
   uses: github/codeql-action/analyze@v3
   with:
-    fail-on: high  # or 'critical'
+    fail-on: high # or 'critical'
 ```
 
 ### Filter Specific Queries
@@ -139,6 +143,7 @@ If CodeQL reports false positives:
 ### Performance
 
 If CodeQL times out:
+
 - Increase `timeout-minutes` in workflow
 - Exclude more paths in config file
 - Use lighter query suite (e.g., `security-extended`)
@@ -146,6 +151,7 @@ If CodeQL times out:
 ### Missing Dependencies
 
 If CodeQL can't resolve imports:
+
 - Ensure all dependencies are installed in workflow
 - Check `pip install -e ".[dev]"` succeeds
 - Add missing packages to `pyproject.toml`
@@ -168,13 +174,15 @@ If CodeQL can't resolve imports:
 ## 📝 Recent Fixes
 
 ### ReDoS Vulnerability (2026-02-03)
+
 - **File**: `src/web/ui/components/pattern_index_selector.py`
 - **Issue**: Catastrophic backtracking in regex pattern
 - **Fix**: Simplified `([a-zA-Z_]+[a-zA-Z0-9_]*)` to `([a-zA-Z_]\w*)`
 - **Status**: ✅ Resolved
 
 ### Type Safety (2026-02-03)
-- **File**: `src/parsers/workers/perl_worker_pool.py`
+
+- **File**: `src/core/parsing/workers/work_pool.py`
 - **Issue**: Optional type not properly narrowed
 - **Fix**: Added explicit validation and type annotation
 - **Status**: ✅ Resolved

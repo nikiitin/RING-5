@@ -1,3 +1,8 @@
+---
+title: "Line Plots"
+nav_order: 13
+---
+
 # Line Plots
 
 Complete reference for line plot visualizations in RING-5.

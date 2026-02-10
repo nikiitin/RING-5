@@ -24,7 +24,7 @@ Welcome to the **RING-5** documentation! This wiki provides comprehensive guides
 - [**Bar Charts**](plots/Bar-Charts.md) - Single and grouped bar charts
 - [**Line Plots**](plots/Line-Plots.md) - Time-series and trend analysis
 - [**Scatter Plots**](plots/Scatter-Plots.md) - Correlation and distribution
-- [**Histogram Plots**](plots/Histogram-Plots.md) - Distribution visualization
+- [**Histogram Plots**](histogram-plot.md) - Distribution visualization
 - [**Grouped Stacked Bars**](plots/Grouped-Stacked-Bars.md) - Complex comparisons
 
 ### Developer Guides
@@ -133,7 +133,7 @@ This documentation follows these conventions:
 
 ## License
 
-RING-5 is released under the MIT License. See [LICENSE](../LICENSE) for details.
+RING-5 is released under the GNU General Public License v3.0 or later (GPL-3.0-or-later). See [LICENSE](../LICENSE) for details.
 
 ## Acknowledgments
 

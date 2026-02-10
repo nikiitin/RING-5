@@ -1,3 +1,8 @@
+---
+title: "Histograms"
+nav_order: 15
+---
+
 # Histogram Plot
 
 ## Overview
@@ -229,6 +234,6 @@ Uses the **Factory Pattern** for creation and **Strategy Pattern** for different
 ## Related Documentation
 
 - [New Plot Type Guide](.agent/skills/new-plot-type.md)
-- [Variable Types](src/parsers/types/)
+- [Variable Types](src/core/parsing/gem5/types/)
 - [Plot Factory](src/plotting/plot_factory.py)
 - [Base Plot](src/plotting/base_plot.py)

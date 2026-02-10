@@ -1,3 +1,8 @@
+---
+title: "Dependency Updates"
+nav_order: 21
+---
+
 # Dependency Update Strategy for RING-5
 
 ## 🎯 Overview

@@ -1,3 +1,8 @@
+---
+title: "Plotting API"
+nav_order: 24
+---
+
 # Plotting API
 
 <!-- markdownlint-disable MD024 -->

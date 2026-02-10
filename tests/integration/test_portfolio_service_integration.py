@@ -4,8 +4,9 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
-from src.plotting.plot_factory import PlotFactory
-from src.web.services.portfolio_service import PortfolioService
+from src.core.services.data_services.portfolio_service import PortfolioService
+from src.core.state.repository_state_manager import RepositoryStateManager
+from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
 
 # Fixture to mock the portfolios directory
@@ -17,12 +18,32 @@ def mock_portfolios_dir(tmp_path):
 
     # Mock PathService to return this directory
     with patch(
-        "src.web.services.paths.PathService.get_portfolios_dir", return_value=portfolios_dir
+        "src.core.services.data_services.path_service.PathService.get_portfolios_dir",
+        return_value=portfolios_dir,
     ):
         yield portfolios_dir
 
 
-def test_save_and_load_portfolio(mock_portfolios_dir, tmp_path):
+@pytest.fixture
+def mock_session_state():
+    """Mock streamlit.session_state as a dictionary."""
+    with patch("streamlit.session_state", new_callable=dict) as mock_state:
+        yield mock_state
+
+
+@pytest.fixture
+def state_manager(mock_session_state):
+    """Initialize RepositoryStateManager with mocked session state."""
+    return RepositoryStateManager()
+
+
+@pytest.fixture
+def portfolio_service(state_manager, mock_portfolios_dir):
+    """Create PortfolioService instance."""
+    return PortfolioService(state_manager)
+
+
+def test_save_and_load_portfolio(portfolio_service, tmp_path, mock_portfolios_dir, state_manager):
     """Test saving a portfolio and then loading it back to verify data integrity."""
 
     # 1. Setup Test Data
@@ -37,8 +58,13 @@ def test_save_and_load_portfolio(mock_portfolios_dir, tmp_path):
     config_state = {"theme": "dark"}
     parse_variables = ["var1", "var2"]
 
-    # 2. Save Portfolio
-    PortfolioService.save_portfolio(
+    # Setup state manager mocks to return expected values for stats config
+    # Since RepositoryStateManager reads from session_state repositories,
+    # passed via mock_session_state
+    # Or we can just let it read defaults which are fine.
+
+    # 2. Save Portfolio (using instance method)
+    portfolio_service.save_portfolio(
         name="test_portfolio",
         data=df,
         plots=[plot],
@@ -52,8 +78,8 @@ def test_save_and_load_portfolio(mock_portfolios_dir, tmp_path):
     expected_file = mock_portfolios_dir / "test_portfolio.json"
     assert expected_file.exists()
 
-    # 4. Load Portfolio
-    loaded_data = PortfolioService.load_portfolio("test_portfolio")
+    # 4. Load Portfolio (using instance method)
+    loaded_data = portfolio_service.load_portfolio("test_portfolio")
 
     # 5. Verify Content
     assert loaded_data["version"] == "2.0"
@@ -76,35 +102,35 @@ def test_save_and_load_portfolio(mock_portfolios_dir, tmp_path):
     assert loaded_plot["config"] == plot_config
 
 
-def test_list_portfolios(mock_portfolios_dir):
+def test_list_portfolios(portfolio_service, mock_portfolios_dir):
     """Test listing available portfolios."""
     # Create two dummy portfolio files
     (mock_portfolios_dir / "p1.json").touch()
     (mock_portfolios_dir / "p2.json").touch()
     (mock_portfolios_dir / "not_a_portfolio.txt").touch()
 
-    portfolios = PortfolioService.list_portfolios()
+    portfolios = portfolio_service.list_portfolios()
     assert set(portfolios) == {"p1", "p2"}
 
 
-def test_delete_portfolio(mock_portfolios_dir):
+def test_delete_portfolio(portfolio_service, mock_portfolios_dir):
     """Test deleting a portfolio."""
     # Create a dummy portfolio file
     p_path = mock_portfolios_dir / "to_delete.json"
     p_path.touch()
 
     assert p_path.exists()
-    PortfolioService.delete_portfolio("to_delete")
+    portfolio_service.delete_portfolio("to_delete")
     assert not p_path.exists()
 
 
-def test_save_portfolio_empty_name(mock_portfolios_dir):
+def test_save_portfolio_empty_name(portfolio_service):
     """Test error handling for empty name."""
     with pytest.raises(ValueError, match="Portfolio name cannot be empty"):
-        PortfolioService.save_portfolio("", pd.DataFrame(), [], {}, 0)
+        portfolio_service.save_portfolio("", pd.DataFrame(), [], {}, 0)
 
 
-def test_load_nonexistent_portfolio(mock_portfolios_dir):
+def test_load_nonexistent_portfolio(portfolio_service):
     """Test error handling for loading missing portfolio."""
     with pytest.raises(FileNotFoundError):
-        PortfolioService.load_portfolio("ghost")
+        portfolio_service.load_portfolio("ghost")

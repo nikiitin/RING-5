@@ -3,8 +3,8 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from src.plotting.base_plot import BasePlot
-from src.plotting.plot_renderer import PlotRenderer
+from src.web.pages.ui.plotting.base_plot import BasePlot
+from src.web.pages.ui.plotting.plot_renderer import PlotRenderer
 
 
 class MockPlot(BasePlot):
@@ -32,9 +32,10 @@ class MockPlot(BasePlot):
 
 @pytest.fixture
 def mock_streamlit():
-    with patch("src.plotting.plot_renderer.st") as mock_st, patch(
-        "src.plotting.base_plot.StyleManager"
-    ) as MockStyleManager:
+    with (
+        patch("src.web.pages.ui.plotting.plot_renderer.st") as mock_st,
+        patch("src.web.pages.ui.plotting.base_plot.StyleManager") as MockStyleManager,
+    ):
 
         # Configure StyleManager mock
         style_manager_instance = MockStyleManager.return_value
@@ -120,8 +121,8 @@ def test_render_legend_customization_with_col(mock_streamlit, mock_plot):
     assert mock_plot.legend_mappings_by_column["C"] == result
 
 
-@patch("src.plotting.plot_renderer.LaTeXExportService")
-@patch("src.plotting.plot_renderer.interactive_plotly_chart")
+@patch("src.web.pages.ui.plotting.plot_renderer.LaTeXExportService")
+@patch("src.web.pages.ui.plotting.plot_renderer.interactive_plotly_chart")
 def test_render_plot_regenerate(
     mock_interactive_chart, mock_export_service, mock_streamlit, mock_plot, mock_preset_config
 ):
@@ -142,8 +143,8 @@ def test_render_plot_regenerate(
     mock_interactive_chart.assert_called()
 
 
-@patch("src.plotting.plot_renderer.LaTeXExportService")
-@patch("src.plotting.plot_renderer.interactive_plotly_chart")
+@patch("src.web.pages.ui.plotting.plot_renderer.LaTeXExportService")
+@patch("src.web.pages.ui.plotting.plot_renderer.interactive_plotly_chart")
 def test_render_plot_cached(
     mock_interactive_chart, mock_export_service, mock_streamlit, mock_plot, mock_preset_config
 ):
@@ -176,7 +177,7 @@ def test_render_plot_cached(
     assert "config" in kwargs
 
 
-@patch("src.plotting.plot_renderer.LaTeXExportService")
+@patch("src.web.pages.ui.plotting.plot_renderer.LaTeXExportService")
 def test_export_delegation(mock_export_service, mock_streamlit, mock_plot, mock_preset_config):
     # Configure the LaTeXExportService mock
     mock_service_instance = mock_export_service.return_value

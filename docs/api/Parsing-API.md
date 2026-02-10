@@ -1,3 +1,8 @@
+---
+title: "Parsing API"
+nav_order: 23
+---
+
 # Parsing API
 
 <!-- markdownlint-disable MD024 -->
@@ -19,7 +24,7 @@ Both services use asynchronous processing via `concurrent.futures` for parallel 
 
 Discovers gem5 variables in stats files.
 
-**Location**: `src/parsers/scanner_service.py`
+**Location**: `src/core/parsing/scanner_service.py`
 
 #### Methods
 
@@ -38,7 +43,7 @@ Submit asynchronous scan jobs.
 **Example**:
 
 ```python
-from src.parsers.scanner_service import ScannerService
+from src.core.parsing.scanner_service import ScannerService
 
 scanner = ScannerService()
 futures = scanner.submit_scan_async(
@@ -91,7 +96,7 @@ print(f"Name: {ipc_info['name']}")
 
 Extracts data from gem5 stats files.
 
-**Location**: `src/parsers/parse_service.py`
+**Location**: `src/core/parsing/parse_service.py`
 
 #### Methods
 
@@ -112,7 +117,7 @@ Submit asynchronous parse jobs.
 **Example**:
 
 ```python
-from src.parsers.parse_service import ParseService
+from src.core.parsing.parse_service import ParseService
 
 parser = ParseService()
 futures = parser.submit_parse_async(
@@ -153,8 +158,8 @@ data = pd.read_csv(csv_path)
 ### Scan → Parse → Load
 
 ```python
-from src.parsers.scanner_service import ScannerService
-from src.parsers.parse_service import ParseService
+from src.core.parsing.scanner_service import ScannerService
+from src.core.parsing.parse_service import ParseService
 import pandas as pd
 
 # Initialize services
@@ -227,7 +232,7 @@ futures = parser.submit_parse_async(
 
 Manages thread pool for async operations (singleton).
 
-**Location**: `src/parsers/workers/work_pool.py`
+**Location**: `src/core/parsing/gem5/impl/pool/pool.py`
 
 #### Methods
 
@@ -252,9 +257,9 @@ Submit task to thread pool.
 **Example**:
 
 ```python
-from src.parsers.workers.work_pool import WorkPool
+from src.core.parsing.gem5.impl.pool.pool import ParseWorkPool
 
-pool = WorkPool.get_instance()
+pool = ParseWorkPool.get_instance()
 future = pool.submit_task(my_function, arg1, arg2, kwarg=value)
 result = future.result()
 ```

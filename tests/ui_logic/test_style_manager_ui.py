@@ -3,12 +3,12 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from src.plotting.styles import StyleManager
+from src.web.pages.ui.plotting.styles import StyleManager
 
 
 @pytest.fixture
 def mock_streamlit():
-    with patch("src.plotting.styles.base_ui.st") as mock_st:
+    with patch("src.web.pages.ui.plotting.styles.base_ui.st") as mock_st:
         # Mock columns
         def columns_side_effect(spec, **kwargs):
             if isinstance(spec, int):

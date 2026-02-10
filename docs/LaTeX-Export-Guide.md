@@ -1,3 +1,8 @@
+---
+title: "LaTeX Export"
+nav_order: 9
+---
+
 # LaTeX Export Guide
 
 Complete guide to exporting publication-quality plots from RING-5 for LaTeX/PDF documents.

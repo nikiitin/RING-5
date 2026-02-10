@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from src.web.facade import BackendFacade
+from src.core.application_api import ApplicationAPI
 
 
 class TestGem5Parsing:
@@ -14,8 +14,8 @@ class TestGem5Parsing:
 
     @pytest.fixture
     def facade(self):
-        """Create a BackendFacade instance."""
-        return BackendFacade()
+        """Create a ApplicationAPI instance."""
+        return ApplicationAPI()
 
     @pytest.fixture
     def output_dir(self, tmp_path):
@@ -41,7 +41,7 @@ class TestGem5Parsing:
         assert len(variables) > 0
 
         # Check for common gem5 stats
-        var_names = [v["name"] for v in variables]
+        var_names = [v.name for v in variables]
         print(f"Discovered variables: {var_names[:10]}...")
 
         # We expect at least some standard stats (simTicks or other common gem5 vars)
@@ -74,18 +74,18 @@ class TestGem5Parsing:
         selected_vars = [
             v
             for v in all_variables
-            if v["type"] == "scalar"
-            and ("simTicks" in v["name"] or "ipc" in v["name"] or "cycles" in v["name"])
+            if v.type == "scalar"
+            and ("simTicks" in v.name or "ipc" in v.name or "cycles" in v.name)
         ][:5]
 
         if not selected_vars:
             # Fallback if specific names not found
-            selected_vars = [v for v in all_variables if v["type"] == "scalar"][:5]
+            selected_vars = [v for v in all_variables if v.type == "scalar"][:5]
 
-        print(f"Selected variables for parsing: {[v['name'] for v in selected_vars]}")
+        print(f"Selected variables for parsing: {[v.name for v in selected_vars]}")
 
         # 3. Run Parser
-        parse_futures = facade.submit_parse_async(
+        batch = facade.submit_parse_async(
             stats_path=str(self.TEST_DATA_DIR),
             stats_pattern="stats.txt",
             variables=selected_vars,
@@ -95,12 +95,14 @@ class TestGem5Parsing:
 
         # Wait for parsing to complete
         parse_results = []
-        for future in parse_futures:
+        for future in batch.futures:
             result = future.result(timeout=30)
             if result:
                 parse_results.append(result)
 
-        csv_path = facade.finalize_parsing(str(output_dir), parse_results)
+        csv_path = facade.finalize_parsing(
+            str(output_dir), parse_results, var_names=batch.var_names
+        )
 
         assert csv_path is not None
         assert os.path.exists(csv_path)
@@ -120,20 +122,16 @@ class TestGem5Parsing:
         # Without config.json, it relies on path structure if configured.
 
         for var in selected_vars:
-            assert var["name"] in df.columns
+            assert var.name in df.columns
 
         # Verify presence of inferred columns.
 
-    def test_histogram_parsing(self):
+    def test_histogram_parsing(self, tmp_path):
         """Test scanning and parsing a file containing histograms."""
-        import shutil
-        import tempfile
 
-        # Create a fresh temp dir for this test.
-
-        tmp_dir = Path(tempfile.mkdtemp())
-        stats_dir = tmp_dir / "stats"
-        output_dir = tmp_dir / "output"
+        # Use the builtin tmp_path fixture for Rule 004 compliance
+        stats_dir = tmp_path / "stats"
+        output_dir = tmp_path / "output"
         os.makedirs(stats_dir, exist_ok=True)
 
         # Create a stats file with a histogram
@@ -146,7 +144,7 @@ system.mem.ctrl::1024-2047                    5      50.00%     100.00%      # H
         with open(stats_dir / "stats.txt", "w") as f:
             f.write(hist_content)
 
-        facade = BackendFacade()
+        facade = ApplicationAPI()
 
         try:
             # 1. Scan
@@ -160,29 +158,31 @@ system.mem.ctrl::1024-2047                    5      50.00%     100.00%      # H
                     scan_results.append(result)
 
             vars_found = facade.finalize_scan(scan_results)
-            hist_var = next((v for v in vars_found if v["name"] == "system.mem.ctrl"), None)
+            hist_var = next((v for v in vars_found if v.name == "system.mem.ctrl"), None)
 
             assert hist_var is not None
-            assert hist_var["type"] == "histogram"
-            assert "0-1023" in hist_var.get("entries", [])
-            assert "1024-2047" in hist_var.get("entries", [])
+            assert hist_var.type == "histogram"
+            assert "0-1023" in (hist_var.entries or [])
+            assert "1024-2047" in (hist_var.entries or [])
 
             # 2. Parse
             # Configure variables
             variables = [{"name": "system.mem.ctrl", "type": "histogram"}]
 
-            parse_futures = facade.submit_parse_async(
+            parse_batch = facade.submit_parse_async(
                 str(stats_dir), "stats.txt", variables, str(output_dir), scanned_vars=vars_found
             )
 
             # Wait for parsing to complete
             parse_results = []
-            for future in parse_futures:
+            for future in parse_batch.futures:
                 result = future.result(timeout=10)
                 if result:
                     parse_results.append(result)
 
-            csv_path = facade.finalize_parsing(str(output_dir), parse_results)
+            csv_path = facade.finalize_parsing(
+                str(output_dir), parse_results, var_names=parse_batch.var_names
+            )
 
             assert csv_path is not None
             assert os.path.exists(csv_path)
@@ -196,5 +196,5 @@ system.mem.ctrl::1024-2047                    5      50.00%     100.00%      # H
             # Values should be 5.0 (the count)
             assert df["system.mem.ctrl..0-1023"].iloc[0] == 5.0
 
-        finally:
-            shutil.rmtree(tmp_dir)
+        except Exception as e:
+            pytest.fail(f"Histogram parsing failed: {e}")

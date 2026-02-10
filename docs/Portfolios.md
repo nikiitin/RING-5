@@ -1,3 +1,8 @@
+---
+title: "Portfolios"
+nav_order: 10
+---
+
 # Portfolios Guide
 
 Complete guide to saving and managing analysis portfolios in RING-5.

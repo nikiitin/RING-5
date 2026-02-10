@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from src.parsers.workers.perl_worker_pool import (
+from src.core.parsing.gem5.impl.strategies.perl_worker_pool import (
     PerlWorker,
     PerlWorkerPool,
     get_worker_pool,
@@ -55,7 +55,13 @@ def perl_exe():
 def perl_script_path():
     """Provide path to the Perl parser script."""
     return str(
-        Path(__file__).parent.parent.parent / "src" / "parsers" / "perl" / "fileParserServer.pl"
+        Path(__file__).parent.parent.parent
+        / "src"
+        / "core"
+        / "parsing"
+        / "gem5"
+        / "perl"
+        / "fileParserServer.pl"
     )
 
 

@@ -1,3 +1,8 @@
+---
+title: "Backend Facade"
+nav_order: 22
+---
+
 # Backend Facade
 
 Complete API reference for RING-5's unified backend interface.

@@ -3,7 +3,9 @@
 ## ✅ Files Created
 
 ### 1. **`.github/workflows/codeql.yml`**
+
 Main CodeQL workflow that:
+
 - Runs on push/PR to main/develop branches
 - Scheduled weekly scans (Mondays at 00:00 UTC)
 - Uses Python 3.12 with full dependency installation
@@ -11,13 +13,17 @@ Main CodeQL workflow that:
 - Uploads results to GitHub Security tab
 
 ### 2. **`.github/codeql/codeql-config.yml`**
+
 Configuration file that:
+
 - Excludes test data, venvs, caches from analysis
 - Can be customized for query filters
 - Provides fine-grained control over CodeQL behavior
 
 ### 3. **`.github/CODEQL.md`**
+
 Comprehensive documentation covering:
+
 - What CodeQL is and how it works
 - Configuration details
 - How to view and manage results
@@ -39,6 +45,7 @@ Comprehensive documentation covering:
 ## 🚀 Next Steps
 
 1. **Commit the files**:
+
    ```bash
    git add .github/workflows/codeql.yml .github/codeql/ .github/CODEQL.md
    git commit -m "feat: add comprehensive CodeQL security scanning"
@@ -62,6 +69,7 @@ Comprehensive documentation covering:
 ## 📊 Expected Results
 
 On first run, CodeQL should find:
+
 - 0-2 security issues (we fixed ReDoS vulnerability)
 - 0-5 code quality suggestions
 - Full analysis in ~5-10 minutes
@@ -69,11 +77,13 @@ On first run, CodeQL should find:
 ## 🔧 Customization Options
 
 **To fail CI on high-severity issues**, uncomment in `codeql.yml`:
+
 ```yaml
 fail-on: high
 ```
 
 **To exclude specific queries**, edit `codeql-config.yml`:
+
 ```yaml
 query-filters:
   - exclude:
@@ -81,6 +91,7 @@ query-filters:
 ```
 
 **To use only security queries** (faster), change in `codeql.yml`:
+
 ```yaml
 queries: security-extended
 ```
@@ -88,6 +99,7 @@ queries: security-extended
 ## 📚 Documentation
 
 Full documentation in `.github/CODEQL.md` includes:
+
 - Detailed configuration explanation
 - Local testing instructions
 - Common issues and solutions

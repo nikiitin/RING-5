@@ -6,8 +6,10 @@ Tests: font size, constraint to bar, uniformtext, and style application flow.
 import pandas as pd
 import pytest
 
-from src.plotting.styles.applicator import StyleApplicator
-from src.plotting.types.grouped_stacked_bar_plot import GroupedStackedBarPlot
+from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
+from src.web.pages.ui.plotting.types.grouped_stacked_bar_plot import (
+    GroupedStackedBarPlot,
+)
 
 
 @pytest.fixture
@@ -356,7 +358,7 @@ class TestEdgeCasesAndValidation:
         }
         fig = plot.create_figure(sample_data, config)
         # Should not raise
-        fig = applicator.apply_styles(fig, config)
+        _ = applicator.apply_styles(fig, config)
 
     def test_none_values_handled(self, plot, sample_data, applicator):
         """Test that None values are handled gracefully."""

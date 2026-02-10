@@ -7,7 +7,7 @@ name = "ring5"
 version = "1.0.0"
 description = "Modern gem5 Data Analysis and Visualization Tool"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.12"
 license = { text = "GPL-3.0-or-later" }
 authors = [{ name = "RING-5 Development Team" }]
 keywords = ["gem5", "data-analysis", "visualization", "performance-analysis"]
@@ -16,10 +16,6 @@ classifiers = [
   "Intended Audience :: Science/Research",
   "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
 ]
 
@@ -40,8 +36,14 @@ dependencies = [
 dev = [
   "pytest>=9.0.2",
   "pytest-cov>=7.0.0",
+  "pytest-xdist>=3.6.1",
+  "pytest-benchmark>=4.0.0",
+  "pytest-bdd>=7.1.0",
+  "hypothesis>=6.98.0",
+  "tox>=4.14.0",
   "black>=26.1.0",
   "flake8>=7.3.0",
+  "flake8-pyproject>=1.2.0",
   "mypy>=1.13.0",
   "pre-commit>=4.5.0",
   "pandas-stubs>=2.2.3.240909",
@@ -64,20 +66,47 @@ py-modules = ["argumentParser", "ring5"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+norecursedirs = ["tests/tests_principle_compliance"]
 pythonpath = ["."]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
-addopts = "-v --tb=short"
+addopts = "-v --tb=short --strict-markers"
+xfail_strict = true
 markers = [
-    "requires_latex: Tests that require LaTeX installation",
-    "requires_browser: Tests that require a running browser/server",
-    "benchmark: marks tests as performance benchmarks (deselect with '-m \"not benchmark\"')",
+  "requires_latex: Tests that require LaTeX installation",
+  "requires_browser: Tests that require a running browser/server",
+  "benchmark: marks tests as performance benchmarks (deselect with '-m \"not benchmark\"')",
+  "smoke: Quick smoke tests",
+  "data_value: Inject data value into fixtures",
+  "slow: Marks tests as slow (deselect with '-m \"not slow\"')",
 ]
 
 [tool.black]
 line-length = 100
-target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
+target-version = ['py312']
+
+[tool.flake8]
+max-line-length = 100
+extend-ignore = ["E203", "W503"]
+exclude = [".git", "__pycache__", "python_venv", ".pytest_cache", "*.egg-info", "build", "dist"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_any_unimported = false
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = false
+warn_no_return = true
+check_untyped_defs = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = ["pandas.*", "plotly.*", "streamlit.*", "matplotlib.*", "scipy.*"]
+ignore_missing_imports = true
 
 [tool.bandit]
 # B603: subprocess without shell - we explicitly use shell=False with validated paths

@@ -5,22 +5,20 @@ Page for selecting and configuring data sources.
 
 import streamlit as st
 
-from src.web.facade import BackendFacade
-from src.web.state_manager import StateManager
-from src.web.styles import AppStyles
-from src.web.ui.components.data_source_components import DataSourceComponents
+from src.core.application_api import ApplicationAPI
+from src.web.pages.ui.components.data_source_components import DataSourceComponents
 
 
 class DataSourcePage:
     """Handles the data source selection and parser configuration."""
 
-    def __init__(self, facade: BackendFacade):
+    def __init__(self, api: ApplicationAPI):
         """Initialize the data source page."""
-        self.facade = facade
+        self.api = api
 
     def render(self) -> None:
         """Render the data source page."""
-        st.markdown(AppStyles.step_header("Step 1: Choose Data Source"), unsafe_allow_html=True)
+        st.markdown("## Step 1: Choose Data Source")
 
         st.info("""
         **RING-5 supports two data input methods:**
@@ -37,10 +35,10 @@ class DataSourcePage:
         )
 
         if choice == "Parse gem5 Stats Files":
-            StateManager.set_use_parser(True)
-            DataSourceComponents.render_parser_config(self.facade)
+            self.api.state_manager.set_use_parser(True)
+            DataSourceComponents.render_parser_config(self.api)
         elif choice == "Load from Recent":
-            DataSourceComponents.render_csv_pool(self.facade)
+            DataSourceComponents.render_csv_pool(self.api)
         else:
-            StateManager.set_use_parser(False)
+            self.api.state_manager.set_use_parser(False)
             st.success("CSV mode selected. Proceed to **Upload Data** to upload your CSV file.")

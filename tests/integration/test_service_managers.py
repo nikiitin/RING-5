@@ -7,7 +7,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.web.services.data_processing_service import DataProcessingService
+from src.core.services.managers.arithmetic_service import ArithmeticService
+from src.core.services.managers.outlier_service import OutlierService
+from src.core.services.managers.reduction_service import ReductionService
 
 
 @pytest.fixture
@@ -55,7 +57,7 @@ class TestServiceSeedsReducer:
 
     def test_seeds_reducer_basic(self, sample_data_with_seeds):
         """Test basic seeds reduction."""
-        result = DataProcessingService.reduce_seeds(
+        result = ReductionService.reduce_seeds(
             df=sample_data_with_seeds,
             categorical_cols=["benchmark", "config"],
             statistic_cols=["cycles", "instructions"],
@@ -77,7 +79,7 @@ class TestServiceSeedsReducer:
 
     def test_seeds_reducer_with_normalization(self, sample_data_with_seeds):
         """Test seeds reduction - std columns created but NOT pre-normalized."""
-        result = DataProcessingService.reduce_seeds(
+        result = ReductionService.reduce_seeds(
             df=sample_data_with_seeds,
             categorical_cols=["benchmark", "config"],
             statistic_cols=["cycles", "instructions"],
@@ -99,7 +101,7 @@ class TestServiceOutlierRemover:
 
     def test_outlier_remover_removes_high_values(self, sample_data_with_outliers):
         """Test that outlier remover removes values above Q3."""
-        result = DataProcessingService.remove_outliers(
+        result = OutlierService.remove_outliers(
             df=sample_data_with_outliers,
             outlier_col="cycles",
             group_by_cols=["benchmark", "config"],
@@ -111,7 +113,7 @@ class TestServiceOutlierRemover:
 
     def test_outlier_remover_keeps_normal_data(self, sample_data_with_outliers):
         """Test that normal data is preserved."""
-        result = DataProcessingService.remove_outliers(
+        result = OutlierService.remove_outliers(
             df=sample_data_with_outliers,
             outlier_col="cycles",
             group_by_cols=["benchmark", "config"],
@@ -126,7 +128,7 @@ class TestServicePreprocessor:
 
     def test_preprocessor_divide_operation(self, sample_data_for_preprocess):
         """Test divide operation creates correct new column."""
-        result = DataProcessingService.apply_operation(
+        result = ArithmeticService.apply_operation(
             df=sample_data_for_preprocess,
             operation="divide",
             src1="instructions",
@@ -145,7 +147,7 @@ class TestServicePreprocessor:
 
     def test_preprocessor_sum_operation(self, sample_data_for_preprocess):
         """Test sum operation creates correct new column."""
-        result = DataProcessingService.apply_operation(
+        result = ArithmeticService.apply_operation(
             df=sample_data_for_preprocess,
             operation="sum",
             src1="cycles",
@@ -164,7 +166,7 @@ class TestServicePreprocessor:
 
     def test_preprocessor_preserves_original_columns(self, sample_data_for_preprocess):
         """Test that original columns are preserved."""
-        result = DataProcessingService.apply_operation(
+        result = ArithmeticService.apply_operation(
             df=sample_data_for_preprocess,
             operation="divide",
             src1="instructions",
@@ -185,7 +187,7 @@ class TestServiceManagersIntegration:
     def test_pipeline_seeds_then_outlier(self, sample_data_with_seeds):
         """Test applying seeds reducer followed by outlier remover."""
         # First reduce seeds
-        after_seeds = DataProcessingService.reduce_seeds(
+        after_seeds = ReductionService.reduce_seeds(
             df=sample_data_with_seeds,
             categorical_cols=["benchmark", "config"],
             statistic_cols=["cycles", "instructions"],
@@ -195,7 +197,7 @@ class TestServiceManagersIntegration:
         assert "cycles.sd" in after_seeds.columns
 
         # Then remove outliers.
-        after_outlier = DataProcessingService.remove_outliers(
+        after_outlier = OutlierService.remove_outliers(
             df=after_seeds, outlier_col="cycles", group_by_cols=["benchmark", "config"]
         )
 
@@ -205,7 +207,7 @@ class TestServiceManagersIntegration:
     def test_pipeline_preprocess_then_seeds(self, sample_data_with_seeds):
         """Test applying preprocessor followed by seeds reducer."""
         # First add IPC column
-        after_preprocess = DataProcessingService.apply_operation(
+        after_preprocess = ArithmeticService.apply_operation(
             df=sample_data_with_seeds,
             operation="divide",
             src1="instructions",
@@ -216,7 +218,7 @@ class TestServiceManagersIntegration:
         assert "ipc" in after_preprocess.columns
 
         # Then reduce seeds.
-        after_seeds = DataProcessingService.reduce_seeds(
+        after_seeds = ReductionService.reduce_seeds(
             df=after_preprocess,
             categorical_cols=["benchmark", "config"],
             statistic_cols=["cycles", "instructions", "ipc"],
