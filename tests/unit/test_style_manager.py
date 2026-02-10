@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import pytest
 
-from src.web.pages.ui.plotting.styles import StyleManager
+from src.plotting.styles import StyleManager
 
 
 @pytest.fixture
@@ -14,7 +14,7 @@ def style_manager():
 
 @pytest.fixture
 def mock_streamlit():
-    with patch("src.web.pages.ui.plotting.styles.base_ui.st") as mock_st:
+    with patch("src.plotting.styles.base_ui.st") as mock_st:
         mock_st.session_state = {}
 
         # Mock columns

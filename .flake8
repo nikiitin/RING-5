@@ -1,0 +1,14 @@
+[flake8]
+max-line-length = 100
+extend-ignore = E203
+# E203: whitespace before ':' - conflicts with black formatting for slices
+exclude =
+    .git,
+    __pycache__,
+    .pytest_cache,
+    .mypy_cache,
+    venv,
+    python_venv,
+    build,
+    dist,
+    *.egg-info

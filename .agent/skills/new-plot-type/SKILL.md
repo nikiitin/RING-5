@@ -392,3 +392,4 @@ fig.update_layout(
 - Factory: `src/plotting/plot_factory.py`
 - Examples: `src/plotting/types/grouped_bar_plot.py`
 - Tests: `tests/unit/test_plot_classes.py`
+

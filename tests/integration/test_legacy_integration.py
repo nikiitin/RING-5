@@ -13,11 +13,11 @@ import pandas as pd
 def test_complete_workflow_integration():
     """Test complete workflow: load CSV, configure pipeline, apply transformations."""
 
-    from src.core.application_api import ApplicationAPI
+    from src.web.facade import BackendFacade
 
     # Setup
     test_dir = Path(tempfile.mkdtemp())
-    facade = ApplicationAPI()
+    facade = BackendFacade()
 
     try:
         # Create test CSV
@@ -125,9 +125,9 @@ def test_pipeline_reordering():
 
 def test_multiple_same_shapers():
     """Test adding multiple shapers of the same type."""
-    from src.core.application_api import ApplicationAPI
+    from src.web.facade import BackendFacade
 
-    facade = ApplicationAPI()
+    facade = BackendFacade()
 
     test_data = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9], "d": [10, 11, 12]})
 

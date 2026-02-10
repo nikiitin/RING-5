@@ -1,38 +1,58 @@
 {
   "mcpServers": {
-    "ring5-workspace": {
+    "ring5-source": {
       "command": "npx",
       "args": [
         "-y",
         "@modelcontextprotocol/server-filesystem",
-        "${workspaceFolder}"
+        "${workspaceFolder}/src"
       ],
       "env": {
-        "READONLY": "false"
+        "READONLY": "true"
       },
       "capabilities": {
         "tools": true,
         "resources": true
       },
-      "description": "Full access limited STRICTLY to the RING-5 project workspace."
+      "description": "Read-only access to RING-5 source code for context"
+    },
+    "ring5-tests": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "${workspaceFolder}/tests"
+      ],
+      "env": {
+        "READONLY": "true"
+      },
+      "capabilities": {
+        "tools": true,
+        "resources": true
+      },
+      "description": "Read-only access to test suite for understanding patterns"
+    },
+    "ring5-docs": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "${workspaceFolder}/.agent",
+        "${workspaceFolder}/.github",
+        "${workspaceFolder}/.ai-assistant-guide.md"
+      ],
+      "env": {
+        "READONLY": "true"
+      },
+      "capabilities": {
+        "tools": true,
+        "resources": true
+      },
+      "description": "Read-only access to project documentation and rules"
     }
   },
   "security": {
-    "allowedPaths": ["${workspaceFolder}"],
-    "prohibitedOperations": [
-      "git",
-      "rm -rf",
-      "sudo",
-      "chmod",
-      "chown",
-      "pip install --break-system-packages",
-      "pip3 install --break-system-packages",
-      "apt-get",
-      "yum"
-    ],
-    "mandatoryEnvironment": "docker-compose run --rm ring5-dev",
-    "executionWrapper": "docker-compose run --rm ring5-dev",
-    "requireDocker": true,
-    "note": "AI is PHYSICALLY FORBIDDEN from host execution. All commands MUST be wrapped in 'docker-compose run --rm ring5-dev'. Directory access is locked to the workspace container."
+    "prohibitedOperations": ["git", "rm -rf", "sudo", "chmod", "chown"],
+    "note": "Git operations are STRICTLY FORBIDDEN. Never execute git commands."
   }
 }

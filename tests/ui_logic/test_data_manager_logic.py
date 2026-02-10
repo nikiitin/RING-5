@@ -3,17 +3,16 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from src.web.pages.ui.data_managers.impl.outlier_remover import OutlierRemoverManager
-from src.web.pages.ui.data_managers.impl.seeds_reducer import SeedsReducerManager
+from src.web.ui.data_managers.outlier_remover import OutlierRemoverManager
+from src.web.ui.data_managers.seeds_reducer import SeedsReducerManager
 
 
 # Mock streamlit
 @pytest.fixture
 def mock_streamlit():
-    with (
-        patch("src.web.pages.ui.data_managers.impl.seeds_reducer.st") as mock_st_seeds,
-        patch("src.web.pages.ui.data_managers.impl.outlier_remover.st") as mock_st_outlier,
-    ):
+    with patch("src.web.ui.data_managers.seeds_reducer.st") as mock_st_seeds, patch(
+        "src.web.ui.data_managers.outlier_remover.st"
+    ) as mock_st_outlier:
 
         # Configure session state handling for mocks.
         mock_st_seeds.session_state = {}
@@ -32,13 +31,6 @@ def mock_streamlit():
 
 
 @pytest.fixture
-def mock_api():
-    api = MagicMock()
-    api.state_manager = MagicMock()
-    return api
-
-
-@pytest.fixture
 def sample_data():
     return pd.DataFrame(
         {
@@ -50,12 +42,12 @@ def sample_data():
     )
 
 
-def test_seeds_reducer_render_no_random_seed(mock_streamlit, mock_api, sample_data):
+def test_seeds_reducer_render_no_random_seed(mock_streamlit, sample_data):
     """Test Seeds Reducer warns if no random_seed column."""
     mock_st, _ = mock_streamlit
 
     # Manager Mock
-    manager = SeedsReducerManager(mock_api)
+    manager = SeedsReducerManager()
     manager.get_data = MagicMock(return_value=sample_data.drop(columns=["random_seed"]))
 
     manager.render()
@@ -64,12 +56,12 @@ def test_seeds_reducer_render_no_random_seed(mock_streamlit, mock_api, sample_da
     assert "No `random_seed` column" in mock_st.warning.call_args[0][0]
 
 
-def test_seeds_reducer_apply(mock_streamlit, mock_api, sample_data):
+def test_seeds_reducer_apply(mock_streamlit, sample_data):
     """Test Seeds Reducer apply logic."""
     mock_st, _ = mock_streamlit
 
     # Setup Manager
-    manager = SeedsReducerManager(mock_api)
+    manager = SeedsReducerManager()
     manager.get_data = MagicMock(return_value=sample_data)
     manager.set_data = MagicMock()
 
@@ -81,52 +73,72 @@ def test_seeds_reducer_apply(mock_streamlit, mock_api, sample_data):
     # Confirm Button -> False (for this pass)
     mock_st.button.side_effect = lambda label, key=None, **kwargs: key == "apply_seeds"
 
-    # Mock Computing Service via api facade
-    result_df = pd.DataFrame({"benchmark": ["b1"], "value": [11], "value.sd": [1.4]})
-    mock_api.managers.validate_seeds_reducer_inputs.return_value = []
-    mock_api.managers.reduce_seeds.return_value = result_df
+    # Mock Processing Service
+    with patch(
+        "src.web.services.data_processing_service.DataProcessingService.reduce_seeds"
+    ) as mock_reduce:
+        with patch(
+            "src.web.repositories.preview_repository.PreviewRepository.set_preview"
+        ) as mock_set_preview:
+            mock_reduce.return_value = pd.DataFrame(
+                {"benchmark": ["b1"], "value": [11], "value.sd": [1.4]}
+            )
 
-    manager.render()
+            manager.render()
 
-    # Check processing called
-    mock_api.managers.reduce_seeds.assert_called_once()
+            # Check processing called
+            mock_reduce.assert_called_once()
 
-    # Check result stored via api
-    mock_api.set_preview.assert_called_once_with("seeds_reduction", result_df)
+            # Check result stored in PreviewRepository
+            mock_set_preview.assert_called_once()
+            assert mock_set_preview.call_args[0][0] == "seeds_reduction"
 
 
-def test_seeds_reducer_confirm(mock_streamlit, mock_api, sample_data):
+def test_seeds_reducer_confirm(mock_streamlit, sample_data):
     """Test Seeds Reducer confirm logic."""
     mock_st, _ = mock_streamlit
 
     # Setup Manager
-    manager = SeedsReducerManager(mock_api)
+    manager = SeedsReducerManager()
     manager.get_data = MagicMock(return_value=sample_data)
+    manager.set_data = MagicMock()
 
     # Pre-load result
     result_df = pd.DataFrame({"benchmark": ["b1"]})
 
     # Mock Interactions
+    # Apply Button -> False
     # Confirm Button -> True
     mock_st.button.side_effect = lambda label, key=None, **kwargs: key == "confirm_seeds"
 
-    # Configure mock_api
-    mock_api.has_preview.return_value = True
-    mock_api.get_preview.return_value = result_df
+    with patch(
+        "src.web.repositories.preview_repository.PreviewRepository.has_preview"
+    ) as mock_has_preview:
+        with patch(
+            "src.web.repositories.preview_repository.PreviewRepository.get_preview"
+        ) as mock_get_preview:
+            with patch(
+                "src.web.repositories.preview_repository.PreviewRepository.clear_preview"
+            ) as mock_clear_preview:
+                mock_has_preview.return_value = True
+                mock_get_preview.return_value = result_df
 
-    manager.render()
+                manager.render()
 
-    # Check state updated via api orchestrator
-    mock_api.state_manager.set_data.assert_called_with(result_df)
-    mock_api.clear_preview.assert_called_once_with("seeds_reduction")
-    mock_st.rerun.assert_called_once()
+                # Check get_preview called
+                mock_get_preview.assert_called_once_with("seeds_reduction")
+                # Check set_data called
+                manager.set_data.assert_called_once_with(result_df)
+                # Check clear_preview called
+                mock_clear_preview.assert_called_once_with("seeds_reduction")
+                mock_st.rerun.assert_called_once()
 
 
-def test_outlier_remover_run(mock_streamlit, mock_api, sample_data):
+def test_outlier_remover_run(mock_streamlit, sample_data):
     """Test Outlier Remover run flows."""
     _, mock_st = mock_streamlit
 
-    manager = OutlierRemoverManager(mock_api)
+    manager = OutlierRemoverManager()
     manager.get_data = MagicMock(return_value=sample_data)
 
     # Interaction:
@@ -138,11 +150,17 @@ def test_outlier_remover_run(mock_streamlit, mock_api, sample_data):
     # Button: Apply -> True
     mock_st.button.side_effect = lambda label, key=None, **kwargs: key == "apply_outlier"
 
-    mock_api.managers.validate_outlier_inputs.return_value = []
-    mock_api.managers.remove_outliers.return_value = sample_data
+    with patch(
+        "src.web.services.data_processing_service.DataProcessingService.remove_outliers"
+    ) as mock_remove:
+        with patch(
+            "src.web.repositories.preview_repository.PreviewRepository.set_preview"
+        ) as mock_set_preview:
+            mock_remove.return_value = sample_data
 
-    manager.render()
+            manager.render()
 
-    mock_api.managers.remove_outliers.assert_called_once()
-    # Check result stored via api
-    mock_api.set_preview.assert_called_once_with("outlier_removal", sample_data)
+            mock_remove.assert_called_once()
+            # Check result stored in PreviewRepository
+            mock_set_preview.assert_called_once()
+            assert mock_set_preview.call_args[0][0] == "outlier_removal"

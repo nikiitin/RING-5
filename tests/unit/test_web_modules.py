@@ -13,84 +13,123 @@ import pandas as pd
 import pytest
 
 
+class TestAppStyles:
+    """Test the AppStyles class."""
+
+    def test_get_custom_css_returns_string(self):
+        """Test that get_custom_css returns a non-empty string."""
+        from src.web.styles import AppStyles
+
+        css = AppStyles.get_custom_css()
+        assert isinstance(css, str)
+        assert len(css) > 0
+        assert "<style>" in css
+        assert "</style>" in css
+
+    def test_header_html(self):
+        """Test header HTML generation."""
+        from src.web.styles import AppStyles
+
+        result = AppStyles.header("Test Header")
+        assert "main-header" in result
+        assert "Test Header" in result
+
+    def test_step_header_html(self):
+        """Test step header HTML generation."""
+        from src.web.styles import AppStyles
+
+        result = AppStyles.step_header("Step 1")
+        assert "step-header" in result
+        assert "Step 1" in result
+
+    def test_success_box_html(self):
+        """Test success box HTML generation."""
+        from src.web.styles import AppStyles
+
+        result = AppStyles.success_box("Success message")
+        assert "success-box" in result
+        assert "Success message" in result
+
+
 class TestStateManager:
     """Test the StateManager class."""
 
-    @pytest.fixture
-    def mock_session_state(self):
-        """Mock streamlit.session_state as a dictionary."""
-        with patch("streamlit.session_state", new_callable=dict) as mock_state:
-            yield mock_state
+    def setup_method(self):
+        """Setup test session state mock."""
+        import streamlit as st
 
-    def test_initialize_creates_defaults(self, mock_session_state):
+        # Mock session state
+        if not hasattr(st, "session_state"):
+            st.session_state = {}
+
+    def test_initialize_creates_defaults(self):
         """Test that initialize creates default values."""
-        from src.core.state.repository_state_manager import RepositoryStateManager as StateManager
+        import streamlit as st
 
-        # StateManager() instantiation triggers SessionRepository.initialize_session()
-        mgr = StateManager()
+        from src.web.state_manager import StateManager
 
-        # Check via public API instead of accessing implementation details
-        # The Pure Python repositories store state in instance variables, not session_state directly
+        st.session_state.clear()
+        StateManager.initialize()
 
-        # Parser variables are initialized by default
-        assert len(mgr.get_parse_variables()) > 0
+        assert StateManager.DATA in st.session_state
+        assert StateManager.CONFIG in st.session_state
+        assert StateManager.USE_PARSER in st.session_state
 
-        # Data starts empty
-        assert not mgr.has_data()
-        assert mgr.get_data() is None
-
-    def test_get_set_data(self, mock_session_state):
+    def test_get_set_data(self):
         """Test data getter and setter."""
-        from src.core.state.repository_state_manager import RepositoryStateManager as StateManager
+        from src.web.state_manager import StateManager
 
-        mgr = StateManager()
+        StateManager.initialize()
 
         test_data = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-        mgr.set_data(test_data)
+        StateManager.set_data(test_data)
 
-        retrieved = mgr.get_data()
+        retrieved = StateManager.get_data()
         assert retrieved is not None
         assert len(retrieved) == 3
         pd.testing.assert_frame_equal(retrieved, test_data)
 
-    def test_get_set_config(self, mock_session_state):
+    def test_get_set_config(self):
         """Test config getter and setter."""
-        from src.core.state.repository_state_manager import RepositoryStateManager as StateManager
+        from src.web.state_manager import StateManager
 
-        mgr = StateManager()
+        StateManager.initialize()
 
         test_config = {"shapers": [{"type": "test"}]}
-        mgr.set_config(test_config)
+        StateManager.set_config(test_config)
 
-        retrieved = mgr.get_config()
+        retrieved = StateManager.get_config()
         assert retrieved == test_config
 
-    def test_update_config(self, mock_session_state):
+    def test_update_config(self):
         """Test config update method."""
-        from src.core.state.repository_state_manager import RepositoryStateManager as StateManager
+        from src.web.state_manager import StateManager
 
-        mgr = StateManager()
+        StateManager.initialize()
 
-        mgr.update_config("test_key", "test_value")
-        config = mgr.get_config()
+        StateManager.update_config("test_key", "test_value")
+        config = StateManager.get_config()
 
         assert "test_key" in config
         assert config["test_key"] == "test_value"
 
-    def test_has_data(self, mock_session_state):
+    def test_has_data(self):
         """Test has_data method."""
-        from src.core.state.repository_state_manager import RepositoryStateManager as StateManager
+        import streamlit as st
 
-        mgr = StateManager()
-        assert not mgr.has_data()
+        from src.web.state_manager import StateManager
+
+        st.session_state.clear()
+        StateManager.initialize()
+        assert not StateManager.has_data()
 
         test_data = pd.DataFrame({"a": [1, 2]})
-        mgr.set_data(test_data)
-        assert mgr.has_data()
+        StateManager.set_data(test_data)
+        assert StateManager.has_data()
 
 
-class TestApplicationAPI:
-    """Test the ApplicationAPI class."""
+class TestBackendFacade:
+    """Test the BackendFacade class."""
 
     def setup_method(self):
         """Setup test environment."""
@@ -101,25 +140,20 @@ class TestApplicationAPI:
         if self.test_dir.exists():
             shutil.rmtree(self.test_dir)
 
-    def test_api_initialization(self):
-        """Test API initializes services."""
-        from src.core.application_api import ApplicationAPI
+    def test_facade_initialization(self):
+        """Test facade creates necessary directories."""
+        from src.web.facade import BackendFacade
 
-        api = ApplicationAPI()
+        facade = BackendFacade()
 
-        # Check services initialized
-        assert api.state_manager is not None
-        assert api.data_services is not None
-
-        # Check CsvPoolService access (static service)
-        # API doesn't allow direct property access to csv_pool_dir by default but uses service
-        # We check functionality instead of internal properties
+        assert facade.csv_pool_dir.exists()
+        assert facade.config_pool_dir.exists()
 
     def test_load_csv_pool_empty(self):
         """Test loading empty CSV pool."""
         from unittest.mock import patch
 
-        from src.core.application_api import ApplicationAPI
+        from src.web.facade import BackendFacade
 
         # Create a clean temp directory for testing
         temp_csv_pool = self.test_dir / "csv_pool"
@@ -127,70 +161,54 @@ class TestApplicationAPI:
 
         # Patch PathService to use temp directory
         with patch(
-            "src.core.services.data_services.csv_pool_service.PathService.get_data_dir",
-            return_value=self.test_dir,
+            "src.web.services.csv_pool_service.PathService.get_data_dir", return_value=self.test_dir
         ):
-            # ApplicationAPI uses CsvPoolService.load_pool
-            api = ApplicationAPI()
+            facade = BackendFacade()
+            facade.csv_pool_dir = temp_csv_pool
 
-            # Since CsvPoolService relies on PathService, and we patched it,
-            # we need to ensure CsvPoolService uses 'csv_pool' subdir of data_dir
-            # (CsvPoolService implementation detail: data_dir / "csv_pool")
-
-            pool = api.load_csv_pool()
+            pool = facade.load_csv_pool()
 
             assert isinstance(pool, list)
             assert len(pool) == 0
 
     def test_add_to_csv_pool(self):
         """Test adding CSV to pool."""
-        from src.core.application_api import ApplicationAPI
+        from src.web.facade import BackendFacade
 
         # Create test CSV
         test_csv = self.test_dir / "test.csv"
         pd.DataFrame({"a": [1, 2, 3]}).to_csv(test_csv, index=False)
 
-        with patch(
-            "src.core.services.data_services.csv_pool_service.PathService.get_data_dir",
-            return_value=self.test_dir,
-        ):
-            api = ApplicationAPI()
-            pool_path = api.add_to_csv_pool(str(test_csv))
+        with patch.object(Path, "home", return_value=self.test_dir):
+            facade = BackendFacade()
+            pool_path = facade.add_to_csv_pool(str(test_csv))
 
         assert Path(pool_path).exists()
         assert "parsed_" in Path(pool_path).name
 
     def test_load_csv_file(self):
         """Test loading CSV file."""
-        from src.core.application_api import ApplicationAPI
+        from src.web.facade import BackendFacade
 
         # Create test CSV
         test_data = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         test_csv = self.test_dir / "test.csv"
         test_data.to_csv(test_csv, index=False)
 
-        api = ApplicationAPI()
-        # load_csv_file is static service call wrapper
-        loaded_data = api.load_csv_file(str(test_csv))
+        facade = BackendFacade()
+        loaded_data = facade.load_csv_file(str(test_csv))
 
         assert len(loaded_data) == 3
         assert list(loaded_data.columns) == ["a", "b"]
 
     def test_save_configuration(self):
         """Test saving configuration."""
-        from src.core.application_api import ApplicationAPI
+        from src.web.facade import BackendFacade
 
-        api = ApplicationAPI()
-        # ApplicationAPI.save_configuration delegates to ConfigService
-        # which uses PathService.get_data_dir() / "saved_configs"
-        config_dir = self.test_dir / "saved_configs"
-        config_dir.mkdir(parents=True, exist_ok=True)
+        with patch.object(Path, "home", return_value=self.test_dir):
+            facade = BackendFacade()
 
-        with patch(
-            "src.core.services.data_services.config_service.ConfigService.get_config_dir",
-            return_value=config_dir,
-        ):
-            config_path = api.save_configuration(
+            config_path = facade.save_configuration(
                 name="test_config",
                 description="Test description",
                 shapers_config=[{"type": "test"}],
@@ -209,30 +227,23 @@ class TestApplicationAPI:
 
     def test_load_configuration(self):
         """Test loading configuration."""
-        from src.core.application_api import ApplicationAPI
+        from src.web.facade import BackendFacade
 
-        # Create test config within a proper config dir
-        config_dir = self.test_dir / "saved_configs"
-        config_dir.mkdir(parents=True, exist_ok=True)
-
+        # Create test config
         test_config = {"name": "test", "description": "Test config", "shapers": [{"type": "test"}]}
-        config_file = config_dir / "config.json"
+        config_file = self.test_dir / "config.json"
         with open(config_file, "w") as f:
             json.dump(test_config, f)
 
-        api = ApplicationAPI()
-        with patch(
-            "src.core.services.data_services.config_service.ConfigService.get_config_dir",
-            return_value=config_dir,
-        ):
-            loaded_config = api.load_configuration(str(config_file))
+        facade = BackendFacade()
+        loaded_config = facade.load_configuration(str(config_file))
 
         assert loaded_config["name"] == "test"
         assert loaded_config["description"] == "Test config"
 
     def test_find_stats_files(self):
         """Test finding stats files."""
-        from src.core.application_api import ApplicationAPI
+        from src.web.facade import BackendFacade
 
         # Create test structure
         stats_dir = self.test_dir / "stats"
@@ -243,23 +254,23 @@ class TestApplicationAPI:
         subdir.mkdir()
         (subdir / "stats.txt").touch()
 
-        api = ApplicationAPI()
-        found_files = api.find_stats_files(str(stats_dir), "stats.txt")
+        facade = BackendFacade()
+        found_files = facade.find_stats_files(str(stats_dir), "stats.txt")
 
         assert len(found_files) == 2
 
     def test_apply_shapers(self):
         """Test applying shapers to data (requires shaper module)."""
-        from src.core.application_api import ApplicationAPI
+        from src.web.facade import BackendFacade
 
         # Skip if shaper module not properly configured
         try:
-            api = ApplicationAPI()
+            facade = BackendFacade()
             test_data = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
 
             shapers_config = [{"type": "columnSelector", "columns": ["a", "b"]}]
 
-            result = api.apply_shapers(test_data, shapers_config)
+            result = facade.apply_shapers(test_data, shapers_config)
 
             assert len(result.columns) == 2
             assert "a" in result.columns
@@ -271,14 +282,14 @@ class TestApplicationAPI:
 
     def test_get_column_info(self):
         """Test getting column information."""
-        from src.core.application_api import ApplicationAPI
+        from src.web.facade import BackendFacade
 
-        api = ApplicationAPI()
+        facade = BackendFacade()
         test_data = pd.DataFrame(
             {"numeric1": [1, 2, 3], "numeric2": [4.5, 5.5, 6.5], "categorical": ["a", "b", "c"]}
         )
 
-        info = api.get_column_info(test_data)
+        info = facade.get_column_info(test_data)
 
         assert info["total_columns"] == 3
         assert info["total_rows"] == 3
@@ -291,39 +302,35 @@ class TestUIComponents:
 
     def test_data_components_preview(self):
         """Test DataComponents.show_data_preview exist."""
-        from src.web.pages.ui.components.data_components import DataComponents
+        from src.web.ui.components.data_components import DataComponents
 
         assert hasattr(DataComponents, "show_data_preview")
         assert callable(DataComponents.show_data_preview)
 
     def test_variable_editor_exists(self):
         """Test VariableEditor.render exists."""
-        from src.web.pages.ui.components.variable_editor import VariableEditor
+        from src.web.ui.components.variable_editor import VariableEditor
 
         assert hasattr(VariableEditor, "render")
         assert callable(VariableEditor.render)
 
     def test_variable_editor_histogram_support(self):
         """Test VariableEditor supports histogram configuration."""
-        from unittest.mock import MagicMock
-
-        from src.core.application_api import ApplicationAPI
-        from src.web.pages.ui.components.variable_editor import VariableEditor
+        from src.web.ui.components.variable_editor import VariableEditor
 
         assert hasattr(VariableEditor, "render_histogram_config")
 
-        # Mock API
-        mock_api = MagicMock(spec=ApplicationAPI)
+        from unittest.mock import MagicMock
 
-        # Mock st
-        with patch("src.web.pages.ui.components.variable_editor.st") as mock_st:
+        # Simple smoke test with mock
+        with patch("src.web.ui.components.variable_editor.st") as mock_st:
             mock_st.columns.side_effect = [
                 [MagicMock(), MagicMock(), MagicMock(), MagicMock()],
                 [MagicMock(), MagicMock()],
             ]
             variables = [{"name": "test_hist", "type": "histogram"}]
-            # Pass mock API
-            VariableEditor.render(mock_api, variables)
+            # Should not raise exception
+            VariableEditor.render(variables)
 
 
 def run_tests():

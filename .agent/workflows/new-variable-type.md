@@ -1,8 +1,8 @@
 # Adding Support for New gem5 Variable Types
 
-> **Invoke with**: `/new-variable-type`
-> **Purpose**: Extend parser to support new gem5 statistics variable types
-> **Complexity**: Advanced
+> **Invoke with**: `/new-variable-type`  
+> **Purpose**: Extend parser to support new gem5 statistics variable types  
+> **Complexity**: Advanced  
 > **Domain**: Parsing
 
 ## Overview
@@ -69,7 +69,7 @@ system.cpu.bandwidth_formula             2.456789   # bytes / time
 
 ### Step 2: Create Perl Parser
 
-**File**: `src/core/parsing/gem5/perl/fileParser.pl`
+**File**: `src/parsers/perl/parse_formula.pl`
 
 ```perl
 #!/usr/bin/perl
@@ -132,7 +132,7 @@ print "Formula parsing complete: $output_csv\n";
 
 ### Step 3: Add to TypeMapper
 
-**File**: `src/core/parsing/gem5/types/type_mapper.py`
+**File**: `src/parsers/type_mapper.py`
 
 ```python
 class TypeMapper:
@@ -194,7 +194,7 @@ class TypeMapper:
 
 The scanner needs to detect formula variables:
 
-**File**: `src/core/parsing/scanner.py`
+**File**: `src/parsers/scanner.py`
 
 ```python
 def scan_gem5_stats(
@@ -261,7 +261,7 @@ system.cpu.bandwidth_formula             2.456789   # bytes / time
         # Run Perl script directly
         result = subprocess.run([
             "perl",
-            "src/core/parsing/gem5/perl/fileParser.pl",
+            "src/parsers/perl/parse_formula.pl",
             f"--stats-file={stats_file}",
             f"--pattern=system\\.cpu\\..+_formula",
             f"--output-csv={output_csv}"
@@ -513,7 +513,7 @@ if var_type == "advanced_histogram":
 
 ## References
 
-- TypeMapper: `src/core/parsing/gem5/types/type_mapper.py`
-- Existing parsers: `src/core/parsing/gem5/perl/`
-- Scanner: `src/core/parsing/scanner.py`
+- TypeMapper: `src/parsers/type_mapper.py`
+- Existing parsers: `src/parsers/perl/parse_*.pl`
+- Scanner: `src/parsers/scanner.py`
 - Tests: `tests/unit/test_parsers.py`, `tests/integration/test_gem5_parsing.py`

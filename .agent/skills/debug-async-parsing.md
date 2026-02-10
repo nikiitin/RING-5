@@ -1,7 +1,7 @@
 # Skill: Debugging Async Parsing Issues
 
-**Skill ID**: `debug-async-parsing`
-**Domain**: Troubleshooting
+**Skill ID**: `debug-async-parsing`  
+**Domain**: Troubleshooting  
 **Complexity**: Intermediate
 
 ## Overview
@@ -47,7 +47,7 @@ for i, future in enumerate(futures):
 
    ```bash
    # Test Perl script directly
-   perl src/core/parsing/gem5/perl/fileParser.pl \
+   perl src/parsers/perl/parse_scalar.pl \
        --stats-file=data/stats.txt \
        --pattern="system.cpu.ipc" \
        --output-csv=test_output.csv
@@ -147,7 +147,7 @@ for i, result in enumerate(parse_results):
    import subprocess
 
    result = subprocess.run([
-       "perl", "src/core/parsing/gem5/perl/fileParser.pl",
+       "perl", "src/parsers/perl/parse_scalar.pl",
        "--stats-file=data/stats.txt",
        "--pattern=system.cpu.ipc",
        "--output-csv=debug_output.csv"
@@ -414,6 +414,6 @@ test_pattern(r"system\.cpu\d*\.ipc", test_lines)
 ## References
 
 - Async API Documentation: `src/web/facade.py`
-- Work Pool Implementation: `src/core/parsing/workers/work_pool.py`
-- Perl Parsers: `src/core/parsing/gem5/perl/`
+- Work Pool Implementation: `src/parsers/workers/work_pool.py`
+- Perl Parsers: `src/parsers/perl/`
 - Integration Tests: `tests/integration/test_gem5_parsing.py`

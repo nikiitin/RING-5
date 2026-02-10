@@ -8,13 +8,12 @@ import logging
 
 import streamlit as st
 
-from src.core.application_api import ApplicationAPI
 from src.core.performance import clear_all_caches, get_cache_stats
 
 logger = logging.getLogger(__name__)
 
 
-def render_performance_page(api: ApplicationAPI) -> None:
+def render_performance_page() -> None:
     """Render the performance monitoring dashboard."""
 
     st.title("⚡ Performance Monitor")
@@ -24,7 +23,11 @@ def render_performance_page(api: ApplicationAPI) -> None:
     st.header("Cache Statistics")
 
     stats = get_cache_stats()
-    csv_stats = api.data_services.get_cache_stats()
+
+    # Add CSV pool stats
+    from src.web.services.csv_pool_service import CsvPoolService
+
+    csv_stats = CsvPoolService.get_cache_stats()
 
     col1, col2, col3 = st.columns(3)
 
@@ -71,7 +74,7 @@ def render_performance_page(api: ApplicationAPI) -> None:
 
         if st.button("Clear All Caches", type="primary"):
             clear_all_caches()
-            api.data_services.clear_caches()
+            CsvPoolService.clear_caches()
             st.success("All caches cleared!")
             st.rerun()
 
@@ -89,12 +92,12 @@ def render_performance_page(api: ApplicationAPI) -> None:
 
     with col2:
         # Count plot objects
-        plots = api.state_manager.get_plots()
+        plots = st.session_state.get("plots_objects", [])
         st.metric("Plot Objects", len(plots))
 
     with col3:
         # Check for data
-        has_data = api.state_manager.has_data()
+        has_data = "data" in st.session_state
         st.metric("Data Loaded", "Yes" if has_data else "No")
 
     # Show all keys in expander
@@ -146,16 +149,12 @@ def render_performance_page(api: ApplicationAPI) -> None:
         # Show what's in session state
         st.json(
             {
-                "data_loaded": api.state_manager.has_data(),
+                "data_loaded": "data" in st.session_state,
                 "processed_data_loaded": "processed_data" in st.session_state,
-                "plots_count": len(api.state_manager.get_plots()),
-                "plot_counter": api.state_manager.get_plot_counter(),
-                "current_plot_id": api.state_manager.get_current_plot_id(),
-                "stats_path": (
-                    "Not exposed in StateManager public API yet"
-                    if not api.state_manager.has_data()
-                    else "Loaded"
-                ),
+                "plots_count": len(st.session_state.get("plots_objects", [])),
+                "plot_counter": st.session_state.get("plot_counter", 0),
+                "current_plot_id": st.session_state.get("current_plot_id"),
+                "stats_path": st.session_state.get("stats_path", "Not set"),
                 "csv_pool_size": len(st.session_state.get("csv_pool", [])),
                 "saved_configs": len(st.session_state.get("saved_configs", [])),
             }

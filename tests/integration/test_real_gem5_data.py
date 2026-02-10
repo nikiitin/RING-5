@@ -1,10 +1,14 @@
+"""
+Comprehensive integration tests using real gem5 data.
+Tests the complete workflow from parsing to plotting.
+"""
+
+import shutil
+import tempfile
 from pathlib import Path
 
 import pandas as pd
 import pytest
-
-from src.core.application_api import ApplicationAPI
-from src.core.models import StatConfig
 
 # Path to real gem5 test data
 TEST_DATA_PATH = Path(__file__).parent.parent / "data" / "results-micro26-sens"
@@ -19,27 +23,114 @@ def test_data_available():
 
 
 @pytest.fixture
-def temp_output_dir(tmp_path: Path) -> Path:
-    """Create a temporary output directory using tmp_path."""
-    output_dir = tmp_path / "real_data_output"
-    output_dir.mkdir()
-    return output_dir
+def temp_output_dir():
+    """Create a temporary output directory."""
+    temp_dir = tempfile.mkdtemp()
+    yield temp_dir
+    shutil.rmtree(temp_dir)
 
 
-@pytest.fixture
-def facade() -> ApplicationAPI:
-    """Create an ApplicationAPI instance."""
-    return ApplicationAPI()
+class TestRealGem5DataParsing:
+    """Tests for parsing real gem5 stats files."""
+
+    def test_find_stats_files(self, test_data_available):
+        """Test finding stats files in the test data directory."""
+        from src.web.facade import BackendFacade
+
+        facade = BackendFacade()
+        stats_files = facade.find_stats_files(str(test_data_available), "stats.txt")
+
+        # Should find multiple stats files
+        assert len(stats_files) > 0
+
+        # All files should exist
+        for f in stats_files:
+            assert Path(f).exists()
+
+    def test_stats_file_structure(self, test_data_available):
+        """Test that stats files have expected structure."""
+        from src.web.facade import BackendFacade
+
+        facade = BackendFacade()
+        stats_files = facade.find_stats_files(str(test_data_available), "stats.txt")
+
+        if not stats_files:
+            pytest.skip("No stats files found")
+
+        # Read first few lines of first stats file
+        with open(stats_files[0], "r") as f:
+            content = f.read(1000)
+
+        # gem5 stats files typically have certain patterns
+        assert len(content) > 0
+
+    def test_parse_gem5_stats_subset(self, test_data_available, temp_output_dir):
+        """Test parsing a subset of gem5 stats files."""
+        from src.parsers.parser import Gem5StatsParser
+        from src.web.facade import BackendFacade
+
+        # Reset parser singleton
+        Gem5StatsParser.reset()
+
+        facade = BackendFacade()
+
+        # Get first subdirectory with stats
+        subdirs = [d for d in test_data_available.iterdir() if d.is_dir()]
+        if not subdirs:
+            pytest.skip("No subdirectories found")
+
+        first_subdir = subdirs[0]
+
+        # Define variables to parse
+        variables = [
+            {"name": "simTicks", "type": "scalar"},
+            {"name": "sim_insts", "type": "scalar"},
+        ]
+
+        try:
+            # Parse the stats
+            parse_futures = facade.submit_parse_async(
+                stats_path=str(first_subdir),
+                stats_pattern="**/stats.txt",
+                variables=variables,
+                output_dir=temp_output_dir,
+            )
+
+            # Wait for parsing
+            parse_results = []
+            for future in parse_futures:
+                result = future.result(timeout=30)
+                if result:
+                    parse_results.append(result)
+
+            csv_path = facade.finalize_parsing(temp_output_dir, parse_results)
+
+            if csv_path is None:
+                # Some configurations may not have matching variables
+                pytest.skip("No matching variables found in stats")
+
+            assert Path(csv_path).exists()
+
+            # Load and verify CSV
+            df = pd.read_csv(csv_path)
+            assert len(df) > 0
+
+        finally:
+            Gem5StatsParser.reset()
 
 
 class TestRealDataWithShapers:
     """Tests applying shapers to real parsed data."""
 
     @pytest.fixture
-    def parsed_data(
-        self, test_data_available: Path, temp_output_dir: Path, facade: ApplicationAPI
-    ) -> pd.DataFrame:
+    def parsed_data(self, test_data_available, temp_output_dir):
         """Parse real data and return DataFrame."""
+        from src.parsers.parser import Gem5StatsParser
+        from src.web.facade import BackendFacade
+
+        Gem5StatsParser.reset()
+
+        facade = BackendFacade()
 
         subdirs = [d for d in test_data_available.iterdir() if d.is_dir()]
         if not subdirs:
@@ -48,27 +139,25 @@ class TestRealDataWithShapers:
         first_subdir = subdirs[0]
 
         variables = [
-            StatConfig(name="simTicks", type="scalar"),
+            {"name": "simTicks", "type": "scalar"},
         ]
 
         try:
-            batch = facade.submit_parse_async(
+            parse_futures = facade.submit_parse_async(
                 stats_path=str(first_subdir),
                 stats_pattern="**/stats.txt",
                 variables=variables,
-                output_dir=str(temp_output_dir),
+                output_dir=temp_output_dir,
             )
 
             # Wait for parsing
             parse_results = []
-            for future in batch.futures:
+            for future in parse_futures:
                 result = future.result(timeout=30)
                 if result:
                     parse_results.append(result)
 
-            csv_path = facade.finalize_parsing(
-                str(temp_output_dir), parse_results, var_names=batch.var_names
-            )
+            csv_path = facade.finalize_parsing(temp_output_dir, parse_results)
 
             if csv_path is None or not Path(csv_path).exists():
                 pytest.skip("Parsing failed or no data")
@@ -80,11 +169,11 @@ class TestRealDataWithShapers:
             return df
 
         finally:
-            pass
+            Gem5StatsParser.reset()
 
     def test_column_selector_on_real_data(self, parsed_data):
         """Test column selector on real data."""
-        from src.core.services.shapers.factory import ShaperFactory
+        from src.web.services.shapers.factory import ShaperFactory
 
         # Get available columns
         available_cols = list(parsed_data.columns)
@@ -94,7 +183,7 @@ class TestRealDataWithShapers:
 
         # Select first column
         config = {"type": "columnSelector", "columns": [available_cols[0]]}
-        shaper = ShaperFactory.create_shaper("columnSelector", config)
+        shaper = ShaperFactory.createShaper("columnSelector", config)
 
         result = shaper(parsed_data)
 
@@ -126,10 +215,10 @@ class TestRealDataWithManagers:
 
     def test_seeds_reducer_via_service(self, sample_real_like_data):
         """Test seeds reducer via service."""
-        from src.core.services.managers.reduction_service import ReductionService
+        from src.web.services.data_processing_service import DataProcessingService
 
         # Apply seeds reducer through service
-        result = ReductionService.reduce_seeds(
+        result = DataProcessingService.reduce_seeds(
             df=sample_real_like_data,
             categorical_cols=["benchmark", "config"],
             statistic_cols=["simTicks", "sim_insts"],
@@ -152,13 +241,13 @@ class TestRealDataWithManagers:
 
     def test_outlier_remover_via_service(self, sample_real_like_data):
         """Test outlier remover via service."""
-        from src.core.services.managers.outlier_service import OutlierService
+        from src.web.services.data_processing_service import DataProcessingService
 
         # Add an outlier
         sample_real_like_data.loc[0, "simTicks"] = 999999999.0  # Very high value
 
         # Apply outlier remover through service
-        result = OutlierService.remove_outliers(
+        result = DataProcessingService.remove_outliers(
             df=sample_real_like_data, outlier_col="simTicks", group_by_cols=["benchmark", "config"]
         )
 
@@ -169,8 +258,12 @@ class TestRealDataWithManagers:
 class TestCompleteWorkflow:
     """Test complete workflows from parsing to visualization."""
 
-    def test_facade_methods_available(self, facade: ApplicationAPI):
+    def test_facade_methods_available(self):
         """Test that all facade methods are available."""
+        from src.web.facade import BackendFacade
+
+        facade = BackendFacade()
+
         # Check essential methods exist
         assert hasattr(facade, "find_stats_files")
         assert hasattr(facade, "submit_parse_async")
@@ -184,17 +277,17 @@ class TestCompleteWorkflow:
 
     def test_shaper_factory_available(self):
         """Test that shaper factory can create column selector with proper config."""
-        from src.core.services.shapers.factory import ShaperFactory
+        from src.web.services.shapers.factory import ShaperFactory
 
         # Create column selector with proper required parameters
-        col_selector = ShaperFactory.create_shaper(
+        col_selector = ShaperFactory.createShaper(
             "columnSelector", {"type": "columnSelector", "columns": ["a"]}
         )
         assert col_selector is not None
 
     def test_plot_factory_available(self):
         """Test that plot factory can create all plot types."""
-        from src.web.pages.ui.plotting.plot_factory import PlotFactory
+        from src.plotting.plot_factory import PlotFactory
 
         plot_types = PlotFactory.get_available_plot_types()
 
@@ -211,10 +304,11 @@ class TestCompleteWorkflow:
 class TestConfigurationPersistence:
     """Tests for configuration save/load."""
 
-    def test_save_and_load_configuration(
-        self, temp_output_dir: Path, facade: ApplicationAPI
-    ) -> None:
+    def test_save_and_load_configuration(self, temp_output_dir):
         """Test saving and loading configuration."""
+        from src.web.facade import BackendFacade
+
+        facade = BackendFacade()
         # Override config dir
         facade.config_pool_dir = Path(temp_output_dir) / "configs"
         facade.config_pool_dir.mkdir(parents=True, exist_ok=True)
@@ -236,9 +330,11 @@ class TestConfigurationPersistence:
         assert loaded["description"] == "Test configuration"
         assert len(loaded["shapers"]) == 1
 
-    def test_load_csv_pool(self, temp_output_dir: Path, facade: ApplicationAPI) -> None:
+    def test_load_csv_pool(self, temp_output_dir):
         """Test loading CSV pool."""
         from unittest.mock import patch
+
+        from src.web.facade import BackendFacade
 
         temp_path = Path(temp_output_dir)
         csv_pool = temp_path / "csv_pool"
@@ -250,9 +346,9 @@ class TestConfigurationPersistence:
 
         # Patch PathService to use temp directory
         with patch(
-            "src.core.services.data_services.csv_pool_service.PathService.get_data_dir",
-            return_value=temp_path,
+            "src.web.services.csv_pool_service.PathService.get_data_dir", return_value=temp_path
         ):
+            facade = BackendFacade()
             facade.csv_pool_dir = csv_pool
 
             # Load pool

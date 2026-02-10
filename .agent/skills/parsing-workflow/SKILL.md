@@ -56,7 +56,6 @@ discovered_variables = facade.finalize_scan(scan_results)
 ```
 
 **Key points**:
-
 - Always use `submit_scan_async()` + `finalize_scan()` pattern
 - Never create synchronous wrappers
 - Pattern aggregation happens automatically (cpu0, cpu1 → cpu\d+)
@@ -200,7 +199,7 @@ def test_parsing_workflow():
 ## Common Anti-Patterns
 
 ❌ **DON'T**: Create synchronous wrappers around async API
-✅ **DO**: Use async primitives (`submit_*_async + finalize_*`)
+✅ **DO**: Use async primitives (submit_*_async + finalize_*)
 
 ❌ **DON'T**: Forget to pass scanned_vars for regex resolution
 ✅ **DO**: Always pass scanned_vars when using regex patterns
@@ -221,7 +220,7 @@ from src.web.state_manager import StateManager
 if st.button("Parse Statistics"):
     with st.spinner("Scanning for variables..."):
         scan_futures = facade.submit_scan_async(stats_path, pattern, limit=10)
-
+        
         # Show progress
         progress = st.progress(0)
         scan_results = []
@@ -246,7 +245,7 @@ if st.button("Parse Statistics"):
 
 ## See Also
 
-- Implementation: [src/core/parsing/parse_service.py](../../../src/core/parsing/parse_service.py)
-- Scanner: [src/core/parsing/scanner_service.py](../../../src/core/parsing/scanner_service.py)
+- Implementation: [src/parsers/parse_service.py](../../../src/parsers/parse_service.py)
+- Scanner: [src/parsers/scanner_service.py](../../../src/parsers/scanner_service.py)
 - Tests: [tests/integration/test_gem5_parsing.py](../../../tests/integration/test_gem5_parsing.py)
 - UI Example: [src/web/ui/components/data_source_components.py](../../../src/web/ui/components/data_source_components.py)

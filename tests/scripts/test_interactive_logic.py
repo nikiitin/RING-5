@@ -1,7 +1,6 @@
-from typing import Any
 from unittest.mock import MagicMock
 
-from src.web.pages.ui.plotting.base_plot import BasePlot
+from src.plotting.base_plot import BasePlot
 
 
 class MockPlot(BasePlot):
@@ -14,7 +13,7 @@ class MockPlot(BasePlot):
     def process_data(self, data):
         return data
 
-    def render_config_ui(self, data: "Any", saved_config: "Any") -> "Any":  # type: ignore[override]
+    def render_config_ui(self, parent):
         pass
 
 

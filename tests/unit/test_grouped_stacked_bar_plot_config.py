@@ -3,16 +3,13 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from src.web.pages.ui.plotting.types.grouped_stacked_bar_plot import (
-    GroupedStackedBarPlot,
-)
+from src.plotting.types.grouped_stacked_bar_plot import GroupedStackedBarPlot
 
 
 @pytest.fixture
 def mock_streamlit():
-    with (
-        patch("src.web.pages.ui.plotting.types.grouped_stacked_bar_plot.st") as mock_st,
-        patch("src.web.pages.ui.components.plot_config_components.st", mock_st),
+    with patch("src.plotting.types.grouped_stacked_bar_plot.st") as mock_st, patch(
+        "src.web.ui.components.plot_config_components.st", mock_st
     ):
         mock_st.session_state = {}
 

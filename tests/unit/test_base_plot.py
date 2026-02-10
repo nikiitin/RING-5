@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import pytest
 
-from src.web.pages.ui.plotting.base_plot import BasePlot
+from src.plotting.base_plot import BasePlot
 
 
 # Concrete implementation for testing abstract class
@@ -26,7 +26,7 @@ def concrete_plot():
 
 @pytest.fixture
 def mock_streamlit():
-    with patch("src.web.pages.ui.plotting.base_plot.st") as mock_st:
+    with patch("src.plotting.base_plot.st") as mock_st:
         mock_st.session_state = {}
 
         def columns_side_effect(spec, **kwargs):
@@ -68,7 +68,7 @@ def test_serialization(concrete_plot):
 
     # Test loading
     # Need to patch PlotFactory to avoiding circular imports or logic
-    with patch("src.web.pages.ui.plotting.plot_factory.PlotFactory.create_plot") as mock_factory:
+    with patch("src.plotting.plot_factory.PlotFactory.create_plot") as mock_factory:
         mock_factory.return_value = ConcretePlot(1, "Test Plot", "test")
 
         loaded_plot = BasePlot.from_dict(data)

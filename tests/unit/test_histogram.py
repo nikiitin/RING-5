@@ -1,6 +1,6 @@
 import pytest
 
-from src.core.parsing.gem5.types.histogram import Histogram
+from src.parsers.types.histogram import Histogram
 
 
 def test_histogram_creation():

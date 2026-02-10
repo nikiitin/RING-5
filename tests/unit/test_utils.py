@@ -8,7 +8,7 @@ import tempfile
 
 import pytest
 
-import src.core.common.utils as utils
+import src.utils.utils as utils
 
 
 class TestGetElementValue:

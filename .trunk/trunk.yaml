@@ -19,9 +19,8 @@ runtimes:
 lint:
   ignore:
     - linters: [bandit]
-      paths:
-        - tests/**
-        - scripts/verify_installation.py # Installation checker uses subprocess for system validation
+
+      paths: [tests/**]
   enabled:
     - isort@7.0.0
     - bandit@1.9.3

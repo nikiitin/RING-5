@@ -11,8 +11,8 @@ import pandas as pd
 import pytest
 
 from src.core.benchmark import BenchmarkSuite
-from src.core.services.shapers.impl.normalize import Normalize
-from src.web.pages.ui.plotting import PlotFactory
+from src.plotting import PlotFactory
+from src.web.services.shapers.impl.normalize import Normalize
 
 
 class TestPlotPerformance:
@@ -203,7 +203,7 @@ class TestCsvPoolPerformance:
     def test_csv_metadata_caching(self, tmp_path):
         """CSV metadata should be cached for fast repeated access."""
 
-        from src.core.services.data_services.csv_pool_service import CsvPoolService
+        from src.web.services.csv_pool_service import CsvPoolService
 
         # Create a test CSV
         csv_path = tmp_path / "test.csv"
@@ -240,7 +240,7 @@ class TestCsvPoolPerformance:
 
     def test_csv_loading_with_cache(self, tmp_path):
         """CSV DataFrame loading should be cached."""
-        from src.core.services.data_services.csv_pool_service import CsvPoolService
+        from src.web.services.csv_pool_service import CsvPoolService
 
         # Create test CSV
         csv_path = tmp_path / "cached.csv"

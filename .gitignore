@@ -3,7 +3,6 @@
 *.pdf
 *.txt
 *.tar
-*.tar.gz
 *.pyc
 __pycache__
 python_venv/
@@ -23,8 +22,8 @@ config_files
 !.vscode/launch.json
 !.vscode/extensions.json
 
-# Test data downloaded from GitHub Releases (not tracked in Git)
-tests/data/
+# Un-ignore test data for LFS
+!tests/data/**/*.txt
 
 # AI Assistant - keep configuration, ignore personal settings
 .mcp-config.local.json

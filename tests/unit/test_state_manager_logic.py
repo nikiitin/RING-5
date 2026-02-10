@@ -1,105 +1,133 @@
-"""
-Refactored unit tests for StateManager logic.
-Uses mocks instead of MemoryStorageAdapter.
-"""
-
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
 
-from src.core.state.repository_state_manager import RepositoryStateManager as StateManager
+from src.web.state_manager import StateManager
 
 
 @pytest.fixture
-def mock_session_state():
-    """Mock streamlit.session_state as a dictionary."""
-    with patch("streamlit.session_state", new_callable=dict) as mock_state:
-        yield mock_state
+def mock_streamlit():
+    # Patch st at multiple levels since repositories access it directly
+    with patch("src.web.repositories.data_repository.st") as mock_data_st, patch(
+        "src.web.repositories.plot_repository.st"
+    ) as mock_plot_st, patch(
+        "src.web.repositories.parser_state_repository.st"
+    ) as mock_parser_st, patch(
+        "src.web.repositories.config_repository.st"
+    ) as mock_config_st, patch(
+        "src.web.repositories.session_repository.st"
+    ) as mock_session_st:
+
+        # All repositories share the same session_state dict
+        shared_state = {}
+        mock_data_st.session_state = shared_state
+        mock_plot_st.session_state = shared_state
+        mock_parser_st.session_state = shared_state
+        mock_config_st.session_state = shared_state
+        mock_session_st.session_state = shared_state
+
+        yield mock_data_st
 
 
-def test_initialize_defaults(mock_session_state):
-    """Verify default state initialization."""
-    mgr = StateManager()
+def test_initialize_defaults(mock_streamlit):
+    StateManager.initialize()
 
+    assert StateManager.DATA in mock_streamlit.session_state
+    assert StateManager.CONFIG in mock_streamlit.session_state
+    assert StateManager.PLOTS_OBJECTS in mock_streamlit.session_state
     # Check default variables
-    # Default variables key in memory storage should match StateManager enum
-    assert len(mgr.get_parse_variables()) > 0
+    assert len(mock_streamlit.session_state[StateManager.PARSE_VARIABLES]) == 3
 
 
-def test_set_data_enforce_config_types(mock_session_state):
-    """Verify that set_data enforces string types for configuration variables."""
-    mgr = StateManager()
-
+def test_set_data_enforce_config_types(mock_streamlit):
     # Setup variables with configuration type
     vars_config = [{"name": "cfg", "type": "configuration"}]
-    mgr.set_parse_variables(vars_config)
+    mock_streamlit.session_state[StateManager.PARSE_VARIABLES] = vars_config
 
     # Data with numeric "cfg" column
     df = pd.DataFrame({"cfg": [1, 2, 3], "val": [10, 20, 30]})
 
-    mgr.set_data(df)
+    StateManager.set_data(df)
 
-    stored_df = mgr.get_data()
-    assert stored_df is not None
+    stored_df = mock_streamlit.session_state[StateManager.DATA]
     # "cfg" should be string/object now
-    assert pd.api.types.is_string_dtype(stored_df["cfg"]) or pd.api.types.is_object_dtype(
-        stored_df["cfg"]
-    )
+    assert pd.api.types.is_object_dtype(stored_df["cfg"])
     assert stored_df["cfg"].tolist() == ["1", "2", "3"]
 
 
-def test_update_config(mock_session_state):
-    """Verify config updates via facade."""
-    mgr = StateManager()
+def test_update_config(mock_streamlit):
+    mock_streamlit.session_state[StateManager.CONFIG] = {"a": 1}
 
-    mgr.update_config("a", 1)
-    mgr.update_config("a", 2)
-    mgr.update_config("b", 3)
+    StateManager.update_config("a", 2)
+    StateManager.update_config("b", 3)
 
-    cfg = mgr.get_config()
+    cfg = StateManager.get_config()
     assert cfg["a"] == 2
     assert cfg["b"] == 3
 
 
-def test_set_parse_variables_generate_ids(mock_session_state):
-    """Verify unique ID generation for parse variables."""
-    mgr = StateManager()
-
+def test_set_parse_variables_generate_ids(mock_streamlit):
     # Setup variables without IDs
     vars_config = [{"name": "v1"}]
 
-    with patch("src.core.state.repositories.parser_state_repository.uuid") as mock_uuid:
+    # set_parse_variables should add IDs (done in ParserStateRepository now)
+    with patch("src.web.repositories.parser_state_repository.uuid") as mock_uuid:
         mock_uuid.uuid4.return_value = "uuid-1"
-        mgr.set_parse_variables(vars_config)
+        StateManager.set_parse_variables(vars_config)
 
-    vars_out = mgr.get_parse_variables()
+    vars_out = StateManager.get_parse_variables()
     assert vars_out[0]["_id"] == "uuid-1"
+    # Verify state was updated
+    assert mock_streamlit.session_state[StateManager.PARSE_VARIABLES][0]["_id"] == "uuid-1"
 
 
-def test_start_next_plot_id(mock_session_state):
-    """Verify plot ID generation increments correctly."""
-    mgr = StateManager()
+def test_start_next_plot_id(mock_streamlit):
+    mock_streamlit.session_state[StateManager.PLOT_COUNTER] = 10
 
-    # We need to access plot repo directly or use public API if available to set counter
-    # StateManager doesn't expose set_plot_counter directly in AbstractStateManager protocol maybe?
-    # Let's check src.core.state.state_manager.py
-    # Yes, it does: def set_plot_counter(self, counter: int) -> None: ...
-    mgr.set_plot_counter(10)
-
-    next_id = mgr.start_next_plot_id()
+    next_id = StateManager.start_next_plot_id()
 
     assert next_id == 10
-    assert mgr.get_plot_counter() == 11
+    assert StateManager.get_plot_counter() == 11
 
 
-def test_restore_session_state(mock_session_state):
-    """Verify session restoration logic."""
-    mgr = StateManager()
+def test_restore_session_state(mock_streamlit):
+    # Mock BasePlot.from_dict at repository level
+    with patch("src.web.repositories.session_repository.BasePlot.from_dict") as mock_from_dict:
+        mock_plot = MagicMock()
+        mock_from_dict.return_value = mock_plot
 
-    portfolio_data = {"csv_path": "/mock/test.csv", "plot_counter": 5, "plots": []}
+        # Initialize defaults so keys exist
+        StateManager.initialize()
 
-    mgr.restore_session(portfolio_data)
+        portfolio_data = {
+            "data_csv": "A,B\n1,2",
+            "csv_path": "/path.csv",
+            "plot_counter": 5,
+            "config": {"theme": "dark"},
+            "plots": [{"plot_type": "bar", "processed_data": "x,y\n1,10"}],
+        }
 
-    assert mgr.get_csv_path() == "/mock/test.csv"
-    assert mgr.get_plot_counter() == 5
+        # Add transient key that MUST be cleared
+        mock_streamlit.session_state["leg_orient_123"] = "v"
+
+        # Execute restore
+        StateManager.restore_session_state(portfolio_data)
+
+        # Check restored data
+        assert StateManager.get_csv_path() == "/path.csv"
+        assert StateManager.get_plot_counter() == 5
+        assert StateManager.get_config()["theme"] == "dark"
+
+        # Check data loading
+        stored_df = StateManager.get_data()
+        assert len(stored_df) == 1
+        assert stored_df.iloc[0]["A"] == 1
+
+        # Check plot loading
+        mock_from_dict.assert_called()
+        # Verify plots list updated
+        assert mock_streamlit.session_state[StateManager.PLOTS_OBJECTS] == [mock_plot]
+
+        # Check cleared keys
+        assert "leg_orient_123" not in mock_streamlit.session_state

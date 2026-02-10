@@ -1,10 +1,10 @@
 import os
 
-from src.core.application_api import ApplicationAPI
+from src.web.facade import BackendFacade
 
 
 def test_parser_integration():
-    facade = ApplicationAPI()
+    facade = BackendFacade()
 
     # Mock variables
     variables = [
@@ -28,7 +28,7 @@ def test_parser_integration():
 
     try:
         print("Running parser integration test...")
-        batch = facade.submit_parse_async(
+        parse_futures = facade.submit_parse_async(
             stats_path=stats_dir,
             stats_pattern="stats.txt",
             variables=variables,
@@ -37,12 +37,12 @@ def test_parser_integration():
 
         # Wait for completion
         parse_results = []
-        for future in batch.futures:
+        for future in parse_futures:
             result = future.result(timeout=10)
             if result:
                 parse_results.append(result)
 
-        csv_path = facade.finalize_parsing(output_dir, parse_results, var_names=batch.var_names)
+        csv_path = facade.finalize_parsing(output_dir, parse_results)
         print(f"Parser finished successfully. CSV: {csv_path}")
     except Exception as e:
         print(f"Parser failed: {e}")

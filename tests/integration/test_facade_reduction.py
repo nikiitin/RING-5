@@ -1,30 +1,29 @@
 import os
+import shutil
+import tempfile
 
 import pandas as pd
 import pytest
 
-from src.core.application_api import ApplicationAPI
+from src.web.facade import BackendFacade
 
 
 class TestFacadeReduction:
     @pytest.fixture
     def facade(self):
-        return ApplicationAPI()
+        return BackendFacade()
 
     @pytest.fixture
-    def temp_dirs(self, tmp_path):
+    def temp_dirs(self):
         # Create temp dirs for stats and output
-        stats_dir = tmp_path / "stats"
-        output_dir = tmp_path / "output"
-        stats_dir.mkdir()
-        output_dir.mkdir()
+        stats_dir = tempfile.mkdtemp()
+        output_dir = tempfile.mkdtemp()
 
         # Create dummy stats files
         # File 1: cpu0=10, cpu1=20
         # File 2: cpu0=10, cpu1=30
 
-        stats_file = stats_dir / "stats.txt"
-        with open(stats_file, "w") as f:
+        with open(os.path.join(stats_dir, "stats.txt"), "w") as f:
             f.write("---------- Begin Simulation Statistics ----------\n")
             f.write(
                 "system.cpu0.ipc                                      10.000000                       # IPC\n"  # noqa: E501
@@ -34,8 +33,7 @@ class TestFacadeReduction:
             )
             f.write("---------- End Simulation Statistics   ----------\n")
 
-        stats_bak = stats_dir / "stats.txt.bak"
-        with open(stats_bak, "w") as f:
+        with open(os.path.join(stats_dir, "stats.txt.bak"), "w") as f:
             f.write("---------- Begin Simulation Statistics ----------\n")
             f.write(
                 "system.cpu0.ipc                                      10.000000                       # IPC\n"  # noqa: E501
@@ -45,7 +43,11 @@ class TestFacadeReduction:
             )
             f.write("---------- End Simulation Statistics   ----------\n")
 
-        return str(stats_dir), str(output_dir)
+        yield stats_dir, output_dir
+
+        # Cleanup
+        shutil.rmtree(stats_dir)
+        shutil.rmtree(output_dir)
 
     def test_reduction_end_to_end(self, facade, temp_dirs):
         stats_path, output_dir = temp_dirs
@@ -66,7 +68,7 @@ class TestFacadeReduction:
         scanned_vars = facade.finalize_scan(scan_results)
 
         # 3. Run Facade Parse
-        batch = facade.submit_parse_async(
+        parse_futures = facade.submit_parse_async(
             stats_path=stats_path,
             stats_pattern="stats.txt*",
             variables=variables,
@@ -76,12 +78,12 @@ class TestFacadeReduction:
 
         # Wait for parsing
         parse_results = []
-        for future in batch.futures:
+        for future in parse_futures:
             result = future.result(timeout=10)
             if result:
                 parse_results.append(result)
 
-        csv_path = facade.finalize_parsing(output_dir, parse_results, var_names=batch.var_names)
+        csv_path = facade.finalize_parsing(output_dir, parse_results)
 
         assert csv_path is not None
         assert os.path.exists(csv_path)

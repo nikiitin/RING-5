@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from src.web.pages.ui.plotting import GroupedBarPlot, GroupedStackedBarPlot
+from src.plotting import GroupedBarPlot, GroupedStackedBarPlot
 
 
 @pytest.fixture

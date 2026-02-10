@@ -1,0 +1,34 @@
+from typing import Any
+
+import pandas as pd
+
+from src.web.services.shapers.base_shaper import Shaper
+
+
+class UniDfShaper(Shaper):
+    """
+    Abstract class for shapers that operate on a single pandas DataFrame.
+    """
+
+    def __call__(self, data_frame: Any) -> pd.DataFrame:
+        """
+        Execute the transformation after validating that input is a DataFrame.
+
+        Args:
+            data_frame: The data to transform.
+
+        Returns:
+            The transformed DataFrame.
+
+        Raises:
+            ValueError: If the input is not a pandas DataFrame.
+        """
+        if data_frame is None:
+            raise ValueError("UniDfShaper: Data frame cannot be None.")
+
+        if not isinstance(data_frame, pd.DataFrame):
+            raise ValueError(
+                f"UniDfShaper: Expected pandas DataFrame, got {type(data_frame).__name__}."
+            )
+
+        return super().__call__(data_frame)

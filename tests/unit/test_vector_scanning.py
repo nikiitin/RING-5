@@ -1,6 +1,6 @@
 import re
 
-from src.core.parsing.gem5.impl.gem5_scanner import Gem5Scanner as ScannerService
+from src.parsers.scanner_service import ScannerService
 
 
 class TestVectorScanning:
@@ -18,8 +18,9 @@ class TestVectorScanning:
         found_entries = set()
         var_name = "system.cpu\\d+.op_class"
         for v in results:
-            if v.name == var_name or re.fullmatch(var_name, v.name):
-                found_entries.update(v.entries)
+            if v["name"] == var_name or re.fullmatch(var_name, v["name"]):
+                if "entries" in v:
+                    found_entries.update(v["entries"])
 
         entries = sorted(list(found_entries))
         # Note: The aggregation merges entries from different CPU instances

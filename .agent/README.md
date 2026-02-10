@@ -1,73 +1,312 @@
-# RING-5 Project Documentation
+# RING-5 AI Agent Configuration
 
-## 1. Project Overview
+**Purpose**: AI assistant rules, workflows, and skills for RING-5 development.
 
-**RING-5** is a statistical analysis engine designed to evaluate Gem5 simulation outputs, specifically targeting Transactional Semantics in Serverless/FaaS environments. It provides a structured pipeline to parse, transform, and visualize hierarchical simulation data.
+## 🎯 Quick Start
 
-## 2. Core Tech Stack
+### For Google Antigravity Users
+- **Rules**: [rules/project-context.md](rules/project-context.md) - Always active
+- **Workflows**: Invoke with `/workflow-name` (see [workflows/](workflows/))
+- **Skills**: Auto-activate based on task (see [skills/](skills/))
+- **Guide**: [ANTIGRAVITY_README.md](ANTIGRAVITY_README.md)
 
-- **Language:** Python 3.12+ (Strictly Typed)
-- **Parsing:** Regex-based async parsers with Perl integration for legacy support.
-- **Data Engine:** Pandas (Immutable transformations) & NumPy.
-- **Frontend:** Streamlit.
-- **Visualization:** Plotly (Graph Objects).
-- **Quality Assurance:** Pytest (Unit/Integration), MyPy (Strict Type Checking), Hypothesis (Property-based testing).
+### For GitHub Copilot (VSCode) Users
+- **Instructions**: [../.github/copilot-instructions.md](../.github/copilot-instructions.md)
+- **Skills**: Available in [skills/*.md](skills/) (legacy format)
+- **Workflows**: Referenced as documentation patterns
 
-## 3. Architectural Design
+### Dual IDE Support
+See [DUAL_IDE_SETUP.md](DUAL_IDE_SETUP.md) for complete dual-IDE configuration guide.
 
-The project follows a **Layered Architecture** with a strict separation of concerns to ensure maintainability and testability.
+---
 
-### Layer A: Data Ingestion (Adapters)
-
-- **Responsibility:** Reading `stats.txt` and `config.ini` files.
-- **Pattern:** Strategy Pattern for supporting different Gem5 versions/formats.
-- **Location:** `src/core/parsing/`
-
-### Layer B: Domain Logic (Core)
-
-- **Responsibility:** Statistical calculations, data normalization, and metric aggregation.
-- **Pattern:** Pipe & Filter for data transformations; Repository Pattern for data access.
-- **Location:** `src/core/`
-
-### Layer C: Presentation (Web & Viz)
-
-- **Responsibility:** Rendering the Streamlit UI and generating Plotly figures.
-- **Pattern:** Factory Pattern for plot generation to ensure consistent styling.
-- **Location:** `src/web/`, `src/plotting/`
-
-## 4. Key Workflows
-
-### Parsing Workflow
-
-1.  **Scan:** Identify `stats.txt` and corresponding `config.ini`.
-2.  **Select:** Determine the correct `ParserStrategy`.
-3.  **Parse:** Extract hierarchical metrics using optimized regex.
-4.  **Load:** Convert to a Tidy (Long-format) Pandas DataFrame.
-
-### Testing Workflow (TDD)
-
-1.  **Red:** Write a test in `tests/` for the new functionality.
-2.  **Green:** Implement the minimal logic in the appropriate layer.
-3.  **Refactor:** Clean code while maintaining type safety and vectorization rules.
-4.  **Verify:** Run `pytest` and `mypy --strict`.
-
-## 5. Coding Standards
-
-- **Strong Typing:** All functions must have complete type annotations.
-- **Vectorization:** No explicit `for` loops over Pandas DataFrames.
-- **Error Handling:** Fail fast with specific custom exceptions (e.g., `MetricNotFoundError`).
-- **Documentation:** Google-style docstrings for all public classes and functions.
-
-## 6. Directory Structure
+## 📚 Directory Structure
 
 ```
-RING-5/
-├── src/
-│   ├── core/           # Domain logic and data processing
-│   ├── parsers/        # Gem5 file ingestion strategies
-│   ├── plotting/       # Plotly visualizers and factories
-│   └── web/            # Streamlit frontend
-├── tests/              # Unit, integration, and e2e tests
-├── .agent/             # Agent-specific rules and workflows
-└── app.py              # Application entrypoint
+.agent/
+├── rules/                         # Constraints and guidelines
+│   └── project-context.md        # Core project rules (12K char limit)
+├── workflows/                     # Step-by-step processes
+│   ├── test-driven-development.md
+│   ├── new-variable-type.md
+│   └── README.md                 # Workflow catalog
+├── skills/                        # Reusable knowledge packages
+│   ├── parsing-workflow/
+│   │   └── SKILL.md              # Antigravity format (YAML frontmatter)
+│   ├── new-plot-type/
+│   │   └── SKILL.md
+│   ├── shaper-pipeline/
+│   │   └── SKILL.md
+│   ├── debug-async-parsing/
+│   │   └── SKILL.md
+│   ├── *.md                      # Legacy format (Copilot compatible)
+│   └── README.md                 # Skills catalog
+├── ANTIGRAVITY_README.md          # Antigravity-specific guide
+├── DUAL_IDE_SETUP.md              # Dual IDE configuration guide
+└── README.md                      # This file
 ```
+
+---
+
+## 📖 Skills (Detailed How-To Guides)
+
+Skills provide step-by-step instructions for implementing specific features.
+
+### 1. [parsing-workflow.md](skills/parsing-workflow.md)
+
+**Domain**: Data Ingestion  
+**Complexity**: Intermediate  
+**Purpose**: Complete gem5 stats parsing workflow
+
+**Covers**:
+
+- 4-phase workflow: Scanning → Selection → Parsing → Loading
+- Async API usage patterns
+- Error handling strategies
+- Testing patterns with pytest
+- Streamlit UI integration
+- Performance optimization tips
+
+**When to use**: Implementing new data sources, fixing parsing bugs, adding new variable support
+
+---
+
+### 2. [new-plot-type.md](skills/new-plot-type.md)
+
+**Domain**: Visualization  
+**Complexity**: Intermediate  
+**Purpose**: Adding new plot types to the visualization system
+
+**Covers**:
+
+- Factory pattern implementation
+- BasePlot interface
+- Plotly figure creation
+- UI configuration rendering
+- Unit and integration testing
+- Publication quality standards
+
+**When to use**: Adding bar charts, line plots, heatmaps, or custom visualizations
+
+---
+
+### 3. [shaper-pipeline.md](skills/shaper-pipeline.md)
+
+**Domain**: Data Transformation  
+**Complexity**: Intermediate  
+**Purpose**: Creating custom shapers and transformation pipelines
+
+**Covers**:
+
+- Shaper pattern and architecture
+- Built-in shapers (rename, filter, aggregate, compute, normalize)
+- Creating custom shapers
+- Pipeline composition
+- Immutability patterns
+- Testing transformations
+
+**When to use**: Data cleanup, normalization, aggregation, derived metrics
+
+---
+
+### 4. [debug-async-parsing.md](skills/debug-async-parsing.md)
+
+**Domain**: Troubleshooting  
+**Complexity**: Intermediate  
+**Purpose**: Debugging async parsing and scanning issues
+
+**Covers**:
+
+- Future timeout errors
+- Empty parse results
+- Variable not found errors
+- CSV merge failures
+- Memory issues with large files
+- Debug utilities and logging
+
+**When to use**: Parse failures, timeout issues, debugging production problems
+
+---
+
+## Workflows (Process Automation)
+
+Workflows define standardized processes for common development tasks.
+
+### 1. [test-driven-development.md](workflows/test-driven-development.md)
+
+**Complexity**: Fundamental  
+**Applies to**: All code changes  
+**Purpose**: TDD process for RING-5
+
+**Covers**:
+
+- Write test → Fail → Implement → Pass → Refactor cycle
+- Test organization (unit, integration, e2e)
+- Pytest fixtures and mocking patterns
+- Coverage goals and standards
+- Debugging failing tests
+
+**When to use**: Every time you write new code or fix bugs
+
+---
+
+### 2. [new-variable-type.md](workflows/new-variable-type.md)
+
+**Complexity**: Advanced  
+**Applies to**: gem5 parser extensions  
+**Purpose**: Adding support for new gem5 variable types
+
+**Covers**:
+
+- Creating Perl parser scripts
+- Updating TypeMapper
+- Scanner integration
+- Complete testing workflow
+- Documentation updates
+- UI integration
+
+**When to use**: gem5 adds new stat types, supporting custom simulator outputs
+
+---
+
+## Quick Selection Guide
+
+### By Task Type
+
+| Task                  | Use This                                                           |
+| --------------------- | ------------------------------------------------------------------ |
+| Parse new data source | [parsing-workflow.md](skills/parsing-workflow.md)                  |
+| Add new chart type    | [new-plot-type.md](skills/new-plot-type.md)                        |
+| Transform data        | [shaper-pipeline.md](skills/shaper-pipeline.md)                    |
+| Fix parsing bugs      | [debug-async-parsing.md](skills/debug-async-parsing.md)            |
+| Write new feature     | [test-driven-development.md](workflows/test-driven-development.md) |
+| Support new gem5 type | [new-variable-type.md](workflows/new-variable-type.md)             |
+
+### By Complexity
+
+| Level            | Skills                                | Workflows         |
+| ---------------- | ------------------------------------- | ----------------- |
+| **Fundamental**  | -                                     | TDD               |
+| **Intermediate** | Parsing, Plotting, Shapers, Debugging | -                 |
+| **Advanced**     | -                                     | New Variable Type |
+
+### By Domain
+
+| Domain                | Guides                                |
+| --------------------- | ------------------------------------- |
+| **Data Ingestion**    | parsing-workflow, debug-async-parsing |
+| **Visualization**     | new-plot-type                         |
+| **Transformation**    | shaper-pipeline                       |
+| **Parser Extension**  | new-variable-type                     |
+| **Quality Assurance** | test-driven-development               |
+
+## Common Workflows
+
+### Adding a New Feature
+
+1. Start with [test-driven-development.md](workflows/test-driven-development.md)
+2. Choose domain-specific skill:
+   - Data? → [parsing-workflow.md](skills/parsing-workflow.md)
+   - Plot? → [new-plot-type.md](skills/new-plot-type.md)
+   - Transform? → [shaper-pipeline.md](skills/shaper-pipeline.md)
+3. If stuck, use [debug-async-parsing.md](skills/debug-async-parsing.md)
+
+### Fixing a Bug
+
+1. Reproduce with test ([test-driven-development.md](workflows/test-driven-development.md))
+2. Debug using [debug-async-parsing.md](skills/debug-async-parsing.md)
+3. Fix and verify tests pass
+
+### Extending Parser
+
+1. Follow [new-variable-type.md](workflows/new-variable-type.md)
+2. Test with [parsing-workflow.md](skills/parsing-workflow.md) examples
+3. Ensure TDD compliance ([test-driven-development.md](workflows/test-driven-development.md))
+
+## Integration with AI Assistants
+
+### GitHub Copilot (VS Code)
+
+- Automatically reads `.github/copilot-instructions.md`
+- Skills/workflows referenced in instructions
+- Use inline comments to trigger skill usage:
+  ```python
+  # Following parsing-workflow.md: Step 1 - Scan
+  scan_futures = facade.submit_scan_async(...)
+  ```
+
+### Cursor/Antigravity
+
+- Reads `.cursorrules` on project open
+- Skills/workflows listed in cursorrules
+- Use chat commands:
+  ```
+  @skills parsing-workflow.md
+  @workflows test-driven-development.md
+  ```
+
+### MCP-Compatible Assistants
+
+- Access via `.mcp-config.json` servers
+- Skills exposed through `ring5-skills` server
+- Workflows through `ring5-workflows` server
+
+## Maintenance
+
+### Adding New Skills/Workflows
+
+1. **Create the markdown file**:
+
+   ```bash
+   # For skills
+   touch .agent/skills/my-new-skill.md
+
+   # For workflows
+   touch .agent/workflows/my-new-workflow.md
+   ```
+
+2. **Follow the template**:
+   - Include: Purpose, Complexity, Domain
+   - Add step-by-step instructions
+   - Provide code examples
+   - Add checklist
+   - Reference related files
+
+3. **Update this index**:
+   - Add to appropriate section
+   - Update quick selection guide
+   - Add to common workflows if applicable
+
+4. **Update AI configurations**:
+   - Add to `.github/copilot-instructions.md`
+   - Add to `.cursorrules`
+   - Update `.ai-assistant-guide.md`
+
+### Deprecating Skills/Workflows
+
+1. Mark as deprecated in header:
+
+   ```markdown
+   **Status**: DEPRECATED - Use [new-skill.md](new-skill.md) instead
+   ```
+
+2. Update this index
+3. Update AI configurations
+4. Keep file for 2 releases before removing
+
+## Contributing
+
+When creating new skills/workflows:
+
+- **Be specific**: Focus on one task or process
+- **Be practical**: Include real code examples
+- **Be testable**: Provide verification steps
+- **Be current**: Keep in sync with codebase changes
+- **Be linked**: Reference actual implementation files
+
+## References
+
+- Full project rules: `.agent/rules/project-context.md`
+- Quick start: `QUICKSTART.md`
+- Setup guide: `AI-SETUP.md`
+- Architecture docs: `src/` module docstrings

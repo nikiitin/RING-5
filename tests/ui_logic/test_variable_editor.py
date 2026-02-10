@@ -6,11 +6,9 @@ import pytest
 @pytest.fixture
 def mock_streamlit():
     # Patch st in all 3 modules used
-    with (
-        patch("src.web.pages.ui.components.data_components.st") as mock_st_data,
-        patch("src.web.pages.ui.components.card_components.st") as mock_st_card,
-        patch("src.web.pages.ui.components.variable_editor.st") as mock_st_var,
-    ):
+    with patch("src.web.ui.components.data_components.st") as mock_st_data, patch(
+        "src.web.ui.components.card_components.st"
+    ) as mock_st_card, patch("src.web.ui.components.variable_editor.st") as mock_st_var:
 
         mock_st = MagicMock()
         mock_st.session_state = {}
@@ -63,28 +61,23 @@ def mock_streamlit():
 
 
 @pytest.fixture
-def mock_api():
-    api = MagicMock()
-    api.state_manager = MagicMock()
-    api.backend = MagicMock()
-    api.portfolio = MagicMock()
-    # Mock some basic returns if needed
-    api.state_manager.get_scanned_variables.return_value = []
-    api.state_manager.get_parse_variables.return_value = []
-    api.backend.submit_scan_async = MagicMock()
-    return api
+def mock_facade():
+    with patch("src.web.ui.components.variable_editor.BackendFacade") as mock_cls:
+        instance = MagicMock()
+        mock_cls.return_value = instance
+        yield instance
 
 
-def test_variable_editor_render_existing(mock_streamlit, mock_api):
+def test_variable_editor_render_existing(mock_streamlit):
     vars_config = [{"name": "v1", "type": "scalar", "_id": "1"}]
 
     # Setup inputs
     mock_streamlit.text_input.side_effect = ["v1", "ali"]  # Name, Alias
     mock_streamlit.selectbox.return_value = "scalar"
 
-    from src.web.pages.ui.components.variable_editor import VariableEditor
+    from src.web.ui.components.variable_editor import VariableEditor
 
-    updated = VariableEditor.render(mock_api, vars_config)
+    updated = VariableEditor.render(vars_config)
 
     assert len(updated) == 1
     assert updated[0]["name"] == "v1"
@@ -92,24 +85,35 @@ def test_variable_editor_render_existing(mock_streamlit, mock_api):
     assert updated[0]["type"] == "scalar"
 
 
-def test_variable_editor_add_manual(mock_streamlit, mock_api):
+def test_variable_editor_add_manual(mock_streamlit):
     vars_config = []
 
     # Button clicks: X (delete) -> False, Add Selected -> False, Add Manual -> True
     mock_streamlit.button.side_effect = lambda label, **k: label == "+ Add Manual"
 
     # Rerun should be called
-    from src.web.pages.ui.components.variable_editor import VariableEditor
+    from src.web.ui.components.variable_editor import VariableEditor
 
-    VariableEditor.render(mock_api, vars_config)
+    VariableEditor.render(vars_config)
 
     assert len(vars_config) == 1
     assert vars_config[0]["name"] == "new_variable"
     mock_streamlit.rerun.assert_called()
 
 
-def test_variable_editor_deep_scan(mock_streamlit, mock_api):
+def test_variable_editor_deep_scan(mock_streamlit, mock_facade):
     vars_config = [{"name": "vec", "type": "vector", "_id": "1"}]
+
+    # Inputs:
+    # 1. Name ("vec")
+    # 2. Alias ("")
+    # 3. Type ("vector")
+
+    # 4. Radio Entry Mode -> "Select from Discovered Entries" (to trigger logic checks)
+    # Simulation logic parameters.
+
+    # Helper for side effects is tricky because of loop.
+    # We'll mock specific calls if possible or allow loose matching.
 
     mock_streamlit.text_input.return_value = "vec"
     mock_streamlit.selectbox.return_value = "vector"
@@ -128,18 +132,22 @@ def test_variable_editor_deep_scan(mock_streamlit, mock_api):
     # Mock Async Pipeline - simulate that scan completed
     mock_future = MagicMock()
     mock_future.result.return_value = [{"name": "vec", "type": "vector", "entries": ["e1", "e2"]}]
-    mock_api.backend.submit_scan_async.return_value = [mock_future]
+    mock_facade.submit_scan_async.return_value = [mock_future]
 
-    from src.web.pages.ui.components.variable_editor import VariableEditor
+    from src.web.ui.components.variable_editor import VariableEditor
 
     with patch.object(VariableEditor, "_show_scan_dialog") as mock_dialog:
-        VariableEditor.render(mock_api, vars_config, available_variables=[], stats_path="/path")
+        VariableEditor.render(vars_config, available_variables=[], stats_path="/path")
 
         # Verify it was called
         mock_dialog.assert_called_once()
+        # Just verify it was called - the exact arguments depend on implementation details
+
+    # submit_scan_async is called INSIDE _show_scan_dialog, which we mocked.
+    # So we don't assert it here anymore.
 
 
-def test_variable_editor_vector_stats_checkboxes(mock_streamlit, mock_api):
+def test_variable_editor_vector_stats_checkboxes(mock_streamlit):
     vars_config = [{"name": "vec", "type": "vector", "_id": "1", "vectorEntries": []}]
 
     mock_streamlit.text_input.return_value = "vec"
@@ -154,8 +162,9 @@ def test_variable_editor_vector_stats_checkboxes(mock_streamlit, mock_api):
 
     mock_streamlit.checkbox.side_effect = checkbox_side_effect
 
-    from src.web.pages.ui.components.variable_editor import VariableEditor
+    from src.web.ui.components.variable_editor import VariableEditor
 
-    updated = VariableEditor.render(mock_api, vars_config)
+    updated = VariableEditor.render(vars_config)
 
-    assert updated[0].get("vectorEntries") == ["total"]
+    assert updated[0]["useSpecialMembers"] is True
+    assert updated[0]["vectorEntries"] == ["total"]

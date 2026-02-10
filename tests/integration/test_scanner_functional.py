@@ -5,29 +5,24 @@ from pathlib import Path
 
 import pytest
 
-from src.core.application_api import ApplicationAPI
+from src.web.facade import BackendFacade
 
 
 class TestScannerFunctional:
 
     @pytest.fixture
     def test_data_path(self):
-        """Path to the test data directory."""
-        candidates = [
-            Path("tests/data/results-micro26-sens"),
-            Path("/home/vnicolas/workspace/micro26-sens/results-micro26-sens"),
-        ]
-        for p in candidates:
-            if p.exists():
-                return str(p)
-        pytest.skip("Test data not found")
-        return None  # Unreachable, but makes return type explicit
+        """Path to the test data provided by the user."""
+        base_path = Path("/home/vnicolas/workspace/micro26-sens/results-micro26-sens")
+        if not base_path.exists():
+            pytest.skip(f"Test data not found at {base_path}")
+        return str(base_path)
 
     def test_scan_real_stats(self, test_data_path):
         """
         Test scanning actual gem5 stats files using valid futures.
         """
-        facade = ApplicationAPI()
+        facade = BackendFacade()
 
         # 1. Submit Scan
         futures = facade.submit_scan_async(test_data_path, "stats.txt", limit=5)
@@ -51,5 +46,5 @@ class TestScannerFunctional:
 
         # Check integrity of a variable
         sample_var = scanned_vars[0]
-        assert sample_var.name is not None
-        assert sample_var.type is not None
+        assert "name" in sample_var
+        assert "type" in sample_var

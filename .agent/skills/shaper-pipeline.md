@@ -1,7 +1,7 @@
 # Skill: Creating and Using Shaper Pipelines
 
-**Skill ID**: `shaper-pipeline`
-**Domain**: Data Transformation
+**Skill ID**: `shaper-pipeline`  
+**Domain**: Data Transformation  
 **Complexity**: Intermediate
 
 ## Purpose

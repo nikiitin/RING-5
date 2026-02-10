@@ -6,13 +6,13 @@ Tests ColumnSelector, ConditionSelector, and ItemSelector.
 import pandas as pd
 import pytest
 
-from src.core.services.shapers.impl.selector_algorithms.column_selector import (
+from src.web.services.shapers.impl.selector_algorithms.columnSelector import (
     ColumnSelector,
 )
-from src.core.services.shapers.impl.selector_algorithms.condition_selector import (
+from src.web.services.shapers.impl.selector_algorithms.conditionSelector import (
     ConditionSelector,
 )
-from src.core.services.shapers.impl.selector_algorithms.item_selector import ItemSelector
+from src.web.services.shapers.impl.selector_algorithms.itemSelector import ItemSelector
 
 
 @pytest.fixture

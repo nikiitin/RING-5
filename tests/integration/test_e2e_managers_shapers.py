@@ -7,12 +7,12 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.core.services.shapers.impl.mean import Mean
-from src.core.services.shapers.impl.normalize import Normalize
-from src.core.services.shapers.impl.selector_algorithms.column_selector import (
+from src.web.services.shapers.impl.mean import Mean
+from src.web.services.shapers.impl.normalize import Normalize
+from src.web.services.shapers.impl.selector_algorithms.columnSelector import (
     ColumnSelector,
 )
-from src.core.services.shapers.impl.sort import Sort
+from src.web.services.shapers.impl.sort import Sort
 
 # Import test utilities
 sys.path.insert(0, str(Path(__file__).parent / "pytests"))
@@ -424,7 +424,7 @@ class TestE2EIntegration:
 
         # Step 6: Generate Plot
         print("\n📊 Step 6: Generate Plot")
-        from src.web.pages.ui.plotting import PlotFactory
+        from src.plotting import PlotFactory
 
         # Create plot configuration
         plot_config = {

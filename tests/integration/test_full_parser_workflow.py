@@ -18,10 +18,9 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from src.core.application_api import ApplicationAPI
-from src.core.models import StatConfig
-from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
-from src.core.parsing.gem5.impl.gem5_scanner import Gem5Scanner as ScannerService
+from src.parsers.parse_service import ParseService
+from src.parsers.scanner_service import ScannerService
+from src.web.facade import BackendFacade
 
 
 @pytest.fixture
@@ -77,31 +76,29 @@ class TestFullParserWorkflow:
 
         # Verify scanning found expected variables
         assert len(scanned_vars) > 0
-        var_names = [v.name for v in scanned_vars]
+        var_names = [v["name"] for v in scanned_vars]
         assert "system.cpu.ipc" in var_names
         assert "system.cpu.numCycles" in var_names
 
         # Step 2: Select variables to parse
         variables = [
-            StatConfig(name="system.cpu.ipc", type="scalar"),
-            StatConfig(name="system.cpu.numCycles", type="scalar"),
+            {"name": "system.cpu.ipc", "type": "scalar", "params": {}},
+            {"name": "system.cpu.numCycles", "type": "scalar", "params": {}},
         ]
 
         # Step 3: Parse variables asynchronously
         with tempfile.TemporaryDirectory() as output_dir:
-            batch = ParseService.submit_parse_async(
+            parse_futures = ParseService.submit_parse_async(
                 stats_path=str(sample_stats_dir),
                 stats_pattern="stats.txt",
                 variables=variables,
                 output_dir=output_dir,
             )
 
-            parse_results = [f.result() for f in batch.futures]
+            parse_results = [f.result() for f in parse_futures]
 
             # Step 4: Construct final CSV
-            csv_path = ParseService.construct_final_csv(
-                output_dir, parse_results, var_names=batch.var_names
-            )
+            csv_path = ParseService.construct_final_csv(output_dir, parse_results)
 
             assert csv_path is not None
             assert Path(csv_path).exists()
@@ -121,11 +118,11 @@ class TestFullParserWorkflow:
 
     def test_facade_integration_workflow(self, sample_stats_dir: Path) -> None:
         """
-        Test workflow using ApplicationAPI (user-facing API).
+        Test workflow using BackendFacade (user-facing API).
 
         This simulates the actual user workflow through the Streamlit UI.
         """
-        facade = ApplicationAPI()
+        facade = BackendFacade()
 
         # Step 1: Find stats files
         stats_files = facade.find_stats_files(str(sample_stats_dir), "stats.txt")
@@ -143,19 +140,19 @@ class TestFullParserWorkflow:
 
         # Step 3: Parse selected variables
         variables = [
-            StatConfig(name="system.cpu.ipc", type="scalar"),
+            {"name": "system.cpu.ipc", "type": "scalar", "params": {}},
         ]
 
         with tempfile.TemporaryDirectory() as output_dir:
-            batch = facade.submit_parse_async(
+            parse_futures = facade.submit_parse_async(
                 stats_path=str(sample_stats_dir),
                 stats_pattern="stats.txt",
                 variables=variables,
                 output_dir=output_dir,
             )
 
-            parse_results = [f.result() for f in batch.futures]
-            csv_path = facade.finalize_parsing(output_dir, parse_results, var_names=batch.var_names)
+            parse_results = [f.result() for f in parse_futures]
+            csv_path = facade.finalize_parsing(output_dir, parse_results)
 
             # Step 4: Load into CSV pool
             facade.add_to_csv_pool(csv_path)
@@ -181,18 +178,18 @@ class TestFullParserWorkflow:
 
         # Test with invalid variable configuration
         with tempfile.TemporaryDirectory() as output_dir:
-            invalid_variables = [StatConfig(name="invalid.var", type="unknown_type")]
+            invalid_variables = [{"name": "invalid.var", "type": "unknown_type", "params": {}}]
 
             # This should handle gracefully (may log warnings but not crash)
             try:
-                batch = ParseService.submit_parse_async(
+                parse_futures = ParseService.submit_parse_async(
                     stats_path=str(tmp_path),
                     stats_pattern="stats.txt",
                     variables=invalid_variables,
                     output_dir=output_dir,
                     scanned_vars=[],
                 )
-                results = [f.result() for f in batch.futures]
+                results = [f.result() for f in parse_futures]
                 # Should return empty or error results
                 assert isinstance(results, list)
             except Exception:

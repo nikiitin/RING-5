@@ -7,20 +7,21 @@ Handles loading, filtering, and transforming data from various sources.
 
 import streamlit as st
 
-from src.core.application_api import ApplicationAPI
-from src.web.pages.ui.components.data_manager_components import DataManagerComponents
-from src.web.pages.ui.data_managers.impl.mixer import MixerManager
-from src.web.pages.ui.data_managers.impl.outlier_remover import OutlierRemoverManager
-from src.web.pages.ui.data_managers.impl.preprocessor import PreprocessorManager
+from src.web.state_manager import StateManager
+from src.web.styles import AppStyles
+from src.web.ui.components.data_manager_components import DataManagerComponents
+from src.web.ui.data_managers.mixer import MixerManager
+from src.web.ui.data_managers.outlier_remover import OutlierRemoverManager
+from src.web.ui.data_managers.preprocessor import PreprocessorManager
 
 # Import Sub-Managers
-from src.web.pages.ui.data_managers.impl.seeds_reducer import SeedsReducerManager
+from src.web.ui.data_managers.seeds_reducer import SeedsReducerManager
 
 
-def show_data_managers_page(api: ApplicationAPI) -> None:
+def show_data_managers_page() -> None:
     """Render the data managers page with transformation capabilities."""
 
-    st.markdown("## Data Managers & Transformations")
+    st.markdown(AppStyles.step_header("Data Managers & Transformations"), unsafe_allow_html=True)
 
     st.info("""
     **Data Managers** handle loading, filtering, and transforming data from various sources.
@@ -31,21 +32,21 @@ def show_data_managers_page(api: ApplicationAPI) -> None:
     - Manage multiple data sources
     """)
 
-    if not api.state_manager.has_data():
+    if not StateManager.has_data():
         st.warning("No data loaded. Please load data from **Data Source** or **Upload Data** page.")
         return
 
-    data_or_none = api.state_manager.get_data()
+    data_or_none = StateManager.get_data()
     if data_or_none is None:
         st.error("Failed to retrieve data.")
         return
     data = data_or_none
 
     # Initialize Managers
-    seeds_mgr = SeedsReducerManager(api)
-    outlier_mgr = OutlierRemoverManager(api)
-    preproc_mgr = PreprocessorManager(api)
-    mixer_mgr = MixerManager(api)
+    seeds_mgr = SeedsReducerManager()
+    outlier_mgr = OutlierRemoverManager()
+    preproc_mgr = PreprocessorManager()
+    mixer_mgr = MixerManager()
 
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
         [

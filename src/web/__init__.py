@@ -2,4 +2,5 @@
 RING-5 Web Module
 """
 
-# Export submodules for consistent discoverability during testing
+# Intentionally empty to prevent transitive imports of UI/Streamlit
+# into background workers using src.web.services.

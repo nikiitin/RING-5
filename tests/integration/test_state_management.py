@@ -12,17 +12,14 @@ This validates the state management infrastructure for long-running analysis ses
 
 from pathlib import Path
 from typing import Any, Dict
-from unittest.mock import patch
 
 import pandas as pd
 import pytest
 
-from src.core.application_api import ApplicationAPI
-from src.core.services.data_services.path_service import PathService
-from src.core.services.data_services.portfolio_service import PortfolioService
-from src.core.state.repositories.parser_state_repository import ParserStateRepository
-from src.core.state.repository_state_manager import RepositoryStateManager
-from src.web.pages.ui.plotting.types.grouped_bar_plot import GroupedBarPlot
+from src.plotting.types.grouped_bar_plot import GroupedBarPlot
+from src.web.facade import BackendFacade
+from src.web.repositories.parser_state_repository import ParserStateRepository
+from src.web.services.portfolio_service import PortfolioService
 
 
 @pytest.fixture
@@ -57,28 +54,11 @@ def sample_workspace_data() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def mock_session_state():
-    """Mock streamlit.session_state as a dictionary."""
-    with patch("streamlit.session_state", new_callable=dict) as mock_state:
-        yield mock_state
-
-
-@pytest.fixture
-def state_manager(mock_session_state):
-    """Initialize RepositoryStateManager with mocked session state."""
-    return RepositoryStateManager()
-
-
-@pytest.fixture
-def portfolio_service(state_manager, tmp_path):
-    """Create PortfolioService instance."""
-    # Mock PathService to return tmp_path for portfolios
-    with patch(
-        "src.core.services.data_services.path_service.PathService.get_portfolios_dir",
-        return_value=tmp_path,
-    ):
-        service = PortfolioService(state_manager)
-        yield service
+def portfolio_service(tmp_path: Path) -> PortfolioService:
+    """Create PortfolioService with temporary directory."""
+    service = PortfolioService()
+    service._portfolios_dir = tmp_path
+    return service
 
 
 class TestStateManagement:
@@ -91,6 +71,7 @@ class TestStateManagement:
         Test complete portfolio save and load cycle.
         """
         data = sample_workspace_data["data"]
+        sample_workspace_data["plot_config"]
 
         # Create plot from config with required args
         plot = GroupedBarPlot(plot_id=1, name="test_plot")
@@ -104,7 +85,9 @@ class TestStateManagement:
             plot_counter=1,
         )
 
-        # Verify file was created
+        # Verify file was created (using PathService like the actual implementation)
+        from src.web.services.paths import PathService
+
         portfolio_file = PathService.get_portfolios_dir() / "test_workspace.json"
         assert portfolio_file.exists()
 
@@ -113,11 +96,11 @@ class TestStateManagement:
 
         # Verify data integrity
         assert loaded is not None
-        assert "data_csv" in loaded or "data" in loaded
+        assert "data_csv" in loaded or "data" in loaded  # Support both formats
         assert "plots" in loaded
         assert "config" in loaded
 
-        # Verify data matches
+        # Verify data matches (reconstruct from CSV if needed)
         if "data_csv" in loaded:
             import io
 
@@ -131,14 +114,14 @@ class TestStateManagement:
 
         # Verify plots restored
         assert len(loaded["plots"]) == 1
+        # Plots are serialized as dicts, not BasePlot objects
         assert isinstance(loaded["plots"][0], dict)
         assert loaded["plots"][0]["plot_type"] == "grouped_bar"
 
-    def test_parser_state_persistence(self) -> None:
+    def test_parser_state_persistence(self, tmp_path: Path) -> None:
         """
-        Test parser state repository get/set operations (in-memory).
+        Test parser state repository get/set operations.
         """
-        # ParserStateRepository is now pure in-memory, no Adapter needed
         repo = ParserStateRepository()
 
         # Set parser state using repository methods
@@ -146,8 +129,8 @@ class TestStateManagement:
         repo.set_stats_pattern("*.stats.txt")
 
         variables = [
-            {"name": "system.cpu.ipc", "type": "scalar", "params": {}, "_id": "1"},
-            {"name": "system.cpu.numCycles", "type": "scalar", "params": {}, "_id": "2"},
+            {"name": "system.cpu.ipc", "type": "scalar", "params": {}},
+            {"name": "system.cpu.numCycles", "type": "scalar", "params": {}},
         ]
         repo.set_parse_variables(variables)
 
@@ -167,16 +150,22 @@ class TestStateManagement:
         self,
         sample_workspace_data: Dict[str, Any],
         portfolio_service: PortfolioService,
+        tmp_path: Path,
     ) -> None:
         """
         Simulate session crash and recovery workflow.
+
+        Validates:
+        1. Portfolio is saved before crash
+        2. State can be recovered after crash
+        3. Work can continue from recovered state
         """
         data = sample_workspace_data["data"]
 
         # Simulate working session
         plot = GroupedBarPlot(plot_id=1, name="autosave_plot")
 
-        # Auto-save portfolio
+        # Auto-save portfolio (simulating periodic saves)
         portfolio_service.save_portfolio(
             name="autosave",
             data=data,
@@ -194,9 +183,10 @@ class TestStateManagement:
 
         # Verify recovery successful
         assert recovered is not None
+        assert "data_csv" in recovered or "data" in recovered
         assert len(recovered["plots"]) > 0
 
-        # Verify can continue work
+        # Verify can continue work (reconstruct data from CSV)
         if "data_csv" in recovered:
             import io
 
@@ -209,13 +199,16 @@ class TestStateManagement:
         continued_data = pd.concat([recovered_data, new_row], ignore_index=True)
         assert len(continued_data) == len(recovered_data) + 1
 
-    def test_configuration_versioning(self, portfolio_service: PortfolioService) -> None:
+    def test_configuration_versioning(
+        self, portfolio_service: PortfolioService, tmp_path: Path
+    ) -> None:
         """
-        Test configuration version compatibility.
+        Test configuration version compatibility and migration.
         """
+        # Create v1.0 portfolio format (legacy)
         data = pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
 
-        # Save with legacy version metadata
+        # Save with version metadata
         portfolio_service.save_portfolio(
             name="v1_format",
             data=data,
@@ -228,7 +221,7 @@ class TestStateManagement:
         loaded = portfolio_service.load_portfolio("v1_format")
         assert loaded["config"]["version"] == "1.0"
 
-        # Create v2.0 portfolio format
+        # Create v2.0 portfolio format (current)
         portfolio_service.save_portfolio(
             name="v2_format",
             data=data,
@@ -260,7 +253,7 @@ class TestStateManagement:
         available = portfolio_service.list_portfolios()
         assert len(available) >= len(portfolios)
 
-        # Verify portfolios are in the list
+        # Verify portfolios are in the list (list_portfolios returns names as strings)
         for name in portfolios:
             assert name in available
 
@@ -273,12 +266,11 @@ class TestStateManagement:
         updated_list = portfolio_service.list_portfolios()
         assert "baseline_analysis" not in updated_list
 
-    def test_facade_state_integration(self, mock_session_state, tmp_path: Path) -> None:
+    def test_facade_state_integration(self, tmp_path: Path) -> None:
         """
-        Test state management through ApplicationAPI (user-facing API).
+        Test state management through BackendFacade (user-facing API).
         """
-        # Mock st.session_state is active via mock_session_state fixture
-        facade = ApplicationAPI()
+        facade = BackendFacade()
 
         # Create sample data
         data = pd.DataFrame({"benchmark": ["mcf", "omnetpp"], "ipc": [1.2, 1.5]})
@@ -297,7 +289,9 @@ class TestStateManagement:
         pool_data = facade.load_csv_pool()
         assert len(pool_data) > 0
 
-    def test_state_cleanup_on_error(self, portfolio_service: PortfolioService) -> None:
+    def test_state_cleanup_on_error(
+        self, portfolio_service: PortfolioService, tmp_path: Path
+    ) -> None:
         """
         Test that state management handles errors gracefully.
         """

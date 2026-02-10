@@ -1,7 +1,7 @@
 import plotly.graph_objects as go
 import pytest
 
-from src.web.pages.ui.plotting.base_plot import BasePlot
+from src.plotting.base_plot import BasePlot
 
 
 class ConcretePlot(BasePlot):
