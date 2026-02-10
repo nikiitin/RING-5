@@ -38,7 +38,7 @@ make dev # Installs all dependencies including dev tools
 ### 4. Verify Installation
 
 ```bash
-python verify_installation.py
+python scripts/verify_installation.py
 ```
 
 You should see:
