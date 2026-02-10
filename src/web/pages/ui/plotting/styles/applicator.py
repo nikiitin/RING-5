@@ -90,7 +90,7 @@ class StyleApplicator:
                 color=config.get("xaxis_tickfont_color", "#444444"),
             ),
             "title": dict(
-                text=str(config.get("xaxis_title") or config.get("xlabel") or "").replace(
+                text=str(config.get("xlabel") or config.get("xaxis_title") or "").replace(
                     "undefined", ""
                 ),
                 font=dict(size=config.get("xaxis_title_font_size", 14)),
@@ -120,7 +120,7 @@ class StyleApplicator:
                 color=config.get("yaxis_tickfont_color", "#444444"),
             ),
             "title": dict(
-                text=str(config.get("yaxis_title") or config.get("ylabel") or "").replace(
+                text=str(config.get("ylabel") or config.get("yaxis_title") or "").replace(
                     "undefined", ""
                 ),
                 font=dict(size=config.get("yaxis_title_font_size", 14)),
@@ -137,10 +137,6 @@ class StyleApplicator:
 
         # Axis color styling
         self._apply_axis_colors(fig, config)
-
-        # Explicit Title Overrides
-        if config.get("xaxis_title"):
-            fig.update_xaxes(title_text=config["xaxis_title"])
 
         # Y-Axis Title Logic (Native vs Annotation)
         y_title_text = yaxis_settings["title"]["text"]

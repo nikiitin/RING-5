@@ -496,16 +496,17 @@ class BaseStyleUI:
     def _render_typography_section(
         self, saved_config: Dict[str, Any], key_prefix: str
     ) -> Dict[str, Any]:
-        """Render typography section (titles and labels)."""
-        st.markdown("#### Typography (Titles & Labels)")
+        """Render typography section (font sizes and colors).
+
+        Note: Title text inputs (Main Title, X-label, Y-label) are in
+        the plot config UI (render_config_ui). This section only controls
+        font sizes, colors, and axis label appearance.
+        """
+        st.markdown("#### Typography (Font Sizes & Colors)")
         typo_c1, typo_c2 = st.columns(2)
 
         with typo_c1:
-            plot_title = st.text_input(
-                "Main Plot Title",
-                value=saved_config.get("title", ""),
-                key=f"{key_prefix}plot_title_{self.plot_id}",
-            )
+            st.markdown("**Title Font Sizes**")
             title_font_size = st.number_input(
                 "Plot Title Font Size",
                 min_value=8,
@@ -514,11 +515,6 @@ class BaseStyleUI:
                 key=f"{key_prefix}title_sz_{self.plot_id}",
             )
 
-            xaxis_title = st.text_input(
-                "X-Axis Title",
-                value=saved_config.get("xaxis_title", ""),
-                key=f"{key_prefix}xaxis_title_{self.plot_id}",
-            )
             xaxis_title_font_size = st.number_input(
                 "X-Axis Title Font Size",
                 min_value=8,
@@ -527,11 +523,6 @@ class BaseStyleUI:
                 key=f"{key_prefix}xaxis_title_sz_{self.plot_id}",
             )
 
-            yaxis_title = st.text_input(
-                "Y-Axis Title",
-                value=saved_config.get("yaxis_title", ""),
-                key=f"{key_prefix}yaxis_title_{self.plot_id}",
-            )
             yaxis_title_font_size = st.number_input(
                 "Y-Axis Title Font Size",
                 min_value=8,
@@ -540,6 +531,7 @@ class BaseStyleUI:
                 key=f"{key_prefix}yaxis_title_sz_{self.plot_id}",
             )
 
+            st.markdown("**Y-Axis Title Position**")
             yaxis_title_standoff = st.slider(
                 "Y-Axis Title Standoff (Spacing)",
                 min_value=0,
@@ -559,6 +551,7 @@ class BaseStyleUI:
             )
 
         with typo_c2:
+            st.markdown("**Tick Label Sizes & Colors**")
             xaxis_tickfont_size = st.number_input(
                 "X-Axis Label (Tick) Size",
                 min_value=8,
@@ -587,11 +580,8 @@ class BaseStyleUI:
             )
 
         return {
-            "title": plot_title,
             "title_font_size": title_font_size,
-            "xaxis_title": xaxis_title,
             "xaxis_title_font_size": xaxis_title_font_size,
-            "yaxis_title": yaxis_title,
             "yaxis_title_font_size": yaxis_title_font_size,
             "yaxis_title_standoff": yaxis_title_standoff,
             "yaxis_title_vshift": yaxis_title_vshift,
