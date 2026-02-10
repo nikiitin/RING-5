@@ -117,14 +117,14 @@ class BenchmarkSuite:
 
         start = time.perf_counter()
 
-        for _ in range(iterations):
+        result: T = func(*args, **kwargs)
+        for _ in range(iterations - 1):
             result = func(*args, **kwargs)
 
         elapsed = (time.perf_counter() - start) * 1000  # ms
         bench_result = BenchmarkResult(operation_name, elapsed, iterations)
         self.results.append(bench_result)
 
-        # result is guaranteed to be T after at least one iteration
         return result
 
     def summary(self) -> pd.DataFrame:
@@ -215,7 +215,8 @@ def benchmark_decorator(
 
             start = time.perf_counter()
 
-            for _ in range(iterations):
+            result: T = func(*args, **kwargs)
+            for _ in range(iterations - 1):
                 result = func(*args, **kwargs)
 
             elapsed = (time.perf_counter() - start) * 1000  # ms
@@ -229,7 +230,7 @@ def benchmark_decorator(
                     f"({avg:.2f}ms avg over {iterations} iterations)"
                 )
 
-            # result is guaranteed to be T after at least one iteration
+            # result is always bound (first call before loop)
             return result
 
         return wrapper
