@@ -8,11 +8,10 @@
       body {
         margin: 0;
         padding: 0;
-        overflow: hidden;
+        overflow: visible;
       }
       #myDiv {
         width: 100%;
-        height: 100%;
       }
     </style>
   </head>
@@ -69,12 +68,14 @@
             });
             gd._streamlit_listeners_attached = true;
           }
-        });
 
-        // Set height based on layout or config
-        var h = spec.layout && spec.layout.height ? spec.layout.height : 500;
-        // Add some padding for modebar
-        Streamlit.setFrameHeight(h + 20);
+          // Use actual rendered height so X-axis labels are never clipped
+          var rect = gd.getBoundingClientRect();
+          var actualHeight = Math.ceil(rect.height);
+          var layoutHeight = spec.layout && spec.layout.height ? spec.layout.height : 500;
+          var finalHeight = Math.max(actualHeight, layoutHeight) + 30;
+          Streamlit.setFrameHeight(finalHeight);
+        });
       }
 
       // Debounce logic

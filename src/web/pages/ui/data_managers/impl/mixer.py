@@ -2,11 +2,14 @@
 Mixer Manager
 """
 
+from datetime import datetime, timezone
 from typing import Optional
 
 import pandas as pd
 import streamlit as st
 
+from src.core.models.history_models import OperationRecord
+from src.web.pages.ui.components.history_components import HistoryComponents
 from src.web.pages.ui.data_managers.data_manager import DataManager
 
 
@@ -39,6 +42,28 @@ class MixerManager(DataManager):
 
         # Filter out likely SD columns to reduce clutter, but allow selecting them just in case
         [c for c in numeric_cols if not c.endswith((".sd", "_stdev"))]
+
+        # Handle loaded operation from history
+        loaded = st.session_state.pop("_mixer_load", None)
+        if loaded is not None:
+            op_raw = loaded["operation"].replace("Mixer: ", "")
+            if op_raw == "Concatenate":
+                st.session_state["mixer_mode"] = "Configuration Merge"
+                available = data.columns.tolist()
+            else:
+                st.session_state["mixer_mode"] = "Numerical Operations"
+                available = [c for c in numeric_cols if not c.endswith((".sd", "_stdev"))]
+            src_cols = loaded["source_columns"]
+            valid_src = [c for c in src_cols if c in available]
+            missing = [c for c in src_cols if c not in available]
+            if missing:
+                st.warning(f"Columns removed (not in current data): {', '.join(missing)}")
+            if valid_src:
+                st.session_state["mixer_select_cols"] = valid_src
+            if loaded["dest_columns"]:
+                st.session_state["mixer_new_name"] = loaded["dest_columns"][0]
+            if op_raw in ["Sum", "Mean (Average)", "Concatenate"]:
+                st.session_state["mixer_op"] = op_raw
 
         st.markdown("#### Configuration")
 
@@ -129,5 +154,20 @@ class MixerManager(DataManager):
                 if confirmed_df is not None:
                     self.set_data(confirmed_df)
                     self.api.clear_preview("mixer")
+                    record: OperationRecord = {
+                        "source_columns": selected_cols,
+                        "dest_columns": [new_col_name],
+                        "operation": f"Mixer: {operation}",
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    }
+                    self.api.add_manager_history_record(record)
                     st.success("✓ Merged data active!")
                     st.rerun()
+
+        # Show this manager's history
+        HistoryComponents.render_manager_history(
+            self.api.get_manager_history(),
+            "Mixer",
+            "_mixer_load",
+            self.api.remove_manager_history_record,
+        )

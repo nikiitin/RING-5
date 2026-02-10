@@ -2,11 +2,14 @@
 Outlier Remover Manager
 """
 
+from datetime import datetime, timezone
 from typing import Optional
 
 import pandas as pd
 import streamlit as st
 
+from src.core.models.history_models import OperationRecord
+from src.web.pages.ui.components.history_components import HistoryComponents
 from src.web.pages.ui.data_managers.data_manager import DataManager
 
 
@@ -44,6 +47,26 @@ class OutlierRemoverManager(DataManager):
         if not numeric_cols:
             st.warning("No numeric columns found for outlier detection.")
             return
+
+        # Handle loaded operation from history
+        loaded = st.session_state.pop("_outlier_load", None)
+        if loaded is not None:
+            src_cols = loaded["source_columns"]
+            dest_cols = loaded["dest_columns"]
+            outlier_col = dest_cols[0] if dest_cols else None
+            group_by = [c for c in src_cols if c not in set(dest_cols)]
+            all_missing = []
+            if outlier_col and outlier_col in numeric_cols:
+                st.session_state["outlier_col"] = outlier_col
+            elif outlier_col:
+                all_missing.append(outlier_col)
+            valid_groups = [c for c in group_by if c in categorical_cols]
+            missing_groups = [c for c in group_by if c not in categorical_cols]
+            all_missing.extend(missing_groups)
+            if valid_groups:
+                st.session_state["outlier_groupby"] = valid_groups
+            if all_missing:
+                st.warning(f"Columns removed (not in current data): {', '.join(all_missing)}")
 
         st.markdown("**Configuration:**")
 
@@ -138,5 +161,20 @@ class OutlierRemoverManager(DataManager):
                 if confirmed_df is not None:
                     self.set_data(confirmed_df)
                     self.api.clear_preview("outlier_removal")
+                    record: OperationRecord = {
+                        "source_columns": [outlier_column] + group_by_cols,
+                        "dest_columns": [outlier_column],
+                        "operation": "Outlier Removal (Q3)",
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    }
+                    self.api.add_manager_history_record(record)
                     st.success("✓ Outlier-filtered data is now active!")
                     st.rerun()
+
+        # Show this manager's history
+        HistoryComponents.render_manager_history(
+            self.api.get_manager_history(),
+            "Outlier Removal",
+            "_outlier_load",
+            self.api.remove_manager_history_record,
+        )
