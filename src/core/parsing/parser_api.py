@@ -32,7 +32,6 @@ class ParserAPI(Protocol):
         scanned_vars: Optional[List[Any]] = None,
     ) -> ParseBatchResult:
         """Submit async parsing job and return a ParseBatchResult."""
-        ...
 
     def finalize_parsing(
         self,
@@ -42,7 +41,6 @@ class ParserAPI(Protocol):
         var_names: Optional[List[str]] = None,
     ) -> Optional[str]:
         """Post-process and aggregate parsing results into CSV."""
-        ...
 
     def submit_scan_async(
         self,
@@ -51,11 +49,9 @@ class ParserAPI(Protocol):
         limit: int = 5,
     ) -> List[Future[List[ScannedVariable]]]:
         """Submit async scanning job and return futures."""
-        ...
 
     def aggregate_scan_results(
         self,
         results: List[List[ScannedVariable]],
     ) -> List[ScannedVariable]:
         """Aggregate scan results into unified variable list."""
-        ...

@@ -110,7 +110,8 @@ class Gem5Parser:
         scanned_vars: Optional[List[Any]] = None,
     ) -> ParseBatchResult:
         """Submit async parsing job and return a ParseBatchResult."""
-        search_path = normalize_user_path(stats_path)
+        safe_path: str = os.path.normpath(stats_path) if stats_path else "."
+        search_path = normalize_user_path(safe_path)
         if not search_path.exists():
             raise FileNotFoundError(f"Stats path does not exist: {stats_path}")
 

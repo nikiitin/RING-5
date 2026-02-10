@@ -43,7 +43,6 @@ class ScannerProtocol(Protocol):
         Raises:
             FileNotFoundError: If stats_path doesn't exist or no files found
         """
-        ...
 
     @staticmethod
     def aggregate_scan_results(
@@ -61,4 +60,3 @@ class ScannerProtocol(Protocol):
         Returns:
             Sorted list of merged variables with deduplicated entries
         """
-        ...

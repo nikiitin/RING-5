@@ -4,7 +4,7 @@ Encapsulates logic for discovering and grouping variables from gem5 stats files.
 Moves complex domain logic out of the Web Facade.
 """
 
-import logging
+import os
 from concurrent.futures import Future
 from dataclasses import replace
 from pathlib import Path
@@ -15,8 +15,6 @@ from src.core.models import ScannedVariable
 from src.core.parsing.gem5.impl.pool.pool import ScanWorkPool
 from src.core.parsing.gem5.impl.scanning.gem5_scan_work import Gem5ScanWork
 from src.core.parsing.gem5.impl.scanning.pattern_aggregator import PatternAggregator
-
-logger: logging.Logger = logging.getLogger(__name__)
 
 
 class Gem5Scanner:
@@ -46,12 +44,12 @@ class Gem5Scanner:
         Raises:
             FileNotFoundError: If stats_path doesn't exist or no files found
         """
-        search_path: Path = normalize_user_path(stats_path)
+        search_path: Path = normalize_user_path(os.path.normpath(stats_path) if stats_path else ".")
         if not search_path.exists():
             raise FileNotFoundError(f"Stats path does not exist: {stats_path}")
 
         safe_pattern: str = sanitize_glob_pattern(stats_pattern)
-        files: List[Path] = list(search_path.rglob(safe_pattern))
+        files: List[Path] = sorted(search_path.rglob(safe_pattern))
         if not files:
             raise FileNotFoundError("No stats files found.")
 

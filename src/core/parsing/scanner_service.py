@@ -4,7 +4,6 @@ Encapsulates logic for discovering and grouping variables from gem5 stats files.
 Moves complex domain logic out of the Web Facade.
 """
 
-import logging
 from concurrent.futures import Future
 from dataclasses import replace
 from pathlib import Path
@@ -15,8 +14,6 @@ from src.core.models import ScannedVariable
 from src.core.parsing.gem5.impl.pool.pool import ScanWorkPool
 from src.core.parsing.gem5.impl.scanning.gem5_scan_work import Gem5ScanWork
 from src.core.parsing.gem5.impl.scanning.pattern_aggregator import PatternAggregator
-
-logger: logging.Logger = logging.getLogger(__name__)
 
 
 class ScannerService:

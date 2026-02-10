@@ -12,9 +12,7 @@ from typing import TYPE_CHECKING, List
 import pandas as pd
 
 if TYPE_CHECKING:
-    from src.web.pages.ui.plotting.base_plot import BasePlot
-else:
-    BasePlot = None  # type: ignore
+    from src.web.pages.ui.plotting.base_plot import BasePlot  # noqa: F401
 
 from src.core.models import PortfolioData
 from src.core.state.repositories.config_repository import ConfigRepository
@@ -113,11 +111,12 @@ class SessionRepository:
                 logger.error(f"SESSION_REPO: Failed to restore data: {e}")
 
         # Restore plots
+        # Deferred import: BasePlot is only in TYPE_CHECKING scope
+        from src.web.pages.ui.plotting.base_plot import BasePlot  # noqa: F811
+
         loaded_plots: List[BasePlot] = []
         for plot_data in portfolio_data.get("plots", []):
             try:
-                from src.web.pages.ui.plotting.base_plot import BasePlot
-
                 plot = BasePlot.from_dict(plot_data)
                 if plot:
                     loaded_plots.append(plot)

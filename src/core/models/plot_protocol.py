@@ -28,4 +28,5 @@ class PlotProtocol(Protocol):
     legend_mappings: Dict[str, str]
     processed_data: Optional[pd.DataFrame]
 
-    def to_dict(self) -> Dict[str, Any]: ...
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize the plot to a dictionary."""

@@ -1,8 +1,12 @@
 """Factory for creating plot instances."""
 
-from typing import Dict, List, Type
+from __future__ import annotations
 
-from .base_plot import BasePlot
+from typing import TYPE_CHECKING, Dict, List, Type
+
+if TYPE_CHECKING:
+    from .base_plot import BasePlot
+
 from .types import (
     BarPlot,
     GroupedBarPlot,
@@ -79,7 +83,10 @@ class PlotFactory:
         Raises:
             ValueError: If plot_class is not a subclass of BasePlot
         """
-        if not issubclass(plot_class, BasePlot):
+        # Deferred import to avoid circular dependency at runtime
+        from .base_plot import BasePlot as _BasePlot
+
+        if not issubclass(plot_class, _BasePlot):
             raise ValueError("plot_class must be a subclass of BasePlot")
 
         cls._plot_classes[plot_type] = plot_class

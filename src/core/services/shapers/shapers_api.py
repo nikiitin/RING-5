@@ -20,7 +20,6 @@ class ShapersAPI(Protocol):
 
     def list_pipelines(self) -> List[str]:
         """List all available saved pipelines."""
-        ...
 
     def save_pipeline(
         self,
@@ -29,15 +28,12 @@ class ShapersAPI(Protocol):
         description: str = "",
     ) -> None:
         """Save a pipeline configuration to disk."""
-        ...
 
     def load_pipeline(self, name: str) -> Dict[str, Any]:
         """Load a pipeline configuration by name."""
-        ...
 
     def delete_pipeline(self, name: str) -> None:
         """Delete a pipeline configuration."""
-        ...
 
     def process_pipeline(
         self,
@@ -45,7 +41,6 @@ class ShapersAPI(Protocol):
         pipeline_config: List[Dict[str, Any]],
     ) -> pd.DataFrame:
         """Apply a sequence of shapers to a DataFrame."""
-        ...
 
     def create_shaper(
         self,
@@ -53,8 +48,6 @@ class ShapersAPI(Protocol):
         params: Dict[str, Any],
     ) -> Any:
         """Create a shaper instance from type and parameters."""
-        ...
 
     def get_available_shaper_types(self) -> List[str]:
         """Return all registered shaper type identifiers."""
-        ...

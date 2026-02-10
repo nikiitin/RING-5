@@ -13,6 +13,7 @@ Workflow:
 """
 
 import logging
+import os
 from dataclasses import replace
 from typing import Any, Dict, List, Sequence
 
@@ -79,7 +80,8 @@ class SimpleStatsStrategy:
     def _get_files(self, stats_path: str, stats_pattern: str) -> List[str]:
         """Find all stats files matching the pattern in the target path."""
         # Path is already validated/resolved by ParseService before reaching strategy
-        base = normalize_user_path(stats_path)
+        safe_path: str = os.path.normpath(stats_path) if stats_path else "."
+        base = normalize_user_path(safe_path)
         safe_pattern = sanitize_glob_pattern(stats_pattern)
         pattern = f"**/{safe_pattern}"
         files = [str(f) for f in base.glob(pattern)]

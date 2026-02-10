@@ -6,6 +6,7 @@ Coordinates plot factory, state persistence, and configuration updates.
 """
 
 import copy
+import os
 from typing import TYPE_CHECKING, Optional
 
 from src.core.common.utils import normalize_user_path, validate_path_within
@@ -104,7 +105,8 @@ class PlotService:
             For publication-quality exports, use LaTeXExportService directly.
         """
         # Normalize and validate directory path before any filesystem ops
-        resolved_dir_path = normalize_user_path(directory)
+        safe_dir: str = os.path.normpath(directory) if directory else "."
+        resolved_dir_path = normalize_user_path(safe_dir)
         if not resolved_dir_path.exists():
             resolved_dir_path.mkdir(parents=True, exist_ok=True)
 
@@ -128,7 +130,8 @@ class PlotService:
         # Clean name
         safe_name = "".join([c if c.isalnum() else "_" for c in plot.name])
         filename = f"{safe_name}.{fmt}"
-        path = str(validate_path_within(resolved_dir_path / filename, resolved_dir_path))
+        validated_path = validate_path_within(resolved_dir_path / filename, resolved_dir_path)
+        path = os.path.normpath(str(validated_path))
 
         if fmt == "html":
             fig.write_html(path)

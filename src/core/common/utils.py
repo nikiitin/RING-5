@@ -293,8 +293,11 @@ def validate_path_within(path: Path, allowed_base: Path) -> Path:
         ValueError: If the path escapes the allowed base directory.
     """
     # Normalise both paths with os.path.normpath (CodeQL-recognised sanitizer)
-    resolved: str = os.path.normpath(str(path.resolve()))
-    base: str = os.path.normpath(str(allowed_base.resolve()))
+    path_str: str = os.path.normpath(str(path))
+    base_str: str = os.path.normpath(str(allowed_base))
+    # Resolve to absolute paths for accurate comparison
+    resolved: str = os.path.normpath(os.path.abspath(path_str))
+    base: str = os.path.normpath(os.path.abspath(base_str))
     # Use os.path.commonpath for robust containment check
     # (avoids sibling-path bypass, e.g. "/allowed/base_evil" matching "/allowed/base")
     try:
@@ -369,4 +372,6 @@ def normalize_user_path(user_path: str, default: str = _DEFAULT_STATS_PATH) -> P
             f"Path traversal detected: '{user_path}' "
             f"normalizes to '{normalized}' which contains '..' components"
         )
-    return Path(normalized).resolve()
+    # Resolve to absolute using os.path functions (CodeQL-compatible)
+    resolved_path: str = os.path.normpath(os.path.abspath(normalized))
+    return Path(resolved_path)

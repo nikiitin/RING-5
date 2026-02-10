@@ -65,7 +65,6 @@ class FileParserStrategy(Protocol):
             >>> results = strategy.execute("/sim/run1", "stats.txt", variables)
             >>> [{'system.cpu.ipc': 1.5, 'sim_path': '/sim/run1/stats.txt'}, ...]
         """
-        ...
 
     def get_work_items(
         self, stats_path: str, stats_pattern: str, variables: List[StatConfig]
@@ -89,7 +88,6 @@ class FileParserStrategy(Protocol):
             >>> len(work_items)  # Number of files found
             15
         """
-        ...
 
     def post_process(self, results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
@@ -111,4 +109,3 @@ class FileParserStrategy(Protocol):
             >>> enriched[0].keys()
             dict_keys(['ipc', 'sim_path', 'config_data', ...])
         """
-        ...

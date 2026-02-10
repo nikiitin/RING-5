@@ -23,7 +23,6 @@ class ManagersAPI(Protocol):
 
     def list_operators(self) -> List[str]:
         """Return supported binary arithmetic operators."""
-        ...
 
     def apply_operation(
         self,
@@ -34,7 +33,6 @@ class ManagersAPI(Protocol):
         dest: str,
     ) -> pd.DataFrame:
         """Apply arithmetic operation between two columns."""
-        ...
 
     # -- Mixer (Multi-column merge) --
 
@@ -47,7 +45,6 @@ class ManagersAPI(Protocol):
         separator: str = "_",
     ) -> pd.DataFrame:
         """Merge multiple columns into one with SD propagation."""
-        ...
 
     def validate_merge_inputs(
         self,
@@ -57,7 +54,6 @@ class ManagersAPI(Protocol):
         new_column_name: str,
     ) -> List[str]:
         """Validate inputs for merge/mixer operations."""
-        ...
 
     # -- Outlier Removal --
 
@@ -68,7 +64,6 @@ class ManagersAPI(Protocol):
         group_by_cols: List[str],
     ) -> pd.DataFrame:
         """Remove statistical outliers based on Q3 threshold."""
-        ...
 
     def validate_outlier_inputs(
         self,
@@ -77,7 +72,6 @@ class ManagersAPI(Protocol):
         group_by_cols: List[str],
     ) -> List[str]:
         """Validate inputs for outlier removal."""
-        ...
 
     # -- Seeds Reduction --
 
@@ -88,7 +82,6 @@ class ManagersAPI(Protocol):
         statistic_cols: List[str],
     ) -> pd.DataFrame:
         """Aggregate data across random seeds (mean + stdev)."""
-        ...
 
     def validate_seeds_reducer_inputs(
         self,
@@ -97,4 +90,3 @@ class ManagersAPI(Protocol):
         statistic_cols: List[str],
     ) -> List[str]:
         """Validate inputs for seeds reduction."""
-        ...

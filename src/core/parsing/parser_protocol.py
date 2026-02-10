@@ -45,7 +45,6 @@ class ParserProtocol(Protocol):
         Returns:
             ParseBatchResult containing futures and var_names for the batch
         """
-        ...
 
     @staticmethod
     def finalize_parsing(
@@ -66,7 +65,6 @@ class ParserProtocol(Protocol):
         Returns:
             Path to the generated CSV file, or None if no results
         """
-        ...
 
     @staticmethod
     def construct_final_csv(
@@ -85,4 +83,3 @@ class ParserProtocol(Protocol):
         Returns:
             Path to the generated CSV file, or None if no results
         """
-        ...
