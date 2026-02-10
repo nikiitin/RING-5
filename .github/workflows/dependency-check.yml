@@ -33,11 +33,29 @@ jobs:
         id: outdated
         run: |
           echo "## Outdated Packages" >> $GITHUB_STEP_SUMMARY
-          pip list --outdated --format=columns >> outdated.txt
+
+          # Use JSON format for reliable detection (columns format emits
+          # headers even when no packages are outdated)
+          pip list --outdated --format=json > outdated.json
+
+          # Convert JSON to readable table for summary
+          python3 -c "
+          import json
+          with open('outdated.json') as f:
+              pkgs = json.load(f)
+          if pkgs:
+              print('| Package | Current | Latest | Type |')
+              print('|---------|---------|--------|------|')
+              for p in pkgs:
+                  print(f'| {p[\"name\"]} | {p[\"version\"]} | {p[\"latest_version\"]} | {p[\"latest_filetype\"]} |')
+          else:
+              print('All packages are up to date.')
+          " > outdated.txt
           cat outdated.txt >> $GITHUB_STEP_SUMMARY
 
-          # Check if any packages are outdated
-          if [ -s outdated.txt ]; then
+          # Reliable check: JSON array length
+          OUTDATED_COUNT=$(python3 -c "import json; print(len(json.load(open('outdated.json'))))")
+          if [ "$OUTDATED_COUNT" -gt 0 ]; then
             echo "outdated=true" >> $GITHUB_OUTPUT
           else
             echo "outdated=false" >> $GITHUB_OUTPUT
