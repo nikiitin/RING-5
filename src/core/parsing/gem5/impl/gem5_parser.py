@@ -121,8 +121,9 @@ class Gem5Parser:
         processed_configs = []
         for config in variables:
             expanded_config = config
-            # Detect regex metachars by comparing against the escaped version
-            if scanned_vars and config.name != re.escape(config.name):
+            # Use the explicit is_regex flag (or fall back to heuristic)
+            name_is_regex = config.is_regex or config.name != re.escape(config.name)
+            if scanned_vars and name_is_regex:
                 try:
                     logger.info(
                         f"PARSER: Matching regex '{config.name}' "

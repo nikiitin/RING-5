@@ -81,6 +81,17 @@ class StatConfig:
     """
     Configuration for a specific statistic extraction.
     Input to the FileParserStrategy implementations.
+
+    Attributes:
+        name: Variable name or regex pattern (e.g., ``system.cpu\\d+.ipc``).
+        type: One of ``scalar``, ``vector``, ``distribution``, ``histogram``,
+              ``configuration``.
+        repeat: Number of dump repetitions expected.
+        params: Type-specific parameters (entries, min/max, etc.).
+        statistics_only: If True, parse only statistical summaries.
+        is_regex: Explicit flag indicating that *name* is a regex pattern
+                  requiring expansion against scanned variables.  Set
+                  automatically when the name contains ``\\d+``.
     """
 
     name: str
@@ -88,3 +99,4 @@ class StatConfig:
     repeat: int = 1
     params: Dict[str, Any] = field(default_factory=dict)
     statistics_only: bool = False
+    is_regex: bool = False

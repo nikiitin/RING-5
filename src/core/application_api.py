@@ -172,6 +172,7 @@ class ApplicationAPI:
                         var.get("statistics_only", var.get("statisticsOnly", False))
                     ),
                     params=params,
+                    is_regex=r"\d+" in name,
                 )
             elif hasattr(var, "name") and hasattr(var, "type") and not hasattr(var, "params"):
                 # It's likely a ScannedVariable, convert to StatConfig
@@ -179,6 +180,7 @@ class ApplicationAPI:
                     name=var.name,
                     type=var.type,
                     params={"entries": getattr(var, "entries", [])},
+                    is_regex=r"\d+" in var.name,
                 )
             else:
                 config = cast(StatConfig, var)
