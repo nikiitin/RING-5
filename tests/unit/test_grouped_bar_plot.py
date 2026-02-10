@@ -21,8 +21,9 @@ def sample_data():
 
 @pytest.fixture
 def mock_streamlit():
-    with patch("src.web.pages.ui.plotting.types.grouped_bar_plot.st") as mock_st, patch(
-        "src.web.pages.ui.components.plot_config_components.st", mock_st
+    with (
+        patch("src.web.pages.ui.plotting.types.grouped_bar_plot.st") as mock_st,
+        patch("src.web.pages.ui.components.plot_config_components.st", mock_st),
     ):
         # Mock columns
         mock_st.columns.side_effect = lambda n: (

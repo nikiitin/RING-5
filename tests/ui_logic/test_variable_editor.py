@@ -6,9 +6,11 @@ import pytest
 @pytest.fixture
 def mock_streamlit():
     # Patch st in all 3 modules used
-    with patch("src.web.pages.ui.components.data_components.st") as mock_st_data, patch(
-        "src.web.pages.ui.components.card_components.st"
-    ) as mock_st_card, patch("src.web.pages.ui.components.variable_editor.st") as mock_st_var:
+    with (
+        patch("src.web.pages.ui.components.data_components.st") as mock_st_data,
+        patch("src.web.pages.ui.components.card_components.st") as mock_st_card,
+        patch("src.web.pages.ui.components.variable_editor.st") as mock_st_var,
+    ):
 
         mock_st = MagicMock()
         mock_st.session_state = {}

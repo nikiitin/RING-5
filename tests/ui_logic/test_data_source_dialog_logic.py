@@ -20,8 +20,9 @@ def components_bundle():
         importlib.reload(ds_module)
 
     # 2. Patch the module's st attribute for runtime widget mocking
-    with patch("src.web.pages.ui.components.data_source_components.st") as mock_st, patch(
-        "src.web.pages.ui.components.variable_editor.st", new=mock_st
+    with (
+        patch("src.web.pages.ui.components.data_source_components.st") as mock_st,
+        patch("src.web.pages.ui.components.variable_editor.st", new=mock_st),
     ):
 
         mock_st.session_state = {}

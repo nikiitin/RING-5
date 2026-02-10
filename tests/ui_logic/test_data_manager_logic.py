@@ -10,9 +10,10 @@ from src.web.pages.ui.data_managers.impl.seeds_reducer import SeedsReducerManage
 # Mock streamlit
 @pytest.fixture
 def mock_streamlit():
-    with patch("src.web.pages.ui.data_managers.impl.seeds_reducer.st") as mock_st_seeds, patch(
-        "src.web.pages.ui.data_managers.impl.outlier_remover.st"
-    ) as mock_st_outlier:
+    with (
+        patch("src.web.pages.ui.data_managers.impl.seeds_reducer.st") as mock_st_seeds,
+        patch("src.web.pages.ui.data_managers.impl.outlier_remover.st") as mock_st_outlier,
+    ):
 
         # Configure session state handling for mocks.
         mock_st_seeds.session_state = {}

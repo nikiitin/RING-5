@@ -9,9 +9,10 @@ from src.web.pages.ui.data_managers.impl.preprocessor import PreprocessorManager
 
 @pytest.fixture
 def mock_streamlit():
-    with patch("src.web.pages.ui.data_managers.impl.mixer.st") as mock_st_mixer, patch(
-        "src.web.pages.ui.data_managers.impl.preprocessor.st"
-    ) as mock_st_prep:
+    with (
+        patch("src.web.pages.ui.data_managers.impl.mixer.st") as mock_st_mixer,
+        patch("src.web.pages.ui.data_managers.impl.preprocessor.st") as mock_st_prep,
+    ):
 
         mock_st_mixer.session_state = {}
         mock_st_prep.session_state = {}

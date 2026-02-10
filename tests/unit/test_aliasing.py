@@ -25,11 +25,12 @@ class TestAliasing:
         # Mock parser execution
         # Note: ParseService is now imported at module level in application_api,
         # so we need to patch it in that module's namespace
-        with patch(
-            "src.core.application_api.ParseService.submit_parse_async"
-        ) as mock_submit, patch(
-            "src.core.parsing.gem5.impl.gem5_parser.Gem5Parser.construct_final_csv"
-        ) as mock_construct:
+        with (
+            patch("src.core.application_api.ParseService.submit_parse_async") as mock_submit,
+            patch(
+                "src.core.parsing.gem5.impl.gem5_parser.Gem5Parser.construct_final_csv"
+            ) as mock_construct,
+        ):
 
             # Mock futures properly
             mock_future = MagicMock()

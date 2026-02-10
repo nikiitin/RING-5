@@ -9,9 +9,11 @@ from src.web.pages.ui.plotting.styles import StyleManager
 
 @pytest.fixture
 def mock_streamlit():
-    with patch("src.web.pages.ui.plotting.styles.base_ui.st") as mock_st, patch(
-        "src.web.pages.ui.plotting.styles.line_ui.st", mock_st
-    ), patch("src.web.pages.ui.plotting.styles.bar_ui.st", mock_st):
+    with (
+        patch("src.web.pages.ui.plotting.styles.base_ui.st") as mock_st,
+        patch("src.web.pages.ui.plotting.styles.line_ui.st", mock_st),
+        patch("src.web.pages.ui.plotting.styles.bar_ui.st", mock_st),
+    ):
         # Mock columns
         mock_st.columns.side_effect = lambda n: (
             [MagicMock() for _ in range(n)] if isinstance(n, int) else [MagicMock() for _ in n]

@@ -32,9 +32,10 @@ class MockPlot(BasePlot):
 
 @pytest.fixture
 def mock_streamlit():
-    with patch("src.web.pages.ui.plotting.plot_renderer.st") as mock_st, patch(
-        "src.web.pages.ui.plotting.base_plot.StyleManager"
-    ) as MockStyleManager:
+    with (
+        patch("src.web.pages.ui.plotting.plot_renderer.st") as mock_st,
+        patch("src.web.pages.ui.plotting.base_plot.StyleManager") as MockStyleManager,
+    ):
 
         # Configure StyleManager mock
         style_manager_instance = MockStyleManager.return_value

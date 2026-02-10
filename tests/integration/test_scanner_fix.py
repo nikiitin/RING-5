@@ -22,9 +22,11 @@ class TestScannerFix:
     @pytest.fixture
     def mock_streamlit(self):
         """Mock streamlit in all relevant modules."""
-        with patch("src.web.pages.ui.components.data_source_components.st") as mock_st_ds, patch(
-            "src.web.pages.ui.components.variable_editor.st"
-        ) as mock_st_ve, patch("src.web.pages.ui.components.upload_components.st") as mock_st_uc:
+        with (
+            patch("src.web.pages.ui.components.data_source_components.st") as mock_st_ds,
+            patch("src.web.pages.ui.components.variable_editor.st") as mock_st_ve,
+            patch("src.web.pages.ui.components.upload_components.st") as mock_st_uc,
+        ):
 
             # Configure common mocks for all of them to be the same magic mock
             # so we can set side effects on one and have it affect others if needed
@@ -197,25 +199,29 @@ class TestScannerFix:
             # Patch as_completed and Path.exists
             # Note: as_completed is now imported at module level, so patch it in the module
             # namespace
-            with patch(
-                "src.web.pages.ui.components.data_source_components.as_completed",
-                return_value=futures,
-            ), patch("pathlib.Path.exists", return_value=True):
+            with (
+                patch(
+                    "src.web.pages.ui.components.data_source_components.as_completed",
+                    return_value=futures,
+                ),
+                patch("pathlib.Path.exists", return_value=True),
+            ):
 
                 # Mock Streamlit objects
                 mock_progress = MagicMock()
                 mock_status = MagicMock()
 
-                with patch(
-                    "src.web.pages.ui.components.data_source_components.st.progress",
-                    return_value=mock_progress,
-                ), patch(
-                    "src.web.pages.ui.components.data_source_components.st.empty",
-                    return_value=mock_status,
-                ), patch(
-                    "src.web.pages.ui.components.data_source_components.st.write"
-                ), patch(
-                    "src.web.pages.ui.components.data_source_components.st.success"
+                with (
+                    patch(
+                        "src.web.pages.ui.components.data_source_components.st.progress",
+                        return_value=mock_progress,
+                    ),
+                    patch(
+                        "src.web.pages.ui.components.data_source_components.st.empty",
+                        return_value=mock_status,
+                    ),
+                    patch("src.web.pages.ui.components.data_source_components.st.write"),
+                    patch("src.web.pages.ui.components.data_source_components.st.success"),
                 ):
 
                     dsc_module.DataSourceComponents._show_parse_dialog(mock_api, batch, output_dir)

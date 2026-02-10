@@ -9,9 +9,10 @@ from src.web.pages.ui.components.upload_components import UploadComponents
 
 @pytest.fixture
 def mock_streamlit():
-    with patch("src.web.pages.ui.components.data_source_components.st") as mock_st_ds, patch(
-        "src.web.pages.ui.components.upload_components.st"
-    ) as mock_st_up:
+    with (
+        patch("src.web.pages.ui.components.data_source_components.st") as mock_st_ds,
+        patch("src.web.pages.ui.components.upload_components.st") as mock_st_up,
+    ):
 
         mock_st_ds.session_state = {}
         mock_st_up.session_state = {}
