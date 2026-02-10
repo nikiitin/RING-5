@@ -68,7 +68,7 @@ jobs:
 
       - name: Upload outdated list
         if: steps.outdated.outputs.outdated == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: outdated-dependencies
           path: outdated.txt
