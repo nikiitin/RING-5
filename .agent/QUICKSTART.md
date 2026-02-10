@@ -33,7 +33,7 @@ mypy src/
 
 ### 1. Adding a New Metric
 
-- Update the relevant `ParserStrategy` in `src/parsers/` to capture the new key.
+- Update the relevant `ParserStrategy` in `src/core/parsing/` to capture the new key.
 - Add a test case in `tests/integration/` with a sample `stats.txt` snippet.
 
 ### 2. Creating a New Plot

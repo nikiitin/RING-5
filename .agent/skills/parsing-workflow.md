@@ -222,6 +222,6 @@ if st.button("Parse Statistics"):
 
 ## References
 
-- Implementation: `src/parsers/parse_service.py`, `src/parsers/scanner_service.py`
+- Implementation: `src/core/parsing/parse_service.py`, `src/core/parsing/scanner_service.py`
 - Tests: `tests/integration/test_gem5_parsing.py`
 - UI Example: `src/web/ui/components/data_source_components.py`

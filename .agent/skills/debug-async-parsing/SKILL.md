@@ -52,7 +52,7 @@ for i, future in enumerate(futures):
 
    ```bash
    # Test Perl script directly
-   perl src/parsers/perl/parse_scalar.pl \
+   perl src/core/parsing/gem5/perl/fileParser.pl \
        --stats-file=data/stats.txt \
        --pattern="system.cpu.ipc" \
        --output-csv=test_output.csv
@@ -152,7 +152,7 @@ for i, result in enumerate(parse_results):
    import subprocess
 
    result = subprocess.run([
-       "perl", "src/parsers/perl/parse_scalar.pl",
+       "perl", "src/core/parsing/gem5/perl/fileParser.pl",
        "--stats-file=data/stats.txt",
        "--pattern=system.cpu.ipc",
        "--output-csv=debug_output.csv"
@@ -419,6 +419,6 @@ test_pattern(r"system\.cpu\d*\.ipc", test_lines)
 ## References
 
 - Async API Documentation: `src/web/facade.py`
-- Work Pool Implementation: `src/parsers/workers/work_pool.py`
-- Perl Parsers: `src/parsers/perl/`
+- Work Pool Implementation: `src/core/parsing/workers/work_pool.py`
+- Perl Parsers: `src/core/parsing/gem5/perl/`
 - Integration Tests: `tests/integration/test_gem5_parsing.py`

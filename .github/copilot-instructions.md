@@ -710,7 +710,7 @@ system.cpu\d+.numCycles [vector]
 - Users select ONE pattern to parse all matching components
 - Handles complex patterns: `system.ruby.l0_cntrl0` → `system.ruby.l\d+_cntrl\d+`
 
-**Implementation**: See `src/parsers/pattern_aggregator.py`
+**Implementation**: See `src/core/parsing/gem5/impl/scanning/pattern_aggregator.py`
 
 ## Gem5 Domain Knowledge
 

@@ -2,7 +2,7 @@
 
 > **Invoke with**: `/parsing-workflow`
 > **Purpose**: Standard process for implementing or modifying Gem5 parsers.
-> **Applies to**: `src/parsers/` changes.
+> **Applies to**: `src/core/parsing/` changes.
 
 ## Overview
 

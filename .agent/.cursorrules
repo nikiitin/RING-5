@@ -126,8 +126,8 @@ Location: .agent/skills/ and .agent/workflows/
 # === FILE LOCATIONS ===
 Entry: app.py
 Backend API: src/web/facade.py
-Async Services: src/parsers/{parse,scanner}_service.py
-Work Pools: src/parsers/workers/pool.py
+Async Services: src/core/parsing/{parse,scanner}_service.py
+Work Pools: src/core/parsing/workers/pool.py
 Plot Factory: src/plotting/plot_factory.py
 Shaper Factory: src/web/services/shapers/factory.py
 Skills: .agent/skills/*.md
