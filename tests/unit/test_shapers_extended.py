@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 
-from src.web.services.shapers.impl.mean import Mean
-from src.web.services.shapers.impl.transformer import Transformer
+from src.core.services.shapers.impl.mean import Mean
+from src.core.services.shapers.impl.transformer import Transformer
 
 
 class TestTransformer:

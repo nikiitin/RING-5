@@ -2,12 +2,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.web.ui.components.layout_components import LayoutComponents
+from src.web.pages.ui.components.layout_components import LayoutComponents
 
 
 @pytest.fixture
 def mock_streamlit():
-    with patch("src.web.ui.components.layout_components.st") as mock_st:
+    with patch("src.web.pages.ui.components.layout_components.st") as mock_st:
         # Mock columns to return list of mocks
         def columns_side_effect(spec, **kwargs):
             if isinstance(spec, int):

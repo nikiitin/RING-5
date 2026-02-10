@@ -8,7 +8,7 @@ application performance.
 import functools
 import logging
 import time
-from typing import Any, Callable, Dict, Optional, TypeVar
+from typing import Any, Callable, Dict, Optional, TypeVar, cast
 
 logger = logging.getLogger(__name__)
 
@@ -133,7 +133,7 @@ def cached(
             if cached_value is not None:
                 logger.debug(f"Cache HIT: {func.__name__} (key={cache_key[:32]}...)")
                 # Cache returns Any, but we trust it matches T
-                return cached_value  # type: ignore[no-any-return]
+                return cast(T, cached_value)
 
             # Compute and cache
             logger.debug(f"Cache MISS: {func.__name__} (key={cache_key[:32]}...)")
@@ -141,10 +141,10 @@ def cached(
             cache.set(cache_key, result)
             return result
 
-        # Attach cache management methods
-        wrapper.cache = cache  # type: ignore
-        wrapper.cache_clear = cache.clear  # type: ignore
-        wrapper.cache_stats = cache.stats  # type: ignore
+        # Attach cache management methods (dynamic attributes)
+        wrapper.cache = cache  # type: ignore[attr-defined]
+        wrapper.cache_clear = cache.clear  # type: ignore[attr-defined]
+        wrapper.cache_stats = cache.stats  # type: ignore[attr-defined]
 
         return wrapper
 

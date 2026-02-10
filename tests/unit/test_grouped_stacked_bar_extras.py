@@ -3,15 +3,18 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from src.plotting.types.grouped_stacked_bar_plot import GroupedStackedBarPlot
+from src.web.pages.ui.plotting.types.grouped_stacked_bar_plot import (
+    GroupedStackedBarPlot,
+)
 
 
 @pytest.fixture
 def mock_streamlit():
-    with patch("src.plotting.types.grouped_stacked_bar_plot.st") as mock_st_plot, patch(
-        "src.plotting.base_plot.st", mock_st_plot
-    ), patch("src.plotting.styles.base_ui.st", mock_st_plot), patch(
-        "src.plotting.styles.manager.StyleUIFactory"
+    with (
+        patch("src.web.pages.ui.plotting.types.grouped_stacked_bar_plot.st") as mock_st_plot,
+        patch("src.web.pages.ui.plotting.base_plot.st", mock_st_plot),
+        patch("src.web.pages.ui.plotting.styles.base_ui.st", mock_st_plot),
+        patch("src.web.pages.ui.plotting.styles.manager.StyleUIFactory"),
     ):  # Mock factory to avoid side effects if needed
 
         # Setup common mock behaviors

@@ -5,7 +5,7 @@ Tests CRUD operations, entry filtering, and aggregation logic.
 
 import pytest
 
-from src.web.services.variable_service import VariableService
+from src.core.services.data_services.variable_service import VariableService
 
 
 class TestGenerateVariableId:

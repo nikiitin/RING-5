@@ -3,7 +3,7 @@
 import pandas as pd
 import pytest
 
-from src.plotting import (
+from src.web.pages.ui.plotting import (
     BarPlot,
     BasePlot,
     GroupedBarPlot,

@@ -2,9 +2,11 @@ import pandas as pd
 import plotly.graph_objects as go
 import pytest
 
-from src.plotting.types.grouped_stacked_bar_plot import GroupedStackedBarPlot
-from src.plotting.types.line_plot import LinePlot
-from src.plotting.types.scatter_plot import ScatterPlot
+from src.web.pages.ui.plotting.types.grouped_stacked_bar_plot import (
+    GroupedStackedBarPlot,
+)
+from src.web.pages.ui.plotting.types.line_plot import LinePlot
+from src.web.pages.ui.plotting.types.scatter_plot import ScatterPlot
 
 
 @pytest.fixture
