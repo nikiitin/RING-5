@@ -70,7 +70,7 @@ pythonpath = ["."]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
-addopts = "-v --tb=short --strict-markers -n auto --cov=src --cov-report=term-missing --cov-branch"
+addopts = "-v --tb=short --strict-markers -n auto --cov=src --cov-report=term-missing --cov-branch --cov-fail-under=90"
 xfail_strict = true
 markers = [
   "requires_latex: Tests that require LaTeX installation",

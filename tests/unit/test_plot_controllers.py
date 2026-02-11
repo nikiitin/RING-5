@@ -737,3 +737,301 @@ class TestRenderControllerErrorResilience:
         mock_st.error.assert_called()
         # Chart container still rendered (with should_gen=False)
         mock_chart_display.render_chart.assert_called_once()
+
+
+# ─── Save / Load Dialog Tests ───────────────────────────────────────────────
+
+
+class TestHandleSaveDialog:
+    """Tests for PlotCreationController._handle_save_dialog."""
+
+    @patch("src.web.controllers.plot.creation_controller.st")
+    @patch("src.web.controllers.plot.creation_controller.SaveDialogPresenter")
+    def test_save_success(
+        self,
+        mock_presenter: MagicMock,
+        mock_st: MagicMock,
+        mock_api: MagicMock,
+        mock_ui_state: MagicMock,
+        mock_lifecycle: MagicMock,
+        mock_registry: MagicMock,
+    ) -> None:
+        """Successful save calls save_pipeline, toasts, and closes dialog."""
+        from src.web.controllers.plot.creation_controller import PlotCreationController
+
+        mock_presenter.render.return_value = {
+            "save_clicked": True,
+            "cancel_clicked": False,
+            "pipeline_name": "my_pipe",
+        }
+        plot: MagicMock = MagicMock()
+        plot.plot_id = 1
+        plot.name = "Plot"
+        plot.pipeline = [{"type": "rename"}]
+
+        controller = PlotCreationController(mock_api, mock_ui_state, mock_lifecycle, mock_registry)
+        controller._handle_save_dialog(plot)
+
+        mock_api.shapers.save_pipeline.assert_called_once_with(
+            "my_pipe", [{"type": "rename"}], description="Source: Plot"
+        )
+        mock_st.toast.assert_called_once()
+        mock_ui_state.plot.set_dialog_visible.assert_called_with(1, "save", False)
+        mock_st.rerun.assert_called_once()
+
+    @patch("src.web.controllers.plot.creation_controller.st")
+    @patch("src.web.controllers.plot.creation_controller.SaveDialogPresenter")
+    def test_save_error(
+        self,
+        mock_presenter: MagicMock,
+        mock_st: MagicMock,
+        mock_api: MagicMock,
+        mock_ui_state: MagicMock,
+        mock_lifecycle: MagicMock,
+        mock_registry: MagicMock,
+    ) -> None:
+        """Save failure shows st.error."""
+        from src.web.controllers.plot.creation_controller import PlotCreationController
+
+        mock_presenter.render.return_value = {
+            "save_clicked": True,
+            "cancel_clicked": False,
+            "pipeline_name": "bad",
+        }
+        mock_api.shapers.save_pipeline.side_effect = IOError("disk full")
+        plot: MagicMock = MagicMock()
+        plot.plot_id = 1
+        plot.name = "P"
+        plot.pipeline = []
+
+        controller = PlotCreationController(mock_api, mock_ui_state, mock_lifecycle, mock_registry)
+        controller._handle_save_dialog(plot)
+
+        mock_st.error.assert_called_once()
+
+    @patch("src.web.controllers.plot.creation_controller.st")
+    @patch("src.web.controllers.plot.creation_controller.SaveDialogPresenter")
+    def test_save_cancel(
+        self,
+        mock_presenter: MagicMock,
+        mock_st: MagicMock,
+        mock_api: MagicMock,
+        mock_ui_state: MagicMock,
+        mock_lifecycle: MagicMock,
+        mock_registry: MagicMock,
+    ) -> None:
+        """Cancel closes dialog."""
+        from src.web.controllers.plot.creation_controller import PlotCreationController
+
+        mock_presenter.render.return_value = {
+            "save_clicked": False,
+            "cancel_clicked": True,
+            "pipeline_name": "",
+        }
+        plot: MagicMock = MagicMock()
+        plot.plot_id = 5
+        plot.name = "P"
+
+        controller = PlotCreationController(mock_api, mock_ui_state, mock_lifecycle, mock_registry)
+        controller._handle_save_dialog(plot)
+
+        mock_ui_state.plot.set_dialog_visible.assert_called_with(5, "save", False)
+        mock_st.rerun.assert_called_once()
+
+
+class TestHandleLoadDialog:
+    """Tests for PlotCreationController._handle_load_dialog."""
+
+    @patch("src.web.controllers.plot.creation_controller.st")
+    @patch("src.web.controllers.plot.creation_controller.LoadDialogPresenter")
+    def test_empty_pipelines(
+        self,
+        mock_presenter: MagicMock,
+        mock_st: MagicMock,
+        mock_api: MagicMock,
+        mock_ui_state: MagicMock,
+        mock_lifecycle: MagicMock,
+        mock_registry: MagicMock,
+    ) -> None:
+        """When no pipelines, render_empty is called."""
+        from src.web.controllers.plot.creation_controller import PlotCreationController
+
+        mock_api.shapers.list_pipelines.return_value = []
+        mock_presenter.render_empty.return_value = {"close_clicked": False}
+
+        plot: MagicMock = MagicMock()
+        plot.plot_id = 1
+        plot.name = "P"
+
+        controller = PlotCreationController(mock_api, mock_ui_state, mock_lifecycle, mock_registry)
+        controller._handle_load_dialog(plot)
+
+        mock_presenter.render_empty.assert_called_once()
+        mock_presenter.render.assert_not_called()
+
+    @patch("src.web.controllers.plot.creation_controller.st")
+    @patch("src.web.controllers.plot.creation_controller.LoadDialogPresenter")
+    def test_empty_close(
+        self,
+        mock_presenter: MagicMock,
+        mock_st: MagicMock,
+        mock_api: MagicMock,
+        mock_ui_state: MagicMock,
+        mock_lifecycle: MagicMock,
+        mock_registry: MagicMock,
+    ) -> None:
+        """Close on empty dialog hides load dialog."""
+        from src.web.controllers.plot.creation_controller import PlotCreationController
+
+        mock_api.shapers.list_pipelines.return_value = []
+        mock_presenter.render_empty.return_value = {"close_clicked": True}
+
+        plot: MagicMock = MagicMock()
+        plot.plot_id = 3
+        plot.name = "P"
+
+        controller = PlotCreationController(mock_api, mock_ui_state, mock_lifecycle, mock_registry)
+        controller._handle_load_dialog(plot)
+
+        mock_ui_state.plot.set_dialog_visible.assert_called_with(3, "load", False)
+        mock_st.rerun.assert_called_once()
+
+    @patch("src.web.controllers.plot.creation_controller.st")
+    @patch("src.web.controllers.plot.creation_controller.LoadDialogPresenter")
+    def test_load_success(
+        self,
+        mock_presenter: MagicMock,
+        mock_st: MagicMock,
+        mock_api: MagicMock,
+        mock_ui_state: MagicMock,
+        mock_lifecycle: MagicMock,
+        mock_registry: MagicMock,
+    ) -> None:
+        """Successful load replaces pipeline and clears processed_data."""
+        from src.web.controllers.plot.creation_controller import PlotCreationController
+
+        pipelines = ["pipe_alpha"]
+        mock_api.shapers.list_pipelines.return_value = pipelines
+        mock_api.shapers.load_pipeline.return_value = {
+            "pipeline": [{"type": "rename", "mapping": {"a": "b"}}]
+        }
+        mock_presenter.render.return_value = {
+            "load_clicked": True,
+            "cancel_clicked": False,
+            "selected_pipeline": "pipe_alpha",
+        }
+
+        plot: MagicMock = MagicMock()
+        plot.plot_id = 2
+        plot.name = "P"
+        plot.pipeline = []
+        plot.pipeline_counter = 0
+        plot.processed_data = "old"
+
+        controller = PlotCreationController(mock_api, mock_ui_state, mock_lifecycle, mock_registry)
+        controller._handle_load_dialog(plot)
+
+        assert plot.pipeline == [{"type": "rename", "mapping": {"a": "b"}}]
+        assert plot.pipeline_counter == 1
+        assert plot.processed_data is None
+        mock_st.toast.assert_called_once()
+        mock_ui_state.plot.set_dialog_visible.assert_called_with(2, "load", False)
+
+    @patch("src.web.controllers.plot.creation_controller.st")
+    @patch("src.web.controllers.plot.creation_controller.LoadDialogPresenter")
+    def test_load_error(
+        self,
+        mock_presenter: MagicMock,
+        mock_st: MagicMock,
+        mock_api: MagicMock,
+        mock_ui_state: MagicMock,
+        mock_lifecycle: MagicMock,
+        mock_registry: MagicMock,
+    ) -> None:
+        """Load failure shows st.error."""
+        from src.web.controllers.plot.creation_controller import PlotCreationController
+
+        mock_api.shapers.list_pipelines.return_value = ["pipe"]
+        mock_api.shapers.load_pipeline.side_effect = ValueError("corrupt")
+        mock_presenter.render.return_value = {
+            "load_clicked": True,
+            "cancel_clicked": False,
+            "selected_pipeline": "pipe",
+        }
+
+        plot: MagicMock = MagicMock()
+        plot.plot_id = 1
+        plot.name = "P"
+
+        controller = PlotCreationController(mock_api, mock_ui_state, mock_lifecycle, mock_registry)
+        controller._handle_load_dialog(plot)
+
+        mock_st.error.assert_called_once()
+
+    @patch("src.web.controllers.plot.creation_controller.st")
+    @patch("src.web.controllers.plot.creation_controller.LoadDialogPresenter")
+    def test_load_cancel(
+        self,
+        mock_presenter: MagicMock,
+        mock_st: MagicMock,
+        mock_api: MagicMock,
+        mock_ui_state: MagicMock,
+        mock_lifecycle: MagicMock,
+        mock_registry: MagicMock,
+    ) -> None:
+        """Cancel closes dialog."""
+        from src.web.controllers.plot.creation_controller import PlotCreationController
+
+        mock_api.shapers.list_pipelines.return_value = ["pipe"]
+        mock_presenter.render.return_value = {
+            "load_clicked": False,
+            "cancel_clicked": True,
+            "selected_pipeline": "pipe",
+        }
+
+        plot: MagicMock = MagicMock()
+        plot.plot_id = 4
+        plot.name = "P"
+
+        controller = PlotCreationController(mock_api, mock_ui_state, mock_lifecycle, mock_registry)
+        controller._handle_load_dialog(plot)
+
+        mock_ui_state.plot.set_dialog_visible.assert_called_with(4, "load", False)
+        mock_st.rerun.assert_called_once()
+
+
+class TestDuplicateAction:
+    """Tests for render_controls duplicate action."""
+
+    @patch("src.web.controllers.plot.creation_controller.st")
+    @patch("src.web.controllers.plot.creation_controller.PlotControlsPresenter")
+    def test_duplicate_calls_lifecycle(
+        self,
+        mock_presenter: MagicMock,
+        mock_st: MagicMock,
+        mock_api: MagicMock,
+        mock_ui_state: MagicMock,
+        mock_lifecycle: MagicMock,
+        mock_registry: MagicMock,
+    ) -> None:
+        """Duplicate action calls lifecycle.duplicate_plot and reruns."""
+        from src.web.controllers.plot.creation_controller import PlotCreationController
+
+        mock_presenter.render.return_value = {
+            "new_name": "Plot",
+            "save_clicked": False,
+            "load_clicked": False,
+            "delete_clicked": False,
+            "duplicate_clicked": True,
+        }
+        mock_ui_state.plot.is_dialog_visible.return_value = False
+
+        plot: MagicMock = MagicMock()
+        plot.plot_id = 10
+        plot.name = "Plot"
+
+        controller = PlotCreationController(mock_api, mock_ui_state, mock_lifecycle, mock_registry)
+        controller.render_controls(plot)
+
+        mock_lifecycle.duplicate_plot.assert_called_once_with(plot, mock_api.state_manager)
+        mock_st.rerun.assert_called()
