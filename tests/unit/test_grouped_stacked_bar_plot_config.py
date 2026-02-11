@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pandas as pd
 import pytest
@@ -6,6 +6,7 @@ import pytest
 from src.web.pages.ui.plotting.types.grouped_stacked_bar_plot import (
     GroupedStackedBarPlot,
 )
+from tests.conftest import columns_side_effect
 
 
 @pytest.fixture
@@ -15,11 +16,6 @@ def mock_streamlit():
         patch("src.web.pages.ui.components.plot_config_components.st", mock_st),
     ):
         mock_st.session_state = {}
-
-        def columns_side_effect(spec, **kwargs):
-            if isinstance(spec, int):
-                return [MagicMock() for _ in range(spec)]
-            return [MagicMock()]
 
         mock_st.columns.side_effect = columns_side_effect
 

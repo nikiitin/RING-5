@@ -14,7 +14,7 @@ from src.web.pages.ui.plotting.export.converters.impl.matplotlib_converter impor
     MatplotlibConverter,
 )
 from src.web.pages.ui.plotting.export.presets.preset_manager import PresetManager
-from tests.fixtures.sample_figures import (
+from tests.helpers.sample_figures import (
     create_figure_with_custom_legend,
     create_figure_with_log_scale,
     create_figure_with_zoom,

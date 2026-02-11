@@ -3,7 +3,11 @@ Comprehensive UI tests for the Data Source page.
 Tests file selection, variable configuration, and parsing workflow.
 """
 
+from pathlib import Path
+
 from streamlit.testing.v1 import AppTest
+
+_APP_PATH = str(Path(__file__).parents[2] / "app.py")
 
 
 class TestDataSourcePage:
@@ -11,7 +15,7 @@ class TestDataSourcePage:
 
     def test_page_loads(self):
         """Test that Data Source page loads without error."""
-        at = AppTest.from_file("app.py", default_timeout=10)
+        at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
 
         # Navigate to Data Source
@@ -21,7 +25,7 @@ class TestDataSourcePage:
 
     def test_data_source_options_present(self):
         """Test that data source options are available."""
-        at = AppTest.from_file("app.py", default_timeout=10)
+        at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
 
         at.sidebar.radio[0].set_value("Data Source").run()
@@ -29,7 +33,7 @@ class TestDataSourcePage:
 
     def test_interaction_tabs(self):
         """Test interaction with Data Source interaction tabs/radios."""
-        at = AppTest.from_file("app.py", default_timeout=10)
+        at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
         at.sidebar.radio[0].set_value("Data Source").run()
 
@@ -49,14 +53,14 @@ class TestUploadDataPage:
 
     def test_page_loads(self):
         """Test that Upload Data page loads without error."""
-        at = AppTest.from_file("app.py", default_timeout=10)
+        at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
         at.sidebar.radio[0].set_value("Upload Data").run()
         assert not at.exception
 
     def test_upload_tabs(self):
         """Test interaction with Upload Data tabs."""
-        at = AppTest.from_file("app.py", default_timeout=10)
+        at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
         at.sidebar.radio[0].set_value("Upload Data").run()
 
@@ -74,21 +78,21 @@ class TestDataManagersPage:
 
     def test_page_loads(self):
         """Test that Data Managers page loads."""
-        at = AppTest.from_file("app.py", default_timeout=10)
+        at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
         at.sidebar.radio[0].set_value("Data Managers").run()
         assert not at.exception
 
     def test_page_renders_tabs(self):
         """Test that Data Managers page has tabs for different managers."""
-        at = AppTest.from_file("app.py", default_timeout=10)
+        at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
         at.sidebar.radio[0].set_value("Data Managers").run()
         assert not at.exception
 
     def test_no_data_message(self):
         """Test that appropriate message is shown when no data loaded."""
-        at = AppTest.from_file("app.py", default_timeout=10)
+        at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
         at.sidebar.radio[0].set_value("Data Managers").run()
         assert not at.exception
@@ -99,14 +103,14 @@ class TestManagePlotsPage:
 
     def test_page_loads(self):
         """Test that Manage Plots page loads."""
-        at = AppTest.from_file("app.py", default_timeout=10)
+        at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
         at.sidebar.radio[0].set_value("Manage Plots").run()
         assert not at.exception
 
     def test_create_plot_interaction(self):
         """Test interacting with Create Plot section."""
-        at = AppTest.from_file("app.py", default_timeout=10)
+        at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
         at.sidebar.radio[0].set_value("Manage Plots").run()
 
@@ -122,14 +126,14 @@ class TestPortfolioPage:
 
     def test_page_loads(self):
         """Test that Portfolio page loads."""
-        at = AppTest.from_file("app.py", default_timeout=10)
+        at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
         at.sidebar.radio[0].set_value("Save/Load Portfolio").run()
         assert not at.exception
 
     def test_page_renders_content(self):
         """Test that Portfolio page renders content."""
-        at = AppTest.from_file("app.py", default_timeout=10)
+        at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
         at.sidebar.radio[0].set_value("Save/Load Portfolio").run()
         assert not at.exception
@@ -140,7 +144,7 @@ class TestNavigation:
 
     def test_navigate_through_all_pages(self):
         """Test navigating through all pages in order."""
-        at = AppTest.from_file("app.py", default_timeout=10)
+        at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
 
         pages = [
@@ -157,7 +161,7 @@ class TestNavigation:
 
     def test_navigate_back_and_forth(self):
         """Test navigating back and forth between pages."""
-        at = AppTest.from_file("app.py", default_timeout=10)
+        at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
 
         at.sidebar.radio[0].set_value("Manage Plots").run()
@@ -175,18 +179,18 @@ class TestSidebarElements:
 
     def test_sidebar_has_navigation(self):
         """Test that sidebar contains navigation radio."""
-        at = AppTest.from_file("app.py", default_timeout=10)
+        at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
         assert len(at.sidebar.radio) > 0
 
     def test_clear_button_present(self):
         """Test that clear data button is present."""
-        at = AppTest.from_file("app.py", default_timeout=10)
+        at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
         assert len(at.sidebar.button) > 0 or not at.exception
 
     def test_sidebar_title(self):
         """Test that sidebar has title."""
-        at = AppTest.from_file("app.py", default_timeout=10)
+        at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
         assert len(at.sidebar.markdown) > 0 or not at.exception

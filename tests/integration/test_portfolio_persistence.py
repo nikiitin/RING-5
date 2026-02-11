@@ -1,23 +1,26 @@
+from unittest.mock import patch
+
 import pandas as pd
 import pytest
 
-from src.core.services.data_services.path_service import PathService
 from src.core.services.data_services.portfolio_service import PortfolioService
 from src.core.state.repository_state_manager import RepositoryStateManager
 
 
 @pytest.fixture
-def clean_portfolio_env():
-    # Setup
-    state_manager = RepositoryStateManager()
-    portfolio_service = PortfolioService(state_manager)
+def clean_portfolio_env(tmp_path):
+    """Create isolated portfolio environment using tmp_path instead of real .ring5/."""
+    portfolios_dir = tmp_path / "portfolios"
+    portfolios_dir.mkdir(parents=True, exist_ok=True)
 
-    # Ensure portfolio dir exists
-    PathService.get_portfolios_dir().mkdir(parents=True, exist_ok=True)
-    yield state_manager, portfolio_service
-
-    # Teardown: Remove test portfolio
-    portfolio_service.delete_portfolio("test_persistence")
+    with patch(
+        "src.core.services.data_services.path_service.PathService.get_portfolios_dir",
+        return_value=portfolios_dir,
+    ):
+        state_manager = RepositoryStateManager()
+        portfolio_service = PortfolioService(state_manager)
+        yield state_manager, portfolio_service
+        # Teardown: tmp_path cleanup is automatic
 
 
 def test_stats_config_persistence(clean_portfolio_env, tmp_path):
