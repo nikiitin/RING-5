@@ -6,8 +6,6 @@ Run: pytest tests/test_basic.py -v
 import json
 from pathlib import Path
 
-import pytest
-
 from src.core.models.config.config_manager import ConfigTemplateGenerator, ConfigValidator
 
 
@@ -126,13 +124,4 @@ def test_example_config_validity():
         validator = ConfigValidator()
         errors = validator.get_errors(config)
 
-        if errors:
-            print("Validation errors:")
-            for error in errors:
-                print(f"  {error}")
-
         assert len(errors) == 0, "Example configuration should be valid"
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])

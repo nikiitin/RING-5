@@ -195,3 +195,154 @@ def test_different_normalizer_vars():
     # metric normalized: 100/10 = 10, 200/10 = 20
     assert result["metric"].iloc[0] == 10.0
     assert result["metric"].iloc[1] == 20.0
+
+
+# ─── Additional Coverage Tests ──────────────────────────────────────────────
+
+
+class TestValidateInitTypes:
+    """Tests for _validate_init_types — type validation at construction."""
+
+    def test_normalize_vars_must_be_list(self) -> None:
+        with pytest.raises(TypeError, match="normalizeVars must be a list"):
+            Normalize(
+                {
+                    "normalizeVars": "metric",  # should be list
+                    "normalizerColumn": "config",
+                    "normalizerValue": "baseline",
+                    "groupBy": ["bench"],
+                }
+            )
+
+    def test_group_by_must_be_list(self) -> None:
+        with pytest.raises(TypeError, match="groupBy must be a list"):
+            Normalize(
+                {
+                    "normalizeVars": ["metric"],
+                    "normalizerColumn": "config",
+                    "normalizerValue": "baseline",
+                    "groupBy": "bench",  # should be list
+                }
+            )
+
+    def test_normalizer_column_must_be_string(self) -> None:
+        with pytest.raises(TypeError, match="normalizerColumn must be a string"):
+            Normalize(
+                {
+                    "normalizeVars": ["metric"],
+                    "normalizerColumn": 123,  # should be str
+                    "normalizerValue": "baseline",
+                    "groupBy": ["bench"],
+                }
+            )
+
+    def test_normalize_sd_must_be_bool(self) -> None:
+        with pytest.raises(TypeError, match="normalizeSd must be a boolean"):
+            Normalize(
+                {
+                    "normalizeVars": ["metric"],
+                    "normalizerColumn": "config",
+                    "normalizerValue": "baseline",
+                    "groupBy": ["bench"],
+                    "normalizeSd": "yes",  # should be bool
+                }
+            )
+
+
+class TestNormalizeSdDisabled:
+    """Test that normalizeSd=False leaves .sd columns untouched."""
+
+    def test_sd_columns_not_normalized(self) -> None:
+        df = pd.DataFrame(
+            {
+                "config": ["baseline", "test", "baseline", "test"],
+                "bench": ["b1", "b1", "b2", "b2"],
+                "metric": [10.0, 20.0, 50.0, 25.0],
+                "metric.sd": [1.0, 2.0, 5.0, 2.5],
+            }
+        )
+        n = Normalize(
+            {
+                "normalizeVars": ["metric"],
+                "normalizerColumn": "config",
+                "normalizerValue": "baseline",
+                "groupBy": ["bench"],
+                "normalizeSd": False,
+            }
+        )
+        result = n(df)
+        # .sd columns should remain unchanged
+        np.testing.assert_array_equal(result["metric.sd"].values, [1.0, 2.0, 5.0, 2.5])
+
+
+class TestComputeDataFingerprint:
+    """Tests for _compute_data_fingerprint."""
+
+    def test_returns_string(self) -> None:
+        df = pd.DataFrame({"config": ["a"], "bench": ["b"], "metric": [1.0]})
+        params = {
+            "normalizeVars": ["metric"],
+            "normalizerColumn": "config",
+            "groupBy": ["bench"],
+        }
+        fp = Normalize._compute_data_fingerprint(df, params)
+        assert isinstance(fp, str)
+        assert len(fp) == 16  # md5 hex[:16]
+
+    def test_same_data_same_fingerprint(self) -> None:
+        df = pd.DataFrame({"config": ["a", "b"], "bench": ["b1", "b1"], "m": [1.0, 2.0]})
+        params = {"normalizeVars": ["m"], "normalizerColumn": "config", "groupBy": ["bench"]}
+        fp1 = Normalize._compute_data_fingerprint(df, params)
+        fp2 = Normalize._compute_data_fingerprint(df, params)
+        assert fp1 == fp2
+
+    def test_different_data_different_fingerprint(self) -> None:
+        df1 = pd.DataFrame({"config": ["a"], "bench": ["b"], "m": [1.0]})
+        df2 = pd.DataFrame({"config": ["a"], "bench": ["b"], "m": [2.0]})
+        params = {"normalizeVars": ["m"], "normalizerColumn": "config", "groupBy": ["bench"]}
+        fp1 = Normalize._compute_data_fingerprint(df1, params)
+        fp2 = Normalize._compute_data_fingerprint(df2, params)
+        assert fp1 != fp2
+
+
+class TestVerifyPreconditionsEdgeCases:
+    """Additional edge cases for _verify_preconditions."""
+
+    def test_baseline_value_not_found(self) -> None:
+        """When normalizerValue doesn't exist in the column."""
+        df = pd.DataFrame(
+            {
+                "config": ["test", "test"],
+                "bench": ["b1", "b1"],
+                "metric": [10.0, 20.0],
+            }
+        )
+        n = Normalize(
+            {
+                "normalizeVars": ["metric"],
+                "normalizerColumn": "config",
+                "normalizerValue": "baseline",  # not in data
+                "groupBy": ["bench"],
+            }
+        )
+        with pytest.raises(ValueError, match="not found"):
+            n._verify_preconditions(df)
+
+    def test_normalizer_column_not_found(self) -> None:
+        """When normalizerColumn doesn't exist in DataFrame."""
+        df = pd.DataFrame(
+            {
+                "bench": ["b1"],
+                "metric": [10.0],
+            }
+        )
+        n = Normalize(
+            {
+                "normalizeVars": ["metric"],
+                "normalizerColumn": "missing_col",
+                "normalizerValue": "baseline",
+                "groupBy": ["bench"],
+            }
+        )
+        with pytest.raises(ValueError, match="not found"):
+            n._verify_preconditions(df)

@@ -7,6 +7,7 @@ from src.core.application_api import ApplicationAPI
 from src.web.pages.ui.components.data_source_components import DataSourceComponents
 from src.web.pages.ui.components.upload_components import UploadComponents
 from src.web.pages.ui.components.variable_editor import VariableEditor
+from tests.conftest import columns_side_effect
 
 
 class TestScannerFix:
@@ -35,14 +36,6 @@ class TestScannerFix:
 
             # Let's make them share the same underlying mock for simplicity in setting side effects
             mock_st = MagicMock()
-
-            # Side effect for columns to return correct number of items
-            def columns_side_effect(spec, **kwargs):
-                if isinstance(spec, int):
-                    count = spec
-                else:
-                    count = len(spec)
-                return [MagicMock() for _ in range(count)]
 
             # Helper to link the patches to our central mock
             for m in [mock_st_ds, mock_st_ve, mock_st_uc]:

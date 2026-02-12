@@ -42,7 +42,6 @@ class TestGem5Parsing:
 
         # Check for common gem5 stats
         var_names = [v.name for v in variables]
-        print(f"Discovered variables: {var_names[:10]}...")
 
         # We expect at least some standard stats (simTicks or other common gem5 vars)
         # Some test data may have different variable names, so check for multiple options
@@ -82,8 +81,6 @@ class TestGem5Parsing:
             # Fallback if specific names not found
             selected_vars = [v for v in all_variables if v.type == "scalar"][:5]
 
-        print(f"Selected variables for parsing: {[v.name for v in selected_vars]}")
-
         # 3. Run Parser
         batch = facade.submit_parse_async(
             stats_path=str(self.TEST_DATA_DIR),
@@ -109,9 +106,6 @@ class TestGem5Parsing:
 
         # 4. Verify CSV content
         df = pd.read_csv(csv_path)
-
-        print(f"Parsed DataFrame Shape: {df.shape}")
-        print(df.head())
 
         # Check Dimensions
         assert len(df) > 0

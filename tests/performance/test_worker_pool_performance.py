@@ -12,6 +12,8 @@ from src.core.parsing.gem5.impl.strategies.perl_worker_pool import (
     shutdown_worker_pool,
 )
 
+pytestmark = pytest.mark.xdist_group("perl_pool")
+
 
 @pytest.fixture
 def test_stats_file() -> Path:
@@ -214,7 +216,3 @@ def test_worker_pool_memory_efficiency(test_stats_file: Path):
     assert stats["healthy_workers"] == 2, "Workers should remain healthy"
     assert stats["total_errors"] == 0, f"Should have no errors, got {stats['total_errors']}"
     assert stats["total_restarts"] == 0, f"Should have no restarts, got {stats['total_restarts']}"
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v", "-s"])

@@ -38,14 +38,13 @@ dev = [
   "pytest-cov>=7.0.0",
   "pytest-xdist>=3.6.1",
   "pytest-benchmark>=4.0.0",
-  "pytest-bdd>=7.1.0",
   "hypothesis>=6.98.0",
-  "tox>=4.14.0",
   "black>=26.1.0",
   "flake8>=7.3.0",
   "flake8-pyproject>=1.2.0",
   "mypy>=1.13.0",
   "pre-commit>=4.5.0",
+  "pytest-randomly>=3.16.0",
   "pandas-stubs>=2.2.3.240909",
   "types-jsonschema>=4.23.0.20240813",
   "types-tqdm>=4.67.0.20250809",
@@ -66,12 +65,12 @@ py-modules = ["argumentParser", "ring5"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-norecursedirs = ["tests/tests_principle_compliance"]
+norecursedirs = ["tests/tests_principle_compliance", "tests/manual", "tests/data"]
 pythonpath = ["."]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
-addopts = "-v --tb=short --strict-markers"
+addopts = "-v --tb=short --strict-markers -n auto --dist loadgroup --cov=src --cov-report=term-missing --cov-branch --cov-fail-under=90"
 xfail_strict = true
 markers = [
   "requires_latex: Tests that require LaTeX installation",
@@ -80,6 +79,7 @@ markers = [
   "smoke: Quick smoke tests",
   "data_value: Inject data value into fixtures",
   "slow: Marks tests as slow (deselect with '-m \"not slow\"')",
+  "xdist_group: Group tests to run on the same xdist worker",
 ]
 
 [tool.black]

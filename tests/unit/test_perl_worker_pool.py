@@ -19,6 +19,8 @@ from src.core.parsing.gem5.impl.strategies.perl_worker_pool import (
     shutdown_worker_pool,
 )
 
+pytestmark = pytest.mark.xdist_group("perl_pool")
+
 # Enable debug logging for tests
 logging.basicConfig(level=logging.DEBUG)
 
@@ -245,10 +247,9 @@ class TestWorkerPoolIntegration:
 
         start = time.time()
         result = pool.parse_file(str(test_stats_file), ["system.cpu.numCycles"])
-        pool_time = time.time() - start
+        _ = time.time() - start
 
         assert len(result) > 0
-        print(f"Pool time: {pool_time:.3f}s")
 
         shutdown_worker_pool()
 
@@ -301,7 +302,3 @@ class TestErrorHandling:
                 pool.parse_file("/tmp/test.txt", ["var"], timeout=2.0)
         finally:
             pool.shutdown()
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v", "-s"])

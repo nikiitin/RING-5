@@ -1,10 +1,11 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pandas as pd
 import plotly.graph_objects as go
 import pytest
 
 from src.web.pages.ui.plotting.styles import StyleManager
+from tests.conftest import columns_side_effect
 
 
 @pytest.fixture
@@ -16,14 +17,6 @@ def style_manager():
 def mock_streamlit():
     with patch("src.web.pages.ui.plotting.styles.base_ui.st") as mock_st:
         mock_st.session_state = {}
-
-        # Mock columns
-        def columns_side_effect(spec, **kwargs):
-            if isinstance(spec, int):
-                return [MagicMock() for _ in range(spec)]
-            elif isinstance(spec, (list, tuple)):
-                return [MagicMock() for _ in range(len(spec))]
-            return [MagicMock()]
 
         mock_st.columns.side_effect = columns_side_effect
         yield mock_st

@@ -17,6 +17,7 @@ from src.web.pages.ui.components.shapers.selector_transformer_configs import (
     ConditionSelectorConfig,
     TransformerConfig,
 )
+from src.web.pages.ui.components.shapers.sort_config import SortConfig
 
 logger = logging.getLogger(__name__)
 
@@ -27,12 +28,14 @@ SHAPER_TYPE_MAP = {
     "Mean Calculator": "mean",
     "Filter": "conditionSelector",
     "Transformer": "transformer",
+    "Sort": "sort",
     # Reverse mapping for compatibility
     "columnSelector": "Column Selector",
     "normalize": "Normalize",
     "mean": "Mean Calculator",
     "conditionSelector": "Filter",
     "transformer": "Transformer",
+    "sort": "Sort",
 }
 
 # Required parameters for each shaper type
@@ -44,6 +47,7 @@ SHAPER_REQUIRED_PARAMS = {
     "columnSelector": ["columns"],
     "conditionSelector": ["column"],  # Only 'column' is always required
     "transformer": ["column"],  # Only 'column' is always required
+    "sort": ["order_dict"],
 }
 
 
@@ -108,6 +112,7 @@ def configure_shaper(
         "mean": MeanConfig.render,
         "conditionSelector": ConditionSelectorConfig.render,
         "transformer": TransformerConfig.render,
+        "sort": SortConfig.render,
     }
 
     if shaper_type in config_dispatch:

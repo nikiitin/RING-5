@@ -9,28 +9,61 @@ Comprehensive guide to testing in RING-5.
 
 ## Overview
 
-RING-5 uses pytest for all testing with three test levels:
+RING-5 uses pytest for all testing with four test levels:
 
-- **Unit Tests**: Individual functions and classes
-- **Integration Tests**: Component interactions
-- **E2E Tests**: Full application workflows
+- **Unit Tests** (`tests/unit/`): Individual functions, classes, and modules in isolation
+- **UI Unit Tests** (`tests/ui_unit/`): Streamlit UI components tested with mocked `st` module
+- **Integration Tests** (`tests/integration/`): Component interactions and end-to-end workflows
+- **Performance Tests** (`tests/performance/`): Benchmark and regression tests
 
-**Current Coverage**: 77% (target: 80%+)
+**Current Baseline**: 1344 tests passing, 17 skipped
 
 ## Test Structure
 
 ```text
 tests/
-├── unit/                   # Unit tests
-│   ├── test_shapers.py
-│   ├── test_parsers.py
-│   └── test_plot_types.py
-├── integration/            # Integration tests
-│   ├── test_data_pipeline.py
-│   ├── test_parser_workflow.py
-│   └── test_transformation_pipeline.py
-└── e2e/                    # End-to-end tests
-    └── test_user_journeys.py
+├── conftest.py              # Root conftest — shared helpers & fixtures
+├── __init__.py
+├── unit/                    # Pure unit tests (~65+ files)
+│   ├── conftest.py
+│   ├── __init__.py
+│   ├── export/              # LaTeX export tests
+│   │   ├── conftest.py      # requires_xelatex marker
+│   │   ├── __init__.py
+│   │   └── converters/
+│   │       └── __init__.py
+│   ├── test_base_plot.py
+│   ├── test_shapers_extended.py
+│   └── ...
+├── ui_unit/                 # Streamlit UI unit tests (mocked st)
+│   ├── conftest.py
+│   ├── __init__.py
+│   ├── test_plot_manager_logic.py
+│   ├── test_data_source_extras.py
+│   └── ...
+├── integration/             # Integration tests
+│   ├── conftest.py
+│   ├── __init__.py
+│   ├── test_transformation_pipeline.py
+│   ├── test_e2e_managers_shapers.py
+│   └── ...
+├── performance/             # Performance benchmarks
+│   ├── conftest.py
+│   ├── __init__.py
+│   └── test_worker_pool_performance.py
+├── ui/                      # Streamlit AppTest E2E tests
+│   ├── __init__.py
+│   ├── test_pages.py
+│   └── test_ui_sanity.py
+├── helpers/                 # Reusable test helper functions
+│   └── sample_figures.py    # Plotly figure factories for export tests
+├── data/                    # Test data files (excluded from collection)
+│   └── mock/                # Mock gem5 data for integration tests
+│       ├── inputs/
+│       ├── expects/
+│       └── config_files/
+└── manual/                  # Manual visual tests (excluded from collection)
+    └── test_histogram_visual.py
 ```
 
 ## Running Tests
@@ -43,16 +76,19 @@ make test
 pytest
 ```
 
-### Specific Test File
+### Specific Test Directory
 
 ```bash
-pytest tests/unit/test_shapers.py -v
+pytest tests/unit/ -v
+pytest tests/ui_unit/ -v
+pytest tests/integration/ -v
 ```
 
-### Specific Test Function
+### Specific Test File or Function
 
 ```bash
-pytest tests/unit/test_shapers.py::test_rename_basic -v
+pytest tests/unit/test_shapers_extended.py -v
+pytest tests/unit/test_shapers_extended.py::test_rename_basic -v
 ```
 
 ### With Coverage
@@ -62,26 +98,79 @@ pytest --cov=src --cov-report=html tests/
 # Open htmlcov/index.html
 ```
 
-### Watch Mode
+### Excluding Slow Tests
 
 ```bash
-pytest-watch
-# Re-runs tests on file changes
+pytest -m "not slow" tests/
+pytest -m "not benchmark" tests/
 ```
 
-## Writing Unit Tests
+## Shared Fixtures (conftest.py)
 
-### Test Template
+### Root Conftest (`tests/conftest.py`)
+
+Provides utilities shared across **all** test directories:
+
+```python
+from tests.conftest import columns_side_effect
+
+# columns_side_effect — Mocks st.columns() behavior
+# Returns a list of MagicMock objects matching the spec (int or list/tuple)
+
+# mock_api — Basic ApplicationAPI mock with state_manager
+# Automatically available to all tests via pytest fixture injection
+```
+
+### Usage in Test Files
+
+**Using `columns_side_effect`** (import the helper function):
+
+```python
+from tests.conftest import columns_side_effect
+
+@pytest.fixture
+def mock_streamlit():
+    with patch("src.web.pages.ui.components.my_module.st") as mock_st:
+        mock_st.columns.side_effect = columns_side_effect
+        yield mock_st
+```
+
+**Using `mock_api`** (auto-discovered by pytest):
+
+```python
+def test_something(mock_api):
+    # mock_api has: api.state_manager = MagicMock()
+    mock_api.state_manager.get_data.return_value = some_data
+    ...
+```
+
+**Overriding `mock_api`** for extended wiring:
+
+```python
+@pytest.fixture
+def mock_api():
+    """Extended mock with backend and portfolio."""
+    api = MagicMock()
+    api.state_manager = MagicMock()
+    api.backend = MagicMock()
+    api.portfolio = MagicMock()
+    return api
+```
+
+## Writing Tests
+
+### Unit Test Template
 
 ```python
 import pytest
 import pandas as pd
+
 from src.module.my_class import MyClass
 
 
 @pytest.fixture
 def sample_data():
-    """Fixture providing sample data."""
+    """Fixture providing sample data specific to this test file."""
     return pd.DataFrame({
         "col1": [1, 2, 3],
         "col2": ["a", "b", "c"]
@@ -92,270 +181,149 @@ class TestMyClass:
     """Test suite for MyClass."""
 
     def test_initialization(self):
-        """Test class initialization."""
         obj = MyClass(param=123)
         assert obj.param == 123
 
     def test_basic_operation(self, sample_data):
-        """Test basic operation."""
         obj = MyClass()
         result = obj.process(sample_data)
-
         assert isinstance(result, pd.DataFrame)
         assert len(result) == 3
 
     def test_error_handling(self):
-        """Test error conditions."""
         obj = MyClass()
-
         with pytest.raises(ValueError):
             obj.process(None)
 ```
 
-### Best Practices
+### UI Unit Test Template
 
-1. **One Assertion Per Test**: Focus tests narrowly
-2. **Use Fixtures**: Avoid code duplication
-3. **Test Edge Cases**: Empty data, nulls, extremes
-4. **Test Errors**: Verify exceptions raised
-5. **Descriptive Names**: `test_normalize_to_baseline_success`
+```python
+from unittest.mock import MagicMock, patch
 
-## Writing Integration Tests
+import pytest
+
+from src.web.pages.ui.components.my_component import MyComponent
+from tests.conftest import columns_side_effect
+
+
+@pytest.fixture
+def mock_streamlit():
+    with patch("src.web.pages.ui.components.my_component.st") as mock_st:
+        mock_st.session_state = {}
+        mock_st.columns.side_effect = columns_side_effect
+        yield mock_st
+
+
+def test_render_component(mock_streamlit, mock_api):
+    MyComponent.render(mock_api)
+    mock_streamlit.markdown.assert_called()
+```
 
 ### Integration Test Template
 
 ```python
 import pytest
-from pathlib import Path
-from src.web.facade import BackendFacade
+import pandas as pd
+
+from src.core.application_api import ApplicationAPI
 
 
 @pytest.fixture
 def facade():
-    return BackendFacade()
+    return ApplicationAPI()
 
 
 class TestDataPipeline:
-    """Integration tests for data pipeline."""
-
     def test_parse_and_load_workflow(self, facade, tmp_path):
-        """Test complete parse → load workflow."""
-        # Setup: Create test data
         stats_file = tmp_path / "stats.txt"
-        stats_file.write_text("simTicks 1000\nsystem.cpu.ipc 1.5\n")
+        stats_file.write_text("simTicks 1000\\nsystem.cpu.ipc 1.5\\n")
 
-        # Execute: Parse
+        # Execute parse workflow
         futures = facade.submit_parse_async(
             str(tmp_path), "stats.txt", ["system.cpu.ipc"], str(tmp_path)
         )
         results = [f.result() for f in futures]
         csv_path = facade.finalize_parsing(str(tmp_path), results)
 
-        # Verify: Data loaded correctly
         data = facade.load_csv_file(csv_path)
         assert "system.cpu.ipc" in data.columns
-        assert len(data) > 0
 ```
 
-## Testing Shapers
+## Best Practices
 
-### Shaper Test Pattern
+### DO
+
+- **Use fixtures** for test data — avoid inline DataFrame creation
+- **One concern per test** — focused assertions
+- **Test edge cases** — empty data, nulls, extremes
+- **Use `autospec=True`** for mocks — catches API mismatches
+- **Use `@pytest.mark.parametrize`** for input variations
+- **Use `tmp_path`** for file operations — auto-cleaned by pytest
+- **Import `columns_side_effect`** from conftest — don't redefine it
+
+### DON'T
+
+- **No `print()` in tests** — use assertions and `pytest -s` for debugging
+- **No `if __name__ == "__main__"`** — pytest discovers tests automatically
+- **No `inplace=True`** — always return new DataFrames
+- **No bare `except:`** — catch specific exceptions
+- **No synchronous wrappers** around async APIs
+
+## Parameterized Tests
 
 ```python
-class TestRenameShaper:
-    def test_rename_columns(self):
-        data = pd.DataFrame({"old_name": [1, 2, 3]})
-        config = {"column_mapping": {"old_name": "new_name"}}
-
-        shaper = RenameShaper(config)
-        result = shaper.transform(data)
-
-        assert "new_name" in result.columns
-        assert "old_name" not in result.columns
-
-    def test_immutability(self):
-        data = pd.DataFrame({"col": [1, 2, 3]})
-        config = {"column_mapping": {"col": "new"}}
-
-        shaper = RenameShaper(config)
-        result = shaper.transform(data)
-
-        # Original unchanged
-        assert "col" in data.columns
-        assert result is not data
+@pytest.mark.parametrize("input_val,expected", [
+    (1, 2),
+    (2, 4),
+    (0, 0),
+    (-1, -2),
+])
+def test_double(input_val, expected):
+    assert double(input_val) == expected
 ```
 
-## Testing Plot Types
-
-### Plot Test Pattern
+## Testing DataFrame Operations
 
 ```python
-class TestBarPlot:
-    def test_create_figure(self):
-        data = pd.DataFrame({
-            "x": ["A", "B", "C"],
-            "y": [1, 2, 3]
-        })
-
-        plot = BarPlot(plot_id=1, name="Test")
-        plot.config = {"x_column": "x", "y_column": "y"}
-
-        fig = plot.create_figure(data)
-
-        assert fig is not None
-        assert len(fig.data) > 0
-
-    def test_missing_column(self):
-        data = pd.DataFrame({"wrong": [1, 2, 3]})
-
-        plot = BarPlot(plot_id=1, name="Test")
-        plot.config = {"x_column": "x", "y_column": "y"}
-
-        with pytest.raises(KeyError):
-            plot.create_figure(data)
-```
-
-## Fixtures
-
-### Common Fixtures
-
-```python
-@pytest.fixture
-def sample_benchmark_data():
-    """Sample gem5 benchmark data."""
-    return pd.DataFrame({
-        "benchmark": ["mcf", "omnetpp"] * 2,
-        "config": ["baseline", "baseline", "tx", "tx"],
-        "ipc": [1.5, 2.0, 1.8, 2.4]
-    })
-
-
-@pytest.fixture
-def temp_directory(tmp_path):
-    """Temporary directory for file operations."""
-    return tmp_path
-
-
-@pytest.fixture
-def mock_streamlit(monkeypatch):
-    """Mock Streamlit session_state."""
-    import streamlit as st
-    mock_state = {}
-    monkeypatch.setattr(st, "session_state", mock_state)
-    return mock_state
-```
-
-## Mocking
-
-### Mocking External Dependencies
-
-```python
-from unittest.mock import Mock, patch
-
-
-def test_with_mock():
-    with patch("src.module.external_call") as mock:
-        mock.return_value = "mocked_result"
-
-        result = my_function()
-
-        assert result == "mocked_result"
-        mock.assert_called_once()
-```
-
-## Test Coverage
-
-### Generating Reports
-
-```bash
-pytest --cov=src --cov-report=html tests/
-open htmlcov/index.html
-```
-
-### Coverage Goals
-
-- **Overall**: 80%+
-- **Critical Paths**: 90%+
-- **UI Components**: 60%+ (harder to test)
-
-### Improving Coverage
-
-1. Identify untested code in report
-2. Add tests for uncovered lines
-3. Focus on critical business logic first
-
-## Continuous Integration
-
-Tests run automatically on:
-
-- Every commit (pre-commit hook)
-- Every pull request (GitHub Actions)
-- Before deployment
-
-**Requirements**: All tests must pass before merge.
-
-## Debugging Tests
-
-### Print Debugging
-
-```python
-def test_something(sample_data):
-    print(f"Data shape: {sample_data.shape}")
-    result = process(sample_data)
-    print(f"Result: {result}")
-    assert result == expected
-```
-
-Run with `-s` flag: `pytest -s tests/unit/test_file.py`
-
-### PDB Debugger
-
-```python
-def test_something():
-    import pdb; pdb.set_trace()
-    result = process(data)
-    assert result == expected
-```
-
-Run with `--pdb` flag: `pytest --pdb`
-
-## Common Patterns
-
-### Testing Async Code
-
-```python
-def test_async_operation():
-    futures = submit_async_work()
-    results = [f.result() for f in futures]
-    assert len(results) > 0
-```
-
-### Testing DataFrame Operations
-
-```python
-def test_dataframe_operation():
+def test_dataframe_transform():
     input_df = pd.DataFrame({"col": [1, 2, 3]})
     result_df = transform(input_df)
 
-    # Use pandas testing utilities
     expected = pd.DataFrame({"col": [2, 4, 6]})
     pd.testing.assert_frame_equal(result_df, expected)
+
+    # Verify immutability
+    assert result_df is not input_df
 ```
 
-### Parameterized Tests
+## Debugging Tests
 
-```python
-@pytest.mark.parametrize("input,expected", [
-    (1, 2),
-    (2, 4),
-    (3, 6)
-])
-def test_double(input, expected):
-    assert double(input) == expected
+```bash
+# Show stdout during tests
+pytest -s tests/unit/test_file.py
+
+# Drop into debugger on failure
+pytest --pdb tests/unit/test_file.py
+
+# Verbose with full tracebacks
+pytest -vv --tb=long tests/unit/test_file.py
 ```
+
+## Markers
+
+Available markers (registered in `pyproject.toml`):
+
+| Marker | Purpose |
+|--------|---------|
+| `@pytest.mark.slow` | Long-running tests |
+| `@pytest.mark.benchmark` | Performance benchmarks |
+| `@pytest.mark.smoke` | Quick smoke tests |
+| `@pytest.mark.requires_latex` | Tests needing LaTeX |
+| `@pytest.mark.requires_browser` | Tests needing a browser |
 
 ## Next Steps
 
 - Development Setup: [Development-Setup.md](Development-Setup.md)
-- Adding Features: [Adding-Plot-Types.md](Adding-Plot-Types.md)
-- Contributing: [../CONTRIBUTING.md](../CONTRIBUTING.md)
+- Adding Plot Types: [Adding-Plot-Types.md](Adding-Plot-Types.md)
+- Architecture: [Architecture.md](Architecture.md)
