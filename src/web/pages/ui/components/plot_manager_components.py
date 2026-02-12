@@ -158,7 +158,14 @@ class PlotManagerComponents:
             try:
                 data = api.shapers.load_pipeline(selected)
                 plot.pipeline = copy.deepcopy(data.get("pipeline", []))
-                plot.pipeline_counter = len(plot.pipeline)
+                if plot.pipeline:
+                    max_id: int = max(
+                        (step.get("id", -1) for step in plot.pipeline),
+                        default=-1,
+                    )
+                    plot.pipeline_counter = max_id + 1
+                else:
+                    plot.pipeline_counter = 0
                 plot.processed_data = None  # Reset data
                 st.success("Pipeline loaded!")
                 st.session_state[f"show_load_for_plot_{plot.plot_id}"] = False

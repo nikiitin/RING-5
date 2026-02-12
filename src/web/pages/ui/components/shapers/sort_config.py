@@ -29,7 +29,7 @@ class SortConfig:
 
         Allows the user to:
             1. Select one or more columns to sort by
-            2. For each selected column, drag-reorder the unique values
+            2. For each selected column, define the desired value order
 
         Args:
             data: Current DataFrame (for column/value discovery).
@@ -75,11 +75,11 @@ class SortConfig:
                 if len(unique_values) <= 20:
                     # For small cardinality, let user reorder via multiselect
                     ordered: List[str] = st.multiselect(
-                        f"Drag to reorder '{col}' values",
+                        f"Select order for '{col}' values",
                         options=unique_values,
                         default=default_order,
                         key=f"{key_prefix}sort_order_{col}_{shaper_id}",
-                        help="Remove and re-add values to change order",
+                        help="Select values in desired order (remove and re-add to reorder).",
                     )
                     order_dict[col] = ordered if ordered else default_order
                 else:

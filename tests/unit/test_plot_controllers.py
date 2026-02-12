@@ -913,7 +913,7 @@ class TestHandleLoadDialog:
         pipelines = ["pipe_alpha"]
         mock_api.shapers.list_pipelines.return_value = pipelines
         mock_api.shapers.load_pipeline.return_value = {
-            "pipeline": [{"type": "rename", "mapping": {"a": "b"}}]
+            "pipeline": [{"id": 0, "type": "rename", "mapping": {"a": "b"}}]
         }
         mock_presenter.render.return_value = {
             "load_clicked": True,
@@ -931,7 +931,7 @@ class TestHandleLoadDialog:
         controller = PlotCreationController(mock_api, mock_ui_state, mock_lifecycle, mock_registry)
         controller._handle_load_dialog(plot)
 
-        assert plot.pipeline == [{"type": "rename", "mapping": {"a": "b"}}]
+        assert plot.pipeline == [{"id": 0, "type": "rename", "mapping": {"a": "b"}}]
         assert plot.pipeline_counter == 1
         assert plot.processed_data is None
         mock_st.toast.assert_called_once()

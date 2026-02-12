@@ -212,7 +212,14 @@ class PlotCreationController:
             try:
                 data = self._api.shapers.load_pipeline(result["selected_pipeline"])
                 plot.pipeline = copy.deepcopy(data.get("pipeline", []))
-                plot.pipeline_counter = len(plot.pipeline)
+                if plot.pipeline:
+                    max_id: int = max(
+                        (step.get("id", -1) for step in plot.pipeline),
+                        default=-1,
+                    )
+                    plot.pipeline_counter = max_id + 1
+                else:
+                    plot.pipeline_counter = 0
                 plot.processed_data = None
                 st.toast("Pipeline loaded!", icon="✅")
                 self._ui.plot.set_dialog_visible(plot.plot_id, "load", False)
