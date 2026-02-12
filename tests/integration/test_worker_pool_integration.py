@@ -21,6 +21,8 @@ from src.core.parsing.gem5.impl.strategies.perl_worker_pool import (
     shutdown_worker_pool,
 )
 
+pytestmark = pytest.mark.xdist_group("perl_pool")
+
 
 @pytest.fixture(scope="module")
 def test_stats_file(tmp_path_factory: Any) -> str:
@@ -158,10 +160,6 @@ class TestWorkerPoolIntegration:
         # With worker pool, should be < 0.1s
         assert elapsed < 1.0, f"Worker pool took {elapsed:.3f}s (too slow, may not be using pool)"
 
-        # Log performance
-        throughput = 10 / elapsed
-        print(f"\\nWorker pool throughput: {throughput:.1f} files/sec ({elapsed:.3f}s total)")
-
 
 class TestWorkerPoolErrorHandling:
     """Test error handling in worker pool integration."""
@@ -220,7 +218,3 @@ class TestWorkerPoolConfigurationLoading:
 
         # Verify the size is read from env
         assert parse_service_module._WORKER_POOL_SIZE == 8
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v", "-s"])

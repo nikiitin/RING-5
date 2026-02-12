@@ -27,7 +27,6 @@ def test_parser_integration():
     os.makedirs(output_dir, exist_ok=True)
 
     try:
-        print("Running parser integration test...")
         batch = facade.submit_parse_async(
             stats_path=stats_dir,
             stats_pattern="stats.txt",
@@ -42,10 +41,9 @@ def test_parser_integration():
             if result:
                 parse_results.append(result)
 
-        csv_path = facade.finalize_parsing(output_dir, parse_results, var_names=batch.var_names)
-        print(f"Parser finished successfully. CSV: {csv_path}")
-    except Exception as e:
-        print(f"Parser failed: {e}")
+        csv_path = facade.finalize_parsing(  # noqa: F841
+            output_dir, parse_results, var_names=batch.var_names
+        )
     finally:
         # Cleanup
         import shutil
@@ -54,7 +52,3 @@ def test_parser_integration():
             shutil.rmtree(stats_dir)
         if os.path.exists(output_dir):
             shutil.rmtree(output_dir)
-
-
-if __name__ == "__main__":
-    test_parser_integration()

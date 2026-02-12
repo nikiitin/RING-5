@@ -324,16 +324,3 @@ class TestUIComponents:
             variables = [{"name": "test_hist", "type": "histogram"}]
             # Pass mock API
             VariableEditor.render(mock_api, variables)
-
-
-def run_tests():
-    """Run all tests and report results."""
-    print("Running RING-5 Web Module Tests...")
-    print("=" * 60)
-
-    # Run pytest
-    pytest.main([__file__, "-v", "--tb=short"])
-
-
-if __name__ == "__main__":
-    run_tests()

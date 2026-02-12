@@ -164,7 +164,3 @@ def test_create_figure_major_minor_renaming(sample_data, mock_streamlit):
     assert all(
         x is not None for x in trace0.x
     ), f"Found None in X coordinates: {trace0.x}. Traces lost?"
-
-
-if __name__ == "__main__":
-    pass

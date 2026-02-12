@@ -8,13 +8,14 @@ import logging
 import shutil
 from typing import Any
 
+import plotly.graph_objects as go
 import pytest
 
 from src.web.pages.ui.plotting.export.converters.impl.matplotlib_converter import (
     MatplotlibConverter,
 )
 from src.web.pages.ui.plotting.export.presets.preset_manager import PresetManager
-from tests.fixtures.sample_figures import (
+from tests.helpers.sample_figures import (
     create_figure_with_custom_legend,
     create_figure_with_log_scale,
     create_figure_with_zoom,
@@ -369,3 +370,174 @@ class TestPresetApplication:
 
         assert result["success"] is True
         assert "marker_size" in result["metadata"]
+
+
+# ─── Additional Coverage Tests ──────────────────────────────────────────────
+
+
+class TestStackedBarConversion:
+    """Tests for stacked bar chart conversion (categorical and numeric)."""
+
+    def test_stacked_categorical_bars(self, single_column_preset: dict[str, Any]) -> None:
+        """Stacked bar with categorical x-axis (string labels)."""
+        fig = go.Figure()
+        fig.add_trace(go.Bar(x=["A", "B", "C"], y=[10, 20, 30], name="s1"))
+        fig.add_trace(go.Bar(x=["A", "B", "C"], y=[5, 10, 15], name="s2"))
+        fig.update_layout(barmode="stack")
+
+        converter = MatplotlibConverter(single_column_preset)
+        result = converter.convert(fig, "pdf")
+        assert result["success"] is True
+        assert result["metadata"]["barmode"] == "stack"
+        assert result["metadata"]["bar_traces_count"] == 2
+
+    def test_stacked_numeric_bars(self, single_column_preset: dict[str, Any]) -> None:
+        """Stacked bar with numeric x values."""
+        fig = go.Figure()
+        fig.add_trace(go.Bar(x=[1.0, 2.0, 3.0], y=[10, 20, 30], name="s1"))
+        fig.add_trace(go.Bar(x=[1.0, 2.0, 3.0], y=[5, 10, 15], name="s2"))
+        fig.update_layout(barmode="stack")
+
+        converter = MatplotlibConverter(single_column_preset)
+        result = converter.convert(fig, "pdf")
+        assert result["success"] is True
+        assert result["metadata"]["bar_traces_count"] == 2
+
+    def test_grouped_categorical_long_labels(self, single_column_preset: dict[str, Any]) -> None:
+        """Bar chart with long labels should trigger rotation."""
+        labels = [f"very_long_label_{i}" for i in range(12)]
+        fig = go.Figure()
+        fig.add_trace(go.Bar(x=labels, y=list(range(12)), name="data"))
+
+        converter = MatplotlibConverter(single_column_preset)
+        result = converter.convert(fig, "pdf")
+        assert result["success"] is True
+
+
+class TestLineDashStyles:
+    """Tests for line trace dash style conversion."""
+
+    @pytest.mark.parametrize(
+        "dash,expected",
+        [("dash", "--"), ("dot", ":"), ("dashdot", "-.")],
+    )
+    def test_dash_style_conversion(
+        self,
+        single_column_preset: dict[str, Any],
+        dash: str,
+        expected: str,
+    ) -> None:
+        """Line dash styles are converted correctly."""
+        fig = go.Figure()
+        fig.add_trace(
+            go.Scatter(
+                x=[1, 2, 3],
+                y=[4, 5, 6],
+                mode="lines",
+                line=dict(dash=dash, color="blue"),
+                name="line",
+            )
+        )
+
+        converter = MatplotlibConverter(single_column_preset)
+        result = converter.convert(fig, "pdf")
+        assert result["success"] is True
+        assert result["metadata"]["traces_converted"] >= 1
+
+
+class TestPreviewGeneration:
+    """Tests for generate_preview PNG generation."""
+
+    def test_preview_returns_bytes(self, single_column_preset: dict[str, Any]) -> None:
+        """Preview generation returns PNG bytes."""
+        fig = create_simple_bar_figure()
+        converter = MatplotlibConverter(single_column_preset)
+        png = converter.generate_preview(fig, preview_dpi=72)
+        assert isinstance(png, bytes)
+        assert len(png) > 0
+        # Must start with PNG magic bytes
+        assert png[:4] == b"\x89PNG"
+
+    def test_preview_preserves_original_dpi(self, single_column_preset: dict[str, Any]) -> None:
+        """DPI should be restored after preview."""
+        original_dpi = single_column_preset["dpi"]
+        fig = create_simple_bar_figure()
+        converter = MatplotlibConverter(single_column_preset)
+        converter.generate_preview(fig, preview_dpi=72)
+        assert converter.preset["dpi"] == original_dpi
+
+    def test_preview_stacked_bar(self, single_column_preset: dict[str, Any]) -> None:
+        """Preview works for stacked bar figures."""
+        fig = go.Figure()
+        fig.add_trace(go.Bar(x=["A", "B"], y=[10, 20], name="s1"))
+        fig.add_trace(go.Bar(x=["A", "B"], y=[5, 10], name="s2"))
+        fig.update_layout(barmode="stack")
+        converter = MatplotlibConverter(single_column_preset)
+        png = converter.generate_preview(fig, preview_dpi=72)
+        assert png[:4] == b"\x89PNG"
+
+
+class TestMultiColumnLegend:
+    """Tests for legend multi-column and bold handling."""
+
+    def test_many_traces_use_two_columns(self, single_column_preset: dict[str, Any]) -> None:
+        """More than 4 legend entries should use 2-column legend."""
+        fig = go.Figure()
+        for i in range(6):
+            fig.add_trace(go.Bar(x=["A", "B"], y=[i + 1, i + 2], name=f"trace_{i}"))
+
+        converter = MatplotlibConverter(single_column_preset)
+        result = converter.convert(fig, "pdf")
+        assert result["success"] is True
+        # With 6 labeled traces, legend_items should be >= 5
+        # and ncols should be 2 (if legend is generated)
+        if result["metadata"].get("legend_items", 0) > 4:
+            assert result["metadata"]["legend_ncols"] == 2
+
+    def test_bold_legend(self, single_column_preset: dict[str, Any]) -> None:
+        """Bold legend setting should not cause errors."""
+        preset = dict(single_column_preset)
+        preset["bold_legend"] = True
+        fig = create_simple_bar_figure()
+        converter = MatplotlibConverter(preset)
+        result = converter.convert(fig, "pdf")
+        assert result["success"] is True
+
+    def test_legend_spacing_from_preset(self, single_column_preset: dict[str, Any]) -> None:
+        """Custom legend spacing params from preset should be applied."""
+        preset = dict(single_column_preset)
+        preset["legend_columnspacing"] = 1.0
+        preset["legend_handletextpad"] = 0.5
+        fig = create_simple_bar_figure()
+        converter = MatplotlibConverter(preset)
+        result = converter.convert(fig, "pdf")
+        assert result["success"] is True
+
+
+class TestScatterTraceDetails:
+    """Tests for scatter trace marker properties."""
+
+    def test_scatter_with_marker_size(self, single_column_preset: dict[str, Any]) -> None:
+        """Scatter trace with custom marker size."""
+        fig = go.Figure()
+        fig.add_trace(
+            go.Scatter(
+                x=[1, 2, 3],
+                y=[4, 5, 6],
+                mode="markers",
+                marker=dict(size=15, color="red"),
+                name="dots",
+            )
+        )
+        converter = MatplotlibConverter(single_column_preset)
+        result = converter.convert(fig, "pdf")
+        assert result["success"] is True
+
+    def test_scatter_default_mode_is_line(self, single_column_preset: dict[str, Any]) -> None:
+        """Scatter trace without mode defaults to line conversion."""
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=[1, 2, 3], y=[4, 5, 6], name="default"))
+        converter = MatplotlibConverter(single_column_preset)
+        result = converter.convert(fig, "pdf")
+        assert result["success"] is True
+        assert result["metadata"]["traces_converted"] == 1

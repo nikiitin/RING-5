@@ -26,6 +26,7 @@
 ## Developer Guides
 
 - [Architecture](Architecture)
+- [Web Layer Architecture](web-layer-architecture)
 - [Development Setup](Development-Setup)
 - [Testing Guide](Testing-Guide)
 - [Adding Plot Types](Adding-Plot-Types)

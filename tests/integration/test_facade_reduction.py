@@ -89,8 +89,6 @@ class TestFacadeReduction:
         # 3. Verify Results
         # Parser outputs CSV.
         df = pd.read_csv(csv_path)
-        print("Generated CSV Columns:", df.columns)
-        print(df)
 
         # Expectation:
         # Col "system.cpu\d+.ipc" should exist

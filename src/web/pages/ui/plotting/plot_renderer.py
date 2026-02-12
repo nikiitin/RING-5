@@ -256,7 +256,7 @@ class PlotRenderer:
                                     updates[y_anc_key] = plot.config["legend_yanchor"]
 
                             if updates:
-                                st.session_state["pending_plot_updates"] = updates
+                                st.session_state["plot.pending_updates"] = updates
 
                             st.session_state[last_event_key] = relayout_data
                             st.rerun()
