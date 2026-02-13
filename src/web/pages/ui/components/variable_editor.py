@@ -79,6 +79,10 @@ class VariableEditor:
             elif var_type == "configuration":
                 cls.render_configuration_config(var_config, var, var_id)
 
+            # Pattern index selection for ALL variable types (scalars included)
+            if PatternIndexSelector.is_pattern_variable(var_name):
+                cls._render_pattern_index_for_variable(api, var_config, var, var_id)
+
             updated_vars.append(var_config)
 
         # Add Variable Section
@@ -132,6 +136,45 @@ class VariableEditor:
         return var_name, var_alias, var_type, delete_clicked
 
     @classmethod
+    def _render_pattern_index_for_variable(
+        cls,
+        api: ApplicationAPI,
+        var_config: Dict[str, Any],
+        original_var: Dict[str, Any],
+        var_id: str,
+    ) -> None:
+        """
+        Render PatternIndexSelector for any pattern variable type.
+
+        When a user selects specific indices, ``keepIndices`` is set to
+        ``True`` and ``parsed_ids`` is populated with the filtered list.
+        This applies to scalars, vectors, distributions, and histograms.
+        """
+        var_name = var_config.get("name", "")
+        scanned_vars = api.state_manager.get_scanned_variables() or []
+        pattern_indices: Optional[List[str]] = None
+
+        for v in scanned_vars:
+            if v["name"] == var_name and "pattern_indices" in v:
+                pattern_indices = v["pattern_indices"]
+                break
+
+        if not pattern_indices:
+            return
+
+        current_selection = original_var.get("patternSelection", None)
+        use_filter, pattern_filtered = PatternIndexSelector.render_selector(
+            var_name, pattern_indices, var_id, current_selection
+        )
+
+        if use_filter:
+            var_config["patternSelection"] = pattern_filtered
+            var_config["parsed_ids"] = pattern_filtered
+            var_config["keepIndices"] = True
+        else:
+            var_config["keepIndices"] = False
+
+    @classmethod
     def render_histogram_config(
         cls,
         api: ApplicationAPI,
@@ -152,96 +195,103 @@ class VariableEditor:
             "You can use **Deep Scan** to find all range buckets found across all simulations."
         )
 
-        discovered_entries = []
+        discovered_entries: List[str] = []
         if available_variables:
             for v in available_variables:
                 if v["name"] == var_name and "entries" in v:
                     discovered_entries = v["entries"]
                     break
 
-        options = ["Manual Entry Names", "Histogram Statistics"]
-        if discovered_entries:
-            options.insert(0, "Select from Discovered Entries")
-
-        current_mode_index = 0
-        if original_var.get("useSpecialMembers", False):
-            if "Histogram Statistics" in options:
-                current_mode_index = options.index("Histogram Statistics")
-            else:
-                current_mode_index = 1
-
-        entry_mode = st.radio(
-            "How to specify histogram entries:",
-            options=options,
-            index=current_mode_index,
-            key=f"hist_entry_mode_{var_id}",
-            horizontal=True,
-        )
-
-        cls._handle_deep_scan(
-            api,
-            var_name,
-            var_id,
-            entry_mode,
-            discover_entries_available=bool(discovered_entries),
-            stats_path=stats_path,
-            stats_pattern=stats_pattern,
-            var_type="histogram",
-        )
-
-        # Target Buckets Configuration (Rebinning)
-        st.write("---")
-        enable_rebin = st.checkbox(
-            "Normalize to Fixed Buckets (Rebinning)",
-            value=original_var.get("enableRebin", False),
-            key=f"hist_rebin_{var_id}",
-            help="Normalizes histograms with inconsistent bucket ranges across simulations",
-        )
-
-        if enable_rebin:
-            c1, c2 = st.columns(2)
-            with c1:
-                bins = st.number_input(
-                    "Target Buckets",
-                    min_value=1,
-                    max_value=1000,
-                    value=int(original_var.get("bins", 10)),
-                    key=f"hist_bins_{var_id}",
-                )
-            with c2:
-                max_range = st.number_input(
-                    "Max Range",
-                    min_value=1.0,
-                    value=float(original_var.get("max_range", 1024.0)),
-                    key=f"hist_max_range_{var_id}",
-                )
-            var_config["bins"] = bins
-            var_config["max_range"] = max_range
-            original_var["enableRebin"] = True
-            original_var["bins"] = bins
-            original_var["max_range"] = max_range
-
-        # Option to parse only statistics or include bucket entries
+        # Parsing mode — always available: statistics, optionally bucket entries
         parse_mode = st.radio(
             "Parsing mode:",
-            options=["Statistics Only", "Statistics + Bucket Entries"],
-            index=0 if original_var.get("statisticsOnly", True) else 1,
+            options=["Statistics Only", "Bucket Entries Only", "Bucket Entries + Statistics"],
+            index=(
+                0
+                if original_var.get("statisticsOnly", True)
+                else 1 if not original_var.get("statistics", []) else 2
+            ),
             key=f"hist_parse_mode_{var_id}",
-            help="Statistics Only: Parse mean, stdev, etc. without individual buckets (faster). "
-            "Statistics + Bucket Entries: Parse all histogram buckets (slower, more data).",
+            help=(
+                "Statistics Only: Parse mean, stdev, etc. without individual buckets. "
+                "Bucket Entries Only: Parse histogram bucket frequencies. "
+                "Bucket Entries + Statistics: Parse both."
+            ),
             horizontal=True,
         )
+
+        wants_statistics = parse_mode in ("Statistics Only", "Bucket Entries + Statistics")
+        wants_entries = parse_mode in ("Bucket Entries Only", "Bucket Entries + Statistics")
 
         var_config["statisticsOnly"] = parse_mode == "Statistics Only"
 
-        if entry_mode == "Select from Discovered Entries":
-            cls._render_vector_discovered_selection(
-                api, var_config, original_var, var_id, discovered_entries
-            )
-        elif entry_mode == "Manual Entry Names":
-            cls._render_vector_manual_entry(api, var_config, original_var, var_id)
-        else:
+        # Statistics selection (always visible when stats requested)
+        if wants_statistics:
             cls._render_distribution_statistics_selection(var_config, original_var, var_id)
+
+        # Bucket entry selection (only when entries requested)
+        if wants_entries:
+            # Target Buckets Configuration (Rebinning)
+            st.write("---")
+            enable_rebin = st.checkbox(
+                "Normalize to Fixed Buckets (Rebinning)",
+                value=original_var.get("enableRebin", False),
+                key=f"hist_rebin_{var_id}",
+                help="Normalizes histograms with inconsistent bucket ranges across simulations",
+            )
+
+            if enable_rebin:
+                c1, c2 = st.columns(2)
+                with c1:
+                    bins = st.number_input(
+                        "Target Buckets",
+                        min_value=1,
+                        max_value=1000,
+                        value=int(original_var.get("bins", 10)),
+                        key=f"hist_bins_{var_id}",
+                    )
+                with c2:
+                    max_range = st.number_input(
+                        "Max Range",
+                        min_value=1.0,
+                        value=float(original_var.get("max_range", 1024.0)),
+                        key=f"hist_max_range_{var_id}",
+                    )
+                var_config["bins"] = bins
+                var_config["max_range"] = max_range
+                original_var["enableRebin"] = True
+                original_var["bins"] = bins
+                original_var["max_range"] = max_range
+
+            entry_options = ["Manual Entry Names"]
+            if discovered_entries:
+                entry_options.insert(0, "Select from Discovered Entries")
+
+            entry_mode = st.radio(
+                "How to specify histogram entries:",
+                options=entry_options,
+                index=0,
+                key=f"hist_entry_mode_{var_id}",
+                horizontal=True,
+            )
+
+            cls._handle_deep_scan(
+                api,
+                var_name,
+                var_id,
+                entry_mode,
+                discover_entries_available=bool(discovered_entries),
+                stats_path=stats_path,
+                stats_pattern=stats_pattern,
+                var_type="histogram",
+            )
+
+            if entry_mode == "Select from Discovered Entries":
+                cls._render_vector_discovered_selection(
+                    api, var_config, original_var, var_id, discovered_entries
+                )
+            else:
+                cls._render_vector_manual_entry(api, var_config, original_var, var_id)
 
     @classmethod
     def render_vector_config(
@@ -266,71 +316,80 @@ class VariableEditor:
             "to automatically find them in your stats files."
         )
 
-        discovered_entries = []
+        discovered_entries: List[str] = []
         if available_variables:
             for v in available_variables:
                 if v["name"] == var_name and "entries" in v:
                     discovered_entries = v["entries"]
                     break
 
-        options = ["Manual Entry Names", "Vector Statistics"]
-        if discovered_entries:
-            options.insert(0, "Select from Discovered Entries")
-
-        current_mode_index = 0
-        if original_var.get("useSpecialMembers", False):
-            if "Vector Statistics" in options:
-                current_mode_index = options.index("Vector Statistics")
-            else:
-                current_mode_index = 1  # Fallback
-
-        entry_mode = st.radio(
-            "How to specify vector entries:",
-            options=options,
-            index=current_mode_index,
-            key=f"entry_mode_{var_id}",
+        # Parsing mode — always available: statistics, optionally entries
+        parse_mode = st.radio(
+            "Parsing mode:",
+            options=["Statistics Only", "Entries Only", "Entries + Statistics"],
+            index=(
+                0
+                if original_var.get("statisticsOnly", False)
+                and original_var.get("useSpecialMembers", False)
+                else (
+                    0
+                    if original_var.get("statisticsOnly", False)
+                    else (
+                        1
+                        if not original_var.get("useSpecialMembers", False)
+                        and not original_var.get("statisticsOnly", False)
+                        else 2
+                    )
+                )
+            ),
+            key=f"vec_parse_mode_{var_id}",
+            help=(
+                "Statistics Only: Parse total, mean, stdev, etc. without "
+                "individual entries. Entries Only: Parse selected entries. "
+                "Entries + Statistics: Parse both entries and statistics."
+            ),
             horizontal=True,
         )
 
-        # If using Vector Statistics mode, this is statistics-only
-        if entry_mode == "Vector Statistics":
-            var_config["statisticsOnly"] = True
-        else:
-            # Otherwise, offer the choice
-            parse_mode = st.radio(
-                "Parsing mode:",
-                options=["Statistics Only", "Entries + Statistics"],
-                index=0 if original_var.get("statisticsOnly", False) else 1,
-                key=f"vec_parse_mode_{var_id}",
-                help=(
-                    "Statistics Only: Parse total, mean, stdev, etc. without "
-                    "individual entries (faster). Entries + Statistics: Parse "
-                    "selected entries plus statistics (slower, more data)."
-                ),
+        wants_statistics = parse_mode in ("Statistics Only", "Entries + Statistics")
+        wants_entries = parse_mode in ("Entries Only", "Entries + Statistics")
+
+        var_config["statisticsOnly"] = parse_mode == "Statistics Only"
+
+        # Statistics selection (always visible when stats requested)
+        if wants_statistics:
+            cls._render_vector_statistics_selection(var_config, original_var, var_id)
+
+        # Entry selection (only when entries requested)
+        if wants_entries:
+            entry_options = ["Manual Entry Names"]
+            if discovered_entries:
+                entry_options.insert(0, "Select from Discovered Entries")
+
+            entry_mode = st.radio(
+                "How to specify entries:",
+                options=entry_options,
+                index=0,
+                key=f"entry_mode_{var_id}",
                 horizontal=True,
             )
-            var_config["statisticsOnly"] = parse_mode == "Statistics Only"
 
-        cls._handle_deep_scan(
-            api,
-            var_name,
-            var_id,
-            entry_mode,
-            discover_entries_available=bool(discovered_entries),
-            stats_path=stats_path,
-            stats_pattern=stats_pattern,
-        )
-
-        if entry_mode == "Select from Discovered Entries":
-            cls._render_vector_discovered_selection(
-                api, var_config, original_var, var_id, discovered_entries
+            cls._handle_deep_scan(
+                api,
+                var_name,
+                var_id,
+                entry_mode,
+                discover_entries_available=bool(discovered_entries),
+                stats_path=stats_path,
+                stats_pattern=stats_pattern,
             )
 
-        elif entry_mode == "Manual Entry Names":
-            cls._render_vector_manual_entry(api, var_config, original_var, var_id)
-
-        else:  # Vector Statistics mode
-            cls._render_vector_statistics_selection(var_config, original_var, var_id)
+            if entry_mode == "Select from Discovered Entries":
+                cls._render_vector_discovered_selection(
+                    api, var_config, original_var, var_id, discovered_entries
+                )
+            else:
+                cls._render_vector_manual_entry(api, var_config, original_var, var_id)
 
     @classmethod
     def _handle_deep_scan(
@@ -463,35 +522,6 @@ class VariableEditor:
         # Filter internal gem5 statistics using variable services
         filtered_entries = api.data_services.filter_internal_stats(discovered_entries)
 
-        var_name = var_config.get("name", "")
-
-        # Check if this is a pattern variable and render pattern selector
-        if PatternIndexSelector.is_pattern_variable(var_name):
-            # For pattern variables, use pattern_indices if available,
-            # otherwise fall back to entries
-            scanned_vars = api.state_manager.get_scanned_variables() or []
-            pattern_indices = None
-
-            for v in scanned_vars:
-                if v["name"] == var_name and "pattern_indices" in v:
-                    pattern_indices = v["pattern_indices"]
-                    break
-
-            # If no pattern_indices found, use filtered_entries (backward compatibility)
-            indices_to_use = pattern_indices if pattern_indices else filtered_entries
-
-            current_selection = original_var.get("patternSelection", None)
-            use_filter, pattern_filtered = PatternIndexSelector.render_selector(
-                var_name, indices_to_use, var_id, current_selection
-            )
-
-            if use_filter:
-                # Store pattern selection for future reference
-                var_config["patternSelection"] = pattern_filtered
-                # Sync with parsed_ids for backend consistency
-                var_config["parsed_ids"] = pattern_filtered
-                # Don't filter the vector entries - pattern filtering is separate
-
         # Continue with normal entry selection
         current_entries = original_var.get("vectorEntries", [])
         if isinstance(current_entries, str):
@@ -607,46 +637,65 @@ class VariableEditor:
         if var_name:
             st.markdown(f"**Distribution Configuration for `{var_name}`:**")
 
-        # Range inputs with potential deep-scan overrides
-        range_result = st.session_state.get(f"dist_range_result_{var_id}", {})
-        default_min = range_result.get("minimum", original_var.get("minimum", 0))
-        default_max = range_result.get("maximum", original_var.get("maximum", 100))
-
-        col_min, col_max = st.columns(2)
-        with col_min:
-            min_val = st.number_input("Minimum value", value=default_min, key=f"dist_min_{var_id}")
-        with col_max:
-            max_val = st.number_input("Maximum value", value=default_max, key=f"dist_max_{var_id}")
-
-        var_config["minimum"] = min_val
-        var_config["maximum"] = max_val
-
-        # Option to parse only statistics or include bucket entries
+        # Parsing mode — statistics are always available, bucket entries optional
         parse_mode = st.radio(
             "Parsing mode:",
-            options=["Statistics Only", "Statistics + Bucket Entries"],
-            index=0 if original_var.get("statisticsOnly", True) else 1,
+            options=["Statistics Only", "Bucket Entries Only", "Bucket Entries + Statistics"],
+            index=(
+                0
+                if original_var.get("statisticsOnly", True)
+                else 1 if not original_var.get("statistics", []) else 2
+            ),
             key=f"dist_parse_mode_{var_id}",
-            help="Statistics Only: Parse mean, stdev, etc. without individual buckets (faster). "
-            "Statistics + Bucket Entries: Parse all distribution buckets (slower, more data).",
+            help=(
+                "Statistics Only: Parse mean, stdev, etc. without individual buckets. "
+                "Bucket Entries Only: Parse distribution bucket frequencies. "
+                "Bucket Entries + Statistics: Parse both."
+            ),
             horizontal=True,
         )
 
+        wants_statistics = parse_mode in ("Statistics Only", "Bucket Entries + Statistics")
+        wants_entries = parse_mode in ("Bucket Entries Only", "Bucket Entries + Statistics")
+
         var_config["statisticsOnly"] = parse_mode == "Statistics Only"
 
-        cls._handle_deep_scan(
-            api,
-            var_name,
-            var_id,
-            "",
-            False,
-            stats_path,
-            stats_pattern,
-            var_type="distribution",
-        )
+        # Statistics selection (always visible when stats requested)
+        if wants_statistics:
+            cls._render_distribution_statistics_selection(var_config, original_var, var_id)
 
-        st.write("")
-        cls._render_distribution_statistics_selection(var_config, original_var, var_id)
+        # Range inputs only needed when parsing bucket entries
+        if wants_entries:
+            st.write("---")
+            st.markdown("**Bucket Range:**")
+
+            range_result = st.session_state.get(f"dist_range_result_{var_id}", {})
+            default_min = range_result.get("minimum", original_var.get("minimum", 0))
+            default_max = range_result.get("maximum", original_var.get("maximum", 100))
+
+            col_min, col_max = st.columns(2)
+            with col_min:
+                min_val = st.number_input(
+                    "Minimum value", value=default_min, key=f"dist_min_{var_id}"
+                )
+            with col_max:
+                max_val = st.number_input(
+                    "Maximum value", value=default_max, key=f"dist_max_{var_id}"
+                )
+
+            var_config["minimum"] = min_val
+            var_config["maximum"] = max_val
+
+            cls._handle_deep_scan(
+                api,
+                var_name,
+                var_id,
+                "",
+                False,
+                stats_path,
+                stats_pattern,
+                var_type="distribution",
+            )
 
     @staticmethod
     def _render_distribution_statistics_selection(

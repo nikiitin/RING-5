@@ -35,10 +35,12 @@ class DataSourcePage:
         )
 
         if choice == "Parse gem5 Stats Files":
-            self.api.state_manager.set_use_parser(True)
+            if not self.api.state_manager.is_using_parser():
+                self.api.state_manager.set_use_parser(True)
             DataSourceComponents.render_parser_config(self.api)
         elif choice == "Load from Recent":
             DataSourceComponents.render_csv_pool(self.api)
         else:
-            self.api.state_manager.set_use_parser(False)
+            if self.api.state_manager.is_using_parser():
+                self.api.state_manager.set_use_parser(False)
             st.success("CSV mode selected. Proceed to **Upload Data** to upload your CSV file.")

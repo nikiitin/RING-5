@@ -32,9 +32,11 @@ class DataSourceComponents:
         st.markdown("---")
         st.markdown("### Recent CSV Files")
 
-        # Reload pool
-        csv_pool = api.load_csv_pool()
-        api.state_manager.set_csv_pool(csv_pool)
+        # Use cached pool from state; only load from disk when cache is empty.
+        csv_pool = api.state_manager.get_csv_pool()
+        if not csv_pool:
+            csv_pool = api.load_csv_pool()
+            api.state_manager.set_csv_pool(csv_pool)
 
         if not csv_pool:
             st.warning("No CSV files in the pool yet. Parse some gem5 stats to populate this list.")
@@ -93,130 +95,151 @@ class DataSourceComponents:
         st.markdown("---")
         st.markdown("### gem5 Stats Parser Configuration")
 
-        st.markdown("#### File Location")
-        col1, col2 = st.columns(2)
-        with col1:
-            # Use StateManager for persistence
-            current_path = api.state_manager.get_stats_path()
-            stats_path = st.text_input(
-                "Stats directory path",
-                value=current_path,
-                help="Directory containing gem5 stats files (can include subdirectories)",
-                key="stats_path_input",
+        # The entire parser config section (file inputs, strategy radio,
+        # variable editor, scan button, config preview) is wrapped in a
+        # single @st.fragment so that typing in text inputs or changing the
+        # strategy radio only reruns this fragment — NOT the full page.
+        @st.fragment
+        def _parser_config_fragment() -> None:
+            st.markdown("#### File Location")
+            col1, col2 = st.columns(2)
+            with col1:
+                current_path = api.state_manager.get_stats_path()
+                stats_path = st.text_input(
+                    "Stats directory path",
+                    value=current_path,
+                    help="Directory containing gem5 stats files (can include subdirectories)",
+                    key="stats_path_input",
+                )
+                if stats_path != current_path:
+                    api.state_manager.set_stats_path(stats_path)
+
+            with col2:
+                current_pattern = api.state_manager.get_stats_pattern()
+                stats_pattern = st.text_input(
+                    "File pattern",
+                    value=current_pattern,
+                    help="Filename pattern to search for (e.g., stats.txt, *.txt)",
+                    key="stats_pattern_input",
+                )
+                if stats_pattern != current_pattern:
+                    api.state_manager.set_stats_pattern(stats_pattern)
+
+            st.markdown("#### Parsing Strategy")
+            current_strategy = api.state_manager.get_parser_strategy()
+            strategy_options = {
+                "simple": "Simple (stats.txt only)",
+                "config_aware": "Config-Aware (Integrates config.ini)",
+            }
+
+            selected_strategy = st.radio(
+                "Select ingestion strategy:",
+                options=list(strategy_options.keys()),
+                format_func=lambda x: strategy_options[x],
+                index=list(strategy_options.keys()).index(current_strategy),
+                help=(
+                    "Config-Aware strategy allows extracting metadata "
+                    "from simulation config files."
+                ),
+                key="parser_strategy_selector",
             )
-            # Explicitly set state to ensure persistence across reruns
-            if stats_path != current_path:
-                api.state_manager.set_stats_path(stats_path)
 
-        with col2:
-            current_pattern = api.state_manager.get_stats_pattern()
-            stats_pattern = st.text_input(
-                "File pattern",
-                value=current_pattern,
-                help="Filename pattern to search for (e.g., stats.txt, *.txt)",
-                key="stats_pattern_input",
-            )
-            if stats_pattern != current_pattern:
-                api.state_manager.set_stats_pattern(stats_pattern)
+            if selected_strategy != current_strategy:
+                api.state_manager.set_parser_strategy(selected_strategy)
 
-        st.markdown("#### Parsing Strategy")
-        current_strategy = api.state_manager.get_parser_strategy()
-        strategy_options = {
-            "simple": "Simple (stats.txt only)",
-            "config_aware": "Config-Aware (Integrates config.ini)",
-        }
+            # Variables configuration
+            st.markdown("#### Variables to Extract")
+            st.markdown("""
+            Define which variables to extract from gem5 stats files:
+            - **Scalar**: Single numeric values (e.g., simTicks, IPC)
+            - **Vector**: Arrays of values with specified entries
+            - **Distribution**: Statistical distributions with min/max range
+            - **Configuration**: Metadata (benchmark name, config ID, seed)
+            """)
 
-        selected_strategy = st.radio(
-            "Select ingestion strategy:",
-            options=list(strategy_options.keys()),
-            format_func=lambda x: strategy_options[x],
-            index=list(strategy_options.keys()).index(current_strategy),
-            help="Config-Aware strategy allows extracting metadata from simulation config files.",
-            key="parser_strategy_selector",
-        )
+            # Scanner UI
+            col_scan1, col_scan2 = st.columns([1, 3])
+            with col_scan1:
+                deep_scan = st.checkbox(
+                    "Deep Scan (check all files)", help="Scan ALL files for variables (slower)"
+                )
+                if st.button("🔍 Quick Scan", help="Scan files to auto-discover variables"):
+                    try:
+                        scan_limit = -1 if deep_scan else 10
+                        with st.spinner(f"{'Deep' if deep_scan else 'Quick'} scanning..."):
+                            scan_futures = api.submit_scan_async(
+                                stats_path, stats_pattern, limit=scan_limit
+                            )
+                            scan_results = [f.result() for f in scan_futures]
+                            scanned_vars_result: List[ScannedVariable] = api.finalize_scan(
+                                scan_results
+                            )
+                            scanned_vars_dicts = [v.to_dict() for v in scanned_vars_result]
+                            api.state_manager.set_scanned_variables(scanned_vars_dicts)
 
-        if selected_strategy != current_strategy:
-            api.state_manager.set_parser_strategy(selected_strategy)
-
-        # Variables configuration
-        st.markdown("#### Variables to Extract")
-        st.markdown("""
-        Define which variables to extract from gem5 stats files:
-        - **Scalar**: Single numeric values (e.g., simTicks, IPC)
-        - **Vector**: Arrays of values with specified entries
-        - **Distribution**: Statistical distributions with min/max range
-        - **Configuration**: Metadata (benchmark name, config ID, seed)
-        """)
-
-        # Scanner UI
-        col_scan1, col_scan2 = st.columns([1, 3])
-        with col_scan1:
-            deep_scan = st.checkbox(
-                "Deep Scan (check all files)", help="Scan ALL files for variables (slower)"
-            )
-            if st.button("🔍 Quick Scan", help="Scan files to auto-discover variables"):
-                try:
-                    # Submit async scan with limit based on checkbox
-                    scan_limit = -1 if deep_scan else 10
-                    with st.spinner(f"{'Deep' if deep_scan else 'Quick'} scanning..."):
-                        scan_futures = api.submit_scan_async(
-                            stats_path, stats_pattern, limit=scan_limit
+                        st.success(f"✅ Scan complete! Found {len(scanned_vars_result)} variables.")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Scan failed: {e}")
+                        logger.error(
+                            "SCANNER: Quick scan failed at %r: %s",
+                            str(stats_path).replace("\n", ""),
+                            e,
+                            exc_info=True,
                         )
-                        # Wait for scan to complete
-                        scan_results = [f.result() for f in scan_futures]
-                        # Process and store results - returns List[ScannedVariable]
-                        scanned_vars_result: List[ScannedVariable] = api.finalize_scan(scan_results)
-                        # Convert to dict format for StateManager
-                        scanned_vars_dicts = [v.to_dict() for v in scanned_vars_result]
-                        api.state_manager.set_scanned_variables(scanned_vars_dicts)
 
-                    st.success(f"✅ Scan complete! Found {len(scanned_vars_result)} variables.")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Scan failed: {e}")
-                    logger.error(
-                        "SCANNER: Quick scan failed at %r: %s",
-                        str(stats_path).replace("\n", ""),
-                        e,
-                        exc_info=True,
-                    )
+            scanned_vars: List[Dict[str, Any]] = api.state_manager.get_scanned_variables()
+            if scanned_vars:
+                st.success(
+                    f"Scanner found {len(scanned_vars)} variables. "
+                    "Use 'Add Variable' to select them."
+                )
 
-        scanned_vars: List[Dict[str, Any]] = api.state_manager.get_scanned_variables()
-        if scanned_vars:
-            st.success(
-                f"Scanner found {len(scanned_vars)} variables. Use 'Add Variable' to select them."
+            # Variable editor
+            variables = api.state_manager.get_parse_variables()
+            updated_vars = VariableEditor.render(
+                api,
+                variables,
+                available_variables=scanned_vars,
+                stats_path=stats_path,
+                stats_pattern=stats_pattern,
             )
+            # Only persist when the editor actually changed something to
+            # avoid redundant logging + state writes on every rerun.
+            if updated_vars != variables:
+                api.state_manager.set_parse_variables(updated_vars)
 
-        # Variable editor
-        variables = api.state_manager.get_parse_variables()
-        updated_vars = VariableEditor.render(
-            api,
-            variables,
-            available_variables=scanned_vars,
-            stats_path=stats_path,
-            stats_pattern=stats_pattern,
-        )
-        api.state_manager.set_parse_variables(updated_vars)
+            # Add variable button
+            if st.button(
+                "➕ Add Variable", help="Add a new variable manually or from scanned list"
+            ):
+                DataSourceComponents.variable_config_dialog(api)
 
-        # Add variable button
-        if st.button("➕ Add Variable", help="Add a new variable manually or from scanned list"):
-            DataSourceComponents.variable_config_dialog(api)
+            # Preview configuration
+            st.markdown("#### Configuration Preview")
+            parse_config = {
+                "parser": "gem5_stats",
+                "statsPath": stats_path,
+                "statsPattern": stats_pattern,
+                "strategy": api.state_manager.get_parser_strategy(),
+                "variables": api.state_manager.get_parse_variables(),
+            }
+            st.json(parse_config)
 
-        # Preview configuration
-        st.markdown("#### Configuration Preview")
-        parse_config = {
-            "parser": "gem5_stats",
-            "statsPath": stats_path,
-            "statsPattern": stats_pattern,
-            "strategy": api.state_manager.get_parser_strategy(),
-            "variables": api.state_manager.get_parse_variables(),
-        }
-        st.json(parse_config)
+        _parser_config_fragment()
 
-        # Parse button
+        # Parse button — sits outside the fragment so that clicking it causes
+        # a full rerun (other page sections can react). Read widget values
+        # from session_state because locals from the fragment are not in scope.
         st.markdown("---")
         if st.button("Parse gem5 Stats Files", type="primary", use_container_width=True):
-            if not stats_path:
+            _stats_path = st.session_state.get(
+                "stats_path_input", api.state_manager.get_stats_path()
+            )
+            _stats_pattern = st.session_state.get(
+                "stats_pattern_input", api.state_manager.get_stats_pattern()
+            )
+            if not _stats_path:
                 st.error("Please specify a stats directory path.")
             else:
                 # Reset state for new run
@@ -225,8 +248,8 @@ class DataSourceComponents:
 
                 try:
                     batch = api.submit_parse_async(
-                        stats_path,
-                        stats_pattern,
+                        _stats_path,
+                        _stats_pattern,
                         api.state_manager.get_parse_variables(),
                         output_dir,
                         scanned_vars=api.state_manager.get_scanned_variables(),

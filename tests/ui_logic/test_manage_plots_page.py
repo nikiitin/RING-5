@@ -48,7 +48,11 @@ class TestPageInitialization:
         mock_components: MagicMock,
         mock_api: MagicMock,
     ) -> None:
-        """api.state_manager.initialize() is called at page startup."""
+        """Page delegates to controllers without re-initializing state.
+
+        State is already initialized by ApplicationAPI.__init__ (cached via
+        @st.cache_resource), so the page no longer calls initialize() again.
+        """
         mock_ui = MagicMock()
         mock_ui.plot.consume_pending_updates.return_value = None
         mock_ui_cls.return_value = mock_ui
@@ -60,7 +64,8 @@ class TestPageInitialization:
         from src.web.pages.manage_plots import show_manage_plots_page
 
         show_manage_plots_page(mock_api)
-        mock_api.state_manager.initialize.assert_called_once()
+        # initialize() is NOT called — ApplicationAPI.__init__ already did it
+        mock_api.state_manager.initialize.assert_not_called()
 
     @patch(f"{MODULE}.PlotManagerComponents")
     @patch(f"{MODULE}.PlotRenderController")

@@ -10,6 +10,10 @@ from tests.conftest import columns_side_effect
 def mock_streamlit():
     with patch("src.web.pages.ui.components.data_source_components.st") as mock_st:
         mock_st.columns.side_effect = columns_side_effect
+        mock_st.session_state = {}
+
+        # Fragment passthrough — execute the decorated function directly
+        mock_st.fragment.side_effect = lambda func: func
 
         # Containers
         mock_st.container.return_value.__enter__.return_value = MagicMock()
@@ -43,6 +47,7 @@ def mock_card_components():
 
 def test_render_csv_pool_empty(mock_streamlit, mock_api):
     mock_api.load_csv_pool.return_value = []
+    mock_api.state_manager.get_csv_pool.return_value = []
 
     DataSourceComponents.render_csv_pool(mock_api)
 
@@ -53,6 +58,7 @@ def test_render_csv_pool_empty(mock_streamlit, mock_api):
 def test_render_csv_pool_with_files(mock_streamlit, mock_api, mock_card_components):
     csv_info = {"name": "test.csv", "path": "/path/to/test.csv"}
     mock_api.load_csv_pool.return_value = [csv_info]
+    mock_api.state_manager.get_csv_pool.return_value = []
 
     with patch("pathlib.Path.exists", return_value=True):
         mock_card_components.file_info_card.return_value = (True, False, False)
@@ -71,6 +77,7 @@ def test_render_csv_pool_with_files(mock_streamlit, mock_api, mock_card_componen
 def test_render_csv_pool_delete(mock_streamlit, mock_api, mock_card_components):
     csv_info = {"name": "del.csv", "path": "/del.csv"}
     mock_api.load_csv_pool.return_value = [csv_info]
+    mock_api.state_manager.get_csv_pool.return_value = []
 
     with patch("pathlib.Path.exists", return_value=True):
         mock_card_components.file_info_card.return_value = (False, False, True)

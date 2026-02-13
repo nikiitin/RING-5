@@ -218,3 +218,53 @@ class PatternIndexService:
                 formatted_parts.append(part)
 
         return "_".join(formatted_parts)
+
+    @staticmethod
+    def reconstruct_concrete_name(pattern_name: str, numeric_id: str) -> str:
+        r"""
+        Reconstruct a concrete variable name from a regex pattern and numeric ID.
+
+        Inverse of ``PatternAggregator._extract_pattern``: replaces each
+        ``\d+`` placeholder in the pattern with the corresponding number
+        from the numeric ID (underscore-separated).
+
+        Args:
+            pattern_name: Regex pattern (e.g., ``system.cpu\d+.ipc`` or
+                          ``system.ruby.l\d+_cntrl\d+.stat``).
+            numeric_id: Underscore-separated numeric parts (e.g., ``"3"``
+                        or ``"0_1"``).
+
+        Returns:
+            Concrete variable name with numbers substituted in.
+
+        Raises:
+            ValueError: If the number of ``\d+`` placeholders does not match
+                        the number of parts in *numeric_id*.
+
+        Examples:
+            >>> PatternIndexService.reconstruct_concrete_name(
+            ...     r"system.cpu\d+.ipc", "3"
+            ... )
+            'system.cpu3.ipc'
+            >>> PatternIndexService.reconstruct_concrete_name(
+            ...     r"system.ruby.l\d+_cntrl\d+.stat", "0_1"
+            ... )
+            'system.ruby.l0_cntrl1.stat'
+        """
+        parts = numeric_id.split("_")
+        marker = r"\d+"
+        segments = pattern_name.split(marker)
+
+        if len(segments) - 1 != len(parts):
+            raise ValueError(
+                f"Pattern '{pattern_name}' has {len(segments) - 1} placeholder(s) "
+                f"but numeric_id '{numeric_id}' has {len(parts)} part(s)."
+            )
+
+        result: List[str] = []
+        for i, seg in enumerate(segments):
+            result.append(seg)
+            if i < len(parts):
+                result.append(parts[i])
+
+        return "".join(result)

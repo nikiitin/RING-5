@@ -7,9 +7,15 @@ Tests the portfolio save, load, delete, and pipeline template workflows:
 - No-data save shows error
 - Empty state shows appropriate warnings
 - Pipeline template section renders
+
+SAFETY RULE: Tests must NEVER delete or modify real user portfolios.
+Only e2e-prefixed portfolios (created by the test itself) may be cleaned up.
+To simulate an empty portfolio state, mock ``list_portfolios`` — never call
+``delete_portfolio`` in a loop over all portfolios.
 """
 
 from typing import Any, List
+from unittest.mock import patch
 
 from tests.ui.helpers import (
     create_app,
@@ -63,13 +69,12 @@ class TestPortfolioPageRendering:
     def test_no_portfolios_shows_warning(self) -> None:
         """When no portfolios exist, shows a warning in load section."""
         at = create_app()
+
+        # SAFETY: Mock list_portfolios to simulate empty state.
+        # NEVER delete real portfolios to achieve this.
         api: Any = get_api(at)
-
-        # Ensure no portfolios exist by clearing any leftovers
-        for name in api.data_services.list_portfolios():
-            api.data_services.delete_portfolio(name)
-
-        navigate_to(at, "Save/Load Portfolio")
+        with patch.object(api.data_services, "list_portfolios", return_value=[]):
+            navigate_to(at, "Save/Load Portfolio")
 
         assert not at.exception
         # Should show some kind of "no portfolios" message
@@ -199,13 +204,14 @@ class TestPortfolioSaveViaUI:
             # Should have at least one portfolio saved
             assert len(portfolios) >= 1
 
-            # Cleanup: delete the portfolio we just saved
+            # SAFETY: Only clean up portfolios that were created by THIS test.
+            # Never delete portfolios with generic names that could match user data.
             for p in portfolios:
-                if "my_portfolio" in p or "portfolio" in p.lower():
+                if p.startswith("e2e_") or p.startswith("E2E_"):
                     api.data_services.delete_portfolio(p)
 
-    def test_save_no_data_shows_error(self) -> None:
-        """Clicking Save with no data shows an error message."""
+    def test_save_no_data_saves_config_only(self) -> None:
+        """Clicking Save with no data saves a config-only portfolio (no error)."""
         at = create_app()
         navigate_to(at, "Save/Load Portfolio")
 
@@ -213,8 +219,8 @@ class TestPortfolioSaveViaUI:
         if save_buttons:
             save_buttons[0].click().run()
             assert not at.exception
-            # Should show error about no data
-            assert len(at.error) > 0, "Expected error when saving without data"
+            # Should NOT show error — config-only save is allowed
+            assert len(at.error) == 0, "Config-only portfolio save should not error"
 
 
 # ---------------------------------------------------------------------------

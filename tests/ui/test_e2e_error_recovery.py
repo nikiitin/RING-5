@@ -65,7 +65,7 @@ class TestClearDataRecovery:
         assert not at.exception
 
     def test_portfolio_save_after_clear(self) -> None:
-        """Portfolio page shows error when saving without data."""
+        """Portfolio save after clear succeeds with config-only save."""
         at = create_app_with_data()
         api: Any = get_api(at)
 
@@ -78,7 +78,8 @@ class TestClearDataRecovery:
         if save_buttons:
             save_buttons[0].click().run()
             assert not at.exception
-            assert len(at.error) > 0, "Expected error when saving without data"
+            # Portfolio save now succeeds even without data (config-only)
+            assert len(at.error) == 0, "Should not error on config-only save"
 
 
 # ---------------------------------------------------------------------------

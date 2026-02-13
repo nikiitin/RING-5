@@ -174,6 +174,7 @@ class ApplicationAPI:
                     ),
                     params=params,
                     is_regex=r"\d+" in name,
+                    keep_indices=bool(var.get("keep_indices", var.get("keepIndices", False))),
                 )
             elif hasattr(var, "name") and hasattr(var, "type") and not hasattr(var, "params"):
                 # It's likely a ScannedVariable, convert to StatConfig

@@ -43,7 +43,9 @@ class TestScannerFix:
                 m.spinner.return_value.__enter__.return_value = None
                 m.button.side_effect = mock_st.button.side_effect
                 m.file_uploader.return_value = mock_st.file_uploader.return_value
-                # Link other common methods if needed
+                # Fragment passthrough — execute the decorated function directly
+                m.fragment.side_effect = lambda func: func
+                m.session_state = {}
 
             # We return a specific one to set side effects on,
             # but we need to ensure the code under test uses the patched ones.
@@ -61,7 +63,7 @@ class TestScannerFix:
         """Test that render_csv_pool calls api.load_csv_pool, not api.backend.load_csv_pool"""
         # Setup
         mock_api.load_csv_pool.return_value = []
-
+        mock_api.state_manager.get_csv_pool.return_value = []
         # Execute
         try:
             DataSourceComponents.render_csv_pool(mock_api)
@@ -114,8 +116,8 @@ class TestScannerFix:
         mock_streamlit["ve"].columns.side_effect = lambda spec, **kwargs: [
             MagicMock() for _ in range(spec if isinstance(spec, int) else len(spec))
         ]
-        # st.radio needs to return a valid string for logic checks
-        mock_streamlit["ve"].radio.return_value = "Manual Entry Names"
+        # Radio order: parse_mode then entry_mode
+        mock_streamlit["ve"].radio.side_effect = ["Entries Only", "Manual Entry Names"]
         # st.selectbox needs to return "vector" for var_type check
         # Use side effect to be safe, or just return "vector" if simple
         mock_streamlit["ve"].selectbox.return_value = "vector"

@@ -100,3 +100,4 @@ class StatConfig:
     params: Dict[str, Any] = field(default_factory=dict)
     statistics_only: bool = False
     is_regex: bool = False
+    keep_indices: bool = False

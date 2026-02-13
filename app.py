@@ -26,7 +26,7 @@ def run_app():
         initial_sidebar_state="expanded",
     )
 
-    # Custom CSS
+    # Custom CSS (string constant — negligible cost)
     st.markdown(
         """
     <style>
@@ -55,34 +55,6 @@ def run_app():
     # Store for easy access in pages (optional, but consistent)
     st.session_state.api = api
 
-    # Header
-    st.markdown('<h1 class="main-header">RING-5 Interactive Analyzer</h1>', unsafe_allow_html=True)
-
-    # Show current data preview if data is loaded
-    # Access via API's state manager (exposed or via API method)
-    # The API should expose a view model
-    current_view = api.get_current_view()
-
-    if current_view["raw_data"] is not None and not current_view["raw_data"].empty:
-        st.markdown("#### Current Dataset")
-        col1, col2, col3 = st.columns(3)
-        data = current_view["raw_data"]
-        config = current_view["config"]
-
-        with col1:
-            st.metric("Rows", len(data))
-        with col2:
-            st.metric("Columns", len(data.columns))
-        with col3:
-            csv_path = config.get("csv_path")
-            if csv_path:
-                st.metric("Source", Path(csv_path).name)
-            else:
-                st.metric("Source", "Uploaded")
-
-        with st.expander("View Current Data", expanded=False):
-            st.dataframe(data, width="stretch", height=300)
-
     # Sidebar - Navigation
     with st.sidebar:
         st.markdown("# RING-5")
@@ -103,18 +75,50 @@ def run_app():
 
         st.markdown("---")
 
-        if st.button("Clear Data", width="stretch", help="Clear loaded CSV data and plots"):
+        if st.button(
+            "Clear Data", use_container_width=True, help="Clear loaded CSV data and plots"
+        ):
             api.reset_session()
             st.rerun()
 
         if st.button(
             "Reset All",
-            width="stretch",
+            use_container_width=True,
             type="secondary",
             help="Reset entire application to defaults",
         ):
             api.reset_session()
             st.rerun()
+
+    # Header
+    st.markdown('<h1 class="main-header">RING-5 Interactive Analyzer</h1>', unsafe_allow_html=True)
+
+    # Data preview (fragment-wrapped — only reruns when its own widgets change).
+    @st.fragment
+    def _data_preview_fragment() -> None:
+        current_view = api.get_current_view()
+
+        if current_view["raw_data"] is not None and not current_view["raw_data"].empty:
+            st.markdown("#### Current Dataset")
+            col1, col2, col3 = st.columns(3)
+            data = current_view["raw_data"]
+            config = current_view["config"]
+
+            with col1:
+                st.metric("Rows", len(data))
+            with col2:
+                st.metric("Columns", len(data.columns))
+            with col3:
+                csv_path = config.get("csv_path")
+                if csv_path:
+                    st.metric("Source", Path(csv_path).name)
+                else:
+                    st.metric("Source", "Uploaded")
+
+            with st.expander("View Current Data", expanded=False):
+                st.dataframe(data, width="stretch", height=300)
+
+    _data_preview_fragment()
 
     # Main content — lazy page imports: only the active page module is loaded
     if page == "Data Source":

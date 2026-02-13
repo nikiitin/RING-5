@@ -53,6 +53,10 @@ class RepositoryStateManager:
     def set_data(
         self, data: Optional[pd.DataFrame], on_change: Optional[Callable[[], None]] = None
     ) -> None:
+        # Skip if setting the exact same DataFrame object (avoids re-typing on every rerun)
+        if data is self._session_repo.data_repo.get_data():
+            return
+
         # Enforce type constraints logic moved here from old static StateManager
         if data is not None:
             try:
@@ -64,7 +68,7 @@ class RepositoryStateManager:
                     if col in data.columns:
                         data[col] = data[col].astype(str)
             except Exception as e:
-                logger.error(f"STATE: Type enforcement failed: {e}")
+                logger.error("STATE: Type enforcement failed: %s", e)
 
         self._session_repo.data_repo.set_data(data, on_change)
 

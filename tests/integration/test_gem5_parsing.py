@@ -5,12 +5,26 @@ import pandas as pd
 import pytest
 
 from src.core.application_api import ApplicationAPI
+from src.core.services.data_services.config_service import ConfigService
+from src.core.services.data_services.csv_pool_service import CsvPoolService
+from src.core.services.data_services.path_service import PathService
 
 
 class TestGem5Parsing:
     """Integration tests for parsing real gem5 data."""
 
     TEST_DATA_DIR = Path("tests/data/results-micro26-sens")
+
+    @pytest.fixture(autouse=True)
+    def reset_service_caches(self) -> None:
+        """Reset class-level caches for test isolation."""
+        PathService.reset_caches()
+        CsvPoolService.clear_caches()
+        ConfigService.reset_caches()
+        yield
+        PathService.reset_caches()
+        CsvPoolService.clear_caches()
+        ConfigService.reset_caches()
 
     @pytest.fixture
     def facade(self):

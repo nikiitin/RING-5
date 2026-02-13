@@ -85,12 +85,15 @@ class CsvPoolService:
     # Index for fast filename lookups
     _pool_index: Dict[str, Dict[str, Any]] = {}
 
+    _pool_dir: Optional[Path] = None
+
     @staticmethod
     def get_pool_dir() -> Path:
         """Get the CSV pool directory path."""
-        pool_dir = PathService.get_data_dir() / "csv_pool"
-        pool_dir.mkdir(parents=True, exist_ok=True)
-        return pool_dir
+        if CsvPoolService._pool_dir is None:
+            CsvPoolService._pool_dir = PathService.get_data_dir() / "csv_pool"
+            CsvPoolService._pool_dir.mkdir(parents=True, exist_ok=True)
+        return CsvPoolService._pool_dir
 
     @staticmethod
     def load_pool() -> List[Dict[str, Any]]:
@@ -287,6 +290,7 @@ class CsvPoolService:
         CsvPoolService._metadata_cache.clear()
         CsvPoolService._dataframe_cache.clear()
         CsvPoolService._pool_index.clear()
+        CsvPoolService._pool_dir = None
 
     @staticmethod
     def get_cache_stats() -> Dict[str, Any]:

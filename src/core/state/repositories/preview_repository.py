@@ -70,7 +70,7 @@ class PreviewRepository:
         count = len(self._previews)
         self._previews.clear()
         if count > 0:
-            logger.info(f"PREVIEW_REPO: Cleared {count} preview(s)")
+            logger.info("PREVIEW_REPO: Cleared %d preview(s)", count)
         return count
 
     def list_active_previews(self) -> List[str]:

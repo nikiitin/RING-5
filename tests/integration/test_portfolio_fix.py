@@ -21,6 +21,8 @@ class TestPortfolioFix:
     def mock_streamlit(self):
         """Mock streamlit to prevent UI rendering errors."""
         with patch("src.web.pages.portfolio.st") as mock_st:
+            # Fragment passthrough — execute the decorated function directly
+            mock_st.fragment.side_effect = lambda func: func
             # Mock columns
             mock_st.columns.return_value = [MagicMock(), MagicMock()]
             # Mock expander

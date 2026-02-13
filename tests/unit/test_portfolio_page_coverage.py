@@ -21,7 +21,7 @@ class TestShowPortfolioPage:
 
     @patch("src.web.pages.portfolio.st")
     def test_save_no_data(self, mock_st: MagicMock) -> None:
-        """Save button with no data shows error."""
+        """Save button with no data saves config-only portfolio."""
         from src.web.pages.portfolio import show_portfolio_page
 
         api = MagicMock()
@@ -30,6 +30,7 @@ class TestShowPortfolioPage:
         api.data_services.list_portfolios.return_value = []
         api.shapers.list_pipelines.return_value = []
 
+        mock_st.fragment.side_effect = lambda func: func
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.button.return_value = True
         mock_st.text_input.return_value = "test"
@@ -41,7 +42,9 @@ class TestShowPortfolioPage:
 
         show_portfolio_page(api)
 
-        mock_st.error.assert_called()
+        # Portfolio save now succeeds even without data (config-only save)
+        api.data_services.save_portfolio.assert_called()
+        mock_st.success.assert_called()
 
     @patch("src.web.pages.portfolio.st")
     def test_save_success(self, mock_st: MagicMock) -> None:
@@ -59,6 +62,7 @@ class TestShowPortfolioPage:
         api.data_services.list_portfolios.return_value = []
         api.shapers.list_pipelines.return_value = []
 
+        mock_st.fragment.side_effect = lambda func: func
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.button.return_value = True
         mock_st.text_input.return_value = "test_portfolio"
@@ -85,6 +89,7 @@ class TestShowPortfolioPage:
         api.state_manager.get_plots.return_value = []
         api.shapers.list_pipelines.return_value = []
 
+        mock_st.fragment.side_effect = lambda func: func
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.button.return_value = True
         mock_st.text_input.return_value = "test"
@@ -110,6 +115,7 @@ class TestShowPortfolioPage:
         api.data_services.load_portfolio.return_value = {"data": {"a": [1]}}
         api.shapers.list_pipelines.return_value = []
 
+        mock_st.fragment.side_effect = lambda func: func
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.button.return_value = True
         mock_st.selectbox.return_value = "p1"
@@ -136,6 +142,7 @@ class TestShowPortfolioPage:
         api.data_services.load_portfolio.side_effect = ValueError("corrupt")
         api.shapers.list_pipelines.return_value = []
 
+        mock_st.fragment.side_effect = lambda func: func
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.button.return_value = True
         mock_st.selectbox.return_value = "p1"
@@ -161,6 +168,7 @@ class TestShowPortfolioPage:
         api.data_services.list_portfolios.return_value = []
         api.shapers.list_pipelines.return_value = []
 
+        mock_st.fragment.side_effect = lambda func: func
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.button.return_value = False
         mock_st.text_input.return_value = "test"
@@ -186,6 +194,7 @@ class TestShowPortfolioPage:
         api.data_services.list_portfolios.return_value = ["p1"]
         api.shapers.list_pipelines.return_value = []
 
+        mock_st.fragment.side_effect = lambda func: func
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.button.return_value = True
         mock_st.selectbox.return_value = "p1"
@@ -215,6 +224,7 @@ class TestShowPortfolioPage:
         api.data_services.list_portfolios.return_value = []
         api.shapers.list_pipelines.return_value = []
 
+        mock_st.fragment.side_effect = lambda func: func
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.button.return_value = True
         mock_st.selectbox.return_value = "Plot1"
@@ -251,6 +261,7 @@ class TestShowPortfolioPage:
             "pipeline": [{"type": "rename", "config": {"a": "b"}}]
         }
 
+        mock_st.fragment.side_effect = lambda func: func
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.button.return_value = True
         mock_st.selectbox.side_effect = ["Plot1", "saved_pipe"]

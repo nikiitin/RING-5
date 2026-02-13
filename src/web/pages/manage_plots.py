@@ -53,8 +53,9 @@ def show_manage_plots_page(api: ApplicationAPI) -> None:
         "Create and configure multiple plots with independent " "data processing pipelines."
     )
 
-    # Initialize
-    api.state_manager.initialize()
+    # State is already initialized by ApplicationAPI.__init__ (cached via
+    # @st.cache_resource).  Calling initialize() here was redundant and added
+    # logging + conditional writes on every rerun.
     ui_state: UIStateManager = UIStateManager()
 
     # Apply pending widget updates from interactive plot events
@@ -64,7 +65,8 @@ def show_manage_plots_page(api: ApplicationAPI) -> None:
             if key in st.session_state:
                 st.session_state[key] = value
 
-    # Create adapters (bridge old static/class methods to protocol contracts)
+    # Create adapters (bridge old static/class methods to protocol contracts).
+    # These are lightweight wrappers — no I/O in constructors.
     lifecycle: PlotLifecycleAdapter = PlotLifecycleAdapter()
     registry: PlotTypeRegistryAdapter = PlotTypeRegistryAdapter()
     chart_display: ChartDisplayAdapter = ChartDisplayAdapter()

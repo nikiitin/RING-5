@@ -15,12 +15,20 @@ from src.core.services.data_services.path_service import PathService
 class ConfigService:
     """Service for managing saved configurations."""
 
+    _config_dir: Optional[Path] = None
+
+    @staticmethod
+    def reset_caches() -> None:
+        """Reset the cached config directory path (for testing)."""
+        ConfigService._config_dir = None
+
     @staticmethod
     def get_config_dir() -> Path:
         """Get the configuration pool directory path."""
-        config_dir = PathService.get_data_dir() / "saved_configs"
-        config_dir.mkdir(parents=True, exist_ok=True)
-        return config_dir
+        if ConfigService._config_dir is None:
+            ConfigService._config_dir = PathService.get_data_dir() / "saved_configs"
+            ConfigService._config_dir.mkdir(parents=True, exist_ok=True)
+        return ConfigService._config_dir
 
     @staticmethod
     def load_saved_configs() -> List[Dict[str, Any]]:

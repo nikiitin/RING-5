@@ -30,6 +30,10 @@ def empty_config_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setattr(
         "src.core.services.data_services.config_service.PathService.get_data_dir", lambda: tmp_path
     )
+    # Reset class-level cache so it picks up the monkeypatched path
+    monkeypatch.setattr(
+        "src.core.services.data_services.config_service.ConfigService._config_dir", None
+    )
 
     return config_dir
 

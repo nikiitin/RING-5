@@ -108,8 +108,10 @@ def test_variable_editor_deep_scan(mock_streamlit, mock_api):
     mock_streamlit.text_input.return_value = "vec"
     mock_streamlit.selectbox.return_value = "vector"
 
-    # Trigger Deep Scan path
-    mock_streamlit.radio.return_value = "Select from Discovered Entries"
+    # Trigger Deep Scan path: first radio = "Entries Only" (parsing mode),
+    # second radio = "Select from Discovered Entries" (entry mode)
+    radio_returns = iter(["Entries Only", "Select from Discovered Entries"])
+    mock_streamlit.radio.side_effect = lambda *a, **kw: next(radio_returns, "Entries Only")
 
     # Simulate clicking the Deep Scan button
     def button_side_effect(label, key=None, **kwargs):
@@ -138,7 +140,9 @@ def test_variable_editor_vector_stats_checkboxes(mock_streamlit, mock_api):
 
     mock_streamlit.text_input.return_value = "vec"
     mock_streamlit.selectbox.return_value = "vector"
-    mock_streamlit.radio.return_value = "Vector Statistics"
+
+    # "Statistics Only" parsing mode triggers statistics checkboxes
+    mock_streamlit.radio.return_value = "Statistics Only"
 
     # Checkboxes: total=True, mean=False
     def checkbox_side_effect(label, **kwargs):

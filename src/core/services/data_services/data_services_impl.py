@@ -193,7 +193,7 @@ class DefaultDataServicesAPI:
     def save_portfolio(
         self,
         name: str,
-        data: pd.DataFrame,
+        data: Optional[pd.DataFrame],
         plots: List[PlotProtocol],
         config: Dict[str, Any],
         plot_counter: int,

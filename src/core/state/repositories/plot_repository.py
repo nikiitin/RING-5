@@ -58,7 +58,7 @@ class PlotRepository:
             plots: New list of plot objects
         """
         self._plots = plots
-        logger.info(f"PLOT_REPO: Plots updated - {len(plots)} total plots")
+        logger.info("PLOT_REPO: Plots updated - %d total plots", len(plots))
 
     def add_plot(self, plot: PlotProtocol) -> None:
         """
@@ -68,7 +68,7 @@ class PlotRepository:
             plot: Plot instance to add
         """
         self._plots.append(plot)
-        logger.info(f"PLOT_REPO: Plot added - ID {plot.plot_id}, Type {plot.plot_type}")
+        logger.info("PLOT_REPO: Plot added - ID %s, Type %s", plot.plot_id, plot.plot_type)
 
     def remove_plot(self, plot_id: int) -> bool:
         """
@@ -84,7 +84,7 @@ class PlotRepository:
         self._plots = [p for p in self._plots if p.plot_id != plot_id]
 
         if len(self._plots) < initial_count:
-            logger.info(f"PLOT_REPO: Plot removed - ID {plot_id}")
+            logger.info("PLOT_REPO: Plot removed - ID %s", plot_id)
             return True
 
         logger.warning(f"PLOT_REPO: Plot not found for removal - ID {plot_id}")

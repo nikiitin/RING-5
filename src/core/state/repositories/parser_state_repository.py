@@ -61,8 +61,12 @@ class ParserStateRepository:
             if "_id" not in var:
                 var["_id"] = str(uuid.uuid4())
 
+        # Skip write + log if the list is referentially identical (same object)
+        if variables is self._parse_variables:
+            return
+
         self._parse_variables = variables
-        logger.info(f"PARSER_REPO: Parse variables updated - {len(variables)} variables")
+        logger.info("PARSER_REPO: Parse variables updated - %d variables", len(variables))
 
     def add_parse_variable(self, variable: Dict[str, Any]) -> None:
         """
@@ -107,8 +111,10 @@ class ParserStateRepository:
         Args:
             path: Path pattern for stats files
         """
+        if self._stats_path == path:
+            return
         self._stats_path = path
-        logger.info(f"PARSER_REPO: Stats path set to '{path}'")
+        logger.info("PARSER_REPO: Stats path set to '%s'", path)
 
     def get_stats_pattern(self) -> str:
         """
@@ -126,8 +132,10 @@ class ParserStateRepository:
         Args:
             pattern: Filename pattern for stats files
         """
+        if self._stats_pattern == pattern:
+            return
         self._stats_pattern = pattern
-        logger.info(f"PARSER_REPO: Stats pattern set to '{pattern}'")
+        logger.info("PARSER_REPO: Stats pattern set to '%s'", pattern)
 
     def get_scanned_variables(self) -> List[Dict[str, Any]]:
         """
@@ -146,7 +154,7 @@ class ParserStateRepository:
             variables: List of scanned variable metadata
         """
         self._scanned_variables = variables
-        logger.info(f"PARSER_REPO: Scanned variables updated - {len(variables)} variables")
+        logger.info("PARSER_REPO: Scanned variables updated - %d variables", len(variables))
 
     def is_using_parser(self) -> bool:
         """
@@ -164,8 +172,10 @@ class ParserStateRepository:
         Args:
             use_parser: True to enable parser, False to disable
         """
+        if self._use_parser == use_parser:
+            return
         self._use_parser = use_parser
-        logger.info(f"PARSER_REPO: Parser mode {'enabled' if use_parser else 'disabled'}")
+        logger.info("PARSER_REPO: Parser mode %s", "enabled" if use_parser else "disabled")
 
     def get_parser_strategy(self) -> str:
         """
@@ -183,8 +193,11 @@ class ParserStateRepository:
         Args:
             strategy: Strategy name ('simple' or 'config_aware')
         """
-        self._parser_strategy = strategy.lower()
-        logger.info(f"PARSER_REPO: Parsing strategy set to '{strategy}'")
+        normalized = strategy.lower()
+        if self._parser_strategy == normalized:
+            return
+        self._parser_strategy = normalized
+        logger.info("PARSER_REPO: Parsing strategy set to '%s'", strategy)
 
     def clear_parser_state(self) -> None:
         """Clear all parser-related state (except parse variables)."""

@@ -94,10 +94,24 @@ class TestApplicationAPI:
 
     def setup_method(self):
         """Setup test environment."""
+        from src.core.services.data_services.config_service import ConfigService
+        from src.core.services.data_services.csv_pool_service import CsvPoolService
+        from src.core.services.data_services.path_service import PathService
+
+        PathService.reset_caches()
+        CsvPoolService.clear_caches()
+        ConfigService.reset_caches()
         self.test_dir = Path(tempfile.mkdtemp())
 
     def teardown_method(self):
         """Cleanup test environment."""
+        from src.core.services.data_services.config_service import ConfigService
+        from src.core.services.data_services.csv_pool_service import CsvPoolService
+        from src.core.services.data_services.path_service import PathService
+
+        PathService.reset_caches()
+        CsvPoolService.clear_caches()
+        ConfigService.reset_caches()
         if self.test_dir.exists():
             shutil.rmtree(self.test_dir)
 

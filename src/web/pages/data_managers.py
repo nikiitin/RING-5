@@ -42,41 +42,65 @@ def show_data_managers_page(api: ApplicationAPI) -> None:
         return
     data = data_or_none
 
-    # Initialize Managers
-    seeds_mgr = SeedsReducerManager(api)
-    outlier_mgr = OutlierRemoverManager(api)
-    preproc_mgr = PreprocessorManager(api)
-    mixer_mgr = MixerManager(api)
-
     tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(
         [
             "Summary",
             "Data Visualization",
-            seeds_mgr.name,
-            outlier_mgr.name,
-            preproc_mgr.name,
-            mixer_mgr.name,
+            "Seeds Reducer",
+            "Outlier Remover",
+            "Preprocessor",
+            "Mixer",
             "Operations History",
         ]
     )
 
     with tab1:
-        DataManagerComponents.render_summary_tab(data)
+
+        @st.fragment
+        def _summary_fragment() -> None:
+            DataManagerComponents.render_summary_tab(data)
+
+        _summary_fragment()
 
     with tab2:
-        DataManagerComponents.render_visualization_tab(data)
+
+        @st.fragment
+        def _visualization_fragment() -> None:
+            DataManagerComponents.render_visualization_tab(data)
+
+        _visualization_fragment()
 
     with tab3:
-        seeds_mgr.render()
+
+        @st.fragment
+        def _seeds_fragment() -> None:
+            SeedsReducerManager(api).render()
+
+        _seeds_fragment()
 
     with tab4:
-        outlier_mgr.render()
+
+        @st.fragment
+        def _outlier_fragment() -> None:
+            OutlierRemoverManager(api).render()
+
+        _outlier_fragment()
 
     with tab5:
-        preproc_mgr.render()
+
+        @st.fragment
+        def _preproc_fragment() -> None:
+            PreprocessorManager(api).render()
+
+        _preproc_fragment()
 
     with tab6:
-        mixer_mgr.render()
+
+        @st.fragment
+        def _mixer_fragment() -> None:
+            MixerManager(api).render()
+
+        _mixer_fragment()
 
     with tab7:
         HistoryComponents.render_portfolio_history(api.get_portfolio_history())

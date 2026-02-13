@@ -7,32 +7,52 @@ consistent, testable access to file system locations.
 """
 
 from pathlib import Path
+from typing import Optional
 
 
 class PathService:
+    # Cached directory paths — mkdir is called only once per process.
+    _root_dir: Optional[Path] = None
+    _data_dir: Optional[Path] = None
+    _pipelines_dir: Optional[Path] = None
+    _portfolios_dir: Optional[Path] = None
+
+    @staticmethod
+    def reset_caches() -> None:
+        """Reset all cached directory paths (for testing)."""
+        PathService._root_dir = None
+        PathService._data_dir = None
+        PathService._pipelines_dir = None
+        PathService._portfolios_dir = None
+
     @staticmethod
     def get_root_dir() -> Path:
         """Get the project root directory."""
-        # data_services/path_service.py -> data_services -> services -> core -> src -> root
-        return Path(__file__).parent.parent.parent.parent.parent
+        if PathService._root_dir is None:
+            # data_services/path_service.py -> data_services -> services -> core -> src -> root
+            PathService._root_dir = Path(__file__).parent.parent.parent.parent.parent
+        return PathService._root_dir
 
     @staticmethod
     def get_data_dir() -> Path:
         """Get the .ring5 data directory."""
-        data_dir = PathService.get_root_dir() / ".ring5"
-        data_dir.mkdir(parents=True, exist_ok=True)
-        return data_dir
+        if PathService._data_dir is None:
+            PathService._data_dir = PathService.get_root_dir() / ".ring5"
+            PathService._data_dir.mkdir(parents=True, exist_ok=True)
+        return PathService._data_dir
 
     @staticmethod
     def get_pipelines_dir() -> Path:
         """Get the pipelines directory."""
-        pipelines_dir = PathService.get_data_dir() / "pipelines"
-        pipelines_dir.mkdir(parents=True, exist_ok=True)
-        return pipelines_dir
+        if PathService._pipelines_dir is None:
+            PathService._pipelines_dir = PathService.get_data_dir() / "pipelines"
+            PathService._pipelines_dir.mkdir(parents=True, exist_ok=True)
+        return PathService._pipelines_dir
 
     @staticmethod
     def get_portfolios_dir() -> Path:
         """Get the portfolios directory."""
-        portfolios_dir = PathService.get_data_dir() / "portfolios"
-        portfolios_dir.mkdir(parents=True, exist_ok=True)
-        return portfolios_dir
+        if PathService._portfolios_dir is None:
+            PathService._portfolios_dir = PathService.get_data_dir() / "portfolios"
+            PathService._portfolios_dir.mkdir(parents=True, exist_ok=True)
+        return PathService._portfolios_dir

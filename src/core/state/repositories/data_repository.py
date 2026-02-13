@@ -54,7 +54,9 @@ class DataRepository:
             on_change()
 
         if data is not None:
-            logger.info(f"DATA_REPO: Data updated - {len(data)} rows × {len(data.columns)} columns")
+            logger.info(
+                "DATA_REPO: Data updated - %d rows × %d columns", len(data), len(data.columns)
+            )
         else:
             logger.info("DATA_REPO: Data cleared")
 

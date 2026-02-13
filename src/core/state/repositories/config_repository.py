@@ -49,7 +49,7 @@ class ConfigRepository:
             config: Configuration dictionary to store
         """
         self._config = config
-        logger.info(f"CONFIG_REPO: Configuration updated - {len(config)} keys")
+        logger.info("CONFIG_REPO: Configuration updated - %d keys", len(config))
 
     def update_config(self, key: str, value: Any) -> None:
         """
@@ -96,8 +96,10 @@ class ConfigRepository:
         Args:
             path: Path to temporary directory
         """
+        if self._temp_dir == path:
+            return
         self._temp_dir = path
-        logger.info(f"CONFIG_REPO: Temp dir set to '{path}'")
+        logger.info("CONFIG_REPO: Temp dir set to '%s'", path)
 
     def get_csv_path(self) -> Optional[str]:
         """
@@ -115,6 +117,8 @@ class ConfigRepository:
         Args:
             path: Path to CSV file
         """
+        if self._csv_path == path:
+            return
         self._csv_path = path
 
     def get_csv_pool(self) -> List[Dict[str, Any]]:
@@ -134,7 +138,7 @@ class ConfigRepository:
             pool: List of CSV pool entries
         """
         self._csv_pool = pool
-        logger.info(f"CONFIG_REPO: CSV pool updated - {len(pool)} entries")
+        logger.info("CONFIG_REPO: CSV pool updated - %d entries", len(pool))
 
     def get_saved_configs(self) -> List[Dict[str, Any]]:
         """
@@ -153,4 +157,4 @@ class ConfigRepository:
             configs: List of saved configurations
         """
         self._saved_configs = configs
-        logger.info(f"CONFIG_REPO: Saved configs updated - {len(configs)} entries")
+        logger.info("CONFIG_REPO: Saved configs updated - %d entries", len(configs))

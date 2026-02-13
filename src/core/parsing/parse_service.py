@@ -88,6 +88,9 @@ from src.core.common.utils import normalize_user_path, sanitize_glob_pattern
 from src.core.models import ParseBatchResult, StatConfig
 from src.core.parsing.gem5.impl.pool.pool import ParseWorkPool
 from src.core.parsing.gem5.impl.strategies.factory import StrategyFactory
+from src.core.services.data_services.pattern_index_service import (
+    PatternIndexService,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -143,14 +146,66 @@ class ParseService:
                                 matched_ids.append(sv_name)
 
                     if matched_ids:
-                        # Success: Inject identified leaf variables into params
-                        params = config.params.copy()
-                        params["parsed_ids"] = matched_ids
-                        expanded_config = replace(config, params=params)
-                        logger.info(
-                            f"PARSER: Expanded '{config.name}' to "
-                            f"{len(matched_ids)} instances: {matched_ids}"
-                        )
+                        if config.keep_indices:
+                            # keep_indices: Expand each concrete variable
+                            # as a separate config to avoid spatial reduction.
+                            # Respect user-filtered parsed_ids from the UI
+                            # (PatternIndexSelector), falling back to all
+                            # matched_ids when no filter was applied.
+                            user_ids: List[str] = config.params.get("parsed_ids", [])
+                            ids_to_expand = user_ids if user_ids else matched_ids
+
+                            # Determine if IDs are full variable names
+                            # (scalar patterns) or numeric IDs (vector/etc.).
+                            # Full names contain '.' — numeric IDs don't.
+                            ids_are_full_names = any("." in pid for pid in ids_to_expand)
+
+                            concrete_names: List[str] = []
+                            if ids_are_full_names:
+                                concrete_names = list(ids_to_expand)
+                            else:
+                                for nid in ids_to_expand:
+                                    try:
+                                        cname = PatternIndexService.reconstruct_concrete_name(
+                                            config.name, nid
+                                        )
+                                        concrete_names.append(cname)
+                                    except ValueError:
+                                        logger.warning(
+                                            "PARSER: Could not reconstruct "
+                                            "name for id '%s' in '%s'",
+                                            nid,
+                                            config.name,
+                                        )
+
+                            logger.info(
+                                "PARSER: keep_indices — expanding '%s' "
+                                "into %d individual variables",
+                                config.name,
+                                len(concrete_names),
+                            )
+                            for cname in concrete_names:
+                                individual = replace(
+                                    config,
+                                    name=cname,
+                                    is_regex=False,
+                                    keep_indices=False,
+                                    params={
+                                        k: v for k, v in config.params.items() if k != "parsed_ids"
+                                    },
+                                )
+                                processed_configs.append(individual)
+                            continue  # skip appending the original config
+                        else:
+                            # Default: Inject identified leaf variables for
+                            # spatial aggregation (mean across instances).
+                            params = config.params.copy()
+                            params["parsed_ids"] = matched_ids
+                            expanded_config = replace(config, params=params)
+                            logger.info(
+                                f"PARSER: Expanded '{config.name}' to "
+                                f"{len(matched_ids)} instances: {matched_ids}"
+                            )
                     else:
                         logger.warning(f"PARSER: No matches found for regex '{config.name}'")
                 except re.error:
@@ -220,6 +275,11 @@ class ParseService:
 
         for var_name in ordered_names:
             if var_name not in sample:
+                # Variable absent from first result (e.g., a file with
+                # fewer CPUs).  Include as scalar column; rows for files
+                # that lack this variable will get "NaN".
+                column_map[var_name] = None
+                header_parts.append(var_name)
                 continue
 
             var = sample[var_name]

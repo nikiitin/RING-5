@@ -5,6 +5,9 @@ import pandas as pd
 import pytest
 
 from src.core.application_api import ApplicationAPI
+from src.core.services.data_services.config_service import ConfigService
+from src.core.services.data_services.csv_pool_service import CsvPoolService
+from src.core.services.data_services.path_service import PathService
 
 
 @pytest.fixture
@@ -13,6 +16,11 @@ def facade(tmp_path):
     Fixture creates a ApplicationAPI instance with temporary directories.
     Patches PathService to use temp directories for isolation.
     """
+    # Reset class-level caches for test isolation
+    PathService.reset_caches()
+    CsvPoolService.clear_caches()
+    ConfigService.reset_caches()
+
     # Create temp structure
     ring5_dir = tmp_path / ".ring5"
     ring5_dir.mkdir()

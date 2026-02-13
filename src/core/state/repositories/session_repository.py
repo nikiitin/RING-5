@@ -104,13 +104,16 @@ class SessionRepository:
         self.config_repo.set_config(portfolio_data.get("config", {}))
 
         # Restore data
-        if "data_csv" in portfolio_data:
+        data_csv = portfolio_data.get("data_csv", "")
+        if data_csv:
             try:
-                df = pd.read_csv(io.StringIO(portfolio_data["data_csv"]))
+                df = pd.read_csv(io.StringIO(data_csv))
                 self.data_repo.set_data(df)
-                logger.info(f"SESSION_REPO: Restored data - {len(df)} rows")
+                logger.info("SESSION_REPO: Restored data - %d rows", len(df))
             except Exception as e:
                 logger.error(f"SESSION_REPO: Failed to restore data: {e}")
+        else:
+            logger.info("SESSION_REPO: No data in portfolio (config-only save)")
 
         # Restore plots
         # Deferred import: BasePlot is only in TYPE_CHECKING scope

@@ -182,6 +182,13 @@ class TestScannerService:
 class TestPathService:
     """Tests for PathService — centralized path resolution."""
 
+    @pytest.fixture(autouse=True)
+    def reset_path_caches(self) -> None:
+        """Reset PathService class-level caches for test isolation."""
+        PathService.reset_caches()
+        yield
+        PathService.reset_caches()
+
     def test_get_root_dir_returns_path(self) -> None:
         root = PathService.get_root_dir()
         assert isinstance(root, Path)

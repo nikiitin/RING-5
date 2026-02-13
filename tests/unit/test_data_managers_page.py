@@ -55,9 +55,8 @@ class TestShowDataManagersPage:
         data = pd.DataFrame({"a": [1, 2], "b": ["x", "y"]})
         api.state_manager.get_data.return_value = data
 
-        # Set name properties on manager instances
-        for cls in [mock_seeds_cls, mock_outlier_cls, mock_preproc_cls, mock_mixer_cls]:
-            cls.return_value.name = "Manager"
+        # Fragment passthrough — execute the decorated function directly
+        mock_st.fragment.side_effect = lambda func: func
 
         # Mock tabs as context managers
         tab = MagicMock()

@@ -15,6 +15,7 @@ class FakeStatConfig:
     name: str
     is_regex: bool = False
     params: Dict[str, Any] = field(default_factory=dict)
+    keep_indices: bool = False
 
 
 @dataclass

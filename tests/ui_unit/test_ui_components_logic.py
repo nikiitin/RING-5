@@ -21,6 +21,9 @@ def mock_streamlit():
         mock_st_ds.columns.side_effect = columns_side_effect
         mock_st_up.columns.side_effect = columns_side_effect
 
+        # Fragment passthrough — execute the decorated function directly
+        mock_st_ds.fragment.side_effect = lambda func: func
+
         yield (mock_st_ds, mock_st_up)
 
 
@@ -36,6 +39,7 @@ def test_render_csv_pool_load(mock_streamlit, mock_api, mock_card_components):
 
     pool = [{"name": "test.csv", "path": "/path/test.csv", "size": 100}]
     mock_api.load_csv_pool.return_value = pool
+    mock_api.state_manager.get_csv_pool.return_value = []
 
     # load_clicked=True
     mock_card_components.file_info_card.return_value = (True, False, False)

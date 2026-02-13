@@ -96,7 +96,7 @@ class PortfolioService:
     def save_portfolio(
         self,
         name: str,
-        data: pd.DataFrame,
+        data: Optional[pd.DataFrame],
         plots: List[PlotProtocol],
         config: Dict[str, Any],
         plot_counter: int,
@@ -111,10 +111,12 @@ class PortfolioService:
         for plot in plots:
             serialized_plots.append(plot.to_dict())
 
+        data_csv = data.to_csv(index=False) if data is not None and not data.empty else ""
+
         portfolio_data = {
             "version": "2.0",
             "timestamp": pd.Timestamp.now().isoformat(),
-            "data_csv": data.to_csv(index=False),
+            "data_csv": data_csv,
             "csv_path": str(csv_path) if csv_path else None,
             "plots": serialized_plots,
             "plot_counter": plot_counter,
