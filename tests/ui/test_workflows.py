@@ -13,6 +13,8 @@ from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
 
+from tests.ui.helpers import create_app, navigate_to
+
 _APP_PATH = str(Path(__file__).parents[2] / "app.py")
 
 
@@ -24,9 +26,8 @@ class TestManagePlotsWorkflow:
 
     def test_no_plots_warning_shown(self) -> None:
         """When no plots exist, a warning is displayed."""
-        at = AppTest.from_file(_APP_PATH, default_timeout=10)
-        at.run()
-        at.sidebar.radio[0].set_value("Manage Plots").run()
+        at = create_app()
+        navigate_to(at, "Manage Plots")
 
         assert not at.exception
         # Should have at least one warning about no plots
@@ -187,8 +188,7 @@ class TestAppInitialState:
 
     def test_no_data_preview_on_fresh_start(self) -> None:
         """On fresh start, no data preview section is shown."""
-        at = AppTest.from_file(_APP_PATH, default_timeout=10)
-        at.run()
+        at = create_app()
 
         assert not at.exception
         # On fresh start, no data is loaded, so no metrics for dataset

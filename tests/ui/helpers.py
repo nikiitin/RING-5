@@ -168,10 +168,19 @@ def make_e2e_sample_data() -> pd.DataFrame:
 def create_app() -> AppTest:
     """Boot the AppTest from app.py and run the initial script.
 
+    The @st.cache_resource singleton (ApplicationAPI) is shared across all
+    AppTest instances within the same xdist worker process.  To guarantee
+    test isolation we explicitly reset the session state after the first
+    run, then re-run so the UI renders from a clean slate.
+
     Returns:
-        An AppTest instance that has completed its initial run.
+        An AppTest instance that has completed its initial run with clean state.
     """
     at: AppTest = AppTest.from_file(_APP_PATH, default_timeout=10)
+    at.run()
+    # Reset shared state to prevent cross-test contamination
+    api: Any = at.session_state["api"]
+    api.reset_session()
     at.run()
     return at
 
