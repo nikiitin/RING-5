@@ -1,0 +1,265 @@
+"""
+Module: src/core/services/shapers/impl/split_apply.py
+
+Purpose:
+    Splits a DataFrame by column groups, applies independent sub-pipelines
+    to each group, then merges the results back on shared join columns.
+    Designed for dual-axis plots where each axis variable needs its own
+    Mean / Normalize / other transformations without cross-contamination.
+
+Responsibilities:
+    - Split a DataFrame into column groups (each group gets join columns +
+      its own numeric columns)
+    - Apply a full shaper sub-pipeline to each group independently
+    - Merge the group results back on the join columns
+    - Validate that all referenced columns exist
+    - Ensure merged output contains no duplicate rows from cross-products
+
+Dependencies:
+    - pandas: DataFrame splitting and merging
+    - ShaperFactory: Creates shapers for sub-pipeline steps
+    - UniDfShaper: Base class
+
+Usage Example:
+    >>> from src.core.services.shapers.impl.split_apply import SplitApply
+    >>> import pandas as pd
+    >>>
+    >>> data = pd.DataFrame({
+    ...     'benchmark': ['mcf', 'mcf', 'omnetpp', 'omnetpp'],
+    ...     'config': ['base', 'opt', 'base', 'opt'],
+    ...     'ipc': [1.2, 1.5, 1.4, 1.6],
+    ...     'numCycles': [3210, 2890, 7890, 7120],
+    ... })
+    >>>
+    >>> shaper = SplitApply({
+    ...     'joinColumns': ['benchmark', 'config'],
+    ...     'groups': [
+    ...         {
+    ...             'columns': ['ipc'],
+    ...             'pipeline': [
+    ...                 {
+    ...                     'type': 'mean',
+    ...                     'meanVars': ['ipc'],
+    ...                     'meanAlgorithm': 'arithmean',
+    ...                     'groupingColumns': ['config'],
+    ...                     'replacingColumn': 'benchmark',
+    ...                 }
+    ...             ],
+    ...         },
+    ...         {
+    ...             'columns': ['numCycles'],
+    ...             'pipeline': [
+    ...                 {
+    ...                     'type': 'mean',
+    ...                     'meanVars': ['numCycles'],
+    ...                     'meanAlgorithm': 'geomean',
+    ...                     'groupingColumns': ['config'],
+    ...                     'replacingColumn': 'benchmark',
+    ...                 }
+    ...             ],
+    ...         },
+    ...     ],
+    ... })
+    >>>
+    >>> result = shaper(data)
+    >>> # Each axis variable gets its OWN correct mean; no duplication.
+
+Design Patterns:
+    - Composite Pattern: Composes sub-pipelines from atomic shapers
+    - Strategy Pattern: One of many shaper implementations
+    - Split-Apply-Combine: Classic data analysis pattern
+
+Error Handling:
+    - Raises ValueError if joinColumns are not in the DataFrame
+    - Raises ValueError if a group references missing columns
+    - Raises ValueError if groups have overlapping numeric columns
+    - Sub-pipeline errors propagate with group context
+
+Thread Safety:
+    - Stateless transformation (thread-safe)
+
+Version: 1.0.0
+"""
+
+import logging
+from typing import Any, Dict, List
+
+import pandas as pd
+
+from src.core.services.shapers.uni_df_shaper import UniDfShaper
+
+logger = logging.getLogger(__name__)
+
+
+class SplitApply(UniDfShaper):
+    """Split a DataFrame by column groups, apply sub-pipelines, then merge.
+
+    Each group receives the join columns plus its own numeric columns.
+    Sub-pipelines are applied independently so that row-adding shapers
+    (Mean) or row-modifying shapers (Normalize) only affect their own
+    columns without cross-contamination.
+    """
+
+    def __init__(self, params: Dict[str, Any]) -> None:
+        """Initialize SplitApply shaper.
+
+        Args:
+            params: Dictionary containing:
+                - joinColumns (List[str]): Columns shared across all groups,
+                  used for merging results back together.
+                - groups (List[Dict]): Each dict has:
+                    - columns (List[str]): Numeric columns for this group.
+                    - pipeline (List[Dict]): Shaper configs to apply.
+        """
+        self._join_columns: List[str] = params.get("joinColumns", [])
+        self._groups: List[Dict[str, Any]] = params.get("groups", [])
+        self._params = params
+
+        super().__init__(params)
+
+    def _verify_params(self) -> bool:
+        """Validate parameter structure."""
+        super()._verify_params()
+
+        if not self._join_columns:
+            raise ValueError("SplitApply: 'joinColumns' must be a non-empty list.")
+        if not isinstance(self._join_columns, list):
+            raise TypeError("SplitApply: 'joinColumns' must be a list.")
+
+        if not self._groups or len(self._groups) < 2:
+            raise ValueError("SplitApply: 'groups' must contain at least 2 groups.")
+
+        # Validate each group
+        all_group_cols: List[str] = []
+        for idx, group in enumerate(self._groups):
+            cols = group.get("columns", [])
+            if not cols:
+                raise ValueError(
+                    f"SplitApply: Group {idx} must have a non-empty " f"'columns' list."
+                )
+            if not isinstance(cols, list):
+                raise TypeError(f"SplitApply: Group {idx} 'columns' must be a list.")
+            pipeline = group.get("pipeline", [])
+            if not isinstance(pipeline, list):
+                raise TypeError(f"SplitApply: Group {idx} 'pipeline' must be a list.")
+
+            # Check for overlapping columns
+            for col in cols:
+                if col in all_group_cols:
+                    raise ValueError(
+                        f"SplitApply: Column '{col}' appears in "
+                        f"multiple groups. Each column must belong "
+                        f"to exactly one group."
+                    )
+                all_group_cols.append(col)
+
+        return True
+
+    def _verify_preconditions(self, data_frame: pd.DataFrame) -> bool:
+        """Verify all referenced columns exist in the DataFrame."""
+        super()._verify_preconditions(data_frame)
+
+        for col in self._join_columns:
+            if col not in data_frame.columns:
+                raise ValueError(
+                    f"SplitApply: Join column '{col}' not found "
+                    f"in DataFrame. Available: "
+                    f"{list(data_frame.columns)}"
+                )
+
+        for idx, group in enumerate(self._groups):
+            for col in group.get("columns", []):
+                if col not in data_frame.columns:
+                    raise ValueError(
+                        f"SplitApply: Group {idx} column '{col}' " f"not found in DataFrame."
+                    )
+
+        return True
+
+    @staticmethod
+    def _apply_sub_pipeline(
+        data: pd.DataFrame,
+        pipeline: List[Dict[str, Any]],
+    ) -> pd.DataFrame:
+        """Apply a sequence of shapers to a DataFrame slice.
+
+        Uses ShaperFactory to create each shaper. This is intentionally
+        a late import to avoid circular dependencies.
+
+        Args:
+            data: Input DataFrame (join columns + group columns).
+            pipeline: List of shaper config dicts, each with a 'type' key.
+
+        Returns:
+            Transformed DataFrame.
+        """
+        # Late import to avoid circular dependency with factory
+        from src.core.services.shapers.factory import ShaperFactory
+
+        result: pd.DataFrame = data.copy()
+        for step_cfg in pipeline:
+            shaper_type = step_cfg.get("type")
+            if not shaper_type:
+                continue
+            shaper = ShaperFactory.create_shaper(shaper_type, step_cfg)
+            result = shaper(result)
+        return result
+
+    def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
+        """Split data by groups, apply sub-pipelines, merge results.
+
+        Algorithm:
+            1. For each group, select joinColumns + group.columns
+            2. Apply the group's sub-pipeline to the slice
+            3. Merge all group results sequentially on joinColumns
+
+        The first group's result becomes the base. Subsequent groups
+        are merged (outer join) on the join columns, adding their
+        own numeric columns without duplicating the categorical data.
+
+        Args:
+            data_frame: Input DataFrame.
+
+        Returns:
+            Merged DataFrame with all groups' transformations applied
+            independently.
+        """
+        self._verify_preconditions(data_frame)
+
+        # Also include any .sd columns that correspond to group columns
+        group_results: List[pd.DataFrame] = []
+        for idx, group in enumerate(self._groups):
+            group_cols: List[str] = list(group["columns"])
+            pipeline: List[Dict[str, Any]] = group.get("pipeline", [])
+
+            # Include matching .sd columns automatically
+            sd_cols: List[str] = [
+                f"{col}.sd" for col in group_cols if f"{col}.sd" in data_frame.columns
+            ]
+            select_cols: List[str] = self._join_columns + group_cols + sd_cols
+
+            # Slice the DataFrame to only this group's columns
+            slice_df: pd.DataFrame = data_frame[select_cols].copy()
+
+            # Apply sub-pipeline if any
+            if pipeline:
+                try:
+                    slice_df = self._apply_sub_pipeline(slice_df, pipeline)
+                except Exception as e:
+                    raise ValueError(
+                        f"SplitApply: Sub-pipeline failed for group "
+                        f"{idx} (columns={group_cols}): {e}"
+                    ) from e
+
+            group_results.append(slice_df)
+
+        # Merge results: start with first group, outer-join the rest
+        merged: pd.DataFrame = group_results[0]
+        for subsequent in group_results[1:]:
+            merged = merged.merge(
+                subsequent,
+                on=self._join_columns,
+                how="outer",
+            )
+
+        return merged

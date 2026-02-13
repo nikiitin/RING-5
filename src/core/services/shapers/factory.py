@@ -20,6 +20,7 @@ from src.core.services.shapers.impl.selector_algorithms.condition_selector impor
 )
 from src.core.services.shapers.impl.selector_algorithms.item_selector import ItemSelector
 from src.core.services.shapers.impl.sort import Sort
+from src.core.services.shapers.impl.split_apply import SplitApply
 from src.core.services.shapers.impl.transformer import Transformer
 from src.core.services.shapers.shaper import Shaper
 
@@ -41,6 +42,7 @@ class ShaperFactory:
         "itemSelector": ItemSelector,
         "normalize": Normalize,
         "sort": Sort,
+        "splitApply": SplitApply,
         "transformer": Transformer,
     }
 
@@ -51,6 +53,7 @@ class ShaperFactory:
         "mean": "Mean Calculator",
         "normalize": "Normalize",
         "conditionSelector": "Filter",
+        "splitApply": "Split-Apply (Per-Axis)",
         "transformer": "Transformer",
     }
 

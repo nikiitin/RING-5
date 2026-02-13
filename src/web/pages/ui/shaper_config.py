@@ -18,6 +18,9 @@ from src.web.pages.ui.components.shapers.selector_transformer_configs import (
     TransformerConfig,
 )
 from src.web.pages.ui.components.shapers.sort_config import SortConfig
+from src.web.pages.ui.components.shapers.split_apply_config import (
+    SplitApplyConfig,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +32,7 @@ SHAPER_TYPE_MAP = {
     "Filter": "conditionSelector",
     "Transformer": "transformer",
     "Sort": "sort",
+    "Split-Apply (Per-Axis)": "splitApply",
     # Reverse mapping for compatibility
     "columnSelector": "Column Selector",
     "normalize": "Normalize",
@@ -36,6 +40,7 @@ SHAPER_TYPE_MAP = {
     "conditionSelector": "Filter",
     "transformer": "Transformer",
     "sort": "Sort",
+    "splitApply": "Split-Apply (Per-Axis)",
 }
 
 # Required parameters for each shaper type
@@ -46,6 +51,7 @@ SHAPER_REQUIRED_PARAMS = {
     "mean": ["groupingColumns", "meanVars"],
     "columnSelector": ["columns"],
     "conditionSelector": ["column"],  # Only 'column' is always required
+    "splitApply": ["joinColumns", "groups"],
     "transformer": ["column"],  # Only 'column' is always required
     "sort": ["order_dict"],
 }
@@ -111,6 +117,7 @@ def configure_shaper(
         "normalize": NormalizeConfig.render,
         "mean": MeanConfig.render,
         "conditionSelector": ConditionSelectorConfig.render,
+        "splitApply": SplitApplyConfig.render,
         "transformer": TransformerConfig.render,
         "sort": SortConfig.render,
     }

@@ -91,8 +91,50 @@ class GroupedStackedBarPlot(StackedBarPlot):
             ylabel = label_config["ylabel"]
             legend_title = label_config["legend_title"]
 
-        # Renaming Options (Delegated to Advanced Options now)
-        # Renaming handled by standardized 'Series Configuration' in Advanced Options.
+        # ── Dual Axis ──────────────────────────────────────────
+        st.markdown("#### Dual Axis (Secondary Y)")
+        dual_axis: bool = st.checkbox(
+            "Enable Secondary Y-axis",
+            value=saved_config.get("dual_axis", False),
+            key=f"dual_axis_{self.plot_id}",
+            help=(
+                "Adds a right Y-axis with its own columns. "
+                "Use with Split-Apply shaper for independent transforms."
+            ),
+        )
+
+        y_columns_right: List[str] = []
+        right_axis_type: str = "bars"
+        ylabel_right: str = ""
+
+        if dual_axis:
+            da1, da2 = st.columns(2)
+            with da1:
+                right_axis_type = st.radio(
+                    "Right-axis trace type",
+                    options=["bars", "dots"],
+                    index=(["bars", "dots"].index(saved_config.get("right_axis_type", "bars"))),
+                    key=f"right_type_{self.plot_id}",
+                    horizontal=True,
+                )
+            with da2:
+                ylabel_right = st.text_input(
+                    "Right Y-axis Label",
+                    value=saved_config.get("ylabel_right", ""),
+                    key=f"ylabel_right_{self.plot_id}",
+                )
+
+            available_right: List[str] = [c for c in numeric_cols if c not in y_columns]
+            default_right: List[str] = [
+                c for c in saved_config.get("y_columns_right", []) if c in available_right
+            ]
+            y_columns_right = st.multiselect(
+                "Right Y-axis columns",
+                options=available_right,
+                default=default_right,
+                key=f"y_right_{self.plot_id}",
+                help="Numeric columns plotted on the secondary (right) Y-axis.",
+            )
 
         # Filter Options
         st.markdown("#### Filter Data")
@@ -117,6 +159,10 @@ class GroupedStackedBarPlot(StackedBarPlot):
             "legend_title": legend_title,
             "x_filter": x_values,
             "group_filter": group_values,
+            "dual_axis": dual_axis,
+            "right_axis_type": right_axis_type,
+            "y_columns_right": y_columns_right,
+            "ylabel_right": ylabel_right,
             "_needs_advanced": True,
         }
 
@@ -366,6 +412,10 @@ class GroupedStackedBarPlot(StackedBarPlot):
         specific = self.render_specific_advanced_options(saved_config, data)
         config.update(specific)
 
+        # 2b. Right-axis dot/line settings (only when dual_axis + dots)
+        if saved_config.get("dual_axis") and saved_config.get("right_axis_type") == "dots":
+            self._render_right_axis_dot_settings(saved_config, config)
+
         # 3. Stack Configuration
         # Restore functionality handled by BasePlot's generic "Series Configuration"
         # We explicitly pass y_columns as items to ensure we rename the stacks/statistics,
@@ -464,33 +514,57 @@ class GroupedStackedBarPlot(StackedBarPlot):
         x_col = config.get("x")
         group_col = config.get("group")
         y_cols = config.get("y_columns", [])
+        dual_axis: bool = bool(config.get("dual_axis"))
 
         # If no group column, delegate to parent's simple stacked bar implementation
         if not group_col:
             return super().create_figure(data, config)
 
-        fig = go.Figure()
+        # Create figure — use make_subplots for dual-axis
+        if dual_axis:
+            from plotly.subplots import make_subplots
+
+            fig = make_subplots(specs=[[{"secondary_y": True}]])
+        else:
+            fig = go.Figure()
 
         if not x_col or not y_cols:
             fig.update_layout(title="Please select X axis and at least one Statistic")
             return fig
 
-        # Prepare data using parent's method
-        data = self._prepare_data(data, x_col, y_cols, config)
+        # Prepare data — include right-axis columns in total calculation
+        y_cols_right: List[str] = config.get("y_columns_right", []) if dual_axis else []
+        all_y_cols: List[str] = y_cols + [c for c in y_cols_right if c not in y_cols]
+        data = self._prepare_data(data, x_col, all_y_cols, config)
 
         # Define hover template
         hover_template = self._get_hover_template()
 
-        # Create grouped figure
+        # Create grouped figure (left-axis traces)
         fig = self._create_grouped_figure(
             fig, data, x_col, group_col, y_cols, config, hover_template
         )
 
-        fig.update_layout(
-            title=config.get("title", ""),
-            yaxis_title=config.get("ylabel", "Value"),
-            legend_title=config.get("legend_title", "Statistics"),
-        )
+        # Layout: axis titles
+        if dual_axis:
+            fig.update_layout(
+                title=config.get("title", ""),
+                legend_title=config.get("legend_title", "Statistics"),
+            )
+            fig.update_yaxes(
+                title_text=config.get("ylabel", "Value"),
+                secondary_y=False,
+            )
+            fig.update_yaxes(
+                title_text=config.get("ylabel_right", ""),
+                secondary_y=True,
+            )
+        else:
+            fig.update_layout(
+                title=config.get("title", ""),
+                yaxis_title=config.get("ylabel", "Value"),
+                legend_title=config.get("legend_title", "Statistics"),
+            )
 
         return fig
 
@@ -539,10 +613,24 @@ class GroupedStackedBarPlot(StackedBarPlot):
             lambda row: coord_map.get((row[x_col], row[group_col]), None), axis=1
         )
 
-        # Add bar traces
+        # Add bar traces (LEFT axis)
         for y_col in y_cols:
             fig = self._add_bar_trace(
                 fig, data, y_col, "__x_coord", bar_width, hover_template, config
+            )
+
+        # Add RIGHT-axis traces (dual-axis mode)
+        if config.get("dual_axis"):
+            y_cols_right: List[str] = config.get("y_columns_right", [])
+            right_type: str = config.get("right_axis_type", "bars")
+            fig = self._add_right_axis_traces(
+                fig,
+                data,
+                "__x_coord",
+                y_cols_right,
+                right_type,
+                bar_width,
+                config,
             )
 
         # Apply numbered X-axis labels (replace verbose ticks with indices)
@@ -764,6 +852,163 @@ class GroupedStackedBarPlot(StackedBarPlot):
             "<extra></extra>"
         )
         fig.update_traces(hovertemplate=hover_template)
+
+        # Fix secondary Y-axis after StyleApplicator may have overwritten it
+        if config.get("dual_axis"):
+            fig.update_yaxes(
+                title_text=config.get("ylabel_right", ""),
+                secondary_y=True,
+            )
+
+        return fig
+
+    # ------------------------------------------------------------------
+    # Dual-axis helpers
+    # ------------------------------------------------------------------
+
+    def _render_right_axis_dot_settings(
+        self, saved_config: Dict[str, Any], config: Dict[str, Any]
+    ) -> None:
+        """Render dot & line settings for the right (secondary) Y-axis.
+
+        Only displayed when ``dual_axis`` is True and ``right_axis_type``
+        is ``"dots"``.
+
+        Args:
+            saved_config: Previously saved configuration.
+            config: Current configuration dict to update in-place.
+        """
+        st.markdown("#### Right-Axis Dot & Line Settings")
+        dc1, dc2, dc3 = st.columns(3)
+        with dc1:
+            config["right_show_lines"] = st.checkbox(
+                "Show lines (right axis)",
+                value=saved_config.get("right_show_lines", True),
+                key=f"right_show_lines_{self.plot_id}",
+            )
+        with dc2:
+            symbols: List[str] = [
+                "circle",
+                "square",
+                "diamond",
+                "cross",
+                "x",
+                "triangle-up",
+                "triangle-down",
+            ]
+            config["right_dot_symbol"] = st.selectbox(
+                "Dot Symbol (right)",
+                options=symbols,
+                index=(
+                    symbols.index(saved_config.get("right_dot_symbol", "circle"))
+                    if saved_config.get("right_dot_symbol") in symbols
+                    else 0
+                ),
+                key=f"right_dot_sym_{self.plot_id}",
+            )
+        with dc3:
+            config["right_dot_size"] = st.number_input(
+                "Dot Size (right)",
+                min_value=2,
+                max_value=30,
+                value=saved_config.get("right_dot_size", 10),
+                key=f"right_dot_size_{self.plot_id}",
+            )
+
+        dc4, _ = st.columns(2)
+        with dc4:
+            config["right_line_width"] = st.number_input(
+                "Line Width (right)",
+                min_value=1,
+                max_value=10,
+                value=saved_config.get("right_line_width", 2),
+                key=f"right_line_w_{self.plot_id}",
+                disabled=not config.get("right_show_lines", True),
+            )
+
+    def _add_right_axis_traces(
+        self,
+        fig: go.Figure,
+        data: pd.DataFrame,
+        x_coord_col: str,
+        y_cols: List[str],
+        trace_type: str,
+        bar_width: Optional[float],
+        config: Dict[str, Any],
+    ) -> go.Figure:
+        """Add traces to the secondary (right) Y-axis.
+
+        Args:
+            fig: Plotly Figure (must be created via ``make_subplots``).
+            data: DataFrame with ``x_coord_col`` already mapped.
+            x_coord_col: Column name holding numeric X coordinates.
+            y_cols: Numeric columns to plot on the right axis.
+            trace_type: ``"bars"`` or ``"dots"``.
+            bar_width: Width for bar traces (may be None).
+            config: Full plot configuration.
+
+        Returns:
+            The updated figure.
+        """
+        series_styles: Dict[str, Any] = config.get("series_styles", {})
+
+        for y_col in y_cols:
+            error_y: Optional[Dict[str, Any]] = None
+            if config.get("show_error_bars"):
+                sd_col: str = f"{y_col}.sd"
+                if sd_col in data.columns:
+                    error_y = dict(type="data", array=data[sd_col].tolist(), visible=True)
+
+            style: Dict[str, Any] = series_styles.get(y_col, {})
+            trace_name: str = style.get("name", y_col)
+
+            if trace_type == "bars":
+                marker_dict: Dict[str, Any] = {}
+                if style.get("color"):
+                    marker_dict["color"] = style["color"]
+                if style.get("pattern"):
+                    marker_dict["pattern"] = {
+                        "shape": style["pattern"],
+                        "fillmode": "replace",
+                    }
+
+                trace_kwargs: Dict[str, Any] = dict(
+                    x=data[x_coord_col],
+                    y=data[y_col],
+                    name=trace_name,
+                    error_y=error_y,
+                )
+                if marker_dict:
+                    trace_kwargs["marker"] = marker_dict
+                if bar_width is not None:
+                    trace_kwargs["width"] = bar_width
+
+                fig.add_trace(go.Bar(**trace_kwargs), secondary_y=True)
+
+            else:  # dots
+                show_lines: bool = config.get("right_show_lines", True)
+                mode: str = "lines+markers" if show_lines else "markers"
+
+                marker_kwargs: Dict[str, Any] = dict(
+                    size=config.get("right_dot_size", 10),
+                    symbol=config.get("right_dot_symbol", "circle"),
+                )
+                line_kwargs: Dict[str, Any] = (
+                    dict(width=config.get("right_line_width", 2)) if show_lines else {}
+                )
+
+                fig.add_trace(
+                    go.Scatter(
+                        x=data[x_coord_col],
+                        y=data[y_col],
+                        name=trace_name,
+                        mode=mode,
+                        marker=marker_kwargs,
+                        line=line_kwargs,
+                        error_y=error_y,
+                    ),
+                    secondary_y=True,
+                )
 
         return fig
 

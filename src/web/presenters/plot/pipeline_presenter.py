@@ -33,6 +33,7 @@ class PipelinePresenter:
         "Mean Calculator": "mean",
         "Normalize": "normalize",
         "Filter": "conditionSelector",
+        "Split-Apply (Per-Axis)": "splitApply",
         "Transformer": "transformer",
     }
 
