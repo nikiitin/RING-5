@@ -152,6 +152,38 @@ class DefaultDataServicesAPI:
         """Format list of entries as comma-separated string."""
         return VariableService.format_entries_as_string(entries)
 
+    def find_entries_for_variable(
+        self,
+        available_variables: List[Dict[str, Any]],
+        var_name: str,
+    ) -> List[str]:
+        """Find all entries for a variable by searching available/scanned variables."""
+        return VariableService.find_entries_for_variable(available_variables, var_name)
+
+    def update_scanned_entries(
+        self,
+        scanned_vars: List[Dict[str, Any]],
+        var_name: str,
+        new_entries: List[str],
+    ) -> List[Dict[str, Any]]:
+        """Update or add entries for a variable in the scanned variables list."""
+        return VariableService.update_scanned_entries(scanned_vars, var_name, new_entries)
+
+    def has_variable_with_name(
+        self,
+        variables: List[Dict[str, Any]],
+        name: str,
+    ) -> bool:
+        """Check if a variable with the given name already exists."""
+        return VariableService.has_variable_with_name(variables, name)
+
+    def build_statistics_list(
+        self,
+        selected: Dict[str, bool],
+    ) -> List[str]:
+        """Build a list of selected statistics from a boolean mapping."""
+        return VariableService.build_statistics_list(selected)
+
     # -- Portfolio Management --
 
     def list_portfolios(self) -> List[str]:

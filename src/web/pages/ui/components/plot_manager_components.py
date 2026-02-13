@@ -5,13 +5,13 @@ Provides Streamlit components for plot management: creation, configuration,
 data transformation pipelines, rendering, and export operations.
 """
 
-import copy
 import logging
 from typing import Optional
 
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
+from src.core.services.shapers.factory import ShaperFactory
 from src.web.pages.ui.plotting import BasePlot, PlotFactory, PlotRenderer
 from src.web.pages.ui.plotting.plot_service import PlotService
 from src.web.pages.ui.shaper_config import apply_shapers, configure_shaper
@@ -156,16 +156,14 @@ class PlotManagerComponents:
         selected = st.selectbox("Select Pipeline", pipelines, key=f"load_p_sel_{plot.plot_id}")
         if st.button("Load", type="primary", key=f"load_p_btn_{plot.plot_id}"):
             try:
+                from src.core.services.shapers.pipeline_service import (
+                    PipelineService,
+                )
+
                 data = api.shapers.load_pipeline(selected)
-                plot.pipeline = copy.deepcopy(data.get("pipeline", []))
-                if plot.pipeline:
-                    max_id: int = max(
-                        (step.get("id", -1) for step in plot.pipeline),
-                        default=-1,
-                    )
-                    plot.pipeline_counter = max_id + 1
-                else:
-                    plot.pipeline_counter = 0
+                steps, counter = PipelineService.prepare_loaded_pipeline(data)
+                plot.pipeline = steps
+                plot.pipeline_counter = counter
                 plot.processed_data = None  # Reset data
                 st.success("Pipeline loaded!")
                 st.session_state[f"show_load_for_plot_{plot.plot_id}"] = False
@@ -193,16 +191,9 @@ class PlotManagerComponents:
             st.warning("Please upload data first!")
             return
 
-        # Add shaper
+        # Add shaper — display names from ShaperFactory (Layer B)
         col1, col2 = st.columns([3, 1])
-        shaper_map = {
-            "Column Selector": "columnSelector",
-            "Sort": "sort",
-            "Mean Calculator": "mean",
-            "Normalize": "normalize",
-            "Filter": "conditionSelector",
-            "Transformer": "transformer",
-        }
+        shaper_map = ShaperFactory.get_display_name_map()
         with col1:
             display_type = st.selectbox(
                 "Add transformation", list(shaper_map.keys()), key=f"shaper_add_{plot.plot_id}"
@@ -219,10 +210,8 @@ class PlotManagerComponents:
         if plot.pipeline:
             st.markdown("**Current Pipeline:**")
             for idx, shaper in enumerate(plot.pipeline):
-                # Reverse map for display
-                d_name = next(
-                    (k for k, v in shaper_map.items() if v == shaper["type"]), shaper["type"]
-                )
+                # Display name from ShaperFactory
+                d_name = ShaperFactory.get_display_name(shaper["type"])
                 with st.expander(f"{idx+1}. {d_name}", expanded=True):
                     c1, c2, c3, c4 = st.columns([3, 1, 1, 1])
                     with c1:

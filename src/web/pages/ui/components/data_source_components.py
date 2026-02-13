@@ -361,7 +361,7 @@ class DataSourceComponents:
                         **config,
                     }
                     current_vars = api.state_manager.get_parse_variables()
-                    if any(v["name"] == name for v in current_vars):
+                    if api.data_services.has_variable_with_name(current_vars, name):
                         st.warning(f"Variable '{name}' already exists.")
                     else:
                         current_vars.append(new_var)

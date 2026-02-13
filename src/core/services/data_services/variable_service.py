@@ -372,3 +372,148 @@ class VariableService:
             'cpu0, cpu1, cpu2'
         """
         return ", ".join(entries)
+
+    @classmethod
+    def find_entries_for_variable(
+        cls,
+        available_variables: List[Dict[str, Any]],
+        var_name: str,
+    ) -> List[str]:
+        r"""
+        Find all entries for a variable by searching available/scanned variables.
+
+        Searches both exact name matches and regex pattern matches (e.g.,
+        var_name contains \\d+ patterns). Aggregates entries from all matches
+        and filters out internal statistics.
+
+        Args:
+            available_variables: List of scanned variable dicts with 'name'
+                                 and 'entries' keys.
+            var_name: Variable name or regex pattern to search for.
+
+        Returns:
+            Sorted list of unique, non-internal entries found across matches.
+
+        Examples:
+            >>> service = VariableService()
+            >>> avail = [
+            ...     {"name": "system.cpu.ipc", "entries": ["cpu0", "cpu1", "total"]},
+            ...     {"name": "system.mem.lat", "entries": ["bank0"]},
+            ... ]
+            >>> service.find_entries_for_variable(avail, "system.cpu.ipc")
+            ['cpu0', 'cpu1']
+        """
+        found_entries: Set[str] = set()
+
+        for var in available_variables:
+            v_name = var.get("name", "")
+            v_entries = var.get("entries", [])
+
+            matched = v_name == var_name
+            if not matched:
+                compiled = _compile_safe_pattern(var_name)
+                if compiled is not None:
+                    matched = bool(compiled.fullmatch(v_name))
+
+            if matched and v_entries:
+                found_entries.update(v_entries)
+
+        return cls.filter_internal_stats(list(found_entries))
+
+    @classmethod
+    def update_scanned_entries(
+        cls,
+        scanned_vars: List[Dict[str, Any]],
+        var_name: str,
+        new_entries: List[str],
+    ) -> List[Dict[str, Any]]:
+        """
+        Update or add entries for a variable in the scanned variables list.
+
+        If the variable exists, updates its entries field (preserving other
+        fields like pattern_indices). If not, appends a new vector variable.
+
+        Args:
+            scanned_vars: Current list of scanned variable dicts.
+            var_name: Variable name to update.
+            new_entries: New entries to set.
+
+        Returns:
+            Updated list of scanned variables (new list, original not mutated).
+
+        Examples:
+            >>> service = VariableService()
+            >>> scanned = [{"name": "cpu.ipc", "type": "vector", "entries": ["old"]}]
+            >>> updated = service.update_scanned_entries(scanned, "cpu.ipc", ["new1", "new2"])
+            >>> updated[0]["entries"]
+            ['new1', 'new2']
+            >>> updated2 = service.update_scanned_entries(scanned, "new.var", ["e1"])
+            >>> len(updated2)
+            2
+        """
+        result = [v.copy() for v in scanned_vars]
+
+        var_found = False
+        for v in result:
+            if v["name"] == var_name:
+                v["entries"] = new_entries
+                var_found = True
+                break
+
+        if not var_found:
+            result.append({"name": var_name, "type": "vector", "entries": new_entries})
+
+        return result
+
+    @classmethod
+    def has_variable_with_name(
+        cls,
+        variables: List[Dict[str, Any]],
+        name: str,
+    ) -> bool:
+        """
+        Check if a variable with the given name already exists.
+
+        Args:
+            variables: List of variable configurations to check.
+            name: Variable name to look for.
+
+        Returns:
+            True if a variable with this name exists.
+
+        Examples:
+            >>> service = VariableService()
+            >>> vars = [{"name": "cpu.ipc"}, {"name": "mem.lat"}]
+            >>> service.has_variable_with_name(vars, "cpu.ipc")
+            True
+            >>> service.has_variable_with_name(vars, "nonexistent")
+            False
+        """
+        return any(v.get("name") == name for v in variables)
+
+    @classmethod
+    def build_statistics_list(
+        cls,
+        selected: Dict[str, bool],
+    ) -> List[str]:
+        """
+        Build a list of selected statistics from a boolean mapping.
+
+        Utility for building the list of statistics to extract from vectors
+        or distributions based on user checkbox selections.
+
+        Args:
+            selected: Mapping of statistic name to whether it's selected.
+                      E.g., {"total": True, "mean": False, "stdev": True}
+
+        Returns:
+            List of selected statistic names, in insertion order.
+
+        Examples:
+            >>> service = VariableService()
+            >>> service.build_statistics_list({"total": True, "mean": False, "stdev": True})
+            ['total', 'stdev']
+            >>> service.build_statistics_list({})
+            []
+        """
+        return [name for name, is_selected in selected.items() if is_selected]

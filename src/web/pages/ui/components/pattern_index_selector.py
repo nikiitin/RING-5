@@ -1,17 +1,24 @@
 """
 Pattern Index Selector Component
 Allows users to select specific indices from pattern variables (e.g., l{0,1}_cntrl{1,2,3})
+
+UI-only thin wrapper around PatternIndexService (Layer B).
 """
 
 from typing import Dict, List, Optional, Tuple
 
 import streamlit as st
 
+from src.core.services.data_services.pattern_index_service import (
+    PatternIndexService,
+)
+
 
 class PatternIndexSelector:
     r"""
-    Component for selecting specific indices from pattern variables.
+    UI component for selecting specific indices from pattern variables.
 
+    Delegates all pure logic to PatternIndexService (Layer B).
     For patterns like system.ruby.l\d+_cntrl\d+.stat with entries like ["0_0", "0_1", "1_0", "1_1"],
     this allows users to select:
     - All indices: l{all}_cntrl{all} → ["0_0", "0_1", "1_0", "1_1"]
@@ -21,73 +28,18 @@ class PatternIndexSelector:
 
     @staticmethod
     def is_pattern_variable(var_name: str) -> bool:
-        r"""Check if variable name contains regex pattern (\d+)."""
-        return r"\d+" in var_name
+        r"""Check if variable name contains regex pattern (\d+). Delegates to service."""
+        return PatternIndexService.is_pattern_variable(var_name)
 
     @staticmethod
     def extract_index_positions(var_name: str) -> List[str]:
-        r"""
-        Extract position labels from pattern variable name.
-
-        Args:
-            var_name: Pattern like r"system.ruby.l\d+_cntrl\d+.stat"
-
-        Returns:
-            List of position labels like ["l", "cntrl"]
-        """
-        # Find all positions where \d+ appears and extract the preceding label.
-        # Use string splitting instead of regex to avoid ReDoS on user input.
-        cleaned: List[str] = []
-        marker = r"\d+"
-        parts = var_name.split(marker)
-        # Each part (except the last) ends with the label before \d+
-        for part in parts[:-1]:
-            # Extract trailing identifier: letters/underscores before the split
-            label = ""
-            for ch in reversed(part):
-                if ch.isalpha() or ch == "_":
-                    label = ch + label
-                else:
-                    break
-            # Remove leading underscores (e.g., "_cntrl" -> "cntrl")
-            label = label.lstrip("_")
-            if label:
-                cleaned.append(label)
-
-        return cleaned
+        r"""Extract position labels from pattern variable name. Delegates to service."""
+        return PatternIndexService.extract_index_positions(var_name)
 
     @staticmethod
     def parse_entry_indices(entries: List[str]) -> Dict[int, set[str]]:
-        """
-        Parse entries to extract unique indices at each position.
-
-        Args:
-            entries: List like ["0_0", "0_1", "1_0", "1_1", "2_0"]
-
-        Returns:
-            Dict mapping position index to set of values:
-            {0: {"0", "1", "2"}, 1: {"0", "1"}}
-        """
-        if not entries:
-            return {}
-
-        # Parse first entry to determine structure
-        first_entry = entries[0]
-        parts = first_entry.split("_")
-        num_positions = len(parts)
-
-        # Collect all values at each position
-        position_values: Dict[int, set[str]] = {i: set() for i in range(num_positions)}
-
-        for entry in entries:
-            parts = entry.split("_")
-            # Handle entries with different numbers of parts
-            for i, part in enumerate(parts):
-                if i not in position_values:
-                    position_values[i] = set()
-                position_values[i].add(part)
-
-        return position_values
+        """Parse entries to extract unique indices at each position. Delegates to service."""
+        return PatternIndexService.parse_entry_indices(entries)
 
     @classmethod
     def render_selector(
@@ -114,9 +66,9 @@ class PatternIndexSelector:
         if not cls.is_pattern_variable(var_name):
             return False, entries
 
-        # Extract position info
-        positions = cls.extract_index_positions(var_name)
-        position_values = cls.parse_entry_indices(entries)
+        # Extract position info (delegated to service)
+        positions = PatternIndexService.extract_index_positions(var_name)
+        position_values = PatternIndexService.parse_entry_indices(entries)
 
         if not positions or not position_values:
             return False, entries
@@ -180,8 +132,8 @@ class PatternIndexSelector:
 
                 selections[pos_idx] = selected
 
-        # Filter entries based on selections
-        filtered_entries = cls._filter_entries(entries, selections)
+        # Filter entries based on selections (delegated to service)
+        filtered_entries = PatternIndexService.filter_entries(entries, selections)
 
         # Show summary
         if filtered_entries:
@@ -196,7 +148,7 @@ class PatternIndexSelector:
             with st.expander("Show selected instances"):
                 for entry in examples:
                     if entry != "...":
-                        formatted = cls._format_entry_display(entry, positions)
+                        formatted = PatternIndexService.format_entry_display(entry, positions)
                         st.code(formatted, language="")
         else:
             st.error("❌ No instances match the current selection!")
@@ -205,57 +157,10 @@ class PatternIndexSelector:
 
     @staticmethod
     def _filter_entries(entries: List[str], selections: Dict[int, List[str]]) -> List[str]:
-        """
-        Filter entries based on selected indices.
-
-        Args:
-            entries: All available entries (e.g., ["0_0", "0_1", "1_0"])
-            selections: Selected indices per position {0: ["0"], 1: ["0", "1"]}
-
-        Returns:
-            Filtered entries matching the selection
-        """
-        filtered = []
-
-        for entry in entries:
-            parts = entry.split("_")
-
-            # Check if entry matches all position selections
-            matches = True
-            for pos_idx, selected_values in selections.items():
-                if not selected_values:  # No selection means exclude all
-                    matches = False
-                    break
-
-                if pos_idx < len(parts):
-                    if parts[pos_idx] not in selected_values:
-                        matches = False
-                        break
-
-            if matches:
-                filtered.append(entry)
-
-        return filtered
+        """Filter entries based on selected indices. Delegates to service."""
+        return PatternIndexService.filter_entries(entries, selections)
 
     @staticmethod
     def _format_entry_display(entry: str, positions: List[str]) -> str:
-        """
-        Format entry for display (e.g., "0_1" → "l{0}_cntrl{1}").
-
-        Args:
-            entry: Entry like "0_1"
-            positions: Position labels like ["l", "cntrl"]
-
-        Returns:
-            Formatted string for display
-        """
-        parts = entry.split("_")
-        formatted_parts = []
-
-        for i, part in enumerate(parts):
-            if i < len(positions):
-                formatted_parts.append(f"{positions[i]}{{{part}}}")
-            else:
-                formatted_parts.append(part)
-
-        return "_".join(formatted_parts)
+        """Format entry for display. Delegates to service."""
+        return PatternIndexService.format_entry_display(entry, positions)

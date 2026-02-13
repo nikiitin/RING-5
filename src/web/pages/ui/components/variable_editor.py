@@ -438,20 +438,11 @@ class VariableEditor:
 
             if filtered_entries:
                 scanned_vars = api.state_manager.get_scanned_variables() or []
-                var_found = False
-                for v in scanned_vars:
-                    if v["name"] == var_name:
-                        # Update entries while preserving any existing pattern_indices
-                        # (only the 'entries' field is modified here)
-                        v["entries"] = filtered_entries
-                        var_found = True
-                        break
-                if not var_found:
-                    scanned_vars.append(
-                        {"name": var_name, "type": "vector", "entries": filtered_entries}
-                    )
-
-                api.state_manager.set_scanned_variables(scanned_vars)
+                # Delegate update logic to VariableService (Layer B)
+                updated_vars = api.data_services.update_scanned_entries(
+                    scanned_vars, var_name, filtered_entries
+                )
+                api.state_manager.set_scanned_variables(updated_vars)
                 st.success(f"Discovered {len(filtered_entries)} unique entries!")
             else:
                 st.warning(f"No valid entries found matching '{var_name}'.")

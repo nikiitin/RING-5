@@ -1,51 +1,21 @@
 """Base plot class with common functionality."""
 
-import math
 from abc import ABC, abstractmethod
 from io import StringIO
-from typing import Any, Dict, List, Optional, TypedDict, Union
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from src.core.models.plot_config import ShapeConfig
+from src.core.services.plot_interaction_service import (
+    resolve_item_order,
+    try_float,
+    try_float_edit,
+    update_config_from_relayout,
+)
 from src.web.pages.ui.plotting.styles import StyleManager
-
-
-class ShapeConfig(TypedDict, total=False):
-    """Type definition for annotation shape configuration."""
-
-    type: str  # "line", "circle", "rect"
-    x0: Union[float, str]
-    y0: Union[float, str]
-    x1: Union[float, str]
-    y1: Union[float, str]
-    line: Dict[str, Any]  # Contains color, width
-
-
-class SeriesStyle(TypedDict, total=False):
-    """Type definition for series styling (color, shape, name)."""
-
-    name: str  # Display name
-    color: str  # Hex color code
-    marker_symbol: str  # For scatter plots
-    pattern_shape: str  # For bars
-
-
-class RelayoutData(TypedDict, total=False):
-    """Type definition for Plotly relayout event data."""
-
-    # Axis ranges
-    xaxis_range: List[float]
-    yaxis_range: List[float]
-    xaxis_autorange: bool
-    yaxis_autorange: bool
-    # Legend position
-    legend_x: float
-    legend_y: float
-    legend_xanchor: str
-    legend_yanchor: str
-    legend_title_text: str
 
 
 class BasePlot(ABC):
@@ -106,120 +76,18 @@ class BasePlot(ABC):
         """
         Update config from client-side relayout data (zoom/pan, legend drag).
 
+        Delegates pure computation to update_config_from_relayout (Layer B).
+
         Args:
             relayout_data: Dictionary of relayout events from Plotly
 
         Returns:
             True if config changed, False otherwise
         """
-        changed: bool = False
+        updated_config, changed = update_config_from_relayout(self.config, relayout_data)
 
-        if not relayout_data:
-            return False
-
-        # Helper to safely update
-        def update_if_new(key: str, val: Any) -> bool:
-            current: Any = self.config.get(key)
-            # Check for float equality if both are lists of numbers (ranges)
-
-            def is_close(a: Any, b: Any) -> bool:
-                try:
-                    return math.isclose(float(a), float(b), rel_tol=1e-9)
-                except (ValueError, TypeError):
-                    return bool(a == b)
-
-            if isinstance(current, list) and isinstance(val, list) and len(current) == len(val):
-                if all(is_close(c, v) for c, v in zip(current, val)):
-                    return False
-
-            # Simple equality check for non-lists or different lengths
-            if current != val:
-                if is_close(current, val):
-                    return False
-
-                self.config[key] = val
-                return True
-            return False
-
-        # 1. Custom Range (Zoom)
-        # Plotly sends ranges as array [min, max]
-        # x-axis
-        if "xaxis.range[0]" in relayout_data and "xaxis.range[1]" in relayout_data:
-            new_range: List[Any] = [
-                relayout_data["xaxis.range[0]"],
-                relayout_data["xaxis.range[1]"],
-            ]
-            if update_if_new("range_x", new_range):
-                changed = True
-        elif "xaxis.range" in relayout_data:
-            if update_if_new("range_x", relayout_data["xaxis.range"]):
-                changed = True
-
-        # y-axis
-        if "yaxis.range[0]" in relayout_data and "yaxis.range[1]" in relayout_data:
-            new_range = [relayout_data["yaxis.range[0]"], relayout_data["yaxis.range[1]"]]
-            if update_if_new("range_y", new_range):
-                changed = True
-        elif "yaxis.range" in relayout_data:
-            if update_if_new("range_y", relayout_data["yaxis.range"]):
-                changed = True
-
-        # Autosize / Reset Zoom
-        if "xaxis.autorange" in relayout_data and relayout_data["xaxis.autorange"]:
-            if self.config.get("range_x") is not None:
-                self.config["range_x"] = None
-                changed = True
-
-        if "yaxis.autorange" in relayout_data and relayout_data["yaxis.autorange"]:
-            if self.config.get("range_y") is not None:
-                self.config["range_y"] = None
-                changed = True
-
-        # 2. Legend Position (Drag)
-        # Track each legend position independently (legend, legend2, legend3, etc.)
-        # Users can position each column separately
-
-        # Check for any legend drag events
-        for key, val in relayout_data.items():
-            if not key.startswith("legend"):
-                continue
-
-            parts: List[str] = key.split(".")
-            if len(parts) != 2:
-                continue
-
-            legend_name: str = parts[0]  # "legend" or "legend2", etc.
-            prop: str = parts[1]  # "x", "y", "xanchor", etc.
-
-            # Build config key: legend.x -> legend_x, legend2.x -> legend2_x
-            config_key: str
-            if legend_name == "legend":
-                config_key = f"legend_{prop}"
-            else:
-                config_key = f"{legend_name}_{prop}"
-
-            if prop in ("x", "y"):
-                if update_if_new(config_key, val):
-                    changed = True
-                    # Also set anchor when position changes
-                    anchor_key: str
-                    if prop == "x":
-                        anchor_key = config_key.replace("_x", "_xanchor")
-                        self.config[anchor_key] = "left"
-                    elif prop == "y":
-                        anchor_key = config_key.replace("_y", "_yanchor")
-                        self.config[anchor_key] = "top"
-            elif prop in ("xanchor", "yanchor"):
-                if update_if_new(config_key, val):
-                    changed = True
-
-        # 3. Legend Title (Edit)
-        if "legend.title.text" in relayout_data:
-            if update_if_new("legend_title", relayout_data["legend.title.text"]):
-                changed = True
-
-        # Invalidate cache if changed so next render uses new config
         if changed:
+            self.config = updated_config
             self.last_generated_fig = None
 
         return changed
@@ -685,13 +553,6 @@ class BasePlot(ABC):
                 s_width: int = st.number_input("Width", 1, 10, 2, key=f"s_width_{self.plot_id}")
 
             if st.button("Add Shape", key=f"add_shape_{self.plot_id}"):
-
-                def try_float(v: str) -> Union[float, str]:
-                    try:
-                        return float(v)
-                    except ValueError:
-                        return v
-
                 shapes.append(
                     {
                         "type": new_shape_type,
@@ -720,13 +581,7 @@ class BasePlot(ABC):
             with h5:
                 st.caption("Type")
 
-        # Helper function for editing shapes (different from add shape's try_float)
-        def try_float_edit(v: Any) -> Union[float, str]:
-            """Try to convert value to float, fallback to string."""
-            try:
-                return float(v)
-            except (ValueError, TypeError):
-                return str(v)
+        # Helper function: uses imported try_float_edit from plot_interaction_service
 
         if st.session_state.get(f"edit_shapes_{self.plot_id}", False):
             for i, shape in enumerate(shapes):
@@ -800,24 +655,14 @@ class BasePlot(ABC):
         # Initialize in session state if needed
         ss_key: str = f"{key_prefix}_order_{self.plot_id}"
         if ss_key not in st.session_state:
-            # Use default_order if provided, but validate against current items
-            if default_order:
-                # Filter default_order to only include items currently in data
-                valid_defaults: List[Any] = [x for x in default_order if x in items]
-                # Append any new items from data that weren't in default_order
-                missing_items: List[Any] = [x for x in items if x not in valid_defaults]
-                st.session_state[ss_key] = valid_defaults + missing_items
-            else:
-                st.session_state[ss_key] = list(items)
+            # Use resolve_item_order from Layer B for initial ordering
+            st.session_state[ss_key] = resolve_item_order(items, default_order=default_order)
 
-        # Sync if items changed (e.g. data update) but keep existing order for common items
+        # Sync if items changed (e.g. data update) — use service for logic
         current_items: List[Any] = st.session_state[ss_key]
         if set(current_items) != set(items):
-            # Keep existing items in order, append new ones
-            new_items: List[Any] = [x for x in current_items if x in items]
-            new_items.extend([x for x in items if x not in current_items])
-            st.session_state[ss_key] = new_items
-            current_items = new_items
+            current_items = resolve_item_order(items, current_order=current_items)
+            st.session_state[ss_key] = current_items
 
         # Display items with reordering controls
         for i, item in enumerate(current_items):

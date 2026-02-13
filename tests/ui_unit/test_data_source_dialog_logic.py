@@ -53,6 +53,7 @@ def mock_api():
     ]
     api.data_services.format_entries_as_string.side_effect = lambda entries: ", ".join(entries)
     api.data_services.filter_internal_stats.side_effect = lambda entries: entries
+    api.data_services.has_variable_with_name.return_value = False
     return api
 
 

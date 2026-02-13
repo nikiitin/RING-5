@@ -61,9 +61,10 @@ Version: 2.0.0
 Last Modified: 2026-01-27
 """
 
+import copy
 import json
 from pathlib import Path
-from typing import Any, Dict, List, cast
+from typing import Any, Dict, List, Tuple, cast
 
 import pandas as pd
 
@@ -161,3 +162,45 @@ class PipelineService:
                 raise ValueError(f"Failed to apply shaper {shaper_type}: {e}") from e
 
         return current_data
+
+    @staticmethod
+    def prepare_loaded_pipeline(
+        pipeline_data: Dict[str, Any],
+    ) -> Tuple[List[Dict[str, Any]], int]:
+        """
+        Prepare a loaded pipeline for use in a plot.
+
+        Deep-copies the pipeline steps and computes the next pipeline_counter
+        value based on the maximum step ID found. This ensures loaded pipelines
+        don't share mutable state with the stored version and that new steps
+        get unique IDs.
+
+        Args:
+            pipeline_data: Raw pipeline data from load_pipeline().
+                           Expected to have a "pipeline" key with list of steps.
+
+        Returns:
+            Tuple of (pipeline_steps, next_counter):
+            - pipeline_steps: Deep-copied list of shaper step dicts
+            - next_counter: Value for pipeline_counter (max_id + 1)
+
+        Examples:
+            >>> data = {"pipeline": [{"id": 0, "type": "sort"}, {"id": 2, "type": "mean"}]}
+            >>> steps, counter = PipelineService.prepare_loaded_pipeline(data)
+            >>> counter
+            3
+            >>> steps[0] is not data["pipeline"][0]
+            True
+        """
+        steps: List[Dict[str, Any]] = copy.deepcopy(pipeline_data.get("pipeline", []))
+
+        if steps:
+            max_id: int = max(
+                (step.get("id", -1) for step in steps),
+                default=-1,
+            )
+            next_counter = max_id + 1
+        else:
+            next_counter = 0
+
+        return steps, next_counter

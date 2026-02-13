@@ -44,6 +44,16 @@ class ShaperFactory:
         "transformer": Transformer,
     }
 
+    # Human-readable display names for the UI layer
+    _display_names: Dict[str, str] = {
+        "columnSelector": "Column Selector",
+        "sort": "Sort",
+        "mean": "Mean Calculator",
+        "normalize": "Normalize",
+        "conditionSelector": "Filter",
+        "transformer": "Transformer",
+    }
+
     @classmethod
     def register(cls, shaper_type: str, shaper_class: Type[Shaper]) -> None:
         """
@@ -64,6 +74,37 @@ class ShaperFactory:
             List of shaper type strings (e.g., ['mean', 'normalize', 'sort'])
         """
         return list(cls._registry.keys())
+
+    @classmethod
+    def get_display_name_map(cls) -> Dict[str, str]:
+        """
+        Return mapping of display names to shaper type identifiers.
+
+        Used by UI layers to show human-readable names in dropdowns and
+        resolve back to type identifiers for pipeline construction.
+
+        Returns:
+            Dict mapping display name -> shaper type id.
+            E.g., {"Column Selector": "columnSelector", "Sort": "sort", ...}
+        """
+        return {
+            display: shaper_type
+            for shaper_type, display in cls._display_names.items()
+            if shaper_type in cls._registry
+        }
+
+    @classmethod
+    def get_display_name(cls, shaper_type: str) -> str:
+        """
+        Get human-readable display name for a shaper type.
+
+        Args:
+            shaper_type: Internal shaper type identifier.
+
+        Returns:
+            Display name, or the type identifier if no display name exists.
+        """
+        return cls._display_names.get(shaper_type, shaper_type)
 
     @classmethod
     def create_shaper(cls, shaper_type: str, params: Dict[str, Any]) -> Shaper:
