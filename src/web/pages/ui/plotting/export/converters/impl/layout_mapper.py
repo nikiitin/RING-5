@@ -105,11 +105,33 @@ class LayoutExtractor:
             if layout.yaxis.ticktext is not None:
                 props["y_ticktext"] = [str(t) for t in layout.yaxis.ticktext]
 
+        # Extract secondary Y-axis (dual-axis) settings
+        yaxis2 = getattr(layout, "yaxis2", None)
+        if yaxis2 is not None:
+            if yaxis2.title is not None and yaxis2.title.text:
+                props["y2_label"] = yaxis2.title.text
+            if yaxis2.range is not None:
+                props["y2_range"] = list(yaxis2.range)
+            if yaxis2.showgrid is not None:
+                props["y2_grid"] = yaxis2.showgrid
+            # Extract tick settings for secondary Y
+            if yaxis2.tickfont is not None:
+                y2_tickfont: Dict[str, Any] = {}
+                if yaxis2.tickfont.size is not None:
+                    y2_tickfont["size"] = yaxis2.tickfont.size
+                if yaxis2.tickfont.color is not None:
+                    y2_tickfont["color"] = yaxis2.tickfont.color
+                if y2_tickfont:
+                    props["y2_tickfont"] = y2_tickfont
+            if yaxis2.dtick is not None:
+                props["y2_dtick"] = yaxis2.dtick
+
         return props
 
     def _extract_legend_settings(self, layout: go.Layout) -> Dict[str, Any]:
         """
-        Extract legend positioning and anchor settings.
+        Extract legend positioning and anchor settings for primary and
+        secondary (legend2) legends.
 
         Args:
             layout: Plotly layout object
@@ -117,22 +139,38 @@ class LayoutExtractor:
         Returns:
             Dictionary with legend configuration (empty if no legend)
         """
-        if layout.legend is None:
-            return {}
+        result: Dict[str, Any] = {}
 
-        legend_dict: Dict[str, Any] = {}
-        if layout.legend.x is not None:
-            legend_dict["x"] = layout.legend.x
-        if layout.legend.y is not None:
-            legend_dict["y"] = layout.legend.y
-        if layout.legend.xanchor is not None:
-            legend_dict["xanchor"] = layout.legend.xanchor
-        if layout.legend.yanchor is not None:
-            legend_dict["yanchor"] = layout.legend.yanchor
+        # Primary legend
+        if layout.legend is not None:
+            legend_dict: Dict[str, Any] = {}
+            if layout.legend.x is not None:
+                legend_dict["x"] = layout.legend.x
+            if layout.legend.y is not None:
+                legend_dict["y"] = layout.legend.y
+            if layout.legend.xanchor is not None:
+                legend_dict["xanchor"] = layout.legend.xanchor
+            if layout.legend.yanchor is not None:
+                legend_dict["yanchor"] = layout.legend.yanchor
+            if legend_dict:
+                result["legend"] = legend_dict
 
-        if legend_dict:
-            return {"legend": legend_dict}
-        return {}
+        # Secondary legend (dual-axis separate legends)
+        legend2 = getattr(layout, "legend2", None)
+        if legend2 is not None:
+            legend2_dict: Dict[str, Any] = {}
+            if legend2.x is not None:
+                legend2_dict["x"] = legend2.x
+            if legend2.y is not None:
+                legend2_dict["y"] = legend2.y
+            if legend2.xanchor is not None:
+                legend2_dict["xanchor"] = legend2.xanchor
+            if legend2.yanchor is not None:
+                legend2_dict["yanchor"] = legend2.yanchor
+            if legend2_dict:
+                result["legend2"] = legend2_dict
+
+        return result
 
     def _detect_ylabel_from_annotation(self, annotations: Tuple[Any, ...]) -> Optional[str]:
         """

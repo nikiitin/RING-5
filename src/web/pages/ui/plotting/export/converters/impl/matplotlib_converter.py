@@ -286,6 +286,11 @@ class MatplotlibConverter(BaseConverter):
         """
         Convert all Plotly traces to Matplotlib.
 
+        Traces assigned to ``yaxis='y2'`` (secondary Y) are rendered on a
+        twin axis created via ``ax.twinx()``.  The twin axis is stored as
+        ``ax._ring5_twin`` so that later layout application (legend2, tick
+        font, grid) can find it.
+
         Args:
             plotly_fig: Source Plotly figure
             ax: Target Matplotlib axes
@@ -295,27 +300,38 @@ class MatplotlibConverter(BaseConverter):
         """
         traces_converted = 0
 
-        # First pass: collect bar traces
+        # First pass: collect bar traces (needed for positioning logic)
         for trace in plotly_fig.data:
             if trace.type == "bar":
                 self._bar_traces.append(trace)
 
+        # Detect whether any trace lives on the secondary Y-axis
+        has_secondary = any(getattr(t, "yaxis", None) == "y2" for t in plotly_fig.data)
+        ax2: Optional[Axes] = None
+        if has_secondary:
+            ax2 = ax.twinx()
+            ax._ring5_twin = ax2  # type: ignore[attr-defined]
+
         # Second pass: convert traces with proper positioning
         for idx, trace in enumerate(plotly_fig.data):
+            # Choose the target axis based on the trace's yaxis assignment
+            is_secondary = getattr(trace, "yaxis", None) == "y2"
+            target_ax = ax2 if (is_secondary and ax2 is not None) else ax
+
             try:
                 if trace.type == "bar":
-                    self._convert_bar_trace(trace, ax, idx)
+                    self._convert_bar_trace(trace, target_ax, idx)
                     traces_converted += 1
                 elif trace.type == "scatter":
                     if trace.mode and "markers" in trace.mode:
-                        self._convert_scatter_trace(trace, ax)
+                        self._convert_scatter_trace(trace, target_ax)
                         traces_converted += 1
                     elif trace.mode and "lines" in trace.mode:
-                        self._convert_line_trace(trace, ax)
+                        self._convert_line_trace(trace, target_ax)
                         traces_converted += 1
                     else:
                         # Default to line plot
-                        self._convert_line_trace(trace, ax)
+                        self._convert_line_trace(trace, target_ax)
                         traces_converted += 1
                 else:
                     logger.warning(f"Unsupported trace type: {trace.type}")
@@ -591,7 +607,17 @@ class MatplotlibConverter(BaseConverter):
 
         # Configure legend with multi-column support
         # Use 2 columns if there are many traces (> 4), otherwise 1 column
+        ax2 = getattr(ax, "_ring5_twin", None)
+        has_legend2 = "legend2" in extracted_layout
+
+        # Collect handles: if unified (no legend2), combine primary + secondary
         handles, labels = ax.get_legend_handles_labels()
+        if ax2 is not None and not has_legend2:
+            # Unified legend — merge handles from both axes
+            h2, l2 = ax2.get_legend_handles_labels()
+            handles = handles + h2
+            labels = labels + l2
+
         if handles:  # Only add legend if there are traces with labels
             # Use preset ncol if set (>0), otherwise auto (>4 items = 2 cols)
             preset_ncol = self.preset.get("legend_ncol", 0)
@@ -649,6 +675,33 @@ class MatplotlibConverter(BaseConverter):
             applied["legend_ncols"] = ncol
             applied["legend_items"] = len(handles)
             applied["legend_fontsize"] = legend_fontsize
+
+        # Secondary legend on twin axis (separate legend mode)
+        if has_legend2 and ax2 is not None:
+            h2, l2 = ax2.get_legend_handles_labels()
+            if h2:
+                legend2_config = extracted_layout.get("legend2", {})
+                legend2_kwargs: Dict[str, Any] = {
+                    "handles": h2,
+                    "labels": l2,
+                    "frameon": True,
+                    "fancybox": False,
+                    "shadow": False,
+                    "framealpha": 1.0,
+                    "edgecolor": "black",
+                    "fontsize": self.preset.get("font_size_legend", 8),
+                }
+                if "x" in legend2_config and "y" in legend2_config:
+                    legend2_kwargs["bbox_to_anchor"] = (
+                        legend2_config["x"],
+                        legend2_config["y"],
+                    )
+                    legend2_kwargs["loc"] = "upper left"
+                else:
+                    legend2_kwargs["loc"] = "best"
+                legend2 = ax2.legend(**legend2_kwargs)
+                legend2.set_zorder(5)
+                applied["legend2_items"] = len(h2)
 
         # Reference lines (horizontal lines from Plotly shapes)
         self._apply_reference_lines(plotly_fig, ax)

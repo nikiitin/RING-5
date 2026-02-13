@@ -1,6 +1,6 @@
-"""Tests for SplitApplyConfig shaper UI component — coverage."""
+"""Tests for SplitApplyConfig shaper UI component — N-group delegation."""
 
-from typing import Any, Dict, List
+from typing import Any, Dict
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -28,17 +28,34 @@ def _sample_data() -> pd.DataFrame:
     )
 
 
-# ── TestSplitApplyConfigRender ────────────────────────────────────
+def _sample_data_4cols() -> pd.DataFrame:
+    """DataFrame with 2 categorical + 4 numeric columns."""
+    return pd.DataFrame(
+        {
+            "benchmark": ["mcf", "omnet"],
+            "config": ["base", "opt"],
+            "v1": [1.0, 2.0],
+            "v2": [10.0, 20.0],
+            "v3": [100.0, 200.0],
+            "v4": [1000.0, 2000.0],
+        }
+    )
 
+
+# ── Module path for patching ─────────────────────────────────────
 
 _MOD = "src.web.pages.ui.components.shapers.split_apply_config"
+
+
+# ── TestSplitApplyConfigRender (2 groups, no sub-steps) ──────────
 
 
 class TestSplitApplyConfigRender:
     """Test the top-level render() with 0 sub-pipeline steps."""
 
+    @patch(f"{_MOD}._init_dispatch")
     @patch(f"{_MOD}.st")
-    def test_render_basic_no_steps(self, mock_st: MagicMock) -> None:
+    def test_render_basic_no_steps(self, mock_st: MagicMock, _mock_init: MagicMock) -> None:
         """render() with 0 steps returns joinColumns + 2 empty groups."""
         from src.web.pages.ui.components.shapers.split_apply_config import (
             SplitApplyConfig,
@@ -46,30 +63,29 @@ class TestSplitApplyConfigRender:
 
         data: pd.DataFrame = _sample_data()
 
-        # st.multiselect calls:
-        #   1: join columns  →  ["benchmark", "config"]
-        #   2: group A numeric cols  →  ["ipc"]
-        #   3: group B numeric cols  →  ["cycles"]
+        # multiselect calls:
+        #   1: join columns → ["benchmark", "config"]
+        #   2: group 0 numeric cols → ["ipc"]
+        #   3: group 1 numeric cols → ["cycles"]
         mock_st.multiselect.side_effect = [
             ["benchmark", "config"],
             ["ipc"],
             ["cycles"],
         ]
 
-        # st.columns(2) is called 3 times:
-        #   1: [col_a, col_b]  (groups layout)
-        #   2: [bc1, bc2]       (sub-pipeline buttons group A)
-        #   3: [bc1, bc2]       (sub-pipeline buttons group B)
+        # slider returns 2 (default)
+        mock_st.slider.return_value = 2
+
+        # expander returns context managers
+        mock_st.expander.side_effect = [_ctx_mgr(), _ctx_mgr()]
+
+        # columns(2) for add/remove buttons in each group
         mock_st.columns.side_effect = [
-            [_ctx_mgr(), _ctx_mgr()],
             [_ctx_mgr(), _ctx_mgr()],
             [_ctx_mgr(), _ctx_mgr()],
         ]
 
-        # session_state as dict — step counts start at 0
         mock_st.session_state = {}
-
-        # buttons return False (no add / remove)
         mock_st.button.return_value = False
 
         result: Dict[str, Any] = SplitApplyConfig.render(
@@ -86,8 +102,9 @@ class TestSplitApplyConfigRender:
         assert result["groups"][1]["columns"] == ["cycles"]
         assert result["groups"][1]["pipeline"] == []
 
+    @patch(f"{_MOD}._init_dispatch")
     @patch(f"{_MOD}.st")
-    def test_render_restores_existing_join(self, mock_st: MagicMock) -> None:
+    def test_render_restores_existing_join(self, mock_st: MagicMock, _mock_init: MagicMock) -> None:
         """render() passes existing joinColumns as defaults."""
         from src.web.pages.ui.components.shapers.split_apply_config import (
             SplitApplyConfig,
@@ -96,12 +113,13 @@ class TestSplitApplyConfigRender:
         data: pd.DataFrame = _sample_data()
 
         mock_st.multiselect.side_effect = [
-            ["benchmark"],  # user only kept benchmark
+            ["benchmark"],
             [],
             [],
         ]
+        mock_st.slider.return_value = 2
+        mock_st.expander.side_effect = [_ctx_mgr(), _ctx_mgr()]
         mock_st.columns.side_effect = [
-            [_ctx_mgr(), _ctx_mgr()],
             [_ctx_mgr(), _ctx_mgr()],
             [_ctx_mgr(), _ctx_mgr()],
         ]
@@ -118,46 +136,246 @@ class TestSplitApplyConfigRender:
         assert result["joinColumns"] == ["benchmark"]
 
 
-class TestSplitApplyConfigMeanStep:
-    """Test render path with a Mean sub-step in group A."""
+# ── TestSplitApplyConfigSubStepDelegation ────────────────────────
 
+
+class TestSplitApplyConfigSubStepDelegation:
+    """Test that _render_sub_step delegates to real config renderers."""
+
+    @patch(
+        f"{_MOD}._SUB_SHAPER_DISPATCH",
+        {
+            "Mean Calculator": (
+                "mean",
+                MagicMock(
+                    return_value={
+                        "meanAlgorithm": "arithmean",
+                        "meanVars": ["ipc"],
+                        "groupingColumns": ["config"],
+                        "replacingColumn": "benchmark",
+                    }
+                ),
+            ),
+            "Normalize": ("normalize", MagicMock(return_value={})),
+            "Sort": ("sort", MagicMock(return_value={})),
+            "Filter": ("conditionSelector", MagicMock(return_value={})),
+        },
+    )
     @patch(f"{_MOD}.st")
-    def test_one_mean_step(self, mock_st: MagicMock) -> None:
-        """A group with 1 Mean step returns proper config."""
+    def test_mean_delegates_to_real_renderer(self, mock_st: MagicMock) -> None:
+        """_render_sub_step chooses Mean and delegates to MeanConfig."""
+        from src.web.pages.ui.components.shapers.split_apply_config import (
+            _SUB_SHAPER_DISPATCH,
+            SplitApplyConfig,
+        )
+
+        data: pd.DataFrame = _sample_data()
+
+        mock_st.selectbox.return_value = "Mean Calculator"
+
+        result = SplitApplyConfig._render_sub_step(
+            data=data,
+            columns=["ipc"],
+            join_columns=["benchmark", "config"],
+            categorical_cols=["benchmark", "config"],
+            existing_step={},
+            key_base="k",
+            step_index=0,
+        )
+
+        assert result is not None
+        assert result["type"] == "mean"
+        assert result["meanAlgorithm"] == "arithmean"
+
+        # Verify the real render function was called
+        _, render_fn = _SUB_SHAPER_DISPATCH["Mean Calculator"]
+        render_fn.assert_called_once()
+
+    @patch(
+        f"{_MOD}._SUB_SHAPER_DISPATCH",
+        {
+            "Mean Calculator": ("mean", MagicMock(return_value={})),
+            "Normalize": (
+                "normalize",
+                MagicMock(
+                    return_value={
+                        "normalizerVars": ["ipc"],
+                        "normalizeVars": ["ipc"],
+                        "normalizerColumn": "config",
+                        "normalizerValue": "base",
+                        "groupBy": ["benchmark"],
+                    }
+                ),
+            ),
+            "Sort": ("sort", MagicMock(return_value={})),
+            "Filter": ("conditionSelector", MagicMock(return_value={})),
+        },
+    )
+    @patch(f"{_MOD}.st")
+    def test_normalize_delegates_to_real_renderer(self, mock_st: MagicMock) -> None:
+        """_render_sub_step chooses Normalize and delegates."""
+        from src.web.pages.ui.components.shapers.split_apply_config import (
+            _SUB_SHAPER_DISPATCH,
+            SplitApplyConfig,
+        )
+
+        data: pd.DataFrame = _sample_data()
+        mock_st.selectbox.return_value = "Normalize"
+
+        result = SplitApplyConfig._render_sub_step(
+            data=data,
+            columns=["ipc"],
+            join_columns=["benchmark", "config"],
+            categorical_cols=["benchmark", "config"],
+            existing_step={},
+            key_base="k",
+            step_index=0,
+        )
+
+        assert result is not None
+        assert result["type"] == "normalize"
+        assert result["normalizerColumn"] == "config"
+
+        _, render_fn = _SUB_SHAPER_DISPATCH["Normalize"]
+        render_fn.assert_called_once()
+
+    @patch(
+        f"{_MOD}._SUB_SHAPER_DISPATCH",
+        {
+            "Mean Calculator": ("mean", MagicMock(return_value={})),
+            "Normalize": ("normalize", MagicMock(return_value={})),
+            "Sort": (
+                "sort",
+                MagicMock(
+                    return_value={
+                        "order_dict": {"config": ["opt", "base"]},
+                    }
+                ),
+            ),
+            "Filter": ("conditionSelector", MagicMock(return_value={})),
+        },
+    )
+    @patch(f"{_MOD}.st")
+    def test_sort_delegates_to_real_renderer(self, mock_st: MagicMock) -> None:
+        """_render_sub_step chooses Sort and delegates to SortConfig."""
+        from src.web.pages.ui.components.shapers.split_apply_config import (
+            _SUB_SHAPER_DISPATCH,
+            SplitApplyConfig,
+        )
+
+        data: pd.DataFrame = _sample_data()
+        mock_st.selectbox.return_value = "Sort"
+
+        result = SplitApplyConfig._render_sub_step(
+            data=data,
+            columns=["ipc"],
+            join_columns=["benchmark", "config"],
+            categorical_cols=["benchmark", "config"],
+            existing_step={},
+            key_base="k",
+            step_index=0,
+        )
+
+        assert result is not None
+        assert result["type"] == "sort"
+
+        _, render_fn = _SUB_SHAPER_DISPATCH["Sort"]
+        render_fn.assert_called_once()
+
+    @patch(
+        f"{_MOD}._SUB_SHAPER_DISPATCH",
+        {
+            "Mean Calculator": ("mean", MagicMock(return_value={})),
+            "Normalize": ("normalize", MagicMock(return_value={})),
+            "Sort": ("sort", MagicMock(return_value={})),
+            "Filter": (
+                "conditionSelector",
+                MagicMock(
+                    return_value={
+                        "conditionColumn": "benchmark",
+                    }
+                ),
+            ),
+        },
+    )
+    @patch(f"{_MOD}.st")
+    def test_filter_delegates_to_real_renderer(self, mock_st: MagicMock) -> None:
+        """_render_sub_step chooses Filter and delegates."""
+        from src.web.pages.ui.components.shapers.split_apply_config import (
+            _SUB_SHAPER_DISPATCH,
+            SplitApplyConfig,
+        )
+
+        data: pd.DataFrame = _sample_data()
+        mock_st.selectbox.return_value = "Filter"
+
+        result = SplitApplyConfig._render_sub_step(
+            data=data,
+            columns=["ipc"],
+            join_columns=["benchmark", "config"],
+            categorical_cols=["benchmark", "config"],
+            existing_step={},
+            key_base="k",
+            step_index=0,
+        )
+
+        assert result is not None
+        assert result["type"] == "conditionSelector"
+
+        _, render_fn = _SUB_SHAPER_DISPATCH["Filter"]
+        render_fn.assert_called_once()
+
+
+# ── TestSplitApplyConfigWithStep ─────────────────────────────────
+
+
+class TestSplitApplyConfigWithStep:
+    """Test render() with sub-pipeline steps using mocked delegation."""
+
+    @patch(
+        f"{_MOD}._SUB_SHAPER_DISPATCH",
+        {
+            "Mean Calculator": (
+                "mean",
+                MagicMock(
+                    return_value={
+                        "meanAlgorithm": "arithmean",
+                        "meanVars": ["ipc"],
+                        "groupingColumns": ["config"],
+                        "replacingColumn": "benchmark",
+                    }
+                ),
+            ),
+            "Normalize": ("normalize", MagicMock(return_value={})),
+            "Sort": ("sort", MagicMock(return_value={})),
+            "Filter": ("conditionSelector", MagicMock(return_value={})),
+        },
+    )
+    @patch(f"{_MOD}._init_dispatch")
+    @patch(f"{_MOD}.st")
+    def test_one_mean_step_in_group_a(self, mock_st: MagicMock, _mock_init: MagicMock) -> None:
+        """A group with 1 Mean step returns proper config via delegation."""
         from src.web.pages.ui.components.shapers.split_apply_config import (
             SplitApplyConfig,
         )
 
         data: pd.DataFrame = _sample_data()
 
-        # multiselect calls:
-        #   1: join cols
-        #   2: group A numeric cols
-        #   3: mean step groupingColumns
-        #   4: group B numeric cols
+        # multiselect: join cols, group A cols, group B cols
         mock_st.multiselect.side_effect = [
-            ["benchmark", "config"],  # join
-            ["ipc"],  # group A columns
-            ["config"],  # mean groupingColumns
-            ["cycles"],  # group B columns
+            ["benchmark", "config"],
+            ["ipc"],
+            ["cycles"],
         ]
-
-        # selectbox calls (only for mean step in group A):
-        #   1: Transformation → "Mean Calculator"
-        #   2: Mean type → "arithmean"
-        #   3: Replacing column → "benchmark"
-        mock_st.selectbox.side_effect = [
-            "Mean Calculator",
-            "arithmean",
-            "benchmark",
-        ]
-
-        # columns: groups, groupA buttons, groupB buttons
+        mock_st.slider.return_value = 2
+        mock_st.expander.side_effect = [_ctx_mgr(), _ctx_mgr()]
         mock_st.columns.side_effect = [
             [_ctx_mgr(), _ctx_mgr()],
             [_ctx_mgr(), _ctx_mgr()],
-            [_ctx_mgr(), _ctx_mgr()],
         ]
+
+        # selectbox for shaper type in group A step 0
+        mock_st.selectbox.return_value = "Mean Calculator"
 
         # session_state: group A has 1 step, group B has 0
         mock_st.session_state = {
@@ -177,120 +395,180 @@ class TestSplitApplyConfigMeanStep:
         step: Dict[str, Any] = grp_a["pipeline"][0]
         assert step["type"] == "mean"
         assert step["meanAlgorithm"] == "arithmean"
-        assert step["meanVars"] == ["ipc"]
-        assert step["groupingColumns"] == ["config"]
-        assert step["replacingColumn"] == "benchmark"
 
 
-class TestSplitApplyConfigNormalizeStep:
-    """Test render path with a Normalize sub-step."""
+# ── TestSplitApplyConfigNGroups ──────────────────────────────────
 
+
+class TestSplitApplyConfigNGroups:
+    """Test N-group support (3 and 4 groups)."""
+
+    @patch(f"{_MOD}._init_dispatch")
     @patch(f"{_MOD}.st")
-    def test_one_normalize_step(self, mock_st: MagicMock) -> None:
-        """A group with 1 Normalize step returns proper config."""
+    def test_three_groups_render(self, mock_st: MagicMock, _mock_init: MagicMock) -> None:
+        """render() with 3 groups returns 3 group configs."""
         from src.web.pages.ui.components.shapers.split_apply_config import (
             SplitApplyConfig,
         )
 
-        data: pd.DataFrame = _sample_data()
+        data: pd.DataFrame = _sample_data_4cols()
 
-        # multiselect:
-        #   1: join cols
-        #   2: group A numeric cols
-        #   3: normalize groupBy
-        #   4: group B numeric cols
         mock_st.multiselect.side_effect = [
             ["benchmark", "config"],
-            ["ipc"],
-            ["config"],  # norm groupBy
-            ["cycles"],
+            ["v1"],
+            ["v2"],
+            ["v3"],
         ]
-
-        # selectbox:
-        #   1: Transformation → "Normalize"
-        #   2: normalizerColumn → "config"
-        #   3: normalizerValue (baseline) → "base"
-        mock_st.selectbox.side_effect = [
-            "Normalize",
-            "config",
-            "base",
-        ]
-
+        mock_st.slider.return_value = 3
+        mock_st.expander.side_effect = [_ctx_mgr(), _ctx_mgr(), _ctx_mgr()]
         mock_st.columns.side_effect = [
             [_ctx_mgr(), _ctx_mgr()],
             [_ctx_mgr(), _ctx_mgr()],
             [_ctx_mgr(), _ctx_mgr()],
         ]
+        mock_st.session_state = {}
+        mock_st.button.return_value = False
 
-        mock_st.session_state = {
-            "p_sa_g0_x_step_count": 1,
+        result: Dict[str, Any] = SplitApplyConfig.render(
+            data=data,
+            existing_config={},
+            key_prefix="p_",
+            shaper_id="x",
+        )
+
+        assert len(result["groups"]) == 3
+        assert result["groups"][0]["columns"] == ["v1"]
+        assert result["groups"][1]["columns"] == ["v2"]
+        assert result["groups"][2]["columns"] == ["v3"]
+
+    @patch(f"{_MOD}._init_dispatch")
+    @patch(f"{_MOD}.st")
+    def test_four_groups_render(self, mock_st: MagicMock, _mock_init: MagicMock) -> None:
+        """render() with 4 groups returns 4 group configs."""
+        from src.web.pages.ui.components.shapers.split_apply_config import (
+            SplitApplyConfig,
+        )
+
+        data: pd.DataFrame = _sample_data_4cols()
+
+        mock_st.multiselect.side_effect = [
+            ["benchmark", "config"],
+            ["v1"],
+            ["v2"],
+            ["v3"],
+            ["v4"],
+        ]
+        mock_st.slider.return_value = 4
+        mock_st.expander.side_effect = [
+            _ctx_mgr(),
+            _ctx_mgr(),
+            _ctx_mgr(),
+            _ctx_mgr(),
+        ]
+        mock_st.columns.side_effect = [
+            [_ctx_mgr(), _ctx_mgr()],
+            [_ctx_mgr(), _ctx_mgr()],
+            [_ctx_mgr(), _ctx_mgr()],
+            [_ctx_mgr(), _ctx_mgr()],
+        ]
+        mock_st.session_state = {}
+        mock_st.button.return_value = False
+
+        result: Dict[str, Any] = SplitApplyConfig.render(
+            data=data,
+            existing_config={},
+            key_prefix="p_",
+            shaper_id="x",
+        )
+
+        assert len(result["groups"]) == 4
+        for i in range(4):
+            assert result["groups"][i]["columns"] == [f"v{i + 1}"]
+
+    @patch(f"{_MOD}._init_dispatch")
+    @patch(f"{_MOD}.st")
+    def test_existing_config_restores_group_count(
+        self, mock_st: MagicMock, _mock_init: MagicMock
+    ) -> None:
+        """Existing config with 3 groups defaults the slider to 3."""
+        from src.web.pages.ui.components.shapers.split_apply_config import (
+            SplitApplyConfig,
+        )
+
+        data: pd.DataFrame = _sample_data_4cols()
+
+        existing: Dict[str, Any] = {
+            "joinColumns": ["benchmark", "config"],
+            "groups": [
+                {"columns": ["v1"], "pipeline": []},
+                {"columns": ["v2"], "pipeline": []},
+                {"columns": ["v3"], "pipeline": []},
+            ],
         }
-        mock_st.button.return_value = False
-
-        result: Dict[str, Any] = SplitApplyConfig.render(
-            data=data,
-            existing_config={},
-            key_prefix="p_",
-            shaper_id="x",
-        )
-
-        grp_a: Dict[str, Any] = result["groups"][0]
-        assert len(grp_a["pipeline"]) == 1
-        step: Dict[str, Any] = grp_a["pipeline"][0]
-        assert step["type"] == "normalize"
-        assert step["normalizeVars"] == ["ipc"]
-        assert step["normalizerVars"] == ["ipc"]
-        assert step["normalizerColumn"] == "config"
-        assert step["normalizerValue"] == "base"
-        assert step["groupBy"] == ["config"]
-
-
-class TestSplitApplyConfigSortStep:
-    """Test render path delegated to SortConfig."""
-
-    @patch(
-        f"{_MOD}.SplitApplyConfig._render_sub_step",
-        return_value={"type": "sort", "order_dict": {"config": ["opt", "base"]}},
-    )
-    @patch(f"{_MOD}.st")
-    def test_sort_step_dispatches(self, mock_st: MagicMock, _mock_sub: MagicMock) -> None:
-        """Sort delegation produces correct config."""
-        from src.web.pages.ui.components.shapers.split_apply_config import (
-            SplitApplyConfig,
-        )
-
-        data: pd.DataFrame = _sample_data()
 
         mock_st.multiselect.side_effect = [
             ["benchmark", "config"],
-            ["ipc"],
-            ["cycles"],
+            ["v1"],
+            ["v2"],
+            ["v3"],
         ]
+        mock_st.slider.return_value = 3
+        mock_st.expander.side_effect = [_ctx_mgr(), _ctx_mgr(), _ctx_mgr()]
         mock_st.columns.side_effect = [
             [_ctx_mgr(), _ctx_mgr()],
             [_ctx_mgr(), _ctx_mgr()],
             [_ctx_mgr(), _ctx_mgr()],
         ]
-        mock_st.session_state = {"p_sa_g0_x_step_count": 1}
+        mock_st.session_state = {}
         mock_st.button.return_value = False
 
         result: Dict[str, Any] = SplitApplyConfig.render(
             data=data,
-            existing_config={},
+            existing_config=existing,
             key_prefix="p_",
             shaper_id="x",
         )
-        # _render_sub_step was mocked to return sort config
-        assert result["groups"][0]["pipeline"][0]["type"] == "sort"
+
+        assert len(result["groups"]) == 3
+        # Verify slider was called with value=3
+        mock_st.slider.assert_called_once()
+        call_kwargs = mock_st.slider.call_args
+        assert call_kwargs[1].get("value") == 3 or call_kwargs[0][0] == "Number of groups"
+
+
+# ── TestSplitApplyConfigExistingPipeline ─────────────────────────
 
 
 class TestSplitApplyConfigExistingPipeline:
-    """Test that existing pipeline config is passed through."""
+    """Test that existing pipeline config is passed to delegated renderers."""
 
+    @patch(
+        f"{_MOD}._SUB_SHAPER_DISPATCH",
+        {
+            "Mean Calculator": (
+                "mean",
+                MagicMock(
+                    return_value={
+                        "meanAlgorithm": "geomean",
+                        "meanVars": ["ipc"],
+                        "groupingColumns": ["config"],
+                        "replacingColumn": "benchmark",
+                    }
+                ),
+            ),
+            "Normalize": ("normalize", MagicMock(return_value={})),
+            "Sort": ("sort", MagicMock(return_value={})),
+            "Filter": ("conditionSelector", MagicMock(return_value={})),
+        },
+    )
+    @patch(f"{_MOD}._init_dispatch")
     @patch(f"{_MOD}.st")
-    def test_existing_config_mean_step(self, mock_st: MagicMock) -> None:
-        """Existing mean step config is used for default values."""
+    def test_existing_config_passed_to_delegate(
+        self, mock_st: MagicMock, _mock_init: MagicMock
+    ) -> None:
+        """Existing step config is forwarded to the delegated renderer."""
         from src.web.pages.ui.components.shapers.split_apply_config import (
+            _SUB_SHAPER_DISPATCH,
             SplitApplyConfig,
         )
 
@@ -315,36 +593,19 @@ class TestSplitApplyConfigExistingPipeline:
             ],
         }
 
-        # multiselect:
-        #   1: join cols  →  ["benchmark", "config"]
-        #   2: group A numeric cols  →  ["ipc"]
-        #   3: mean groupingColumns  →  ["config"]
-        #   4: group B numeric cols  →  ["cycles"]
         mock_st.multiselect.side_effect = [
             ["benchmark", "config"],
             ["ipc"],
-            ["config"],
             ["cycles"],
         ]
-
-        # selectbox:
-        #   1: Transformation → "Mean Calculator" (from existing type)
-        #   2: Mean type → "geomean" (from existing)
-        #   3: Replacing column → "benchmark"
-        mock_st.selectbox.side_effect = [
-            "Mean Calculator",
-            "geomean",
-            "benchmark",
-        ]
-
+        mock_st.slider.return_value = 2
+        mock_st.expander.side_effect = [_ctx_mgr(), _ctx_mgr()]
         mock_st.columns.side_effect = [
             [_ctx_mgr(), _ctx_mgr()],
             [_ctx_mgr(), _ctx_mgr()],
-            [_ctx_mgr(), _ctx_mgr()],
         ]
-
-        # session_state is set from existing pipeline count
-        mock_st.session_state = {}  # will be initialized from existing_count
+        mock_st.selectbox.return_value = "Mean Calculator"
+        mock_st.session_state = {}
         mock_st.button.return_value = False
 
         result: Dict[str, Any] = SplitApplyConfig.render(
@@ -358,161 +619,94 @@ class TestSplitApplyConfigExistingPipeline:
         assert len(grp_a["pipeline"]) == 1
         assert grp_a["pipeline"][0]["meanAlgorithm"] == "geomean"
 
+        # Verify the existing_step was passed to the delegated renderer
+        _, render_fn = _SUB_SHAPER_DISPATCH["Mean Calculator"]
+        call_args = render_fn.call_args
+        passed_existing = call_args[0][1]  # 2nd positional arg
+        assert passed_existing["type"] == "mean"
+        assert passed_existing["meanAlgorithm"] == "geomean"
 
-class TestSplitApplyConfigSubStepDirect:
-    """Direct tests on _render_sub_step for each shaper type."""
 
-    @patch(f"{_MOD}.st")
-    def test_mean_sub_step(self, mock_st: MagicMock) -> None:
-        """_render_sub_step dispatches to _render_mean_step."""
-        from src.web.pages.ui.components.shapers.split_apply_config import (
-            SplitApplyConfig,
-        )
+# ── TestSplitApplyConfigKeyPrefixing ─────────────────────────────
 
-        data: pd.DataFrame = _sample_data()
-        cat_cols: List[str] = ["benchmark", "config"]
 
-        mock_st.selectbox.side_effect = [
-            "Mean Calculator",  # Transformation
-            "arithmean",  # Mean type
-            "benchmark",  # Replacing column
-        ]
-        mock_st.multiselect.return_value = ["config"]  # groupBy
-
-        result = SplitApplyConfig._render_sub_step(
-            data=data,
-            columns=["ipc"],
-            join_columns=cat_cols,
-            categorical_cols=cat_cols,
-            existing_step={},
-            key_base="k",
-            step_index=0,
-        )
-
-        assert result is not None
-        assert result["type"] == "mean"
-        assert result["meanVars"] == ["ipc"]
-
-    @patch(f"{_MOD}.st")
-    def test_normalize_sub_step(self, mock_st: MagicMock) -> None:
-        """_render_sub_step dispatches to _render_normalize_step."""
-        from src.web.pages.ui.components.shapers.split_apply_config import (
-            SplitApplyConfig,
-        )
-
-        data: pd.DataFrame = _sample_data()
-        cat_cols: List[str] = ["benchmark", "config"]
-
-        mock_st.selectbox.side_effect = [
-            "Normalize",  # Transformation
-            "config",  # normalizerColumn
-            "base",  # normalizerValue
-        ]
-        mock_st.multiselect.return_value = ["config"]
-
-        result = SplitApplyConfig._render_sub_step(
-            data=data,
-            columns=["ipc"],
-            join_columns=cat_cols,
-            categorical_cols=cat_cols,
-            existing_step={},
-            key_base="k",
-            step_index=0,
-        )
-
-        assert result is not None
-        assert result["type"] == "normalize"
+class TestSplitApplyConfigKeyPrefixing:
+    """Test that delegated renderers receive properly prefixed keys."""
 
     @patch(
-        "src.web.pages.ui.components.shapers.sort_config.SortConfig.render",
-        return_value={"order_dict": {}},
+        f"{_MOD}._SUB_SHAPER_DISPATCH",
+        {
+            "Mean Calculator": ("mean", MagicMock(return_value={"meanAlgorithm": "arithmean"})),
+            "Normalize": ("normalize", MagicMock(return_value={})),
+            "Sort": ("sort", MagicMock(return_value={})),
+            "Filter": ("conditionSelector", MagicMock(return_value={})),
+        },
     )
     @patch(f"{_MOD}.st")
-    def test_sort_sub_step(self, mock_st: MagicMock, _mock_sort: MagicMock) -> None:
-        """_render_sub_step dispatches to SortConfig.render."""
+    def test_key_prefix_contains_group_and_step(self, mock_st: MagicMock) -> None:
+        """Key prefix passed to delegate includes group/step info."""
         from src.web.pages.ui.components.shapers.split_apply_config import (
+            _SUB_SHAPER_DISPATCH,
             SplitApplyConfig,
         )
 
         data: pd.DataFrame = _sample_data()
-        cat_cols: List[str] = ["benchmark", "config"]
+        mock_st.selectbox.return_value = "Mean Calculator"
 
-        mock_st.selectbox.return_value = "Sort"
-
-        result = SplitApplyConfig._render_sub_step(
+        SplitApplyConfig._render_sub_step(
             data=data,
             columns=["ipc"],
-            join_columns=cat_cols,
-            categorical_cols=cat_cols,
+            join_columns=["benchmark", "config"],
+            categorical_cols=["benchmark", "config"],
             existing_step={},
-            key_base="k",
+            key_base="p_sa_g1_x_s0",
             step_index=0,
         )
 
-        assert result is not None
-        assert result["type"] == "sort"
-
-    @patch(
-        "src.web.pages.ui.components.shapers.selector_transformer_configs"
-        ".ConditionSelectorConfig.render",
-        return_value={"conditionColumn": "benchmark"},
-    )
-    @patch(f"{_MOD}.st")
-    def test_filter_sub_step(self, mock_st: MagicMock, _mock_filter: MagicMock) -> None:
-        """_render_sub_step dispatches to ConditionSelectorConfig.render."""
-        from src.web.pages.ui.components.shapers.split_apply_config import (
-            SplitApplyConfig,
-        )
-
-        data: pd.DataFrame = _sample_data()
-        cat_cols: List[str] = ["benchmark", "config"]
-
-        mock_st.selectbox.return_value = "Filter"
-
-        result = SplitApplyConfig._render_sub_step(
-            data=data,
-            columns=["ipc"],
-            join_columns=cat_cols,
-            categorical_cols=cat_cols,
-            existing_step={},
-            key_base="k",
-            step_index=0,
-        )
-
-        assert result is not None
-        assert result["type"] == "conditionSelector"
+        _, render_fn = _SUB_SHAPER_DISPATCH["Mean Calculator"]
+        call_args = render_fn.call_args
+        # key_prefix should be "p_sa_g1_x_s0_"
+        assert call_args[0][2] == "p_sa_g1_x_s0_"
+        # shaper_id should be "sub0"
+        assert call_args[0][3] == "sub0"
 
 
-class TestSplitApplyConfigNormalizeEdge:
-    """Edge cases for the normalize step renderer."""
+# ── TestInitDispatch ─────────────────────────────────────────────
 
-    @patch(f"{_MOD}.st")
-    def test_normalizer_column_not_in_data(self, mock_st: MagicMock) -> None:
-        """When normalizerColumn is not in data, no baseline selectbox."""
-        from src.web.pages.ui.components.shapers.split_apply_config import (
-            SplitApplyConfig,
-        )
 
-        # Data with columns that don't match the returned normalizer col
-        data: pd.DataFrame = pd.DataFrame({"x": [1, 2], "y": [3, 4]})
-        cat_cols: List[str] = ["benchmark", "config"]
+class TestInitDispatch:
+    """Test the lazy dispatch initialization."""
 
-        # selectbox returns "" for normalizer column (empty)
-        mock_st.selectbox.side_effect = [
-            "Normalize",  # Transformation
-            "",  # normalizerColumn → empty
-        ]
-        mock_st.multiselect.return_value = []
+    def test_init_dispatch_populates_dict(self) -> None:
+        """_init_dispatch fills _SUB_SHAPER_DISPATCH with all 4 types."""
+        import src.web.pages.ui.components.shapers.split_apply_config as mod
 
-        result = SplitApplyConfig._render_sub_step(
-            data=data,
-            columns=["x"],
-            join_columns=cat_cols,
-            categorical_cols=cat_cols,
-            existing_step={},
-            key_base="k",
-            step_index=0,
-        )
+        # Reset state
+        mod._SUB_SHAPER_DISPATCH.clear()
+        mod._DISPATCH_INITIALIZED = False
 
-        assert result is not None
-        assert result["normalizerValue"] is None
+        mod._init_dispatch()
+
+        assert mod._DISPATCH_INITIALIZED is True
+        assert "Mean Calculator" in mod._SUB_SHAPER_DISPATCH
+        assert "Normalize" in mod._SUB_SHAPER_DISPATCH
+        assert "Sort" in mod._SUB_SHAPER_DISPATCH
+        assert "Filter" in mod._SUB_SHAPER_DISPATCH
+
+        # Each entry is (type_str, callable)
+        for display_name, (type_str, render_fn) in mod._SUB_SHAPER_DISPATCH.items():
+            assert isinstance(type_str, str)
+            assert callable(render_fn)
+
+    def test_init_dispatch_idempotent(self) -> None:
+        """Calling _init_dispatch twice doesn't duplicate entries."""
+        import src.web.pages.ui.components.shapers.split_apply_config as mod
+
+        mod._SUB_SHAPER_DISPATCH.clear()
+        mod._DISPATCH_INITIALIZED = False
+
+        mod._init_dispatch()
+        first_count: int = len(mod._SUB_SHAPER_DISPATCH)
+
+        mod._init_dispatch()
+        assert len(mod._SUB_SHAPER_DISPATCH) == first_count

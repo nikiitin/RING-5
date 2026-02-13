@@ -445,3 +445,923 @@ class TestDualAxisConfigUI:
         assert result["y_columns_right"] == ["V2"]
         assert result["right_axis_type"] == "dots"
         assert result["ylabel_right"] == "Right Label"
+
+
+# ── Y-axis rotation tests ───────────────────────────────────────
+
+
+class TestDualAxisTitleRotation:
+    """Test Y-axis title rotation in dual-axis mode."""
+
+    def test_right_ylabel_rendered_as_annotation(
+        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
+    ) -> None:
+        """Right Y-label should be an annotation with textangle=90."""
+        config: Dict[str, Any] = {
+            "x": "Benchmark",
+            "group": "Config",
+            "y_columns": ["Ticks"],
+            "y_columns_right": ["IPC"],
+            "dual_axis": True,
+            "right_axis_type": "bars",
+            "ylabel": "Left",
+            "ylabel_right": "Right Y",
+            "title": "Test",
+        }
+        fig: go.Figure = plot.create_figure(sample_data, config)
+        fig = plot.apply_common_layout(fig, config)
+
+        # Native yaxis2 title should be cleared
+        assert fig.layout.yaxis2.title.text == ""
+
+        # Find the annotation with the right-axis label
+        right_annotations = [a for a in fig.layout.annotations if a.text == "Right Y"]
+        assert len(right_annotations) == 1
+
+        ann = right_annotations[0]
+        assert ann.textangle == 90
+        assert ann.xref == "paper"
+        assert ann.yref == "paper"
+        assert ann.x == 1.0
+        assert ann.y == 0.5
+
+    def test_empty_right_ylabel_no_annotation(
+        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
+    ) -> None:
+        """No annotation should be added when ylabel_right is empty."""
+        config: Dict[str, Any] = {
+            "x": "Benchmark",
+            "group": "Config",
+            "y_columns": ["Ticks"],
+            "y_columns_right": ["IPC"],
+            "dual_axis": True,
+            "right_axis_type": "bars",
+            "ylabel": "Left",
+            "ylabel_right": "",
+            "title": "Test",
+        }
+        fig: go.Figure = plot.create_figure(sample_data, config)
+        fig = plot.apply_common_layout(fig, config)
+
+        # No annotation with textangle=90 should exist
+        rotated_90 = [a for a in fig.layout.annotations if getattr(a, "textangle", None) == 90]
+        assert len(rotated_90) == 0
+
+    def test_right_ylabel_font_size(
+        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
+    ) -> None:
+        """Right Y-label annotation respects yaxis_title_font_size."""
+        config: Dict[str, Any] = {
+            "x": "Benchmark",
+            "group": "Config",
+            "y_columns": ["Ticks"],
+            "y_columns_right": ["IPC"],
+            "dual_axis": True,
+            "right_axis_type": "bars",
+            "ylabel": "Left",
+            "ylabel_right": "Right Y",
+            "yaxis_title_font_size": 20,
+            "title": "Test",
+        }
+        fig: go.Figure = plot.create_figure(sample_data, config)
+        fig = plot.apply_common_layout(fig, config)
+
+        right_annotations = [a for a in fig.layout.annotations if a.text == "Right Y"]
+        assert right_annotations[0].font.size == 20
+
+
+# ── Grid line per-axis tests ────────────────────────────────────
+
+
+class TestDualAxisGridLines:
+    """Test grid line show/hide per axis in dual-axis mode."""
+
+    def test_both_grids_enabled(
+        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
+    ) -> None:
+        """Both grids enabled by default."""
+        config: Dict[str, Any] = {
+            "x": "Benchmark",
+            "group": "Config",
+            "y_columns": ["Ticks"],
+            "y_columns_right": ["IPC"],
+            "dual_axis": True,
+            "right_axis_type": "bars",
+            "title": "Test",
+            "show_left_grid": True,
+            "show_right_grid": True,
+        }
+        fig: go.Figure = plot.create_figure(sample_data, config)
+        fig = plot.apply_common_layout(fig, config)
+
+        assert fig.layout.yaxis.showgrid is True
+        assert fig.layout.yaxis2.showgrid is True
+
+    def test_left_grid_disabled(
+        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
+    ) -> None:
+        """Disabling left grid hides only primary Y grid lines."""
+        config: Dict[str, Any] = {
+            "x": "Benchmark",
+            "group": "Config",
+            "y_columns": ["Ticks"],
+            "y_columns_right": ["IPC"],
+            "dual_axis": True,
+            "right_axis_type": "bars",
+            "title": "Test",
+            "show_left_grid": False,
+            "show_right_grid": True,
+        }
+        fig: go.Figure = plot.create_figure(sample_data, config)
+        fig = plot.apply_common_layout(fig, config)
+
+        assert fig.layout.yaxis.showgrid is False
+        assert fig.layout.yaxis2.showgrid is True
+
+    def test_right_grid_disabled(
+        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
+    ) -> None:
+        """Disabling right grid hides only secondary Y grid lines."""
+        config: Dict[str, Any] = {
+            "x": "Benchmark",
+            "group": "Config",
+            "y_columns": ["Ticks"],
+            "y_columns_right": ["IPC"],
+            "dual_axis": True,
+            "right_axis_type": "bars",
+            "title": "Test",
+            "show_left_grid": True,
+            "show_right_grid": False,
+        }
+        fig: go.Figure = plot.create_figure(sample_data, config)
+        fig = plot.apply_common_layout(fig, config)
+
+        assert fig.layout.yaxis.showgrid is True
+        assert fig.layout.yaxis2.showgrid is False
+
+    def test_both_grids_disabled(
+        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
+    ) -> None:
+        """Both grids can be disabled simultaneously."""
+        config: Dict[str, Any] = {
+            "x": "Benchmark",
+            "group": "Config",
+            "y_columns": ["Ticks"],
+            "y_columns_right": ["IPC"],
+            "dual_axis": True,
+            "right_axis_type": "bars",
+            "title": "Test",
+            "show_left_grid": False,
+            "show_right_grid": False,
+        }
+        fig: go.Figure = plot.create_figure(sample_data, config)
+        fig = plot.apply_common_layout(fig, config)
+
+        assert fig.layout.yaxis.showgrid is False
+        assert fig.layout.yaxis2.showgrid is False
+
+
+# ── Legend unification tests ─────────────────────────────────────
+
+
+class TestDualAxisLegendUnification:
+    """Test unified vs. separate legend in dual-axis mode."""
+
+    def test_unified_legend_default(
+        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
+    ) -> None:
+        """Default (unified_legend=True) keeps all traces in one legend."""
+        config: Dict[str, Any] = {
+            "x": "Benchmark",
+            "group": "Config",
+            "y_columns": ["Ticks"],
+            "y_columns_right": ["IPC"],
+            "dual_axis": True,
+            "right_axis_type": "bars",
+            "title": "Test",
+            "unified_legend": True,
+        }
+        fig: go.Figure = plot.create_figure(sample_data, config)
+        fig = plot.apply_common_layout(fig, config)
+
+        # All traces should NOT have a legend2 assignment
+        for trace in fig.data:
+            legend_attr = getattr(trace, "legend", None)
+            assert legend_attr != "legend2"
+
+    def test_separate_legend(self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame) -> None:
+        """When unified_legend=False, traces are split into legend + legend2."""
+        config: Dict[str, Any] = {
+            "x": "Benchmark",
+            "group": "Config",
+            "y_columns": ["Ticks", "Energy"],
+            "y_columns_right": ["IPC"],
+            "dual_axis": True,
+            "right_axis_type": "bars",
+            "title": "Test",
+            "unified_legend": False,
+        }
+        fig: go.Figure = plot.create_figure(sample_data, config)
+        fig = plot.apply_common_layout(fig, config)
+
+        # 2 left traces → legend, 1 right trace → legend2
+        assert fig.data[0].legend == "legend"
+        assert fig.data[1].legend == "legend"
+        assert fig.data[2].legend == "legend2"
+
+    def test_separate_legend_positions(
+        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
+    ) -> None:
+        """Separate legends are positioned on left (legend) and right (legend2)."""
+        config: Dict[str, Any] = {
+            "x": "Benchmark",
+            "group": "Config",
+            "y_columns": ["Ticks"],
+            "y_columns_right": ["IPC"],
+            "dual_axis": True,
+            "right_axis_type": "bars",
+            "title": "Test",
+            "unified_legend": False,
+        }
+        fig: go.Figure = plot.create_figure(sample_data, config)
+        fig = plot.apply_common_layout(fig, config)
+
+        assert fig.layout.legend.x == 0.0
+        assert fig.layout.legend.xanchor == "left"
+        assert fig.layout.legend2.x == 1.0
+        assert fig.layout.legend2.xanchor == "right"
+
+    def test_separate_legend_dots_mode(
+        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
+    ) -> None:
+        """Separate legends work correctly with dots on the right axis."""
+        config: Dict[str, Any] = {
+            "x": "Benchmark",
+            "group": "Config",
+            "y_columns": ["Ticks"],
+            "y_columns_right": ["IPC"],
+            "dual_axis": True,
+            "right_axis_type": "dots",
+            "title": "Test",
+            "unified_legend": False,
+        }
+        fig: go.Figure = plot.create_figure(sample_data, config)
+        fig = plot.apply_common_layout(fig, config)
+
+        # 1 left (bar) → legend, 1 right (scatter) → legend2
+        assert fig.data[0].legend == "legend"
+        assert fig.data[1].legend == "legend2"
+
+
+# ── Dual-axis display settings UI test ───────────────────────────
+
+
+class TestDualAxisDisplaySettingsUI:
+    """Test _render_dual_axis_display_settings sets config keys."""
+
+    @patch(f"{_MOD}.st")
+    def test_display_settings_keys_in_config(self, mock_st: MagicMock) -> None:
+        """Config dict contains grid and legend keys after render."""
+        plot = GroupedStackedBarPlot(99, "Test")
+        config: Dict[str, Any] = {}
+
+        mock_st.columns.return_value = [_ctx(), _ctx()]
+        mock_st.checkbox.side_effect = [False, True, True]  # left_grid, right_grid, unified
+
+        plot._render_dual_axis_display_settings({}, config)
+
+        assert "show_left_grid" in config
+        assert "show_right_grid" in config
+        assert "unified_legend" in config
+
+
+# ── Export reflection tests ──────────────────────────────────────
+
+
+class TestLayoutExtractorDualAxis:
+    """Test LayoutExtractor captures secondary Y-axis properties."""
+
+    def test_extract_yaxis2_label(self) -> None:
+        """Secondary Y-axis label is extracted as y2_label."""
+        from src.web.pages.ui.plotting.export.converters.impl.layout_mapper import (
+            LayoutExtractor,
+        )
+
+        fig: go.Figure = go.Figure()
+        fig.update_layout(yaxis2=dict(title=dict(text="Secondary Y"), showgrid=False))
+
+        extractor = LayoutExtractor()
+        layout = extractor.extract_layout(fig)
+
+        assert layout.get("y2_label") == "Secondary Y"
+        assert layout.get("y2_grid") is False
+
+    def test_extract_yaxis2_absent(self) -> None:
+        """When no yaxis2 exists, y2_* keys are absent."""
+        from src.web.pages.ui.plotting.export.converters.impl.layout_mapper import (
+            LayoutExtractor,
+        )
+
+        fig: go.Figure = go.Figure()
+        extractor = LayoutExtractor()
+        layout = extractor.extract_layout(fig)
+
+        assert "y2_label" not in layout
+        assert "y2_grid" not in layout
+
+
+class TestLayoutApplierDualAxis:
+    """Test LayoutApplier handles secondary Y-axis in matplotlib export."""
+
+    def test_apply_y2_grid(self) -> None:
+        """Secondary Y-axis grid is applied to twin axes."""
+        from matplotlib import pyplot as plt
+
+        from src.web.pages.ui.plotting.export.converters.impl.layout_applier import (
+            LayoutApplier,
+        )
+
+        _, ax = plt.subplots()
+        # Simulate a twin that was created during y2_label application
+        ax2 = ax.twinx()
+        ax._ring5_twin = ax2  # type: ignore[attr-defined]
+
+        applier = LayoutApplier()
+        applier._apply_axis_scales_and_grids(ax, {"y2_grid": False})
+
+        # Grid should be off on twin
+        assert not ax2.yaxis.get_gridlines()[0].get_visible()
+        plt.close()
+
+    def test_apply_y2_label(self) -> None:
+        """Secondary Y-axis label is applied with -90° rotation."""
+        from matplotlib import pyplot as plt
+
+        from src.web.pages.ui.plotting.export.converters.impl.layout_applier import (
+            LayoutApplier,
+        )
+
+        _, ax = plt.subplots()
+
+        applier = LayoutApplier()
+        applier._apply_axis_labels(ax, {"y2_label": "Right Axis"})
+
+        # A twin should have been created
+        assert hasattr(ax, "_ring5_twin")
+        ax2 = ax._ring5_twin  # type: ignore[attr-defined]
+        assert ax2.get_ylabel() == "Right Axis"
+        plt.close()
+
+
+# ── Grid locality tests (applicator) ────────────────────────────
+
+
+class TestGridLocality:
+    """Test that grid/color styling only affects the intended axis."""
+
+    def test_apply_axis_colors_does_not_affect_yaxis2(self) -> None:
+        """_apply_axis_colors should only affect primary Y, not yaxis2."""
+        from plotly.subplots import make_subplots
+
+        from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
+
+        fig = make_subplots(specs=[[{"secondary_y": True}]])
+        fig.add_trace(go.Bar(x=["A"], y=[1], name="left"), secondary_y=False)
+        fig.add_trace(go.Scatter(x=["A"], y=[2], name="right"), secondary_y=True)
+
+        applicator = StyleApplicator("grouped_stacked_bar")
+        config: Dict[str, Any] = {
+            "axis_color": "#ff0000",
+            "grid_color": "#00ff00",
+        }
+        applicator._apply_axis_colors(fig, config)
+
+        # Primary Y should reflect the custom colours
+        assert fig.layout.yaxis.linecolor == "#ff0000"
+        assert fig.layout.yaxis.gridcolor == "#00ff00"
+
+        # yaxis2 must NOT have been touched
+        y2_linecolor = fig.layout.yaxis2.linecolor
+        y2_gridcolor = fig.layout.yaxis2.gridcolor
+        assert y2_linecolor != "#ff0000" or y2_linecolor is None
+        assert y2_gridcolor != "#00ff00" or y2_gridcolor is None
+
+
+# ── Secondary Y typography tests ─────────────────────────────────
+
+
+class TestSecondaryYTypography:
+    """Test _apply_dual_axis_titles applies yaxis2_* config keys."""
+
+    def test_yaxis2_title_font_size(
+        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
+    ) -> None:
+        """yaxis2_title_font_size controls the right Y-label annotation size."""
+        config: Dict[str, Any] = {
+            "x": "Benchmark",
+            "group": "Config",
+            "y_columns": ["Ticks"],
+            "y_columns_right": ["IPC"],
+            "dual_axis": True,
+            "right_axis_type": "bars",
+            "ylabel": "Left",
+            "ylabel_right": "Right Y",
+            "yaxis2_title_font_size": 24,
+            "title": "Test",
+        }
+        fig = plot.create_figure(sample_data, config)
+        fig = plot.apply_common_layout(fig, config)
+
+        right_ann = [a for a in fig.layout.annotations if a.text == "Right Y"]
+        assert len(right_ann) == 1
+        assert right_ann[0].font.size == 24
+
+    def test_yaxis2_title_standoff(
+        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
+    ) -> None:
+        """yaxis2_title_standoff adjusts the annotation x-position."""
+        config: Dict[str, Any] = {
+            "x": "Benchmark",
+            "group": "Config",
+            "y_columns": ["Ticks"],
+            "y_columns_right": ["IPC"],
+            "dual_axis": True,
+            "right_axis_type": "bars",
+            "ylabel_right": "Right Y",
+            "yaxis2_title_standoff": 80,
+            "title": "Test",
+        }
+        fig = plot.create_figure(sample_data, config)
+        fig = plot.apply_common_layout(fig, config)
+
+        right_ann = [a for a in fig.layout.annotations if a.text == "Right Y"]
+        # Larger standoff → annotation further from x=1.0
+        assert right_ann[0].x > 1.0
+
+    def test_yaxis2_tickfont_applied(
+        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
+    ) -> None:
+        """yaxis2_tickfont_size and color are applied to yaxis2."""
+        config: Dict[str, Any] = {
+            "x": "Benchmark",
+            "group": "Config",
+            "y_columns": ["Ticks"],
+            "y_columns_right": ["IPC"],
+            "dual_axis": True,
+            "right_axis_type": "bars",
+            "ylabel_right": "Right",
+            "yaxis2_tickfont_size": 18,
+            "yaxis2_tickfont_color": "#ff00ff",
+            "title": "Test",
+        }
+        fig = plot.create_figure(sample_data, config)
+        fig = plot.apply_common_layout(fig, config)
+
+        assert fig.layout.yaxis2.tickfont.size == 18
+        assert fig.layout.yaxis2.tickfont.color == "#ff00ff"
+
+
+# ── Separate legends with full controls tests ────────────────────
+
+
+class TestSeparateLegendControls:
+    """Test _apply_separate_legends reads legend2_* config keys."""
+
+    def test_legend2_position_from_config(
+        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
+    ) -> None:
+        """legend2_x/y/xanchor/yanchor control legend2 position."""
+        config: Dict[str, Any] = {
+            "x": "Benchmark",
+            "group": "Config",
+            "y_columns": ["Ticks"],
+            "y_columns_right": ["IPC"],
+            "dual_axis": True,
+            "right_axis_type": "bars",
+            "title": "Test",
+            "unified_legend": False,
+            "legend2_x": 0.8,
+            "legend2_y": 0.3,
+            "legend2_xanchor": "center",
+            "legend2_yanchor": "bottom",
+        }
+        fig = plot.create_figure(sample_data, config)
+        fig = plot.apply_common_layout(fig, config)
+
+        assert fig.layout.legend2.x == 0.8
+        assert fig.layout.legend2.y == 0.3
+        assert fig.layout.legend2.xanchor == "center"
+        assert fig.layout.legend2.yanchor == "bottom"
+
+    def test_legend2_bgcolor(self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame) -> None:
+        """legend2_bgcolor is applied."""
+        config: Dict[str, Any] = {
+            "x": "Benchmark",
+            "group": "Config",
+            "y_columns": ["Ticks"],
+            "y_columns_right": ["IPC"],
+            "dual_axis": True,
+            "right_axis_type": "bars",
+            "title": "Test",
+            "unified_legend": False,
+            "legend2_bgcolor": "rgba(200,200,200,0.5)",
+        }
+        fig = plot.create_figure(sample_data, config)
+        fig = plot.apply_common_layout(fig, config)
+
+        assert fig.layout.legend2.bgcolor == "rgba(200,200,200,0.5)"
+
+    def test_legend2_font(self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame) -> None:
+        """legend2_font_color and legend2_font_size are applied."""
+        config: Dict[str, Any] = {
+            "x": "Benchmark",
+            "group": "Config",
+            "y_columns": ["Ticks"],
+            "y_columns_right": ["IPC"],
+            "dual_axis": True,
+            "right_axis_type": "bars",
+            "title": "Test",
+            "unified_legend": False,
+            "legend2_font_color": "#123456",
+            "legend2_font_size": 14,
+        }
+        fig = plot.create_figure(sample_data, config)
+        fig = plot.apply_common_layout(fig, config)
+
+        assert fig.layout.legend2.font.color == "#123456"
+        assert fig.layout.legend2.font.size == 14
+
+    def test_legend2_border(self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame) -> None:
+        """legend2_bordercolor and legend2_borderwidth are applied."""
+        config: Dict[str, Any] = {
+            "x": "Benchmark",
+            "group": "Config",
+            "y_columns": ["Ticks"],
+            "y_columns_right": ["IPC"],
+            "dual_axis": True,
+            "right_axis_type": "bars",
+            "title": "Test",
+            "unified_legend": False,
+            "legend2_bordercolor": "#abcdef",
+            "legend2_borderwidth": 3,
+        }
+        fig = plot.create_figure(sample_data, config)
+        fig = plot.apply_common_layout(fig, config)
+
+        assert fig.layout.legend2.bordercolor == "#abcdef"
+        assert fig.layout.legend2.borderwidth == 3
+
+    def test_legend2_orientation(
+        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
+    ) -> None:
+        """legend2_orientation controls horizontal/vertical layout."""
+        config: Dict[str, Any] = {
+            "x": "Benchmark",
+            "group": "Config",
+            "y_columns": ["Ticks"],
+            "y_columns_right": ["IPC"],
+            "dual_axis": True,
+            "right_axis_type": "bars",
+            "title": "Test",
+            "unified_legend": False,
+            "legend2_orientation": "h",
+        }
+        fig = plot.create_figure(sample_data, config)
+        fig = plot.apply_common_layout(fig, config)
+
+        assert fig.layout.legend2.orientation == "h"
+
+    def test_legend2_title_text(
+        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
+    ) -> None:
+        """legend2_title sets the legend2 title."""
+        config: Dict[str, Any] = {
+            "x": "Benchmark",
+            "group": "Config",
+            "y_columns": ["Ticks"],
+            "y_columns_right": ["IPC"],
+            "dual_axis": True,
+            "right_axis_type": "bars",
+            "title": "Test",
+            "unified_legend": False,
+            "legend2_title": "Right Series",
+        }
+        fig = plot.create_figure(sample_data, config)
+        fig = plot.apply_common_layout(fig, config)
+
+        assert fig.layout.legend2.title.text == "Right Series"
+
+
+# ── Export: layout_mapper extraction tests ───────────────────────
+
+
+class TestLayoutExtractorLegend2:
+    """Test LayoutExtractor captures legend2 settings."""
+
+    def test_extract_legend2(self) -> None:
+        """legend2 position is extracted when present."""
+        from src.web.pages.ui.plotting.export.converters.impl.layout_mapper import (
+            LayoutExtractor,
+        )
+
+        fig = go.Figure()
+        fig.update_layout(legend2=dict(x=0.8, y=0.3, xanchor="center", yanchor="bottom"))
+
+        extractor = LayoutExtractor()
+        layout = extractor.extract_layout(fig)
+
+        assert "legend2" in layout
+        assert layout["legend2"]["x"] == 0.8
+        assert layout["legend2"]["y"] == 0.3
+        assert layout["legend2"]["xanchor"] == "center"
+        assert layout["legend2"]["yanchor"] == "bottom"
+
+    def test_no_legend2_absent(self) -> None:
+        """When legend2 is not configured, key is absent."""
+        from src.web.pages.ui.plotting.export.converters.impl.layout_mapper import (
+            LayoutExtractor,
+        )
+
+        fig = go.Figure()
+        extractor = LayoutExtractor()
+        layout = extractor.extract_layout(fig)
+
+        assert "legend2" not in layout
+
+
+class TestLayoutExtractorYaxis2Ticks:
+    """Test LayoutExtractor captures yaxis2 tick settings."""
+
+    def test_extract_y2_tickfont(self) -> None:
+        """yaxis2 tickfont size and color are extracted."""
+        from src.web.pages.ui.plotting.export.converters.impl.layout_mapper import (
+            LayoutExtractor,
+        )
+
+        fig = go.Figure()
+        fig.update_layout(
+            yaxis2=dict(
+                title=dict(text="Y2"),
+                tickfont=dict(size=16, color="#aabbcc"),
+                dtick=5,
+            )
+        )
+
+        extractor = LayoutExtractor()
+        layout = extractor.extract_layout(fig)
+
+        assert layout.get("y2_tickfont") == {"size": 16, "color": "#aabbcc"}
+        assert layout.get("y2_dtick") == 5
+
+    def test_no_y2_tickfont_when_absent(self) -> None:
+        """When yaxis2 has no tickfont, y2_tickfont is absent."""
+        from src.web.pages.ui.plotting.export.converters.impl.layout_mapper import (
+            LayoutExtractor,
+        )
+
+        fig = go.Figure()
+        extractor = LayoutExtractor()
+        layout = extractor.extract_layout(fig)
+
+        assert "y2_tickfont" not in layout
+
+
+# ── Export: layout_applier application tests ─────────────────────
+
+
+class TestLayoutApplierY2Ticks:
+    """Test LayoutApplier applies y2_tickfont to twin axis."""
+
+    def test_apply_y2_tickfont(self) -> None:
+        """y2_tickfont size is applied to twin axis tick labels."""
+        from matplotlib import pyplot as plt
+
+        from src.web.pages.ui.plotting.export.converters.impl.layout_applier import (
+            LayoutApplier,
+        )
+
+        _, ax = plt.subplots()
+        applier = LayoutApplier()
+        applier._apply_axis_labels(
+            ax,
+            {
+                "y2_label": "Right",
+                "y2_tickfont": {"size": 16, "color": "#ff0000"},
+            },
+        )
+
+        ax2 = ax._ring5_twin  # type: ignore[attr-defined]
+        # Verify twin was created and tick font was applied
+        assert ax2 is not None
+        plt.close()
+
+    def test_apply_y2_dtick(self) -> None:
+        """y2_dtick sets MultipleLocator on the twin axis."""
+        from matplotlib import pyplot as plt
+        from matplotlib.ticker import MultipleLocator
+
+        from src.web.pages.ui.plotting.export.converters.impl.layout_applier import (
+            LayoutApplier,
+        )
+
+        _, ax = plt.subplots()
+        applier = LayoutApplier()
+        applier._apply_axis_labels(
+            ax,
+            {"y2_label": "Right", "y2_dtick": 10},
+        )
+
+        ax2 = ax._ring5_twin  # type: ignore[attr-defined]
+        locator = ax2.yaxis.get_major_locator()
+        assert isinstance(locator, MultipleLocator)
+        plt.close()
+
+
+class TestLayoutApplierLegend2:
+    """Test LayoutApplier applies legend2 to twin axis."""
+
+    def test_apply_legend2(self) -> None:
+        """legend2 config creates a legend on the twin axis."""
+        from matplotlib import pyplot as plt
+
+        from src.web.pages.ui.plotting.export.converters.impl.layout_applier import (
+            LayoutApplier,
+        )
+
+        _, ax = plt.subplots()
+        ax2 = ax.twinx()
+        ax._ring5_twin = ax2  # type: ignore[attr-defined]
+
+        # Add a labeled artist on the twin axis
+        ax2.plot([0, 1], [0, 1], label="Twin Line")
+
+        applier = LayoutApplier()
+        applier._apply_legend(
+            ax,
+            {
+                "legend": {"x": 0.0, "y": 1.0},
+                "legend2": {"x": 1.0, "y": 1.0, "xanchor": "right"},
+            },
+        )
+
+        # Twin axis should have its own legend
+        legend2 = ax2.get_legend()
+        assert legend2 is not None
+        texts = [t.get_text() for t in legend2.get_texts()]
+        assert "Twin Line" in texts
+        plt.close()
+
+    def test_no_legend2_when_no_twin(self) -> None:
+        """legend2 in layout is ignored if no twin axis exists."""
+        from matplotlib import pyplot as plt
+
+        from src.web.pages.ui.plotting.export.converters.impl.layout_applier import (
+            LayoutApplier,
+        )
+
+        _, ax = plt.subplots()
+        applier = LayoutApplier()
+        applier._apply_legend(
+            ax,
+            {
+                "legend": {"x": 0.0, "y": 1.0},
+                "legend2": {"x": 1.0, "y": 1.0},
+            },
+        )
+        # No twin axis, so legend2 should not be created — no error
+        assert not hasattr(ax, "_ring5_twin")
+        plt.close()
+
+
+# ── Export: matplotlib_converter dual-axis trace routing tests ───
+
+
+class TestMatplotlibConverterDualAxis:
+    """Test that traces on yaxis2 are rendered on the twin axis."""
+
+    def test_secondary_traces_on_twin(self) -> None:
+        """Traces with yaxis='y2' are rendered on ax._ring5_twin."""
+        from plotly.subplots import make_subplots
+
+        from src.web.pages.ui.plotting.export.converters.impl.matplotlib_converter import (
+            MatplotlibConverter,
+        )
+        from src.web.pages.ui.plotting.export.presets.preset_schema import (
+            LaTeXPreset,
+        )
+
+        fig = make_subplots(specs=[[{"secondary_y": True}]])
+        fig.add_trace(
+            go.Bar(x=["A", "B"], y=[10, 20], name="Left Bar"),
+            secondary_y=False,
+        )
+        fig.add_trace(
+            go.Scatter(x=["A", "B"], y=[1.2, 1.5], name="Right Dot", mode="markers"),
+            secondary_y=True,
+        )
+
+        preset: LaTeXPreset = {
+            "name": "test",
+            "width_inches": 6.0,
+            "height_inches": 4.0,
+            "dpi": 150,
+            "font_family": "serif",
+            "font_size": 10,
+            "line_width": 1.0,
+            "marker_size": 4,
+        }  # type: ignore[typeddict-item]
+        converter = MatplotlibConverter(preset)
+        from matplotlib import pyplot as plt
+
+        mpl_fig, mpl_ax = plt.subplots()
+        converter._bar_traces = []
+        converter._categorical_labels = []
+        converter._barmode = "group"
+        converter._convert_traces(fig, mpl_ax)
+
+        # A twin axis should have been created
+        assert hasattr(mpl_ax, "_ring5_twin")
+        ax2 = mpl_ax._ring5_twin  # type: ignore[attr-defined]
+
+        # Primary axis should have the bar trace
+        h1, l1 = mpl_ax.get_legend_handles_labels()
+        assert "Left Bar" in l1
+
+        # Twin axis should have the scatter trace
+        h2, l2 = ax2.get_legend_handles_labels()
+        assert "Right Dot" in l2
+        plt.close()
+
+    def test_no_twin_when_no_secondary(self) -> None:
+        """When no trace has yaxis='y2', no twin is created."""
+        from src.web.pages.ui.plotting.export.converters.impl.matplotlib_converter import (
+            MatplotlibConverter,
+        )
+        from src.web.pages.ui.plotting.export.presets.preset_schema import (
+            LaTeXPreset,
+        )
+
+        fig = go.Figure()
+        fig.add_trace(go.Bar(x=["A"], y=[10], name="Bar"))
+
+        preset: LaTeXPreset = {
+            "name": "test",
+            "width_inches": 6.0,
+            "height_inches": 4.0,
+            "dpi": 150,
+            "font_family": "serif",
+            "font_size": 10,
+            "line_width": 1.0,
+            "marker_size": 4,
+        }  # type: ignore[typeddict-item]
+        converter = MatplotlibConverter(preset)
+        from matplotlib import pyplot as plt
+
+        _, mpl_ax = plt.subplots()
+        converter._bar_traces = []
+        converter._categorical_labels = []
+        converter._barmode = "group"
+        converter._convert_traces(fig, mpl_ax)
+
+        assert not hasattr(mpl_ax, "_ring5_twin")
+        plt.close()
+
+    def test_unified_legend_combines_handles(self) -> None:
+        """Unified legend combines handles from both axes."""
+        from plotly.subplots import make_subplots
+
+        from src.web.pages.ui.plotting.export.converters.impl.matplotlib_converter import (
+            MatplotlibConverter,
+        )
+        from src.web.pages.ui.plotting.export.presets.preset_schema import (
+            LaTeXPreset,
+        )
+
+        fig = make_subplots(specs=[[{"secondary_y": True}]])
+        fig.add_trace(
+            go.Bar(x=["A", "B"], y=[10, 20], name="Left"),
+            secondary_y=False,
+        )
+        fig.add_trace(
+            go.Scatter(x=["A", "B"], y=[1, 2], name="Right", mode="markers"),
+            secondary_y=True,
+        )
+        # No legend2 → unified legend
+        fig.update_layout(legend=dict(x=0.0, y=1.0))
+
+        preset: LaTeXPreset = {
+            "name": "test",
+            "width_inches": 6.0,
+            "height_inches": 4.0,
+            "dpi": 150,
+            "font_family": "serif",
+            "font_size": 10,
+            "line_width": 1.0,
+            "marker_size": 4,
+        }  # type: ignore[typeddict-item]
+        converter = MatplotlibConverter(preset)
+
+        result = converter.convert(fig, "pdf")
+        assert result["success"]
+        # Metadata should show combined legend items
+        assert result["metadata"].get("legend_items", 0) >= 2

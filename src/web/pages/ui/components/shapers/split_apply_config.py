@@ -3,30 +3,76 @@ Split-Apply Config — UI for the SplitApply composite shaper.
 
 Lets the user define:
   1. Join columns (categorical columns shared across all groups).
-  2. Two column groups, each with its own numeric columns and
+  2. N column groups (2–4), each with its own numeric columns and
      a mini sub-pipeline of shapers applied independently.
+
+Each sub-pipeline step delegates to the **exact same** UI component
+used by the main pipeline (MeanConfig, NormalizeConfig, SortConfig,
+ConditionSelectorConfig), ensuring a consistent user experience.
 
 This is the UI counterpart of
 :class:`src.core.services.shapers.impl.split_apply.SplitApply`.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import pandas as pd
 import streamlit as st
 
+# ── Sub-step config dispatch ──────────────────────────────────────
+# Lazily populated to avoid circular imports.
+# Maps display name → (internal_type, render_fn).
+
+_SUB_SHAPER_DISPATCH: Dict[str, Tuple[str, Callable[..., Dict[str, Any]]]] = {}
+_DISPATCH_INITIALIZED: bool = False
+
+_GROUP_LABELS: List[str] = [
+    "Group A",
+    "Group B",
+    "Group C",
+    "Group D",
+]
+
+_MIN_GROUPS: int = 2
+_MAX_GROUPS: int = 4
+
+# Reverse lookup: internal type → display name
+_REVERSE_TYPE_MAP: Dict[str, str] = {
+    "mean": "Mean Calculator",
+    "normalize": "Normalize",
+    "sort": "Sort",
+    "conditionSelector": "Filter",
+}
+
+
+def _init_dispatch() -> None:
+    """Lazily initialize the dispatch dict to avoid circular imports."""
+    global _DISPATCH_INITIALIZED  # noqa: PLW0603
+    if _DISPATCH_INITIALIZED:
+        return
+
+    from src.web.pages.ui.components.shapers.mean_config import MeanConfig
+    from src.web.pages.ui.components.shapers.normalize_config import (
+        NormalizeConfig,
+    )
+    from src.web.pages.ui.components.shapers.selector_transformer_configs import (
+        ConditionSelectorConfig,
+    )
+    from src.web.pages.ui.components.shapers.sort_config import SortConfig
+
+    _SUB_SHAPER_DISPATCH.update(
+        {
+            "Mean Calculator": ("mean", MeanConfig.render),
+            "Normalize": ("normalize", NormalizeConfig.render),
+            "Sort": ("sort", SortConfig.render),
+            "Filter": ("conditionSelector", ConditionSelectorConfig.render),
+        }
+    )
+    _DISPATCH_INITIALIZED = True
+
 
 class SplitApplyConfig:
     """UI component for configuring the SplitApply shaper."""
-
-    # Shaper types available inside sub-pipelines.
-    # We only expose those that make sense for per-axis transforms.
-    _SUB_SHAPER_TYPES: Dict[str, str] = {
-        "Mean Calculator": "mean",
-        "Normalize": "normalize",
-        "Sort": "sort",
-        "Filter": "conditionSelector",
-    }
 
     @staticmethod
     def render(
@@ -46,6 +92,8 @@ class SplitApplyConfig:
         Returns:
             Configuration dictionary consumable by ``SplitApply``.
         """
+        _init_dispatch()
+
         numeric_cols: List[str] = data.select_dtypes(include=["number"]).columns.tolist()
         categorical_cols: List[str] = data.select_dtypes(
             include=["object", "string", "category"]
@@ -73,22 +121,29 @@ class SplitApplyConfig:
             ),
         )
 
-        # ── Groups ────────────────────────────────────────────────
-        existing_groups: List[Dict[str, Any]] = existing_config.get("groups", [{}, {}])
-        # Always show exactly 2 groups (matching dual-axis paradigm).
-        while len(existing_groups) < 2:
+        # ── Number of groups ──────────────────────────────────────
+        existing_groups: List[Dict[str, Any]] = existing_config.get("groups", [])
+        default_num_groups: int = max(
+            _MIN_GROUPS, min(len(existing_groups) or _MIN_GROUPS, _MAX_GROUPS)
+        )
+        num_groups: int = st.slider(
+            "Number of groups",
+            min_value=_MIN_GROUPS,
+            max_value=_MAX_GROUPS,
+            value=default_num_groups,
+            key=f"{key_prefix}sa_ngroups_{shaper_id}",
+            help="How many independent column groups to create (2–4).",
+        )
+
+        # Pad existing groups if needed
+        while len(existing_groups) < num_groups:
             existing_groups.append({})
 
+        # ── Render each group in an expander ──────────────────────
         groups: List[Dict[str, Any]] = []
-        group_labels: List[str] = [
-            "Group A (e.g. left axis / bars)",
-            "Group B (e.g. right axis / dots)",
-        ]
-        col_a, col_b = st.columns(2)
-
-        for g_idx, (container, label) in enumerate(zip([col_a, col_b], group_labels)):
-            with container:
-                st.markdown(f"**{label}**")
+        for g_idx in range(num_groups):
+            label: str = _GROUP_LABELS[g_idx]
+            with st.expander(f"**{label}**", expanded=True):
                 grp = SplitApplyConfig._render_group(
                     data=data,
                     numeric_cols=numeric_cols,
@@ -239,9 +294,10 @@ class SplitApplyConfig:
     ) -> Optional[Dict[str, Any]]:
         """Render config for a single sub-pipeline step.
 
-        For Mean and Normalize, pre-fills ``meanVars`` / ``normalizeVars``
-        with the group's columns so the user only needs to choose the
-        algorithm and grouping.
+        Delegates to the exact same UI component used by the main
+        shaper pipeline (MeanConfig, NormalizeConfig, SortConfig,
+        ConditionSelectorConfig) so the user gets an identical
+        interface.
 
         Args:
             data: Full DataFrame.
@@ -255,14 +311,12 @@ class SplitApplyConfig:
         Returns:
             Shaper config dict, or None if no type selected.
         """
-        st.markdown(f"Step {step_index + 1}")
+        st.markdown(f"**Step {step_index + 1}**")
 
-        # Shaper type selector
-        display_names: List[str] = list(SplitApplyConfig._SUB_SHAPER_TYPES.keys())
+        # ── Shaper type selector ──────────────────────────────────
+        display_names: List[str] = list(_SUB_SHAPER_DISPATCH.keys())
         existing_type: str = existing_step.get("type", "")
-        # Reverse-lookup display name from internal type
-        reverse: Dict[str, str] = {v: k for k, v in SplitApplyConfig._SUB_SHAPER_TYPES.items()}
-        default_display: str = reverse.get(existing_type, display_names[0])
+        default_display: str = _REVERSE_TYPE_MAP.get(existing_type, display_names[0])
         default_idx: int = (
             display_names.index(default_display) if default_display in display_names else 0
         )
@@ -273,180 +327,18 @@ class SplitApplyConfig:
             index=default_idx,
             key=f"{key_base}_type",
         )
-        shaper_type: str = SplitApplyConfig._SUB_SHAPER_TYPES[selected_display]
+        shaper_type, render_fn = _SUB_SHAPER_DISPATCH[selected_display]
 
-        # Render type-specific config
-        if shaper_type == "mean":
-            return SplitApplyConfig._render_mean_step(
-                data,
-                columns,
-                categorical_cols,
-                existing_step,
-                key_base,
-            )
-        elif shaper_type == "normalize":
-            return SplitApplyConfig._render_normalize_step(
-                data,
-                columns,
-                categorical_cols,
-                existing_step,
-                key_base,
-            )
-        elif shaper_type == "sort":
-            # Delegate to the standard SortConfig
-            from src.web.pages.ui.components.shapers.sort_config import (
-                SortConfig,
-            )
+        # ── Delegate to the real config component ─────────────────
+        sub_key_prefix: str = f"{key_base}_"
+        sub_shaper_id: str = f"sub{step_index}"
 
-            cfg = SortConfig.render(
-                data,
-                existing_step,
-                f"{key_base}_",
-                f"sub{step_index}",
-            )
-            cfg["type"] = "sort"
-            return cfg
-        elif shaper_type == "conditionSelector":
-            from src.web.pages.ui.components.shapers.selector_transformer_configs import (
-                ConditionSelectorConfig,
-            )
-
-            cfg = ConditionSelectorConfig.render(
-                data,
-                existing_step,
-                f"{key_base}_",
-                f"sub{step_index}",
-            )
-            cfg["type"] = "conditionSelector"
-            return cfg
-
-        return None
-
-    # ── Pre-filled sub-step renderers ─────────────────────────────
-
-    @staticmethod
-    def _render_mean_step(
-        data: pd.DataFrame,
-        columns: List[str],
-        categorical_cols: List[str],
-        existing_step: Dict[str, Any],
-        key_base: str,
-    ) -> Dict[str, Any]:
-        """Render Mean config pre-filled with this group's columns.
-
-        Args:
-            data: Full DataFrame.
-            columns: This group's numeric columns (pre-selected as meanVars).
-            categorical_cols: All categorical columns.
-            existing_step: Previously saved step config.
-            key_base: Widget key base string.
-
-        Returns:
-            Mean shaper config dict.
-        """
-        mean_algos: List[str] = ["arithmean", "geomean", "hmean"]
-        algo_default: str = existing_step.get("meanAlgorithm", "arithmean")
-        algo_idx: int = mean_algos.index(algo_default) if algo_default in mean_algos else 0
-        mean_algorithm: str = st.selectbox(
-            "Mean type",
-            options=mean_algos,
-            index=algo_idx,
-            key=f"{key_base}_algo",
+        cfg: Dict[str, Any] = render_fn(
+            data,
+            existing_step,
+            sub_key_prefix,
+            sub_shaper_id,
         )
 
-        # Grouping columns
-        group_default: List[str] = [
-            c for c in existing_step.get("groupingColumns", []) if c in categorical_cols
-        ]
-        grouping_columns: List[str] = st.multiselect(
-            "Group by",
-            options=categorical_cols,
-            default=group_default,
-            key=f"{key_base}_grp",
-        )
-
-        # Replacing column
-        replace_default: str = existing_step.get("replacingColumn", "")
-        replace_idx: int = (
-            categorical_cols.index(replace_default) if replace_default in categorical_cols else 0
-        )
-        replacing_column: str = st.selectbox(
-            "Replacing column",
-            options=categorical_cols,
-            index=replace_idx,
-            key=f"{key_base}_repl",
-        )
-
-        return {
-            "type": "mean",
-            "meanAlgorithm": mean_algorithm,
-            "meanVars": list(columns),
-            "groupingColumns": grouping_columns,
-            "replacingColumn": replacing_column,
-        }
-
-    @staticmethod
-    def _render_normalize_step(
-        data: pd.DataFrame,
-        columns: List[str],
-        categorical_cols: List[str],
-        existing_step: Dict[str, Any],
-        key_base: str,
-    ) -> Dict[str, Any]:
-        """Render Normalize config pre-filled with this group's columns.
-
-        Args:
-            data: Full DataFrame.
-            columns: This group's numeric columns (pre-selected as
-                normalizeVars and normalizerVars).
-            categorical_cols: All categorical columns.
-            existing_step: Previously saved step config.
-            key_base: Widget key base string.
-
-        Returns:
-            Normalize shaper config dict.
-        """
-        # Normalizer column
-        norm_col_default: str = existing_step.get("normalizerColumn", "")
-        norm_col_idx: int = (
-            categorical_cols.index(norm_col_default) if norm_col_default in categorical_cols else 0
-        )
-        normalizer_column: str = st.selectbox(
-            "Normalizer column",
-            options=categorical_cols,
-            index=norm_col_idx,
-            key=f"{key_base}_ncol",
-        )
-
-        # Normalizer value
-        normalizer_value: Optional[str] = None
-        if normalizer_column and normalizer_column in data.columns:
-            unique_vals: List[str] = data[normalizer_column].unique().tolist()
-            val_default: str = existing_step.get("normalizerValue", "")
-            val_idx: int = unique_vals.index(val_default) if val_default in unique_vals else 0
-            normalizer_value = st.selectbox(
-                "Baseline value",
-                options=unique_vals,
-                index=val_idx,
-                key=f"{key_base}_nval",
-            )
-
-        # Group by
-        gb_default: List[str] = [
-            c for c in existing_step.get("groupBy", []) if c in categorical_cols
-        ]
-        group_by: List[str] = st.multiselect(
-            "Group by",
-            options=categorical_cols,
-            default=gb_default,
-            key=f"{key_base}_ngb",
-        )
-
-        return {
-            "type": "normalize",
-            "normalizeVars": list(columns),
-            "normalizerVars": list(columns),
-            "normalizerColumn": normalizer_column,
-            "normalizerValue": normalizer_value,
-            "groupBy": group_by,
-        }
+        cfg["type"] = shaper_type
+        return cfg

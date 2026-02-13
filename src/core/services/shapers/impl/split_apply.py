@@ -128,6 +128,10 @@ class SplitApply(UniDfShaper):
 
         if not self._groups or len(self._groups) < 2:
             raise ValueError("SplitApply: 'groups' must contain at least 2 groups.")
+        if len(self._groups) > 4:
+            raise ValueError(
+                "SplitApply: 'groups' must contain at most 4 groups " f"(got {len(self._groups)})."
+            )
 
         # Validate each group
         all_group_cols: List[str] = []

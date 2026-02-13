@@ -216,6 +216,39 @@ class LayoutApplier:
                 y=self.pos_config.ylabel_y_position,
             )
 
+        # Secondary Y-axis label (rotated -90° = top-to-bottom)
+        if "y2_label" in layout and layout["y2_label"]:
+            ax2 = (
+                ax.twinx() if not hasattr(ax, "_ring5_twin") else ax._ring5_twin
+            )  # type: ignore[attr-defined]
+            ax._ring5_twin = ax2  # type: ignore[attr-defined]
+            y2_label = self._escape_latex(layout["y2_label"])
+            ax2.set_ylabel(
+                y2_label,
+                fontsize=self.font_config.font_size_ylabel,
+                fontweight="bold" if self.font_config.bold_ylabel else "normal",
+                rotation=-90,
+                labelpad=self.pos_config.ylabel_pad + 10,
+            )
+            if "y2_range" in layout:
+                ax2.set_ylim(layout["y2_range"])
+
+            # Apply secondary Y-axis tick font styling
+            y2_tickfont = layout.get("y2_tickfont", {})
+            if y2_tickfont:
+                tick_kwargs: Dict[str, Any] = {"axis": "y"}
+                if "size" in y2_tickfont:
+                    tick_kwargs["labelsize"] = y2_tickfont["size"]
+                if "color" in y2_tickfont:
+                    tick_kwargs["labelcolor"] = y2_tickfont["color"]
+                ax2.tick_params(**tick_kwargs)
+
+            # Apply secondary Y-axis dtick (tick spacing)
+            if "y2_dtick" in layout and layout["y2_dtick"]:
+                from matplotlib.ticker import MultipleLocator
+
+                ax2.yaxis.set_major_locator(MultipleLocator(layout["y2_dtick"]))
+
     def _apply_title(self, ax: Axes, layout: Dict[str, Any]) -> None:
         """
         Apply figure title with font styling.
@@ -250,6 +283,11 @@ class LayoutApplier:
             ax.xaxis.grid(layout["x_grid"])
         if "y_grid" in layout:
             ax.yaxis.grid(layout["y_grid"])
+        # Secondary Y-axis grid
+        if "y2_grid" in layout:
+            ax2 = getattr(ax, "_ring5_twin", None)
+            if ax2 is not None:
+                ax2.yaxis.grid(layout["y2_grid"])
 
     def _apply_ticks(self, ax: Axes, layout: Dict[str, Any]) -> None:
         """
@@ -308,7 +346,7 @@ class LayoutApplier:
 
     def _apply_legend(self, ax: Axes, layout: Dict[str, Any]) -> None:
         """
-        Apply legend positioning.
+        Apply legend positioning for primary and secondary legends.
 
         Args:
             ax: Matplotlib axes
@@ -324,6 +362,35 @@ class LayoutApplier:
                         bbox_to_anchor=(legend_config["x"], legend_config["y"]),
                         loc="upper left",
                     )
+
+        # Secondary legend on twin axis
+        if "legend2" in layout:
+            ax2 = getattr(ax, "_ring5_twin", None)
+            if ax2 is not None:
+                legend2_config = layout["legend2"]
+                handles2, labels2 = ax2.get_legend_handles_labels()
+                if handles2:
+                    loc2 = "upper left"
+                    legend2_kwargs: Dict[str, Any] = {
+                        "handles": handles2,
+                        "labels": labels2,
+                        "loc": loc2,
+                    }
+                    if "x" in legend2_config and "y" in legend2_config:
+                        legend2_kwargs["bbox_to_anchor"] = (
+                            legend2_config["x"],
+                            legend2_config["y"],
+                        )
+                    if "xanchor" in legend2_config:
+                        anchor_map = {
+                            "left": "upper left",
+                            "center": "upper center",
+                            "right": "upper right",
+                        }
+                        legend2_kwargs["loc"] = anchor_map.get(
+                            legend2_config["xanchor"], "upper left"
+                        )
+                    ax2.legend(**legend2_kwargs)
 
     def _apply_annotations(self, ax: Axes, layout: Dict[str, Any]) -> None:
         """

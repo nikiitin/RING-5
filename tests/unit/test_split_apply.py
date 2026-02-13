@@ -158,6 +158,16 @@ class TestSplitApplyValidation:
                 }
             )
 
+    def test_five_groups_raises(self) -> None:
+        """Must have at most 4 groups."""
+        with pytest.raises(ValueError, match="at most 4 groups"):
+            SplitApply(
+                {
+                    "joinColumns": ["x"],
+                    "groups": [{"columns": [f"c{i}"], "pipeline": []} for i in range(5)],
+                }
+            )
+
     def test_empty_group_columns_raises(self) -> None:
         """Groups must have non-empty columns."""
         with pytest.raises(ValueError, match="non-empty"):
@@ -591,3 +601,84 @@ class TestSplitApplyThreeGroups:
         assert abs(mean_row["v1"].iloc[0] - 15.0) < 1e-6
         assert abs(mean_row["v2"].iloc[0] - 150.0) < 1e-6
         assert abs(mean_row["v3"].iloc[0] - 1500.0) < 1e-6
+
+
+# ============================================================================
+# Four-Group Split (Maximum)
+# ============================================================================
+
+
+class TestSplitApplyFourGroups:
+    """SplitApply supports up to 4 groups."""
+
+    def test_four_groups_merge_correctly(self) -> None:
+        """Four groups with empty pipelines produce correct merged result."""
+        data = pd.DataFrame(
+            {
+                "bench": ["a", "b"],
+                "cfg": ["x", "x"],
+                "v1": [10.0, 20.0],
+                "v2": [100.0, 200.0],
+                "v3": [1000.0, 2000.0],
+                "v4": [10000.0, 20000.0],
+            }
+        )
+        config: Dict[str, Any] = {
+            "joinColumns": ["bench", "cfg"],
+            "groups": [
+                {"columns": ["v1"], "pipeline": []},
+                {"columns": ["v2"], "pipeline": []},
+                {"columns": ["v3"], "pipeline": []},
+                {"columns": ["v4"], "pipeline": []},
+            ],
+        }
+
+        shaper = SplitApply(config)
+        result = shaper(data)
+
+        assert len(result) == 2
+        assert set(result.columns) == {"bench", "cfg", "v1", "v2", "v3", "v4"}
+
+    def test_four_groups_with_mean(self) -> None:
+        """Four groups each with Mean produce correct merged result."""
+        data = pd.DataFrame(
+            {
+                "bench": ["a", "b"],
+                "cfg": ["x", "x"],
+                "v1": [10.0, 20.0],
+                "v2": [100.0, 200.0],
+                "v3": [1000.0, 2000.0],
+                "v4": [10000.0, 20000.0],
+            }
+        )
+        config: Dict[str, Any] = {
+            "joinColumns": ["bench", "cfg"],
+            "groups": [
+                {
+                    "columns": [f"v{i}"],
+                    "pipeline": [
+                        {
+                            "type": "mean",
+                            "meanVars": [f"v{i}"],
+                            "meanAlgorithm": "arithmean",
+                            "groupingColumns": ["cfg"],
+                            "replacingColumn": "bench",
+                        }
+                    ],
+                }
+                for i in range(1, 5)
+            ],
+        }
+
+        shaper = SplitApply(config)
+        result = shaper(data)
+
+        # 2 original + 1 mean = 3 rows
+        assert len(result) == 3
+
+        mean_row = result[result["bench"] == "arithmean"]
+        assert len(mean_row) == 1
+        assert abs(mean_row["v1"].iloc[0] - 15.0) < 1e-6
+        assert abs(mean_row["v2"].iloc[0] - 150.0) < 1e-6
+        assert abs(mean_row["v3"].iloc[0] - 1500.0) < 1e-6
+        assert abs(mean_row["v4"].iloc[0] - 15000.0) < 1e-6

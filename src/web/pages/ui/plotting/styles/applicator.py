@@ -199,12 +199,17 @@ class StyleApplicator:
         return xaxis_settings
 
     def _apply_axis_colors(self, fig: go.Figure, config: Dict[str, Any]) -> None:
-        """Apply axis and grid colors."""
+        """Apply axis and grid colors.
+
+        Grid and axis colours are applied only to the **primary** Y-axis
+        (``secondary_y=False``) so that dual-axis plots can control each
+        axis independently.
+        """
         axis_color = config.get("axis_color")
         grid_color = config.get("grid_color")
 
         if axis_color or grid_color:
-            axis_update = {}
+            axis_update: Dict[str, Any] = {}
             if axis_color:
                 axis_update.update(
                     dict(
@@ -216,7 +221,9 @@ class StyleApplicator:
                 )
             if grid_color:
                 axis_update.update(dict(gridcolor=grid_color, zerolinecolor=grid_color))
-            fig.update_yaxes(**axis_update)
+            # Only apply to primary Y-axis so dual-axis plots keep
+            # independent grid/colour control per axis.
+            fig.update_layout(yaxis=axis_update)
 
     def _build_legend_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         """Build legend configuration dictionary."""
