@@ -257,7 +257,66 @@ You assume the role of a QA Expert. You know the "Quality Shield" (Test Pyramid)
 - **Indirect Parametrization:** `indirect=True` passes values to fixtures via `request.param`. For complex setup.
 - **Optional Fallback:** `getattr(request, "param", default)` for fixtures that work with or without params.
 
-## 4. Property-Based Testing (_Hypothesis_)
+## 4. UI Testing Strategy (3-Layer Approach)
+
+### 4.1 Layer 1: UI Logic Tests (`tests/ui_logic/`)
+
+Pure Python tests with mocked `st.*` — fast, deterministic, no browser.
+
+- **Pattern:** `@patch("module.st")` + mock presenters, test orchestration logic
+- **Target:** Controllers, adapters, page composition, protocol conformance, models
+- **Key technique:** Mock all presenter static methods, assert controller delegates correctly
+- **Example:**
+  ```python
+  @patch("src.web.controllers.plot.creation_controller.st")
+  @patch("src.web.controllers.plot.creation_controller.PlotCreationPresenter.render")
+  def test_create_clicked_delegates_to_lifecycle(mock_render, mock_st):
+      mock_render.return_value = {"name": "Plot", "plot_type": "bar", "create_clicked": True}
+      ctrl = PlotCreationController(api, ui_state, lifecycle, registry)
+      ctrl.render_create_section()
+      lifecycle.create_plot.assert_called_once()
+  ```
+- **Files:** `test_creation_controller.py`, `test_render_controller.py`, `test_manage_plots_page.py`,
+  `test_plot_adapters.py`, `test_protocols_and_models.py`, `test_style_factory.py`,
+  `test_interactive_plot.py`
+
+### 4.2 Layer 2: UI Unit Tests (`tests/ui_unit/`)
+
+Component-level tests with mocked Streamlit, testing widget rendering logic.
+
+- **Pattern:** Mock `st.columns()`, `st.selectbox()`, etc. via `side_effect`
+- **Target:** Data components, layout components, shaper configs, style managers
+- **Key technique:** `columns_side_effect` fixture from `tests/conftest.py` for column mocking
+
+### 4.3 Layer 3: AppTest Integration Tests (`tests/ui/`)
+
+Real Streamlit rendering via `streamlit.testing.v1.AppTest` — tests actual widget output.
+
+- **Pattern:** `AppTest.from_file("app.py")` → navigate → assert widgets/content
+- **Target:** Page navigation, widget presence, empty-state messages, button existence
+- **Example:**
+  ```python
+  def test_no_plots_warning_shown():
+      at = AppTest.from_file(_APP_PATH, default_timeout=10)
+      at.run()
+      at.sidebar.radio[0].set_value("Manage Plots").run()
+      warnings = [w for w in at.warning if "no plot" in w.value.lower()]
+      assert len(warnings) > 0
+  ```
+- **Limitations:** Cannot test `@st.fragment` internals or complex multi-step form workflows
+
+### 4.4 When to Use Each Layer
+
+| Need | Layer |
+|------|-------|
+| Controller delegates correctly | Layer 1 (ui_logic) |
+| Config change detects + error resilience | Layer 1 (ui_logic) |
+| Widget renders correct options | Layer 2 (ui_unit) |
+| Page loads without crash | Layer 3 (AppTest) |
+| Widget is present on page | Layer 3 (AppTest) |
+| Empty-state messages shown | Layer 3 (AppTest) |
+
+## 5. Property-Based Testing (_Hypothesis_)
 
 - **Usage:** For critical core logic (parsers, math shapers), uses `hypothesis` to find edge cases.
 - **Invariants:** Test for:
