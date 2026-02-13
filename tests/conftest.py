@@ -139,3 +139,15 @@ def mock_state_manager() -> MagicMock:
     sm.get_manager_history.return_value = []
     sm.get_portfolio_history.return_value = []
     return sm
+
+
+@pytest.fixture
+def e2e_sample_data() -> pd.DataFrame:
+    """Rich DataFrame for e2e tests — 18 rows × 8 columns.
+
+    Includes multiple benchmarks, configs, seeds, and numeric metrics
+    suitable for exercising all plot types and all data managers.
+    """
+    from tests.ui.helpers import make_e2e_sample_data
+
+    return make_e2e_sample_data()
