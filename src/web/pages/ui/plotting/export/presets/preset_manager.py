@@ -93,6 +93,7 @@ class PresetManager:
             ),
             "font_size_legend": raw_preset.get("font_size_legend", 8),
             "font_size_ticks": raw_preset["font_size_ticks"],
+            "font_size_yticks": raw_preset.get("font_size_yticks", raw_preset["font_size_ticks"]),
             "font_size_annotations": raw_preset.get("font_size_annotations", 6),
             # Bold styling controls
             "bold_title": raw_preset.get("bold_title", False),
@@ -101,6 +102,7 @@ class PresetManager:
             "bold_legend": raw_preset.get("bold_legend", False),
             "bold_ticks": raw_preset.get("bold_ticks", False),
             "bold_annotations": raw_preset.get("bold_annotations", True),
+            "bold_group_labels": raw_preset.get("bold_group_labels", True),
             "line_width": raw_preset["line_width"],
             "marker_size": raw_preset["marker_size"],
             "dpi": raw_preset["dpi"],
@@ -111,6 +113,8 @@ class PresetManager:
             "legend_handleheight": raw_preset["legend_handleheight"],
             "legend_borderpad": raw_preset["legend_borderpad"],
             "legend_borderaxespad": raw_preset["legend_borderaxespad"],
+            "legend_ncol": raw_preset.get("legend_ncol", 0),
+            "legend_custom_pos": raw_preset.get("legend_custom_pos", False),
             # Positioning parameters
             "ylabel_pad": raw_preset.get("ylabel_pad", 10.0),
             "ylabel_y_position": raw_preset.get("ylabel_y_position", 0.5),
@@ -118,6 +122,7 @@ class PresetManager:
             "ytick_pad": raw_preset.get("ytick_pad", 5.0),
             "group_label_offset": raw_preset.get("group_label_offset", -0.12),
             "group_label_alternate": raw_preset.get("group_label_alternate", True),
+            "group_label_alt_spacing": raw_preset.get("group_label_alt_spacing", 0.05),
             # Axis and bar spacing parameters
             "xaxis_margin": raw_preset.get("xaxis_margin", 0.02),
             "bar_width_scale": raw_preset.get("bar_width_scale", 1.0),
@@ -126,7 +131,12 @@ class PresetManager:
             "xtick_offset": raw_preset.get("xtick_offset", 0.0),
             "group_separator": raw_preset.get("group_separator", False),
             "group_separator_style": raw_preset.get("group_separator_style", "dashed"),
-            "group_separator_color": raw_preset.get("group_separator_color", "gray"),
+            "group_separator_color": raw_preset.get("group_separator_color", "#808080"),
+            # Legend position override
+            "legend_x": raw_preset.get("legend_x", -1.0),
+            "legend_y": raw_preset.get("legend_y", -1.0),
+            # LaTeX preamble for font matching
+            "latex_extra_preamble": raw_preset.get("latex_extra_preamble", ""),
         }
 
         # Validate before caching

@@ -45,6 +45,19 @@ class StyleApplicator:
         if config.get("shapes"):
             fig.update_layout(shapes=config["shapes"])
 
+        # Reference line (normalizer baseline)
+        if config.get("reference_line_enabled"):
+            ref_y = config.get("reference_line_y", 1.0)
+            ref_color = config.get("reference_line_color", "#FF0000")
+            ref_width = config.get("reference_line_width", 1.5)
+            ref_style = config.get("reference_line_style", "dash")
+            fig.add_hline(
+                y=ref_y,
+                line_dash=ref_style,
+                line_color=ref_color,
+                line_width=ref_width,
+            )
+
         return fig
 
     def _apply_dimensions_and_margins(self, fig: go.Figure, config: Dict[str, Any]) -> go.Figure:

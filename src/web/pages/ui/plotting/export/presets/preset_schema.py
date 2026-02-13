@@ -51,7 +51,8 @@ class LaTeXPreset(TypedDict):
     font_size_xlabel: int  # X-axis label font size
     font_size_ylabel: int  # Y-axis label font size
     font_size_legend: int  # Legend text font size
-    font_size_ticks: int  # Tick labels font size
+    font_size_ticks: int  # Tick labels font size (X-axis)
+    font_size_yticks: int  # Y-axis tick labels font size (separate from X)
     font_size_annotations: int  # Annotations (bar totals, etc.) font size
     # Bold styling controls for text elements
     bold_title: bool  # Title in bold (default False)
@@ -60,6 +61,7 @@ class LaTeXPreset(TypedDict):
     bold_legend: bool  # Legend text in bold (default False)
     bold_ticks: bool  # Tick labels in bold (default False)
     bold_annotations: bool  # Annotations in bold (default True for bar values)
+    bold_group_labels: bool  # X-axis grouping labels in bold (default True)
     line_width: float
     marker_size: int
     dpi: int
@@ -71,6 +73,7 @@ class LaTeXPreset(TypedDict):
     legend_handleheight: float  # Height of color box (default 0.7)
     legend_borderpad: float  # Space inside legend border (default 0.4)
     legend_borderaxespad: float  # Space between legend and axes (default 0.5)
+    legend_ncol: int  # Number of legend columns (0 = auto, default 0)
     # Positioning parameters for fine-grained control
     ylabel_pad: float  # Padding between Y-axis label and tick labels (default 10)
     ylabel_y_position: float  # Vertical position of Y-axis label (0=bottom, 0.5=center, 1=top)
@@ -78,16 +81,23 @@ class LaTeXPreset(TypedDict):
     ytick_pad: float  # Padding between Y-axis tick labels and axis (default 5)
     group_label_offset: float  # Vertical offset for grouping labels (default -0.12)
     group_label_alternate: bool  # Alternate grouping labels up/down (default True)
+    group_label_alt_spacing: float  # Distance between up/down levels (default 0.05)
     # Axis and bar spacing parameters
     xaxis_margin: float  # Left/right margin on X-axis as fraction (default 0.02)
     bar_width_scale: float  # Scale factor for bar widths (default 1.0, >1 = wider)
     xtick_rotation: float  # Rotation angle for X-axis tick labels (default 45)
     xtick_ha: str  # Horizontal alignment for X-tick labels ("left", "center", "right")
     xtick_offset: float  # Horizontal offset for X-tick labels in points (default 0)
+    # Legend position (for export)
+    legend_custom_pos: bool  # Enable custom legend position (default False = auto)
+    legend_x: float  # X position of legend (0=left, 1=right, default 0.0)
+    legend_y: float  # Y position of legend (0=bottom, 1=top, default 1.0)
     # Group separator for final group (e.g., arithmetic mean)
     group_separator: bool  # Draw vertical separator before last group (default False)
     group_separator_style: str  # Line style: "dashed", "dotted", "solid" (default "dashed")
     group_separator_color: str  # Color of separator line (default "gray")
+    # LaTeX preamble for font matching
+    latex_extra_preamble: str  # Extra LaTeX preamble packages (default "")
 
 
 class ExportResult(TypedDict):

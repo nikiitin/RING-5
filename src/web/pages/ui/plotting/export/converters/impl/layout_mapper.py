@@ -93,6 +93,12 @@ class LayoutExtractor:
             if layout.xaxis.ticktext is not None:
                 props["x_ticktext"] = [str(t) for t in layout.xaxis.ticktext]
 
+        # Extract tick visibility settings (e.g. numbered X-axis hides ticks)
+        if layout.xaxis.showticklabels is not None:
+            props["x_showticklabels"] = layout.xaxis.showticklabels
+        if layout.xaxis.ticks is not None:
+            props["x_ticks"] = layout.xaxis.ticks
+
         if layout.yaxis.tickmode == "array":
             if layout.yaxis.tickvals is not None:
                 props["y_tickvals"] = list(layout.yaxis.tickvals)
@@ -230,6 +236,18 @@ class LayoutExtractor:
                         font_dict["color"] = ann.font.color
                     if font_dict:
                         ann_dict["font"] = font_dict
+
+                # Extract box/border properties (for legend-style annotations)
+                if hasattr(ann, "borderwidth") and ann.borderwidth is not None:
+                    ann_dict["borderwidth"] = ann.borderwidth
+                if hasattr(ann, "bordercolor") and ann.bordercolor is not None:
+                    ann_dict["bordercolor"] = ann.bordercolor
+                if hasattr(ann, "borderpad") and ann.borderpad is not None:
+                    ann_dict["borderpad"] = ann.borderpad
+                if hasattr(ann, "bgcolor") and ann.bgcolor is not None:
+                    ann_dict["bgcolor"] = ann.bgcolor
+                if hasattr(ann, "align") and ann.align is not None:
+                    ann_dict["align"] = ann.align
 
                 annotations.append(ann_dict)
 

@@ -36,8 +36,8 @@ class TestPlotRendererCacheHelpers:
         assert "abc123" in key
 
     def test_cache_key_ignores_transient_config(self) -> None:
-        config1: Dict[str, Any] = {"x": "col1", "legend_x": 0.5, "legend_y": 0.9}
-        config2: Dict[str, Any] = {"x": "col1", "legend_x": 0.1, "legend_y": 0.2}
+        config1: Dict[str, Any] = {"x": "col1", "xaxis_range": [0, 10], "yaxis_range": [0, 50]}
+        config2: Dict[str, Any] = {"x": "col1", "xaxis_range": [5, 15], "yaxis_range": [10, 60]}
         key1 = PlotRenderer._compute_figure_cache_key(1, config1, "abc")
         key2 = PlotRenderer._compute_figure_cache_key(1, config2, "abc")
         assert key1 == key2  # transient keys should be filtered out
@@ -189,10 +189,6 @@ class TestPlotRendererRenderPlot:
         plot.processed_data = pd.DataFrame({"x": [1]})
         plot.config = {
             "x": "col",
-            "legend_x": 0.5,
-            "legend_y": 0.9,
-            "legend_xanchor": "left",
-            "legend_yanchor": "top",
         }
         plot.plot_id = 1
         plot.last_generated_fig = go.Figure()
@@ -205,7 +201,6 @@ class TestPlotRendererRenderPlot:
 
         PlotRenderer.render_plot(plot)
         plot.update_from_relayout.assert_called_with(relayout_data)
-        assert "plot.pending_updates" in mock_st.session_state
         mock_st.rerun.assert_called()
 
     @patch("src.web.pages.ui.plotting.plot_renderer.PlotRenderer._render_download_button")

@@ -154,4 +154,5 @@ class TestPresetManager:
             "legend_handleheight": 0.7,
             "legend_borderpad": 0.4,
             "legend_borderaxespad": 0.5,
+            "latex_extra_preamble": "",
         }

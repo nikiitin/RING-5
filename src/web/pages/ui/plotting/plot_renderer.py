@@ -40,10 +40,6 @@ class PlotRenderer:
             for k, v in config.items()
             if k
             not in {
-                "legend_x",
-                "legend_y",
-                "legend_xanchor",
-                "legend_yanchor",
                 "xaxis_range",
                 "yaxis_range",  # User zoom/pan state
             }
@@ -231,33 +227,6 @@ class PlotRenderer:
 
                     if relayout_data != last_event:
                         if plot.update_from_relayout(relayout_data):
-                            # Store updates for the next run to avoid "widget instantiated" errors
-                            # Cannot modify widget keys immediately because they were already rendered in this frame.  # noqa: E501
-                            updates = {}
-                            for prefix in ["", "theme_"]:
-                                # Position Keys
-                                x_key = f"{prefix}leg_x_sm_{plot.plot_id}"
-                                y_key = f"{prefix}leg_y_sm_{plot.plot_id}"
-
-                                # Anchor Keys (Critical for preventing jump/drift)
-                                x_anc_key = f"{prefix}leg_xanc_{plot.plot_id}"
-                                y_anc_key = f"{prefix}leg_yanc_{plot.plot_id}"
-
-                                # Stage updates; missing keys are ignored by session state
-                                if "legend_x" in plot.config:
-                                    updates[x_key] = plot.config["legend_x"]
-                                if "legend_y" in plot.config:
-                                    updates[y_key] = plot.config["legend_y"]
-
-                                # Sync Anchors if they changed
-                                if "legend_xanchor" in plot.config:
-                                    updates[x_anc_key] = plot.config["legend_xanchor"]
-                                if "legend_yanchor" in plot.config:
-                                    updates[y_anc_key] = plot.config["legend_yanchor"]
-
-                            if updates:
-                                st.session_state["plot.pending_updates"] = updates
-
                             st.session_state[last_event_key] = relayout_data
                             st.rerun()
 
@@ -342,8 +311,55 @@ class PlotRenderer:
             # Load preset info for preview and advanced settings
             preset_info = service.get_preset_info(preset_name)
 
+            # Merge saved export overrides (from portfolio) into preset defaults
+            # so that sliders restore the user's previous customizations
+            saved_export = plot.config.get("export_preset")
+            if isinstance(saved_export, dict):
+                effective_defaults: Dict[str, Any] = {**preset_info, **saved_export}
+            else:
+                effective_defaults = dict(preset_info)
+
             # Initialize preset to use (default to preset name)
             preset_to_use: Union[str, LaTeXPreset] = preset_name
+
+            # Advanced settings for export dimensions
+            with st.expander("📏 Advanced: Export Dimensions", expanded=False):
+                st.caption("Override export figure size (optional)")
+
+                col_d1, col_d2 = st.columns(2)
+                with col_d1:
+                    export_width = st.slider(
+                        "Width (inches)",
+                        min_value=1.0,
+                        max_value=12.0,
+                        value=float(effective_defaults["width_inches"]),
+                        step=0.25,
+                        help="Figure width in inches for export",
+                        key=f"export_width_{plot.plot_id}",
+                    )
+                with col_d2:
+                    export_height = st.slider(
+                        "Height (inches)",
+                        min_value=1.0,
+                        max_value=10.0,
+                        value=float(effective_defaults["height_inches"]),
+                        step=0.25,
+                        help="Figure height in inches for export",
+                        key=f"export_height_{plot.plot_id}",
+                    )
+
+                # Apply custom dimensions to preset
+                if (
+                    export_width != preset_info["width_inches"]
+                    or export_height != preset_info["height_inches"]
+                ):
+                    if isinstance(preset_to_use, str):
+                        preset_to_use = preset_info.copy()
+                    else:
+                        preset_to_use = preset_to_use.copy()
+                    preset_to_use["width_inches"] = export_width
+                    preset_to_use["height_inches"] = export_height
+                    st.info("✏️ Using custom dimensions")
 
             # Advanced settings for legend spacing
             with st.expander("⚙️ Advanced: Legend Spacing", expanded=False):
@@ -355,7 +371,7 @@ class PlotRenderer:
                         "Column Spacing",
                         min_value=-1.0,
                         max_value=2.0,
-                        value=preset_info["legend_columnspacing"],
+                        value=effective_defaults["legend_columnspacing"],
                         step=0.1,
                         help="Space between legend columns (negative = overlap)",
                         key=f"legend_colspace_{plot.plot_id}",
@@ -364,7 +380,7 @@ class PlotRenderer:
                         "Item Spacing",
                         min_value=-0.5,
                         max_value=1.0,
-                        value=preset_info["legend_labelspacing"],
+                        value=effective_defaults["legend_labelspacing"],
                         step=0.05,
                         help="Vertical space between legend items (negative = tighter)",
                         key=f"legend_labelspace_{plot.plot_id}",
@@ -373,7 +389,7 @@ class PlotRenderer:
                         "Color Box Length",
                         min_value=0.5,
                         max_value=3.0,
-                        value=preset_info["legend_handlelength"],
+                        value=effective_defaults["legend_handlelength"],
                         step=0.1,
                         help="Length of color indicator boxes",
                         key=f"legend_boxlen_{plot.plot_id}",
@@ -384,7 +400,7 @@ class PlotRenderer:
                         "Box-Text Spacing",
                         min_value=-0.5,
                         max_value=1.5,
-                        value=preset_info["legend_handletextpad"],
+                        value=effective_defaults["legend_handletextpad"],
                         step=0.05,
                         help="Space between color box and label text (negative = overlap)",
                         key=f"legend_textpad_{plot.plot_id}",
@@ -393,11 +409,57 @@ class PlotRenderer:
                         "Border Padding",
                         min_value=-0.5,
                         max_value=1.0,
-                        value=preset_info["legend_borderpad"],
+                        value=effective_defaults["legend_borderpad"],
                         step=0.05,
                         help="Space inside legend border (negative = tighter)",
                         key=f"legend_borderpad_{plot.plot_id}",
                     )
+                    legend_ncol = st.slider(
+                        "Legend Columns",
+                        min_value=0,
+                        max_value=6,
+                        value=int(effective_defaults.get("legend_ncol", 0)),
+                        step=1,
+                        help="Number of columns in the export legend (0 = auto)",
+                        key=f"legend_ncol_{plot.plot_id}",
+                    )
+
+                st.markdown("---")
+                st.caption("Legend Position Override")
+                legend_custom_pos = st.checkbox(
+                    "Use custom legend position",
+                    value=bool(effective_defaults.get("legend_custom_pos", False)),
+                    help=(
+                        "Enable to manually set legend X/Y coordinates. "
+                        "When off, matplotlib places the legend automatically."
+                    ),
+                    key=f"legend_custom_pos_{plot.plot_id}",
+                )
+                if legend_custom_pos:
+                    col_lp1, col_lp2 = st.columns(2)
+                    with col_lp1:
+                        legend_x_val = st.slider(
+                            "Legend X Position",
+                            min_value=-1.0,
+                            max_value=1.3,
+                            value=float(effective_defaults.get("legend_x", 0.0)),
+                            step=0.05,
+                            help="X position of legend (-1=far left, 0=left edge, 1=right edge)",
+                            key=f"legend_x_{plot.plot_id}",
+                        )
+                    with col_lp2:
+                        legend_y_val = st.slider(
+                            "Legend Y Position",
+                            min_value=-1.0,
+                            max_value=1.3,
+                            value=float(effective_defaults.get("legend_y", 1.0)),
+                            step=0.05,
+                            help="Y position of legend (0=bottom, 1=top)",
+                            key=f"legend_y_{plot.plot_id}",
+                        )
+                else:
+                    legend_x_val = 0.0
+                    legend_y_val = 1.0
 
                 # Apply custom spacing to preset
                 if (
@@ -406,18 +468,32 @@ class PlotRenderer:
                     or label_spacing != preset_info["legend_labelspacing"]
                     or box_length != preset_info["legend_handlelength"]
                     or border_pad != preset_info["legend_borderpad"]
+                    or legend_ncol != preset_info.get("legend_ncol", 0)
+                    or legend_custom_pos != preset_info.get("legend_custom_pos", False)
+                    or (
+                        legend_custom_pos
+                        and (
+                            legend_x_val != preset_info.get("legend_x", 0.0)
+                            or legend_y_val != preset_info.get("legend_y", 1.0)
+                        )
+                    )
                 ):
                     # Create custom preset with user adjustments
-                    custom_preset = preset_info.copy()
+                    if isinstance(preset_to_use, str):
+                        custom_preset = preset_info.copy()
+                    else:
+                        custom_preset = preset_to_use.copy()
                     custom_preset["legend_columnspacing"] = col_spacing
                     custom_preset["legend_handletextpad"] = text_pad
                     custom_preset["legend_labelspacing"] = label_spacing
                     custom_preset["legend_handlelength"] = box_length
                     custom_preset["legend_borderpad"] = border_pad
+                    custom_preset["legend_ncol"] = legend_ncol
+                    custom_preset["legend_custom_pos"] = legend_custom_pos
+                    custom_preset["legend_x"] = legend_x_val
+                    custom_preset["legend_y"] = legend_y_val
                     preset_to_use = custom_preset
-                    st.info("✏️ Using custom legend spacing")
-                else:
-                    preset_to_use = preset_name
+                    st.info("✏️ Using custom legend settings")
 
             # Advanced settings for font sizes
             with st.expander("🔤 Advanced: Font Sizes & Bold", expanded=False):
@@ -429,7 +505,7 @@ class PlotRenderer:
                         "Title Font Size",
                         min_value=6,
                         max_value=18,
-                        value=preset_info["font_size_title"],
+                        value=effective_defaults["font_size_title"],
                         step=1,
                         help="Title font size in points",
                         key=f"font_title_{plot.plot_id}",
@@ -438,7 +514,7 @@ class PlotRenderer:
                         "X-Axis Label",
                         min_value=5,
                         max_value=14,
-                        value=preset_info.get("font_size_xlabel", 9),
+                        value=effective_defaults.get("font_size_xlabel", 9),
                         step=1,
                         help="X-axis label (benchmark names below axis)",
                         key=f"font_xlabel_{plot.plot_id}",
@@ -447,7 +523,7 @@ class PlotRenderer:
                         "Y-Axis Label",
                         min_value=5,
                         max_value=14,
-                        value=preset_info.get("font_size_ylabel", 9),
+                        value=effective_defaults.get("font_size_ylabel", 9),
                         step=1,
                         help="Y-axis label (e.g., 'Normalized Performance')",
                         key=f"font_ylabel_{plot.plot_id}",
@@ -458,25 +534,36 @@ class PlotRenderer:
                         "Legend",
                         min_value=4,
                         max_value=12,
-                        value=preset_info.get("font_size_legend", 8),
+                        value=effective_defaults.get("font_size_legend", 8),
                         step=1,
                         help="Legend text font size",
                         key=f"font_legend_{plot.plot_id}",
                     )
                     font_ticks = st.slider(
-                        "Tick Labels",
+                        "X-Tick Labels",
                         min_value=4,
                         max_value=12,
-                        value=preset_info["font_size_ticks"],
+                        value=effective_defaults["font_size_ticks"],
                         step=1,
-                        help="Axis tick labels (TS_RS, TS_LA, etc.)",
+                        help="X-axis tick labels (TS_RS, TS_LA, etc.)",
                         key=f"font_ticks_{plot.plot_id}",
+                    )
+                    font_yticks = st.slider(
+                        "Y-Tick Labels",
+                        min_value=4,
+                        max_value=12,
+                        value=effective_defaults.get(
+                            "font_size_yticks", effective_defaults["font_size_ticks"]
+                        ),
+                        step=1,
+                        help="Y-axis tick labels size",
+                        key=f"font_yticks_{plot.plot_id}",
                     )
                     font_annotations = st.slider(
                         "Bar Values",
                         min_value=3,
                         max_value=10,
-                        value=preset_info.get("font_size_annotations", 6),
+                        value=effective_defaults.get("font_size_annotations", 6),
                         step=1,
                         help="Font size for bar total values",
                         key=f"font_annot_{plot.plot_id}",
@@ -486,34 +573,40 @@ class PlotRenderer:
                     st.write("**Bold Styling:**")
                     bold_title = st.checkbox(
                         "Title",
-                        value=preset_info.get("bold_title", False),
+                        value=effective_defaults.get("bold_title", False),
                         key=f"bold_title_{plot.plot_id}",
                     )
                     bold_xlabel = st.checkbox(
                         "X-Axis Label",
-                        value=preset_info.get("bold_xlabel", False),
+                        value=effective_defaults.get("bold_xlabel", False),
                         key=f"bold_xlabel_{plot.plot_id}",
                     )
                     bold_ylabel = st.checkbox(
                         "Y-Axis Label",
-                        value=preset_info.get("bold_ylabel", False),
+                        value=effective_defaults.get("bold_ylabel", False),
                         key=f"bold_ylabel_{plot.plot_id}",
                     )
                     bold_legend = st.checkbox(
                         "Legend",
-                        value=preset_info.get("bold_legend", False),
+                        value=effective_defaults.get("bold_legend", False),
                         key=f"bold_legend_{plot.plot_id}",
                     )
                     bold_ticks = st.checkbox(
                         "Tick Labels",
-                        value=preset_info.get("bold_ticks", False),
+                        value=effective_defaults.get("bold_ticks", False),
                         key=f"bold_ticks_{plot.plot_id}",
                     )
                     bold_annotations = st.checkbox(
                         "Bar Values",
-                        value=preset_info.get("bold_annotations", True),
+                        value=effective_defaults.get("bold_annotations", True),
                         help="Bar totals in bold (default: True)",
                         key=f"bold_annot_{plot.plot_id}",
+                    )
+                    bold_group_labels = st.checkbox(
+                        "X-Groupings",
+                        value=effective_defaults.get("bold_group_labels", True),
+                        help="X-axis group labels in bold (default: True)",
+                        key=f"bold_group_{plot.plot_id}",
                     )
 
                 # Apply custom font sizes and bold to preset
@@ -523,6 +616,8 @@ class PlotRenderer:
                     or font_ylabel != preset_info.get("font_size_ylabel", 9)
                     or font_legend != preset_info.get("font_size_legend", 8)
                     or font_ticks != preset_info["font_size_ticks"]
+                    or font_yticks
+                    != preset_info.get("font_size_yticks", preset_info["font_size_ticks"])
                     or font_annotations != preset_info.get("font_size_annotations", 6)
                     or bold_title != preset_info.get("bold_title", False)
                     or bold_xlabel != preset_info.get("bold_xlabel", False)
@@ -530,6 +625,7 @@ class PlotRenderer:
                     or bold_legend != preset_info.get("bold_legend", False)
                     or bold_ticks != preset_info.get("bold_ticks", False)
                     or bold_annotations != preset_info.get("bold_annotations", True)
+                    or bold_group_labels != preset_info.get("bold_group_labels", True)
                 ):
                     # Ensure preset_to_use is a dict (not just a name)
                     if isinstance(preset_to_use, str):
@@ -541,6 +637,7 @@ class PlotRenderer:
                     preset_to_use["font_size_ylabel"] = font_ylabel
                     preset_to_use["font_size_legend"] = font_legend
                     preset_to_use["font_size_ticks"] = font_ticks
+                    preset_to_use["font_size_yticks"] = font_yticks
                     preset_to_use["font_size_annotations"] = font_annotations
                     preset_to_use["bold_title"] = bold_title
                     preset_to_use["bold_xlabel"] = bold_xlabel
@@ -548,7 +645,32 @@ class PlotRenderer:
                     preset_to_use["bold_legend"] = bold_legend
                     preset_to_use["bold_ticks"] = bold_ticks
                     preset_to_use["bold_annotations"] = bold_annotations
+                    preset_to_use["bold_group_labels"] = bold_group_labels
                     st.info("✏️ Using custom font sizes/bold styling")
+
+            # Advanced settings for LaTeX preamble
+            with st.expander("📦 Advanced: LaTeX Font Packages", expanded=False):
+                st.caption(
+                    "Extra LaTeX packages so matplotlib measures text with "
+                    "the same fonts your document uses (e.g., acmart monospace)."
+                )
+                latex_extra_preamble = st.text_input(
+                    "Extra LaTeX Preamble",
+                    value=str(effective_defaults.get("latex_extra_preamble", "")),
+                    help=(
+                        r"LaTeX packages to append to the preamble. "
+                        r"Example: \usepackage[varqu,scaled=0.95]{zi4} "
+                        r"for ACM/acmart documents."
+                    ),
+                    key=f"latex_preamble_{plot.plot_id}",
+                )
+                if latex_extra_preamble != preset_info.get("latex_extra_preamble", ""):
+                    if isinstance(preset_to_use, str):
+                        preset_to_use = preset_info.copy()
+                    else:
+                        preset_to_use = preset_to_use.copy()
+                    preset_to_use["latex_extra_preamble"] = latex_extra_preamble
+                    st.info("✏️ Using custom LaTeX preamble")
 
             # Advanced settings for positioning
             with st.expander("📐 Advanced: Positioning", expanded=False):
@@ -560,7 +682,7 @@ class PlotRenderer:
                         "Y-Axis Label Distance",
                         min_value=0.0,
                         max_value=80.0,
-                        value=float(preset_info.get("ylabel_pad", 10.0)),
+                        value=float(effective_defaults.get("ylabel_pad", 10.0)),
                         step=2.0,
                         help=(
                             "Distance from Y-axis label to tick labels "
@@ -572,7 +694,7 @@ class PlotRenderer:
                         "Y-Axis Label Vertical Position",
                         min_value=0.0,
                         max_value=1.0,
-                        value=float(preset_info.get("ylabel_y_position", 0.5)),
+                        value=float(effective_defaults.get("ylabel_y_position", 0.5)),
                         step=0.05,
                         help=(
                             "Vertical position of Y-axis label along "
@@ -584,7 +706,7 @@ class PlotRenderer:
                         "X-Tick Label Distance",
                         min_value=0.0,
                         max_value=20.0,
-                        value=float(preset_info.get("xtick_pad", 5.0)),
+                        value=float(effective_defaults.get("xtick_pad", 5.0)),
                         step=0.5,
                         help="Distance from X-axis tick labels to axis (points)",
                         key=f"xtick_pad_{plot.plot_id}",
@@ -593,7 +715,7 @@ class PlotRenderer:
                         "Y-Tick Label Distance",
                         min_value=0.0,
                         max_value=20.0,
-                        value=float(preset_info.get("ytick_pad", 5.0)),
+                        value=float(effective_defaults.get("ytick_pad", 5.0)),
                         step=0.5,
                         help="Distance from Y-axis tick labels to axis (points)",
                         key=f"ytick_pad_{plot.plot_id}",
@@ -604,16 +726,26 @@ class PlotRenderer:
                         "Group Label Position",
                         min_value=-0.25,
                         max_value=0.0,
-                        value=float(preset_info.get("group_label_offset", -0.12)),
+                        value=float(effective_defaults.get("group_label_offset", -0.12)),
                         step=0.01,
                         help="Vertical position of grouping labels (genome, intruder, etc.)",
                         key=f"group_offset_{plot.plot_id}",
                     )
                     group_label_alternate = st.checkbox(
                         "Alternate Group Labels (up/down)",
-                        value=bool(preset_info.get("group_label_alternate", True)),
+                        value=bool(effective_defaults.get("group_label_alternate", True)),
                         help="Alternate grouping labels vertically to avoid overlap",
                         key=f"group_alt_{plot.plot_id}",
+                    )
+                    group_label_alt_spacing = st.slider(
+                        "Up/Down Spacing",
+                        min_value=0.0,
+                        max_value=0.20,
+                        value=float(effective_defaults.get("group_label_alt_spacing", 0.05)),
+                        step=0.01,
+                        help="Vertical distance between up and down label positions",
+                        key=f"group_alt_spacing_{plot.plot_id}",
+                        disabled=not group_label_alternate,
                     )
 
                 st.markdown("---")
@@ -624,7 +756,7 @@ class PlotRenderer:
                         "X-Axis Margin",
                         min_value=-0.05,
                         max_value=0.2,
-                        value=float(preset_info.get("xaxis_margin", 0.02)),
+                        value=float(effective_defaults.get("xaxis_margin", 0.02)),
                         step=0.01,
                         help="Left/right margin on X-axis (negative = use whitespace)",
                         key=f"xaxis_margin_{plot.plot_id}",
@@ -633,7 +765,7 @@ class PlotRenderer:
                         "X-Tick Rotation",
                         min_value=0.0,
                         max_value=90.0,
-                        value=float(preset_info.get("xtick_rotation", 45.0)),
+                        value=float(effective_defaults.get("xtick_rotation", 45.0)),
                         step=5.0,
                         help="Rotation angle for X-axis tick labels",
                         key=f"xtick_rotation_{plot.plot_id}",
@@ -642,7 +774,7 @@ class PlotRenderer:
                         "X-Tick Horizontal Offset",
                         min_value=-20.0,
                         max_value=20.0,
-                        value=float(preset_info.get("xtick_offset", 0.0)),
+                        value=float(effective_defaults.get("xtick_offset", 0.0)),
                         step=1.0,
                         help="Shift X-tick labels left (-) or right (+) in points",
                         key=f"xtick_offset_{plot.plot_id}",
@@ -653,7 +785,7 @@ class PlotRenderer:
                         "Bar Width Scale",
                         min_value=0.5,
                         max_value=1.5,
-                        value=float(preset_info.get("bar_width_scale", 1.0)),
+                        value=float(effective_defaults.get("bar_width_scale", 1.0)),
                         step=0.05,
                         help="Scale factor for bar widths (>1 = wider bars)",
                         key=f"bar_width_scale_{plot.plot_id}",
@@ -662,7 +794,7 @@ class PlotRenderer:
                         "X-Tick Alignment",
                         options=["right", "center", "left"],
                         index=["right", "center", "left"].index(
-                            preset_info.get("xtick_ha", "right")
+                            effective_defaults.get("xtick_ha", "right")
                         ),
                         help="Horizontal alignment of X-tick labels",
                         key=f"xtick_ha_{plot.plot_id}",
@@ -674,7 +806,7 @@ class PlotRenderer:
                 with col_sep1:
                     group_separator = st.checkbox(
                         "Draw Separator Before Last Group",
-                        value=bool(preset_info.get("group_separator", False)),
+                        value=bool(effective_defaults.get("group_separator", False)),
                         help="Draw a vertical line before the last group (e.g., arithmean)",
                         key=f"group_sep_{plot.plot_id}",
                     )
@@ -683,10 +815,16 @@ class PlotRenderer:
                         "Separator Style",
                         options=["dashed", "dotted", "solid", "dashdot"],
                         index=["dashed", "dotted", "solid", "dashdot"].index(
-                            preset_info.get("group_separator_style", "dashed")
+                            effective_defaults.get("group_separator_style", "dashed")
                         ),
                         help="Line style for the group separator",
                         key=f"group_sep_style_{plot.plot_id}",
+                        disabled=not group_separator,
+                    )
+                    group_separator_color = st.color_picker(
+                        "Separator Color",
+                        value=effective_defaults.get("group_separator_color", "#808080"),
+                        key=f"group_sep_color_{plot.plot_id}",
                         disabled=not group_separator,
                     )
 
@@ -698,6 +836,7 @@ class PlotRenderer:
                     or ytick_pad != preset_info.get("ytick_pad", 5.0)
                     or group_label_offset != preset_info.get("group_label_offset", -0.12)
                     or group_label_alternate != preset_info.get("group_label_alternate", True)
+                    or group_label_alt_spacing != preset_info.get("group_label_alt_spacing", 0.05)
                     or xaxis_margin != preset_info.get("xaxis_margin", 0.02)
                     or bar_width_scale != preset_info.get("bar_width_scale", 1.0)
                     or xtick_rotation != preset_info.get("xtick_rotation", 45.0)
@@ -705,6 +844,7 @@ class PlotRenderer:
                     or xtick_offset != preset_info.get("xtick_offset", 0.0)
                     or group_separator != preset_info.get("group_separator", False)
                     or group_separator_style != preset_info.get("group_separator_style", "dashed")
+                    or group_separator_color != preset_info.get("group_separator_color", "#808080")
                 ):
                     # Ensure preset_to_use is a dict
                     if isinstance(preset_to_use, str):
@@ -717,6 +857,7 @@ class PlotRenderer:
                     preset_to_use["ytick_pad"] = ytick_pad
                     preset_to_use["group_label_offset"] = group_label_offset
                     preset_to_use["group_label_alternate"] = group_label_alternate
+                    preset_to_use["group_label_alt_spacing"] = group_label_alt_spacing
                     preset_to_use["xaxis_margin"] = xaxis_margin
                     preset_to_use["bar_width_scale"] = bar_width_scale
                     preset_to_use["xtick_rotation"] = xtick_rotation
@@ -724,7 +865,16 @@ class PlotRenderer:
                     preset_to_use["xtick_offset"] = xtick_offset
                     preset_to_use["group_separator"] = group_separator
                     preset_to_use["group_separator_style"] = group_separator_style
+                    preset_to_use["group_separator_color"] = group_separator_color
                     st.info("✏️ Using custom positioning")
+
+            # Always persist export settings to plot.config so that
+            # portfolio save captures all user customizations, not just
+            # those saved on "Generate Export" click.
+            plot.config["export_preset"] = (
+                preset_to_use if isinstance(preset_to_use, dict) else preset_info
+            )
+            plot.config["export_format"] = format_choice
 
             # Preview button
             col_preview, col_export = st.columns(2)
@@ -739,11 +889,15 @@ class PlotRenderer:
                                 fig, preset=preset_to_use, preview_dpi=100
                             )
                             st.image(preview_png, caption="Export Preview (scaled for display)")
+                            # Show actual dimensions (may be user-overridden)
+                            actual_preset = (
+                                preset_to_use if isinstance(preset_to_use, dict) else preset_info
+                            )
                             st.caption(
                                 f"Actual export size: "
-                                f"{preset_info['width_inches']}\" × "
-                                f"{preset_info['height_inches']}\" @ "
-                                f"{preset_info['dpi']} DPI"
+                                f"{actual_preset['width_inches']}\" × "
+                                f"{actual_preset['height_inches']}\" @ "
+                                f"{actual_preset['dpi']} DPI"
                             )
                         except Exception as e:
                             st.error(f"Preview failed: {e}")

@@ -7,8 +7,9 @@ dimension control, and layout preservation.
 
 import io
 import logging
+import re
 import shutil
-from typing import Any, Dict, List, Literal, Tuple, cast
+from typing import Any, Dict, List, Literal, Optional, Tuple, cast
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -53,6 +54,39 @@ class MatplotlibConverter(BaseConverter):
         self._barmode: str = "group"  # Track bar layout mode
         self._bar_traces: List[Any] = []  # Track bar traces for positioning
         self._categorical_labels: List[str] = []  # Track x-axis labels
+
+    @staticmethod
+    def _normalize_color(color: Any) -> Optional[str]:
+        """Convert a Plotly color value to a matplotlib-compatible string.
+
+        Handles ``rgb(r, g, b)``, ``rgba(r, g, b, a)``, hex codes, and named
+        colors.  Returns *None* when the input is falsy so callers can
+        default.
+
+        Args:
+            color: Raw colour value from a Plotly trace attribute.
+
+        Returns:
+            Hex colour string (e.g. ``"#66c2a5"``) or the original value
+            when it is already matplotlib-compatible.  *None* if *color* is
+            falsy.
+        """
+        if not color or not isinstance(color, str):
+            return None
+
+        color = color.strip()
+
+        # rgb(r, g, b) or rgba(r, g, b, a)
+        match = re.match(
+            r"rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)" r"(?:\s*,\s*[\d.]+)?\s*\)",
+            color,
+        )
+        if match:
+            r, g, b = int(match.group(1)), int(match.group(2)), int(match.group(3))
+            return "#{:02x}{:02x}{:02x}".format(r, g, b)
+
+        # Already hex or named – return as-is
+        return str(color)
 
     def get_supported_formats(self) -> List[str]:
         """
@@ -199,7 +233,33 @@ class MatplotlibConverter(BaseConverter):
                 r"\usepackage[utf8]{inputenc}\usepackage[T1]{fontenc}"
                 r"\usepackage{amsmath}\usepackage{amssymb}"
             )
+
+            # Append extra preamble from preset (e.g., font packages to match
+            # the target document class).  This ensures matplotlib measures
+            # text widths using the same fonts the final document will use,
+            # preventing bounding-box mismatches in boxed annotations.
+            extra = self.preset.get("latex_extra_preamble", "")
+            if extra:
+                preamble = preamble + extra
+
             rc("text.latex", preamble=preamble)
+
+            # The PGF backend has its OWN LaTeX subprocess for text
+            # measurement and uses ``pgf.preamble`` (not ``text.latex.preamble``).
+            # We must mirror the full preamble so PGF measures text with
+            # the same fonts the target document will use.  The PGF backend
+            # writes ``pgf.preamble`` only as comments (``%%``) in the .pgf
+            # file, so this does NOT cause compilation errors when \input-ed.
+            #
+            # Additionally, matplotlib defaults to **xelatex** for PGF,
+            # which loads fontspec and overrides monospace with
+            # DejaVuSansMono — ignoring any font packages in the preamble
+            # (e.g. zi4/Inconsolata).  Switching to **pdflatex** skips the
+            # fontspec block, letting zi4 control ``\texttt`` measurement
+            # and producing correct bounding boxes for boxed annotations.
+            if extra:
+                rc("pgf", preamble=preamble)
+                rc("pgf", texsystem="pdflatex")
 
             logger.info("LaTeX text rendering enabled with full font support")
         else:
@@ -298,10 +358,10 @@ class MatplotlibConverter(BaseConverter):
         if not isinstance(y, list):
             y = list(y) if y is not None else []
 
-        # Handle color
+        # Handle color – convert Plotly rgb() to hex for matplotlib
         color = None
         if trace.marker and trace.marker.color:
-            color = trace.marker.color
+            color = self._normalize_color(trace.marker.color)
 
         # Check if x contains strings (categorical data)
         has_categorical_x = False
@@ -467,7 +527,7 @@ class MatplotlibConverter(BaseConverter):
         line_props: Dict[str, Any] = {}
         if trace.line:
             if trace.line.color:
-                line_props["color"] = trace.line.color
+                line_props["color"] = self._normalize_color(trace.line.color)
             if trace.line.width:
                 line_props["linewidth"] = trace.line.width
             if trace.line.dash:
@@ -495,7 +555,7 @@ class MatplotlibConverter(BaseConverter):
         marker_props: Dict[str, Any] = {}
         if trace.marker:
             if trace.marker.color:
-                marker_props["color"] = trace.marker.color
+                marker_props["color"] = self._normalize_color(trace.marker.color)
             if trace.marker.size:
                 marker_props["s"] = trace.marker.size
 
@@ -533,33 +593,54 @@ class MatplotlibConverter(BaseConverter):
         # Use 2 columns if there are many traces (> 4), otherwise 1 column
         handles, labels = ax.get_legend_handles_labels()
         if handles:  # Only add legend if there are traces with labels
-            ncol = 2 if len(handles) > 4 else 1
+            # Use preset ncol if set (>0), otherwise auto (>4 items = 2 cols)
+            preset_ncol = self.preset.get("legend_ncol", 0)
+            if preset_ncol > 0:
+                ncol = preset_ncol
+            else:
+                ncol = 2 if len(handles) > 4 else 1
 
             # Get font size and bold from preset
             legend_fontsize = self.preset.get("font_size_legend", 8)
             legend_bold = self.preset.get("bold_legend", False)
 
             # Get legend spacing from preset (with defaults matching matplotlib)
-            legend = ax.legend(
-                handles=handles,
-                labels=labels,
-                ncol=ncol,
-                frameon=True,
-                fancybox=False,
-                shadow=False,
-                framealpha=1.0,
-                edgecolor="black",
-                loc="best",
-                fontsize=legend_fontsize,
+            # Determine legend position: use preset override or auto ("best")
+            use_custom_position = self.preset.get("legend_custom_pos", False)
+            legend_x = self.preset.get("legend_x", 0.0)
+            legend_y = self.preset.get("legend_y", 1.0)
+
+            legend_kwargs: Dict[str, Any] = {
+                "handles": handles,
+                "labels": labels,
+                "ncol": ncol,
+                "frameon": True,
+                "fancybox": False,
+                "shadow": False,
+                "framealpha": 1.0,
+                "edgecolor": "black",
+                "fontsize": legend_fontsize,
                 # Spacing from preset - user configurable
-                columnspacing=self.preset.get("legend_columnspacing", 0.5),
-                handletextpad=self.preset.get("legend_handletextpad", 0.3),
-                labelspacing=self.preset.get("legend_labelspacing", 0.2),
-                handlelength=self.preset.get("legend_handlelength", 1.0),
-                handleheight=self.preset.get("legend_handleheight", 0.7),
-                borderpad=self.preset.get("legend_borderpad", 0.2),
-                borderaxespad=self.preset.get("legend_borderaxespad", 0.5),
-            )
+                "columnspacing": self.preset.get("legend_columnspacing", 0.5),
+                "handletextpad": self.preset.get("legend_handletextpad", 0.3),
+                "labelspacing": self.preset.get("legend_labelspacing", 0.2),
+                "handlelength": self.preset.get("legend_handlelength", 1.0),
+                "handleheight": self.preset.get("legend_handleheight", 0.7),
+                "borderpad": self.preset.get("legend_borderpad", 0.2),
+                "borderaxespad": self.preset.get("legend_borderaxespad", 0.5),
+            }
+
+            if use_custom_position:
+                legend_kwargs["bbox_to_anchor"] = (legend_x, legend_y)
+                legend_kwargs["loc"] = "upper left"
+            else:
+                legend_kwargs["loc"] = "best"
+
+            legend = ax.legend(**legend_kwargs)
+
+            # Set z-order so the main color legend sits below the
+            # numbered x-axis legend (boxed annotation, zorder=6).
+            legend.set_zorder(5)
 
             # Apply bold to legend text if requested
             if legend_bold:
@@ -569,10 +650,58 @@ class MatplotlibConverter(BaseConverter):
             applied["legend_items"] = len(handles)
             applied["legend_fontsize"] = legend_fontsize
 
+        # Reference lines (horizontal lines from Plotly shapes)
+        self._apply_reference_lines(plotly_fig, ax)
+
         # Skip tight_layout() - let bbox_inches='tight' in savefig handle it
         # This avoids UserWarning about margins not accommodating decorations
 
         return applied
+
+    def _apply_reference_lines(self, plotly_fig: go.Figure, ax: Axes) -> None:
+        """
+        Extract horizontal reference lines from Plotly shapes and render them.
+
+        Plotly's ``add_hline()`` creates shapes with ``xref='paper'`` spanning
+        the full width.  This method detects those shapes and converts them to
+        matplotlib ``ax.axhline()`` calls.
+
+        Args:
+            plotly_fig: Source Plotly figure with shapes.
+            ax: Target matplotlib axes.
+        """
+        shapes = plotly_fig.layout.shapes or []
+        dash_map: Dict[str, str] = {
+            "dash": "--",
+            "dot": ":",
+            "dashdot": "-.",
+            "solid": "-",
+        }
+        for shape in shapes:
+            # Horizontal lines added by add_hline have type="line",
+            # xref="paper" (Plotly <6) or "x domain" (Plotly ≥6),
+            # x0=0, x1=1, and y0 == y1
+            xref = getattr(shape, "xref", None)
+            if (
+                getattr(shape, "type", None) == "line"
+                and xref in ("paper", "x domain")
+                and getattr(shape, "y0", None) == getattr(shape, "y1", None)
+                and getattr(shape, "y0", None) is not None
+            ):
+                y_val = float(shape.y0)
+                line = shape.line or {}
+                raw_color = getattr(line, "color", "red") or "red"
+                color = self._normalize_color(raw_color) or "red"
+                width = getattr(line, "width", 1.5) or 1.5
+                dash = getattr(line, "dash", "dash") or "dash"
+                linestyle = dash_map.get(str(dash), "--")
+                ax.axhline(
+                    y=y_val,
+                    color=color,
+                    linewidth=float(width),
+                    linestyle=linestyle,
+                    zorder=5,
+                )
 
     def generate_preview(self, fig: go.Figure, preview_dpi: int = 150) -> bytes:
         """

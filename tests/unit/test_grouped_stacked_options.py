@@ -108,6 +108,7 @@ class TestRenderThemeOptions:
             True,  # show_separators
             False,  # shade_alternate
             False,  # isolate_last_group
+            False,  # numbered_xaxis
         ]
 
         plot = GroupedStackedBarPlot(1, "test")
@@ -116,6 +117,7 @@ class TestRenderThemeOptions:
         assert config["major_label_size"] == 16
         assert config["show_separators"] is True
         assert config["isolate_last_group"] is False
+        assert config["numbered_xaxis"] is False
 
     @patch("src.web.pages.ui.plotting.types.grouped_stacked_bar_plot.st")
     @patch.object(
@@ -143,6 +145,7 @@ class TestRenderThemeOptions:
             True,  # show_separators
             False,  # shade_alternate
             True,  # isolate_last_group
+            False,  # numbered_xaxis
         ]
 
         plot = GroupedStackedBarPlot(1, "test")
@@ -150,3 +153,4 @@ class TestRenderThemeOptions:
 
         assert config["isolate_last_group"] is True
         assert config["isolation_gap"] == 0.8
+        assert config["numbered_xaxis"] is False

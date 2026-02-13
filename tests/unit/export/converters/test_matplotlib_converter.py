@@ -541,3 +541,97 @@ class TestScatterTraceDetails:
         result = converter.convert(fig, "pdf")
         assert result["success"] is True
         assert result["metadata"]["traces_converted"] == 1
+
+
+# ─── Color normalisation ────────────────────────────────────────────────
+
+
+class TestNormalizeColor:
+    """Tests for _normalize_color static method."""
+
+    def test_rgb_to_hex(self) -> None:
+        """Plotly rgb(r,g,b) should be converted to hex."""
+        assert MatplotlibConverter._normalize_color("rgb(102,194,165)") == "#66c2a5"
+
+    def test_rgb_with_spaces(self) -> None:
+        """Handles spaces inside rgb()."""
+        assert MatplotlibConverter._normalize_color("rgb( 255, 0, 128 )") == "#ff0080"
+
+    def test_rgba_to_hex(self) -> None:
+        """Plotly rgba(r,g,b,a) should be converted to hex (alpha ignored)."""
+        assert MatplotlibConverter._normalize_color("rgba(102,194,165,0.8)") == "#66c2a5"
+
+    def test_hex_passthrough(self) -> None:
+        """Hex strings should pass through unchanged."""
+        assert MatplotlibConverter._normalize_color("#FF0000") == "#FF0000"
+
+    def test_named_color_passthrough(self) -> None:
+        """Named colours should pass through to matplotlib."""
+        assert MatplotlibConverter._normalize_color("red") == "red"
+
+    def test_none_returns_none(self) -> None:
+        """None input should return None."""
+        assert MatplotlibConverter._normalize_color(None) is None
+
+    def test_empty_string_returns_none(self) -> None:
+        """Empty string should return None."""
+        assert MatplotlibConverter._normalize_color("") is None
+
+    def test_non_string_returns_none(self) -> None:
+        """Non-string input should return None."""
+        assert MatplotlibConverter._normalize_color(42) is None
+
+
+class TestSet2PaletteExport:
+    """Ensure figures with Set2 palette (rgb colors) export without errors."""
+
+    def test_bar_chart_with_set2_colors(self, single_column_preset: dict[str, Any]) -> None:
+        """Bar chart with Set2 rgb() colors should export successfully."""
+        import plotly.colors as pc
+
+        colors = pc.qualitative.Set2
+        fig = go.Figure()
+        for i, name in enumerate(["A", "B", "C"]):
+            fig.add_trace(
+                go.Bar(
+                    x=["x1", "x2"],
+                    y=[i + 1, i + 2],
+                    name=name,
+                    marker_color=colors[i % len(colors)],
+                )
+            )
+        converter = MatplotlibConverter(single_column_preset)
+        result = converter.convert(fig, "pdf")
+        assert result["success"] is True
+
+    def test_line_chart_with_rgb_colors(self, single_column_preset: dict[str, Any]) -> None:
+        """Line chart with rgb() line colors should export successfully."""
+        fig = go.Figure()
+        fig.add_trace(
+            go.Scatter(
+                x=[1, 2, 3],
+                y=[4, 5, 6],
+                mode="lines",
+                name="series",
+                line=dict(color="rgb(102,194,165)"),
+            )
+        )
+        converter = MatplotlibConverter(single_column_preset)
+        result = converter.convert(fig, "pdf")
+        assert result["success"] is True
+
+    def test_scatter_with_rgb_colors(self, single_column_preset: dict[str, Any]) -> None:
+        """Scatter plot with rgb() marker colors should export successfully."""
+        fig = go.Figure()
+        fig.add_trace(
+            go.Scatter(
+                x=[1, 2, 3],
+                y=[4, 5, 6],
+                mode="markers",
+                name="points",
+                marker=dict(color="rgb(252,141,98)"),
+            )
+        )
+        converter = MatplotlibConverter(single_column_preset)
+        result = converter.convert(fig, "pdf")
+        assert result["success"] is True

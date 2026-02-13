@@ -273,7 +273,7 @@ class BaseStyleUI:
     ) -> Dict[str, Any]:
         """Render legend position and orientation controls."""
         st.markdown("**Position & Orientation**")
-        pos_c1, pos_c2, pos_c3 = st.columns(3)
+        pos_c1, pos_c2 = st.columns(2)
 
         with pos_c1:
             legend_orientation = st.selectbox(
@@ -293,6 +293,7 @@ class BaseStyleUI:
                 help="Number of legend columns. Uses multiple legend objects positioned side-by-side. 0 = Auto (single column).",  # noqa: E501
             )
 
+        with pos_c2:
             legend_col_width = st.number_input(
                 "Column Width (px)",
                 min_value=0,
@@ -313,57 +314,11 @@ class BaseStyleUI:
                 key=f"{key_prefix}leg_valign_{self.plot_id}",
             )
 
-        with pos_c2:
-            legend_x = st.number_input(
-                "X Pos",
-                value=float(saved_config.get("legend_x", 1.02)),
-                step=0.05,
-                key=f"{key_prefix}leg_x_sm_{self.plot_id}",
-            )
-            legend_xanchor = st.selectbox(
-                "X Anchor",
-                options=["auto", "left", "center", "right"],
-                index=(
-                    ["auto", "left", "center", "right"].index(
-                        saved_config.get("legend_xanchor", "auto")
-                    )
-                    if saved_config.get("legend_xanchor", "auto")
-                    in ["auto", "left", "center", "right"]
-                    else 0
-                ),
-                key=f"{key_prefix}leg_xanc_{self.plot_id}",
-            )
-
-        with pos_c3:
-            legend_y = st.number_input(
-                "Y Pos",
-                value=float(saved_config.get("legend_y", 1.0)),
-                step=0.05,
-                key=f"{key_prefix}leg_y_sm_{self.plot_id}",
-            )
-            legend_yanchor = st.selectbox(
-                "Y Anchor",
-                options=["auto", "top", "middle", "bottom"],
-                index=(
-                    ["auto", "top", "middle", "bottom"].index(
-                        saved_config.get("legend_yanchor", "auto")
-                    )
-                    if saved_config.get("legend_yanchor", "auto")
-                    in ["auto", "top", "middle", "bottom"]
-                    else 0
-                ),
-                key=f"{key_prefix}leg_yanc_{self.plot_id}",
-            )
-
         return {
             "legend_orientation": legend_orientation,
             "legend_ncols": legend_ncols,
             "legend_col_width": legend_col_width,
             "legend_valign": legend_valign,
-            "legend_x": legend_x,
-            "legend_xanchor": legend_xanchor,
-            "legend_y": legend_y,
-            "legend_yanchor": legend_yanchor,
         }
 
     def _render_legend_appearance(

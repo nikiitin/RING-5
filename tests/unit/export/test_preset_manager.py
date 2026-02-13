@@ -53,6 +53,7 @@ def create_valid_preset(**overrides: float | str | int | bool) -> LaTeXPreset:
         "group_separator": False,
         "group_separator_style": "dashed",
         "group_separator_color": "gray",
+        "latex_extra_preamble": "",
     }
     return {**default_preset, **overrides}  # type: ignore[return-value]
 
@@ -92,6 +93,31 @@ class TestPresetManager:
 
         assert preset["width_inches"] == 3.5
         assert preset["dpi"] == 300
+
+    def test_acm_preset_has_zi4_preamble(self) -> None:
+        """ACM-based presets include zi4 font package for Inconsolata monospace."""
+        for name in (
+            "micro",
+            "isca",
+            "asplos",
+            "hpca",
+            "taco",
+            "acm",
+            "single_column",
+            "double_column",
+        ):
+            preset = PresetManager.load_preset(name)
+            assert r"\usepackage[varqu,scaled=0.95]{zi4}" in preset.get(
+                "latex_extra_preamble", ""
+            ), f"{name} preset missing zi4 preamble"
+
+    def test_non_acm_preset_has_empty_preamble(self) -> None:
+        """Non-ACM presets default to empty extra preamble."""
+        for name in ("nature", "science", "ieee_single"):
+            preset = PresetManager.load_preset(name)
+            assert (
+                preset.get("latex_extra_preamble", "") == ""
+            ), f"{name} preset should have empty preamble"
 
     def test_invalid_preset_raises_error(self) -> None:
         """Verify unknown preset raises ValueError."""

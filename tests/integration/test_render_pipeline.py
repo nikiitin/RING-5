@@ -75,6 +75,7 @@ def _make_minimal_preset() -> LaTeXPreset:
         group_separator=False,
         group_separator_style="dashed",
         group_separator_color="gray",
+        latex_extra_preamble="",
     )
 
 

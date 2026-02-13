@@ -43,9 +43,9 @@ class TestComputeFigureCacheKey:
         assert key.startswith("plot_1_")
         assert "abc123" in key
 
-    def test_ignores_legend_position(self) -> None:
-        config_a = {"x": "a", "y": "b", "legend_x": 0.1, "legend_y": 0.9}
-        config_b = {"x": "a", "y": "b", "legend_x": 0.5, "legend_y": 0.5}
+    def test_ignores_zoom_range(self) -> None:
+        config_a = {"x": "a", "y": "b", "xaxis_range": [0, 10], "yaxis_range": [0, 50]}
+        config_b = {"x": "a", "y": "b", "xaxis_range": [5, 15], "yaxis_range": [10, 60]}
         key_a = PlotRenderer._compute_figure_cache_key(1, config_a, "hash1")
         key_b = PlotRenderer._compute_figure_cache_key(1, config_b, "hash1")
         assert key_a == key_b

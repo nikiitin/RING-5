@@ -71,7 +71,7 @@ def test_specific_advanced_options_overrides(sample_data, mock_streamlit):
     # 9. st.checkbox("Enable Interactive Editing") -> True
 
     # Note: GroupedStackedBarPlot doesn't have the "Series Renaming" checkbox from BasePlot.
-    mock_streamlit.checkbox.side_effect = [True, True]  # Error Bars, Editable
+    mock_streamlit.checkbox.side_effect = [True, False, True]  # Error Bars, Ref Line, Editable
     mock_streamlit.number_input.return_value = 5.0
     # Selectbox needs to match specific keys or order.
     # General section has 2 (fmt, scale). Reorderable list uses none.

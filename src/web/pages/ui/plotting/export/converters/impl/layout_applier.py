@@ -8,12 +8,13 @@ monolithic apply_to_matplotlib() into focused, testable methods.
 import re
 from typing import Any, Dict, Literal, Optional, cast
 
+import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.transforms import ScaledTranslation, blended_transform_factory
 
 from src.web.pages.ui.plotting.export.presets.preset_schema import LaTeXPreset
 
-from .layout_config import FontStyleConfig, PositioningConfig, SeparatorConfig
+from .layout_config import FontStyleConfig, LegendSpacingConfig, PositioningConfig, SeparatorConfig
 
 
 class LayoutApplier:
@@ -34,6 +35,7 @@ class LayoutApplier:
         self.font_config = self._build_font_config(preset)
         self.pos_config = self._build_positioning_config(preset)
         self.sep_config = self._build_separator_config(preset)
+        self.legend_spacing = self._build_legend_spacing_config(preset)
 
     def _build_font_config(self, preset: Optional[LaTeXPreset]) -> FontStyleConfig:
         """
@@ -53,12 +55,16 @@ class LayoutApplier:
             font_size_xlabel=preset.get("font_size_xlabel", 9),
             font_size_ylabel=preset.get("font_size_ylabel", 9),
             font_size_ticks=preset.get("font_size_ticks", 7),
+            font_size_yticks=preset.get("font_size_yticks", preset.get("font_size_ticks", 7)),
             font_size_annotations=preset.get("font_size_annotations", 6),
+            font_size_legend=preset.get("font_size_legend", 8),
             bold_title=preset.get("bold_title", False),
             bold_xlabel=preset.get("bold_xlabel", False),
             bold_ylabel=preset.get("bold_ylabel", False),
             bold_ticks=preset.get("bold_ticks", False),
             bold_annotations=preset.get("bold_annotations", True),
+            bold_group_labels=preset.get("bold_group_labels", True),
+            bold_legend=preset.get("bold_legend", False),
         )
 
     def _build_positioning_config(self, preset: Optional[LaTeXPreset]) -> PositioningConfig:
@@ -90,6 +96,9 @@ class LayoutApplier:
             xaxis_margin=preset.get("xaxis_margin", 0.02),
             group_label_offset=preset.get("group_label_offset", -0.12),
             group_label_alternate=preset.get("group_label_alternate", True),
+            group_label_alt_spacing=preset.get("group_label_alt_spacing", 0.05),
+            legend_x=preset.get("legend_x", -1.0),
+            legend_y=preset.get("legend_y", -1.0),
         )
 
     def _build_separator_config(self, preset: Optional[LaTeXPreset]) -> SeparatorConfig:
@@ -113,7 +122,33 @@ class LayoutApplier:
         return SeparatorConfig(
             enabled=preset.get("group_separator", False),
             style=cast(Literal["solid", "dashed", "dotted", "dashdot"], style_value),
-            color=preset.get("group_separator_color", "gray"),
+            color=preset.get("group_separator_color", "#808080"),
+        )
+
+    def _build_legend_spacing_config(self, preset: Optional[LaTeXPreset]) -> LegendSpacingConfig:
+        """
+        Build legend spacing configuration from preset.
+
+        These values are used by _render_boxed_annotation() to ensure the
+        numbered-legend box uses the same spacing as the main legend.
+
+        Args:
+            preset: LaTeX preset dictionary
+
+        Returns:
+            LegendSpacingConfig with spacing parameters
+        """
+        if not preset:
+            return LegendSpacingConfig()
+
+        return LegendSpacingConfig(
+            columnspacing=preset.get("legend_columnspacing", 0.5),
+            handletextpad=preset.get("legend_handletextpad", 0.3),
+            labelspacing=preset.get("legend_labelspacing", 0.2),
+            handlelength=preset.get("legend_handlelength", 1.0),
+            handleheight=preset.get("legend_handleheight", 0.7),
+            borderpad=preset.get("legend_borderpad", 0.2),
+            borderaxespad=preset.get("legend_borderaxespad", 0.5),
         )
 
     def apply_to_matplotlib(self, ax: Axes, layout: Dict[str, Any]) -> None:
@@ -227,9 +262,20 @@ class LayoutApplier:
             ax: Matplotlib axes
             layout: Layout dictionary
         """
-        # Apply tick padding
+        # Apply tick padding and Y-tick label size
         ax.tick_params(axis="x", pad=self.pos_config.xtick_pad)
-        ax.tick_params(axis="y", pad=self.pos_config.ytick_pad)
+        ax.tick_params(
+            axis="y",
+            pad=self.pos_config.ytick_pad,
+            labelsize=self.font_config.font_size_yticks,
+        )
+
+        # When X-tick labels are explicitly hidden (e.g. numbered X-axis mode),
+        # remove tick labels and tick marks entirely.
+        if layout.get("x_showticklabels") is False:
+            ax.set_xticklabels([])
+            ax.tick_params(axis="x", length=0)
+            return
 
         # Apply custom X tick positions and labels
         if "x_tickvals" in layout and "x_ticktext" in layout:
@@ -256,7 +302,7 @@ class LayoutApplier:
             escaped_labels = [self._escape_latex(str(label)) for label in layout["y_ticktext"]]
             ax.set_yticklabels(
                 escaped_labels,
-                fontsize=self.font_config.font_size_ticks,
+                fontsize=self.font_config.font_size_yticks,
                 fontweight="bold" if self.font_config.bold_ticks else "normal",
             )
 
@@ -283,7 +329,8 @@ class LayoutApplier:
         """
         Apply all annotations with proper coordinate transformations.
 
-        Handles bar value annotations, grouping labels, and general annotations.
+        Handles bar value annotations, grouping labels, boxed legend-style
+        annotations, and general annotations.
         Applies group separators if enabled.
 
         Args:
@@ -300,11 +347,21 @@ class LayoutApplier:
             text = self._clean_html_tags(ann["text"])
             text = self._escape_latex(text)
 
+            # Detect boxed annotations (legend-style, e.g., numbered x-axis legend)
+            is_boxed = ann.get("borderwidth", 0) > 0
+
+            if is_boxed:
+                self._render_boxed_annotation(ax, ann, text)
+                continue
+
             # Determine annotation type and font properties
             xref = ann.get("xref", "x")
             yref = ann.get("yref", "y")
             is_bar_total = yref != "paper" and xref != "paper"
-            is_grouping_label = yref == "paper" and ann["y"] < 0
+            # Grouping labels use data-x (xref="x") + paper-y below axis.
+            # Annotations with xref="paper" (e.g., numbered legends) are
+            # general annotations and must keep their own position.
+            is_grouping_label = yref == "paper" and xref != "paper" and ann["y"] < 0
 
             font_props = self._determine_annotation_font(is_bar_total, is_grouping_label)
 
@@ -329,9 +386,143 @@ class LayoutApplier:
         if self.sep_config.enabled:
             self._draw_group_separators(ax, layout)
 
+    def _render_boxed_annotation(
+        self,
+        ax: Axes,
+        ann: Dict[str, Any],
+        text: str,
+    ) -> None:
+        """
+        Render a boxed (legend-style) annotation with border and background.
+
+        Uses the same font settings as the main legend from the preset to
+        ensure visual consistency across the exported figure.
+
+        When LaTeX text rendering is active (``text.usetex=True``), wraps each
+        line in ``\\texttt{...}`` with spaces replaced by ``\\phantom{0}`` so
+        that column alignment is preserved.  Without LaTeX the standard
+        monospace ``FontProperties`` handles alignment.
+
+        Args:
+            ax: Matplotlib axes
+            ann: Annotation dictionary with border/box properties
+            text: Cleaned and LaTeX-escaped text content
+        """
+        from matplotlib.font_manager import FontProperties
+
+        # Use legend font settings from preset for consistency
+        fontsize: int = self.font_config.font_size_legend
+        weight: str = "bold" if self.font_config.bold_legend else "normal"
+
+        # Use monospace font for boxed annotations so column entries align
+        font_props = FontProperties(
+            family="monospace",
+            size=fontsize,
+            weight=weight,
+        )
+
+        # When LaTeX is rendering text, FontProperties(family="monospace") is
+        # ignored because LaTeX handles all typesetting.  Wrap each line in
+        # \texttt{} and replace spaces with ~ (non-breaking) so that LaTeX
+        # preserves column alignment produced by ljust() padding.
+        usetex: bool = plt.rcParams.get("text.usetex", False)
+        if usetex:
+            # Add one space on each side of every line as horizontal padding.
+            # _wrap_texttt converts these to \phantom{0}, which LatexManager
+            # measures — expanding the bbox by one character width per side.
+            # Without this, the text fills the content area edge-to-edge and
+            # any font-metric discrepancy between the measurement subprocess
+            # and the host document can cause the text to overflow the box.
+            padded_lines = [f" {ln} " for ln in text.split("\n")]
+            text = "\n".join(padded_lines)
+            text = self._wrap_texttt(text, bold=(weight == "bold"))
+
+        # Determine coordinate system and alignment
+        xref = ann.get("xref", "paper")
+        yref = ann.get("yref", "paper")
+        xycoords = self._determine_xycoords(xref, yref)
+
+        # Anchors
+        xanchor = ann.get("xanchor", "left")
+        yanchor = ann.get("yanchor", "middle")
+        ha = {"left": "left", "right": "right"}.get(xanchor, "center")
+        va_map = {"top": "top", "bottom": "bottom", "middle": "center"}
+        va = va_map.get(yanchor, "center")
+
+        # Build bbox matching the standard legend style.
+        # Use the preset borderpad for the box padding, converting points → inches.
+        box_pad: float = self.legend_spacing.borderpad
+        bbox_props = dict(
+            boxstyle=f"round,pad={box_pad:.3f}",
+            facecolor=ann.get("bgcolor", "white"),
+            edgecolor=ann.get("bordercolor", "black"),
+            linewidth=ann.get("borderwidth", 1),
+            alpha=1.0,
+        )
+
+        # Legend spacing from preset (reuse same values as the main legend).
+        # labelspacing controls vertical distance between entries, converted
+        # to matplotlib linespacing (proportion of font size).
+        linespacing: float = 1.0 + self.legend_spacing.labelspacing * 2.0
+
+        ann_kwargs: Dict[str, Any] = {
+            "xy": (ann["x"], ann["y"]),
+            "xycoords": xycoords,
+            "ha": ha,
+            "va": va,
+            "fontproperties": font_props,
+            "bbox": bbox_props,
+            "linespacing": linespacing,
+            "zorder": 6,  # Above main legend (zorder=5)
+        }
+
+        ax.annotate(text, **ann_kwargs)
+
+    @staticmethod
+    def _wrap_texttt(text: str, bold: bool = False) -> str:
+        """Wrap each line in LaTeX ``\\texttt{}`` for monospace rendering.
+
+        When ``text.usetex`` is ``True``, matplotlib delegates all text
+        rendering to LaTeX which ignores ``FontProperties(family="monospace")``.
+        This helper wraps every line in ``\\texttt{…}`` and replaces spaces
+        with ``\\phantom{0}`` so that the column alignment produced by
+        ``ljust()`` padding is preserved in the final PDF/PGF output.
+
+        **Why ``\\phantom{0}`` instead of ``~``?**
+        TeX collapses consecutive ``~`` (non-breaking spaces) into a single
+        interword space, destroying the padding that ``ljust()`` inserted.
+        ``\\phantom{0}`` creates an *invisible box* with exactly one character
+        width that is never collapsed, guaranteeing perfect column alignment.
+
+        Args:
+            text: Multi-line text (lines separated by ``\\n``).
+            bold: If ``True``, additionally wrap content in ``\\textbf{}``.
+
+        Returns:
+            Text with each line wrapped in LaTeX monospace commands.
+        """
+        lines = text.split("\n")
+        wrapped: list[str] = []
+        for line in lines:
+            # Replace spaces with \phantom{0} (invisible character-width box)
+            # so LaTeX preserves the exact character-based padding.
+            # Unlike ~, \phantom{0} is never collapsed when consecutive.
+            mono = line.replace(" ", r"\phantom{0}")
+            if bold:
+                mono = rf"\texttt{{\textbf{{{mono}}}}}"
+            else:
+                mono = rf"\texttt{{{mono}}}"
+            wrapped.append(mono)
+        return "\n".join(wrapped)
+
     def _clean_html_tags(self, text: str) -> str:
         """
         Remove HTML tags from annotation text.
+
+        Converts HTML entities and tags to plain text equivalents:
+        - ``<b>``/``<i>`` tags are unwrapped
+        - ``<br>`` becomes newline
+        - ``&nbsp;`` becomes regular space
 
         Args:
             text: Text potentially containing HTML tags
@@ -341,6 +532,8 @@ class LayoutApplier:
         """
         text = re.sub(r"<b>(.*?)</b>", r"\1", text)
         text = re.sub(r"<i>(.*?)</i>", r"\1", text)
+        text = re.sub(r"<br\s*/?>", "\n", text)
+        text = text.replace("&nbsp;", " ")
         return text
 
     def _determine_annotation_font(
@@ -364,7 +557,7 @@ class LayoutApplier:
         elif is_grouping_label:
             return {
                 "fontsize": self.font_config.font_size_xlabel,
-                "weight": "bold" if self.font_config.bold_xlabel else "normal",
+                "weight": "bold" if self.font_config.bold_group_labels else "normal",
             }
         else:
             return {
@@ -395,7 +588,9 @@ class LayoutApplier:
             y_pos = self.pos_config.group_label_offset
             if self.pos_config.group_label_alternate:
                 if grouping_label_index % 2 == 1:
-                    y_pos = self.pos_config.group_label_offset - 0.05
+                    y_pos = (
+                        self.pos_config.group_label_offset - self.pos_config.group_label_alt_spacing
+                    )
                 grouping_label_index += 1
 
         return y_pos, grouping_label_index

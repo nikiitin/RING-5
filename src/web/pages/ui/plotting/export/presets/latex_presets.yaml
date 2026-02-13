@@ -18,6 +18,7 @@ presets:
     legend_handleheight: 0.7
     legend_borderpad: 0.3
     legend_borderaxespad: 0.3
+    latex_extra_preamble: "\\usepackage[varqu,scaled=0.95]{zi4}"
 
   double_column:
     description: Full width for two-column papers
@@ -38,6 +39,7 @@ presets:
     legend_handleheight: 0.7
     legend_borderpad: 0.3
     legend_borderaxespad: 0.3
+    latex_extra_preamble: "\\usepackage[varqu,scaled=0.95]{zi4}"
 
   micro:
     description: MICRO conference style
@@ -58,6 +60,7 @@ presets:
     legend_handleheight: 0.7
     legend_borderpad: 0.3
     legend_borderaxespad: 0.3
+    latex_extra_preamble: "\\usepackage[varqu,scaled=0.95]{zi4}"
 
   isca:
     description: ISCA conference style
@@ -78,6 +81,7 @@ presets:
     legend_handleheight: 0.7
     legend_borderpad: 0.3
     legend_borderaxespad: 0.3
+    latex_extra_preamble: "\\usepackage[varqu,scaled=0.95]{zi4}"
 
   asplos:
     description: ASPLOS conference style
@@ -98,6 +102,7 @@ presets:
     legend_handleheight: 0.7
     legend_borderpad: 0.3
     legend_borderaxespad: 0.3
+    latex_extra_preamble: "\\usepackage[varqu,scaled=0.95]{zi4}"
 
   hpca:
     description: HPCA conference style
@@ -118,6 +123,7 @@ presets:
     legend_handleheight: 0.7
     legend_borderpad: 0.3
     legend_borderaxespad: 0.3
+    latex_extra_preamble: "\\usepackage[varqu,scaled=0.95]{zi4}"
 
   taco:
     description: ACM TACO journal style
@@ -138,6 +144,7 @@ presets:
     legend_handleheight: 0.7
     legend_borderpad: 0.3
     legend_borderaxespad: 0.3
+    latex_extra_preamble: "\\usepackage[varqu,scaled=0.95]{zi4}"
 
   nature:
     description: Nature journal style
@@ -218,6 +225,7 @@ presets:
     legend_handleheight: 0.7
     legend_borderpad: 0.3
     legend_borderaxespad: 0.3
+    latex_extra_preamble: "\\usepackage[varqu,scaled=0.95]{zi4}"
 
   poster:
     description: Poster style (large)

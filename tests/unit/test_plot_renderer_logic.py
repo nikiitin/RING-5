@@ -40,14 +40,10 @@ class TestComputeFigureCacheKey:
         assert key1 != key2
 
     def test_transient_keys_ignored(self) -> None:
-        """legend_x, legend_y, etc. should not affect the cache key."""
+        """xaxis_range, yaxis_range should not affect the cache key."""
         base_config = {"x": "col", "y": "val"}
         with_transient = {
             **base_config,
-            "legend_x": 0.5,
-            "legend_y": 0.95,
-            "legend_xanchor": "left",
-            "legend_yanchor": "top",
             "xaxis_range": [0, 10],
             "yaxis_range": [0, 100],
         }

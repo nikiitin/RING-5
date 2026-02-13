@@ -1,5 +1,6 @@
 """Grouped stacked bar plot implementation."""
 
+import math
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
@@ -289,6 +290,67 @@ class GroupedStackedBarPlot(StackedBarPlot):
                     key=f"iso_gap_{self.plot_id}",
                 )
 
+        st.markdown("**Numbered X-axis Labels**")
+        e1, e2 = st.columns(2)
+        with e1:
+            config["numbered_xaxis"] = st.checkbox(
+                "Use Numbered Labels",
+                value=saved_config.get("numbered_xaxis", False),
+                key=f"num_xaxis_{self.plot_id}",
+                help=(
+                    "Replace X-axis tick labels with numbered indices and "
+                    "show a secondary legend box mapping numbers to original labels."
+                ),
+            )
+        if config["numbered_xaxis"]:
+            with e2:
+                config["numbered_legend_size"] = st.number_input(
+                    "Legend Font Size",
+                    value=int(saved_config.get("numbered_legend_size", 10)),
+                    min_value=6,
+                    max_value=24,
+                    key=f"num_leg_sz_{self.plot_id}",
+                )
+            e3, e4 = st.columns(2)
+            with e3:
+                config["numbered_legend_x"] = st.number_input(
+                    "Legend X Position",
+                    value=float(saved_config.get("numbered_legend_x", 1.02)),
+                    step=0.05,
+                    min_value=-0.5,
+                    max_value=2.0,
+                    format="%.2f",
+                    key=f"num_leg_x_{self.plot_id}",
+                    help="Horizontal position (0=left, 1=right edge, >1=outside right)",
+                )
+            with e4:
+                config["numbered_legend_y"] = st.number_input(
+                    "Legend Y Position",
+                    value=float(saved_config.get("numbered_legend_y", 0.5)),
+                    step=0.05,
+                    min_value=-1.0,
+                    max_value=2.0,
+                    format="%.2f",
+                    key=f"num_leg_y_{self.plot_id}",
+                    help="Vertical position (0=bottom, 1=top, <0=below plot)",
+                )
+            e5, e6 = st.columns(2)
+            with e5:
+                config["numbered_legend_columns"] = st.number_input(
+                    "Columns",
+                    value=int(saved_config.get("numbered_legend_columns", 1)),
+                    min_value=1,
+                    max_value=10,
+                    key=f"num_leg_cols_{self.plot_id}",
+                    help="Number of columns inside the legend box",
+                )
+            with e6:
+                config["numbered_legend_bgcolor"] = st.color_picker(
+                    "Background",
+                    value=saved_config.get("numbered_legend_bgcolor", "#FFFFFF"),
+                    key=f"num_leg_bg_{self.plot_id}",
+                )
+
         return config
 
     def render_advanced_options(
@@ -380,7 +442,10 @@ class GroupedStackedBarPlot(StackedBarPlot):
                     temp_config, data, key_prefix="min_rename"
                 )
 
-        # 6. Annotations
+        # 6. Reference Line (Normalizer)
+        self._render_reference_line_ui(saved_config, data, config)
+
+        # 7. Annotations
         st.markdown("#### Annotations (Shapes)")
         config["shapes"] = self._render_shapes_ui(saved_config)
 
@@ -480,16 +545,22 @@ class GroupedStackedBarPlot(StackedBarPlot):
                 fig, data, y_col, "__x_coord", bar_width, hover_template, config
             )
 
+        # Apply numbered X-axis labels (replace verbose ticks with indices)
+        tick_text, numbered_legend = self._apply_numbered_xaxis(tick_text, config)
+
         # Update layout for grouped bars
-        fig.update_layout(
-            barmode="stack",
-            xaxis=dict(
-                tickmode="array",
-                tickvals=tick_vals,
-                ticktext=tick_text,
-                title=config.get("xlabel", x_col),
-            ),
+        xaxis_dict: Dict[str, Any] = dict(
+            tickmode="array",
+            tickvals=tick_vals,
+            ticktext=tick_text,
+            title=config.get("xlabel", x_col),
         )
+        # When numbered X-axis is on, completely hide tick marks and labels
+        if numbered_legend is not None:
+            xaxis_dict["showticklabels"] = False
+            xaxis_dict["ticks"] = ""
+
+        fig.update_layout(barmode="stack", xaxis=xaxis_dict)
 
         # Combine shapes
         existing_shapes = config.get("shapes", []) or []
@@ -504,6 +575,10 @@ class GroupedStackedBarPlot(StackedBarPlot):
         if config.get("show_totals"):
             totals_annotations = self._build_totals_annotations(data, "__x_coord", config)
             annotations.extend(totals_annotations)
+
+        # Add numbered legend annotation if enabled
+        if numbered_legend is not None:
+            annotations.append(numbered_legend)
 
         fig.update_layout(annotations=annotations)
 
@@ -572,6 +647,98 @@ class GroupedStackedBarPlot(StackedBarPlot):
         return GroupedBarUtils.calculate_grouped_coordinates(
             categories=categories, groups=groups, config=config
         )
+
+    def _apply_numbered_xaxis(
+        self,
+        tick_text: List[str],
+        config: Dict[str, Any],
+    ) -> tuple[List[str], Optional[Dict[str, Any]]]:
+        """Replace tick labels with numbered indices and build legend annotation.
+
+        When enabled via config["numbered_xaxis"], replaces verbose X-axis labels
+        with numbered indices (1, 2, 3, ...) and produces a secondary legend
+        annotation mapping numbers back to the original labels.
+
+        Args:
+            tick_text: Original tick label strings (may repeat across categories).
+            config: Plot configuration dict.
+
+        Returns:
+            Tuple of (possibly-replaced tick_text, legend annotation dict or None).
+        """
+        if not config.get("numbered_xaxis"):
+            return tick_text, None
+
+        # Unique groups preserving insertion order
+        unique_groups: List[str] = list(dict.fromkeys(tick_text))
+
+        # Return empty tick text — X-ticks are fully hidden when numbered
+        # xaxis is on; the boxed legend annotation is the only reference.
+        numbered_text: List[str] = [""] * len(tick_text)
+
+        # Build legend text — vertical list inside a bordered box
+        legend_parts: List[str] = [f"{i + 1}. {g}" for i, g in enumerate(unique_groups)]
+        max_cols: int = int(config.get("numbered_legend_columns", 1))
+        if max_cols > 1:
+            # Lay out items **column-wise** (top-to-bottom, then next column)
+            # to match the reading order of the actual legend, which also
+            # fills columns top-to-bottom when ncols > 1.
+            #
+            # Example with 4 items [A, B, C, D] and 2 columns:
+            #   Row 0: 1. A  3. C
+            #   Row 1: 2. B  4. D
+            #
+            # Compute per-column max widths and pad ALL columns so that
+            # every row is the same total width — this prevents the
+            # bounding box from showing extra whitespace on shorter rows.
+            n_items: int = len(legend_parts)
+            n_rows: int = math.ceil(n_items / max_cols)
+
+            col_widths: List[int] = []
+            for col in range(max_cols):
+                col_items = [
+                    legend_parts[col * n_rows + r]
+                    for r in range(n_rows)
+                    if col * n_rows + r < n_items
+                ]
+                col_widths.append(max(len(p) for p in col_items) if col_items else 0)
+
+            sep = "  "
+            rows: List[str] = []
+            for row_idx in range(n_rows):
+                parts: List[str] = []
+                for col_idx in range(max_cols):
+                    item_idx = col_idx * n_rows + row_idx
+                    if item_idx < n_items:
+                        parts.append(legend_parts[item_idx].ljust(col_widths[col_idx]))
+                rows.append(sep.join(parts))
+            legend_text: str = "<br>".join(rows)
+        else:
+            # One entry per line (vertical, like a standard legend)
+            legend_text = "<br>".join(legend_parts)
+
+        legend_x: float = float(config.get("numbered_legend_x", 1.02))
+        legend_y: float = float(config.get("numbered_legend_y", 0.5))
+        bgcolor: str = str(config.get("numbered_legend_bgcolor", "#FFFFFF"))
+
+        legend_annotation: Dict[str, Any] = dict(
+            x=legend_x,
+            y=legend_y,
+            xref="paper",
+            yref="paper",
+            text=legend_text,
+            showarrow=False,
+            font=dict(size=int(config.get("numbered_legend_size", 10))),
+            align="left",
+            xanchor="left",
+            yanchor="middle",
+            bordercolor="#333333",
+            borderwidth=1,
+            borderpad=6,
+            bgcolor=bgcolor,
+        )
+
+        return numbered_text, legend_annotation
 
     def _build_category_annotations(
         self, cat_centers: List[tuple[float, str]], config: Dict[str, Any]

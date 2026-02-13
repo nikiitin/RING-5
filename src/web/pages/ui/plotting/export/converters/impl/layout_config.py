@@ -21,12 +21,16 @@ class FontStyleConfig:
     font_size_xlabel: int = 9
     font_size_ylabel: int = 9
     font_size_ticks: int = 7
+    font_size_yticks: int = 7  # Separate Y-tick size (defaults to font_size_ticks)
     font_size_annotations: int = 6
+    font_size_legend: int = 8  # Legend text font size (for boxed annotations too)
     bold_title: bool = False
     bold_xlabel: bool = False
     bold_ylabel: bool = False
     bold_ticks: bool = False
     bold_annotations: bool = True  # Bar values bold by default
+    bold_group_labels: bool = True  # X-axis grouping labels bold by default
+    bold_legend: bool = False  # Legend text bold (applies to boxed annotations too)
 
 
 @dataclass
@@ -55,6 +59,11 @@ class PositioningConfig:
     # Grouping label positioning (for grouped-stacked bars)
     group_label_offset: float = -0.12  # Vertical offset below axis (axes fraction)
     group_label_alternate: bool = True  # Alternate up/down positioning
+    group_label_alt_spacing: float = 0.05  # Distance between up/down label levels
+
+    # Legend position override (for export)
+    legend_x: float = -1.0  # X position (-1 = auto/best)
+    legend_y: float = -1.0  # Y position (-1 = auto/best)
 
 
 @dataclass
@@ -68,3 +77,22 @@ class SeparatorConfig:
     enabled: bool = False
     style: Literal["solid", "dashed", "dotted", "dashdot"] = "dashed"
     color: str = "gray"
+
+
+@dataclass
+class LegendSpacingConfig:
+    """
+    Legend spacing configuration extracted from preset.
+
+    These values control spacing inside boxed annotations (numbered legend)
+    in the export pipeline, mirroring the main-legend spacing controls so
+    that both legends look consistent.
+    """
+
+    columnspacing: float = 0.5
+    handletextpad: float = 0.3
+    labelspacing: float = 0.2
+    handlelength: float = 1.0
+    handleheight: float = 0.7
+    borderpad: float = 0.2
+    borderaxespad: float = 0.5
