@@ -8,6 +8,7 @@ import pandas as pd
 import streamlit as st
 
 from src.core.performance import get_plot_cache, timed
+from src.web.figures.engine import FigureEngine
 from src.web.pages.ui.components.interactive_plot import interactive_plotly_chart
 from src.web.pages.ui.plotting.export import LaTeXExportService
 from src.web.pages.ui.plotting.export.presets.preset_schema import LaTeXPreset
@@ -165,13 +166,14 @@ class PlotRenderer:
         # 1. Generate Figure if needed (Forced OR Cache Missing)
         if should_generate or plot.last_generated_fig is None:
             try:
-                fig = plot.create_figure(plot.processed_data, plot.config)
-                fig = plot.apply_common_layout(fig, plot.config)
-
-                # Apply legend labels
-                legend_labels = plot.config.get("legend_labels")
-                if legend_labels:
-                    fig = plot.apply_legend_labels(fig, legend_labels)
+                # Route through FigureEngine — single entry point for
+                # creation + styling + legend labels.
+                engine = FigureEngine.from_plot(
+                    plot,
+                    plot.plot_type,
+                    styler=plot.style_manager.applicator,
+                )
+                fig = engine.build(plot.plot_type, plot.processed_data, plot.config)
 
                 # Store and cache the figure
                 plot.last_generated_fig = fig

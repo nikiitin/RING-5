@@ -105,10 +105,11 @@ class TestPlotRendererRenderPlot:
         plot.processed_data = pd.DataFrame({"x": [1]})
         plot.config = {"x": "col"}
         plot.plot_id = 1
+        plot.plot_type = "bar"
         plot.last_generated_fig = None
         plot.name = "test"
         plot.create_figure.return_value = go.Figure()
-        plot.apply_common_layout.return_value = go.Figure()
+        plot.style_manager.applicator.apply_styles.return_value = go.Figure()
         mock_chart.return_value = None
 
         PlotRenderer.render_plot(plot, should_generate=True)
@@ -134,16 +135,22 @@ class TestPlotRendererRenderPlot:
         plot.processed_data = pd.DataFrame({"x": [1]})
         plot.config = {"x": "col", "legend_labels": {"trace1": "Label1"}}
         plot.plot_id = 1
+        plot.plot_type = "bar"
         plot.last_generated_fig = None
         plot.name = "test"
-        fig = go.Figure()
+        # FigureEngine calls plot.create_figure then styler.apply_styles
+        fig = go.Figure(data=[go.Bar(x=["A"], y=[1], name="trace1")])
         plot.create_figure.return_value = fig
-        plot.apply_common_layout.return_value = fig
-        plot.apply_legend_labels.return_value = fig
+        # The styler (plot.style_manager.applicator) must return a figure
+        plot.style_manager.applicator.apply_styles.return_value = fig
         mock_chart.return_value = None
 
         PlotRenderer.render_plot(plot, should_generate=True)
-        plot.apply_legend_labels.assert_called_once()
+        # FigureEngine handles legend labels internally — verify the
+        # trace name was updated by the engine's _apply_legend_labels
+        generated_fig = plot.last_generated_fig
+        assert generated_fig is not None
+        assert generated_fig.data[0].name == "Label1"
 
     @patch("src.web.pages.ui.plotting.plot_renderer.PlotRenderer._render_download_button")
     @patch("src.web.pages.ui.plotting.plot_renderer.interactive_plotly_chart")

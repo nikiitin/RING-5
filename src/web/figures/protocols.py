@@ -20,6 +20,8 @@ from typing import Any, Dict, Protocol
 import pandas as pd
 import plotly.graph_objects as go
 
+from src.web.models.plot_models import PlotConfig
+
 
 class FigureCreator(Protocol):
     """
@@ -33,13 +35,13 @@ class FigureCreator(Protocol):
     current plot types can satisfy this protocol without modification.
     """
 
-    def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
+    def create_figure(self, data: pd.DataFrame, config: PlotConfig) -> go.Figure:
         """
         Build a Plotly figure from data and configuration.
 
         Args:
             data: Processed DataFrame ready for plotting.
-            config: Plot configuration dict (PlotDisplayConfig or legacy dict).
+            config: Plot configuration dict (PlotConfig).
 
         Returns:
             A fully constructed Plotly figure (before style application).
@@ -54,7 +56,7 @@ class FigureStyler(Protocol):
     Matches the existing ``StyleApplicator.apply_styles`` signature.
     """
 
-    def apply_styles(self, fig: go.Figure, config: Dict[str, Any]) -> go.Figure:
+    def apply_styles(self, fig: go.Figure, config: PlotConfig) -> go.Figure:
         """
         Apply layout, typography, colors, labels, etc. to a figure.
 

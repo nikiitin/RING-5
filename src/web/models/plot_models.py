@@ -218,3 +218,78 @@ class PlotDisplayConfig(TypedDict, total=False):
 
     # ── Interactivity ──
     enable_editable: bool  # Enable drag/edit on plot
+
+    # ── Margins (flat keys used by StyleApplicator) ──
+    margin_t: int
+    margin_b: int
+    margin_l: int
+    margin_r: int
+    margin_pad: int
+    automargin: bool
+
+    # ── Axis colors ──
+    axis_color: str
+    xaxis_tickfont_size: int
+    xaxis_tickfont_color: str
+    yaxis_tickfont_size: int
+    yaxis_tickfont_color: str
+    xaxis_title_font_size: int
+    yaxis_title_font_size: int
+    yaxis_title_standoff: int
+    yaxis_title_vshift: int
+
+    # ── Title font ──
+    title_font_size: int
+
+    # ── Legend styling ──
+    legend_orientation: str
+    legend_font_color: str
+    legend_font_size: int
+    legend_title_font_color: str
+    legend_title_font_size: int
+    legend_bgcolor: str
+    legend_border_color: str
+    legend_border_width: int
+    legend_itemsizing: str
+    legend_ncols: int
+    legend_col_width: int
+
+    # ── Data labels ──
+    show_values: bool
+    text_format: str
+    text_position: str
+    text_color_mode: str
+    text_color: str
+    text_rotation: int
+    text_anchor: str
+    text_font_size: int
+    text_constraint: bool
+    text_display_logic: str
+    text_threshold: float
+
+    # ── Color palette ──
+    color_palette: str
+    enable_stripes: bool
+
+    # ── Reference line ──
+    reference_line_enabled: bool
+    reference_line_y: float
+    reference_line_color: str
+    reference_line_width: float
+    reference_line_style: str
+
+    # ── Filter columns ──
+    x_filter: Optional[List[str]]
+    group_filter: Optional[List[str]]
+
+
+# ── PlotConfig: Progressive typing alias ──────────────────────────────
+#
+# ``PlotConfig`` is a runtime alias for ``Dict[str, Any]`` that signals
+# "this dictionary follows the PlotDisplayConfig schema but may contain
+# extra keys".  Using it in function signatures documents intent without
+# breaking existing code that writes arbitrary keys.
+#
+# Migration path: as widgets and applicators become fully spec-driven,
+# narrow ``PlotConfig`` → ``PlotDisplayConfig`` one site at a time.
+PlotConfig = Dict[str, Any]

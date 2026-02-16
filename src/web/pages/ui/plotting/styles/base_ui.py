@@ -12,17 +12,26 @@ from typing import Any, Dict, List, Optional, cast
 import pandas as pd
 import streamlit as st
 
+from src.core.visualization.widgets import (
+    WidgetRenderer,
+    LEGEND_SIZING,
+)
 from src.web.pages.ui.plotting.styles.colors import get_palette_colors, to_hex
 
 
 class BaseStyleUI:
     """
     Base Strategy Logic for generic UI rendering.
+
+    Uses ``WidgetRenderer`` for declarative sections where possible,
+    falling back to hand-coded widgets for sections requiring column
+    layouts or conditional rendering.
     """
 
     def __init__(self, plot_id: int, plot_type: str):
         self.plot_id = plot_id
         self.plot_type = plot_type
+        self._renderer = WidgetRenderer(key_prefix=f"p{plot_id}_")
 
     def render_layout_options(self, saved_config: Dict[str, Any]) -> Dict[str, Any]:
         """Render layout sizing, margins, and spacing options."""
@@ -405,48 +414,16 @@ class BaseStyleUI:
     def _render_legend_sizing(
         self, saved_config: Dict[str, Any], key_prefix: str
     ) -> Dict[str, Any]:
-        """Render legend sizing and spacing controls."""
+        """Render legend sizing and spacing controls (declarative)."""
         st.markdown("**Sizing & Spacing**")
-        sz_c1, sz_c2 = st.columns(2)
-
-        with sz_c1:
-            legend_itemsizing = st.selectbox(
-                "Marker Scale",
-                options=["constant", "trace"],
-                index=0 if saved_config.get("legend_itemsizing", "constant") == "constant" else 1,
-                key=f"{key_prefix}leg_item_sz_{self.plot_id}",
-                help="Constant: markers are equal size. Trace: markers match plot size.",
-            )
-            legend_itemwidth = st.number_input(
-                "Marker Width (px)",
-                min_value=0,
-                max_value=120,
-                value=(
-                    saved_config.get("legend_itemwidth")
-                    if saved_config.get("legend_itemwidth") is not None
-                    else 30
-                ),
-                key=f"{key_prefix}leg_item_wd_{self.plot_id}",
-                help="Width of the legend items (default 30). Set to 0 for auto.",
-            )
-            legend_tracegroupgap = st.number_input(
-                "Item Spacing (px)",
-                min_value=0,
-                max_value=100,
-                value=saved_config.get("legend_tracegroupgap", 10),
-                key=f"{key_prefix}leg_gap_{self.plot_id}",
-                help="Vertical spacing between legend items.",
-            )
-
-        return {
-            "legend_itemsizing": legend_itemsizing,
-            "legend_itemwidth": (
-                legend_itemwidth
-                if (legend_itemwidth is not None and legend_itemwidth > 0)
-                else None
-            ),
-            "legend_tracegroupgap": legend_tracegroupgap,
-        }
+        result = self._renderer.render_section(
+            LEGEND_SIZING, saved_config, use_expander=False
+        )
+        # Normalize itemwidth: 0 means None (auto)
+        iw = result.get("legend_itemwidth")
+        if iw is not None and iw <= 0:
+            result["legend_itemwidth"] = None
+        return result
 
     def _render_typography_section(
         self, saved_config: Dict[str, Any], key_prefix: str

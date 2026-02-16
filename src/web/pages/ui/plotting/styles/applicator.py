@@ -3,27 +3,51 @@ Style Applicator - Plotly Figure Styling Implementation.
 
 Applies computed style configuration to Plotly figures, implementing
 low-level visual customization (colors, fonts, layouts, themes, etc.).
+
+Architecture (Phase 3):
+    ``apply_styles`` builds a ``FigureSpec`` from the config dict and
+    stores it as ``last_spec``.  The export pipeline can later access
+    this spec for engine-agnostic rendering.  The Plotly-specific
+    application logic stays here until fully validated against the
+    ``FigureSpecToPlotly`` connector.
 """
 
 from typing import Any, Dict, List, Optional
 
 import plotly.graph_objects as go
 
+from src.core.visualization.connectors.builders import ConfigSpecBuilder
+from src.core.visualization.figure_spec import FigureSpec
+from src.core.visualization.resolvers import resolve_spec
+
 
 class StyleApplicator:
     """
     Handles application of styles, themes, and layouts to Plotly figures.
     Decoupled from UI rendering.
+
+    Attributes:
+        last_spec:  The resolved ``FigureSpec`` built from the most recent
+                    ``apply_styles`` call.  ``None`` until the first call.
     """
 
     def __init__(self, plot_type: str):
-        self.plot_type = plot_type
+        self.plot_type: str = plot_type
+        self.last_spec: Optional[FigureSpec] = None
 
     def apply_styles(self, fig: go.Figure, config: Dict[str, Any]) -> go.Figure:
         """
         Apply common layout, theme, and styling settings to the figure.
         Delegates to specialized methods for cleaner code organization.
+
+        Side-effect: stores a resolved ``FigureSpec`` in ``self.last_spec``
+        for downstream consumers (e.g., the LaTeX export pipeline).
         """
+        # Build the engine-agnostic FigureSpec from the flat config dict.
+        # This does NOT alter the figure yet — pure data construction.
+        self.last_spec = resolve_spec(
+            ConfigSpecBuilder.from_config(config, self.plot_type)
+        )
         # Apply styling in logical phases
         fig = self._apply_dimensions_and_margins(fig, config)
         fig = self._apply_backgrounds(fig, config)

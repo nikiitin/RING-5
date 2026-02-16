@@ -15,6 +15,8 @@ from src.core.services.plot_interaction_service import (
     try_float_edit,
     update_config_from_relayout,
 )
+from src.web.figures.engine import FigureEngine
+from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.styles import StyleManager
 
 
@@ -33,7 +35,7 @@ class BasePlot(ABC):
         self.plot_id: int = plot_id
         self.name: str = name
         self.plot_type: str = plot_type
-        self.config: Dict[str, Any] = {}
+        self.config: PlotConfig = {}
         self.processed_data: Optional[pd.DataFrame] = None
         self.last_generated_fig: Optional[go.Figure] = None
         self.pipeline: List[Dict[str, Any]] = []
@@ -132,18 +134,19 @@ class BasePlot(ABC):
     def generate_figure(self) -> go.Figure:
         """
         Generate and cache the final Plotly figure.
-        Applies creation, layout, and legend labels.
+
+        Routes through FigureEngine — the single entry point for
+        creation + styling + legend labels.
         """
         if self.processed_data is None:
             raise ValueError(f"Plot '{self.name}' has no processed data.")
 
-        fig = self.create_figure(self.processed_data, self.config)
-        fig = self.apply_common_layout(fig, self.config)
-
-        # Apply legend labels
-        legend_labels = self.config.get("legend_labels")
-        if legend_labels:
-            fig = self.apply_legend_labels(fig, legend_labels)
+        engine = FigureEngine.from_plot(
+            self,
+            self.plot_type,
+            styler=self.style_manager.applicator,
+        )
+        fig = engine.build(self.plot_type, self.processed_data, self.config)
 
         self.last_generated_fig = fig
         return fig

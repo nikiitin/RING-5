@@ -3,6 +3,7 @@ Bidirectional builders — construct FigureSpec from various sources.
 
   - ``PlotlyFigureSpecBuilder`` — extract spec from Plotly figure + config dict
   - ``PresetSpecBuilder`` — build spec from a LaTeXPreset (journal template)
+  - ``ConfigSpecBuilder`` — build spec from a flat config dict (UI widgets)
 
 These replace:
   - ``LayoutExtractor.extract_layout()`` (Plotly → raw dict)
@@ -252,6 +253,156 @@ class PresetSpecBuilder:
             separator=separator,
             font_family=preset.get("font_family", "serif"),
             latex_extra_preamble=preset.get("latex_extra_preamble", ""),
+        )
+
+
+class ConfigSpecBuilder:
+    """Build a FigureSpec from a flat config dict (UI widget values).
+
+    This is the **config → spec** bridge:  ``StyleApplicator`` calls this
+    to produce a typed, engine-agnostic ``FigureSpec`` from the same
+    ``Dict[str, Any]`` that widgets produce.
+
+    Key design choice: ``dpi`` is set to ``1`` so that pixel values stored
+    in the config dict (``width=800``, ``height=500``) round-trip through
+    FigureSpec (which stores inches) without loss: ``800 / 1 = 800`` and
+    ``800 * 1 = 800``.
+
+    Usage:
+        spec = ConfigSpecBuilder.from_config(config, "grouped_bar")
+        resolved = resolve_spec(spec)
+    """
+
+    @staticmethod
+    def from_config(
+        config: Dict[str, Any],
+        plot_type: str = "",
+    ) -> FigureSpec:
+        """Build a FigureSpec from a flat config dictionary.
+
+        Args:
+            config: The ``BasePlot.config`` dict produced by UI widgets.
+            plot_type: Plot type string for bar-specific defaults.
+
+        Returns:
+            A FigureSpec populated from config values.
+            Uses ``dpi=1`` so width/height are effectively in pixels.
+        """
+        is_bar = "bar" in plot_type
+
+        # ── Dimensions (dpi=1 ⇒ px passthrough) ─────────────────
+        margins = MarginsSpec(
+            top=float(config.get("margin_t", 80)),
+            bottom=float(config.get("margin_b", 120)),
+            left=float(config.get("margin_l", 100)),
+            right=float(config.get("margin_r", 100)),
+            pad=float(config.get("margin_pad", 0)),
+        )
+        dims = DimensionsSpec(
+            width=float(config.get("width", 800)),
+            height=float(config.get("height", 500)),
+            dpi=1,  # px passthrough — no conversion
+            margins=margins,
+            bargap=config.get("bargap", 0.2) if is_bar else 0.0,
+            bargroupgap=config.get("bargroupgap", 0.0) if "grouped" in plot_type else 0.0,
+        )
+
+        # ── Typography ───────────────────────────────────────────
+        typo = TypographySpec(
+            font_size_title=config.get("title_font_size", 18),
+            font_size_xlabel=config.get("xaxis_title_font_size", 14),
+            font_size_ylabel=config.get("yaxis_title_font_size", 14),
+            font_size_ticks=config.get("xaxis_tickfont_size", 12),
+            font_size_yticks=config.get("yaxis_tickfont_size", 12),
+            font_size_legend=config.get("legend_font_size", 12),
+            font_size_annotations=config.get("text_font_size", 12),
+        )
+
+        # ── Axes ─────────────────────────────────────────────────
+        x_label = str(
+            config.get("xlabel") or config.get("xaxis_title") or ""
+        ).replace("undefined", "")
+        y_label = str(
+            config.get("ylabel") or config.get("yaxis_title") or ""
+        ).replace("undefined", "")
+
+        x_axis = AxisSpec(
+            label=x_label,
+            tick_angle=float(config.get("xaxis_tickangle", -45)),
+            range=config.get("range_x"),
+            category_order=config.get("xaxis_order"),
+            label_aliases=config.get("xaxis_labels"),
+            automargin=config.get("automargin", True),
+        )
+        y_axis = AxisSpec(
+            label=y_label,
+            range=config.get("range_y"),
+            dtick=config.get("yaxis_dtick"),
+            automargin=config.get("automargin", True),
+        )
+
+        axes = AxesSpec(x=x_axis, y=y_axis)
+
+        # ── Primary Legend ───────────────────────────────────────
+        legend_orient = config.get("legend_orientation", "v")
+        primary_legend = LegendSpec(
+            role="primary",
+            font_size=config.get("legend_font_size", 12),
+            font_color=config.get("legend_font_color", "#444"),
+            title=config.get("legend_title", ""),
+            title_font_size=config.get("legend_title_font_size", 14),
+            title_font_color=config.get("legend_title_font_color", "#000000"),
+            orientation="horizontal" if legend_orient == "h" else "vertical",
+            position_x=float(config.get("legend_x", 1.02)),
+            position_y=float(config.get("legend_y", 1.0)),
+            anchor_x=config.get("legend_xanchor", "auto"),
+            anchor_y=config.get("legend_yanchor", "auto"),
+            custom_position=True,
+            visible=True,
+            bgcolor=config.get("legend_bgcolor", ""),
+            border_width=config.get("legend_border_width", 0),
+            border_color=config.get("legend_border_color", "#000000"),
+            itemsizing=config.get("legend_itemsizing", "constant"),
+        )
+
+        legends: List[LegendSpec] = [primary_legend]
+
+        # ── Multi-column secondary legends (if ncols > 1) ───────
+        try:
+            ncols = int(config.get("legend_ncols") or 0)
+        except (ValueError, TypeError):
+            ncols = 0
+
+        for col_idx in range(1, ncols):
+            key_prefix = f"legend{col_idx + 1}"
+            sec = LegendSpec(
+                role="secondary",
+                font_size=primary_legend.font_size,
+                font_color=primary_legend.font_color,
+                position_x=float(config.get(f"{key_prefix}_x", -1)),
+                position_y=float(config.get(f"{key_prefix}_y", -1)),
+                anchor_x=config.get(f"{key_prefix}_xanchor", "auto"),
+                anchor_y=config.get(f"{key_prefix}_yanchor", "auto"),
+                custom_position=True,
+                bgcolor=primary_legend.bgcolor,
+            )
+            legends.append(sec)
+
+        # ── Backgrounds ──────────────────────────────────────────
+        paper_bg = config.get("paper_bgcolor", "white")
+        plot_bg = config.get("plot_bgcolor", "white")
+
+        # ── Title ────────────────────────────────────────────────
+        title = str(config.get("title") or "").replace("undefined", "")
+
+        return FigureSpec(
+            dimensions=dims,
+            typography=typo,
+            axes=axes,
+            legends=legends,
+            title=title,
+            paper_bgcolor=paper_bg,
+            plot_bgcolor=plot_bg,
         )
 
 
