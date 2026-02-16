@@ -233,7 +233,7 @@ class LayoutApplier:
         if "y2_label" in layout and layout["y2_label"]:
             ax2 = (
                 ax.twinx() if not hasattr(ax, "_ring5_twin") else ax._ring5_twin
-            )  # type: ignore[attr-defined]
+            )
             ax._ring5_twin = ax2  # type: ignore[attr-defined]
             y2_label = self._escape_latex(layout["y2_label"])
 
@@ -570,8 +570,14 @@ class LayoutApplier:
         va = va_map.get(yanchor, "center")
 
         # Build bbox matching the standard legend style.
-        # Use the preset borderpad for the box padding, converting points → inches.
-        box_pad: float = self.legend_spacing.borderpad
+        # Use the legend3-specific borderpad if set (>0), falling back to
+        # the primary legend borderpad.  This ensures boxed annotations
+        # respect per-legend spacing overrides configured in the preset.
+        box_pad: float = (
+            self.legend_spacing.legend3_borderpad
+            if self.legend_spacing.legend3_borderpad >= 0
+            else self.legend_spacing.borderpad
+        )
         bbox_props = dict(
             boxstyle=f"round,pad={box_pad:.3f}",
             facecolor=ann.get("bgcolor", "white"),
@@ -580,10 +586,17 @@ class LayoutApplier:
             alpha=1.0,
         )
 
-        # Legend spacing from preset (reuse same values as the main legend).
-        # labelspacing controls vertical distance between entries, converted
-        # to matplotlib linespacing (proportion of font size).
-        linespacing: float = 1.0 + self.legend_spacing.labelspacing * 2.0
+        # Legend spacing from preset.
+        # Use legend3-specific labelspacing if set (>0), falling back to the
+        # primary legend value.  labelspacing controls vertical distance
+        # between entries, converted to matplotlib linespacing (proportion
+        # of font size).
+        ls: float = (
+            self.legend_spacing.legend3_labelspacing
+            if self.legend_spacing.legend3_labelspacing >= 0
+            else self.legend_spacing.labelspacing
+        )
+        linespacing: float = 1.0 + ls * 2.0
 
         ann_kwargs: Dict[str, Any] = {
             "xy": (ann["x"], ann["y"]),

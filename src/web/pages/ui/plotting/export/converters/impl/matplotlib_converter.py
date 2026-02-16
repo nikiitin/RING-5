@@ -24,6 +24,10 @@ from src.web.pages.ui.plotting.export.presets.preset_schema import (
     ExportResult,
     LaTeXPreset,
 )
+from src.core.visualization.connectors.builders import PresetSpecBuilder
+from src.core.visualization.figure_spec import FigureSpec
+from src.core.visualization.legend_spec import LegendSpec
+from src.core.visualization.resolvers import resolve_spec
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +58,14 @@ class MatplotlibConverter(BaseConverter):
         self._barmode: str = "group"  # Track bar layout mode
         self._bar_traces: List[Any] = []  # Track bar traces for positioning
         self._categorical_labels: List[str] = []  # Track x-axis labels
+
+        # Build a resolved FigureSpec from the preset for structured access.
+        # Sentinel values (-1) are resolved via inheritance chains so the
+        # spec carries concrete, usable values for every font size, bold
+        # flag, and legend spacing field.
+        self._spec: FigureSpec = resolve_spec(
+            PresetSpecBuilder.from_preset(dict(preset))
+        )
 
     @staticmethod
     def _normalize_color(color: Any) -> Optional[str]:
@@ -87,6 +99,59 @@ class MatplotlibConverter(BaseConverter):
 
         # Already hex or named – return as-is
         return str(color)
+
+    @staticmethod
+    def _legend_kwargs_from_spec(
+        legend: LegendSpec,
+        handles: List[Any],
+        labels: List[str],
+    ) -> Dict[str, Any]:
+        """Build ``ax.legend()`` kwargs from a **resolved** LegendSpec.
+
+        All sentinel values (-1) must already be resolved before calling.
+
+        Args:
+            legend: A fully resolved LegendSpec (no -1 values).
+            handles: matplotlib artist handles for the legend entries.
+            labels:  Text labels for the legend entries.
+
+        Returns:
+            A ``Dict[str, Any]`` ready to be passed as ``ax.legend(**kwargs)``.
+        """
+        sp = legend.spacing
+        ncol = max(1, legend.ncol) if legend.ncol > 0 else (
+            2 if len(handles) > 4 else 1
+        )
+
+        kwargs: Dict[str, Any] = {
+            "handles": handles,
+            "labels": labels,
+            "ncol": ncol,
+            "frameon": True,
+            "fancybox": False,
+            "shadow": False,
+            "framealpha": 1.0,
+            "edgecolor": "black",
+            "fontsize": legend.font_size,
+            "columnspacing": sp.columnspacing,
+            "handletextpad": sp.handletextpad,
+            "labelspacing": sp.labelspacing,
+            "handlelength": sp.handlelength,
+            "handleheight": sp.handleheight,
+            "borderpad": sp.borderpad,
+            "borderaxespad": sp.borderaxespad,
+        }
+
+        if legend.custom_position and legend.position_x >= 0:
+            kwargs["bbox_to_anchor"] = (
+                legend.position_x,
+                legend.position_y if legend.position_y >= 0 else 1.0,
+            )
+            kwargs["loc"] = "upper left"
+        else:
+            kwargs["loc"] = "best"
+
+        return kwargs
 
     def get_supported_formats(self) -> List[str]:
         """
@@ -618,50 +683,13 @@ class MatplotlibConverter(BaseConverter):
             handles = handles + h2
             labels = labels + l2
 
+        # ── Primary legend (via resolved FigureSpec) ──────────────
+        primary_spec = self._spec.legends[0]  # always present after resolve
+
         if handles:  # Only add legend if there are traces with labels
-            # Use preset ncol if set (>0), otherwise auto (>4 items = 2 cols)
-            preset_ncol = self.preset.get("legend_ncol", 0)
-            if preset_ncol > 0:
-                ncol = preset_ncol
-            else:
-                ncol = 2 if len(handles) > 4 else 1
-
-            # Get font size and bold from preset
-            legend_fontsize = self.preset.get("font_size_legend", 8)
-            legend_bold = self.preset.get("bold_legend", False)
-
-            # Get legend spacing from preset (with defaults matching matplotlib)
-            # Determine legend position: use preset override or auto ("best")
-            use_custom_position = self.preset.get("legend_custom_pos", False)
-            legend_x = self.preset.get("legend_x", 0.0)
-            legend_y = self.preset.get("legend_y", 1.0)
-
-            legend_kwargs: Dict[str, Any] = {
-                "handles": handles,
-                "labels": labels,
-                "ncol": ncol,
-                "frameon": True,
-                "fancybox": False,
-                "shadow": False,
-                "framealpha": 1.0,
-                "edgecolor": "black",
-                "fontsize": legend_fontsize,
-                # Spacing from preset - user configurable
-                "columnspacing": self.preset.get("legend_columnspacing", 0.5),
-                "handletextpad": self.preset.get("legend_handletextpad", 0.3),
-                "labelspacing": self.preset.get("legend_labelspacing", 0.2),
-                "handlelength": self.preset.get("legend_handlelength", 1.0),
-                "handleheight": self.preset.get("legend_handleheight", 0.7),
-                "borderpad": self.preset.get("legend_borderpad", 0.2),
-                "borderaxespad": self.preset.get("legend_borderaxespad", 0.5),
-            }
-
-            if use_custom_position:
-                legend_kwargs["bbox_to_anchor"] = (legend_x, legend_y)
-                legend_kwargs["loc"] = "upper left"
-            else:
-                legend_kwargs["loc"] = "best"
-
+            legend_kwargs = self._legend_kwargs_from_spec(
+                primary_spec, handles, labels
+            )
             legend = ax.legend(**legend_kwargs)
 
             # Set z-order so the main color legend sits below the
@@ -669,72 +697,43 @@ class MatplotlibConverter(BaseConverter):
             legend.set_zorder(5)
 
             # Apply bold to legend text if requested
-            if legend_bold:
+            if primary_spec.bold:
                 for text in legend.get_texts():
                     text.set_fontweight("bold")
-            applied["legend_ncols"] = ncol
+            applied["legend_ncols"] = legend_kwargs["ncol"]
             applied["legend_items"] = len(handles)
-            applied["legend_fontsize"] = legend_fontsize
+            applied["legend_fontsize"] = primary_spec.font_size
 
-        # Secondary legend on twin axis (separate legend mode)
+        # ── Secondary legend on twin axis (via resolved FigureSpec) ───
         if has_legend2 and ax2 is not None:
             h2, l2 = ax2.get_legend_handles_labels()
             if h2:
                 legend2_config = extracted_layout.get("legend2", {})
-                # Use per-legend font size (fallback to primary)
-                legend2_fs_raw: int = int(self.preset.get("font_size_legend2", -1))
-                legend2_fontsize: int = (
-                    legend2_fs_raw
-                    if legend2_fs_raw > 0
-                    else int(self.preset.get("font_size_legend", 8))
-                )
+                # Use the resolved secondary legend spec (index 1).
+                # resolve_spec already inherited font_size, spacing, ncol
+                # from the primary when the secondary had sentinels (-1).
+                legend2_spec = self._spec.legends[1]
 
-                # Helper to resolve legend2 spacing with fallback to primary
-                def _l2_spacing(key: str, default: float) -> float:
-                    legend2_val = self.preset.get(f"legend2_{key}", -1.0)
-                    v: float = float(str(legend2_val)) if legend2_val is not None else -1.0
-                    if v < 0:
-                        legend_val = self.preset.get(f"legend_{key}", default)
-                        return float(str(legend_val)) if legend_val is not None else default
-                    return v
-
-                # Resolve legend2 ncol (0 = auto)
-                l2_preset_ncol: int = int(self.preset.get("legend2_ncol", 0))
-                l2_ncol: int = l2_preset_ncol if l2_preset_ncol > 0 else (2 if len(h2) > 4 else 1)
-
-                legend2_kwargs: Dict[str, Any] = {
-                    "handles": h2,
-                    "labels": l2,
-                    "ncol": l2_ncol,
-                    "frameon": True,
-                    "fancybox": False,
-                    "shadow": False,
-                    "framealpha": 1.0,
-                    "edgecolor": "black",
-                    "fontsize": legend2_fontsize,
-                    # Spacing from preset — fallback to primary legend values
-                    "columnspacing": _l2_spacing("columnspacing", 0.5),
-                    "handletextpad": _l2_spacing("handletextpad", 0.3),
-                    "labelspacing": _l2_spacing("labelspacing", 0.2),
-                    "handlelength": _l2_spacing("handlelength", 1.0),
-                    "handleheight": _l2_spacing("handleheight", 0.7),
-                    "borderpad": _l2_spacing("borderpad", 0.2),
-                    "borderaxespad": _l2_spacing("borderaxespad", 0.5),
-                }
+                # Override position from the Plotly-extracted layout if
+                # the user manually repositioned legend2 interactively.
                 if "x" in legend2_config and "y" in legend2_config:
-                    legend2_kwargs["bbox_to_anchor"] = (
-                        legend2_config["x"],
-                        legend2_config["y"],
+                    legend2_spec = LegendSpec(
+                        **{
+                            **legend2_spec.to_dict(),
+                            "custom_position": True,
+                            "position_x": legend2_config["x"],
+                            "position_y": legend2_config["y"],
+                        }
                     )
-                    legend2_kwargs["loc"] = "upper left"
-                else:
-                    legend2_kwargs["loc"] = "best"
+
+                legend2_kwargs = self._legend_kwargs_from_spec(
+                    legend2_spec, h2, l2
+                )
                 legend2 = ax2.legend(**legend2_kwargs)
                 legend2.set_zorder(5)
 
                 # Apply bold to legend2 text if requested
-                legend2_bold: bool = bool(self.preset.get("bold_legend2", False))
-                if legend2_bold:
+                if legend2_spec.bold:
                     for text in legend2.get_texts():
                         text.set_fontweight("bold")
 
