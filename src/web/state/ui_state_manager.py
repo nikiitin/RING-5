@@ -109,6 +109,17 @@ class _PlotUIState:
         result: Optional[Dict[str, Any]] = st.session_state.pop("plot.pending_updates", None)
         return result
 
+    # ─── Last Relayout Event ─────────────────────────────────────────────
+
+    def get_last_relayout(self, plot_id: int) -> Optional[Dict[str, Any]]:
+        """Get the last relayout event data for a plot."""
+        result: Optional[Dict[str, Any]] = st.session_state.get(self._key(plot_id, "last_relayout"))
+        return result
+
+    def set_last_relayout(self, plot_id: int, data: Dict[str, Any]) -> None:
+        """Store the last relayout event data for a plot."""
+        st.session_state[self._key(plot_id, "last_relayout")] = data
+
     # ─── Scoped Cleanup ──────────────────────────────────────────────────
 
     def cleanup(self, plot_id: int) -> None:

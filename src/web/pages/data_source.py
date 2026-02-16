@@ -28,9 +28,15 @@ class DataSourcePage:
         - **Load from Recent**: Quick access to previously parsed CSV files
         """)
 
-        choice = st.radio(
+        data_source_options = [
+            "Parse gem5 Stats Files",
+            "I already have CSV data",
+            "Load from Recent",
+        ]
+        choice = st.segmented_control(
             "Select your data source:",
-            ["Parse gem5 Stats Files", "I already have CSV data", "Load from Recent"],
+            data_source_options,
+            default=data_source_options[0],
             key="data_source_choice",
         )
 
@@ -43,4 +49,4 @@ class DataSourcePage:
         else:
             if self.api.state_manager.is_using_parser():
                 self.api.state_manager.set_use_parser(False)
-            st.success("CSV mode selected. Proceed to **Upload Data** to upload your CSV file.")
+            st.success("CSV mode selected. You can upload CSV files in the Data Source page.")

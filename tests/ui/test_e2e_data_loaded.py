@@ -200,14 +200,14 @@ class TestPerformanceWithData:
     def test_page_renders_with_data(self) -> None:
         """Performance page renders when data is loaded."""
         at = create_app_with_data()
-        navigate_to(at, "\u26a1 Performance")
+        navigate_to(at, "Performance")
 
         assert not at.exception
 
     def test_data_loaded_metric(self) -> None:
         """Data Loaded metric should show 'Yes'."""
         at = create_app_with_data()
-        navigate_to(at, "\u26a1 Performance")
+        navigate_to(at, "Performance")
 
         assert not at.exception
         data_metrics = [m for m in at.metric if m.label == "Data Loaded"]
@@ -217,7 +217,7 @@ class TestPerformanceWithData:
     def test_clear_caches_button(self) -> None:
         """Clear All Caches button should be present and clickable."""
         at = create_app_with_data()
-        navigate_to(at, "\u26a1 Performance")
+        navigate_to(at, "Performance")
 
         assert not at.exception
         cache_buttons = [b for b in at.button if "clear" in b.label.lower()]
@@ -226,38 +226,12 @@ class TestPerformanceWithData:
     def test_session_key_count_nonzero(self) -> None:
         """Total Keys metric should be > 0 when app is running."""
         at = create_app_with_data()
-        navigate_to(at, "\u26a1 Performance")
+        navigate_to(at, "Performance")
 
         assert not at.exception
         key_metrics = [m for m in at.metric if m.label == "Total Keys"]
         if key_metrics:
             assert int(key_metrics[0].value) > 0
-
-
-# ---------------------------------------------------------------------------
-# Upload Data — data loaded (parser mode)
-# ---------------------------------------------------------------------------
-class TestUploadWithParserMode:
-    """Upload Data page in parser mode shows parsed data preview."""
-
-    def test_page_renders_with_data(self) -> None:
-        """Upload Data page renders without errors when data is loaded."""
-        at = create_app_with_data()
-        navigate_to(at, "Upload Data")
-
-        assert not at.exception
-
-    def test_csv_mode_shows_tabs(self) -> None:
-        """In CSV mode (default), Upload Data shows upload + paste tabs."""
-        at = create_app_with_data()
-        # Ensure NOT in parser mode
-        api = get_api(at)
-        api.state_manager.set_use_parser(False)
-        navigate_to(at, "Upload Data")
-
-        assert not at.exception
-        # Should have at least 2 tabs (Upload CSV File / Paste Data)
-        assert len(at.tabs) >= 2
 
 
 # ---------------------------------------------------------------------------
@@ -273,12 +247,12 @@ class TestDataSourceWithData:
 
         assert not at.exception
 
-    def test_radio_options_present(self) -> None:
-        """Data source radio has all 3 options."""
+    def test_data_source_options_present(self) -> None:
+        """Data source has option widgets available."""
         at = create_app_with_data()
         navigate_to(at, "Data Source")
 
         assert not at.exception
-        # There should be a radio for data source choice (beyond sidebar nav)
-        page_radios = at.radio
-        assert len(page_radios) > 0
+        # Data source choice is a segmented_control (button_group)
+        page_groups = at.button_group
+        assert len(page_groups) > 0

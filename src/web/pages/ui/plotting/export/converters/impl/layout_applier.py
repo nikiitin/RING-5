@@ -54,17 +54,26 @@ class LayoutApplier:
             font_size_title=preset.get("font_size_title", 10),
             font_size_xlabel=preset.get("font_size_xlabel", 9),
             font_size_ylabel=preset.get("font_size_ylabel", 9),
+            font_size_y2label=int(preset.get("font_size_y2label", -1)),
             font_size_ticks=preset.get("font_size_ticks", 7),
             font_size_yticks=preset.get("font_size_yticks", preset.get("font_size_ticks", 7)),
+            font_size_y2ticks=int(preset.get("font_size_y2ticks", -1)),
             font_size_annotations=preset.get("font_size_annotations", 6),
             font_size_legend=preset.get("font_size_legend", 8),
+            font_size_legend2=int(preset.get("font_size_legend2", -1)),
+            font_size_legend3=int(preset.get("font_size_legend3", -1)),
+            legend3_number_fontsize=preset.get("legend3_number_fontsize", -1),
+            legend3_text_fontsize=preset.get("legend3_text_fontsize", -1),
             bold_title=preset.get("bold_title", False),
             bold_xlabel=preset.get("bold_xlabel", False),
             bold_ylabel=preset.get("bold_ylabel", False),
+            bold_y2label=bool(preset.get("bold_y2label", False)),
             bold_ticks=preset.get("bold_ticks", False),
             bold_annotations=preset.get("bold_annotations", True),
             bold_group_labels=preset.get("bold_group_labels", True),
             bold_legend=preset.get("bold_legend", False),
+            bold_legend2=bool(preset.get("bold_legend2", False)),
+            bold_legend3=bool(preset.get("bold_legend3", False)),
         )
 
     def _build_positioning_config(self, preset: Optional[LaTeXPreset]) -> PositioningConfig:
@@ -88,6 +97,8 @@ class LayoutApplier:
         return PositioningConfig(
             ylabel_pad=preset.get("ylabel_pad", 10.0),
             ylabel_y_position=preset.get("ylabel_y_position", 0.5),
+            y2label_pad=float(preset.get("y2label_pad", -1.0)),
+            y2tick_pad=float(preset.get("y2tick_pad", -1.0)),
             xtick_pad=preset.get("xtick_pad", 5.0),
             ytick_pad=preset.get("ytick_pad", 5.0),
             xtick_rotation=preset.get("xtick_rotation", 45.0),
@@ -149,6 +160,8 @@ class LayoutApplier:
             handleheight=preset.get("legend_handleheight", 0.7),
             borderpad=preset.get("legend_borderpad", 0.2),
             borderaxespad=preset.get("legend_borderaxespad", 0.5),
+            legend3_borderpad=preset.get("legend3_borderpad", -1.0),
+            legend3_labelspacing=preset.get("legend3_labelspacing", -1.0),
         )
 
     def apply_to_matplotlib(self, ax: Axes, layout: Dict[str, Any]) -> None:
@@ -223,25 +236,56 @@ class LayoutApplier:
             )  # type: ignore[attr-defined]
             ax._ring5_twin = ax2  # type: ignore[attr-defined]
             y2_label = self._escape_latex(layout["y2_label"])
+
+            # Resolve font size: use y2-specific or fall back to primary
+            y2_label_fs: int = (
+                self.font_config.font_size_y2label
+                if self.font_config.font_size_y2label > 0
+                else self.font_config.font_size_ylabel
+            )
+            y2_label_bold: bool = self.font_config.bold_y2label
+
+            # Resolve label pad: use y2-specific or fall back to primary
+            y2_lpad: float = (
+                self.pos_config.y2label_pad
+                if self.pos_config.y2label_pad >= 0
+                else self.pos_config.ylabel_pad
+            )
+
             ax2.set_ylabel(
                 y2_label,
-                fontsize=self.font_config.font_size_ylabel,
-                fontweight="bold" if self.font_config.bold_ylabel else "normal",
+                fontsize=y2_label_fs,
+                fontweight="bold" if y2_label_bold else "normal",
                 rotation=-90,
-                labelpad=self.pos_config.ylabel_pad + 10,
+                labelpad=y2_lpad,
             )
             if "y2_range" in layout:
                 ax2.set_ylim(layout["y2_range"])
 
+            # Resolve tick size: use y2-specific or fall back to primary
+            y2_tick_fs: int = (
+                self.font_config.font_size_y2ticks
+                if self.font_config.font_size_y2ticks > 0
+                else self.font_config.font_size_yticks
+            )
+            # Resolve tick pad: use y2-specific or fall back to primary
+            y2_tpad: float = (
+                self.pos_config.y2tick_pad
+                if self.pos_config.y2tick_pad >= 0
+                else self.pos_config.ytick_pad
+            )
+
             # Apply secondary Y-axis tick font styling
             y2_tickfont = layout.get("y2_tickfont", {})
+            tick_kwargs: Dict[str, Any] = {
+                "axis": "y",
+                "labelsize": y2_tick_fs,
+                "pad": y2_tpad,
+            }
             if y2_tickfont:
-                tick_kwargs: Dict[str, Any] = {"axis": "y"}
-                if "size" in y2_tickfont:
-                    tick_kwargs["labelsize"] = y2_tickfont["size"]
                 if "color" in y2_tickfont:
                     tick_kwargs["labelcolor"] = y2_tickfont["color"]
-                ax2.tick_params(**tick_kwargs)
+            ax2.tick_params(**tick_kwargs)
 
             # Apply secondary Y-axis dtick (tick spacing)
             if "y2_dtick" in layout and layout["y2_dtick"]:
@@ -477,9 +521,18 @@ class LayoutApplier:
         """
         from matplotlib.font_manager import FontProperties
 
-        # Use legend font settings from preset for consistency
-        fontsize: int = self.font_config.font_size_legend
-        weight: str = "bold" if self.font_config.bold_legend else "normal"
+        # Use legend font settings from preset for consistency.
+        # If font_size_legend3 is set (>0), use it for boxed annotations
+        # (numbered x-axis legend / third legend); otherwise fall back to
+        # the primary legend font size.
+        fontsize: int = (
+            self.font_config.font_size_legend3
+            if self.font_config.font_size_legend3 > 0
+            else self.font_config.font_size_legend
+        )
+        weight: str = (
+            "bold" if (self.font_config.bold_legend3 or self.font_config.bold_legend) else "normal"
+        )
 
         # Use monospace font for boxed annotations so column entries align
         font_props = FontProperties(

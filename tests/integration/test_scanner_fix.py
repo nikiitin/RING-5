@@ -5,7 +5,6 @@ import pytest
 
 from src.core.application_api import ApplicationAPI
 from src.web.pages.ui.components.data_source_components import DataSourceComponents
-from src.web.pages.ui.components.upload_components import UploadComponents
 from src.web.pages.ui.components.variable_editor import VariableEditor
 from tests.conftest import columns_side_effect
 
@@ -26,38 +25,18 @@ class TestScannerFix:
         with (
             patch("src.web.pages.ui.components.data_source_components.st") as mock_st_ds,
             patch("src.web.pages.ui.components.variable_editor.st") as mock_st_ve,
-            patch("src.web.pages.ui.components.upload_components.st") as mock_st_uc,
         ):
 
-            # Configure common mocks for all of them to be the same magic mock
-            # so we can set side effects on one and have it affect others if needed
-            # But for simplicity, we can just configure them individually or return a dict.
-            # Ideally they should be the same object if we want to share side_effects easily.
-
-            # Let's make them share the same underlying mock for simplicity in setting side effects
-            mock_st = MagicMock()
-
-            # Helper to link the patches to our central mock
-            for m in [mock_st_ds, mock_st_ve, mock_st_uc]:
+            for m in [mock_st_ds, mock_st_ve]:
                 m.columns.side_effect = columns_side_effect
                 m.spinner.return_value.__enter__.return_value = None
-                m.button.side_effect = mock_st.button.side_effect
-                m.file_uploader.return_value = mock_st.file_uploader.return_value
+                m.button.side_effect = MagicMock().button.side_effect
+                m.file_uploader.return_value = MagicMock().file_uploader.return_value
                 # Fragment passthrough — execute the decorated function directly
                 m.fragment.side_effect = lambda func: func
                 m.session_state = {}
 
-            # We return a specific one to set side effects on,
-            # but we need to ensure the code under test uses the patched ones.
-            # Since patch replaces the object in the module,
-            # and we want to control behavior via `mock_st` in the test...
-
-            # Actually, `patch` returns the Mock object it placed.
-            # We can't easily unify them into *one* object unless we patch `streamlit` globally
-            # but that might affect pytest itself if it uses streamlit (unlikely but possible).
-
-            # Revised approach: Return the individual mocks for control
-            yield {"ds": mock_st_ds, "ve": mock_st_ve, "uc": mock_st_uc}
+            yield {"ds": mock_st_ds, "ve": mock_st_ve}
 
     def test_render_csv_pool_calls_api_directly(self, mock_api, mock_streamlit):
         """Test that render_csv_pool calls api.load_csv_pool, not api.backend.load_csv_pool"""
@@ -117,7 +96,8 @@ class TestScannerFix:
             MagicMock() for _ in range(spec if isinstance(spec, int) else len(spec))
         ]
         # Radio order: parse_mode then entry_mode
-        mock_streamlit["ve"].radio.side_effect = ["Entries Only", "Manual Entry Names"]
+        mock_streamlit["ve"].segmented_control.return_value = "Entries Only"
+        mock_streamlit["ve"].pills.return_value = "Manual Entry Names"
         # st.selectbox needs to return "vector" for var_type check
         # Use side effect to be safe, or just return "vector" if simple
         mock_streamlit["ve"].selectbox.return_value = "vector"
@@ -137,28 +117,6 @@ class TestScannerFix:
 
         # Verify call to api.submit_scan_async (NOT backend)
         mock_api.submit_scan_async.assert_called()
-
-    def test_upload_components_calls_api_directly(self, mock_api, mock_streamlit):
-        """Test that UploadComponents calls api.load_data (not load_csv_file)"""
-        # Setup
-        # Mock file uploader returning a file
-        mock_file = MagicMock()
-        mock_file.name = "test.csv"
-        mock_file.getbuffer.return_value = b"data"
-        mock_streamlit["uc"].file_uploader.return_value = mock_file
-
-        # Mock temp dir setup
-        mock_api.state_manager.get_temp_dir.return_value = "/tmp"
-
-        # Mock built-in open
-        with patch("builtins.open", MagicMock()):
-            try:
-                UploadComponents.render_file_upload_tab(mock_api)
-            except AttributeError as e:
-                pytest.fail(f"AttributeError raised: {e}")
-
-        # Verify - API now uses load_data instead of load_csv_file
-        mock_api.load_data.assert_called_once()
 
     def test_parser_dialog_calls_finalize_parsing_correctly(self, mock_api, mock_streamlit):
         """Test that _show_parse_dialog calls finalize_parsing with
@@ -204,7 +162,10 @@ class TestScannerFix:
 
                 # Mock Streamlit objects
                 mock_progress = MagicMock()
-                mock_status = MagicMock()
+                mock_status_text = MagicMock()
+                mock_status_ctx = MagicMock()
+                mock_status_ctx.__enter__ = MagicMock(return_value=mock_status_ctx)
+                mock_status_ctx.__exit__ = MagicMock(return_value=False)
 
                 with (
                     patch(
@@ -213,7 +174,11 @@ class TestScannerFix:
                     ),
                     patch(
                         "src.web.pages.ui.components.data_source_components.st.empty",
-                        return_value=mock_status,
+                        return_value=mock_status_text,
+                    ),
+                    patch(
+                        "src.web.pages.ui.components.data_source_components.st.status",
+                        return_value=mock_status_ctx,
                     ),
                     patch("src.web.pages.ui.components.data_source_components.st.write"),
                     patch("src.web.pages.ui.components.data_source_components.st.success"),

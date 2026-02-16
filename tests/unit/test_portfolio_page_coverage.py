@@ -44,7 +44,7 @@ class TestShowPortfolioPage:
 
         # Portfolio save now succeeds even without data (config-only save)
         api.data_services.save_portfolio.assert_called()
-        mock_st.success.assert_called()
+        mock_st.toast.assert_called()
 
     @patch("src.web.pages.portfolio.st")
     def test_save_success(self, mock_st: MagicMock) -> None:
@@ -101,7 +101,7 @@ class TestShowPortfolioPage:
 
         show_portfolio_page(api)
 
-        mock_st.error.assert_called()
+        mock_st.exception.assert_called()
 
     @patch("src.web.pages.portfolio.st")
     def test_load_portfolio(self, mock_st: MagicMock) -> None:
@@ -155,7 +155,7 @@ class TestShowPortfolioPage:
 
         show_portfolio_page(api)
 
-        mock_st.error.assert_called()
+        mock_st.exception.assert_called()
 
     @patch("src.web.pages.portfolio.st")
     def test_no_portfolios_warning(self, mock_st: MagicMock) -> None:
@@ -196,7 +196,13 @@ class TestShowPortfolioPage:
 
         mock_st.fragment.side_effect = lambda func: func
         mock_st.columns.side_effect = _columns_side_effect
-        mock_st.button.return_value = True
+
+        def button_side_effect(label, on_click=None, **kwargs):
+            if on_click:
+                on_click()
+            return True
+
+        mock_st.button.side_effect = button_side_effect
         mock_st.selectbox.return_value = "p1"
         mock_st.text_input.return_value = "test"
 

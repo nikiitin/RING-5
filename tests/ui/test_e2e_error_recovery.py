@@ -116,7 +116,6 @@ class TestResetState:
 
         pages = [
             "Data Source",
-            "Upload Data",
             "Data Managers",
             "Manage Plots",
             "Save/Load Portfolio",
@@ -202,7 +201,6 @@ class TestNavigationEdgeCases:
 
         pages = [
             "Data Source",
-            "Upload Data",
             "Data Managers",
             "Manage Plots",
             "Save/Load Portfolio",
@@ -227,7 +225,7 @@ class TestNavigationEdgeCases:
     def test_performance_page_always_renders(self) -> None:
         """Performance page renders regardless of data state."""
         at = create_app()
-        navigate_to(at, "\u26a1 Performance")
+        navigate_to(at, "Performance")
 
         assert not at.exception
         assert len(at.metric) >= 1, "Expected at least one metric"

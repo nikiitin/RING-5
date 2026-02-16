@@ -21,6 +21,11 @@ class PlotSelectorPresenter:
     """
 
     @staticmethod
+    def render_no_plots_warning() -> None:
+        """Render a warning when no plots exist yet."""
+        st.warning("No plots yet. Create a plot to get started!")
+
+    @staticmethod
     def render(
         plot_names: List[str],
         default_index: int = 0,
@@ -35,11 +40,13 @@ class PlotSelectorPresenter:
         Returns:
             Name of the selected plot.
         """
-        selected: str = st.radio(
+        default_name = plot_names[default_index] if plot_names else None
+        selected = st.pills(
             "Select Plot",
             plot_names,
-            horizontal=True,
-            index=default_index,
+            default=default_name,
             key="plot_selector",
         )
-        return selected  # type: ignore[return-value]
+        return (
+            selected if selected is not None else (plot_names[0] if plot_names else "")
+        )  # type: ignore[return-value]

@@ -90,7 +90,13 @@ class TestRenderPerformancePage:
         mock_st.expander.return_value = exp_mock
 
         mock_st.session_state = {}
-        mock_st.button.return_value = True
+
+        def button_side_effect(label, on_click=None, **kwargs):
+            if on_click:
+                on_click()
+            return True
+
+        mock_st.button.side_effect = button_side_effect
 
         render_performance_page(api)
 

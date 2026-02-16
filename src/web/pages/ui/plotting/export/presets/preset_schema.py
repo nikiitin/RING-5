@@ -50,15 +50,22 @@ class LaTeXPreset(TypedDict):
     font_size_title: int  # Title font size
     font_size_xlabel: int  # X-axis label font size
     font_size_ylabel: int  # Y-axis label font size
+    font_size_y2label: int  # Secondary Y-axis label font size (-1 = follow primary)
     font_size_legend: int  # Legend text font size
+    font_size_legend2: int  # Legend2 (twin-axis) font size (-1 = follow primary)
+    font_size_legend3: int  # Legend3 (numbered/boxed) font size (-1 = follow primary)
     font_size_ticks: int  # Tick labels font size (X-axis)
     font_size_yticks: int  # Y-axis tick labels font size (separate from X)
+    font_size_y2ticks: int  # Secondary Y-axis tick labels font size (-1 = follow primary)
     font_size_annotations: int  # Annotations (bar totals, etc.) font size
     # Bold styling controls for text elements
     bold_title: bool  # Title in bold (default False)
     bold_xlabel: bool  # X-axis label in bold (default False)
     bold_ylabel: bool  # Y-axis label in bold (default False)
+    bold_y2label: bool  # Secondary Y-axis label in bold (default False)
     bold_legend: bool  # Legend text in bold (default False)
+    bold_legend2: bool  # Legend2 in bold (default False)
+    bold_legend3: bool  # Legend3 in bold (default False)
     bold_ticks: bool  # Tick labels in bold (default False)
     bold_annotations: bool  # Annotations in bold (default True for bar values)
     bold_group_labels: bool  # X-axis grouping labels in bold (default True)
@@ -74,9 +81,25 @@ class LaTeXPreset(TypedDict):
     legend_borderpad: float  # Space inside legend border (default 0.4)
     legend_borderaxespad: float  # Space between legend and axes (default 0.5)
     legend_ncol: int  # Number of legend columns (0 = auto, default 0)
+    # Legend2 (secondary/twin-axis) spacing — all default -1 = follow primary
+    legend2_columnspacing: float
+    legend2_handletextpad: float
+    legend2_labelspacing: float
+    legend2_handlelength: float
+    legend2_handleheight: float
+    legend2_borderpad: float
+    legend2_borderaxespad: float
+    legend2_ncol: int  # Number of columns for legend2 (0 = auto)
+    # Legend3 (boxed annotation / numbered x-axis) spacing overrides
+    legend3_borderpad: float  # Box inner padding (-1 = follow primary)
+    legend3_labelspacing: float  # Vertical item spacing (-1 = follow primary)
+    legend3_number_fontsize: int  # Font size for number digits (-1 = follow legend3)
+    legend3_text_fontsize: int  # Font size for label text (-1 = follow legend3)
     # Positioning parameters for fine-grained control
     ylabel_pad: float  # Padding between Y-axis label and tick labels (default 10)
     ylabel_y_position: float  # Vertical position of Y-axis label (0=bottom, 0.5=center, 1=top)
+    y2label_pad: float  # Padding for secondary Y-axis label (-1 = follow primary)
+    y2tick_pad: float  # Padding for secondary Y-axis tick labels (-1 = follow primary)
     xtick_pad: float  # Padding between X-axis tick labels and axis (default 5)
     ytick_pad: float  # Padding between Y-axis tick labels and axis (default 5)
     group_label_offset: float  # Vertical offset for grouping labels (default -0.12)

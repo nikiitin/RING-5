@@ -61,7 +61,7 @@ class TestMixerRender:
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
-        mock_st.radio.return_value = "Numerical Operations"
+        mock_st.segmented_control.return_value = "Numerical Operations"
         mock_st.multiselect.return_value = ["cycles", "instructions"]
         mock_st.selectbox.return_value = "Sum"
         mock_st.text_input.return_value = "total"
@@ -70,7 +70,7 @@ class TestMixerRender:
 
         mgr = MixerManager(mock_api)
         mgr.render()
-        mock_st.radio.assert_called()
+        mock_st.segmented_control.assert_called()
 
     @patch("src.web.pages.ui.data_managers.impl.mixer.HistoryComponents")
     @patch("src.web.pages.ui.data_managers.impl.mixer.st")
@@ -81,7 +81,7 @@ class TestMixerRender:
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
-        mock_st.radio.return_value = "Configuration Merge"
+        mock_st.segmented_control.return_value = "Configuration Merge"
         mock_st.multiselect.return_value = ["benchmark"]
         mock_st.selectbox.return_value = "Concatenate"
         mock_st.text_input.side_effect = ["_", "concat_benchmark"]  # separator, col name
@@ -107,7 +107,7 @@ class TestMixerRender:
         mock_api.managers.validate_merge_inputs.return_value = []
         mock_api.managers.apply_mixer.return_value = result_df
         mock_st.columns.side_effect = _columns_side_effect
-        mock_st.radio.return_value = "Numerical Operations"
+        mock_st.segmented_control.return_value = "Numerical Operations"
         mock_st.multiselect.return_value = ["cycles", "instructions"]
         mock_st.selectbox.return_value = "Sum"
         mock_st.text_input.return_value = "total"
@@ -134,7 +134,7 @@ class TestMixerRender:
         mock_api.managers.validate_merge_inputs.return_value = []
         mock_api.managers.apply_mixer.return_value = result_df
         mock_st.columns.side_effect = _columns_side_effect
-        mock_st.radio.return_value = "Numerical Operations"
+        mock_st.segmented_control.return_value = "Numerical Operations"
         mock_st.multiselect.return_value = ["cycles", "instructions"]
         mock_st.selectbox.return_value = "Sum"
         mock_st.text_input.return_value = "total"
@@ -155,7 +155,7 @@ class TestMixerRender:
         mock_api.state_manager.get_data.return_value = sample_df
         mock_api.managers.validate_merge_inputs.return_value = ["Select at least 2 columns"]
         mock_st.columns.side_effect = _columns_side_effect
-        mock_st.radio.return_value = "Numerical Operations"
+        mock_st.segmented_control.return_value = "Numerical Operations"
         mock_st.multiselect.return_value = ["cycles"]
         mock_st.selectbox.return_value = "Sum"
         mock_st.text_input.return_value = "total"
@@ -177,7 +177,7 @@ class TestMixerRender:
         mock_api.managers.validate_merge_inputs.return_value = []
         mock_api.managers.apply_mixer.side_effect = ValueError("Cannot merge")
         mock_st.columns.side_effect = _columns_side_effect
-        mock_st.radio.return_value = "Numerical Operations"
+        mock_st.segmented_control.return_value = "Numerical Operations"
         mock_st.multiselect.return_value = ["cycles", "instructions"]
         mock_st.selectbox.return_value = "Sum"
         mock_st.text_input.return_value = "total"
@@ -186,7 +186,7 @@ class TestMixerRender:
 
         mgr = MixerManager(mock_api)
         mgr.render()
-        mock_st.error.assert_called()
+        mock_st.exception.assert_called()
 
     @patch("src.web.pages.ui.data_managers.impl.mixer.HistoryComponents")
     @patch("src.web.pages.ui.data_managers.impl.mixer.st")
@@ -201,7 +201,7 @@ class TestMixerRender:
         mock_api.has_preview.return_value = True
         mock_api.get_preview.return_value = merged
         mock_st.columns.side_effect = _columns_side_effect
-        mock_st.radio.return_value = "Numerical Operations"
+        mock_st.segmented_control.return_value = "Numerical Operations"
         mock_st.multiselect.return_value = ["cycles", "instructions"]
         mock_st.selectbox.return_value = "Sum"
         mock_st.text_input.return_value = "total"
@@ -223,7 +223,7 @@ class TestMixerRender:
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
-        mock_st.radio.return_value = "Configuration Merge"
+        mock_st.segmented_control.return_value = "Configuration Merge"
         mock_st.multiselect.return_value = ["benchmark"]
         mock_st.selectbox.return_value = "Concatenate"
         mock_st.text_input.side_effect = ["_", "concat_col"]
@@ -248,7 +248,7 @@ class TestMixerRender:
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
-        mock_st.radio.return_value = "Numerical Operations"
+        mock_st.segmented_control.return_value = "Numerical Operations"
         mock_st.multiselect.return_value = ["cycles", "instructions"]
         mock_st.selectbox.return_value = "Sum"
         mock_st.text_input.return_value = "total"
@@ -273,7 +273,7 @@ class TestMixerRender:
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
-        mock_st.radio.return_value = "Numerical Operations"
+        mock_st.segmented_control.return_value = "Numerical Operations"
         mock_st.multiselect.return_value = []
         mock_st.selectbox.return_value = "Sum"
         mock_st.text_input.return_value = "total"
@@ -299,7 +299,7 @@ class TestMixerRender:
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
-        mock_st.radio.return_value = "Numerical Operations"
+        mock_st.segmented_control.return_value = "Numerical Operations"
         mock_st.multiselect.return_value = []  # No cols selected → fallback name
         mock_st.selectbox.return_value = "Sum"
         mock_st.text_input.return_value = "sum_merged"

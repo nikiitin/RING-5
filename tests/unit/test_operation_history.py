@@ -90,10 +90,10 @@ class TestHistoryRepository:
         assert len(history) == 1
         assert history[0] == record
 
-    def test_manager_history_max_20(self) -> None:
-        """Manager history is capped at 20 entries (FIFO)."""
+    def test_manager_history_max_10(self) -> None:
+        """Manager history is capped at 10 entries (FIFO)."""
         repo = HistoryRepository()
-        for i in range(25):
+        for i in range(15):
             repo.add_manager_record(
                 {
                     "source_columns": [f"src_{i}"],
@@ -103,10 +103,10 @@ class TestHistoryRepository:
                 }
             )
         history = repo.get_manager_history()
-        assert len(history) == 20
+        assert len(history) == 10
         # Oldest (0-4) should have been evicted; 5 is the oldest remaining
         assert history[0]["operation"] == "op_5"
-        assert history[-1]["operation"] == "op_24"
+        assert history[-1]["operation"] == "op_14"
 
     def test_portfolio_history_unlimited(self) -> None:
         """Portfolio history has no cap — it stores all operations."""

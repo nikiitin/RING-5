@@ -203,6 +203,36 @@ class LayoutExtractor:
 
         return None
 
+    def _detect_ylabel2_from_annotation(self, annotations: Tuple[Any, ...]) -> Optional[str]:
+        """
+        Detect if secondary Y-axis label is stored as annotation.
+
+        In dual-axis plots the right Y-axis title is rendered as an
+        annotation with ``textangle=90`` positioned near ``x=1.0``.
+
+        Args:
+            annotations: Tuple of Plotly annotation objects
+
+        Returns:
+            Secondary Y-axis label text if found, None otherwise
+        """
+        if not annotations:
+            return None
+
+        for ann in annotations:
+            if (
+                hasattr(ann, "textangle")
+                and ann.textangle is not None
+                and abs(ann.textangle - 90) < 1  # textangle close to 90
+                and hasattr(ann, "xref")
+                and ann.xref == "paper"
+                and ann.x is not None
+                and ann.x > 0.9  # Near right edge
+            ):
+                return str(ann.text)
+
+        return None
+
     def _extract_annotations(self, layout: go.Layout) -> Dict[str, Any]:
         """
         Extract annotations with coordinate reference info.
@@ -214,7 +244,7 @@ class LayoutExtractor:
             layout: Plotly layout object
 
         Returns:
-            Dictionary with annotations list and potentially y_label
+            Dictionary with annotations list and potentially y_label / y2_label
         """
         result: Dict[str, Any] = {}
 
@@ -223,23 +253,33 @@ class LayoutExtractor:
         if layout.yaxis.title is not None and layout.yaxis.title.text:
             y_label_text = layout.yaxis.title.text
 
-        # Check if y-axis label is stored as annotation
-        y_label_from_annotation = self._detect_ylabel_from_annotation(
-            layout.annotations if layout.annotations else ()
-        )
+        raw_annotations: Tuple[Any, ...] = layout.annotations if layout.annotations else ()
+
+        # Check if y-axis labels are stored as annotations
+        y_label_from_annotation = self._detect_ylabel_from_annotation(raw_annotations)
+        y2_label_from_annotation = self._detect_ylabel2_from_annotation(raw_annotations)
 
         if y_label_from_annotation:
             y_label_text = y_label_from_annotation
-            # If no yaxis.title but found annotation, use it as y_label
-            if "y_label" not in result and not layout.yaxis.title:
-                result["y_label"] = y_label_from_annotation
+            # Annotation-based y_label overwrites empty/missing native title
+            result["y_label"] = y_label_from_annotation
+
+        if y2_label_from_annotation:
+            result["y2_label"] = y2_label_from_annotation
+
+        # Build a set of label texts to filter from the general list
+        label_texts_to_skip: set[str] = set()
+        if y_label_text:
+            label_texts_to_skip.add(y_label_text.strip())
+        if y2_label_from_annotation:
+            label_texts_to_skip.add(y2_label_from_annotation.strip())
 
         # Extract annotations with full coordinate reference info
         if layout.annotations:
             annotations: List[Dict[str, Any]] = []
             for ann in layout.annotations:
                 # Skip annotations that are Y-axis labels
-                if y_label_text and ann.text and ann.text.strip() == y_label_text.strip():
+                if ann.text and ann.text.strip() in label_texts_to_skip:
                     continue
 
                 ann_dict: Dict[str, Any] = {

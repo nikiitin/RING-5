@@ -62,7 +62,7 @@ def test_variable_config_dialog_manual_entry_scalar(components_bundle, mock_api)
     mock_streamlit, DataSourceComponents = components_bundle
 
     # Interaction parameters.
-    mock_streamlit.radio.return_value = "Manual Entry"
+    mock_streamlit.pills.return_value = "Manual Entry"
     mock_streamlit.text_input.return_value = "my_var"
     mock_streamlit.selectbox.return_value = "scalar"
     mock_streamlit.button.return_value = True
@@ -77,7 +77,7 @@ def test_variable_config_dialog_manual_entry_scalar(components_bundle, mock_api)
     assert new_vars[0]["name"] == "my_var"
     assert new_vars[0]["type"] == "scalar"
 
-    mock_streamlit.success.assert_called()
+    mock_streamlit.toast.assert_called()
     mock_streamlit.rerun.assert_called()
 
 
@@ -85,12 +85,13 @@ def test_variable_config_dialog_manual_entry_vector(components_bundle, mock_api)
     """Test manual entry of a vector variable."""
     mock_streamlit, DataSourceComponents = components_bundle
 
-    # Radio order: method selection, parse_mode, entry_mode
-    mock_streamlit.radio.side_effect = [
+    # Pills: method selection ("Manual Entry") + entry_mode ("Manual Entry Names")
+    # Segmented_control: parse_mode ("Entries Only")
+    mock_streamlit.pills.side_effect = [
         "Manual Entry",
-        "Entries Only",
         "Manual Entry Names",
     ]
+    mock_streamlit.segmented_control.return_value = "Entries Only"
 
     mock_streamlit.text_input.side_effect = ["vec", "cpu0"]
 
@@ -120,7 +121,7 @@ def test_variable_config_dialog_search_scanned(components_bundle, mock_api):
     ]
     mock_api.state_manager.get_scanned_variables.return_value = scanned
 
-    mock_streamlit.radio.return_value = "Search Scanned Variables"
+    mock_streamlit.pills.return_value = "Search Scanned Variables"
     mock_streamlit.selectbox.side_effect = [0]
     mock_streamlit.text_input.return_value = "IPC"
     mock_streamlit.button.return_value = True
@@ -139,7 +140,7 @@ def test_variable_config_dialog_validation_fail(components_bundle, mock_api):
     """Test validation failure (no name)."""
     mock_streamlit, DataSourceComponents = components_bundle
 
-    mock_streamlit.radio.return_value = "Manual Entry"
+    mock_streamlit.pills.return_value = "Manual Entry"
     mock_streamlit.text_input.return_value = ""  # Empty name
     mock_streamlit.selectbox.return_value = "scalar"
     mock_streamlit.button.return_value = True

@@ -150,7 +150,7 @@ class OutlierRemoverManager(DataManager):
                 self.api.set_preview("outlier_removal", filtered_df)
 
             except Exception as e:
-                st.error(f"Error applying Outlier Remover: {e}")
+                st.exception(e)
 
         # Separate confirmation button outside the first button's scope
         if self.api.has_preview("outlier_removal"):
@@ -168,13 +168,13 @@ class OutlierRemoverManager(DataManager):
                         "timestamp": datetime.now(timezone.utc).isoformat(),
                     }
                     self.api.add_manager_history_record(record)
-                    st.success("✓ Outlier-filtered data is now active!")
+                    st.toast("✓ Outlier-filtered data is now active!", icon="✅")
                     st.rerun()
 
-        # Show this manager's history
+        # Show manager-specific history with Load / Delete
         HistoryComponents.render_manager_history(
             self.api.get_manager_history(),
-            "Outlier Removal",
+            "Outlier",
             "_outlier_load",
             self.api.remove_manager_history_record,
         )

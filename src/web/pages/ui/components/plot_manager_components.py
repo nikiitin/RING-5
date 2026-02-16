@@ -15,6 +15,7 @@ from src.core.services.shapers.factory import ShaperFactory
 from src.web.pages.ui.plotting import BasePlot, PlotFactory, PlotRenderer
 from src.web.pages.ui.plotting.plot_service import PlotService
 from src.web.pages.ui.shaper_config import apply_shapers, configure_shaper
+from src.web.state.ui_state_manager import UIStateManager
 
 logger = logging.getLogger(__name__)
 
@@ -61,8 +62,9 @@ class PlotManagerComponents:
                     default_index = i
                     break
 
-        selected_name = st.radio(
-            "Select Plot", plot_names, horizontal=True, index=default_index, key="plot_selector"
+        default_name = plot_names[default_index] if plot_names else None
+        selected_name = st.pills(
+            "Select Plot", plot_names, default=default_name, key="plot_selector"
         )
 
         # Update current ID based on selection
@@ -75,6 +77,7 @@ class PlotManagerComponents:
     @staticmethod
     def render_plot_controls(api: ApplicationAPI, plot: BasePlot) -> None:
         """Render controls for renaming and managing the current plot."""
+        ui = UIStateManager()
         col1, col2, col3, col4 = st.columns(4)
 
         with col1:
@@ -85,34 +88,50 @@ class PlotManagerComponents:
         with col2:
             c2_1, c2_2 = st.columns(2)
             with c2_1:
-                if st.button(
-                    "Save Pipe", key=f"save_plot_{plot.plot_id}", help="Save current pipeline"
-                ):
-                    st.session_state[f"show_save_for_plot_{plot.plot_id}"] = True
-                    st.session_state[f"show_load_for_plot_{plot.plot_id}"] = False
-                    st.rerun()
+
+                def _show_save_dialog() -> None:
+                    ui.plot.set_dialog_visible(plot.plot_id, "save", True)
+                    ui.plot.set_dialog_visible(plot.plot_id, "load", False)
+
+                st.button(
+                    "Save Pipe",
+                    key=f"save_plot_{plot.plot_id}",
+                    help="Save current pipeline",
+                    on_click=_show_save_dialog,
+                )
             with c2_2:
-                if st.button(
-                    "Load Pipe", key=f"load_plot_{plot.plot_id}", help="Load to current pipeline"
-                ):
-                    st.session_state[f"show_load_for_plot_{plot.plot_id}"] = True
-                    st.session_state[f"show_save_for_plot_{plot.plot_id}"] = False
-                    st.rerun()
+
+                def _show_load_dialog() -> None:
+                    ui.plot.set_dialog_visible(plot.plot_id, "load", True)
+                    ui.plot.set_dialog_visible(plot.plot_id, "save", False)
+
+                st.button(
+                    "Load Pipe",
+                    key=f"load_plot_{plot.plot_id}",
+                    help="Load to current pipeline",
+                    on_click=_show_load_dialog,
+                )
 
         with col3:
-            if st.button("Delete", key=f"delete_plot_{plot.plot_id}"):
-                PlotService.delete_plot(plot.plot_id, api.state_manager)
-                st.rerun()
+            st.button(
+                "Delete",
+                key=f"delete_plot_{plot.plot_id}",
+                on_click=lambda: PlotService.delete_plot(plot.plot_id, api.state_manager),
+                type="tertiary",
+            )
 
         with col4:
-            if st.button("Duplicate", key=f"dup_plot_{plot.plot_id}"):
-                PlotService.duplicate_plot(plot, api.state_manager)
-                st.rerun()
+            st.button(
+                "Duplicate",
+                key=f"dup_plot_{plot.plot_id}",
+                on_click=lambda: PlotService.duplicate_plot(plot, api.state_manager),
+                type="tertiary",
+            )
 
         # Dialogs
-        if st.session_state.get(f"show_save_for_plot_{plot.plot_id}", False):
+        if ui.plot.is_dialog_visible(plot.plot_id, "save"):
             PlotManagerComponents._render_save_pipeline_dialog(api, plot)
-        if st.session_state.get(f"show_load_for_plot_{plot.plot_id}", False):
+        if ui.plot.is_dialog_visible(plot.plot_id, "load"):
             PlotManagerComponents._render_load_pipeline_dialog(api, plot)
 
     @staticmethod
@@ -132,14 +151,18 @@ class PlotManagerComponents:
                     api.shapers.save_pipeline(
                         name, plot.pipeline, description=f"Source: {plot.name}"
                     )
-                    st.success("Pipeline saved!")
-                    st.session_state[f"show_save_for_plot_{plot.plot_id}"] = False
+                    st.toast("Pipeline saved!", icon="✅")
+                    st.session_state[f"plot.{plot.plot_id}.dialog.save"] = False
                     st.rerun()
                 except Exception as e:
-                    st.error(f"Error: {e}")
-            if st.button("Cancel", key=f"cancel_save_{plot.plot_id}"):
-                st.session_state[f"show_save_for_plot_{plot.plot_id}"] = False
-                st.rerun()
+                    st.exception(e)
+            st.button(
+                "Cancel",
+                key=f"cancel_save_{plot.plot_id}",
+                on_click=lambda: st.session_state.__setitem__(
+                    f"plot.{plot.plot_id}.dialog.save", False
+                ),
+            )
 
     @staticmethod
     def _render_load_pipeline_dialog(api: ApplicationAPI, plot: BasePlot) -> None:
@@ -148,9 +171,13 @@ class PlotManagerComponents:
         pipelines = api.shapers.list_pipelines()
         if not pipelines:
             st.warning("No saved pipelines found.")
-            if st.button("Close", key=f"close_load_{plot.plot_id}"):
-                st.session_state[f"show_load_for_plot_{plot.plot_id}"] = False
-                st.rerun()
+            st.button(
+                "Close",
+                key=f"close_load_{plot.plot_id}",
+                on_click=lambda: st.session_state.__setitem__(
+                    f"plot.{plot.plot_id}.dialog.load", False
+                ),
+            )
             return
 
         selected = st.selectbox("Select Pipeline", pipelines, key=f"load_p_sel_{plot.plot_id}")
@@ -165,11 +192,11 @@ class PlotManagerComponents:
                 plot.pipeline = steps
                 plot.pipeline_counter = counter
                 plot.processed_data = None  # Reset data
-                st.success("Pipeline loaded!")
-                st.session_state[f"show_load_for_plot_{plot.plot_id}"] = False
+                st.toast("Pipeline loaded!", icon="✅")
+                st.session_state[f"plot.{plot.plot_id}.dialog.load"] = False
                 st.rerun()
             except Exception as e:
-                st.error(f"Error loading: {e}")
+                st.exception(e)
                 logger.error(
                     "PLOT: Failed to load pipeline for plot %r: %s",
                     str(plot.name).replace("\n", ""),
@@ -177,9 +204,13 @@ class PlotManagerComponents:
                     exc_info=True,
                 )
 
-        if st.button("Cancel", key=f"cancel_load_{plot.plot_id}"):
-            st.session_state[f"show_load_for_plot_{plot.plot_id}"] = False
-            st.rerun()
+        st.button(
+            "Cancel",
+            key=f"cancel_load_{plot.plot_id}",
+            on_click=lambda: st.session_state.__setitem__(
+                f"plot.{plot.plot_id}.dialog.load", False
+            ),
+        )
 
     @staticmethod
     def render_pipeline_editor(api: ApplicationAPI, plot: BasePlot) -> None:
@@ -231,7 +262,9 @@ class PlotManagerComponents:
                         )
 
                     with c2:
-                        if idx > 0 and st.button("Up", key=f"up_{plot.plot_id}_{idx}"):
+                        if idx > 0 and st.button(
+                            "Up", key=f"up_{plot.plot_id}_{idx}", type="tertiary"
+                        ):
                             plot.pipeline[idx], plot.pipeline[idx - 1] = (
                                 plot.pipeline[idx - 1],
                                 plot.pipeline[idx],
@@ -239,7 +272,7 @@ class PlotManagerComponents:
                             st.rerun()
                     with c3:
                         if idx < len(plot.pipeline) - 1 and st.button(
-                            "Down", key=f"down_{plot.plot_id}_{idx}"
+                            "Down", key=f"down_{plot.plot_id}_{idx}", type="tertiary"
                         ):
                             plot.pipeline[idx], plot.pipeline[idx + 1] = (
                                 plot.pipeline[idx + 1],
@@ -247,7 +280,7 @@ class PlotManagerComponents:
                             )
                             st.rerun()
                     with c4:
-                        if st.button("Del", key=f"del_{plot.plot_id}_{idx}"):
+                        if st.button("Del", key=f"del_{plot.plot_id}_{idx}", type="tertiary"):
                             plot.pipeline.pop(idx)
                             st.rerun()
 
@@ -257,7 +290,7 @@ class PlotManagerComponents:
                             out = apply_shapers(inp, [shaper["config"]])
                             st.dataframe(out.head(5))
                         except Exception as e:
-                            st.error(f"Preview error: {e}")
+                            st.exception(e)
                             logger.error(
                                 "PIPELINE: Preview failure for shaper index %d in plot %r: %s",
                                 idx,
@@ -281,7 +314,7 @@ class PlotManagerComponents:
                     st.success(f"Pipeline applied! Shape: {processed.shape}")
                     st.dataframe(processed.head(10))
                 except Exception as e:
-                    st.error(f"Error: {e}")
+                    st.exception(e)
 
     @staticmethod
     def render_plot_display(api: ApplicationAPI, plot: BasePlot) -> None:
@@ -339,12 +372,13 @@ class PlotManagerComponents:
 
         r1, r2 = st.columns([1, 3])
         with r1:
+            ui = UIStateManager()
             auto = st.toggle(
                 "Auto-refresh",
-                value=st.session_state.get(f"auto_{plot.plot_id}", True),
+                value=ui.plot.get_auto_refresh(plot.plot_id),
                 key=f"auto_t_{plot.plot_id}",
             )
-            st.session_state[f"auto_{plot.plot_id}"] = auto
+            ui.plot.set_auto_refresh(plot.plot_id, auto)
         with r2:
             manual = st.button("Refresh Plot", key=f"refresh_{plot.plot_id}", width="stretch")
 
@@ -366,9 +400,10 @@ class PlotManagerComponents:
 
         ec1, ec2, ec3 = st.columns([2, 1, 1])
         with ec1:
+            ui = UIStateManager()
             export_path = st.text_input(
                 "Local Export Path",
-                value=st.session_state.get("last_export_path", ""),
+                value=ui.export.get_last_export_path(),
                 placeholder="/absolute/path/to/folder",
                 key="export_path_input",
             )
@@ -389,7 +424,7 @@ class PlotManagerComponents:
                     st.error("Please provide a path.")
                     logger.warning("EXPORT: Attempted export without providing path.")
                 else:
-                    st.session_state["last_export_path"] = export_path
+                    UIStateManager().export.set_last_export_path(export_path)
                     plots = api.state_manager.get_plots()
                     if not plots:
                         st.warning("No plots to export.")
@@ -401,22 +436,38 @@ class PlotManagerComponents:
                         if export_fmt_override != "Keep Individual":
                             fmt_arg = export_fmt_override
 
-                        progress = st.progress(0)
-                        for i, p in enumerate(plots):
-                            try:
-                                fmt_to_use = fmt_arg if fmt_arg else "png"
-                                res = PlotService.export_plot_to_file(
-                                    p, export_path, format=fmt_to_use  # type: ignore[arg-type]
-                                )
-                                if res:
-                                    count += 1
-                            except Exception as exc:
-                                errors.append(f"{p.name}: {exc}")
-                            progress.progress((i + 1) / len(plots))
+                        with st.status(f"Exporting {len(plots)} plots...", expanded=True) as status:
+                            for i, p in enumerate(plots):
+                                try:
+                                    fmt_to_use = fmt_arg if fmt_arg else "png"
+                                    st.write(
+                                        f"Exporting **{p.name}** " f"({i + 1}/{len(plots)})..."
+                                    )
+                                    res = PlotService.export_plot_to_file(
+                                        p, export_path, format=fmt_to_use  # type: ignore[arg-type]
+                                    )
+                                    if res:
+                                        count += 1
+                                except Exception as exc:
+                                    errors.append(f"{p.name}: {exc}")
 
-                        progress.empty()
+                            if errors:
+                                status.update(
+                                    label=f"Exported {count} plots ({len(errors)} errors)",
+                                    state="error",
+                                    expanded=True,
+                                )
+                            else:
+                                status.update(
+                                    label=f"Exported {count} plots to '{export_path}'",
+                                    state="complete",
+                                    expanded=False,
+                                )
+
                         if count > 0:
-                            st.success(f"Successfully exported {count} plots to '{export_path}'")
+                            st.toast(
+                                f"Successfully exported {count} plots to '{export_path}'", icon="✅"
+                            )
                         if errors:
                             st.error(f"Failed to export {len(errors)} plots.")
                             logger.error("EXPORT: Failed to export some plots. Errors: %s", errors)
@@ -432,4 +483,4 @@ class PlotManagerComponents:
         with c2:
             if st.button("Save Entire Workspace", width="stretch"):
                 # Sync state confirmation
-                st.success("Workspace state synchronized.")
+                st.toast("Workspace state synchronized.", icon="✅")

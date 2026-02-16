@@ -38,7 +38,7 @@ class LoadDialogPresenter:
         st.markdown("---")
         st.markdown("### Load Pipeline")
         st.warning("No saved pipelines found.")
-        close_clicked: bool = st.button("Close", key=f"close_load_{plot_id}")
+        close_clicked: bool = st.button("Close", key=f"close_load_{plot_id}", type="tertiary")
         return {"close_clicked": close_clicked}
 
     @staticmethod
@@ -69,7 +69,7 @@ class LoadDialogPresenter:
         )
 
         load_clicked: bool = st.button("Load", type="primary", key=f"load_p_btn_{plot_id}")
-        cancel_clicked: bool = st.button("Cancel", key=f"cancel_load_{plot_id}")
+        cancel_clicked: bool = st.button("Cancel", key=f"cancel_load_{plot_id}", type="tertiary")
 
         return {
             "selected_pipeline": selected,

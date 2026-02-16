@@ -36,7 +36,6 @@ class LayoutComponents:
                 "Navigation",
                 [
                     "Data Source",
-                    "Upload Data",
                     "Data Managers",
                     "Configure Pipeline",
                     "Generate Plots",

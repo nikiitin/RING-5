@@ -118,7 +118,7 @@ class PreprocessorManager(DataManager):
                 self.api.set_preview("preprocessor", preview_data)
 
             except Exception as e:
-                st.error(f"Error creating column: {e}")
+                st.exception(e)
 
         # Separate confirmation button outside the first button's scope
         if self.api.has_preview("preprocessor"):
@@ -136,10 +136,10 @@ class PreprocessorManager(DataManager):
                         "timestamp": datetime.now(timezone.utc).isoformat(),
                     }
                     self.api.add_manager_history_record(record)
-                    st.success("✓ Column added to dataset!")
+                    st.toast("✓ Column added to dataset!", icon="✅")
                     st.rerun()
 
-        # Show this manager's history
+        # Show manager-specific history with Load / Delete
         HistoryComponents.render_manager_history(
             self.api.get_manager_history(),
             "Preprocessor",

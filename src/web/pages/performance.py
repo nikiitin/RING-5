@@ -32,10 +32,10 @@ def render_performance_page(api: ApplicationAPI) -> None:
         st.subheader("Plot Figure Cache")
         plot_stats = stats.get("plot_cache", {})
 
-        st.metric("Cache Hits", plot_stats.get("hits", 0))
-        st.metric("Cache Misses", plot_stats.get("misses", 0))
-        st.metric("Hit Rate", f"{plot_stats.get('hit_rate', 0):.1f}%")
-        st.metric("Cached Figures", plot_stats.get("size", 0))
+        st.metric("Cache Hits", plot_stats.get("hits", 0), border=True)
+        st.metric("Cache Misses", plot_stats.get("misses", 0), border=True)
+        st.metric("Hit Rate", f"{plot_stats.get('hit_rate', 0):.1f}%", border=True)
+        st.metric("Cached Figures", plot_stats.get("size", 0), border=True)
 
         # Interpretation
         hit_rate = plot_stats.get("hit_rate", 0)
@@ -51,13 +51,13 @@ def render_performance_page(api: ApplicationAPI) -> None:
 
         # Metadata cache
         meta_stats = csv_stats.get("metadata_cache", {})
-        st.metric("Metadata Hits", meta_stats.get("hits", 0))
-        st.metric("Metadata Misses", meta_stats.get("misses", 0))
-        st.metric("Meta Hit Rate", f"{meta_stats.get('hit_rate', 0):.1f}%")
+        st.metric("Metadata Hits", meta_stats.get("hits", 0), border=True)
+        st.metric("Metadata Misses", meta_stats.get("misses", 0), border=True)
+        st.metric("Meta Hit Rate", f"{meta_stats.get('hit_rate', 0):.1f}%", border=True)
 
         # DataFrame cache
         df_stats = csv_stats.get("dataframe_cache", {})
-        st.metric("Cached DataFrames", df_stats.get("size", 0))
+        st.metric("Cached DataFrames", df_stats.get("size", 0), border=True)
 
     with col3:
         st.subheader("Cache Management")
@@ -69,11 +69,12 @@ def render_performance_page(api: ApplicationAPI) -> None:
         - TTL: 5-10 minutes
         """)
 
-        if st.button("Clear All Caches", type="primary"):
+        def _clear_caches() -> None:
             clear_all_caches()
             api.data_services.clear_caches()
-            st.success("All caches cleared!")
-            st.rerun()
+
+        if st.button("Clear All Caches", type="primary", on_click=_clear_caches):
+            st.toast("All caches cleared!", icon="🗑️")
 
     st.markdown("---")
 
@@ -85,17 +86,17 @@ def render_performance_page(api: ApplicationAPI) -> None:
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        st.metric("Total Keys", len(session_keys))
+        st.metric("Total Keys", len(session_keys), border=True)
 
     with col2:
         # Count plot objects
         plots = api.state_manager.get_plots()
-        st.metric("Plot Objects", len(plots))
+        st.metric("Plot Objects", len(plots), border=True)
 
     with col3:
         # Check for data
         has_data = api.state_manager.has_data()
-        st.metric("Data Loaded", "Yes" if has_data else "No")
+        st.metric("Data Loaded", "Yes" if has_data else "No", border=True)
 
     # Show all keys in expander
     with st.expander("Show All Session Keys"):

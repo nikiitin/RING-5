@@ -8,6 +8,14 @@ Handles:
     - Finalizing the pipeline (applying all shapers to raw data)
 
 Dependencies are injected via protocols (no concrete imports from pages.ui).
+
+Architecture Note — Streamlit usage:
+    This controller uses ``st.rerun()`` for flow control after state mutations
+    (add/remove/reorder steps) and ``st.exception()`` for error handling.
+    These are intentional: ``st.rerun()`` is a Streamlit-specific flow control
+    mechanism (halts execution), and ``st.exception()`` renders full tracebacks
+    for debugging. Presentation-only calls (warnings, toasts) are delegated
+    to the presenter layer.
 """
 
 import logging
@@ -70,7 +78,7 @@ class PipelineController:
 
         raw_data: Optional[pd.DataFrame] = self._api.state_manager.get_data()
         if raw_data is None:
-            st.warning("Please upload data first!")
+            PipelinePresenter.render_no_data_warning()
             return
 
         # 1. Add shaper (via presenter)
@@ -126,7 +134,7 @@ class PipelineController:
                 )
             except Exception as e:
                 # Show error but keep rendering subsequent steps
-                st.error(f"Step {idx + 1} error: {e}")
+                st.exception(e)
                 logger.error(
                     "PIPELINE: Step %d crashed in plot %r: %s",
                     idx,

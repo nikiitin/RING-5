@@ -18,21 +18,21 @@ class TestUISanity:
         assert len(at.markdown) > 0 or len(at.title) > 0  # Verify content exists
 
     def test_navigation_sidebar(self):
-        """Test that navigation sidebar is present."""
+        """Test that navigation sidebar has nav buttons."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
 
-        assert len(at.sidebar.radio) > 0
-        nav = at.sidebar.radio[0]
-        assert "Data Source" in nav.options
-        assert "Manage Plots" in nav.options
+        nav_labels = [b.label for b in at.sidebar.button]
+        assert any("Data Source" in label for label in nav_labels)
+        assert any("Manage Plots" in label for label in nav_labels)
 
     def test_manage_plots_page_load(self):
         """Test loading the Manage Plots page."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
 
-        at.sidebar.radio[0].set_value("Manage Plots").run()
+        at.session_state["_nav_page"] = "Manage Plots"
+        at.run()
 
         assert not at.exception
         assert len(at.markdown) > 0 or len(at.header) > 0  # Verify content exists

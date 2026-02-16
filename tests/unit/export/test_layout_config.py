@@ -22,13 +22,22 @@ class TestFontStyleConfig:
         assert config.font_size_title == 10
         assert config.font_size_xlabel == 9
         assert config.font_size_ylabel == 9
+        assert config.font_size_y2label == -1
         assert config.font_size_ticks == 7
+        assert config.font_size_y2ticks == -1
         assert config.font_size_annotations == 6
+        assert config.font_size_legend == 8
+        assert config.font_size_legend2 == -1
+        assert config.font_size_legend3 == -1
         assert config.bold_title is False
         assert config.bold_xlabel is False
         assert config.bold_ylabel is False
+        assert config.bold_y2label is False
         assert config.bold_ticks is False
         assert config.bold_annotations is True  # Bold by default
+        assert config.bold_legend is False
+        assert config.bold_legend2 is False
+        assert config.bold_legend3 is False
 
     def test_custom_values(self) -> None:
         """Verify can set custom font sizes and bold flags."""
@@ -78,6 +87,8 @@ class TestPositioningConfig:
 
         assert config.ylabel_pad == 10.0
         assert config.ylabel_y_position == 0.5
+        assert config.y2label_pad == -1.0
+        assert config.y2tick_pad == -1.0
         assert config.xtick_pad == 5.0
         assert config.ytick_pad == 5.0
         assert config.xtick_rotation == 45.0

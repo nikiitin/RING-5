@@ -205,16 +205,17 @@ def create_app_with_data(df: Optional[pd.DataFrame] = None) -> AppTest:
 
 
 def navigate_to(at: AppTest, page_name: str) -> AppTest:
-    """Navigate to a specific page via sidebar radio.
+    """Navigate to a specific page via sidebar navigation buttons.
 
     Args:
         at: The AppTest instance.
-        page_name: Exact page name from the sidebar radio options.
+        page_name: Exact page name matching a sidebar nav button label.
 
     Returns:
         The same AppTest instance after navigation and re-run.
     """
-    at.sidebar.radio[0].set_value(page_name).run()
+    at.session_state["_nav_page"] = page_name
+    at.run()
     return at
 
 

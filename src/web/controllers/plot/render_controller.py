@@ -8,6 +8,11 @@ Handles:
     - Plot type changes via PlotLifecycleService
 
 Dependencies are injected via protocols (no concrete imports from pages.ui).
+
+Architecture Note — Streamlit usage:
+    This controller uses ``st.rerun()`` after plot type changes (flow control)
+    and ``st.exception()`` for config rendering errors. Presentation-only calls
+    (warnings, labels) are delegated to the presenter layer.
 """
 
 import logging
@@ -119,7 +124,7 @@ class PlotRenderController:
             )
             current_config.update(ui_config)
         except Exception as e:
-            st.error(f"Configuration error: {e}")
+            st.exception(e)
             logger.error(
                 "RENDER: Type config failed for plot %r: %s",
                 str(plot.name).replace("\n", ""),
@@ -137,7 +142,7 @@ class PlotRenderController:
             )
             current_config.update(extra_config)
         except Exception as e:
-            st.error(f"Advanced options error: {e}")
+            st.exception(e)
             logger.error(
                 "RENDER: Advanced config failed for plot %r: %s",
                 str(plot.name).replace("\n", ""),

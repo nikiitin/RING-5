@@ -132,8 +132,7 @@ def configure_shaper(
             return config
         except Exception as e:
             # UI component itself threw an error (not config validation)
-            error_msg = f"Error rendering {shaper_type} configuration: {str(e)}"
-            st.error(error_msg)
+            st.exception(e)
             logger.error(f"UI: Configuration UI failed for {shaper_type}: {e}", exc_info=True)
             return {"type": shaper_type}  # Return minimal config so UI doesn't break
 
@@ -209,7 +208,7 @@ def apply_shapers(data: pd.DataFrame, shapers_config: List[Dict[str, Any]]) -> p
             error_msg = (
                 f"❌ Pipeline step {idx + 1} ({shaper_type}): " f"Transformation failed - {str(e)}"
             )
-            st.error(error_msg)
+            st.exception(e)
             logger.error(f"PIPELINE: Transformation failed for {shaper_type}: {e}", exc_info=True)
             raise e  # Reraise to halt pipeline
 

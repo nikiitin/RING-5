@@ -87,8 +87,10 @@ def test_render_plot_controls_delete(mock_streamlit, mock_api, mock_plot_service
     mock_streamlit.columns.return_value = cols
     mock_streamlit.text_input.return_value = "To Delete"
 
-    def button_side_effect(label, key=None, **kwargs):
+    def button_side_effect(label, key=None, on_click=None, **kwargs):
         if key == f"delete_plot_{plot.plot_id}":
+            if on_click:
+                on_click()
             return True
         return False
 
@@ -97,7 +99,6 @@ def test_render_plot_controls_delete(mock_streamlit, mock_api, mock_plot_service
     PlotManagerComponents.render_plot_controls(mock_api, plot)
 
     mock_plot_service.delete_plot.assert_called_once_with(1, mock_api.state_manager)
-    mock_streamlit.rerun.assert_called_once()
 
 
 def test_pipeline_editor_add_shaper(mock_streamlit, mock_api):

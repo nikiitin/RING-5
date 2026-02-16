@@ -196,7 +196,7 @@ class TestPreprocessorRender:
 
         mgr = PreprocessorManager(mock_api)
         mgr.render()
-        mock_st.error.assert_called()
+        mock_st.exception.assert_called()
 
     @patch("src.web.pages.ui.data_managers.impl.preprocessor.HistoryComponents")
     @patch("src.web.pages.ui.data_managers.impl.preprocessor.st")

@@ -194,7 +194,7 @@ class TestSeedsReducerRender:
 
         mgr = SeedsReducerManager(mock_api)
         mgr.render()
-        mock_st.error.assert_called()
+        mock_st.exception.assert_called()
 
     @patch("src.web.pages.ui.data_managers.impl.seeds_reducer.HistoryComponents")
     @patch("src.web.pages.ui.data_managers.impl.seeds_reducer.st")

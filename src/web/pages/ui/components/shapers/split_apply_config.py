@@ -272,13 +272,18 @@ class SplitApplyConfig:
         # Add / Remove buttons
         bc1, bc2 = st.columns(2)
         with bc1:
-            if st.button("+ Add step", key=f"{key_base}_add"):
-                st.session_state[step_count_key] = num_steps + 1
-                st.rerun()
+            st.button(
+                "+ Add step",
+                key=f"{key_base}_add",
+                on_click=lambda: st.session_state.__setitem__(step_count_key, num_steps + 1),
+            )
         with bc2:
-            if num_steps > 0 and st.button("− Remove last", key=f"{key_base}_rem"):
-                st.session_state[step_count_key] = num_steps - 1
-                st.rerun()
+            if num_steps > 0:
+                st.button(
+                    "− Remove last",
+                    key=f"{key_base}_rem",
+                    on_click=lambda: st.session_state.__setitem__(step_count_key, num_steps - 1),
+                )
 
         return pipeline
 

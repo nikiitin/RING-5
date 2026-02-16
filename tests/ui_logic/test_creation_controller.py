@@ -130,8 +130,8 @@ class TestRenderSelector:
     """Tests for plot selection logic."""
 
     @patch("src.web.controllers.plot.creation_controller.st")
-    @patch("src.web.controllers.plot.creation_controller.PlotSelectorPresenter.render")
-    def test_no_plots_returns_none(self, mock_render: MagicMock, mock_st: MagicMock) -> None:
+    @patch("src.web.controllers.plot.creation_controller.PlotSelectorPresenter")
+    def test_no_plots_returns_none(self, mock_presenter: MagicMock, mock_st: MagicMock) -> None:
         """When no plots exist, returns None and shows a warning."""
         api = MagicMock()
         api.state_manager.get_plots.return_value = []
@@ -140,8 +140,7 @@ class TestRenderSelector:
         result = ctrl.render_selector()
 
         assert result is None
-        mock_st.warning.assert_called_once()
-        mock_render.assert_not_called()
+        mock_presenter.render_no_plots_warning.assert_called_once()
 
     @patch("src.web.controllers.plot.creation_controller.st")
     @patch("src.web.controllers.plot.creation_controller.PlotSelectorPresenter.render")
@@ -451,8 +450,8 @@ class TestHandleSaveDialog:
         ctrl = _make_controller(api=api)
         ctrl._handle_save_dialog(plot)
 
-        mock_st.error.assert_called_once()
-        assert "disk full" in str(mock_st.error.call_args)
+        mock_st.exception.assert_called_once()
+        assert "disk full" in str(mock_st.exception.call_args)
 
     @patch("src.web.controllers.plot.creation_controller.st")
     @patch("src.web.controllers.plot.creation_controller.SaveDialogPresenter.render")
@@ -590,7 +589,7 @@ class TestHandleLoadDialog:
         ctrl = _make_controller(api=api)
         ctrl._handle_load_dialog(plot)
 
-        mock_st.error.assert_called_once()
+        mock_st.exception.assert_called_once()
 
     @patch("src.web.controllers.plot.creation_controller.st")
     @patch("src.web.controllers.plot.creation_controller.LoadDialogPresenter.render")

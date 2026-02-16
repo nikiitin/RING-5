@@ -131,7 +131,7 @@ class VariableEditor:
             )
 
         with col4:
-            delete_clicked = st.button("X", key=f"delete_var_{var_id}")
+            delete_clicked = st.button("X", key=f"delete_var_{var_id}", type="tertiary")
 
         return var_name, var_alias, var_type, delete_clicked
 
@@ -203,21 +203,30 @@ class VariableEditor:
                     break
 
         # Parsing mode — always available: statistics, optionally bucket entries
-        parse_mode = st.radio(
+        hist_parse_options = [
+            "Statistics Only",
+            "Bucket Entries Only",
+            "Bucket Entries + Statistics",
+        ]
+        hist_default = (
+            hist_parse_options[0]
+            if original_var.get("statisticsOnly", True)
+            else (
+                hist_parse_options[1]
+                if not original_var.get("statistics", [])
+                else hist_parse_options[2]
+            )
+        )
+        parse_mode = st.segmented_control(
             "Parsing mode:",
-            options=["Statistics Only", "Bucket Entries Only", "Bucket Entries + Statistics"],
-            index=(
-                0
-                if original_var.get("statisticsOnly", True)
-                else 1 if not original_var.get("statistics", []) else 2
-            ),
+            options=hist_parse_options,
+            default=hist_default,
             key=f"hist_parse_mode_{var_id}",
             help=(
                 "Statistics Only: Parse mean, stdev, etc. without individual buckets. "
                 "Bucket Entries Only: Parse histogram bucket frequencies. "
                 "Bucket Entries + Statistics: Parse both."
             ),
-            horizontal=True,
         )
 
         wants_statistics = parse_mode in ("Statistics Only", "Bucket Entries + Statistics")
@@ -267,12 +276,11 @@ class VariableEditor:
             if discovered_entries:
                 entry_options.insert(0, "Select from Discovered Entries")
 
-            entry_mode = st.radio(
+            entry_mode = st.pills(
                 "How to specify histogram entries:",
                 options=entry_options,
-                index=0,
+                default=entry_options[0],
                 key=f"hist_entry_mode_{var_id}",
-                horizontal=True,
             )
 
             cls._handle_deep_scan(
@@ -324,31 +332,27 @@ class VariableEditor:
                     break
 
         # Parsing mode — always available: statistics, optionally entries
-        parse_mode = st.radio(
+        vec_parse_options = ["Statistics Only", "Entries Only", "Entries + Statistics"]
+        vec_default = (
+            vec_parse_options[0]
+            if original_var.get("statisticsOnly", False)
+            else (
+                vec_parse_options[1]
+                if not original_var.get("useSpecialMembers", False)
+                and not original_var.get("statisticsOnly", False)
+                else vec_parse_options[2]
+            )
+        )
+        parse_mode = st.segmented_control(
             "Parsing mode:",
-            options=["Statistics Only", "Entries Only", "Entries + Statistics"],
-            index=(
-                0
-                if original_var.get("statisticsOnly", False)
-                and original_var.get("useSpecialMembers", False)
-                else (
-                    0
-                    if original_var.get("statisticsOnly", False)
-                    else (
-                        1
-                        if not original_var.get("useSpecialMembers", False)
-                        and not original_var.get("statisticsOnly", False)
-                        else 2
-                    )
-                )
-            ),
+            options=vec_parse_options,
+            default=vec_default,
             key=f"vec_parse_mode_{var_id}",
             help=(
                 "Statistics Only: Parse total, mean, stdev, etc. without "
                 "individual entries. Entries Only: Parse selected entries. "
                 "Entries + Statistics: Parse both entries and statistics."
             ),
-            horizontal=True,
         )
 
         wants_statistics = parse_mode in ("Statistics Only", "Entries + Statistics")
@@ -366,12 +370,11 @@ class VariableEditor:
             if discovered_entries:
                 entry_options.insert(0, "Select from Discovered Entries")
 
-            entry_mode = st.radio(
+            entry_mode = st.pills(
                 "How to specify entries:",
                 options=entry_options,
-                index=0,
+                default=entry_options[0],
                 key=f"entry_mode_{var_id}",
-                horizontal=True,
             )
 
             cls._handle_deep_scan(
@@ -428,7 +431,7 @@ class VariableEditor:
                     futures = api.submit_scan_async(stats_path, stats_pattern, limit=-1)
                     cls._show_scan_dialog(api, var_name, var_id, futures, is_distribution)
                 except Exception as e:
-                    st.error(f"Failed to start scan: {e}")
+                    st.exception(e)
 
     @classmethod
     @st.dialog("Deep Scan", dismissible=True)
@@ -474,37 +477,56 @@ class VariableEditor:
             st.warning("No results found.")
             return
 
-        # Aggregate results
-        snapshot = api.finalize_scan(results)
+        # Aggregate results with status container
+        with st.status("Processing scan results...", expanded=True) as status:
+            st.write("Aggregating scan data...")
+            snapshot = api.finalize_scan(results)
 
-        # Process results based on type
-        if is_distribution:
-            global_min, global_max = api.data_services.aggregate_distribution_range(
-                snapshot, var_name
-            )
-
-            if global_min is not None or global_max is not None:
-                st.session_state[f"dist_range_result_{var_id}"] = {
-                    "minimum": global_min,
-                    "maximum": global_max,
-                }
-                st.success(f"Final Range: [{global_min}, {global_max}]")
-            else:
-                st.warning(f"No distribution data found matching '{var_name}'.")
-        else:
-            # Aggregate entries using VariableServicesAPI
-            filtered_entries = api.data_services.aggregate_discovered_entries(snapshot, var_name)
-
-            if filtered_entries:
-                scanned_vars = api.state_manager.get_scanned_variables() or []
-                # Delegate update logic to VariableService (Layer B)
-                updated_vars = api.data_services.update_scanned_entries(
-                    scanned_vars, var_name, filtered_entries
+            # Process results based on type
+            if is_distribution:
+                st.write("Computing distribution range...")
+                global_min, global_max = api.data_services.aggregate_distribution_range(
+                    snapshot, var_name
                 )
-                api.state_manager.set_scanned_variables(updated_vars)
-                st.success(f"Discovered {len(filtered_entries)} unique entries!")
+
+                if global_min is not None or global_max is not None:
+                    st.session_state[f"dist_range_result_{var_id}"] = {
+                        "minimum": global_min,
+                        "maximum": global_max,
+                    }
+                    status.update(
+                        label=f"Range found: [{global_min}, {global_max}]",
+                        state="complete",
+                        expanded=False,
+                    )
+                    st.success(f"Final Range: [{global_min}, {global_max}]")
+                else:
+                    status.update(label="No distribution data found", state="error")
+                    st.warning(f"No distribution data found matching '{var_name}'.")
             else:
-                st.warning(f"No valid entries found matching '{var_name}'.")
+                st.write("Discovering entries...")
+                # Aggregate entries using VariableServicesAPI
+                filtered_entries = api.data_services.aggregate_discovered_entries(
+                    snapshot, var_name
+                )
+
+                if filtered_entries:
+                    st.write(f"Updating {len(filtered_entries)} entries...")
+                    scanned_vars = api.state_manager.get_scanned_variables() or []
+                    # Delegate update logic to VariableService (Layer B)
+                    updated_vars = api.data_services.update_scanned_entries(
+                        scanned_vars, var_name, filtered_entries
+                    )
+                    api.state_manager.set_scanned_variables(updated_vars)
+                    status.update(
+                        label=f"Discovered {len(filtered_entries)} entries",
+                        state="complete",
+                        expanded=False,
+                    )
+                    st.success(f"Discovered {len(filtered_entries)} unique entries!")
+                else:
+                    status.update(label="No entries found", state="error")
+                    st.warning(f"No valid entries found matching '{var_name}'.")
 
         if st.button("Close", key=f"finish_{var_id}"):
             st.rerun()
@@ -638,21 +660,30 @@ class VariableEditor:
             st.markdown(f"**Distribution Configuration for `{var_name}`:**")
 
         # Parsing mode — statistics are always available, bucket entries optional
-        parse_mode = st.radio(
+        dist_parse_options = [
+            "Statistics Only",
+            "Bucket Entries Only",
+            "Bucket Entries + Statistics",
+        ]
+        dist_default = (
+            dist_parse_options[0]
+            if original_var.get("statisticsOnly", True)
+            else (
+                dist_parse_options[1]
+                if not original_var.get("statistics", [])
+                else dist_parse_options[2]
+            )
+        )
+        parse_mode = st.segmented_control(
             "Parsing mode:",
-            options=["Statistics Only", "Bucket Entries Only", "Bucket Entries + Statistics"],
-            index=(
-                0
-                if original_var.get("statisticsOnly", True)
-                else 1 if not original_var.get("statistics", []) else 2
-            ),
+            options=dist_parse_options,
+            default=dist_default,
             key=f"dist_parse_mode_{var_id}",
             help=(
                 "Statistics Only: Parse mean, stdev, etc. without individual buckets. "
                 "Bucket Entries Only: Parse distribution bucket frequencies. "
                 "Bucket Entries + Statistics: Parse both."
             ),
-            horizontal=True,
         )
 
         wants_statistics = parse_mode in ("Statistics Only", "Bucket Entries + Statistics")

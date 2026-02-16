@@ -69,7 +69,7 @@ class DataSourceComponents:
                     DataComponents.show_column_details(data)
                     st.info("Data loaded! Proceed to **Configure Pipeline** to process it.")
                 except Exception as e:
-                    st.error(f"Error loading file: {e}")
+                    st.exception(e)
                     logger.error(
                         "CSV POOL: Failed to load CSV file '%s': %s", csv_path, e, exc_info=True
                     )
@@ -79,11 +79,11 @@ class DataSourceComponents:
                     preview_data = api.load_csv_file(str(csv_path))
                     st.dataframe(preview_data.head(5))
                 except Exception as e:
-                    st.error(f"Error previewing file: {e}")
+                    st.exception(e)
 
             if delete_clicked:
                 if api.delete_from_csv_pool(str(csv_path)):
-                    st.success("File deleted!")
+                    st.toast("File deleted!", icon="🗑️")
                     st.rerun()
                 else:
                     st.error("Error deleting file")
@@ -132,11 +132,11 @@ class DataSourceComponents:
                 "config_aware": "Config-Aware (Integrates config.ini)",
             }
 
-            selected_strategy = st.radio(
+            selected_strategy = st.segmented_control(
                 "Select ingestion strategy:",
                 options=list(strategy_options.keys()),
                 format_func=lambda x: strategy_options[x],
-                index=list(strategy_options.keys()).index(current_strategy),
+                default=current_strategy,
                 help=(
                     "Config-Aware strategy allows extracting metadata "
                     "from simulation config files."
@@ -166,21 +166,33 @@ class DataSourceComponents:
                 if st.button("🔍 Quick Scan", help="Scan files to auto-discover variables"):
                     try:
                         scan_limit = -1 if deep_scan else 10
-                        with st.spinner(f"{'Deep' if deep_scan else 'Quick'} scanning..."):
+                        scan_label = "Deep" if deep_scan else "Quick"
+                        with st.status(f"{scan_label} scanning...", expanded=True) as status:
+                            st.write("Submitting scan tasks...")
                             scan_futures = api.submit_scan_async(
                                 stats_path, stats_pattern, limit=scan_limit
                             )
+                            st.write(f"Scanning {len(scan_futures)} files...")
                             scan_results = [f.result() for f in scan_futures]
+                            st.write("Aggregating patterns...")
                             scanned_vars_result: List[ScannedVariable] = api.finalize_scan(
                                 scan_results
                             )
                             scanned_vars_dicts = [v.to_dict() for v in scanned_vars_result]
                             api.state_manager.set_scanned_variables(scanned_vars_dicts)
+                            status.update(
+                                label=f"Scan complete — {len(scanned_vars_result)} variables found",
+                                state="complete",
+                                expanded=False,
+                            )
 
-                        st.success(f"✅ Scan complete! Found {len(scanned_vars_result)} variables.")
+                        st.toast(
+                            f"✅ Scan complete! Found {len(scanned_vars_result)} variables.",
+                            icon="🔍",
+                        )
                         st.rerun()
                     except Exception as e:
-                        st.error(f"Scan failed: {e}")
+                        st.exception(e)
                         logger.error(
                             "SCANNER: Quick scan failed at %r: %s",
                             str(stats_path).replace("\n", ""),
@@ -257,7 +269,7 @@ class DataSourceComponents:
                     )
                     DataSourceComponents._show_parse_dialog(api, batch, output_dir)
                 except Exception as e:
-                    st.error(f"Failed to submit parsing job: {e}")
+                    st.exception(e)
                     logger.error("UI: Parsing submission failed: %s", e, exc_info=True)
 
     @staticmethod
@@ -267,10 +279,10 @@ class DataSourceComponents:
         scanned_vars = api.state_manager.get_scanned_variables() or []
 
         # 1. Method Selection
-        method = st.radio(
+        method = st.pills(
             "Addition Method",
             ["Search Scanned Variables", "Manual Entry"],
-            horizontal=True,
+            default="Search Scanned Variables",
             label_visibility="collapsed",
         )
 
@@ -389,7 +401,7 @@ class DataSourceComponents:
                     else:
                         current_vars.append(new_var)
                         api.state_manager.set_parse_variables(current_vars)
-                        st.success(f"Added '{name}'!")
+                        st.toast(f"Added '{name}'!", icon="✅")
                         st.rerun()
 
     @staticmethod
@@ -445,25 +457,36 @@ class DataSourceComponents:
             st.warning("No results generated.")
             return
 
-        status_text.text("Finalizing CSV...")
+        status_text.empty()
 
-        try:
-            strategy = api.state_manager.get_parser_strategy()
-            csv_path = api.finalize_parsing(
-                output_dir,
-                results,
-                strategy_type=strategy,
-                var_names=batch.var_names,
-            )
-            if csv_path and Path(csv_path).exists():
-                pool_path = api.add_to_csv_pool(csv_path)
-                data = api.load_csv_file(pool_path)
-                api.state_manager.set_data(data)
-                api.state_manager.set_csv_path(pool_path)
-                st.success(f"Done! Generated {len(data)} rows.")
-                if st.button("Close & Reload", key="finish_parse_futures_btn"):
-                    st.rerun()
-            else:
-                st.error("Failed to generate final CSV.")
-        except Exception as e:
-            st.error(f"Finalization failed: {e}")
+        with st.status("Finalizing results...", expanded=True) as status:
+            try:
+                st.write("Generating CSV output...")
+                strategy = api.state_manager.get_parser_strategy()
+                csv_path = api.finalize_parsing(
+                    output_dir,
+                    results,
+                    strategy_type=strategy,
+                    var_names=batch.var_names,
+                )
+                if csv_path and Path(csv_path).exists():
+                    st.write("Adding to data pool...")
+                    pool_path = api.add_to_csv_pool(csv_path)
+                    st.write("Loading data into session...")
+                    data = api.load_csv_file(pool_path)
+                    api.state_manager.set_data(data)
+                    api.state_manager.set_csv_path(pool_path)
+                    status.update(
+                        label=f"Complete — {len(data)} rows loaded",
+                        state="complete",
+                        expanded=False,
+                    )
+                    st.success(f"Done! Generated {len(data)} rows.")
+                    if st.button("Close & Reload", key="finish_parse_futures_btn"):
+                        st.rerun()
+                else:
+                    status.update(label="Failed", state="error")
+                    st.error("Failed to generate final CSV.")
+            except Exception as e:
+                status.update(label="Error", state="error")
+                st.exception(e)

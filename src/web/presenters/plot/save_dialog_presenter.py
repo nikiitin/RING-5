@@ -61,7 +61,7 @@ class SaveDialogPresenter:
                 )
 
         # Cancel outside the form (forms can only have one submit button)
-        cancel_clicked: bool = st.button("Cancel", key=f"cancel_save_{plot_id}")
+        cancel_clicked: bool = st.button("Cancel", key=f"cancel_save_{plot_id}", type="tertiary")
 
         return {
             "pipeline_name": pipeline_name,

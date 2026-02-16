@@ -45,6 +45,11 @@ class PipelinePresenter:
         st.markdown("### Data Processing Pipeline")
 
     @staticmethod
+    def render_no_data_warning() -> None:
+        """Render a warning when no data is uploaded yet."""
+        st.warning("Please upload data first!")
+
+    @staticmethod
     def render_pipeline_label() -> None:
         """Render the 'Current Pipeline' label."""
         st.markdown("**Current Pipeline:**")
@@ -114,12 +119,14 @@ class PipelinePresenter:
         c2, c3, c4 = st.columns([1, 1, 1])
         with c2:
             if not is_first:
-                result["move_up"] = st.button("Up", key=f"up_{plot_id}_{idx}")
+                result["move_up"] = st.button("Up", key=f"up_{plot_id}_{idx}", type="tertiary")
         with c3:
             if not is_last:
-                result["move_down"] = st.button("Down", key=f"down_{plot_id}_{idx}")
+                result["move_down"] = st.button(
+                    "Down", key=f"down_{plot_id}_{idx}", type="tertiary"
+                )
         with c4:
-            result["delete"] = st.button("Del", key=f"del_{plot_id}_{idx}")
+            result["delete"] = st.button("Del", key=f"del_{plot_id}_{idx}", type="tertiary")
 
         return result
 

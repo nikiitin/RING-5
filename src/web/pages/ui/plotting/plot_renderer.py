@@ -177,7 +177,7 @@ class PlotRenderer:
                 plot.last_generated_fig = fig
                 cache.set(cache_key, fig)
             except Exception as e:
-                st.error(f"Error generating plot: {e}")
+                st.exception(e)
                 return
 
         # 2. Render if we have a figure
@@ -196,6 +196,7 @@ class PlotRenderer:
                         "titleText": False,
                         "axisTitleText": False,
                         "annotationText": False,
+                        "annotationPosition": False,
                         "colorbarTitleText": False,
                     },
                     "modeBarButtonsToAdd": [
@@ -222,7 +223,7 @@ class PlotRenderer:
                 # Update backend config if user interacted
                 if relayout_data:
                     # Prevent infinite loops by checking if we already processed this exact event
-                    last_event_key = f"last_relayout_{plot.plot_id}"
+                    last_event_key = f"plot.{plot.plot_id}.last_relayout"
                     last_event = st.session_state.get(last_event_key)
 
                     if relayout_data != last_event:
@@ -234,7 +235,7 @@ class PlotRenderer:
                 PlotRenderer._render_download_button(plot, fig)
 
             except Exception as e:
-                st.error(f"Error generating plot: {e}")
+                st.exception(e)
                 # Explicit error is better for debugging main loop
 
     @staticmethod
@@ -609,6 +610,208 @@ class PlotRenderer:
                         key=f"bold_group_{plot.plot_id}",
                     )
 
+                # ── Secondary Y-axis export controls (dual-axis only) ──
+                _is_dual: bool = bool(plot.config.get("dual_axis"))
+                font_y2label: int = -1
+                font_y2ticks: int = -1
+                bold_y2label: bool = False
+                if _is_dual:
+                    st.markdown("---")
+                    st.caption("Secondary Y-Axis (Right)")
+                    _d1, _d2, _d3 = st.columns(3)
+                    with _d1:
+                        font_y2label = st.slider(
+                            "Y2-Axis Label",
+                            min_value=-1,
+                            max_value=14,
+                            value=int(effective_defaults.get("font_size_y2label", -1)),
+                            step=1,
+                            help="Right Y-axis label size (-1 = same as left Y)",
+                            key=f"font_y2label_{plot.plot_id}",
+                        )
+                    with _d2:
+                        font_y2ticks = st.slider(
+                            "Y2-Tick Labels",
+                            min_value=-1,
+                            max_value=12,
+                            value=int(effective_defaults.get("font_size_y2ticks", -1)),
+                            step=1,
+                            help="Right Y-axis tick labels size (-1 = same as left Y)",
+                            key=f"font_y2ticks_{plot.plot_id}",
+                        )
+                    with _d3:
+                        bold_y2label = st.checkbox(
+                            "Y2-Axis Bold",
+                            value=effective_defaults.get("bold_y2label", False),
+                            key=f"bold_y2label_{plot.plot_id}",
+                        )
+
+                # ── Per-legend export controls (multi-column or dual) ──
+                _ncols_ui: int = int(plot.config.get("legend_ncols") or 0)
+                _has_multi_legend: bool = _ncols_ui > 1 or (
+                    _is_dual and not plot.config.get("unified_legend", True)
+                )
+                font_legend2: int = -1
+                font_legend3: int = -1
+                bold_legend2: bool = False
+                bold_legend3: bool = False
+                if _has_multi_legend:
+                    st.markdown("---")
+                    st.caption("Per-Legend Font Sizes (-1 = follow primary legend)")
+                    _l1, _l2 = st.columns(2)
+                    with _l1:
+                        font_legend2 = st.slider(
+                            "Legend 2 Font",
+                            min_value=-1,
+                            max_value=12,
+                            value=int(effective_defaults.get("font_size_legend2", -1)),
+                            step=1,
+                            key=f"font_legend2_{plot.plot_id}",
+                        )
+                        bold_legend2 = st.checkbox(
+                            "Legend 2 Bold",
+                            value=effective_defaults.get("bold_legend2", False),
+                            key=f"bold_legend2_{plot.plot_id}",
+                        )
+                    with _l2:
+                        if _ncols_ui > 2:
+                            font_legend3 = st.slider(
+                                "Legend 3 Font",
+                                min_value=-1,
+                                max_value=12,
+                                value=int(effective_defaults.get("font_size_legend3", -1)),
+                                step=1,
+                                key=f"font_legend3_{plot.plot_id}",
+                            )
+                            bold_legend3 = st.checkbox(
+                                "Legend 3 Bold",
+                                value=effective_defaults.get("bold_legend3", False),
+                                key=f"bold_legend3_{plot.plot_id}",
+                            )
+
+                # ── Legend 2 spacing controls (multi-column or dual) ──
+                # Default -1.0 = follow primary legend value
+                l2_colspacing: float = -1.0
+                l2_labelspacing: float = -1.0
+                l2_handlelength: float = -1.0
+                l2_handletextpad: float = -1.0
+                l2_borderpad: float = -1.0
+                l2_ncol: int = 0
+                if _has_multi_legend:
+                    st.markdown("---")
+                    st.caption("Legend 2 Spacing (-1 = follow primary legend)")
+                    _ls1, _ls2 = st.columns(2)
+                    with _ls1:
+                        l2_colspacing = st.slider(
+                            "L2 Column Spacing",
+                            min_value=-1.0,
+                            max_value=2.0,
+                            value=float(effective_defaults.get("legend2_columnspacing", -1.0)),
+                            step=0.1,
+                            help="Space between legend 2 columns (-1 = same as primary)",
+                            key=f"l2_colspace_{plot.plot_id}",
+                        )
+                        l2_labelspacing = st.slider(
+                            "L2 Item Spacing",
+                            min_value=-1.0,
+                            max_value=1.0,
+                            value=float(effective_defaults.get("legend2_labelspacing", -1.0)),
+                            step=0.05,
+                            help="Vertical space between legend 2 items (-1 = same as primary)",
+                            key=f"l2_labelspace_{plot.plot_id}",
+                        )
+                        l2_handlelength = st.slider(
+                            "L2 Color Box Length",
+                            min_value=-1.0,
+                            max_value=3.0,
+                            value=float(effective_defaults.get("legend2_handlelength", -1.0)),
+                            step=0.1,
+                            help="Length of legend 2 color boxes (-1 = same as primary)",
+                            key=f"l2_boxlen_{plot.plot_id}",
+                        )
+                    with _ls2:
+                        l2_handletextpad = st.slider(
+                            "L2 Box-Text Spacing",
+                            min_value=-1.0,
+                            max_value=1.5,
+                            value=float(effective_defaults.get("legend2_handletextpad", -1.0)),
+                            step=0.05,
+                            help="Space between legend 2 color box and text (-1 = same as primary)",
+                            key=f"l2_textpad_{plot.plot_id}",
+                        )
+                        l2_borderpad = st.slider(
+                            "L2 Border Padding",
+                            min_value=-1.0,
+                            max_value=1.0,
+                            value=float(effective_defaults.get("legend2_borderpad", -1.0)),
+                            step=0.05,
+                            help="Space inside legend 2 border (-1 = same as primary)",
+                            key=f"l2_borderpad_{plot.plot_id}",
+                        )
+                        l2_ncol = st.slider(
+                            "L2 Legend Columns",
+                            min_value=0,
+                            max_value=6,
+                            value=int(effective_defaults.get("legend2_ncol", 0)),
+                            step=1,
+                            help="Number of columns in legend 2 (0 = auto)",
+                            key=f"l2_ncol_{plot.plot_id}",
+                        )
+
+                # ── Legend 3 (boxed/numbered) spacing & sizing controls ──
+                l3_borderpad: float = -1.0
+                l3_labelspacing: float = -1.0
+                l3_number_fontsize: int = -1
+                l3_text_fontsize: int = -1
+                if _ncols_ui > 2:
+                    st.markdown("---")
+                    st.caption("Legend 3 / Numbered Legend Spacing (-1 = follow primary)")
+                    _lb1, _lb2 = st.columns(2)
+                    with _lb1:
+                        l3_borderpad = st.slider(
+                            "L3 Border Padding",
+                            min_value=-1.0,
+                            max_value=1.0,
+                            value=float(effective_defaults.get("legend3_borderpad", -1.0)),
+                            step=0.05,
+                            help="Box inner padding for numbered legend (-1 = same as primary)",
+                            key=f"l3_borderpad_{plot.plot_id}",
+                        )
+                        l3_labelspacing = st.slider(
+                            "L3 Line Spacing",
+                            min_value=-1.0,
+                            max_value=1.0,
+                            value=float(effective_defaults.get("legend3_labelspacing", -1.0)),
+                            step=0.05,
+                            help="Vertical spacing between numbered entries (-1 = same as primary)",
+                            key=f"l3_labelspace_{plot.plot_id}",
+                        )
+                    with _lb2:
+                        l3_number_fontsize = st.slider(
+                            "L3 Number Size",
+                            min_value=-1,
+                            max_value=14,
+                            value=int(effective_defaults.get("legend3_number_fontsize", -1)),
+                            step=1,
+                            help=(
+                                "Font size for number digits (1., 2., ...) in numbered legend "
+                                "(-1 = same as legend 3 font)"
+                            ),
+                            key=f"l3_numsize_{plot.plot_id}",
+                        )
+                        l3_text_fontsize = st.slider(
+                            "L3 Text Size",
+                            min_value=-1,
+                            max_value=14,
+                            value=int(effective_defaults.get("legend3_text_fontsize", -1)),
+                            step=1,
+                            help=(
+                                "Font size for label text in numbered legend "
+                                "(-1 = same as legend 3 font)"
+                            ),
+                            key=f"l3_textsize_{plot.plot_id}",
+                        )
+
                 # Apply custom font sizes and bold to preset
                 if (
                     font_title != preset_info["font_size_title"]
@@ -626,6 +829,23 @@ class PlotRenderer:
                     or bold_ticks != preset_info.get("bold_ticks", False)
                     or bold_annotations != preset_info.get("bold_annotations", True)
                     or bold_group_labels != preset_info.get("bold_group_labels", True)
+                    or font_y2label != preset_info.get("font_size_y2label", -1)
+                    or font_y2ticks != preset_info.get("font_size_y2ticks", -1)
+                    or bold_y2label != preset_info.get("bold_y2label", False)
+                    or font_legend2 != preset_info.get("font_size_legend2", -1)
+                    or font_legend3 != preset_info.get("font_size_legend3", -1)
+                    or bold_legend2 != preset_info.get("bold_legend2", False)
+                    or bold_legend3 != preset_info.get("bold_legend3", False)
+                    or l2_colspacing != preset_info.get("legend2_columnspacing", -1.0)
+                    or l2_handletextpad != preset_info.get("legend2_handletextpad", -1.0)
+                    or l2_labelspacing != preset_info.get("legend2_labelspacing", -1.0)
+                    or l2_handlelength != preset_info.get("legend2_handlelength", -1.0)
+                    or l2_borderpad != preset_info.get("legend2_borderpad", -1.0)
+                    or l2_ncol != preset_info.get("legend2_ncol", 0)
+                    or l3_borderpad != preset_info.get("legend3_borderpad", -1.0)
+                    or l3_labelspacing != preset_info.get("legend3_labelspacing", -1.0)
+                    or l3_number_fontsize != preset_info.get("legend3_number_fontsize", -1)
+                    or l3_text_fontsize != preset_info.get("legend3_text_fontsize", -1)
                 ):
                     # Ensure preset_to_use is a dict (not just a name)
                     if isinstance(preset_to_use, str):
@@ -646,6 +866,29 @@ class PlotRenderer:
                     preset_to_use["bold_ticks"] = bold_ticks
                     preset_to_use["bold_annotations"] = bold_annotations
                     preset_to_use["bold_group_labels"] = bold_group_labels
+                    # Y2-axis export overrides
+                    preset_to_use["font_size_y2label"] = font_y2label
+                    preset_to_use["font_size_y2ticks"] = font_y2ticks
+                    preset_to_use["bold_y2label"] = bold_y2label
+                    # Per-legend overrides
+                    preset_to_use["font_size_legend2"] = font_legend2
+                    preset_to_use["font_size_legend3"] = font_legend3
+                    preset_to_use["bold_legend2"] = bold_legend2
+                    preset_to_use["bold_legend3"] = bold_legend3
+                    # Legend 2 spacing overrides
+                    preset_to_use["legend2_columnspacing"] = l2_colspacing
+                    preset_to_use["legend2_handletextpad"] = l2_handletextpad
+                    preset_to_use["legend2_labelspacing"] = l2_labelspacing
+                    preset_to_use["legend2_handlelength"] = l2_handlelength
+                    preset_to_use["legend2_handleheight"] = -1.0
+                    preset_to_use["legend2_borderpad"] = l2_borderpad
+                    preset_to_use["legend2_borderaxespad"] = -1.0
+                    preset_to_use["legend2_ncol"] = l2_ncol
+                    # Legend 3 (boxed/numbered) spacing & sizing overrides
+                    preset_to_use["legend3_borderpad"] = l3_borderpad
+                    preset_to_use["legend3_labelspacing"] = l3_labelspacing
+                    preset_to_use["legend3_number_fontsize"] = l3_number_fontsize
+                    preset_to_use["legend3_text_fontsize"] = l3_text_fontsize
                     st.info("✏️ Using custom font sizes/bold styling")
 
             # Advanced settings for LaTeX preamble
@@ -720,6 +963,40 @@ class PlotRenderer:
                         help="Distance from Y-axis tick labels to axis (points)",
                         key=f"ytick_pad_{plot.plot_id}",
                     )
+
+                # Secondary Y-axis positioning (dual-axis only)
+                y2label_pad: float = -1.0
+                y2tick_pad: float = -1.0
+                if _is_dual:
+                    st.markdown("---")
+                    st.caption("Secondary Y-Axis Positioning (-1 = follow primary)")
+                    _yp1, _yp2 = st.columns(2)
+                    with _yp1:
+                        y2label_pad = st.slider(
+                            "Y2-Axis Label Distance",
+                            min_value=-1.0,
+                            max_value=80.0,
+                            value=float(effective_defaults.get("y2label_pad", -1.0)),
+                            step=2.0,
+                            help=(
+                                "Distance from right Y-axis label to tick "
+                                "labels (-1 = same as left)"
+                            ),
+                            key=f"y2label_pad_{plot.plot_id}",
+                        )
+                    with _yp2:
+                        y2tick_pad = st.slider(
+                            "Y2-Tick Label Distance",
+                            min_value=-1.0,
+                            max_value=20.0,
+                            value=float(effective_defaults.get("y2tick_pad", -1.0)),
+                            step=0.5,
+                            help=(
+                                "Distance from right Y-axis tick labels "
+                                "to axis (-1 = same as left)"
+                            ),
+                            key=f"y2tick_pad_{plot.plot_id}",
+                        )
 
                 with col_p2:
                     group_label_offset = st.slider(
@@ -834,6 +1111,8 @@ class PlotRenderer:
                     or ylabel_y_position != preset_info.get("ylabel_y_position", 0.5)
                     or xtick_pad != preset_info.get("xtick_pad", 5.0)
                     or ytick_pad != preset_info.get("ytick_pad", 5.0)
+                    or y2label_pad != preset_info.get("y2label_pad", -1.0)
+                    or y2tick_pad != preset_info.get("y2tick_pad", -1.0)
                     or group_label_offset != preset_info.get("group_label_offset", -0.12)
                     or group_label_alternate != preset_info.get("group_label_alternate", True)
                     or group_label_alt_spacing != preset_info.get("group_label_alt_spacing", 0.05)
@@ -855,6 +1134,8 @@ class PlotRenderer:
                     preset_to_use["ylabel_y_position"] = ylabel_y_position
                     preset_to_use["xtick_pad"] = xtick_pad
                     preset_to_use["ytick_pad"] = ytick_pad
+                    preset_to_use["y2label_pad"] = y2label_pad
+                    preset_to_use["y2tick_pad"] = y2tick_pad
                     preset_to_use["group_label_offset"] = group_label_offset
                     preset_to_use["group_label_alternate"] = group_label_alternate
                     preset_to_use["group_label_alt_spacing"] = group_label_alt_spacing
@@ -883,7 +1164,7 @@ class PlotRenderer:
                 if st.button(
                     "🔍 Preview Export", use_container_width=True, key=f"preview_btn_{plot.plot_id}"
                 ):
-                    with st.spinner("Generating preview..."):
+                    with st.spinner("Generating preview...", show_time=True):
                         try:
                             preview_png = service.generate_preview(
                                 fig, preset=preset_to_use, preview_dpi=100
@@ -900,7 +1181,7 @@ class PlotRenderer:
                                 f"{actual_preset['dpi']} DPI"
                             )
                         except Exception as e:
-                            st.error(f"Preview failed: {e}")
+                            st.exception(e)
 
             # Export button
             with col_export:
@@ -916,7 +1197,7 @@ class PlotRenderer:
                     )
                     plot.config["export_format"] = format_choice
 
-                    with st.spinner(f"Generating {format_choice.upper()}..."):
+                    with st.spinner(f"Generating {format_choice.upper()}...", show_time=True):
                         # Call service
                         result = service.export(fig, preset=preset_to_use, format=format_choice)
 
@@ -932,10 +1213,12 @@ class PlotRenderer:
                                 mime=_get_mime_type(file_extension),
                                 use_container_width=True,
                                 key=f"download_btn_{plot.plot_id}",
+                                on_click="ignore",
                             )
 
-                            st.success(
-                                f"✓ Export successful " f"({len(result['data']) / 1024:.1f} KB)"
+                            st.toast(
+                                f"✓ Export successful " f"({len(result['data']) / 1024:.1f} KB)",
+                                icon="✅",
                             )
                         else:
                             # Error - show message

@@ -56,7 +56,7 @@ def test_configure_transformer_ui(mock_streamlit):
     df = pd.DataFrame({"A": [1, 2, 3]})
 
     mock_streamlit.selectbox.return_value = "A"  # target_col
-    mock_streamlit.radio.return_value = "Factor (String/Categorical)"  # target_type_str
+    mock_streamlit.segmented_control.return_value = "Factor (String/Categorical)"  # target_type_str
     mock_streamlit.multiselect.return_value = ["1", "2", "3"]  # order_list
 
     config = configure_shaper("transformer", df, "test_id", {}, owner_id="plot1")

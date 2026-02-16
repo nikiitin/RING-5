@@ -274,7 +274,7 @@ class TestCrossPageConsistency:
     def test_performance_metrics_update_with_state(self) -> None:
         """Performance page shows updated metrics as state grows."""
         at = create_app_with_data()
-        navigate_to(at, "\u26a1 Performance")
+        navigate_to(at, "Performance")
 
         assert not at.exception
         data_metrics = [m for m in at.metric if m.label == "Data Loaded"]

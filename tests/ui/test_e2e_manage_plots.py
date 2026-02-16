@@ -215,14 +215,13 @@ class TestManagePlotsPageWithPlots:
     """UI elements appear correctly when plots are pre-injected."""
 
     def test_plot_selector_radio_present(self) -> None:
-        """Plot selector radio renders when plots exist."""
+        """Plot selector pills render when plots exist."""
         at = create_app_with_plots()
         navigate_to(at, "Manage Plots")
 
         assert not at.exception
-        # At least the plot-selector radio exists
-        radios = [r for r in at.radio if not r.label.startswith("Navigate")]
-        assert len(radios) >= 1, "Expected plot selector radio"
+        # Plot selector is st.pills (button_group); sidebar uses st.radio
+        assert len(at.button_group) >= 1, "Expected plot selector button_group"
 
     def test_controls_section_has_buttons(self) -> None:
         """Controls section renders rename, delete, duplicate buttons."""

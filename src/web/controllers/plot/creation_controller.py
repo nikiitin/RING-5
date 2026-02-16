@@ -8,6 +8,15 @@ Handles create, delete, duplicate, and rename by:
     4. Triggering reruns when state changes require it
 
 Dependencies are injected via protocols (no concrete imports from pages.ui).
+
+Architecture Note — Streamlit usage:
+    This controller uses ``st.rerun()`` for flow control after state mutations
+    (create/delete/duplicate, dialog open/close), ``st.toast()`` for transient
+    success notifications, and ``st.exception()`` for error handling. These are
+    intentional: ``st.rerun()`` is Streamlit's flow control mechanism,
+    ``st.toast()`` is non-blocking feedback, and ``st.exception()`` renders
+    full tracebacks. Presentation-only calls (warnings) are delegated to
+    the presenter layer.
 """
 
 import copy
@@ -94,7 +103,7 @@ class PlotCreationController:
         """
         plots = self._api.state_manager.get_plots()
         if not plots:
-            st.warning("No plots yet. Create a plot to get started!")
+            PlotSelectorPresenter.render_no_plots_warning()
             return None
 
         plot_names: list[str] = [p.name for p in plots]
@@ -184,7 +193,7 @@ class PlotCreationController:
                 self._ui.plot.set_dialog_visible(plot.plot_id, "save", False)
                 st.rerun()
             except Exception as e:
-                st.error(f"Error: {e}")
+                st.exception(e)
 
         if result["cancel_clicked"]:
             self._ui.plot.set_dialog_visible(plot.plot_id, "save", False)
@@ -225,7 +234,7 @@ class PlotCreationController:
                 self._ui.plot.set_dialog_visible(plot.plot_id, "load", False)
                 st.rerun()
             except Exception as e:
-                st.error(f"Error loading: {e}")
+                st.exception(e)
                 logger.error(
                     "PLOT: Failed to load pipeline for plot %r: %s",
                     str(plot.name).replace("\n", ""),

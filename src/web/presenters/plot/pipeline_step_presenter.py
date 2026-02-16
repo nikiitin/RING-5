@@ -105,7 +105,7 @@ class PipelineStepPresenter:
                     )
                     result["new_config"] = new_config
                 except Exception as e:
-                    st.error(f"Configuration error: {e}")
+                    st.exception(e)
                     new_config = current_config
 
             with c2:
@@ -129,7 +129,7 @@ class PipelineStepPresenter:
                     st.dataframe(result["preview_data"])
                 except Exception as e:
                     result["preview_error"] = str(e)
-                    st.error(f"Preview error: {e}")
+                    st.exception(e)
 
         return result
 
@@ -143,7 +143,7 @@ class PipelineStepPresenter:
         Args:
             processed: The finalized DataFrame.
         """
-        st.success(f"Pipeline applied! Shape: {processed.shape}")
+        st.toast(f"Pipeline applied! Shape: {processed.shape}", icon="✅")
         st.dataframe(processed.head(10))
 
     @staticmethod
@@ -154,4 +154,4 @@ class PipelineStepPresenter:
         Args:
             error: Error message string.
         """
-        st.error(f"Error: {error}")
+        st.exception(RuntimeError(error))

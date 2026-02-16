@@ -67,10 +67,10 @@ class MixerManager(DataManager):
 
         st.markdown("#### Configuration")
 
-        mode = st.radio(
+        mode = st.segmented_control(
             "Mixer Mode",
             ["Numerical Operations", "Configuration Merge"],
-            horizontal=True,
+            default="Numerical Operations",
             key="mixer_mode",
         )
 
@@ -145,7 +145,7 @@ class MixerManager(DataManager):
                 self.api.set_preview("mixer", result_df)
 
             except Exception as e:
-                st.error(f"Error during merge: {e}")
+                st.exception(e)
 
         # Separate confirmation
         if self.api.has_preview("mixer"):
@@ -161,10 +161,10 @@ class MixerManager(DataManager):
                         "timestamp": datetime.now(timezone.utc).isoformat(),
                     }
                     self.api.add_manager_history_record(record)
-                    st.success("✓ Merged data active!")
+                    st.toast("✓ Merged data active!", icon="✅")
                     st.rerun()
 
-        # Show this manager's history
+        # Show manager-specific history with Load / Delete
         HistoryComponents.render_manager_history(
             self.api.get_manager_history(),
             "Mixer",

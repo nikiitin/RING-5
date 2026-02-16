@@ -38,7 +38,8 @@ class TestManagePlotsWorkflow:
         """Create section renders a text input and selectbox for type."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
-        at.sidebar.radio[0].set_value("Manage Plots").run()
+        at.session_state["_nav_page"] = "Manage Plots"
+        at.run()
 
         assert not at.exception
         # Should have text inputs for plot name
@@ -50,7 +51,8 @@ class TestManagePlotsWorkflow:
         """A 'Create Plot' button is present on the page."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
-        at.sidebar.radio[0].set_value("Manage Plots").run()
+        at.session_state["_nav_page"] = "Manage Plots"
+        at.run()
 
         assert not at.exception
         create_buttons = [b for b in at.button if "create" in b.label.lower()]
@@ -67,7 +69,8 @@ class TestPerformancePage:
         """Performance page loads without error."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
-        at.sidebar.radio[0].set_value("\u26a1 Performance").run()
+        at.session_state["_nav_page"] = "Performance"
+        at.run()
 
         assert not at.exception
 
@@ -75,7 +78,8 @@ class TestPerformancePage:
         """Performance page renders metric widgets."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
-        at.sidebar.radio[0].set_value("\u26a1 Performance").run()
+        at.session_state["_nav_page"] = "Performance"
+        at.run()
 
         assert not at.exception
         # Should show at least one metric (cache hit rate, etc.)
@@ -92,7 +96,8 @@ class TestPortfolioEmptyState:
         """Portfolio page renders cleanly with no saved portfolios."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
-        at.sidebar.radio[0].set_value("Save/Load Portfolio").run()
+        at.session_state["_nav_page"] = "Save/Load Portfolio"
+        at.run()
 
         assert not at.exception
 
@@ -100,7 +105,8 @@ class TestPortfolioEmptyState:
         """Portfolio page has save form elements."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
-        at.sidebar.radio[0].set_value("Save/Load Portfolio").run()
+        at.session_state["_nav_page"] = "Save/Load Portfolio"
+        at.run()
 
         assert not at.exception
         # Should have at least one text input for portfolio name
@@ -119,7 +125,8 @@ class TestDataManagersEmptyState:
         """When no data loaded, Data Managers shows appropriate message."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
-        at.sidebar.radio[0].set_value("Data Managers").run()
+        at.session_state["_nav_page"] = "Data Managers"
+        at.run()
 
         assert not at.exception
         # Should show a warning or info about needing data
@@ -156,16 +163,16 @@ class TestSidebarActions:
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
 
-        nav = at.sidebar.radio[0]
+        nav_buttons = [b for b in at.sidebar.button if b.key and b.key.startswith("nav_")]
+        nav_labels = [b.label for b in nav_buttons]
         expected = [
             "Data Source",
-            "Upload Data",
             "Data Managers",
             "Manage Plots",
             "Save/Load Portfolio",
         ]
         for page in expected:
-            assert page in nav.options, f"Missing nav option: {page}"
+            assert any(page in label for label in nav_labels), f"Missing nav option: {page}"
 
 
 # ---------------------------------------------------------------------------

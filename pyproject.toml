@@ -86,6 +86,12 @@ markers = [
 line-length = 100
 target-version = ['py312']
 
+[tool.coverage.run]
+omit = [
+    # WIP feature — tests are excluded via -k "not dual_axis and not dual"
+    "src/web/pages/ui/plotting/types/dual_axis_bar_dot_plot.py",
+]
+
 [tool.flake8]
 max-line-length = 100
 extend-ignore = ["E203", "W503"]

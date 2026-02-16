@@ -132,25 +132,26 @@ class TestPlotSelectorPresenter:
         """Returns the name selected by radio."""
         from src.web.presenters.plot.selector_presenter import PlotSelectorPresenter
 
-        mock_st.radio.return_value = "Plot 2"
+        mock_st.pills.return_value = "Plot 2"
 
         result: str = PlotSelectorPresenter.render(["Plot 1", "Plot 2", "Plot 3"], default_index=1)
 
         assert result == "Plot 2"
 
     @patch("src.web.presenters.plot.selector_presenter.st")
-    def test_radio_called_with_horizontal(self, mock_st: MagicMock) -> None:
-        """Radio is rendered horizontally."""
+    def test_pills_called_correctly(self, mock_st: MagicMock) -> None:
+        """Pills widget is rendered for plot selection."""
         from src.web.presenters.plot.selector_presenter import PlotSelectorPresenter
 
-        mock_st.radio.return_value = "Plot 1"
+        mock_st.pills.return_value = "Plot 1"
 
         PlotSelectorPresenter.render(["Plot 1"], default_index=0)
 
-        mock_st.radio.assert_called_once()
-        call_kwargs = mock_st.radio.call_args
+        mock_st.pills.assert_called_once()
+        call_kwargs = mock_st.pills.call_args
         assert (
-            call_kwargs.kwargs.get("horizontal") is True or call_kwargs[1].get("horizontal") is True
+            call_kwargs.kwargs.get("key") == "plot_selector"
+            or call_kwargs[1].get("key") == "plot_selector"
         )
 
 
@@ -553,7 +554,7 @@ class TestPipelineStepPresenter:
             apply_fn=apply_fn,
         )
 
-        mock_st.error.assert_called_once()
+        mock_st.exception.assert_called_once()
         assert result["new_config"] == {}
 
     @patch("src.web.presenters.plot.pipeline_step_presenter.st")
@@ -566,7 +567,7 @@ class TestPipelineStepPresenter:
         df = pd.DataFrame({"a": range(20)})
         PipelineStepPresenter.render_finalize_result(df)
 
-        mock_st.success.assert_called_once()
+        mock_st.toast.assert_called_once()
         mock_st.dataframe.assert_called_once()
 
     @patch("src.web.presenters.plot.pipeline_step_presenter.st")
@@ -576,8 +577,8 @@ class TestPipelineStepPresenter:
 
         PipelineStepPresenter.render_finalize_error("something broke")
 
-        mock_st.error.assert_called_once()
-        assert "something broke" in mock_st.error.call_args[0][0]
+        mock_st.exception.assert_called_once()
+        assert "something broke" in str(mock_st.exception.call_args[0][0])
 
 
 # ─── SaveDialogPresenter Tests ──────────────────────────────────────────────

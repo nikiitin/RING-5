@@ -681,15 +681,45 @@ class MatplotlibConverter(BaseConverter):
             h2, l2 = ax2.get_legend_handles_labels()
             if h2:
                 legend2_config = extracted_layout.get("legend2", {})
+                # Use per-legend font size (fallback to primary)
+                legend2_fs_raw: int = int(self.preset.get("font_size_legend2", -1))
+                legend2_fontsize: int = (
+                    legend2_fs_raw
+                    if legend2_fs_raw > 0
+                    else int(self.preset.get("font_size_legend", 8))
+                )
+
+                # Helper to resolve legend2 spacing with fallback to primary
+                def _l2_spacing(key: str, default: float) -> float:
+                    legend2_val = self.preset.get(f"legend2_{key}", -1.0)
+                    v: float = float(str(legend2_val)) if legend2_val is not None else -1.0
+                    if v < 0:
+                        legend_val = self.preset.get(f"legend_{key}", default)
+                        return float(str(legend_val)) if legend_val is not None else default
+                    return v
+
+                # Resolve legend2 ncol (0 = auto)
+                l2_preset_ncol: int = int(self.preset.get("legend2_ncol", 0))
+                l2_ncol: int = l2_preset_ncol if l2_preset_ncol > 0 else (2 if len(h2) > 4 else 1)
+
                 legend2_kwargs: Dict[str, Any] = {
                     "handles": h2,
                     "labels": l2,
+                    "ncol": l2_ncol,
                     "frameon": True,
                     "fancybox": False,
                     "shadow": False,
                     "framealpha": 1.0,
                     "edgecolor": "black",
-                    "fontsize": self.preset.get("font_size_legend", 8),
+                    "fontsize": legend2_fontsize,
+                    # Spacing from preset — fallback to primary legend values
+                    "columnspacing": _l2_spacing("columnspacing", 0.5),
+                    "handletextpad": _l2_spacing("handletextpad", 0.3),
+                    "labelspacing": _l2_spacing("labelspacing", 0.2),
+                    "handlelength": _l2_spacing("handlelength", 1.0),
+                    "handleheight": _l2_spacing("handleheight", 0.7),
+                    "borderpad": _l2_spacing("borderpad", 0.2),
+                    "borderaxespad": _l2_spacing("borderaxespad", 0.5),
                 }
                 if "x" in legend2_config and "y" in legend2_config:
                     legend2_kwargs["bbox_to_anchor"] = (
@@ -701,6 +731,13 @@ class MatplotlibConverter(BaseConverter):
                     legend2_kwargs["loc"] = "best"
                 legend2 = ax2.legend(**legend2_kwargs)
                 legend2.set_zorder(5)
+
+                # Apply bold to legend2 text if requested
+                legend2_bold: bool = bool(self.preset.get("bold_legend2", False))
+                if legend2_bold:
+                    for text in legend2.get_texts():
+                        text.set_fontweight("bold")
+
                 applied["legend2_items"] = len(h2)
 
         # Reference lines (horizontal lines from Plotly shapes)

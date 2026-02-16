@@ -73,7 +73,7 @@ def test_render_plot_selector(mock_streamlit, mock_api):
     mock_api.state_manager.get_plots.return_value = [plot1, plot2]
     mock_api.state_manager.get_current_plot_id.return_value = 1
 
-    mock_streamlit.radio.return_value = "Plot 2"
+    mock_streamlit.pills.return_value = "Plot 2"
 
     selected = PlotManagerComponents.render_plot_selector(mock_api)
 
@@ -87,8 +87,10 @@ def test_render_plot_controls(mock_streamlit, mock_api, mock_plot_service):
 
     mock_streamlit.text_input.return_value = "New Name"
 
-    def button_side_effect(label, key=None, **kwargs):
+    def button_side_effect(label, key=None, on_click=None, **kwargs):
         if key == f"delete_plot_{plot.plot_id}":
+            if on_click:
+                on_click()
             return True
         return False
 
@@ -98,7 +100,6 @@ def test_render_plot_controls(mock_streamlit, mock_api, mock_plot_service):
 
     assert plot.name == "New Name"
     mock_plot_service.delete_plot.assert_called_with(1, mock_api.state_manager)
-    mock_streamlit.rerun.assert_called()
 
 
 def test_render_pipeline_editor_add_shaper(mock_streamlit, mock_api):

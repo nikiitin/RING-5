@@ -21,19 +21,19 @@ def run_app():
     # Page configuration
     st.set_page_config(
         page_title="RING-5 Interactive Analyzer",
-        page_icon="⚡",
+        page_icon="R5",
         layout="wide",
         initial_sidebar_state="expanded",
     )
 
-    # Custom CSS (string constant — negligible cost)
+    # Custom CSS for dark Alphabet-inspired theme + sidebar nav menu
     st.markdown(
         """
     <style>
         .main-header {
             font-size: 3rem;
             font-weight: bold;
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(90deg, #8b5cf6 0%, #a78bfa 50%, #c4b5fd 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             text-align: center;
@@ -47,36 +47,50 @@ def run_app():
     # Initialize Core Components
     from src.core.application_api import ApplicationAPI
 
-    @st.cache_resource
+    @st.cache_resource(show_spinner="Initializing RING-5...")
     def get_api() -> ApplicationAPI:
         return ApplicationAPI()
 
     api = get_api()
-    # Store for easy access in pages (optional, but consistent)
     st.session_state.api = api
 
     # Sidebar - Navigation
     with st.sidebar:
         st.markdown("# RING-5")
+        st.caption("gem5 Analysis & Visualization")
         st.markdown("---")
 
-        page = st.radio(
-            "Navigation",
-            [
-                "Data Source",
-                "Upload Data",
-                "Data Managers",
-                "Manage Plots",
-                "Save/Load Portfolio",
-                "⚡ Performance",
-            ],
-            label_visibility="collapsed",
-        )
+        _NAV_OPTIONS = [
+            "Data Source",
+            "Data Managers",
+            "Manage Plots",
+            "Save/Load Portfolio",
+            "Performance",
+        ]
+
+        if "_nav_page" not in st.session_state:
+            st.session_state["_nav_page"] = _NAV_OPTIONS[0]
+
+        for _nav_item in _NAV_OPTIONS:
+            _is_active = st.session_state["_nav_page"] == _nav_item
+            if st.button(
+                _nav_item,
+                key=f"nav_{_nav_item}",
+                use_container_width=True,
+                type="primary" if _is_active else "tertiary",
+            ):
+                st.session_state["_nav_page"] = _nav_item
+                st.rerun()
+
+        page = st.session_state["_nav_page"]
 
         st.markdown("---")
 
         if st.button(
-            "Clear Data", use_container_width=True, help="Clear loaded CSV data and plots"
+            "Clear Data",
+            use_container_width=True,
+            type="tertiary",
+            help="Clear loaded CSV data and plots",
         ):
             api.reset_session()
             st.rerun()
@@ -105,15 +119,15 @@ def run_app():
             config = current_view["config"]
 
             with col1:
-                st.metric("Rows", len(data))
+                st.metric("Rows", len(data), border=True)
             with col2:
-                st.metric("Columns", len(data.columns))
+                st.metric("Columns", len(data.columns), border=True)
             with col3:
                 csv_path = config.get("csv_path")
                 if csv_path:
-                    st.metric("Source", Path(csv_path).name)
+                    st.metric("Source", Path(csv_path).name, border=True)
                 else:
-                    st.metric("Source", "Uploaded")
+                    st.metric("Source", "Uploaded", border=True)
 
             with st.expander("View Current Data", expanded=False):
                 st.dataframe(data, width="stretch", height=300)
@@ -125,10 +139,6 @@ def run_app():
         from src.web.pages.data_source import DataSourcePage
 
         DataSourcePage(api).render()
-    elif page == "Upload Data":
-        from src.web.pages.upload_data import UploadDataPage
-
-        UploadDataPage(api).render()
     elif page == "Data Managers":
         from src.web.pages.data_managers import show_data_managers_page
 
@@ -141,7 +151,7 @@ def run_app():
         from src.web.pages.portfolio import show_portfolio_page
 
         show_portfolio_page(api)
-    elif page == "⚡ Performance":
+    elif page == "Performance":
         from src.web.pages.performance import render_performance_page
 
         render_performance_page(api)

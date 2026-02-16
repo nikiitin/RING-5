@@ -20,17 +20,26 @@ class FontStyleConfig:
     font_size_title: int = 10
     font_size_xlabel: int = 9
     font_size_ylabel: int = 9
+    font_size_y2label: int = -1  # Secondary Y-axis label (-1 = follow ylabel)
     font_size_ticks: int = 7
     font_size_yticks: int = 7  # Separate Y-tick size (defaults to font_size_ticks)
+    font_size_y2ticks: int = -1  # Secondary Y-tick size (-1 = follow yticks)
     font_size_annotations: int = 6
     font_size_legend: int = 8  # Legend text font size (for boxed annotations too)
+    font_size_legend2: int = -1  # Secondary legend font size (-1 = follow legend)
+    font_size_legend3: int = -1  # Tertiary legend font size (-1 = follow legend)
+    legend3_number_fontsize: int = -1  # Number digits size (-1 = follow legend3)
+    legend3_text_fontsize: int = -1  # Label text size (-1 = follow legend3)
     bold_title: bool = False
     bold_xlabel: bool = False
     bold_ylabel: bool = False
+    bold_y2label: bool = False  # Secondary Y-axis label bold
     bold_ticks: bool = False
     bold_annotations: bool = True  # Bar values bold by default
     bold_group_labels: bool = True  # X-axis grouping labels bold by default
     bold_legend: bool = False  # Legend text bold (applies to boxed annotations too)
+    bold_legend2: bool = False  # Secondary legend bold
+    bold_legend3: bool = False  # Tertiary legend bold
 
 
 @dataclass
@@ -45,6 +54,8 @@ class PositioningConfig:
     # Y-axis label positioning
     ylabel_pad: float = 10.0  # Distance from tick labels (points)
     ylabel_y_position: float = 0.5  # Vertical position (0=bottom, 0.5=center, 1=top)
+    y2label_pad: float = -1.0  # Secondary Y-axis label pad (-1 = follow ylabel_pad)
+    y2tick_pad: float = -1.0  # Secondary Y-tick pad (-1 = follow ytick_pad)
 
     # Tick padding and formatting
     xtick_pad: float = 5.0  # Distance from axis (points)
@@ -96,3 +107,6 @@ class LegendSpacingConfig:
     handleheight: float = 0.7
     borderpad: float = 0.2
     borderaxespad: float = 0.5
+    # Legend3 (boxed annotation) overrides (-1 = follow primary)
+    legend3_borderpad: float = -1.0
+    legend3_labelspacing: float = -1.0

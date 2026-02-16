@@ -168,7 +168,7 @@ class TestPlotRendererRenderPlot:
         plot.create_figure.side_effect = ValueError("bad config")
 
         PlotRenderer.render_plot(plot, should_generate=True)
-        mock_st.error.assert_called()
+        mock_st.exception.assert_called()
 
     @patch("src.web.pages.ui.plotting.plot_renderer.PlotRenderer._render_download_button")
     @patch("src.web.pages.ui.plotting.plot_renderer.interactive_plotly_chart")
@@ -227,7 +227,7 @@ class TestPlotRendererRenderPlot:
         relayout_data = {"legend.x": 0.3}
         mock_chart.return_value = relayout_data
         # Same event already processed
-        mock_st.session_state = {"last_relayout_1": relayout_data}
+        mock_st.session_state = {"plot.1.last_relayout": relayout_data}
 
         PlotRenderer.render_plot(plot)
         plot.update_from_relayout.assert_not_called()
@@ -255,4 +255,4 @@ class TestPlotRendererRenderPlot:
         mock_chart.side_effect = RuntimeError("render fail")
 
         PlotRenderer.render_plot(plot)
-        mock_st.error.assert_called()
+        mock_st.exception.assert_called()

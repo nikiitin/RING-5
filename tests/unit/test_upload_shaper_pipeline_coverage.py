@@ -1,9 +1,8 @@
 """
-Coverage tests for UploadComponents, shaper_config, PipelinePresenter,
+Coverage tests for shaper_config, PipelinePresenter,
 PipelineStepPresenter, DataManager, and StyleManager.
 
 Targets uncovered lines:
-- upload_components.py: 26-35, 47-76, 88-100
 - shaper_config.py: 122-134
 - pipeline_presenter.py: 49, 116
 - pipeline_step_presenter.py: 130-132
@@ -35,180 +34,6 @@ def _make_mock_api() -> MagicMock:
 
 
 # ===========================================================================
-# UploadComponents
-# ===========================================================================
-
-
-class TestUploadComponentsParsedPreview:
-    """Lines 26-35: render_parsed_data_preview."""
-
-    @patch("src.web.pages.ui.components.upload_components.DataComponents")
-    @patch("src.web.pages.ui.components.upload_components.st")
-    def test_with_data(self, mock_st: MagicMock, mock_dc: MagicMock) -> None:
-        from src.web.pages.ui.components.upload_components import UploadComponents
-
-        api = _make_mock_api()
-        df = pd.DataFrame({"a": [1, 2]})
-        api.state_manager.get_data.return_value = df
-
-        UploadComponents.render_parsed_data_preview(api)
-
-        mock_st.markdown.assert_called()
-        mock_st.success.assert_called()
-        mock_dc.show_data_preview.assert_called_once_with(df)
-        mock_dc.show_column_details.assert_called_once_with(df)
-        mock_st.info.assert_called()
-
-    @patch("src.web.pages.ui.components.upload_components.DataComponents")
-    @patch("src.web.pages.ui.components.upload_components.st")
-    def test_no_data(self, mock_st: MagicMock, mock_dc: MagicMock) -> None:
-        from src.web.pages.ui.components.upload_components import UploadComponents
-
-        api = _make_mock_api()
-        api.state_manager.get_data.return_value = None
-
-        UploadComponents.render_parsed_data_preview(api)
-
-        mock_dc.show_data_preview.assert_not_called()
-
-
-class TestUploadComponentsFileUpload:
-    """Lines 47-76: render_file_upload_tab."""
-
-    @patch("src.web.pages.ui.components.upload_components.DataComponents")
-    @patch("src.web.pages.ui.components.upload_components.sanitize_filename", return_value="f.csv")
-    @patch("src.web.pages.ui.components.upload_components.st")
-    def test_successful_upload(
-        self, mock_st: MagicMock, mock_san: MagicMock, mock_dc: MagicMock
-    ) -> None:
-        from src.web.pages.ui.components.upload_components import UploadComponents
-
-        api = _make_mock_api()
-        api.state_manager.get_temp_dir.return_value = "/tmp/dir"
-        df = pd.DataFrame({"a": [1]})
-        api.state_manager.get_data.return_value = df
-
-        uploaded = MagicMock()
-        uploaded.name = "file.csv"
-        uploaded.getbuffer.return_value = b"a\n1"
-        mock_st.file_uploader.return_value = uploaded
-
-        with patch("builtins.open", MagicMock()):
-            UploadComponents.render_file_upload_tab(api)
-
-        api.load_data.assert_called_once()
-        mock_st.success.assert_called()
-
-    @patch("src.web.pages.ui.components.upload_components.st")
-    def test_upload_no_file(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.upload_components import UploadComponents
-
-        api = _make_mock_api()
-        mock_st.file_uploader.return_value = None
-
-        UploadComponents.render_file_upload_tab(api)
-        api.load_data.assert_not_called()
-
-    @patch("src.web.pages.ui.components.upload_components.sanitize_filename", return_value="f.csv")
-    @patch("src.web.pages.ui.components.upload_components.st")
-    def test_upload_error(self, mock_st: MagicMock, mock_san: MagicMock) -> None:
-        from src.web.pages.ui.components.upload_components import UploadComponents
-
-        api = _make_mock_api()
-        api.state_manager.get_temp_dir.return_value = "/tmp/dir"
-        api.load_data.side_effect = Exception("fail")
-
-        uploaded = MagicMock()
-        uploaded.name = "f.csv"
-        uploaded.getbuffer.return_value = b"x"
-        mock_st.file_uploader.return_value = uploaded
-
-        with patch("builtins.open", MagicMock()):
-            UploadComponents.render_file_upload_tab(api)
-
-        mock_st.error.assert_called()
-
-    @patch("src.web.pages.ui.components.upload_components.sanitize_filename", return_value="f.csv")
-    @patch("src.web.pages.ui.components.upload_components.st")
-    def test_upload_no_temp_dir_created(self, mock_st: MagicMock, mock_san: MagicMock) -> None:
-        """Cover the branch where temp dir creation fails (get_temp_dir returns None twice)."""
-        from src.web.pages.ui.components.upload_components import UploadComponents
-
-        api = _make_mock_api()
-        # First call: None → triggers set_temp_dir, second call: still None → RuntimeError
-        api.state_manager.get_temp_dir.return_value = None
-
-        uploaded = MagicMock()
-        uploaded.name = "f.csv"
-        uploaded.getbuffer.return_value = b"x"
-        mock_st.file_uploader.return_value = uploaded
-
-        with patch("src.web.pages.ui.components.upload_components.tempfile") as mock_tmp:
-            mock_tmp.mkdtemp.return_value = "/tmp/new"
-            # After set_temp_dir, second call still returns None
-            api.state_manager.get_temp_dir.side_effect = [None, None]
-
-            UploadComponents.render_file_upload_tab(api)
-
-        mock_st.error.assert_called()
-
-
-class TestUploadComponentsPasteData:
-    """Lines 88-100: render_paste_data_tab."""
-
-    @patch("src.web.pages.ui.components.upload_components.st")
-    def test_paste_no_text(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.upload_components import UploadComponents
-
-        api = _make_mock_api()
-        mock_st.text_area.return_value = ""
-
-        UploadComponents.render_paste_data_tab(api)
-        api.state_manager.set_data.assert_not_called()
-
-    @patch("src.web.pages.ui.components.upload_components.st")
-    def test_paste_success(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.upload_components import UploadComponents
-
-        api = _make_mock_api()
-        mock_st.text_area.return_value = "a,b\n1,2\n3,4"
-        mock_st.button.return_value = True
-
-        UploadComponents.render_paste_data_tab(api)
-
-        api.state_manager.set_data.assert_called_once()
-        mock_st.success.assert_called()
-
-    @patch("src.web.pages.ui.components.upload_components.st")
-    def test_paste_error(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.upload_components import UploadComponents
-
-        api = _make_mock_api()
-        mock_st.text_area.return_value = "not valid csv at all \\x00"
-        mock_st.button.return_value = True
-
-        # Force pd.read_csv to fail
-        with patch(
-            "src.web.pages.ui.components.upload_components.pd.read_csv",
-            side_effect=Exception("bad"),
-        ):
-            UploadComponents.render_paste_data_tab(api)
-
-        mock_st.error.assert_called()
-
-    @patch("src.web.pages.ui.components.upload_components.st")
-    def test_paste_button_not_clicked(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.upload_components import UploadComponents
-
-        api = _make_mock_api()
-        mock_st.text_area.return_value = "a,b\n1,2"
-        mock_st.button.return_value = False
-
-        UploadComponents.render_paste_data_tab(api)
-        api.state_manager.set_data.assert_not_called()
-
-
-# ===========================================================================
 # shaper_config.py
 # ===========================================================================
 
@@ -235,7 +60,7 @@ class TestShaperConfigBranches:
 
         result = configure_shaper("columnSelector", df, "s1", None)
 
-        mock_st.error.assert_called()
+        mock_st.exception.assert_called()
         assert result["type"] == "columnSelector"
 
 
@@ -328,7 +153,7 @@ class TestPipelineStepPresenterBranches:
         df = pd.DataFrame({"a": [1, 2, 3]})
         PipelineStepPresenter.render_finalize_result(df)
 
-        mock_st.success.assert_called()
+        mock_st.toast.assert_called()
         mock_st.dataframe.assert_called()
 
     @patch("src.web.presenters.plot.pipeline_step_presenter.st")
@@ -336,7 +161,7 @@ class TestPipelineStepPresenterBranches:
         from src.web.presenters.plot.pipeline_step_presenter import PipelineStepPresenter
 
         PipelineStepPresenter.render_finalize_error("some error")
-        mock_st.error.assert_called_once()
+        mock_st.exception.assert_called_once()
 
 
 # ===========================================================================

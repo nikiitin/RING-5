@@ -625,5 +625,6 @@ class StyleApplicator:
             yshift=vshift,
             xshift=xaxis_title_standoff,
             showarrow=False,
+            captureevents=False,
             font=dict(size=font_size, color=font_color),
         )

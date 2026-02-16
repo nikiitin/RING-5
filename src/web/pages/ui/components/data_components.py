@@ -28,15 +28,15 @@ class DataComponents:
         # Statistics
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            st.metric("Rows", len(data))
+            st.metric("Rows", len(data), border=True)
         with col2:
-            st.metric("Columns", len(data.columns))
+            st.metric("Columns", len(data.columns), border=True)
         with col3:
             numeric_cols = data.select_dtypes(include=["number"]).columns
-            st.metric("Numeric Columns", len(numeric_cols))
+            st.metric("Numeric Columns", len(numeric_cols), border=True)
         with col4:
             categorical_cols = data.select_dtypes(include=["object", "string"]).columns
-            st.metric("Categorical Columns", len(categorical_cols))
+            st.metric("Categorical Columns", len(categorical_cols), border=True)
 
     @staticmethod
     def show_column_details(data: pd.DataFrame) -> None:
@@ -79,6 +79,7 @@ class DataComponents:
                 file_name=f"{prefix}.csv",
                 mime="text/csv",
                 width="stretch",
+                on_click="ignore",
             )
 
         with col2:
@@ -89,6 +90,7 @@ class DataComponents:
                 file_name=f"{prefix}.json",
                 mime="application/json",
                 width="stretch",
+                on_click="ignore",
             )
 
         with col3:
@@ -103,4 +105,5 @@ class DataComponents:
                 file_name=f"{prefix}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 width="stretch",
+                on_click="ignore",
             )

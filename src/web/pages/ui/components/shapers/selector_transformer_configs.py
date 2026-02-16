@@ -131,13 +131,20 @@ class TransformerConfig:
                 key=f"{key_prefix}trans_col_{shaper_id}",
             )
         with col2:
-            target_type_str = st.radio(
+            type_options = ["Factor (String/Categorical)", "Scalar (Numeric)"]
+            target_type_str = st.segmented_control(
                 "Convert to:",
-                options=["Factor (String/Categorical)", "Scalar (Numeric)"],
-                index=0 if existing_config.get("target_type") == "factor" else 1,
+                options=type_options,
+                default=(
+                    type_options[0]
+                    if existing_config.get("target_type") == "factor"
+                    else type_options[1]
+                ),
                 key=f"{key_prefix}trans_type_{shaper_id}",
             )
-            is_factor = "Factor" in target_type_str or "factor" in target_type_str.lower()
+            is_factor = target_type_str is not None and (
+                "Factor" in target_type_str or "factor" in target_type_str.lower()
+            )
             order_list = None
             if is_factor and target_col in data.columns:
                 unique_vals = sorted([str(x) for x in data[target_col].unique()])

@@ -1,4 +1,4 @@
-"""Tests for PlotFactory, BarStyleUI, UploadDataPage, LaTeXExportService — branch coverage."""
+"""Tests for PlotFactory, BarStyleUI, LaTeXExportService — branch coverage."""
 
 from typing import Any, Dict
 from unittest.mock import MagicMock, patch
@@ -101,58 +101,6 @@ class TestBarStyleUI:
 
         ui._render_specific_series_visuals(style, "trace_0")
         assert style["pattern"] == ""
-
-
-class TestUploadDataPage:
-    """Cover UploadDataPage.render branches."""
-
-    @patch("src.web.pages.upload_data.UploadComponents")
-    @patch("src.web.pages.upload_data.st")
-    def test_parser_mode_with_data(self, mock_st: MagicMock, mock_uc: MagicMock) -> None:
-        from src.web.pages.upload_data import UploadDataPage
-
-        api = MagicMock()
-        api.state_manager.is_using_parser.return_value = True
-        api.state_manager.has_data.return_value = True
-
-        page = UploadDataPage(api)
-        page.render()
-        mock_uc.render_parsed_data_preview.assert_called_once()
-
-    @patch("src.web.pages.upload_data.UploadComponents")
-    @patch("src.web.pages.upload_data.st")
-    def test_parser_mode_no_data(self, mock_st: MagicMock, mock_uc: MagicMock) -> None:
-        from src.web.pages.upload_data import UploadDataPage
-
-        api = MagicMock()
-        api.state_manager.is_using_parser.return_value = True
-        api.state_manager.has_data.return_value = False
-
-        page = UploadDataPage(api)
-        page.render()
-        mock_st.warning.assert_called()
-
-    @patch("src.web.pages.upload_data.UploadComponents")
-    @patch("src.web.pages.upload_data.st")
-    def test_csv_upload_mode(self, mock_st: MagicMock, mock_uc: MagicMock) -> None:
-        from src.web.pages.upload_data import UploadDataPage
-
-        api = MagicMock()
-        api.state_manager.is_using_parser.return_value = False
-
-        # mock tabs
-        tab1 = MagicMock()
-        tab1.__enter__ = MagicMock(return_value=tab1)
-        tab1.__exit__ = MagicMock(return_value=False)
-        tab2 = MagicMock()
-        tab2.__enter__ = MagicMock(return_value=tab2)
-        tab2.__exit__ = MagicMock(return_value=False)
-        mock_st.tabs.return_value = [tab1, tab2]
-
-        page = UploadDataPage(api)
-        page.render()
-        mock_uc.render_file_upload_tab.assert_called_once()
-        mock_uc.render_paste_data_tab.assert_called_once()
 
 
 class TestLaTeXExportService:

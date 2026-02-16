@@ -10,7 +10,7 @@ from src.core.models.history_models import OperationRecord
 
 logger = logging.getLogger(__name__)
 
-_MANAGER_HISTORY_MAX: int = 20
+_MANAGER_HISTORY_MAX: int = 10
 
 
 class HistoryRepository:

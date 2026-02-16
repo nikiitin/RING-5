@@ -67,6 +67,65 @@ class TestRenderHistoryTable:
         assert df.iloc[0]["Timestamp"] == "2024-01-02 00:00:00"
 
 
+class TestRenderGlobalHistory:
+    """Test render_global_history."""
+
+    @patch("src.web.pages.ui.components.history_components.st")
+    def test_empty_records_noop(self, mock_st: MagicMock) -> None:
+        HistoryComponents.render_global_history([], MagicMock())
+        mock_st.expander.assert_not_called()
+
+    @patch("src.web.pages.ui.components.history_components.st")
+    def test_renders_expander_with_records(self, mock_st: MagicMock) -> None:
+        records = [_make_record(op="Preprocessor: Division")]
+        exp = MagicMock()
+        exp.__enter__ = MagicMock(return_value=exp)
+        exp.__exit__ = MagicMock(return_value=False)
+        mock_st.expander.return_value = exp
+        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.button.return_value = False
+
+        HistoryComponents.render_global_history(records, MagicMock())
+        mock_st.expander.assert_called_once()
+
+    @patch("src.web.pages.ui.components.history_components.st")
+    def test_shows_max_10_records(self, mock_st: MagicMock) -> None:
+        records = [_make_record(op=f"Op {i}") for i in range(15)]
+        exp = MagicMock()
+        exp.__enter__ = MagicMock(return_value=exp)
+        exp.__exit__ = MagicMock(return_value=False)
+        mock_st.expander.return_value = exp
+        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.button.return_value = False
+
+        HistoryComponents.render_global_history(records, MagicMock())
+        # columns should be called 10 times (once per displayed record)
+        assert mock_st.columns.call_count == 10
+
+    @patch("src.web.pages.ui.components.history_components.st")
+    def test_delete_button_calls_callback(self, mock_st: MagicMock) -> None:
+        record = _make_record()
+        exp = MagicMock()
+        exp.__enter__ = MagicMock(return_value=exp)
+        exp.__exit__ = MagicMock(return_value=False)
+        mock_st.expander.return_value = exp
+        mock_st.columns.side_effect = _columns_side_effect
+
+        delete_cb = MagicMock()
+
+        def button_side_effect(label, on_click=None, **kwargs):
+            if label == "🗑️":
+                if on_click:
+                    on_click()
+                return True
+            return False
+
+        mock_st.button.side_effect = button_side_effect
+
+        HistoryComponents.render_global_history([record], delete_cb)
+        delete_cb.assert_called_once_with(record)
+
+
 class TestRenderManagerHistory:
     """Test render_manager_history."""
 
@@ -112,15 +171,21 @@ class TestRenderManagerHistory:
         exp.__exit__ = MagicMock(return_value=False)
         mock_st.expander.return_value = exp
         mock_st.columns.side_effect = _columns_side_effect
-        # First button (load) returns True; second (delete) returns False
-        mock_st.button.side_effect = [True, False]
+
+        def button_side_effect(label, on_click=None, **kwargs):
+            if label == "🔄":
+                if on_click:
+                    on_click()
+                return True
+            return False
+
+        mock_st.button.side_effect = button_side_effect
         mock_st.session_state = {}
 
         HistoryComponents.render_manager_history(
             [record], "Preprocessor", "_preproc_load", MagicMock()
         )
         assert mock_st.session_state["_preproc_load"] == record
-        mock_st.rerun.assert_called()
 
     @patch("src.web.pages.ui.components.history_components.st")
     def test_delete_button_calls_callback(self, mock_st: MagicMock) -> None:
@@ -130,13 +195,20 @@ class TestRenderManagerHistory:
         exp.__exit__ = MagicMock(return_value=False)
         mock_st.expander.return_value = exp
         mock_st.columns.side_effect = _columns_side_effect
-        # First button (load) returns False; second (delete) returns True
-        mock_st.button.side_effect = [False, True]
 
         delete_cb = MagicMock()
+
+        def button_side_effect(label, on_click=None, **kwargs):
+            if label == "🗑️":
+                if on_click:
+                    on_click()
+                return True
+            return False
+
+        mock_st.button.side_effect = button_side_effect
+
         HistoryComponents.render_manager_history([record], "Preprocessor", "_load_key", delete_cb)
         delete_cb.assert_called_once_with(record)
-        mock_st.rerun.assert_called()
 
 
 class TestRenderPortfolioHistory:

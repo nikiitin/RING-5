@@ -259,14 +259,14 @@ class TestHistoryRepository:
         assert len(repo.get_manager_history()) == 1
         assert repo.get_manager_history()[0]["operation"] == "op1"
 
-    def test_manager_fifo_cap_at_20(self, repo: HistoryRepository) -> None:
-        for i in range(25):
+    def test_manager_fifo_cap_at_10(self, repo: HistoryRepository) -> None:
+        for i in range(15):
             repo.add_manager_record(self._record(f"op_{i}"))
         history = repo.get_manager_history()
-        assert len(history) == 20
+        assert len(history) == 10
         # Oldest evicted → first record should be op_5
         assert history[0]["operation"] == "op_5"
-        assert history[-1]["operation"] == "op_24"
+        assert history[-1]["operation"] == "op_14"
 
     def test_set_manager_history_bulk(self, repo: HistoryRepository) -> None:
         records = [self._record(f"op_{i}") for i in range(3)]

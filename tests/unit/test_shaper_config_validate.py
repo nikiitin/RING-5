@@ -199,7 +199,7 @@ class TestApplyShapers:
 
         with pytest.raises(RuntimeError):
             apply_shapers(df, config)
-        mock_st.error.assert_called_once()
+        mock_st.exception.assert_called_once()
 
     def test_does_not_mutate_original_data(self) -> None:
         """apply_shapers should call .copy() on the input."""

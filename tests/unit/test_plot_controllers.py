@@ -145,7 +145,7 @@ class TestPlotCreationController:
         result = controller.render_selector()
 
         assert result is None
-        mock_st.warning.assert_called_once()
+        mock_presenter.render_no_plots_warning.assert_called_once()
 
     @patch("src.web.controllers.plot.creation_controller.st")
     @patch("src.web.controllers.plot.creation_controller.PlotSelectorPresenter")
@@ -272,7 +272,7 @@ class TestPipelineController:
         controller = PipelineController(mock_api, mock_ui_state, mock_pipeline_executor)
         controller.render(plot)
 
-        mock_st.warning.assert_called_once()
+        mock_presenter.render_no_data_warning.assert_called_once()
 
     @patch("src.web.controllers.plot.pipeline_controller.st")
     @patch("src.web.controllers.plot.pipeline_controller.PipelinePresenter")
@@ -551,8 +551,9 @@ class TestPipelineControllerErrorResilience:
         # Both steps were attempted
         assert mock_step_presenter.render_step.call_count == 2
         # Error was displayed for step 0
-        mock_st.error.assert_called_once()
-        assert "Step 1 error" in mock_st.error.call_args[0][0]
+        mock_st.exception.assert_called_once()
+        exc = mock_st.exception.call_args[0][0]
+        assert "Column 'a' already exists" in str(exc)
         # Finalize button was still rendered
         mock_presenter.render_finalize_button.assert_called_once()
 
@@ -675,7 +676,7 @@ class TestRenderControllerErrorResilience:
         controller.render(plot)
 
         # Error was shown
-        mock_st.error.assert_called()
+        mock_st.exception.assert_called()
         # Chart was still rendered (but should_gen=False due to config error)
         mock_chart_display.render_chart.assert_called_once()
         # should_gen is False because config_error=True
@@ -734,7 +735,7 @@ class TestRenderControllerErrorResilience:
         controller.render(plot)
 
         # Error displayed
-        mock_st.error.assert_called()
+        mock_st.exception.assert_called()
         # Chart container still rendered (with should_gen=False)
         mock_chart_display.render_chart.assert_called_once()
 
@@ -807,7 +808,7 @@ class TestHandleSaveDialog:
         controller = PlotCreationController(mock_api, mock_ui_state, mock_lifecycle, mock_registry)
         controller._handle_save_dialog(plot)
 
-        mock_st.error.assert_called_once()
+        mock_st.exception.assert_called_once()
 
     @patch("src.web.controllers.plot.creation_controller.st")
     @patch("src.web.controllers.plot.creation_controller.SaveDialogPresenter")
@@ -966,7 +967,7 @@ class TestHandleLoadDialog:
         controller = PlotCreationController(mock_api, mock_ui_state, mock_lifecycle, mock_registry)
         controller._handle_load_dialog(plot)
 
-        mock_st.error.assert_called_once()
+        mock_st.exception.assert_called_once()
 
     @patch("src.web.controllers.plot.creation_controller.st")
     @patch("src.web.controllers.plot.creation_controller.LoadDialogPresenter")

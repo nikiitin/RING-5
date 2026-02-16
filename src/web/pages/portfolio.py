@@ -63,10 +63,10 @@ def show_portfolio_page(api: ApplicationAPI) -> None:
                             Optional[List[str]], api.state_manager.get_parse_variables()
                         ),
                     )
-                    st.success(f"Portfolio saved: {portfolio_name}")
+                    st.toast(f"Portfolio saved: {portfolio_name}", icon="✅")
                     st.rerun()
                 except Exception as e:
-                    st.error(f"Failed to save portfolio: {e}")
+                    st.exception(e)
                     logger.error(
                         "PORTFOLIO: Failed to save portfolio %r: %s",
                         str(portfolio_name).replace("\n", ""),
@@ -92,10 +92,10 @@ def show_portfolio_page(api: ApplicationAPI) -> None:
                     try:
                         data = api.data_services.load_portfolio(selected_portfolio)
                         api.state_manager.restore_session(cast(PortfolioData, data))
-                        st.success(f"Portfolio loaded: {selected_portfolio}")
+                        st.toast(f"Portfolio loaded: {selected_portfolio}", icon="✅")
                         st.rerun(scope="app")
                     except Exception as e:
-                        st.error(f"Failed to load portfolio: {e}")
+                        st.exception(e)
                         logger.error(
                             "PORTFOLIO: Failed to load portfolio '%s': %s",
                             selected_portfolio,
@@ -112,10 +112,17 @@ def show_portfolio_page(api: ApplicationAPI) -> None:
         if portfolios:
             for pname in portfolios:
                 with st.expander(f"{pname}"):
-                    if st.button("Delete", key=f"del_portfolio_{pname}"):
-                        api.data_services.delete_portfolio(pname)
-                        st.success(f"Deleted {pname}")
-                        st.rerun()
+
+                    def _delete_portfolio(name: str = pname) -> None:
+                        api.data_services.delete_portfolio(name)
+                        st.toast(f"Deleted {name}", icon="🗑️")
+
+                    st.button(
+                        "Delete",
+                        key=f"del_portfolio_{pname}",
+                        on_click=_delete_portfolio,
+                        type="tertiary",
+                    )
 
         # Pipeline Management
         st.markdown("---")
@@ -148,9 +155,9 @@ def show_portfolio_page(api: ApplicationAPI) -> None:
                                 selected_plot.pipeline,
                                 description=f"Extracted from {selected_plot_name}",
                             )
-                            st.success(f"Pipeline saved: {pipeline_name}")
+                            st.toast(f"Pipeline saved: {pipeline_name}", icon="✅")
                         except Exception as e:
-                            st.error(f"Failed to save pipeline: {e}")
+                            st.exception(e)
                             logger.error(
                                 "PIPELINE: Failed to save pipeline %r: %s",
                                 str(pipeline_name).replace("\n", ""),
@@ -191,9 +198,9 @@ def show_portfolio_page(api: ApplicationAPI) -> None:
                             # Update state
                             api.state_manager.set_plots(plots)
 
-                            st.success(f"Applied pipeline to {count} plots.")
+                            st.toast(f"Applied pipeline to {count} plots.", icon="✅")
                         except Exception as e:
-                            st.error(f"Failed to apply pipeline: {e}")
+                            st.exception(e)
                             logger.error(
                                 "PIPELINE: Failed to apply pipeline '%s': %s",
                                 selected_pipeline_name,

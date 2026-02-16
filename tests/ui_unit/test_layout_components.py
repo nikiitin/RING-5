@@ -29,7 +29,6 @@ def test_navigation_menu(mock_streamlit):
         "Navigation",
         [
             "Data Source",
-            "Upload Data",
             "Data Managers",
             "Configure Pipeline",
             "Generate Plots",

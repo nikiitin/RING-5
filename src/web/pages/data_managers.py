@@ -33,7 +33,7 @@ def show_data_managers_page(api: ApplicationAPI) -> None:
     """)
 
     if not api.state_manager.has_data():
-        st.warning("No data loaded. Please load data from **Data Source** or **Upload Data** page.")
+        st.warning("No data loaded. Please load data from the **Data Source** page.")
         return
 
     data_or_none = api.state_manager.get_data()

@@ -235,12 +235,12 @@ class TestMixerTab:
     """Tests for the Mixer data manager tab."""
 
     def test_mixer_has_mode_radio(self) -> None:
-        """Mixer tab has mode selection radio."""
+        """Mixer tab has mode selection widget (segmented_control)."""
         at = _go_to_data_managers()
 
         assert not at.exception
-        # Radio buttons include sidebar nav + data source choice + mixer mode
-        assert len(at.radio) > 0
+        # Mixer mode is now a segmented_control (button_group)
+        assert len(at.button_group) > 0
 
     def test_mixer_has_column_multiselect(self) -> None:
         """Mixer tab has columns multiselect."""

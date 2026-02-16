@@ -80,10 +80,14 @@ class PlotControlsPresenter:
                 load_clicked: bool = st.button("Load Pipe", **load_kwargs)
 
         with col3:
-            delete_clicked: bool = st.button("Delete", key=f"delete_plot_{plot_id}")
+            delete_clicked: bool = st.button(
+                "Delete", key=f"delete_plot_{plot_id}", type="tertiary"
+            )
 
         with col4:
-            duplicate_clicked: bool = st.button("Duplicate", key=f"dup_plot_{plot_id}")
+            duplicate_clicked: bool = st.button(
+                "Duplicate", key=f"dup_plot_{plot_id}", type="tertiary"
+            )
 
         return {
             "new_name": new_name,

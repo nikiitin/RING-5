@@ -110,12 +110,11 @@ class GroupedStackedBarPlot(StackedBarPlot):
         if dual_axis:
             da1, da2 = st.columns(2)
             with da1:
-                right_axis_type = st.radio(
+                right_axis_type = st.segmented_control(
                     "Right-axis trace type",
                     options=["bars", "dots"],
-                    index=(["bars", "dots"].index(saved_config.get("right_axis_type", "bars"))),
+                    default=saved_config.get("right_axis_type", "bars"),
                     key=f"right_type_{self.plot_id}",
-                    horizontal=True,
                 )
             with da2:
                 ylabel_right = st.text_input(
@@ -892,13 +891,13 @@ class GroupedStackedBarPlot(StackedBarPlot):
             #    Secondary (right): reads top-to-bottom (textangle=90, opposite)
             self._apply_dual_axis_titles(fig, config)
 
-            # 2. Grid lines per axis
+            # 2. Grid lines per axis — primary ON by default, secondary OFF
             fig.update_yaxes(
                 showgrid=config.get("show_left_grid", True),
                 secondary_y=False,
             )
             fig.update_yaxes(
-                showgrid=config.get("show_right_grid", True),
+                showgrid=config.get("show_right_grid", False),
                 secondary_y=True,
             )
 
@@ -937,11 +936,17 @@ class GroupedStackedBarPlot(StackedBarPlot):
         with g2:
             config["show_right_grid"] = st.checkbox(
                 "Show Right Y-axis Grid",
-                value=saved_config.get("show_right_grid", True),
+                value=saved_config.get("show_right_grid", False),
                 key=f"show_right_grid_{self.plot_id}",
             )
 
         # Secondary Y-axis Typography
+        # Fall back to primary axis values when not explicitly set
+        _pri_title_fs: int = int(saved_config.get("yaxis_title_font_size", 14))
+        _pri_tick_fs: int = int(saved_config.get("yaxis_tickfont_size", 12))
+        _pri_tick_col: str = saved_config.get("yaxis_tickfont_color", "#444444")
+        _pri_standoff: int = int(saved_config.get("yaxis_title_standoff", 0))
+
         st.markdown("**Right Y-Axis Typography**")
         t1, t2 = st.columns(2)
         with t1:
@@ -949,14 +954,14 @@ class GroupedStackedBarPlot(StackedBarPlot):
                 "Right Y-Axis Title Font Size",
                 min_value=8,
                 max_value=100,
-                value=saved_config.get("yaxis2_title_font_size", 14),
+                value=saved_config.get("yaxis2_title_font_size", _pri_title_fs),
                 key=f"y2_title_sz_{self.plot_id}",
             )
             config["yaxis2_title_standoff"] = st.slider(
                 "Right Y-Axis Title Standoff",
                 min_value=0,
                 max_value=100,
-                value=saved_config.get("yaxis2_title_standoff", 40),
+                value=saved_config.get("yaxis2_title_standoff", _pri_standoff),
                 key=f"y2_title_standoff_{self.plot_id}",
                 help="Distance between the right Y-axis ticks and the title.",
             )
@@ -965,12 +970,12 @@ class GroupedStackedBarPlot(StackedBarPlot):
                 "Right Y-Axis Tick Size",
                 min_value=8,
                 max_value=100,
-                value=saved_config.get("yaxis2_tickfont_size", 12),
+                value=saved_config.get("yaxis2_tickfont_size", _pri_tick_fs),
                 key=f"y2_tick_sz_{self.plot_id}",
             )
             config["yaxis2_tickfont_color"] = st.color_picker(
                 "Right Y-Axis Tick Color",
-                saved_config.get("yaxis2_tickfont_color", "#444444"),
+                saved_config.get("yaxis2_tickfont_color", _pri_tick_col),
                 key=f"y2_tick_col_{self.plot_id}",
             )
 
@@ -992,38 +997,90 @@ class GroupedStackedBarPlot(StackedBarPlot):
             self._render_secondary_legend_controls(saved_config, config)
 
     def _apply_dual_axis_titles(self, fig: go.Figure, config: Dict[str, Any]) -> None:
-        """Apply Y-axis titles with proper rotation for dual-axis mode.
+        """Apply Y-axis titles as symmetrical annotations for dual-axis mode.
 
-        Primary Y (left):   textangle = -90  →  reads bottom-to-top (standard).
-        Secondary Y (right): textangle =  90  →  reads top-to-bottom (opposite).
+        When dual-axis is active **both** Y labels are rendered as
+        annotations so they look identical (same font family, size and
+        colour).  The only differences are:
 
-        The secondary title is rendered as an annotation because Plotly does
-        not expose a native rotation control for axis titles.
+        * Primary  (left):  ``textangle = -90``  at ``x = 0``
+        * Secondary (right): ``textangle =  90`` at ``x = 1``
+
+        The secondary config keys (``yaxis2_title_font_size``,
+        ``yaxis2_title_standoff``) fall back to their primary
+        counterparts when not explicitly set, guaranteeing visual
+        symmetry by default.
 
         Also applies secondary Y-axis tick styling.
 
         Args:
-            fig: Plotly figure (make_subplots with secondary_y).
+            fig: Plotly figure (``make_subplots`` with ``secondary_y``).
             config: Full plot configuration.
         """
+        # ── Resolve primary settings ─────────────────────────────
+        ylabel_left: str = str(fig.layout.yaxis.title.text or "")
         ylabel_right: str = config.get("ylabel_right", "")
-        yaxis2_font_size: int = int(config.get("yaxis2_title_font_size", 14))
-        yaxis2_standoff: int = int(config.get("yaxis2_title_standoff", 40))
 
-        # Apply secondary Y tick styling
+        primary_font_size: int = int(config.get("yaxis_title_font_size", 14))
+        primary_standoff: int = int(config.get("yaxis_title_standoff", 0))
+        font_color: str = config.get("axis_color", "#444444")
+
+        # ── Resolve secondary settings (fall back to primary) ────
+        yaxis2_fs_raw: Any = config.get("yaxis2_title_font_size")
+        secondary_font_size: int = (
+            int(yaxis2_fs_raw) if yaxis2_fs_raw is not None else primary_font_size
+        )
+        yaxis2_so_raw: Any = config.get("yaxis2_title_standoff")
+        secondary_standoff: int = (
+            int(yaxis2_so_raw) if yaxis2_so_raw is not None else primary_standoff
+        )
+
+        # ── Secondary Y tick styling (fall back to primary) ────
+        primary_tick_size: int = int(config.get("yaxis_tickfont_size", 12))
+        primary_tick_color: str = config.get("yaxis_tickfont_color", "#444444")
+
+        y2_tick_size_raw: Any = config.get("yaxis2_tickfont_size")
+        secondary_tick_size: int = (
+            int(y2_tick_size_raw) if y2_tick_size_raw is not None else primary_tick_size
+        )
+        y2_tick_color_raw: Any = config.get("yaxis2_tickfont_color")
+        secondary_tick_color: str = (
+            str(y2_tick_color_raw) if y2_tick_color_raw is not None else primary_tick_color
+        )
+
         fig.update_yaxes(
             tickfont=dict(
-                size=config.get("yaxis2_tickfont_size", 12),
-                color=config.get("yaxis2_tickfont_color", "#444444"),
+                size=secondary_tick_size,
+                color=secondary_tick_color,
             ),
             secondary_y=True,
         )
 
+        # ── Primary Y title → annotation (if not already done) ──
+        if ylabel_left:
+            # Clear native title so it doesn't render alongside
+            fig.update_yaxes(title_text="", secondary_y=False)
+
+            fig.add_annotation(
+                text=ylabel_left,
+                x=0,
+                y=0.5,
+                xref="paper",
+                yref="paper",
+                xanchor="right",
+                yanchor="middle",
+                textangle=-90,
+                showarrow=False,
+                captureevents=False,
+                font=dict(size=primary_font_size, color=font_color),
+                xshift=-(primary_standoff + 40),
+            )
+
+        # ── Secondary Y title → annotation ──────────────────────
         if ylabel_right:
-            # Clear the native secondary Y-axis title
+            # Clear native secondary title
             fig.update_yaxes(title_text="", secondary_y=True)
 
-            # Add rotated annotation on the right side
             fig.add_annotation(
                 text=ylabel_right,
                 x=1.0,
@@ -1032,10 +1089,11 @@ class GroupedStackedBarPlot(StackedBarPlot):
                 yref="paper",
                 xanchor="left",
                 yanchor="middle",
-                textangle=90,  # top-to-bottom (opposite of primary)
+                textangle=90,
                 showarrow=False,
-                font=dict(size=yaxis2_font_size),
-                xshift=yaxis2_standoff,
+                captureevents=False,
+                font=dict(size=secondary_font_size, color=font_color),
+                xshift=secondary_standoff + 40,
             )
         else:
             # Ensure the secondary Y title stays cleared

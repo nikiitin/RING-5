@@ -56,7 +56,7 @@ class TestPipelineControllerRender:
 
         ctrl.render(plot)
 
-        mock_st.warning.assert_called_once()
+        mock_presenter.render_no_data_warning.assert_called_once()
 
     @patch("src.web.controllers.plot.pipeline_controller.PipelinePresenter")
     @patch("src.web.controllers.plot.pipeline_controller.st")
@@ -152,7 +152,7 @@ class TestPipelineControllerRender:
         ctrl = PipelineController(mock_api, MagicMock(), mock_executor)
         ctrl.render(mock_plot)
 
-        mock_st.error.assert_called()
+        mock_st.exception.assert_called()
 
     @patch("src.web.controllers.plot.pipeline_controller.PipelineStepPresenter")
     @patch("src.web.controllers.plot.pipeline_controller.PipelinePresenter")

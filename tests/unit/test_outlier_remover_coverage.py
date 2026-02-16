@@ -186,7 +186,7 @@ class TestOutlierRemoverRender:
 
         mgr = OutlierRemoverManager(mock_api)
         mgr.render()
-        mock_st.error.assert_called()
+        mock_st.exception.assert_called()
 
     @patch("src.web.pages.ui.data_managers.impl.outlier_remover.HistoryComponents")
     @patch("src.web.pages.ui.data_managers.impl.outlier_remover.st")

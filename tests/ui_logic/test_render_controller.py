@@ -322,7 +322,7 @@ class TestErrorResilience:
         ctrl = _make_render_controller(chart_display=chart)
         ctrl.render(plot)
 
-        mock_st.error.assert_called_once()
+        mock_st.exception.assert_called_once()
         # should_generate is blocked by config_error
         chart.render_chart.assert_called_once_with(plot, False)
 
@@ -353,7 +353,7 @@ class TestErrorResilience:
         ctrl = _make_render_controller(chart_display=chart)
         ctrl.render(plot)
 
-        mock_st.error.assert_called_once()
+        mock_st.exception.assert_called_once()
         chart.render_chart.assert_called_once_with(plot, False)
 
     @patch("src.web.controllers.plot.render_controller.st")
@@ -383,5 +383,5 @@ class TestErrorResilience:
         ctrl = _make_render_controller(chart_display=chart)
         ctrl.render(plot)
 
-        assert mock_st.error.call_count == 2
+        assert mock_st.exception.call_count == 2
         chart.render_chart.assert_called_once_with(plot, False)
