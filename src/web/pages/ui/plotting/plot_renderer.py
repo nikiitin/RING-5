@@ -2,17 +2,25 @@
 
 import hashlib
 import json
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union, cast
 
 import pandas as pd
 import streamlit as st
 
 from src.core.performance import get_plot_cache, timed
+from src.core.visualization.connectors.builders import ConfigSpecBuilder
+from src.core.visualization.connectors.matplotlib_connector import (
+    FigureSpecToMatplotlib,
+)
+from src.core.visualization.connectors.matplotlib_trace_renderer import (
+    MatplotlibTraceRenderer,
+)
+from src.core.visualization.resolvers import resolve_spec
 from src.web.figures.engine import FigureEngine
 from src.web.pages.ui.components.interactive_plot import interactive_plotly_chart
 from src.web.pages.ui.plotting.export import LaTeXExportService
 from src.web.pages.ui.plotting.export.presets.preset_schema import LaTeXPreset
-from src.web.services.engine_manager import EngineManager
+from src.web.services.engine_manager import EngineManager, EngineMode
 
 from .base_plot import BasePlot
 
@@ -202,60 +210,99 @@ class PlotRenderer:
                     key=f"engine_selector_{plot.plot_id}",
                 )
                 if engine_choice is not None:
-                    EngineManager.set_engine(engine_choice)
+                    EngineManager.set_engine(cast("EngineMode", engine_choice))
 
-                # Reconstruct config for interactivity
-                # Enforce editable=True (scoped) to allow legend dragging
-                # but restrict other edits via 'edits' if needed in future
-                plotly_config = {
-                    "responsive": False,
-                    "editable": True,  # Required for legend dragging
-                    "edits": {
-                        "legendPosition": True,
-                        "titleText": False,
-                        "axisTitleText": False,
-                        "annotationText": False,
-                        "annotationPosition": False,
-                        "colorbarTitleText": False,
-                    },
-                    "modeBarButtonsToAdd": [
-                        "drawline",
-                        "drawopenpath",
-                        "drawclosedpath",
-                        "drawcircle",
-                        "drawrect",
-                        "eraseshape",
-                    ],
-                    "toImageButtonOptions": {
-                        "format": "svg",
-                        "filename": f"{plot.name}_view",
-                        "height": plot.config.get("height", 500),
-                        "width": plot.config.get("width", 800),
-                        "scale": plot.config.get("export_scale", 1),
-                    },
-                }
-
-                relayout_data = interactive_plotly_chart(
-                    fig, config=plotly_config, key=f"chart_{plot.plot_id}"
-                )
-
-                # Update backend config if user interacted
-                if relayout_data:
-                    # Prevent infinite loops by checking if we already processed this exact event
-                    last_event_key = f"plot.{plot.plot_id}.last_relayout"
-                    last_event = st.session_state.get(last_event_key)
-
-                    if relayout_data != last_event:
-                        if plot.update_from_relayout(relayout_data):
-                            st.session_state[last_event_key] = relayout_data
-                            st.rerun()
-
-                # Download button
-                PlotRenderer._render_download_button(plot, fig)
+                # ── Branch on engine mode ────────────────────────────
+                if EngineManager.is_matplotlib():
+                    PlotRenderer._render_matplotlib(plot, fig)
+                else:
+                    PlotRenderer._render_plotly(plot, fig)
 
             except Exception as e:
                 st.exception(e)
                 # Explicit error is better for debugging main loop
+
+    @staticmethod
+    def _render_plotly(plot: BasePlot, fig: Any) -> None:
+        """Render using Plotly interactive chart with relayout feedback."""
+        plotly_config = {
+            "responsive": False,
+            "editable": True,
+            "edits": {
+                "legendPosition": True,
+                "titleText": False,
+                "axisTitleText": False,
+                "annotationText": False,
+                "annotationPosition": False,
+                "colorbarTitleText": False,
+            },
+            "modeBarButtonsToAdd": [
+                "drawline",
+                "drawopenpath",
+                "drawclosedpath",
+                "drawcircle",
+                "drawrect",
+                "eraseshape",
+            ],
+            "toImageButtonOptions": {
+                "format": "svg",
+                "filename": f"{plot.name}_view",
+                "height": plot.config.get("height", 500),
+                "width": plot.config.get("width", 800),
+                "scale": plot.config.get("export_scale", 1),
+            },
+        }
+
+        relayout_data = interactive_plotly_chart(
+            fig, config=plotly_config, key=f"chart_{plot.plot_id}"
+        )
+
+        if relayout_data:
+            last_event_key = f"plot.{plot.plot_id}.last_relayout"
+            last_event = st.session_state.get(last_event_key)
+            if relayout_data != last_event:
+                if plot.update_from_relayout(relayout_data):
+                    st.session_state[last_event_key] = relayout_data
+                    st.rerun()
+
+        PlotRenderer._render_download_button(plot, fig)
+
+    @staticmethod
+    def _render_matplotlib(plot: BasePlot, fig: Any) -> None:
+        """Render using Matplotlib via FigureSpec pipeline.
+
+        Steps:
+          1. Build FigureSpec from the plot config.
+          2. Create a blank matplotlib figure from spec dimensions.
+          3. Convert Plotly traces to matplotlib artists.
+          4. Apply spec-based styling (title, axes, grids, etc.).
+          5. Display with ``st.pyplot()``.
+        """
+        import plotly.graph_objects as go
+
+        plotly_fig: go.Figure = fig
+
+        # 1. Build and resolve the FigureSpec
+        spec = ConfigSpecBuilder.from_config(plot.config, plot.plot_type)
+        spec = resolve_spec(spec)
+
+        # 2. Create blank matplotlib figure
+        mpl_fig, ax = FigureSpecToMatplotlib.create_figure(spec)
+
+        # 3. Convert Plotly traces → matplotlib artists
+        MatplotlibTraceRenderer.render(plotly_fig, ax)
+
+        # 4. Apply spec-based styling
+        FigureSpecToMatplotlib.apply(spec, ax)
+
+        # 5. Render
+        st.pyplot(mpl_fig)
+
+        # Store for potential download
+        mpl_state_key = f"plot.{plot.plot_id}.mpl_fig"
+        st.session_state[mpl_state_key] = mpl_fig
+
+        PlotRenderer._render_download_button(plot, fig)
 
     @staticmethod
     def _render_download_button(plot: BasePlot, fig: Any) -> None:

@@ -50,6 +50,8 @@ def mock_streamlit():
 
         # Configure EngineManager mock
         MockEM.get_engine.return_value = "plotly"
+        MockEM.is_matplotlib.return_value = False
+        MockEM.is_plotly.return_value = True
 
         # Configure st.columns to return the correct number of MagicMocks
         def mock_columns(num_cols):

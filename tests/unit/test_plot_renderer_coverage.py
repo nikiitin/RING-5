@@ -46,6 +46,13 @@ class TestPlotRendererCacheHelpers:
 class TestPlotRendererRenderPlot:
     """Cover PlotRenderer.render_plot branches."""
 
+    @staticmethod
+    def _configure_engine_mock(mock_em: MagicMock) -> None:
+        """Set EngineManager mock to default Plotly mode."""
+        mock_em.get_engine.return_value = "plotly"
+        mock_em.is_matplotlib.return_value = False
+        mock_em.is_plotly.return_value = True
+
     @patch("src.web.pages.ui.plotting.plot_renderer.EngineManager")
     @patch("src.web.pages.ui.plotting.plot_renderer.interactive_plotly_chart")
     @patch("src.web.pages.ui.plotting.plot_renderer.st")
@@ -76,6 +83,7 @@ class TestPlotRendererRenderPlot:
         mock_download: MagicMock,
         mock_em: MagicMock,
     ) -> None:
+        self._configure_engine_mock(mock_em)
         cache = MagicMock()
         cached_fig = go.Figure()
         cache.get.return_value = cached_fig
@@ -106,6 +114,7 @@ class TestPlotRendererRenderPlot:
         mock_download: MagicMock,
         mock_em: MagicMock,
     ) -> None:
+        self._configure_engine_mock(mock_em)
         cache = MagicMock()
         cache.get.return_value = None
         mock_cache_fn.return_value = cache
@@ -138,6 +147,7 @@ class TestPlotRendererRenderPlot:
         mock_download: MagicMock,
         mock_em: MagicMock,
     ) -> None:
+        self._configure_engine_mock(mock_em)
         cache = MagicMock()
         cache.get.return_value = None
         mock_cache_fn.return_value = cache
@@ -176,6 +186,7 @@ class TestPlotRendererRenderPlot:
         mock_download: MagicMock,
         mock_em: MagicMock,
     ) -> None:
+        self._configure_engine_mock(mock_em)
         cache = MagicMock()
         cache.get.return_value = None
         mock_cache_fn.return_value = cache
@@ -203,6 +214,7 @@ class TestPlotRendererRenderPlot:
         mock_download: MagicMock,
         mock_em: MagicMock,
     ) -> None:
+        self._configure_engine_mock(mock_em)
         cache = MagicMock()
         cache.get.return_value = None
         mock_cache_fn.return_value = cache
@@ -238,6 +250,7 @@ class TestPlotRendererRenderPlot:
         mock_download: MagicMock,
         mock_em: MagicMock,
     ) -> None:
+        self._configure_engine_mock(mock_em)
         cache = MagicMock()
         mock_cache_fn.return_value = cache
 
@@ -269,6 +282,7 @@ class TestPlotRendererRenderPlot:
         mock_download: MagicMock,
         mock_em: MagicMock,
     ) -> None:
+        self._configure_engine_mock(mock_em)
         cache = MagicMock()
         mock_cache_fn.return_value = cache
 
