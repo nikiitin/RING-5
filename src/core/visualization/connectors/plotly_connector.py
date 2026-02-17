@@ -1,8 +1,8 @@
 """
 Plotly connector — translate resolved FigureSpec into go.Figure updates.
 
-This replaces ``StyleApplicator.apply_styles()`` internals.  The applicator
-becomes a thin wrapper that builds a FigureSpec and calls this connector.
+``StyleApplicator.apply_styles()`` delegates to ``ConfigSpecBuilder`` to
+build a FigureSpec and then calls this connector to apply it.
 
 Usage:
     from src.core.visualization.connectors import FigureSpecToPlotly

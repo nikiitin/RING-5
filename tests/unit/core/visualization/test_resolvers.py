@@ -9,21 +9,15 @@ Covers:
   - Edge cases (empty legends, no y2 axis)
 """
 
-import copy
-
-import pytest
-
-from src.core.visualization.figure_spec import FigureSpec
-from src.core.visualization.typography_spec import TypographySpec
 from src.core.visualization.axis_spec import AxesSpec, AxisSpec
-from src.core.visualization.legend_spec import LegendSpec, LegendSpacingSpec
+from src.core.visualization.figure_spec import FigureSpec
+from src.core.visualization.legend_spec import LegendSpacingSpec, LegendSpec
 from src.core.visualization.resolvers import (
-    SENTINEL_FLOAT,
-    SENTINEL_INT,
-    resolve_spec,
-    _resolve_int,
     _resolve_float,
+    _resolve_int,
+    resolve_spec,
 )
+from src.core.visualization.typography_spec import TypographySpec
 
 
 class TestResolveInt:
@@ -180,9 +174,7 @@ class TestLegendResolution:
 
     def test_spacing_inheritance(self) -> None:
         """Secondary spacing sentinels (-1.0) inherit from primary."""
-        primary_spacing = LegendSpacingSpec(
-            columnspacing=2.0, borderpad=0.5
-        )
+        primary_spacing = LegendSpacingSpec(columnspacing=2.0, borderpad=0.5)
         secondary_spacing = LegendSpacingSpec(
             columnspacing=-1.0,  # should inherit 2.0
             borderpad=1.0,  # explicit, stays 1.0

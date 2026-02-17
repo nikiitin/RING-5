@@ -3,7 +3,7 @@ Typography specification — font sizes and bold flags for every text element.
 
 This replaces the dual vocabulary:
   - ``FontStyleConfig`` (matplotlib-side dataclass with sentinel fields)
-  - Scattered font keys in ``PlotDisplayConfig`` / ``StyleApplicator`` (Plotly-side)
+  - Scattered font keys in ``PlotDisplayConfig`` (Plotly-side)
 
 All sizes are in **points** (the typographic standard).  Plotly connector
 converts to px when needed.  Sentinel value ``-1`` means "inherit from

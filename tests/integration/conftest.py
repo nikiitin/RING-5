@@ -188,7 +188,7 @@ def scatter_config() -> Dict[str, Any]:
 def figure_engine() -> FigureEngine:
     """FigureEngine pre-configured with all plot types registered.
 
-    Each plot type gets its own BasePlot creator and StyleApplicator styler.
+    Each plot type gets its own BasePlot creator and FigureStyler-compliant styler.
     """
     engine = FigureEngine()
     for plot_type in PlotFactory.get_available_plot_types():

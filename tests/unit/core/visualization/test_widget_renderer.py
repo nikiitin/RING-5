@@ -68,8 +68,12 @@ class TestWidgetRendering:
         mock_st.number_input.return_value = 42
         renderer = WidgetRenderer(key_prefix="p1_")
         widget = NumberWidgetDef(
-            key="margin_l", label="Left", default=100,
-            min_value=0, max_value=400, step=5,
+            key="margin_l",
+            label="Left",
+            default=100,
+            min_value=0,
+            max_value=400,
+            step=5,
         )
         saved: Dict[str, Any] = {"margin_l": 150}
 
@@ -90,8 +94,12 @@ class TestWidgetRendering:
         mock_st.number_input.return_value = 0.5
         renderer = WidgetRenderer()
         widget = NumberWidgetDef(
-            key="opacity", label="Opacity", default=1.0,
-            min_value=0.0, max_value=1.0, step=0.1,
+            key="opacity",
+            label="Opacity",
+            default=1.0,
+            min_value=0.0,
+            max_value=1.0,
+            step=0.1,
             as_int=False,
         )
         result = renderer._render_widget(widget, {})
@@ -102,8 +110,12 @@ class TestWidgetRendering:
         mock_st.slider.return_value = 500
         renderer = WidgetRenderer()
         widget = SliderWidgetDef(
-            key="width", label="Width", default=700,
-            min_value=200, max_value=2000, step=10,
+            key="width",
+            label="Width",
+            default=700,
+            min_value=200,
+            max_value=2000,
+            step=10,
         )
         result = renderer._render_widget(widget, {"width": 800})
         assert result == 500
@@ -112,7 +124,9 @@ class TestWidgetRendering:
         mock_st.selectbox.return_value = "h"
         renderer = WidgetRenderer()
         widget = SelectWidgetDef(
-            key="orient", label="Orient", default="v",
+            key="orient",
+            label="Orient",
+            default="v",
             options=("v", "h"),
         )
         result = renderer._render_widget(widget, {})
@@ -129,7 +143,9 @@ class TestWidgetRendering:
         mock_st.checkbox.return_value = True
         renderer = WidgetRenderer()
         widget = CheckboxWidgetDef(
-            key="toggle", label="Enable", default=False,
+            key="toggle",
+            label="Enable",
+            default=False,
         )
         result = renderer._render_widget(widget, {})
         assert result is True
@@ -138,7 +154,9 @@ class TestWidgetRendering:
         mock_st.color_picker.return_value = "#00FF00"
         renderer = WidgetRenderer()
         widget = ColorWidgetDef(
-            key="bg", label="Background", default="#FFFFFF",
+            key="bg",
+            label="Background",
+            default="#FFFFFF",
         )
         result = renderer._render_widget(widget, {"bg": "#AAAAAA"})
         assert result == "#00FF00"
@@ -147,7 +165,10 @@ class TestWidgetRendering:
         mock_st.text_input.return_value = "world"
         renderer = WidgetRenderer()
         widget = TextWidgetDef(
-            key="name", label="Name", default="hello", max_chars=50,
+            key="name",
+            label="Name",
+            default="hello",
+            max_chars=50,
         )
         result = renderer._render_widget(widget, {})
         assert result == "world"
@@ -160,7 +181,8 @@ class TestSectionRendering:
         mock_st.number_input.side_effect = [10, 20]
 
         section = WidgetSection(
-            id="test", label="Test",
+            id="test",
+            label="Test",
             widgets=(
                 NumberWidgetDef(key="a", label="A", default=1),
                 NumberWidgetDef(key="b", label="B", default=2),
@@ -175,10 +197,9 @@ class TestSectionRendering:
     def test_render_section_no_expander(self, mock_st: MagicMock) -> None:
         mock_st.checkbox.return_value = True
         section = WidgetSection(
-            id="flags", label="Flags",
-            widgets=(
-                CheckboxWidgetDef(key="f1", label="Flag1", default=False),
-            ),
+            id="flags",
+            label="Flags",
+            widgets=(CheckboxWidgetDef(key="f1", label="Flag1", default=False),),
         )
         renderer = WidgetRenderer()
         result = renderer.render_section(section, {}, use_expander=False)
@@ -191,11 +212,13 @@ class TestSectionRendering:
         mock_st.checkbox.return_value = False
 
         s1 = WidgetSection(
-            id="s1", label="S1",
+            id="s1",
+            label="S1",
             widgets=(NumberWidgetDef(key="x", label="X", default=0),),
         )
         s2 = WidgetSection(
-            id="s2", label="S2",
+            id="s2",
+            label="S2",
             widgets=(CheckboxWidgetDef(key="y", label="Y"),),
         )
 
@@ -208,10 +231,10 @@ class TestSectionRendering:
     def test_render_section_with_icon(self, mock_st: MagicMock) -> None:
         mock_st.checkbox.return_value = False
         section = WidgetSection(
-            id="flags", label="Flags", icon="🎨",
-            widgets=(
-                CheckboxWidgetDef(key="f1", label="Flag1", default=False),
-            ),
+            id="flags",
+            label="Flags",
+            icon="🎨",
+            widgets=(CheckboxWidgetDef(key="f1", label="Flag1", default=False),),
         )
         renderer = WidgetRenderer()
         renderer.render_section(section, {})
@@ -229,8 +252,11 @@ class TestWidgetDefaults:
         mock_st.number_input.return_value = 200
         renderer = WidgetRenderer()
         widget = NumberWidgetDef(
-            key="margin_l", label="Left", default=100,
-            min_value=0, max_value=400,
+            key="margin_l",
+            label="Left",
+            default=100,
+            min_value=0,
+            max_value=400,
         )
 
         renderer._render_widget(widget, {"margin_l": 200})
@@ -244,8 +270,11 @@ class TestWidgetDefaults:
         mock_st.number_input.return_value = 100
         renderer = WidgetRenderer()
         widget = NumberWidgetDef(
-            key="margin_l", label="Left", default=100,
-            min_value=0, max_value=400,
+            key="margin_l",
+            label="Left",
+            default=100,
+            min_value=0,
+            max_value=400,
         )
 
         renderer._render_widget(widget, {})
@@ -258,7 +287,9 @@ class TestWidgetDefaults:
         mock_st.selectbox.return_value = "h"
         renderer = WidgetRenderer()
         widget = SelectWidgetDef(
-            key="orient", label="Orient", default="v",
+            key="orient",
+            label="Orient",
+            default="v",
             options=("v", "h"),
         )
 
@@ -267,14 +298,14 @@ class TestWidgetDefaults:
         call_args = mock_st.selectbox.call_args
         assert call_args[1]["index"] == 1  # "h" is at index 1
 
-    def test_select_with_unknown_saved_value_defaults_to_zero(
-        self, mock_st: MagicMock
-    ) -> None:
+    def test_select_with_unknown_saved_value_defaults_to_zero(self, mock_st: MagicMock) -> None:
         """If saved value not in options, index should default to 0."""
         mock_st.selectbox.return_value = "v"
         renderer = WidgetRenderer()
         widget = SelectWidgetDef(
-            key="orient", label="Orient", default="v",
+            key="orient",
+            label="Orient",
+            default="v",
             options=("v", "h"),
         )
 

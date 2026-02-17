@@ -257,9 +257,8 @@ class PresetSpecBuilder:
 class ConfigSpecBuilder:
     """Build a FigureSpec from a flat config dict (UI widget values).
 
-    This is the **config → spec** bridge:  ``StyleApplicator`` calls this
-    to produce a typed, engine-agnostic ``FigureSpec`` from the same
-    ``Dict[str, Any]`` that widgets produce.
+    This is the **config → spec** bridge: produces a typed, engine-agnostic
+    ``FigureSpec`` from the ``Dict[str, Any]`` that UI widgets produce.
 
     Key design choice: ``dpi`` is set to ``1`` so that pixel values stored
     in the config dict (``width=800``, ``height=500``) round-trip through

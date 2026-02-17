@@ -65,9 +65,7 @@ class BarTraceSpec(TraceSpec):
     border_width: float = 0.0
     border_color: str = ""
     text_values: Optional[List[str]] = None  # data label text
-    text_position: Literal[
-        "inside", "outside", "auto", "none"
-    ] = "none"
+    text_position: Literal["inside", "outside", "auto", "none"] = "none"
     text_angle: float = 0.0
     text_font_size: int = 6
 

@@ -5,6 +5,7 @@ ApplicationAPI facade.
 """
 
 from pathlib import Path
+from typing import Dict
 from unittest.mock import patch
 
 import pytest
@@ -165,13 +166,16 @@ class TestScannerService:
         assert lat_var.minimum == 5
         assert lat_var.maximum == 200
 
-    def test_merge_variable_dict_input(self) -> None:
+    def test_merge_variable_model_input(self) -> None:
+        """_merge_variable accepts ScannedVariable models."""
+        from src.core.models.parsing_models import ScannedVariable
         from src.core.parsing.scanner_service import ScannerService
 
-        registry: dict = {}  # type: ignore[type-arg]
-        var_dict = {"name": "ipc", "type": "scalar", "entries": []}
-        ScannerService._merge_variable(registry, var_dict)  # type: ignore[arg-type]
+        registry: Dict[str, ScannedVariable] = {}
+        var = ScannedVariable(name="ipc", type="scalar", entries=[])
+        ScannerService._merge_variable(registry, var)
         assert "ipc" in registry
+        assert registry["ipc"].type == "scalar"
 
 
 # ===================================================================

@@ -13,8 +13,8 @@ import pandas as pd
 import streamlit as st
 
 from src.core.visualization.widgets import (
-    WidgetRenderer,
     LEGEND_SIZING,
+    WidgetRenderer,
 )
 from src.web.pages.ui.plotting.styles.colors import get_palette_colors, to_hex
 
@@ -416,9 +416,7 @@ class BaseStyleUI:
     ) -> Dict[str, Any]:
         """Render legend sizing and spacing controls (declarative)."""
         st.markdown("**Sizing & Spacing**")
-        result = self._renderer.render_section(
-            LEGEND_SIZING, saved_config, use_expander=False
-        )
+        result = self._renderer.render_section(LEGEND_SIZING, saved_config, use_expander=False)
         # Normalize itemwidth: 0 means None (auto)
         iw = result.get("legend_itemwidth")
         if iw is not None and iw <= 0:

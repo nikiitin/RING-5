@@ -16,7 +16,7 @@ Usage:
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, Sequence
 
 from src.core.visualization.widgets.widget_def import (
     CheckboxWidgetDef,
@@ -128,15 +128,18 @@ class WidgetRenderer:
                 label=widget_def.label,
                 value=int(default) if widget_def.as_int else float(default),
                 min_value=(
-                    int(widget_def.min_value) if widget_def.as_int and widget_def.min_value is not None
+                    int(widget_def.min_value)
+                    if widget_def.as_int and widget_def.min_value is not None
                     else widget_def.min_value
                 ),
                 max_value=(
-                    int(widget_def.max_value) if widget_def.as_int and widget_def.max_value is not None
+                    int(widget_def.max_value)
+                    if widget_def.as_int and widget_def.max_value is not None
                     else widget_def.max_value
                 ),
                 step=(
-                    int(widget_def.step) if widget_def.as_int and widget_def.step is not None
+                    int(widget_def.step)
+                    if widget_def.as_int and widget_def.step is not None
                     else widget_def.step
                 ),
                 key=key,

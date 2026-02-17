@@ -157,19 +157,19 @@ class TestFigureEngineIntegration:
 
 
 # ===========================================================================
-# Test Class 2: StyleApplicator integration
+# Test Class 2: FigureSpec styling integration
 # ===========================================================================
 
 
-class TestStyleApplicatorIntegration:
-    """Test StyleApplicator through the FigureEngine pipeline."""
+class TestFigureSpecStylingIntegration:
+    """Test FigureSpec styling through the FigureEngine pipeline."""
 
     def test_styles_applied_to_bar_figure(
         self,
         figure_engine: FigureEngine,
         rich_sample_data: pd.DataFrame,
     ) -> None:
-        """StyleApplicator modifies layout dimensions when config has them."""
+        """FigureSpec pipeline modifies layout dimensions when config has them."""
         config: Dict[str, Any] = {
             "x": "benchmark_name",
             "y": "system.cpu.ipc",
@@ -189,7 +189,7 @@ class TestStyleApplicatorIntegration:
         figure_engine: FigureEngine,
         rich_sample_data: pd.DataFrame,
     ) -> None:
-        """StyleApplicator applies bargap config to layout."""
+        """FigureSpec pipeline applies bargap config to layout."""
         config: Dict[str, Any] = {
             "x": "benchmark_name",
             "y": "system.cpu.ipc",
@@ -207,7 +207,7 @@ class TestStyleApplicatorIntegration:
         figure_engine: FigureEngine,
         rich_sample_data: pd.DataFrame,
     ) -> None:
-        """StyleApplicator applies background color overrides."""
+        """FigureSpec pipeline applies background color overrides."""
         config: Dict[str, Any] = {
             "x": "benchmark_name",
             "y": "system.cpu.ipc",

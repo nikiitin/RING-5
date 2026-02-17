@@ -84,9 +84,7 @@ class Gem5Scanner:
         return aggregated_vars
 
     @staticmethod
-    def _merge_variable(
-        registry: Dict[str, ScannedVariable], var: ScannedVariable | Dict[str, Any]
-    ) -> None:
+    def _merge_variable(registry: Dict[str, ScannedVariable], var: ScannedVariable) -> None:
         """
         Merge a single variable into the registry.
 
@@ -96,11 +94,8 @@ class Gem5Scanner:
 
         Args:
             registry: Mutable registry dict to update
-            var: Variable model (or dict) to merge in
+            var: ScannedVariable to merge in
         """
-        # Handle raw dicts (from legacy or testing code)
-        if isinstance(var, dict):
-            var = ScannedVariable.from_dict(var)
 
         name: str = var.name
         if name not in registry:

@@ -3,17 +3,18 @@ Figure Engine — Orchestrates Figure Creation + Styling.
 
 This is the **single entry point** for all figure generation in the web layer.
 Controllers call ``engine.build(plot_type, data, config)`` instead of reaching
-into BasePlot subclasses or StyleApplicator directly.
+into BasePlot subclasses directly.
 
 Architecture:
     FigureEngine
         ├── Registry of FigureCreator instances (one per plot type)
-        └── FigureStyler instance (shared StyleApplicator)
+        └── FigureStyler instance (ConfigSpecBuilder → FigureSpec → engine connector)
 
     build(plot_type, data, config) → go.Figure
         1. Look up creator for plot_type
         2. creator.create_figure(data, config) → raw figure
         3. styler.apply_styles(fig, config) → styled figure
+           (internally: config → FigureSpec → FigureSpecToPlotly/Matplotlib)
         4. Apply legend labels if present
         5. Return final figure
 

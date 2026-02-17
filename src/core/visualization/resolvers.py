@@ -88,39 +88,27 @@ def _resolve_typography(typo: object) -> None:
         return
 
     # y2label inherits from ylabel
-    typo.font_size_y2label = _resolve_int(
-        typo.font_size_y2label, typo.font_size_ylabel
-    )
+    typo.font_size_y2label = _resolve_int(typo.font_size_y2label, typo.font_size_ylabel)
 
     # yticks inherits from ticks
-    typo.font_size_yticks = _resolve_int(
-        typo.font_size_yticks, typo.font_size_ticks
-    )
+    typo.font_size_yticks = _resolve_int(typo.font_size_yticks, typo.font_size_ticks)
     # y2ticks inherits from yticks (already resolved)
-    typo.font_size_y2ticks = _resolve_int(
-        typo.font_size_y2ticks, typo.font_size_yticks
-    )
+    typo.font_size_y2ticks = _resolve_int(typo.font_size_y2ticks, typo.font_size_yticks)
 
     # legend2 inherits from legend
-    typo.font_size_legend2 = _resolve_int(
-        typo.font_size_legend2, typo.font_size_legend
-    )
+    typo.font_size_legend2 = _resolve_int(typo.font_size_legend2, typo.font_size_legend)
     # legend3 inherits from legend
-    typo.font_size_legend3 = _resolve_int(
-        typo.font_size_legend3, typo.font_size_legend
-    )
+    typo.font_size_legend3 = _resolve_int(typo.font_size_legend3, typo.font_size_legend)
     # legend3 sub-fields inherit from legend3 (already resolved)
     typo.legend3_number_fontsize = _resolve_int(
         typo.legend3_number_fontsize, typo.font_size_legend3
     )
-    typo.legend3_text_fontsize = _resolve_int(
-        typo.legend3_text_fontsize, typo.font_size_legend3
-    )
+    typo.legend3_text_fontsize = _resolve_int(typo.legend3_text_fontsize, typo.font_size_legend3)
 
 
 def _resolve_legends(legends: list) -> None:  # type: ignore[type-arg]
     """Resolve LegendSpec list: secondary/boxed inherit from primary."""
-    from src.core.visualization.legend_spec import LegendSpec, LegendSpacingSpec
+    from src.core.visualization.legend_spec import LegendSpec
 
     if not legends:
         return
@@ -140,32 +128,20 @@ def _resolve_legends(legends: list) -> None:  # type: ignore[type-arg]
         legend.font_size = _resolve_int(legend.font_size, primary.font_size)
 
         # Title font size: -1 → follow own font_size
-        legend.title_font_size = _resolve_int(
-            legend.title_font_size, legend.font_size
-        )
+        legend.title_font_size = _resolve_int(legend.title_font_size, legend.font_size)
 
         # Position: -1 → auto (keep as -1.0, connectors handle "auto")
         # But spacing inherits from primary
         _resolve_legend_spacing(legend.spacing, primary_spacing)
 
         # Boxed-annotation font sizes: -1 → follow own font_size
-        legend.number_fontsize = _resolve_int(
-            legend.number_fontsize, legend.font_size
-        )
-        legend.text_fontsize = _resolve_int(
-            legend.text_fontsize, legend.font_size
-        )
+        legend.number_fontsize = _resolve_int(legend.number_fontsize, legend.font_size)
+        legend.text_fontsize = _resolve_int(legend.text_fontsize, legend.font_size)
 
     # Also resolve primary's own title_font_size
-    primary.title_font_size = _resolve_int(
-        primary.title_font_size, primary.font_size
-    )
-    primary.number_fontsize = _resolve_int(
-        primary.number_fontsize, primary.font_size
-    )
-    primary.text_fontsize = _resolve_int(
-        primary.text_fontsize, primary.font_size
-    )
+    primary.title_font_size = _resolve_int(primary.title_font_size, primary.font_size)
+    primary.number_fontsize = _resolve_int(primary.number_fontsize, primary.font_size)
+    primary.text_fontsize = _resolve_int(primary.text_fontsize, primary.font_size)
 
 
 def _resolve_legend_spacing(
@@ -175,9 +151,7 @@ def _resolve_legend_spacing(
     """Resolve LegendSpacingSpec sentinels from parent spacing."""
     from src.core.visualization.legend_spec import LegendSpacingSpec
 
-    if not isinstance(spacing, LegendSpacingSpec) or not isinstance(
-        parent, LegendSpacingSpec
-    ):
+    if not isinstance(spacing, LegendSpacingSpec) or not isinstance(parent, LegendSpacingSpec):
         return
 
     for f in fields(spacing):
@@ -188,7 +162,7 @@ def _resolve_legend_spacing(
 
 def _resolve_axes(axes: object) -> None:
     """Resolve AxisSpec inheritance: y2 inherits from y."""
-    from src.core.visualization.axis_spec import AxesSpec, AxisSpec
+    from src.core.visualization.axis_spec import AxesSpec
 
     if not isinstance(axes, AxesSpec):
         return

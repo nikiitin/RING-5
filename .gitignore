@@ -15,6 +15,7 @@ build/
 .coverage
 config_files
 .mypy_cache/
+.epub
 
 # VS Code - keep settings but ignore user-specific files
 .vscode/*

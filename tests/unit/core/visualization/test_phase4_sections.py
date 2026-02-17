@@ -11,18 +11,9 @@ Validates:
 
 from __future__ import annotations
 
-from typing import Any, Dict, Set
-
-import pytest
+from typing import Dict, Set
 
 from src.core.visualization.widgets.widget_def import (
-    CheckboxWidgetDef,
-    ColorWidgetDef,
-    NumberWidgetDef,
-    SelectWidgetDef,
-    SliderWidgetDef,
-    TextWidgetDef,
-    WidgetSection,
     AXIS_COLORS,
     BACKGROUNDS,
     DATA_LABELS,
@@ -34,8 +25,13 @@ from src.core.visualization.widgets.widget_def import (
     LEGEND_SIZING,
     STANDARD_SECTIONS,
     TYPOGRAPHY,
+    CheckboxWidgetDef,
+    ColorWidgetDef,
+    NumberWidgetDef,
+    SelectWidgetDef,
+    SliderWidgetDef,
+    TextWidgetDef,
 )
-
 
 # ─── 1. Default alignment with base_ui.py ───────────────────────────────────
 
@@ -129,18 +125,16 @@ class TestSectionIntegrity:
         """Each section must have unique keys internally."""
         for section in STANDARD_SECTIONS:
             keys = section.keys()
-            assert len(keys) == len(set(keys)), (
-                f"Section '{section.id}' has duplicate keys"
-            )
+            assert len(keys) == len(set(keys)), f"Section '{section.id}' has duplicate keys"
 
     def test_no_duplicate_keys_across_standard_sections(self) -> None:
         """Keys should not be duplicated across standard sections."""
         seen: Dict[str, str] = {}
         for section in STANDARD_SECTIONS:
             for key in section.keys():
-                assert key not in seen, (
-                    f"Key '{key}' duplicated in '{section.id}' and '{seen[key]}'"
-                )
+                assert (
+                    key not in seen
+                ), f"Key '{key}' duplicated in '{section.id}' and '{seen[key]}'"
                 seen[key] = section.id
 
     def test_legend_aggregate_equals_union(self) -> None:
@@ -158,8 +152,7 @@ class TestSectionIntegrity:
             for w in section.widgets:
                 if isinstance(w, ColorWidgetDef):
                     assert str(w.default).startswith("#"), (
-                        f"ColorWidgetDef '{w.key}' default '{w.default}' "
-                        f"is not a hex color"
+                        f"ColorWidgetDef '{w.key}' default '{w.default}' " f"is not a hex color"
                     )
 
     def test_all_select_widgets_have_options(self) -> None:
@@ -167,9 +160,7 @@ class TestSectionIntegrity:
         for section in STANDARD_SECTIONS:
             for w in section.widgets:
                 if isinstance(w, SelectWidgetDef):
-                    assert len(w.options) >= 2, (
-                        f"SelectWidgetDef '{w.key}' has < 2 options"
-                    )
+                    assert len(w.options) >= 2, f"SelectWidgetDef '{w.key}' has < 2 options"
 
     def test_all_select_defaults_are_valid_options(self) -> None:
         """SelectWidgetDef default must be one of its options."""
@@ -188,13 +179,11 @@ class TestSectionIntegrity:
                 if isinstance(w, NumberWidgetDef):
                     if w.min_value is not None:
                         assert w.default >= w.min_value, (
-                            f"NumberWidgetDef '{w.key}' default {w.default} "
-                            f"< min {w.min_value}"
+                            f"NumberWidgetDef '{w.key}' default {w.default} " f"< min {w.min_value}"
                         )
                     if w.max_value is not None:
                         assert w.default <= w.max_value, (
-                            f"NumberWidgetDef '{w.key}' default {w.default} "
-                            f"> max {w.max_value}"
+                            f"NumberWidgetDef '{w.key}' default {w.default} " f"> max {w.max_value}"
                         )
 
     def test_data_labels_covers_all_expected_keys(self) -> None:

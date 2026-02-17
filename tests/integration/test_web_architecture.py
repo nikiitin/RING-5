@@ -138,11 +138,11 @@ class TestLayerDependencies:
         )
 
 
-# ─── FigureEngine + Real StyleApplicator Integration ────────────────────────
+# ─── FigureEngine + Real Styler Integration ────────────────────────────────────
 
 
 class TestFigureEngineIntegration:
-    """FigureEngine with real StyleApplicator (not mocks)."""
+    """FigureEngine with real styler (ConfigSpecBuilder → FigureSpecToPlotly)."""
 
     @pytest.fixture
     def sample_data(self) -> pd.DataFrame:
@@ -154,7 +154,7 @@ class TestFigureEngineIntegration:
         )
 
     def test_engine_with_real_styler(self, sample_data: pd.DataFrame) -> None:
-        """Engine with injected StyleApplicator produces a complete figure."""
+        """Engine with injected styler produces a complete figure."""
         from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
 
         class SimpleBarCreator:

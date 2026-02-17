@@ -9,38 +9,31 @@ Tests:
   - Standard section definitions
 """
 
-import copy
-import pytest
 from typing import Any, Dict
 
-from src.core.visualization.figure_spec import FigureSpec, MarginsSpec, DimensionsSpec
-from src.core.visualization.typography_spec import TypographySpec
+import pytest
+
+from src.core.visualization.figure_spec import DimensionsSpec, FigureSpec, MarginsSpec
 from src.core.visualization.legend_spec import LegendSpec
+from src.core.visualization.typography_spec import TypographySpec
+from src.core.visualization.widgets.config_bridge import (
+    ConfigBridge,
+    _get_nested,
+    _set_nested,
+)
 from src.core.visualization.widgets.widget_def import (
+    LAYOUT_MARGINS,
+    LEGEND,
+    LEGEND_APPEARANCE,
+    STANDARD_SECTIONS,
+    TYPOGRAPHY,
     CheckboxWidgetDef,
     ColorWidgetDef,
     NumberWidgetDef,
     SelectWidgetDef,
     SliderWidgetDef,
     TextWidgetDef,
-    WidgetDef,
     WidgetSection,
-    LAYOUT_MARGINS,
-    LAYOUT_DIMENSIONS,
-    TYPOGRAPHY,
-    LEGEND,
-    LEGEND_POSITION,
-    LEGEND_APPEARANCE,
-    LEGEND_SIZING,
-    BACKGROUNDS,
-    AXIS_COLORS,
-    DATA_LABELS,
-    STANDARD_SECTIONS,
-)
-from src.core.visualization.widgets.config_bridge import (
-    ConfigBridge,
-    _get_nested,
-    _set_nested,
 )
 
 
@@ -84,7 +77,9 @@ class TestWidgetDefConstruction:
 
     def test_spec_path(self) -> None:
         w = NumberWidgetDef(
-            key="margin_l", label="Left", default=100,
+            key="margin_l",
+            label="Left",
+            default=100,
             spec_path="dimensions.margins.left",
         )
         assert w.spec_path == "dimensions.margins.left"
@@ -95,7 +90,8 @@ class TestWidgetSection:
 
     def test_keys(self) -> None:
         section = WidgetSection(
-            id="test", label="Test",
+            id="test",
+            label="Test",
             widgets=(
                 NumberWidgetDef(key="a", label="A", default=1),
                 NumberWidgetDef(key="b", label="B", default=2),
@@ -105,7 +101,8 @@ class TestWidgetSection:
 
     def test_defaults(self) -> None:
         section = WidgetSection(
-            id="test", label="Test",
+            id="test",
+            label="Test",
             widgets=(
                 NumberWidgetDef(key="a", label="A", default=10),
                 CheckboxWidgetDef(key="b", label="B", default=True),
@@ -167,15 +164,15 @@ class TestGetNested:
         assert _get_nested(spec, "dimensions.width") == 3.5
 
     def test_deep_nested(self) -> None:
-        spec = FigureSpec(
-            dimensions=DimensionsSpec(margins=MarginsSpec(left=42.0))
-        )
+        spec = FigureSpec(dimensions=DimensionsSpec(margins=MarginsSpec(left=42.0)))
         assert _get_nested(spec, "dimensions.margins.left") == 42.0
 
     def test_list_index(self) -> None:
-        spec = FigureSpec(legends=[
-            LegendSpec(role="primary", font_size=12),
-        ])
+        spec = FigureSpec(
+            legends=[
+                LegendSpec(role="primary", font_size=12),
+            ]
+        )
         assert _get_nested(spec, "legends.0.font_size") == 12
 
     def test_missing_attr(self) -> None:
@@ -209,9 +206,11 @@ class TestSetNested:
         assert spec.dimensions.margins.left == 99.0
 
     def test_list_index(self) -> None:
-        spec = FigureSpec(legends=[
-            LegendSpec(role="primary", font_size=8),
-        ])
+        spec = FigureSpec(
+            legends=[
+                LegendSpec(role="primary", font_size=8),
+            ]
+        )
         _set_nested(spec, "legends.0.font_size", 16)
         assert spec.legends[0].font_size == 16
 
@@ -317,9 +316,11 @@ class TestConfigBridge:
     def test_legend_bridge(self) -> None:
         """Bridge with LEGEND section should map to legends list."""
         bridge = ConfigBridge([LEGEND])
-        spec = FigureSpec(legends=[
-            LegendSpec(role="primary", font_size=12, ncol=3),
-        ])
+        spec = FigureSpec(
+            legends=[
+                LegendSpec(role="primary", font_size=12, ncol=3),
+            ]
+        )
         config = bridge.spec_to_config(spec)
         assert config.get("legend_ncols") == 3
         assert config.get("legend_font_size") == 12

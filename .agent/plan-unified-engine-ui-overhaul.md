@@ -11,6 +11,22 @@
 
 ---
 
+## 📍 PROGRESS TRACKER
+
+> **Current position**: Phase 3, Step 24 (not yet started)
+> **Last completed step**: Phase 3, Step 23
+>
+> | Phase | Steps | Status |
+> |-------|-------|--------|
+> | Phase 0 — Foundation | Steps 0–3 | ✅ Complete |
+> | Phase 1 — Spec Layer | Steps 4–12 + Review | ✅ Complete |
+> | Phase 2 — Wiring & Export | Steps 13–22 + Review | ✅ Complete |
+> | Phase 3 — Pills UI Reorganization | Steps 23–31 + Review | 🔄 Step 23 done, Step 24 next |
+> | Phase 4 — Delete Old Code | Steps 32–37 + Review | ⬜ Not started |
+> | Phase 5 — Final Review | Steps 38–39 | ⬜ Not started |
+
+---
+
 ## ⛔ ABSOLUTE RULES — READ BEFORE ANYTHING
 
 1. **One commit per step + quality review.** Every step below gets its own commit with message format: `[Phase N / Step M] <description>`. Use `git add -A && git commit -m "..."`. **After each commit**, write a brief summary covering:
@@ -30,6 +46,13 @@
 12. **Test with MINIMAL MEMORY.** Use `--tb=short` and `-q` flags. Avoid loading entire datasets when a fixture slice suffices. Prefer small focused fixtures over large data. Do NOT cache large objects in module scope. Use `pytest.fixture(scope="function")` as default, only escalate to `session` when truly needed.
 13. **NO THREADING in tests or implementation.** Do not use `threading`, `multiprocessing`, or `concurrent.futures` for any new code in this plan. All new visualization/export code must be single-threaded and synchronous. The existing async parsing infrastructure is untouched — this rule applies only to the code created or modified by this plan.
 14. **Architecture documentation update.** After ALL steps are complete and the final review passes, update `.agent/ARCHITECTURE.md` with all architectural changes made during this plan (new modules, deleted modules, changed patterns, new data flow).
+15. **Zero tolerance for backward compatibility with old/deprecated code.** This rule applies **retroactively to all previous steps** and to every step going forward:
+    - **No compatibility shims.** If old code, old patterns, or deprecated APIs are encountered during any step, they must be removed or replaced on the spot — not wrapped, not kept "for now."
+    - **Mandatory dead-code cleanup.** Everything that is not actively used by the current architecture must be deleted. Unused imports, unreachable branches, orphaned helpers, stale test utilities — all go.
+    - **Consistency with new features.** When a new pattern or module is introduced (e.g., `FigureSpec`, `EngineManager`, `PresetApplicator`), all remaining code that still uses the old pattern it replaces must be migrated in the same step or the immediately following step. There is no grace period.
+    - **Breaking old code is beneficial.** If removing deprecated code causes errors elsewhere, that is a *feature*, not a bug — it surfaces every caller that still depends on the old path and forces an immediate update. Fix the callers; do not re-introduce the old code.
+    - **No "optional" old paths.** Do not maintain two ways of doing the same thing (old + new). One canonical path only.
+    - **Applies during Phase Reviews.** Every Phase Review must include a sweep for lingering old-architecture code and flag it for removal before proceeding.
 
 ### Per-Step Commit Protocol
 
@@ -59,7 +82,8 @@ At the end of each phase, conduct a thorough review as if you were reviewing a G
 4. **Type safety**: Run `mypy --strict` on ALL modified directories, not just `src/core/visualization/`.
 5. **Performance**: Ensure no O(n²) patterns, no unnecessary copies, no memory leaks (unclosed figures, unbounded caches).
 6. **Consistency**: Naming, docstring style, import ordering should be uniform across all new/modified files.
-7. **Write a PR-level summary** with: changes overview, risk areas, test coverage assessment, and any caveats for the reviewer.
+7. **Backward-compatibility sweep (Rule 15)**: Scan all files touched in the phase for remnants of old/deprecated patterns. If any code still uses a pattern that was superseded by this plan (old applicator methods, old export paths, old config keys, deprecated APIs), it must be removed or migrated before the phase is considered complete.
+8. **Write a PR-level summary** with: changes overview, risk areas, test coverage assessment, and any caveats for the reviewer.
 
 ---
 

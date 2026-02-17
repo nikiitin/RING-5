@@ -219,7 +219,7 @@ class PlotDisplayConfig(TypedDict, total=False):
     # ── Interactivity ──
     enable_editable: bool  # Enable drag/edit on plot
 
-    # ── Margins (flat keys used by StyleApplicator) ──
+    # ── Margins (flat keys consumed by ConfigSpecBuilder → FigureSpec) ──
     margin_t: int
     margin_b: int
     margin_l: int

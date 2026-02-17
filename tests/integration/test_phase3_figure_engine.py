@@ -3,18 +3,17 @@ Phase 3 integration tests — FigureEngine ↔ FigureSpec pipeline.
 
 Validates:
     1. End-to-end: FigureEngine.build() produces styled figures
-    2. ConfigSpecBuilder round-trip: config → spec → Plotly layout matches
-       the direct StyleApplicator output for layout-level properties
-    3. StyleApplicator.last_spec survives the full pipeline
+    2. ConfigSpecBuilder round-trip: config → spec → Plotly layout
+    3. last_spec survives the full pipeline
     4. Export path can consume last_spec for matplotlib rendering
 """
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any, Dict
 
-import plotly.graph_objects as go
 import pandas as pd
+import plotly.graph_objects as go
 import pytest
 
 from src.core.visualization.connectors.builders import ConfigSpecBuilder
@@ -23,7 +22,6 @@ from src.core.visualization.figure_spec import FigureSpec
 from src.core.visualization.resolvers import resolve_spec
 from src.web.figures.engine import FigureEngine
 from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
-
 
 # ─── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -89,9 +87,7 @@ class TestFigureEngineEndToEnd:
         """Build using a real BarPlot-like creator and StyleApplicator."""
 
         class SimpleBarCreator:
-            def create_figure(
-                self, data: pd.DataFrame, config: Dict[str, Any]
-            ) -> go.Figure:
+            def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
                 return go.Figure(
                     data=[go.Bar(x=list(data["benchmark"]), y=list(data["ipc"]), name="series1")]
                 )
@@ -117,9 +113,7 @@ class TestFigureEngineEndToEnd:
         """After engine.build(), the applicator's last_spec is populated."""
 
         class NullCreator:
-            def create_figure(
-                self, data: pd.DataFrame, config: Dict[str, Any]
-            ) -> go.Figure:
+            def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
                 return go.Figure(data=[go.Bar(x=["A"], y=[1])])
 
         applicator = StyleApplicator("bar")
@@ -138,12 +132,8 @@ class TestFigureEngineEndToEnd:
         """FigureEngine applies legend_labels from config."""
 
         class TraceCreator:
-            def create_figure(
-                self, data: pd.DataFrame, config: Dict[str, Any]
-            ) -> go.Figure:
-                return go.Figure(
-                    data=[go.Bar(x=["A"], y=[1], name="original")]
-                )
+            def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
+                return go.Figure(data=[go.Bar(x=["A"], y=[1], name="original")])
 
         bar_config["legend_labels"] = {"original": "Renamed"}
         applicator = StyleApplicator("bar")
@@ -235,9 +225,7 @@ class TestSpecSerialization:
         assert restored.typography.font_size_title == spec.typography.font_size_title
         assert len(restored.legends) == len(spec.legends)
 
-    def test_spec_contains_all_config_values(
-        self, bar_config: Dict[str, Any]
-    ) -> None:
+    def test_spec_contains_all_config_values(self, bar_config: Dict[str, Any]) -> None:
         """Key config values must be faithfully captured in the spec."""
         spec = resolve_spec(ConfigSpecBuilder.from_config(bar_config, "bar"))
 
@@ -260,19 +248,13 @@ class TestSpecSerialization:
 class TestMultiTypeEngineIntegration:
     """Engine correctly dispatches different plot types."""
 
-    def test_bar_and_line_produce_different_figures(
-        self, sample_data: pd.DataFrame
-    ) -> None:
+    def test_bar_and_line_produce_different_figures(self, sample_data: pd.DataFrame) -> None:
         class BarCreator:
-            def create_figure(
-                self, data: pd.DataFrame, config: Dict[str, Any]
-            ) -> go.Figure:
+            def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
                 return go.Figure(data=[go.Bar(x=["A"], y=[1])])
 
         class LineCreator:
-            def create_figure(
-                self, data: pd.DataFrame, config: Dict[str, Any]
-            ) -> go.Figure:
+            def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
                 return go.Figure(data=[go.Scatter(x=[1, 2], y=[3, 4], mode="lines")])
 
         engine = FigureEngine()

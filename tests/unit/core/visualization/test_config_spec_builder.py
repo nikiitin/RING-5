@@ -213,8 +213,8 @@ class TestConfigSpecResolve:
         assert resolved.dimensions.width == 800.0
 
 
-class TestStyleApplicatorLastSpec:
-    """Verify that StyleApplicator stores the last_spec."""
+class TestApplicatorLastSpec:
+    """Verify that apply_styles stores the last FigureSpec built."""
 
     def test_last_spec_populated_after_apply(self) -> None:
         import plotly.graph_objects as go

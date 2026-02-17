@@ -49,7 +49,7 @@ class ScannedVariable:
     pattern_indices: Optional[List[str]] = None
 
     def to_dict(self) -> Dict[str, Any]:
-        """Legacy compatibility for dictionary-based components."""
+        """Serialize to dictionary for JSON-compatible output."""
         result: Dict[str, Any] = {
             "name": self.name,
             "type": self.type,

@@ -15,7 +15,7 @@ Design Principle:
     directly. They depend only on FigureEngine, which dispatches internally.
 """
 
-from typing import Any, Dict, Protocol
+from typing import Protocol
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -53,7 +53,8 @@ class FigureStyler(Protocol):
     """
     Protocol for applying visual styles to a Plotly figure.
 
-    Matches the existing ``StyleApplicator.apply_styles`` signature.
+    Implemented by ``StyleApplicator`` which delegates to
+    ``ConfigSpecBuilder`` → ``FigureSpec`` → ``FigureSpecToPlotly``.
     """
 
     def apply_styles(self, fig: go.Figure, config: PlotConfig) -> go.Figure:
