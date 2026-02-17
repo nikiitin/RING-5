@@ -1,9 +1,9 @@
 """
 Config Presenter — renders plot configuration UI sections.
 
-Wraps the existing BasePlot.render_config_ui/render_advanced_options/
-render_theme_options methods in a presenter interface, establishing
-the architectural boundary even while the internals are still delegated.
+Wraps the existing BasePlot.render_config_ui / render_settings_section
+methods in a presenter interface, establishing the architectural boundary
+even while the internals are still delegated.
 
 Migration Strategy:
     Phase 1 (current): Delegates to BasePlot methods but presents a clean
@@ -18,6 +18,7 @@ import pandas as pd
 import streamlit as st
 
 from src.web.models.plot_protocols import ConfigRenderer
+from src.web.pages.ui.plotting.settings_pills import render_settings_pills
 
 
 class ConfigPresenter:
@@ -72,30 +73,26 @@ class ConfigPresenter:
         data: pd.DataFrame,
     ) -> Dict[str, Any]:
         """
-        Render advanced and theme options side by side in columns.
+        Render settings via pills-driven navigation.
+
+        Replaces the former two-column expander layout with a unified
+        pills navigation that dispatches to section-specific renderers.
 
         Args:
-            renderer: Object with render_advanced_options/render_theme_options.
+            renderer: Object implementing ``ConfigRenderer`` protocol.
             current_config: Current accumulated configuration.
             data: Processed DataFrame.
 
         Returns:
-            Combined advanced + theme configuration dict.
+            Configuration dict produced by the selected section.
         """
-        combined: Dict[str, Any] = {}
-        a1, a2 = st.columns(2)
-        with a1:
-            with st.expander("Advanced Options"):
-                advanced: Dict[str, Any] = renderer.render_advanced_options(current_config, data)
-                combined.update(advanced)
-        with a2:
-            with st.expander("Theme & Style"):
-                layout: Dict[str, Any] = renderer.render_display_options(current_config)
-                combined.update(layout)
-                st.markdown("---")
-                theme: Dict[str, Any] = renderer.render_theme_options(current_config)
-                combined.update(theme)
-        return combined
+        show_adv: bool = st.toggle(
+            "Show advanced settings",
+            value=False,
+            key=f"show_advanced_{renderer.plot_id}",
+        )
+        selected: Optional[str] = render_settings_pills(show_advanced=show_adv)
+        return renderer.render_settings_section(selected, current_config, data)
 
     @staticmethod
     def render_advanced(

@@ -378,28 +378,28 @@ class TestConfigPresenter:
         assert result["width"] == 800
         assert result["color"] == "blue"
 
+    @patch("src.web.presenters.plot.config_presenter.render_settings_pills")
     @patch("src.web.presenters.plot.config_presenter.st")
-    def test_render_advanced_and_theme(self, mock_st: MagicMock) -> None:
-        """render_advanced_and_theme produces combined config."""
+    def test_render_advanced_and_theme(self, mock_st: MagicMock, mock_pills: MagicMock) -> None:
+        """render_advanced_and_theme dispatches to render_settings_section."""
         import pandas as pd
 
         from src.web.presenters.plot.config_presenter import ConfigPresenter
 
         renderer = MagicMock()
-        renderer.render_advanced_options.return_value = {"grid": True}
-        renderer.render_display_options.return_value = {"w": 800}
-        renderer.render_theme_options.return_value = {"c": "red"}
+        renderer.plot_id = 1
+        renderer.render_settings_section.return_value = {"grid": True, "w": 800}
 
-        mock_col = MagicMock()
-        mock_st.columns.return_value = [mock_col, mock_col]
+        mock_pills.return_value = "layout"
+        mock_st.toggle.return_value = False
 
+        data = pd.DataFrame({"a": [1]})
         result: Dict[str, Any] = ConfigPresenter.render_advanced_and_theme(
-            renderer, {"x": "a"}, pd.DataFrame({"a": [1]})
+            renderer, {"x": "a"}, data
         )
 
-        assert "grid" in result
-        assert "w" in result
-        assert "c" in result
+        renderer.render_settings_section.assert_called_once_with("layout", {"x": "a"}, data)
+        assert result == {"grid": True, "w": 800}
 
     @patch("src.web.presenters.plot.config_presenter.st")
     def test_render_plot_type_selector_returns_expected_keys(self, mock_st: MagicMock) -> None:

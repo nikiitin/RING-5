@@ -296,6 +296,152 @@ class BasePlot(ABC):
             saved_config, self.processed_data, items=items, key_prefix="theme_"
         )
 
+    # ------------------------------------------------------------------
+    # Pills-driven section dispatcher
+    # ------------------------------------------------------------------
+
+    def render_settings_section(
+        self,
+        section: Optional[str],
+        saved_config: Dict[str, Any],
+        data: Optional[pd.DataFrame] = None,
+    ) -> Dict[str, Any]:
+        """Render UI for a single settings section selected via pills.
+
+        Each pill maps to one or more existing rendering methods so that
+        all widget ``key`` values are preserved exactly.
+
+        Args:
+            section: The key returned by ``render_settings_pills``
+                (``None`` when nothing is selected).
+            saved_config: Current configuration dictionary.
+            data: Processed data for data-dependent widgets.
+
+        Returns:
+            Configuration dictionary produced by the selected section.
+        """
+        if section is None:
+            return {}
+
+        dispatch = {
+            "layout": self._section_layout,
+            "typography": self._section_typography,
+            "legends": self._section_legends,
+            "axes": self._section_axes,
+            "data_labels": self._section_data_labels,
+            "colors": self._section_colors,
+            "advanced": self._section_advanced,
+        }
+        handler = dispatch.get(section)
+        if handler is None:
+            return {}
+        return handler(saved_config, data)
+
+    # -- individual section helpers ---
+
+    def _section_layout(
+        self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame]
+    ) -> Dict[str, Any]:
+        return self.render_display_options(saved_config)
+
+    def _section_typography(
+        self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame]
+    ) -> Dict[str, Any]:
+        return self.style_manager.ui_manager._render_typography_section(
+            saved_config, key_prefix="theme_"
+        )
+
+    def _section_legends(
+        self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame]
+    ) -> Dict[str, Any]:
+        return self.style_manager.ui_manager._render_legend_section(
+            saved_config, key_prefix="theme_"
+        )
+
+    def _section_axes(
+        self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame]
+    ) -> Dict[str, Any]:
+        config: Dict[str, Any] = {}
+        self._render_general_settings(saved_config, config)
+        specific = self.render_specific_advanced_options(saved_config, data)
+        config.update(specific)
+        config["xaxis_labels"] = self.style_manager.render_xaxis_labels_ui(saved_config, data)
+        if data is not None:
+            self._render_ordering_ui(saved_config, data, config)
+        return config
+
+    def _section_data_labels(
+        self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame]
+    ) -> Dict[str, Any]:
+        dl = self.style_manager.render_data_labels_ui(saved_config, key_prefix="theme_")
+        return {
+            "show_values": dl.get("show_values", False),
+            "text_color_mode": dl.get("text_color_mode"),
+            "text_color": dl.get("text_color"),
+            "text_font_size": dl.get("text_font_size"),
+            "text_rotation": dl.get("text_rotation"),
+            "text_position": dl.get("text_position"),
+            "text_anchor": dl.get("text_anchor"),
+            "text_format": dl.get("text_format"),
+            "text_display_logic": dl.get("text_display_logic"),
+            "text_threshold": dl.get("text_threshold"),
+            "text_constraint": dl.get("text_constraint"),
+        }
+
+    def _section_colors(
+        self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame]
+    ) -> Dict[str, Any]:
+        series = self.style_manager.ui_manager._render_series_section(
+            saved_config, data, items=None, key_prefix="theme_"
+        )
+        st.markdown("---")
+        bg = self.style_manager.ui_manager._render_backgrounds_section(
+            saved_config, key_prefix="theme_"
+        )
+        config: Dict[str, Any] = {**series, **bg}
+        return config
+
+    def _section_advanced(
+        self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame]
+    ) -> Dict[str, Any]:
+        config: Dict[str, Any] = {}
+
+        # Legend & Interactivity
+        st.markdown("#### Legend & Interactivity")
+        config["enable_editable"] = st.checkbox(
+            "Enable Interactive Editing",
+            value=saved_config.get("enable_editable", False),
+            key=f"editable_{self.plot_id}",
+            help="Allows you to drag the legend/title and click to edit text directly on the plot.",
+        )
+
+        # Series Renaming
+        if st.checkbox(
+            "Show Series Renaming", value=False, key=f"show_series_style_{self.plot_id}"
+        ):
+            st.markdown("#### Rename Series")
+            with st.expander("Rename Items", expanded=True):
+                renaming_styles = self.style_manager.render_series_renaming_ui(saved_config, data)
+                if "series_styles" not in config:
+                    config["series_styles"] = {}
+                for k, v in renaming_styles.items():
+                    if k not in config["series_styles"]:
+                        config["series_styles"][k] = v
+                    else:
+                        config["series_styles"][k].update(v)
+        else:
+            if "series_styles" not in config:
+                config["series_styles"] = saved_config.get("series_styles", {})
+
+        # Reference Line
+        self._render_reference_line_ui(saved_config, data, config)
+
+        # Annotations (Shapes)
+        st.markdown("#### Annotations (Shapes)")
+        config["shapes"] = self._render_shapes_ui(saved_config)
+
+        return config
+
     def render_advanced_options(
         self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame] = None
     ) -> Dict[str, Any]:
@@ -467,7 +613,7 @@ class BasePlot(ABC):
             h: int = saved_config.get("height", 500)
             s: int = config["export_scale"]
             st.caption(f"Export Size: {w * s} x {h * s} px")
-            st.caption("Change base dimensions in 'Theme & Style' -> 'Dimensions'.")
+            st.caption("Change base dimensions in 'Layout' settings.")
 
             config["xaxis_tickangle"] = st.slider(
                 "X-axis Label Rotation",

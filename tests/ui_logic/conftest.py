@@ -48,6 +48,14 @@ class StubPlotHandle:
     def render_theme_options(self, config: Dict[str, Any]) -> Dict[str, Any]:
         return config
 
+    def render_settings_section(
+        self,
+        section: Optional[str],
+        saved_config: Dict[str, Any],
+        data: Optional[pd.DataFrame] = None,
+    ) -> Dict[str, Any]:
+        return saved_config
+
 
 @pytest.fixture
 def stub_plot() -> StubPlotHandle:

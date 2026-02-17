@@ -352,20 +352,18 @@ class PlotManagerComponents:
         ui_config = plot.render_config_ui(data, saved_config)
         current_config.update(ui_config)
 
-        # Advanced & Theme
-        a1, a2 = st.columns(2)
-        with a1:
-            with st.expander("⚙️ Advanced Options"):
-                # Pass current state so advanced options see UI updates
-                advanced = plot.render_advanced_options(current_config, data)
-                current_config.update(advanced)
-        with a2:
-            with st.expander("🎨 Theme & Style"):
-                layout = plot.render_display_options(current_config)
-                current_config.update(layout)
-                st.markdown("---")
-                theme = plot.render_theme_options(current_config)
-                current_config.update(theme)
+        # ── Pills-driven settings navigation ──
+        from src.web.pages.ui.plotting.settings_pills import render_settings_pills
+
+        show_adv = st.toggle(
+            "Show advanced settings",
+            value=False,
+            key=f"show_advanced_{plot.plot_id}",
+        )
+        selected_section = render_settings_pills(show_advanced=show_adv)
+
+        section_config = plot.render_settings_section(selected_section, current_config, data)
+        current_config.update(section_config)
 
         # Refresh Logic
         config_changed = current_config != saved_config

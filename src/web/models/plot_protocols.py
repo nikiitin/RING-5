@@ -54,11 +54,13 @@ class ConfigRenderer(Protocol):
 
     Satisfied by ``BasePlot`` (which has ``render_config_ui``,
     ``render_advanced_options``, ``render_display_options``,
-    ``render_theme_options``).
+    ``render_theme_options``, ``render_settings_section``).
 
     Used by ``ConfigPresenter`` to delegate type-specific widget rendering
     without importing the concrete ``BasePlot`` class.
     """
+
+    plot_id: int
 
     def render_config_ui(self, data: pd.DataFrame, config: Dict[str, Any]) -> Dict[str, Any]: ...
 
@@ -69,6 +71,13 @@ class ConfigRenderer(Protocol):
     def render_display_options(self, config: Dict[str, Any]) -> Dict[str, Any]: ...
 
     def render_theme_options(self, config: Dict[str, Any]) -> Dict[str, Any]: ...
+
+    def render_settings_section(
+        self,
+        section: Optional[str],
+        saved_config: Dict[str, Any],
+        data: Optional[pd.DataFrame] = None,
+    ) -> Dict[str, Any]: ...
 
 
 @runtime_checkable
