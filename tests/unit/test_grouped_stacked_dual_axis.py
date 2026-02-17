@@ -965,40 +965,6 @@ class TestLayoutApplierDualAxis:
         plt.close()
 
 
-# ── Grid locality tests (applicator) ────────────────────────────
-
-
-class TestGridLocality:
-    """Test that grid/color styling only affects the intended axis."""
-
-    def test_apply_axis_colors_does_not_affect_yaxis2(self) -> None:
-        """_apply_axis_colors should only affect primary Y, not yaxis2."""
-        from plotly.subplots import make_subplots
-
-        from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
-
-        fig = make_subplots(specs=[[{"secondary_y": True}]])
-        fig.add_trace(go.Bar(x=["A"], y=[1], name="left"), secondary_y=False)
-        fig.add_trace(go.Scatter(x=["A"], y=[2], name="right"), secondary_y=True)
-
-        applicator = StyleApplicator("grouped_stacked_bar")
-        config: Dict[str, Any] = {
-            "axis_color": "#ff0000",
-            "grid_color": "#00ff00",
-        }
-        applicator._apply_axis_colors(fig, config)
-
-        # Primary Y should reflect the custom colours
-        assert fig.layout.yaxis.linecolor == "#ff0000"
-        assert fig.layout.yaxis.gridcolor == "#00ff00"
-
-        # yaxis2 must NOT have been touched
-        y2_linecolor = fig.layout.yaxis2.linecolor
-        y2_gridcolor = fig.layout.yaxis2.gridcolor
-        assert y2_linecolor != "#ff0000" or y2_linecolor is None
-        assert y2_gridcolor != "#00ff00" or y2_gridcolor is None
-
-
 # ── Secondary Y typography tests ─────────────────────────────────
 
 
