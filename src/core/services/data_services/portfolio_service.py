@@ -67,6 +67,7 @@ Last Modified: 2026-01-27
 """
 
 import json
+import logging
 from typing import Any, Dict, List, Optional, cast
 
 import pandas as pd
@@ -75,6 +76,7 @@ from src.core.common.utils import sanitize_filename, validate_path_within
 from src.core.models import PlotProtocol
 from src.core.services.data_services.path_service import PathService
 from src.core.state.state_manager import StateManager
+from src.web.services.portfolio_migrator import PortfolioMigrator
 
 
 class PortfolioService:
@@ -109,11 +111,27 @@ class PortfolioService:
 
         serialized_plots = []
         for plot in plots:
-            serialized_plots.append(plot.to_dict())
+            plot_dict: Dict[str, Any] = plot.to_dict()
+            # Persist FigureSpec alongside flat config for V2 schema
+            plot_config: Dict[str, Any] = plot_dict.get("config", {})
+            try:
+                from src.core.visualization.connectors.builders import (
+                    ConfigSpecBuilder,
+                )
+
+                spec = ConfigSpecBuilder.from_config(plot_config, plot_dict.get("plot_type", ""))
+                plot_dict["figure_spec"] = spec.to_dict()
+            except Exception:
+                logging.getLogger(__name__).debug(
+                    "Could not build FigureSpec for plot %s; saving without it",
+                    plot_dict.get("name", "?"),
+                )
+            serialized_plots.append(plot_dict)
 
         data_csv = data.to_csv(index=False) if data is not None and not data.empty else ""
 
         portfolio_data = {
+            "schema_version": PortfolioMigrator.CURRENT_VERSION,
             "version": "2.0",
             "timestamp": pd.Timestamp.now().isoformat(),
             "data_csv": data_csv,
@@ -139,7 +157,11 @@ class PortfolioService:
             json.dump(portfolio_data, f, indent=2)
 
     def load_portfolio(self, name: str) -> Dict[str, Any]:
-        """Load a portfolio JSON by name."""
+        """Load a portfolio JSON by name.
+
+        Runs schema migration via :class:`PortfolioMigrator` to ensure
+        backward compatibility with older portfolio formats.
+        """
         load_path = validate_path_within(
             PathService.get_portfolios_dir() / f"{sanitize_filename(name)}.json",
             PathService.get_portfolios_dir(),
@@ -148,7 +170,9 @@ class PortfolioService:
             raise FileNotFoundError(f"Portfolio '{name}' not found")
 
         with open(load_path, "r") as f:
-            return cast(Dict[str, Any], json.load(f))
+            raw: Dict[str, Any] = cast(Dict[str, Any], json.load(f))
+
+        return PortfolioMigrator.migrate(raw)
 
     def delete_portfolio(self, name: str) -> None:
         path = validate_path_within(
