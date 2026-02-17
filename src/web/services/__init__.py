@@ -7,5 +7,6 @@ such as engine selection and preset application.
 """
 
 from src.web.services.engine_manager import EngineManager
+from src.web.services.preset_applicator import PresetApplicator
 
-__all__ = ["EngineManager"]
+__all__ = ["EngineManager", "PresetApplicator"]
