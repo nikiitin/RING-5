@@ -18,6 +18,7 @@ from src.core.services.plot_interaction_service import (
 from src.web.figures.engine import FigureEngine
 from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.styles import StyleManager
+from src.web.services.engine_manager import EngineManager
 
 
 class BasePlot(ABC):
@@ -499,7 +500,54 @@ class BasePlot(ABC):
         st.markdown("#### Annotations (Shapes)")
         config["shapes"] = self._render_shapes_ui(saved_config)
 
+        # ── Engine-specific controls (Step 30) ──
+        self._render_engine_specific_controls(saved_config, config)
+
         return config
+
+    def _render_engine_specific_controls(
+        self,
+        saved_config: Dict[str, Any],
+        config: Dict[str, Any],
+    ) -> None:
+        """Render controls that depend on the current engine mode.
+
+        **Plotly mode**: hovermode selector.
+        **Matplotlib mode**: LaTeX preamble, TeX system.
+        """
+        st.markdown("---")
+        if EngineManager.is_plotly():
+            st.markdown("#### :material/interactive_space: Interactive Settings")
+            hovermode_options = ["x unified", "closest", "x", "y", "off"]
+            current_hover = saved_config.get("hovermode", "x unified")
+            idx = (
+                hovermode_options.index(current_hover) if current_hover in hovermode_options else 0
+            )
+            config["hovermode"] = st.selectbox(
+                "Hover mode",
+                options=hovermode_options,
+                index=idx,
+                key=f"hovermode_{self.plot_id}",
+                help="Controls how tooltip information is displayed on hover.",
+            )
+        elif EngineManager.is_matplotlib():
+            st.markdown("#### :material/description: LaTeX Settings")
+            config["latex_extra_preamble"] = st.text_area(
+                "Extra LaTeX preamble",
+                value=saved_config.get("latex_extra_preamble", ""),
+                key=f"latex_preamble_{self.plot_id}",
+                help="Additional LaTeX preamble commands (e.g. \\\\usepackage{...}).",
+            )
+            tex_options = ["xelatex", "pdflatex", "lualatex"]
+            current_tex = saved_config.get("tex_system", "xelatex")
+            tex_idx = tex_options.index(current_tex) if current_tex in tex_options else 0
+            config["tex_system"] = st.selectbox(
+                "TeX system",
+                options=tex_options,
+                index=tex_idx,
+                key=f"tex_system_{self.plot_id}",
+                help="TeX compiler to use for LaTeX rendering.",
+            )
 
     def render_advanced_options(
         self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame] = None
