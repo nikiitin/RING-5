@@ -1,6 +1,6 @@
 # RING-5 Application Architecture
 
-> **Version:** 3.0 (Clean Architecture)
+> **Version:** 4.0 (Unified Engine Architecture)
 > **Status:** Active
 > **Last Update:** February 2026
 
@@ -87,7 +87,63 @@ src/
             └── data_managers/      # Data management UI
 ```
 
-## 3. Architectural Layers
+## 3. Visualization & Engine Architecture
+
+### Dual-Engine System
+
+RING-5 supports two rendering engines via a specification-driven dispatch:
+
+- **Plotly**: Interactive exploration, HTML output, Kaleido-based image export
+- **Matplotlib**: Publication-quality output, LaTeX text rendering, PGF/EPS formats
+
+### FigureSpec Pipeline
+
+```text
+UI Widgets (Pills) → ConfigSpecBuilder → FigureSpec (frozen dataclass)
+                                              │
+                                        EngineManager
+                                         ┌────┴────┐
+                                    PlotlyConnector  MatplotlibConnector
+                                         │               │
+                                    go.Figure        mpl.Figure
+```
+
+**Key Components:**
+
+| Component | Location | Responsibility |
+|-----------|----------|----------------|
+| `FigureSpec` | `src/core/visualization/figure_spec.py` | Immutable spec (typography, dimensions, legend, axes, colors) |
+| `TypographySpec` | `src/core/visualization/typography_spec.py` | Font family and sizes |
+| `DimensionsSpec` | `src/core/visualization/figure_spec.py` | Width, height, DPI |
+| `LegendSpec` | `src/core/visualization/figure_spec.py` | Legend position, font, box styling |
+| `ConfigSpecBuilder` | `src/core/visualization/config_spec_builder.py` | `from_config()` to build spec from widget dict |
+| `ConfigBridge` | `src/core/visualization/config_bridge.py` | `spec_to_config()` to convert spec back to dict |
+| `EngineManager` | `src/core/visualization/engine_manager.py` | Engine selection and dispatch |
+| `StyleApplicator` | `src/web/pages/ui/plotting/styles/applicator.py` | Applies FigureSpec to a figure object |
+| `PlotlyConnector` | `src/core/visualization/connectors/plotly_connector.py` | Translates spec to Plotly API calls |
+| `MatplotlibConnector` | `src/core/visualization/connectors/matplotlib_connector.py` | Translates spec to Matplotlib API calls |
+
+### Pills-Based Settings UI
+
+Plot configuration uses a **pills navigation** (not expanders):
+
+- 7 sections: Layout, Axes, Colors, Legend, Typography, Download, Advanced
+- Sub-pills for complex sections (Legend → Primary/Secondary/Boxed, Axes → X/Y-Left/Y-Right)
+- Filter box for quick setting discovery
+- Progressive disclosure with show/hide toggle
+- Preset pills for journal-specific configurations
+
+### Portfolio Migration
+
+Saved portfolios auto-migrate between schema versions:
+- **V1** → **V2**: Adds `engine` field, removes `export_*` keys, adds `figure_spec`
+- `PortfolioMigrator` handles all migrations transparently on load
+
+### Publication Validator
+
+`validate_for_publication(spec, target)` checks a FigureSpec against venue requirements (ISCA, MICRO, ASPLOS, Nature, etc.) and returns human-readable warnings.
+
+## 4. Architectural Layers
 
 ### Layer A: Data Ingestion (`src/core/parsing/`)
 
@@ -118,7 +174,7 @@ src/
   - `UI Components`: Reusable Streamlit widgets
 - **Constraint:** Humble Object pattern. Delegates all logic to ApplicationAPI.
 
-## 4. Key Design Patterns
+## 5. Key Design Patterns
 
 | Pattern                     | Usage                                                                   |
 | :-------------------------- | :---------------------------------------------------------------------- |
@@ -128,23 +184,28 @@ src/
 | **Factory**                 | `PlotFactory`, `ShaperFactory` for creating instances from config.      |
 | **Repository**              | `*Repository` classes abstract state storage (`st.session_state`).      |
 | **Singleton**               | `ApplicationAPI` instance shared across UI pages.                       |
+| **Bridge**                  | `FigureSpec` + `Connectors` bridge spec to engine-specific API.         |
+| **Builder**                 | `ConfigSpecBuilder` constructs `FigureSpec` from widget config dict.    |
 
-## 5. Data Flow
+## 6. Data Flow
 
 1.  **Ingest:** `ScannerService` discovers variables → `ParseService` orchestrates async parsing → Workers extract stats → CSV output.
 2.  **Load:** UI calls `ApplicationAPI.load_data()` → `CsvPoolService` loads DataFrame → `RepositoryStateManager` persists.
 3.  **Process:** Data flows through `Shapers` (Filter → Calculate → Normalize) via `PipelineService`.
 4.  **Visualize:** Processed DataFrame → `PlotFactory` → `go.Figure` → Render to Streamlit.
 
-## 6. Technology Stack
+## 7. Technology Stack
 
 - **Language:** Python 3.12+ (Strict Typing)
 - **Data:** Pandas, NumPy (Vectorized)
-- **Viz:** Plotly Graph Objects
-- **UI:** Streamlit
+- **Viz (Interactive):** Plotly Graph Objects
+- **Viz (Publication):** Matplotlib + LaTeX backend
+- **Engine Dispatch:** FigureSpec → EngineManager → Connectors
+- **UI:** Streamlit (pills-based navigation)
 - **Testing:** Pytest, Hypothesis
+- **Type Safety:** mypy --strict (mandatory)
 
-## 7. Quality Assurance & Review Process
+## 8. Quality Assurance & Review Process
 
 ### Code Review Philosophy
 
