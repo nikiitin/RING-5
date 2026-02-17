@@ -22,10 +22,6 @@ from src.core.application_api import ApplicationAPI
 from src.core.services.shapers.factory import ShaperFactory
 from src.core.state.repository_state_manager import RepositoryStateManager
 from src.web.figures.engine import FigureEngine
-from src.web.pages.ui.plotting.export.converters.impl.matplotlib_converter import (
-    MatplotlibConverter,
-)
-from src.web.pages.ui.plotting.export.presets.preset_schema import LaTeXPreset
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
 # ===========================================================================
@@ -197,17 +193,6 @@ class TestPlotCreationErrors:
         # Don't register anything
         with pytest.raises(KeyError, match="No figure creator registered"):
             engine.build("bar", pd.DataFrame(), {})
-
-    def test_export_unsupported_format(self) -> None:
-        """MatplotlibConverter.convert() with invalid format raises."""
-        from tests.integration.test_render_pipeline import _make_minimal_preset
-
-        preset: LaTeXPreset = _make_minimal_preset()
-        converter = MatplotlibConverter(preset)
-
-        fig = go.Figure(data=[go.Bar(x=["a"], y=[1])])
-        with pytest.raises(ValueError):
-            converter.convert(fig, "bmp")  # Unsupported format
 
 
 # ===========================================================================

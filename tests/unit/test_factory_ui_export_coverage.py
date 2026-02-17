@@ -1,4 +1,4 @@
-"""Tests for PlotFactory, BarStyleUI, LaTeXExportService — branch coverage."""
+"""Tests for PlotFactory and BarStyleUI — branch coverage."""
 
 from typing import Any, Dict
 from unittest.mock import MagicMock, patch
@@ -101,82 +101,3 @@ class TestBarStyleUI:
 
         ui._render_specific_series_visuals(style, "trace_0")
         assert style["pattern"] == ""
-
-
-class TestLaTeXExportService:
-    """Cover LaTeXExportService branches."""
-
-    def test_export_with_string_preset(self) -> None:
-        from src.web.pages.ui.plotting.export.latex_export_service import LaTeXExportService
-
-        service = LaTeXExportService()
-        fig = go.Figure(data=[go.Bar(x=["a", "b"], y=[1, 2])])
-
-        # This may or may not succeed depending on matplotlib backend
-        # but we exercise the code path
-        result = service.export(fig, "single_column", "pdf")
-        assert "success" in result
-
-    def test_export_with_preset_dict(self) -> None:
-        from src.web.pages.ui.plotting.export.latex_export_service import LaTeXExportService
-
-        service = LaTeXExportService()
-        fig = go.Figure(data=[go.Bar(x=["a", "b"], y=[1, 2])])
-
-        preset_dict = service.preset_manager.load_preset("single_column")
-        result = service.export(fig, preset_dict, "pdf")
-        assert "success" in result
-
-    def test_export_failure(self) -> None:
-        from src.web.pages.ui.plotting.export.latex_export_service import LaTeXExportService
-
-        service = LaTeXExportService()
-        service.preset_manager.load_preset = MagicMock(side_effect=ValueError("bad preset"))
-
-        fig = go.Figure()
-        result = service.export(fig, "nonexistent_preset", "pdf")
-        assert result["success"] is False
-
-    def test_list_presets(self) -> None:
-        from src.web.pages.ui.plotting.export.latex_export_service import LaTeXExportService
-
-        service = LaTeXExportService()
-        presets = service.list_presets()
-        assert isinstance(presets, list)
-        assert len(presets) > 0
-
-    def test_get_preset_info(self) -> None:
-        from src.web.pages.ui.plotting.export.latex_export_service import LaTeXExportService
-
-        service = LaTeXExportService()
-        presets = service.list_presets()
-        info = service.get_preset_info(presets[0])
-        assert isinstance(info, dict)
-
-    def test_generate_preview(self) -> None:
-        from src.web.pages.ui.plotting.export.latex_export_service import LaTeXExportService
-
-        service = LaTeXExportService()
-        fig = go.Figure(data=[go.Bar(x=["a", "b"], y=[1, 2])])
-        preview = service.generate_preview(fig, "single_column", preview_dpi=72)
-        assert isinstance(preview, bytes)
-        assert len(preview) > 0
-
-    def test_generate_preview_with_dict(self) -> None:
-        from src.web.pages.ui.plotting.export.latex_export_service import LaTeXExportService
-
-        service = LaTeXExportService()
-        fig = go.Figure(data=[go.Bar(x=["a", "b"], y=[1, 2])])
-        preset_dict = service.preset_manager.load_preset("single_column")
-        preview = service.generate_preview(fig, preset_dict, preview_dpi=72)
-        assert isinstance(preview, bytes)
-
-    def test_generate_preview_failure(self) -> None:
-        from src.web.pages.ui.plotting.export.latex_export_service import LaTeXExportService
-
-        service = LaTeXExportService()
-        service.preset_manager.load_preset = MagicMock(side_effect=ValueError("bad"))
-
-        fig = go.Figure()
-        with pytest.raises(ValueError):
-            service.generate_preview(fig, "bad_preset")

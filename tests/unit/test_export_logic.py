@@ -95,7 +95,7 @@ def test_export_rejects_invalid_format(temp_dir, plot_factory, plot_service):
 
     # Test invalid extension
     with pytest.raises(ValueError, match="Unsupported export format"):
-        plot_service.export_plot_to_file(plot, temp_dir, format="png")
+        plot_service.export_plot_to_file(plot, temp_dir, format="pgf")
 
     # Test empty format should use default (pdf) which is valid
     path = plot_service.export_plot_to_file(plot, temp_dir, format=None)

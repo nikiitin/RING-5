@@ -1,11 +1,10 @@
 """Integration tests for the figure rendering pipeline.
 
-Covers Scenarios #1 (FigureEngine E2E) and #14 (Full Parse→Render→Export chain).
+Covers Scenario #1 (FigureEngine E2E).
 
 Tests:
     - FigureEngine.build() with all 8 plot types using real data
     - StyleApplicator applied through the engine
-    - Plot → Figure → Export chain (MatplotlibConverter)
     - Legend label overrides
     - Config variations (error bars, color grouping, etc.)
 """
@@ -18,66 +17,7 @@ import pytest
 
 from src.core.application_api import ApplicationAPI
 from src.web.figures.engine import FigureEngine
-from src.web.pages.ui.plotting.export.converters.impl.matplotlib_converter import (
-    MatplotlibConverter,
-)
-from src.web.pages.ui.plotting.export.presets.preset_schema import (
-    ExportResult,
-    LaTeXPreset,
-)
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-def _make_minimal_preset() -> LaTeXPreset:
-    """Create a minimal LaTeXPreset for testing export."""
-    return LaTeXPreset(
-        width_inches=3.5,
-        height_inches=2.625,
-        font_family="sans-serif",
-        font_size_base=9,
-        font_size_title=10,
-        font_size_xlabel=8,
-        font_size_ylabel=8,
-        font_size_legend=7,
-        font_size_ticks=7,
-        font_size_annotations=7,
-        bold_title=False,
-        bold_xlabel=False,
-        bold_ylabel=False,
-        bold_legend=False,
-        bold_ticks=False,
-        bold_annotations=True,
-        line_width=1.0,
-        marker_size=4,
-        dpi=150,
-        legend_columnspacing=2.0,
-        legend_handletextpad=0.8,
-        legend_labelspacing=0.5,
-        legend_handlelength=2.0,
-        legend_handleheight=0.7,
-        legend_borderpad=0.4,
-        legend_borderaxespad=0.5,
-        ylabel_pad=10.0,
-        ylabel_y_position=0.5,
-        xtick_pad=5.0,
-        ytick_pad=5.0,
-        group_label_offset=-0.12,
-        group_label_alternate=True,
-        xaxis_margin=0.02,
-        bar_width_scale=1.0,
-        xtick_rotation=45.0,
-        xtick_ha="right",
-        xtick_offset=0.0,
-        group_separator=False,
-        group_separator_style="dashed",
-        group_separator_color="gray",
-        latex_extra_preamble="",
-    )
-
 
 # ===========================================================================
 # Test Class 1: FigureEngine integration with all plot types
@@ -313,175 +253,12 @@ class TestStyleApplicatorIntegration:
 
 
 # ===========================================================================
-# Test Class 3: Plot → Figure → Export chain
-# ===========================================================================
-
-
-class TestPlotToExportChain:
-    """Test the full chain: PlotFactory → create_figure → convert to PDF."""
-
-    def test_bar_plot_to_pdf_export(
-        self, rich_sample_data: pd.DataFrame, bar_config: Dict[str, Any]
-    ) -> None:
-        """Create a bar plot, generate figure, export to PDF — end to end."""
-        # 1. Create plot via factory
-        plot = PlotFactory.create_plot("bar", plot_id=1, name="Export Test")
-
-        # 2. Generate figure
-        fig: go.Figure = plot.create_figure(rich_sample_data, bar_config)
-        assert isinstance(fig, go.Figure)
-        assert len(fig.data) > 0
-
-        # 3. Export to PDF
-        preset: LaTeXPreset = _make_minimal_preset()
-        converter = MatplotlibConverter(preset)
-        result: ExportResult = converter.convert(fig, "pdf")
-
-        assert result["success"] is True
-        assert result["data"] is not None
-        assert isinstance(result["data"], bytes)
-        assert len(result["data"]) > 0
-        assert result["format"] == "pdf"
-        assert result["error"] is None
-
-    def test_line_plot_to_pdf_export(
-        self, rich_sample_data: pd.DataFrame, line_config: Dict[str, Any]
-    ) -> None:
-        """Line plot → figure → PDF export."""
-        plot = PlotFactory.create_plot("line", plot_id=2, name="Line Export")
-        fig: go.Figure = plot.create_figure(rich_sample_data, line_config)
-        assert isinstance(fig, go.Figure)
-
-        preset: LaTeXPreset = _make_minimal_preset()
-        converter = MatplotlibConverter(preset)
-        result: ExportResult = converter.convert(fig, "pdf")
-
-        assert result["success"] is True
-        assert result["data"] is not None
-        assert len(result["data"]) > 0
-
-    def test_grouped_bar_to_pdf_export(
-        self,
-        rich_sample_data: pd.DataFrame,
-        grouped_bar_config: Dict[str, Any],
-    ) -> None:
-        """Grouped bar → figure → PDF export."""
-        plot = PlotFactory.create_plot("grouped_bar", plot_id=3, name="Grouped Export")
-        fig: go.Figure = plot.create_figure(rich_sample_data, grouped_bar_config)
-        assert isinstance(fig, go.Figure)
-
-        preset: LaTeXPreset = _make_minimal_preset()
-        converter = MatplotlibConverter(preset)
-        result: ExportResult = converter.convert(fig, "pdf")
-
-        assert result["success"] is True
-        assert result["data"] is not None
-
-    def test_scatter_to_pdf_export(
-        self,
-        rich_sample_data: pd.DataFrame,
-        scatter_config: Dict[str, Any],
-    ) -> None:
-        """Scatter → figure → PDF export."""
-        plot = PlotFactory.create_plot("scatter", plot_id=4, name="Scatter Export")
-        fig: go.Figure = plot.create_figure(rich_sample_data, scatter_config)
-        assert isinstance(fig, go.Figure)
-
-        preset: LaTeXPreset = _make_minimal_preset()
-        converter = MatplotlibConverter(preset)
-        result: ExportResult = converter.convert(fig, "pdf")
-
-        assert result["success"] is True
-        assert result["data"] is not None
-
-    def test_styled_figure_to_pdf_export(
-        self,
-        figure_engine: FigureEngine,
-        rich_sample_data: pd.DataFrame,
-        bar_config: Dict[str, Any],
-    ) -> None:
-        """Full engine (create + style) → PDF export."""
-        styled_config: Dict[str, Any] = {
-            **bar_config,
-            "width": 700,
-            "height": 400,
-            "plot_bgcolor": "white",
-            "paper_bgcolor": "white",
-        }
-        fig: go.Figure = figure_engine.build("bar", rich_sample_data, styled_config)
-
-        preset: LaTeXPreset = _make_minimal_preset()
-        converter = MatplotlibConverter(preset)
-        result: ExportResult = converter.convert(fig, "pdf")
-
-        assert result["success"] is True
-        assert result["data"] is not None
-        assert len(result["data"]) > 100  # Non-trivial PDF
-
-
-# ===========================================================================
-# Test Class 4: Full data flow — load → transform → render → export
+# Test Class 3: Full data flow — load → transform → render
 # ===========================================================================
 
 
 class TestFullDataToRenderE2E:
-    """Test E2E: load data → apply shapers → create figure → export."""
-
-    def test_load_transform_render_export(
-        self,
-        loaded_facade: ApplicationAPI,
-        bar_config: Dict[str, Any],
-    ) -> None:
-        """Full E2E: API data → shaper pipeline → figure → PDF."""
-        api: ApplicationAPI = loaded_facade
-
-        # 1. Verify data is loaded
-        data: pd.DataFrame = api.state_manager.get_data()
-        assert data is not None
-        assert len(data) > 0
-
-        # 2. Apply shapers (column select + sort)
-        from src.core.services.shapers.factory import ShaperFactory
-
-        col_shaper = ShaperFactory.create_shaper(
-            "columnSelector",
-            {"columns": ["benchmark_name", "config_description", "system.cpu.ipc"]},
-        )
-        shaped_data: pd.DataFrame = col_shaper(data)
-
-        sort_shaper = ShaperFactory.create_shaper(
-            "sort",
-            {
-                "order_dict": {
-                    "benchmark_name": ["mcf", "omnetpp", "xalancbmk"],
-                },
-            },
-        )
-        shaped_data = sort_shaper(shaped_data)
-
-        assert list(shaped_data.columns) == [
-            "benchmark_name",
-            "config_description",
-            "system.cpu.ipc",
-        ]
-        # Sort orders categorically: mcf, omnetpp, xalancbmk
-        benchmarks = shaped_data["benchmark_name"].unique().tolist()
-        assert benchmarks == ["mcf", "omnetpp", "xalancbmk"]
-
-        # 3. Create figure
-        plot = PlotFactory.create_plot("bar", plot_id=1, name="E2E Plot")
-        fig: go.Figure = plot.create_figure(shaped_data, bar_config)
-        assert isinstance(fig, go.Figure)
-        assert len(fig.data) > 0
-
-        # 4. Export
-        preset: LaTeXPreset = _make_minimal_preset()
-        converter = MatplotlibConverter(preset)
-        result: ExportResult = converter.convert(fig, "pdf")
-
-        assert result["success"] is True
-        assert result["data"] is not None
-        assert len(result["data"]) > 100
+    """Test E2E: load data → apply shapers → create figure."""
 
     def test_normalize_then_grouped_bar_render(
         self,

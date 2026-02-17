@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING, Optional
 
 from src.core.common.utils import normalize_user_path, validate_path_within
 from src.web.pages.ui.plotting.base_plot import BasePlot
-from src.web.pages.ui.plotting.export.latex_export_service import LaTeXExportService
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
 if TYPE_CHECKING:
@@ -96,13 +95,13 @@ class PlotService:
         Args:
             plot: The plot to export
             directory: Output directory path
-            format: Export format ("html", "pdf", "pgf", or "eps"). Defaults to "pdf"
+            format: Export format ("html", "pdf", "png", or "svg"). Defaults to "pdf"
 
         Returns:
             Path to exported file, or None if export failed
 
         Note:
-            For publication-quality exports, use LaTeXExportService directly.
+            Uses Kaleido for vector/raster export of Plotly figures.
         """
         # Normalize and validate directory path before any filesystem ops
         safe_dir: str = os.path.normpath(directory) if directory else "."
@@ -120,7 +119,7 @@ class PlotService:
         fmt = format or plot.config.get("download_format", "pdf")
 
         # Validate format BEFORE constructing path (security: prevent path traversal)
-        allowed_formats = ["html", "pdf", "pgf", "eps"]
+        allowed_formats = ["html", "pdf", "png", "svg"]
         if fmt not in allowed_formats:
             raise ValueError(
                 f"Unsupported export format '{fmt}'. "
@@ -135,18 +134,16 @@ class PlotService:
 
         if fmt == "html":
             fig.write_html(path)
-        elif fmt in ["pdf", "pgf", "eps"]:
-            # Use LaTeX export service for publication-quality output
-            service = LaTeXExportService()
-            result = service.export(fig=fig, preset="single_column", format=fmt)
+        elif fmt in ("pdf", "png", "svg"):
+            from typing import cast
 
-            if result["success"]:
-                data = result["data"]
-                if data is None:
-                    raise RuntimeError("LaTeX export succeeded but returned no data")
-                with open(path, "wb") as f:
-                    f.write(data)
-            else:
-                raise RuntimeError(f"LaTeX export failed: {result.get('error', 'Unknown error')}")
+            from src.web.pages.ui.plotting.download_section import (
+                PlotlyFormat,
+                plotly_download_bytes,
+            )
+
+            data = plotly_download_bytes(fig, fmt=cast(PlotlyFormat, fmt))
+            with open(path, "wb") as f:
+                f.write(data)
 
         return path

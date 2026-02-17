@@ -1,19 +1,16 @@
 """
-Coverage tests for StackedBarPlot, HistogramPlot, PlotConfigComponents,
-and BaseConverter.
+Coverage tests for StackedBarPlot, HistogramPlot, and PlotConfigComponents.
 
 Targets uncovered lines:
 - stacked_bar_plot.py: 22-63 (render_config_ui), 159->163, 212-213, 253->255
 - histogram_plot.py: 51-55, 145, 238->236, 244-246, 249, 364, 373-374
 - plot_config_components.py: 43->59, 97-114, 165->174
-- base_converter.py: 68, 77, 98, 100, 102
 """
 
 from typing import Any, Dict, List
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
-import plotly.graph_objects as go
 import pytest
 
 # ---------------------------------------------------------------------------
@@ -464,58 +461,6 @@ class TestPlotConfigComponentsBranches:
         )
 
         assert "legend_title" not in result
-
-
-# ===========================================================================
-# BaseConverter
-# ===========================================================================
-
-
-class TestBaseConverterBranches:
-    """Lines 68, 77, 98, 100, 102."""
-
-    def _make_converter(self) -> Any:
-        from src.web.pages.ui.plotting.export.converters.base_converter import BaseConverter
-
-        class ConcreteConverter(BaseConverter):
-            def convert(self, figure: go.Figure, format: str) -> Any:
-                return None
-
-        preset = MagicMock()
-        return ConcreteConverter(preset)
-
-    def test_get_supported_formats_empty(self) -> None:
-        conv = self._make_converter()
-        assert conv.get_supported_formats() == []
-
-    def test_validate_empty_figure(self) -> None:
-        conv = self._make_converter()
-        fig = go.Figure()  # no traces
-        assert conv.validate_figure(fig) is False
-
-    def test_validate_with_x_data(self) -> None:
-        conv = self._make_converter()
-        fig = go.Figure()
-        fig.add_trace(go.Bar(x=[1, 2], y=[3, 4]))
-        assert conv.validate_figure(fig) is True
-
-    def test_validate_trace_no_data(self) -> None:
-        conv = self._make_converter()
-        fig = go.Figure()
-        fig.add_trace(go.Bar())  # no x, y, z, or values
-        assert conv.validate_figure(fig) is False
-
-    def test_validate_with_z_data(self) -> None:
-        conv = self._make_converter()
-        fig = go.Figure()
-        fig.add_trace(go.Surface(z=[[1, 2], [3, 4]]))
-        assert conv.validate_figure(fig) is True
-
-    def test_validate_with_values_data(self) -> None:
-        conv = self._make_converter()
-        fig = go.Figure()
-        fig.add_trace(go.Pie(values=[10, 20, 30]))
-        assert conv.validate_figure(fig) is True
 
 
 # ===========================================================================

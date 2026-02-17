@@ -170,7 +170,7 @@ class TestExportPlotToFile:
         plot.generate_figure.return_value = MagicMock()
 
         with pytest.raises(ValueError, match="Unsupported export format"):
-            PlotService.export_plot_to_file(plot, str(tmp_path), format="svg")
+            PlotService.export_plot_to_file(plot, str(tmp_path), format="pgf")
 
     def test_generate_figure_fails_returns_none(self, tmp_path: Path) -> None:
         plot = MagicMock()
@@ -181,64 +181,27 @@ class TestExportPlotToFile:
 
         assert result is None
 
-    @patch("src.web.pages.ui.plotting.plot_service.LaTeXExportService")
-    def test_pdf_export_success(self, mock_latex_cls: MagicMock, tmp_path: Path) -> None:
+    @patch("src.web.pages.ui.plotting.download_section.plotly_download_bytes")
+    def test_pdf_export_success(
+        self,
+        mock_download: MagicMock,
+        tmp_path: Path,
+    ) -> None:
         plot = MagicMock()
         plot.name = "IPC"
         plot.config = {}
         fig = MagicMock()
         plot.generate_figure.return_value = fig
 
-        service_instance = MagicMock()
-        mock_latex_cls.return_value = service_instance
-        service_instance.export.return_value = {
-            "success": True,
-            "data": b"%PDF-fake",
-        }
+        mock_download.return_value = b"%PDF-fake"
 
         result = PlotService.export_plot_to_file(plot, str(tmp_path), format="pdf")
 
         assert result is not None
         assert result.endswith(".pdf")
-        # Verify the file was written
         written = open(result, "rb").read()
         assert written == b"%PDF-fake"
-
-    @patch("src.web.pages.ui.plotting.plot_service.LaTeXExportService")
-    def test_pdf_export_failure_raises(self, mock_latex_cls: MagicMock, tmp_path: Path) -> None:
-        plot = MagicMock()
-        plot.name = "IPC"
-        plot.config = {}
-        fig = MagicMock()
-        plot.generate_figure.return_value = fig
-
-        service_instance = MagicMock()
-        mock_latex_cls.return_value = service_instance
-        service_instance.export.return_value = {
-            "success": False,
-            "error": "no kpsewhich",
-        }
-
-        with pytest.raises(RuntimeError, match="LaTeX export failed"):
-            PlotService.export_plot_to_file(plot, str(tmp_path), format="pdf")
-
-    @patch("src.web.pages.ui.plotting.plot_service.LaTeXExportService")
-    def test_pdf_export_none_data_raises(self, mock_latex_cls: MagicMock, tmp_path: Path) -> None:
-        plot = MagicMock()
-        plot.name = "IPC"
-        plot.config = {}
-        fig = MagicMock()
-        plot.generate_figure.return_value = fig
-
-        service_instance = MagicMock()
-        mock_latex_cls.return_value = service_instance
-        service_instance.export.return_value = {
-            "success": True,
-            "data": None,
-        }
-
-        with pytest.raises(RuntimeError, match="returned no data"):
-            PlotService.export_plot_to_file(plot, str(tmp_path), format="pdf")
+        mock_download.assert_called_once()
 
     def test_default_format_from_config(self, tmp_path: Path) -> None:
         plot = MagicMock()
