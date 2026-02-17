@@ -19,11 +19,10 @@ Usage:
 from __future__ import annotations
 
 import copy
-from dataclasses import fields as dc_fields
 from typing import Any, Dict, List, Optional, Sequence
 
 from src.core.visualization.figure_spec import FigureSpec
-from src.core.visualization.widgets.widget_def import WidgetDef, WidgetSection
+from src.core.visualization.widgets.widget_def import WidgetSection
 
 
 class ConfigBridge:
