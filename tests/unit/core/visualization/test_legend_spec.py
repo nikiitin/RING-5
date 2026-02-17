@@ -8,9 +8,7 @@ Covers:
   - All three roles (primary, secondary, boxed)
 """
 
-import pytest
-
-from src.core.visualization.legend_spec import LegendSpec, LegendSpacingSpec
+from src.core.visualization.legend_spec import LegendSpacingSpec, LegendSpec
 
 
 class TestLegendSpacingSpec:
@@ -176,3 +174,59 @@ class TestLegendSpec:
         # Modify one — the other should be unaffected
         legend1.spacing.columnspacing = 99.0
         assert legend2.spacing.columnspacing == 2.0
+
+
+# ────────────────────────────────────────────────────────────────────
+# Step 8 — col_width, order, trace_distribution
+# ────────────────────────────────────────────────────────────────────
+
+
+class TestLegendSpecStep8Fields:
+    """Test the 3 new fields added in Step 8."""
+
+    def test_col_width_default_sentinel(self) -> None:
+        """Sentinel -1.0 means 'auto column width'."""
+        spec = LegendSpec()
+        assert spec.col_width == -1.0
+
+    def test_col_width_custom(self) -> None:
+        spec = LegendSpec(col_width=120.0)
+        assert spec.col_width == 120.0
+
+    def test_order_default_normal(self) -> None:
+        spec = LegendSpec()
+        assert spec.order == "normal"
+
+    def test_order_reversed(self) -> None:
+        spec = LegendSpec(order="reversed")
+        assert spec.order == "reversed"
+
+    def test_trace_distribution_empty_default(self) -> None:
+        spec = LegendSpec()
+        assert spec.trace_distribution == ""
+
+    def test_trace_distribution_custom(self) -> None:
+        spec = LegendSpec(trace_distribution="0,1,2")
+        assert spec.trace_distribution == "0,1,2"
+
+    def test_step8_fields_in_to_dict(self) -> None:
+        spec = LegendSpec(col_width=100.0, order="reversed", trace_distribution="1,3")
+        d = spec.to_dict()
+        assert d["col_width"] == 100.0
+        assert d["order"] == "reversed"
+        assert d["trace_distribution"] == "1,3"
+
+    def test_step8_round_trip(self) -> None:
+        spec = LegendSpec(
+            role="primary",
+            col_width=80.0,
+            order="reversed",
+            trace_distribution="0,2,4",
+            ncol=3,
+        )
+        data = spec.to_dict()
+        restored = LegendSpec.from_dict(data)
+        assert restored.col_width == 80.0
+        assert restored.order == "reversed"
+        assert restored.trace_distribution == "0,2,4"
+        assert restored.ncol == 3

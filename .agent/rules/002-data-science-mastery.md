@@ -60,13 +60,31 @@ You treat data with scientific rigor. Every transformation is documented, reprod
 - **Memory Layout:** Be aware of C-order vs Fortran-order for performance-critical code.
 - **Views vs Copies:** Understand when slicing creates views vs copies. Use `.copy()` explicitly when needed.
 
-## 4. Plotting Best Practices (PDA Ch 9)
+## 4. Plotting Best Practices
 
-- **Publication Quality:**
-  - Font sizes: 14pt+ for readability in two-column papers.
-  - Vector formats: Export as PDF/SVG for publications.
-  - Color palettes: Use colorblind-friendly palettes.
-- **Plotly Graph Objects:** Use `go.Figure` for fine-grained control.
+### 4.1 Matplotlib (OO API — MANDATORY)
+- **ALWAYS** use `fig, ax = plt.subplots(layout='constrained')`. NEVER use pyplot state machine (`plt.plot()`, `plt.xlabel()`).
+- **`layout='constrained'`** over `tight_layout()` — more robust for external legends, multi-axis, colorbars.
+- **PGF backend for LaTeX**: `fig.savefig(buf, format="pgf", backend="pgf")` with `pgf.texsystem="xelatex"` by default.
+- **Always close figures**: `plt.close(fig)` after `st.pyplot(fig)` or use `clear_figure=True`. Unclosed figures leak memory.
+- **rcParams context managers**: `with plt.rc_context({"font.size": 8}):` for temporary overrides without global mutation.
+- **`bbox_inches='tight'`** on all `savefig()` calls to prevent label clipping.
+- **Data-ink ratio**: Remove top/right spines by default, minimize gridlines, no 3D effects or chartjunk.
+
+### 4.2 Plotly (Graph Objects — MANDATORY)
+- **Custom Templates** for theming: `pio.templates["ring5_base"] = go.layout.Template(layout=go.Layout(…))`. Apply via `fig.update_layout(template="ring5_base")`.
+- **Template composition**: `"plotly_white+ring5_isca"` layers templates. Custom always on top of base.
+- **Kaleido v1** for static export: `fig.to_image(format="png", scale=2)`. Uses system Chrome. No Orca.
+- **Magic underscore**: Prefer `title_font_size=24` over nested dicts. But use explicit dicts in templates for clarity.
+- **Graph Objects only**: `go.Figure()`, `go.Bar()`, `go.Scatter()`. Never Plotly Express.
+- **Streamlit integration**: `st.plotly_chart(fig, theme=None)` when using custom templates to prevent Streamlit overrides.
+
+### 4.3 Accessibility & Publication Quality
+- **Colorblind-safe palettes**: Wong palette as default (8 discrete colors). Viridis for continuous. 4.5:1 contrast minimum.
+- **Font sizing by venue**: Ticks 7-8pt, labels 8-9pt, titles 9-10pt, legends 7-8pt.
+- **Vector formats mandatory**: PDF/SVG/PGF for print. Raster at 2× scale minimum (scale=2 in Kaleido).
+- **DPI**: Screen 100-150, print 300+, Nature/Science 600.
+- **Sans-serif for screen, serif for LaTeX** by default.
 - **Factory Pattern:** All plots must go through `PlotFactory` for consistent styling.
 - **Labels:** Always include axis labels, title, and legend. No unlabeled plots.
 

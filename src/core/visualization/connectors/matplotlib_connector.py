@@ -15,13 +15,10 @@ Usage:
 from __future__ import annotations
 
 import logging
-import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Tuple
 
+from src.core.visualization.data_label_spec import DataLabelSpec
 from src.core.visualization.figure_spec import FigureSpec
-from src.core.visualization.legend_spec import LegendSpec
-from src.core.visualization.annotation_spec import AnnotationSpec
-from src.core.visualization.axis_spec import AxisSpec
 
 logger = logging.getLogger(__name__)
 
@@ -44,12 +41,20 @@ class FigureSpecToMatplotlib:
             spec: A resolved FigureSpec (no sentinel values).
             ax: A ``matplotlib.axes.Axes`` instance.
         """
+        FigureSpecToMatplotlib._apply_backgrounds(spec, ax)
+        FigureSpecToMatplotlib._apply_font_family(spec, ax)
+        FigureSpecToMatplotlib._apply_color_palette(spec, ax)
         FigureSpecToMatplotlib._apply_title(spec, ax)
         FigureSpecToMatplotlib._apply_axis_labels(spec, ax)
         FigureSpecToMatplotlib._apply_axis_ticks(spec, ax)
         FigureSpecToMatplotlib._apply_axis_ranges(spec, ax)
+        FigureSpecToMatplotlib._apply_axis_colors(spec, ax)
         FigureSpecToMatplotlib._apply_grids(spec, ax)
         FigureSpecToMatplotlib._apply_legends(spec, ax)
+        FigureSpecToMatplotlib._apply_reference_lines(spec, ax)
+        FigureSpecToMatplotlib._apply_data_labels(spec, ax)
+        FigureSpecToMatplotlib._apply_separators(spec, ax)
+        FigureSpecToMatplotlib._apply_hatching(spec, ax)
 
     @staticmethod
     def _apply_title(spec: FigureSpec, ax: Any) -> None:
@@ -58,6 +63,7 @@ class FigureSpecToMatplotlib:
             return
 
         typo = spec.typography
+        assert typo is not None  # guaranteed by __post_init__  # nosec B101
         weight = "bold" if typo.bold_title else "normal"
         ax.set_title(
             FigureSpecToMatplotlib._escape_latex(spec.title),
@@ -69,6 +75,8 @@ class FigureSpecToMatplotlib:
     def _apply_axis_labels(spec: FigureSpec, ax: Any) -> None:
         """Set X and Y axis labels with proper typography."""
         typo = spec.typography
+        assert typo is not None  # guaranteed by __post_init__  # nosec B101
+        assert spec.axes is not None  # guaranteed by __post_init__  # nosec B101
 
         # X-axis label
         x_label = spec.axes.x.label
@@ -102,7 +110,7 @@ class FigureSpecToMatplotlib:
         if spec.axes.y2 is not None:
             # Check if twin axis exists
             for child_ax in ax.figure.get_axes():
-                if child_ax is not ax and hasattr(child_ax, '_twinned_axes'):
+                if child_ax is not ax and hasattr(child_ax, "_twinned_axes"):
                     y2_label = spec.axes.y2.label
                     if y2_label:
                         weight = "bold" if typo.bold_y2label else "normal"
@@ -120,6 +128,8 @@ class FigureSpecToMatplotlib:
         import matplotlib.transforms as transforms
 
         typo = spec.typography
+        assert typo is not None  # guaranteed by __post_init__  # nosec B101
+        assert spec.axes is not None  # guaranteed by __post_init__  # nosec B101
         x_axis = spec.axes.x
         y_axis = spec.axes.y
 
@@ -133,10 +143,7 @@ class FigureSpecToMatplotlib:
 
         if x_axis.tick_values is not None and x_axis.tick_text is not None:
             ax.set_xticks(x_axis.tick_values)
-            escaped = [
-                FigureSpecToMatplotlib._escape_latex(str(t))
-                for t in x_axis.tick_text
-            ]
+            escaped = [FigureSpecToMatplotlib._escape_latex(str(t)) for t in x_axis.tick_text]
             ax.set_xticklabels(
                 escaped,
                 rotation=x_axis.tick_angle,
@@ -165,10 +172,7 @@ class FigureSpecToMatplotlib:
 
         if y_axis.tick_values is not None and y_axis.tick_text is not None:
             ax.set_yticks(y_axis.tick_values)
-            escaped = [
-                FigureSpecToMatplotlib._escape_latex(str(t))
-                for t in y_axis.tick_text
-            ]
+            escaped = [FigureSpecToMatplotlib._escape_latex(str(t)) for t in y_axis.tick_text]
             ax.set_yticklabels(
                 escaped,
                 fontsize=typo.font_size_yticks,
@@ -177,6 +181,7 @@ class FigureSpecToMatplotlib:
     @staticmethod
     def _apply_axis_ranges(spec: FigureSpec, ax: Any) -> None:
         """Set axis range limits and scale."""
+        assert spec.axes is not None  # guaranteed by __post_init__  # nosec B101
         x_axis = spec.axes.x
         y_axis = spec.axes.y
 
@@ -197,6 +202,7 @@ class FigureSpecToMatplotlib:
     @staticmethod
     def _apply_grids(spec: FigureSpec, ax: Any) -> None:
         """Configure grid visibility and styling."""
+        assert spec.axes is not None  # guaranteed by __post_init__  # nosec B101
         x_axis = spec.axes.x
         y_axis = spec.axes.y
 
@@ -276,8 +282,7 @@ class FigureSpecToMatplotlib:
 
         # Don't escape if text already contains LaTeX commands
         if "\\" in text and any(
-            cmd in text
-            for cmd in ["\\textbf", "\\texttt", "\\textit", "\\mathrm"]
+            cmd in text for cmd in ["\\textbf", "\\texttt", "\\textit", "\\mathrm"]
         ):
             return text
 
@@ -287,6 +292,150 @@ class FigureSpecToMatplotlib:
         for char in special_chars:
             result = result.replace(char, f"\\{char}")
         return result
+
+    # ──────────────────────────────────────────────────────────────────
+    #  Step 11 — new feature methods
+    # ──────────────────────────────────────────────────────────────────
+
+    _DASH_MAP: Dict[str, str] = {
+        "solid": "-",
+        "dash": "--",
+        "dot": ":",
+        "dashdot": "-.",
+    }
+
+    @staticmethod
+    def _apply_backgrounds(spec: FigureSpec, ax: Any) -> None:
+        """Set figure and axes background colours."""
+        fig = ax.figure
+        if spec.paper_bgcolor:
+            fig.patch.set_facecolor(spec.paper_bgcolor)
+        if spec.plot_bgcolor:
+            ax.set_facecolor(spec.plot_bgcolor)
+
+    @staticmethod
+    def _apply_font_family(spec: FigureSpec, ax: Any) -> None:
+        """Set global font family via rcParams for this figure."""
+        import matplotlib as mpl
+
+        if spec.font_family:
+            mpl.rcParams["font.family"] = spec.font_family
+
+    @staticmethod
+    def _apply_color_palette(spec: FigureSpec, ax: Any) -> None:
+        """Set colour cycle on the axes from spec.color_palette."""
+        if spec.color_palette:
+            ax.set_prop_cycle(color=spec.color_palette)
+
+    @staticmethod
+    def _apply_reference_lines(spec: FigureSpec, ax: Any) -> None:
+        """Draw horizontal / vertical reference lines.
+
+        Uses the ReferenceLineSpec list on FigureSpec.
+        """
+        for rl in spec.reference_lines:
+            if not rl.enabled:
+                continue
+            ls = FigureSpecToMatplotlib._DASH_MAP.get(rl.style, "--")
+            kwargs: Dict[str, Any] = {
+                "color": rl.color,
+                "linewidth": rl.width,
+                "linestyle": ls,
+                "zorder": 5,
+            }
+            if rl.label:
+                kwargs["label"] = rl.label
+            if rl.axis == "y":
+                ax.axhline(y=rl.value, **kwargs)
+            else:
+                ax.axvline(x=rl.value, **kwargs)
+
+    @staticmethod
+    def _apply_data_labels(spec: FigureSpec, ax: Any) -> None:
+        """Annotate bar containers with value labels.
+
+        Falls back to ``ax.bar_label()`` when available (mpl 3.4+),
+        otherwise silently skips.
+        """
+        if spec.data_labels is None or not spec.data_labels.enabled:
+            return
+
+        dl: DataLabelSpec = spec.data_labels
+        fmt = f"{{:{dl.format_string}}}" if dl.format_string else "{:.2f}"
+
+        color = dl.custom_color if dl.color_mode == "custom" else "#000000"
+
+        for container in ax.containers:
+            try:
+                ax.bar_label(
+                    container,
+                    fmt=fmt,
+                    fontsize=dl.font_size,
+                    rotation=dl.rotation,
+                    color=color,
+                    label_type="edge" if dl.position == "outside" else "center",
+                )
+            except (AttributeError, TypeError):
+                # mpl < 3.4 or non-bar container
+                pass
+
+    @staticmethod
+    def _apply_separators(spec: FigureSpec, ax: Any) -> None:
+        """Draw vertical separator lines between bar groups."""
+        import matplotlib.transforms as transforms
+
+        if not spec.separator.enabled:
+            return
+
+        # Infer category boundaries from x-tick positions
+        xticks = ax.get_xticks()
+        if len(xticks) < 2:
+            return
+
+        ls = FigureSpecToMatplotlib._DASH_MAP.get(spec.separator.style, "--")
+        blended = transforms.blended_transform_factory(ax.transData, ax.transAxes)
+
+        for i in range(1, len(xticks)):
+            mid = (xticks[i - 1] + xticks[i]) / 2.0
+            ax.plot(
+                [mid, mid],
+                [0, 1],
+                transform=blended,
+                linestyle=ls,
+                color=spec.separator.color,
+                linewidth=0.8,
+                alpha=0.6,
+                clip_on=False,
+            )
+
+    @staticmethod
+    def _apply_hatching(spec: FigureSpec, ax: Any) -> None:
+        """Apply hatching patterns from hatching_sequence to bar patches."""
+        if not spec.enable_stripes or not spec.hatching_sequence:
+            return
+
+        for i, container in enumerate(ax.containers):
+            pattern = spec.hatching_sequence[i % len(spec.hatching_sequence)]
+            for patch in container:
+                patch.set_hatch(pattern)
+
+    @staticmethod
+    def _apply_axis_colors(spec: FigureSpec, ax: Any) -> None:
+        """Apply tick_font_color, axis_line_color, axis_line_width."""
+        if spec.axes is None:
+            return
+
+        for axis_spec, mpl_axis_name in [
+            (spec.axes.x, "x"),
+            (spec.axes.y, "y"),
+        ]:
+            if axis_spec.tick_font_color:
+                ax.tick_params(axis=mpl_axis_name, colors=axis_spec.tick_font_color)
+            if axis_spec.axis_line_color:
+                spine_names = ["bottom", "top"] if mpl_axis_name == "x" else ["left", "right"]
+                for sp in spine_names:
+                    ax.spines[sp].set_color(axis_spec.axis_line_color)
+                    ax.spines[sp].set_linewidth(axis_spec.axis_line_width)
 
     @staticmethod
     def create_figure(
@@ -303,5 +452,6 @@ class FigureSpecToMatplotlib:
         fig, ax = plt.subplots(
             figsize=(dims.width, dims.height),
             dpi=dims.dpi,
+            layout="constrained",
         )
         return fig, ax

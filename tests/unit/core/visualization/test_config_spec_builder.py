@@ -9,8 +9,6 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-import pytest
-
 from src.core.visualization.connectors.builders import ConfigSpecBuilder
 from src.core.visualization.figure_spec import FigureSpec
 from src.core.visualization.resolvers import resolve_spec
@@ -137,23 +135,17 @@ class TestConfigSpecLegend:
     """Legend configuration mapping."""
 
     def test_primary_legend_position(self) -> None:
-        spec = ConfigSpecBuilder.from_config(
-            _sample_config(legend_x=0.5, legend_y=0.9)
-        )
+        spec = ConfigSpecBuilder.from_config(_sample_config(legend_x=0.5, legend_y=0.9))
         leg = spec.legends[0]
         assert leg.position_x == 0.5
         assert leg.position_y == 0.9
 
     def test_legend_orientation_horizontal(self) -> None:
-        spec = ConfigSpecBuilder.from_config(
-            _sample_config(legend_orientation="h")
-        )
+        spec = ConfigSpecBuilder.from_config(_sample_config(legend_orientation="h"))
         assert spec.legends[0].orientation == "horizontal"
 
     def test_legend_orientation_vertical(self) -> None:
-        spec = ConfigSpecBuilder.from_config(
-            _sample_config(legend_orientation="v")
-        )
+        spec = ConfigSpecBuilder.from_config(_sample_config(legend_orientation="v"))
         assert spec.legends[0].orientation == "vertical"
 
     def test_legend_border(self) -> None:
@@ -165,9 +157,7 @@ class TestConfigSpecLegend:
         assert leg.border_color == "#FF0000"
 
     def test_legend_bgcolor(self) -> None:
-        spec = ConfigSpecBuilder.from_config(
-            _sample_config(legend_bgcolor="#FAFAFA")
-        )
+        spec = ConfigSpecBuilder.from_config(_sample_config(legend_bgcolor="#FAFAFA"))
         assert spec.legends[0].bgcolor == "#FAFAFA"
 
 
@@ -175,9 +165,7 @@ class TestConfigSpecBarSpecific:
     """Bar-chart specific settings."""
 
     def test_bargap_for_bar_type(self) -> None:
-        spec = ConfigSpecBuilder.from_config(
-            _sample_config(bargap=0.3), plot_type="bar"
-        )
+        spec = ConfigSpecBuilder.from_config(_sample_config(bargap=0.3), plot_type="bar")
         assert spec.dimensions.bargap == 0.3
 
     def test_bargroupgap_for_grouped(self) -> None:
@@ -187,9 +175,7 @@ class TestConfigSpecBarSpecific:
         assert spec.dimensions.bargroupgap == 0.1
 
     def test_no_bargap_for_line(self) -> None:
-        spec = ConfigSpecBuilder.from_config(
-            _sample_config(bargap=0.3), plot_type="line"
-        )
+        spec = ConfigSpecBuilder.from_config(_sample_config(bargap=0.3), plot_type="line")
         assert spec.dimensions.bargap == 0.0
 
 
@@ -197,23 +183,17 @@ class TestConfigSpecMultiLegend:
     """Multi-column legend configuration."""
 
     def test_no_secondary_legends_when_ncols_0(self) -> None:
-        spec = ConfigSpecBuilder.from_config(
-            _sample_config(legend_ncols=0)
-        )
+        spec = ConfigSpecBuilder.from_config(_sample_config(legend_ncols=0))
         assert len(spec.legends) == 1
 
     def test_secondary_legends_when_ncols_3(self) -> None:
-        spec = ConfigSpecBuilder.from_config(
-            _sample_config(legend_ncols=3)
-        )
+        spec = ConfigSpecBuilder.from_config(_sample_config(legend_ncols=3))
         assert len(spec.legends) == 3
         assert spec.legends[1].role == "secondary"
         assert spec.legends[2].role == "secondary"
 
     def test_secondary_legend_inherits_font(self) -> None:
-        spec = ConfigSpecBuilder.from_config(
-            _sample_config(legend_ncols=2, legend_font_size=15)
-        )
+        spec = ConfigSpecBuilder.from_config(_sample_config(legend_ncols=2, legend_font_size=15))
         assert spec.legends[1].font_size == 15
 
 
@@ -269,3 +249,199 @@ class TestStyleApplicatorLastSpec:
 
         applicator = StyleApplicator("bar")
         assert applicator.last_spec is None
+
+
+# ────────────────────────────────────────────────────────────────────
+# Step 9 — New config key mappings
+# ────────────────────────────────────────────────────────────────────
+
+
+class TestConfigSpecDataLabels:
+    """Test data label config → DataLabelSpec mapping."""
+
+    def test_no_data_labels_when_show_values_false(self) -> None:
+        config = _sample_config(show_values=False)
+        spec = ConfigSpecBuilder.from_config(config, "grouped_bar")
+        assert spec.data_labels is None
+
+    def test_no_data_labels_when_key_missing(self) -> None:
+        config = _sample_config()
+        spec = ConfigSpecBuilder.from_config(config, "grouped_bar")
+        assert spec.data_labels is None
+
+    def test_data_labels_enabled(self) -> None:
+        config = _sample_config(show_values=True)
+        spec = ConfigSpecBuilder.from_config(config, "grouped_bar")
+        assert spec.data_labels is not None
+        assert spec.data_labels.enabled is True
+
+    def test_data_labels_color_mode(self) -> None:
+        config = _sample_config(show_values=True, text_color_mode="contrast")
+        spec = ConfigSpecBuilder.from_config(config, "grouped_bar")
+        assert spec.data_labels is not None
+        assert spec.data_labels.color_mode == "contrast"
+
+    def test_data_labels_custom_color(self) -> None:
+        config = _sample_config(show_values=True, text_color="#FF0000")
+        spec = ConfigSpecBuilder.from_config(config, "grouped_bar")
+        assert spec.data_labels is not None
+        assert spec.data_labels.custom_color == "#FF0000"
+
+    def test_data_labels_font_size(self) -> None:
+        config = _sample_config(show_values=True, text_font_size=14)
+        spec = ConfigSpecBuilder.from_config(config, "grouped_bar")
+        assert spec.data_labels is not None
+        assert spec.data_labels.font_size == 14
+
+    def test_data_labels_rotation(self) -> None:
+        config = _sample_config(show_values=True, text_rotation=45)
+        spec = ConfigSpecBuilder.from_config(config, "grouped_bar")
+        assert spec.data_labels is not None
+        assert spec.data_labels.rotation == 45
+
+    def test_data_labels_position(self) -> None:
+        config = _sample_config(show_values=True, text_position="inside")
+        spec = ConfigSpecBuilder.from_config(config, "grouped_bar")
+        assert spec.data_labels is not None
+        assert spec.data_labels.position == "inside"
+
+    def test_data_labels_format(self) -> None:
+        config = _sample_config(show_values=True, text_format=".1%")
+        spec = ConfigSpecBuilder.from_config(config, "grouped_bar")
+        assert spec.data_labels is not None
+        assert spec.data_labels.format_string == ".1%"
+
+    def test_data_labels_invalid_font_size_fallback(self) -> None:
+        config = _sample_config(show_values=True, text_font_size="invalid")
+        spec = ConfigSpecBuilder.from_config(config, "grouped_bar")
+        assert spec.data_labels is not None
+        assert spec.data_labels.font_size == 10
+
+    def test_data_labels_invalid_rotation_fallback(self) -> None:
+        config = _sample_config(show_values=True, text_rotation="bad")
+        spec = ConfigSpecBuilder.from_config(config, "grouped_bar")
+        assert spec.data_labels is not None
+        assert spec.data_labels.rotation == 0
+
+
+class TestConfigSpecReferenceLines:
+    """Test reference line config → ReferenceLineSpec mapping."""
+
+    def test_no_reference_lines_when_disabled(self) -> None:
+        config = _sample_config(reference_line_enabled=False)
+        spec = ConfigSpecBuilder.from_config(config, "grouped_bar")
+        assert spec.reference_lines == []
+
+    def test_no_reference_lines_when_key_missing(self) -> None:
+        config = _sample_config()
+        spec = ConfigSpecBuilder.from_config(config, "grouped_bar")
+        assert spec.reference_lines == []
+
+    def test_reference_line_enabled(self) -> None:
+        config = _sample_config(
+            reference_line_enabled=True,
+            reference_line_y=1.0,
+            reference_line_color="blue",
+            reference_line_width=2.0,
+            reference_line_style="solid",
+        )
+        spec = ConfigSpecBuilder.from_config(config, "grouped_bar")
+        assert len(spec.reference_lines) == 1
+        rl = spec.reference_lines[0]
+        assert rl.enabled is True
+        assert rl.axis == "y"
+        assert rl.value == 1.0
+        assert rl.color == "blue"
+        assert rl.width == 2.0
+        assert rl.style == "solid"
+
+    def test_reference_line_defaults(self) -> None:
+        config = _sample_config(reference_line_enabled=True)
+        spec = ConfigSpecBuilder.from_config(config, "grouped_bar")
+        rl = spec.reference_lines[0]
+        assert rl.value == 0.0
+        assert rl.color == "red"
+        assert rl.width == 1.5
+        assert rl.style == "dash"
+
+
+class TestConfigSpecSeriesStyles:
+    """Test series styling config → SeriesStyleSpec mapping."""
+
+    def test_no_series_styles_when_keys_missing(self) -> None:
+        config = _sample_config()
+        spec = ConfigSpecBuilder.from_config(config, "grouped_bar")
+        assert spec.series_styles == []
+
+    def test_bar_border_width(self) -> None:
+        config = _sample_config(bar_border_width=1.5)
+        spec = ConfigSpecBuilder.from_config(config, "grouped_bar")
+        assert len(spec.series_styles) == 1
+        assert spec.series_styles[0].bar_border_width == 1.5
+
+    def test_marker_size(self) -> None:
+        config = _sample_config(marker_size=10)
+        spec = ConfigSpecBuilder.from_config(config, "line")
+        assert len(spec.series_styles) == 1
+        assert spec.series_styles[0].marker_size == 10
+
+    def test_line_width(self) -> None:
+        config = _sample_config(line_width=3.0)
+        spec = ConfigSpecBuilder.from_config(config, "line")
+        assert len(spec.series_styles) == 1
+        assert spec.series_styles[0].line_width == 3.0
+
+
+class TestConfigSpecColorPalette:
+    """Test color palette resolution."""
+
+    def test_none_palette_fallback_to_wong(self) -> None:
+        config = _sample_config()
+        spec = ConfigSpecBuilder.from_config(config, "grouped_bar")
+        assert len(spec.color_palette) == 8
+        assert spec.color_palette[0] == "#000000"
+
+    def test_plotly_palette_name(self) -> None:
+        config = _sample_config(color_palette="Plotly")
+        spec = ConfigSpecBuilder.from_config(config, "grouped_bar")
+        assert len(spec.color_palette) >= 8
+        assert spec.color_palette[0].startswith("#")
+
+    def test_unknown_palette_fallback(self) -> None:
+        config = _sample_config(color_palette="NonExistentXYZ")
+        spec = ConfigSpecBuilder.from_config(config, "grouped_bar")
+        assert spec.color_palette[0] == "#000000"
+
+
+class TestConfigSpecScalarFlags:
+    """Test scalar feature flags."""
+
+    def test_show_error_bars_default(self) -> None:
+        config = _sample_config()
+        spec = ConfigSpecBuilder.from_config(config, "grouped_bar")
+        assert spec.show_error_bars is False
+
+    def test_show_error_bars_enabled(self) -> None:
+        config = _sample_config(show_error_bars=True)
+        spec = ConfigSpecBuilder.from_config(config, "grouped_bar")
+        assert spec.show_error_bars is True
+
+    def test_enable_stripes_default(self) -> None:
+        config = _sample_config()
+        spec = ConfigSpecBuilder.from_config(config, "grouped_bar")
+        assert spec.enable_stripes is False
+
+    def test_enable_stripes_enabled(self) -> None:
+        config = _sample_config(enable_stripes=True)
+        spec = ConfigSpecBuilder.from_config(config, "grouped_bar")
+        assert spec.enable_stripes is True
+
+    def test_hovermode_default(self) -> None:
+        config = _sample_config()
+        spec = ConfigSpecBuilder.from_config(config, "grouped_bar")
+        assert spec.hovermode == "x unified"
+
+    def test_hovermode_custom(self) -> None:
+        config = _sample_config(hovermode="closest")
+        spec = ConfigSpecBuilder.from_config(config, "grouped_bar")
+        assert spec.hovermode == "closest"

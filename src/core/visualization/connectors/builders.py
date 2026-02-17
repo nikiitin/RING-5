@@ -14,16 +14,18 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
+from src.core.visualization.annotation_spec import AnnotationSpec, ReferenceLineSpec
+from src.core.visualization.axis_spec import AxesSpec, AxisSpec
+from src.core.visualization.data_label_spec import DataLabelSpec
 from src.core.visualization.figure_spec import (
     DimensionsSpec,
     FigureSpec,
     MarginsSpec,
     SeparatorSpec,
 )
+from src.core.visualization.legend_spec import LegendSpacingSpec, LegendSpec
+from src.core.visualization.series_style_spec import SeriesStyleSpec
 from src.core.visualization.typography_spec import TypographySpec
-from src.core.visualization.axis_spec import AxesSpec, AxisSpec
-from src.core.visualization.legend_spec import LegendSpec, LegendSpacingSpec
-from src.core.visualization.annotation_spec import AnnotationSpec
 
 
 class PlotlyFigureSpecBuilder:
@@ -83,12 +85,8 @@ class PlotlyFigureSpecBuilder:
             title = getattr(title_obj, "text", "") or config.get("title", "")
 
         # ── Backgrounds ──────────────────────────────────────────
-        paper_bg = getattr(layout, "paper_bgcolor", None) or config.get(
-            "paper_bgcolor", "white"
-        )
-        plot_bg = getattr(layout, "plot_bgcolor", None) or config.get(
-            "plot_bgcolor", "white"
-        )
+        paper_bg = getattr(layout, "paper_bgcolor", None) or config.get("paper_bgcolor", "white")
+        plot_bg = getattr(layout, "plot_bgcolor", None) or config.get("plot_bgcolor", "white")
 
         return FigureSpec(
             dimensions=dims,
@@ -319,12 +317,12 @@ class ConfigSpecBuilder:
         )
 
         # ── Axes ─────────────────────────────────────────────────
-        x_label = str(
-            config.get("xlabel") or config.get("xaxis_title") or ""
-        ).replace("undefined", "")
-        y_label = str(
-            config.get("ylabel") or config.get("yaxis_title") or ""
-        ).replace("undefined", "")
+        x_label = str(config.get("xlabel") or config.get("xaxis_title") or "").replace(
+            "undefined", ""
+        )
+        y_label = str(config.get("ylabel") or config.get("yaxis_title") or "").replace(
+            "undefined", ""
+        )
 
         x_axis = AxisSpec(
             label=x_label,
@@ -395,6 +393,63 @@ class ConfigSpecBuilder:
         # ── Title ────────────────────────────────────────────────
         title = str(config.get("title") or "").replace("undefined", "")
 
+        # ── Data labels ──────────────────────────────────────────
+        data_labels: Optional[DataLabelSpec] = None
+        if config.get("show_values"):
+            try:
+                dl_font_size = int(config.get("text_font_size") or 10)
+            except (ValueError, TypeError):
+                dl_font_size = 10
+            try:
+                dl_rotation = int(config.get("text_rotation") or 0)
+            except (ValueError, TypeError):
+                dl_rotation = 0
+            data_labels = DataLabelSpec(
+                enabled=True,
+                color_mode=config.get("text_color_mode", "auto"),
+                custom_color=config.get("text_color", "#000000"),
+                font_size=dl_font_size,
+                rotation=dl_rotation,
+                position=config.get("text_position", "auto"),
+                format_string=config.get("text_format", ".2f"),
+            )
+
+        # ── Reference lines ─────────────────────────────────────
+        reference_lines: List[ReferenceLineSpec] = []
+        if config.get("reference_line_enabled"):
+            rl = ReferenceLineSpec(
+                enabled=True,
+                axis="y",
+                value=float(config.get("reference_line_y", 0.0)),
+                color=config.get("reference_line_color", "red"),
+                width=float(config.get("reference_line_width", 1.5)),
+                style=config.get("reference_line_style", "dash"),
+                label=config.get("reference_line_label", ""),
+            )
+            reference_lines.append(rl)
+
+        # ── Series styling (global defaults) ─────────────────────
+        series_styles: List[SeriesStyleSpec] = []
+        has_series = any(
+            config.get(k) is not None for k in ("bar_border_width", "marker_size", "line_width")
+        )
+        if has_series:
+            series_styles.append(
+                SeriesStyleSpec(
+                    bar_border_width=float(config.get("bar_border_width", 0.0)),
+                    marker_size=int(config.get("marker_size") or 6),
+                    line_width=float(config.get("line_width") or 2.0),
+                )
+            )
+
+        # ── Color palette (resolve name → hex list) ─────────────
+        color_palette = _resolve_palette(config.get("color_palette"))
+
+        # ── Scalar feature flags ─────────────────────────────────
+        show_error_bars = bool(config.get("show_error_bars", False))
+        enable_stripes = bool(config.get("enable_stripes", False))
+        hovermode = config.get("hovermode", "x unified")
+
         return FigureSpec(
             dimensions=dims,
             typography=typo,
@@ -403,12 +458,20 @@ class ConfigSpecBuilder:
             title=title,
             paper_bgcolor=paper_bg,
             plot_bgcolor=plot_bg,
+            data_labels=data_labels,
+            reference_lines=reference_lines,
+            series_styles=series_styles,
+            color_palette=color_palette,
+            show_error_bars=show_error_bars,
+            enable_stripes=enable_stripes,
+            hovermode=hovermode,
         )
 
 
 # ────────────────────────────────────────────────────────────────────
 # Helper functions for PlotlyFigureSpecBuilder
 # ────────────────────────────────────────────────────────────────────
+
 
 def _px_to_inches(px: Any, dpi: int = 96) -> float:
     """Convert pixels to inches."""
@@ -489,11 +552,7 @@ def _extract_legends(layout: Any, config: Dict[str, Any]) -> List[LegendSpec]:
         role="primary",
         font_size=config.get("legend_font_size", 8),
         font_color=config.get("legend_font_color", "#444"),
-        orientation=(
-            "horizontal"
-            if config.get("legend_orientation") == "h"
-            else "vertical"
-        ),
+        orientation=("horizontal" if config.get("legend_orientation") == "h" else "vertical"),
     )
 
     if legend is not None:
@@ -591,3 +650,48 @@ def _get_range(axis: Any) -> Optional[List[float]]:
         return [float(r[0]), float(r[1])]
     except (TypeError, IndexError, ValueError):
         return None
+
+
+# Wong colorblind-safe palette (default when no palette name is given)
+_WONG_PALETTE: List[str] = [
+    "#000000",
+    "#E69F00",
+    "#56B4E9",
+    "#009E73",
+    "#F0E442",
+    "#0072B2",
+    "#D55E00",
+    "#CC79A7",
+]
+
+
+def _resolve_palette(palette_name: Any) -> List[str]:
+    """Resolve a palette name (e.g. ``"Plotly"``, ``"D3"``) to hex colors.
+
+    Falls back to the Wong colorblind-safe palette if the name is empty,
+    ``None``, or unrecognized.  Uses Plotly's qualitative palettes.
+
+    Args:
+        palette_name: A palette name string, or ``None``.
+
+    Returns:
+        A list of hex color strings.
+    """
+    if not palette_name or not isinstance(palette_name, str):
+        return list(_WONG_PALETTE)
+
+    try:
+        import plotly.colors as pc
+
+        # Exact attribute match
+        if hasattr(pc.qualitative, palette_name):
+            return list(getattr(pc.qualitative, palette_name))
+
+        # Case-insensitive match
+        for attr in dir(pc.qualitative):
+            if attr.lower() == palette_name.lower():
+                return list(getattr(pc.qualitative, attr))
+    except ImportError:
+        pass
+
+    return list(_WONG_PALETTE)

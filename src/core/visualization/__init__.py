@@ -25,23 +25,25 @@ Sentinel pattern:
     values before passing to any engine connector.
 """
 
+from src.core.visualization.annotation_spec import AnnotationSpec, ReferenceLineSpec
+from src.core.visualization.axis_spec import AxesSpec, AxisSpec
+from src.core.visualization.data_label_spec import DataLabelSpec
 from src.core.visualization.figure_spec import (
     DimensionsSpec,
     FigureSpec,
     MarginsSpec,
     SeparatorSpec,
 )
-from src.core.visualization.typography_spec import TypographySpec
-from src.core.visualization.axis_spec import AxesSpec, AxisSpec
-from src.core.visualization.legend_spec import LegendSpec, LegendSpacingSpec
+from src.core.visualization.legend_spec import LegendSpacingSpec, LegendSpec
+from src.core.visualization.resolvers import resolve_spec
+from src.core.visualization.series_style_spec import SeriesStyleSpec
 from src.core.visualization.trace_spec import (
     BarTraceSpec,
     LineTraceSpec,
     ScatterTraceSpec,
     TraceSpec,
 )
-from src.core.visualization.annotation_spec import AnnotationSpec
-from src.core.visualization.resolvers import resolve_spec
+from src.core.visualization.typography_spec import TypographySpec
 
 __all__ = [
     # Top-level
@@ -59,6 +61,9 @@ __all__ = [
     "LineTraceSpec",
     "ScatterTraceSpec",
     "AnnotationSpec",
+    "ReferenceLineSpec",
+    "DataLabelSpec",
+    "SeriesStyleSpec",
     "SeparatorSpec",
     # Resolution
     "resolve_spec",

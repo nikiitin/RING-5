@@ -8,12 +8,22 @@ Both the Plotly and matplotlib connectors read from it; neither modifies it.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Literal, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional
+
+if TYPE_CHECKING:
+    from src.core.visualization.annotation_spec import AnnotationSpec, ReferenceLineSpec
+    from src.core.visualization.axis_spec import AxesSpec
+    from src.core.visualization.data_label_spec import DataLabelSpec
+    from src.core.visualization.legend_spec import LegendSpec
+    from src.core.visualization.series_style_spec import SeriesStyleSpec
+    from src.core.visualization.trace_spec import TraceSpec
+    from src.core.visualization.typography_spec import TypographySpec
 
 
 # ────────────────────────────────────────────────────────────────────
 # Margins
 # ────────────────────────────────────────────────────────────────────
+
 
 @dataclass
 class MarginsSpec:
@@ -44,6 +54,7 @@ class MarginsSpec:
 # Dimensions
 # ────────────────────────────────────────────────────────────────────
 
+
 @dataclass
 class DimensionsSpec:
     """Physical dimensions of the figure.
@@ -65,6 +76,7 @@ class DimensionsSpec:
 # Separators
 # ────────────────────────────────────────────────────────────────────
 
+
 @dataclass
 class SeparatorSpec:
     """Group separator lines between bar clusters."""
@@ -77,6 +89,7 @@ class SeparatorSpec:
 # ────────────────────────────────────────────────────────────────────
 # FigureSpec — the top-level container
 # ────────────────────────────────────────────────────────────────────
+
 
 @dataclass
 class FigureSpec:
@@ -100,27 +113,57 @@ class FigureSpec:
     dimensions: DimensionsSpec = field(default_factory=DimensionsSpec)
 
     # Typography  (font family + per-element sizes/bold)
-    # Type: TypographySpec (from typography_spec.py)
-    typography: Any = None  # replaced by post_init if None
+    typography: Optional[TypographySpec] = None  # replaced by post_init if None
 
     # Axes configuration
-    # Type: AxesSpec (from axis_spec.py)
-    axes: Any = None  # replaced by post_init if None
+    axes: Optional[AxesSpec] = None  # replaced by post_init if None
 
     # Legends — uniform list (legend1, legend2, legend3)
-    # Type: List[LegendSpec]
-    legends: List[Any] = field(default_factory=list)
+    legends: List[LegendSpec] = field(default_factory=list)
 
     # Trace descriptions
-    # Type: List[TraceSpec]
-    traces: List[Any] = field(default_factory=list)
+    traces: List[TraceSpec] = field(default_factory=list)
 
     # Text annotations
-    # Type: List[AnnotationSpec]
-    annotations: List[Any] = field(default_factory=list)
+    annotations: List[AnnotationSpec] = field(default_factory=list)
 
     # Group separators
     separator: SeparatorSpec = field(default_factory=SeparatorSpec)
+
+    # Data labels (value annotations on bars/points)
+    data_labels: Optional[DataLabelSpec] = None
+
+    # Per-trace styling overrides
+    series_styles: List[SeriesStyleSpec] = field(default_factory=list)
+
+    # Color palette (Wong colorblind-safe by default)
+    color_palette: List[str] = field(
+        default_factory=lambda: [
+            "#000000",
+            "#E69F00",
+            "#56B4E9",
+            "#009E73",
+            "#F0E442",
+            "#0072B2",
+            "#D55E00",
+            "#CC79A7",
+        ]
+    )
+
+    # Hatching sequence for B&W-friendly bar differentiation
+    hatching_sequence: List[str] = field(
+        default_factory=lambda: ["/", "\\", "|", "-", "+", "x", "o", "O"]
+    )
+
+    # Reference lines (horizontal/vertical baselines, thresholds)
+    reference_lines: List[ReferenceLineSpec] = field(default_factory=list)
+
+    # Hover / interactivity
+    hovermode: str = "x unified"
+
+    # Visual features
+    enable_stripes: bool = False
+    show_error_bars: bool = False
 
     # Title
     title: str = ""
@@ -134,14 +177,14 @@ class FigureSpec:
     latex_extra_preamble: str = ""
 
     # Arbitrary metadata (benchmark name, seed, etc.)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: Dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         """Initialize sub-specs with proper defaults if not provided."""
         # Lazy imports to avoid circular dependencies while keeping
         # type safety at runtime.
-        from src.core.visualization.typography_spec import TypographySpec
         from src.core.visualization.axis_spec import AxesSpec
+        from src.core.visualization.typography_spec import TypographySpec
 
         if self.typography is None:
             self.typography = TypographySpec()
@@ -163,10 +206,12 @@ class FigureSpec:
 
         Round-trip: ``FigureSpec.from_dict(spec.to_dict()) == spec``.
         """
-        from src.core.visualization.typography_spec import TypographySpec
-        from src.core.visualization.axis_spec import AxesSpec, AxisSpec
+        from src.core.visualization.annotation_spec import AnnotationSpec, ReferenceLineSpec
+        from src.core.visualization.axis_spec import AxesSpec
+        from src.core.visualization.data_label_spec import DataLabelSpec
         from src.core.visualization.legend_spec import LegendSpec
-        from src.core.visualization.annotation_spec import AnnotationSpec
+        from src.core.visualization.series_style_spec import SeriesStyleSpec
+        from src.core.visualization.typography_spec import TypographySpec
 
         dims_data = data.get("dimensions", {})
         margins_data = dims_data.pop("margins", {}) if isinstance(dims_data, dict) else {}
@@ -188,6 +233,28 @@ class FigureSpec:
         sep_data = data.get("separator", {})
         separator = SeparatorSpec(**sep_data) if sep_data else SeparatorSpec()
 
+        dl_data = data.get("data_labels")
+        data_labels = DataLabelSpec.from_dict(dl_data) if isinstance(dl_data, dict) else None
+
+        ss_data = data.get("series_styles", [])
+        series_styles = [SeriesStyleSpec.from_dict(sd) for sd in ss_data if isinstance(sd, dict)]
+
+        rl_data = data.get("reference_lines", [])
+        reference_lines = [ReferenceLineSpec(**rd) for rd in rl_data if isinstance(rd, dict)]
+
+        # Default color palette (Wong colorblind-safe)
+        default_palette = [
+            "#000000",
+            "#E69F00",
+            "#56B4E9",
+            "#009E73",
+            "#F0E442",
+            "#0072B2",
+            "#D55E00",
+            "#CC79A7",
+        ]
+        default_hatching = ["/", "\\", "|", "-", "+", "x", "o", "O"]
+
         return cls(
             dimensions=dimensions,
             typography=typography,
@@ -196,6 +263,14 @@ class FigureSpec:
             traces=data.get("traces", []),
             annotations=annotations,
             separator=separator,
+            data_labels=data_labels,
+            series_styles=series_styles,
+            color_palette=data.get("color_palette", default_palette),
+            hatching_sequence=data.get("hatching_sequence", default_hatching),
+            reference_lines=reference_lines,
+            hovermode=data.get("hovermode", "x unified"),
+            enable_stripes=bool(data.get("enable_stripes", False)),
+            show_error_bars=bool(data.get("show_error_bars", False)),
             title=data.get("title", ""),
             paper_bgcolor=data.get("paper_bgcolor", "white"),
             plot_bgcolor=data.get("plot_bgcolor", "white"),

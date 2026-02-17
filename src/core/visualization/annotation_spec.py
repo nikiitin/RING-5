@@ -12,7 +12,7 @@ Covers:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Literal, Optional
+from typing import Literal
 
 
 @dataclass
@@ -32,9 +32,7 @@ class AnnotationSpec:
 
     # ── Content ──────────────────────────────────────────────────
     text: str = ""
-    annotation_type: Literal[
-        "text", "bar_value", "group_label", "boxed"
-    ] = "text"
+    annotation_type: Literal["text", "bar_value", "group_label", "boxed"] = "text"
 
     # ── Position ─────────────────────────────────────────────────
     x: float = 0.0

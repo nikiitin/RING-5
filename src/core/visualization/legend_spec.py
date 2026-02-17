@@ -14,7 +14,7 @@ This eliminates:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, Literal, Optional
+from typing import Any, Dict, Literal
 
 INHERIT_F: float = -1.0
 
@@ -49,10 +49,7 @@ class LegendSpacingSpec:
     @classmethod
     def from_dict(cls, data: Dict[str, float]) -> "LegendSpacingSpec":
         """Reconstruct from serialized dictionary."""
-        return cls(**{
-            k: v for k, v in data.items()
-            if k in cls.__dataclass_fields__
-        })
+        return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
 
 
 @dataclass
@@ -95,8 +92,11 @@ class LegendSpec:
 
     # ── Layout ───────────────────────────────────────────────────
     ncol: int = 1  # number of columns, -1 = auto
+    col_width: float = -1.0  # sentinel: -1 = auto column width
     orientation: Literal["horizontal", "vertical"] = "vertical"
     itemsizing: Literal["constant", "trace"] = "constant"
+    order: Literal["normal", "reversed"] = "normal"
+    trace_distribution: str = ""  # comma-separated trace indices, empty = all
 
     # ── Position ─────────────────────────────────────────────────
     position_x: float = INHERIT_F  # -1 = auto
@@ -129,8 +129,11 @@ class LegendSpec:
             "font_size": self.font_size,
             "bold": self.bold,
             "ncol": self.ncol,
+            "col_width": self.col_width,
             "orientation": self.orientation,
             "itemsizing": self.itemsizing,
+            "order": self.order,
+            "trace_distribution": self.trace_distribution,
             "position_x": self.position_x,
             "position_y": self.position_y,
             "anchor_x": self.anchor_x,
@@ -155,7 +158,6 @@ class LegendSpec:
         spacing_data = data.pop("spacing", {}) if isinstance(data.get("spacing"), dict) else {}
         spacing = LegendSpacingSpec.from_dict(spacing_data) if spacing_data else LegendSpacingSpec()
         filtered = {
-            k: v for k, v in data.items()
-            if k in cls.__dataclass_fields__ and k != "spacing"
+            k: v for k, v in data.items() if k in cls.__dataclass_fields__ and k != "spacing"
         }
         return cls(spacing=spacing, **filtered)

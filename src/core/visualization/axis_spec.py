@@ -29,6 +29,8 @@ class AxisSpec:
     label: str = ""
     label_pad: float = 10.0  # distance from tick labels (pts)
     label_position: float = 0.5  # 0=bottom/left, 0.5=center, 1=top/right
+    label_standoff: int = -1  # sentinel: -1 = auto
+    title_vshift: float = 0.0  # vertical shift for title annotation
 
     # ── Ticks ────────────────────────────────────────────────────
     tick_angle: float = 0.0  # rotation in degrees
@@ -37,6 +39,7 @@ class AxisSpec:
     tick_offset: float = 0.0  # horizontal offset (pts, for fine-tuning)
     tick_values: Optional[List[Any]] = None  # explicit tick positions
     tick_text: Optional[List[str]] = None  # explicit tick labels
+    tick_font_color: str = ""  # empty = inherit from theme
     show_tick_labels: bool = True
     dtick: Optional[float] = None  # fixed tick interval
 
@@ -51,6 +54,8 @@ class AxisSpec:
     grid_color: str = "#E5E5E5"
     grid_width: float = 1.0
     axis_color: str = "#444"
+    axis_line_color: str = ""  # empty = inherit from axis_color
+    axis_line_width: float = 1.0
 
     # ── Ordering ─────────────────────────────────────────────────
     category_order: Optional[List[str]] = None  # explicit category order
@@ -59,15 +64,13 @@ class AxisSpec:
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to a plain dictionary."""
         from dataclasses import asdict
+
         return asdict(self)
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "AxisSpec":
         """Reconstruct from serialized dictionary."""
-        return cls(**{
-            k: v for k, v in data.items()
-            if k in cls.__dataclass_fields__
-        })
+        return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
 
 
 @dataclass
