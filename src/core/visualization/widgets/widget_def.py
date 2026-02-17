@@ -193,6 +193,7 @@ LAYOUT_DIMENSIONS = WidgetSection(
             min_value=400,
             max_value=1600,
             step=50,
+            spec_path="dimensions.width",
         ),
         SliderWidgetDef(
             key="height",
@@ -201,6 +202,7 @@ LAYOUT_DIMENSIONS = WidgetSection(
             min_value=300,
             max_value=1200,
             step=50,
+            spec_path="dimensions.height",
         ),
     ),
 )
@@ -269,6 +271,7 @@ TYPOGRAPHY = WidgetSection(
             key="xaxis_tickfont_color",
             label="X-Axis Tick Color",
             default="#444444",
+            spec_path="axes.xaxis.tick_font_color",
         ),
         NumberWidgetDef(
             key="yaxis_tickfont_size",
@@ -283,6 +286,7 @@ TYPOGRAPHY = WidgetSection(
             key="yaxis_tickfont_color",
             label="Y-Axis Tick Color",
             default="#444444",
+            spec_path="axes.yaxis.tick_font_color",
         ),
     ),
 )
@@ -296,6 +300,7 @@ LEGEND_POSITION = WidgetSection(
             label="Orientation",
             default="v",
             options=("v", "h"),
+            spec_path="legends.0.orientation",
         ),
         NumberWidgetDef(
             key="legend_ncols",
@@ -462,11 +467,13 @@ AXIS_COLORS = WidgetSection(
             key="grid_color",
             label="Grid Color",
             default="#e5e5e5",
+            spec_path="axes.xaxis.grid_color",
         ),
         ColorWidgetDef(
             key="axis_color",
             label="Axis Line/Tick Color",
             default="#444444",
+            spec_path="axes.xaxis.axis_line_color",
         ),
     ),
 )
@@ -479,6 +486,7 @@ DATA_LABELS = WidgetSection(
             key="show_values",
             label="Show Values on Plot",
             default=False,
+            spec_path="data_labels.enabled",
         ),
         SelectWidgetDef(
             key="text_color_mode",
@@ -499,6 +507,7 @@ DATA_LABELS = WidgetSection(
             min_value=6,
             max_value=40,
             step=1,
+            spec_path="data_labels.font_size",
         ),
         SliderWidgetDef(
             key="text_rotation",
@@ -561,4 +570,175 @@ STANDARD_SECTIONS: Tuple[WidgetSection, ...] = (
     LEGEND_APPEARANCE,
     LEGEND_SIZING,
     DATA_LABELS,
+)
+
+# ────────────────────────────────────────────────────────────────────
+# Extended sections for pills navigation (Steps 27-28)
+# ────────────────────────────────────────────────────────────────────
+
+AXIS_X = WidgetSection(
+    id="axis_x",
+    label="X-Axis",
+    icon="straighten",
+    widgets=(
+        SliderWidgetDef(
+            key="xaxis_tickangle",
+            label="Label Rotation",
+            default=-45,
+            min_value=-90,
+            max_value=90,
+            step=15,
+            spec_path="axes.xaxis.tick_angle",
+            help_text="Rotate X-axis labels to prevent overlap",
+        ),
+        CheckboxWidgetDef(
+            key="automargin",
+            label="Auto-Margin (Prevents Cutoff)",
+            default=True,
+            spec_path="axes.xaxis.automargin",
+        ),
+    ),
+)
+
+AXIS_Y = WidgetSection(
+    id="axis_y",
+    label="Y-Axis (Left)",
+    icon="straighten",
+    widgets=(
+        NumberWidgetDef(
+            key="yaxis_dtick",
+            label="Step Size (0=auto)",
+            default=0.0,
+            min_value=0.0,
+            as_int=False,
+            spec_path="axes.yaxis.dtick",
+        ),
+    ),
+)
+
+AXIS_Y2 = WidgetSection(
+    id="axis_y2",
+    label="Y-Axis (Right)",
+    icon="straighten",
+    widgets=(
+        NumberWidgetDef(
+            key="y2axis_dtick",
+            label="Step Size (0=auto)",
+            default=0.0,
+            min_value=0.0,
+            as_int=False,
+            spec_path="axes.y2axis.dtick",
+        ),
+    ),
+)
+
+COLORS_PALETTE = WidgetSection(
+    id="colors_palette",
+    label="Colors & Palette",
+    icon="palette",
+    widgets=(
+        SelectWidgetDef(
+            key="color_palette",
+            label="Color Palette",
+            default="Plotly",
+            options=(
+                "Plotly",
+                "G10",
+                "T10",
+                "Alphabet",
+                "Dark24",
+                "Light24",
+                "Pastel",
+                "Set1",
+                "Set2",
+                "Set3",
+                "Tableau",
+                "Safe",
+                "Vivid",
+            ),
+            spec_path="color_palette",
+        ),
+    ),
+)
+
+REFERENCE_LINES = WidgetSection(
+    id="reference_lines",
+    label="Reference Lines",
+    icon="horizontal_rule",
+    widgets=(
+        CheckboxWidgetDef(
+            key="reference_line_enabled",
+            label="Show Normalizer Reference Line",
+            default=False,
+        ),
+        NumberWidgetDef(
+            key="reference_line_y",
+            label="Y Position",
+            default=1.0,
+            as_int=False,
+            help_text="Y-axis value where the line is drawn.",
+        ),
+        ColorWidgetDef(
+            key="reference_line_color",
+            label="Line Color",
+            default="#FF0000",
+        ),
+        SliderWidgetDef(
+            key="reference_line_width",
+            label="Line Width",
+            default=1.5,
+            min_value=0.5,
+            max_value=4.0,
+            step=0.5,
+        ),
+        SelectWidgetDef(
+            key="reference_line_style",
+            label="Line Style",
+            default="dash",
+            options=("dash", "dot", "dashdot", "solid"),
+        ),
+    ),
+)
+
+ADVANCED_SECTION = WidgetSection(
+    id="advanced",
+    label="Advanced",
+    icon="tune",
+    widgets=(
+        CheckboxWidgetDef(
+            key="show_error_bars",
+            label="Show Error Bars (if .sd columns exist)",
+            default=False,
+        ),
+        CheckboxWidgetDef(
+            key="enable_editable",
+            label="Enable Interactive Editing",
+            default=False,
+            help_text="Drag legend/title and click to edit text on the plot.",
+        ),
+        SelectWidgetDef(
+            key="download_format",
+            label="Default Download Format",
+            default="html",
+            options=("html", "png", "pdf", "svg"),
+        ),
+        SelectWidgetDef(
+            key="export_scale",
+            label="Export Scale (Resolution)",
+            default="1",
+            options=("1", "2", "3"),
+            help_text="1x = WYSIWYG. 3x = High Res (Publication).",
+        ),
+    ),
+)
+
+# Extended collection including all sections
+ALL_SECTIONS: Tuple[WidgetSection, ...] = (
+    *STANDARD_SECTIONS,
+    AXIS_X,
+    AXIS_Y,
+    AXIS_Y2,
+    COLORS_PALETTE,
+    REFERENCE_LINES,
+    ADVANCED_SECTION,
 )
