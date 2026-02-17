@@ -448,9 +448,95 @@ class BasePlot(ABC):
             "text_constraint": dl.get("text_constraint"),
         }
 
+    # ── Built-in palettes (Step 35: colorblind-safe defaults) ──────────
+    BUILTIN_PALETTES: Dict[str, List[str]] = {
+        "wong": [
+            "#000000",
+            "#E69F00",
+            "#56B4E9",
+            "#009E73",
+            "#F0E442",
+            "#0072B2",
+            "#D55E00",
+            "#CC79A7",
+        ],
+        "viridis_8": [
+            "#440154",
+            "#482878",
+            "#3E4A89",
+            "#31688E",
+            "#26838E",
+            "#1F9E89",
+            "#6DCD59",
+            "#FDE725",
+        ],
+        "seaborn_cb": [
+            "#0173B2",
+            "#DE8F05",
+            "#029E73",
+            "#D55E00",
+            "#CC78BC",
+            "#CA9161",
+            "#FBAFE4",
+            "#949494",
+        ],
+        "tol_bright": [
+            "#4477AA",
+            "#EE6677",
+            "#228833",
+            "#CCBB44",
+            "#66CCEE",
+            "#AA3377",
+            "#BBBBBB",
+        ],
+        "okabe_ito": [
+            "#E69F00",
+            "#56B4E9",
+            "#009E73",
+            "#F0E442",
+            "#0072B2",
+            "#D55E00",
+            "#CC79A7",
+            "#000000",
+        ],
+    }
+
     def _section_colors(
         self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame]
     ) -> Dict[str, Any]:
+        # ── Palette selector (Step 35) ──
+        st.markdown("#### :material/palette: Color Palette")
+        palette_names = list(self.BUILTIN_PALETTES.keys())
+        current_palette = saved_config.get("color_palette", "wong")
+        # Accept either a string name or the list itself
+        if isinstance(current_palette, list):
+            # Reverse-lookup: find matching palette name
+            current_palette = "wong"
+            for name, colors in self.BUILTIN_PALETTES.items():
+                if colors == saved_config.get("color_palette"):
+                    current_palette = name
+                    break
+        idx = palette_names.index(current_palette) if current_palette in palette_names else 0
+        selected_palette: str = st.selectbox(
+            "Palette",
+            options=palette_names,
+            index=idx,
+            format_func=lambda x: x.replace("_", " ").title(),
+            key=f"palette_select_{self.plot_id}",
+            help="Choose a colorblind-safe palette. Wong (default) is recommended.",
+        )
+        palette_colors = self.BUILTIN_PALETTES.get(selected_palette, self.BUILTIN_PALETTES["wong"])
+        # Preview swatches
+        swatch_html = " ".join(
+            f'<span style="display:inline-block;width:20px;height:20px;'
+            f"background:{c};border:1px solid #ccc;border-radius:3px;"
+            f'margin-right:2px;"></span>'
+            for c in palette_colors
+        )
+        st.markdown(swatch_html, unsafe_allow_html=True)
+        config: Dict[str, Any] = {"color_palette": selected_palette}
+
+        st.markdown("---")
         series = self.style_manager.ui_manager._render_series_section(
             saved_config, data, items=None, key_prefix="theme_"
         )
@@ -458,7 +544,8 @@ class BasePlot(ABC):
         bg = self.style_manager.ui_manager._render_backgrounds_section(
             saved_config, key_prefix="theme_"
         )
-        config: Dict[str, Any] = {**series, **bg}
+        config.update(series)
+        config.update(bg)
         return config
 
     def _section_advanced(
