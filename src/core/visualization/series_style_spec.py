@@ -40,6 +40,11 @@ class SeriesStyleSpec:
     bar_border_color: str = ""
     hatching_pattern: str = ""
 
+    # Per-trace overrides (keyed by trace name in FigureSpec.trace_overrides)
+    color: str = ""  # explicit trace color
+    symbol: str = ""  # marker symbol (e.g., "square", "diamond")
+    display_name: str = ""  # rename the trace legend entry
+
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to a plain dictionary for JSON persistence."""
         return {
@@ -49,6 +54,9 @@ class SeriesStyleSpec:
             "bar_border_width": self.bar_border_width,
             "bar_border_color": self.bar_border_color,
             "hatching_pattern": self.hatching_pattern,
+            "color": self.color,
+            "symbol": self.symbol,
+            "display_name": self.display_name,
         }
 
     @classmethod
@@ -68,4 +76,7 @@ class SeriesStyleSpec:
             bar_border_width=float(data.get("bar_border_width", 0.0)),
             bar_border_color=str(data.get("bar_border_color", "")),
             hatching_pattern=str(data.get("hatching_pattern", "")),
+            color=str(data.get("color", "")),
+            symbol=str(data.get("symbol", "")),
+            display_name=str(data.get("display_name", "")),
         )

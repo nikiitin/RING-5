@@ -315,7 +315,7 @@ class TestConfigSpecDataLabels:
         config = _sample_config(show_values=True, text_font_size="invalid")
         spec = ConfigSpecBuilder.from_config(config, "grouped_bar")
         assert spec.data_labels is not None
-        assert spec.data_labels.font_size == 10
+        assert spec.data_labels.font_size == 12
 
     def test_data_labels_invalid_rotation_fallback(self) -> None:
         config = _sample_config(show_values=True, text_rotation="bad")

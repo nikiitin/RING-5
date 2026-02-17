@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Optional
 import plotly.graph_objects as go
 
 from src.core.visualization.connectors.builders import ConfigSpecBuilder
+from src.core.visualization.connectors.plotly_connector import FigureSpecToPlotly
 from src.core.visualization.figure_spec import FigureSpec
 from src.core.visualization.resolvers import resolve_spec
 
@@ -38,49 +39,24 @@ class StyleApplicator:
     def apply_styles(self, fig: go.Figure, config: Dict[str, Any]) -> go.Figure:
         """
         Apply common layout, theme, and styling settings to the figure.
-        Delegates to specialized methods for cleaner code organization.
 
-        Side-effect: stores a resolved ``FigureSpec`` in ``self.last_spec``
+        Builds a ``FigureSpec`` from the flat config dict, resolves sentinel
+        values, then delegates all Plotly-specific application to the
+        ``FigureSpecToPlotly`` connector.
+
+        Side-effect: stores the resolved ``FigureSpec`` in ``self.last_spec``
         for downstream consumers (e.g., the LaTeX export pipeline).
         """
-        # Build the engine-agnostic FigureSpec from the flat config dict.
-        # This does NOT alter the figure yet — pure data construction.
-        self.last_spec = resolve_spec(
-            ConfigSpecBuilder.from_config(config, self.plot_type)
-        )
-        # Apply styling in logical phases
-        fig = self._apply_dimensions_and_margins(fig, config)
-        fig = self._apply_backgrounds(fig, config)
-        fig = self._apply_axes_styling(fig, config)
-        legend_update = self._build_legend_config(config)
-        fig = self._apply_titles(fig, config)
+        # Build & resolve the engine-agnostic FigureSpec
+        self.last_spec = resolve_spec(ConfigSpecBuilder.from_config(config, self.plot_type))
 
-        # Data labels (show values)
-        if config.get("show_values"):
-            fig = self._apply_data_labels(fig, config)
+        # Delegate all Plotly layout mutations to the connector
+        FigureSpecToPlotly.apply(self.last_spec, fig)
 
-        # Per-Series Styling
-        self._apply_series_styling(fig, config)
-
-        # Handle Columns (Strict Mode vs Standard)
-        self._apply_legend_layout(fig, config, legend_update)
-
-        # Annotations/Shapes
+        # Pass-through: raw Plotly shapes are not part of the FigureSpec
+        # model (they are renderer-specific).  Apply them directly.
         if config.get("shapes"):
             fig.update_layout(shapes=config["shapes"])
-
-        # Reference line (normalizer baseline)
-        if config.get("reference_line_enabled"):
-            ref_y = config.get("reference_line_y", 1.0)
-            ref_color = config.get("reference_line_color", "#FF0000")
-            ref_width = config.get("reference_line_width", 1.5)
-            ref_style = config.get("reference_line_style", "dash")
-            fig.add_hline(
-                y=ref_y,
-                line_dash=ref_style,
-                line_color=ref_color,
-                line_width=ref_width,
-            )
 
         return fig
 

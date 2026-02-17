@@ -331,12 +331,14 @@ class ConfigSpecBuilder:
             category_order=config.get("xaxis_order"),
             label_aliases=config.get("xaxis_labels"),
             automargin=config.get("automargin", True),
+            grid_color=config.get("grid_color", "#E5E5E5"),
         )
         y_axis = AxisSpec(
             label=y_label,
             range=config.get("range_y"),
             dtick=config.get("yaxis_dtick"),
             automargin=config.get("automargin", True),
+            grid_color=config.get("grid_color", "#E5E5E5"),
         )
 
         axes = AxesSpec(x=x_axis, y=y_axis)
@@ -397,21 +399,45 @@ class ConfigSpecBuilder:
         data_labels: Optional[DataLabelSpec] = None
         if config.get("show_values"):
             try:
-                dl_font_size = int(config.get("text_font_size") or 10)
+                dl_font_size = int(config.get("text_font_size") or 12)
             except (ValueError, TypeError):
-                dl_font_size = 10
+                dl_font_size = 12
             try:
                 dl_rotation = int(config.get("text_rotation") or 0)
             except (ValueError, TypeError):
                 dl_rotation = 0
+
+            # Normalize color mode to lowercase for Literal match
+            raw_color_mode = str(config.get("text_color_mode", "auto")).lower()
+            if raw_color_mode not in ("auto", "contrast", "custom"):
+                raw_color_mode = "auto"
+
+            # Position validation
+            raw_position = config.get("text_position", "auto")
+            valid_positions = ("auto", "inside", "outside")
+            if raw_position not in valid_positions:
+                raw_position = "auto"
+
+            # Anchor validation
+            raw_anchor = config.get("text_anchor", "auto")
+            valid_anchors = ("auto", "top", "middle", "bottom")
+            if raw_anchor not in valid_anchors:
+                raw_anchor = "auto"
+
+            # Constraint mapping: bool config → Literal
+            constraint_raw = config.get("text_constraint", False)
+            size_constraint = "inside" if constraint_raw else "none"
+
             data_labels = DataLabelSpec(
                 enabled=True,
-                color_mode=config.get("text_color_mode", "auto"),
+                color_mode=raw_color_mode,  # type: ignore[arg-type]
                 custom_color=config.get("text_color", "#000000"),
                 font_size=dl_font_size,
                 rotation=dl_rotation,
-                position=config.get("text_position", "auto"),
+                position=raw_position,
+                anchor=raw_anchor,
                 format_string=config.get("text_format", ".2f"),
+                size_constraint=size_constraint,  # type: ignore[arg-type]
             )
 
         # ── Reference lines ─────────────────────────────────────
@@ -442,6 +468,26 @@ class ConfigSpecBuilder:
                 )
             )
 
+        # ── Per-trace overrides from UI series_styles dict ───────
+        trace_overrides: Dict[str, SeriesStyleSpec] = {}
+        raw_overrides = config.get("series_styles", {})
+        if isinstance(raw_overrides, dict):
+            for trace_name, style_dict in raw_overrides.items():
+                if not isinstance(style_dict, dict):
+                    continue
+                trace_overrides[str(trace_name)] = SeriesStyleSpec(
+                    color=(
+                        str(style_dict["color"])
+                        if style_dict.get("use_color") and style_dict.get("color")
+                        else ""
+                    ),
+                    symbol=str(style_dict.get("symbol", "")),
+                    display_name=str(style_dict.get("name", "")),
+                    marker_size=int(style_dict.get("marker_size") or 0),
+                    line_width=float(style_dict.get("line_width") or 0.0),
+                    hatching_pattern=str(style_dict.get("pattern", "")),
+                )
+
         # ── Color palette (resolve name → hex list) ─────────────
         color_palette = _resolve_palette(config.get("color_palette"))
 
@@ -461,6 +507,7 @@ class ConfigSpecBuilder:
             data_labels=data_labels,
             reference_lines=reference_lines,
             series_styles=series_styles,
+            trace_overrides=trace_overrides,
             color_palette=color_palette,
             show_error_bars=show_error_bars,
             enable_stripes=enable_stripes,

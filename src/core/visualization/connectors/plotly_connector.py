@@ -13,12 +13,15 @@ Usage:
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import plotly.graph_objects as go
 
 from src.core.visualization.figure_spec import FigureSpec
 from src.core.visualization.legend_spec import LegendSpec
+
+if TYPE_CHECKING:
+    from src.core.visualization.axis_spec import AxisSpec
 
 
 class FigureSpecToPlotly:
@@ -52,6 +55,7 @@ class FigureSpecToPlotly:
         FigureSpecToPlotly._apply_reference_lines(spec, fig)
         FigureSpecToPlotly._apply_data_labels(spec, fig)
         FigureSpecToPlotly._apply_series_styling(spec, fig)
+        FigureSpecToPlotly._apply_trace_overrides(spec, fig)
         FigureSpecToPlotly._apply_separator_lines(spec, fig)
         FigureSpecToPlotly._apply_stripes(spec, fig)
         FigureSpecToPlotly._apply_axis_colors(spec, fig)
@@ -141,6 +145,14 @@ class FigureSpecToPlotly:
         if x_axis.category_order is not None:
             update["categoryorder"] = "array"
             update["categoryarray"] = x_axis.category_order
+
+        # Label aliases → tickvals / ticktext
+        if x_axis.label_aliases:
+            FigureSpecToPlotly._apply_label_aliases(
+                x_axis,
+                fig,
+                update,
+            )
 
         fig.update_xaxes(**update)
 
@@ -278,9 +290,33 @@ class FigureSpecToPlotly:
 
     @staticmethod
     def _apply_color_palette(spec: FigureSpec, fig: go.Figure) -> None:
-        """Set colorway from spec.color_palette."""
-        if spec.color_palette:
-            fig.update_layout(colorway=spec.color_palette)
+        """Set colorway and explicitly assign palette colors to traces.
+
+        In addition to setting the layout ``colorway`` (for any future
+        traces), this assigns palette colours to existing traces that
+        don't already have an explicit ``marker.color`` set (e.g. by the
+        plot factory or upstream styling).
+        """
+        if not spec.color_palette:
+            return
+
+        fig.update_layout(colorway=spec.color_palette)
+
+        for i, trace in enumerate(fig.data):
+            # Skip traces that already have an explicit marker color
+            existing_color = (
+                getattr(trace.marker, "color", None) if hasattr(trace, "marker") else None
+            )
+            if existing_color is not None:
+                continue
+
+            col = spec.color_palette[i % len(spec.color_palette)]
+            trace.update(marker=dict(color=col))
+            if hasattr(trace, "line") and getattr(trace, "type", "") in (
+                "scatter",
+                "scattergl",
+            ):
+                trace.update(line=dict(color=col))
 
     @staticmethod
     def _apply_hovermode(spec: FigureSpec, fig: go.Figure) -> None:
@@ -323,19 +359,60 @@ class FigureSpecToPlotly:
             return
 
         dl = spec.data_labels
-        # Map position: "auto"→"auto", "inside"→"inside", "outside"→"outside"
-        text_position = dl.position
+
+        # Clamp font size (6..100)
+        font_size = max(6, min(100, dl.font_size))
+
+        # Clamp rotation (-360..360)
+        rotation = max(-360, min(360, dl.rotation))
+
+        # Map position: valid Plotly textposition values
+        valid_positions = {"auto", "inside", "outside", "none"}
+        text_position = dl.position if dl.position in valid_positions else "auto"
+
+        # Build texttemplate: if format_string already contains "%{",
+        # use it verbatim (full Plotly template); otherwise wrap it.
+        fmt = dl.format_string
+        if "%{" in fmt:
+            texttemplate = fmt
+        else:
+            texttemplate = f"%{{y:{fmt}}}"
 
         for trace in fig.data:
             update: Dict[str, Any] = {
-                "texttemplate": f"%{{y:{dl.format_string}}}",
+                "texttemplate": texttemplate,
                 "textposition": text_position,
-                "textangle": dl.rotation,
-                "textfont": dict(size=dl.font_size),
+                "textangle": rotation,
+                "textfont": dict(size=font_size),
             }
+
+            # Custom color
             if dl.color_mode == "custom" and dl.custom_color:
                 update["textfont"]["color"] = dl.custom_color
+
+            # Constraint handling
+            if dl.size_constraint == "inside":
+                update["constraintext"] = "inside"
+                update["textposition"] = "inside"
+            else:
+                update["constraintext"] = "none"
+
+            # Inside text anchor (only for "inside" position)
+            if (text_position == "inside" or dl.size_constraint == "inside") and dl.anchor in (
+                "top",
+                "middle",
+                "bottom",
+            ):
+                update["insidetextanchor"] = dl.anchor
+
             trace.update(**update)
+
+        # Uniform text (layout-level) when constraint is active
+        if dl.size_constraint == "inside":
+            min_size = max(6, font_size - 4)
+            fig.update_layout(
+                uniformtext=dict(mode="hide", minsize=min_size),
+            )
 
     @staticmethod
     def _apply_series_styling(spec: FigureSpec, fig: go.Figure) -> None:
@@ -406,16 +483,18 @@ class FigureSpecToPlotly:
         if not spec.enable_stripes:
             return
 
-        # Apply hatching pattern to bar traces
+        # Apply hatching pattern to bar-like traces only (scatter doesn't
+        # support marker.pattern).
         if spec.hatching_sequence:
             for i, trace in enumerate(fig.data):
+                if not isinstance(trace, (go.Bar, go.Histogram)):
+                    continue
                 pattern = spec.hatching_sequence[i % len(spec.hatching_sequence)]
-                if hasattr(trace, "marker"):
-                    trace.update(
-                        marker=dict(
-                            pattern=dict(shape=pattern, fillmode="replace"),
-                        )
+                trace.update(
+                    marker=dict(
+                        pattern=dict(shape=pattern, fillmode="replace"),
                     )
+                )
 
     @staticmethod
     def _apply_axis_colors(spec: FigureSpec, fig: go.Figure) -> None:
@@ -446,3 +525,99 @@ class FigureSpecToPlotly:
             y_update["linewidth"] = y.axis_line_width
         if y_update:
             fig.update_yaxes(**y_update)
+
+    # ────────────────────────────────────────────────────────────
+    # Step 13 — Per-trace overrides + axis label aliases
+    # ────────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _apply_trace_overrides(spec: FigureSpec, fig: go.Figure) -> None:
+        """Apply per-trace styling overrides keyed by trace name.
+
+        ``spec.trace_overrides`` maps original trace names to typed
+        ``SeriesStyleSpec`` instances.  Each matching trace gets colour,
+        symbol, size, width, pattern, and/or rename applied.
+        """
+        if not spec.trace_overrides:
+            return
+
+        for trace in fig.data:
+            t_name = str(getattr(trace, "name", ""))
+            if t_name not in spec.trace_overrides:
+                continue
+            style = spec.trace_overrides[t_name]
+
+            if style.display_name:
+                trace.name = style.display_name
+
+            if style.color:
+                trace.update(marker=dict(color=style.color))
+                if hasattr(trace, "line") and getattr(trace, "type", "") in (
+                    "scatter",
+                    "scattergl",
+                ):
+                    trace.update(line=dict(color=style.color))
+
+            if style.symbol:
+                trace.update(marker=dict(symbol=style.symbol))
+
+            if style.marker_size > 0:
+                trace.update(marker=dict(size=style.marker_size))
+
+            if style.line_width > 0:
+                trace.update(line=dict(width=style.line_width))
+
+            if style.hatching_pattern:
+                trace.update(
+                    marker=dict(
+                        pattern=dict(
+                            shape=style.hatching_pattern,
+                            fillmode="replace",
+                        ),
+                    )
+                )
+
+    @staticmethod
+    def _apply_label_aliases(
+        axis: AxisSpec,
+        fig: go.Figure,
+        update: Dict[str, Any],
+    ) -> None:
+        """Translate axis label aliases to Plotly tickvals/ticktext.
+
+        The alias mapping (e.g. ``{"a": "Alpha", "b": "Beta"}``) is stored
+        in ``AxisSpec.label_aliases`` and resolved here into ``tickmode``,
+        ``tickvals``, and ``ticktext``.
+
+        When ``category_order`` is also set, the order is used for
+        ``tickvals``; otherwise, values are sorted alphabetically.
+        """
+
+        if not axis.label_aliases:
+            return
+
+        mapping: Dict[str, str] = axis.label_aliases
+
+        # Determine order: explicit category_order if set, else sorted unique
+        if axis.category_order is not None:
+            ordered = list(axis.category_order)
+        else:
+            # Collect unique x-values from traces
+            unique_vals: List[str] = []
+            seen: set[str] = set()
+            for trace in fig.data:
+                if hasattr(trace, "x") and trace.x is not None:
+                    for x_val in trace.x:
+                        key = str(x_val)
+                        if key not in seen:
+                            unique_vals.append(key)
+                            seen.add(key)
+            ordered = sorted(unique_vals)
+
+        # Build tickvals/ticktext: map through aliases, preserving originals
+        tickvals: List[str] = ordered
+        ticktext: List[str] = [mapping.get(v, v) for v in ordered]
+
+        update["tickmode"] = "array"
+        update["tickvals"] = tickvals
+        update["ticktext"] = ticktext

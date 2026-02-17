@@ -136,6 +136,9 @@ class FigureSpec:
     # Per-trace styling overrides
     series_styles: List[SeriesStyleSpec] = field(default_factory=list)
 
+    # Per-trace overrides keyed by trace name (e.g., {"trace_A": ...})
+    trace_overrides: Dict[str, SeriesStyleSpec] = field(default_factory=dict)
+
     # Color palette (Wong colorblind-safe by default)
     color_palette: List[str] = field(
         default_factory=lambda: [
@@ -239,6 +242,11 @@ class FigureSpec:
         ss_data = data.get("series_styles", [])
         series_styles = [SeriesStyleSpec.from_dict(sd) for sd in ss_data if isinstance(sd, dict)]
 
+        to_raw = data.get("trace_overrides", {})
+        trace_overrides: Dict[str, SeriesStyleSpec] = {
+            k: SeriesStyleSpec.from_dict(v) for k, v in to_raw.items() if isinstance(v, dict)
+        }
+
         rl_data = data.get("reference_lines", [])
         reference_lines = [ReferenceLineSpec(**rd) for rd in rl_data if isinstance(rd, dict)]
 
@@ -265,6 +273,7 @@ class FigureSpec:
             separator=separator,
             data_labels=data_labels,
             series_styles=series_styles,
+            trace_overrides=trace_overrides,
             color_palette=data.get("color_palette", default_palette),
             hatching_sequence=data.get("hatching_sequence", default_hatching),
             reference_lines=reference_lines,
