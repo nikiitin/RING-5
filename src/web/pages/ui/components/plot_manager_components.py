@@ -419,16 +419,16 @@ class PlotManagerComponents:
         st.markdown("---")
         st.markdown("### Workspace Management")
 
-        st.markdown("#### Export All Plots")
+        st.markdown("#### Download All Plots")
         st.caption(
-            "Export all plots to a local directory (e.g., your LaTeX repository). Uses individual plot settings (Scale/Format)."  # noqa: E501
+            "Download all plots to a local directory (e.g., your LaTeX repository). Uses individual plot settings (Scale/Format)."  # noqa: E501
         )
 
         ec1, ec2, ec3 = st.columns([2, 1, 1])
         with ec1:
             ui = UIStateManager()
             export_path = st.text_input(
-                "Local Export Path",
+                "Local Download Path",
                 value=ui.export.get_last_export_path(),
                 placeholder="/absolute/path/to/folder",
                 key="export_path_input",
@@ -445,15 +445,15 @@ class PlotManagerComponents:
         with ec3:
             st.write("")
             st.write("")
-            if st.button("Export All", type="primary", width="stretch", key="export_all_btn"):
+            if st.button("Download All", type="primary", width="stretch", key="export_all_btn"):
                 if not export_path:
                     st.error("Please provide a path.")
-                    logger.warning("EXPORT: Attempted export without providing path.")
+                    logger.warning("DOWNLOAD: Attempted download without providing path.")
                 else:
                     UIStateManager().export.set_last_export_path(export_path)
                     plots = api.state_manager.get_plots()
                     if not plots:
-                        st.warning("No plots to export.")
+                        st.warning("No plots to download.")
                     else:
                         count = 0
                         errors = []
@@ -462,12 +462,14 @@ class PlotManagerComponents:
                         if export_fmt_override != "Keep Individual":
                             fmt_arg = export_fmt_override
 
-                        with st.status(f"Exporting {len(plots)} plots...", expanded=True) as status:
+                        with st.status(
+                            f"Downloading {len(plots)} plots...", expanded=True
+                        ) as status:
                             for i, p in enumerate(plots):
                                 try:
                                     fmt_to_use = fmt_arg if fmt_arg else "png"
                                     st.write(
-                                        f"Exporting **{p.name}** " f"({i + 1}/{len(plots)})..."
+                                        f"Downloading **{p.name}** " f"({i + 1}/{len(plots)})..."
                                     )
                                     res = PlotService.export_plot_to_file(
                                         p, export_path, format=fmt_to_use  # type: ignore[arg-type]
@@ -479,24 +481,27 @@ class PlotManagerComponents:
 
                             if errors:
                                 status.update(
-                                    label=f"Exported {count} plots ({len(errors)} errors)",
+                                    label=f"Downloaded {count} plots ({len(errors)} errors)",
                                     state="error",
                                     expanded=True,
                                 )
                             else:
                                 status.update(
-                                    label=f"Exported {count} plots to '{export_path}'",
+                                    label=f"Downloaded {count} plots to '{export_path}'",
                                     state="complete",
                                     expanded=False,
                                 )
 
                         if count > 0:
                             st.toast(
-                                f"Successfully exported {count} plots to '{export_path}'", icon="✅"
+                                f"Successfully downloaded {count} plots to '{export_path}'",
+                                icon="✅",
                             )
                         if errors:
-                            st.error(f"Failed to export {len(errors)} plots.")
-                            logger.error("EXPORT: Failed to export some plots. Errors: %s", errors)
+                            st.error(f"Failed to download {len(errors)} plots.")
+                            logger.error(
+                                "DOWNLOAD: Failed to download some plots. Errors: %s", errors
+                            )
                             with st.expander("Show Errors"):
                                 for error_msg in errors:
                                     st.write(error_msg)

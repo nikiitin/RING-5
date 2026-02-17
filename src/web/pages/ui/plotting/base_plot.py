@@ -793,9 +793,9 @@ class BasePlot(ABC):
                 key=f"download_fmt_{self.plot_id}",
             )
 
-            # Export Scale
+            # Download Scale
             config["export_scale"] = st.selectbox(
-                "Export Scale (Resolution)",
+                "Download Scale (Resolution)",
                 options=[1, 2, 3],
                 index=[1, 2, 3].index(saved_config.get("export_scale", 1)),
                 key=f"exp_scale_{self.plot_id}",
@@ -806,7 +806,7 @@ class BasePlot(ABC):
             w: int = saved_config.get("width", 800)
             h: int = saved_config.get("height", 500)
             s: int = config["export_scale"]
-            st.caption(f"Export Size: {w * s} x {h * s} px")
+            st.caption(f"Download Size: {w * s} x {h * s} px")
             st.caption("Change base dimensions in 'Layout' settings.")
 
             config["xaxis_tickangle"] = st.slider(
