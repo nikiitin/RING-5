@@ -283,7 +283,7 @@ class TestMatplotlibFullPipeline:
 class TestRendererMatplotlibBranch:
     """Test the _render_matplotlib static method via PlotRenderer."""
 
-    @patch("src.web.pages.ui.plotting.plot_renderer.PlotRenderer._render_download_button")
+    @patch("src.web.pages.ui.plotting.plot_renderer.render_download_section")
     @patch("src.web.pages.ui.plotting.plot_renderer.st")
     def test_render_matplotlib_calls_pyplot(
         self, mock_st: MagicMock, mock_download: MagicMock
@@ -306,7 +306,7 @@ class TestRendererMatplotlibBranch:
         args, _ = mock_st.pyplot.call_args
         assert isinstance(args[0], Figure)
 
-    @patch("src.web.pages.ui.plotting.plot_renderer.PlotRenderer._render_download_button")
+    @patch("src.web.pages.ui.plotting.plot_renderer.render_download_section")
     @patch("src.web.pages.ui.plotting.plot_renderer.st")
     def test_render_matplotlib_stores_fig_in_state(
         self, mock_st: MagicMock, mock_download: MagicMock

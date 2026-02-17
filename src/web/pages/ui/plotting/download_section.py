@@ -1,7 +1,7 @@
-"""Slim download helpers for both rendering engines.
+"""Download helpers and UI for both rendering engines.
 
-Provides byte-producing functions that the UI download section
-calls to generate downloadable files.
+Byte-producing functions + a thin ``render_download_section()`` that
+wires format selection and ``st.download_button`` for the active engine.
 
 **Plotly path**: Uses Kaleido v1 (``fig.to_image()``) for PNG/SVG/PDF.
 **Matplotlib path**: Uses ``savefig`` for PDF/PNG/SVG/PGF  (Step 19).
@@ -10,13 +10,15 @@ calls to generate downloadable files.
 from __future__ import annotations
 
 import io
-from typing import Literal
+from typing import Literal, cast
 
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
+import streamlit as st
 from matplotlib.figure import Figure as MplFigure
 
 from src.core.visualization.figure_spec import FigureSpec
+from src.web.services.engine_manager import EngineManager
 
 # ── Type aliases ─────────────────────────────────────────────────
 
@@ -165,3 +167,86 @@ def get_matplotlib_mime(fmt: MatplotlibFormat) -> str:
 def get_matplotlib_extension(fmt: MatplotlibFormat) -> str:
     """Return the file extension (with dot) for a matplotlib export format."""
     return _MPL_FORMAT_EXT[fmt]
+
+
+# ── UI download section ──────────────────────────────────────────
+
+
+def render_download_section(
+    plot_id: int,
+    plot_name: str,
+    fig: go.Figure,
+) -> None:
+    """Engine-aware download controls.
+
+    Shows format pills and a download button appropriate for the
+    active rendering engine.
+
+    - **Plotly** → PNG / SVG / PDF via Kaleido.
+    - **Matplotlib** → PDF / PGF / PNG / SVG via savefig.
+
+    Args:
+        plot_id: Unique plot identifier (used for widget keys).
+        plot_name: Human-readable name used as download filename stem.
+        fig: The Plotly figure (used directly for Plotly exports).
+    """
+    with st.expander("📥 Download", expanded=False):
+        if EngineManager.is_matplotlib():
+            _render_mpl_download(plot_id, plot_name)
+        else:
+            _render_plotly_download(plot_id, plot_name, fig)
+
+
+def _render_plotly_download(
+    plot_id: int,
+    plot_name: str,
+    fig: go.Figure,
+) -> None:
+    """Format pills + download button for the Plotly/Kaleido path."""
+    fmt = st.pills(
+        "Format",
+        options=["png", "svg", "pdf"],
+        default="pdf",
+        key=f"dl_fmt_{plot_id}",
+    )
+    if fmt is None:
+        return
+
+    fmt_typed = cast(PlotlyFormat, fmt)
+    data = plotly_download_bytes(fig, fmt_typed)
+    st.download_button(
+        label=f"Download {fmt.upper()}",
+        data=data,
+        file_name=f"{plot_name}{get_plotly_extension(fmt_typed)}",
+        mime=get_plotly_mime(fmt_typed),
+        use_container_width=True,
+        key=f"dl_btn_{plot_id}",
+    )
+
+
+def _render_mpl_download(plot_id: int, plot_name: str) -> None:
+    """Format pills + download button for the Matplotlib path."""
+    mpl_fig: MplFigure | None = st.session_state.get(f"plot.{plot_id}.mpl_fig")
+    if mpl_fig is None:
+        st.warning("No matplotlib figure available for download.")
+        return
+
+    fmt = st.pills(
+        "Format",
+        options=["pdf", "pgf", "png", "svg"],
+        default="pdf",
+        key=f"dl_fmt_{plot_id}",
+    )
+    if fmt is None:
+        return
+
+    fmt_typed = cast(MatplotlibFormat, fmt)
+    data = matplotlib_download_bytes(mpl_fig, fmt_typed)
+    st.download_button(
+        label=f"Download {fmt.upper()}",
+        data=data,
+        file_name=f"{plot_name}{get_matplotlib_extension(fmt_typed)}",
+        mime=get_matplotlib_mime(fmt_typed),
+        use_container_width=True,
+        key=f"dl_btn_{plot_id}",
+    )

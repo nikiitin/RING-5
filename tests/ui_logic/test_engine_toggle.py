@@ -33,7 +33,7 @@ class TestEngineToggleWidget:
     """Verify the engine selector pills widget in render_plot."""
 
     @patch("src.web.pages.ui.plotting.plot_renderer.EngineManager")
-    @patch("src.web.pages.ui.plotting.plot_renderer.PlotRenderer._render_download_button")
+    @patch("src.web.pages.ui.plotting.plot_renderer.render_download_section")
     @patch("src.web.pages.ui.plotting.plot_renderer.interactive_plotly_chart")
     @patch("src.web.pages.ui.plotting.plot_renderer.st")
     @patch("src.web.pages.ui.plotting.plot_renderer.get_plot_cache")
@@ -67,7 +67,7 @@ class TestEngineToggleWidget:
         assert "engine_selector_" in kwargs["key"]
 
     @patch("src.web.pages.ui.plotting.plot_renderer.EngineManager")
-    @patch("src.web.pages.ui.plotting.plot_renderer.PlotRenderer._render_download_button")
+    @patch("src.web.pages.ui.plotting.plot_renderer.render_download_section")
     @patch("src.web.pages.ui.plotting.plot_renderer.interactive_plotly_chart")
     @patch("src.web.pages.ui.plotting.plot_renderer.st")
     @patch("src.web.pages.ui.plotting.plot_renderer.get_plot_cache")
@@ -93,7 +93,7 @@ class TestEngineToggleWidget:
         mock_em.set_engine.assert_called_once_with("matplotlib")
 
     @patch("src.web.pages.ui.plotting.plot_renderer.EngineManager")
-    @patch("src.web.pages.ui.plotting.plot_renderer.PlotRenderer._render_download_button")
+    @patch("src.web.pages.ui.plotting.plot_renderer.render_download_section")
     @patch("src.web.pages.ui.plotting.plot_renderer.interactive_plotly_chart")
     @patch("src.web.pages.ui.plotting.plot_renderer.st")
     @patch("src.web.pages.ui.plotting.plot_renderer.get_plot_cache")
@@ -119,7 +119,7 @@ class TestEngineToggleWidget:
         mock_em.set_engine.assert_not_called()
 
     @patch("src.web.pages.ui.plotting.plot_renderer.EngineManager")
-    @patch("src.web.pages.ui.plotting.plot_renderer.PlotRenderer._render_download_button")
+    @patch("src.web.pages.ui.plotting.plot_renderer.render_download_section")
     @patch("src.web.pages.ui.plotting.plot_renderer.interactive_plotly_chart")
     @patch("src.web.pages.ui.plotting.plot_renderer.st")
     @patch("src.web.pages.ui.plotting.plot_renderer.get_plot_cache")

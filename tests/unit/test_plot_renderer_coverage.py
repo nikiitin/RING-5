@@ -71,7 +71,7 @@ class TestPlotRendererRenderPlot:
         mock_cache.assert_not_called()
 
     @patch("src.web.pages.ui.plotting.plot_renderer.EngineManager")
-    @patch("src.web.pages.ui.plotting.plot_renderer.PlotRenderer._render_download_button")
+    @patch("src.web.pages.ui.plotting.plot_renderer.render_download_section")
     @patch("src.web.pages.ui.plotting.plot_renderer.interactive_plotly_chart")
     @patch("src.web.pages.ui.plotting.plot_renderer.st")
     @patch("src.web.pages.ui.plotting.plot_renderer.get_plot_cache")
@@ -102,7 +102,7 @@ class TestPlotRendererRenderPlot:
         assert plot.last_generated_fig == cached_fig
 
     @patch("src.web.pages.ui.plotting.plot_renderer.EngineManager")
-    @patch("src.web.pages.ui.plotting.plot_renderer.PlotRenderer._render_download_button")
+    @patch("src.web.pages.ui.plotting.plot_renderer.render_download_section")
     @patch("src.web.pages.ui.plotting.plot_renderer.interactive_plotly_chart")
     @patch("src.web.pages.ui.plotting.plot_renderer.st")
     @patch("src.web.pages.ui.plotting.plot_renderer.get_plot_cache")
@@ -135,7 +135,7 @@ class TestPlotRendererRenderPlot:
         cache.set.assert_called_once()
 
     @patch("src.web.pages.ui.plotting.plot_renderer.EngineManager")
-    @patch("src.web.pages.ui.plotting.plot_renderer.PlotRenderer._render_download_button")
+    @patch("src.web.pages.ui.plotting.plot_renderer.render_download_section")
     @patch("src.web.pages.ui.plotting.plot_renderer.interactive_plotly_chart")
     @patch("src.web.pages.ui.plotting.plot_renderer.st")
     @patch("src.web.pages.ui.plotting.plot_renderer.get_plot_cache")
@@ -174,7 +174,7 @@ class TestPlotRendererRenderPlot:
         assert generated_fig.data[0].name == "Label1"
 
     @patch("src.web.pages.ui.plotting.plot_renderer.EngineManager")
-    @patch("src.web.pages.ui.plotting.plot_renderer.PlotRenderer._render_download_button")
+    @patch("src.web.pages.ui.plotting.plot_renderer.render_download_section")
     @patch("src.web.pages.ui.plotting.plot_renderer.interactive_plotly_chart")
     @patch("src.web.pages.ui.plotting.plot_renderer.st")
     @patch("src.web.pages.ui.plotting.plot_renderer.get_plot_cache")
@@ -202,7 +202,7 @@ class TestPlotRendererRenderPlot:
         mock_st.exception.assert_called()
 
     @patch("src.web.pages.ui.plotting.plot_renderer.EngineManager")
-    @patch("src.web.pages.ui.plotting.plot_renderer.PlotRenderer._render_download_button")
+    @patch("src.web.pages.ui.plotting.plot_renderer.render_download_section")
     @patch("src.web.pages.ui.plotting.plot_renderer.interactive_plotly_chart")
     @patch("src.web.pages.ui.plotting.plot_renderer.st")
     @patch("src.web.pages.ui.plotting.plot_renderer.get_plot_cache")
@@ -238,7 +238,7 @@ class TestPlotRendererRenderPlot:
         mock_st.rerun.assert_called()
 
     @patch("src.web.pages.ui.plotting.plot_renderer.EngineManager")
-    @patch("src.web.pages.ui.plotting.plot_renderer.PlotRenderer._render_download_button")
+    @patch("src.web.pages.ui.plotting.plot_renderer.render_download_section")
     @patch("src.web.pages.ui.plotting.plot_renderer.interactive_plotly_chart")
     @patch("src.web.pages.ui.plotting.plot_renderer.st")
     @patch("src.web.pages.ui.plotting.plot_renderer.get_plot_cache")
@@ -270,7 +270,7 @@ class TestPlotRendererRenderPlot:
         plot.update_from_relayout.assert_not_called()
 
     @patch("src.web.pages.ui.plotting.plot_renderer.EngineManager")
-    @patch("src.web.pages.ui.plotting.plot_renderer.PlotRenderer._render_download_button")
+    @patch("src.web.pages.ui.plotting.plot_renderer.render_download_section")
     @patch("src.web.pages.ui.plotting.plot_renderer.interactive_plotly_chart")
     @patch("src.web.pages.ui.plotting.plot_renderer.st")
     @patch("src.web.pages.ui.plotting.plot_renderer.get_plot_cache")

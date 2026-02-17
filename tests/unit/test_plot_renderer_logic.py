@@ -4,12 +4,11 @@ Tests for PlotRenderer pure logic methods that don't require Streamlit.
 Covers:
 - _compute_figure_cache_key: deterministic, transient key filtering
 - _compute_data_hash: fast DataFrame fingerprinting
-- _get_mime_type: file extension to MIME type mapping
 """
 
 import pandas as pd
 
-from src.web.pages.ui.plotting.plot_renderer import PlotRenderer, _get_mime_type
+from src.web.pages.ui.plotting.plot_renderer import PlotRenderer
 
 
 class TestComputeFigureCacheKey:
@@ -103,22 +102,3 @@ class TestComputeDataHash:
         df = pd.DataFrame({"a": [1, 2, 3]})
         result = PlotRenderer._compute_data_hash(df)
         assert len(result) == 12
-
-
-class TestGetMimeType:
-    """Tests for _get_mime_type module-level function."""
-
-    def test_pdf(self) -> None:
-        assert _get_mime_type("pdf") == "application/pdf"
-
-    def test_pgf(self) -> None:
-        assert _get_mime_type("pgf") == "application/x-tex"
-
-    def test_eps(self) -> None:
-        assert _get_mime_type("eps") == "application/postscript"
-
-    def test_unknown_extension(self) -> None:
-        assert _get_mime_type("xyz") == "application/octet-stream"
-
-    def test_empty_string(self) -> None:
-        assert _get_mime_type("") == "application/octet-stream"
