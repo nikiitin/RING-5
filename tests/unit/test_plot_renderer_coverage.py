@@ -46,11 +46,16 @@ class TestPlotRendererCacheHelpers:
 class TestPlotRendererRenderPlot:
     """Cover PlotRenderer.render_plot branches."""
 
+    @patch("src.web.pages.ui.plotting.plot_renderer.EngineManager")
     @patch("src.web.pages.ui.plotting.plot_renderer.interactive_plotly_chart")
     @patch("src.web.pages.ui.plotting.plot_renderer.st")
     @patch("src.web.pages.ui.plotting.plot_renderer.get_plot_cache")
     def test_no_processed_data_returns(
-        self, mock_cache: MagicMock, mock_st: MagicMock, mock_chart: MagicMock
+        self,
+        mock_cache: MagicMock,
+        mock_st: MagicMock,
+        mock_chart: MagicMock,
+        mock_em: MagicMock,
     ) -> None:
         plot = MagicMock()
         plot.processed_data = None
@@ -58,6 +63,7 @@ class TestPlotRendererRenderPlot:
         PlotRenderer.render_plot(plot)
         mock_cache.assert_not_called()
 
+    @patch("src.web.pages.ui.plotting.plot_renderer.EngineManager")
     @patch("src.web.pages.ui.plotting.plot_renderer.PlotRenderer._render_download_button")
     @patch("src.web.pages.ui.plotting.plot_renderer.interactive_plotly_chart")
     @patch("src.web.pages.ui.plotting.plot_renderer.st")
@@ -68,6 +74,7 @@ class TestPlotRendererRenderPlot:
         mock_st: MagicMock,
         mock_chart: MagicMock,
         mock_download: MagicMock,
+        mock_em: MagicMock,
     ) -> None:
         cache = MagicMock()
         cached_fig = go.Figure()
@@ -86,6 +93,7 @@ class TestPlotRendererRenderPlot:
         # Should have used cached figure
         assert plot.last_generated_fig == cached_fig
 
+    @patch("src.web.pages.ui.plotting.plot_renderer.EngineManager")
     @patch("src.web.pages.ui.plotting.plot_renderer.PlotRenderer._render_download_button")
     @patch("src.web.pages.ui.plotting.plot_renderer.interactive_plotly_chart")
     @patch("src.web.pages.ui.plotting.plot_renderer.st")
@@ -96,6 +104,7 @@ class TestPlotRendererRenderPlot:
         mock_st: MagicMock,
         mock_chart: MagicMock,
         mock_download: MagicMock,
+        mock_em: MagicMock,
     ) -> None:
         cache = MagicMock()
         cache.get.return_value = None
@@ -116,6 +125,7 @@ class TestPlotRendererRenderPlot:
         plot.create_figure.assert_called_once()
         cache.set.assert_called_once()
 
+    @patch("src.web.pages.ui.plotting.plot_renderer.EngineManager")
     @patch("src.web.pages.ui.plotting.plot_renderer.PlotRenderer._render_download_button")
     @patch("src.web.pages.ui.plotting.plot_renderer.interactive_plotly_chart")
     @patch("src.web.pages.ui.plotting.plot_renderer.st")
@@ -126,6 +136,7 @@ class TestPlotRendererRenderPlot:
         mock_st: MagicMock,
         mock_chart: MagicMock,
         mock_download: MagicMock,
+        mock_em: MagicMock,
     ) -> None:
         cache = MagicMock()
         cache.get.return_value = None
@@ -152,6 +163,7 @@ class TestPlotRendererRenderPlot:
         assert generated_fig is not None
         assert generated_fig.data[0].name == "Label1"
 
+    @patch("src.web.pages.ui.plotting.plot_renderer.EngineManager")
     @patch("src.web.pages.ui.plotting.plot_renderer.PlotRenderer._render_download_button")
     @patch("src.web.pages.ui.plotting.plot_renderer.interactive_plotly_chart")
     @patch("src.web.pages.ui.plotting.plot_renderer.st")
@@ -162,6 +174,7 @@ class TestPlotRendererRenderPlot:
         mock_st: MagicMock,
         mock_chart: MagicMock,
         mock_download: MagicMock,
+        mock_em: MagicMock,
     ) -> None:
         cache = MagicMock()
         cache.get.return_value = None
@@ -177,6 +190,7 @@ class TestPlotRendererRenderPlot:
         PlotRenderer.render_plot(plot, should_generate=True)
         mock_st.exception.assert_called()
 
+    @patch("src.web.pages.ui.plotting.plot_renderer.EngineManager")
     @patch("src.web.pages.ui.plotting.plot_renderer.PlotRenderer._render_download_button")
     @patch("src.web.pages.ui.plotting.plot_renderer.interactive_plotly_chart")
     @patch("src.web.pages.ui.plotting.plot_renderer.st")
@@ -187,6 +201,7 @@ class TestPlotRendererRenderPlot:
         mock_st: MagicMock,
         mock_chart: MagicMock,
         mock_download: MagicMock,
+        mock_em: MagicMock,
     ) -> None:
         cache = MagicMock()
         cache.get.return_value = None
@@ -210,6 +225,7 @@ class TestPlotRendererRenderPlot:
         plot.update_from_relayout.assert_called_with(relayout_data)
         mock_st.rerun.assert_called()
 
+    @patch("src.web.pages.ui.plotting.plot_renderer.EngineManager")
     @patch("src.web.pages.ui.plotting.plot_renderer.PlotRenderer._render_download_button")
     @patch("src.web.pages.ui.plotting.plot_renderer.interactive_plotly_chart")
     @patch("src.web.pages.ui.plotting.plot_renderer.st")
@@ -220,6 +236,7 @@ class TestPlotRendererRenderPlot:
         mock_st: MagicMock,
         mock_chart: MagicMock,
         mock_download: MagicMock,
+        mock_em: MagicMock,
     ) -> None:
         cache = MagicMock()
         mock_cache_fn.return_value = cache
@@ -239,6 +256,7 @@ class TestPlotRendererRenderPlot:
         PlotRenderer.render_plot(plot)
         plot.update_from_relayout.assert_not_called()
 
+    @patch("src.web.pages.ui.plotting.plot_renderer.EngineManager")
     @patch("src.web.pages.ui.plotting.plot_renderer.PlotRenderer._render_download_button")
     @patch("src.web.pages.ui.plotting.plot_renderer.interactive_plotly_chart")
     @patch("src.web.pages.ui.plotting.plot_renderer.st")
@@ -249,6 +267,7 @@ class TestPlotRendererRenderPlot:
         mock_st: MagicMock,
         mock_chart: MagicMock,
         mock_download: MagicMock,
+        mock_em: MagicMock,
     ) -> None:
         cache = MagicMock()
         mock_cache_fn.return_value = cache

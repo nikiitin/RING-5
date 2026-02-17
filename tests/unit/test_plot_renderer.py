@@ -35,6 +35,7 @@ def mock_streamlit():
     with (
         patch("src.web.pages.ui.plotting.plot_renderer.st") as mock_st,
         patch("src.web.pages.ui.plotting.base_plot.StyleManager") as MockStyleManager,
+        patch("src.web.pages.ui.plotting.plot_renderer.EngineManager") as MockEM,
     ):
 
         # Configure StyleManager mock
@@ -43,6 +44,12 @@ def mock_streamlit():
 
         # Configure session_state
         mock_st.session_state = {}
+
+        # Configure pills to return a valid engine mode
+        mock_st.pills.return_value = "plotly"
+
+        # Configure EngineManager mock
+        MockEM.get_engine.return_value = "plotly"
 
         # Configure st.columns to return the correct number of MagicMocks
         def mock_columns(num_cols):

@@ -12,6 +12,7 @@ from src.web.figures.engine import FigureEngine
 from src.web.pages.ui.components.interactive_plot import interactive_plotly_chart
 from src.web.pages.ui.plotting.export import LaTeXExportService
 from src.web.pages.ui.plotting.export.presets.preset_schema import LaTeXPreset
+from src.web.services.engine_manager import EngineManager
 
 from .base_plot import BasePlot
 
@@ -186,6 +187,22 @@ class PlotRenderer:
         if plot.last_generated_fig is not None:
             try:
                 fig = plot.last_generated_fig
+
+                # ── Engine selector ──────────────────────────────────
+                engine_choice = st.pills(
+                    "Engine",
+                    options=["plotly", "matplotlib"],
+                    format_func=lambda x: (
+                        ":material/interactive_space: Plotly"
+                        if x == "plotly"
+                        else ":material/description: LaTeX (Matplotlib)"
+                    ),
+                    selection_mode="single",
+                    default=EngineManager.get_engine(),
+                    key=f"engine_selector_{plot.plot_id}",
+                )
+                if engine_choice is not None:
+                    EngineManager.set_engine(engine_choice)
 
                 # Reconstruct config for interactivity
                 # Enforce editable=True (scoped) to allow legend dragging
