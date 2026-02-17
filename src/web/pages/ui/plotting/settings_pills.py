@@ -16,6 +16,8 @@ from typing import List, Optional
 
 import streamlit as st
 
+from src.web.pages.ui.plotting.export.presets.preset_manager import PresetManager
+
 
 @dataclass(frozen=True)
 class SettingsSection:
@@ -56,6 +58,36 @@ SETTINGS_SECTIONS: List[SettingsSection] = [
     SettingsSection("colors", "Colors", "palette", advanced=True),
     SettingsSection("advanced", "Advanced", "tune", advanced=True),
 ]
+
+
+def render_preset_pills(plot_id: int) -> Optional[str]:
+    """Render preset selector pills and return the selected preset name.
+
+    Parameters
+    ----------
+    plot_id : int
+        Unique plot identifier, used to create a per-plot widget key.
+
+    Returns
+    -------
+    Optional[str]
+        The selected preset name (e.g. ``"isca"``), or ``None`` if
+        "None" is selected or nothing is chosen.
+    """
+    preset_names: List[str] = PresetManager.list_presets()
+    options: List[str] = ["none"] + preset_names
+
+    selected: Optional[str] = st.pills(
+        "Preset",
+        options=options,
+        format_func=lambda x: "None" if x == "none" else x.upper(),
+        selection_mode="single",
+        key=f"preset_selector_{plot_id}",
+        default="none",
+    )
+    if selected is None or selected == "none":
+        return None
+    return selected
 
 
 def render_settings_pills(show_advanced: bool = False) -> Optional[str]:

@@ -352,9 +352,37 @@ class PlotManagerComponents:
         ui_config = plot.render_config_ui(data, saved_config)
         current_config.update(ui_config)
 
-        # ── Pills-driven settings navigation ──
-        from src.web.pages.ui.plotting.settings_pills import render_settings_pills
+        # ── Preset selector ──
+        from src.web.pages.ui.plotting.settings_pills import (
+            render_preset_pills,
+            render_settings_pills,
+        )
 
+        preset_name = render_preset_pills(plot.plot_id)
+        if preset_name is not None:
+            from typing import Any
+            from typing import Dict as DictT
+
+            from src.web.pages.ui.plotting.export.presets.preset_manager import (
+                PresetManager,
+            )
+            from src.web.services.preset_applicator import PresetApplicator
+
+            preset_data: DictT[str, Any] = dict(PresetManager.load_preset(preset_name))
+            from src.core.visualization.connectors.builders import (
+                ConfigSpecBuilder,
+            )
+
+            base_spec = ConfigSpecBuilder.from_config(current_config)
+            updated_spec = PresetApplicator.apply(base_spec, preset_data)
+            from src.core.visualization.widgets.config_bridge import ConfigBridge
+            from src.core.visualization.widgets.widget_def import ALL_SECTIONS
+
+            bridge = ConfigBridge(ALL_SECTIONS)
+            preset_config = bridge.spec_to_config(updated_spec)
+            current_config.update(preset_config)
+
+        # ── Pills-driven settings navigation ──
         show_adv = st.toggle(
             "Show advanced settings",
             value=False,

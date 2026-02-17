@@ -1,4 +1,4 @@
-"""Tests for pills-driven settings navigation — Steps 24-26, 31."""
+"""Tests for pills-driven settings navigation — Steps 24-26, 29, 31."""
 
 from unittest.mock import MagicMock, patch
 
@@ -200,3 +200,68 @@ class TestAxesSubPills:
         plot._render_y_axis_settings.assert_called_once()
         call_kwargs = plot._render_y_axis_settings.call_args[1]
         assert call_kwargs.get("prefix") == "y2"
+
+
+class TestPresetPills:
+    """Verify preset selector pills logic (Step 29)."""
+
+    @patch("src.web.pages.ui.plotting.settings_pills.PresetManager")
+    @patch("src.web.pages.ui.plotting.settings_pills.st")
+    def test_none_selection_returns_none(self, mock_st: MagicMock, mock_pm: MagicMock) -> None:
+        """Selecting 'none' returns None."""
+        from src.web.pages.ui.plotting.settings_pills import render_preset_pills
+
+        mock_pm.list_presets.return_value = ["isca", "micro"]
+        mock_st.pills.return_value = "none"
+        result = render_preset_pills(plot_id=1)
+        assert result is None
+
+    @patch("src.web.pages.ui.plotting.settings_pills.PresetManager")
+    @patch("src.web.pages.ui.plotting.settings_pills.st")
+    def test_selecting_preset_returns_name(self, mock_st: MagicMock, mock_pm: MagicMock) -> None:
+        """Selecting a preset returns the preset name."""
+        from src.web.pages.ui.plotting.settings_pills import render_preset_pills
+
+        mock_pm.list_presets.return_value = ["isca", "micro", "nature"]
+        mock_st.pills.return_value = "isca"
+        result = render_preset_pills(plot_id=1)
+        assert result == "isca"
+
+    @patch("src.web.pages.ui.plotting.settings_pills.PresetManager")
+    @patch("src.web.pages.ui.plotting.settings_pills.st")
+    def test_options_include_none_and_presets(self, mock_st: MagicMock, mock_pm: MagicMock) -> None:
+        """Options list starts with 'none' followed by preset names."""
+        from src.web.pages.ui.plotting.settings_pills import render_preset_pills
+
+        mock_pm.list_presets.return_value = ["isca", "micro"]
+        mock_st.pills.return_value = "none"
+        render_preset_pills(plot_id=5)
+
+        call_args = mock_st.pills.call_args
+        options = call_args.kwargs.get("options") or call_args[1].get("options")
+        assert options == ["none", "isca", "micro"]
+
+    @patch("src.web.pages.ui.plotting.settings_pills.PresetManager")
+    @patch("src.web.pages.ui.plotting.settings_pills.st")
+    def test_widget_key_includes_plot_id(self, mock_st: MagicMock, mock_pm: MagicMock) -> None:
+        """Widget key is unique per plot."""
+        from src.web.pages.ui.plotting.settings_pills import render_preset_pills
+
+        mock_pm.list_presets.return_value = ["isca"]
+        mock_st.pills.return_value = "none"
+        render_preset_pills(plot_id=42)
+
+        call_args = mock_st.pills.call_args
+        key = call_args.kwargs.get("key") or call_args[1].get("key")
+        assert key == "preset_selector_42"
+
+    @patch("src.web.pages.ui.plotting.settings_pills.PresetManager")
+    @patch("src.web.pages.ui.plotting.settings_pills.st")
+    def test_pills_none_returns_none(self, mock_st: MagicMock, mock_pm: MagicMock) -> None:
+        """When st.pills returns None (nothing selected), result is None."""
+        from src.web.pages.ui.plotting.settings_pills import render_preset_pills
+
+        mock_pm.list_presets.return_value = ["isca"]
+        mock_st.pills.return_value = None
+        result = render_preset_pills(plot_id=1)
+        assert result is None
