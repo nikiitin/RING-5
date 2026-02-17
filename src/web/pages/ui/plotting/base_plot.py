@@ -354,21 +354,80 @@ class BasePlot(ABC):
     def _section_legends(
         self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame]
     ) -> Dict[str, Any]:
-        return self.style_manager.ui_manager._render_legend_section(
-            saved_config, key_prefix="theme_"
+        legend_tab: Optional[str] = st.pills(
+            "Legend",
+            options=["primary", "secondary", "boxed"],
+            format_func=lambda x: {
+                "primary": ":material/legend_toggle: Primary",
+                "secondary": ":material/legend_toggle: Secondary",
+                "boxed": ":material/legend_toggle: Boxed",
+            }.get(x, x),
+            selection_mode="single",
+            key=f"legend_nav_{self.plot_id}",
+            default="primary",
         )
+        prefix_map = {
+            "primary": "theme_",
+            "secondary": "legend2_",
+            "boxed": "legend3_",
+        }
+        prefix = prefix_map.get(legend_tab or "primary", "theme_")
+        return self.style_manager.ui_manager._render_legend_section(saved_config, key_prefix=prefix)
 
     def _section_axes(
         self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame]
     ) -> Dict[str, Any]:
+        axis_tab: Optional[str] = st.pills(
+            "Axis",
+            options=["x", "y_left", "y_right"],
+            format_func=lambda x: {
+                "x": ":material/straighten: X-Axis",
+                "y_left": ":material/straighten: Y-Left",
+                "y_right": ":material/straighten: Y-Right",
+            }.get(x, x),
+            selection_mode="single",
+            key=f"axis_nav_{self.plot_id}",
+            default="x",
+        )
         config: Dict[str, Any] = {}
-        self._render_general_settings(saved_config, config)
-        specific = self.render_specific_advanced_options(saved_config, data)
-        config.update(specific)
-        config["xaxis_labels"] = self.style_manager.render_xaxis_labels_ui(saved_config, data)
-        if data is not None:
-            self._render_ordering_ui(saved_config, data, config)
+        if axis_tab == "x" or axis_tab is None:
+            self._render_general_settings(saved_config, config)
+            specific = self.render_specific_advanced_options(saved_config, data)
+            config.update(specific)
+            config["xaxis_labels"] = self.style_manager.render_xaxis_labels_ui(saved_config, data)
+            if data is not None:
+                self._render_ordering_ui(saved_config, data, config)
+        elif axis_tab == "y_left":
+            self._render_y_axis_settings(saved_config, config, prefix="")
+        elif axis_tab == "y_right":
+            self._render_y_axis_settings(saved_config, config, prefix="y2")
         return config
+
+    def _render_y_axis_settings(
+        self,
+        saved_config: Dict[str, Any],
+        config: Dict[str, Any],
+        prefix: str,
+    ) -> None:
+        """Render Y-axis settings for left or right axis.
+
+        Args:
+            saved_config: Previously saved configuration.
+            config: Current configuration to update.
+            prefix: Empty string for left axis, ``"y2"`` for right axis.
+        """
+        label = "Y-Left Axis" if not prefix else "Y-Right Axis"
+        st.markdown(f"#### {label} Settings")
+
+        dtick_key = f"{prefix}yaxis_dtick" if prefix else "yaxis_dtick"
+        dtick: float = st.number_input(
+            f"{label} Step Size (0 for auto)",
+            min_value=0.0,
+            value=float(saved_config.get(dtick_key) or 0.0),
+            key=f"{prefix}ydtick_{self.plot_id}",
+        )
+        if dtick > 0:
+            config[dtick_key] = dtick
 
     def _section_data_labels(
         self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame]
