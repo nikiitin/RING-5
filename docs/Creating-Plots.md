@@ -19,7 +19,7 @@ RING-5 provides seven plot types for gem5 data visualization:
 - Scatter Plot
 - Histogram
 
-All plots are built with Plotly for interactivity and publication quality.
+Plots can be rendered with **Plotly** (interactive, web-friendly) or **Matplotlib** (publication-quality, LaTeX-native).
 
 ## Getting Started
 
@@ -34,6 +34,41 @@ All plots are built with Plotly for interactivity and publication quality.
 2. Enter plot name (e.g., "IPC Comparison")
 3. Select plot type from dropdown
 4. Click **Create**
+
+## Settings Navigation (Pills UI)
+
+Plot configuration uses a **pills-based navigation** system instead of expanders. This provides a flat, discoverable interface for all settings:
+
+### Settings Sections
+
+| Pill | Description |
+|------|-------------|
+| **Layout** | Width, height, margins, title, grid lines |
+| **Axes** | X-axis, Y-Left, Y-Right labels and scales (sub-pills) |
+| **Colors** | Color palette selector with colorblind-safe options |
+| **Legend** | Position, font, box styling (sub-pills: Primary/Secondary/Boxed) |
+| **Typography** | Font family, sizes for ticks, labels, annotations |
+| **Download** | Format selection, scale factor, dimension preview |
+| **Advanced** | Engine-specific controls, reference lines |
+
+### Progressive Disclosure
+
+- Click a pill to reveal its settings
+- Use the filter box to find settings by name
+- Toggle "Show All" to see all sections at once
+- Sub-pills (in Legend, Axes) provide further grouping
+
+### Presets
+
+Select from journal-specific presets via the **Presets** pill:
+- Single/double column, Nature, IEEE, poster formats
+- Automatically configures dimensions, fonts, and DPI
+
+### Engine Toggle
+
+Switch between rendering engines at any time:
+- **Plotly**: Interactive hover, zoom, pan. Best for exploration.
+- **Matplotlib**: LaTeX text, PGF output. Best for papers.
 
 ## Plot Types
 

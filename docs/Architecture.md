@@ -30,6 +30,39 @@ RING-5 follows a **clean layered architecture** with strict separation of concer
 
 ```
 
+## Visualization Pipeline (FigureSpec)
+
+The visualization system uses a **specification-driven pipeline** where a single `FigureSpec` dataclass drives rendering across both engines:
+
+```text
+┌─────────────┐    ┌──────────────────┐    ┌────────────────┐
+│  UI Widgets  │───▶│  ConfigSpecBuilder│───▶│   FigureSpec   │
+│  (Pills UI)  │    │  (dict → spec)   │    │  (frozen DC)   │
+└─────────────┘    └──────────────────┘    └───────┬────────┘
+                                                    │
+                                          ┌─────────▼─────────┐
+                                          │  EngineManager     │
+                                          │  (dispatch)        │
+                                          └──┬──────────────┬──┘
+                                             │              │
+                                   ┌─────────▼──┐   ┌──────▼────────┐
+                                   │  Plotly     │   │  Matplotlib   │
+                                   │  Connector  │   │  Connector    │
+                                   └─────────┬──┘   └──────┬────────┘
+                                             │              │
+                                   ┌─────────▼──┐   ┌──────▼────────┐
+                                   │  go.Figure  │   │  mpl.Figure   │
+                                   └────────────┘   └───────────────┘
+```
+
+**Key components**:
+
+- **FigureSpec**: Immutable frozen dataclass containing all styling (typography, dimensions, legend, axes, colors). Single source of truth.
+- **ConfigSpecBuilder**: Converts widget config dictionaries to/from `FigureSpec`.
+- **EngineManager**: Dispatches to the active engine's connector.
+- **Connectors**: Engine-specific renderers that translate `FigureSpec` fields into Plotly/Matplotlib API calls.
+- **StyleApplicator**: Applies `FigureSpec` to an existing figure, used by connectors.
+
 ## Design Principles
 
 ### 1. Layered Architecture

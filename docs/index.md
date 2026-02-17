@@ -33,7 +33,7 @@ Learn how to parse gem5 stats, transform your data, and create figures for your 
 - [Parsing gem5 Stats](Parsing-Guide) -- scan variables, configure parsing, generate CSVs
 - [Data Transformations](Data-Transformations) -- normalize, aggregate, filter, sort
 - [Creating Plots](Creating-Plots) -- all plot types and customization options
-- [LaTeX Export](LaTeX-Export-Guide) -- export figures for LaTeX documents
+- [Download Guide](Download-Guide) -- download figures for LaTeX documents and more
 - [Portfolios](Portfolios) -- save and restore complete analysis snapshots
 
 ### Plot Types

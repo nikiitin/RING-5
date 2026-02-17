@@ -1,23 +1,68 @@
 ---
-title: "LaTeX Export"
+title: "Download Guide"
 nav_order: 9
 ---
 
-# LaTeX Export Guide
+# Download Guide
 
-Complete guide to exporting publication-quality plots from RING-5 for LaTeX/PDF documents.
+Complete guide to downloading publication-quality plots from RING-5.
 
 ## Overview
 
-RING-5 provides a **Matplotlib-based export system** specifically designed for academic publication. Export plots to PDF, PGF, or EPS formats optimized for LaTeX documents, with automatic preservation of your interactive adjustments (legend positioning, zoom levels, layout customizations).
+RING-5 uses a **dual-engine architecture** for rendering. Each engine supports different download formats, so the best choice depends on your output target.
 
-**Key Features**:
+### Engine Comparison
 
-- ✅ **Publication-Ready**: Journal-specific presets (single/double column, Nature, IEEE, etc.)
-- ✅ **Layout Preservation**: Maintains legend positions, zoom, log scales from interactive UI
-- ✅ **Multiple Formats**: PDF (recommended), PGF (LaTeX-native), EPS (legacy)
-- ✅ **Type-Safe**: Full mypy strict compliance
-- ✅ **LaTeX Text Rendering**: Uses LaTeX for perfect font matching
+| Feature | Plotly | Matplotlib |
+|---------|--------|------------|
+| **Interactive preview** | ✅ Native | ❌ Static image |
+| **PNG download** | ✅ via Kaleido | ✅ via savefig |
+| **SVG download** | ✅ via Kaleido | ✅ via savefig |
+| **PDF download** | ✅ via Kaleido | ✅ via savefig (LaTeX fonts) |
+| **PGF format** | ❌ | ✅ LaTeX-native |
+| **EPS format** | ❌ | ✅ via savefig |
+| **HTML download** | ✅ Native | ❌ |
+| **LaTeX text rendering** | ❌ | ✅ pdflatex/xelatex |
+| **Best for** | Web, dashboards | Papers, LaTeX docs |
+
+### When to Use Each Engine
+
+- **Plotly** (default): Best for interactive exploration, web sharing, and quick PNG/SVG downloads. Uses Kaleido for server-side rendering.
+- **Matplotlib**: Best for LaTeX documents, journal submissions, and pixel-perfect control. Supports LaTeX text rendering for perfect font matching.
+
+## Download Formats
+
+### Plotly Formats
+
+| Format | Extension | Use Case |
+|--------|-----------|----------|
+| PNG | `.png` | Presentations, web |
+| SVG | `.svg` | Scalable vector, editing |
+| PDF | `.pdf` | General documents |
+| HTML | `.html` | Interactive sharing |
+
+### Matplotlib Formats
+
+| Format | Extension | Use Case |
+|--------|-----------|----------|
+| PDF | `.pdf` | LaTeX `\\includegraphics` (recommended) |
+| PGF | `.pgf` | LaTeX-native `\\input` (inherits doc fonts) |
+| EPS | `.eps` | Legacy LaTeX compatibility |
+| PNG | `.png` | Presentations, web |
+| SVG | `.svg` | Scalable vector, editing |
+
+## Presets for Publication
+
+RING-5 includes journal-specific presets that automatically set dimensions, fonts, and DPI:
+
+- **single_column**: 3.5" wide, 8pt fonts (IEEE/ACM single column)
+- **double_column**: 7.0" wide, 8pt fonts (IEEE/ACM double column)
+- **nature**: 3.5" wide, 7pt fonts, 600 DPI
+- **science**: 3.4" wide, 7pt fonts
+- **ieee_trans**: IEEE Transactions format
+- **poster**: Large dimensions, 18pt fonts
+
+Select presets via the **Presets** pill in the settings navigation.
 
 ## Prerequisites
 
@@ -72,26 +117,22 @@ make check-latex   # Automated verification
 **Steps**:
 
 1. Create your plot in RING-5's web interface
-2. Adjust legend position, zoom, layout as desired
-3. Click **"📥 Export for LaTeX"** expander below the plot
-4. Select:
-   - **Journal Preset**: e.g., "single_column", "double_column"
-   - **Export Format**: "pdf" (recommended), "pgf", or "eps"
-5. Click **"Generate Export"**
-6. Download the file using the provided button
+2. Configure styling via the **Settings Pills** navigation
+3. Choose your rendering engine (Plotly or Matplotlib)
+4. Set download format and scale in the **Download** section
+5. Click the download button below the plot
+6. For batch downloads, use **Download All Plots** in Workspace Management
 
 **Example Workflow**:
 
 ```text
 1. Load data → Create bar chart
-2. Drag legend to top-right corner
-3. Zoom to interesting region
-4. Open "📥 Export for LaTeX"
-5. Select "single_column" + "pdf"
-6. Generate → Download figure.pdf
+2. Configure styling via pills (Layout, Colors, Legend, etc.)
+3. Switch engine to Matplotlib for LaTeX output
+4. Select "single_column" preset
+5. Set format to PDF, scale to 3x
+6. Download → Include in LaTeX document
 ```
-
-The exported PDF will preserve your legend position and zoom level automatically!
 
 ---
 

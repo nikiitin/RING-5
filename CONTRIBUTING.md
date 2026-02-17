@@ -314,6 +314,50 @@ Your PR will be automatically checked by CI. Required:
 3. Run tests after each change
 4. Verify: `make test && mypy src/ --strict`
 
+## Testing Patterns
+
+### Connector Tests
+
+Test engine connectors by verifying they correctly apply `FigureSpec` fields:
+
+```python
+def test_plotly_connector_applies_title(default_figure_spec):
+    spec = dataclasses.replace(default_figure_spec, title="My Title")
+    connector = PlotlyConnector()
+    fig = connector.apply(go.Figure(), spec)
+    assert fig.layout.title.text == "My Title"
+```
+
+### Spec Roundtrip Tests
+
+Verify `FigureSpec` survives config → spec → config conversion:
+
+```python
+def test_spec_roundtrip(default_figure_spec):
+    config = ConfigBridge.spec_to_config(default_figure_spec)
+    rebuilt = ConfigSpecBuilder.from_config(config)
+    assert rebuilt == default_figure_spec
+```
+
+### UI Logic Tests (No Streamlit)
+
+Test widget logic without running Streamlit by mocking `st.*` calls:
+
+```python
+@mock.patch("src.web.pages.ui.plotting.base_plot.st")
+def test_section_renders(mock_st, base_plot_instance):
+    base_plot_instance.render_settings_section("layout", {})
+    mock_st.number_input.assert_called()
+```
+
+### Principle Compliance Tests
+
+Guard architectural rules with automated checks in `tests/tests_principle_compliance/`:
+
+- No `Any` in spec dataclasses
+- No UI "Export" strings (must be "Download")
+- No `st.expander` for styling navigation
+
 ## Questions?
 
 - Check existing code for examples
