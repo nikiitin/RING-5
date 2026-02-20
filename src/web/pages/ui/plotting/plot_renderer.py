@@ -8,7 +8,10 @@ import pandas as pd
 import streamlit as st
 
 from src.core.performance import get_plot_cache, timed
-from src.core.visualization.connectors.builders import ConfigSpecBuilder
+from src.core.visualization.connectors.builders import (
+    ConfigSpecBuilder,
+    PlotlyFigureSpecBuilder,
+)
 from src.core.visualization.connectors.matplotlib_connector import (
     FigureSpecToMatplotlib,
 )
@@ -283,6 +286,7 @@ class PlotRenderer:
 
         # 1. Build and resolve the FigureSpec
         spec = ConfigSpecBuilder.from_config(plot.config, plot.plot_type)
+        PlotlyFigureSpecBuilder.enrich_from_plotly(spec, plotly_fig)
         spec = resolve_spec(spec)
 
         # 2. Create blank matplotlib figure

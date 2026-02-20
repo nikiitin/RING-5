@@ -15,12 +15,28 @@ Usage:
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any, Dict, Tuple
 
 from src.core.visualization.data_label_spec import DataLabelSpec
 from src.core.visualization.figure_spec import FigureSpec
 
 logger = logging.getLogger(__name__)
+
+_CSS_RGB_RE = re.compile(r"^rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$", re.IGNORECASE)
+
+
+def _css_rgb_to_hex(color: str) -> str:
+    """Convert a CSS ``rgb(r,g,b)`` string to ``#rrggbb`` hex.
+
+    If *color* is already a hex string or any other format, return it
+    unchanged so that Matplotlib's own validator handles it.
+    """
+    m = _CSS_RGB_RE.match(color.strip())
+    if m:
+        r, g, b = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        return f"#{r:02x}{g:02x}{b:02x}"
+    return color
 
 
 class FigureSpecToMatplotlib:
@@ -53,6 +69,7 @@ class FigureSpecToMatplotlib:
         FigureSpecToMatplotlib._apply_legends(spec, ax)
         FigureSpecToMatplotlib._apply_reference_lines(spec, ax)
         FigureSpecToMatplotlib._apply_data_labels(spec, ax)
+        FigureSpecToMatplotlib._apply_annotations(spec, ax)
         FigureSpecToMatplotlib._apply_separators(spec, ax)
         FigureSpecToMatplotlib._apply_hatching(spec, ax)
 
@@ -323,9 +340,15 @@ class FigureSpecToMatplotlib:
 
     @staticmethod
     def _apply_color_palette(spec: FigureSpec, ax: Any) -> None:
-        """Set colour cycle on the axes from spec.color_palette."""
+        """Set colour cycle on the axes from spec.color_palette.
+
+        Plotly qualitative palettes return CSS ``rgb(r,g,b)`` strings which
+        Matplotlib cannot parse directly.  We normalise every entry to a hex
+        colour before calling ``set_prop_cycle``.
+        """
         if spec.color_palette:
-            ax.set_prop_cycle(color=spec.color_palette)
+            hex_colors = [_css_rgb_to_hex(c) for c in spec.color_palette]
+            ax.set_prop_cycle(color=hex_colors)
 
     @staticmethod
     def _apply_reference_lines(spec: FigureSpec, ax: Any) -> None:
@@ -378,6 +401,65 @@ class FigureSpecToMatplotlib:
             except (AttributeError, TypeError):
                 # mpl < 3.4 or non-bar container
                 pass
+
+    @staticmethod
+    def _apply_annotations(spec: FigureSpec, ax: Any) -> None:
+        """Render text annotations from spec onto the matplotlib axes.
+
+        Handles ``xref``/``yref`` coordinate systems: ``"data"`` maps to
+        data coordinates, ``"paper"`` maps to axes-fraction coordinates.
+        """
+        if not spec.annotations:
+            return
+
+        import matplotlib.transforms as transforms
+
+        for ann in spec.annotations:
+            if not ann.text:
+                continue
+
+            text = FigureSpecToMatplotlib._escape_latex(ann.text)
+
+            # Determine coordinate transform
+            if ann.xref == "paper" and ann.yref == "paper":
+                transform = ax.transAxes
+            elif ann.xref == "paper":
+                transform = transforms.blended_transform_factory(ax.transAxes, ax.transData)
+            elif ann.yref == "paper":
+                transform = transforms.blended_transform_factory(ax.transData, ax.transAxes)
+            else:
+                transform = ax.transData
+
+            fontweight = "bold" if ann.font_bold else "normal"
+            fontsize = ann.font_size if ann.font_size > 0 else 10
+
+            ha_map = {"left": "left", "right": "right", "center": "center"}
+            va_map = {"top": "top", "bottom": "bottom", "middle": "center"}
+            ha = ha_map.get(ann.xanchor, "center")
+            va = va_map.get(ann.yanchor, "center")
+
+            bbox_props = None
+            if ann.bgcolor or ann.border_width > 0:
+                bbox_props = {
+                    "boxstyle": f"round,pad={ann.border_pad / 72.0:.3f}",
+                    "facecolor": ann.bgcolor or "none",
+                    "edgecolor": ann.border_color or "none",
+                    "linewidth": ann.border_width,
+                }
+
+            ax.annotate(
+                text,
+                xy=(ann.x, ann.y),
+                xycoords=transform,
+                fontsize=fontsize,
+                fontweight=fontweight,
+                color=ann.font_color,
+                ha=ha,
+                va=va,
+                rotation=ann.text_angle,
+                bbox=bbox_props,
+                annotation_clip=False,
+            )
 
     @staticmethod
     def _apply_separators(spec: FigureSpec, ax: Any) -> None:
@@ -443,15 +525,37 @@ class FigureSpecToMatplotlib:
     ) -> Tuple[Any, Any]:
         """Create a new matplotlib figure + axes from spec dimensions.
 
+        When the spec uses ``dpi=1`` (the pixel-passthrough convention from
+        :pymethod:`ConfigSpecBuilder.from_config`), *width* and *height*
+        are raw pixel counts.  Matplotlib's ``figsize`` expects **inches**,
+        and Streamlit's ``st.pyplot`` re-renders at 200 DPI, so passing
+        raw pixel values as inches causes a >100 000 pixel image and an
+        instant ``MemoryError``.
+
+        We normalise to inches using 96 DPI (standard screen resolution)
+        when the spec uses the passthrough convention.
+
         Returns:
             Tuple of (matplotlib.figure.Figure, matplotlib.axes.Axes).
         """
         import matplotlib.pyplot as plt
 
         dims = spec.dimensions
+
+        # dpi=1 is the "pixel passthrough" sentinel from from_config();
+        # convert pixel values to inches at 96 DPI for sane rendering.
+        if dims.dpi <= 1:
+            render_dpi = 96
+            width_in = dims.width / render_dpi
+            height_in = dims.height / render_dpi
+        else:
+            render_dpi = dims.dpi
+            width_in = dims.width
+            height_in = dims.height
+
         fig, ax = plt.subplots(
-            figsize=(dims.width, dims.height),
-            dpi=dims.dpi,
+            figsize=(width_in, height_in),
+            dpi=render_dpi,
             layout="constrained",
         )
         return fig, ax

@@ -100,6 +100,74 @@ class PlotlyFigureSpecBuilder:
             plot_bgcolor=plot_bg,
         )
 
+    @staticmethod
+    def enrich_from_plotly(spec: FigureSpec, fig: Any) -> None:
+        """Merge layout metadata from a Plotly figure into an existing spec.
+
+        Transfers computed layout data (tick positions/labels, annotations,
+        legend3 items) that ``ConfigSpecBuilder.from_config()`` cannot
+        capture because the data is set programmatically in
+        ``create_figure()`` methods rather than stored in the config dict.
+
+        Modifies *spec* in place.
+
+        Args:
+            spec: An already-built FigureSpec (typically from config).
+            fig: A ``plotly.graph_objects.Figure`` with finalised layout.
+        """
+        layout = fig.layout if hasattr(fig, "layout") else None
+        if layout is None:
+            return
+
+        # ── Tick positions / labels ─────────────────────────────
+        xaxis = getattr(layout, "xaxis", None)
+        if xaxis is not None and spec.axes is not None:
+            tv = getattr(xaxis, "tickvals", None)
+            tt = getattr(xaxis, "ticktext", None)
+            if tv is not None:
+                raw = tv.tolist() if hasattr(tv, "tolist") else list(tv)
+                spec.axes.x.tick_values = raw
+            if tt is not None:
+                raw_t = tt.tolist() if hasattr(tt, "tolist") else list(tt)
+                spec.axes.x.tick_text = [str(t) for t in raw_t]
+
+        yaxis = getattr(layout, "yaxis", None)
+        if yaxis is not None and spec.axes is not None:
+            tv = getattr(yaxis, "tickvals", None)
+            tt = getattr(yaxis, "ticktext", None)
+            if tv is not None:
+                raw = tv.tolist() if hasattr(tv, "tolist") else list(tv)
+                spec.axes.y.tick_values = raw
+            if tt is not None:
+                raw_t = tt.tolist() if hasattr(tt, "tolist") else list(tt)
+                spec.axes.y.tick_text = [str(t) for t in raw_t]
+
+        # ── Annotations ─────────────────────────────────────────
+        # Only merge if spec has none (avoid duplicating config-based ones)
+        if not spec.annotations:
+            spec.annotations = _extract_annotations(layout)
+
+        # ── Legend3 (boxed legend items) ─────────────────────────
+        legend3 = getattr(layout, "legend3", None)
+        if legend3 is not None:
+            from src.core.visualization.legend_spec import LegendSpec
+
+            box_kwargs: Dict[str, Any] = {"role": "boxed"}
+            x = getattr(legend3, "x", None)
+            y = getattr(legend3, "y", None)
+            if x is not None:
+                box_kwargs["position_x"] = float(x)
+                box_kwargs["custom_position"] = True
+            if y is not None:
+                box_kwargs["position_y"] = float(y)
+            xanchor = getattr(legend3, "xanchor", None)
+            if xanchor:
+                box_kwargs["anchor_x"] = xanchor
+            yanchor = getattr(legend3, "yanchor", None)
+            if yanchor:
+                box_kwargs["anchor_y"] = yanchor
+            spec.legends.append(LegendSpec(**box_kwargs))
+
 
 class PresetSpecBuilder:
     """Build a FigureSpec from a LaTeXPreset (journal template).
