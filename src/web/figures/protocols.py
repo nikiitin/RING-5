@@ -54,7 +54,7 @@ class FigureStyler(Protocol):
     Protocol for applying visual styles to a Plotly figure.
 
     Implemented by ``StyleApplicator`` which delegates to
-    ``ConfigSpecBuilder`` → ``FigureSpec`` → ``FigureSpecToPlotly``.
+    ``ConfigSpecBuilder`` → ``FigureConfig`` → ``FigureSpecToPlotly``.
     """
 
     def apply_styles(self, fig: go.Figure, config: PlotConfig) -> go.Figure:

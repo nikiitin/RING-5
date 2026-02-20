@@ -4,15 +4,15 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-from src.core.visualization.figure_spec import FigureSpec
-from src.core.visualization.palettes import PALETTE_REGISTRY
+from src.core.models.visualization.figure_config import FigureConfig
+from src.core.models.visualization.palettes import PALETTE_REGISTRY
 
 
 class TestDefaultPalette:
     """Verify Wong palette is the default."""
 
     def test_figure_spec_default_is_wong(self) -> None:
-        spec = FigureSpec()
+        spec = FigureConfig()
         expected_wong = [
             "#000000",
             "#E69F00",

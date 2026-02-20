@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional, cast
 import pandas as pd
 import streamlit as st
 
-from src.core.visualization.palettes import resolve_palette
+from src.core.models.visualization.palettes import resolve_palette
 from src.core.visualization.widgets import (
     LEGEND_SIZING,
     WidgetRenderer,

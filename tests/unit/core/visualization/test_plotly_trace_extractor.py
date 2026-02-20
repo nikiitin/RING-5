@@ -1,17 +1,17 @@
-"""Tests for PlotlyTraceExtractor — Plotly go.Figure → TraceSpec conversion."""
+"""Tests for PlotlyTraceExtractor — Plotly go.Figure → TraceConfig conversion."""
 
 from __future__ import annotations
 
 import plotly.graph_objects as go
 
+from src.core.models.visualization.trace_config import (
+    BarTraceConfig,
+    HistogramTraceConfig,
+    LineTraceConfig,
+    ScatterTraceConfig,
+)
 from src.core.visualization.connectors.plotly_trace_extractor import (
     PlotlyTraceExtractor,
-)
-from src.core.visualization.trace_spec import (
-    BarTraceSpec,
-    HistogramTraceSpec,
-    LineTraceSpec,
-    ScatterTraceSpec,
 )
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -100,13 +100,13 @@ def _make_mixed_fig() -> go.Figure:
 
 
 class TestBarExtraction:
-    """Tests for go.Bar → BarTraceSpec conversion."""
+    """Tests for go.Bar → BarTraceConfig conversion."""
 
     def test_basic_categorical(self) -> None:
         fig = _make_bar_fig("group")
         specs = PlotlyTraceExtractor.extract(fig)
         assert len(specs) == 2
-        assert all(isinstance(s, BarTraceSpec) for s in specs)
+        assert all(isinstance(s, BarTraceConfig) for s in specs)
         assert specs[0].name == "series_1"
         assert specs[1].name == "series_2"
         assert specs[0].x == ["a", "b", "c"]
@@ -117,8 +117,8 @@ class TestBarExtraction:
         specs = PlotlyTraceExtractor.extract(fig)
         s1 = specs[0]
         s2 = specs[1]
-        assert isinstance(s1, BarTraceSpec)
-        assert isinstance(s2, BarTraceSpec)
+        assert isinstance(s1, BarTraceConfig)
+        assert isinstance(s2, BarTraceConfig)
         # Grouped bars should have different x_positions
         assert s1.x_positions != s2.x_positions
         # Bar width should be 0.8 / 2 = 0.4
@@ -129,8 +129,8 @@ class TestBarExtraction:
         specs = PlotlyTraceExtractor.extract(fig)
         s1 = specs[0]
         s2 = specs[1]
-        assert isinstance(s1, BarTraceSpec)
-        assert isinstance(s2, BarTraceSpec)
+        assert isinstance(s1, BarTraceConfig)
+        assert isinstance(s2, BarTraceConfig)
         # Stacked bars share x_positions
         assert s1.x_positions == s2.x_positions
         assert s1.bar_width == 0.8
@@ -140,7 +140,7 @@ class TestBarExtraction:
         specs = PlotlyTraceExtractor.extract(fig)
         assert len(specs) == 1
         s = specs[0]
-        assert isinstance(s, BarTraceSpec)
+        assert isinstance(s, BarTraceConfig)
         assert s.x_positions == [1.0, 2.0, 3.0]
 
     def test_bar_with_marker_color(self) -> None:
@@ -155,7 +155,7 @@ class TestBarExtraction:
         )
         specs = PlotlyTraceExtractor.extract(fig)
         s = specs[0]
-        assert isinstance(s, BarTraceSpec)
+        assert isinstance(s, BarTraceConfig)
         assert s.color == "#ff8000"
 
     def test_bar_with_pattern(self) -> None:
@@ -170,7 +170,7 @@ class TestBarExtraction:
         )
         specs = PlotlyTraceExtractor.extract(fig)
         s = specs[0]
-        assert isinstance(s, BarTraceSpec)
+        assert isinstance(s, BarTraceConfig)
         assert s.pattern == "/"
 
     def test_bar_with_error_y(self) -> None:
@@ -185,7 +185,7 @@ class TestBarExtraction:
         )
         specs = PlotlyTraceExtractor.extract(fig)
         s = specs[0]
-        assert isinstance(s, BarTraceSpec)
+        assert isinstance(s, BarTraceConfig)
         assert s.error_y is not None
         assert len(s.error_y) == 2
         assert abs(s.error_y[0] - 1.5) < 0.01
@@ -195,14 +195,14 @@ class TestBarExtraction:
 
 
 class TestLineExtraction:
-    """Tests for go.Scatter(mode='lines*') → LineTraceSpec."""
+    """Tests for go.Scatter(mode='lines*') → LineTraceConfig."""
 
     def test_basic_line(self) -> None:
         fig = _make_line_fig()
         specs = PlotlyTraceExtractor.extract(fig)
         assert len(specs) == 1
         s = specs[0]
-        assert isinstance(s, LineTraceSpec)
+        assert isinstance(s, LineTraceConfig)
         assert s.name == "line_1"
         assert s.y == [10.0, 20.0, 30.0]
 
@@ -210,7 +210,7 @@ class TestLineExtraction:
         fig = _make_line_fig()
         specs = PlotlyTraceExtractor.extract(fig)
         s = specs[0]
-        assert isinstance(s, LineTraceSpec)
+        assert isinstance(s, LineTraceConfig)
         assert s.color == "#ff0000"
         assert s.line_width == 3.0
         assert s.line_dash == "dash"
@@ -223,7 +223,7 @@ class TestLineExtraction:
         fig.add_trace(go.Scatter(x=[1, 2], y=[3, 4], mode="lines", name="lines_only"))
         specs = PlotlyTraceExtractor.extract(fig)
         s = specs[0]
-        assert isinstance(s, LineTraceSpec)
+        assert isinstance(s, LineTraceConfig)
         assert s.show_markers is False
 
 
@@ -231,14 +231,14 @@ class TestLineExtraction:
 
 
 class TestScatterExtraction:
-    """Tests for go.Scatter(mode='markers') → ScatterTraceSpec."""
+    """Tests for go.Scatter(mode='markers') → ScatterTraceConfig."""
 
     def test_basic_scatter(self) -> None:
         fig = _make_scatter_fig()
         specs = PlotlyTraceExtractor.extract(fig)
         assert len(specs) == 1
         s = specs[0]
-        assert isinstance(s, ScatterTraceSpec)
+        assert isinstance(s, ScatterTraceConfig)
         assert s.name == "scatter_1"
         assert s.color == "#00FF00"
         assert s.marker_size == 12
@@ -247,7 +247,7 @@ class TestScatterExtraction:
     def test_scatter_yaxis(self) -> None:
         fig = _make_mixed_fig()
         specs = PlotlyTraceExtractor.extract(fig)
-        scatter = [s for s in specs if isinstance(s, ScatterTraceSpec)]
+        scatter = [s for s in specs if isinstance(s, ScatterTraceConfig)]
         assert len(scatter) == 1
         assert scatter[0].yaxis == "y2"
 
@@ -256,14 +256,14 @@ class TestScatterExtraction:
 
 
 class TestHistogramExtraction:
-    """Tests for go.Histogram → HistogramTraceSpec."""
+    """Tests for go.Histogram → HistogramTraceConfig."""
 
     def test_basic_histogram(self) -> None:
         fig = _make_histogram_fig()
         specs = PlotlyTraceExtractor.extract(fig)
         assert len(specs) == 1
         s = specs[0]
-        assert isinstance(s, HistogramTraceSpec)
+        assert isinstance(s, HistogramTraceConfig)
         assert s.name == "hist_1"
         assert s.nbins == 5
 
@@ -278,8 +278,8 @@ class TestMixedFigures:
         fig = _make_mixed_fig()
         specs = PlotlyTraceExtractor.extract(fig)
         assert len(specs) == 2
-        assert isinstance(specs[0], BarTraceSpec)
-        assert isinstance(specs[1], ScatterTraceSpec)
+        assert isinstance(specs[0], BarTraceConfig)
+        assert isinstance(specs[1], ScatterTraceConfig)
 
     def test_extract_barmode(self) -> None:
         fig = _make_stacked_bar_fig()
@@ -306,7 +306,7 @@ class TestEdgeCases:
         fig.add_trace(go.Bar(x=["a", "b"], y=[10, None], name="nones"))
         specs = PlotlyTraceExtractor.extract(fig)
         s = specs[0]
-        assert isinstance(s, BarTraceSpec)
+        assert isinstance(s, BarTraceConfig)
         assert s.y == [10.0, 0.0]
 
     def test_showlegend_false(self) -> None:
@@ -333,5 +333,5 @@ class TestEdgeCases:
         )
         specs = PlotlyTraceExtractor.extract(fig)
         s = specs[0]
-        assert isinstance(s, BarTraceSpec)
+        assert isinstance(s, BarTraceConfig)
         assert s.color == "#64c832"

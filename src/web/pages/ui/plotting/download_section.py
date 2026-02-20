@@ -17,7 +17,7 @@ import plotly.graph_objects as go
 import streamlit as st
 from matplotlib.figure import Figure as MplFigure
 
-from src.core.visualization.figure_spec import FigureSpec
+from src.core.models.visualization.figure_config import FigureConfig
 from src.web.services.engine_manager import EngineManager
 
 # ── Type aliases ─────────────────────────────────────────────────
@@ -112,7 +112,7 @@ def matplotlib_download_bytes(
     fmt: MatplotlibFormat,
     *,
     dpi: int = 300,
-    spec: FigureSpec | None = None,
+    spec: FigureConfig | None = None,
 ) -> bytes:
     """Export a matplotlib Figure to image bytes via savefig.
 
@@ -120,7 +120,7 @@ def matplotlib_download_bytes(
         fig: The matplotlib Figure to export.
         fmt: One of ``"pdf"``, ``"pgf"``, ``"png"``, ``"svg"``.
         dpi: Resolution for raster formats (PNG). Ignored by vector formats.
-        spec: Optional FigureSpec for PGF preamble extraction.
+        spec: Optional FigureConfig for PGF preamble extraction.
 
     Returns:
         Raw bytes of the exported image.

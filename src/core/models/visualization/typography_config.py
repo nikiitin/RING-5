@@ -1,5 +1,5 @@
 """
-Typography specification — font sizes and bold flags for every text element.
+Typography configuration — font sizes and bold flags for every text element.
 
 This replaces the dual vocabulary:
   - ``FontStyleConfig`` (matplotlib-side dataclass with sentinel fields)
@@ -20,7 +20,7 @@ INHERIT_F: float = -1.0
 
 
 @dataclass
-class TypographySpec:
+class TypographyConfig:
     """Per-element font size and weight specification.
 
     Inheritance chain (resolved top→down):

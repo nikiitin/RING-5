@@ -1,11 +1,11 @@
 """
-Trace specifications — engine-agnostic descriptions of data traces.
+Trace configurations — engine-agnostic descriptions of data traces.
 
 Each trace describes *what* data is plotted and *how* it should look,
 without referencing any specific charting library.  The connectors
 translate these into ``go.Bar``, ``go.Scatter``, or ``ax.bar()`` calls.
 
-``TraceSpec`` carries positioning data so that the matplotlib connector
+``TraceConfig`` carries positioning data so that the matplotlib connector
 does **not** need to reimplement bar grouping math — it gets the exact
 x-positions, widths, and offsets pre-computed.
 """
@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Literal, Optional, Union
 
 
 @dataclass
-class TraceSpec:
+class TraceConfig:
     """Base trace specification shared by all trace types.
 
     Attributes:
@@ -48,7 +48,7 @@ class TraceSpec:
 
 
 @dataclass
-class BarTraceSpec(TraceSpec):
+class BarTraceConfig(TraceConfig):
     """Bar-specific trace parameters.
 
     Carries pre-computed positioning so matplotlib connector can
@@ -76,7 +76,7 @@ class BarTraceSpec(TraceSpec):
 
 
 @dataclass
-class LineTraceSpec(TraceSpec):
+class LineTraceConfig(TraceConfig):
     """Line-specific trace parameters."""
 
     trace_type: Literal["bar", "line", "scatter", "histogram"] = "line"
@@ -93,7 +93,7 @@ class LineTraceSpec(TraceSpec):
 
 
 @dataclass
-class ScatterTraceSpec(TraceSpec):
+class ScatterTraceConfig(TraceConfig):
     """Scatter-specific trace parameters."""
 
     trace_type: Literal["bar", "line", "scatter", "histogram"] = "scatter"
@@ -110,11 +110,11 @@ class ScatterTraceSpec(TraceSpec):
 
 
 @dataclass
-class HistogramTraceSpec(TraceSpec):
+class HistogramTraceConfig(TraceConfig):
     """Histogram-specific trace parameters.
 
     Note: in RING-5, histograms are typically pre-binned and rendered
-    as ``BarTraceSpec`` with bin centres as ``x``.  This subclass
+    as ``BarTraceConfig`` with bin centres as ``x``.  This subclass
     exists for the rare case where raw data is passed directly and
     the binning should be done by the rendering engine.
     """

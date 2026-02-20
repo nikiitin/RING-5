@@ -2,7 +2,7 @@
 Style Manager - Plot Styling Orchestration Facade.
 
 Coordinates application of visual styles to plots. Delegates to StyleUIFactory
-for UI configuration and StyleApplicator → FigureSpec → FigureSpecToPlotly
+for UI configuration and StyleApplicator → FigureConfig → FigureSpecToPlotly
 for engine-agnostic styling.
 """
 
@@ -20,7 +20,7 @@ class StyleManager:
     Facade for managing plot styling.
 
     Delegates to StyleUIFactory (UI widgets) and StyleApplicator
-    (ConfigSpecBuilder → FigureSpec → engine connector).
+    (ConfigSpecBuilder → FigureConfig → engine connector).
     """
 
     def __init__(self, plot_id: int, plot_type: str):

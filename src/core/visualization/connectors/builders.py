@@ -1,5 +1,5 @@
 """
-Bidirectional builders — construct FigureSpec from various sources.
+Bidirectional builders — construct FigureConfig from various sources.
 
   - ``PlotlyFigureSpecBuilder`` — extract spec from Plotly figure + config dict
   - ``PresetSpecBuilder`` — build spec from a LaTeXPreset (journal template)
@@ -14,26 +14,26 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from src.core.visualization.annotation_spec import AnnotationSpec, ReferenceLineSpec
-from src.core.visualization.axis_spec import AxesSpec, AxisSpec
-from src.core.visualization.data_label_spec import DataLabelSpec
-from src.core.visualization.figure_spec import (
-    DimensionsSpec,
-    FigureSpec,
-    MarginsSpec,
-    SeparatorSpec,
+from src.core.models.visualization.annotation_config import AnnotationConfig, ReferenceLineConfig
+from src.core.models.visualization.axis_config import AxesConfig, AxisConfig
+from src.core.models.visualization.data_label_config import DataLabelConfig
+from src.core.models.visualization.figure_config import (
+    DimensionConfig,
+    FigureConfig,
+    MarginsConfig,
+    SeparatorConfig,
 )
-from src.core.visualization.legend_spec import LegendSpacingSpec, LegendSpec
-from src.core.visualization.palettes import resolve_palette
-from src.core.visualization.series_style_spec import SeriesStyleSpec
-from src.core.visualization.typography_spec import TypographySpec
+from src.core.models.visualization.legend_config import LegendConfig, LegendSpacingConfig
+from src.core.models.visualization.palettes import resolve_palette
+from src.core.models.visualization.series_style_config import SeriesStyleConfig
+from src.core.models.visualization.typography_config import TypographyConfig
 
 
 class PlotlyFigureSpecBuilder:
-    """Build a FigureSpec by extracting state from a Plotly figure + config.
+    """Build a FigureConfig by extracting state from a Plotly figure + config.
 
     This is what ``LayoutExtractor`` currently does, but producing a typed
-    ``FigureSpec`` instead of a raw dictionary.
+    ``FigureConfig`` instead of a raw dictionary.
 
     Usage:
         spec = PlotlyFigureSpecBuilder.from_plotly(fig, config)
@@ -43,22 +43,22 @@ class PlotlyFigureSpecBuilder:
     def from_plotly(
         fig: Any,
         config: Dict[str, Any],
-    ) -> FigureSpec:
-        """Extract a FigureSpec from an existing Plotly figure and config.
+    ) -> FigureConfig:
+        """Extract a FigureConfig from an existing Plotly figure and config.
 
         Args:
             fig: A ``plotly.graph_objects.Figure``.
             config: The plot config dict (``BasePlot.config``).
 
         Returns:
-            A FigureSpec populated from the figure's current state.
+            A FigureConfig populated from the figure's current state.
             May contain sentinel values (-1) for fields not set.
         """
         layout = fig.layout if hasattr(fig, "layout") else {}
 
         # ── Dimensions ───────────────────────────────────────────
         margins = _extract_margins(layout)
-        dims = DimensionsSpec(
+        dims = DimensionConfig(
             width=_px_to_inches(getattr(layout, "width", None) or config.get("width", 700)),
             height=_px_to_inches(getattr(layout, "height", None) or config.get("height", 400)),
             dpi=config.get("dpi", 96),
@@ -89,7 +89,7 @@ class PlotlyFigureSpecBuilder:
         paper_bg = getattr(layout, "paper_bgcolor", None) or config.get("paper_bgcolor", "white")
         plot_bg = getattr(layout, "plot_bgcolor", None) or config.get("plot_bgcolor", "white")
 
-        return FigureSpec(
+        return FigureConfig(
             dimensions=dims,
             typography=typo,
             axes=axes,
@@ -101,7 +101,7 @@ class PlotlyFigureSpecBuilder:
         )
 
     @staticmethod
-    def enrich_from_plotly(spec: FigureSpec, fig: Any) -> None:
+    def enrich_from_plotly(spec: FigureConfig, fig: Any) -> None:
         """Merge layout metadata from a Plotly figure into an existing spec.
 
         Transfers computed layout data (tick positions/labels, annotations,
@@ -112,7 +112,7 @@ class PlotlyFigureSpecBuilder:
         Modifies *spec* in place.
 
         Args:
-            spec: An already-built FigureSpec (typically from config).
+            spec: An already-built FigureConfig (typically from config).
             fig: A ``plotly.graph_objects.Figure`` with finalised layout.
         """
         layout = fig.layout if hasattr(fig, "layout") else None
@@ -155,7 +155,7 @@ class PlotlyFigureSpecBuilder:
         # ── Legend3 (boxed legend items) ─────────────────────────
         legend3 = getattr(layout, "legend3", None)
         if legend3 is not None:
-            from src.core.visualization.legend_spec import LegendSpec
+            from src.core.models.visualization.legend_config import LegendConfig
 
             box_kwargs: Dict[str, Any] = {"role": "boxed"}
             x = getattr(legend3, "x", None)
@@ -171,11 +171,11 @@ class PlotlyFigureSpecBuilder:
             yanchor = getattr(legend3, "yanchor", None)
             if yanchor:
                 box_kwargs["anchor_y"] = yanchor
-            spec.legends.append(LegendSpec(**box_kwargs))
+            spec.legends.append(LegendConfig(**box_kwargs))
 
 
 class PresetSpecBuilder:
-    """Build a FigureSpec from a LaTeXPreset (journal template).
+    """Build a FigureConfig from a LaTeXPreset (journal template).
 
     This replaces the 4 builder methods in ``LayoutApplier``:
       - ``_build_font_config()``
@@ -188,17 +188,17 @@ class PresetSpecBuilder:
     """
 
     @staticmethod
-    def from_preset(preset: Dict[str, Any]) -> FigureSpec:
-        """Build a FigureSpec from a LaTeXPreset dictionary.
+    def from_preset(preset: Dict[str, Any]) -> FigureConfig:
+        """Build a FigureConfig from a LaTeXPreset dictionary.
 
         Args:
             preset: A ``LaTeXPreset`` TypedDict (or compatible dict).
 
         Returns:
-            A FigureSpec populated from the preset values.
+            A FigureConfig populated from the preset values.
         """
         # ── Dimensions ───────────────────────────────────────────
-        dims = DimensionsSpec(
+        dims = DimensionConfig(
             width=preset.get("width_inches", 7.0),
             height=preset.get("height_inches", 4.0),
             dpi=preset.get("dpi", 300),
@@ -206,7 +206,7 @@ class PresetSpecBuilder:
         )
 
         # ── Typography ───────────────────────────────────────────
-        typo = TypographySpec(
+        typo = TypographyConfig(
             font_size_base=preset.get("font_size_base", 10),
             font_size_title=preset.get("font_size_title", 10),
             font_size_xlabel=preset.get("font_size_xlabel", 9),
@@ -234,20 +234,20 @@ class PresetSpecBuilder:
         )
 
         # ── Axes positioning ─────────────────────────────────────
-        x_axis = AxisSpec(
+        x_axis = AxisConfig(
             tick_angle=preset.get("xtick_rotation", 45.0),
             tick_pad=preset.get("xtick_pad", 5.0),
             tick_ha=preset.get("xtick_ha", "right"),
             tick_offset=preset.get("xtick_offset", 0.0),
             margin=preset.get("xaxis_margin", 0.02),
         )
-        y_axis = AxisSpec(
+        y_axis = AxisConfig(
             label_pad=preset.get("ylabel_pad", 10.0),
             label_position=preset.get("ylabel_y_position", 0.5),
             tick_pad=preset.get("ytick_pad", 5.0),
         )
 
-        axes = AxesSpec(
+        axes = AxesConfig(
             x=x_axis,
             y=y_axis,
             group_label_offset=preset.get("group_label_offset", -0.12),
@@ -256,7 +256,7 @@ class PresetSpecBuilder:
         )
 
         # ── Legends ──────────────────────────────────────────────
-        primary_spacing = LegendSpacingSpec(
+        primary_spacing = LegendSpacingConfig(
             columnspacing=preset.get("legend_columnspacing", 0.5),
             handletextpad=preset.get("legend_handletextpad", 0.3),
             labelspacing=preset.get("legend_labelspacing", 0.2),
@@ -265,7 +265,7 @@ class PresetSpecBuilder:
             borderpad=preset.get("legend_borderpad", 0.2),
             borderaxespad=preset.get("legend_borderaxespad", 0.5),
         )
-        primary_legend = LegendSpec(
+        primary_legend = LegendConfig(
             role="primary",
             font_size=preset.get("font_size_legend", 8),
             bold=preset.get("bold_legend", False),
@@ -277,7 +277,7 @@ class PresetSpecBuilder:
         )
 
         # Secondary legend (legend2)
-        legend2_spacing = LegendSpacingSpec(
+        legend2_spacing = LegendSpacingConfig(
             columnspacing=preset.get("legend2_columnspacing", -1.0),
             handletextpad=preset.get("legend2_handletextpad", -1.0),
             labelspacing=preset.get("legend2_labelspacing", -1.0),
@@ -286,7 +286,7 @@ class PresetSpecBuilder:
             borderpad=preset.get("legend2_borderpad", -1.0),
             borderaxespad=preset.get("legend2_borderaxespad", -1.0),
         )
-        legend2 = LegendSpec(
+        legend2 = LegendConfig(
             role="secondary",
             font_size=preset.get("font_size_legend2", -1),
             bold=preset.get("bold_legend2", False),
@@ -295,11 +295,11 @@ class PresetSpecBuilder:
         )
 
         # Boxed annotation legend (legend3)
-        legend3_spacing = LegendSpacingSpec(
+        legend3_spacing = LegendSpacingConfig(
             borderpad=preset.get("legend3_borderpad", -1.0),
             labelspacing=preset.get("legend3_labelspacing", -1.0),
         )
-        legend3 = LegendSpec(
+        legend3 = LegendConfig(
             role="boxed",
             font_size=preset.get("font_size_legend3", -1),
             bold=preset.get("bold_legend3", False),
@@ -311,13 +311,13 @@ class PresetSpecBuilder:
         legends = [primary_legend, legend2, legend3]
 
         # ── Separator ────────────────────────────────────────────
-        separator = SeparatorSpec(
+        separator = SeparatorConfig(
             enabled=preset.get("group_separator", False),
             style=preset.get("group_separator_style", "dashed"),
             color=preset.get("group_separator_color", "gray"),
         )
 
-        return FigureSpec(
+        return FigureConfig(
             dimensions=dims,
             typography=typo,
             axes=axes,
@@ -329,47 +329,47 @@ class PresetSpecBuilder:
 
 
 class ConfigSpecBuilder:
-    """Build a FigureSpec from a flat config dict (UI widget values).
+    """Build a FigureConfig from a flat config dict (UI widget values).
 
     This is the **config → spec** bridge: produces a typed, engine-agnostic
-    ``FigureSpec`` from the ``Dict[str, Any]`` that UI widgets produce.
+    ``FigureConfig`` from the ``Dict[str, Any]`` that UI widgets produce.
 
     Key design choice: ``dpi`` is set to ``1`` so that pixel values stored
     in the config dict (``width=800``, ``height=500``) round-trip through
-    FigureSpec (which stores inches) without loss: ``800 / 1 = 800`` and
+    FigureConfig (which stores inches) without loss: ``800 / 1 = 800`` and
     ``800 * 1 = 800``.
 
     Usage:
         spec = ConfigSpecBuilder.from_config(config, "grouped_bar")
-        resolved = resolve_spec(spec)
+        resolved = resolve_config(spec)
     """
 
     @staticmethod
     def from_config(
         config: Dict[str, Any],
         plot_type: str = "",
-    ) -> FigureSpec:
-        """Build a FigureSpec from a flat config dictionary.
+    ) -> FigureConfig:
+        """Build a FigureConfig from a flat config dictionary.
 
         Args:
             config: The ``BasePlot.config`` dict produced by UI widgets.
             plot_type: Plot type string for bar-specific defaults.
 
         Returns:
-            A FigureSpec populated from config values.
+            A FigureConfig populated from config values.
             Uses ``dpi=1`` so width/height are effectively in pixels.
         """
         is_bar = "bar" in plot_type
 
         # ── Dimensions (dpi=1 ⇒ px passthrough) ─────────────────
-        margins = MarginsSpec(
+        margins = MarginsConfig(
             top=float(config.get("margin_t", 80)),
             bottom=float(config.get("margin_b", 120)),
             left=float(config.get("margin_l", 100)),
             right=float(config.get("margin_r", 100)),
             pad=float(config.get("margin_pad", 0)),
         )
-        dims = DimensionsSpec(
+        dims = DimensionConfig(
             width=float(config.get("width", 800)),
             height=float(config.get("height", 500)),
             dpi=1,  # px passthrough — no conversion
@@ -379,7 +379,7 @@ class ConfigSpecBuilder:
         )
 
         # ── Typography ───────────────────────────────────────────
-        typo = TypographySpec(
+        typo = TypographyConfig(
             font_size_title=config.get("title_font_size", 18),
             font_size_xlabel=config.get("xaxis_title_font_size", 14),
             font_size_ylabel=config.get("yaxis_title_font_size", 14),
@@ -397,7 +397,7 @@ class ConfigSpecBuilder:
             "undefined", ""
         )
 
-        x_axis = AxisSpec(
+        x_axis = AxisConfig(
             label=x_label,
             tick_angle=float(config.get("xaxis_tickangle", -45)),
             range=config.get("range_x"),
@@ -406,7 +406,7 @@ class ConfigSpecBuilder:
             automargin=config.get("automargin", True),
             grid_color=config.get("grid_color", "#E5E5E5"),
         )
-        y_axis = AxisSpec(
+        y_axis = AxisConfig(
             label=y_label,
             range=config.get("range_y"),
             dtick=config.get("yaxis_dtick"),
@@ -414,11 +414,11 @@ class ConfigSpecBuilder:
             grid_color=config.get("grid_color", "#E5E5E5"),
         )
 
-        axes = AxesSpec(x=x_axis, y=y_axis)
+        axes = AxesConfig(x=x_axis, y=y_axis)
 
         # ── Primary Legend ───────────────────────────────────────
         legend_orient = config.get("legend_orientation", "v")
-        primary_legend = LegendSpec(
+        primary_legend = LegendConfig(
             role="primary",
             font_size=config.get("legend_font_size", 12),
             font_color=config.get("legend_font_color", "#444"),
@@ -438,7 +438,7 @@ class ConfigSpecBuilder:
             itemsizing=config.get("legend_itemsizing", "constant"),
         )
 
-        legends: List[LegendSpec] = [primary_legend]
+        legends: List[LegendConfig] = [primary_legend]
 
         # ── Multi-column secondary legends (if ncols > 1) ───────
         try:
@@ -448,7 +448,7 @@ class ConfigSpecBuilder:
 
         for col_idx in range(1, ncols):
             key_prefix = f"legend{col_idx + 1}"
-            sec = LegendSpec(
+            sec = LegendConfig(
                 role="secondary",
                 font_size=primary_legend.font_size,
                 font_color=primary_legend.font_color,
@@ -469,7 +469,7 @@ class ConfigSpecBuilder:
         title = str(config.get("title") or "").replace("undefined", "")
 
         # ── Data labels ──────────────────────────────────────────
-        data_labels: Optional[DataLabelSpec] = None
+        data_labels: Optional[DataLabelConfig] = None
         if config.get("show_values"):
             try:
                 dl_font_size = int(config.get("text_font_size") or 12)
@@ -501,7 +501,7 @@ class ConfigSpecBuilder:
             constraint_raw = config.get("text_constraint", False)
             size_constraint = "inside" if constraint_raw else "none"
 
-            data_labels = DataLabelSpec(
+            data_labels = DataLabelConfig(
                 enabled=True,
                 color_mode=raw_color_mode,  # type: ignore[arg-type]
                 custom_color=config.get("text_color", "#000000"),
@@ -514,9 +514,9 @@ class ConfigSpecBuilder:
             )
 
         # ── Reference lines ─────────────────────────────────────
-        reference_lines: List[ReferenceLineSpec] = []
+        reference_lines: List[ReferenceLineConfig] = []
         if config.get("reference_line_enabled"):
-            rl = ReferenceLineSpec(
+            rl = ReferenceLineConfig(
                 enabled=True,
                 axis="y",
                 value=float(config.get("reference_line_y", 0.0)),
@@ -528,13 +528,13 @@ class ConfigSpecBuilder:
             reference_lines.append(rl)
 
         # ── Series styling (global defaults) ─────────────────────
-        series_styles: List[SeriesStyleSpec] = []
+        series_styles: List[SeriesStyleConfig] = []
         has_series = any(
             config.get(k) is not None for k in ("bar_border_width", "marker_size", "line_width")
         )
         if has_series:
             series_styles.append(
-                SeriesStyleSpec(
+                SeriesStyleConfig(
                     bar_border_width=float(config.get("bar_border_width", 0.0)),
                     marker_size=int(config.get("marker_size") or 6),
                     line_width=float(config.get("line_width") or 2.0),
@@ -542,13 +542,13 @@ class ConfigSpecBuilder:
             )
 
         # ── Per-trace overrides from UI series_styles dict ───────
-        trace_overrides: Dict[str, SeriesStyleSpec] = {}
+        trace_overrides: Dict[str, SeriesStyleConfig] = {}
         raw_overrides = config.get("series_styles", {})
         if isinstance(raw_overrides, dict):
             for trace_name, style_dict in raw_overrides.items():
                 if not isinstance(style_dict, dict):
                     continue
-                trace_overrides[str(trace_name)] = SeriesStyleSpec(
+                trace_overrides[str(trace_name)] = SeriesStyleConfig(
                     color=(
                         str(style_dict["color"])
                         if style_dict.get("use_color") and style_dict.get("color")
@@ -574,7 +574,7 @@ class ConfigSpecBuilder:
         if barmode_raw not in ("group", "stack", "overlay", "relative"):
             barmode_raw = "group"
 
-        return FigureSpec(
+        return FigureConfig(
             dimensions=dims,
             typography=typo,
             axes=axes,
@@ -609,12 +609,12 @@ def _px_to_inches(px: Any, dpi: int = 96) -> float:
         return 7.0
 
 
-def _extract_margins(layout: Any) -> MarginsSpec:
+def _extract_margins(layout: Any) -> MarginsConfig:
     """Extract margins from Plotly layout."""
     margin = getattr(layout, "margin", None)
     if margin is None:
-        return MarginsSpec()
-    return MarginsSpec(
+        return MarginsConfig()
+    return MarginsConfig(
         top=float(getattr(margin, "t", 40) or 40),
         bottom=float(getattr(margin, "b", 80) or 80),
         left=float(getattr(margin, "l", 60) or 60),
@@ -623,10 +623,10 @@ def _extract_margins(layout: Any) -> MarginsSpec:
     )
 
 
-def _extract_typography(layout: Any, config: Dict[str, Any]) -> TypographySpec:
+def _extract_typography(layout: Any, config: Dict[str, Any]) -> TypographyConfig:
     """Extract typography settings from Plotly layout and config."""
     # Plotly stores font sizes in various places; config dict is primary
-    return TypographySpec(
+    return TypographyConfig(
         font_size_title=config.get("title_font_size", 10),
         font_size_xlabel=config.get("xaxis_title_font_size", 9),
         font_size_ylabel=config.get("yaxis_title_font_size", 9),
@@ -637,13 +637,13 @@ def _extract_typography(layout: Any, config: Dict[str, Any]) -> TypographySpec:
     )
 
 
-def _extract_axes(layout: Any, config: Dict[str, Any]) -> AxesSpec:
+def _extract_axes(layout: Any, config: Dict[str, Any]) -> AxesConfig:
     """Extract axis configuration from Plotly layout."""
     xaxis = getattr(layout, "xaxis", None)
     yaxis = getattr(layout, "yaxis", None)
     yaxis2 = getattr(layout, "yaxis2", None)
 
-    x = AxisSpec(
+    x = AxisConfig(
         label=config.get("xlabel", "") or _get_axis_title(xaxis),
         tick_angle=float(config.get("xaxis_tickangle", 0)),
         range=config.get("range_x"),
@@ -652,29 +652,29 @@ def _extract_axes(layout: Any, config: Dict[str, Any]) -> AxesSpec:
         show_grid=config.get("show_grid", True),
     )
 
-    y = AxisSpec(
+    y = AxisConfig(
         label=config.get("ylabel", "") or _get_axis_title(yaxis),
         range=config.get("range_y"),
         dtick=config.get("yaxis_dtick"),
         show_grid=config.get("show_grid", True),
     )
 
-    y2: Optional[AxisSpec] = None
+    y2: Optional[AxisConfig] = None
     if yaxis2 is not None:
-        y2 = AxisSpec(
+        y2 = AxisConfig(
             label=_get_axis_title(yaxis2),
             range=_get_range(yaxis2),
         )
 
-    return AxesSpec(x=x, y=y, y2=y2)
+    return AxesConfig(x=x, y=y, y2=y2)
 
 
-def _extract_legends(layout: Any, config: Dict[str, Any]) -> List[LegendSpec]:
+def _extract_legends(layout: Any, config: Dict[str, Any]) -> List[LegendConfig]:
     """Extract legend configurations from Plotly layout."""
-    legends: List[LegendSpec] = []
+    legends: List[LegendConfig] = []
 
     legend = getattr(layout, "legend", None)
-    primary = LegendSpec(
+    primary = LegendConfig(
         role="primary",
         font_size=config.get("legend_font_size", 8),
         font_color=config.get("legend_font_color", "#444"),
@@ -701,7 +701,7 @@ def _extract_legends(layout: Any, config: Dict[str, Any]) -> List[LegendSpec]:
     # legend2
     legend2 = getattr(layout, "legend2", None)
     if legend2 is not None:
-        sec = LegendSpec(role="secondary")
+        sec = LegendConfig(role="secondary")
         x = getattr(legend2, "x", None)
         y = getattr(legend2, "y", None)
         if x is not None:
@@ -720,14 +720,14 @@ def _extract_legends(layout: Any, config: Dict[str, Any]) -> List[LegendSpec]:
     return legends
 
 
-def _extract_annotations(layout: Any) -> List[AnnotationSpec]:
+def _extract_annotations(layout: Any) -> List[AnnotationConfig]:
     """Extract annotation objects from Plotly layout."""
-    annotations: List[AnnotationSpec] = []
+    annotations: List[AnnotationConfig] = []
     layout_anns = getattr(layout, "annotations", None) or []
 
     for ann in layout_anns:
         font = getattr(ann, "font", None)
-        spec = AnnotationSpec(
+        spec = AnnotationConfig(
             text=getattr(ann, "text", ""),
             x=float(getattr(ann, "x", 0)),
             y=float(getattr(ann, "y", 0)),

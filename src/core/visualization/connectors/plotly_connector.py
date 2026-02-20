@@ -1,13 +1,13 @@
 """
-Plotly connector — translate resolved FigureSpec into go.Figure updates.
+Plotly connector — translate resolved FigureConfig into go.Figure updates.
 
 ``StyleApplicator.apply_styles()`` delegates to ``ConfigSpecBuilder`` to
-build a FigureSpec and then calls this connector to apply it.
+build a FigureConfig and then calls this connector to apply it.
 
 Usage:
     from src.core.visualization.connectors import FigureSpecToPlotly
 
-    resolved = resolve_spec(spec)
+    resolved = resolve_config(spec)
     fig = FigureSpecToPlotly.apply(resolved, fig)
 """
 
@@ -17,26 +17,26 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import plotly.graph_objects as go
 
-from src.core.visualization.figure_spec import FigureSpec
-from src.core.visualization.legend_spec import LegendSpec
+from src.core.models.visualization.figure_config import FigureConfig
+from src.core.models.visualization.legend_config import LegendConfig
 
 if TYPE_CHECKING:
-    from src.core.visualization.axis_spec import AxisSpec
+    from src.core.models.visualization.axis_config import AxisConfig
 
 
 class FigureSpecToPlotly:
-    """Stateless translator: FigureSpec → Plotly figure updates.
+    """Stateless translator: FigureConfig → Plotly figure updates.
 
     All methods are static / class-level — no instance state needed.
-    The FigureSpec must be **resolved** (no -1 sentinels) before calling.
+    The FigureConfig must be **resolved** (no -1 sentinels) before calling.
     """
 
     @staticmethod
-    def apply(spec: FigureSpec, fig: go.Figure) -> go.Figure:
-        """Apply the full FigureSpec to a Plotly figure.
+    def apply(spec: FigureConfig, fig: go.Figure) -> go.Figure:
+        """Apply the full FigureConfig to a Plotly figure.
 
         Args:
-            spec: A resolved FigureSpec (no sentinel values).
+            spec: A resolved FigureConfig (no sentinel values).
             fig: The Plotly figure to update in place.
 
         Returns:
@@ -62,7 +62,7 @@ class FigureSpecToPlotly:
         return fig
 
     @staticmethod
-    def _apply_dimensions(spec: FigureSpec, fig: go.Figure) -> None:
+    def _apply_dimensions(spec: FigureConfig, fig: go.Figure) -> None:
         """Set figure width, height, margins, and bar gaps."""
         dims = spec.dimensions
         # Plotly uses pixels; convert inches → px
@@ -86,7 +86,7 @@ class FigureSpecToPlotly:
         )
 
     @staticmethod
-    def _apply_backgrounds(spec: FigureSpec, fig: go.Figure) -> None:
+    def _apply_backgrounds(spec: FigureConfig, fig: go.Figure) -> None:
         """Set paper and plot background colors."""
         fig.update_layout(
             paper_bgcolor=spec.paper_bgcolor,
@@ -94,7 +94,7 @@ class FigureSpecToPlotly:
         )
 
     @staticmethod
-    def _apply_title(spec: FigureSpec, fig: go.Figure) -> None:
+    def _apply_title(spec: FigureConfig, fig: go.Figure) -> None:
         """Set figure title with typography from spec."""
         if spec.title:
             typo = spec.typography
@@ -109,7 +109,7 @@ class FigureSpecToPlotly:
             )
 
     @staticmethod
-    def _apply_xaxis(spec: FigureSpec, fig: go.Figure) -> None:
+    def _apply_xaxis(spec: FigureConfig, fig: go.Figure) -> None:
         """Configure the primary X-axis."""
         assert spec.axes is not None  # guaranteed by __post_init__  # nosec B101
         assert spec.typography is not None  # guaranteed by __post_init__  # nosec B101
@@ -157,7 +157,7 @@ class FigureSpecToPlotly:
         fig.update_xaxes(**update)
 
     @staticmethod
-    def _apply_yaxis(spec: FigureSpec, fig: go.Figure) -> None:
+    def _apply_yaxis(spec: FigureConfig, fig: go.Figure) -> None:
         """Configure the primary Y-axis."""
         assert spec.axes is not None  # guaranteed by __post_init__  # nosec B101
         assert spec.typography is not None  # guaranteed by __post_init__  # nosec B101
@@ -191,7 +191,7 @@ class FigureSpecToPlotly:
         fig.update_yaxes(**update, selector=dict(overlaying=None))
 
     @staticmethod
-    def _apply_y2axis(spec: FigureSpec, fig: go.Figure) -> None:
+    def _apply_y2axis(spec: FigureConfig, fig: go.Figure) -> None:
         """Configure the secondary Y-axis (if present)."""
         assert spec.axes is not None  # guaranteed by __post_init__  # nosec B101
         assert spec.typography is not None  # guaranteed by __post_init__  # nosec B101
@@ -224,7 +224,7 @@ class FigureSpecToPlotly:
         fig.update_layout(yaxis2=update)
 
     @staticmethod
-    def _apply_legends(spec: FigureSpec, fig: go.Figure) -> None:
+    def _apply_legends(spec: FigureConfig, fig: go.Figure) -> None:
         """Apply legend configuration for all legends."""
         if not spec.legends:
             return
@@ -243,7 +243,7 @@ class FigureSpecToPlotly:
             fig.update_layout(**{legend_key: legend_dict})
 
     @staticmethod
-    def _build_legend_dict(legend: LegendSpec) -> Dict[str, Any]:
+    def _build_legend_dict(legend: LegendConfig) -> Dict[str, Any]:
         """Build a Plotly legend configuration dictionary."""
         result: Dict[str, Any] = {
             "font": dict(
@@ -289,7 +289,7 @@ class FigureSpecToPlotly:
     # ────────────────────────────────────────────────────────────
 
     @staticmethod
-    def _apply_color_palette(spec: FigureSpec, fig: go.Figure) -> None:
+    def _apply_color_palette(spec: FigureConfig, fig: go.Figure) -> None:
         """Set colorway and explicitly assign palette colors to traces.
 
         In addition to setting the layout ``colorway`` (for any future
@@ -319,18 +319,18 @@ class FigureSpecToPlotly:
                 trace.update(line=dict(color=col))
 
     @staticmethod
-    def _apply_hovermode(spec: FigureSpec, fig: go.Figure) -> None:
+    def _apply_hovermode(spec: FigureConfig, fig: go.Figure) -> None:
         """Set hovermode from spec."""
         fig.update_layout(hovermode=spec.hovermode)
 
     @staticmethod
-    def _apply_font_family(spec: FigureSpec, fig: go.Figure) -> None:
+    def _apply_font_family(spec: FigureConfig, fig: go.Figure) -> None:
         """Set global font family."""
         if spec.font_family:
             fig.update_layout(font=dict(family=spec.font_family))
 
     @staticmethod
-    def _apply_reference_lines(spec: FigureSpec, fig: go.Figure) -> None:
+    def _apply_reference_lines(spec: FigureConfig, fig: go.Figure) -> None:
         """Add horizontal/vertical reference lines via fig.add_shape()."""
         for rl in spec.reference_lines:
             if not rl.enabled:
@@ -353,7 +353,7 @@ class FigureSpecToPlotly:
                 )
 
     @staticmethod
-    def _apply_data_labels(spec: FigureSpec, fig: go.Figure) -> None:
+    def _apply_data_labels(spec: FigureConfig, fig: go.Figure) -> None:
         """Apply data label annotations on bars/points."""
         if spec.data_labels is None or not spec.data_labels.enabled:
             return
@@ -415,7 +415,7 @@ class FigureSpecToPlotly:
             )
 
     @staticmethod
-    def _apply_series_styling(spec: FigureSpec, fig: go.Figure) -> None:
+    def _apply_series_styling(spec: FigureConfig, fig: go.Figure) -> None:
         """Apply per-trace line_width, marker, opacity from series_styles."""
         if not spec.series_styles:
             return
@@ -446,7 +446,7 @@ class FigureSpecToPlotly:
                 trace.update(**update)
 
     @staticmethod
-    def _apply_separator_lines(spec: FigureSpec, fig: go.Figure) -> None:
+    def _apply_separator_lines(spec: FigureConfig, fig: go.Figure) -> None:
         """Add group separator vertical lines between bar clusters."""
         if not spec.separator.enabled:
             return
@@ -478,7 +478,7 @@ class FigureSpecToPlotly:
             )
 
     @staticmethod
-    def _apply_stripes(spec: FigureSpec, fig: go.Figure) -> None:
+    def _apply_stripes(spec: FigureConfig, fig: go.Figure) -> None:
         """Alternating row background shapes."""
         if not spec.enable_stripes:
             return
@@ -497,8 +497,8 @@ class FigureSpecToPlotly:
                 )
 
     @staticmethod
-    def _apply_axis_colors(spec: FigureSpec, fig: go.Figure) -> None:
-        """Apply tick/label/line colors per axis from new AxisSpec fields."""
+    def _apply_axis_colors(spec: FigureConfig, fig: go.Figure) -> None:
+        """Apply tick/label/line colors per axis from new AxisConfig fields."""
         assert spec.axes is not None  # guaranteed by __post_init__  # nosec B101
 
         x = spec.axes.x
@@ -531,11 +531,11 @@ class FigureSpecToPlotly:
     # ────────────────────────────────────────────────────────────
 
     @staticmethod
-    def _apply_trace_overrides(spec: FigureSpec, fig: go.Figure) -> None:
+    def _apply_trace_overrides(spec: FigureConfig, fig: go.Figure) -> None:
         """Apply per-trace styling overrides keyed by trace name.
 
         ``spec.trace_overrides`` maps original trace names to typed
-        ``SeriesStyleSpec`` instances.  Each matching trace gets colour,
+        ``SeriesStyleConfig`` instances.  Each matching trace gets colour,
         symbol, size, width, pattern, and/or rename applied.
         """
         if not spec.trace_overrides:
@@ -579,14 +579,14 @@ class FigureSpecToPlotly:
 
     @staticmethod
     def _apply_label_aliases(
-        axis: AxisSpec,
+        axis: AxisConfig,
         fig: go.Figure,
         update: Dict[str, Any],
     ) -> None:
         """Translate axis label aliases to Plotly tickvals/ticktext.
 
         The alias mapping (e.g. ``{"a": "Alpha", "b": "Beta"}``) is stored
-        in ``AxisSpec.label_aliases`` and resolved here into ``tickmode``,
+        in ``AxisConfig.label_aliases`` and resolved here into ``tickmode``,
         ``tickvals``, and ``ticktext``.
 
         When ``category_order`` is also set, the order is used for

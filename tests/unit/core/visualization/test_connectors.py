@@ -10,24 +10,24 @@ Covers:
 
 import plotly.graph_objects as go
 
-from src.core.visualization.annotation_spec import ReferenceLineSpec
-from src.core.visualization.axis_spec import AxesSpec, AxisSpec
+from src.core.models.visualization.annotation_config import ReferenceLineConfig
+from src.core.models.visualization.axis_config import AxesConfig, AxisConfig
+from src.core.models.visualization.data_label_config import DataLabelConfig
+from src.core.models.visualization.figure_config import (
+    DimensionConfig,
+    FigureConfig,
+    MarginsConfig,
+    SeparatorConfig,
+)
+from src.core.models.visualization.legend_config import LegendConfig
+from src.core.models.visualization.resolvers import resolve_config
+from src.core.models.visualization.series_style_config import SeriesStyleConfig
+from src.core.models.visualization.typography_config import TypographyConfig
 from src.core.visualization.connectors.builders import (
     PlotlyFigureSpecBuilder,
     PresetSpecBuilder,
 )
 from src.core.visualization.connectors.plotly_connector import FigureSpecToPlotly
-from src.core.visualization.data_label_spec import DataLabelSpec
-from src.core.visualization.figure_spec import (
-    DimensionsSpec,
-    FigureSpec,
-    MarginsSpec,
-    SeparatorSpec,
-)
-from src.core.visualization.legend_spec import LegendSpec
-from src.core.visualization.resolvers import resolve_spec
-from src.core.visualization.series_style_spec import SeriesStyleSpec
-from src.core.visualization.typography_spec import TypographySpec
 
 
 class TestFigureSpecToPlotly:
@@ -39,15 +39,15 @@ class TestFigureSpecToPlotly:
 
     def test_apply_dimensions(self) -> None:
         """Dimensions should set width/height/margins on figure."""
-        spec = FigureSpec(
-            dimensions=DimensionsSpec(
+        spec = FigureConfig(
+            dimensions=DimensionConfig(
                 width=7.0,
                 height=4.0,
                 dpi=100,  # 7*100=700px, 4*100=400px
-                margins=MarginsSpec(top=10, bottom=20, left=30, right=40),
+                margins=MarginsConfig(top=10, bottom=20, left=30, right=40),
             )
         )
-        resolved = resolve_spec(spec)
+        resolved = resolve_config(spec)
         fig = self._make_simple_fig()
 
         FigureSpecToPlotly.apply(resolved, fig)
@@ -61,11 +61,11 @@ class TestFigureSpecToPlotly:
 
     def test_apply_backgrounds(self) -> None:
         """Background colors should be applied."""
-        spec = FigureSpec(
+        spec = FigureConfig(
             paper_bgcolor="#F0F0F0",
             plot_bgcolor="#FFFFFF",
         )
-        resolved = resolve_spec(spec)
+        resolved = resolve_config(spec)
         fig = self._make_simple_fig()
 
         FigureSpecToPlotly.apply(resolved, fig)
@@ -75,11 +75,11 @@ class TestFigureSpecToPlotly:
 
     def test_apply_title(self) -> None:
         """Title should be applied."""
-        spec = FigureSpec(
+        spec = FigureConfig(
             title="My Plot",
-            typography=TypographySpec(font_size_title=16),
+            typography=TypographyConfig(font_size_title=16),
         )
-        resolved = resolve_spec(spec)
+        resolved = resolve_config(spec)
         fig = self._make_simple_fig()
 
         FigureSpecToPlotly.apply(resolved, fig)
@@ -89,18 +89,18 @@ class TestFigureSpecToPlotly:
 
     def test_apply_xaxis(self) -> None:
         """X-axis configuration should be applied."""
-        spec = FigureSpec(
-            axes=AxesSpec(
-                x=AxisSpec(
+        spec = FigureConfig(
+            axes=AxesConfig(
+                x=AxisConfig(
                     label="Benchmark",
                     tick_angle=45.0,
                     show_grid=True,
                     grid_color="#ccc",
                 )
             ),
-            typography=TypographySpec(font_size_xlabel=12, font_size_ticks=8),
+            typography=TypographyConfig(font_size_xlabel=12, font_size_ticks=8),
         )
-        resolved = resolve_spec(spec)
+        resolved = resolve_config(spec)
         fig = self._make_simple_fig()
 
         FigureSpecToPlotly.apply(resolved, fig)
@@ -112,14 +112,14 @@ class TestFigureSpecToPlotly:
 
     def test_apply_yaxis(self) -> None:
         """Y-axis configuration should be applied."""
-        spec = FigureSpec(
-            axes=AxesSpec(y=AxisSpec(label="Speedup", dtick=0.5)),
-            typography=TypographySpec(
+        spec = FigureConfig(
+            axes=AxesConfig(y=AxisConfig(label="Speedup", dtick=0.5)),
+            typography=TypographyConfig(
                 font_size_ylabel=11,
                 font_size_yticks=7,
             ),
         )
-        resolved = resolve_spec(spec)
+        resolved = resolve_config(spec)
         fig = self._make_simple_fig()
 
         FigureSpecToPlotly.apply(resolved, fig)
@@ -130,9 +130,9 @@ class TestFigureSpecToPlotly:
 
     def test_apply_legend(self) -> None:
         """Legend configuration should be applied."""
-        spec = FigureSpec(
+        spec = FigureConfig(
             legends=[
-                LegendSpec(
+                LegendConfig(
                     role="primary",
                     font_size=10,
                     font_color="black",
@@ -145,7 +145,7 @@ class TestFigureSpecToPlotly:
                 )
             ]
         )
-        resolved = resolve_spec(spec)
+        resolved = resolve_config(spec)
         fig = self._make_simple_fig()
 
         FigureSpecToPlotly.apply(resolved, fig)
@@ -159,8 +159,8 @@ class TestFigureSpecToPlotly:
 
     def test_no_legend(self) -> None:
         """Empty legends list should not crash."""
-        spec = FigureSpec(legends=[])
-        resolved = resolve_spec(spec)
+        spec = FigureConfig(legends=[])
+        resolved = resolve_config(spec)
         fig = self._make_simple_fig()
 
         FigureSpecToPlotly.apply(resolved, fig)
@@ -168,8 +168,8 @@ class TestFigureSpecToPlotly:
 
     def test_no_title(self) -> None:
         """Empty title should not be applied."""
-        spec = FigureSpec(title="")
-        resolved = resolve_spec(spec)
+        spec = FigureConfig(title="")
+        resolved = resolve_config(spec)
         fig = self._make_simple_fig()
 
         FigureSpecToPlotly.apply(resolved, fig)
@@ -177,7 +177,7 @@ class TestFigureSpecToPlotly:
 
 
 class TestPlotlyFigureSpecBuilder:
-    """Test extracting FigureSpec from Plotly figure + config."""
+    """Test extracting FigureConfig from Plotly figure + config."""
 
     def test_basic_extraction(self) -> None:
         """Extract spec from a simple figure."""
@@ -243,7 +243,7 @@ class TestPlotlyFigureSpecBuilder:
 
 
 class TestPresetSpecBuilder:
-    """Test building FigureSpec from a LaTeXPreset dictionary."""
+    """Test building FigureConfig from a LaTeXPreset dictionary."""
 
     def _make_preset(self) -> dict:  # type: ignore[type-arg]
         """Create a minimal LaTeXPreset-compatible dictionary."""
@@ -376,7 +376,7 @@ class TestPresetSpecBuilder:
         """Preset spec with sentinels should resolve correctly."""
         preset = self._make_preset()
         spec = PresetSpecBuilder.from_preset(preset)
-        resolved = resolve_spec(spec)
+        resolved = resolve_config(spec)
 
         # legend2 font_size was -1, should inherit from primary (7)
         assert resolved.legends[1].font_size == 7
@@ -393,13 +393,13 @@ class TestPlotlyConnectorColorPalette:
     """Test _apply_color_palette."""
 
     def test_color_palette_set(self) -> None:
-        spec = FigureSpec(color_palette=["#AA0000", "#00BB00"])
+        spec = FigureConfig(color_palette=["#AA0000", "#00BB00"])
         fig = go.Figure(data=[go.Bar(x=["A"], y=[1])])
         FigureSpecToPlotly._apply_color_palette(spec, fig)
         assert fig.layout.colorway == ("#AA0000", "#00BB00")
 
     def test_empty_palette_no_op(self) -> None:
-        spec = FigureSpec(color_palette=[])
+        spec = FigureConfig(color_palette=[])
         fig = go.Figure()
         FigureSpecToPlotly._apply_color_palette(spec, fig)
         # No colorway set when empty
@@ -409,13 +409,13 @@ class TestPlotlyConnectorHovermode:
     """Test _apply_hovermode."""
 
     def test_hovermode_set(self) -> None:
-        spec = FigureSpec(hovermode="closest")
+        spec = FigureConfig(hovermode="closest")
         fig = go.Figure()
         FigureSpecToPlotly._apply_hovermode(spec, fig)
         assert fig.layout.hovermode == "closest"
 
     def test_hovermode_x_unified(self) -> None:
-        spec = FigureSpec(hovermode="x unified")
+        spec = FigureConfig(hovermode="x unified")
         fig = go.Figure()
         FigureSpecToPlotly._apply_hovermode(spec, fig)
         assert fig.layout.hovermode == "x unified"
@@ -425,13 +425,13 @@ class TestPlotlyConnectorFontFamily:
     """Test _apply_font_family."""
 
     def test_font_family_set(self) -> None:
-        spec = FigureSpec(font_family="serif")
+        spec = FigureConfig(font_family="serif")
         fig = go.Figure()
         FigureSpecToPlotly._apply_font_family(spec, fig)
         assert fig.layout.font.family == "serif"
 
     def test_font_family_sans_serif(self) -> None:
-        spec = FigureSpec(font_family="sans-serif")
+        spec = FigureConfig(font_family="sans-serif")
         fig = go.Figure()
         FigureSpecToPlotly._apply_font_family(spec, fig)
         assert fig.layout.font.family == "sans-serif"
@@ -441,25 +441,25 @@ class TestPlotlyConnectorReferenceLines:
     """Test _apply_reference_lines."""
 
     def test_horizontal_reference_line(self) -> None:
-        rl = ReferenceLineSpec(
+        rl = ReferenceLineConfig(
             enabled=True, axis="y", value=1.0, color="red", width=2.0, style="dash"
         )
-        spec = FigureSpec(reference_lines=[rl])
+        spec = FigureConfig(reference_lines=[rl])
         fig = go.Figure(data=[go.Bar(x=["A", "B"], y=[1, 2])])
         FigureSpecToPlotly._apply_reference_lines(spec, fig)
         # Should add a shape
         assert len(fig.layout.shapes) >= 1
 
     def test_vertical_reference_line(self) -> None:
-        rl = ReferenceLineSpec(enabled=True, axis="x", value=0.5, color="blue", style="solid")
-        spec = FigureSpec(reference_lines=[rl])
+        rl = ReferenceLineConfig(enabled=True, axis="x", value=0.5, color="blue", style="solid")
+        spec = FigureConfig(reference_lines=[rl])
         fig = go.Figure(data=[go.Bar(x=["A", "B"], y=[1, 2])])
         FigureSpecToPlotly._apply_reference_lines(spec, fig)
         assert len(fig.layout.shapes) >= 1
 
     def test_disabled_reference_line_skipped(self) -> None:
-        rl = ReferenceLineSpec(enabled=False, axis="y", value=1.0)
-        spec = FigureSpec(reference_lines=[rl])
+        rl = ReferenceLineConfig(enabled=False, axis="y", value=1.0)
+        spec = FigureConfig(reference_lines=[rl])
         fig = go.Figure(data=[go.Bar(x=["A", "B"], y=[1, 2])])
         FigureSpecToPlotly._apply_reference_lines(spec, fig)
         assert len(fig.layout.shapes) == 0
@@ -469,29 +469,29 @@ class TestPlotlyConnectorDataLabels:
     """Test _apply_data_labels."""
 
     def test_data_labels_applied(self) -> None:
-        dl = DataLabelSpec(enabled=True, font_size=12, format_string=".1f")
-        spec = FigureSpec(data_labels=dl)
+        dl = DataLabelConfig(enabled=True, font_size=12, format_string=".1f")
+        spec = FigureConfig(data_labels=dl)
         fig = go.Figure(data=[go.Bar(x=["A", "B"], y=[1.1, 2.2])])
         FigureSpecToPlotly._apply_data_labels(spec, fig)
         assert fig.data[0].texttemplate == "%{y:.1f}"
         assert fig.data[0].textfont.size == 12
 
     def test_data_labels_disabled_no_op(self) -> None:
-        spec = FigureSpec(data_labels=None)
+        spec = FigureConfig(data_labels=None)
         fig = go.Figure(data=[go.Bar(x=["A"], y=[1])])
         FigureSpecToPlotly._apply_data_labels(spec, fig)
         assert fig.data[0].texttemplate is None
 
     def test_data_labels_custom_color(self) -> None:
-        dl = DataLabelSpec(enabled=True, color_mode="custom", custom_color="#FF0000")
-        spec = FigureSpec(data_labels=dl)
+        dl = DataLabelConfig(enabled=True, color_mode="custom", custom_color="#FF0000")
+        spec = FigureConfig(data_labels=dl)
         fig = go.Figure(data=[go.Bar(x=["A"], y=[1])])
         FigureSpecToPlotly._apply_data_labels(spec, fig)
         assert fig.data[0].textfont.color == "#FF0000"
 
     def test_data_labels_rotation(self) -> None:
-        dl = DataLabelSpec(enabled=True, rotation=45)
-        spec = FigureSpec(data_labels=dl)
+        dl = DataLabelConfig(enabled=True, rotation=45)
+        spec = FigureConfig(data_labels=dl)
         fig = go.Figure(data=[go.Bar(x=["A"], y=[1])])
         FigureSpecToPlotly._apply_data_labels(spec, fig)
         assert fig.data[0].textangle == 45
@@ -501,14 +501,14 @@ class TestPlotlyConnectorSeriesStyling:
     """Test _apply_series_styling."""
 
     def test_bar_border_width(self) -> None:
-        ss = SeriesStyleSpec(bar_border_width=1.5, bar_border_color="#000")
-        spec = FigureSpec(series_styles=[ss])
+        ss = SeriesStyleConfig(bar_border_width=1.5, bar_border_color="#000")
+        spec = FigureConfig(series_styles=[ss])
         fig = go.Figure(data=[go.Bar(x=["A"], y=[1])])
         FigureSpecToPlotly._apply_series_styling(spec, fig)
         assert fig.data[0].marker.line.width == 1.5
 
     def test_no_styles_no_op(self) -> None:
-        spec = FigureSpec(series_styles=[])
+        spec = FigureConfig(series_styles=[])
         fig = go.Figure(data=[go.Bar(x=["A"], y=[1])])
         FigureSpecToPlotly._apply_series_styling(spec, fig)
         # No changes
@@ -518,10 +518,10 @@ class TestPlotlyConnectorAxisColors:
     """Test _apply_axis_colors."""
 
     def test_tick_font_color(self) -> None:
-        spec = FigureSpec(
-            axes=AxesSpec(
-                x=AxisSpec(tick_font_color="#333"),
-                y=AxisSpec(tick_font_color="#666"),
+        spec = FigureConfig(
+            axes=AxesConfig(
+                x=AxisConfig(tick_font_color="#333"),
+                y=AxisConfig(tick_font_color="#666"),
             )
         )
         fig = go.Figure(data=[go.Bar(x=["A"], y=[1])])
@@ -530,10 +530,10 @@ class TestPlotlyConnectorAxisColors:
         assert fig.layout.yaxis.tickfont.color == "#666"
 
     def test_axis_line_color(self) -> None:
-        spec = FigureSpec(
-            axes=AxesSpec(
-                x=AxisSpec(axis_line_color="black"),
-                y=AxisSpec(),
+        spec = FigureConfig(
+            axes=AxesConfig(
+                x=AxisConfig(axis_line_color="black"),
+                y=AxisConfig(),
             )
         )
         fig = go.Figure(data=[go.Bar(x=["A"], y=[1])])
@@ -542,24 +542,24 @@ class TestPlotlyConnectorAxisColors:
         assert fig.layout.xaxis.showline is True
 
     def test_no_colors_no_update(self) -> None:
-        spec = FigureSpec()
+        spec = FigureConfig()
         fig = go.Figure(data=[go.Bar(x=["A"], y=[1])])
         FigureSpecToPlotly._apply_axis_colors(spec, fig)
-        # Default AxisSpec has empty tick_font_color and axis_line_color
+        # Default AxisConfig has empty tick_font_color and axis_line_color
 
 
 class TestPlotlyConnectorSeparatorLines:
     """Test _apply_separator_lines."""
 
     def test_separator_creates_shapes(self) -> None:
-        spec = FigureSpec(separator=SeparatorSpec(enabled=True, style="dash", color="gray"))
+        spec = FigureConfig(separator=SeparatorConfig(enabled=True, style="dash", color="gray"))
         fig = go.Figure(data=[go.Bar(x=["A", "B", "C"], y=[1, 2, 3])])
         FigureSpecToPlotly._apply_separator_lines(spec, fig)
         # Should create N-1 = 2 shapes for 3 categories
         assert len(fig.layout.shapes) == 2
 
     def test_separator_disabled_no_shapes(self) -> None:
-        spec = FigureSpec(separator=SeparatorSpec(enabled=False))
+        spec = FigureConfig(separator=SeparatorConfig(enabled=False))
         fig = go.Figure(data=[go.Bar(x=["A", "B"], y=[1, 2])])
         FigureSpecToPlotly._apply_separator_lines(spec, fig)
         assert len(fig.layout.shapes) == 0
@@ -569,15 +569,15 @@ class TestPlotlyConnectorLegendOrder:
     """Test legend traceorder via order field."""
 
     def test_reversed_order(self) -> None:
-        legend = LegendSpec(role="primary", order="reversed")
-        spec = FigureSpec(legends=[legend])
+        legend = LegendConfig(role="primary", order="reversed")
+        spec = FigureConfig(legends=[legend])
         fig = go.Figure(data=[go.Bar(x=["A"], y=[1])])
         FigureSpecToPlotly._apply_legends(spec, fig)
         assert fig.layout.legend.traceorder == "reversed"
 
     def test_normal_order_no_traceorder(self) -> None:
-        legend = LegendSpec(role="primary", order="normal")
-        spec = FigureSpec(legends=[legend])
+        legend = LegendConfig(role="primary", order="normal")
+        spec = FigureConfig(legends=[legend])
         fig = go.Figure(data=[go.Bar(x=["A"], y=[1])])
         FigureSpecToPlotly._apply_legends(spec, fig)
         # traceorder not set for normal

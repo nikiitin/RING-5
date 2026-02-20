@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import pytest
 from matplotlib.figure import Figure
 
-from src.core.visualization.figure_spec import FigureSpec
+from src.core.models.visualization.figure_config import FigureConfig
 from src.web.pages.ui.plotting.download_section import (
     get_matplotlib_extension,
     get_matplotlib_mime,
@@ -135,8 +135,8 @@ class TestMatplotlibPGF:
         assert len(data) > 100
 
     def test_pgf_with_spec_preamble(self, simple_mpl_figure: Figure) -> None:
-        """PGF export uses LaTeX preamble from FigureSpec."""
-        spec = FigureSpec(
+        """PGF export uses LaTeX preamble from FigureConfig."""
+        spec = FigureConfig(
             latex_extra_preamble="\\usepackage{times}",
         )
         data = matplotlib_download_bytes(simple_mpl_figure, "pgf", spec=spec)
@@ -144,7 +144,7 @@ class TestMatplotlibPGF:
         assert b"\\begin{pgfpicture}" in data
 
     def test_pgf_without_spec(self, simple_mpl_figure: Figure) -> None:
-        """PGF export works without a FigureSpec (empty preamble)."""
+        """PGF export works without a FigureConfig (empty preamble)."""
         data = matplotlib_download_bytes(simple_mpl_figure, "pgf", spec=None)
         assert b"\\begin{pgfpicture}" in data
 

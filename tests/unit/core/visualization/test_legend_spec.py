@@ -1,21 +1,21 @@
 """
-Tests for LegendSpec — uniform legend model for primary/secondary/boxed.
+Tests for LegendConfig — uniform legend model for primary/secondary/boxed.
 
 Covers:
   - Default construction and role assignment
-  - LegendSpacingSpec construction and serialization
+  - LegendSpacingConfig construction and serialization
   - to_dict/from_dict round-trip
   - All three roles (primary, secondary, boxed)
 """
 
-from src.core.visualization.legend_spec import LegendSpacingSpec, LegendSpec
+from src.core.models.visualization.legend_config import LegendConfig, LegendSpacingConfig
 
 
 class TestLegendSpacingSpec:
-    """Test LegendSpacingSpec independently."""
+    """Test LegendSpacingConfig independently."""
 
     def test_defaults(self) -> None:
-        spacing = LegendSpacingSpec()
+        spacing = LegendSpacingConfig()
         assert spacing.columnspacing == 0.5
         assert spacing.handletextpad == 0.3
         assert spacing.labelspacing == 0.2
@@ -25,7 +25,7 @@ class TestLegendSpacingSpec:
         assert spacing.borderaxespad == 0.5
 
     def test_custom_values(self) -> None:
-        spacing = LegendSpacingSpec(
+        spacing = LegendSpacingConfig(
             columnspacing=2.0,
             handletextpad=0.5,
             borderpad=1.0,
@@ -35,14 +35,14 @@ class TestLegendSpacingSpec:
         assert spacing.borderpad == 1.0
 
     def test_to_dict(self) -> None:
-        spacing = LegendSpacingSpec(columnspacing=1.5)
+        spacing = LegendSpacingConfig(columnspacing=1.5)
         d = spacing.to_dict()
         assert d["columnspacing"] == 1.5
         assert isinstance(d, dict)
 
     def test_from_dict(self) -> None:
         data = {"columnspacing": 2.0, "borderpad": 0.8}
-        spacing = LegendSpacingSpec.from_dict(data)
+        spacing = LegendSpacingConfig.from_dict(data)
         assert spacing.columnspacing == 2.0
         assert spacing.borderpad == 0.8
         # Underscore defaults preserved
@@ -50,15 +50,15 @@ class TestLegendSpacingSpec:
 
     def test_from_dict_ignores_unknown_keys(self) -> None:
         data = {"columnspacing": 1.0, "unknown_key": 99}
-        spacing = LegendSpacingSpec.from_dict(data)
+        spacing = LegendSpacingConfig.from_dict(data)
         assert spacing.columnspacing == 1.0
 
 
 class TestLegendSpec:
-    """Test LegendSpec construction and serialization."""
+    """Test LegendConfig construction and serialization."""
 
     def test_default_primary(self) -> None:
-        legend = LegendSpec()
+        legend = LegendConfig()
         assert legend.role == "primary"
         assert legend.visible is True
         assert legend.font_size == 8
@@ -67,12 +67,12 @@ class TestLegendSpec:
         assert legend.orientation == "vertical"
 
     def test_secondary_legend(self) -> None:
-        legend = LegendSpec(role="secondary", font_size=-1)
+        legend = LegendConfig(role="secondary", font_size=-1)
         assert legend.role == "secondary"
         assert legend.font_size == -1
 
     def test_boxed_legend(self) -> None:
-        legend = LegendSpec(
+        legend = LegendConfig(
             role="boxed",
             font_size=-1,
             number_fontsize=-1,
@@ -83,7 +83,7 @@ class TestLegendSpec:
         assert legend.text_fontsize == -1
 
     def test_custom_position(self) -> None:
-        legend = LegendSpec(
+        legend = LegendConfig(
             custom_position=True,
             position_x=0.8,
             position_y=0.95,
@@ -95,11 +95,11 @@ class TestLegendSpec:
         assert legend.anchor_x == "right"
 
     def test_to_dict(self) -> None:
-        legend = LegendSpec(
+        legend = LegendConfig(
             role="primary",
             font_size=12,
             bold=True,
-            spacing=LegendSpacingSpec(columnspacing=2.0),
+            spacing=LegendSpacingConfig(columnspacing=2.0),
         )
         d = legend.to_dict()
 
@@ -117,7 +117,7 @@ class TestLegendSpec:
             "spacing": {"columnspacing": 1.5, "borderpad": 0.4},
             "position_x": 0.5,
         }
-        legend = LegendSpec.from_dict(data)
+        legend = LegendConfig.from_dict(data)
 
         assert legend.role == "secondary"
         assert legend.font_size == 10
@@ -127,7 +127,7 @@ class TestLegendSpec:
 
     def test_round_trip(self) -> None:
         """to_dict then from_dict should preserve all values."""
-        original = LegendSpec(
+        original = LegendConfig(
             role="boxed",
             font_size=14,
             bold=True,
@@ -142,14 +142,14 @@ class TestLegendSpec:
             border_width=1.5,
             number_fontsize=10,
             text_fontsize=12,
-            spacing=LegendSpacingSpec(
+            spacing=LegendSpacingConfig(
                 columnspacing=2.0,
                 handletextpad=0.5,
             ),
         )
 
         data = original.to_dict()
-        restored = LegendSpec.from_dict(data)
+        restored = LegendConfig.from_dict(data)
 
         assert restored.role == "boxed"
         assert restored.font_size == 14
@@ -165,8 +165,8 @@ class TestLegendSpec:
 
     def test_spacing_isolation(self) -> None:
         """Two LegendSpecs should have independent spacing."""
-        legend1 = LegendSpec(spacing=LegendSpacingSpec(columnspacing=1.0))
-        legend2 = LegendSpec(spacing=LegendSpacingSpec(columnspacing=2.0))
+        legend1 = LegendConfig(spacing=LegendSpacingConfig(columnspacing=1.0))
+        legend2 = LegendConfig(spacing=LegendSpacingConfig(columnspacing=2.0))
 
         assert legend1.spacing.columnspacing == 1.0
         assert legend2.spacing.columnspacing == 2.0
@@ -186,38 +186,38 @@ class TestLegendSpecStep8Fields:
 
     def test_col_width_default_sentinel(self) -> None:
         """Sentinel -1.0 means 'auto column width'."""
-        spec = LegendSpec()
+        spec = LegendConfig()
         assert spec.col_width == -1.0
 
     def test_col_width_custom(self) -> None:
-        spec = LegendSpec(col_width=120.0)
+        spec = LegendConfig(col_width=120.0)
         assert spec.col_width == 120.0
 
     def test_order_default_normal(self) -> None:
-        spec = LegendSpec()
+        spec = LegendConfig()
         assert spec.order == "normal"
 
     def test_order_reversed(self) -> None:
-        spec = LegendSpec(order="reversed")
+        spec = LegendConfig(order="reversed")
         assert spec.order == "reversed"
 
     def test_trace_distribution_empty_default(self) -> None:
-        spec = LegendSpec()
+        spec = LegendConfig()
         assert spec.trace_distribution == ""
 
     def test_trace_distribution_custom(self) -> None:
-        spec = LegendSpec(trace_distribution="0,1,2")
+        spec = LegendConfig(trace_distribution="0,1,2")
         assert spec.trace_distribution == "0,1,2"
 
     def test_step8_fields_in_to_dict(self) -> None:
-        spec = LegendSpec(col_width=100.0, order="reversed", trace_distribution="1,3")
+        spec = LegendConfig(col_width=100.0, order="reversed", trace_distribution="1,3")
         d = spec.to_dict()
         assert d["col_width"] == 100.0
         assert d["order"] == "reversed"
         assert d["trace_distribution"] == "1,3"
 
     def test_step8_round_trip(self) -> None:
-        spec = LegendSpec(
+        spec = LegendConfig(
             role="primary",
             col_width=80.0,
             order="reversed",
@@ -225,7 +225,7 @@ class TestLegendSpecStep8Fields:
             ncol=3,
         )
         data = spec.to_dict()
-        restored = LegendSpec.from_dict(data)
+        restored = LegendConfig.from_dict(data)
         assert restored.col_width == 80.0
         assert restored.order == "reversed"
         assert restored.trace_distribution == "0,2,4"

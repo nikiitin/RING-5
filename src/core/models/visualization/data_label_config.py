@@ -1,5 +1,5 @@
 """
-Data label specification — annotations on bars, points, and markers.
+Data label configuration — annotations on bars, points, and markers.
 
 Controls how numeric value labels appear on plot traces (e.g., bar values,
 point annotations). Settings map to widget section ``DATA_LABELS`` in
@@ -13,7 +13,7 @@ from typing import Any, Dict, Literal
 
 
 @dataclass(frozen=True)
-class DataLabelSpec:
+class DataLabelConfig:
     """Specification for data labels (value annotations) on plot traces.
 
     All fields have safe defaults that produce no visible labels when
@@ -74,14 +74,14 @@ class DataLabelSpec:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> DataLabelSpec:
+    def from_dict(cls, data: Dict[str, Any]) -> DataLabelConfig:
         """Deserialize from a plain dictionary.
 
         Args:
             data: Dictionary with spec fields. Unknown keys are ignored.
 
         Returns:
-            New DataLabelSpec instance.
+            New DataLabelConfig instance.
         """
         return cls(
             enabled=bool(data.get("enabled", False)),

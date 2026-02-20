@@ -1,9 +1,9 @@
 """
-Config bridge — bidirectional mapping between flat config dicts and FigureSpec.
+Config bridge — bidirectional mapping between flat config dicts and FigureConfig.
 
 ``ConfigBridge`` uses the ``spec_path`` annotations on ``WidgetDef`` s to:
-  - Extract values from a ``FigureSpec`` into a flat config dict
-  - Update a ``FigureSpec`` from a flat config dict
+  - Extract values from a ``FigureConfig`` into a flat config dict
+  - Update a ``FigureConfig`` from a flat config dict
 
 This eliminates the need for manual mapping code between the UI layer
 and the domain layer.
@@ -13,7 +13,7 @@ Usage:
 
     bridge = ConfigBridge([TYPOGRAPHY, LEGEND])
     config = bridge.spec_to_config(figure_spec)
-    spec   = bridge.config_to_spec(config, base_spec=FigureSpec())
+    spec   = bridge.config_to_spec(config, base_spec=FigureConfig())
 """
 
 from __future__ import annotations
@@ -21,12 +21,12 @@ from __future__ import annotations
 import copy
 from typing import Any, Dict, List, Optional, Sequence
 
-from src.core.visualization.figure_spec import FigureSpec
+from src.core.models.visualization.figure_config import FigureConfig
 from src.core.visualization.widgets.widget_def import WidgetSection
 
 
 class ConfigBridge:
-    """Bidirectional FigureSpec ↔ flat config dict mapper.
+    """Bidirectional FigureConfig ↔ flat config dict mapper.
 
     Only maps fields that have a ``spec_path`` annotation on their
     ``WidgetDef``.  Other config keys pass through untouched.
@@ -48,14 +48,14 @@ class ConfigBridge:
         """Return all config keys that have a spec_path mapping."""
         return list(self._mappings.keys())
 
-    def spec_to_config(self, spec: FigureSpec) -> Dict[str, Any]:
-        """Extract a flat config dict from a FigureSpec.
+    def spec_to_config(self, spec: FigureConfig) -> Dict[str, Any]:
+        """Extract a flat config dict from a FigureConfig.
 
         Reads each mapped ``spec_path`` from the spec and writes the
         value to the corresponding config key.
 
         Args:
-            spec: The FigureSpec to extract values from.
+            spec: The FigureConfig to extract values from.
 
         Returns:
             Flat dict with widget config keys and their values.
@@ -70,21 +70,21 @@ class ConfigBridge:
     def config_to_spec(
         self,
         config: Dict[str, Any],
-        base_spec: Optional[FigureSpec] = None,
-    ) -> FigureSpec:
-        """Update a FigureSpec from a flat config dict.
+        base_spec: Optional[FigureConfig] = None,
+    ) -> FigureConfig:
+        """Update a FigureConfig from a flat config dict.
 
-        Creates a deep copy of ``base_spec`` (or a default ``FigureSpec``)
+        Creates a deep copy of ``base_spec`` (or a default ``FigureConfig``)
         and sets each mapped field from the config dict.
 
         Args:
             config: Flat config dict from the UI widgets.
-            base_spec: Starting FigureSpec to update. Defaults to new instance.
+            base_spec: Starting FigureConfig to update. Defaults to new instance.
 
         Returns:
-            A new FigureSpec with mapped values applied.
+            A new FigureConfig with mapped values applied.
         """
-        spec = copy.deepcopy(base_spec) if base_spec else FigureSpec()
+        spec = copy.deepcopy(base_spec) if base_spec else FigureConfig()
         for config_key, path in self._mappings.items():
             if config_key in config:
                 _set_nested(spec, path, config[config_key])

@@ -1,5 +1,5 @@
 """
-Series style specification — per-trace styling overrides.
+Series style configuration — per-trace styling overrides.
 
 Controls visual properties that vary per trace (series) in multi-series
 plots: line width, marker size, opacity, bar borders, and hatching.
@@ -15,10 +15,10 @@ from typing import Any, Dict
 
 
 @dataclass(frozen=True)
-class SeriesStyleSpec:
+class SeriesStyleConfig:
     """Per-trace styling overrides.
 
-    Each ``SeriesStyleSpec`` maps 1:1 to a trace in the figure.  If
+    Each ``SeriesStyleConfig`` maps 1:1 to a trace in the figure.  If
     ``FigureSpec.series_styles`` has fewer entries than traces, the
     remaining traces use default styling.
 
@@ -60,14 +60,14 @@ class SeriesStyleSpec:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> SeriesStyleSpec:
+    def from_dict(cls, data: Dict[str, Any]) -> SeriesStyleConfig:
         """Deserialize from a plain dictionary.
 
         Args:
             data: Dictionary with spec fields. Unknown keys are ignored.
 
         Returns:
-            New SeriesStyleSpec instance.
+            New SeriesStyleConfig instance.
         """
         return cls(
             line_width=float(data.get("line_width", 2.0)),

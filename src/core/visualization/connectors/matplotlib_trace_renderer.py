@@ -1,9 +1,9 @@
 """
-Matplotlib trace renderer — draws ``TraceSpec`` instances on matplotlib axes.
+Matplotlib trace renderer — draws ``TraceConfig`` instances on matplotlib axes.
 
 This module is the **engine-agnostic** trace renderer for the matplotlib
-connector.  It reads from ``TraceSpec`` sub-classes (``BarTraceSpec``,
-``LineTraceSpec``, ``ScatterTraceSpec``, ``HistogramTraceSpec``) and
+connector.  It reads from ``TraceConfig`` sub-classes (``BarTraceConfig``,
+``LineTraceConfig``, ``ScatterTraceConfig``, ``HistogramTraceConfig``) and
 draws the equivalent matplotlib artists.
 
 **No Plotly dependency** — this module does not import or reference
@@ -14,7 +14,7 @@ Design notes:
     * **No styling** — only draws data; layout/style is handled by
       ``FigureSpecToMatplotlib.apply()``.
     * **Pre-computed positions** — bar positions, widths, offsets are
-      read directly from ``BarTraceSpec``; no grouping math here.
+      read directly from ``BarTraceConfig``; no grouping math here.
 """
 
 from __future__ import annotations
@@ -24,30 +24,30 @@ from typing import Any, Dict, List, Optional
 
 from matplotlib.axes import Axes
 
-from src.core.visualization.trace_spec import (
-    BarTraceSpec,
-    HistogramTraceSpec,
-    LineTraceSpec,
-    ScatterTraceSpec,
-    TraceSpec,
+from src.core.models.visualization.trace_config import (
+    BarTraceConfig,
+    HistogramTraceConfig,
+    LineTraceConfig,
+    ScatterTraceConfig,
+    TraceConfig,
 )
 
 logger = logging.getLogger(__name__)
 
 
 class MatplotlibTraceRenderer:
-    """Draw ``TraceSpec`` instances on a matplotlib ``Axes``.
+    """Draw ``TraceConfig`` instances on a matplotlib ``Axes``.
 
     This replaces the previous implementation that read from Plotly
     ``go.Figure`` objects.  All trace data now comes from engine-agnostic
-    ``TraceSpec`` dataclasses.
+    ``TraceConfig`` dataclasses.
     """
 
     # ── public API ────────────────────────────────────────────────────────
 
     @staticmethod
     def render(
-        traces: List[TraceSpec],
+        traces: List[TraceConfig],
         ax: Axes,
         barmode: str = "group",
         palette_colors: Optional[List[str]] = None,
@@ -55,12 +55,12 @@ class MatplotlibTraceRenderer:
         """Render all traces onto *ax*.
 
         Args:
-            traces: Ordered list of ``TraceSpec`` instances to draw.
+            traces: Ordered list of ``TraceConfig`` instances to draw.
             ax: The matplotlib axes to draw on.
             barmode: Bar arrangement mode (``"group"`` or ``"stack"``).
             palette_colors: Resolved palette hex colours.  When supplied,
                 each trace is coloured ``palette_colors[idx]`` instead of
-                using the colour embedded in the ``TraceSpec``.  This
+                using the colour embedded in the ``TraceConfig``.  This
                 ensures the user-selected palette is respected.
 
         Secondary-Y traces (``yaxis='y2'``) are rendered on a twin axis
@@ -70,7 +70,7 @@ class MatplotlibTraceRenderer:
             Number of traces successfully rendered.
         """
         # Collect bar traces for stacking computation
-        bar_specs: List[BarTraceSpec] = [t for t in traces if isinstance(t, BarTraceSpec)]
+        bar_specs: List[BarTraceConfig] = [t for t in traces if isinstance(t, BarTraceConfig)]
 
         # Secondary Y handling
         has_secondary = any(t.yaxis == "y2" for t in traces)
@@ -92,7 +92,7 @@ class MatplotlibTraceRenderer:
                 override_color = palette_colors[idx % len(palette_colors)]
 
             try:
-                if isinstance(trace, BarTraceSpec):
+                if isinstance(trace, BarTraceConfig):
                     bar_idx = bar_specs.index(trace)
                     MatplotlibTraceRenderer._draw_bar(
                         trace,
@@ -104,21 +104,21 @@ class MatplotlibTraceRenderer:
                         override_color=override_color,
                     )
                     count += 1
-                elif isinstance(trace, LineTraceSpec):
+                elif isinstance(trace, LineTraceConfig):
                     MatplotlibTraceRenderer._draw_line(
                         trace,
                         target,
                         override_color=override_color,
                     )
                     count += 1
-                elif isinstance(trace, ScatterTraceSpec):
+                elif isinstance(trace, ScatterTraceConfig):
                     MatplotlibTraceRenderer._draw_scatter(
                         trace,
                         target,
                         override_color=override_color,
                     )
                     count += 1
-                elif isinstance(trace, HistogramTraceSpec):
+                elif isinstance(trace, HistogramTraceConfig):
                     MatplotlibTraceRenderer._draw_histogram(
                         trace,
                         target,
@@ -127,7 +127,7 @@ class MatplotlibTraceRenderer:
                     count += 1
                 else:
                     logger.warning(
-                        "Unknown TraceSpec type: %s",
+                        "Unknown TraceConfig type: %s",
                         type(trace).__name__,
                     )
             except Exception:
@@ -139,15 +139,15 @@ class MatplotlibTraceRenderer:
 
     @staticmethod
     def _draw_bar(
-        spec: BarTraceSpec,
+        spec: BarTraceConfig,
         ax: Axes,
         bar_idx: int,
-        bar_specs: List[BarTraceSpec],
+        bar_specs: List[BarTraceConfig],
         barmode: str,
         categorical_labels: List[str],
         override_color: Optional[str] = None,
     ) -> None:
-        """Draw a single bar trace from its ``BarTraceSpec``."""
+        """Draw a single bar trace from its ``BarTraceConfig``."""
         color = override_color or spec.color or None
         is_categorical = bool(spec.x) and isinstance(spec.x[0], str)
 
@@ -207,11 +207,11 @@ class MatplotlibTraceRenderer:
 
     @staticmethod
     def _draw_line(
-        spec: LineTraceSpec,
+        spec: LineTraceConfig,
         ax: Axes,
         override_color: Optional[str] = None,
     ) -> None:
-        """Draw a single line trace from its ``LineTraceSpec``."""
+        """Draw a single line trace from its ``LineTraceConfig``."""
         props: Dict[str, Any] = {}
         color = override_color or spec.color
         if color:
@@ -226,11 +226,11 @@ class MatplotlibTraceRenderer:
 
     @staticmethod
     def _draw_scatter(
-        spec: ScatterTraceSpec,
+        spec: ScatterTraceConfig,
         ax: Axes,
         override_color: Optional[str] = None,
     ) -> None:
-        """Draw a single scatter trace from its ``ScatterTraceSpec``."""
+        """Draw a single scatter trace from its ``ScatterTraceConfig``."""
         props: Dict[str, Any] = {}
         color = override_color or spec.color
         if color:
@@ -243,11 +243,11 @@ class MatplotlibTraceRenderer:
 
     @staticmethod
     def _draw_histogram(
-        spec: HistogramTraceSpec,
+        spec: HistogramTraceConfig,
         ax: Axes,
         override_color: Optional[str] = None,
     ) -> None:
-        """Draw a single histogram trace from its ``HistogramTraceSpec``."""
+        """Draw a single histogram trace from its ``HistogramTraceConfig``."""
         props: Dict[str, Any] = {}
         color = override_color or spec.color
         if color:
@@ -269,7 +269,7 @@ _DASH_MAP: Dict[str, str] = {
 
 def _stack_bottom(
     bar_idx: int,
-    bar_specs: List[BarTraceSpec],
+    bar_specs: List[BarTraceConfig],
 ) -> List[float]:
     """Compute cumulative bottom for stacked bars."""
     n_positions = len(bar_specs[bar_idx].y) if bar_specs else 0
@@ -283,7 +283,7 @@ def _stack_bottom(
 
 def _stack_bottom_numeric(
     bar_idx: int,
-    bar_specs: List[BarTraceSpec],
+    bar_specs: List[BarTraceConfig],
     x_positions: List[float],
 ) -> List[float]:
     """Compute cumulative bottom for numeric-axis stacked bars."""

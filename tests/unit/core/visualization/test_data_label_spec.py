@@ -1,10 +1,10 @@
-"""Tests for DataLabelSpec — construction, serialization, immutability."""
+"""Tests for DataLabelConfig — construction, serialization, immutability."""
 
 from __future__ import annotations
 
 import pytest
 
-from src.core.visualization.data_label_spec import DataLabelSpec
+from src.core.models.visualization.data_label_config import DataLabelConfig
 
 
 class TestDataLabelSpecDefaults:
@@ -12,7 +12,7 @@ class TestDataLabelSpecDefaults:
 
     def test_default_values(self) -> None:
         """All defaults should produce no visible labels."""
-        spec = DataLabelSpec()
+        spec = DataLabelConfig()
 
         assert spec.enabled is False
         assert spec.color_mode == "auto"
@@ -33,7 +33,7 @@ class TestDataLabelSpecCustom:
 
     def test_custom_values(self) -> None:
         """Constructor accepts all fields."""
-        spec = DataLabelSpec(
+        spec = DataLabelConfig(
             enabled=True,
             color_mode="contrast",
             custom_color="#FF0000",
@@ -67,13 +67,13 @@ class TestDataLabelSpecFrozen:
 
     def test_frozen(self) -> None:
         """Spec must be immutable."""
-        spec = DataLabelSpec()
+        spec = DataLabelConfig()
         with pytest.raises(AttributeError):
             spec.enabled = True  # type: ignore[misc]
 
     def test_frozen_custom_color(self) -> None:
         """Cannot mutate custom_color."""
-        spec = DataLabelSpec(custom_color="#00FF00")
+        spec = DataLabelConfig(custom_color="#00FF00")
         with pytest.raises(AttributeError):
             spec.custom_color = "#AABBCC"  # type: ignore[misc]
 
@@ -83,13 +83,13 @@ class TestDataLabelSpecSerialization:
 
     def test_default_round_trip(self) -> None:
         """Default spec round-trips through dict."""
-        original = DataLabelSpec()
-        restored = DataLabelSpec.from_dict(original.to_dict())
+        original = DataLabelConfig()
+        restored = DataLabelConfig.from_dict(original.to_dict())
         assert restored == original
 
     def test_custom_round_trip(self) -> None:
         """Custom spec preserves all values through round-trip."""
-        original = DataLabelSpec(
+        original = DataLabelConfig(
             enabled=True,
             color_mode="custom",
             custom_color="#ABCDEF",
@@ -103,12 +103,12 @@ class TestDataLabelSpecSerialization:
             size_constraint="inside",
             auto_contrast=False,
         )
-        restored = DataLabelSpec.from_dict(original.to_dict())
+        restored = DataLabelConfig.from_dict(original.to_dict())
         assert restored == original
 
     def test_to_dict_produces_plain_dict(self) -> None:
         """to_dict() should produce plain Python types."""
-        spec = DataLabelSpec(enabled=True, font_size=12)
+        spec = DataLabelConfig(enabled=True, font_size=12)
         d = spec.to_dict()
 
         assert isinstance(d, dict)
@@ -118,7 +118,7 @@ class TestDataLabelSpecSerialization:
 
     def test_from_dict_ignores_unknown_keys(self) -> None:
         """Unknown keys in input dict should not raise."""
-        spec = DataLabelSpec.from_dict(
+        spec = DataLabelConfig.from_dict(
             {
                 "enabled": True,
                 "unknown_key": "should_be_ignored",
@@ -129,42 +129,42 @@ class TestDataLabelSpecSerialization:
 
     def test_from_dict_empty_dict(self) -> None:
         """Empty dict produces default spec."""
-        spec = DataLabelSpec.from_dict({})
-        assert spec == DataLabelSpec()
+        spec = DataLabelConfig.from_dict({})
+        assert spec == DataLabelConfig()
 
 
 class TestDataLabelSpecOnFigureSpec:
-    """Test DataLabelSpec integration with FigureSpec."""
+    """Test DataLabelConfig integration with FigureConfig."""
 
     def test_figure_spec_default_data_labels_is_none(self) -> None:
-        """FigureSpec default has no data labels."""
-        from src.core.visualization.figure_spec import FigureSpec
+        """FigureConfig default has no data labels."""
+        from src.core.models.visualization.figure_config import FigureConfig
 
-        spec = FigureSpec()
+        spec = FigureConfig()
         assert spec.data_labels is None
 
     def test_figure_spec_with_data_labels(self) -> None:
-        """FigureSpec accepts DataLabelSpec."""
-        from src.core.visualization.figure_spec import FigureSpec
+        """FigureConfig accepts DataLabelConfig."""
+        from src.core.models.visualization.figure_config import FigureConfig
 
-        dl = DataLabelSpec(enabled=True, font_size=12)
-        spec = FigureSpec(data_labels=dl)
+        dl = DataLabelConfig(enabled=True, font_size=12)
+        spec = FigureConfig(data_labels=dl)
 
         assert spec.data_labels is not None
         assert spec.data_labels.enabled is True
         assert spec.data_labels.font_size == 12
 
     def test_figure_spec_round_trip_with_data_labels(self) -> None:
-        """FigureSpec with data_labels round-trips through dict."""
-        from src.core.visualization.figure_spec import FigureSpec
+        """FigureConfig with data_labels round-trips through dict."""
+        from src.core.models.visualization.figure_config import FigureConfig
 
-        dl = DataLabelSpec(
+        dl = DataLabelConfig(
             enabled=True,
             color_mode="contrast",
             format_string=".1f",
         )
-        spec = FigureSpec(data_labels=dl, title="Test")
-        restored = FigureSpec.from_dict(spec.to_dict())
+        spec = FigureConfig(data_labels=dl, title="Test")
+        restored = FigureConfig.from_dict(spec.to_dict())
 
         assert restored.data_labels is not None
         assert restored.data_labels.enabled is True
@@ -172,10 +172,10 @@ class TestDataLabelSpecOnFigureSpec:
         assert restored.data_labels.format_string == ".1f"
 
     def test_figure_spec_round_trip_without_data_labels(self) -> None:
-        """FigureSpec without data_labels round-trips as None."""
-        from src.core.visualization.figure_spec import FigureSpec
+        """FigureConfig without data_labels round-trips as None."""
+        from src.core.models.visualization.figure_config import FigureConfig
 
-        spec = FigureSpec(title="No Labels")
-        restored = FigureSpec.from_dict(spec.to_dict())
+        spec = FigureConfig(title="No Labels")
+        restored = FigureConfig.from_dict(spec.to_dict())
 
         assert restored.data_labels is None

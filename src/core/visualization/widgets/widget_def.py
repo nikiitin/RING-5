@@ -37,7 +37,7 @@ class WidgetDef:
     label: str
     default: Any
     help_text: str = ""
-    # Optional mapping to a FigureSpec field path, e.g. "dimensions.margins.left"
+    # Optional mapping to a FigureConfig field path, e.g. "dimensions.margins.left"
     spec_path: str = ""
 
 

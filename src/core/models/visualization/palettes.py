@@ -8,7 +8,7 @@ previously existed in ``base_plot.BUILTIN_PALETTES``,
 
 Usage::
 
-    from src.core.visualization.palettes import resolve_palette, get_palette_names
+    from src.core.models.visualization.palettes import resolve_palette, get_palette_names
 
     colors = resolve_palette("wong")       # List[str] of hex
     names  = get_palette_names()           # colorblind-safe first

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from src.core.visualization.palettes import (
+from src.core.models.visualization.palettes import (
     PALETTE_REGISTRY,
     get_palette_names,
     is_colorblind_safe,

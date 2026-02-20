@@ -1,7 +1,7 @@
 """
-Top-level FigureSpec and shared dimension / separator sub-specs.
+Top-level FigureConfig and shared dimension / separator sub-specs.
 
-``FigureSpec`` is the canonical, engine-agnostic description of a figure.
+``FigureConfig`` is the canonical, engine-agnostic description of a figure.
 Both the Plotly and matplotlib connectors read from it; neither modifies it.
 """
 
@@ -11,13 +11,16 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional
 
 if TYPE_CHECKING:
-    from src.core.visualization.annotation_spec import AnnotationSpec, ReferenceLineSpec
-    from src.core.visualization.axis_spec import AxesSpec
-    from src.core.visualization.data_label_spec import DataLabelSpec
-    from src.core.visualization.legend_spec import LegendSpec
-    from src.core.visualization.series_style_spec import SeriesStyleSpec
-    from src.core.visualization.trace_spec import TraceSpec
-    from src.core.visualization.typography_spec import TypographySpec
+    from src.core.models.visualization.annotation_config import (
+        AnnotationConfig,
+        ReferenceLineConfig,
+    )
+    from src.core.models.visualization.axis_config import AxesConfig
+    from src.core.models.visualization.data_label_config import DataLabelConfig
+    from src.core.models.visualization.legend_config import LegendConfig
+    from src.core.models.visualization.series_style_config import SeriesStyleConfig
+    from src.core.models.visualization.trace_config import TraceConfig
+    from src.core.models.visualization.typography_config import TypographyConfig
 
 
 # ────────────────────────────────────────────────────────────────────
@@ -26,7 +29,7 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class MarginsSpec:
+class MarginsConfig:
     """Figure margins in **points** (1 pt ≈ 1/72 inch).
 
     Both Plotly and matplotlib understand points.  Plotly converts
@@ -56,7 +59,7 @@ class MarginsSpec:
 
 
 @dataclass
-class DimensionsSpec:
+class DimensionConfig:
     """Physical dimensions of the figure.
 
     ``width`` and ``height`` are in **inches** (the publication unit).
@@ -66,7 +69,7 @@ class DimensionsSpec:
     width: float = 7.0  # inches — default single-column IEEE
     height: float = 4.0  # inches
     dpi: int = 300  # dots-per-inch for raster output
-    margins: MarginsSpec = field(default_factory=MarginsSpec)
+    margins: MarginsConfig = field(default_factory=MarginsConfig)
     bar_width_scale: float = 1.0  # multiplier for bar width (matplotlib)
     bargap: float = 0.15  # gap between bar groups (Plotly)
     bargroupgap: float = 0.1  # gap within bar groups (Plotly)
@@ -78,7 +81,7 @@ class DimensionsSpec:
 
 
 @dataclass
-class SeparatorSpec:
+class SeparatorConfig:
     """Group separator lines between bar clusters."""
 
     enabled: bool = False
@@ -87,12 +90,12 @@ class SeparatorSpec:
 
 
 # ────────────────────────────────────────────────────────────────────
-# FigureSpec — the top-level container
+# FigureConfig — the top-level container
 # ────────────────────────────────────────────────────────────────────
 
 
 @dataclass
-class FigureSpec:
+class FigureConfig:
     """Engine-agnostic, complete description of a figure.
 
     This is the **single source of truth** that both the Plotly and
@@ -110,34 +113,34 @@ class FigureSpec:
     # imported at the class body level to avoid circular deps.
 
     # Dimensions & rendering
-    dimensions: DimensionsSpec = field(default_factory=DimensionsSpec)
+    dimensions: DimensionConfig = field(default_factory=DimensionConfig)
 
     # Typography  (font family + per-element sizes/bold)
-    typography: Optional[TypographySpec] = None  # replaced by post_init if None
+    typography: Optional[TypographyConfig] = None  # replaced by post_init if None
 
     # Axes configuration
-    axes: Optional[AxesSpec] = None  # replaced by post_init if None
+    axes: Optional[AxesConfig] = None  # replaced by post_init if None
 
     # Legends — uniform list (legend1, legend2, legend3)
-    legends: List[LegendSpec] = field(default_factory=list)
+    legends: List[LegendConfig] = field(default_factory=list)
 
     # Trace descriptions
-    traces: List[TraceSpec] = field(default_factory=list)
+    traces: List[TraceConfig] = field(default_factory=list)
 
     # Text annotations
-    annotations: List[AnnotationSpec] = field(default_factory=list)
+    annotations: List[AnnotationConfig] = field(default_factory=list)
 
     # Group separators
-    separator: SeparatorSpec = field(default_factory=SeparatorSpec)
+    separator: SeparatorConfig = field(default_factory=SeparatorConfig)
 
     # Data labels (value annotations on bars/points)
-    data_labels: Optional[DataLabelSpec] = None
+    data_labels: Optional[DataLabelConfig] = None
 
     # Per-trace styling overrides
-    series_styles: List[SeriesStyleSpec] = field(default_factory=list)
+    series_styles: List[SeriesStyleConfig] = field(default_factory=list)
 
     # Per-trace overrides keyed by trace name (e.g., {"trace_A": ...})
-    trace_overrides: Dict[str, SeriesStyleSpec] = field(default_factory=dict)
+    trace_overrides: Dict[str, SeriesStyleConfig] = field(default_factory=dict)
 
     # Color palette (Wong colorblind-safe by default)
     color_palette: List[str] = field(
@@ -162,7 +165,7 @@ class FigureSpec:
     )
 
     # Reference lines (horizontal/vertical baselines, thresholds)
-    reference_lines: List[ReferenceLineSpec] = field(default_factory=list)
+    reference_lines: List[ReferenceLineConfig] = field(default_factory=list)
 
     # Hover / interactivity
     hovermode: str = "x unified"
@@ -189,13 +192,13 @@ class FigureSpec:
         """Initialize sub-specs with proper defaults if not provided."""
         # Lazy imports to avoid circular dependencies while keeping
         # type safety at runtime.
-        from src.core.visualization.axis_spec import AxesSpec
-        from src.core.visualization.typography_spec import TypographySpec
+        from src.core.models.visualization.axis_config import AxesConfig
+        from src.core.models.visualization.typography_config import TypographyConfig
 
         if self.typography is None:
-            self.typography = TypographySpec()
+            self.typography = TypographyConfig()
         if self.axes is None:
-            self.axes = AxesSpec()
+            self.axes = AxesConfig()
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize the entire spec tree to a plain dictionary.
@@ -207,51 +210,56 @@ class FigureSpec:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "FigureSpec":
-        """Reconstruct a FigureSpec from a serialized dictionary.
+    def from_dict(cls, data: Dict[str, Any]) -> "FigureConfig":
+        """Reconstruct a FigureConfig from a serialized dictionary.
 
-        Round-trip: ``FigureSpec.from_dict(spec.to_dict()) == spec``.
+        Round-trip: ``FigureConfig.from_dict(spec.to_dict()) == spec``.
         """
-        from src.core.visualization.annotation_spec import AnnotationSpec, ReferenceLineSpec
-        from src.core.visualization.axis_spec import AxesSpec
-        from src.core.visualization.data_label_spec import DataLabelSpec
-        from src.core.visualization.legend_spec import LegendSpec
-        from src.core.visualization.series_style_spec import SeriesStyleSpec
-        from src.core.visualization.typography_spec import TypographySpec
+        from src.core.models.visualization.annotation_config import (
+            AnnotationConfig,
+            ReferenceLineConfig,
+        )
+        from src.core.models.visualization.axis_config import AxesConfig
+        from src.core.models.visualization.data_label_config import DataLabelConfig
+        from src.core.models.visualization.legend_config import LegendConfig
+        from src.core.models.visualization.series_style_config import SeriesStyleConfig
+        from src.core.models.visualization.typography_config import TypographyConfig
 
         dims_data = data.get("dimensions", {})
         margins_data = dims_data.pop("margins", {}) if isinstance(dims_data, dict) else {}
-        margins = MarginsSpec(**margins_data) if margins_data else MarginsSpec()
-        dimensions = DimensionsSpec(margins=margins, **dims_data) if dims_data else DimensionsSpec()
+        margins = MarginsConfig(**margins_data) if margins_data else MarginsConfig()
+        dimensions = (
+            DimensionConfig(margins=margins, **dims_data) if dims_data else DimensionConfig()
+        )
 
         typo_data = data.get("typography", {})
-        typography = TypographySpec(**typo_data) if typo_data else TypographySpec()
+        typography = TypographyConfig(**typo_data) if typo_data else TypographyConfig()
 
         axes_data = data.get("axes", {})
-        axes = AxesSpec.from_dict(axes_data) if axes_data else AxesSpec()
+        axes = AxesConfig.from_dict(axes_data) if axes_data else AxesConfig()
 
         legends_data = data.get("legends", [])
-        legends = [LegendSpec.from_dict(ld) for ld in legends_data]
+        legends = [LegendConfig.from_dict(ld) for ld in legends_data]
 
         annotations_data = data.get("annotations", [])
-        annotations = [AnnotationSpec(**ad) for ad in annotations_data]
+        annotations = [AnnotationConfig(**ad) for ad in annotations_data]
 
         sep_data = data.get("separator", {})
-        separator = SeparatorSpec(**sep_data) if sep_data else SeparatorSpec()
+        separator = SeparatorConfig(**sep_data) if sep_data else SeparatorConfig()
 
         dl_data = data.get("data_labels")
-        data_labels = DataLabelSpec.from_dict(dl_data) if isinstance(dl_data, dict) else None
+        data_labels = DataLabelConfig.from_dict(dl_data) if isinstance(dl_data, dict) else None
 
         ss_data = data.get("series_styles", [])
-        series_styles = [SeriesStyleSpec.from_dict(sd) for sd in ss_data if isinstance(sd, dict)]
+        series_styles = [SeriesStyleConfig.from_dict(sd) for sd in ss_data if isinstance(sd, dict)]
 
         to_raw = data.get("trace_overrides", {})
-        trace_overrides: Dict[str, SeriesStyleSpec] = {
-            k: SeriesStyleSpec.from_dict(v) for k, v in to_raw.items() if isinstance(v, dict)
+        trace_overrides: Dict[str, SeriesStyleConfig] = {
+            k: SeriesStyleConfig.from_dict(v) for k, v in to_raw.items() if isinstance(v, dict)
         }
 
         rl_data = data.get("reference_lines", [])
-        reference_lines = [ReferenceLineSpec(**rd) for rd in rl_data if isinstance(rd, dict)]
+        reference_lines = [ReferenceLineConfig(**rd) for rd in rl_data if isinstance(rd, dict)]
 
         # Default color palette (Wong colorblind-safe)
         default_palette = [

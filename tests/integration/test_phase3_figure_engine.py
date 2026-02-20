@@ -1,5 +1,5 @@
 """
-Phase 3 integration tests — FigureEngine ↔ FigureSpec pipeline.
+Phase 3 integration tests — FigureEngine ↔ FigureConfig pipeline.
 
 Validates:
     1. End-to-end: FigureEngine.build() produces styled figures
@@ -16,10 +16,10 @@ import pandas as pd
 import plotly.graph_objects as go
 import pytest
 
+from src.core.models.visualization.figure_config import FigureConfig
+from src.core.models.visualization.resolvers import resolve_config
 from src.core.visualization.connectors.builders import ConfigSpecBuilder
 from src.core.visualization.connectors.plotly_connector import FigureSpecToPlotly
-from src.core.visualization.figure_spec import FigureSpec
-from src.core.visualization.resolvers import resolve_spec
 from src.web.figures.engine import FigureEngine
 from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
 
@@ -152,7 +152,7 @@ class TestConfigSpecRoundTrip:
 
     def _build_spec_fig(self, config: Dict[str, Any]) -> go.Figure:
         """Build a figure using ConfigSpecBuilder + FigureSpecToPlotly."""
-        spec = resolve_spec(ConfigSpecBuilder.from_config(config, "bar"))
+        spec = resolve_config(ConfigSpecBuilder.from_config(config, "bar"))
         fig = go.Figure()
         FigureSpecToPlotly.apply(spec, fig)
         return fig
@@ -212,12 +212,12 @@ class TestConfigSpecRoundTrip:
 
 
 class TestSpecSerialization:
-    """FigureSpec from config round-trips through to_dict / from_dict."""
+    """FigureConfig from config round-trips through to_dict / from_dict."""
 
     def test_round_trip(self, bar_config: Dict[str, Any]) -> None:
-        spec = resolve_spec(ConfigSpecBuilder.from_config(bar_config, "bar"))
+        spec = resolve_config(ConfigSpecBuilder.from_config(bar_config, "bar"))
         data = spec.to_dict()
-        restored = FigureSpec.from_dict(data)
+        restored = FigureConfig.from_dict(data)
 
         assert restored.title == spec.title
         assert restored.dimensions.width == spec.dimensions.width
@@ -227,7 +227,7 @@ class TestSpecSerialization:
 
     def test_spec_contains_all_config_values(self, bar_config: Dict[str, Any]) -> None:
         """Key config values must be faithfully captured in the spec."""
-        spec = resolve_spec(ConfigSpecBuilder.from_config(bar_config, "bar"))
+        spec = resolve_config(ConfigSpecBuilder.from_config(bar_config, "bar"))
 
         assert spec.title == "IPC by Benchmark"
         assert spec.axes.x.label == "Benchmark"

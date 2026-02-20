@@ -1,7 +1,7 @@
 """Unified preset application across engines.
 
 Merges publication-quality preset settings onto an existing
-:class:`FigureSpec` that was built from the user's plot config.
+:class:`FigureConfig` that was built from the user's plot config.
 
 **Design**:
     The user's config provides *data-derived* fields (traces, colors,
@@ -21,12 +21,12 @@ from __future__ import annotations
 import dataclasses
 from typing import Any, Dict
 
+from src.core.models.visualization.figure_config import FigureConfig
 from src.core.visualization.connectors.builders import PresetSpecBuilder
-from src.core.visualization.figure_spec import FigureSpec
 
 
 class PresetApplicator:
-    """Apply preset values onto a FigureSpec, engine-agnostic.
+    """Apply preset values onto a FigureConfig, engine-agnostic.
 
     This is a **stateless** service — all methods are static.
 
@@ -41,9 +41,9 @@ class PresetApplicator:
 
     @staticmethod
     def apply(
-        spec: FigureSpec,
+        spec: FigureConfig,
         preset_info: Dict[str, Any],
-    ) -> FigureSpec:
+    ) -> FigureConfig:
         """Overlay preset values onto an existing spec.
 
         Args:
@@ -53,11 +53,11 @@ class PresetApplicator:
                 loaded from the YAML preset catalogue.
 
         Returns:
-            A **new** :class:`FigureSpec` with publication-quality
+            A **new** :class:`FigureConfig` with publication-quality
             dimensions, typography, axes, legends, separator settings
             from the preset and all data-derived fields from *spec*.
         """
-        preset_spec: FigureSpec = PresetSpecBuilder.from_preset(preset_info)
+        preset_spec: FigureConfig = PresetSpecBuilder.from_preset(preset_info)
 
         return dataclasses.replace(
             spec,
@@ -73,9 +73,9 @@ class PresetApplicator:
 
     @staticmethod
     def apply_partial(
-        spec: FigureSpec,
+        spec: FigureConfig,
         preset_info: Dict[str, Any],
-    ) -> FigureSpec:
+    ) -> FigureConfig:
         """Overlay **only explicitly-set** preset keys onto *spec*.
 
         Unlike :meth:`apply`, this method only overrides fields whose
@@ -88,11 +88,11 @@ class PresetApplicator:
             preset_info: A partial ``LaTeXPreset``-shaped dictionary.
 
         Returns:
-            A new :class:`FigureSpec` with selective overrides.
+            A new :class:`FigureConfig` with selective overrides.
         """
         overrides: Dict[str, Any] = {}
 
-        # Map preset-key groups → FigureSpec field names.
+        # Map preset-key groups → FigureConfig field names.
         _DIMENSION_KEYS = {
             "width_inches",
             "height_inches",
@@ -170,7 +170,7 @@ class PresetApplicator:
         preset_keys = set(preset_info.keys())
 
         # Build the full preset spec once — we only selectively pick fields.
-        preset_spec: FigureSpec = PresetSpecBuilder.from_preset(preset_info)
+        preset_spec: FigureConfig = PresetSpecBuilder.from_preset(preset_info)
 
         if preset_keys & _DIMENSION_KEYS:
             overrides["dimensions"] = preset_spec.dimensions

@@ -14,6 +14,7 @@ import plotly.graph_objects as go
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
+from src.core.models.visualization.resolvers import resolve_config
 from src.core.visualization.connectors.builders import ConfigSpecBuilder
 from src.core.visualization.connectors.matplotlib_connector import (
     FigureSpecToMatplotlib,
@@ -24,7 +25,6 @@ from src.core.visualization.connectors.matplotlib_trace_renderer import (
 from src.core.visualization.connectors.plotly_trace_extractor import (
     PlotlyTraceExtractor,
 )
-from src.core.visualization.resolvers import resolve_spec
 
 # Use non-interactive backend for tests
 matplotlib.use("Agg")
@@ -81,7 +81,7 @@ def _minimal_config() -> Dict[str, Any]:
 
 
 class TestMatplotlibTraceRenderer:
-    """Test trace conversion from TraceSpec → matplotlib artists."""
+    """Test trace conversion from TraceConfig → matplotlib artists."""
 
     def test_render_bar_traces(self) -> None:
         """Bar traces should produce matplotlib bar containers."""
@@ -208,7 +208,7 @@ class TestMatplotlibTraceRenderer:
 
 
 class TestMatplotlibFullPipeline:
-    """Test the complete FigureSpec → matplotlib pipeline."""
+    """Test the complete FigureConfig → matplotlib pipeline."""
 
     def test_bar_pipeline(self) -> None:
         """Config + Plotly bar figure → styled matplotlib figure."""
@@ -217,7 +217,7 @@ class TestMatplotlibFullPipeline:
         plotly_fig = _make_bar_figure()
 
         spec = ConfigSpecBuilder.from_config(config, "bar")
-        spec = resolve_spec(spec)
+        spec = resolve_config(spec)
 
         traces = PlotlyTraceExtractor.extract(plotly_fig)
         barmode = PlotlyTraceExtractor.extract_barmode(plotly_fig)
@@ -239,7 +239,7 @@ class TestMatplotlibFullPipeline:
         plotly_fig = _make_line_figure()
 
         spec = ConfigSpecBuilder.from_config(config, "line")
-        spec = resolve_spec(spec)
+        spec = resolve_config(spec)
 
         traces = PlotlyTraceExtractor.extract(plotly_fig)
 
@@ -259,7 +259,7 @@ class TestMatplotlibFullPipeline:
         plotly_fig = _make_scatter_figure()
 
         spec = ConfigSpecBuilder.from_config(config, "scatter")
-        spec = resolve_spec(spec)
+        spec = resolve_config(spec)
 
         traces = PlotlyTraceExtractor.extract(plotly_fig)
 
@@ -273,13 +273,13 @@ class TestMatplotlibFullPipeline:
         plt.close(mpl_fig)
 
     def test_dimensions_from_spec(self) -> None:
-        """FigureSpec dimensions should control matplotlib figure size."""
+        """FigureConfig dimensions should control matplotlib figure size."""
         config = _minimal_config()
         config["width"] = 1000
         config["height"] = 600
 
         spec = ConfigSpecBuilder.from_config(config, "bar")
-        spec = resolve_spec(spec)
+        spec = resolve_config(spec)
 
         mpl_fig, ax = FigureSpecToMatplotlib.create_figure(spec)
 

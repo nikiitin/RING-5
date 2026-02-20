@@ -1,12 +1,12 @@
 """
-Sentinel resolution — walk the FigureSpec tree and fill inherited values.
+Sentinel resolution — walk the FigureConfig tree and fill inherited values.
 
 The sentinel value ``-1`` (int) or ``-1.0`` (float) means "inherit from
 parent".  This module resolves all sentinels in ONE pass so that
 downstream connectors never see ``-1``.
 
 Inheritance chains:
-    TypographySpec:
+    TypographyConfig:
         font_size_base
         ├── font_size_title
         ├── font_size_xlabel
@@ -22,7 +22,7 @@ Inheritance chains:
                 ├── legend3_number_fontsize → legend3
                 └── legend3_text_fontsize   → legend3
 
-    LegendSpec (secondary/boxed inherit from primary):
+    LegendConfig (secondary/boxed inherit from primary):
         legend[0].spacing → default values
         legend[1].spacing → legend[0].spacing (where -1.0)
         legend[2].spacing → legend[0].spacing (where -1.0)
@@ -33,10 +33,10 @@ Inheritance chains:
         y2.tick_pad   → y.tick_pad  (where -1.0)
 
 Usage:
-    from src.core.visualization.resolvers import resolve_spec
+    from src.core.models.visualization.resolvers import resolve_config
 
-    spec = FigureSpec(...)   # may contain -1 sentinels
-    resolved = resolve_spec(spec)  # all -1 replaced with concrete values
+    spec = FigureConfig(...)   # may contain -1 sentinels
+    resolved = resolve_config(spec)  # all -1 replaced with concrete values
 """
 
 from __future__ import annotations
@@ -46,19 +46,19 @@ from dataclasses import fields
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from src.core.visualization.figure_spec import FigureSpec
+    from src.core.models.visualization.figure_config import FigureConfig
 
 SENTINEL_INT: int = -1
 SENTINEL_FLOAT: float = -1.0
 
 
-def resolve_spec(spec: "FigureSpec") -> "FigureSpec":
-    """Return a new FigureSpec with all sentinel values resolved.
+def resolve_config(spec: "FigureConfig") -> "FigureConfig":
+    """Return a new FigureConfig with all sentinel values resolved.
 
     This function is **pure** — it does not mutate the input.
 
     Args:
-        spec: FigureSpec that may contain sentinel values (-1 / -1.0).
+        spec: FigureConfig that may contain sentinel values (-1 / -1.0).
 
     Returns:
         A deep copy with all sentinels replaced by inherited values.
@@ -81,10 +81,10 @@ def _resolve_float(value: float, parent: float) -> float:
 
 
 def _resolve_typography(typo: object) -> None:
-    """Resolve TypographySpec sentinel chain in-place."""
-    from src.core.visualization.typography_spec import TypographySpec
+    """Resolve TypographyConfig sentinel chain in-place."""
+    from src.core.models.visualization.typography_config import TypographyConfig
 
-    if not isinstance(typo, TypographySpec):
+    if not isinstance(typo, TypographyConfig):
         return
 
     # y2label inherits from ylabel
@@ -107,21 +107,21 @@ def _resolve_typography(typo: object) -> None:
 
 
 def _resolve_legends(legends: list) -> None:  # type: ignore[type-arg]
-    """Resolve LegendSpec list: secondary/boxed inherit from primary."""
-    from src.core.visualization.legend_spec import LegendSpec
+    """Resolve LegendConfig list: secondary/boxed inherit from primary."""
+    from src.core.models.visualization.legend_config import LegendConfig
 
     if not legends:
         return
 
     # Find primary legend (first, or first with role="primary")
     primary = legends[0]
-    if not isinstance(primary, LegendSpec):
+    if not isinstance(primary, LegendConfig):
         return
 
     primary_spacing = primary.spacing
 
     for legend in legends[1:]:
-        if not isinstance(legend, LegendSpec):
+        if not isinstance(legend, LegendConfig):
             continue
 
         # Font size: -1 → follow primary
@@ -148,10 +148,10 @@ def _resolve_legend_spacing(
     spacing: object,
     parent: object,
 ) -> None:
-    """Resolve LegendSpacingSpec sentinels from parent spacing."""
-    from src.core.visualization.legend_spec import LegendSpacingSpec
+    """Resolve LegendSpacingConfig sentinels from parent spacing."""
+    from src.core.models.visualization.legend_config import LegendSpacingConfig
 
-    if not isinstance(spacing, LegendSpacingSpec) or not isinstance(parent, LegendSpacingSpec):
+    if not isinstance(spacing, LegendSpacingConfig) or not isinstance(parent, LegendSpacingConfig):
         return
 
     for f in fields(spacing):
@@ -162,9 +162,9 @@ def _resolve_legend_spacing(
 
 def _resolve_axes(axes: object) -> None:
     """Resolve AxisSpec inheritance: y2 inherits from y."""
-    from src.core.visualization.axis_spec import AxesSpec
+    from src.core.models.visualization.axis_config import AxesConfig
 
-    if not isinstance(axes, AxesSpec):
+    if not isinstance(axes, AxesConfig):
         return
 
     if axes.y2 is None:

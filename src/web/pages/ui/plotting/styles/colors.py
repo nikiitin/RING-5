@@ -6,7 +6,7 @@ import logging
 import re
 from typing import List
 
-from src.core.visualization.palettes import resolve_palette
+from src.core.models.visualization.palettes import resolve_palette
 
 
 def get_palette_colors(palette_name: str) -> List[str]:

@@ -8,13 +8,13 @@ into BasePlot subclasses directly.
 Architecture:
     FigureEngine
         ├── Registry of FigureCreator instances (one per plot type)
-        └── FigureStyler instance (ConfigSpecBuilder → FigureSpec → engine connector)
+        └── FigureStyler instance (ConfigSpecBuilder → FigureConfig → engine connector)
 
     build(plot_type, data, config) → go.Figure
         1. Look up creator for plot_type
         2. creator.create_figure(data, config) → raw figure
         3. styler.apply_styles(fig, config) → styled figure
-           (internally: config → FigureSpec → FigureSpecToPlotly/Matplotlib)
+           (internally: config → FigureConfig → FigureSpecToPlotly/Matplotlib)
         4. Apply legend labels if present
         5. Return final figure
 

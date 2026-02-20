@@ -1,14 +1,14 @@
 """
-Plotly trace extractor — converts ``go.Figure.data`` to ``TraceSpec`` list.
+Plotly trace extractor — converts ``go.Figure.data`` to ``TraceConfig`` list.
 
 This adapter sits in the Plotly-facing part of the connector layer.
 It reads Plotly-specific trace attributes and produces engine-agnostic
-``TraceSpec`` instances that the Matplotlib connector can render
+``TraceConfig`` instances that the Matplotlib connector can render
 without ever importing Plotly.
 
 Design notes:
     * **Stateless** — all methods are ``@staticmethod``.
-    * **One-way** — Plotly → TraceSpec only; the reverse is done by
+    * **One-way** — Plotly → TraceConfig only; the reverse is done by
       ``PlotlyConnector``.
     * **Colour-safe** — normalises ``rgb()/rgba()`` to hex strings.
 """
@@ -21,32 +21,32 @@ from typing import Any, List, Literal, Optional
 
 import plotly.graph_objects as go
 
-from src.core.visualization.trace_spec import (
-    BarTraceSpec,
-    HistogramTraceSpec,
-    LineTraceSpec,
-    ScatterTraceSpec,
-    TraceSpec,
+from src.core.models.visualization.trace_config import (
+    BarTraceConfig,
+    HistogramTraceConfig,
+    LineTraceConfig,
+    ScatterTraceConfig,
+    TraceConfig,
 )
 
 logger = logging.getLogger(__name__)
 
 
 class PlotlyTraceExtractor:
-    """Extract ``TraceSpec`` instances from a Plotly ``go.Figure``."""
+    """Extract ``TraceConfig`` instances from a Plotly ``go.Figure``."""
 
     @staticmethod
-    def extract(fig: go.Figure) -> List[TraceSpec]:
-        """Convert every trace in *fig* to a ``TraceSpec``.
+    def extract(fig: go.Figure) -> List[TraceConfig]:
+        """Convert every trace in *fig* to a ``TraceConfig``.
 
         Args:
             fig: A finalised Plotly figure.
 
         Returns:
-            Ordered list of ``TraceSpec`` sub-class instances.
+            Ordered list of ``TraceConfig`` sub-class instances.
             Unsupported trace types are logged and skipped.
         """
-        specs: List[TraceSpec] = []
+        specs: List[TraceConfig] = []
         bar_traces: List[go.Bar] = [t for t in fig.data if t.type == "bar"]
         barmode: str = getattr(fig.layout, "barmode", "group") or "group"
 
@@ -74,7 +74,7 @@ class PlotlyTraceExtractor:
         idx: int,
         bar_traces: List[go.Bar],
         barmode: str,
-    ) -> Optional[TraceSpec]:
+    ) -> Optional[TraceConfig]:
         """Dispatch a single trace to the correct extractor."""
         ttype = getattr(trace, "type", None)
         if ttype == "bar":
@@ -97,8 +97,8 @@ class PlotlyTraceExtractor:
         idx: int,
         bar_traces: List[go.Bar],
         barmode: str,
-    ) -> BarTraceSpec:
-        """Convert a ``go.Bar`` trace to ``BarTraceSpec``."""
+    ) -> BarTraceConfig:
+        """Convert a ``go.Bar`` trace to ``BarTraceConfig``."""
         x_raw = _to_list(trace.x)
         y_raw = _to_list(trace.y)
         color = _normalize_color(trace.marker.color if trace.marker else None) or ""
@@ -167,7 +167,7 @@ class PlotlyTraceExtractor:
         tp_map = {"inside": "inside", "outside": "outside", "auto": "auto"}
         text_position: str = tp_map.get(text_position_raw, "none")
 
-        return BarTraceSpec(
+        return BarTraceConfig(
             name=str(getattr(trace, "name", "") or ""),
             x=x_raw,
             y=[float(v) if v is not None else 0.0 for v in y_raw],
@@ -191,8 +191,8 @@ class PlotlyTraceExtractor:
     # ── line ──────────────────────────────────────────────────────────────
 
     @staticmethod
-    def _extract_line(trace: go.Scatter) -> LineTraceSpec:
-        """Convert a ``go.Scatter`` with lines to ``LineTraceSpec``."""
+    def _extract_line(trace: go.Scatter) -> LineTraceConfig:
+        """Convert a ``go.Scatter`` with lines to ``LineTraceConfig``."""
         color = ""
         line_width = 2.0
         line_dash: str = "solid"
@@ -219,7 +219,7 @@ class PlotlyTraceExtractor:
             if trace.marker.symbol:
                 marker_symbol = str(trace.marker.symbol)
 
-        return LineTraceSpec(
+        return LineTraceConfig(
             name=str(getattr(trace, "name", "") or ""),
             x=_to_list(trace.x),
             y=[float(v) if v is not None else 0.0 for v in _to_list(trace.y)],
@@ -240,8 +240,8 @@ class PlotlyTraceExtractor:
     # ── scatter ───────────────────────────────────────────────────────────
 
     @staticmethod
-    def _extract_scatter(trace: go.Scatter) -> ScatterTraceSpec:
-        """Convert a ``go.Scatter`` with markers-only to ``ScatterTraceSpec``."""
+    def _extract_scatter(trace: go.Scatter) -> ScatterTraceConfig:
+        """Convert a ``go.Scatter`` with markers-only to ``ScatterTraceConfig``."""
         color = ""
         marker_size = 8
         marker_symbol = "circle"
@@ -262,7 +262,7 @@ class PlotlyTraceExtractor:
                 if bc is not None:
                     marker_line_color = _normalize_color(bc) or ""
 
-        return ScatterTraceSpec(
+        return ScatterTraceConfig(
             name=str(getattr(trace, "name", "") or ""),
             x=_to_list(trace.x),
             y=[float(v) if v is not None else 0.0 for v in _to_list(trace.y)],
@@ -282,15 +282,15 @@ class PlotlyTraceExtractor:
     # ── histogram ─────────────────────────────────────────────────────────
 
     @staticmethod
-    def _extract_histogram(trace: go.Histogram) -> HistogramTraceSpec:
-        """Convert a ``go.Histogram`` to ``HistogramTraceSpec``."""
+    def _extract_histogram(trace: go.Histogram) -> HistogramTraceConfig:
+        """Convert a ``go.Histogram`` to ``HistogramTraceConfig``."""
         color = ""
         if trace.marker:
             color = _normalize_color(trace.marker.color) or ""
 
         nbins = int(getattr(trace, "nbinsx", 20) or 20)
 
-        return HistogramTraceSpec(
+        return HistogramTraceConfig(
             name=str(getattr(trace, "name", "") or ""),
             x=_to_list(trace.x),
             y=[],

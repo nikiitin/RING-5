@@ -9,8 +9,8 @@ from __future__ import annotations
 import json
 from typing import Any, Dict
 
+from src.core.models.visualization.figure_config import FigureConfig
 from src.core.visualization.connectors.builders import ConfigSpecBuilder
-from src.core.visualization.figure_spec import FigureSpec
 from src.web.services.portfolio_migrator import PortfolioMigrator
 
 
@@ -45,7 +45,7 @@ class TestV1LoadAndMigrate:
         assert cfg["title_font_size"] == 14
 
     def test_v1_config_builds_valid_figure_spec(self) -> None:
-        """Migrated V1 config can build a FigureSpec without errors."""
+        """Migrated V1 config can build a FigureConfig without errors."""
         v1: Dict[str, Any] = {
             "plots": [
                 {
@@ -62,7 +62,7 @@ class TestV1LoadAndMigrate:
         migrated = PortfolioMigrator.migrate(v1)
         cfg = migrated["plots"][0]["config"]
         spec = ConfigSpecBuilder.from_config(cfg, "grouped_bar")
-        assert isinstance(spec, FigureSpec)
+        assert isinstance(spec, FigureConfig)
         assert spec.dimensions.width == 800.0
 
 
@@ -85,10 +85,10 @@ class TestV2Passthrough:
 
 
 class TestRoundtrip:
-    """Save → load → verify identical FigureSpec."""
+    """Save → load → verify identical FigureConfig."""
 
     def test_spec_roundtrip_via_dict(self) -> None:
-        """FigureSpec.to_dict → from_dict produces equivalent spec."""
+        """FigureConfig.to_dict → from_dict produces equivalent spec."""
         config: Dict[str, Any] = {
             "width": 800,
             "height": 500,
@@ -100,7 +100,7 @@ class TestRoundtrip:
         }
         spec = ConfigSpecBuilder.from_config(config, "grouped_bar")
         spec_dict = spec.to_dict()
-        restored = FigureSpec.from_dict(spec_dict)
+        restored = FigureConfig.from_dict(spec_dict)
         assert restored.dimensions.width == spec.dimensions.width
         assert restored.dimensions.height == spec.dimensions.height
 

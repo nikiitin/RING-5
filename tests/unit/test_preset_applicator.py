@@ -1,56 +1,56 @@
 """Unit tests for PresetApplicator.
 
 Validates that preset values are correctly overlaid onto an existing
-FigureSpec while preserving data-derived fields (traces, colors, etc.).
+FigureConfig while preserving data-derived fields (traces, colors, etc.).
 """
 
 from __future__ import annotations
 
 from typing import Any, Dict
 
-from src.core.visualization.axis_spec import AxesSpec, AxisSpec
-from src.core.visualization.figure_spec import (
-    DimensionsSpec,
-    FigureSpec,
-    SeparatorSpec,
+from src.core.models.visualization.axis_config import AxesConfig, AxisConfig
+from src.core.models.visualization.figure_config import (
+    DimensionConfig,
+    FigureConfig,
+    SeparatorConfig,
 )
-from src.core.visualization.legend_spec import LegendSpec
-from src.core.visualization.trace_spec import TraceSpec
-from src.core.visualization.typography_spec import TypographySpec
+from src.core.models.visualization.legend_config import LegendConfig
+from src.core.models.visualization.trace_config import TraceConfig
+from src.core.models.visualization.typography_config import TypographyConfig
 from src.web.services.preset_applicator import PresetApplicator
 
 # ── Fixtures ─────────────────────────────────────────────────────
 
 
-def _make_config_spec() -> FigureSpec:
-    """Build a FigureSpec that simulates a user's plot config.
+def _make_config_spec() -> FigureConfig:
+    """Build a FigureConfig that simulates a user's plot config.
 
     Uses non-default values for data-derived fields so we can verify
     they survive the preset overlay.
     """
-    return FigureSpec(
-        dimensions=DimensionsSpec(
+    return FigureConfig(
+        dimensions=DimensionConfig(
             width=800.0,
             height=600.0,
             dpi=1,  # pixel passthrough
             bar_width_scale=0.85,
         ),
-        typography=TypographySpec(
+        typography=TypographyConfig(
             font_size_base=14,
             font_size_title=18,
         ),
-        axes=AxesSpec(
-            x=AxisSpec(tick_angle=90.0),
+        axes=AxesConfig(
+            x=AxisConfig(tick_angle=90.0),
         ),
         legends=[
-            LegendSpec(role="primary", font_size=12, ncol=2),
+            LegendConfig(role="primary", font_size=12, ncol=2),
         ],
         traces=[
-            TraceSpec(name="trace_A", trace_type="bar"),
-            TraceSpec(name="trace_B", trace_type="scatter"),
+            TraceConfig(name="trace_A", trace_type="bar"),
+            TraceConfig(name="trace_B", trace_type="scatter"),
         ],
         annotations=[],
-        separator=SeparatorSpec(enabled=False),
+        separator=SeparatorConfig(enabled=False),
         color_palette=["#FF0000", "#00FF00", "#0000FF"],
         title="My Custom Title",
         font_family="sans-serif",
@@ -219,7 +219,7 @@ class TestPresetApplicatorApply:
         assert spec.dimensions.dpi == 1
 
     def test_same_preset_both_engines_identical_spec(self) -> None:
-        """Same preset applied to same config produces identical FigureSpec.
+        """Same preset applied to same config produces identical FigureConfig.
 
         This validates engine-agnosticism: the spec is the same
         regardless of which engine will consume it.

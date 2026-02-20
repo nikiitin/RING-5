@@ -1,9 +1,9 @@
 """
-Legend specification — uniform model for all legend instances.
+Legend configuration — uniform model for all legend instances.
 
 Instead of special-cased ``legend2_x``, ``legend3_borderpad`` etc. scattered
-across ``LaTeXPreset``, each legend is a ``LegendSpec`` with identical fields.
-A figure holds ``List[LegendSpec]`` — typically 1–3 entries.
+across ``LaTeXPreset``, each legend is a ``LegendConfig`` with identical fields.
+A figure holds ``List[LegendConfig]`` — typically 1–3 entries.
 
 This eliminates:
   - Duplicated sentinel resolution for legend2/legend3
@@ -20,7 +20,7 @@ INHERIT_F: float = -1.0
 
 
 @dataclass
-class LegendSpacingSpec:
+class LegendSpacingConfig:
     """Fine-grained spacing parameters for a legend box.
 
     ``-1.0`` = inherit from the primary legend's value.
@@ -47,13 +47,13 @@ class LegendSpacingSpec:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, float]) -> "LegendSpacingSpec":
+    def from_dict(cls, data: Dict[str, float]) -> "LegendSpacingConfig":
         """Reconstruct from serialized dictionary."""
         return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
 
 
 @dataclass
-class LegendSpec:
+class LegendConfig:
     """Configuration for a single legend instance.
 
     All legends (primary, secondary, tertiary / boxed-annotation) share
@@ -115,7 +115,7 @@ class LegendSpec:
     title: str = ""
 
     # ── Spacing ──────────────────────────────────────────────────
-    spacing: LegendSpacingSpec = field(default_factory=LegendSpacingSpec)
+    spacing: LegendSpacingConfig = field(default_factory=LegendSpacingConfig)
 
     # ── Boxed-annotation extras ──────────────────────────────────
     number_fontsize: int = -1  # -1 = follow font_size
@@ -153,10 +153,12 @@ class LegendSpec:
         return result
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "LegendSpec":
+    def from_dict(cls, data: Dict[str, Any]) -> "LegendConfig":
         """Reconstruct from serialized dictionary."""
         spacing_data = data.pop("spacing", {}) if isinstance(data.get("spacing"), dict) else {}
-        spacing = LegendSpacingSpec.from_dict(spacing_data) if spacing_data else LegendSpacingSpec()
+        spacing = (
+            LegendSpacingConfig.from_dict(spacing_data) if spacing_data else LegendSpacingConfig()
+        )
         filtered = {
             k: v for k, v in data.items() if k in cls.__dataclass_fields__ and k != "spacing"
         }

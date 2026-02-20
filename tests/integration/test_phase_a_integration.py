@@ -4,7 +4,7 @@ Validates end-to-end that:
   1. Palette registry is the single source of truth
   2. Matplotlib trace renderer uses palette colours correctly
   3. _apply_annotations handles HTML and positioning
-  4. enrich_from_plotly correctly patches FigureSpec
+  4. enrich_from_plotly correctly patches FigureConfig
 """
 
 from __future__ import annotations
@@ -16,7 +16,14 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import pytest
 
-from src.core.visualization.annotation_spec import AnnotationSpec
+from src.core.models.visualization.annotation_config import AnnotationConfig
+from src.core.models.visualization.figure_config import FigureConfig
+from src.core.models.visualization.palettes import (
+    get_palette_names,
+    is_colorblind_safe,
+    resolve_palette,
+)
+from src.core.models.visualization.resolvers import resolve_config
 from src.core.visualization.connectors.builders import (
     ConfigSpecBuilder,
     PlotlyFigureSpecBuilder,
@@ -30,13 +37,6 @@ from src.core.visualization.connectors.matplotlib_trace_renderer import (
 from src.core.visualization.connectors.plotly_trace_extractor import (
     PlotlyTraceExtractor,
 )
-from src.core.visualization.figure_spec import FigureSpec
-from src.core.visualization.palettes import (
-    get_palette_names,
-    is_colorblind_safe,
-    resolve_palette,
-)
-from src.core.visualization.resolvers import resolve_spec
 
 matplotlib.use("Agg")
 
@@ -129,7 +129,7 @@ class TestTraceRendererPaletteOverride:
         assert len(collections) == 1
 
     def test_no_palette_uses_extracted_colors(self) -> None:
-        """Without palette override, extracted TraceSpec colors are used."""
+        """Without palette override, extracted TraceConfig colors are used."""
         plotly_fig = go.Figure()
         plotly_fig.add_bar(
             x=["A"],
@@ -158,14 +158,14 @@ class TestAnnotationRendering:
         plt.close(self.fig)
 
     def test_html_br_converted_to_newline(self) -> None:
-        ann = AnnotationSpec(
+        ann = AnnotationConfig(
             text="Line1<br>Line2<br/>Line3",
             x=0.5,
             y=0.5,
             xref="paper",
             yref="paper",
         )
-        spec = FigureSpec(annotations=[ann])
+        spec = FigureConfig(annotations=[ann])
         FigureSpecToMatplotlib._apply_annotations(spec, self.ax)
 
         texts = self.ax.texts
@@ -174,7 +174,7 @@ class TestAnnotationRendering:
         assert "<br>" not in texts[0].get_text()
 
     def test_bordered_annotation_has_bbox(self) -> None:
-        ann = AnnotationSpec(
+        ann = AnnotationConfig(
             text="Boxed",
             x=0.5,
             y=0.5,
@@ -184,7 +184,7 @@ class TestAnnotationRendering:
             border_color="#333",
             bgcolor="#ffffff",
         )
-        spec = FigureSpec(annotations=[ann])
+        spec = FigureConfig(annotations=[ann])
         FigureSpecToMatplotlib._apply_annotations(spec, self.ax)
 
         texts = self.ax.texts
@@ -193,7 +193,7 @@ class TestAnnotationRendering:
         assert bbox is not None
 
     def test_empty_annotations_noop(self) -> None:
-        spec = FigureSpec(annotations=[])
+        spec = FigureConfig(annotations=[])
         FigureSpecToMatplotlib._apply_annotations(spec, self.ax)
         assert len(self.ax.texts) == 0
 
@@ -202,7 +202,7 @@ class TestAnnotationRendering:
 
 
 class TestEnrichAndApply:
-    """Full pipeline: config -> FigureSpec -> enrich -> resolve -> apply."""
+    """Full pipeline: config -> FigureConfig -> enrich -> resolve -> apply."""
 
     @pytest.fixture(autouse=True)
     def _setup(self) -> None:
@@ -220,7 +220,7 @@ class TestEnrichAndApply:
         plotly_fig.update_xaxes(tickvals=[0, 1, 2], ticktext=["A", "B", "C"])
 
         PlotlyFigureSpecBuilder.enrich_from_plotly(spec, plotly_fig)
-        spec = resolve_spec(spec)
+        spec = resolve_config(spec)
 
         assert spec.axes is not None
         assert spec.axes.x.tick_values == [0, 1, 2]
@@ -253,7 +253,7 @@ class TestEnrichAndApply:
         )
 
         PlotlyFigureSpecBuilder.enrich_from_plotly(spec, plotly_fig)
-        spec = resolve_spec(spec)
+        spec = resolve_config(spec)
 
         assert len(spec.annotations) == 1
 

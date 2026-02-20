@@ -13,9 +13,9 @@ from typing import Any, Dict
 
 import pytest
 
-from src.core.visualization.figure_spec import DimensionsSpec, FigureSpec, MarginsSpec
-from src.core.visualization.legend_spec import LegendSpec
-from src.core.visualization.typography_spec import TypographySpec
+from src.core.models.visualization.figure_config import DimensionConfig, FigureConfig, MarginsConfig
+from src.core.models.visualization.legend_config import LegendConfig
+from src.core.models.visualization.typography_config import TypographyConfig
 from src.core.visualization.widgets.config_bridge import (
     ConfigBridge,
     _get_nested,
@@ -156,34 +156,34 @@ class TestGetNested:
     """Test the _get_nested helper."""
 
     def test_simple_attr(self) -> None:
-        spec = FigureSpec(title="Hello")
+        spec = FigureConfig(title="Hello")
         assert _get_nested(spec, "title") == "Hello"
 
     def test_nested_attr(self) -> None:
-        spec = FigureSpec(dimensions=DimensionsSpec(width=3.5))
+        spec = FigureConfig(dimensions=DimensionConfig(width=3.5))
         assert _get_nested(spec, "dimensions.width") == 3.5
 
     def test_deep_nested(self) -> None:
-        spec = FigureSpec(dimensions=DimensionsSpec(margins=MarginsSpec(left=42.0)))
+        spec = FigureConfig(dimensions=DimensionConfig(margins=MarginsConfig(left=42.0)))
         assert _get_nested(spec, "dimensions.margins.left") == 42.0
 
     def test_list_index(self) -> None:
-        spec = FigureSpec(
+        spec = FigureConfig(
             legends=[
-                LegendSpec(role="primary", font_size=12),
+                LegendConfig(role="primary", font_size=12),
             ]
         )
         assert _get_nested(spec, "legends.0.font_size") == 12
 
     def test_missing_attr(self) -> None:
-        spec = FigureSpec()
+        spec = FigureConfig()
         assert _get_nested(spec, "nonexistent.path") is None
 
     def test_none_root(self) -> None:
         assert _get_nested(None, "anything") is None
 
     def test_list_out_of_bounds(self) -> None:
-        spec = FigureSpec(legends=[])
+        spec = FigureConfig(legends=[])
         assert _get_nested(spec, "legends.5.font_size") is None
 
 
@@ -191,24 +191,24 @@ class TestSetNested:
     """Test the _set_nested helper."""
 
     def test_simple_attr(self) -> None:
-        spec = FigureSpec()
+        spec = FigureConfig()
         _set_nested(spec, "title", "New Title")
         assert spec.title == "New Title"
 
     def test_nested_attr(self) -> None:
-        spec = FigureSpec()
+        spec = FigureConfig()
         _set_nested(spec, "dimensions.width", 10.0)
         assert spec.dimensions.width == 10.0
 
     def test_deep_nested(self) -> None:
-        spec = FigureSpec()
+        spec = FigureConfig()
         _set_nested(spec, "dimensions.margins.left", 99.0)
         assert spec.dimensions.margins.left == 99.0
 
     def test_list_index(self) -> None:
-        spec = FigureSpec(
+        spec = FigureConfig(
             legends=[
-                LegendSpec(role="primary", font_size=8),
+                LegendConfig(role="primary", font_size=8),
             ]
         )
         _set_nested(spec, "legends.0.font_size", 16)
@@ -216,14 +216,14 @@ class TestSetNested:
 
     def test_missing_intermediate(self) -> None:
         """Should not crash if an intermediate is None/missing."""
-        spec = FigureSpec()
+        spec = FigureConfig()
         # axes.y2 is None by default — should silently no-op
         _set_nested(spec, "axes.y2.label", "test")
         # No crash
 
 
 class TestConfigBridge:
-    """Test bidirectional config ↔ FigureSpec mapping."""
+    """Test bidirectional config ↔ FigureConfig mapping."""
 
     def _make_bridge(self) -> ConfigBridge:
         """Create a bridge with margins + typography + legend appearance."""
@@ -236,12 +236,12 @@ class TestConfigBridge:
         assert "title_font_size" in keys
 
     def test_spec_to_config(self) -> None:
-        """Extract flat config from FigureSpec."""
-        spec = FigureSpec(
-            dimensions=DimensionsSpec(
-                margins=MarginsSpec(left=150.0, right=50.0, top=30.0, bottom=90.0)
+        """Extract flat config from FigureConfig."""
+        spec = FigureConfig(
+            dimensions=DimensionConfig(
+                margins=MarginsConfig(left=150.0, right=50.0, top=30.0, bottom=90.0)
             ),
-            typography=TypographySpec(font_size_title=18, font_size_xlabel=14),
+            typography=TypographyConfig(font_size_title=18, font_size_xlabel=14),
         )
         bridge = self._make_bridge()
         config = bridge.spec_to_config(spec)
@@ -252,7 +252,7 @@ class TestConfigBridge:
         assert config["xaxis_title_font_size"] == 14
 
     def test_config_to_spec(self) -> None:
-        """Build FigureSpec from flat config."""
+        """Build FigureConfig from flat config."""
         config: Dict[str, Any] = {
             "margin_l": 200,
             "margin_r": 60,
@@ -267,11 +267,11 @@ class TestConfigBridge:
 
     def test_round_trip(self) -> None:
         """Spec → config → spec should preserve mapped values."""
-        original = FigureSpec(
-            dimensions=DimensionsSpec(
-                margins=MarginsSpec(left=120.0, right=40.0, top=35.0, bottom=85.0, pad=5.0)
+        original = FigureConfig(
+            dimensions=DimensionConfig(
+                margins=MarginsConfig(left=120.0, right=40.0, top=35.0, bottom=85.0, pad=5.0)
             ),
-            typography=TypographySpec(
+            typography=TypographyConfig(
                 font_size_title=16,
                 font_size_xlabel=11,
                 font_size_ylabel=11,
@@ -293,7 +293,7 @@ class TestConfigBridge:
 
     def test_base_spec_preserved(self) -> None:
         """config_to_spec with base_spec should not modify the base."""
-        base = FigureSpec(title="Original")
+        base = FigureConfig(title="Original")
         bridge = self._make_bridge()
         result = bridge.config_to_spec({"margin_l": 999}, base_spec=base)
 
@@ -316,9 +316,9 @@ class TestConfigBridge:
     def test_legend_bridge(self) -> None:
         """Bridge with LEGEND section should map to legends list."""
         bridge = ConfigBridge([LEGEND])
-        spec = FigureSpec(
+        spec = FigureConfig(
             legends=[
-                LegendSpec(role="primary", font_size=12, ncol=3),
+                LegendConfig(role="primary", font_size=12, ncol=3),
             ]
         )
         config = bridge.spec_to_config(spec)

@@ -1,23 +1,23 @@
 """
-Tests for AxisSpec and AxesSpec — construction, serialization, round-trip.
+Tests for AxisConfig and AxesConfig — construction, serialization, round-trip.
 
 Covers:
   - Default construction with sensible defaults
   - New Step 7 fields: tick_font_color, label_standoff, title_vshift,
     axis_line_color, axis_line_width
   - Round-trip fidelity via to_dict()/from_dict()
-  - AxesSpec group label fields
+  - AxesConfig group label fields
   - Sentinel values for new fields
 """
 
-from src.core.visualization.axis_spec import AxesSpec, AxisSpec
+from src.core.models.visualization.axis_config import AxesConfig, AxisConfig
 
 
 class TestAxisSpecDefaults:
-    """Test default values for all AxisSpec fields."""
+    """Test default values for all AxisConfig fields."""
 
     def test_default_label_fields(self) -> None:
-        spec = AxisSpec()
+        spec = AxisConfig()
         assert spec.label == ""
         assert spec.label_pad == 10.0
         assert spec.label_position == 0.5
@@ -25,7 +25,7 @@ class TestAxisSpecDefaults:
         assert spec.title_vshift == 0.0
 
     def test_default_tick_fields(self) -> None:
-        spec = AxisSpec()
+        spec = AxisConfig()
         assert spec.tick_angle == 0.0
         assert spec.tick_pad == 5.0
         assert spec.tick_ha == "center"
@@ -37,7 +37,7 @@ class TestAxisSpecDefaults:
         assert spec.dtick is None
 
     def test_default_grid_fields(self) -> None:
-        spec = AxisSpec()
+        spec = AxisConfig()
         assert spec.show_grid is True
         assert spec.grid_color == "#E5E5E5"
         assert spec.grid_width == 1.0
@@ -46,7 +46,7 @@ class TestAxisSpecDefaults:
         assert spec.axis_line_width == 1.0
 
     def test_default_range_fields(self) -> None:
-        spec = AxisSpec()
+        spec = AxisConfig()
         assert spec.range is None
         assert spec.scale == "linear"
         assert spec.margin == 0.02
@@ -57,37 +57,37 @@ class TestAxisSpecStep7Fields:
     """Test the 5 new fields added in Step 7."""
 
     def test_tick_font_color_custom(self) -> None:
-        spec = AxisSpec(tick_font_color="#FF0000")
+        spec = AxisConfig(tick_font_color="#FF0000")
         assert spec.tick_font_color == "#FF0000"
 
     def test_label_standoff_custom(self) -> None:
-        spec = AxisSpec(label_standoff=20)
+        spec = AxisConfig(label_standoff=20)
         assert spec.label_standoff == 20
 
     def test_label_standoff_sentinel(self) -> None:
         """Sentinel -1 means 'auto/inherit'."""
-        spec = AxisSpec()
+        spec = AxisConfig()
         assert spec.label_standoff == -1
 
     def test_title_vshift_custom(self) -> None:
-        spec = AxisSpec(title_vshift=-0.05)
+        spec = AxisConfig(title_vshift=-0.05)
         assert spec.title_vshift == -0.05
 
     def test_axis_line_color_custom(self) -> None:
-        spec = AxisSpec(axis_line_color="#000000")
+        spec = AxisConfig(axis_line_color="#000000")
         assert spec.axis_line_color == "#000000"
 
     def test_axis_line_width_custom(self) -> None:
-        spec = AxisSpec(axis_line_width=2.5)
+        spec = AxisConfig(axis_line_width=2.5)
         assert spec.axis_line_width == 2.5
 
 
 class TestAxisSpecRoundTrip:
-    """Test to_dict/from_dict round-trip for AxisSpec."""
+    """Test to_dict/from_dict round-trip for AxisConfig."""
 
     def test_default_round_trip(self) -> None:
-        spec = AxisSpec()
-        restored = AxisSpec.from_dict(spec.to_dict())
+        spec = AxisConfig()
+        restored = AxisConfig.from_dict(spec.to_dict())
         assert restored.label == spec.label
         assert restored.tick_font_color == spec.tick_font_color
         assert restored.label_standoff == spec.label_standoff
@@ -96,7 +96,7 @@ class TestAxisSpecRoundTrip:
         assert restored.axis_line_width == spec.axis_line_width
 
     def test_custom_round_trip(self) -> None:
-        spec = AxisSpec(
+        spec = AxisConfig(
             label="Benchmark",
             tick_angle=45.0,
             tick_font_color="#333",
@@ -107,7 +107,7 @@ class TestAxisSpecRoundTrip:
             dtick=0.5,
             scale="log",
         )
-        restored = AxisSpec.from_dict(spec.to_dict())
+        restored = AxisConfig.from_dict(spec.to_dict())
         assert restored.label == "Benchmark"
         assert restored.tick_angle == 45.0
         assert restored.tick_font_color == "#333"
@@ -121,21 +121,21 @@ class TestAxisSpecRoundTrip:
     def test_unknown_keys_ignored(self) -> None:
         """from_dict should ignore keys not in the dataclass."""
         data = {"label": "X", "unknown_field": True, "another": 42}
-        spec = AxisSpec.from_dict(data)
+        spec = AxisConfig.from_dict(data)
         assert spec.label == "X"
 
 
 class TestAxesSpecDefaults:
-    """Test AxesSpec container defaults."""
+    """Test AxesConfig container defaults."""
 
     def test_default_construction(self) -> None:
-        axes = AxesSpec()
-        assert isinstance(axes.x, AxisSpec)
-        assert isinstance(axes.y, AxisSpec)
+        axes = AxesConfig()
+        assert isinstance(axes.x, AxisConfig)
+        assert isinstance(axes.y, AxisConfig)
         assert axes.y2 is None
 
     def test_group_label_defaults(self) -> None:
-        axes = AxesSpec()
+        axes = AxesConfig()
         assert axes.group_label_offset == -0.12
         assert axes.group_label_alternate is True
         assert axes.group_label_alt_spacing == 0.05
@@ -143,28 +143,28 @@ class TestAxesSpecDefaults:
 
 
 class TestAxesSpecRoundTrip:
-    """Test AxesSpec round-trip with new AxisSpec fields."""
+    """Test AxesConfig round-trip with new AxisConfig fields."""
 
     def test_round_trip_with_step7_fields(self) -> None:
-        axes = AxesSpec(
-            x=AxisSpec(
+        axes = AxesConfig(
+            x=AxisConfig(
                 label="Benchmarks",
                 tick_font_color="#444",
                 label_standoff=10,
                 title_vshift=-0.02,
             ),
-            y=AxisSpec(
+            y=AxisConfig(
                 label="Speedup",
                 axis_line_color="black",
                 axis_line_width=1.5,
             ),
-            y2=AxisSpec(
+            y2=AxisConfig(
                 label="IPC",
                 tick_font_color="#888",
             ),
         )
         data = axes.to_dict()
-        restored = AxesSpec.from_dict(data)
+        restored = AxesConfig.from_dict(data)
 
         assert restored.x.label == "Benchmarks"
         assert restored.x.tick_font_color == "#444"
@@ -177,17 +177,17 @@ class TestAxesSpecRoundTrip:
         assert restored.y2.tick_font_color == "#888"
 
     def test_round_trip_without_y2(self) -> None:
-        axes = AxesSpec(
-            x=AxisSpec(label="X"),
-            y=AxisSpec(label="Y"),
+        axes = AxesConfig(
+            x=AxisConfig(label="X"),
+            y=AxisConfig(label="Y"),
         )
         data = axes.to_dict()
-        restored = AxesSpec.from_dict(data)
+        restored = AxesConfig.from_dict(data)
         assert restored.y2 is None
         assert restored.x.label == "X"
 
     def test_group_order_round_trip(self) -> None:
-        axes = AxesSpec(group_order=["A", "B", "C"])
+        axes = AxesConfig(group_order=["A", "B", "C"])
         data = axes.to_dict()
-        restored = AxesSpec.from_dict(data)
+        restored = AxesConfig.from_dict(data)
         assert restored.group_order == ["A", "B", "C"]

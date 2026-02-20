@@ -112,7 +112,7 @@ class PortfolioService:
         serialized_plots = []
         for plot in plots:
             plot_dict: Dict[str, Any] = plot.to_dict()
-            # Persist FigureSpec alongside flat config for V2 schema
+            # Persist FigureConfig alongside flat config for V2 schema
             plot_config: Dict[str, Any] = plot_dict.get("config", {})
             try:
                 from src.core.visualization.connectors.builders import (
@@ -123,7 +123,7 @@ class PortfolioService:
                 plot_dict["figure_spec"] = spec.to_dict()
             except Exception:
                 logging.getLogger(__name__).debug(
-                    "Could not build FigureSpec for plot %s; saving without it",
+                    "Could not build FigureConfig for plot %s; saving without it",
                     plot_dict.get("name", "?"),
                 )
             serialized_plots.append(plot_dict)

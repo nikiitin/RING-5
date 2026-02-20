@@ -1,5 +1,5 @@
 """
-Annotation specifications — text labels, boxed annotations, reference lines.
+Annotation configurations — text labels, boxed annotations, reference lines.
 
 Covers:
   - Bar value labels (data annotations)
@@ -16,7 +16,7 @@ from typing import Literal
 
 
 @dataclass
-class AnnotationSpec:
+class AnnotationConfig:
     """Engine-agnostic description of a text annotation.
 
     The ``annotation_type`` discriminator tells connectors how to render:
@@ -62,7 +62,7 @@ class AnnotationSpec:
 
 
 @dataclass
-class ReferenceLineSpec:
+class ReferenceLineConfig:
     """A horizontal or vertical reference line across the plot.
 
     Examples: baseline at y=1.0, threshold at y=100, mean line.

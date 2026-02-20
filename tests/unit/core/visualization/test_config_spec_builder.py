@@ -1,7 +1,7 @@
 """
-Tests for ConfigSpecBuilder — config dict → FigureSpec mapping.
+Tests for ConfigSpecBuilder — config dict → FigureConfig mapping.
 
-Validates that flat UI config dicts produce correctly-typed FigureSpec
+Validates that flat UI config dicts produce correctly-typed FigureConfig
 instances with the expected field values.
 """
 
@@ -9,9 +9,9 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
+from src.core.models.visualization.figure_config import FigureConfig
+from src.core.models.visualization.resolvers import resolve_config
 from src.core.visualization.connectors.builders import ConfigSpecBuilder
-from src.core.visualization.figure_spec import FigureSpec
-from src.core.visualization.resolvers import resolve_spec
 
 
 def _sample_config(**overrides: Any) -> Dict[str, Any]:
@@ -50,7 +50,7 @@ class TestConfigSpecBuilderBasic:
 
     def test_returns_figure_spec(self) -> None:
         spec = ConfigSpecBuilder.from_config(_sample_config())
-        assert isinstance(spec, FigureSpec)
+        assert isinstance(spec, FigureConfig)
 
     def test_dimensions_passthrough(self) -> None:
         """dpi=1 means width/height are in pixels (passthrough)."""
@@ -202,19 +202,19 @@ class TestConfigSpecResolve:
 
     def test_resolve_does_not_raise(self) -> None:
         spec = ConfigSpecBuilder.from_config(_sample_config())
-        resolved = resolve_spec(spec)
-        assert isinstance(resolved, FigureSpec)
+        resolved = resolve_config(spec)
+        assert isinstance(resolved, FigureConfig)
 
     def test_resolved_inherits_all_defaults(self) -> None:
         spec = ConfigSpecBuilder.from_config(_sample_config())
-        resolved = resolve_spec(spec)
+        resolved = resolve_config(spec)
         # All sentinel values should be resolved
         assert resolved.typography.font_size_title == 18
         assert resolved.dimensions.width == 800.0
 
 
 class TestApplicatorLastSpec:
-    """Verify that apply_styles stores the last FigureSpec built."""
+    """Verify that apply_styles stores the last FigureConfig built."""
 
     def test_last_spec_populated_after_apply(self) -> None:
         import plotly.graph_objects as go
@@ -226,7 +226,7 @@ class TestApplicatorLastSpec:
         applicator.apply_styles(fig, _sample_config())
 
         assert applicator.last_spec is not None
-        assert isinstance(applicator.last_spec, FigureSpec)
+        assert isinstance(applicator.last_spec, FigureConfig)
         assert applicator.last_spec.title == "Test Plot"
 
     def test_last_spec_updated_on_each_call(self) -> None:
@@ -257,7 +257,7 @@ class TestApplicatorLastSpec:
 
 
 class TestConfigSpecDataLabels:
-    """Test data label config → DataLabelSpec mapping."""
+    """Test data label config → DataLabelConfig mapping."""
 
     def test_no_data_labels_when_show_values_false(self) -> None:
         config = _sample_config(show_values=False)
@@ -325,7 +325,7 @@ class TestConfigSpecDataLabels:
 
 
 class TestConfigSpecReferenceLines:
-    """Test reference line config → ReferenceLineSpec mapping."""
+    """Test reference line config → ReferenceLineConfig mapping."""
 
     def test_no_reference_lines_when_disabled(self) -> None:
         config = _sample_config(reference_line_enabled=False)
@@ -366,7 +366,7 @@ class TestConfigSpecReferenceLines:
 
 
 class TestConfigSpecSeriesStyles:
-    """Test series styling config → SeriesStyleSpec mapping."""
+    """Test series styling config → SeriesStyleConfig mapping."""
 
     def test_no_series_styles_when_keys_missing(self) -> None:
         config = _sample_config()

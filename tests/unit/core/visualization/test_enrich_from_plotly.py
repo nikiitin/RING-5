@@ -5,13 +5,13 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import MagicMock
 
+from src.core.models.visualization.figure_config import FigureConfig
 from src.core.visualization.connectors.builders import PlotlyFigureSpecBuilder
-from src.core.visualization.figure_spec import FigureSpec
 
 
-def _make_spec(**kwargs: Any) -> FigureSpec:
-    """Build a minimal FigureSpec for testing."""
-    return FigureSpec(**kwargs)
+def _make_spec(**kwargs: Any) -> FigureConfig:
+    """Build a minimal FigureConfig for testing."""
+    return FigureConfig(**kwargs)
 
 
 def _make_layout(**attrs: Any) -> MagicMock:
@@ -125,9 +125,9 @@ class TestEnrichAnnotations:
         assert spec.annotations[0].text == "Group A"
 
     def test_does_not_overwrite_existing_annotations(self) -> None:
-        from src.core.visualization.annotation_spec import AnnotationSpec
+        from src.core.models.visualization.annotation_config import AnnotationConfig
 
-        existing = AnnotationSpec(text="Existing")
+        existing = AnnotationConfig(text="Existing")
         spec = _make_spec(annotations=[existing])
 
         ann = MagicMock()

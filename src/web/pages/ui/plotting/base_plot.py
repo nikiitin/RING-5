@@ -9,17 +9,17 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from src.core.models.plot_config import ShapeConfig
+from src.core.models.visualization.palettes import (
+    PALETTE_REGISTRY,
+    get_palette_names,
+    is_colorblind_safe,
+    resolve_palette,
+)
 from src.core.services.plot_interaction_service import (
     resolve_item_order,
     try_float,
     try_float_edit,
     update_config_from_relayout,
-)
-from src.core.visualization.palettes import (
-    PALETTE_REGISTRY,
-    get_palette_names,
-    is_colorblind_safe,
-    resolve_palette,
 )
 from src.web.figures.engine import FigureEngine
 from src.web.models.plot_models import PlotConfig

@@ -7,6 +7,7 @@ from typing import Any, Dict, Optional, cast
 import pandas as pd
 import streamlit as st
 
+from src.core.models.visualization.resolvers import resolve_config
 from src.core.performance import get_plot_cache, timed
 from src.core.visualization.connectors.builders import (
     ConfigSpecBuilder,
@@ -21,7 +22,6 @@ from src.core.visualization.connectors.matplotlib_trace_renderer import (
 from src.core.visualization.connectors.plotly_trace_extractor import (
     PlotlyTraceExtractor,
 )
-from src.core.visualization.resolvers import resolve_spec
 from src.web.figures.engine import FigureEngine
 from src.web.pages.ui.components.interactive_plot import interactive_plotly_chart
 from src.web.pages.ui.plotting.download_section import render_download_section
@@ -274,30 +274,30 @@ class PlotRenderer:
 
     @staticmethod
     def _render_matplotlib(plot: BasePlot, fig: Any) -> None:
-        """Render using Matplotlib via FigureSpec pipeline.
+        """Render using Matplotlib via FigureConfig pipeline.
 
         Steps:
-          1. Build FigureSpec from the plot config + Plotly layout.
-          2. Extract engine-agnostic TraceSpec from Plotly figure.
+          1. Build FigureConfig from the plot config + Plotly layout.
+          2. Extract engine-agnostic TraceConfig from Plotly figure.
           3. Create a blank matplotlib figure from spec dimensions.
-          4. Render traces from TraceSpec (no Plotly dependency).
+          4. Render traces from TraceConfig (no Plotly dependency).
           5. Apply spec-based styling (title, axes, grids, etc.).
           6. Display with ``st.pyplot()``.
         """
         plotly_fig = fig
 
-        # 1. Build and resolve the FigureSpec
+        # 1. Build and resolve the FigureConfig
         spec = ConfigSpecBuilder.from_config(plot.config, plot.plot_type)
         PlotlyFigureSpecBuilder.enrich_from_plotly(spec, plotly_fig)
-        spec = resolve_spec(spec)
+        spec = resolve_config(spec)
 
-        # 2. Extract engine-agnostic TraceSpec from Plotly figure
+        # 2. Extract engine-agnostic TraceConfig from Plotly figure
         traces = PlotlyTraceExtractor.extract(plotly_fig)
 
         # 3. Create blank matplotlib figure
         mpl_fig, ax = FigureSpecToMatplotlib.create_figure(spec)
 
-        # 4. Render traces from TraceSpec (no Plotly dependency)
+        # 4. Render traces from TraceConfig (no Plotly dependency)
         MatplotlibTraceRenderer.render(
             traces,
             ax,

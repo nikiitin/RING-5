@@ -1,12 +1,12 @@
 """
-Axis specifications — primary X, primary Y, and optional secondary Y.
+Axis configurations — primary X, primary Y, and optional secondary Y.
 
 This replaces scattered axis configuration across:
   - ``PlotDisplayConfig`` keys (Plotly vocabulary: tickangle, dtick, range)
   - ``PositioningConfig`` fields (matplotlib vocabulary: pad, rotation, offset)
   - ``LayoutExtractor`` output keys (x_range, y_range, x_tickvals, etc.)
 
-The AxisSpec is engine-agnostic: it describes *what* the axis should look
+The AxisConfig is engine-agnostic: it describes *what* the axis should look
 like, and the connectors translate to engine-specific API calls.
 """
 
@@ -19,7 +19,7 @@ INHERIT_F: float = -1.0
 
 
 @dataclass
-class AxisSpec:
+class AxisConfig:
     """Configuration for a single axis (x, y, or y2).
 
     Covers label, tick formatting, range, scale, grid, and positioning.
@@ -68,22 +68,22 @@ class AxisSpec:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "AxisSpec":
+    def from_dict(cls, data: Dict[str, Any]) -> "AxisConfig":
         """Reconstruct from serialized dictionary."""
         return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
 
 
 @dataclass
-class AxesSpec:
+class AxesConfig:
     """Container for all axes in a figure.
 
     Supports primary X, primary Y, and optional secondary Y (twin axis).
     Secondary Y inherits from primary Y where sentinel values are used.
     """
 
-    x: AxisSpec = field(default_factory=AxisSpec)
-    y: AxisSpec = field(default_factory=AxisSpec)
-    y2: Optional[AxisSpec] = None  # None = no secondary Y-axis
+    x: AxisConfig = field(default_factory=AxisConfig)
+    y: AxisConfig = field(default_factory=AxisConfig)
+    y2: Optional[AxisConfig] = None  # None = no secondary Y-axis
 
     # ── Group labels (below X-axis) ──────────────────────────────
     group_label_offset: float = -0.12  # vertical offset below axis
@@ -106,16 +106,16 @@ class AxesSpec:
         return result
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "AxesSpec":
+    def from_dict(cls, data: Dict[str, Any]) -> "AxesConfig":
         """Reconstruct from serialized dictionary."""
         x_data = data.get("x", {})
         y_data = data.get("y", {})
         y2_data = data.get("y2")
 
         return cls(
-            x=AxisSpec.from_dict(x_data) if x_data else AxisSpec(),
-            y=AxisSpec.from_dict(y_data) if y_data else AxisSpec(),
-            y2=AxisSpec.from_dict(y2_data) if y2_data else None,
+            x=AxisConfig.from_dict(x_data) if x_data else AxisConfig(),
+            y=AxisConfig.from_dict(y_data) if y_data else AxisConfig(),
+            y2=AxisConfig.from_dict(y2_data) if y2_data else None,
             group_label_offset=data.get("group_label_offset", -0.12),
             group_label_alternate=data.get("group_label_alternate", True),
             group_label_alt_spacing=data.get("group_label_alt_spacing", 0.05),
