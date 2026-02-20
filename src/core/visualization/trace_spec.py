@@ -30,6 +30,7 @@ class TraceSpec:
         opacity: Fill/marker opacity (0–1).
         visible: Whether the trace is visible.
         show_in_legend: Whether to include in legend.
+        legendgroup: Group identifier for linked legend entries.
         custom_data: Arbitrary per-trace metadata.
     """
 
@@ -42,6 +43,7 @@ class TraceSpec:
     opacity: float = 1.0
     visible: bool = True
     show_in_legend: bool = True
+    legendgroup: str = ""
     custom_data: Dict[str, Any] = field(default_factory=dict)
 
 
@@ -86,6 +88,9 @@ class LineTraceSpec(TraceSpec):
     show_markers: bool = True
     fill: Literal["none", "tozeroy", "tonexty"] = "none"
 
+    # ── Error bars ───────────────────────────────────────────────
+    error_y: Optional[List[float]] = None
+
 
 @dataclass
 class ScatterTraceSpec(TraceSpec):
@@ -99,3 +104,23 @@ class ScatterTraceSpec(TraceSpec):
     marker_line_color: str = ""
     colorscale: Optional[str] = None  # for continuous color mapping
     size_values: Optional[List[float]] = None  # bubble chart sizes
+
+    # ── Error bars ───────────────────────────────────────────────
+    error_y: Optional[List[float]] = None
+
+
+@dataclass
+class HistogramTraceSpec(TraceSpec):
+    """Histogram-specific trace parameters.
+
+    Note: in RING-5, histograms are typically pre-binned and rendered
+    as ``BarTraceSpec`` with bin centres as ``x``.  This subclass
+    exists for the rare case where raw data is passed directly and
+    the binning should be done by the rendering engine.
+    """
+
+    trace_type: Literal["bar", "line", "scatter", "histogram"] = "histogram"
+
+    nbins: int = 20
+    normalization: Literal["", "percent", "probability", "density"] = ""
+    cumulative: bool = False

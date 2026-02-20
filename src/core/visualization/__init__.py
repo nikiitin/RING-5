@@ -39,6 +39,7 @@ from src.core.visualization.resolvers import resolve_spec
 from src.core.visualization.series_style_spec import SeriesStyleSpec
 from src.core.visualization.trace_spec import (
     BarTraceSpec,
+    HistogramTraceSpec,
     LineTraceSpec,
     ScatterTraceSpec,
     TraceSpec,
@@ -58,6 +59,7 @@ __all__ = [
     "LegendSpacingSpec",
     "TraceSpec",
     "BarTraceSpec",
+    "HistogramTraceSpec",
     "LineTraceSpec",
     "ScatterTraceSpec",
     "AnnotationSpec",

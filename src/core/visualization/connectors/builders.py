@@ -147,6 +147,11 @@ class PlotlyFigureSpecBuilder:
         if not spec.annotations:
             spec.annotations = _extract_annotations(layout)
 
+        # ── Barmode ─────────────────────────────────────────────
+        plotly_barmode = getattr(layout, "barmode", None)
+        if plotly_barmode is not None:
+            spec.barmode = str(plotly_barmode)  # type: ignore[assignment]
+
         # ── Legend3 (boxed legend items) ─────────────────────────
         legend3 = getattr(layout, "legend3", None)
         if legend3 is not None:
@@ -564,6 +569,11 @@ class ConfigSpecBuilder:
         enable_stripes = bool(config.get("enable_stripes", False))
         hovermode = config.get("hovermode", "x unified")
 
+        # ── Bar mode ────────────────────────────────────────────
+        barmode_raw = str(config.get("barmode", "group")).lower()
+        if barmode_raw not in ("group", "stack", "overlay", "relative"):
+            barmode_raw = "group"
+
         return FigureSpec(
             dimensions=dims,
             typography=typo,
@@ -580,6 +590,7 @@ class ConfigSpecBuilder:
             show_error_bars=show_error_bars,
             enable_stripes=enable_stripes,
             hovermode=hovermode,
+            barmode=barmode_raw,  # type: ignore[arg-type]
         )
 
 

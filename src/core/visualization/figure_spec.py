@@ -153,6 +153,9 @@ class FigureSpec:
         ]
     )
 
+    # Bar layout mode (how multiple bar traces are arranged)
+    barmode: Literal["group", "stack", "overlay", "relative"] = "group"
+
     # Hatching sequence for B&W-friendly bar differentiation
     hatching_sequence: List[str] = field(
         default_factory=lambda: ["/", "\\", "|", "-", "+", "x", "o", "O"]
