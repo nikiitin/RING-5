@@ -32,8 +32,20 @@ class MatplotlibTraceRenderer:
     # ── public API ────────────────────────────────────────────────────────
 
     @staticmethod
-    def render(plotly_fig: go.Figure, ax: Axes) -> int:
+    def render(
+        plotly_fig: go.Figure,
+        ax: Axes,
+        palette_colors: Optional[List[str]] = None,
+    ) -> int:
         """Render all traces from *plotly_fig* onto *ax*.
+
+        Args:
+            plotly_fig: The completed Plotly figure to convert.
+            ax: The matplotlib axes to draw on.
+            palette_colors: Resolved palette hex colours.  When supplied,
+                each trace is coloured ``palette_colors[idx]`` instead of
+                using whatever colour Plotly assigned. This ensures the
+                user-selected palette is respected in the matplotlib output.
 
         Secondary-Y traces (``yaxis='y2'``) are rendered on a twin axis
         created via ``ax.twinx()``, stored as ``ax._ring5_twin``.
@@ -57,21 +69,46 @@ class MatplotlibTraceRenderer:
         for idx, trace in enumerate(plotly_fig.data):
             is_secondary = getattr(trace, "yaxis", None) == "y2"
             target = ax2 if (is_secondary and ax2 is not None) else ax
+
+            # Override trace colour with the user-selected palette when
+            # palette_colors is provided.
+            override_color: Optional[str] = None
+            if palette_colors:
+                override_color = palette_colors[idx % len(palette_colors)]
+
             try:
                 if trace.type == "bar":
                     MatplotlibTraceRenderer._draw_bar(
-                        trace, target, idx, bar_traces, barmode, categorical_labels
+                        trace,
+                        target,
+                        idx,
+                        bar_traces,
+                        barmode,
+                        categorical_labels,
+                        override_color=override_color,
                     )
                     count += 1
                 elif trace.type == "scatter":
                     mode = str(trace.mode or "lines")
                     if "markers" in mode and "lines" not in mode:
-                        MatplotlibTraceRenderer._draw_scatter(trace, target)
+                        MatplotlibTraceRenderer._draw_scatter(
+                            trace,
+                            target,
+                            override_color=override_color,
+                        )
                     else:
-                        MatplotlibTraceRenderer._draw_line(trace, target)
+                        MatplotlibTraceRenderer._draw_line(
+                            trace,
+                            target,
+                            override_color=override_color,
+                        )
                     count += 1
                 elif trace.type == "histogram":
-                    MatplotlibTraceRenderer._draw_histogram(trace, target)
+                    MatplotlibTraceRenderer._draw_histogram(
+                        trace,
+                        target,
+                        override_color=override_color,
+                    )
                     count += 1
                 else:
                     logger.warning("Unsupported trace type: %s", trace.type)
@@ -90,10 +127,11 @@ class MatplotlibTraceRenderer:
         bar_traces: List[go.Bar],
         barmode: str,
         categorical_labels: List[str],
+        override_color: Optional[str] = None,
     ) -> None:
         x = _to_list(trace.x)
         y = _to_list(trace.y)
-        color = _normalize_color(trace.marker.color if trace.marker else None)
+        color = override_color or _normalize_color(trace.marker.color if trace.marker else None)
         n_bars = len(bar_traces)
 
         is_categorical = bool(x) and isinstance(x[0], str)
@@ -158,14 +196,21 @@ class MatplotlibTraceRenderer:
     # ── line ───────────────────────────────────────────────────────────────
 
     @staticmethod
-    def _draw_line(trace: go.Scatter, ax: Axes) -> None:
+    def _draw_line(
+        trace: go.Scatter,
+        ax: Axes,
+        override_color: Optional[str] = None,
+    ) -> None:
         x = _to_list(trace.x)
         y = _to_list(trace.y)
         props: Dict[str, Any] = {}
+        if override_color:
+            props["color"] = override_color
         if trace.line:
-            c = _normalize_color(trace.line.color)
-            if c:
-                props["color"] = c
+            if not override_color:
+                c = _normalize_color(trace.line.color)
+                if c:
+                    props["color"] = c
             if trace.line.width:
                 props["linewidth"] = trace.line.width
             if trace.line.dash:
@@ -175,14 +220,21 @@ class MatplotlibTraceRenderer:
     # ── scatter ────────────────────────────────────────────────────────────
 
     @staticmethod
-    def _draw_scatter(trace: go.Scatter, ax: Axes) -> None:
+    def _draw_scatter(
+        trace: go.Scatter,
+        ax: Axes,
+        override_color: Optional[str] = None,
+    ) -> None:
         x = _to_list(trace.x)
         y = _to_list(trace.y)
         props: Dict[str, Any] = {}
+        if override_color:
+            props["color"] = override_color
         if trace.marker:
-            c = _normalize_color(trace.marker.color)
-            if c:
-                props["color"] = c
+            if not override_color:
+                c = _normalize_color(trace.marker.color)
+                if c:
+                    props["color"] = c
             if trace.marker.size:
                 props["s"] = trace.marker.size
         ax.scatter(x, y, label=trace.name or "", **props)
@@ -190,10 +242,16 @@ class MatplotlibTraceRenderer:
     # ── histogram ──────────────────────────────────────────────────────────
 
     @staticmethod
-    def _draw_histogram(trace: go.Histogram, ax: Axes) -> None:
+    def _draw_histogram(
+        trace: go.Histogram,
+        ax: Axes,
+        override_color: Optional[str] = None,
+    ) -> None:
         x = _to_list(trace.x)
         props: Dict[str, Any] = {}
-        if trace.marker:
+        if override_color:
+            props["color"] = override_color
+        elif trace.marker:
             c = _normalize_color(trace.marker.color)
             if c:
                 props["color"] = c

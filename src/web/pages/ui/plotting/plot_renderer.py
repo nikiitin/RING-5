@@ -293,7 +293,13 @@ class PlotRenderer:
         mpl_fig, ax = FigureSpecToMatplotlib.create_figure(spec)
 
         # 3. Convert Plotly traces → matplotlib artists
-        MatplotlibTraceRenderer.render(plotly_fig, ax)
+        #    Pass resolved palette so traces use the correct colours
+        #    during drawing (set_prop_cycle after draw has no effect).
+        MatplotlibTraceRenderer.render(
+            plotly_fig,
+            ax,
+            palette_colors=spec.color_palette or None,
+        )
 
         # 4. Apply spec-based styling
         FigureSpecToMatplotlib.apply(spec, ax)
