@@ -6,7 +6,7 @@ It reads from the shared FigureConfig instead of a raw layout dictionary
 and scattered LaTeXPreset fields.
 
 Usage:
-    from src.core.visualization.connectors import FigureSpecToMatplotlib
+    from src.web.rendering import FigureSpecToMatplotlib
 
     resolved = resolve_config(spec)
     FigureSpecToMatplotlib.apply(resolved, ax)

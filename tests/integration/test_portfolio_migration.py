@@ -10,7 +10,7 @@ import json
 from typing import Any, Dict
 
 from src.core.models.visualization.figure_config import FigureConfig
-from src.core.visualization.connectors.builders import ConfigSpecBuilder
+from src.web.rendering.config_builder import ConfigSpecBuilder
 from src.web.services.portfolio_migrator import PortfolioMigrator
 
 

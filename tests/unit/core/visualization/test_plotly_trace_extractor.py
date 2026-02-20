@@ -10,7 +10,7 @@ from src.core.models.visualization.trace_config import (
     LineTraceConfig,
     ScatterTraceConfig,
 )
-from src.core.visualization.connectors.plotly_trace_extractor import (
+from src.web.rendering.plotly_trace_extractor import (
     PlotlyTraceExtractor,
 )
 

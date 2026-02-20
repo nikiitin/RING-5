@@ -6,7 +6,7 @@ from typing import Any
 from unittest.mock import MagicMock
 
 from src.core.models.visualization.figure_config import FigureConfig
-from src.core.visualization.connectors.builders import PlotlyFigureSpecBuilder
+from src.web.rendering.config_builder import PlotlyFigureSpecBuilder
 
 
 def _make_spec(**kwargs: Any) -> FigureConfig:

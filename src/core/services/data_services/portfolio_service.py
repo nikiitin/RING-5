@@ -115,7 +115,7 @@ class PortfolioService:
             # Persist FigureConfig alongside flat config for V2 schema
             plot_config: Dict[str, Any] = plot_dict.get("config", {})
             try:
-                from src.core.visualization.connectors.builders import (
+                from src.web.rendering.config_builder import (
                     ConfigSpecBuilder,
                 )
 

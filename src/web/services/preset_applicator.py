@@ -22,7 +22,7 @@ import dataclasses
 from typing import Any, Dict
 
 from src.core.models.visualization.figure_config import FigureConfig
-from src.core.visualization.connectors.builders import PresetSpecBuilder
+from src.web.rendering.config_builder import PresetSpecBuilder
 
 
 class PresetApplicator:

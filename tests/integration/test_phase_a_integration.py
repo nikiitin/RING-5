@@ -24,17 +24,17 @@ from src.core.models.visualization.palettes import (
     resolve_palette,
 )
 from src.core.models.visualization.resolvers import resolve_config
-from src.core.visualization.connectors.builders import (
+from src.web.rendering.config_builder import (
     ConfigSpecBuilder,
     PlotlyFigureSpecBuilder,
 )
-from src.core.visualization.connectors.matplotlib_connector import (
+from src.web.rendering.matplotlib_connector import (
     FigureSpecToMatplotlib,
 )
-from src.core.visualization.connectors.matplotlib_trace_renderer import (
+from src.web.rendering.matplotlib_trace_renderer import (
     MatplotlibTraceRenderer,
 )
-from src.core.visualization.connectors.plotly_trace_extractor import (
+from src.web.rendering.plotly_trace_extractor import (
     PlotlyTraceExtractor,
 )
 

@@ -18,10 +18,10 @@ import pytest
 
 from src.core.models.visualization.figure_config import FigureConfig
 from src.core.models.visualization.resolvers import resolve_config
-from src.core.visualization.connectors.builders import ConfigSpecBuilder
-from src.core.visualization.connectors.plotly_connector import FigureSpecToPlotly
 from src.web.figures.engine import FigureEngine
 from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
+from src.web.rendering.config_builder import ConfigSpecBuilder
+from src.web.rendering.plotly_connector import FigureSpecToPlotly
 
 # ─── Fixtures ────────────────────────────────────────────────────────────────
 

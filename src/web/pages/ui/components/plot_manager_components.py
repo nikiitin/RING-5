@@ -369,7 +369,7 @@ class PlotManagerComponents:
             from src.web.services.preset_applicator import PresetApplicator
 
             preset_data: DictT[str, Any] = dict(PresetManager.load_preset(preset_name))
-            from src.core.visualization.connectors.builders import (
+            from src.web.rendering.config_builder import (
                 ConfigSpecBuilder,
             )
 

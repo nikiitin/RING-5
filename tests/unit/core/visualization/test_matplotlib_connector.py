@@ -27,7 +27,7 @@ from src.core.models.visualization.figure_config import (  # noqa: E402
     FigureConfig,
     SeparatorConfig,
 )
-from src.core.visualization.connectors.matplotlib_connector import (  # noqa: E402
+from src.web.rendering.matplotlib_connector import (  # noqa: E402
     FigureSpecToMatplotlib,
 )
 

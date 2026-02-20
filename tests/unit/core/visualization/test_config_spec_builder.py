@@ -11,7 +11,7 @@ from typing import Any, Dict
 
 from src.core.models.visualization.figure_config import FigureConfig
 from src.core.models.visualization.resolvers import resolve_config
-from src.core.visualization.connectors.builders import ConfigSpecBuilder
+from src.web.rendering.config_builder import ConfigSpecBuilder
 
 
 def _sample_config(**overrides: Any) -> Dict[str, Any]:

@@ -23,11 +23,11 @@ from src.core.models.visualization.legend_config import LegendConfig
 from src.core.models.visualization.resolvers import resolve_config
 from src.core.models.visualization.series_style_config import SeriesStyleConfig
 from src.core.models.visualization.typography_config import TypographyConfig
-from src.core.visualization.connectors.builders import (
+from src.web.rendering.config_builder import (
     PlotlyFigureSpecBuilder,
     PresetSpecBuilder,
 )
-from src.core.visualization.connectors.plotly_connector import FigureSpecToPlotly
+from src.web.rendering.plotly_connector import FigureSpecToPlotly
 
 
 class TestFigureSpecToPlotly:
