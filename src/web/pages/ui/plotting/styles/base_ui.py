@@ -105,8 +105,14 @@ class BaseStyleUI:
         Render style configurator UI (Theme, Colors, Fonts).
         Delegates to specific render methods for each section.
         """
-        # 1. Series Colors
-        series_config = self._render_series_section(saved_config, data, items, key_prefix)
+        # 1. Series Colors (palette comes from saved_config; _section_colors owns the dropdown)
+        series_config = self._render_series_section(
+            saved_config,
+            data,
+            items,
+            key_prefix,
+            palette_name=saved_config.get("color_palette"),
+        )
 
         st.markdown("---")
 
@@ -151,45 +157,39 @@ class BaseStyleUI:
         data: Optional[pd.DataFrame],
         items: Optional[List[str]],
         key_prefix: str,
+        palette_name: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Render series colors section."""
+        """Render per-series color overrides.
+
+        The palette dropdown has been consolidated into
+        ``BasePlot._section_colors``.  This method only renders the
+        individual colour pickers for each series/group.
+
+        Args:
+            saved_config: Current saved configuration.
+            data: DataFrame for column discovery.
+            items: Explicit series/group names (optional).
+            key_prefix: Streamlit widget key prefix.
+            palette_name: Active palette name (resolved upstream).
+
+        Returns:
+            Dict with ``series_styles`` key only.
+        """
         st.markdown("#### Series Colors")
 
-        available_palettes = [
-            "Plotly",
-            "G10",
-            "T10",
-            "Alphabet",
-            "Dark24",
-            "Light24",
-            "Pastel",
-            "Set1",
-            "Set2",
-            "Set3",
-            "Tableau",
-            "Safe",
-            "Vivid",
-        ]
-
-        current_palette = saved_config.get("color_palette", "Plotly")
-        if current_palette not in available_palettes:
-            current_palette = "Plotly"
-
-        color_palette = st.selectbox(
-            "Select Color Palette",
-            options=available_palettes,
-            index=available_palettes.index(current_palette),
-            key=f"{key_prefix}palette_{self.plot_id}",
-            help="Choose a color scheme for the plot series/groups.",
-        )
+        effective_palette = palette_name or saved_config.get("color_palette", "wong")
 
         series_styles = self.render_series_colors_ui(
-            saved_config, data, items=items, key_prefix=key_prefix, current_palette=color_palette
+            saved_config,
+            data,
+            items=items,
+            key_prefix=key_prefix,
+            current_palette=effective_palette,
         )
 
         st.markdown("---")
 
-        return {"color_palette": color_palette, "series_styles": series_styles}
+        return {"series_styles": series_styles}
 
     def _render_backgrounds_section(
         self, saved_config: Dict[str, Any], key_prefix: str

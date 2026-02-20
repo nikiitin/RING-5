@@ -50,7 +50,9 @@ def test_render_style_ui_basic(style_manager, mock_streamlit):
     # Just verify it runs and collects basics
     result = style_manager.render_style_ui(config)
 
-    assert "color_palette" in result
+    # Palette selection moved to _section_colors; render_style_ui handles
+    # series styles, backgrounds, legends, and typography only.
+    assert "series_styles" in result
     assert "plot_bgcolor" in result
     assert "legend_orientation" in result
 

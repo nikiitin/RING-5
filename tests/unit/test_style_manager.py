@@ -77,7 +77,9 @@ def test_render_style_ui(style_manager, mock_streamlit):
 
     result = style_manager.render_style_ui(saved_config)
 
-    assert result["color_palette"] == "G10"
+    # Palette selection moved to _section_colors; render_style_ui only
+    # handles series overrides, backgrounds, legends, & typography.
+    assert "series_styles" in result
     assert result["transparent_bg"] is False
     assert "plot_bgcolor" in result
 

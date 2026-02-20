@@ -498,7 +498,11 @@ class BasePlot(ABC):
 
         st.markdown("---")
         series = self.style_manager.ui_manager._render_series_section(
-            saved_config, data, items=None, key_prefix="theme_"
+            saved_config,
+            data,
+            items=None,
+            key_prefix="theme_",
+            palette_name=selected_palette,
         )
         st.markdown("---")
         bg = self.style_manager.ui_manager._render_backgrounds_section(
