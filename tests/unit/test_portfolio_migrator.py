@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from src.web.services.portfolio_migrator import PortfolioMigrator
+from src.core.services.portfolio_migrator import PortfolioMigrator
 
 
 class TestV1Migration:

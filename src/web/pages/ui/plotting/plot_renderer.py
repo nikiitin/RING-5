@@ -9,13 +9,14 @@ import streamlit as st
 
 from src.core.models.visualization.resolvers import resolve_config
 from src.core.performance import get_plot_cache, timed
-from src.web.figures.engine import FigureEngine
 from src.web.pages.ui.components.interactive_plot import interactive_plotly_chart
 from src.web.pages.ui.plotting.download_section import render_download_section
 from src.web.rendering.config_builder import (
     ConfigSpecBuilder,
     PlotlyFigureSpecBuilder,
 )
+from src.web.rendering.engine_manager import EngineManager, EngineMode
+from src.web.rendering.figure_engine import FigureEngine
 from src.web.rendering.matplotlib_connector import (
     FigureSpecToMatplotlib,
 )
@@ -25,7 +26,6 @@ from src.web.rendering.matplotlib_trace_renderer import (
 from src.web.rendering.plotly_trace_extractor import (
     PlotlyTraceExtractor,
 )
-from src.web.services.engine_manager import EngineManager, EngineMode
 
 from .base_plot import BasePlot
 

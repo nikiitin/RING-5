@@ -75,8 +75,8 @@ import pandas as pd
 from src.core.common.utils import sanitize_filename, validate_path_within
 from src.core.models import PlotProtocol
 from src.core.services.data_services.path_service import PathService
+from src.core.services.portfolio_migrator import PortfolioMigrator
 from src.core.state.state_manager import StateManager
-from src.web.services.portfolio_migrator import PortfolioMigrator
 
 
 class PortfolioService:

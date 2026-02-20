@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from typing import Dict, Set
 
-from src.core.visualization.widgets.widget_def import (
+from src.web.rendering.widgets.widget_def import (
     AXIS_COLORS,
     BACKGROUNDS,
     DATA_LABELS,

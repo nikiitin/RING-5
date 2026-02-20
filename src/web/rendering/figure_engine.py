@@ -29,7 +29,7 @@ from typing import Any, Dict, Optional
 import pandas as pd
 import plotly.graph_objects as go
 
-from src.web.figures.protocols import FigureCreator, FigureStyler
+from src.web.models.plot_protocols import FigureCreator, FigureStyler
 
 
 class FigureEngine:

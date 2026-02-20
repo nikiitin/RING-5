@@ -16,9 +16,9 @@ from src.core.services.data_services.config_service import ConfigService
 from src.core.services.data_services.csv_pool_service import CsvPoolService
 from src.core.services.data_services.path_service import PathService
 from src.core.state.repository_state_manager import RepositoryStateManager
-from src.web.figures.engine import FigureEngine
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
+from src.web.rendering.figure_engine import FigureEngine
 
 # ---------------------------------------------------------------------------
 # Fixtures

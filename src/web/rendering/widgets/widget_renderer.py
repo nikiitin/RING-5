@@ -7,7 +7,7 @@ Widget renderer — generate Streamlit widgets from declarative definitions.
   3. Handles key-prefix scoping to avoid Streamlit ``DuplicateWidgetID``
 
 Usage:
-    from src.core.visualization.widgets import WidgetRenderer, TYPOGRAPHY
+    from src.web.rendering.widgets import WidgetRenderer, TYPOGRAPHY
 
     renderer = WidgetRenderer(key_prefix="plot_1")
     config = renderer.render_section(TYPOGRAPHY, saved_config)
@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Sequence
 
-from src.core.visualization.widgets.widget_def import (
+from src.web.rendering.widgets.widget_def import (
     CheckboxWidgetDef,
     ColorWidgetDef,
     NumberWidgetDef,

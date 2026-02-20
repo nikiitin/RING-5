@@ -17,7 +17,7 @@ from src.core.models.visualization.figure_config import (
 from src.core.models.visualization.legend_config import LegendConfig
 from src.core.models.visualization.trace_config import TraceConfig
 from src.core.models.visualization.typography_config import TypographyConfig
-from src.web.services.preset_applicator import PresetApplicator
+from src.web.rendering.preset_applicator import PresetApplicator
 
 # ── Fixtures ─────────────────────────────────────────────────────
 

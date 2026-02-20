@@ -29,7 +29,7 @@ from src.core.parsing.gem5.impl.scanning.pattern_aggregator import (
 from src.core.parsing.gem5.types.distribution import Distribution
 from src.core.parsing.gem5.types.histogram import Histogram
 from src.core.services.data_services.config_service import ConfigService
-from src.web.figures.engine import FigureEngine
+from src.web.rendering.figure_engine import FigureEngine
 
 # ===========================================================================
 # Test Class 1: Distribution & Histogram processing edge cases

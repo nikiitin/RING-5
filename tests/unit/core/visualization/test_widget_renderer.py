@@ -13,7 +13,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.core.visualization.widgets.widget_def import (
+from src.web.rendering.widgets.widget_def import (
     CheckboxWidgetDef,
     ColorWidgetDef,
     NumberWidgetDef,
@@ -22,7 +22,7 @@ from src.core.visualization.widgets.widget_def import (
     TextWidgetDef,
     WidgetSection,
 )
-from src.core.visualization.widgets.widget_renderer import WidgetRenderer
+from src.web.rendering.widgets.widget_renderer import WidgetRenderer
 
 
 @pytest.fixture(autouse=True)

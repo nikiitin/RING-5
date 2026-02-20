@@ -290,7 +290,7 @@ class TestFigureEngineMultiType:
 
     def test_all_basic_types_produce_figures(self) -> None:
         """Bar, line, scatter all produce valid go.Figure objects."""
-        from src.web.figures.engine import FigureEngine
+        from src.web.rendering.figure_engine import FigureEngine
 
         at = create_app_with_data()
         api: Any = get_api(at)

@@ -16,12 +16,12 @@ import pytest
 from src.core.models.visualization.figure_config import DimensionConfig, FigureConfig, MarginsConfig
 from src.core.models.visualization.legend_config import LegendConfig
 from src.core.models.visualization.typography_config import TypographyConfig
-from src.core.visualization.widgets.config_bridge import (
+from src.web.rendering.widgets.config_bridge import (
     ConfigBridge,
     _get_nested,
     _set_nested,
 )
-from src.core.visualization.widgets.widget_def import (
+from src.web.rendering.widgets.widget_def import (
     LAYOUT_MARGINS,
     LEGEND,
     LEGEND_APPEARANCE,

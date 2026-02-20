@@ -5,7 +5,7 @@ Each ``WidgetDef`` subclass represents a single Streamlit widget.
 A ``WidgetSection`` groups related widgets under a collapsible header.
 
 Usage:
-    from src.core.visualization.widgets import NumberWidgetDef, WidgetSection
+    from src.web.rendering.widgets import NumberWidgetDef, WidgetSection
 
     MARGINS = WidgetSection(
         id="margins",

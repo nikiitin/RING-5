@@ -1,6 +1,6 @@
 """Tests for extended WidgetSection definitions and spec_path wiring (Steps 27-28)."""
 
-from src.core.visualization.widgets.widget_def import (
+from src.web.rendering.widgets.widget_def import (
     ADVANCED_SECTION,
     ALL_SECTIONS,
     AXIS_COLORS,

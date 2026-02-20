@@ -18,7 +18,7 @@ import streamlit as st
 from matplotlib.figure import Figure as MplFigure
 
 from src.core.models.visualization.figure_config import FigureConfig
-from src.web.services.engine_manager import EngineManager
+from src.web.rendering.engine_manager import EngineManager
 
 # ── Type aliases ─────────────────────────────────────────────────
 

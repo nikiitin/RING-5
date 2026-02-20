@@ -10,8 +10,8 @@ import json
 from typing import Any, Dict
 
 from src.core.models.visualization.figure_config import FigureConfig
+from src.core.services.portfolio_migrator import PortfolioMigrator
 from src.web.rendering.config_builder import ConfigSpecBuilder
-from src.web.services.portfolio_migrator import PortfolioMigrator
 
 
 class TestV1LoadAndMigrate:

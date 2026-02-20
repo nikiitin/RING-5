@@ -16,8 +16,8 @@ The module has three layers:
     ConfigBridge (FigureConfig ↔ config dict mapping)
 """
 
-from src.core.visualization.widgets.config_bridge import ConfigBridge
-from src.core.visualization.widgets.widget_def import (  # Standard sections
+from src.web.rendering.widgets.config_bridge import ConfigBridge
+from src.web.rendering.widgets.widget_def import (  # Standard sections
     AXIS_COLORS,
     BACKGROUNDS,
     DATA_LABELS,
@@ -38,7 +38,7 @@ from src.core.visualization.widgets.widget_def import (  # Standard sections
     WidgetDef,
     WidgetSection,
 )
-from src.core.visualization.widgets.widget_renderer import WidgetRenderer
+from src.web.rendering.widgets.widget_renderer import WidgetRenderer
 
 __all__ = [
     "WidgetDef",

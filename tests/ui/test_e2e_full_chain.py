@@ -60,7 +60,7 @@ class TestDataTransformRenderChain:
 
     def test_bar_plot_full_chain(self) -> None:
         """Bar plot: load → column select → sort → create figure."""
-        from src.web.figures.engine import FigureEngine
+        from src.web.rendering.figure_engine import FigureEngine
 
         at = create_app_with_data()
         api: Any = get_api(at)
@@ -96,7 +96,7 @@ class TestDataTransformRenderChain:
 
     def test_grouped_bar_full_chain(self) -> None:
         """Grouped bar: load → column select → mean → create figure."""
-        from src.web.figures.engine import FigureEngine
+        from src.web.rendering.figure_engine import FigureEngine
 
         at = create_app_with_data()
         api: Any = get_api(at)
@@ -134,7 +134,7 @@ class TestDataTransformRenderChain:
 
     def test_line_plot_full_chain(self) -> None:
         """Line plot: load → filter → sort → create figure."""
-        from src.web.figures.engine import FigureEngine
+        from src.web.rendering.figure_engine import FigureEngine
 
         at = create_app_with_data()
         api: Any = get_api(at)
@@ -172,7 +172,7 @@ class TestDataTransformRenderChain:
 
     def test_scatter_plot_full_chain(self) -> None:
         """Scatter plot: load → column select → create figure."""
-        from src.web.figures.engine import FigureEngine
+        from src.web.rendering.figure_engine import FigureEngine
 
         at = create_app_with_data()
         api: Any = get_api(at)

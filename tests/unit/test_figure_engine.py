@@ -18,7 +18,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import pytest
 
-from src.web.figures.engine import FigureEngine
+from src.web.rendering.figure_engine import FigureEngine
 
 # ─── Test Fixtures ───────────────────────────────────────────────────────────
 

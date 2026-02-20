@@ -23,6 +23,8 @@ from src.web.models.plot_models import (
 from src.web.models.plot_protocols import (
     ChartDisplay,
     ConfigRenderer,
+    FigureCreator,
+    FigureStyler,
     PipelineExecutor,
     PlotHandle,
     PlotLifecycleService,
@@ -40,6 +42,8 @@ __all__ = [
     # Protocols
     "ChartDisplay",
     "ConfigRenderer",
+    "FigureCreator",
+    "FigureStyler",
     "PipelineExecutor",
     "PlotHandle",
     "PlotLifecycleService",

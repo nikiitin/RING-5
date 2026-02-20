@@ -16,8 +16,8 @@ import plotly.graph_objects as go
 import pytest
 
 from src.core.application_api import ApplicationAPI
-from src.web.figures.engine import FigureEngine
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
+from src.web.rendering.figure_engine import FigureEngine
 
 # ===========================================================================
 # Test Class 1: FigureEngine integration with all plot types

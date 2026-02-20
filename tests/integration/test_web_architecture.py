@@ -16,7 +16,6 @@ import pandas as pd
 import plotly.graph_objects as go
 import pytest
 
-from src.web.figures import FigureEngine, FigureStyler
 from src.web.models.plot_models import (
     AnnotationShapeConfig,
     MarginsConfig,
@@ -25,6 +24,8 @@ from src.web.models.plot_models import (
     ShaperStep,
     TypographyConfig,
 )
+from src.web.models.plot_protocols import FigureStyler
+from src.web.rendering.figure_engine import FigureEngine
 
 # ─── Module Import Tests ────────────────────────────────────────────────────
 
@@ -47,7 +48,8 @@ class TestModuleImports:
 
     def test_import_figures(self) -> None:
         """Figure engine imports correctly."""
-        from src.web.figures import FigureCreator, FigureEngine, FigureStyler
+        from src.web.models.plot_protocols import FigureCreator, FigureStyler
+        from src.web.rendering.figure_engine import FigureEngine
 
         assert FigureEngine is not None
         assert FigureCreator is not None
@@ -113,7 +115,7 @@ class TestLayerDependencies:
 
     def test_figures_protocols_have_no_streamlit(self) -> None:
         """Figure protocols must NOT import streamlit."""
-        import src.web.figures.protocols as proto_mod
+        import src.web.models.plot_protocols as proto_mod
 
         source: str = open(proto_mod.__file__).read()  # type: ignore[arg-type]
         assert "import streamlit" not in source
@@ -121,7 +123,7 @@ class TestLayerDependencies:
 
     def test_figure_engine_has_no_streamlit(self) -> None:
         """FigureEngine must NOT import streamlit."""
-        import src.web.figures.engine as engine_mod
+        import src.web.rendering.figure_engine as engine_mod
 
         source: str = open(engine_mod.__file__).read()  # type: ignore[arg-type]
         assert "import streamlit" not in source
@@ -129,7 +131,7 @@ class TestLayerDependencies:
 
     def test_figure_engine_has_no_pages_ui_imports(self) -> None:
         """FigureEngine must NOT import from pages.ui (boundary rule)."""
-        import src.web.figures.engine as engine_mod
+        import src.web.rendering.figure_engine as engine_mod
 
         source: str = open(engine_mod.__file__).read()  # type: ignore[arg-type]
         assert "pages.ui" not in source, (

@@ -9,7 +9,7 @@ This eliminates the need for manual mapping code between the UI layer
 and the domain layer.
 
 Usage:
-    from src.core.visualization.widgets import ConfigBridge, TYPOGRAPHY
+    from src.web.rendering.widgets import ConfigBridge, TYPOGRAPHY
 
     bridge = ConfigBridge([TYPOGRAPHY, LEGEND])
     config = bridge.spec_to_config(figure_spec)
@@ -22,7 +22,7 @@ import copy
 from typing import Any, Dict, List, Optional, Sequence
 
 from src.core.models.visualization.figure_config import FigureConfig
-from src.core.visualization.widgets.widget_def import WidgetSection
+from src.web.rendering.widgets.widget_def import WidgetSection
 
 
 class ConfigBridge:

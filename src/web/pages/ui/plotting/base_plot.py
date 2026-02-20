@@ -21,10 +21,10 @@ from src.core.services.plot_interaction_service import (
     try_float_edit,
     update_config_from_relayout,
 )
-from src.web.figures.engine import FigureEngine
 from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.styles import StyleManager
-from src.web.services.engine_manager import EngineManager
+from src.web.rendering.engine_manager import EngineManager
+from src.web.rendering.figure_engine import FigureEngine
 
 
 class BasePlot(ABC):

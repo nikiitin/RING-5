@@ -366,7 +366,7 @@ class PlotManagerComponents:
             from src.web.pages.ui.plotting.export.presets.preset_manager import (
                 PresetManager,
             )
-            from src.web.services.preset_applicator import PresetApplicator
+            from src.web.rendering.preset_applicator import PresetApplicator
 
             preset_data: DictT[str, Any] = dict(PresetManager.load_preset(preset_name))
             from src.web.rendering.config_builder import (
@@ -375,8 +375,8 @@ class PlotManagerComponents:
 
             base_spec = ConfigSpecBuilder.from_config(current_config)
             updated_spec = PresetApplicator.apply(base_spec, preset_data)
-            from src.core.visualization.widgets.config_bridge import ConfigBridge
-            from src.core.visualization.widgets.widget_def import ALL_SECTIONS
+            from src.web.rendering.widgets.config_bridge import ConfigBridge
+            from src.web.rendering.widgets.widget_def import ALL_SECTIONS
 
             bridge = ConfigBridge(ALL_SECTIONS)
             preset_config = bridge.spec_to_config(updated_spec)

@@ -13,11 +13,11 @@ import pandas as pd
 import streamlit as st
 
 from src.core.models.visualization.palettes import resolve_palette
-from src.core.visualization.widgets import (
+from src.web.pages.ui.plotting.styles.colors import to_hex
+from src.web.rendering.widgets import (
     LEGEND_SIZING,
     WidgetRenderer,
 )
-from src.web.pages.ui.plotting.styles.colors import to_hex
 
 
 class BaseStyleUI:

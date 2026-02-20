@@ -18,7 +18,7 @@ Design Decisions:
 
 Usage::
 
-    from src.web.services.engine_manager import EngineManager
+    from src.web.rendering.engine_manager import EngineManager
 
     if EngineManager.is_plotly():
         render_plotly(fig)
