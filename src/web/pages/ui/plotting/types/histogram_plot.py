@@ -3,9 +3,10 @@
 from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
-import plotly.graph_objects as go
 import streamlit as st
 
+from src.core.models.visualization.trace_build_result import TraceBuildResult
+from src.core.models.visualization.trace_config import BarTraceConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
 
 
@@ -126,16 +127,16 @@ class HistogramPlot(BasePlot):
             "cumulative": cumulative,
         }
 
-    def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
+    def create_traces(self, data: pd.DataFrame, config: Dict[str, Any]) -> TraceBuildResult:
         """
-        Create histogram plot figure.
+        Create histogram trace configurations.
 
         Args:
             data: The data to plot
             config: Configuration dictionary
 
         Returns:
-            Plotly figure object
+            TraceBuildResult with BarTraceConfig traces and barmode
 
         Raises:
             ValueError: If histogram variable not found in data
@@ -157,27 +158,20 @@ class HistogramPlot(BasePlot):
         # Parse bucket ranges and prepare data
         bucket_data = self._extract_bucket_data(data, bucket_cols, config)
 
-        # Create figure
-        fig = go.Figure()
-
-        # Add traces
+        # Build traces
         if config.get("group_by"):
             # Multiple histograms grouped by categorical variable
-            self._add_grouped_histograms(fig, bucket_data, config)
+            traces = self._add_grouped_histograms(bucket_data, config)
+            barmode = "overlay"
         else:
             # Single histogram
-            self._add_single_histogram(fig, bucket_data, config)
+            traces = self._add_single_histogram(bucket_data, config)
+            barmode = "relative"
 
-        # Apply common layout
-        fig.update_layout(
-            title=config["title"],
-            xaxis_title=config["xlabel"],
-            yaxis_title=config["ylabel"],
-            barmode="overlay" if config.get("group_by") else "relative",
-            bargap=0.1,
+        return TraceBuildResult(
+            traces=traces,
+            barmode=barmode,
         )
-
-        return fig
 
     def get_legend_column(self, config: Dict[str, Any]) -> Optional[str]:
         """
@@ -278,17 +272,18 @@ class HistogramPlot(BasePlot):
 
     def _add_single_histogram(
         self,
-        fig: go.Figure,
         bucket_data: Dict[str, Any],
         config: Dict[str, Any],
-    ) -> None:
+    ) -> List[BarTraceConfig]:
         """
-        Add single histogram trace to figure.
+        Build a single histogram trace.
 
         Args:
-            fig: Plotly figure object
             bucket_data: Processed bucket data
             config: Plot configuration
+
+        Returns:
+            List containing a single BarTraceConfig
         """
         buckets = bucket_data["buckets"]
         values = bucket_data["data"][""]
@@ -299,47 +294,53 @@ class HistogramPlot(BasePlot):
         # Apply normalization
         values_normalized = self._normalize_values(values, config)
 
-        fig.add_trace(
-            go.Bar(
-                x=x_centers,
-                y=values_normalized,
-                name=config.get("histogram_variable", "Histogram"),
-                marker=dict(line=dict(width=1, color="white")),
-            )
+        trace = BarTraceConfig(
+            name=config.get("histogram_variable", "Histogram"),
+            x=[str(c) for c in x_centers],
+            y=values_normalized,
+            x_positions=x_centers,
+            border_width=1.0,
+            border_color="white",
         )
+        return [trace]
 
     def _add_grouped_histograms(
         self,
-        fig: go.Figure,
         bucket_data: Dict[str, Any],
         config: Dict[str, Any],
-    ) -> None:
+    ) -> List[BarTraceConfig]:
         """
-        Add multiple grouped histogram traces to figure.
+        Build multiple grouped histogram traces.
 
         Args:
-            fig: Plotly figure object
             bucket_data: Processed bucket data
             config: Plot configuration
+
+        Returns:
+            List of BarTraceConfig, one per group
         """
         buckets = bucket_data["buckets"]
         groups = bucket_data["groups"]
 
         x_centers = [(b[0] + b[1]) / 2 for b in buckets]
+        traces: List[BarTraceConfig] = []
 
         for group in groups:
             values = bucket_data["data"].get(str(group), [])
             values_normalized = self._normalize_values(values, config)
 
-            fig.add_trace(
-                go.Bar(
-                    x=x_centers,
-                    y=values_normalized,
-                    name=str(group),
-                    marker=dict(line=dict(width=1, color="white")),
-                    opacity=0.7,
-                )
+            trace = BarTraceConfig(
+                name=str(group),
+                x=[str(c) for c in x_centers],
+                y=values_normalized,
+                x_positions=x_centers,
+                opacity=0.7,
+                border_width=1.0,
+                border_color="white",
             )
+            traces.append(trace)
+
+        return traces
 
     def _normalize_values(self, values: List[float], config: Dict[str, Any]) -> List[float]:
         """

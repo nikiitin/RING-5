@@ -193,13 +193,12 @@ class TestWithColorGrouping:
 class TestLayout:
     """Test layout configuration."""
 
-    def test_layout_titles(
+    def test_layout_barmode(
         self, plot: DualAxisBarDotPlot, sample_data: pd.DataFrame, base_config: dict
     ) -> None:
-        """Layout has correct titles."""
-        fig = plot.create_figure(sample_data, base_config)
-        assert fig.layout.title.text == "Test"
-        assert fig.layout.barmode == "group"
+        """Layout barmode is group for dual-axis bar-dot."""
+        result = plot.create_traces(sample_data, base_config)
+        assert result.barmode == "group"
 
     def test_get_legend_column(self, plot: DualAxisBarDotPlot) -> None:
         assert plot.get_legend_column({"color": "Config"}) == "Config"

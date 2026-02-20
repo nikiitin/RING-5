@@ -109,7 +109,7 @@ class TestHistogramPlotIntegration:
 
             assert fig is not None
             assert len(fig.data) > 0
-            assert fig.layout.title.text == "Transaction Commit Cycles Distribution"
+            # Title is applied by the style chain, not create_figure()
 
     def test_histogram_with_grouping(
         self, facade: ApplicationAPI, stats_dir: Path, tmp_path: Path

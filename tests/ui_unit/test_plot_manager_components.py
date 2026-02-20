@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
+from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.web.pages.ui.components.plot_manager_components import PlotManagerComponents
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from tests.conftest import columns_side_effect
@@ -14,8 +15,8 @@ class MockPlot(BasePlot):
     def render_config_ui(self, data, config):
         return {}
 
-    def create_figure(self, data, config):
-        return MagicMock()
+    def create_traces(self, data, config):
+        return TraceBuildResult(traces=[])
 
     def get_legend_column(self, config):
         return None

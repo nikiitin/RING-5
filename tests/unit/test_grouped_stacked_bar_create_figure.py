@@ -52,19 +52,19 @@ class TestCreateFigure:
         # Parent builds stacked traces
         assert len(fig.data) > 0
 
-    def test_no_x_returns_placeholder(self, plot: GroupedStackedBarPlot) -> None:
-        """When x_col is missing, returns a placeholder figure."""
+    def test_no_x_returns_empty_traces(self, plot: GroupedStackedBarPlot) -> None:
+        """When x_col is missing, returns empty TraceBuildResult."""
         config = {"x": None, "group": "Config", "y_columns": []}
-        fig = plot.create_figure(pd.DataFrame(), config)
-        assert "Please select" in fig.layout.title.text
+        result = plot.create_traces(pd.DataFrame(), config)
+        assert result.traces == []
 
-    def test_no_y_columns_returns_placeholder(
+    def test_no_y_columns_returns_empty_traces(
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
-        """When y_columns is empty, returns a placeholder figure."""
+        """When y_columns is empty, returns empty TraceBuildResult."""
         config = {"x": "Benchmark", "group": "Config", "y_columns": []}
-        fig = plot.create_figure(sample_data, config)
-        assert "Please select" in fig.layout.title.text
+        result = plot.create_traces(sample_data, config)
+        assert result.traces == []
 
     def test_basic_grouped_stacked(
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
@@ -83,9 +83,9 @@ class TestCreateFigure:
         assert isinstance(fig, go.Figure)
         # 2 y_columns → 2 bar traces
         assert len(fig.data) == 2
-        assert fig.layout.title.text == "Test"
-        assert fig.layout.yaxis.title.text == "Value"
-        assert fig.layout.legend.title.text == "Stats"
+        # Title/ylabel/legend_title are applied by the style chain,
+        # not by create_figure().  Verify trace count only.
+        assert len(fig.data) > 0
 
     def test_with_group_filter(
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame

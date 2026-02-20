@@ -195,8 +195,9 @@ class TestLinePlotCreateFigure:
             "xlabel": "X",
             "ylabel": "Y",
         }
-        fig = plot.create_figure(sample_data, config)
-        assert fig.layout.xaxis.type == "category"
+        result = plot.create_traces(sample_data, config)
+        # X values are categorical strings
+        assert all(isinstance(v, str) for v in result.traces[0].x)
 
     def test_get_legend_column(self) -> None:
         plot = LinePlot(1, "test")

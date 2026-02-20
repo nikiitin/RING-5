@@ -8,7 +8,6 @@ _get_total_position, and get_legend_column.
 from typing import Any, Dict
 
 import pandas as pd
-import plotly.graph_objects as go
 
 from src.web.pages.ui.plotting.types.stacked_bar_plot import StackedBarPlot
 
@@ -180,66 +179,61 @@ class TestBuildTotalsAnnotations:
 
 
 # ===================================================================
-# _add_bar_trace
+# _build_bar_trace
 # ===================================================================
 
 
-class TestAddBarTrace:
-    """Tests for _add_bar_trace."""
+class TestBuildBarTrace:
+    """Tests for _build_bar_trace (returns BarTraceConfig)."""
 
     def test_basic_trace(self) -> None:
         plot = StackedBarPlot(1, "test")
-        fig = go.Figure()
         df = _sample_df()
         df["__total"] = df["ipc"] + df["cpi"]
-        fig = plot._add_bar_trace(fig, df, "ipc", "benchmark", None, "", {})
-        assert len(fig.data) == 1
-        assert fig.data[0].name == "ipc"
+        trace = plot._build_bar_trace(df, "ipc", "benchmark", None, "", {})
+        assert trace.name == "ipc"
+        assert trace.y == df["ipc"].tolist()
 
     def test_error_bars(self) -> None:
         plot = StackedBarPlot(1, "test")
-        fig = go.Figure()
         df = _sample_df()
         df["__total"] = df["ipc"] + df["cpi"]
         df["ipc.sd"] = [0.1, 0.2, 0.1, 0.15]
         config: Dict[str, Any] = {"show_error_bars": True}
-        fig = plot._add_bar_trace(fig, df, "ipc", "benchmark", None, "", config)
-        assert fig.data[0].error_y.visible is True
+        trace = plot._build_bar_trace(df, "ipc", "benchmark", None, "", config)
+        assert trace.error_y is not None
+        assert len(trace.error_y) == 4
 
     def test_series_color(self) -> None:
         plot = StackedBarPlot(1, "test")
-        fig = go.Figure()
         df = _sample_df()
         df["__total"] = df["ipc"] + df["cpi"]
         config: Dict[str, Any] = {"series_styles": {"ipc": {"color": "#00FF00"}}}
-        fig = plot._add_bar_trace(fig, df, "ipc", "benchmark", None, "", config)
-        assert fig.data[0].marker.color == "#00FF00"
+        trace = plot._build_bar_trace(df, "ipc", "benchmark", None, "", config)
+        assert trace.color == "#00FF00"
 
     def test_series_pattern(self) -> None:
         plot = StackedBarPlot(1, "test")
-        fig = go.Figure()
         df = _sample_df()
         df["__total"] = df["ipc"] + df["cpi"]
         config: Dict[str, Any] = {"series_styles": {"ipc": {"pattern": "x"}}}
-        fig = plot._add_bar_trace(fig, df, "ipc", "benchmark", None, "", config)
-        assert fig.data[0].marker.pattern.shape == "x"
+        trace = plot._build_bar_trace(df, "ipc", "benchmark", None, "", config)
+        assert trace.pattern == "x"
 
     def test_custom_name(self) -> None:
         plot = StackedBarPlot(1, "test")
-        fig = go.Figure()
         df = _sample_df()
         df["__total"] = df["ipc"] + df["cpi"]
         config: Dict[str, Any] = {"series_styles": {"ipc": {"name": "Instructions/Cycle"}}}
-        fig = plot._add_bar_trace(fig, df, "ipc", "benchmark", None, "", config)
-        assert fig.data[0].name == "Instructions/Cycle"
+        trace = plot._build_bar_trace(df, "ipc", "benchmark", None, "", config)
+        assert trace.name == "Instructions/Cycle"
 
     def test_bar_width(self) -> None:
         plot = StackedBarPlot(1, "test")
-        fig = go.Figure()
         df = _sample_df()
         df["__total"] = df["ipc"] + df["cpi"]
-        fig = plot._add_bar_trace(fig, df, "ipc", "benchmark", 0.4, "", {})
-        assert fig.data[0].width == 0.4
+        trace = plot._build_bar_trace(df, "ipc", "benchmark", 0.4, "", {})
+        assert trace.bar_width == 0.4
 
 
 # ===================================================================
@@ -267,11 +261,11 @@ class TestCreateFigure:
         assert len(fig.data) == 2  # ipc + cpi
         assert fig.layout.barmode == "stack"
 
-    def test_layout_titles(self) -> None:
+    def test_layout_barmode(self) -> None:
         plot = StackedBarPlot(1, "test")
-        config = {**_base_config(), "title": "My Stacked", "xlabel": "Bench", "ylabel": "Val"}
-        fig = plot.create_figure(_sample_df(), config)
-        assert fig.layout.title.text == "My Stacked"
+        config = _base_config()
+        result = plot.create_traces(_sample_df(), config)
+        assert result.barmode == "stack"
 
     def test_with_totals(self) -> None:
         plot = StackedBarPlot(1, "test")

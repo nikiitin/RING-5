@@ -135,7 +135,7 @@ class TestDualAxisCreateFigure:
     def test_dual_axis_ylabel_right(
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
-        """Right Y-axis label is set correctly."""
+        """Dual-axis mode enables secondary_y and assigns traces correctly."""
         config: Dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
@@ -147,12 +147,15 @@ class TestDualAxisCreateFigure:
             "ylabel_right": "Right Axis",
             "title": "Labels",
         }
-        fig: go.Figure = plot.create_figure(sample_data, config)
+        result = plot.create_traces(sample_data, config)
 
-        # Primary Y
-        assert fig.layout.yaxis.title.text == "Left Axis"
-        # Secondary Y
-        assert fig.layout.yaxis2.title.text == "Right Axis"
+        assert result.secondary_y is True
+        # Left-axis traces exist
+        left_traces = [t for t in result.traces if t.yaxis != "y2"]
+        assert len(left_traces) > 0
+        # Right-axis traces exist
+        right_traces = [t for t in result.traces if t.yaxis == "y2"]
+        assert len(right_traces) > 0
 
     def test_dual_axis_multiple_right_columns(
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame

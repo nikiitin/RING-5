@@ -1,12 +1,12 @@
 """Bar plot implementation."""
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
 import streamlit as st
 
+from src.core.models.visualization.trace_build_result import TraceBuildResult
+from src.core.models.visualization.trace_config import BarTraceConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
 
 
@@ -36,39 +36,72 @@ class BarPlot(BasePlot):
 
         return {**config, "color": color_column}
 
-    def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
-        """Create bar plot figure."""
-        y_error = None
+    def create_traces(self, data: pd.DataFrame, config: Dict[str, Any]) -> TraceBuildResult:
+        """Produce bar traces from data and config."""
+        x_col: str = config["x"]
+        y_col: str = config["y"]
+        color_col: Optional[str] = config.get("color")
+
+        # Error bar column
+        sd_col: Optional[str] = None
         if config.get("show_error_bars"):
-            sd_col = f"{config['y']}.sd"
-            if sd_col in data.columns:
-                y_error = sd_col
+            candidate = f"{y_col}.sd"
+            if candidate in data.columns:
+                sd_col = candidate
 
-        # Ensure data is string for categorical plotting
+        # Cast to string for categorical plotting
         data = data.copy()
-        data[config["x"]] = data[config["x"]].astype(str)
-        if config.get("color"):
-            data[config["color"]] = data[config["color"]].astype(str)
+        data[x_col] = data[x_col].astype(str)
+        if color_col:
+            data[color_col] = data[color_col].astype(str)
 
-        # Handle ordering
-        category_orders = {}
+        # Determine ordering
         if config.get("xaxis_order"):
-            category_orders[config["x"]] = [str(x) for x in config["xaxis_order"]]
-        if config.get("legend_order") and config.get("color"):
-            category_orders[config["color"]] = [str(x) for x in config["legend_order"]]
+            x_order: List[str] = [str(x) for x in config["xaxis_order"]]
+        else:
+            x_order = sorted(data[x_col].unique())
 
-        fig = px.bar(
-            data,
-            x=config["x"],
-            y=config["y"],
-            color=config.get("color"),
-            error_y=y_error,
-            title=config["title"],
-            labels={config["x"]: config["xlabel"], config["y"]: config["ylabel"]},
-            category_orders=category_orders,
-        )
+        traces: List[BarTraceConfig] = []
 
-        return fig
+        if color_col:
+            if config.get("legend_order"):
+                groups: List[str] = [str(g) for g in config["legend_order"]]
+            else:
+                groups = sorted(data[color_col].unique())
+
+            for grp in groups:
+                grp_data = data[data[color_col] == grp]
+                # Sort to match x_order without reindex (avoids duplicate label errors)
+                order_map = {v: i for i, v in enumerate(x_order)}
+                grp_data = grp_data.copy()
+                grp_data["__sort_key"] = grp_data[x_col].map(order_map)
+                grp_data = grp_data.sort_values("__sort_key").drop(columns=["__sort_key"])
+                error_y = grp_data[sd_col].tolist() if sd_col else None
+                traces.append(
+                    BarTraceConfig(
+                        name=str(grp),
+                        x=grp_data[x_col].tolist(),
+                        y=grp_data[y_col].tolist(),
+                        error_y=error_y,
+                    )
+                )
+        else:
+            # Sort to match x_order without reindex
+            order_map = {v: i for i, v in enumerate(x_order)}
+            data = data.copy()
+            data["__sort_key"] = data[x_col].map(order_map)
+            data = data.sort_values("__sort_key").drop(columns=["__sort_key"])
+            error_y = data[sd_col].tolist() if sd_col else None
+            traces.append(
+                BarTraceConfig(
+                    name=y_col,
+                    x=data[x_col].tolist(),
+                    y=data[y_col].tolist(),
+                    error_y=error_y,
+                )
+            )
+
+        return TraceBuildResult(traces=traces)
 
     def get_legend_column(self, config: Dict[str, Any]) -> Optional[str]:
         """Get legend column for bar plot."""

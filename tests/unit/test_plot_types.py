@@ -38,10 +38,7 @@ class TestLinePlot:
         fig = plot.create_figure(sample_data, config)
 
         assert isinstance(fig, go.Figure)
-        # Check layout properties
-        assert fig.layout.title.text == "Title"
-        assert fig.layout.xaxis.title.text == "X"
-        assert fig.layout.yaxis.title.text == "Y"
+        # Title/xlabel/ylabel are applied by the style chain, not create_figure()
         # Check traces (should be 2, one for Low, one for High due to color split)
         assert len(fig.data) == 2
 

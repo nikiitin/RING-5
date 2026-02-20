@@ -109,7 +109,6 @@ class TestHistogramPlotFigureCreation:
 
         assert fig is not None
         assert len(fig.data) > 0
-        assert fig.layout.title.text == "Latency Distribution"
 
     def test_create_figure_grouped_histograms(self) -> None:
         """Test creating figure with multiple grouped histograms."""

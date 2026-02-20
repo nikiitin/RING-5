@@ -3,9 +3,10 @@
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
-import plotly.graph_objects as go
 import streamlit as st
 
+from src.core.models.visualization.trace_build_result import TraceBuildResult
+from src.core.models.visualization.trace_config import BarTraceConfig
 from src.web.pages.ui.components.plot_config_components import PlotConfigComponents
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.utils import GroupedBarUtils
@@ -123,8 +124,8 @@ class GroupedBarPlot(BasePlot):
 
         return config
 
-    def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
-        """Create grouped bar plot figure using manual coordinates for spacing control."""
+    def create_traces(self, data: pd.DataFrame, config: Dict[str, Any]) -> TraceBuildResult:
+        """Create grouped bar trace configurations using manual coordinates."""
 
         # 1. Data Preparation
         data = data.copy()
@@ -164,15 +165,11 @@ class GroupedBarPlot(BasePlot):
             ordered_groups = []  # Empty list instead of [None]
 
         # 2. Calculate Manual X Coordinates
-        # GroupedBarPlot uses Plotly's native 'group' barmode, so we only need one X coordinate
-        # per Category (Major Group). The sub-groups are handled by Plotly automatically offsetting traces.  # noqa: E501
-        # So we pass groups=[] to the utility to get simple category-based coordinates.
         coord_result = GroupedBarUtils.calculate_grouped_coordinates(
             categories=ordered_x, groups=[], config=config
         )
 
-        # Adapt keys: Utility returns cat (string) when groups=[None]
-        # or (cat, grp) when groups are provided.
+        # Adapt keys
         x_map = {
             (k[0] if isinstance(k, tuple) else k): v for k, v in coord_result["coord_map"].items()
         }
@@ -181,57 +178,57 @@ class GroupedBarPlot(BasePlot):
         distinction_shapes = coord_result["shapes"]
 
         # 3. Create Traces
-        fig = go.Figure()
+        traces: List[BarTraceConfig] = []
 
         # If grouped by color
         if group_col:
-            # For each group in legend order
             for grp in ordered_groups:
-                # Filter data for this group
                 grp_data = data[data[group_col] == grp]
+                x_coords = grp_data[x_col].map(x_map).tolist()
 
-                x_coords = grp_data[x_col].map(x_map)
-
-                y_error_dict = None
+                error_y_vals: Optional[List[float]] = None
                 if config.get("show_error_bars"):
                     sd_col = f"{config['y']}.sd"
                     if sd_col in data.columns:
-                        y_error_dict = dict(type="data", array=grp_data[sd_col], visible=True)
+                        error_y_vals = grp_data[sd_col].tolist()
 
-                fig.add_trace(
-                    go.Bar(x=x_coords, y=grp_data[config["y"]], name=grp, error_y=y_error_dict)
+                traces.append(
+                    BarTraceConfig(
+                        name=grp,
+                        x_positions=x_coords,
+                        y=grp_data[config["y"]].tolist(),
+                        error_y=error_y_vals,
+                    )
                 )
         else:
             # No grouping (Single series)
-            x_coords = data[x_col].map(x_map)
+            x_coords = data[x_col].map(x_map).tolist()
 
-            y_error_dict = None
+            error_y_vals = None
             if config.get("show_error_bars"):
                 sd_col = f"{config['y']}.sd"
                 if sd_col in data.columns:
-                    y_error_dict = dict(type="data", array=data[sd_col], visible=True)
+                    error_y_vals = data[sd_col].tolist()
 
-            fig.add_trace(go.Bar(x=x_coords, y=data[config["y"]], error_y=y_error_dict))
+            traces.append(
+                BarTraceConfig(
+                    x_positions=x_coords,
+                    y=data[config["y"]].tolist(),
+                    error_y=error_y_vals,
+                )
+            )
 
-        # 4. Layout
+        # 4. Build result with shapes and tick overrides
         existing_shapes = config.get("shapes", []) or []
         if not isinstance(existing_shapes, list):
             existing_shapes = []
-        fig.update_layout(
-            barmode="group",
-            title=config.get("title", ""),
-            xaxis=dict(
-                title=config.get("xlabel", x_col),
-                tickmode="array",
-                tickvals=tick_vals,
-                ticktext=tick_text,
-            ),
-            yaxis=dict(title=config.get("ylabel", config.get("y", "Value"))),
-            shapes=existing_shapes + distinction_shapes,
-            legend_title=config.get("group", ""),
-        )
 
-        return fig
+        return TraceBuildResult(
+            traces=traces,
+            barmode="group",
+            shapes=existing_shapes + distinction_shapes,
+            custom_x_ticks={"vals": tick_vals, "text": tick_text},
+        )
 
     def get_legend_column(self, config: Dict[str, Any]) -> Optional[str]:
         """Get legend column for grouped bar plot."""

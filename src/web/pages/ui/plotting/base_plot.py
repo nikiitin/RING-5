@@ -15,6 +15,7 @@ from src.core.models.visualization.palettes import (
     is_colorblind_safe,
     resolve_palette,
 )
+from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.services.plot_interaction_service import (
     resolve_item_order,
     try_float,
@@ -45,6 +46,7 @@ class BasePlot(ABC):
         self.config: PlotConfig = {}
         self.processed_data: Optional[pd.DataFrame] = None
         self.last_generated_fig: Optional[go.Figure] = None
+        self.last_traces: Optional[TraceBuildResult] = None
         self.pipeline: List[Dict[str, Any]] = []
         self.pipeline_counter: int = 0
         self.legend_mappings_by_column: Dict[str, Dict[str, str]] = {}
@@ -68,18 +70,49 @@ class BasePlot(ABC):
         pass
 
     @abstractmethod
+    def create_traces(self, data: pd.DataFrame, config: Dict[str, Any]) -> TraceBuildResult:
+        """
+        Produce engine-agnostic trace data from *data* and *config*.
+
+        Each concrete plot type implements this to output
+        ``TraceBuildResult`` containing ``List[TraceConfig]`` plus
+        any auxiliary layout metadata (barmode, shapes, annotations).
+
+        Args:
+            data: The processed data to plot.
+            config: Configuration dictionary.
+
+        Returns:
+            ``TraceBuildResult`` with traces and metadata.
+        """
+        pass
+
     def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
         """
         Create the Plotly figure from data and configuration.
 
+        Delegates to ``create_traces()`` and converts the result
+        to a ``go.Figure`` via the trace-to-plotly converter.
+
         Args:
-            data: The data to plot
-            config: Configuration dictionary
+            data: The data to plot.
+            config: Configuration dictionary.
 
         Returns:
-            Plotly Figure object
+            Plotly Figure object.
         """
-        pass
+        from src.web.rendering.trace_to_plotly import traces_to_plotly
+
+        result = self.create_traces(data, config)
+        self.last_traces = result
+        fig = traces_to_plotly(result)
+
+        # Show a placeholder message when no traces were produced
+        # (e.g. the user has not selected X / Y columns yet).
+        if not result.traces:
+            fig.update_layout(title_text="Please select at least one X and one Y column.")
+
+        return fig
 
     def update_from_relayout(self, relayout_data: Dict[str, Any]) -> bool:
         """

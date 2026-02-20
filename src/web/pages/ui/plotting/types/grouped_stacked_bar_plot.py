@@ -7,6 +7,13 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from src.core.models.visualization.trace_build_result import TraceBuildResult
+from src.core.models.visualization.trace_config import (
+    BarTraceConfig,
+    LineTraceConfig,
+    ScatterTraceConfig,
+    TraceConfig,
+)
 from src.web.pages.ui.components.plot_config_components import PlotConfigComponents
 from src.web.pages.ui.plotting.types.stacked_bar_plot import StackedBarPlot
 from src.web.pages.ui.plotting.utils import GroupedBarUtils
@@ -540,8 +547,8 @@ class GroupedStackedBarPlot(StackedBarPlot):
 
         return config
 
-    def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
-        """Create grouped stacked bar plot figure."""
+    def create_traces(self, data: pd.DataFrame, config: Dict[str, Any]) -> TraceBuildResult:
+        """Create grouped stacked bar trace configurations."""
         x_col = config.get("x")
         group_col = config.get("group")
         y_cols = config.get("y_columns", [])
@@ -549,19 +556,10 @@ class GroupedStackedBarPlot(StackedBarPlot):
 
         # If no group column, delegate to parent's simple stacked bar implementation
         if not group_col:
-            return super().create_figure(data, config)
-
-        # Create figure — use make_subplots for dual-axis
-        if dual_axis:
-            from plotly.subplots import make_subplots
-
-            fig = make_subplots(specs=[[{"secondary_y": True}]])
-        else:
-            fig = go.Figure()
+            return super().create_traces(data, config)
 
         if not x_col or not y_cols:
-            fig.update_layout(title="Please select X axis and at least one Statistic")
-            return fig
+            return TraceBuildResult(traces=[], barmode="stack")
 
         # Prepare data — include right-axis columns in total calculation
         y_cols_right: List[str] = config.get("y_columns_right", []) if dual_axis else []
@@ -571,45 +569,22 @@ class GroupedStackedBarPlot(StackedBarPlot):
         # Define hover template
         hover_template = self._get_hover_template()
 
-        # Create grouped figure (left-axis traces)
-        fig = self._create_grouped_figure(
-            fig, data, x_col, group_col, y_cols, config, hover_template
+        # Create grouped traces
+        return self._create_grouped_traces(
+            data, x_col, group_col, y_cols, config, hover_template, dual_axis
         )
 
-        # Layout: axis titles
-        if dual_axis:
-            fig.update_layout(
-                title=config.get("title", ""),
-                legend_title=config.get("legend_title", "Statistics"),
-            )
-            fig.update_yaxes(
-                title_text=config.get("ylabel", "Value"),
-                secondary_y=False,
-            )
-            fig.update_yaxes(
-                title_text=config.get("ylabel_right", ""),
-                secondary_y=True,
-            )
-        else:
-            fig.update_layout(
-                title=config.get("title", ""),
-                yaxis_title=config.get("ylabel", "Value"),
-                legend_title=config.get("legend_title", "Statistics"),
-            )
-
-        return fig
-
-    def _create_grouped_figure(
+    def _create_grouped_traces(
         self,
-        fig: go.Figure,
         data: pd.DataFrame,
         x_col: str,
         group_col: str,
         y_cols: List[str],
         config: Dict[str, Any],
         hover_template: str,
-    ) -> go.Figure:
-        """Create figure for grouped stacked bars."""
+        dual_axis: bool = False,
+    ) -> TraceBuildResult:
+        """Build TraceBuildResult for grouped stacked bars."""
         # Make a copy to avoid SettingWithCopyWarning
         data = data.copy()
 
@@ -644,64 +619,59 @@ class GroupedStackedBarPlot(StackedBarPlot):
             lambda row: coord_map.get((row[x_col], row[group_col]), None), axis=1
         )
 
-        # Add bar traces (LEFT axis)
+        # Build bar traces (LEFT axis)
+        traces: List[TraceConfig] = []
         for y_col in y_cols:
-            fig = self._add_bar_trace(
-                fig, data, y_col, "__x_coord", bar_width, hover_template, config
+            trace = self._build_bar_trace(
+                data, y_col, "__x_coord", bar_width, hover_template, config
             )
+            traces.append(trace)
 
-        # Add RIGHT-axis traces (dual-axis mode)
-        if config.get("dual_axis"):
+        # Build RIGHT-axis traces (dual-axis mode)
+        if dual_axis:
             y_cols_right: List[str] = config.get("y_columns_right", [])
             right_type: str = config.get("right_axis_type", "bars")
-            fig = self._add_right_axis_traces(
-                fig,
-                data,
-                "__x_coord",
-                y_cols_right,
-                right_type,
-                bar_width,
-                config,
+            right_traces = self._build_right_axis_traces(
+                data, "__x_coord", y_cols_right, right_type, bar_width, config
             )
+            traces.extend(right_traces)
 
         # Apply numbered X-axis labels (replace verbose ticks with indices)
         tick_text, numbered_legend = self._apply_numbered_xaxis(tick_text, config)
 
-        # Update layout for grouped bars
-        xaxis_dict: Dict[str, Any] = dict(
-            tickmode="array",
-            tickvals=tick_vals,
-            ticktext=tick_text,
-            title=config.get("xlabel", x_col),
-        )
-        # When numbered X-axis is on, completely hide tick marks and labels
-        if numbered_legend is not None:
-            xaxis_dict["showticklabels"] = False
-            xaxis_dict["ticks"] = ""
+        # Build custom_x_ticks
+        custom_x_ticks: Dict[str, List[Any]] = {"vals": tick_vals, "text": tick_text}
 
-        fig.update_layout(barmode="stack", xaxis=xaxis_dict)
+        # Handle numbered xaxis: hide ticks via custom_x_ticks with empty text
+        if numbered_legend is not None:
+            custom_x_ticks["hide_ticks"] = [True]
 
         # Combine shapes
         existing_shapes = config.get("shapes", []) or []
         if not isinstance(existing_shapes, list):
             existing_shapes = []
-        fig.update_layout(shapes=existing_shapes + distinction_shapes)
+        all_shapes = existing_shapes + distinction_shapes
 
         # Build annotations
-        annotations = self._build_category_annotations(cat_centers, config)
+        layout_annotations = self._build_category_annotations(cat_centers, config)
 
         # Add totals if requested
         if config.get("show_totals"):
             totals_annotations = self._build_totals_annotations(data, "__x_coord", config)
-            annotations.extend(totals_annotations)
+            layout_annotations.extend(totals_annotations)
 
         # Add numbered legend annotation if enabled
         if numbered_legend is not None:
-            annotations.append(numbered_legend)
+            layout_annotations.append(numbered_legend)
 
-        fig.update_layout(annotations=annotations)
-
-        return fig
+        return TraceBuildResult(
+            traces=traces,
+            barmode="stack",
+            shapes=all_shapes,
+            custom_x_ticks=custom_x_ticks,
+            layout_annotations=layout_annotations,
+            secondary_y=dual_axis,
+        )
 
     def _get_ordered_categories_and_groups(
         self, data: pd.DataFrame, x_col: str, group_col: str, config: Dict[str, Any]
@@ -1018,7 +988,9 @@ class GroupedStackedBarPlot(StackedBarPlot):
             config: Full plot configuration.
         """
         # ── Resolve primary settings ─────────────────────────────
-        ylabel_left: str = str(fig.layout.yaxis.title.text or "")
+        # Read from config (the style chain may not have set the native
+        # title yet, so we cannot rely on fig.layout.yaxis.title.text).
+        ylabel_left: str = config.get("ylabel", "")
         ylabel_right: str = config.get("ylabel_right", "")
 
         primary_font_size: int = int(config.get("yaxis_title_font_size", 14))
@@ -1331,20 +1303,18 @@ class GroupedStackedBarPlot(StackedBarPlot):
                 disabled=not config.get("right_show_lines", True),
             )
 
-    def _add_right_axis_traces(
+    def _build_right_axis_traces(
         self,
-        fig: go.Figure,
         data: pd.DataFrame,
         x_coord_col: str,
         y_cols: List[str],
         trace_type: str,
         bar_width: Optional[float],
         config: Dict[str, Any],
-    ) -> go.Figure:
-        """Add traces to the secondary (right) Y-axis.
+    ) -> List[TraceConfig]:
+        """Build traces for the secondary (right) Y-axis.
 
         Args:
-            fig: Plotly Figure (must be created via ``make_subplots``).
             data: DataFrame with ``x_coord_col`` already mapped.
             x_coord_col: Column name holding numeric X coordinates.
             y_cols: Numeric columns to plot on the right axis.
@@ -1353,69 +1323,64 @@ class GroupedStackedBarPlot(StackedBarPlot):
             config: Full plot configuration.
 
         Returns:
-            The updated figure.
+            List of TraceConfig for the right axis.
         """
         series_styles: Dict[str, Any] = config.get("series_styles", {})
+        traces: List[TraceConfig] = []
 
         for y_col in y_cols:
-            error_y: Optional[Dict[str, Any]] = None
+            error_y_vals: Optional[List[float]] = None
             if config.get("show_error_bars"):
                 sd_col: str = f"{y_col}.sd"
                 if sd_col in data.columns:
-                    error_y = dict(type="data", array=data[sd_col].tolist(), visible=True)
+                    error_y_vals = data[sd_col].tolist()
 
             style: Dict[str, Any] = series_styles.get(y_col, {})
             trace_name: str = style.get("name", y_col)
 
             if trace_type == "bars":
-                marker_dict: Dict[str, Any] = {}
-                if style.get("color"):
-                    marker_dict["color"] = style["color"]
-                if style.get("pattern"):
-                    marker_dict["pattern"] = {
-                        "shape": style["pattern"],
-                        "fillmode": "replace",
-                    }
-
-                trace_kwargs: Dict[str, Any] = dict(
-                    x=data[x_coord_col],
-                    y=data[y_col],
-                    name=trace_name,
-                    error_y=error_y,
+                traces.append(
+                    BarTraceConfig(
+                        name=trace_name,
+                        x_positions=data[x_coord_col].tolist(),
+                        y=data[y_col].tolist(),
+                        bar_width=bar_width if bar_width is not None else 0.8,
+                        color=style.get("color", ""),
+                        pattern=style.get("pattern", ""),
+                        error_y=error_y_vals,
+                        yaxis="y2",
+                    )
                 )
-                if marker_dict:
-                    trace_kwargs["marker"] = marker_dict
-                if bar_width is not None:
-                    trace_kwargs["width"] = bar_width
-
-                fig.add_trace(go.Bar(**trace_kwargs), secondary_y=True)
-
             else:  # dots
                 show_lines: bool = config.get("right_show_lines", True)
-                mode: str = "lines+markers" if show_lines else "markers"
+                if show_lines:
+                    traces.append(
+                        LineTraceConfig(
+                            name=trace_name,
+                            x=data[x_coord_col].tolist(),
+                            y=data[y_col].tolist(),
+                            show_markers=True,
+                            marker_symbol=config.get("right_dot_symbol", "circle"),
+                            marker_size=config.get("right_dot_size", 10),
+                            line_width=float(config.get("right_line_width", 2)),
+                            error_y=error_y_vals,
+                            yaxis="y2",
+                        )
+                    )
+                else:
+                    traces.append(
+                        ScatterTraceConfig(
+                            name=trace_name,
+                            x=data[x_coord_col].tolist(),
+                            y=data[y_col].tolist(),
+                            marker_symbol=config.get("right_dot_symbol", "circle"),
+                            marker_size=config.get("right_dot_size", 10),
+                            error_y=error_y_vals,
+                            yaxis="y2",
+                        )
+                    )
 
-                marker_kwargs: Dict[str, Any] = dict(
-                    size=config.get("right_dot_size", 10),
-                    symbol=config.get("right_dot_symbol", "circle"),
-                )
-                line_kwargs: Dict[str, Any] = (
-                    dict(width=config.get("right_line_width", 2)) if show_lines else {}
-                )
-
-                fig.add_trace(
-                    go.Scatter(
-                        x=data[x_coord_col],
-                        y=data[y_col],
-                        name=trace_name,
-                        mode=mode,
-                        marker=marker_kwargs,
-                        line=line_kwargs,
-                        error_y=error_y,
-                    ),
-                    secondary_y=True,
-                )
-
-        return fig
+        return traces
 
     def get_legend_column(self, config: Dict[str, Any]) -> Optional[str]:
         """Get legend column for grouped stacked bar plot."""

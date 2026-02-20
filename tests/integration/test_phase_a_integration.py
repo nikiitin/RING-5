@@ -24,6 +24,11 @@ from src.core.models.visualization.palettes import (
     resolve_palette,
 )
 from src.core.models.visualization.resolvers import resolve_config
+from src.core.models.visualization.trace_config import (
+    BarTraceConfig,
+    LineTraceConfig,
+    ScatterTraceConfig,
+)
 from src.web.rendering.config_builder import (
     ConfigSpecBuilder,
     PlotlyFigureSpecBuilder,
@@ -33,9 +38,6 @@ from src.web.rendering.matplotlib_connector import (
 )
 from src.web.rendering.matplotlib_trace_renderer import (
     MatplotlibTraceRenderer,
-)
-from src.web.rendering.plotly_trace_extractor import (
-    PlotlyTraceExtractor,
 )
 
 matplotlib.use("Agg")
@@ -90,11 +92,22 @@ class TestTraceRendererPaletteOverride:
         plt.close(self.fig)
 
     def test_bar_uses_override_color(self) -> None:
-        plotly_fig = go.Figure()
-        plotly_fig.add_bar(x=["A", "B"], y=[1, 2], name="S1")
-        plotly_fig.add_bar(x=["A", "B"], y=[3, 4], name="S2")
-
-        traces = PlotlyTraceExtractor.extract(plotly_fig)
+        traces = [
+            BarTraceConfig(
+                name="S1",
+                x=["A", "B"],
+                y=[1, 2],
+                x_positions=[-0.2, 0.8],
+                bar_width=0.4,
+            ),
+            BarTraceConfig(
+                name="S2",
+                x=["A", "B"],
+                y=[3, 4],
+                x_positions=[0.2, 1.2],
+                bar_width=0.4,
+            ),
+        ]
         palette = ["#ff0000", "#00ff00"]
         MatplotlibTraceRenderer.render(traces, self.ax, palette_colors=palette)
 
@@ -106,10 +119,9 @@ class TestTraceRendererPaletteOverride:
         assert _approx_hex(c1) == "#00ff00"
 
     def test_line_uses_override_color(self) -> None:
-        plotly_fig = go.Figure()
-        plotly_fig.add_scatter(x=[1, 2], y=[3, 4], mode="lines", name="L1")
-
-        traces = PlotlyTraceExtractor.extract(plotly_fig)
+        traces = [
+            LineTraceConfig(name="L1", x=[1, 2], y=[3, 4]),
+        ]
         palette = ["#0000ff"]
         MatplotlibTraceRenderer.render(traces, self.ax, palette_colors=palette)
 
@@ -118,10 +130,9 @@ class TestTraceRendererPaletteOverride:
         assert _approx_hex(lines[0].get_color()) == "#0000ff"
 
     def test_scatter_uses_override_color(self) -> None:
-        plotly_fig = go.Figure()
-        plotly_fig.add_scatter(x=[1, 2], y=[3, 4], mode="markers", name="S1")
-
-        traces = PlotlyTraceExtractor.extract(plotly_fig)
+        traces = [
+            ScatterTraceConfig(name="S1", x=[1, 2], y=[3, 4]),
+        ]
         palette = ["#abcdef"]
         MatplotlibTraceRenderer.render(traces, self.ax, palette_colors=palette)
 
@@ -129,16 +140,17 @@ class TestTraceRendererPaletteOverride:
         assert len(collections) == 1
 
     def test_no_palette_uses_extracted_colors(self) -> None:
-        """Without palette override, extracted TraceConfig colors are used."""
-        plotly_fig = go.Figure()
-        plotly_fig.add_bar(
-            x=["A"],
-            y=[1],
-            name="S1",
-            marker_color="rgb(255,0,0)",
-        )
-
-        traces = PlotlyTraceExtractor.extract(plotly_fig)
+        """Without palette override, TraceConfig colors are used."""
+        traces = [
+            BarTraceConfig(
+                name="S1",
+                x=["A"],
+                y=[1],
+                color="#ff0000",
+                x_positions=[0.0],
+                bar_width=0.8,
+            ),
+        ]
         MatplotlibTraceRenderer.render(traces, self.ax)
 
         c = self.ax.containers[0][0].get_facecolor()

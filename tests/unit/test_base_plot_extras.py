@@ -10,8 +10,10 @@ class ConcretePlot(BasePlot):
     def render_config_ui(self, data, saved_config):
         return {}
 
-    def create_figure(self, data, config):
-        pass
+    def create_traces(self, data, config):
+        from src.core.models.visualization.trace_build_result import TraceBuildResult
+
+        return TraceBuildResult(traces=[])
 
     def get_legend_column(self, config):
         return None

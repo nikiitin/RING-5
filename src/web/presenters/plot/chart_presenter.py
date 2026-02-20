@@ -14,7 +14,7 @@ The controller orchestrates figure generation and delegates all
 ``st.*`` display calls to this presenter.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import streamlit as st
 
@@ -33,7 +33,6 @@ from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
 from src.web.rendering.matplotlib_trace_renderer import (
     MatplotlibTraceRenderer,
 )
-from src.web.rendering.plotly_trace_extractor import PlotlyTraceExtractor
 
 
 class ChartPresenter:
@@ -198,13 +197,14 @@ class ChartPresenter:
         plot_name: str,
         config: Dict[str, Any],
         plot_type: str,
+        traces: Optional[List[Any]] = None,
     ) -> None:
         """
         Render a matplotlib chart derived from a Plotly figure.
 
         Pipeline:
             1. Build ``FigureConfig`` from plot config + Plotly layout.
-            2. Extract engine-agnostic ``TraceConfig`` from Plotly figure.
+            2. Use pre-computed ``TraceConfig`` list (from ``plot.last_traces``).
             3. Create blank matplotlib figure from spec dimensions.
             4. Render traces (no Plotly dependency).
             5. Apply spec-based styling (title, axes, grids, …).
@@ -212,19 +212,22 @@ class ChartPresenter:
             7. Store for potential download.
 
         Args:
-            plotly_fig: Plotly ``go.Figure`` to extract data from.
+            plotly_fig: Plotly ``go.Figure`` used for layout enrichment.
             plot_id: Plot identifier for widget keys.
             plot_name: Human-readable name for download filenames.
             config: Plot configuration dict.
             plot_type: Plot type key (e.g. ``"bar"``, ``"line"``).
+            traces: Pre-computed engine-agnostic ``TraceConfig`` list.
+                Eliminates reverse extraction from the Plotly figure.
         """
         # 1. Build and resolve FigureConfig
         spec = ConfigSpecBuilder.from_config(config, plot_type)
         PlotlyFigureSpecBuilder.enrich_from_plotly(spec, plotly_fig)
         spec = resolve_config(spec)
 
-        # 2. Extract engine-agnostic TraceConfig
-        traces = PlotlyTraceExtractor.extract(plotly_fig)
+        # 2. Use pre-computed traces (forward direction)
+        if traces is None:
+            traces = []
 
         # 3. Create blank matplotlib figure
         mpl_fig, ax = FigureSpecToMatplotlib.create_figure(spec)

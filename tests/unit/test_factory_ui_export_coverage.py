@@ -4,7 +4,6 @@ from typing import Any, Dict
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
-import plotly.graph_objects as go
 import pytest
 
 
@@ -47,8 +46,10 @@ class TestPlotFactory:
             ) -> Dict[str, Any]:
                 return {}
 
-            def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
-                return go.Figure()
+            def create_traces(self, data: pd.DataFrame, config: Dict[str, Any]):
+                from src.core.models.visualization.trace_build_result import TraceBuildResult
+
+                return TraceBuildResult(traces=[])
 
             def get_legend_column(self, config: Dict[str, Any]) -> None:
                 return None

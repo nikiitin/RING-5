@@ -1,4 +1,3 @@
-import plotly.graph_objects as go
 import pytest
 
 from src.web.pages.ui.plotting.base_plot import BasePlot
@@ -8,8 +7,10 @@ class ConcretePlot(BasePlot):
     def render_config_ui(self, data, saved_config):
         return {}
 
-    def create_figure(self, data, config):
-        return go.Figure()
+    def create_traces(self, data, config):
+        from src.core.models.visualization.trace_build_result import TraceBuildResult
+
+        return TraceBuildResult(traces=[])
 
     def get_legend_column(self, config):
         return "col"

@@ -32,6 +32,7 @@ from src.core.models.visualization.palettes import (
 )
 from src.core.models.visualization.resolvers import resolve_config
 from src.core.models.visualization.series_style_config import SeriesStyleConfig
+from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import (
     BarTraceConfig,
     HistogramTraceConfig,
@@ -73,6 +74,7 @@ __all__ = [
     "LineTraceConfig",
     "ScatterTraceConfig",
     "HistogramTraceConfig",
+    "TraceBuildResult",
     # Typography
     "TypographyConfig",
 ]

@@ -24,10 +24,11 @@ class ConcretePlot(BasePlot):
     def render_config_ui(self, data: pd.DataFrame, saved_config: dict) -> dict:
         return {}
 
-    def create_figure(self, data: pd.DataFrame, config: dict) -> go.Figure:
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=[1, 2], y=[3, 4], name="trace1"))
-        return fig
+    def create_traces(self, data: pd.DataFrame, config: dict):
+        from src.core.models.visualization.trace_build_result import TraceBuildResult
+        from src.core.models.visualization.trace_config import ScatterTraceConfig
+
+        return TraceBuildResult(traces=[ScatterTraceConfig(name="trace1", x=[1, 2], y=[3, 4])])
 
     def get_legend_column(self, config: dict) -> str:
         return "col"

@@ -3,9 +3,10 @@
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
-import plotly.graph_objects as go
 import streamlit as st
 
+from src.core.models.visualization.trace_build_result import TraceBuildResult
+from src.core.models.visualization.trace_config import BarTraceConfig
 from src.web.pages.ui.components.plot_config_components import PlotConfigComponents
 from src.web.pages.ui.plotting.base_plot import BasePlot
 
@@ -67,16 +68,13 @@ class StackedBarPlot(BasePlot):
             **label_config,
         }
 
-    def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
-        """Create stacked bar plot figure."""
-        fig = go.Figure()
-
+    def create_traces(self, data: pd.DataFrame, config: Dict[str, Any]) -> TraceBuildResult:
+        """Create stacked bar trace configurations."""
         x_col = config.get("x")
         y_cols = config.get("y_columns", [])
 
         if not x_col or not y_cols:
-            fig.update_layout(title="Please select X axis and at least one Statistic")
-            return fig
+            return TraceBuildResult(traces=[], barmode="stack")
 
         # Prepare data
         data = self._prepare_data(data, x_col, y_cols, config)
@@ -84,17 +82,19 @@ class StackedBarPlot(BasePlot):
         # Define hover template
         hover_template = self._get_hover_template()
 
-        # Create simple stacked bar figure
-        fig = self._create_stacked_figure(fig, data, x_col, y_cols, config, hover_template)
+        # Build traces
+        traces = self._create_stacked_traces(data, x_col, y_cols, config, hover_template)
 
-        fig.update_layout(
-            title=config.get("title", ""),
-            xaxis_title=config.get("xlabel", x_col),
-            yaxis_title=config.get("ylabel", "Value"),
-            legend_title=config.get("legend_title", "Statistics"),
+        # Build annotations
+        layout_annotations: List[Dict[str, Any]] = []
+        if config.get("show_totals"):
+            layout_annotations = self._build_totals_annotations(data, x_col, config)
+
+        return TraceBuildResult(
+            traces=traces,
+            barmode="stack",
+            layout_annotations=layout_annotations,
         )
-
-        return fig
 
     def _prepare_data(
         self, data: pd.DataFrame, x_col: str, y_cols: List[str], config: Dict[str, Any]
@@ -121,43 +121,36 @@ class StackedBarPlot(BasePlot):
             "<extra></extra>"
         )
 
-    def _create_stacked_figure(
+    def _create_stacked_traces(
         self,
-        fig: go.Figure,
         data: pd.DataFrame,
         x_col: str,
         y_cols: List[str],
         config: Dict[str, Any],
         hover_template: str,
-    ) -> go.Figure:
-        """Create figure for stacked bars."""
+    ) -> List[BarTraceConfig]:
+        """Build list of bar traces for stacked bars."""
+        traces: List[BarTraceConfig] = []
         for y_col in y_cols:
-            fig = self._add_bar_trace(fig, data, y_col, x_col, None, hover_template, config)
+            trace = self._build_bar_trace(data, y_col, x_col, None, hover_template, config)
+            traces.append(trace)
+        return traces
 
-        if config.get("show_totals"):
-            annotations = self._build_totals_annotations(data, x_col, config)
-            fig.update_layout(annotations=annotations)
-
-        fig.update_layout(barmode="stack")
-
-        return fig
-
-    def _add_bar_trace(
+    def _build_bar_trace(
         self,
-        fig: go.Figure,
         data: pd.DataFrame,
         y_col: str,
         x_col: str,
         bar_width: Optional[float],
         hover_template: str,
         config: Dict[str, Any],
-    ) -> go.Figure:
-        """Add a single bar trace to the figure."""
-        error_y = None
+    ) -> BarTraceConfig:
+        """Build a single BarTraceConfig for a stacked series."""
+        error_y_vals: Optional[List[float]] = None
         if config.get("show_error_bars"):
             sd_col = f"{y_col}.sd"
             if sd_col in data.columns:
-                error_y = dict(type="data", array=data[sd_col], visible=True)
+                error_y_vals = data[sd_col].tolist()
 
         # Get series styling configuration
         series_styles = config.get("series_styles", {})
@@ -166,32 +159,22 @@ class StackedBarPlot(BasePlot):
         # Use custom name if defined, otherwise use y_col
         trace_name = style.get("name", y_col)
 
-        # Apply color if defined in series_styles
-        marker_dict = {}
-        if style.get("color"):
-            marker_dict["color"] = style["color"]
+        color = style.get("color", "")
+        pattern = style.get("pattern", "")
 
-        # Apply pattern if defined
-        if style.get("pattern"):
-            marker_dict["pattern"] = {"shape": style["pattern"], "fillmode": "replace"}
-
-        trace_kwargs = dict(
-            x=data[x_col],
-            y=data[y_col],
+        return BarTraceConfig(
             name=trace_name,
-            error_y=error_y,
-            customdata=data["__total"].tolist(),
-            hovertemplate=hover_template,
+            x=data[x_col].tolist(),
+            y=data[y_col].tolist(),
+            bar_width=bar_width if bar_width is not None else 0.8,
+            color=color,
+            pattern=pattern,
+            error_y=error_y_vals,
+            custom_data={
+                "customdata": data["__total"].tolist(),
+                "hovertemplate": hover_template,
+            },
         )
-
-        if marker_dict:
-            trace_kwargs["marker"] = marker_dict
-
-        if bar_width is not None:
-            trace_kwargs["width"] = bar_width
-
-        fig.add_trace(go.Bar(**trace_kwargs))
-        return fig
 
     def _build_totals_annotations(
         self, data: pd.DataFrame, x_col: str, config: Dict[str, Any]

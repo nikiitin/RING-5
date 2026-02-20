@@ -236,12 +236,19 @@ class PlotRenderController:
         # Branch on engine mode
         try:
             if EngineManager.is_matplotlib():
+                # Use pre-computed traces when available (B7 forward path)
+                pre_traces = (
+                    plot.last_traces.traces
+                    if getattr(plot, "last_traces", None) is not None
+                    else None
+                )
                 ChartPresenter.render_matplotlib_chart(
                     fig,
                     plot.plot_id,
                     plot.name,
                     plot.config,
                     plot.plot_type,
+                    traces=pre_traces,
                 )
             else:
                 relayout_data = ChartPresenter.render_plotly_chart(

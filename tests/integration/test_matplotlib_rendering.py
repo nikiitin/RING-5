@@ -14,15 +14,17 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
 from src.core.models.visualization.resolvers import resolve_config
+from src.core.models.visualization.trace_config import (
+    BarTraceConfig,
+    LineTraceConfig,
+    ScatterTraceConfig,
+)
 from src.web.rendering.config_builder import ConfigSpecBuilder
 from src.web.rendering.matplotlib_connector import (
     FigureSpecToMatplotlib,
 )
 from src.web.rendering.matplotlib_trace_renderer import (
     MatplotlibTraceRenderer,
-)
-from src.web.rendering.plotly_trace_extractor import (
-    PlotlyTraceExtractor,
 )
 
 # Use non-interactive backend for tests
@@ -84,9 +86,23 @@ class TestMatplotlibTraceRenderer:
 
     def test_render_bar_traces(self) -> None:
         """Bar traces should produce matplotlib bar containers."""
-        plotly_fig = _make_bar_figure()
-        traces = PlotlyTraceExtractor.extract(plotly_fig)
-        barmode = PlotlyTraceExtractor.extract_barmode(plotly_fig)
+        traces = [
+            BarTraceConfig(
+                name="Series 1",
+                x=["A", "B", "C"],
+                y=[10, 20, 30],
+                x_positions=[-0.2, 0.8, 1.8],
+                bar_width=0.4,
+            ),
+            BarTraceConfig(
+                name="Series 2",
+                x=["A", "B", "C"],
+                y=[15, 25, 35],
+                x_positions=[0.2, 1.2, 2.2],
+                bar_width=0.4,
+            ),
+        ]
+        barmode = "group"
         fig, ax = plt.subplots()
 
         count = MatplotlibTraceRenderer.render(traces, ax, barmode=barmode)
@@ -97,8 +113,10 @@ class TestMatplotlibTraceRenderer:
 
     def test_render_line_traces(self) -> None:
         """Line traces should produce matplotlib Line2D artists."""
-        plotly_fig = _make_line_figure()
-        traces = PlotlyTraceExtractor.extract(plotly_fig)
+        traces = [
+            LineTraceConfig(name="Line 1", x=[1, 2, 3], y=[10, 20, 30]),
+            LineTraceConfig(name="Line 2", x=[1, 2, 3], y=[15, 25, 35]),
+        ]
         fig, ax = plt.subplots()
 
         count = MatplotlibTraceRenderer.render(traces, ax)
@@ -109,8 +127,9 @@ class TestMatplotlibTraceRenderer:
 
     def test_render_scatter_traces(self) -> None:
         """Scatter traces should produce matplotlib PathCollection."""
-        plotly_fig = _make_scatter_figure()
-        traces = PlotlyTraceExtractor.extract(plotly_fig)
+        traces = [
+            ScatterTraceConfig(name="Scatter 1", x=[1, 2, 3], y=[10, 20, 30]),
+        ]
         fig, ax = plt.subplots()
 
         count = MatplotlibTraceRenderer.render(traces, ax)
@@ -121,9 +140,23 @@ class TestMatplotlibTraceRenderer:
 
     def test_render_stacked_bars(self) -> None:
         """Stacked bars should have proper bottom offsets."""
-        plotly_fig = _make_stacked_bar_figure()
-        traces = PlotlyTraceExtractor.extract(plotly_fig)
-        barmode = PlotlyTraceExtractor.extract_barmode(plotly_fig)
+        traces = [
+            BarTraceConfig(
+                name="Bottom",
+                x=["X", "Y"],
+                y=[10, 20],
+                x_positions=[0.0, 1.0],
+                bar_width=0.8,
+            ),
+            BarTraceConfig(
+                name="Top",
+                x=["X", "Y"],
+                y=[5, 15],
+                x_positions=[0.0, 1.0],
+                bar_width=0.8,
+            ),
+        ]
+        barmode = "stack"
         fig, ax = plt.subplots()
 
         count = MatplotlibTraceRenderer.render(traces, ax, barmode=barmode)
@@ -143,12 +176,16 @@ class TestMatplotlibTraceRenderer:
 
     def test_secondary_yaxis(self) -> None:
         """Traces on y2 should create a twin axis."""
-        plotly_fig = go.Figure()
-        plotly_fig.add_trace(go.Bar(x=["A"], y=[10], name="Primary"))
-        plotly_fig.add_trace(
-            go.Scatter(x=["A"], y=[0.5], mode="markers", name="Secondary", yaxis="y2")
-        )
-        traces = PlotlyTraceExtractor.extract(plotly_fig)
+        traces = [
+            BarTraceConfig(
+                name="Primary",
+                x=["A"],
+                y=[10],
+                x_positions=[0.0],
+                bar_width=0.8,
+            ),
+            ScatterTraceConfig(name="Secondary", x=["A"], y=[0.5], yaxis="y2"),
+        ]
 
         fig, ax = plt.subplots()
         count = MatplotlibTraceRenderer.render(traces, ax)
@@ -159,17 +196,9 @@ class TestMatplotlibTraceRenderer:
 
     def test_line_dash_styles(self) -> None:
         """Plotly dash styles should map to matplotlib linestyles."""
-        plotly_fig = go.Figure()
-        plotly_fig.add_trace(
-            go.Scatter(
-                x=[1, 2],
-                y=[1, 2],
-                mode="lines",
-                name="dashed",
-                line={"dash": "dash"},
-            )
-        )
-        traces = PlotlyTraceExtractor.extract(plotly_fig)
+        traces = [
+            LineTraceConfig(name="dashed", x=[1, 2], y=[1, 2], line_dash="dash"),
+        ]
         fig, ax = plt.subplots()
 
         count = MatplotlibTraceRenderer.render(traces, ax)
@@ -180,17 +209,17 @@ class TestMatplotlibTraceRenderer:
         plt.close(fig)
 
     def test_color_normalization(self) -> None:
-        """Plotly rgb() colors should be converted to hex via extractor."""
-        plotly_fig = go.Figure()
-        plotly_fig.add_trace(
-            go.Bar(
+        """Hex colour on BarTraceConfig is applied to matplotlib patch."""
+        traces = [
+            BarTraceConfig(
+                name="Coloured",
                 x=["A"],
                 y=[10],
-                name="Coloured",
-                marker={"color": "rgb(102, 194, 165)"},
-            )
-        )
-        traces = PlotlyTraceExtractor.extract(plotly_fig)
+                color="#66c2a5",
+                x_positions=[0.0],
+                bar_width=0.8,
+            ),
+        ]
         fig, ax = plt.subplots()
 
         MatplotlibTraceRenderer.render(traces, ax)
@@ -213,13 +242,26 @@ class TestMatplotlibFullPipeline:
         """Config + Plotly bar figure → styled matplotlib figure."""
         config = _minimal_config()
         config["title"] = "Bar Chart"
-        plotly_fig = _make_bar_figure()
-
         spec = ConfigSpecBuilder.from_config(config, "bar")
         spec = resolve_config(spec)
 
-        traces = PlotlyTraceExtractor.extract(plotly_fig)
-        barmode = PlotlyTraceExtractor.extract_barmode(plotly_fig)
+        traces = [
+            BarTraceConfig(
+                name="Series 1",
+                x=["A", "B", "C"],
+                y=[10, 20, 30],
+                x_positions=[-0.2, 0.8, 1.8],
+                bar_width=0.4,
+            ),
+            BarTraceConfig(
+                name="Series 2",
+                x=["A", "B", "C"],
+                y=[15, 25, 35],
+                x_positions=[0.2, 1.2, 2.2],
+                bar_width=0.4,
+            ),
+        ]
+        barmode = "group"
 
         mpl_fig, ax = FigureSpecToMatplotlib.create_figure(spec)
         MatplotlibTraceRenderer.render(traces, ax, barmode=barmode)
@@ -235,12 +277,13 @@ class TestMatplotlibFullPipeline:
         """Config + Plotly line figure → styled matplotlib figure."""
         config = _minimal_config()
         config["title"] = "Line Plot"
-        plotly_fig = _make_line_figure()
-
         spec = ConfigSpecBuilder.from_config(config, "line")
         spec = resolve_config(spec)
 
-        traces = PlotlyTraceExtractor.extract(plotly_fig)
+        traces = [
+            LineTraceConfig(name="Line 1", x=[1, 2, 3], y=[10, 20, 30]),
+            LineTraceConfig(name="Line 2", x=[1, 2, 3], y=[15, 25, 35]),
+        ]
 
         mpl_fig, ax = FigureSpecToMatplotlib.create_figure(spec)
         MatplotlibTraceRenderer.render(traces, ax)
@@ -255,12 +298,12 @@ class TestMatplotlibFullPipeline:
         """Config + Plotly scatter figure → styled matplotlib figure."""
         config = _minimal_config()
         config["title"] = "Scatter Plot"
-        plotly_fig = _make_scatter_figure()
-
         spec = ConfigSpecBuilder.from_config(config, "scatter")
         spec = resolve_config(spec)
 
-        traces = PlotlyTraceExtractor.extract(plotly_fig)
+        traces = [
+            ScatterTraceConfig(name="Scatter 1", x=[1, 2, 3], y=[10, 20, 30]),
+        ]
 
         mpl_fig, ax = FigureSpecToMatplotlib.create_figure(spec)
         MatplotlibTraceRenderer.render(traces, ax)

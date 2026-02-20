@@ -1,12 +1,13 @@
 from typing import Any
-from unittest.mock import MagicMock
 
 from src.web.pages.ui.plotting.base_plot import BasePlot
 
 
 class MockPlot(BasePlot):
-    def create_figure(self, data, config):
-        return MagicMock()
+    def create_traces(self, data, config):
+        from src.core.models.visualization.trace_build_result import TraceBuildResult
+
+        return TraceBuildResult(traces=[])
 
     def get_legend_column(self, config):
         return None

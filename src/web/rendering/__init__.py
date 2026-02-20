@@ -15,7 +15,6 @@ Public API:
     - ``FigureSpecToPlotly``         — FigureConfig → Plotly figure styling
     - ``FigureSpecToMatplotlib``     — FigureConfig → matplotlib figure styling
     - ``MatplotlibTraceRenderer``    — List[TraceConfig] → matplotlib artists
-    - ``PlotlyTraceExtractor``       — go.Figure → List[TraceConfig]
     - ``FigureEngine``               — Orchestrator: creation + styling
     - ``EngineManager``              — Engine mode selection
     - ``PresetApplicator``           — Preset application to FigureConfig
@@ -33,7 +32,6 @@ from src.web.rendering.matplotlib_connector import (
 )
 from src.web.rendering.matplotlib_trace_renderer import MatplotlibTraceRenderer
 from src.web.rendering.plotly_connector import FigureSpecToPlotly
-from src.web.rendering.plotly_trace_extractor import PlotlyTraceExtractor
 from src.web.rendering.preset_applicator import PresetApplicator
 
 __all__ = [
@@ -46,5 +44,4 @@ __all__ = [
     "PresetApplicator",
     "PresetSpecBuilder",
     "MatplotlibTraceRenderer",
-    "PlotlyTraceExtractor",
 ]

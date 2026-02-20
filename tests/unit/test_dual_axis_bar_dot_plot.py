@@ -411,28 +411,34 @@ class TestDualAxisBarDotPlotIsolateLastGroup:
 
 
 class TestDualAxisBarDotPlotAxisLabels:
-    """Test axis labeling."""
+    """Test trace-level output for dual-axis plot."""
 
-    def test_bar_yaxis_label(self, sample_data: pd.DataFrame, base_config: dict) -> None:
-        """Test that the primary Y-axis label comes from ylabel_bar."""
+    def test_secondary_y_flag(self, sample_data: pd.DataFrame, base_config: dict) -> None:
+        """Test that TraceBuildResult has secondary_y=True."""
         plot = DualAxisBarDotPlot(1, "Test")
-        fig = plot.create_figure(sample_data, base_config)
-        assert fig.layout.yaxis.title.text == "Cycle Count"
+        result = plot.create_traces(sample_data, base_config)
+        assert result.secondary_y is True
 
-    def test_dot_yaxis_label(self, sample_data: pd.DataFrame, base_config: dict) -> None:
-        """Test that the secondary Y-axis label comes from ylabel_dot."""
+    def test_barmode_is_group(self, sample_data: pd.DataFrame, base_config: dict) -> None:
+        """Test that barmode is 'group'."""
         plot = DualAxisBarDotPlot(1, "Test")
-        fig = plot.create_figure(sample_data, base_config)
-        assert fig.layout.yaxis2.title.text == "IPC"
+        result = plot.create_traces(sample_data, base_config)
+        assert result.barmode == "group"
 
-    def test_title_applied(self, sample_data: pd.DataFrame, base_config: dict) -> None:
-        """Test that the title is correctly applied."""
-        plot = DualAxisBarDotPlot(1, "Test")
-        fig = plot.create_figure(sample_data, base_config)
-        assert fig.layout.title.text == "Cycles vs IPC"
+    def test_bar_traces_on_primary(self, sample_data: pd.DataFrame, base_config: dict) -> None:
+        """Test that bar traces target primary Y-axis."""
+        from src.core.models.visualization.trace_config import BarTraceConfig
 
-    def test_xlabel_applied(self, sample_data: pd.DataFrame, base_config: dict) -> None:
-        """Test that the x-axis label is correctly applied."""
         plot = DualAxisBarDotPlot(1, "Test")
-        fig = plot.create_figure(sample_data, base_config)
-        assert fig.layout.xaxis.title.text == "Benchmark"
+        result = plot.create_traces(sample_data, base_config)
+        bar_traces = [t for t in result.traces if isinstance(t, BarTraceConfig)]
+        assert all(t.yaxis == "y" for t in bar_traces)
+
+    def test_dot_traces_on_secondary(self, sample_data: pd.DataFrame, base_config: dict) -> None:
+        """Test that dot/line traces target secondary Y-axis."""
+        from src.core.models.visualization.trace_config import BarTraceConfig
+
+        plot = DualAxisBarDotPlot(1, "Test")
+        result = plot.create_traces(sample_data, base_config)
+        dot_traces = [t for t in result.traces if not isinstance(t, BarTraceConfig)]
+        assert all(t.yaxis == "y2" for t in dot_traces)

@@ -1,12 +1,12 @@
 """Scatter plot implementation."""
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
 import streamlit as st
 
+from src.core.models.visualization.trace_build_result import TraceBuildResult
+from src.core.models.visualization.trace_config import ScatterTraceConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
 
 
@@ -36,25 +36,48 @@ class ScatterPlot(BasePlot):
 
         return {**config, "color": color_column}
 
-    def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
-        """Create scatter plot figure."""
-        y_error = None
+    def create_traces(self, data: pd.DataFrame, config: Dict[str, Any]) -> TraceBuildResult:
+        """Produce scatter traces from data and config."""
+        x_col: str = config["x"]
+        y_col: str = config["y"]
+        color_col: Optional[str] = config.get("color")
+
+        # Error bar column
+        sd_col: Optional[str] = None
         if config.get("show_error_bars"):
-            sd_col = f"{config['y']}.sd"
-            if sd_col in data.columns:
-                y_error = sd_col
+            candidate = f"{y_col}.sd"
+            if candidate in data.columns:
+                sd_col = candidate
 
-        fig = px.scatter(
-            data,
-            x=config["x"],
-            y=config["y"],
-            color=config.get("color"),
-            error_y=y_error,
-            title=config["title"],
-            labels={config["x"]: config["xlabel"], config["y"]: config["ylabel"]},
-        )
+        traces: List[ScatterTraceConfig] = []
 
-        return fig
+        if color_col:
+            groups: List[str] = sorted(data[color_col].unique().astype(str))
+            data = data.copy()
+            data[color_col] = data[color_col].astype(str)
+            for grp in groups:
+                grp_data = data[data[color_col] == grp]
+                error_y = grp_data[sd_col].tolist() if sd_col else None
+                traces.append(
+                    ScatterTraceConfig(
+                        name=str(grp),
+                        x=grp_data[x_col].tolist(),
+                        y=grp_data[y_col].tolist(),
+                        error_y=error_y,
+                    )
+                )
+        else:
+            error_y = data[sd_col].tolist() if sd_col else None
+            traces.append(
+                ScatterTraceConfig(
+                    name=y_col,
+                    x=data[x_col].tolist(),
+                    y=data[y_col].tolist(),
+                    error_y=error_y,
+                )
+            )
+
+        return TraceBuildResult(traces=traces)
 
     def get_legend_column(self, config: Dict[str, Any]) -> Optional[str]:
         """Get legend column for scatter plot."""
