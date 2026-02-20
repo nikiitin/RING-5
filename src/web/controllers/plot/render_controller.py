@@ -4,32 +4,38 @@ Plot Render Controller — orchestrates config gathering, figure generation, dis
 Handles:
     - Gathering config from ConfigPresenter (which wraps BasePlot methods)
     - Detecting config changes
-    - Display via ChartDisplay (wraps PlotRenderer caching + relayout)
+    - Figure generation and caching
+    - Delegating chart display to ChartPresenter
     - Plot type changes via PlotLifecycleService
 
 Dependencies are injected via protocols (no concrete imports from pages.ui).
 
 Architecture Note — Streamlit usage:
-    This controller uses ``st.rerun()`` after plot type changes (flow control)
-    and ``st.exception()`` for config rendering errors. Presentation-only calls
-    (warnings, labels) are delegated to the presenter layer.
+    This controller uses ``st.rerun()`` after plot type changes and relayout
+    events (flow control) and ``st.exception()`` for config rendering errors.
+    All chart display (engine selector, chart rendering, download) is
+    delegated to ``ChartPresenter``.
 """
 
+import hashlib
+import json
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, cast
 
 import pandas as pd
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
+from src.core.performance import get_plot_cache
 from src.web.models.plot_protocols import (
-    ChartDisplay,
     PlotLifecycleService,
     PlotTypeRegistry,
     RenderablePlot,
 )
 from src.web.presenters.plot.chart_presenter import ChartPresenter
 from src.web.presenters.plot.config_presenter import ConfigPresenter
+from src.web.rendering.engine_manager import EngineManager, EngineMode
+from src.web.rendering.figure_engine import FigureEngine
 from src.web.state.ui_state_manager import UIStateManager
 
 logger = logging.getLogger(__name__)
@@ -37,14 +43,15 @@ logger = logging.getLogger(__name__)
 
 class PlotRenderController:
     """
-    Orchestrates the visualization section: config → display.
+    Orchestrates the visualization section: config → generation → display.
 
     Single Responsibility: turning plot config + data into a rendered chart.
     Does NOT handle pipeline editing or plot lifecycle.
 
     Architecture:
         - ConfigPresenter gathers all config (type-specific + advanced + theme)
-        - ChartDisplay renders the figure (caching + relayout handling)
+        - Controller owns figure generation + caching
+        - ChartPresenter renders engine selector, chart display, and downloads
         - PlotLifecycleService handles plot type changes
 
     Dependencies are injected via protocols — no concrete imports from
@@ -57,7 +64,6 @@ class PlotRenderController:
         ui_state: UIStateManager,
         lifecycle: PlotLifecycleService,
         registry: PlotTypeRegistry,
-        chart_display: ChartDisplay,
     ) -> None:
         """
         Initialize with dependency injection.
@@ -67,13 +73,11 @@ class PlotRenderController:
             ui_state: UI state manager for transient state.
             lifecycle: Plot lifecycle service (for type changes).
             registry: Plot type registry (available types).
-            chart_display: Chart display service (caching + rendering).
         """
         self._api: ApplicationAPI = api
         self._ui: UIStateManager = ui_state
         self._lifecycle: PlotLifecycleService = lifecycle
         self._registry: PlotTypeRegistry = registry
-        self._chart: ChartDisplay = chart_display
 
     def render(self, plot: RenderablePlot) -> None:
         """
@@ -86,7 +90,8 @@ class PlotRenderController:
             4. Advanced + theme config (via ConfigPresenter)
             5. Detect config changes
             6. Refresh controls (via ChartPresenter)
-            7. Display chart (via ChartDisplay)
+            7. Figure generation + caching (direct)
+            8. Engine selector + chart display (via ChartPresenter)
 
         Args:
             plot: The plot to render (must satisfy both PlotHandle
@@ -167,5 +172,139 @@ class PlotRenderController:
         should_gen: bool = controls["should_generate"] and not config_error
         plot.config = current_config
 
-        # 5. Render chart via ChartDisplay (handles caching + relayout)
-        self._chart.render_chart(plot, should_gen)
+        # 5. Figure generation, caching, and chart display
+        self._render_visualization(plot, should_gen)
+
+    # ── Private helpers ──────────────────────────────────────────
+
+    def _render_visualization(self, plot: Any, should_generate: bool) -> None:
+        """
+        Generate figure (with caching) and delegate display to presenter.
+
+        This method owns the figure lifecycle:
+            1. Cache check (skip regeneration if config/data unchanged)
+            2. Figure generation via ``FigureEngine``
+            3. Engine selector via ``ChartPresenter``
+            4. Chart display via ``ChartPresenter`` (Plotly or Matplotlib)
+            5. Relayout handling for Plotly interactive charts
+
+        Args:
+            plot: The plot instance (``BasePlot`` at runtime).
+            should_generate: Whether to force figure regeneration.
+        """
+        if plot.processed_data is None:
+            return
+
+        # ── Cache check ──────────────────────────────────────────
+        data_hash: str = self._compute_data_hash(plot.processed_data)
+        cache_key: str = self._compute_figure_cache_key(plot.plot_id, plot.config, data_hash)
+        cache = get_plot_cache()
+
+        if not should_generate and plot.last_generated_fig is None:
+            cached_fig = cache.get(cache_key)
+            if cached_fig is not None:
+                plot.last_generated_fig = cached_fig
+
+        # ── Generate figure if needed ────────────────────────────
+        if should_generate or plot.last_generated_fig is None:
+            try:
+                engine = FigureEngine.from_plot(
+                    plot,
+                    plot.plot_type,
+                    styler=plot.style_manager.applicator,
+                )
+                fig = engine.build(plot.plot_type, plot.processed_data, plot.config)
+                plot.last_generated_fig = fig
+                cache.set(cache_key, fig)
+            except Exception as e:
+                ChartPresenter.render_error(e)
+                return
+
+        # ── Display ──────────────────────────────────────────────
+        if plot.last_generated_fig is None:
+            return
+
+        fig = plot.last_generated_fig
+
+        # Engine selector (presenter renders st.pills)
+        engine_choice: Optional[str] = ChartPresenter.render_engine_selector(
+            plot.plot_id, EngineManager.get_engine()
+        )
+        if engine_choice is not None:
+            EngineManager.set_engine(cast("EngineMode", engine_choice))
+
+        # Branch on engine mode
+        try:
+            if EngineManager.is_matplotlib():
+                ChartPresenter.render_matplotlib_chart(
+                    fig,
+                    plot.plot_id,
+                    plot.name,
+                    plot.config,
+                    plot.plot_type,
+                )
+            else:
+                relayout_data = ChartPresenter.render_plotly_chart(
+                    fig,
+                    plot.plot_id,
+                    plot.name,
+                    plot.config,
+                )
+                # Handle relayout events (zoom, pan, legend drag)
+                if relayout_data:
+                    last_event_key = f"plot.{plot.plot_id}.last_relayout"
+                    last_event = st.session_state.get(last_event_key)
+                    if relayout_data != last_event:
+                        if plot.update_from_relayout(relayout_data):
+                            st.session_state[last_event_key] = relayout_data
+                            st.rerun()
+        except Exception as e:
+            ChartPresenter.render_error(e)
+
+    @staticmethod
+    def _compute_figure_cache_key(plot_id: int, config: Dict[str, Any], data_hash: str) -> str:
+        """
+        Compute stable cache key for plot figure.
+
+        Uses config hash + data hash to detect when regeneration is needed.
+        Ignores transient UI state (legend positions, zoom/pan).
+
+        Args:
+            plot_id: Unique plot identifier.
+            config: Plot configuration dict.
+            data_hash: Hash of the processed data.
+
+        Returns:
+            Cache key string.
+        """
+        cache_relevant_config = {
+            k: v for k, v in config.items() if k not in {"xaxis_range", "yaxis_range"}
+        }
+        config_json = json.dumps(cache_relevant_config, sort_keys=True, default=str)
+        config_hash = hashlib.md5(config_json.encode(), usedforsecurity=False).hexdigest()[:8]
+        return f"plot_{plot_id}_{config_hash}_{data_hash}"
+
+    @staticmethod
+    def _compute_data_hash(data: pd.DataFrame) -> str:
+        """
+        Compute fast hash of DataFrame for cache invalidation.
+
+        Uses shape + first/last row hashes for speed.
+
+        Args:
+            data: DataFrame to hash.
+
+        Returns:
+            Hash string.
+        """
+        shape_str = f"{data.shape[0]}x{data.shape[1]}"
+
+        if len(data) > 0:
+            first_row = str(data.iloc[0].values.tolist())
+            last_row = str(data.iloc[-1].values.tolist())
+            columns = str(data.columns.tolist())
+            content = f"{shape_str}|{columns}|{first_row}|{last_row}"
+        else:
+            content = shape_str
+
+        return hashlib.md5(content.encode(), usedforsecurity=False).hexdigest()[:12]

@@ -1246,17 +1246,6 @@ class TestPlotManagerComponents:
 
         PlotManagerComponents.render_plot_controls(api, plot)
 
-    @patch("src.web.pages.ui.components.plot_manager_components.st")
-    def test_render_plot_display_no_data(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.plot_manager_components import PlotManagerComponents
-
-        api = MagicMock()
-        plot = MagicMock()
-        plot.processed_data = None
-
-        PlotManagerComponents.render_plot_display(api, plot)
-        mock_st.warning.assert_called()
-
     @patch("src.web.pages.ui.components.plot_manager_components.ShaperFactory")
     @patch("src.web.pages.ui.components.plot_manager_components.apply_shapers")
     @patch("src.web.pages.ui.components.plot_manager_components.configure_shaper")
@@ -1937,62 +1926,6 @@ class TestPlotManagerComponentsExtra:
         mock_apply.return_value = data
 
         PlotManagerComponents.render_pipeline_editor(api, plot)
-
-    @patch("src.web.pages.ui.components.plot_manager_components.PlotFactory")
-    @patch("src.web.pages.ui.components.plot_manager_components.PlotRenderer")
-    @patch("src.web.pages.ui.components.plot_manager_components.PlotService")
-    @patch("src.web.pages.ui.components.plot_manager_components.UIStateManager")
-    @patch("src.web.pages.ui.components.plot_manager_components.st")
-    def test_render_plot_display_with_data(
-        self,
-        mock_st: MagicMock,
-        mock_ui_state: MagicMock,
-        mock_plot_svc: MagicMock,
-        mock_renderer: MagicMock,
-        mock_factory: MagicMock,
-    ) -> None:
-        import pandas as pd
-
-        from src.web.pages.ui.components.plot_manager_components import PlotManagerComponents
-
-        api = MagicMock()
-        plot = MagicMock()
-        plot.processed_data = pd.DataFrame({"x": [1], "y": [2]})
-        plot.config = {}
-        plot.plot_type = "bar"
-        plot.plot_id = "p1"
-        plot.render_config_ui.return_value = {}
-        plot.render_advanced_options.return_value = {}
-        plot.render_display_options.return_value = {}
-        plot.render_theme_options.return_value = {}
-
-        mock_factory.get_available_plot_types.return_value = ["bar", "line"]
-        mock_st.selectbox.return_value = "bar"
-
-        def _make_cols(n: Any) -> List[MagicMock]:
-            count = len(n) if isinstance(n, list) else int(n)
-            cols = []
-            for _ in range(count):
-                c = MagicMock()
-                c.__enter__ = MagicMock(return_value=c)
-                c.__exit__ = MagicMock(return_value=False)
-                cols.append(c)
-            return cols
-
-        mock_st.columns.side_effect = _make_cols
-
-        exp_mock = MagicMock()
-        mock_st.expander.return_value = exp_mock
-        exp_mock.__enter__ = MagicMock(return_value=exp_mock)
-        exp_mock.__exit__ = MagicMock(return_value=False)
-
-        mock_ui = MagicMock()
-        mock_ui_state.return_value = mock_ui
-        mock_ui.plot.get_auto_refresh.return_value = False
-        mock_st.toggle.return_value = False
-        mock_st.button.return_value = False
-
-        PlotManagerComponents.render_plot_display(api, plot)
 
 
 # ===================================================================

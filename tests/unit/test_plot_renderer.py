@@ -1,137 +1,56 @@
-from unittest.mock import MagicMock, patch
+"""Tests for PlotRenderer cache utility methods.
+
+After B6, PlotRenderer only retains cache-key computation utilities.
+Rendering, engine selection, and display are handled by ChartPresenter
+and PlotRenderController.
+"""
 
 import pandas as pd
-import pytest
 
-from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.plot_renderer import PlotRenderer
 
 
-class MockPlot(BasePlot):
-    def __init__(self):
-        super().__init__("TestPlot", "test_id", "bar")
-        self.config = {}
-        self.processed_data = None
-        self.last_generated_fig = None
-        self.legend_mappings_by_column = {}
+class TestPlotRendererCacheKey:
+    """PlotRenderer._compute_figure_cache_key determinism."""
 
-    def create_figure(self, data, config):
-        fig = MagicMock()
-        fig.data = []
-        # Ensure to_json returns a string to avoid serialization errors
-        # if the real interactive_plotly_chart is accidentally hit
-        fig.to_json.return_value = "{}"
-        return fig
+    def test_same_input_produces_same_key(self) -> None:
+        config = {"x_col": "a", "y_col": "b"}
+        key1 = PlotRenderer._compute_figure_cache_key(1, config, "abc123")
+        key2 = PlotRenderer._compute_figure_cache_key(1, config, "abc123")
+        assert key1 == key2
 
-    def render_config_ui(self, data, config):
-        return config
+    def test_different_config_produces_different_key(self) -> None:
+        config_a = {"x_col": "a"}
+        config_b = {"x_col": "b"}
+        key_a = PlotRenderer._compute_figure_cache_key(1, config_a, "abc")
+        key_b = PlotRenderer._compute_figure_cache_key(1, config_b, "abc")
+        assert key_a != key_b
 
-    def get_legend_column(self, config):
-        return config.get("legend_col")
-
-
-@pytest.fixture
-def mock_streamlit():
-    with (
-        patch("src.web.pages.ui.plotting.plot_renderer.st") as mock_st,
-        patch("src.web.pages.ui.plotting.base_plot.StyleManager") as MockStyleManager,
-        patch("src.web.pages.ui.plotting.plot_renderer.EngineManager") as MockEM,
-    ):
-
-        # Configure StyleManager mock
-        style_manager_instance = MockStyleManager.return_value
-        style_manager_instance.apply_styles.side_effect = lambda fig, config: fig
-
-        # Configure session_state
-        mock_st.session_state = {}
-
-        # Configure pills to return a valid engine mode
-        mock_st.pills.return_value = "plotly"
-
-        # Configure EngineManager mock
-        MockEM.get_engine.return_value = "plotly"
-        MockEM.is_matplotlib.return_value = False
-        MockEM.is_plotly.return_value = True
-
-        # Configure st.columns to return the correct number of MagicMocks
-        def mock_columns(num_cols):
-            return tuple(MagicMock() for _ in range(num_cols))
-
-        mock_st.columns.side_effect = mock_columns
-
-        yield mock_st
+    def test_zoom_range_ignored(self) -> None:
+        """xaxis_range and yaxis_range should NOT affect cache key."""
+        config_base = {"x_col": "a"}
+        config_zoom = {"x_col": "a", "xaxis_range": [0, 10], "yaxis_range": [0, 5]}
+        key_base = PlotRenderer._compute_figure_cache_key(1, config_base, "abc")
+        key_zoom = PlotRenderer._compute_figure_cache_key(1, config_zoom, "abc")
+        assert key_base == key_zoom
 
 
-@pytest.fixture
-def mock_plot(mock_streamlit):
-    return MockPlot()
+class TestPlotRendererDataHash:
+    """PlotRenderer._compute_data_hash correctness."""
 
+    def test_same_data_same_hash(self) -> None:
+        df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+        h1 = PlotRenderer._compute_data_hash(df)
+        h2 = PlotRenderer._compute_data_hash(df)
+        assert h1 == h2
 
-def test_render_legend_customization_no_col(mock_plot):
-    mock_plot.config = {}  # No legend_col
-    data = pd.DataFrame()
+    def test_different_data_different_hash(self) -> None:
+        df1 = pd.DataFrame({"a": [1, 2]})
+        df2 = pd.DataFrame({"a": [1, 3]})
+        assert PlotRenderer._compute_data_hash(df1) != PlotRenderer._compute_data_hash(df2)
 
-    result = PlotRenderer.render_legend_customization(mock_plot, data, mock_plot.config)
-
-    assert result is None
-
-
-def test_render_legend_customization_with_col(mock_streamlit, mock_plot):
-    mock_plot.config = {"legend_col": "C"}
-    data = pd.DataFrame({"C": ["A", "B", "A"]})
-
-    # Mock text_input to provide custom label for 'A' but not 'B'
-    def text_input_side_effect(label, value, key, **kwargs):
-        if "A" in label:
-            return "Custom A"
-        return value  # Default
-
-    mock_streamlit.text_input.side_effect = text_input_side_effect
-
-    result = PlotRenderer.render_legend_customization(mock_plot, data, mock_plot.config)
-
-    assert result["A"] == "Custom A"
-    assert result["B"] == "B"
-    assert mock_plot.legend_mappings_by_column["C"] == result
-
-
-@patch("src.web.pages.ui.plotting.plot_renderer.render_download_section")
-@patch("src.web.pages.ui.plotting.plot_renderer.interactive_plotly_chart")
-def test_render_plot_regenerate(mock_interactive_chart, mock_download, mock_streamlit, mock_plot):
-    mock_plot.processed_data = pd.DataFrame({"x": [1]})
-
-    PlotRenderer.render_plot(mock_plot, should_generate=True)
-
-    # Check that st.error wasn't called (which would indicate an exception)
-    if mock_streamlit.error.called:
-        pytest.fail(f"st.error called with: {mock_streamlit.error.call_args}")
-
-    assert mock_plot.last_generated_fig is not None
-    mock_interactive_chart.assert_called()
-
-
-@patch("src.web.pages.ui.plotting.plot_renderer.render_download_section")
-@patch("src.web.pages.ui.plotting.plot_renderer.interactive_plotly_chart")
-def test_render_plot_cached(mock_interactive_chart, mock_download, mock_streamlit, mock_plot):
-    fig = MagicMock()
-    # Safely mock to_json in case real code is hit
-    fig.to_json.return_value = "{}"
-    mock_plot.last_generated_fig = fig
-    mock_plot.processed_data = pd.DataFrame({"x": [1]})  # Add required data
-
-    PlotRenderer.render_plot(mock_plot, should_generate=False)
-
-    # create_figure should NOT be called
-    with patch.object(mock_plot, "create_figure") as mock_create:
-        PlotRenderer.render_plot(mock_plot, should_generate=False)
-        mock_create.assert_not_called()
-
-    # Verify interactive chart called instead of st.plotly_chart
-    # Check that st.error wasn't called
-    if mock_streamlit.error.called:
-        pytest.fail(f"st.error called with: {mock_streamlit.error.call_args}")
-
-    mock_interactive_chart.assert_called()
-    args, kwargs = mock_interactive_chart.call_args
-    assert args[0] == fig
-    assert "config" in kwargs
+    def test_empty_dataframe(self) -> None:
+        df = pd.DataFrame()
+        h = PlotRenderer._compute_data_hash(df)
+        assert isinstance(h, str)
+        assert len(h) == 12

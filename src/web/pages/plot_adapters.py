@@ -2,7 +2,7 @@
 Plot Adapters — bridge old concrete classes to protocol contracts.
 
 These adapters wrap the static/class-method services (``PlotService``,
-``PlotFactory``, ``PlotRenderer``) and standalone functions (``apply_shapers``,
+``PlotFactory``) and standalone functions (``apply_shapers``,
 ``configure_shaper``) into instance-method objects that satisfy the protocol
 contracts defined in ``src.web.models.plot_protocols``.
 
@@ -12,7 +12,6 @@ Usage::
 
     # In manage_plots.py (thin page layer):
     from src.web.pages.plot_adapters import (
-        ChartDisplayAdapter,
         PipelineExecutorAdapter,
         PlotLifecycleAdapter,
         PlotTypeRegistryAdapter,
@@ -20,12 +19,11 @@ Usage::
 
     lifecycle = PlotLifecycleAdapter()
     registry  = PlotTypeRegistryAdapter()
-    chart     = ChartDisplayAdapter()
     pipeline  = PipelineExecutorAdapter()
 
     creation = PlotCreationController(api, ui_state, lifecycle, registry)
     pipeline_ctrl = PipelineController(api, ui_state, pipeline)
-    render = PlotRenderController(api, ui_state, lifecycle, registry, chart)
+    render = PlotRenderController(api, ui_state, lifecycle, registry)
 """
 
 from typing import Any, Dict, List, Optional
@@ -34,7 +32,6 @@ import pandas as pd
 
 from src.web.models.plot_protocols import PlotHandle
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
-from src.web.pages.ui.plotting.plot_renderer import PlotRenderer
 from src.web.pages.ui.plotting.plot_service import PlotService
 from src.web.pages.ui.shaper_config import apply_shapers, configure_shaper
 
@@ -73,23 +70,6 @@ class PlotTypeRegistryAdapter:
     def get_available_types(self) -> List[str]:
         """Get available plot type keys."""
         return PlotFactory.get_available_plot_types()
-
-
-class ChartDisplayAdapter:
-    """
-    Adapts ``PlotRenderer`` static methods to ``ChartDisplay`` protocol.
-
-    Wraps the render_plot flow (caching + generation + display + relayout).
-
-    Future: When ``FigureEngine`` replaces inline generation inside
-    ``PlotRenderer``, this adapter will switch to using
-    ``FigureEngine.build()`` for figure creation and a display-only
-    renderer for chart output.
-    """
-
-    def render_chart(self, plot: PlotHandle, should_generate: bool) -> None:
-        """Render a chart via PlotRenderer."""
-        PlotRenderer.render_plot(plot, should_generate)  # type: ignore[arg-type]
 
 
 class PipelineExecutorAdapter:

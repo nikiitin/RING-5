@@ -23,7 +23,6 @@ from src.web.controllers.plot.creation_controller import PlotCreationController
 from src.web.controllers.plot.pipeline_controller import PipelineController
 from src.web.controllers.plot.render_controller import PlotRenderController
 from src.web.pages.plot_adapters import (
-    ChartDisplayAdapter,
     PipelineExecutorAdapter,
     PlotLifecycleAdapter,
     PlotTypeRegistryAdapter,
@@ -69,15 +68,12 @@ def show_manage_plots_page(api: ApplicationAPI) -> None:
     # These are lightweight wrappers — no I/O in constructors.
     lifecycle: PlotLifecycleAdapter = PlotLifecycleAdapter()
     registry: PlotTypeRegistryAdapter = PlotTypeRegistryAdapter()
-    chart_display: ChartDisplayAdapter = ChartDisplayAdapter()
     pipeline_executor: PipelineExecutorAdapter = PipelineExecutorAdapter()
 
     # Controllers (dependency-injected, stateless)
     creation: PlotCreationController = PlotCreationController(api, ui_state, lifecycle, registry)
     pipeline: PipelineController = PipelineController(api, ui_state, pipeline_executor)
-    render: PlotRenderController = PlotRenderController(
-        api, ui_state, lifecycle, registry, chart_display
-    )
+    render: PlotRenderController = PlotRenderController(api, ui_state, lifecycle, registry)
 
     # 1. Create Plot Section
     creation.render_create_section()

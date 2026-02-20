@@ -12,7 +12,7 @@ import streamlit as st
 
 from src.core.application_api import ApplicationAPI
 from src.core.services.shapers.factory import ShaperFactory
-from src.web.pages.ui.plotting import BasePlot, PlotFactory, PlotRenderer
+from src.web.pages.ui.plotting import BasePlot, PlotFactory
 from src.web.pages.ui.plotting.plot_service import PlotService
 from src.web.pages.ui.shaper_config import apply_shapers, configure_shaper
 from src.web.state.ui_state_manager import UIStateManager
@@ -315,103 +315,6 @@ class PlotManagerComponents:
                     st.dataframe(processed.head(10))
                 except Exception as e:
                     st.exception(e)
-
-    @staticmethod
-    def render_plot_display(api: ApplicationAPI, plot: BasePlot) -> None:
-        """Render the plot display section with controls."""
-        if plot.processed_data is None:
-            st.warning("No processed data available.")
-            return
-
-        st.markdown("### Visualization")
-
-        # Config merge logic
-        saved_config = plot.config
-        current_config = saved_config.copy()
-
-        st.markdown("---")
-        st.markdown("### Plot Configuration")
-
-        # Type Selector
-        types = PlotFactory.get_available_plot_types()
-        new_type = st.selectbox(
-            "Plot Type",
-            options=types,
-            index=types.index(plot.plot_type) if plot.plot_type in types else 0,
-            key=f"plot_type_sel_{plot.plot_id}",
-        )
-
-        if new_type != plot.plot_type:
-            PlotService.change_plot_type(plot, new_type, api.state_manager)
-            st.rerun()
-
-        # Plot-specific UI
-        data = plot.processed_data
-
-        # Merge logic to preserve interactive state (e.g. range_x, legend_x)
-        ui_config = plot.render_config_ui(data, saved_config)
-        current_config.update(ui_config)
-
-        # ── Preset selector ──
-        from src.web.pages.ui.plotting.settings_pills import (
-            render_preset_pills,
-            render_settings_pills,
-        )
-
-        preset_name = render_preset_pills(plot.plot_id)
-        if preset_name is not None:
-            from typing import Any
-            from typing import Dict as DictT
-
-            from src.web.pages.ui.plotting.export.presets.preset_manager import (
-                PresetManager,
-            )
-            from src.web.rendering.preset_applicator import PresetApplicator
-
-            preset_data: DictT[str, Any] = dict(PresetManager.load_preset(preset_name))
-            from src.web.rendering.config_builder import (
-                ConfigSpecBuilder,
-            )
-
-            base_spec = ConfigSpecBuilder.from_config(current_config)
-            updated_spec = PresetApplicator.apply(base_spec, preset_data)
-            from src.web.rendering.widgets.config_bridge import ConfigBridge
-            from src.web.rendering.widgets.widget_def import ALL_SECTIONS
-
-            bridge = ConfigBridge(ALL_SECTIONS)
-            preset_config = bridge.spec_to_config(updated_spec)
-            current_config.update(preset_config)
-
-        # ── Pills-driven settings navigation ──
-        show_adv = st.toggle(
-            "Show advanced settings",
-            value=False,
-            key=f"show_advanced_{plot.plot_id}",
-        )
-        selected_section = render_settings_pills(show_advanced=show_adv)
-
-        section_config = plot.render_settings_section(selected_section, current_config, data)
-        current_config.update(section_config)
-
-        # Refresh Logic
-        config_changed = current_config != saved_config
-
-        r1, r2 = st.columns([1, 3])
-        with r1:
-            ui = UIStateManager()
-            auto = st.toggle(
-                "Auto-refresh",
-                value=ui.plot.get_auto_refresh(plot.plot_id),
-                key=f"auto_t_{plot.plot_id}",
-            )
-            ui.plot.set_auto_refresh(plot.plot_id, auto)
-        with r2:
-            manual = st.button("Refresh Plot", key=f"refresh_{plot.plot_id}", width="stretch")
-
-        should_gen = manual or (auto and config_changed)
-        plot.config = current_config
-
-        PlotRenderer.render_plot(plot, should_gen)
 
     @staticmethod
     def render_workspace_management(api: ApplicationAPI) -> None:

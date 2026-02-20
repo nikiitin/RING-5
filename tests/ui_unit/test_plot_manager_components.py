@@ -147,18 +147,3 @@ def test_render_pipeline_editor_finalize(mock_streamlit, mock_api):
         mock_apply.assert_called()
         assert plot.processed_data is not None
         mock_streamlit.success.assert_called()
-
-
-def test_render_plot_display(mock_streamlit, mock_api, mock_plot_factory, mock_plot_service):
-    """Test rendering the plot display section."""
-    plot = MockPlot(1, "Test Plot", "Bar")
-    plot.processed_data = pd.DataFrame({"A": [1]})
-    plot.config = {}
-
-    mock_plot_factory.get_available_plot_types.return_value = ["Bar", "Line"]
-
-    mock_streamlit.selectbox.return_value = "Line"
-
-    PlotManagerComponents.render_plot_display(mock_api, plot)
-
-    mock_plot_service.change_plot_type.assert_called_with(plot, "Line", mock_api.state_manager)

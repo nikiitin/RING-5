@@ -1,146 +1,63 @@
-"""
-Tests for the engine toggle widget in PlotRenderer.
+"""Tests for engine selector rendering in ChartPresenter.
 
-Validates that:
-  - ``st.pills`` is called with correct options and default
-  - ``EngineManager.set_engine()`` is invoked when user selects an engine
-  - Selecting the same engine as current is a no-op (idempotent)
+Verifies that ``ChartPresenter.render_engine_selector()`` correctly
+renders the ``st.pills`` widget for engine selection and returns
+the user's choice.
 """
 
+from typing import Optional
 from unittest.mock import MagicMock, patch
 
-import pandas as pd
-import plotly.graph_objects as go
-
-# ─── Helpers ─────────────────────────────────────────────────────────────────
+_PRESENTER = "src.web.presenters.plot.chart_presenter"
 
 
-def _build_plot_mock(plot_id: int = 1) -> MagicMock:
-    """Create a minimal MagicMock that satisfies render_plot's needs."""
-    plot = MagicMock()
-    plot.plot_id = plot_id
-    plot.processed_data = pd.DataFrame({"x": [1]})
-    plot.config = {"x": "col"}
-    plot.last_generated_fig = go.Figure()
-    plot.name = "test"
-    return plot
+class TestEngineSelector:
+    """ChartPresenter.render_engine_selector rendering and return value."""
 
+    @patch(f"{_PRESENTER}.st")
+    def test_pills_called_with_correct_args(self, mock_st: MagicMock) -> None:
+        """st.pills receives engine options and current default."""
+        from src.web.presenters.plot.chart_presenter import ChartPresenter
 
-# ─── Tests ───────────────────────────────────────────────────────────────────
-
-
-class TestEngineToggleWidget:
-    """Verify the engine selector pills widget in render_plot."""
-
-    @patch("src.web.pages.ui.plotting.plot_renderer.EngineManager")
-    @patch("src.web.pages.ui.plotting.plot_renderer.render_download_section")
-    @patch("src.web.pages.ui.plotting.plot_renderer.interactive_plotly_chart")
-    @patch("src.web.pages.ui.plotting.plot_renderer.st")
-    @patch("src.web.pages.ui.plotting.plot_renderer.get_plot_cache")
-    def test_pills_called_with_correct_args(
-        self,
-        mock_cache: MagicMock,
-        mock_st: MagicMock,
-        mock_chart: MagicMock,
-        mock_download: MagicMock,
-        mock_em: MagicMock,
-    ) -> None:
-        """st.pills should be called with 'plotly' and 'matplotlib' options."""
-        from src.web.pages.ui.plotting.plot_renderer import PlotRenderer
-
-        mock_cache.return_value = MagicMock()
-        mock_chart.return_value = None
-        mock_em.get_engine.return_value = "plotly"
         mock_st.pills.return_value = "plotly"
-
-        plot = _build_plot_mock()
-        PlotRenderer.render_plot(plot)
+        ChartPresenter.render_engine_selector(plot_id=5, current_engine="plotly")
 
         mock_st.pills.assert_called_once()
-        args, kwargs = mock_st.pills.call_args
-        # First positional arg is the label
-        assert args[0] == "Engine"
-        # Options must include both engines
-        assert kwargs["options"] == ["plotly", "matplotlib"]
-        assert kwargs["selection_mode"] == "single"
-        assert kwargs["default"] == "plotly"
-        assert "engine_selector_" in kwargs["key"]
+        call_kwargs = mock_st.pills.call_args
+        assert call_kwargs[0][0] == "Engine"
+        assert call_kwargs[1]["options"] == ["plotly", "matplotlib"]
+        assert call_kwargs[1]["default"] == "plotly"
+        assert "engine_selector_5" in call_kwargs[1]["key"]
 
-    @patch("src.web.pages.ui.plotting.plot_renderer.EngineManager")
-    @patch("src.web.pages.ui.plotting.plot_renderer.render_download_section")
-    @patch("src.web.pages.ui.plotting.plot_renderer.interactive_plotly_chart")
-    @patch("src.web.pages.ui.plotting.plot_renderer.st")
-    @patch("src.web.pages.ui.plotting.plot_renderer.get_plot_cache")
-    def test_set_engine_called_on_selection(
-        self,
-        mock_cache: MagicMock,
-        mock_st: MagicMock,
-        mock_chart: MagicMock,
-        mock_download: MagicMock,
-        mock_em: MagicMock,
-    ) -> None:
-        """When user selects matplotlib, EngineManager.set_engine is called."""
-        from src.web.pages.ui.plotting.plot_renderer import PlotRenderer
+    @patch(f"{_PRESENTER}.st")
+    def test_returns_selected_engine(self, mock_st: MagicMock) -> None:
+        """Returns the engine string selected by the user."""
+        from src.web.presenters.plot.chart_presenter import ChartPresenter
 
-        mock_cache.return_value = MagicMock()
-        mock_chart.return_value = None
-        mock_em.get_engine.return_value = "plotly"
         mock_st.pills.return_value = "matplotlib"
+        result: Optional[str] = ChartPresenter.render_engine_selector(
+            plot_id=1, current_engine="plotly"
+        )
+        assert result == "matplotlib"
 
-        plot = _build_plot_mock()
-        PlotRenderer.render_plot(plot)
+    @patch(f"{_PRESENTER}.st")
+    def test_returns_none_when_deselected(self, mock_st: MagicMock) -> None:
+        """Returns None when user deselects all options."""
+        from src.web.presenters.plot.chart_presenter import ChartPresenter
 
-        mock_em.set_engine.assert_called_once_with("matplotlib")
-
-    @patch("src.web.pages.ui.plotting.plot_renderer.EngineManager")
-    @patch("src.web.pages.ui.plotting.plot_renderer.render_download_section")
-    @patch("src.web.pages.ui.plotting.plot_renderer.interactive_plotly_chart")
-    @patch("src.web.pages.ui.plotting.plot_renderer.st")
-    @patch("src.web.pages.ui.plotting.plot_renderer.get_plot_cache")
-    def test_none_selection_skips_set_engine(
-        self,
-        mock_cache: MagicMock,
-        mock_st: MagicMock,
-        mock_chart: MagicMock,
-        mock_download: MagicMock,
-        mock_em: MagicMock,
-    ) -> None:
-        """When pills returns None (deselected), set_engine is NOT called."""
-        from src.web.pages.ui.plotting.plot_renderer import PlotRenderer
-
-        mock_cache.return_value = MagicMock()
-        mock_chart.return_value = None
-        mock_em.get_engine.return_value = "plotly"
         mock_st.pills.return_value = None
+        result: Optional[str] = ChartPresenter.render_engine_selector(
+            plot_id=1, current_engine="plotly"
+        )
+        assert result is None
 
-        plot = _build_plot_mock()
-        PlotRenderer.render_plot(plot)
+    @patch(f"{_PRESENTER}.st")
+    def test_widget_key_includes_plot_id(self, mock_st: MagicMock) -> None:
+        """Widget key is unique per plot_id."""
+        from src.web.presenters.plot.chart_presenter import ChartPresenter
 
-        mock_em.set_engine.assert_not_called()
-
-    @patch("src.web.pages.ui.plotting.plot_renderer.EngineManager")
-    @patch("src.web.pages.ui.plotting.plot_renderer.render_download_section")
-    @patch("src.web.pages.ui.plotting.plot_renderer.interactive_plotly_chart")
-    @patch("src.web.pages.ui.plotting.plot_renderer.st")
-    @patch("src.web.pages.ui.plotting.plot_renderer.get_plot_cache")
-    def test_widget_key_includes_plot_id(
-        self,
-        mock_cache: MagicMock,
-        mock_st: MagicMock,
-        mock_chart: MagicMock,
-        mock_download: MagicMock,
-        mock_em: MagicMock,
-    ) -> None:
-        """Widget key must be scoped to the plot_id to avoid collisions."""
-        from src.web.pages.ui.plotting.plot_renderer import PlotRenderer
-
-        mock_cache.return_value = MagicMock()
-        mock_chart.return_value = None
-        mock_em.get_engine.return_value = "plotly"
         mock_st.pills.return_value = "plotly"
+        ChartPresenter.render_engine_selector(plot_id=42, current_engine="plotly")
 
-        plot = _build_plot_mock(plot_id=42)
-        PlotRenderer.render_plot(plot)
-
-        _, kwargs = mock_st.pills.call_args
-        assert kwargs["key"] == "engine_selector_42"
+        key = mock_st.pills.call_args[1]["key"]
+        assert "42" in key

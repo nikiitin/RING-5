@@ -389,7 +389,7 @@ class TestControllerBoundaries:
         for mod, expected_protocols in [
             (cc, ["PlotHandle", "PlotLifecycleService", "PlotTypeRegistry"]),
             (pc, ["PlotHandle", "PipelineExecutor"]),
-            (rc, ["PlotLifecycleService", "PlotTypeRegistry", "ChartDisplay", "RenderablePlot"]),
+            (rc, ["PlotLifecycleService", "PlotTypeRegistry", "RenderablePlot"]),
         ]:
             source: str = open(mod.__file__).read()  # type: ignore[arg-type]
             for proto in expected_protocols:
@@ -423,9 +423,8 @@ class TestProtocolCompliance:
         )
 
     def test_all_protocols_importable(self) -> None:
-        """All 7 protocols import correctly."""
+        """All protocols import correctly."""
         from src.web.models.plot_protocols import (
-            ChartDisplay,
             ConfigRenderer,
             PipelineExecutor,
             PlotHandle,
@@ -438,14 +437,12 @@ class TestProtocolCompliance:
         assert ConfigRenderer is not None
         assert PlotLifecycleService is not None
         assert PlotTypeRegistry is not None
-        assert ChartDisplay is not None
         assert PipelineExecutor is not None
         assert RenderablePlot is not None
 
     def test_all_adapters_importable(self) -> None:
-        """All 4 adapters import correctly."""
+        """All adapters import correctly."""
         from src.web.pages.plot_adapters import (
-            ChartDisplayAdapter,
             PipelineExecutorAdapter,
             PlotLifecycleAdapter,
             PlotTypeRegistryAdapter,
@@ -453,7 +450,6 @@ class TestProtocolCompliance:
 
         assert PlotLifecycleAdapter is not None
         assert PlotTypeRegistryAdapter is not None
-        assert ChartDisplayAdapter is not None
         assert PipelineExecutorAdapter is not None
 
     def test_adapters_in_page_layer(self) -> None:

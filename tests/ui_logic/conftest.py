@@ -34,6 +34,8 @@ class StubPlotHandle:
         self.processed_data = processed_data
         self.pipeline: List[Dict[str, Any]] = pipeline or []
         self.pipeline_counter = pipeline_counter
+        self.last_generated_fig: Any = None
+        self.style_manager = MagicMock()
 
     # ConfigRenderer stubs (needed for RenderablePlot)
     def render_config_ui(self, data: pd.DataFrame, config: Dict[str, Any]) -> Dict[str, Any]:
@@ -55,6 +57,9 @@ class StubPlotHandle:
         data: Optional[pd.DataFrame] = None,
     ) -> Dict[str, Any]:
         return saved_config
+
+    def update_from_relayout(self, relayout_data: Dict[str, Any]) -> bool:
+        return False
 
 
 @pytest.fixture
@@ -115,12 +120,6 @@ def mock_registry() -> MagicMock:
         "dual_axis",
     ]
     return registry
-
-
-@pytest.fixture
-def mock_chart_display() -> MagicMock:
-    """Mock ChartDisplay."""
-    return MagicMock()
 
 
 @pytest.fixture

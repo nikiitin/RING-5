@@ -13,7 +13,6 @@ Protocol Hierarchy::
     ConfigRenderer        — config-UI rendering facet (BasePlot satisfies this)
     PlotLifecycleService  — create / delete / duplicate / change-type
     PlotTypeRegistry      — list available plot types
-    ChartDisplay          — cache + render + relayout (wraps PlotRenderer)
     PipelineExecutor      — apply / configure shapers
     FigureCreator         — type-specific figure creation
     FigureStyler          — visual style application
@@ -131,21 +130,6 @@ class PlotTypeRegistry(Protocol):
     """
 
     def get_available_types(self) -> List[str]: ...
-
-
-class ChartDisplay(Protocol):
-    """
-    Contract for rendering a chart (caching, display, relayout handling).
-
-    The page layer wraps ``PlotRenderer.render_plot()`` into an adapter
-    that satisfies this protocol.
-
-    Future: When ``FigureEngine`` replaces inline generation inside
-    ``PlotRenderer``, the adapter will switch to
-    ``FigureEngine.build()`` + display-only rendering.
-    """
-
-    def render_chart(self, plot: PlotHandle, should_generate: bool) -> None: ...
 
 
 class PipelineExecutor(Protocol):

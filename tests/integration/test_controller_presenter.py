@@ -53,15 +53,15 @@ class _RegistryAdapter:
         return PlotFactory.get_available_plot_types()
 
 
-class _MockChartDisplay:
-    """Tracks render_chart calls for assertions."""
+class _RenderVisualizationTracker:
+    """Tracks _render_visualization calls for assertions."""
 
     def __init__(self) -> None:
         self.calls: List[Dict[str, Any]] = []
         self.last_plot: Optional[PlotHandle] = None
         self.last_should_gen: Optional[bool] = None
 
-    def render_chart(self, plot: PlotHandle, should_generate: bool) -> None:
+    def __call__(self, plot: PlotHandle, should_generate: bool) -> None:
         self.calls.append({"plot": plot, "should_generate": should_generate})
         self.last_plot = plot
         self.last_should_gen = should_generate
@@ -78,11 +78,11 @@ class TestPlotRenderControllerIntegration:
     def _build_controller(
         self,
         api: ApplicationAPI,
-    ) -> tuple[PlotRenderController, _MockChartDisplay]:
-        """Build a controller with real adapters and mock chart display."""
+    ) -> tuple[PlotRenderController, _RenderVisualizationTracker]:
+        """Build a controller with real adapters and tracked visualization."""
         from src.web.state.ui_state_manager import UIStateManager
 
-        chart_display = _MockChartDisplay()
+        tracker = _RenderVisualizationTracker()
 
         # We need to mock UIStateManager since it uses st.session_state
         ui_state = MagicMock(spec=UIStateManager)
@@ -95,9 +95,10 @@ class TestPlotRenderControllerIntegration:
             ui_state=ui_state,
             lifecycle=_LifecycleAdapter(),
             registry=_RegistryAdapter(),
-            chart_display=chart_display,
         )
-        return controller, chart_display
+        # Patch _render_visualization to track calls
+        controller._render_visualization = tracker  # type: ignore[assignment]
+        return controller, tracker
 
     @patch("src.web.presenters.plot.chart_presenter.st")
     @patch("src.web.presenters.plot.config_presenter.st")
@@ -109,8 +110,8 @@ class TestPlotRenderControllerIntegration:
         mock_chart_st: MagicMock,
         loaded_facade: ApplicationAPI,
     ) -> None:
-        """Controller.render() reaches chart_display when data is present."""
-        controller, chart_display = self._build_controller(loaded_facade)
+        """Controller.render() reaches _render_visualization when data is present."""
+        controller, tracker = self._build_controller(loaded_facade)
 
         # Create a real plot with data
         plot: BasePlot = PlotFactory.create_plot("bar", plot_id=1, name="Test")
@@ -158,9 +159,9 @@ class TestPlotRenderControllerIntegration:
         ):
             controller.render(plot)
 
-        # Chart display should have been called
-        assert len(chart_display.calls) == 1
-        assert chart_display.last_should_gen is True
+        # _render_visualization should have been called
+        assert len(tracker.calls) == 1
+        assert tracker.last_should_gen is True
 
     @patch("src.web.presenters.plot.chart_presenter.st")
     @patch("src.web.presenters.plot.config_presenter.st")
@@ -173,7 +174,7 @@ class TestPlotRenderControllerIntegration:
         facade: ApplicationAPI,
     ) -> None:
         """Controller.render() shows warning when processed_data is None."""
-        controller, chart_display = self._build_controller(facade)
+        controller, tracker = self._build_controller(facade)
 
         plot: BasePlot = PlotFactory.create_plot("bar", plot_id=1, name="Empty")
         plot.processed_data = None  # No data
@@ -184,7 +185,7 @@ class TestPlotRenderControllerIntegration:
             controller.render(plot)
 
         mock_warning.assert_called_once()
-        assert len(chart_display.calls) == 0
+        assert len(tracker.calls) == 0
 
     @patch("src.web.presenters.plot.chart_presenter.st")
     @patch("src.web.presenters.plot.config_presenter.st")
@@ -197,7 +198,7 @@ class TestPlotRenderControllerIntegration:
         loaded_facade: ApplicationAPI,
     ) -> None:
         """When type config raises, should_generate is False."""
-        controller, chart_display = self._build_controller(loaded_facade)
+        controller, tracker = self._build_controller(loaded_facade)
 
         plot: BasePlot = PlotFactory.create_plot("bar", plot_id=1, name="Error")
         plot.processed_data = loaded_facade.state_manager.get_data()
@@ -231,9 +232,9 @@ class TestPlotRenderControllerIntegration:
         ):
             controller.render(plot)
 
-        # Chart display called but with should_gen=False due to error
-        assert len(chart_display.calls) == 1
-        assert chart_display.last_should_gen is False
+        # _render_visualization called but with should_gen=False due to error
+        assert len(tracker.calls) == 1
+        assert tracker.last_should_gen is False
 
 
 # ===========================================================================

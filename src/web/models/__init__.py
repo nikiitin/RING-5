@@ -21,7 +21,6 @@ from src.web.models.plot_models import (
     ShaperStep,
 )
 from src.web.models.plot_protocols import (
-    ChartDisplay,
     ConfigRenderer,
     FigureCreator,
     FigureStyler,
@@ -40,7 +39,6 @@ __all__ = [
     "SeriesStyleConfig",
     "ShaperStep",
     # Protocols
-    "ChartDisplay",
     "ConfigRenderer",
     "FigureCreator",
     "FigureStyler",

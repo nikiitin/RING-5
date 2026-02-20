@@ -6,7 +6,6 @@ Validates the full pipeline:
 """
 
 from typing import Any, Dict
-from unittest.mock import MagicMock, patch
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -287,56 +286,3 @@ class TestMatplotlibFullPipeline:
         assert w > 0
         assert h > 0
         plt.close(mpl_fig)
-
-
-# ─── PlotRenderer._render_matplotlib integration ─────────────────────────────
-
-
-class TestRendererMatplotlibBranch:
-    """Test the _render_matplotlib static method via PlotRenderer."""
-
-    @patch("src.web.pages.ui.plotting.plot_renderer.render_download_section")
-    @patch("src.web.pages.ui.plotting.plot_renderer.st")
-    def test_render_matplotlib_calls_pyplot(
-        self, mock_st: MagicMock, mock_download: MagicMock
-    ) -> None:
-        """_render_matplotlib should call st.pyplot with a Figure."""
-        from src.web.pages.ui.plotting.plot_renderer import PlotRenderer
-
-        mock_st.session_state = {}
-
-        plot = MagicMock()
-        plot.plot_id = 1
-        plot.config = _minimal_config()
-        plot.plot_type = "bar"
-
-        plotly_fig = _make_bar_figure()
-
-        PlotRenderer._render_matplotlib(plot, plotly_fig)
-
-        mock_st.pyplot.assert_called_once()
-        args, _ = mock_st.pyplot.call_args
-        assert isinstance(args[0], Figure)
-
-    @patch("src.web.pages.ui.plotting.plot_renderer.render_download_section")
-    @patch("src.web.pages.ui.plotting.plot_renderer.st")
-    def test_render_matplotlib_stores_fig_in_state(
-        self, mock_st: MagicMock, mock_download: MagicMock
-    ) -> None:
-        """Matplotlib figure should be stored in session state for download."""
-        from src.web.pages.ui.plotting.plot_renderer import PlotRenderer
-
-        state: Dict[str, Any] = {}
-        mock_st.session_state = state
-
-        plot = MagicMock()
-        plot.plot_id = 7
-        plot.config = _minimal_config()
-        plot.plot_type = "bar"
-
-        plotly_fig = _make_bar_figure()
-
-        PlotRenderer._render_matplotlib(plot, plotly_fig)
-
-        assert "plot.7.mpl_fig" in state
-        assert isinstance(state["plot.7.mpl_fig"], Figure)

@@ -115,39 +115,6 @@ class TestPlotTypeRegistryAdapter:
 
 
 # ---------------------------------------------------------------------------
-# ChartDisplayAdapter
-# ---------------------------------------------------------------------------
-class TestChartDisplayAdapter:
-    """Verify ChartDisplayAdapter delegates to PlotRenderer."""
-
-    def test_render_chart_delegates(self) -> None:
-        """render_chart passes plot and should_generate through."""
-        from src.web.pages.plot_adapters import ChartDisplayAdapter
-
-        adapter = ChartDisplayAdapter()
-        plot = StubPlotHandle(plot_id=1)
-
-        with patch(
-            "src.web.pages.plot_adapters.PlotRenderer.render_plot",
-        ) as mock_render:
-            adapter.render_chart(plot, True)
-            mock_render.assert_called_once_with(plot, True)
-
-    def test_render_chart_with_false(self) -> None:
-        """render_chart passes should_generate=False correctly."""
-        from src.web.pages.plot_adapters import ChartDisplayAdapter
-
-        adapter = ChartDisplayAdapter()
-        plot = StubPlotHandle(plot_id=2)
-
-        with patch(
-            "src.web.pages.plot_adapters.PlotRenderer.render_plot",
-        ) as mock_render:
-            adapter.render_chart(plot, False)
-            mock_render.assert_called_once_with(plot, False)
-
-
-# ---------------------------------------------------------------------------
 # PipelineExecutorAdapter
 # ---------------------------------------------------------------------------
 class TestPipelineExecutorAdapter:
@@ -219,13 +186,6 @@ class TestAdapterProtocolConformance:
 
         adapter = PlotTypeRegistryAdapter()
         assert callable(getattr(adapter, "get_available_types", None))
-
-    def test_chart_display_has_required_methods(self) -> None:
-        """ChartDisplayAdapter has render_chart method."""
-        from src.web.pages.plot_adapters import ChartDisplayAdapter
-
-        adapter = ChartDisplayAdapter()
-        assert callable(getattr(adapter, "render_chart", None))
 
     def test_pipeline_executor_has_required_methods(self) -> None:
         """PipelineExecutorAdapter has apply_shapers and configure_shaper."""

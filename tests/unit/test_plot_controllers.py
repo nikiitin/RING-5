@@ -8,8 +8,8 @@ We verify:
     3. Correct state updates via UIStateManager
     4. Error handling
 
-Dependencies (PlotLifecycleService, PlotTypeRegistry, PipelineExecutor,
-ChartDisplay) are injected as mocks — no module-level patching needed.
+Dependencies (PlotLifecycleService, PlotTypeRegistry, PipelineExecutor)
+are injected as mocks — no module-level patching needed.
 """
 
 from unittest.mock import MagicMock, patch
@@ -56,12 +56,6 @@ def mock_registry() -> MagicMock:
 @pytest.fixture
 def mock_pipeline_executor() -> MagicMock:
     """Create a mock PipelineExecutor."""
-    return MagicMock()
-
-
-@pytest.fixture
-def mock_chart_display() -> MagicMock:
-    """Create a mock ChartDisplay."""
     return MagicMock()
 
 
@@ -635,9 +629,8 @@ class TestRenderControllerErrorResilience:
         mock_ui_state: MagicMock,
         mock_lifecycle: MagicMock,
         mock_registry: MagicMock,
-        mock_chart_display: MagicMock,
     ) -> None:
-        """Config error shows st.error but chart still renders."""
+        """Config error shows st.error but _render_visualization still runs."""
         import pandas as pd
 
         from src.web.controllers.plot.render_controller import PlotRenderController
@@ -671,17 +664,16 @@ class TestRenderControllerErrorResilience:
             mock_ui_state,
             mock_lifecycle,
             mock_registry,
-            mock_chart_display,
         )
-        controller.render(plot)
 
-        # Error was shown
-        mock_st.exception.assert_called()
-        # Chart was still rendered (but should_gen=False due to config error)
-        mock_chart_display.render_chart.assert_called_once()
-        # should_gen is False because config_error=True
-        call_args = mock_chart_display.render_chart.call_args
-        assert call_args[0][1] is False  # should_gen
+        with patch.object(controller, "_render_visualization") as mock_viz:
+            controller.render(plot)
+
+            # Error was shown
+            mock_st.exception.assert_called()
+            # _render_visualization still called (with should_gen=False due to error)
+            mock_viz.assert_called_once()
+            assert mock_viz.call_args[0][1] is False  # should_gen
 
     @patch("src.web.controllers.plot.render_controller.st")
     @patch("src.web.controllers.plot.render_controller.ChartPresenter")
@@ -695,9 +687,8 @@ class TestRenderControllerErrorResilience:
         mock_ui_state: MagicMock,
         mock_lifecycle: MagicMock,
         mock_registry: MagicMock,
-        mock_chart_display: MagicMock,
     ) -> None:
-        """Advanced options error shows st.error but chart still renders."""
+        """Advanced options error shows st.error but _render_visualization still runs."""
         import pandas as pd
 
         from src.web.controllers.plot.render_controller import PlotRenderController
@@ -730,14 +721,15 @@ class TestRenderControllerErrorResilience:
             mock_ui_state,
             mock_lifecycle,
             mock_registry,
-            mock_chart_display,
         )
-        controller.render(plot)
 
-        # Error displayed
-        mock_st.exception.assert_called()
-        # Chart container still rendered (with should_gen=False)
-        mock_chart_display.render_chart.assert_called_once()
+        with patch.object(controller, "_render_visualization") as mock_viz:
+            controller.render(plot)
+
+            # Error displayed
+            mock_st.exception.assert_called()
+            # _render_visualization still called (with should_gen=False)
+            mock_viz.assert_called_once()
 
 
 # ─── Save / Load Dialog Tests ───────────────────────────────────────────────
