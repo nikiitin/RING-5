@@ -18,6 +18,9 @@ from src.core.visualization.connectors.matplotlib_connector import (
 from src.core.visualization.connectors.matplotlib_trace_renderer import (
     MatplotlibTraceRenderer,
 )
+from src.core.visualization.connectors.plotly_trace_extractor import (
+    PlotlyTraceExtractor,
+)
 from src.core.visualization.resolvers import resolve_spec
 from src.web.figures.engine import FigureEngine
 from src.web.pages.ui.components.interactive_plot import interactive_plotly_chart
@@ -274,37 +277,38 @@ class PlotRenderer:
         """Render using Matplotlib via FigureSpec pipeline.
 
         Steps:
-          1. Build FigureSpec from the plot config.
-          2. Create a blank matplotlib figure from spec dimensions.
-          3. Convert Plotly traces to matplotlib artists.
-          4. Apply spec-based styling (title, axes, grids, etc.).
-          5. Display with ``st.pyplot()``.
+          1. Build FigureSpec from the plot config + Plotly layout.
+          2. Extract engine-agnostic TraceSpec from Plotly figure.
+          3. Create a blank matplotlib figure from spec dimensions.
+          4. Render traces from TraceSpec (no Plotly dependency).
+          5. Apply spec-based styling (title, axes, grids, etc.).
+          6. Display with ``st.pyplot()``.
         """
-        import plotly.graph_objects as go
-
-        plotly_fig: go.Figure = fig
+        plotly_fig = fig
 
         # 1. Build and resolve the FigureSpec
         spec = ConfigSpecBuilder.from_config(plot.config, plot.plot_type)
         PlotlyFigureSpecBuilder.enrich_from_plotly(spec, plotly_fig)
         spec = resolve_spec(spec)
 
-        # 2. Create blank matplotlib figure
+        # 2. Extract engine-agnostic TraceSpec from Plotly figure
+        traces = PlotlyTraceExtractor.extract(plotly_fig)
+
+        # 3. Create blank matplotlib figure
         mpl_fig, ax = FigureSpecToMatplotlib.create_figure(spec)
 
-        # 3. Convert Plotly traces → matplotlib artists
-        #    Pass resolved palette so traces use the correct colours
-        #    during drawing (set_prop_cycle after draw has no effect).
+        # 4. Render traces from TraceSpec (no Plotly dependency)
         MatplotlibTraceRenderer.render(
-            plotly_fig,
+            traces,
             ax,
+            barmode=spec.barmode,
             palette_colors=spec.color_palette or None,
         )
 
-        # 4. Apply spec-based styling
+        # 5. Apply spec-based styling
         FigureSpecToMatplotlib.apply(spec, ax)
 
-        # 5. Render
+        # 6. Render
         st.pyplot(mpl_fig)
 
         # Store for potential download

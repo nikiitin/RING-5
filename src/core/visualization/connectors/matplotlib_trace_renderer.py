@@ -1,63 +1,79 @@
 """
-Matplotlib trace renderer — converts Plotly traces to matplotlib artists.
+Matplotlib trace renderer — draws ``TraceSpec`` instances on matplotlib axes.
 
-This module bridges the gap between the Plotly-based ``FigureEngine``
-(which produces ``go.Figure`` objects) and the Matplotlib canvas.  It
-iterates over every trace in a Plotly figure and draws the equivalent
-matplotlib artist (bar, line, scatter) on the provided ``Axes``.
+This module is the **engine-agnostic** trace renderer for the matplotlib
+connector.  It reads from ``TraceSpec`` sub-classes (``BarTraceSpec``,
+``LineTraceSpec``, ``ScatterTraceSpec``, ``HistogramTraceSpec``) and
+draws the equivalent matplotlib artists.
+
+**No Plotly dependency** — this module does not import or reference
+``plotly.graph_objects`` or any Plotly types.
 
 Design notes:
     * **Stateless** — all methods are ``@staticmethod``.
     * **No styling** — only draws data; layout/style is handled by
       ``FigureSpecToMatplotlib.apply()``.
-    * **Colour-safe** — normalises Plotly ``rgb()/rgba()/hex`` to
-      matplotlib-compatible hex strings.
+    * **Pre-computed positions** — bar positions, widths, offsets are
+      read directly from ``BarTraceSpec``; no grouping math here.
 """
 
 from __future__ import annotations
 
 import logging
-import re
 from typing import Any, Dict, List, Optional
 
-import plotly.graph_objects as go
 from matplotlib.axes import Axes
+
+from src.core.visualization.trace_spec import (
+    BarTraceSpec,
+    HistogramTraceSpec,
+    LineTraceSpec,
+    ScatterTraceSpec,
+    TraceSpec,
+)
 
 logger = logging.getLogger(__name__)
 
 
 class MatplotlibTraceRenderer:
-    """Convert Plotly traces to matplotlib artists on an ``Axes``."""
+    """Draw ``TraceSpec`` instances on a matplotlib ``Axes``.
+
+    This replaces the previous implementation that read from Plotly
+    ``go.Figure`` objects.  All trace data now comes from engine-agnostic
+    ``TraceSpec`` dataclasses.
+    """
 
     # ── public API ────────────────────────────────────────────────────────
 
     @staticmethod
     def render(
-        plotly_fig: go.Figure,
+        traces: List[TraceSpec],
         ax: Axes,
+        barmode: str = "group",
         palette_colors: Optional[List[str]] = None,
     ) -> int:
-        """Render all traces from *plotly_fig* onto *ax*.
+        """Render all traces onto *ax*.
 
         Args:
-            plotly_fig: The completed Plotly figure to convert.
+            traces: Ordered list of ``TraceSpec`` instances to draw.
             ax: The matplotlib axes to draw on.
+            barmode: Bar arrangement mode (``"group"`` or ``"stack"``).
             palette_colors: Resolved palette hex colours.  When supplied,
                 each trace is coloured ``palette_colors[idx]`` instead of
-                using whatever colour Plotly assigned. This ensures the
-                user-selected palette is respected in the matplotlib output.
+                using the colour embedded in the ``TraceSpec``.  This
+                ensures the user-selected palette is respected.
 
         Secondary-Y traces (``yaxis='y2'``) are rendered on a twin axis
         created via ``ax.twinx()``, stored as ``ax._ring5_twin``.
 
         Returns:
-            Number of traces successfully converted.
+            Number of traces successfully rendered.
         """
-        bar_traces: List[go.Bar] = [t for t in plotly_fig.data if t.type == "bar"]
-        barmode: str = getattr(plotly_fig.layout, "barmode", "group") or "group"
+        # Collect bar traces for stacking computation
+        bar_specs: List[BarTraceSpec] = [t for t in traces if isinstance(t, BarTraceSpec)]
 
         # Secondary Y handling
-        has_secondary = any(getattr(t, "yaxis", None) == "y2" for t in plotly_fig.data)
+        has_secondary = any(t.yaxis == "y2" for t in traces)
         ax2: Optional[Axes] = None
         if has_secondary:
             ax2 = ax.twinx()
@@ -66,44 +82,43 @@ class MatplotlibTraceRenderer:
         count = 0
         categorical_labels: List[str] = []
 
-        for idx, trace in enumerate(plotly_fig.data):
-            is_secondary = getattr(trace, "yaxis", None) == "y2"
+        for idx, trace in enumerate(traces):
+            is_secondary = trace.yaxis == "y2"
             target = ax2 if (is_secondary and ax2 is not None) else ax
 
-            # Override trace colour with the user-selected palette when
-            # palette_colors is provided.
+            # Override trace colour with palette when provided
             override_color: Optional[str] = None
             if palette_colors:
                 override_color = palette_colors[idx % len(palette_colors)]
 
             try:
-                if trace.type == "bar":
+                if isinstance(trace, BarTraceSpec):
+                    bar_idx = bar_specs.index(trace)
                     MatplotlibTraceRenderer._draw_bar(
                         trace,
                         target,
-                        idx,
-                        bar_traces,
+                        bar_idx,
+                        bar_specs,
                         barmode,
                         categorical_labels,
                         override_color=override_color,
                     )
                     count += 1
-                elif trace.type == "scatter":
-                    mode = str(trace.mode or "lines")
-                    if "markers" in mode and "lines" not in mode:
-                        MatplotlibTraceRenderer._draw_scatter(
-                            trace,
-                            target,
-                            override_color=override_color,
-                        )
-                    else:
-                        MatplotlibTraceRenderer._draw_line(
-                            trace,
-                            target,
-                            override_color=override_color,
-                        )
+                elif isinstance(trace, LineTraceSpec):
+                    MatplotlibTraceRenderer._draw_line(
+                        trace,
+                        target,
+                        override_color=override_color,
+                    )
                     count += 1
-                elif trace.type == "histogram":
+                elif isinstance(trace, ScatterTraceSpec):
+                    MatplotlibTraceRenderer._draw_scatter(
+                        trace,
+                        target,
+                        override_color=override_color,
+                    )
+                    count += 1
+                elif isinstance(trace, HistogramTraceSpec):
                     MatplotlibTraceRenderer._draw_histogram(
                         trace,
                         target,
@@ -111,9 +126,12 @@ class MatplotlibTraceRenderer:
                     )
                     count += 1
                 else:
-                    logger.warning("Unsupported trace type: %s", trace.type)
+                    logger.warning(
+                        "Unknown TraceSpec type: %s",
+                        type(trace).__name__,
+                    )
             except Exception:
-                logger.exception("Failed to convert trace %s", trace.name)
+                logger.exception("Failed to render trace %s", trace.name)
 
         return count
 
@@ -121,142 +139,120 @@ class MatplotlibTraceRenderer:
 
     @staticmethod
     def _draw_bar(
-        trace: go.Bar,
+        spec: BarTraceSpec,
         ax: Axes,
-        trace_idx: int,
-        bar_traces: List[go.Bar],
+        bar_idx: int,
+        bar_specs: List[BarTraceSpec],
         barmode: str,
         categorical_labels: List[str],
         override_color: Optional[str] = None,
     ) -> None:
-        x = _to_list(trace.x)
-        y = _to_list(trace.y)
-        color = override_color or _normalize_color(trace.marker.color if trace.marker else None)
-        n_bars = len(bar_traces)
-
-        is_categorical = bool(x) and isinstance(x[0], str)
+        """Draw a single bar trace from its ``BarTraceSpec``."""
+        color = override_color or spec.color or None
+        is_categorical = bool(spec.x) and isinstance(spec.x[0], str)
 
         if is_categorical:
             if not categorical_labels:
-                categorical_labels.extend(str(v) for v in x)
-
-            n_pos = len(x)
-            positions = list(range(n_pos))
+                categorical_labels.extend(str(v) for v in spec.x)
 
             if barmode == "stack":
-                bottom = _stack_bottom(trace_idx, bar_traces, n_pos)
+                bottom = _stack_bottom(bar_idx, bar_specs)
                 ax.bar(
-                    positions,
-                    y,
+                    spec.x_positions,
+                    spec.y,
                     bottom=bottom,
-                    label=trace.name or "",
+                    label=spec.name,
                     color=color,
-                    width=0.8,
+                    width=spec.bar_width,
                     edgecolor="white",
                     linewidth=0.5,
                 )
             else:
-                if n_bars > 1:
-                    bw = 0.8 / n_bars
-                    offset = -0.4 + (trace_idx + 0.5) * bw
-                    xp = [p + offset for p in positions]
-                else:
-                    bw = 0.8
-                    xp = [float(p) for p in positions]
                 ax.bar(
-                    xp,
-                    y,
-                    label=trace.name or "",
+                    spec.x_positions,
+                    spec.y,
+                    label=spec.name,
                     color=color,
-                    width=bw,
+                    width=spec.bar_width,
                     edgecolor="white",
                     linewidth=0.5,
                 )
 
-            if trace_idx == 0:
-                ax.set_xticks(positions)
+            if bar_idx == 0:
+                base_positions = list(range(len(spec.x)))
+                ax.set_xticks(base_positions)
                 ax.set_xticklabels(categorical_labels)
         elif barmode == "stack":
-            x_num = [float(v) for v in x]
-            bottom = _stack_bottom_numeric(trace_idx, bar_traces, x_num)
-            bw = _infer_bar_width(trace, x_num)
+            bottom = _stack_bottom_numeric(bar_idx, bar_specs, spec.x_positions)
             ax.bar(
-                x_num,
-                y,
+                spec.x_positions,
+                spec.y,
                 bottom=bottom,
-                label=trace.name or "",
+                label=spec.name,
                 color=color,
-                width=bw,
+                width=spec.bar_width,
                 edgecolor="white",
                 linewidth=0.5,
             )
         else:
-            ax.bar(x, y, label=trace.name or "", color=color, width=0.8)
+            ax.bar(
+                spec.x_positions,
+                spec.y,
+                label=spec.name,
+                color=color,
+                width=spec.bar_width,
+            )
 
     # ── line ───────────────────────────────────────────────────────────────
 
     @staticmethod
     def _draw_line(
-        trace: go.Scatter,
+        spec: LineTraceSpec,
         ax: Axes,
         override_color: Optional[str] = None,
     ) -> None:
-        x = _to_list(trace.x)
-        y = _to_list(trace.y)
+        """Draw a single line trace from its ``LineTraceSpec``."""
         props: Dict[str, Any] = {}
-        if override_color:
-            props["color"] = override_color
-        if trace.line:
-            if not override_color:
-                c = _normalize_color(trace.line.color)
-                if c:
-                    props["color"] = c
-            if trace.line.width:
-                props["linewidth"] = trace.line.width
-            if trace.line.dash:
-                props["linestyle"] = _DASH_MAP.get(trace.line.dash, "-")
-        ax.plot(x, y, label=trace.name or "", **props)
+        color = override_color or spec.color
+        if color:
+            props["color"] = color
+        if spec.line_width:
+            props["linewidth"] = spec.line_width
+        if spec.line_dash:
+            props["linestyle"] = _DASH_MAP.get(spec.line_dash, "-")
+        ax.plot(spec.x, spec.y, label=spec.name, **props)
 
     # ── scatter ────────────────────────────────────────────────────────────
 
     @staticmethod
     def _draw_scatter(
-        trace: go.Scatter,
+        spec: ScatterTraceSpec,
         ax: Axes,
         override_color: Optional[str] = None,
     ) -> None:
-        x = _to_list(trace.x)
-        y = _to_list(trace.y)
+        """Draw a single scatter trace from its ``ScatterTraceSpec``."""
         props: Dict[str, Any] = {}
-        if override_color:
-            props["color"] = override_color
-        if trace.marker:
-            if not override_color:
-                c = _normalize_color(trace.marker.color)
-                if c:
-                    props["color"] = c
-            if trace.marker.size:
-                props["s"] = trace.marker.size
-        ax.scatter(x, y, label=trace.name or "", **props)
+        color = override_color or spec.color
+        if color:
+            props["color"] = color
+        if spec.marker_size:
+            props["s"] = spec.marker_size
+        ax.scatter(spec.x, spec.y, label=spec.name, **props)
 
     # ── histogram ──────────────────────────────────────────────────────────
 
     @staticmethod
     def _draw_histogram(
-        trace: go.Histogram,
+        spec: HistogramTraceSpec,
         ax: Axes,
         override_color: Optional[str] = None,
     ) -> None:
-        x = _to_list(trace.x)
+        """Draw a single histogram trace from its ``HistogramTraceSpec``."""
         props: Dict[str, Any] = {}
-        if override_color:
-            props["color"] = override_color
-        elif trace.marker:
-            c = _normalize_color(trace.marker.color)
-            if c:
-                props["color"] = c
-        nbins = trace.nbinsx if trace.nbinsx else 20
-        ax.hist(x, bins=nbins, label=trace.name or "", **props)
+        color = override_color or spec.color
+        if color:
+            props["color"] = color
+        ax.hist(spec.x, bins=spec.nbins, label=spec.name, **props)
 
 
 # ── module-level helpers ──────────────────────────────────────────────────────
@@ -271,69 +267,31 @@ _DASH_MAP: Dict[str, str] = {
 }
 
 
-def _to_list(val: Any) -> List[Any]:
-    """Coerce trace data to a plain list."""
-    if val is None:
-        return []
-    if hasattr(val, "tolist"):
-        return val.tolist()  # type: ignore[no-any-return]
-    return list(val) if not isinstance(val, list) else val
-
-
-def _normalize_color(color: Any) -> Optional[str]:
-    """Convert Plotly ``rgb()/rgba()/hex`` to a matplotlib hex string."""
-    if not color or not isinstance(color, str):
-        return None
-    color = color.strip()
-    m = re.match(
-        r"rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*[\d.]+)?\s*\)",
-        color,
-    )
-    if m:
-        return "#{:02x}{:02x}{:02x}".format(int(m.group(1)), int(m.group(2)), int(m.group(3)))
-    return str(color)
-
-
 def _stack_bottom(
-    trace_idx: int,
-    bar_traces: List[go.Bar],
-    n_positions: int,
+    bar_idx: int,
+    bar_specs: List[BarTraceSpec],
 ) -> List[float]:
-    """Compute cumulative bottom for categorical stacked bars."""
+    """Compute cumulative bottom for stacked bars."""
+    n_positions = len(bar_specs[bar_idx].y) if bar_specs else 0
     bottom = [0.0] * n_positions
-    for prev in bar_traces[:trace_idx]:
-        prev_y = _to_list(prev.y)
-        for i, v in enumerate(prev_y):
+    for prev in bar_specs[:bar_idx]:
+        for i, v in enumerate(prev.y):
             if i < n_positions:
                 bottom[i] += float(v) if v is not None else 0.0
     return bottom
 
 
 def _stack_bottom_numeric(
-    trace_idx: int,
-    bar_traces: List[go.Bar],
+    bar_idx: int,
+    bar_specs: List[BarTraceSpec],
     x_positions: List[float],
 ) -> List[float]:
     """Compute cumulative bottom for numeric-axis stacked bars."""
     bottom = [0.0] * len(x_positions)
-    for prev in bar_traces[:trace_idx]:
-        px = [float(v) for v in _to_list(prev.x)]
-        py = _to_list(prev.y)
+    for prev in bar_specs[:bar_idx]:
         for i, xi in enumerate(x_positions):
-            for j, pxi in enumerate(px):
-                if abs(xi - pxi) < 1e-6 and j < len(py):
-                    bottom[i] += float(py[j]) if py[j] is not None else 0.0
+            for j, pxi in enumerate(prev.x_positions):
+                if abs(xi - pxi) < 1e-6 and j < len(prev.y):
+                    bottom[i] += float(prev.y[j]) if prev.y[j] is not None else 0.0
                     break
     return bottom
-
-
-def _infer_bar_width(trace: go.Bar, x_num: List[float]) -> float:
-    """Determine bar width from trace metadata or x-spacing."""
-    if hasattr(trace, "width") and trace.width is not None:
-        return float(trace.width)
-    if len(x_num) > 1:
-        spacings = [x_num[i + 1] - x_num[i] for i in range(len(x_num) - 1)]
-        pos = [s for s in spacings if s > 0.1]
-        if pos:
-            return min(pos) * 0.8
-    return 0.8

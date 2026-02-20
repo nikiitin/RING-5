@@ -27,6 +27,9 @@ from src.core.visualization.connectors.matplotlib_connector import (
 from src.core.visualization.connectors.matplotlib_trace_renderer import (
     MatplotlibTraceRenderer,
 )
+from src.core.visualization.connectors.plotly_trace_extractor import (
+    PlotlyTraceExtractor,
+)
 from src.core.visualization.figure_spec import FigureSpec
 from src.core.visualization.palettes import (
     get_palette_names,
@@ -91,12 +94,12 @@ class TestTraceRendererPaletteOverride:
         plotly_fig.add_bar(x=["A", "B"], y=[1, 2], name="S1")
         plotly_fig.add_bar(x=["A", "B"], y=[3, 4], name="S2")
 
+        traces = PlotlyTraceExtractor.extract(plotly_fig)
         palette = ["#ff0000", "#00ff00"]
-        MatplotlibTraceRenderer.render(plotly_fig, self.ax, palette_colors=palette)
+        MatplotlibTraceRenderer.render(traces, self.ax, palette_colors=palette)
 
         containers = self.ax.containers
         assert len(containers) == 2
-        # First trace should use palette[0]
         c0 = containers[0][0].get_facecolor()
         assert _approx_hex(c0) == "#ff0000"
         c1 = containers[1][0].get_facecolor()
@@ -106,8 +109,9 @@ class TestTraceRendererPaletteOverride:
         plotly_fig = go.Figure()
         plotly_fig.add_scatter(x=[1, 2], y=[3, 4], mode="lines", name="L1")
 
+        traces = PlotlyTraceExtractor.extract(plotly_fig)
         palette = ["#0000ff"]
-        MatplotlibTraceRenderer.render(plotly_fig, self.ax, palette_colors=palette)
+        MatplotlibTraceRenderer.render(traces, self.ax, palette_colors=palette)
 
         lines = self.ax.get_lines()
         assert len(lines) == 1
@@ -117,14 +121,15 @@ class TestTraceRendererPaletteOverride:
         plotly_fig = go.Figure()
         plotly_fig.add_scatter(x=[1, 2], y=[3, 4], mode="markers", name="S1")
 
+        traces = PlotlyTraceExtractor.extract(plotly_fig)
         palette = ["#abcdef"]
-        MatplotlibTraceRenderer.render(plotly_fig, self.ax, palette_colors=palette)
+        MatplotlibTraceRenderer.render(traces, self.ax, palette_colors=palette)
 
         collections = self.ax.collections
         assert len(collections) == 1
 
-    def test_no_palette_uses_plotly_colors(self) -> None:
-        """Without palette override, Plotly trace colors are used."""
+    def test_no_palette_uses_extracted_colors(self) -> None:
+        """Without palette override, extracted TraceSpec colors are used."""
         plotly_fig = go.Figure()
         plotly_fig.add_bar(
             x=["A"],
@@ -133,7 +138,8 @@ class TestTraceRendererPaletteOverride:
             marker_color="rgb(255,0,0)",
         )
 
-        MatplotlibTraceRenderer.render(plotly_fig, self.ax)
+        traces = PlotlyTraceExtractor.extract(plotly_fig)
+        MatplotlibTraceRenderer.render(traces, self.ax)
 
         c = self.ax.containers[0][0].get_facecolor()
         assert _approx_hex(c) == "#ff0000"
@@ -196,7 +202,7 @@ class TestAnnotationRendering:
 
 
 class TestEnrichAndApply:
-    """Full pipeline: config → FigureSpec → enrich → resolve → apply."""
+    """Full pipeline: config -> FigureSpec -> enrich -> resolve -> apply."""
 
     @pytest.fixture(autouse=True)
     def _setup(self) -> None:
@@ -265,6 +271,5 @@ def _approx_hex(color: Any) -> str:
     """Convert matplotlib RGBA tuple or hex string to #rrggbb."""
     if isinstance(color, str):
         return color.lower()
-    # RGBA tuple
     r, g, b = int(color[0] * 255), int(color[1] * 255), int(color[2] * 255)
     return f"#{r:02x}{g:02x}{b:02x}"
