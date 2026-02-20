@@ -114,8 +114,10 @@ class PortfolioService:
             plot_dict: Dict[str, Any] = plot.to_dict()
             # Persist FigureConfig alongside flat config for V2 schema
             plot_config: Dict[str, Any] = plot_dict.get("config", {})
+            # Persist FigureConfig via the rendering layer (optional).
+            # The import is deferred to avoid a hard core→web dependency.
             try:
-                from src.web.rendering.config_builder import (
+                from src.web.rendering.config_builder import (  # noqa: F811
                     ConfigSpecBuilder,
                 )
 
