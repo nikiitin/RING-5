@@ -19,6 +19,8 @@ import pandas as pd
 
 from src.core.models import PlotProtocol, PortfolioData
 from src.core.models.history_models import OperationRecord
+from src.core.models.plot_protocol import PlotDeserializer
+from src.core.models.visualization.figure_config import FigureConfig
 from src.core.state.repositories.session_repository import SessionRepository
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -30,13 +32,15 @@ class RepositoryStateManager:
     Holds the SessionRepository acting as the Aggregate Root.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, plot_deserializer: Optional[PlotDeserializer] = None) -> None:
         """Initialize the repository layer.
 
-        SessionRepository.__init__ already creates all domain repositories
-        with sensible defaults, so no additional initialization is needed.
+        Args:
+            plot_deserializer: Optional callable that converts a dict into
+                a ``PlotProtocol`` instance.  Forwarded to SessionRepository
+                so portfolio restoration never imports web-layer classes.
         """
-        self._session_repo = SessionRepository()
+        self._session_repo = SessionRepository(plot_deserializer=plot_deserializer)
 
     def initialize(self) -> None:
         """Re-initialize the session to clean defaults.
@@ -193,6 +197,17 @@ class RepositoryStateManager:
 
     def set_current_plot_id(self, plot_id: Optional[int]) -> None:
         self._session_repo.plot_repo.set_current_plot_id(plot_id)
+
+    # ==================== Visualization ====================
+
+    def get_visualization_config(self, plot_id: int) -> Optional[FigureConfig]:
+        return self._session_repo.visualization_repo.get_config(plot_id)
+
+    def set_visualization_config(self, plot_id: int, config: FigureConfig) -> None:
+        self._session_repo.visualization_repo.set_config(plot_id, config)
+
+    def remove_visualization_config(self, plot_id: int) -> None:
+        self._session_repo.visualization_repo.remove_config(plot_id)
 
     # ==================== Previews ====================
 

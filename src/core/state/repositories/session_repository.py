@@ -7,20 +7,19 @@ from __future__ import annotations
 
 import io
 import logging
-from typing import TYPE_CHECKING, List
+from typing import List, Optional
 
 import pandas as pd
 
-if TYPE_CHECKING:
-    from src.web.pages.ui.plotting.base_plot import BasePlot  # noqa: F401
-
 from src.core.models import PortfolioData
+from src.core.models.plot_protocol import PlotDeserializer, PlotProtocol
 from src.core.state.repositories.config_repository import ConfigRepository
 from src.core.state.repositories.data_repository import DataRepository
 from src.core.state.repositories.history_repository import HistoryRepository
 from src.core.state.repositories.parser_state_repository import ParserStateRepository
 from src.core.state.repositories.plot_repository import PlotRepository
 from src.core.state.repositories.preview_repository import PreviewRepository
+from src.core.state.repositories.visualization_repository import VisualizationRepository
 
 logger = logging.getLogger(__name__)
 
@@ -38,14 +37,22 @@ class SessionRepository:
     Adheres to SRP: Only manages session lifecycle, nothing else.
     """
 
-    def __init__(self) -> None:
-        """Initialize domain repositories."""
+    def __init__(self, plot_deserializer: Optional[PlotDeserializer] = None) -> None:
+        """Initialize domain repositories.
+
+        Args:
+            plot_deserializer: Optional callable that converts a dict into
+                a ``PlotProtocol`` instance.  Injected by the application
+                bootstrap so this layer never imports web-layer classes.
+        """
         self.data_repo = DataRepository()
         self.plot_repo = PlotRepository()
         self.parser_repo = ParserStateRepository()
         self.config_repo = ConfigRepository()
         self.preview_repo = PreviewRepository()
         self.history_repo = HistoryRepository()
+        self.visualization_repo = VisualizationRepository()
+        self._plot_deserializer = plot_deserializer
 
     def initialize_session(self) -> None:
         """
@@ -115,18 +122,21 @@ class SessionRepository:
         else:
             logger.info("SESSION_REPO: No data in portfolio (config-only save)")
 
-        # Restore plots
-        # Deferred import: BasePlot is only in TYPE_CHECKING scope
-        from src.web.pages.ui.plotting.base_plot import BasePlot  # noqa: F811
-
-        loaded_plots: List[BasePlot] = []
-        for plot_data in portfolio_data.get("plots", []):
-            try:
-                plot = BasePlot.from_dict(plot_data)
-                if plot:
-                    loaded_plots.append(plot)
-            except Exception as e:
-                logger.error(f"SESSION_REPO: Failed to restore plot: {e}")
+        # Restore plots via injected deserializer (no web-layer import)
+        loaded_plots: List[PlotProtocol] = []
+        if self._plot_deserializer is not None:
+            for plot_data in portfolio_data.get("plots", []):
+                try:
+                    plot = self._plot_deserializer(plot_data)
+                    if plot is not None:
+                        loaded_plots.append(plot)
+                except Exception as e:
+                    logger.error(f"SESSION_REPO: Failed to restore plot: {e}")
+        else:
+            logger.warning(
+                "SESSION_REPO: No plot_deserializer injected — " "skipping %d plots",
+                len(portfolio_data.get("plots", [])),
+            )
 
         self.plot_repo.set_plots(loaded_plots)  # type: ignore[arg-type]
         self.plot_repo.set_plot_counter(portfolio_data.get("plot_counter", len(loaded_plots)))
@@ -155,6 +165,7 @@ class SessionRepository:
         self.config_repo.set_csv_path("")
         self.config_repo.set_temp_dir("")
         self.history_repo.clear_all()
+        self.visualization_repo.clear()
 
         # Clear widget state
         self.clear_widget_state()

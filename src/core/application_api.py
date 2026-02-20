@@ -24,13 +24,15 @@ Architecture:
 """
 
 import logging
-from typing import Any, Dict, List, cast
+from typing import Any, Dict, List, Optional, cast
 
 import numpy as np
 
 from src.core.common.utils import normalize_user_path, sanitize_glob_pattern
 from src.core.models import ParseBatchResult, StatConfig
 from src.core.models.history_models import OperationRecord
+from src.core.models.plot_protocol import PlotDeserializer
+from src.core.models.visualization import FigureConfig
 from src.core.parsing import ParseService, ScannerService
 from src.core.services.data_services.data_services_api import DataServicesAPI
 from src.core.services.managers.managers_api import ManagersAPI
@@ -53,13 +55,20 @@ class ApplicationAPI:
     5. Exposes ServicesAPI sub-APIs for direct service access.
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        plot_deserializer: Optional[PlotDeserializer] = None,
+    ) -> None:
         """
         Initialize the Application API.
 
-        Creates the state manager and wires up the services facade.
+        Args:
+            plot_deserializer: Optional callable that converts a dict into
+                a ``PlotProtocol`` instance.  Injected into the repository
+                layer so that portfolio restoration never imports web-layer
+                classes directly.
         """
-        self.state_manager = RepositoryStateManager()
+        self.state_manager = RepositoryStateManager(plot_deserializer=plot_deserializer)
 
         # Initialize services via unified facade
         self._services = DefaultServicesAPI(self.state_manager)
@@ -302,6 +311,22 @@ class ApplicationAPI:
             "categorical_columns": categorical_cols,
             "columns": df.columns.tolist(),
         }
+
+    # =========================================================================
+    # Visualization Config (Delegated to StateManager)
+    # =========================================================================
+
+    def get_visualization_config(self, plot_id: int) -> "FigureConfig | None":
+        """Retrieve the visualization config for a plot."""
+        return self.state_manager.get_visualization_config(plot_id)
+
+    def set_visualization_config(self, plot_id: int, config: FigureConfig) -> None:
+        """Store the visualization config for a plot."""
+        self.state_manager.set_visualization_config(plot_id, config)
+
+    def remove_visualization_config(self, plot_id: int) -> None:
+        """Remove the visualization config for a plot."""
+        self.state_manager.remove_visualization_config(plot_id)
 
     # =========================================================================
     # Previews (Delegated to StateManager)

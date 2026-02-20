@@ -11,6 +11,7 @@ from .parser_state_repository import ParserStateRepository
 from .plot_repository import PlotRepository
 from .preview_repository import PreviewRepository
 from .session_repository import SessionRepository
+from .visualization_repository import VisualizationRepository
 
 __all__ = [
     "DataRepository",
@@ -20,4 +21,5 @@ __all__ = [
     "SessionRepository",
     "PreviewRepository",
     "HistoryRepository",
+    "VisualizationRepository",
 ]

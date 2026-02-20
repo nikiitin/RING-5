@@ -46,10 +46,11 @@ def run_app():
 
     # Initialize Core Components
     from src.core.application_api import ApplicationAPI
+    from src.web.pages.ui.plotting.base_plot import BasePlot
 
     @st.cache_resource(show_spinner="Initializing RING-5...")
     def get_api() -> ApplicationAPI:
-        return ApplicationAPI()
+        return ApplicationAPI(plot_deserializer=BasePlot.from_dict)
 
     api = get_api()
     st.session_state.api = api

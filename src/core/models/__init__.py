@@ -11,12 +11,13 @@ Public API:
     - StatConfig:      Configuration for a specific statistic extraction
     - PortfolioData:   TypedDict for session serialization/restoration
     - PlotProtocol:    Protocol defining the core plot interface
+    - PlotDeserializer: Callable type alias for plot dict → PlotProtocol
 """
 
 from src.core.models.config.config_manager import ConfigTemplateGenerator, ConfigValidator
 from src.core.models.history_models import OperationRecord
 from src.core.models.parsing_models import ParseBatchResult, ScannedVariable, StatConfig
-from src.core.models.plot_protocol import PlotProtocol
+from src.core.models.plot_protocol import PlotDeserializer, PlotProtocol
 from src.core.models.portfolio_models import PortfolioData
 
 __all__ = [
@@ -25,6 +26,7 @@ __all__ = [
     "StatConfig",
     "PortfolioData",
     "PlotProtocol",
+    "PlotDeserializer",
     "ConfigValidator",
     "ConfigTemplateGenerator",
     "OperationRecord",

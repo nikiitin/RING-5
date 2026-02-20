@@ -13,7 +13,7 @@ Each repository is tested in isolation with no mocking required
 (except SessionRepository.restore_from_portfolio which needs BasePlot).
 """
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
@@ -507,6 +507,14 @@ class TestSessionRepository:
     def repo(self) -> SessionRepository:
         return SessionRepository()
 
+    @pytest.fixture
+    def repo_with_deserializer(self) -> SessionRepository:
+        """SessionRepository with a mock PlotDeserializer for portfolio tests."""
+        mock_plot = MagicMock()
+        mock_plot.plot_id = 1
+        deserializer = MagicMock(return_value=mock_plot)
+        return SessionRepository(plot_deserializer=deserializer)
+
     def test_initialization_creates_sub_repos(self, repo: SessionRepository) -> None:
         assert isinstance(repo.data_repo, DataRepository)
         assert isinstance(repo.plot_repo, PlotRepository)
@@ -562,11 +570,7 @@ class TestSessionRepository:
             "plot_counter": 3,
         }
 
-        with patch(
-            "src.web.pages.ui.plotting.base_plot.BasePlot.from_dict",
-            return_value=None,
-        ):
-            repo.restore_from_portfolio(portfolio)  # type: ignore[arg-type]
+        repo.restore_from_portfolio(portfolio)  # type: ignore[arg-type]
 
         assert repo.parser_repo.get_stats_path() == "/restored/path"
         assert repo.parser_repo.get_stats_pattern() == "stats_custom.txt"
@@ -584,11 +588,7 @@ class TestSessionRepository:
             "plots": [],
         }
 
-        with patch(
-            "src.web.pages.ui.plotting.base_plot.BasePlot.from_dict",
-            return_value=None,
-        ):
-            repo.restore_from_portfolio(portfolio)  # type: ignore[arg-type]
+        repo.restore_from_portfolio(portfolio)  # type: ignore[arg-type]
 
         restored = repo.data_repo.get_data()
         assert restored is not None
@@ -609,30 +609,21 @@ class TestSessionRepository:
             "plots": [],
         }
 
-        with patch(
-            "src.web.pages.ui.plotting.base_plot.BasePlot.from_dict",
-            return_value=None,
-        ):
-            repo.restore_from_portfolio(portfolio)  # type: ignore[arg-type]
+        repo.restore_from_portfolio(portfolio)  # type: ignore[arg-type]
 
         assert len(repo.history_repo.get_manager_history()) == 1
         assert len(repo.history_repo.get_portfolio_history()) == 2
 
-    def test_restore_from_portfolio_with_plots(self, repo: SessionRepository) -> None:
+    def test_restore_from_portfolio_with_plots(
+        self, repo_with_deserializer: SessionRepository
+    ) -> None:
         """Test restoring plots from portfolio data."""
-        mock_plot = MagicMock()
-        mock_plot.plot_id = 1
-
         portfolio: dict = {  # type: ignore[type-arg]
             "plots": [{"type": "bar", "id": 1}],
             "plot_counter": 5,
         }
 
-        with patch(
-            "src.web.pages.ui.plotting.base_plot.BasePlot.from_dict",
-            return_value=mock_plot,
-        ):
-            repo.restore_from_portfolio(portfolio)  # type: ignore[arg-type]
+        repo_with_deserializer.restore_from_portfolio(portfolio)  # type: ignore[arg-type]
 
-        assert len(repo.plot_repo.get_plots()) == 1
-        assert repo.plot_repo.get_plot_counter() == 5
+        assert len(repo_with_deserializer.plot_repo.get_plots()) == 1
+        assert repo_with_deserializer.plot_repo.get_plot_counter() == 5

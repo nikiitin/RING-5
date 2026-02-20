@@ -6,9 +6,13 @@ layer from web layer implementation details. This allows core services to work
 with plots without depending on concrete web implementations.
 """
 
-from typing import Any, Dict, List, Optional, Protocol, runtime_checkable
+from typing import Any, Callable, Dict, List, Optional, Protocol, runtime_checkable
 
 import pandas as pd
+
+# Type alias: a callable that deserializes a dict into a PlotProtocol.
+# Injected at startup so the core layer never imports web-layer classes.
+PlotDeserializer = Callable[[Dict[str, Any]], Optional["PlotProtocol"]]
 
 
 @runtime_checkable
