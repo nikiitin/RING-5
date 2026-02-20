@@ -12,11 +12,12 @@ from typing import Any, Dict, List, Optional, cast
 import pandas as pd
 import streamlit as st
 
+from src.core.visualization.palettes import resolve_palette
 from src.core.visualization.widgets import (
     LEGEND_SIZING,
     WidgetRenderer,
 )
-from src.web.pages.ui.plotting.styles.colors import get_palette_colors, to_hex
+from src.web.pages.ui.plotting.styles.colors import to_hex
 
 
 class BaseStyleUI:
@@ -541,7 +542,7 @@ class BaseStyleUI:
         # Use current selection if available, else saved config
         palette_name = current_palette or saved_config.get("color_palette", "plotly")
 
-        palette_colors = get_palette_colors(palette_name)
+        palette_colors = resolve_palette(palette_name)
 
         if unique_vals:
             for idx, val in enumerate(unique_vals):

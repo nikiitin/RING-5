@@ -15,6 +15,12 @@ from src.core.services.plot_interaction_service import (
     try_float_edit,
     update_config_from_relayout,
 )
+from src.core.visualization.palettes import (
+    PALETTE_REGISTRY,
+    get_palette_names,
+    is_colorblind_safe,
+    resolve_palette,
+)
 from src.web.figures.engine import FigureEngine
 from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.styles import StyleManager
@@ -448,84 +454,38 @@ class BasePlot(ABC):
             "text_constraint": dl.get("text_constraint"),
         }
 
-    # ── Built-in palettes (Step 35: colorblind-safe defaults) ──────────
-    BUILTIN_PALETTES: Dict[str, List[str]] = {
-        "wong": [
-            "#000000",
-            "#E69F00",
-            "#56B4E9",
-            "#009E73",
-            "#F0E442",
-            "#0072B2",
-            "#D55E00",
-            "#CC79A7",
-        ],
-        "viridis_8": [
-            "#440154",
-            "#482878",
-            "#3E4A89",
-            "#31688E",
-            "#26838E",
-            "#1F9E89",
-            "#6DCD59",
-            "#FDE725",
-        ],
-        "seaborn_cb": [
-            "#0173B2",
-            "#DE8F05",
-            "#029E73",
-            "#D55E00",
-            "#CC78BC",
-            "#CA9161",
-            "#FBAFE4",
-            "#949494",
-        ],
-        "tol_bright": [
-            "#4477AA",
-            "#EE6677",
-            "#228833",
-            "#CCBB44",
-            "#66CCEE",
-            "#AA3377",
-            "#BBBBBB",
-        ],
-        "okabe_ito": [
-            "#E69F00",
-            "#56B4E9",
-            "#009E73",
-            "#F0E442",
-            "#0072B2",
-            "#D55E00",
-            "#CC79A7",
-            "#000000",
-        ],
-    }
-
     def _section_colors(
         self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame]
     ) -> Dict[str, Any]:
-        # ── Palette selector (Step 35) ──
+        """Unified palette selector using core PALETTE_REGISTRY."""
         st.markdown("#### :material/palette: Color Palette")
-        palette_names = list(self.BUILTIN_PALETTES.keys())
+        palette_names = get_palette_names()
         current_palette = saved_config.get("color_palette", "wong")
         # Accept either a string name or the list itself
         if isinstance(current_palette, list):
             # Reverse-lookup: find matching palette name
             current_palette = "wong"
-            for name, colors in self.BUILTIN_PALETTES.items():
+            for name, colors in PALETTE_REGISTRY.items():
                 if colors == saved_config.get("color_palette"):
                     current_palette = name
                     break
         idx = palette_names.index(current_palette) if current_palette in palette_names else 0
+
+        def _fmt_palette(name: str) -> str:
+            label = name.replace("_", " ").title()
+            if is_colorblind_safe(name):
+                label = f"\u2713 {label}"
+            return label
+
         selected_palette: str = st.selectbox(
             "Palette",
             options=palette_names,
             index=idx,
-            format_func=lambda x: x.replace("_", " ").title(),
+            format_func=_fmt_palette,
             key=f"palette_select_{self.plot_id}",
-            help="Choose a colorblind-safe palette. Wong (default) is recommended.",
+            help="Palettes marked \u2713 are colorblind-safe. Wong (default) is recommended.",
         )
-        palette_colors = self.BUILTIN_PALETTES.get(selected_palette, self.BUILTIN_PALETTES["wong"])
+        palette_colors = resolve_palette(selected_palette)
         # Preview swatches
         swatch_html = " ".join(
             f'<span style="display:inline-block;width:20px;height:20px;'

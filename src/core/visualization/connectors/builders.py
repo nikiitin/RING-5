@@ -24,6 +24,7 @@ from src.core.visualization.figure_spec import (
     SeparatorSpec,
 )
 from src.core.visualization.legend_spec import LegendSpacingSpec, LegendSpec
+from src.core.visualization.palettes import resolve_palette
 from src.core.visualization.series_style_spec import SeriesStyleSpec
 from src.core.visualization.typography_spec import TypographySpec
 
@@ -488,7 +489,7 @@ class ConfigSpecBuilder:
                 )
 
         # ── Color palette (resolve name → hex list) ─────────────
-        color_palette = _resolve_palette(config.get("color_palette"))
+        color_palette = resolve_palette(config.get("color_palette"))
 
         # ── Scalar feature flags ─────────────────────────────────
         show_error_bars = bool(config.get("show_error_bars", False))
@@ -696,48 +697,3 @@ def _get_range(axis: Any) -> Optional[List[float]]:
         return [float(r[0]), float(r[1])]
     except (TypeError, IndexError, ValueError):
         return None
-
-
-# Wong colorblind-safe palette (default when no palette name is given)
-_WONG_PALETTE: List[str] = [
-    "#000000",
-    "#E69F00",
-    "#56B4E9",
-    "#009E73",
-    "#F0E442",
-    "#0072B2",
-    "#D55E00",
-    "#CC79A7",
-]
-
-
-def _resolve_palette(palette_name: Any) -> List[str]:
-    """Resolve a palette name (e.g. ``"Plotly"``, ``"D3"``) to hex colors.
-
-    Falls back to the Wong colorblind-safe palette if the name is empty,
-    ``None``, or unrecognized.  Uses Plotly's qualitative palettes.
-
-    Args:
-        palette_name: A palette name string, or ``None``.
-
-    Returns:
-        A list of hex color strings.
-    """
-    if not palette_name or not isinstance(palette_name, str):
-        return list(_WONG_PALETTE)
-
-    try:
-        import plotly.colors as pc
-
-        # Exact attribute match
-        if hasattr(pc.qualitative, palette_name):
-            return list(getattr(pc.qualitative, palette_name))
-
-        # Case-insensitive match
-        for attr in dir(pc.qualitative):
-            if attr.lower() == palette_name.lower():
-                return list(getattr(pc.qualitative, attr))
-    except ImportError:
-        pass
-
-    return list(_WONG_PALETTE)
