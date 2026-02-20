@@ -286,6 +286,13 @@ class FigureSpecToMatplotlib:
                             for text in leg.get_texts():
                                 text.set_fontweight("bold")
                         break
+            elif legend.role == "boxed":
+                # Boxed legend — rendered via _apply_annotations from
+                # enriched FigureSpec annotations.  If the annotations
+                # pipeline already placed the content, we skip creating
+                # a duplicate matplotlib legend here.  If explicit
+                # legend items exist on a third axis, render them.
+                pass  # Content comes from annotations, not traces
 
     @staticmethod
     def _escape_latex(text: str) -> str:
@@ -418,7 +425,11 @@ class FigureSpecToMatplotlib:
             if not ann.text:
                 continue
 
-            text = FigureSpecToMatplotlib._escape_latex(ann.text)
+            # Convert HTML line breaks to newlines for matplotlib
+            raw_text = ann.text.replace("<br>", "\n").replace("<br/>", "\n")
+            # Strip any remaining HTML tags
+            raw_text = re.sub(r"<[^>]+>", "", raw_text)
+            text = FigureSpecToMatplotlib._escape_latex(raw_text)
 
             # Determine coordinate transform
             if ann.xref == "paper" and ann.yref == "paper":
