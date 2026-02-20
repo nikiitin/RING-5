@@ -15,7 +15,6 @@ Public API:
     - ``FigureSpecToPlotly``         — FigureConfig → Plotly figure styling
     - ``FigureSpecToMatplotlib``     — FigureConfig → matplotlib figure styling
     - ``MatplotlibTraceRenderer``    — List[TraceConfig] → matplotlib artists
-    - ``FigureEngine``               — Orchestrator: creation + styling
     - ``EngineManager``              — Engine mode selection
     - ``PresetApplicator``           — Preset application to FigureConfig
 """
@@ -26,7 +25,6 @@ from src.web.rendering.config_builder import (
     PresetSpecBuilder,
 )
 from src.web.rendering.engine_manager import EngineManager
-from src.web.rendering.figure_engine import FigureEngine
 from src.web.rendering.matplotlib_connector import (
     FigureSpecToMatplotlib,
 )
@@ -37,7 +35,6 @@ from src.web.rendering.preset_applicator import PresetApplicator
 __all__ = [
     "ConfigSpecBuilder",
     "EngineManager",
-    "FigureEngine",
     "FigureSpecToPlotly",
     "FigureSpecToMatplotlib",
     "PlotlyFigureSpecBuilder",

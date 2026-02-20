@@ -16,9 +16,6 @@ from src.core.services.data_services.config_service import ConfigService
 from src.core.services.data_services.csv_pool_service import CsvPoolService
 from src.core.services.data_services.path_service import PathService
 from src.core.state.repository_state_manager import RepositoryStateManager
-from src.web.pages.ui.plotting.plot_factory import PlotFactory
-from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
-from src.web.rendering.figure_engine import FigureEngine
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -182,17 +179,3 @@ def scatter_config() -> Dict[str, Any]:
         "xlabel": "Cycles",
         "ylabel": "IPC",
     }
-
-
-@pytest.fixture
-def figure_engine() -> FigureEngine:
-    """FigureEngine pre-configured with all plot types registered.
-
-    Each plot type gets its own BasePlot creator and FigureStyler-compliant styler.
-    """
-    engine = FigureEngine()
-    for plot_type in PlotFactory.get_available_plot_types():
-        creator = PlotFactory.create_plot(plot_type, plot_id=0, name=f"test_{plot_type}")
-        styler = StyleApplicator(plot_type)
-        engine.register(plot_type, creator, styler=styler)
-    return engine

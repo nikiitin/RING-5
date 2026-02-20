@@ -22,8 +22,6 @@ from src.web.models.plot_models import (
 )
 from src.web.models.plot_protocols import (
     ConfigRenderer,
-    FigureCreator,
-    FigureStyler,
     PipelineExecutor,
     PlotHandle,
     PlotLifecycleService,
@@ -40,8 +38,6 @@ __all__ = [
     "ShaperStep",
     # Protocols
     "ConfigRenderer",
-    "FigureCreator",
-    "FigureStyler",
     "PipelineExecutor",
     "PlotHandle",
     "PlotLifecycleService",

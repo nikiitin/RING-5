@@ -286,12 +286,10 @@ class TestCrossPageConsistency:
 # FigureEngine with multiple plot types
 # ---------------------------------------------------------------------------
 class TestFigureEngineMultiType:
-    """FigureEngine produces valid figures for all registered types."""
+    """BasePlot produces valid figures for all registered types."""
 
     def test_all_basic_types_produce_figures(self) -> None:
         """Bar, line, scatter all produce valid go.Figure objects."""
-        from src.web.rendering.figure_engine import FigureEngine
-
         at = create_app_with_data()
         api: Any = get_api(at)
         raw: pd.DataFrame = api.state_manager.get_data()
@@ -314,7 +312,6 @@ class TestFigureEngineMultiType:
 
         for plot_type in ["bar", "line", "scatter"]:
             plot = PlotFactory.create_plot(plot_type, 999, f"test_{plot_type}")
-            engine = FigureEngine.from_plot(plot, plot_type)
 
             config: Dict[str, Any] = {
                 "x": "benchmark_name",
@@ -325,6 +322,7 @@ class TestFigureEngineMultiType:
                 "barmode": "group",
             }
 
-            fig: go.Figure = engine.build(plot_type, selected_cols, config)
+            fig: go.Figure = plot.create_figure(selected_cols, config)
+            fig = plot.apply_common_layout(fig, config)
             assert isinstance(fig, go.Figure), f"Failed for {plot_type}"
             assert len(fig.data) > 0, f"No data traces for {plot_type}"

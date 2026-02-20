@@ -3,7 +3,6 @@
 Covers Scenarios #16-#19:
     - #16: Distribution/Histogram variable type processing
     - #17: Config service delete/reload cycle
-    - #18: FigureEngine edge cases (empty config, missing styler, legend)
     - #19: PatternAggregator regex expansion
 
 Tests exercise boundary conditions, malformed inputs, and unusual
@@ -14,8 +13,6 @@ from pathlib import Path
 from typing import Any, Dict, List
 from unittest.mock import patch
 
-import pandas as pd
-import plotly.graph_objects as go
 import pytest
 
 from src.core.models.parsing_models import ScannedVariable
@@ -29,7 +26,6 @@ from src.core.parsing.gem5.impl.scanning.pattern_aggregator import (
 from src.core.parsing.gem5.types.distribution import Distribution
 from src.core.parsing.gem5.types.histogram import Histogram
 from src.core.services.data_services.config_service import ConfigService
-from src.web.rendering.figure_engine import FigureEngine
 
 # ===========================================================================
 # Test Class 1: Distribution & Histogram processing edge cases
@@ -225,109 +221,7 @@ class TestConfigServiceEdgeCases:
 
 
 # ===========================================================================
-# Test Class 3: FigureEngine edge cases
-# ===========================================================================
-
-
-class TestFigureEngineEdgeCases:
-    """Test FigureEngine boundary conditions."""
-
-    def _make_creator(self) -> Any:
-        """Create a minimal FigureCreator."""
-
-        class _Creator:
-            def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
-                fig = go.Figure()
-                fig.add_trace(go.Bar(x=data.iloc[:, 0], y=data.iloc[:, 1]))
-                return fig
-
-        return _Creator()
-
-    def _make_styler(self) -> Any:
-        """Create a minimal FigureStyler."""
-
-        class _Styler:
-            def apply_styles(self, fig: go.Figure, config: Dict[str, Any]) -> go.Figure:
-                fig.update_layout(
-                    width=config.get("width", 800),
-                    height=config.get("height", 600),
-                )
-                return fig
-
-        return _Styler()
-
-    def test_build_without_styler(self) -> None:
-        """Engine builds figure when no styler registered."""
-        engine = FigureEngine()
-        engine.register("custom", self._make_creator())
-
-        data: pd.DataFrame = pd.DataFrame({"x": [1, 2], "y": [3, 4]})
-        fig: go.Figure = engine.build("custom", data, {})
-
-        assert isinstance(fig, go.Figure)
-        assert len(fig.data) == 1
-
-    def test_build_with_empty_config(self) -> None:
-        """Engine builds figure with completely empty config dict."""
-        engine = FigureEngine()
-        engine.register("custom", self._make_creator(), self._make_styler())
-
-        data: pd.DataFrame = pd.DataFrame({"x": [1, 2], "y": [3, 4]})
-        fig: go.Figure = engine.build("custom", data, {})
-
-        assert isinstance(fig, go.Figure)
-
-    def test_build_with_legend_labels(self) -> None:
-        """Engine applies legend label remapping when provided in config."""
-        engine = FigureEngine()
-        engine.register("custom", self._make_creator())
-
-        data: pd.DataFrame = pd.DataFrame({"x": [1, 2], "y": [3, 4]})
-        config: Dict[str, Any] = {
-            "legend_labels": {"x": "My X Label"},
-        }
-        fig: go.Figure = engine.build("custom", data, config)
-
-        assert isinstance(fig, go.Figure)
-
-    def test_build_unregistered_type_lists_available(self) -> None:
-        """KeyError message lists available types when type not found."""
-        engine = FigureEngine()
-        engine.register("bar", self._make_creator())
-        engine.register("line", self._make_creator())
-
-        data: pd.DataFrame = pd.DataFrame({"x": [1]})
-
-        with pytest.raises(KeyError) as exc_info:
-            engine.build("heatmap", data, {})
-
-        error_msg: str = str(exc_info.value)
-        assert "bar" in error_msg or "line" in error_msg
-
-    def test_from_plot_factory_method(self) -> None:
-        """from_plot creates engine with single plot type registered."""
-        creator = self._make_creator()
-        engine: FigureEngine = FigureEngine.from_plot(creator, "scatter")
-
-        assert engine.has_creator("scatter")
-        assert "scatter" in engine.registered_types
-
-    def test_register_styler_independently(self) -> None:
-        """Styler can be registered after creator."""
-        engine = FigureEngine()
-        engine.register("custom", self._make_creator())
-        engine.register_styler("custom", self._make_styler())
-
-        data: pd.DataFrame = pd.DataFrame({"x": [1, 2], "y": [3, 4]})
-        config: Dict[str, Any] = {"width": 1200, "height": 900}
-        fig: go.Figure = engine.build("custom", data, config)
-
-        assert fig.layout.width == 1200
-        assert fig.layout.height == 900
-
-
-# ===========================================================================
-# Test Class 4: PatternAggregator regex expansion
+# Test Class 3: PatternAggregator regex expansion
 # ===========================================================================
 
 

@@ -1,8 +1,8 @@
 """
-Phase 3 integration tests — FigureEngine ↔ FigureConfig pipeline.
+Phase 3 integration tests — FigureConfig pipeline.
 
 Validates:
-    1. End-to-end: FigureEngine.build() produces styled figures
+    1. End-to-end: creator + styler inline produces styled figures
     2. ConfigSpecBuilder round-trip: config → spec → Plotly layout
     3. last_spec survives the full pipeline
     4. Export path can consume last_spec for matplotlib rendering
@@ -20,7 +20,6 @@ from src.core.models.visualization.figure_config import FigureConfig
 from src.core.models.visualization.resolvers import resolve_config
 from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
 from src.web.rendering.config_builder import ConfigSpecBuilder
-from src.web.rendering.figure_engine import FigureEngine
 from src.web.rendering.plotly_connector import FigureSpecToPlotly
 
 # ─── Fixtures ────────────────────────────────────────────────────────────────
@@ -75,16 +74,16 @@ def bar_config() -> Dict[str, Any]:
     return dict(_BASE_CONFIG)
 
 
-# ─── 1. FigureEngine end-to-end ─────────────────────────────────────────────
+# ─── 1. Creator + Styler inline end-to-end ───────────────────────────────────
 
 
 class TestFigureEngineEndToEnd:
-    """FigureEngine produces styled figures via the real pipeline."""
+    """Inline creator + styler produces styled figures via the real pipeline."""
 
     def test_build_with_real_applicator(
         self, sample_data: pd.DataFrame, bar_config: Dict[str, Any]
     ) -> None:
-        """Build using a real BarPlot-like creator and StyleApplicator."""
+        """Build using a real BarPlot-like creator and StyleApplicator inline."""
 
         class SimpleBarCreator:
             def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
@@ -92,11 +91,11 @@ class TestFigureEngineEndToEnd:
                     data=[go.Bar(x=list(data["benchmark"]), y=list(data["ipc"]), name="series1")]
                 )
 
+        creator = SimpleBarCreator()
         applicator = StyleApplicator("bar")
-        engine = FigureEngine()
-        engine.register("bar", SimpleBarCreator(), styler=applicator)
 
-        fig = engine.build("bar", sample_data, bar_config)
+        fig = creator.create_figure(sample_data, bar_config)
+        fig = applicator.apply_styles(fig, bar_config)
 
         # Figure should have traces
         assert len(fig.data) == 1
@@ -110,37 +109,41 @@ class TestFigureEngineEndToEnd:
     def test_applicator_stores_last_spec_after_build(
         self, sample_data: pd.DataFrame, bar_config: Dict[str, Any]
     ) -> None:
-        """After engine.build(), the applicator's last_spec is populated."""
+        """After apply_styles(), the applicator's last_spec is populated."""
 
         class NullCreator:
             def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
                 return go.Figure(data=[go.Bar(x=["A"], y=[1])])
 
+        creator = NullCreator()
         applicator = StyleApplicator("bar")
-        engine = FigureEngine()
-        engine.register("bar", NullCreator(), styler=applicator)
 
-        engine.build("bar", sample_data, bar_config)
+        fig = creator.create_figure(sample_data, bar_config)
+        fig = applicator.apply_styles(fig, bar_config)
 
         assert applicator.last_spec is not None
         assert applicator.last_spec.title == "IPC by Benchmark"
         assert applicator.last_spec.dimensions.width == 900.0
 
-    def test_legend_labels_applied_by_engine(
+    def test_legend_labels_applied_inline(
         self, sample_data: pd.DataFrame, bar_config: Dict[str, Any]
     ) -> None:
-        """FigureEngine applies legend_labels from config."""
+        """Legend labels applied inline after create_figure + apply_styles."""
 
         class TraceCreator:
             def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
                 return go.Figure(data=[go.Bar(x=["A"], y=[1], name="original")])
 
         bar_config["legend_labels"] = {"original": "Renamed"}
+        creator = TraceCreator()
         applicator = StyleApplicator("bar")
-        engine = FigureEngine()
-        engine.register("bar", TraceCreator(), styler=applicator)
 
-        fig = engine.build("bar", sample_data, bar_config)
+        fig = creator.create_figure(sample_data, bar_config)
+        fig = applicator.apply_styles(fig, bar_config)
+        legend_labels: Dict[str, str] = bar_config.get("legend_labels", {})
+        if legend_labels:
+            fig.for_each_trace(lambda t: t.update(name=legend_labels.get(t.name, t.name)))
+
         assert fig.data[0].name == "Renamed"
 
 
@@ -246,7 +249,7 @@ class TestSpecSerialization:
 
 
 class TestMultiTypeEngineIntegration:
-    """Engine correctly dispatches different plot types."""
+    """Inline creator + styler correctly produces different plot types."""
 
     def test_bar_and_line_produce_different_figures(self, sample_data: pd.DataFrame) -> None:
         class BarCreator:
@@ -257,14 +260,17 @@ class TestMultiTypeEngineIntegration:
             def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
                 return go.Figure(data=[go.Scatter(x=[1, 2], y=[3, 4], mode="lines")])
 
-        engine = FigureEngine()
-        engine.register("bar", BarCreator(), styler=StyleApplicator("bar"))
-        engine.register("line", LineCreator(), styler=StyleApplicator("line"))
-
         config: Dict[str, Any] = dict(_BASE_CONFIG)
 
-        bar_fig = engine.build("bar", sample_data, config)
-        line_fig = engine.build("line", sample_data, config)
+        bar_creator = BarCreator()
+        bar_styler = StyleApplicator("bar")
+        bar_fig = bar_creator.create_figure(sample_data, config)
+        bar_fig = bar_styler.apply_styles(bar_fig, config)
+
+        line_creator = LineCreator()
+        line_styler = StyleApplicator("line")
+        line_fig = line_creator.create_figure(sample_data, config)
+        line_fig = line_styler.apply_styles(line_fig, config)
 
         assert bar_fig.data[0].type == "bar"
         assert line_fig.data[0].type == "scatter"

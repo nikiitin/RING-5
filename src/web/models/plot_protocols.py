@@ -14,8 +14,6 @@ Protocol Hierarchy::
     PlotLifecycleService  — create / delete / duplicate / change-type
     PlotTypeRegistry      — list available plot types
     PipelineExecutor      — apply / configure shapers
-    FigureCreator         — type-specific figure creation
-    FigureStyler          — visual style application
 """
 
 from __future__ import annotations
@@ -23,9 +21,6 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, Protocol, runtime_checkable
 
 import pandas as pd
-import plotly.graph_objects as go
-
-from src.web.models.plot_models import PlotConfig
 
 # ─── Plot Object Protocols ──────────────────────────────────────────────────
 
@@ -154,29 +149,3 @@ class PipelineExecutor(Protocol):
         config: Optional[Dict[str, Any]],
         owner_id: Optional[int] = None,
     ) -> Dict[str, Any]: ...
-
-
-# ─── Figure Engine Protocols ────────────────────────────────────────────────
-
-
-class FigureCreator(Protocol):
-    """
-    Protocol for type-specific figure creation.
-
-    Each plot type (bar, line, scatter, ...) provides a creator that knows
-    how to build a ``go.Figure`` from data and config, with ZERO Streamlit
-    dependencies.
-    """
-
-    def create_figure(self, data: pd.DataFrame, config: PlotConfig) -> go.Figure: ...
-
-
-class FigureStyler(Protocol):
-    """
-    Protocol for applying visual styles to a Plotly figure.
-
-    Implemented by ``StyleApplicator`` which delegates to
-    ``ConfigSpecBuilder`` → ``FigureConfig`` → ``FigureSpecToPlotly``.
-    """
-
-    def apply_styles(self, fig: go.Figure, config: PlotConfig) -> go.Figure: ...

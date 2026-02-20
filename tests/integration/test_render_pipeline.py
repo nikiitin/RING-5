@@ -1,10 +1,10 @@
 """Integration tests for the figure rendering pipeline.
 
-Covers Scenario #1 (FigureEngine E2E).
+Covers Scenario #1 (Figure rendering E2E).
 
 Tests:
-    - FigureEngine.build() with all 8 plot types using real data
-    - StyleApplicator applied through the engine
+    - PlotFactory + StyleApplicator with all 8 plot types using real data
+    - StyleApplicator applied inline
     - Legend label overrides
     - Config variations (error bars, color grouping, etc.)
 """
@@ -17,24 +17,44 @@ import pytest
 
 from src.core.application_api import ApplicationAPI
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
-from src.web.rendering.figure_engine import FigureEngine
+from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
 
 # ===========================================================================
-# Test Class 1: FigureEngine integration with all plot types
+# Helper: build figure inline using PlotFactory + StyleApplicator
+# ===========================================================================
+
+
+def _build_figure(
+    plot_type: str,
+    data: pd.DataFrame,
+    config: Dict[str, Any],
+    legend_labels: Dict[str, str] | None = None,
+) -> go.Figure:
+    """Build a figure using PlotFactory inline (replaces FigureEngine)."""
+    plot = PlotFactory.create_plot(plot_type, plot_id=99, name=f"test_{plot_type}")
+    styler = StyleApplicator(plot_type)
+    fig: go.Figure = plot.create_figure(data, config)
+    fig = styler.apply_styles(fig, config)
+    if legend_labels:
+        fig.for_each_trace(lambda t: t.update(name=legend_labels.get(t.name, t.name)))
+    return fig
+
+
+# ===========================================================================
+# Test Class 1: Render pipeline integration with all plot types
 # ===========================================================================
 
 
 class TestFigureEngineIntegration:
-    """Test FigureEngine.build() produces valid figures for every plot type."""
+    """Test PlotFactory + StyleApplicator produces valid figures for every plot type."""
 
     def test_build_bar_plot(
         self,
-        figure_engine: FigureEngine,
         rich_sample_data: pd.DataFrame,
         bar_config: Dict[str, Any],
     ) -> None:
-        """Bar plot: engine.build() returns a valid go.Figure with traces."""
-        fig: go.Figure = figure_engine.build("bar", rich_sample_data, bar_config)
+        """Bar plot: inline build returns a valid go.Figure with traces."""
+        fig: go.Figure = _build_figure("bar", rich_sample_data, bar_config)
 
         assert isinstance(fig, go.Figure)
         assert len(fig.data) > 0
@@ -42,46 +62,42 @@ class TestFigureEngineIntegration:
 
     def test_build_line_plot(
         self,
-        figure_engine: FigureEngine,
         rich_sample_data: pd.DataFrame,
         line_config: Dict[str, Any],
     ) -> None:
-        """Line plot: engine.build() returns a valid go.Figure."""
-        fig: go.Figure = figure_engine.build("line", rich_sample_data, line_config)
+        """Line plot: inline build returns a valid go.Figure."""
+        fig: go.Figure = _build_figure("line", rich_sample_data, line_config)
 
         assert isinstance(fig, go.Figure)
         assert len(fig.data) > 0
 
     def test_build_scatter_plot(
         self,
-        figure_engine: FigureEngine,
         rich_sample_data: pd.DataFrame,
         scatter_config: Dict[str, Any],
     ) -> None:
-        """Scatter plot: engine.build() returns a valid go.Figure."""
-        fig: go.Figure = figure_engine.build("scatter", rich_sample_data, scatter_config)
+        """Scatter plot: inline build returns a valid go.Figure."""
+        fig: go.Figure = _build_figure("scatter", rich_sample_data, scatter_config)
 
         assert isinstance(fig, go.Figure)
         assert len(fig.data) > 0
 
     def test_build_grouped_bar_plot(
         self,
-        figure_engine: FigureEngine,
         rich_sample_data: pd.DataFrame,
         grouped_bar_config: Dict[str, Any],
     ) -> None:
-        """Grouped bar plot: engine.build() returns a valid go.Figure."""
-        fig: go.Figure = figure_engine.build("grouped_bar", rich_sample_data, grouped_bar_config)
+        """Grouped bar plot: inline build returns a valid go.Figure."""
+        fig: go.Figure = _build_figure("grouped_bar", rich_sample_data, grouped_bar_config)
 
         assert isinstance(fig, go.Figure)
         assert len(fig.data) > 0
 
     def test_build_stacked_bar_plot(
         self,
-        figure_engine: FigureEngine,
         rich_sample_data: pd.DataFrame,
     ) -> None:
-        """Stacked bar plot: engine.build() with y_columns list."""
+        """Stacked bar plot: inline build with y_columns list."""
         config: Dict[str, Any] = {
             "x": "benchmark_name",
             "y_columns": ["system.cpu.ipc", "system.cpu.numCycles"],
@@ -90,16 +106,15 @@ class TestFigureEngineIntegration:
             "ylabel": "Value",
             "legend_title": "Metric",
         }
-        fig: go.Figure = figure_engine.build("stacked_bar", rich_sample_data, config)
+        fig: go.Figure = _build_figure("stacked_bar", rich_sample_data, config)
 
         assert isinstance(fig, go.Figure)
         assert len(fig.data) >= 2  # At least one trace per y_column
 
     def test_build_histogram_plot(
         self,
-        figure_engine: FigureEngine,
     ) -> None:
-        """Histogram plot: engine.build() with bucket columns."""
+        """Histogram plot: inline build with bucket columns."""
         # Histogram expects columns like "var..bucket_name" (gem5 format)
         histogram_data = pd.DataFrame(
             {
@@ -115,17 +130,16 @@ class TestFigureEngineIntegration:
             "xlabel": "IPC",
             "ylabel": "Count",
         }
-        fig: go.Figure = figure_engine.build("histogram", histogram_data, config)
+        fig: go.Figure = _build_figure("histogram", histogram_data, config)
 
         assert isinstance(fig, go.Figure)
         assert len(fig.data) > 0
 
     def test_build_dual_axis_bar_dot_plot(
         self,
-        figure_engine: FigureEngine,
         rich_sample_data: pd.DataFrame,
     ) -> None:
-        """Dual-axis bar-dot plot: engine.build() with y_bar and y_dot."""
+        """Dual-axis bar-dot plot: inline build with y_bar and y_dot."""
         config: Dict[str, Any] = {
             "x": "benchmark_name",
             "y_bar": "system.cpu.numCycles",
@@ -135,25 +149,24 @@ class TestFigureEngineIntegration:
             "ylabel_bar": "Cycles",
             "ylabel_dot": "IPC",
         }
-        fig: go.Figure = figure_engine.build("dual_axis_bar_dot", rich_sample_data, config)
+        fig: go.Figure = _build_figure("dual_axis_bar_dot", rich_sample_data, config)
 
         assert isinstance(fig, go.Figure)
         assert len(fig.data) >= 2  # Bar + dot traces
 
-    def test_build_unregistered_type_raises_key_error(
-        self, figure_engine: FigureEngine, rich_sample_data: pd.DataFrame
+    def test_build_unregistered_type_raises_value_error(
+        self, rich_sample_data: pd.DataFrame
     ) -> None:
-        """Engine raises KeyError for unregistered plot type."""
-        with pytest.raises(KeyError, match="No figure creator registered"):
-            figure_engine.build("nonexistent", rich_sample_data, {})
+        """PlotFactory raises ValueError for unregistered plot type."""
+        with pytest.raises(ValueError):
+            PlotFactory.create_plot("nonexistent", plot_id=1, name="Bad")
 
-    def test_all_plot_types_registered(self, figure_engine: FigureEngine) -> None:
-        """Fixture registers all PlotFactory types in the engine."""
+    def test_all_plot_types_available(self) -> None:
+        """PlotFactory has all expected plot types registered."""
         factory_types: list[str] = PlotFactory.get_available_plot_types()
-        engine_types: list[str] = figure_engine.registered_types
-
-        for pt in factory_types:
-            assert pt in engine_types, f"Plot type '{pt}' not in engine"
+        assert len(factory_types) > 0
+        assert "bar" in factory_types
+        assert "line" in factory_types
 
 
 # ===========================================================================
@@ -162,11 +175,10 @@ class TestFigureEngineIntegration:
 
 
 class TestFigureSpecStylingIntegration:
-    """Test FigureConfig styling through the FigureEngine pipeline."""
+    """Test FigureConfig styling through the inline pipeline."""
 
     def test_styles_applied_to_bar_figure(
         self,
-        figure_engine: FigureEngine,
         rich_sample_data: pd.DataFrame,
     ) -> None:
         """FigureConfig pipeline modifies layout dimensions when config has them."""
@@ -179,14 +191,13 @@ class TestFigureSpecStylingIntegration:
             "width": 800,
             "height": 500,
         }
-        fig: go.Figure = figure_engine.build("bar", rich_sample_data, config)
+        fig: go.Figure = _build_figure("bar", rich_sample_data, config)
 
         assert fig.layout.width == 800
         assert fig.layout.height == 500
 
     def test_bar_gap_applied(
         self,
-        figure_engine: FigureEngine,
         rich_sample_data: pd.DataFrame,
     ) -> None:
         """FigureConfig pipeline applies bargap config to layout."""
@@ -198,13 +209,12 @@ class TestFigureSpecStylingIntegration:
             "ylabel": "Y",
             "bargap": 0.3,
         }
-        fig: go.Figure = figure_engine.build("bar", rich_sample_data, config)
+        fig: go.Figure = _build_figure("bar", rich_sample_data, config)
 
         assert fig.layout.bargap == 0.3
 
     def test_background_colors_applied(
         self,
-        figure_engine: FigureEngine,
         rich_sample_data: pd.DataFrame,
     ) -> None:
         """FigureConfig pipeline applies background color overrides."""
@@ -217,17 +227,21 @@ class TestFigureSpecStylingIntegration:
             "plot_bgcolor": "#f0f0f0",
             "paper_bgcolor": "#ffffff",
         }
-        fig: go.Figure = figure_engine.build("bar", rich_sample_data, config)
+        fig: go.Figure = _build_figure("bar", rich_sample_data, config)
 
         assert fig.layout.plot_bgcolor == "#f0f0f0"
         assert fig.layout.paper_bgcolor == "#ffffff"
 
     def test_legend_labels_override(
         self,
-        figure_engine: FigureEngine,
         rich_sample_data: pd.DataFrame,
     ) -> None:
-        """FigureEngine._apply_legend_labels renames traces in final figure."""
+        """Legend labels are renamed in final figure via inline application."""
+        legend_labels: Dict[str, str] = {
+            "baseline": "Base",
+            "optimized": "Opt",
+            "aggressive": "Agg",
+        }
         config: Dict[str, Any] = {
             "x": "benchmark_name",
             "y": "system.cpu.ipc",
@@ -235,13 +249,8 @@ class TestFigureSpecStylingIntegration:
             "title": "Legend Override",
             "xlabel": "X",
             "ylabel": "Y",
-            "legend_labels": {
-                "baseline": "Base",
-                "optimized": "Opt",
-                "aggressive": "Agg",
-            },
         }
-        fig: go.Figure = figure_engine.build("bar", rich_sample_data, config)
+        fig: go.Figure = _build_figure("bar", rich_sample_data, config, legend_labels=legend_labels)
 
         trace_names: list[str] = [t.name for t in fig.data if t.name]
         # Original names should be replaced

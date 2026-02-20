@@ -7,16 +7,13 @@ Provides typed, schema-driven widget definitions that:
   - Generated Streamlit widgets from data, not code
   - Validate values at definition time, not at rendering time
 
-The module has three layers:
+The module has two layers:
 
     WidgetDef / Section (data)
         ↓
     WidgetRenderer (Streamlit generation)
-        ↓
-    ConfigBridge (FigureConfig ↔ config dict mapping)
 """
 
-from src.web.rendering.widgets.config_bridge import ConfigBridge
 from src.web.rendering.widgets.widget_def import (  # Standard sections
     AXIS_COLORS,
     BACKGROUNDS,
@@ -50,7 +47,6 @@ __all__ = [
     "ColorWidgetDef",
     "TextWidgetDef",
     "WidgetRenderer",
-    "ConfigBridge",
     "LAYOUT_DIMENSIONS",
     "LAYOUT_MARGINS",
     "TYPOGRAPHY",

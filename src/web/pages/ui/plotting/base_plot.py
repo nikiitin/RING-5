@@ -25,7 +25,6 @@ from src.core.services.plot_interaction_service import (
 from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.styles import StyleManager
 from src.web.rendering.engine_manager import EngineManager
-from src.web.rendering.figure_engine import FigureEngine
 
 
 class BasePlot(ABC):
@@ -175,18 +174,16 @@ class BasePlot(ABC):
         """
         Generate and cache the final Plotly figure.
 
-        Routes through FigureEngine — the single entry point for
-        creation + styling + legend labels.
+        Calls create_figure → apply_common_layout → legend labels.
         """
         if self.processed_data is None:
             raise ValueError(f"Plot '{self.name}' has no processed data.")
 
-        engine = FigureEngine.from_plot(
-            self,
-            self.plot_type,
-            styler=self.style_manager.applicator,
-        )
-        fig = engine.build(self.plot_type, self.processed_data, self.config)
+        fig = self.create_figure(self.processed_data, self.config)
+        fig = self.apply_common_layout(fig, self.config)
+        legend_labels: Optional[Dict[str, str]] = self.config.get("legend_labels")
+        if legend_labels:
+            fig.for_each_trace(lambda t: t.update(name=legend_labels.get(t.name, t.name)))
 
         self.last_generated_fig = fig
         return fig

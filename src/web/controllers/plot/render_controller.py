@@ -35,7 +35,6 @@ from src.web.models.plot_protocols import (
 from src.web.presenters.plot.chart_presenter import ChartPresenter
 from src.web.presenters.plot.config_presenter import ConfigPresenter
 from src.web.rendering.engine_manager import EngineManager, EngineMode
-from src.web.rendering.figure_engine import FigureEngine
 from src.web.state.ui_state_manager import UIStateManager
 
 logger = logging.getLogger(__name__)
@@ -208,12 +207,11 @@ class PlotRenderController:
         # ── Generate figure if needed ────────────────────────────
         if should_generate or plot.last_generated_fig is None:
             try:
-                engine = FigureEngine.from_plot(
-                    plot,
-                    plot.plot_type,
-                    styler=plot.style_manager.applicator,
-                )
-                fig = engine.build(plot.plot_type, plot.processed_data, plot.config)
+                fig = plot.create_figure(plot.processed_data, plot.config)
+                fig = plot.apply_common_layout(fig, plot.config)
+                legend_labels: Optional[Dict[str, str]] = plot.config.get("legend_labels")
+                if legend_labels:
+                    fig.for_each_trace(lambda t: t.update(name=legend_labels.get(t.name, t.name)))
                 plot.last_generated_fig = fig
                 cache.set(cache_key, fig)
             except Exception as e:

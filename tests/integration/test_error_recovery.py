@@ -8,7 +8,6 @@ Tests:
     - Empty DataFrame through pipeline
     - Invalid plot type in PlotFactory
     - Malformed config in create_figure
-    - FigureEngine with unregistered type
     - Export with invalid format
 """
 
@@ -22,7 +21,6 @@ from src.core.application_api import ApplicationAPI
 from src.core.services.shapers.factory import ShaperFactory
 from src.core.state.repository_state_manager import RepositoryStateManager
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
-from src.web.rendering.figure_engine import FigureEngine
 
 # ===========================================================================
 # Test Class 1: Shaper pipeline error recovery
@@ -186,13 +184,6 @@ class TestPlotCreationErrors:
         }
         with pytest.raises((ValueError, KeyError)):
             plot.create_figure(rich_sample_data, config)
-
-    def test_figure_engine_unregistered_type(self) -> None:
-        """FigureEngine.build() with unregistered type raises KeyError."""
-        engine = FigureEngine()
-        # Don't register anything
-        with pytest.raises(KeyError, match="No figure creator registered"):
-            engine.build("bar", pd.DataFrame(), {})
 
 
 # ===========================================================================

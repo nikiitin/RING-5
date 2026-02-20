@@ -4,7 +4,7 @@ Integration test — validates the full architecture stack works end-to-end.
 Tests that:
     1. All new modules import correctly
     2. Layer dependency rules are respected
-    3. FigureEngine integrates with real StyleApplicator
+    3. PlotFactory + StyleApplicator integrate correctly
     4. Models + UIStateManager + Controller protocols are consistent
     5. Controllers delegate to presenters (no direct st.* rendering)
 """
@@ -24,8 +24,6 @@ from src.web.models.plot_models import (
     ShaperStep,
     TypographyConfig,
 )
-from src.web.models.plot_protocols import FigureStyler
-from src.web.rendering.figure_engine import FigureEngine
 
 # ─── Module Import Tests ────────────────────────────────────────────────────
 
@@ -47,13 +45,10 @@ class TestModuleImports:
         assert UIStateManager is not None
 
     def test_import_figures(self) -> None:
-        """Figure engine imports correctly."""
-        from src.web.models.plot_protocols import FigureCreator, FigureStyler
-        from src.web.rendering.figure_engine import FigureEngine
+        """Figure rendering imports correctly."""
+        from src.web.rendering.plotly_connector import FigureSpecToPlotly
 
-        assert FigureEngine is not None
-        assert FigureCreator is not None
-        assert FigureStyler is not None
+        assert FigureSpecToPlotly is not None
 
     def test_import_presenters(self) -> None:
         """Presenter modules import correctly."""
@@ -121,30 +116,12 @@ class TestLayerDependencies:
         assert "import streamlit" not in source
         assert "from streamlit" not in source
 
-    def test_figure_engine_has_no_streamlit(self) -> None:
-        """FigureEngine must NOT import streamlit."""
-        import src.web.rendering.figure_engine as engine_mod
 
-        source: str = open(engine_mod.__file__).read()  # type: ignore[arg-type]
-        assert "import streamlit" not in source
-        assert "from streamlit" not in source
-
-    def test_figure_engine_has_no_pages_ui_imports(self) -> None:
-        """FigureEngine must NOT import from pages.ui (boundary rule)."""
-        import src.web.rendering.figure_engine as engine_mod
-
-        source: str = open(engine_mod.__file__).read()  # type: ignore[arg-type]
-        assert "pages.ui" not in source, (
-            "FigureEngine must not depend on pages.ui — "
-            "inject stylers via FigureStyler protocol instead"
-        )
-
-
-# ─── FigureEngine + Real Styler Integration ────────────────────────────────────
+# ─── PlotFactory + StyleApplicator Integration ────────────────────────────────────
 
 
 class TestFigureEngineIntegration:
-    """FigureEngine with real styler (ConfigSpecBuilder → FigureSpecToPlotly)."""
+    """PlotFactory + StyleApplicator inline integration tests."""
 
     @pytest.fixture
     def sample_data(self) -> pd.DataFrame:
@@ -155,8 +132,8 @@ class TestFigureEngineIntegration:
             }
         )
 
-    def test_engine_with_real_styler(self, sample_data: pd.DataFrame) -> None:
-        """Engine with injected styler produces a complete figure."""
+    def test_inline_with_real_styler(self, sample_data: pd.DataFrame) -> None:
+        """Inline creator + styler produces a complete figure."""
         from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
 
         class SimpleBarCreator:
@@ -171,9 +148,8 @@ class TestFigureEngineIntegration:
                 )
                 return fig
 
-        engine: FigureEngine = FigureEngine()
-        styler: FigureStyler = StyleApplicator("bar")
-        engine.register("bar", SimpleBarCreator(), styler=styler)
+        creator = SimpleBarCreator()
+        styler = StyleApplicator("bar")
 
         config: Dict[str, Any] = {
             "title": "Test Plot",
@@ -181,15 +157,16 @@ class TestFigureEngineIntegration:
             "height": 400,
         }
 
-        fig: go.Figure = engine.build("bar", sample_data, config)
+        fig: go.Figure = creator.create_figure(sample_data, config)
+        fig = styler.apply_styles(fig, config)
 
         assert isinstance(fig, go.Figure)
         assert len(fig.data) == 1
         assert fig.layout.width == 600
         assert fig.layout.height == 400
 
-    def test_engine_with_legend_labels(self, sample_data: pd.DataFrame) -> None:
-        """Legend labels are applied after styling."""
+    def test_inline_with_legend_labels(self, sample_data: pd.DataFrame) -> None:
+        """Legend labels are applied inline after styling."""
 
         class SimpleBarCreator:
             def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
@@ -197,14 +174,18 @@ class TestFigureEngineIntegration:
                 fig.add_trace(go.Bar(x=["A"], y=[1], name="original"))
                 return fig
 
-        engine: FigureEngine = FigureEngine()
-        engine.register("bar", SimpleBarCreator())
+        from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
 
-        config: Dict[str, Any] = {
-            "legend_labels": {"original": "Custom Label"},
-        }
+        creator = SimpleBarCreator()
+        styler = StyleApplicator("bar")
 
-        fig = engine.build("bar", sample_data, config)
+        config: Dict[str, Any] = {}
+        legend_labels: Dict[str, str] = {"original": "Custom Label"}
+
+        fig = creator.create_figure(sample_data, config)
+        fig = styler.apply_styles(fig, config)
+        fig.for_each_trace(lambda t: t.update(name=legend_labels.get(t.name, t.name)))
+
         assert fig.data[0].name == "Custom Label"
 
 

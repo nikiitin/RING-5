@@ -5,7 +5,7 @@ and rendering, exercising the full stack through AppTest + API.
 
 Complements existing integration tests by:
 - Testing the full chain via AppTest (not just backend APIs)
-- Exercising shaper→FigureEngine→figure chain
+- Exercising shaper→BasePlot→figure chain
 - Testing multiple plot types through the render pipeline
 - Verifying pipeline modification → re-render cycle
 """
@@ -60,8 +60,6 @@ class TestDataTransformRenderChain:
 
     def test_bar_plot_full_chain(self) -> None:
         """Bar plot: load → column select → sort → create figure."""
-        from src.web.rendering.figure_engine import FigureEngine
-
         at = create_app_with_data()
         api: Any = get_api(at)
 
@@ -88,16 +86,14 @@ class TestDataTransformRenderChain:
             "barmode": "group",
         }
 
-        engine = FigureEngine.from_plot(plot, "bar")
-        fig: go.Figure = engine.build("bar", plot.processed_data, config)
+        fig: go.Figure = plot.create_figure(plot.processed_data, config)
+        fig = plot.apply_common_layout(fig, config)
 
         assert isinstance(fig, go.Figure)
         assert len(fig.data) > 0
 
     def test_grouped_bar_full_chain(self) -> None:
         """Grouped bar: load → column select → mean → create figure."""
-        from src.web.rendering.figure_engine import FigureEngine
-
         at = create_app_with_data()
         api: Any = get_api(at)
 
@@ -127,15 +123,13 @@ class TestDataTransformRenderChain:
             "title": "IPC by Config",
         }
 
-        engine = FigureEngine.from_plot(plot, "grouped_bar")
-        fig: go.Figure = engine.build("grouped_bar", plot.processed_data, config)
+        fig: go.Figure = plot.create_figure(plot.processed_data, config)
+        fig = plot.apply_common_layout(fig, config)
 
         assert isinstance(fig, go.Figure)
 
     def test_line_plot_full_chain(self) -> None:
         """Line plot: load → filter → sort → create figure."""
-        from src.web.rendering.figure_engine import FigureEngine
-
         at = create_app_with_data()
         api: Any = get_api(at)
 
@@ -164,16 +158,14 @@ class TestDataTransformRenderChain:
             "ylabel": "IPC",
         }
 
-        engine = FigureEngine.from_plot(plot, "line")
-        fig: go.Figure = engine.build("line", plot.processed_data, config)
+        fig: go.Figure = plot.create_figure(plot.processed_data, config)
+        fig = plot.apply_common_layout(fig, config)
 
         assert isinstance(fig, go.Figure)
         assert len(fig.data) > 0
 
     def test_scatter_plot_full_chain(self) -> None:
         """Scatter plot: load → column select → create figure."""
-        from src.web.rendering.figure_engine import FigureEngine
-
         at = create_app_with_data()
         api: Any = get_api(at)
 
@@ -196,8 +188,8 @@ class TestDataTransformRenderChain:
             "ylabel": "Miss Rate",
         }
 
-        engine = FigureEngine.from_plot(plot, "scatter")
-        fig: go.Figure = engine.build("scatter", plot.processed_data, config)
+        fig: go.Figure = plot.create_figure(plot.processed_data, config)
+        fig = plot.apply_common_layout(fig, config)
 
         assert isinstance(fig, go.Figure)
 
