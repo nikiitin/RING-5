@@ -240,3 +240,5 @@ Presentation layer:
 | Web | ApplicationAPI, services (managers), performance, models |
 
 **Important**: The only `core→web` dependency is a `TYPE_CHECKING`-only import in `session_repository.py` for `BasePlot` type hints.
+
+> **Note (Phase B):** The web layer now includes `controllers/plot/`, `presenters/plot/`, and `rendering/` directories. See [Web Layer Architecture](web-layer-architecture.md) for the updated diagram.

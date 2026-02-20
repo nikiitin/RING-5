@@ -174,23 +174,23 @@ density = count / (total_count * bin_width)
 Histogram variables from gem5 are automatically detected and can be parsed:
 
 ```python
-from src.web.facade import BackendFacade
+from src.core.application_api import ApplicationAPI
 
-facade = BackendFacade()
+api = ApplicationAPI()
 
 # Scan for histogram variables
-scan_futures = facade.submit_scan_async(stats_dir, "stats.txt")
+scan_futures = api.submit_scan_async(stats_dir, "stats.txt")
 scan_results = [f.result() for f in scan_futures]
-vars_found = facade.finalize_scan(scan_results)
+vars_found = api.finalize_scan(scan_results)
 
 # Find histogram variable
 hist_var = next(v for v in vars_found if v["type"] == "histogram")
 
 # Parse
 variables = [{"name": hist_var["name"], "type": "histogram"}]
-parse_futures = facade.submit_parse_async(stats_dir, "stats.txt", variables, output_dir)
+parse_futures = api.submit_parse_async(stats_dir, "stats.txt", variables, output_dir)
 parse_results = [f.result() for f in parse_futures]
-csv_path = facade.finalize_parsing(output_dir, parse_results)
+csv_path = api.finalize_parsing(output_dir, parse_results)
 
 # Load and plot
 data = pd.read_csv(csv_path)

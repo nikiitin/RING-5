@@ -1,5 +1,10 @@
 # Phase 4 — Declarative Widget System (UI Simplification)
 
+> **Note (Phase B update):** Widget definitions and `WidgetRenderer` were moved
+> from `src/core/visualization/widgets/` to `src/web/rendering/widgets/` and
+> `ConfigBridge` was removed during Phase B5/B8. The declarative widget system
+> remains functional at its new location.
+
 ## Overview
 
 Phase 4 aligns the declarative widget definitions with production defaults

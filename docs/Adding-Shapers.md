@@ -22,10 +22,10 @@ Shapers transform DataFrames in the analysis pipeline. They follow the **Strateg
 
 ### File Location
 
-Create in `src/web/services/shapers/`:
+Create in `src/core/services/shapers/`:
 
 ```text
-src/web/services/shapers/
+src/core/services/shapers/
 ├── my_shaper.py       # Your new shaper
 ├── column_selector.py
 ├── sort_shaper.py
@@ -105,10 +105,10 @@ class MyShaper:
 
 ## Step 2: Register in Factory
 
-Edit `src/web/services/shapers/shaper_factory.py`:
+Edit `src/core/services/shapers/factory.py`:
 
 ```python
-from src.web.services.shapers.my_shaper import MyShaper
+from src.core.services.shapers.my_shaper import MyShaper
 
 
 class ShaperFactory:

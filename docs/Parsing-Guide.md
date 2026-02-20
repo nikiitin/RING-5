@@ -23,12 +23,12 @@ RING-5 provides a powerful async-first parsing system for gem5 stats.txt files:
 Discover all available statistics in your gem5 output:
 
 ```python
-from src.web.facade import BackendFacade
+from src.core.application_api import ApplicationAPI
 
-facade = BackendFacade()
+api = ApplicationAPI()
 
 # Submit async scan
-scan_futures = facade.submit_scan_async(
+scan_futures = api.submit_scan_async(
  stats_path="/path/to/gem5/output",
  stats_pattern="stats.txt",
  limit=10 # Number of files to scan (-1 for all)
@@ -45,7 +45,7 @@ for future in scan_futures:
  print(f"Scan failed: {e}")
 
 # Aggregate discovered variables
-variables = facade.finalize_scan(scan_results)
+variables = api.finalize_scan(scan_results)
 print(f"Found {len(variables)} variables")
 ```
 
@@ -100,7 +100,7 @@ import tempfile
 output_dir = tempfile.mkdtemp()
 
 # Submit async parse
-parse_futures = facade.submit_parse_async(
+parse_futures = api.submit_parse_async(
  stats_path="/path/to/gem5/output",
  stats_pattern="stats.txt",
  variables=selected,
@@ -119,7 +119,7 @@ for future in parse_futures:
  print(f"Parse failed: {e}")
 
 # Finalize to consolidated CSV
-csv_path = facade.finalize_parsing(output_dir, parse_results)
+csv_path = api.finalize_parsing(output_dir, parse_results)
 print(f"Data saved to: {csv_path}")
 ```
 
@@ -259,7 +259,7 @@ pattern_var = {
 }
 
 # MUST pass scanned_vars to resolve patterns
-parse_futures = facade.submit_parse_async(
+parse_futures = api.submit_parse_async(
  stats_path=path,
  stats_pattern="stats.txt",
  variables=[pattern_var],
@@ -275,7 +275,7 @@ parse_futures = facade.submit_parse_async(
 For large directories, parse subset first:
 
 ```python
-scan_futures = facade.submit_scan_async(
+scan_futures = api.submit_scan_async(
  stats_path=path,
  stats_pattern="stats.txt",
  limit=5 # Only scan 5 files
@@ -288,7 +288,7 @@ Parse different file patterns:
 
 ```python
 # Scan all .txt files
-scan_futures = facade.submit_scan_async(
+scan_futures = api.submit_scan_async(
  stats_path=path,
  stats_pattern="*.txt",
  limit=-1

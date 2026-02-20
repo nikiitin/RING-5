@@ -130,7 +130,7 @@ import pdb; pdb.set_trace()
 
 ### Adding a New Shaper
 
-1. Create shaper class in `src/web/services/shapers/`
+1. Create shaper class in `src/core/services/shapers/`
 2. Register in `ShaperFactory`
 3. Add UI component in `src/web/ui/components/shapers/`
 4. Write tests in `tests/unit/test_shapers.py`

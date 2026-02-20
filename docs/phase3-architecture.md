@@ -1,5 +1,12 @@
 # Phase 3 — Wire FigureEngine
 
+> **Note (Phase B update):** `FigureEngine`, `ConfigSpecBuilder`, `FigureCreator`,
+> and `FigureStyler` were **eliminated** in Phase B8. Figure creation is now
+> inlined into `BasePlot.generate_figure()` and `PlotRenderController._render_visualization()`.
+> Plot types produce `TraceBuildResult` via `create_traces()` instead of
+> calling `FigureEngine.build()`. This document is preserved as historical
+> context for Phase 3's original design.
+
 ## Overview
 
 Phase 3 routes all figure creation through `FigureEngine` and connects

@@ -13,13 +13,14 @@ RING-5 follows a **clean layered architecture** with strict separation of concer
 
  Layer C: Presentation (Streamlit)
  • UI Components • Pages • State Management
+ • Controllers / Presenters / Rendering
 
- BackendFacade
+ ApplicationAPI
 
 
  Layer B: Domain (Business Logic)
  • Plotting • Transformations • Analysis
- • NO UI imports • Pure functions • Testable
+ • Visualization Models • NO UI imports • Testable
 
 
 
@@ -30,15 +31,15 @@ RING-5 follows a **clean layered architecture** with strict separation of concer
 
 ```
 
-## Visualization Pipeline (FigureSpec)
+## Visualization Pipeline (TraceBuildResult)
 
-The visualization system uses a **specification-driven pipeline** where a single `FigureSpec` dataclass drives rendering across both engines:
+The visualization system uses a **trace-based pipeline** where plot types produce typed `TraceBuildResult` objects that are converted to engine-specific figures:
 
 ```text
-┌─────────────┐    ┌──────────────────┐    ┌────────────────┐
-│  UI Widgets  │───▶│  ConfigSpecBuilder│───▶│   FigureSpec   │
-│  (Pills UI)  │    │  (dict → spec)   │    │  (frozen DC)   │
-└─────────────┘    └──────────────────┘    └───────┬────────┘
+┌─────────────┐    ┌──────────────────┐    ┌──────────────────┐
+│  Plot Type   │───▶│  create_traces() │───▶│ TraceBuildResult  │
+│  (bar, line) │    │  (typed traces)  │    │ (List[TraceConfig])│
+└─────────────┘    └──────────────────┘    └───────┬──────────┘
                                                     │
                                           ┌─────────▼─────────┐
                                           │  EngineManager     │
@@ -57,11 +58,11 @@ The visualization system uses a **specification-driven pipeline** where a single
 
 **Key components**:
 
-- **FigureSpec**: Immutable frozen dataclass containing all styling (typography, dimensions, legend, axes, colors). Single source of truth.
-- **ConfigSpecBuilder**: Converts widget config dictionaries to/from `FigureSpec`.
+- **TraceBuildResult**: Typed model containing traces, barmode, annotations, shapes. Lives in `src/core/models/visualization/`.
+- **TraceConfig**: Per-trace typed configuration (name, x, y, trace_type, color, etc.).
 - **EngineManager**: Dispatches to the active engine's connector.
-- **Connectors**: Engine-specific renderers that translate `FigureSpec` fields into Plotly/Matplotlib API calls.
-- **StyleApplicator**: Applies `FigureSpec` to an existing figure, used by connectors.
+- **Connectors**: Engine-specific renderers in `src/web/rendering/` that translate traces into Plotly/Matplotlib API calls.
+- **FigureConfig**: Immutable configuration for typography, axes, legend, margins. Lives in `src/core/models/visualization/`.
 
 ## Design Principles
 
@@ -86,7 +87,7 @@ The visualization system uses a **specification-driven pipeline** where a single
 - Streamlit components
 - State management
 - User interactions
-- **Calls** Layer B through BackendFacade
+- **Calls** Layer B through ApplicationAPI
 
 ### 2. Async-First Design
 
@@ -123,9 +124,9 @@ shaper = ShaperFactory.create_shaper("normalize", config)
 **Facade Pattern** (Backend Access):
 
 ```python
-facade = BackendFacade() # Single entry point
-data = facade.load_csv_file(path)
-plot = facade.create_plot("bar", config)
+api = ApplicationAPI() # Single entry point
+data = api.load_csv_file(path)
+plot = api.create_plot("bar", config)
 ```
 
 **Strategy Pattern** (Parsing):
@@ -183,54 +184,44 @@ data.drop(columns=['x'], inplace=True) #
 ```text
 RING-5/
  src/
- core/ # Shared utilities
- benchmark.py # Benchmark handling
- performance.py # Performance metrics
- parsers/ # Layer A: Data ingestion
- parser.py # Main parser
- scanner.py # Variable scanner
- parse_service.py # Async orchestration
- scanner_service.py # Async scanning
- type_mapper.py # Type detection
- pattern_aggregator.py # Pattern consolidation
- perl/ # Perl parser scripts
- workers/ # Async task workers
- plotting/ # Layer B/C: Visualization
- base_plot.py # Abstract base
- plot_factory.py # Factory
- plot_renderer.py # Rendering
- export.py # Export utilities
- types/ # Concrete plots
- bar_plot.py
- line_plot.py
- scatter_plot.py
- grouped_bar_plot.py
- grouped_stacked_bar_plot.py
- histogram_plot.py
- config/ # Configuration management
- config_manager.py
- schemas/ # JSON schemas
- web/ # Layer C: UI
- facade.py # Backend facade (MAIN API)
- state_manager.py # Session state
- services/ # UI services
- csv_pool.py
- variable_service.py
- shapers/ # Data transformations
- repositories/ # Data access
- ui/ # Streamlit components
- components/ # Reusable widgets
- pages/ # App pages
+ core/ # Layer A+B: Data + Domain
+ application_api.py # Facade (MAIN API)
+ models/ # Data models
+ visualization/ # FigureConfig, TraceConfig, palettes
+ parsing_models.py
+ plot_config.py
+ plot_protocol.py
+ state/ # State management
+ repositories/ # Plot, data, config, visualization repos
+ state_manager.py
+ services/ # Business logic
+ managers/
+ data_services/
+ shapers/
+ parsing/ # gem5 parsing
+ gem5/ # gem5 implementation
+ web/ # Layer C: Presentation
+ models/ # UI TypedDicts + Protocols
+ controllers/ # Orchestration (MVC)
+ plot/
+ presenters/ # Widget rendering (MVC)
+ plot/
+ rendering/ # Engine connectors + widgets
+ plotly_connector.py
+ matplotlib_connector.py
+ engine_manager.py
+ trace_to_plotly.py
+ widgets/
+ state/ # UI state manager
+ pages/ # Streamlit pages
+ ui/ # Plot types, styles, components
+ plotting/
+ types/
+ styles/
  tests/
  unit/ # Unit tests
  integration/ # Integration tests
- e2e/ # End-to-end tests
  data/ # Test fixtures
- .agent/ # AI agent configuration
- rules/ # Project rules
- workflows/ # Development workflows
- skills/ # Reusable knowledge
- docs/ # Documentation (you are here!)
 ```
 
 ## Data Flow
@@ -288,21 +279,25 @@ PlotFactory.create_plot(type, id, name)
  ↓
 Concrete Plot Class (BarPlot, LinePlot, etc.)
  ↓
-create_figure(data, config) → go.Figure
+create_traces(data, config) → TraceBuildResult
  ↓
-PlotRenderer.render(figure)
+traces_to_plotly(result) → go.Figure
+ ↓
+apply_common_layout(fig, config) → styled Figure
+ ↓
+ChartPresenter.render_chart(fig)
  ↓
 Display in UI or Export
 ```
 
 ## Key Components
 
-### BackendFacade
+### ApplicationAPI
 
 **Single entry point** to all backend functionality:
 
 ```python
-class BackendFacade:
+class ApplicationAPI:
  # Scanning
  def submit_scan_async(...)
  def finalize_scan(...)
@@ -317,7 +312,10 @@ class BackendFacade:
 
  # Plotting
  def create_plot(...)
- def render_plot(...)
+
+ # Visualization Config
+ def get_visualization_config(...)
+ def set_visualization_config(...)
 ```
 
 ### StateManager
@@ -430,7 +428,7 @@ for future in futures:
 ### Adding New Plot Types
 
 1. Create class inheriting `BasePlot`
-2. Implement `create_figure()`
+2. Implement `create_traces()` returning `TraceBuildResult`
 3. Register in `PlotFactory`
 4. Add UI configuration
 

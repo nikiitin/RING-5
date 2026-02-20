@@ -581,11 +581,11 @@ Models & Protocols              → Pure Python data classes and Protocol defini
 ```python
 # ✅ CORRECT — Controller (no Streamlit)
 class RenderController:
-    def __init__(self, figure_engine: FigureEngineProtocol) -> None:
-        self._engine = figure_engine
+    def __init__(self, service: PlotServiceProtocol) -> None:
+        self._service = service
 
     def generate_figure(self, config: PlotConfig, data: pd.DataFrame) -> go.Figure:
-        return self._engine.create(config, data)
+        return self._service.create(config, data)
 
 # ✅ CORRECT — Presenter (only Streamlit rendering)
 class ChartPresenter:
@@ -595,7 +595,7 @@ class ChartPresenter:
 # ✅ CORRECT — Wiring in the page file
 def render(api: ApplicationAPI) -> None:
     adapter = PlotAdapter(api)
-    controller = RenderController(adapter)
+    controller = RenderController(service=adapter)
     presenter = ChartPresenter()
     figure = controller.generate_figure(config, data)
     presenter.render_chart(figure, plot_id)

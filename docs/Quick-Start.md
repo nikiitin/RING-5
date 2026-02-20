@@ -157,18 +157,18 @@ Here's a complete workflow for analyzing CPU performance:
 
 ```python
 # In Python (or use UI equivalently)
-from src.web.facade import BackendFacade
+from src.core.application_api import ApplicationAPI
 
-facade = BackendFacade()
+api = ApplicationAPI()
 
 # 1. Scan for variables
-scan_futures = facade.submit_scan_async(
+scan_futures = api.submit_scan_async(
  stats_path="/path/to/gem5/output",
  stats_pattern="stats.txt",
  limit=10
 )
 scan_results = [f.result() for f in scan_futures]
-variables = facade.finalize_scan(scan_results)
+variables = api.finalize_scan(scan_results)
 
 # 2. Select IPC variables
 selected = [
@@ -179,7 +179,7 @@ selected = [
 # 3. Parse data
 import tempfile
 output_dir = tempfile.mkdtemp()
-parse_futures = facade.submit_parse_async(
+parse_futures = api.submit_parse_async(
  stats_path="/path/to/gem5/output",
  stats_pattern="stats.txt",
  variables=selected,
@@ -187,10 +187,10 @@ parse_futures = facade.submit_parse_async(
  scanned_vars=variables
 )
 parse_results = [f.result() for f in parse_futures]
-csv_path = facade.finalize_parsing(output_dir, parse_results)
+csv_path = api.finalize_parsing(output_dir, parse_results)
 
 # 4. Load and visualize
-data = facade.load_csv_file(csv_path)
+data = api.load_csv_file(csv_path)
 from src.plotting.plot_factory import PlotFactory
 plot = PlotFactory.create_plot("bar", plot_id=1, name="IPC Analysis")
 fig = plot.create_figure(data, {"x_column": "benchmark", "y_column": "system.cpu.ipc"})

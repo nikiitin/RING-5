@@ -20,7 +20,7 @@ flowchart TB
     classDef presenter  fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#bf360c
     classDef state      fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#4a148c
     classDef model      fill:#fce4ec,stroke:#c62828,stroke-width:2px,color:#b71c1c
-    classDef engine     fill:#e0f7fa,stroke:#00838f,stroke-width:2px,color:#006064
+
     classDef adapter    fill:#f1f8e9,stroke:#558b2f,stroke-width:2px,color:#33691e
     classDef oldcode    fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#616161,stroke-dasharray:5 5
 
@@ -30,7 +30,7 @@ flowchart TB
     subgraph L1["Layer 1 — Pages"]
         direction LR
         page_v2["manage_plots.py<br/><i>Thin page – DI composition</i>"]
-        adapters["plot_adapters.py<br/><i>4 adapters bridging old → protocols</i>"]
+        adapters["plot_adapters.py<br/><i>3 adapters bridging old → protocols</i>"]
     end
     class page_v2 page
     class adapters adapter
@@ -83,19 +83,11 @@ flowchart TB
     subgraph L5["Layer 5 — Models & Protocols"]
         direction LR
         typedicts["plot_models.py<br/><i>8 TypedDicts:<br/>PlotDisplayConfig, ShaperStep,<br/>TypographyConfig, MarginsConfig,<br/>SeriesStyleConfig, …</i>"]
-        protocols["plot_protocols.py<br/><i>6 Protocols:<br/>PlotHandle, ConfigRenderer,<br/>PlotLifecycleService,<br/>PlotTypeRegistry, ChartDisplay,<br/>PipelineExecutor</i>"]
+        protocols["plot_protocols.py<br/><i>6 Protocols:<br/>PlotHandle, ConfigRenderer,<br/>RenderablePlot,<br/>PlotLifecycleService,<br/>PlotTypeRegistry, PipelineExecutor</i>"]
     end
     class typedicts,protocols model
 
-    %% ─────────────────────────────────────────────────────────────────
-    %% FigureEngine (pure domain, ZERO Streamlit)
-    %% ─────────────────────────────────────────────────────────────────
-    subgraph FE["FigureEngine"]
-        direction LR
-        fe_proto["protocols.py<br/><i>FigureCreator, FigureStyler</i>"]
-        fe_engine["engine.py<br/><i>build(type, data, config) → Figure<br/>Protocol-based injection</i>"]
-    end
-    class fe_proto,fe_engine engine
+
 
     %% ─────────────────────────────────────────────────────────────────
     %% Old code (pages.ui.*) — accessed ONLY through Layer 1 adapters
@@ -150,8 +142,7 @@ flowchart TB
     pipeline_ctrl --> core_api
     render_ctrl --> core_api
 
-    %% FigureEngine → own protocols only
-    fe_engine --> fe_proto
+
 ```
 
 ## Dependency Rules
@@ -168,7 +159,7 @@ flowchart LR
         r3["Layer 3 → L5, streamlit"]
         r4["Layer 4 → L5, st.session_state"]
         r5["Layer 5 → typing, pandas (ZERO streamlit)"]
-        rF["FigureEngine → own protocols, plotly, pandas (ZERO streamlit, ZERO pages.ui)"]
+        rF["Rendering → plotly, matplotlib, pandas (ZERO streamlit, ZERO pages.ui)"]
     end
     class r1,r2,r3,r4,r5,rF allowed
 
@@ -178,7 +169,7 @@ flowchart LR
         f2["L3 ✗ pages.ui.*"]
         f3["L4 ✗ pages.ui.*"]
         f4["L5 ✗ streamlit"]
-        f5["FigureEngine ✗ streamlit, pages.ui"]
+        f5["Rendering ✗ streamlit, pages.ui"]
         f6["Any layer ✗ upward imports"]
     end
     class f1,f2,f3,f4,f5,f6 blocked
@@ -193,8 +184,8 @@ controllers, contains minimal wiring logic.
 
 | File | Purpose |
 |------|---------|
-| `manage_plots.py` | Entry point. Creates 4 adapters, 3 controllers, calls their `render()` methods |
-| `plot_adapters.py` | 4 adapter classes bridging old `pages.ui.*` code to Layer 5 protocols |
+| `manage_plots.py` | Entry point. Creates 3 adapters, 3 controllers, calls their `render()` methods |
+| `plot_adapters.py` | 3 adapter classes bridging old `pages.ui.*` code to Layer 5 protocols |
 
 **Adapters**:
 
@@ -202,7 +193,6 @@ controllers, contains minimal wiring logic.
 |---------|----------|-------|
 | `PlotLifecycleAdapter` | `PlotLifecycleService` | `PlotService` static methods |
 | `PlotTypeRegistryAdapter` | `PlotTypeRegistry` | `PlotFactory.get_available_plot_types()` |
-| `ChartDisplayAdapter` | `ChartDisplay` | `PlotRenderer.render_plot()` |
 | `PipelineExecutorAdapter` | `PipelineExecutor` | `apply_shapers`, `configure_shaper` |
 
 ### Layer 2 — Controllers (`src/web/controllers/plot/`)
@@ -215,7 +205,7 @@ presenters, delegates domain work to injected protocol services, triggers
 |------------|-------------------|-----------------|
 | `PlotCreationController` | `PlotLifecycleService`, `PlotTypeRegistry` | Selector, Creation, Controls, SaveDialog, LoadDialog |
 | `PipelineController` | `PipelineExecutor` | Pipeline, PipelineStep |
-| `PlotRenderController` | `PlotLifecycleService`, `PlotTypeRegistry`, `ChartDisplay` | Chart, Config |
+| `PlotRenderController` | `PlotLifecycleService`, `PlotTypeRegistry` | Chart, Config |
 
 **Allowed `st.*` calls** (flow control only):
 `st.rerun()`, `st.warning()`, `st.success()`, `st.error()`
@@ -265,21 +255,25 @@ state. Prevents scattered key access and naming collisions.
 |----------|---------|-------------|
 | `PlotHandle` | Abstract plot reference | `.plot_id`, `.name`, `.plot_type`, `.config`, `.processed_data`, `.pipeline` |
 | `ConfigRenderer` | Render config widgets | `.render_config_ui()`, `.render_advanced_options()`, `.render_display_options()`, `.render_theme_options()` |
+| `RenderablePlot` | Combined plot+config | Inherits `PlotHandle` + `ConfigRenderer` |
 | `PlotLifecycleService` | Plot CRUD | `.create_plot()`, `.delete_plot()`, `.duplicate_plot()`, `.change_plot_type()` |
 | `PlotTypeRegistry` | Available plot types | `.get_available_types()` |
-| `ChartDisplay` | Render chart figure | `.render_chart()` |
 | `PipelineExecutor` | Run shaper pipeline | `.apply_shapers()`, `.configure_shaper()` |
 
-### FigureEngine (`src/web/figures/`)
+### Rendering (`src/web/rendering/`)
 
-**Role**: Streamlit-free figure generation facade. Dispatches to registered
-`FigureCreator` instances for type-specific figure creation, then applies
-`FigureStyler` for visual styling.
+**Role**: Engine-agnostic figure rendering. Connectors translate typed
+`TraceBuildResult` and `FigureConfig` into engine-specific figures.
 
 | File | Purpose |
 |------|---------|
-| `protocols.py` | `FigureCreator` and `FigureStyler` protocols |
-| `engine.py` | `FigureEngine.build(type, data, config) → go.Figure` |
+| `engine_manager.py` | Dispatches to active engine connector |
+| `plotly_connector.py` | TraceBuildResult → `go.Figure` |
+| `matplotlib_connector.py` | TraceBuildResult → `mpl.Figure` |
+| `trace_to_plotly.py` | Typed trace dispatch (bar, line, scatter, histogram) |
+| `preset_applicator.py` | Applies preset styling to figures |
+| `config_builder.py` | Builds FigureConfig from plot config dict |
+| `widgets/` | Declarative widget definitions and renderer |
 
 ## Data Flow
 
@@ -318,10 +312,17 @@ src/web/
 │   ├── __init__.py                      Re-exports TypedDicts + Protocols
 │   ├── plot_models.py                   8 TypedDicts
 │   └── plot_protocols.py                6 Protocols
-├── figures/                         ← FigureEngine
+├── rendering/                       ← Engine connectors + widgets
 │   ├── __init__.py                      Re-exports
-│   ├── protocols.py                     FigureCreator, FigureStyler
-│   └── engine.py                        FigureEngine facade
+│   ├── engine_manager.py               Engine dispatch
+│   ├── plotly_connector.py              Plotly rendering
+│   ├── matplotlib_connector.py          Matplotlib rendering
+│   ├── trace_to_plotly.py               Typed trace → go.Figure
+│   ├── preset_applicator.py             Preset styling
+│   ├── config_builder.py               Config → FigureConfig
+│   └── widgets/                         Declarative widget system
+│       ├── widget_def.py                Widget definitions
+│       └── widget_renderer.py           Widget renderer
 ├── state/                           ← Layer 4
 │   └── ui_state_manager.py              UIStateManager + 4 sub-managers
 ├── presenters/plot/                 ← Layer 3
@@ -342,7 +343,7 @@ src/web/
 │   └── render_controller.py
 └── pages/                           ← Layer 1
     ├── manage_plots.py                   Thin page + DI composition
-    ├── plot_adapters.py                 4 protocol adapters
+    ├── plot_adapters.py                 3 protocol adapters
     └── ui/                              Old code (wrapped by adapters)
         └── plotting/...
 ```
