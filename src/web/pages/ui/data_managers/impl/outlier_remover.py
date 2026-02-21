@@ -78,8 +78,10 @@ class OutlierRemoverManager(DataManager):
 
         with col2:
             if categorical_cols:
-                # Intelligent default: Exclude "random_seed" from grouping as it defeats outlier detection  # noqa: E501
-                # (grouping by seed means 1 item per group -> no outliers)
+                # Intelligent default: Exclude "random_seed"
+                # from grouping as it defeats outlier
+                # detection (grouping by seed means
+                # 1 item per group -> no outliers)
                 default_cols = [
                     c for c in categorical_cols if c != "random_seed" and "seed" not in c.lower()
                 ]
@@ -94,7 +96,11 @@ class OutlierRemoverManager(DataManager):
                     options=categorical_cols,
                     default=default_cols,
                     key="outlier_groupby",
-                    help="Columns to group data by before calculating Q3. Do NOT include 'random_seed' here!",  # noqa: E501
+                    help=(
+                        "Columns to group data by before"
+                        " calculating Q3. Do NOT include"
+                        " 'random_seed' here!"
+                    ),
                 )
             else:
                 group_by_cols = []

@@ -144,7 +144,7 @@ class DataSourceComponents:
                 key="parser_strategy_selector",
             )
 
-            if selected_strategy != current_strategy:
+            if selected_strategy and selected_strategy != current_strategy:
                 api.state_manager.set_parser_strategy(selected_strategy)
 
             # Variables configuration
@@ -422,7 +422,8 @@ class DataSourceComponents:
 
         # Note: We cannot easily use a 'Stop' button inside a blocking loop in Streamlit
         # without some trickery, but we can check a session state flag or just rely on
-        # the user closing the dialog (which might not kill threads, but user said "call cancel_parse").  # noqa: E501
+        # the user closing the dialog (which might not kill threads,
+        # but user said "call cancel_parse").
         # If we block here, `st.button` inside the loop won't work well.
         # However, `as_completed` is an iterator. We can iterate it.
 

@@ -62,7 +62,11 @@ class GroupedStackedBarPlot(StackedBarPlot):
                 options=options_list,
                 index=group_default_idx + 1 if saved_config.get("group") else 0,
                 key=f"group_{self.plot_id}",
-                help="The variable displayed on the X-axis within the major group (e.g., Configuration)",  # noqa: E501
+                help=(
+                    "The variable displayed on the X-axis"
+                    " within the major group"
+                    " (e.g., Configuration)"
+                ),
             )
 
         with col2:
@@ -117,11 +121,14 @@ class GroupedStackedBarPlot(StackedBarPlot):
         if dual_axis:
             da1, da2 = st.columns(2)
             with da1:
-                right_axis_type = st.segmented_control(
-                    "Right-axis trace type",
-                    options=["bars", "dots"],
-                    default=saved_config.get("right_axis_type", "bars"),
-                    key=f"right_type_{self.plot_id}",
+                right_axis_type = (
+                    st.segmented_control(
+                        "Right-axis trace type",
+                        options=["bars", "dots"],
+                        default=saved_config.get("right_axis_type", "bars"),
+                        key=f"right_type_{self.plot_id}",
+                    )
+                    or "bars"
                 )
             with da2:
                 ylabel_right = st.text_input(

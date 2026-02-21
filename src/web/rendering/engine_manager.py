@@ -28,7 +28,7 @@ Usage::
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, cast
 
 import streamlit as st
 
@@ -53,7 +53,7 @@ class EngineManager:
         if mode not in _VALID_MODES:
             return EngineManager.DEFAULT_MODE
         # Safe cast — validated above.
-        return mode  # type: ignore[return-value]
+        return cast(EngineMode, mode)
 
     @staticmethod
     def set_engine(mode: EngineMode) -> None:

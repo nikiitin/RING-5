@@ -43,7 +43,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import fields
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from src.core.models.visualization.figure_config import FigureConfig
@@ -106,7 +106,7 @@ def _resolve_typography(typo: object) -> None:
     typo.legend3_text_fontsize = _resolve_int(typo.legend3_text_fontsize, typo.font_size_legend3)
 
 
-def _resolve_legends(legends: list) -> None:  # type: ignore[type-arg]
+def _resolve_legends(legends: "list[Any]") -> None:
     """Resolve LegendConfig list: secondary/boxed inherit from primary."""
     from src.core.models.visualization.legend_config import LegendConfig
 

@@ -12,9 +12,12 @@ These replace:
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional, cast
 
-from src.core.models.visualization.annotation_config import AnnotationConfig, ReferenceLineConfig
+from src.core.models.visualization.annotation_config import (
+    AnnotationConfig,
+    ReferenceLineConfig,
+)
 from src.core.models.visualization.axis_config import AxesConfig, AxisConfig
 from src.core.models.visualization.data_label_config import DataLabelConfig
 from src.core.models.visualization.figure_config import (
@@ -23,7 +26,10 @@ from src.core.models.visualization.figure_config import (
     MarginsConfig,
     SeparatorConfig,
 )
-from src.core.models.visualization.legend_config import LegendConfig, LegendSpacingConfig
+from src.core.models.visualization.legend_config import (
+    LegendConfig,
+    LegendSpacingConfig,
+)
 from src.core.models.visualization.palettes import resolve_palette
 from src.core.models.visualization.series_style_config import SeriesStyleConfig
 from src.core.models.visualization.typography_config import TypographyConfig
@@ -150,7 +156,12 @@ class PlotlyFigureSpecBuilder:
         # ── Barmode ─────────────────────────────────────────────
         plotly_barmode = getattr(layout, "barmode", None)
         if plotly_barmode is not None:
-            spec.barmode = str(plotly_barmode)  # type: ignore[assignment]
+            barmode_str = str(plotly_barmode)
+            if barmode_str in ("group", "stack", "overlay", "relative"):
+                spec.barmode = cast(
+                    Literal["group", "stack", "overlay", "relative"],
+                    barmode_str,
+                )
 
         # ── Legend3 (boxed legend items) ─────────────────────────
         legend3 = getattr(layout, "legend3", None)
@@ -481,9 +492,12 @@ class ConfigSpecBuilder:
                 dl_rotation = 0
 
             # Normalize color mode to lowercase for Literal match
-            raw_color_mode = str(config.get("text_color_mode", "auto")).lower()
-            if raw_color_mode not in ("auto", "contrast", "custom"):
-                raw_color_mode = "auto"
+            raw_color_mode_str = str(config.get("text_color_mode", "auto")).lower()
+            if raw_color_mode_str not in ("auto", "contrast", "custom"):
+                raw_color_mode_str = "auto"
+            raw_color_mode: Literal["auto", "contrast", "custom"] = cast(
+                Literal["auto", "contrast", "custom"], raw_color_mode_str
+            )
 
             # Position validation
             raw_position = config.get("text_position", "auto")
@@ -499,18 +513,18 @@ class ConfigSpecBuilder:
 
             # Constraint mapping: bool config → Literal
             constraint_raw = config.get("text_constraint", False)
-            size_constraint = "inside" if constraint_raw else "none"
+            size_constraint: Literal["none", "inside"] = "inside" if constraint_raw else "none"
 
             data_labels = DataLabelConfig(
                 enabled=True,
-                color_mode=raw_color_mode,  # type: ignore[arg-type]
+                color_mode=raw_color_mode,
                 custom_color=config.get("text_color", "#000000"),
                 font_size=dl_font_size,
                 rotation=dl_rotation,
                 position=raw_position,
                 anchor=raw_anchor,
                 format_string=config.get("text_format", ".2f"),
-                size_constraint=size_constraint,  # type: ignore[arg-type]
+                size_constraint=size_constraint,
             )
 
         # ── Reference lines ─────────────────────────────────────
@@ -570,9 +584,12 @@ class ConfigSpecBuilder:
         hovermode = config.get("hovermode", "x unified")
 
         # ── Bar mode ────────────────────────────────────────────
-        barmode_raw = str(config.get("barmode", "group")).lower()
-        if barmode_raw not in ("group", "stack", "overlay", "relative"):
-            barmode_raw = "group"
+        barmode_raw_str = str(config.get("barmode", "group")).lower()
+        if barmode_raw_str not in ("group", "stack", "overlay", "relative"):
+            barmode_raw_str = "group"
+        barmode_raw: Literal["group", "stack", "overlay", "relative"] = cast(
+            Literal["group", "stack", "overlay", "relative"], barmode_raw_str
+        )
 
         return FigureConfig(
             dimensions=dims,
@@ -590,7 +607,7 @@ class ConfigSpecBuilder:
             show_error_bars=show_error_bars,
             enable_stripes=enable_stripes,
             hovermode=hovermode,
-            barmode=barmode_raw,  # type: ignore[arg-type]
+            barmode=barmode_raw,
         )
 
 

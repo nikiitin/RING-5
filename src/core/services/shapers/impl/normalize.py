@@ -184,7 +184,8 @@ class Normalize(UniDfShaper):
         # Ensure baseline value exists
         if self._normalizer_value not in data_frame[self._normalizer_column].values:
             raise ValueError(
-                f"Baseline value '{self._normalizer_value}' not found in column '{self._normalizer_column}'."  # noqa: E501
+                f"Baseline value '{self._normalizer_value}' not found "
+                f"in column '{self._normalizer_column}'."
             )
 
         # Group validation

@@ -300,7 +300,11 @@ class BaseStyleUI:
                 max_value=10,
                 value=saved_config.get("legend_ncols", 0),
                 key=f"{key_prefix}leg_cols_{self.plot_id}",
-                help="Number of legend columns. Uses multiple legend objects positioned side-by-side. 0 = Auto (single column).",  # noqa: E501
+                help=(
+                    "Number of legend columns. Uses multiple"
+                    " legend objects positioned side-by-side."
+                    " 0 = Auto (single column)."
+                ),
             )
 
         with pos_c2:
@@ -478,7 +482,11 @@ class BaseStyleUI:
                 max_value=300,
                 value=saved_config.get("yaxis_title_vshift", 0),
                 key=f"{key_prefix}yaxis_title_vshift_{self.plot_id}",
-                help="Move title up (+) or down (-) along the axis. Note: Disables native auto-margins for title.",  # noqa: E501
+                help=(
+                    "Move title up (+) or down (-) along"
+                    " the axis. Note: Disables native"
+                    " auto-margins for title."
+                ),
             )
 
         with typo_c2:
@@ -765,7 +773,11 @@ class BaseStyleUI:
                 else 0
             ),
             key=f"{key_prefix}tx_col_mode_{self.plot_id}",
-            help="Auto: uses theme default. Contrast: white on dark, black on light. Custom: fixed color.",  # noqa: E501
+            help=(
+                "Auto: uses theme default. Contrast:"
+                " white on dark, black on light."
+                " Custom: fixed color."
+            ),
         )
 
         text_color = "#000000"

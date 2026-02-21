@@ -26,11 +26,12 @@ Usage::
     render = PlotRenderController(api, ui_state, lifecycle, registry)
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 import pandas as pd
 
 from src.web.models.plot_protocols import PlotHandle
+from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 from src.web.pages.ui.plotting.plot_service import PlotService
 from src.web.pages.ui.shaper_config import apply_shapers, configure_shaper
@@ -53,11 +54,11 @@ class PlotLifecycleAdapter:
 
     def duplicate_plot(self, plot: PlotHandle, state_manager: Any) -> PlotHandle:
         """Duplicate a plot via PlotService."""
-        return PlotService.duplicate_plot(plot, state_manager)  # type: ignore[arg-type]
+        return PlotService.duplicate_plot(cast(BasePlot, plot), state_manager)
 
     def change_plot_type(self, plot: PlotHandle, new_type: str, state_manager: Any) -> PlotHandle:
         """Change a plot's type via PlotService."""
-        return PlotService.change_plot_type(plot, new_type, state_manager)  # type: ignore[arg-type]
+        return PlotService.change_plot_type(cast(BasePlot, plot), new_type, state_manager)
 
 
 class PlotTypeRegistryAdapter:

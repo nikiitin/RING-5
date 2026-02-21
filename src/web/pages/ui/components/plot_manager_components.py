@@ -121,10 +121,14 @@ class PlotManagerComponents:
             )
 
         with col4:
+
+            def _duplicate() -> None:
+                PlotService.duplicate_plot(plot, api.state_manager)
+
             st.button(
                 "Duplicate",
                 key=f"dup_plot_{plot.plot_id}",
-                on_click=lambda: PlotService.duplicate_plot(plot, api.state_manager),
+                on_click=_duplicate,
                 type="tertiary",
             )
 
@@ -324,7 +328,9 @@ class PlotManagerComponents:
 
         st.markdown("#### Download All Plots")
         st.caption(
-            "Download all plots to a local directory (e.g., your LaTeX repository). Uses individual plot settings (Scale/Format)."  # noqa: E501
+            "Download all plots to a local directory"
+            " (e.g., your LaTeX repository)."
+            " Uses individual plot settings (Scale/Format)."
         )
 
         ec1, ec2, ec3 = st.columns([2, 1, 1])
