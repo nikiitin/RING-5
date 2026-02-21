@@ -10,12 +10,15 @@ on:
     - cron: 0 0 * * 1
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   analyze:
     name: CodeQL Analysis
     runs-on: ubuntu-latest
     timeout-minutes: 360
-    permissions: # checkov:skip=CKV2_GHA_1
+    permissions:
       # Required for all workflows
       security-events: write
       # Required to fetch internal or private CodeQL packs
