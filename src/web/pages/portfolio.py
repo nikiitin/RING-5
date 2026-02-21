@@ -7,14 +7,21 @@ data, plots, and all configurations as portfolio files.
 
 import copy
 import logging
-from typing import List, Optional, cast
+from typing import Any, Dict, List, Optional, cast
 
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
 from src.core.models import PortfolioData
+from src.web.rendering.config_builder import ConfigSpecBuilder
 
 logger: logging.Logger = logging.getLogger(__name__)
+
+
+def _build_figure_spec(config: Dict[str, Any], plot_type: str) -> Optional[Dict[str, Any]]:
+    """Build a FigureConfig dict from plot config (injected into core layer)."""
+    spec = ConfigSpecBuilder.from_config(config, plot_type)
+    return spec.to_dict()
 
 
 def show_portfolio_page(api: ApplicationAPI) -> None:
@@ -62,6 +69,7 @@ def show_portfolio_page(api: ApplicationAPI) -> None:
                         parse_variables=cast(
                             Optional[List[str]], api.state_manager.get_parse_variables()
                         ),
+                        figure_spec_enricher=_build_figure_spec,
                     )
                     st.toast(f"Portfolio saved: {portfolio_name}", icon="✅")
                     st.rerun()

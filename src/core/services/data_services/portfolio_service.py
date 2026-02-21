@@ -68,7 +68,7 @@ Last Modified: 2026-01-27
 
 import json
 import logging
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Callable, Dict, List, Optional, cast
 
 import pandas as pd
 
@@ -104,30 +104,42 @@ class PortfolioService:
         plot_counter: int,
         csv_path: Optional[str] = None,
         parse_variables: Optional[List[str]] = None,
+        figure_spec_enricher: Optional[
+            Callable[[Dict[str, Any], str], Optional[Dict[str, Any]]]
+        ] = None,
     ) -> None:
-        """Serialize and save the current workspace state."""
+        """Serialize and save the current workspace state.
+
+        Args:
+            name: Portfolio name.
+            data: Current DataFrame (may be None).
+            plots: Active plot objects implementing PlotProtocol.
+            config: Global configuration dict.
+            plot_counter: Current plot counter for ID generation.
+            csv_path: Path to the original CSV file.
+            parse_variables: List of parsed variable names.
+            figure_spec_enricher: Optional callback from the presentation layer
+                that converts a plot config dict and plot_type into a
+                FigureConfig dict. Injected to avoid core→web imports.
+        """
         if not name:
             raise ValueError("Portfolio name cannot be empty")
 
+        logger = logging.getLogger(__name__)
         serialized_plots = []
         for plot in plots:
             plot_dict: Dict[str, Any] = plot.to_dict()
-            # Persist FigureConfig alongside flat config for V2 schema
             plot_config: Dict[str, Any] = plot_dict.get("config", {})
-            # Persist FigureConfig via the rendering layer (optional).
-            # The import is deferred to avoid a hard core→web dependency.
-            try:
-                from src.web.rendering.config_builder import (  # noqa: F811
-                    ConfigSpecBuilder,
-                )
-
-                spec = ConfigSpecBuilder.from_config(plot_config, plot_dict.get("plot_type", ""))
-                plot_dict["figure_spec"] = spec.to_dict()
-            except Exception:
-                logging.getLogger(__name__).debug(
-                    "Could not build FigureConfig for plot %s; saving without it",
-                    plot_dict.get("name", "?"),
-                )
+            if figure_spec_enricher is not None:
+                try:
+                    spec_dict = figure_spec_enricher(plot_config, plot_dict.get("plot_type", ""))
+                    if spec_dict is not None:
+                        plot_dict["figure_spec"] = spec_dict
+                except Exception:
+                    logger.debug(
+                        "Could not build FigureConfig for plot %s; saving without it",
+                        plot_dict.get("name", "?"),
+                    )
             serialized_plots.append(plot_dict)
 
         data_csv = data.to_csv(index=False) if data is not None and not data.empty else ""

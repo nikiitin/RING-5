@@ -5,7 +5,7 @@ Delegates to CsvPoolService, ConfigService, VariableService,
 and PortfolioService.
 """
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import pandas as pd
 
@@ -199,10 +199,20 @@ class DefaultDataServicesAPI:
         plot_counter: int,
         csv_path: Optional[str] = None,
         parse_variables: Optional[List[str]] = None,
+        figure_spec_enricher: Optional[
+            Callable[[Dict[str, Any], str], Optional[Dict[str, Any]]]
+        ] = None,
     ) -> None:
         """Serialize and save the current workspace state."""
         self._portfolio_service.save_portfolio(
-            name, data, plots, config, plot_counter, csv_path, parse_variables
+            name,
+            data,
+            plots,
+            config,
+            plot_counter,
+            csv_path,
+            parse_variables,
+            figure_spec_enricher,
         )
 
     def load_portfolio(self, name: str) -> Dict[str, Any]:

@@ -6,7 +6,16 @@ configuration persistence, variable management, and portfolio workspace
 snapshots.
 """
 
-from typing import Any, Dict, List, Optional, Protocol, Tuple, runtime_checkable
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Protocol,
+    Tuple,
+    runtime_checkable,
+)
 
 import pandas as pd
 
@@ -166,6 +175,9 @@ class DataServicesAPI(Protocol):
         plot_counter: int,
         csv_path: Optional[str] = None,
         parse_variables: Optional[List[str]] = None,
+        figure_spec_enricher: Optional[
+            Callable[[Dict[str, Any], str], Optional[Dict[str, Any]]]
+        ] = None,
     ) -> None:
         """Serialize and save the current workspace state."""
 
