@@ -197,7 +197,9 @@ class TestConfigAwareStrategy:
 
     def test_post_process_no_sim_path(self) -> None:
         """Result without sim_path key — should be appended as-is."""
-        from src.core.parsing.gem5.impl.strategies.config_aware import ConfigAwareStrategy
+        from src.core.parsing.gem5.impl.strategies.config_aware import (
+            ConfigAwareStrategy,
+        )
 
         strategy = ConfigAwareStrategy()
         results = [{"some_data": 123}]
@@ -207,7 +209,9 @@ class TestConfigAwareStrategy:
 
     def test_post_process_config_found(self, tmp_path: Path) -> None:
         """Result with sim_path pointing to existing config.ini."""
-        from src.core.parsing.gem5.impl.strategies.config_aware import ConfigAwareStrategy
+        from src.core.parsing.gem5.impl.strategies.config_aware import (
+            ConfigAwareStrategy,
+        )
 
         # Create a mock config.ini
         config_path = tmp_path / "config.ini"
@@ -227,7 +231,9 @@ class TestConfigAwareStrategy:
 
     def test_post_process_config_not_found(self, tmp_path: Path) -> None:
         """Result with sim_path but no config.ini in the directory."""
-        from src.core.parsing.gem5.impl.strategies.config_aware import ConfigAwareStrategy
+        from src.core.parsing.gem5.impl.strategies.config_aware import (
+            ConfigAwareStrategy,
+        )
 
         stats_path = tmp_path / "stats.txt"
         stats_path.write_text("dummy")
@@ -241,7 +247,9 @@ class TestConfigAwareStrategy:
 
     def test_parse_config_error_handling(self, tmp_path: Path) -> None:
         """_parse_config handles malformed config gracefully."""
-        from src.core.parsing.gem5.impl.strategies.config_aware import ConfigAwareStrategy
+        from src.core.parsing.gem5.impl.strategies.config_aware import (
+            ConfigAwareStrategy,
+        )
 
         # Create a config that will cause parser issues
         config_path = tmp_path / "config.ini"
@@ -254,7 +262,9 @@ class TestConfigAwareStrategy:
 
     def test_parse_config_unreadable(self, tmp_path: Path) -> None:
         """_parse_config returns empty dict on read error."""
-        from src.core.parsing.gem5.impl.strategies.config_aware import ConfigAwareStrategy
+        from src.core.parsing.gem5.impl.strategies.config_aware import (
+            ConfigAwareStrategy,
+        )
 
         # Non-existent path — configparser.read silently handles missing files
         # but we should test with a path that can't be parsed
@@ -364,12 +374,16 @@ class TestWorkPool:
 class TestParseServiceRegexExpansion:
     """Cover regex expansion branches in submit_parse_async."""
 
-    @patch("src.core.parsing.parse_service.ParseWorkPool")
-    @patch("src.core.parsing.parse_service.StrategyFactory")
+    @patch("src.core.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_regex_expansion_with_scanned_vars(
         self, mock_factory: MagicMock, mock_pool_cls: MagicMock, tmp_path: Path
     ) -> None:
-        from src.core.models.parsing_models import ParseBatchResult, ScannedVariable, StatConfig
+        from src.core.models.parsing_models import (
+            ParseBatchResult,
+            ScannedVariable,
+            StatConfig,
+        )
         from src.core.parsing.parse_service import ParseService
 
         # Create the stats directory so FileNotFoundError isn't raised
@@ -400,12 +414,16 @@ class TestParseServiceRegexExpansion:
         )
         assert isinstance(result, ParseBatchResult)
 
-    @patch("src.core.parsing.parse_service.ParseWorkPool")
-    @patch("src.core.parsing.parse_service.StrategyFactory")
+    @patch("src.core.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_regex_expansion_with_pattern_indices(
         self, mock_factory: MagicMock, mock_pool_cls: MagicMock, tmp_path: Path
     ) -> None:
-        from src.core.models.parsing_models import ParseBatchResult, ScannedVariable, StatConfig
+        from src.core.models.parsing_models import (
+            ParseBatchResult,
+            ScannedVariable,
+            StatConfig,
+        )
         from src.core.parsing.parse_service import ParseService
 
         stats_dir = tmp_path / "sim"
@@ -438,9 +456,9 @@ class TestParseServiceRegexExpansion:
         )
         assert isinstance(result, ParseBatchResult)
 
-    @patch("src.core.parsing.parse_service.PatternIndexService")
-    @patch("src.core.parsing.parse_service.ParseWorkPool")
-    @patch("src.core.parsing.parse_service.StrategyFactory")
+    @patch("src.core.parsing.gem5.impl.gem5_parser.PatternIndexService")
+    @patch("src.core.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_keep_indices_expansion(
         self,
         mock_factory: MagicMock,
@@ -448,7 +466,11 @@ class TestParseServiceRegexExpansion:
         mock_pattern_svc: MagicMock,
         tmp_path: Path,
     ) -> None:
-        from src.core.models.parsing_models import ParseBatchResult, ScannedVariable, StatConfig
+        from src.core.models.parsing_models import (
+            ParseBatchResult,
+            ScannedVariable,
+            StatConfig,
+        )
         from src.core.parsing.parse_service import ParseService
 
         stats_dir = tmp_path / "sim"
@@ -490,9 +512,9 @@ class TestParseServiceRegexExpansion:
         )
         assert isinstance(result, ParseBatchResult)
 
-    @patch("src.core.parsing.parse_service.PatternIndexService")
-    @patch("src.core.parsing.parse_service.ParseWorkPool")
-    @patch("src.core.parsing.parse_service.StrategyFactory")
+    @patch("src.core.parsing.gem5.impl.gem5_parser.PatternIndexService")
+    @patch("src.core.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_keep_indices_with_numeric_ids(
         self,
         mock_factory: MagicMock,
@@ -501,7 +523,11 @@ class TestParseServiceRegexExpansion:
         tmp_path: Path,
     ) -> None:
         """Cover the numeric ID path (IDs don't contain '.')."""
-        from src.core.models.parsing_models import ParseBatchResult, ScannedVariable, StatConfig
+        from src.core.models.parsing_models import (
+            ParseBatchResult,
+            ScannedVariable,
+            StatConfig,
+        )
         from src.core.parsing.parse_service import ParseService
 
         stats_dir = tmp_path / "sim"
@@ -544,13 +570,17 @@ class TestParseServiceRegexExpansion:
         )
         assert isinstance(result, ParseBatchResult)
 
-    @patch("src.core.parsing.parse_service.ParseWorkPool")
-    @patch("src.core.parsing.parse_service.StrategyFactory")
+    @patch("src.core.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_regex_no_match_warns(
         self, mock_factory: MagicMock, mock_pool_cls: MagicMock, tmp_path: Path
     ) -> None:
         """Cover the 'no matches found' branch."""
-        from src.core.models.parsing_models import ParseBatchResult, ScannedVariable, StatConfig
+        from src.core.models.parsing_models import (
+            ParseBatchResult,
+            ScannedVariable,
+            StatConfig,
+        )
         from src.core.parsing.parse_service import ParseService
 
         stats_dir = tmp_path / "sim"
@@ -579,13 +609,17 @@ class TestParseServiceRegexExpansion:
         )
         assert isinstance(result, ParseBatchResult)
 
-    @patch("src.core.parsing.parse_service.ParseWorkPool")
-    @patch("src.core.parsing.parse_service.StrategyFactory")
+    @patch("src.core.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_invalid_regex_warns(
         self, mock_factory: MagicMock, mock_pool_cls: MagicMock, tmp_path: Path
     ) -> None:
         """Cover the 'invalid regex' branch."""
-        from src.core.models.parsing_models import ParseBatchResult, ScannedVariable, StatConfig
+        from src.core.models.parsing_models import (
+            ParseBatchResult,
+            ScannedVariable,
+            StatConfig,
+        )
         from src.core.parsing.parse_service import ParseService
 
         stats_dir = tmp_path / "sim"
@@ -624,7 +658,7 @@ class TestParseServiceFinalize:
         result = ParseService.finalize_parsing("/tmp/out", [])
         assert result is None
 
-    @patch("src.core.parsing.parse_service.StrategyFactory")
+    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_finalize_parsing_delegates_to_strategy(
         self, mock_factory: MagicMock, tmp_path: Path
     ) -> None:
@@ -744,7 +778,9 @@ class TestPatternIndexSelector:
     def test_render_selector_not_pattern_variable(
         self, mock_svc: MagicMock, mock_st: MagicMock
     ) -> None:
-        from src.web.pages.ui.components.pattern_index_selector import PatternIndexSelector
+        from src.web.pages.ui.components.pattern_index_selector import (
+            PatternIndexSelector,
+        )
 
         mock_svc.is_pattern_variable.return_value = False
 
@@ -759,7 +795,9 @@ class TestPatternIndexSelector:
     @patch("src.web.pages.ui.components.pattern_index_selector.st")
     @patch("src.web.pages.ui.components.pattern_index_selector.PatternIndexService")
     def test_render_selector_no_positions(self, mock_svc: MagicMock, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.pattern_index_selector import PatternIndexSelector
+        from src.web.pages.ui.components.pattern_index_selector import (
+            PatternIndexSelector,
+        )
 
         mock_svc.is_pattern_variable.return_value = True
         mock_svc.extract_index_positions.return_value = []
@@ -776,7 +814,9 @@ class TestPatternIndexSelector:
     @patch("src.web.pages.ui.components.pattern_index_selector.st")
     @patch("src.web.pages.ui.components.pattern_index_selector.PatternIndexService")
     def test_render_selector_no_filter(self, mock_svc: MagicMock, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.pattern_index_selector import PatternIndexSelector
+        from src.web.pages.ui.components.pattern_index_selector import (
+            PatternIndexSelector,
+        )
 
         mock_svc.is_pattern_variable.return_value = True
         mock_svc.extract_index_positions.return_value = ["cpu"]
@@ -797,7 +837,9 @@ class TestPatternIndexSelector:
     def test_render_selector_with_filter_and_selection(
         self, mock_svc: MagicMock, mock_st: MagicMock
     ) -> None:
-        from src.web.pages.ui.components.pattern_index_selector import PatternIndexSelector
+        from src.web.pages.ui.components.pattern_index_selector import (
+            PatternIndexSelector,
+        )
 
         mock_svc.is_pattern_variable.return_value = True
         mock_svc.extract_index_positions.return_value = ["cpu"]
@@ -835,7 +877,9 @@ class TestPatternIndexSelector:
     def test_render_selector_empty_selection_warns(
         self, mock_svc: MagicMock, mock_st: MagicMock
     ) -> None:
-        from src.web.pages.ui.components.pattern_index_selector import PatternIndexSelector
+        from src.web.pages.ui.components.pattern_index_selector import (
+            PatternIndexSelector,
+        )
 
         mock_svc.is_pattern_variable.return_value = True
         mock_svc.extract_index_positions.return_value = ["cpu"]
@@ -866,7 +910,9 @@ class TestPatternIndexSelector:
     def test_render_selector_with_current_selection(
         self, mock_svc: MagicMock, mock_st: MagicMock
     ) -> None:
-        from src.web.pages.ui.components.pattern_index_selector import PatternIndexSelector
+        from src.web.pages.ui.components.pattern_index_selector import (
+            PatternIndexSelector,
+        )
 
         mock_svc.is_pattern_variable.return_value = True
         mock_svc.extract_index_positions.return_value = ["cpu"]
@@ -901,7 +947,9 @@ class TestPatternIndexSelector:
         with patch(
             "src.web.pages.ui.components.pattern_index_selector.PatternIndexService"
         ) as mock_svc:
-            from src.web.pages.ui.components.pattern_index_selector import PatternIndexSelector
+            from src.web.pages.ui.components.pattern_index_selector import (
+                PatternIndexSelector,
+            )
 
             mock_svc.filter_entries.return_value = ["0"]
             result = PatternIndexSelector._filter_entries(["0", "1"], {0: ["0"]})
@@ -911,7 +959,9 @@ class TestPatternIndexSelector:
         with patch(
             "src.web.pages.ui.components.pattern_index_selector.PatternIndexService"
         ) as mock_svc:
-            from src.web.pages.ui.components.pattern_index_selector import PatternIndexSelector
+            from src.web.pages.ui.components.pattern_index_selector import (
+                PatternIndexSelector,
+            )
 
             mock_svc.format_entry_display.return_value = "cpu0_cntrl1"
             result = PatternIndexSelector._format_entry_display("0_1", ["cpu", "cntrl"])
@@ -928,7 +978,9 @@ class TestDataSourceComponents:
 
     @patch("src.web.pages.ui.components.data_source_components.st")
     def test_render_csv_pool_empty(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.data_source_components import DataSourceComponents
+        from src.web.pages.ui.components.data_source_components import (
+            DataSourceComponents,
+        )
 
         api = MagicMock()
         api.state_manager.get_csv_pool.return_value = []
@@ -947,7 +999,9 @@ class TestDataSourceComponents:
         mock_st: MagicMock,
         tmp_path: Path,
     ) -> None:
-        from src.web.pages.ui.components.data_source_components import DataSourceComponents
+        from src.web.pages.ui.components.data_source_components import (
+            DataSourceComponents,
+        )
 
         csv_file = tmp_path / "test.csv"
         csv_file.write_text("a,b\n1,2\n")
@@ -968,7 +1022,9 @@ class TestDataSourceComponents:
         mock_card: MagicMock,
         mock_st: MagicMock,
     ) -> None:
-        from src.web.pages.ui.components.data_source_components import DataSourceComponents
+        from src.web.pages.ui.components.data_source_components import (
+            DataSourceComponents,
+        )
 
         api = MagicMock()
         api.state_manager.get_csv_pool.return_value = [
@@ -991,7 +1047,9 @@ class TestDataSourceComponents:
     ) -> None:
         import pandas as pd
 
-        from src.web.pages.ui.components.data_source_components import DataSourceComponents
+        from src.web.pages.ui.components.data_source_components import (
+            DataSourceComponents,
+        )
 
         csv_file = tmp_path / "test.csv"
         csv_file.write_text("a,b\n1,2\n")
@@ -1015,7 +1073,9 @@ class TestDataSourceComponents:
         mock_st: MagicMock,
         tmp_path: Path,
     ) -> None:
-        from src.web.pages.ui.components.data_source_components import DataSourceComponents
+        from src.web.pages.ui.components.data_source_components import (
+            DataSourceComponents,
+        )
 
         csv_file = tmp_path / "test.csv"
         csv_file.write_text("a,b\n1,2\n")
@@ -1040,7 +1100,9 @@ class TestDataSourceComponents:
     ) -> None:
         import pandas as pd
 
-        from src.web.pages.ui.components.data_source_components import DataSourceComponents
+        from src.web.pages.ui.components.data_source_components import (
+            DataSourceComponents,
+        )
 
         csv_file = tmp_path / "test.csv"
         csv_file.write_text("a,b\n1,2\n")
@@ -1063,7 +1125,9 @@ class TestDataSourceComponents:
         mock_st: MagicMock,
         tmp_path: Path,
     ) -> None:
-        from src.web.pages.ui.components.data_source_components import DataSourceComponents
+        from src.web.pages.ui.components.data_source_components import (
+            DataSourceComponents,
+        )
 
         csv_file = tmp_path / "test.csv"
         csv_file.write_text("a,b\n1,2\n")
@@ -1086,7 +1150,9 @@ class TestDataSourceComponents:
         mock_st: MagicMock,
         tmp_path: Path,
     ) -> None:
-        from src.web.pages.ui.components.data_source_components import DataSourceComponents
+        from src.web.pages.ui.components.data_source_components import (
+            DataSourceComponents,
+        )
 
         csv_file = tmp_path / "test.csv"
         csv_file.write_text("a,b\n1,2\n")
@@ -1117,7 +1183,9 @@ class TestPlotManagerComponents:
         mock_factory: MagicMock,
         mock_st: MagicMock,
     ) -> None:
-        from src.web.pages.ui.components.plot_manager_components import PlotManagerComponents
+        from src.web.pages.ui.components.plot_manager_components import (
+            PlotManagerComponents,
+        )
 
         api = MagicMock()
         api.state_manager.get_plot_counter.return_value = 0
@@ -1143,7 +1211,9 @@ class TestPlotManagerComponents:
         mock_factory: MagicMock,
         mock_st: MagicMock,
     ) -> None:
-        from src.web.pages.ui.components.plot_manager_components import PlotManagerComponents
+        from src.web.pages.ui.components.plot_manager_components import (
+            PlotManagerComponents,
+        )
 
         api = MagicMock()
         api.state_manager.get_plot_counter.return_value = 0
@@ -1163,7 +1233,9 @@ class TestPlotManagerComponents:
 
     @patch("src.web.pages.ui.components.plot_manager_components.st")
     def test_render_plot_selector_no_plots(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.plot_manager_components import PlotManagerComponents
+        from src.web.pages.ui.components.plot_manager_components import (
+            PlotManagerComponents,
+        )
 
         api = MagicMock()
         api.state_manager.get_plots.return_value = []
@@ -1174,7 +1246,9 @@ class TestPlotManagerComponents:
 
     @patch("src.web.pages.ui.components.plot_manager_components.st")
     def test_render_plot_selector_with_plots(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.plot_manager_components import PlotManagerComponents
+        from src.web.pages.ui.components.plot_manager_components import (
+            PlotManagerComponents,
+        )
 
         plot1 = MagicMock()
         plot1.name = "Plot A"
@@ -1194,7 +1268,9 @@ class TestPlotManagerComponents:
 
     @patch("src.web.pages.ui.components.plot_manager_components.st")
     def test_render_plot_selector_unknown_current_id(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.plot_manager_components import PlotManagerComponents
+        from src.web.pages.ui.components.plot_manager_components import (
+            PlotManagerComponents,
+        )
 
         plot1 = MagicMock()
         plot1.name = "Plot A"
@@ -1218,7 +1294,9 @@ class TestPlotManagerComponents:
         mock_plot_svc: MagicMock,
         mock_ui_state: MagicMock,
     ) -> None:
-        from src.web.pages.ui.components.plot_manager_components import PlotManagerComponents
+        from src.web.pages.ui.components.plot_manager_components import (
+            PlotManagerComponents,
+        )
 
         plot = MagicMock()
         plot.name = "My Plot"
@@ -1257,7 +1335,9 @@ class TestPlotManagerComponents:
         mock_apply: MagicMock,
         mock_shaper_factory: MagicMock,
     ) -> None:
-        from src.web.pages.ui.components.plot_manager_components import PlotManagerComponents
+        from src.web.pages.ui.components.plot_manager_components import (
+            PlotManagerComponents,
+        )
 
         api = MagicMock()
         api.state_manager.get_data.return_value = None
@@ -1271,7 +1351,9 @@ class TestPlotManagerComponents:
     def test_render_workspace_management(
         self, mock_st: MagicMock, mock_ui_state: MagicMock
     ) -> None:
-        from src.web.pages.ui.components.plot_manager_components import PlotManagerComponents
+        from src.web.pages.ui.components.plot_manager_components import (
+            PlotManagerComponents,
+        )
 
         api = MagicMock()
 
@@ -1298,7 +1380,9 @@ class TestPlotManagerComponents:
 
     @patch("src.web.pages.ui.components.plot_manager_components.st")
     def test_render_load_pipeline_dialog_no_pipelines(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.plot_manager_components import PlotManagerComponents
+        from src.web.pages.ui.components.plot_manager_components import (
+            PlotManagerComponents,
+        )
 
         api = MagicMock()
         api.shapers.list_pipelines.return_value = []
@@ -1310,7 +1394,9 @@ class TestPlotManagerComponents:
 
     @patch("src.web.pages.ui.components.plot_manager_components.st")
     def test_render_save_pipeline_dialog(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.plot_manager_components import PlotManagerComponents
+        from src.web.pages.ui.components.plot_manager_components import (
+            PlotManagerComponents,
+        )
 
         api = MagicMock()
         plot = MagicMock()
@@ -1342,7 +1428,11 @@ class TestGem5ParserSubmitParseAsync:
     def test_regex_expansion_with_scanned_vars(
         self, mock_factory: MagicMock, mock_pool_cls: MagicMock, tmp_path: Path
     ) -> None:
-        from src.core.models.parsing_models import ParseBatchResult, ScannedVariable, StatConfig
+        from src.core.models.parsing_models import (
+            ParseBatchResult,
+            ScannedVariable,
+            StatConfig,
+        )
         from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser
 
         stats_dir = tmp_path / "sim"
@@ -1377,7 +1467,11 @@ class TestGem5ParserSubmitParseAsync:
     def test_regex_with_pattern_indices(
         self, mock_factory: MagicMock, mock_pool_cls: MagicMock, tmp_path: Path
     ) -> None:
-        from src.core.models.parsing_models import ParseBatchResult, ScannedVariable, StatConfig
+        from src.core.models.parsing_models import (
+            ParseBatchResult,
+            ScannedVariable,
+            StatConfig,
+        )
         from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser
 
         stats_dir = tmp_path / "sim"
@@ -1420,7 +1514,11 @@ class TestGem5ParserSubmitParseAsync:
         mock_pattern_svc: MagicMock,
         tmp_path: Path,
     ) -> None:
-        from src.core.models.parsing_models import ParseBatchResult, ScannedVariable, StatConfig
+        from src.core.models.parsing_models import (
+            ParseBatchResult,
+            ScannedVariable,
+            StatConfig,
+        )
         from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser
 
         stats_dir = tmp_path / "sim"
@@ -1472,7 +1570,11 @@ class TestGem5ParserSubmitParseAsync:
         mock_pattern_svc: MagicMock,
         tmp_path: Path,
     ) -> None:
-        from src.core.models.parsing_models import ParseBatchResult, ScannedVariable, StatConfig
+        from src.core.models.parsing_models import (
+            ParseBatchResult,
+            ScannedVariable,
+            StatConfig,
+        )
         from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser
 
         stats_dir = tmp_path / "sim"
@@ -1520,7 +1622,11 @@ class TestGem5ParserSubmitParseAsync:
     def test_regex_no_match(
         self, mock_factory: MagicMock, mock_pool_cls: MagicMock, tmp_path: Path
     ) -> None:
-        from src.core.models.parsing_models import ParseBatchResult, ScannedVariable, StatConfig
+        from src.core.models.parsing_models import (
+            ParseBatchResult,
+            ScannedVariable,
+            StatConfig,
+        )
         from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser
 
         stats_dir = tmp_path / "sim"
@@ -1548,7 +1654,11 @@ class TestGem5ParserSubmitParseAsync:
     def test_invalid_regex(
         self, mock_factory: MagicMock, mock_pool_cls: MagicMock, tmp_path: Path
     ) -> None:
-        from src.core.models.parsing_models import ParseBatchResult, ScannedVariable, StatConfig
+        from src.core.models.parsing_models import (
+            ParseBatchResult,
+            ScannedVariable,
+            StatConfig,
+        )
         from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser
 
         stats_dir = tmp_path / "sim"
@@ -1886,7 +1996,9 @@ class TestPlotManagerComponentsExtra:
     ) -> None:
         import pandas as pd
 
-        from src.web.pages.ui.components.plot_manager_components import PlotManagerComponents
+        from src.web.pages.ui.components.plot_manager_components import (
+            PlotManagerComponents,
+        )
 
         api = MagicMock()
         data = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
@@ -1946,7 +2058,9 @@ class TestDataSourceComponentsExtra:
         mock_st: MagicMock,
         tmp_path: Path,
     ) -> None:
-        from src.web.pages.ui.components.data_source_components import DataSourceComponents
+        from src.web.pages.ui.components.data_source_components import (
+            DataSourceComponents,
+        )
 
         csv_file = tmp_path / "test.csv"
         csv_file.write_text("a,b\n1,2\n")
@@ -1963,7 +2077,9 @@ class TestDataSourceComponentsExtra:
     @patch("src.web.pages.ui.components.data_source_components.VariableEditor")
     def test_render_parser_config(self, mock_editor: MagicMock, mock_st: MagicMock) -> None:
         """Cover render_parser_config fragment (partially)."""
-        from src.web.pages.ui.components.data_source_components import DataSourceComponents
+        from src.web.pages.ui.components.data_source_components import (
+            DataSourceComponents,
+        )
 
         api = MagicMock()
         api.state_manager.get_stats_path.return_value = "/tmp/stats"
@@ -2000,33 +2116,7 @@ class TestDataSourceComponentsExtra:
 
 
 # ===================================================================
-# 20. Protocol definitions (import-only coverage)
-# ===================================================================
-
-
-class TestProtocolImports:
-    """Import-only coverage for abstract protocol/interface definitions."""
-
-    def test_parser_protocol_importable(self) -> None:
-        from src.core.parsing.parser_protocol import ParserProtocol
-
-        # Protocol classes don't need instantiation; importing covers their lines
-        assert ParserProtocol is not None
-
-    def test_scanner_protocol_importable(self) -> None:
-        from src.core.parsing.scanner_protocol import ScannerProtocol
-
-        assert ScannerProtocol is not None
-
-    def test_parsing_models_reexport(self) -> None:
-        from src.core.parsing.models import ScannedVariable, StatConfig
-
-        assert ScannedVariable is not None
-        assert StatConfig is not None
-
-
-# ===================================================================
-# 21. ScanWork + Job abstract methods
+# 20. ScanWork + Job abstract methods
 # ===================================================================
 
 
@@ -2257,19 +2347,25 @@ class TestItemSelectorVerify:
     """Cover ItemSelector._verify_params branches."""
 
     def test_missing_strings_raises(self) -> None:
-        from src.core.services.shapers.impl.selector_algorithms.item_selector import ItemSelector
+        from src.core.services.shapers.impl.selector_algorithms.item_selector import (
+            ItemSelector,
+        )
 
         with pytest.raises(ValueError, match="'strings'"):
             ItemSelector({"column": "x"})
 
     def test_non_list_strings_raises(self) -> None:
-        from src.core.services.shapers.impl.selector_algorithms.item_selector import ItemSelector
+        from src.core.services.shapers.impl.selector_algorithms.item_selector import (
+            ItemSelector,
+        )
 
         with pytest.raises(TypeError, match="must be a list"):
             ItemSelector({"column": "x", "strings": "not_a_list"})
 
     def test_valid_params(self) -> None:
-        from src.core.services.shapers.impl.selector_algorithms.item_selector import ItemSelector
+        from src.core.services.shapers.impl.selector_algorithms.item_selector import (
+            ItemSelector,
+        )
 
         sel = ItemSelector({"column": "a", "strings": ["x", "y"]})
         assert sel.column == "a"
@@ -2369,7 +2465,9 @@ class TestConfigAwareParseConfigException:
     """Cover _parse_config exception handler branch."""
 
     def test_parse_config_with_exception(self, tmp_path: Path) -> None:
-        from src.core.parsing.gem5.impl.strategies.config_aware import ConfigAwareStrategy
+        from src.core.parsing.gem5.impl.strategies.config_aware import (
+            ConfigAwareStrategy,
+        )
 
         config_path = tmp_path / "config.ini"
         config_path.write_text("[section]\nkey = val\n")

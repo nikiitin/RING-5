@@ -65,9 +65,6 @@ Thread Safety:
     - Variable names are encapsulated in ParseBatchResult, no shared mutable
       class-level state. Multiple concurrent parse batches are fully isolated.
 
-Configuration:
-    - RING5_WORKER_POOL_SIZE: Environment variable for pool size (default: 4)
-
 Testing:
     - Unit tests: tests/unit/test_parse_service.py
     - Integration tests: tests/integration/test_parser_integration.py
@@ -93,11 +90,6 @@ from src.core.services.data_services.pattern_index_service import (
 )
 
 logger = logging.getLogger(__name__)
-
-# Worker pool configuration - PRIMARY MECHANISM!
-
-_WORKER_POOL_SIZE = int(os.environ.get("RING5_WORKER_POOL_SIZE", "4"))
-logger.info(f"Worker pool is the PRIMARY parsing mechanism ({_WORKER_POOL_SIZE} workers)")
 
 
 class Gem5Parser:

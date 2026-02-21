@@ -39,8 +39,8 @@ class TestSubmitParseAsync:
         with pytest.raises(FileNotFoundError, match="does not exist"):
             ParseService.submit_parse_async(bad_path, "stats.txt", [], str(tmp_path / "out"))
 
-    @patch("src.core.parsing.parse_service.ParseWorkPool")
-    @patch("src.core.parsing.parse_service.StrategyFactory")
+    @patch("src.core.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_returns_empty_batch_when_no_work(
         self, mock_sf: MagicMock, mock_pool: MagicMock, tmp_path: Path
     ) -> None:
@@ -57,8 +57,8 @@ class TestSubmitParseAsync:
         assert result.futures == []
         assert result.var_names == []
 
-    @patch("src.core.parsing.parse_service.ParseWorkPool")
-    @patch("src.core.parsing.parse_service.StrategyFactory")
+    @patch("src.core.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_submits_work_and_returns_batch(
         self, mock_sf: MagicMock, mock_pool: MagicMock, tmp_path: Path
     ) -> None:
@@ -88,8 +88,8 @@ class TestSubmitParseAsync:
         assert result.var_names == ["system.cpu.ipc", "simTicks"]
         assert len(result.futures) == 2
 
-    @patch("src.core.parsing.parse_service.ParseWorkPool")
-    @patch("src.core.parsing.parse_service.StrategyFactory")
+    @patch("src.core.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_regex_expansion_with_scanned_vars(
         self, mock_sf: MagicMock, mock_pool: MagicMock, tmp_path: Path
     ) -> None:
@@ -129,13 +129,13 @@ class TestSubmitParseAsync:
 class TestFinalizeParssing:
     """Tests for ParseService.finalize_parsing."""
 
-    @patch("src.core.parsing.parse_service.StrategyFactory")
+    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_returns_none_on_empty_results(self, mock_sf: MagicMock) -> None:
         result = ParseService.finalize_parsing("/tmp/out", [])
         assert result is None
 
-    @patch("src.core.parsing.parse_service.ParseService.construct_final_csv")
-    @patch("src.core.parsing.parse_service.StrategyFactory")
+    @patch("src.core.parsing.gem5.impl.gem5_parser.Gem5Parser.construct_final_csv")
+    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_delegates_to_strategy_and_csv(self, mock_sf: MagicMock, mock_csv: MagicMock) -> None:
         strategy = MagicMock()
         strategy.post_process.return_value = [{"a": 1}]

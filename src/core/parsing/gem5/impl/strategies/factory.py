@@ -9,7 +9,9 @@ Usage:
     >>> strategy = StrategyFactory.create("config_aware")
 """
 
-from src.core.parsing.gem5.impl.strategies.file_parser_strategy import FileParserStrategy
+from src.core.parsing.gem5.impl.strategies.file_parser_strategy import (
+    FileParserStrategy,
+)
 
 
 class StrategyFactory:

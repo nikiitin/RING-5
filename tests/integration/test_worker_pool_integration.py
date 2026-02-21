@@ -197,24 +197,3 @@ class TestWorkerPoolErrorHandling:
         # Should complete without crashing (may return empty results)
         result = work()
         assert result is not None
-
-
-class TestWorkerPoolConfigurationLoading:
-    """Test worker pool configuration loading from environment."""
-
-    def test_worker_pool_size_from_env(self, monkeypatch: Any) -> None:
-        """Verify worker pool size can be configured via environment variable."""
-        # This test verifies the configuration is loaded correctly
-        # The actual pool size is set during module import
-        monkeypatch.setenv("RING5_WORKER_POOL_SIZE", "8")
-
-        # Reimport to pick up new env var
-        import importlib
-        import sys
-
-        parse_service_module = sys.modules["src.core.parsing.gem5.impl.gem5_parser"]
-
-        importlib.reload(parse_service_module)
-
-        # Verify the size is read from env
-        assert parse_service_module._WORKER_POOL_SIZE == 8

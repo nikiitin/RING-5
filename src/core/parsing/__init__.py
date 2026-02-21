@@ -1,26 +1,22 @@
 """
 RING-5 Parsing Module — Interface Layer.
 
-Provides simulator-agnostic protocols and a factory for creating
-parser API instances. The gem5 implementation lives in the gem5/ submodule.
+Provides the public API for the gem5 parsing subsystem.
+The canonical implementations live in the ``gem5/impl/`` subpackage;
+this ``__init__`` re-exports them under their legacy names so that
+existing consumers continue to work.
 
 Public API:
-    - parser_protocol.py:   ParserProtocol (parsing contract)
-    - scanner_protocol.py:  ScannerProtocol (scanning contract)
-    - parser_api.py:        ParserAPI (unified facade contract)
-    - factory.py:           ParserAPIFactory.create("gem5")
-
-Data Models:
-    ScannedVariable and StatConfig now live in ``src.core.models`` so they
-    can be shared across all layers (parsing, application API, UI) without
-    circular imports. A backward-compat shim remains in ``models.py``.
+    - ParseService   (alias for ``Gem5Parser``)
+    - ScannerService  (alias for ``Gem5Scanner``)
 
 Implementation:
-    - gem5/:                gem5-specific types, perl scripts, and impl/
+    - gem5/:  gem5-specific types, Perl scripts, and ``impl/``
 
 Backward Compatibility:
-    ParseService and ScannerService are re-exported from their new locations
-    (Gem5Parser and Gem5Scanner) to support existing consumers.
+    ``parse_service.py`` and ``scanner_service.py`` are thin re-export
+    shims kept for test-patch compatibility.  New code should import
+    from this package directly.
 """
 
 # Backward-compatible re-exports for existing consumers.

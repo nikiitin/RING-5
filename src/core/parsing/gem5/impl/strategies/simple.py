@@ -17,7 +17,11 @@ import os
 from dataclasses import replace
 from typing import Any, Dict, List, Sequence
 
-from src.core.common.utils import normalize_user_path, sanitize_glob_pattern, sanitize_log_value
+from src.core.common.utils import (
+    normalize_user_path,
+    sanitize_glob_pattern,
+    sanitize_log_value,
+)
 from src.core.models import StatConfig
 from src.core.parsing.gem5.impl.pool import ParseWorkPool
 from src.core.parsing.gem5.impl.strategies.gem5_parse_work import Gem5ParseWork
