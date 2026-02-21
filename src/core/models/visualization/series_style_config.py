@@ -16,7 +16,7 @@ from typing import Any, Dict
 
 @dataclass(frozen=True)
 class SeriesStyleConfig:
-    """Per-trace styling overrides.
+    r"""Per-trace styling overrides.
 
     Each ``SeriesStyleConfig`` maps 1:1 to a trace in the figure.  If
     ``FigureSpec.series_styles`` has fewer entries than traces, the

@@ -7,7 +7,8 @@ from src.core.parsing.gem5.impl.pool.job import Job
 # Type alias for parsed variable dictionaries
 # Key: variable identifier (str)
 # Value: StatType instance with parsed content
-# Using Any for value since StatType is defined in parsers.types and we want to avoid circular imports  # noqa: E501
+# Using Any for value since StatType is defined in
+# parsers.types and we want to avoid circular imports
 ParsedVarsDict = Dict[str, Any]
 
 

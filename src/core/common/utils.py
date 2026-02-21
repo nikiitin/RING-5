@@ -127,20 +127,6 @@ def checkFilesExistOrException(filePaths: List[Union[str, Path]]) -> None:
         checkFileExistsOrException(filePath)
 
 
-def checkDirsExistOrException(dirPaths: List[Union[str, Path]]) -> None:
-    """
-    Check if all directories exist, raise exception for first missing directory.
-
-    Args:
-        dirPaths: List of directory paths to check
-
-    Raises:
-        FileNotFoundError: If any directory does not exist
-    """
-    for dirPath in dirPaths:
-        checkDirExistsOrException(dirPath)
-
-
 def checkFileExistsOrException(filePath: Union[str, Path]) -> None:
     """
     Check if a file exists, raise exception if not.
@@ -305,9 +291,9 @@ def validate_path_within(path: Path, allowed_base: Path) -> Path:
     # (avoids sibling-path bypass, e.g. "/allowed/base_evil" matching "/allowed/base")
     try:
         common: str = os.path.commonpath([resolved, base])
-    except ValueError:
+    except ValueError as exc:
         # On Windows, paths on different drives raise ValueError
-        raise ValueError(f"Path traversal detected: {resolved} is outside {base}")
+        raise ValueError(f"Path traversal detected: {resolved} is outside {base}") from exc
     if common != base:
         raise ValueError(f"Path traversal detected: {resolved} is outside {base}")
     return Path(resolved)

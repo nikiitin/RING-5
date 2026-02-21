@@ -78,12 +78,12 @@ class ScannedVariable:
 
 @dataclass(frozen=True)
 class StatConfig:
-    """
+    r"""
     Configuration for a specific statistic extraction.
     Input to the FileParserStrategy implementations.
 
     Attributes:
-        name: Variable name or regex pattern (e.g., ``system.cpu\\d+.ipc``).
+        name: Variable name or regex pattern (e.g., ``system.cpu\d+.ipc``).
         type: One of ``scalar``, ``vector``, ``distribution``, ``histogram``,
               ``configuration``.
         repeat: Number of dump repetitions expected.
@@ -91,7 +91,7 @@ class StatConfig:
         statistics_only: If True, parse only statistical summaries.
         is_regex: Explicit flag indicating that *name* is a regex pattern
                   requiring expansion against scanned variables.  Set
-                  automatically when the name contains ``\\d+``.
+                  automatically when the name contains ``\d+``.
     """
 
     name: str

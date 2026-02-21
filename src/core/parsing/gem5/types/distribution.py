@@ -218,8 +218,9 @@ class Distribution(StatType):
                 self._content[bucket].extend([0.0] * padding)
             elif current_len > self._repeat:
                 raise RuntimeError(
-                    f"DISTRIBUTION: Bucket '{bucket}' has more values than expected ({current_len}). "  # noqa: E501
-                    f"Repeat count: {self._repeat}"
+                    f"DISTRIBUTION: Bucket '{bucket}' has more values"
+                    f" than expected ({current_len})."
+                    f" Repeat count: {self._repeat}"
                 )
 
     def reduce_duplicates(self) -> None:

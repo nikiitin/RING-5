@@ -647,7 +647,7 @@ class TestKeepIndicesUserFiltered:
 
 
 class TestMultiDimensionalExpansion:
-    """Test expansion with multi-dimensional patterns (l\\d+_cntrl\\d+, etc.)."""
+    r"""Test expansion with multi-dimensional patterns (l\d+_cntrl\d+, etc.)."""
 
     @staticmethod
     def _expand(config: StatConfig, scanned: List[ScannedVariable]) -> List[StatConfig]:
@@ -679,7 +679,7 @@ class TestMultiDimensionalExpansion:
             "system.ruby.l1_cntrl0.missLatencyHist",
             "system.ruby.l1_cntrl1.missLatencyHist",
         ]
-        for r, expected_name in zip(result, expected):
+        for r, expected_name in zip(result, expected, strict=True):
             assert r.name == expected_name
             assert r.is_regex is False
             assert r.keep_indices is False

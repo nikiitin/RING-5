@@ -25,7 +25,7 @@ class TestIsPatternVariable:
         assert PatternIndexService.is_pattern_variable("") is False
 
     def test_partial_match(self) -> None:
-        """Ensure partial \\d does not match."""
+        r"""Ensure partial \d does not match."""
         assert PatternIndexService.is_pattern_variable(r"system.\d.stat") is False
 
     def test_escaped_d_plus(self) -> None:

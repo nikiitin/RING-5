@@ -128,7 +128,7 @@ def update_config_from_relayout(
 
         # Check for float equality if both are lists of numbers (ranges)
         if isinstance(current, list) and isinstance(val, list) and len(current) == len(val):
-            if all(_is_close(c, v) for c, v in zip(current, val)):
+            if all(_is_close(c, v) for c, v in zip(current, val, strict=True)):
                 return False
 
         # Simple equality check for non-lists or different lengths

@@ -48,7 +48,7 @@ class TestShaperFactoryDisplayNames:
         """Display names for unregistered types should not appear."""
         display_map = ShaperFactory.get_display_name_map()
         registered_types = ShaperFactory.get_available_types()
-        for display_name, type_id in display_map.items():
+        for _display_name, type_id in display_map.items():
             assert type_id in registered_types
 
     def test_roundtrip_display_to_type(self) -> None:

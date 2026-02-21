@@ -199,7 +199,7 @@ class TestStateConsistencyAfterErrors:
         original_data: pd.DataFrame = loaded_facade.state_manager.get_data()
         assert original_data is not None
 
-        with pytest.raises(Exception):
+        with pytest.raises((FileNotFoundError, ValueError)):
             loaded_facade.load_data("/nonexistent/path/to/file.csv")
 
         # Previous data should still be there

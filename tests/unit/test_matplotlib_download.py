@@ -124,7 +124,7 @@ class TestMatplotlibPGF:
     """Verify PGF export via savefig with PGF backend."""
 
     def test_pgf_contains_begin_pgfpicture(self, simple_mpl_figure: Figure) -> None:
-        """PGF output contains \\begin{pgfpicture}."""
+        r"""PGF output contains \begin{pgfpicture}."""
         data = matplotlib_download_bytes(simple_mpl_figure, "pgf")
         assert b"\\begin{pgfpicture}" in data
 

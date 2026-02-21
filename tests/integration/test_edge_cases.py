@@ -229,7 +229,7 @@ class TestPatternAggregatorEdgeCases:
     """Test pattern aggregation for multi-component gem5 variables."""
 
     def test_simple_cpu_aggregation(self) -> None:
-        """cpu0/cpu1/cpu2 collapse into cpu\\d+ pattern."""
+        r"""cpu0/cpu1/cpu2 collapse into cpu\d+ pattern."""
         variables: List[ScannedVariable] = [
             ScannedVariable(name="system.cpu0.numCycles", type="scalar", entries=[]),
             ScannedVariable(name="system.cpu1.numCycles", type="scalar", entries=[]),

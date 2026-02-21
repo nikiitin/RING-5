@@ -1,8 +1,8 @@
-"""
+r"""
 Pattern Index Service for RING-5.
 
 Provides pure business logic for pattern variable index operations.
-Pattern variables (e.g., system.ruby.l\\d+_cntrl\\d+.stat) contain regex
+Pattern variables (e.g., system.ruby.l\d+_cntrl\d+.stat) contain regex
 placeholders that match multiple hardware components. This service handles:
 - Detection of pattern variables
 - Extraction of position labels from pattern names

@@ -694,7 +694,7 @@ class TestInitDispatch:
         assert "Filter" in mod._SUB_SHAPER_DISPATCH
 
         # Each entry is (type_str, callable)
-        for display_name, (type_str, render_fn) in mod._SUB_SHAPER_DISPATCH.items():
+        for _display_name, (type_str, render_fn) in mod._SUB_SHAPER_DISPATCH.items():
             assert isinstance(type_str, str)
             assert callable(render_fn)
 
