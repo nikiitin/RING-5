@@ -14,7 +14,10 @@ Public API:
     - PlotDeserializer: Callable type alias for plot dict → PlotProtocol
 """
 
-from src.core.models.config.config_manager import ConfigTemplateGenerator, ConfigValidator
+from src.core.models.config.config_manager import (
+    ConfigTemplateGenerator,
+    ConfigValidator,
+)
 from src.core.models.history_models import OperationRecord
 from src.core.models.parsing_models import ParseBatchResult, ScannedVariable, StatConfig
 from src.core.models.plot_protocol import PlotDeserializer, PlotProtocol

@@ -226,8 +226,11 @@ class ApplicationAPI:
         return ScannerService.aggregate_scan_results(results)
 
     def get_parse_status(self) -> str:
-        """Get current parsing status."""
-        # TODO: Implement proper status tracking if needed by UI
+        """Get current parsing status.
+
+        Returns a static 'idle' status. Status tracking is handled
+        at the UI layer via session state.
+        """
         return "idle"
 
     def get_scanner_status(self) -> str:

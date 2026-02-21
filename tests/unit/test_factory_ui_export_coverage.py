@@ -47,7 +47,9 @@ class TestPlotFactory:
                 return {}
 
             def create_traces(self, data: pd.DataFrame, config: Dict[str, Any]):
-                from src.core.models.visualization.trace_build_result import TraceBuildResult
+                from src.core.models.visualization.trace_build_result import (
+                    TraceBuildResult,
+                )
 
                 return TraceBuildResult(traces=[])
 

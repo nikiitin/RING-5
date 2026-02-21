@@ -5,11 +5,14 @@ Manages saving and loading of configuration files.
 
 import datetime
 import json
+import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
 
 from src.core.common.utils import sanitize_filename, validate_path_within
 from src.core.services.data_services.path_service import PathService
+
+logger = logging.getLogger(__name__)
 
 
 class ConfigService:
@@ -55,8 +58,8 @@ class ConfigService:
                         "description": config_data.get("description", "No description"),
                     }
                 )
-            except (OSError, json.JSONDecodeError):
-                pass  # Skip unreadable/invalid config files gracefully
+            except (OSError, json.JSONDecodeError) as e:
+                logger.debug("Skipping unreadable config file %s: %s", config_file, e)
 
         return configs
 
@@ -130,5 +133,6 @@ class ConfigService:
             validated_path = validate_path_within(Path(config_path), config_dir)
             validated_path.unlink()
             return True
-        except Exception:
+        except (OSError, ValueError) as e:
+            logger.warning("Failed to delete config file %s: %s", config_path, e)
             return False

@@ -72,7 +72,8 @@
           // Use actual rendered height so X-axis labels are never clipped
           var rect = gd.getBoundingClientRect();
           var actualHeight = Math.ceil(rect.height);
-          var layoutHeight = spec.layout && spec.layout.height ? spec.layout.height : 500;
+          var layoutHeight =
+            spec.layout && spec.layout.height ? spec.layout.height : 500;
           var finalHeight = Math.max(actualHeight, layoutHeight) + 30;
           Streamlit.setFrameHeight(finalHeight);
         });

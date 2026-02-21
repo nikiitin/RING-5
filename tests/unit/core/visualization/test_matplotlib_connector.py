@@ -20,9 +20,16 @@ matplotlib.use("Agg")  # non-interactive backend for CI
 import matplotlib.pyplot as plt  # noqa: E402
 import pytest  # noqa: E402
 
-from src.core.models.visualization.annotation_config import ReferenceLineConfig  # noqa: E402
-from src.core.models.visualization.axis_config import AxesConfig, AxisConfig  # noqa: E402
-from src.core.models.visualization.data_label_config import DataLabelConfig  # noqa: E402
+from src.core.models.visualization.annotation_config import (  # noqa: E402
+    ReferenceLineConfig,
+)
+from src.core.models.visualization.axis_config import (  # noqa: E402
+    AxesConfig,
+    AxisConfig,
+)
+from src.core.models.visualization.data_label_config import (  # noqa: E402
+    DataLabelConfig,
+)
 from src.core.models.visualization.figure_config import (  # noqa: E402
     FigureConfig,
     SeparatorConfig,

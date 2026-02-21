@@ -199,7 +199,7 @@ class TestExportPlotToFile:
 
         assert result is not None
         assert result.endswith(".pdf")
-        written = open(result, "rb").read()
+        written = Path(result).read_bytes()
         assert written == b"%PDF-fake"
         mock_download.assert_called_once()
 

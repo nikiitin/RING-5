@@ -10,6 +10,7 @@ Tests that:
 """
 
 import re
+from pathlib import Path
 from typing import Any, Dict
 
 import pandas as pd
@@ -104,7 +105,7 @@ class TestLayerDependencies:
         import src.web.models.plot_models as models_mod
 
         # Check that no streamlit module is loaded by this module
-        source: str = open(models_mod.__file__).read()  # type: ignore[arg-type]
+        source: str = Path(models_mod.__file__).read_text()  # type: ignore[arg-type]
         assert "import streamlit" not in source
         assert "from streamlit" not in source
 
@@ -112,7 +113,7 @@ class TestLayerDependencies:
         """Figure protocols must NOT import streamlit."""
         import src.web.models.plot_protocols as proto_mod
 
-        source: str = open(proto_mod.__file__).read()  # type: ignore[arg-type]
+        source: str = Path(proto_mod.__file__).read_text()  # type: ignore[arg-type]
         assert "import streamlit" not in source
         assert "from streamlit" not in source
 
@@ -288,7 +289,7 @@ class TestControllerBoundaries:
         """PlotCreationController must not render widgets directly."""
         import src.web.controllers.plot.creation_controller as mod
 
-        source: str = open(mod.__file__).read()  # type: ignore[arg-type]
+        source: str = Path(mod.__file__).read_text()  # type: ignore[arg-type]
         st_calls: list[str] = self._get_st_method_calls(source)
 
         rendering_calls: set[str] = set(st_calls) & self.RENDERING_ST_CALLS
@@ -301,7 +302,7 @@ class TestControllerBoundaries:
         """PipelineController must not render widgets directly."""
         import src.web.controllers.plot.pipeline_controller as mod
 
-        source: str = open(mod.__file__).read()  # type: ignore[arg-type]
+        source: str = Path(mod.__file__).read_text()  # type: ignore[arg-type]
         st_calls: list[str] = self._get_st_method_calls(source)
 
         rendering_calls: set[str] = set(st_calls) & self.RENDERING_ST_CALLS
@@ -314,7 +315,7 @@ class TestControllerBoundaries:
         """PlotRenderController must not render widgets directly."""
         import src.web.controllers.plot.render_controller as mod
 
-        source: str = open(mod.__file__).read()  # type: ignore[arg-type]
+        source: str = Path(mod.__file__).read_text()  # type: ignore[arg-type]
         st_calls: list[str] = self._get_st_method_calls(source)
 
         rendering_calls: set[str] = set(st_calls) & self.RENDERING_ST_CALLS
@@ -343,7 +344,7 @@ class TestControllerBoundaries:
             (pc, ["PipelinePresenter", "PipelineStepPresenter"]),
             (rc, ["ChartPresenter", "ConfigPresenter"]),
         ]:
-            source: str = open(mod.__file__).read()  # type: ignore[arg-type]
+            source: str = Path(mod.__file__).read_text()  # type: ignore[arg-type]
             for presenter in expected_presenters:
                 assert presenter in source, f"{mod.__name__} should import {presenter}"
 
@@ -355,7 +356,7 @@ class TestControllerBoundaries:
 
         forbidden: str = "from src.web.pages"
         for mod in [cc, pc, rc]:
-            source: str = open(mod.__file__).read()  # type: ignore[arg-type]
+            source: str = Path(mod.__file__).read_text()  # type: ignore[arg-type]
             assert forbidden not in source, (
                 f"{mod.__name__} imports from pages.* — "
                 f"controllers must use protocols from models layer."
@@ -372,7 +373,7 @@ class TestControllerBoundaries:
             (pc, ["PlotHandle", "PipelineExecutor"]),
             (rc, ["PlotLifecycleService", "PlotTypeRegistry", "RenderablePlot"]),
         ]:
-            source: str = open(mod.__file__).read()  # type: ignore[arg-type]
+            source: str = Path(mod.__file__).read_text()  # type: ignore[arg-type]
             for proto in expected_protocols:
                 assert proto in source, (
                     f"{mod.__name__} should import protocol {proto} " f"from plot_protocols."
@@ -389,7 +390,7 @@ class TestProtocolCompliance:
         """Protocols module must NOT import streamlit (Layer 5)."""
         import src.web.models.plot_protocols as proto_mod
 
-        source: str = open(proto_mod.__file__).read()  # type: ignore[arg-type]
+        source: str = Path(proto_mod.__file__).read_text()  # type: ignore[arg-type]
         assert "import streamlit" not in source
         assert "from streamlit" not in source
 
@@ -437,7 +438,7 @@ class TestProtocolCompliance:
         """Adapters must live in the page layer (may import pages.ui.*)."""
         import src.web.pages.plot_adapters as adapter_mod
 
-        source: str = open(adapter_mod.__file__).read()  # type: ignore[arg-type]
+        source: str = Path(adapter_mod.__file__).read_text()  # type: ignore[arg-type]
         # Adapters SHOULD import from pages.ui — that's their job
         assert "from src.web.pages.ui" in source
         # But protocols should NOT be in adapters (they import from models)
@@ -449,7 +450,7 @@ class TestProtocolCompliance:
         """ConfigPresenter uses ConfigRenderer from plot_protocols."""
         import src.web.presenters.plot.config_presenter as cp_mod
 
-        source: str = open(cp_mod.__file__).read()  # type: ignore[arg-type]
+        source: str = Path(cp_mod.__file__).read_text()  # type: ignore[arg-type]
         assert "from src.web.models.plot_protocols import ConfigRenderer" in source
         # Private _ConfigRenderer should NOT exist anymore
         assert "class _ConfigRenderer" not in source

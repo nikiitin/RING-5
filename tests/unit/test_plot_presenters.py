@@ -441,7 +441,9 @@ class TestPipelineStepPresenter:
         """render_step returns all required keys."""
         import pandas as pd
 
-        from src.web.presenters.plot.pipeline_step_presenter import PipelineStepPresenter
+        from src.web.presenters.plot.pipeline_step_presenter import (
+            PipelineStepPresenter,
+        )
 
         mock_pp.REVERSE_MAP = {"sort": "Sort"}
         mock_pp.render_shaper_controls.return_value = {
@@ -488,7 +490,9 @@ class TestPipelineStepPresenter:
         """render_step invokes configure_fn with correct args."""
         import pandas as pd
 
-        from src.web.presenters.plot.pipeline_step_presenter import PipelineStepPresenter
+        from src.web.presenters.plot.pipeline_step_presenter import (
+            PipelineStepPresenter,
+        )
 
         mock_pp.REVERSE_MAP = {"sort": "Sort"}
         mock_pp.render_shaper_controls.return_value = {
@@ -526,7 +530,9 @@ class TestPipelineStepPresenter:
         """render_step gracefully handles configure_fn exception."""
         import pandas as pd
 
-        from src.web.presenters.plot.pipeline_step_presenter import PipelineStepPresenter
+        from src.web.presenters.plot.pipeline_step_presenter import (
+            PipelineStepPresenter,
+        )
 
         mock_pp.REVERSE_MAP = {"sort": "Sort"}
         mock_pp.render_shaper_controls.return_value = {
@@ -562,7 +568,9 @@ class TestPipelineStepPresenter:
         """render_finalize_result calls st.success + st.dataframe."""
         import pandas as pd
 
-        from src.web.presenters.plot.pipeline_step_presenter import PipelineStepPresenter
+        from src.web.presenters.plot.pipeline_step_presenter import (
+            PipelineStepPresenter,
+        )
 
         df = pd.DataFrame({"a": range(20)})
         PipelineStepPresenter.render_finalize_result(df)
@@ -573,7 +581,9 @@ class TestPipelineStepPresenter:
     @patch("src.web.presenters.plot.pipeline_step_presenter.st")
     def test_render_finalize_error(self, mock_st: MagicMock) -> None:
         """render_finalize_error calls st.error."""
-        from src.web.presenters.plot.pipeline_step_presenter import PipelineStepPresenter
+        from src.web.presenters.plot.pipeline_step_presenter import (
+            PipelineStepPresenter,
+        )
 
         PipelineStepPresenter.render_finalize_error("something broke")
 

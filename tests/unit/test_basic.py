@@ -6,7 +6,10 @@ Run: pytest tests/test_basic.py -v
 import json
 from pathlib import Path
 
-from src.core.models.config.config_manager import ConfigTemplateGenerator, ConfigValidator
+from src.core.models.config.config_manager import (
+    ConfigTemplateGenerator,
+    ConfigValidator,
+)
 
 
 def test_minimal_config_validation():

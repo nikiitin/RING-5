@@ -138,7 +138,7 @@ class SessionRepository:
                 len(portfolio_data.get("plots", [])),
             )
 
-        self.plot_repo.set_plots(loaded_plots)  # type: ignore[arg-type]
+        self.plot_repo.set_plots(loaded_plots)
         self.plot_repo.set_plot_counter(portfolio_data.get("plot_counter", len(loaded_plots)))
 
         logger.info(

@@ -44,7 +44,9 @@ class TestDualAxisRenderConfigUI:
     def test_no_saved_config(
         self, mock_st: MagicMock, mock_labels: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.plotting.types.dual_axis_bar_dot_plot import DualAxisBarDotPlot
+        from src.web.pages.ui.plotting.types.dual_axis_bar_dot_plot import (
+            DualAxisBarDotPlot,
+        )
 
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.selectbox.side_effect = [
@@ -77,7 +79,9 @@ class TestDualAxisRenderConfigUI:
     def test_with_saved_config(
         self, mock_st: MagicMock, mock_labels: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.plotting.types.dual_axis_bar_dot_plot import DualAxisBarDotPlot
+        from src.web.pages.ui.plotting.types.dual_axis_bar_dot_plot import (
+            DualAxisBarDotPlot,
+        )
 
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.selectbox.side_effect = [
@@ -122,7 +126,9 @@ class TestDualAxisRenderConfigUI:
     def test_no_color_shows_dot_color_picker(
         self, mock_st: MagicMock, mock_labels: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.plotting.types.dual_axis_bar_dot_plot import DualAxisBarDotPlot
+        from src.web.pages.ui.plotting.types.dual_axis_bar_dot_plot import (
+            DualAxisBarDotPlot,
+        )
 
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.selectbox.side_effect = [
@@ -153,7 +159,9 @@ class TestDualAxisRenderConfigUI:
     def test_with_color_no_dot_color_picker(
         self, mock_st: MagicMock, mock_labels: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.plotting.types.dual_axis_bar_dot_plot import DualAxisBarDotPlot
+        from src.web.pages.ui.plotting.types.dual_axis_bar_dot_plot import (
+            DualAxisBarDotPlot,
+        )
 
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.selectbox.side_effect = [

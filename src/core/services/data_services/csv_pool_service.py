@@ -59,8 +59,10 @@ Version: 2.0.0
 Last Modified: 2026-01-27
 """
 
+import csv
 import datetime
 import hashlib
+import logging
 import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
@@ -71,6 +73,8 @@ from pandas import DataFrame
 from src.core.common.utils import validate_path_within
 from src.core.performance import SimpleCache
 from src.core.services.data_services.path_service import PathService
+
+logger = logging.getLogger(__name__)
 
 
 class CsvPoolService:
@@ -164,7 +168,8 @@ class CsvPoolService:
             validated_path = validate_path_within(Path(csv_path), pool_dir)
             validated_path.unlink()
             return True
-        except Exception:
+        except (OSError, ValueError) as e:
+            logger.warning("Failed to delete CSV file %s: %s", csv_path, e)
             return False
 
     @staticmethod
@@ -281,7 +286,8 @@ class CsvPoolService:
             # Cache it
             CsvPoolService._metadata_cache.set(csv_path, metadata)
             return metadata
-        except Exception:
+        except (OSError, pd.errors.ParserError, csv.Error, KeyError) as e:
+            logger.debug("Failed to read CSV metadata for %s: %s", csv_path, e)
             return None
 
     @staticmethod

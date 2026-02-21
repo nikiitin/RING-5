@@ -68,10 +68,12 @@ class RepositoryStateManager:
                 config_vars: List[str] = [
                     v["name"] for v in variables if v.get("type") == "configuration"
                 ]
-                for col in config_vars:
-                    if col in data.columns:
+                cols_to_cast = [col for col in config_vars if col in data.columns]
+                if cols_to_cast:
+                    data = data.copy()
+                    for col in cols_to_cast:
                         data[col] = data[col].astype(str)
-            except Exception as e:
+            except (KeyError, TypeError, ValueError) as e:
                 logger.error("STATE: Type enforcement failed: %s", e)
 
         self._session_repo.data_repo.set_data(data, on_change)

@@ -47,6 +47,4 @@ class PlotSelectorPresenter:
             default=default_name,
             key="plot_selector",
         )
-        return (
-            selected if selected is not None else (plot_names[0] if plot_names else "")
-        )  # type: ignore[return-value]
+        return selected if selected is not None else (plot_names[0] if plot_names else "")

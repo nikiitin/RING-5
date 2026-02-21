@@ -8,7 +8,10 @@ Covers:
   - All three roles (primary, secondary, boxed)
 """
 
-from src.core.models.visualization.legend_config import LegendConfig, LegendSpacingConfig
+from src.core.models.visualization.legend_config import (
+    LegendConfig,
+    LegendSpacingConfig,
+)
 
 
 class TestLegendSpacingSpec:

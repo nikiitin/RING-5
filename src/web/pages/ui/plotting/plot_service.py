@@ -6,6 +6,7 @@ Coordinates plot factory, state persistence, and configuration updates.
 """
 
 import copy
+import logging
 import os
 from typing import TYPE_CHECKING, Optional
 
@@ -15,6 +16,8 @@ from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
 if TYPE_CHECKING:
     from src.core.state.repository_state_manager import RepositoryStateManager
+
+logger = logging.getLogger(__name__)
 
 
 class PlotService:
@@ -77,8 +80,7 @@ class PlotService:
             plots[idx] = new_plot
             state_manager.set_plots(plots)
         except StopIteration:
-            # Should not happen if checking logic is correct
-            pass
+            logger.warning("Plot ID %d not found in plots list during type change", plot.plot_id)
 
         return new_plot
 
@@ -113,7 +115,7 @@ class PlotService:
         try:
             fig = plot.generate_figure()
         except Exception:
-            # If generation fails (e.g. no data), skip
+            logger.warning("Figure generation failed for plot '%s', skipping export", plot.name)
             return None
 
         fmt = format or plot.config.get("download_format", "pdf")

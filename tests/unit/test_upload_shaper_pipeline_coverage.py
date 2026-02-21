@@ -148,7 +148,9 @@ class TestPipelineStepPresenterBranches:
 
     @patch("src.web.presenters.plot.pipeline_step_presenter.st")
     def test_render_finalize_result(self, mock_st: MagicMock) -> None:
-        from src.web.presenters.plot.pipeline_step_presenter import PipelineStepPresenter
+        from src.web.presenters.plot.pipeline_step_presenter import (
+            PipelineStepPresenter,
+        )
 
         df = pd.DataFrame({"a": [1, 2, 3]})
         PipelineStepPresenter.render_finalize_result(df)
@@ -158,7 +160,9 @@ class TestPipelineStepPresenterBranches:
 
     @patch("src.web.presenters.plot.pipeline_step_presenter.st")
     def test_render_finalize_error(self, mock_st: MagicMock) -> None:
-        from src.web.presenters.plot.pipeline_step_presenter import PipelineStepPresenter
+        from src.web.presenters.plot.pipeline_step_presenter import (
+            PipelineStepPresenter,
+        )
 
         PipelineStepPresenter.render_finalize_error("some error")
         mock_st.exception.assert_called_once()

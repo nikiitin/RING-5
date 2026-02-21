@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional, TypedDict, cast
 
 from jsonschema import Draft7Validator, validate
 
-from src.core.common.utils import sanitize_filename, validate_path_within
+from src.core.common.utils import validate_path_within
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -373,27 +373,6 @@ class ConfigTemplateGenerator:
             json.dump(config, f, indent=2)
 
         logger.info("Configuration saved to: %s", resolved_path)
-
-    @staticmethod
-    def load_template(template_name: str = "config_template.json") -> Dict[str, Any]:
-        """
-        Load a configuration template.
-
-        Args:
-            template_name: Name of template file
-
-        Returns:
-            Template configuration dictionary
-        """
-        templates_dir = os.path.join(os.path.dirname(__file__), "..", "..", "templates")
-        safe_name = sanitize_filename(template_name)
-        template_path = validate_path_within(
-            Path(os.path.join(templates_dir, safe_name)),
-            Path(templates_dir),
-        )
-
-        with open(template_path, "r") as f:
-            return cast(Dict[str, Any], json.load(f))
 
 
 # Example usage functions

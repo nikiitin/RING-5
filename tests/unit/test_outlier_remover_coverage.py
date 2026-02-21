@@ -45,7 +45,9 @@ class TestOutlierRemoverRender:
     @patch("src.web.pages.ui.data_managers.impl.outlier_remover.HistoryComponents")
     @patch("src.web.pages.ui.data_managers.impl.outlier_remover.st")
     def test_no_data(self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock) -> None:
-        from src.web.pages.ui.data_managers.impl.outlier_remover import OutlierRemoverManager
+        from src.web.pages.ui.data_managers.impl.outlier_remover import (
+            OutlierRemoverManager,
+        )
 
         mock_api.state_manager.get_data.return_value = None
         mgr = OutlierRemoverManager(mock_api)
@@ -57,7 +59,9 @@ class TestOutlierRemoverRender:
     def test_no_numeric_cols(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.outlier_remover import OutlierRemoverManager
+        from src.web.pages.ui.data_managers.impl.outlier_remover import (
+            OutlierRemoverManager,
+        )
 
         mock_api.state_manager.get_data.return_value = pd.DataFrame({"name": ["a", "b"]})
         mgr = OutlierRemoverManager(mock_api)
@@ -69,7 +73,9 @@ class TestOutlierRemoverRender:
     def test_with_categorical_cols(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.outlier_remover import OutlierRemoverManager
+        from src.web.pages.ui.data_managers.impl.outlier_remover import (
+            OutlierRemoverManager,
+        )
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
@@ -87,7 +93,9 @@ class TestOutlierRemoverRender:
     def test_no_categorical_cols(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.outlier_remover import OutlierRemoverManager
+        from src.web.pages.ui.data_managers.impl.outlier_remover import (
+            OutlierRemoverManager,
+        )
 
         # Only numeric cols, no categorical
         df = pd.DataFrame({"cycles": [100.0, 200.0], "ipc": [0.5, 0.6]})
@@ -106,7 +114,9 @@ class TestOutlierRemoverRender:
     def test_seed_cols_filtered_out(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.outlier_remover import OutlierRemoverManager
+        from src.web.pages.ui.data_managers.impl.outlier_remover import (
+            OutlierRemoverManager,
+        )
 
         # All categorical cols contain "seed" → fallback to first 3
         df = pd.DataFrame(
@@ -133,7 +143,9 @@ class TestOutlierRemoverRender:
     def test_apply_success(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.outlier_remover import OutlierRemoverManager
+        from src.web.pages.ui.data_managers.impl.outlier_remover import (
+            OutlierRemoverManager,
+        )
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_api.managers.validate_outlier_inputs.return_value = []
@@ -154,7 +166,9 @@ class TestOutlierRemoverRender:
     def test_apply_validation_errors(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.outlier_remover import OutlierRemoverManager
+        from src.web.pages.ui.data_managers.impl.outlier_remover import (
+            OutlierRemoverManager,
+        )
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_api.managers.validate_outlier_inputs.return_value = ["col not found"]
@@ -173,7 +187,9 @@ class TestOutlierRemoverRender:
     def test_apply_exception(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.outlier_remover import OutlierRemoverManager
+        from src.web.pages.ui.data_managers.impl.outlier_remover import (
+            OutlierRemoverManager,
+        )
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_api.managers.validate_outlier_inputs.return_value = []
@@ -193,7 +209,9 @@ class TestOutlierRemoverRender:
     def test_confirm_applies_data(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.outlier_remover import OutlierRemoverManager
+        from src.web.pages.ui.data_managers.impl.outlier_remover import (
+            OutlierRemoverManager,
+        )
 
         filtered = sample_df.iloc[:4]
         mock_api.state_manager.get_data.return_value = sample_df
@@ -216,7 +234,9 @@ class TestOutlierRemoverRender:
     def test_history_load_full(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.outlier_remover import OutlierRemoverManager
+        from src.web.pages.ui.data_managers.impl.outlier_remover import (
+            OutlierRemoverManager,
+        )
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
@@ -239,7 +259,9 @@ class TestOutlierRemoverRender:
     def test_history_load_missing_col(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.outlier_remover import OutlierRemoverManager
+        from src.web.pages.ui.data_managers.impl.outlier_remover import (
+            OutlierRemoverManager,
+        )
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect

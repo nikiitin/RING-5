@@ -11,7 +11,10 @@ Covers:
 
 from src.core.models.visualization.axis_config import AxesConfig, AxisConfig
 from src.core.models.visualization.figure_config import FigureConfig
-from src.core.models.visualization.legend_config import LegendConfig, LegendSpacingConfig
+from src.core.models.visualization.legend_config import (
+    LegendConfig,
+    LegendSpacingConfig,
+)
 from src.core.models.visualization.resolvers import (
     _resolve_float,
     _resolve_int,

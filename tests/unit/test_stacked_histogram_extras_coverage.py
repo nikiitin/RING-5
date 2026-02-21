@@ -378,7 +378,9 @@ class TestPlotConfigComponentsBranches:
 
     @patch("src.web.pages.ui.components.plot_config_components.st")
     def test_filter_no_group_col(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.plot_config_components import PlotConfigComponents
+        from src.web.pages.ui.components.plot_config_components import (
+            PlotConfigComponents,
+        )
 
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.multiselect.return_value = ["A"]
@@ -393,7 +395,9 @@ class TestPlotConfigComponentsBranches:
 
     @patch("src.web.pages.ui.components.plot_config_components.st")
     def test_filter_x_col_not_in_data(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.plot_config_components import PlotConfigComponents
+        from src.web.pages.ui.components.plot_config_components import (
+            PlotConfigComponents,
+        )
 
         mock_st.columns.side_effect = _columns_side_effect
 
@@ -407,7 +411,9 @@ class TestPlotConfigComponentsBranches:
 
     @patch("src.web.pages.ui.components.plot_config_components.st")
     def test_statistics_multiselect_fallback_2_cols(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.plot_config_components import PlotConfigComponents
+        from src.web.pages.ui.components.plot_config_components import (
+            PlotConfigComponents,
+        )
 
         mock_st.multiselect.return_value = ["a", "b"]
 
@@ -421,7 +427,9 @@ class TestPlotConfigComponentsBranches:
 
     @patch("src.web.pages.ui.components.plot_config_components.st")
     def test_statistics_multiselect_fallback_1_col(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.plot_config_components import PlotConfigComponents
+        from src.web.pages.ui.components.plot_config_components import (
+            PlotConfigComponents,
+        )
 
         mock_st.multiselect.return_value = ["a"]
 
@@ -435,7 +443,9 @@ class TestPlotConfigComponentsBranches:
 
     @patch("src.web.pages.ui.components.plot_config_components.st")
     def test_title_labels_with_legend_title(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.plot_config_components import PlotConfigComponents
+        from src.web.pages.ui.components.plot_config_components import (
+            PlotConfigComponents,
+        )
 
         mock_st.text_input.side_effect = ["Title", "X", "Y", "Legend"]
 
@@ -450,7 +460,9 @@ class TestPlotConfigComponentsBranches:
 
     @patch("src.web.pages.ui.components.plot_config_components.st")
     def test_title_labels_without_legend_title(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.plot_config_components import PlotConfigComponents
+        from src.web.pages.ui.components.plot_config_components import (
+            PlotConfigComponents,
+        )
 
         mock_st.text_input.side_effect = ["Title", "X", "Y"]
 

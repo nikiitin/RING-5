@@ -45,7 +45,9 @@ class TestSeedsReducerRender:
     @patch("src.web.pages.ui.data_managers.impl.seeds_reducer.HistoryComponents")
     @patch("src.web.pages.ui.data_managers.impl.seeds_reducer.st")
     def test_no_data(self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock) -> None:
-        from src.web.pages.ui.data_managers.impl.seeds_reducer import SeedsReducerManager
+        from src.web.pages.ui.data_managers.impl.seeds_reducer import (
+            SeedsReducerManager,
+        )
 
         mock_api.state_manager.get_data.return_value = None
         mgr = SeedsReducerManager(mock_api)
@@ -57,7 +59,9 @@ class TestSeedsReducerRender:
     def test_no_random_seed_column(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.seeds_reducer import SeedsReducerManager
+        from src.web.pages.ui.data_managers.impl.seeds_reducer import (
+            SeedsReducerManager,
+        )
 
         df = pd.DataFrame({"benchmark": ["a", "b"], "cycles": [100.0, 200.0]})
         mock_api.state_manager.get_data.return_value = df
@@ -70,7 +74,9 @@ class TestSeedsReducerRender:
     def test_random_seed_in_numeric(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.seeds_reducer import SeedsReducerManager
+        from src.web.pages.ui.data_managers.impl.seeds_reducer import (
+            SeedsReducerManager,
+        )
 
         # random_seed as numeric (int)
         df = pd.DataFrame(
@@ -96,7 +102,9 @@ class TestSeedsReducerRender:
     def test_no_categorical_after_removing_seed(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.seeds_reducer import SeedsReducerManager
+        from src.web.pages.ui.data_managers.impl.seeds_reducer import (
+            SeedsReducerManager,
+        )
 
         # Only categorical col is random_seed itself
         df = pd.DataFrame(
@@ -117,7 +125,9 @@ class TestSeedsReducerRender:
     def test_no_numeric_cols(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.seeds_reducer import SeedsReducerManager
+        from src.web.pages.ui.data_managers.impl.seeds_reducer import (
+            SeedsReducerManager,
+        )
 
         df = pd.DataFrame(
             {
@@ -137,7 +147,9 @@ class TestSeedsReducerRender:
     def test_apply_success(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.seeds_reducer import SeedsReducerManager
+        from src.web.pages.ui.data_managers.impl.seeds_reducer import (
+            SeedsReducerManager,
+        )
 
         reduced = pd.DataFrame(
             {
@@ -164,7 +176,9 @@ class TestSeedsReducerRender:
     def test_apply_validation_errors(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.seeds_reducer import SeedsReducerManager
+        from src.web.pages.ui.data_managers.impl.seeds_reducer import (
+            SeedsReducerManager,
+        )
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_api.managers.validate_seeds_reducer_inputs.return_value = ["No cols selected"]
@@ -182,7 +196,9 @@ class TestSeedsReducerRender:
     def test_apply_exception(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.seeds_reducer import SeedsReducerManager
+        from src.web.pages.ui.data_managers.impl.seeds_reducer import (
+            SeedsReducerManager,
+        )
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_api.managers.validate_seeds_reducer_inputs.return_value = []
@@ -201,7 +217,9 @@ class TestSeedsReducerRender:
     def test_confirm_applies_data(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.seeds_reducer import SeedsReducerManager
+        from src.web.pages.ui.data_managers.impl.seeds_reducer import (
+            SeedsReducerManager,
+        )
 
         reduced = pd.DataFrame({"benchmark": ["a", "b"], "cycles": [105.0, 205.0]})
         mock_api.state_manager.get_data.return_value = sample_df
@@ -223,7 +241,9 @@ class TestSeedsReducerRender:
     def test_confirm_none_preview(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.seeds_reducer import SeedsReducerManager
+        from src.web.pages.ui.data_managers.impl.seeds_reducer import (
+            SeedsReducerManager,
+        )
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_api.has_preview.return_value = True
@@ -242,7 +262,9 @@ class TestSeedsReducerRender:
     def test_history_load_full(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.seeds_reducer import SeedsReducerManager
+        from src.web.pages.ui.data_managers.impl.seeds_reducer import (
+            SeedsReducerManager,
+        )
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
@@ -264,7 +286,9 @@ class TestSeedsReducerRender:
     def test_history_load_missing_columns(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.seeds_reducer import SeedsReducerManager
+        from src.web.pages.ui.data_managers.impl.seeds_reducer import (
+            SeedsReducerManager,
+        )
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect

@@ -8,7 +8,10 @@ Covers:
   - Sub-spec isolation (modifying one spec doesn't affect another)
 """
 
-from src.core.models.visualization.annotation_config import AnnotationConfig, ReferenceLineConfig
+from src.core.models.visualization.annotation_config import (
+    AnnotationConfig,
+    ReferenceLineConfig,
+)
 from src.core.models.visualization.axis_config import AxesConfig, AxisConfig
 from src.core.models.visualization.data_label_config import DataLabelConfig
 from src.core.models.visualization.figure_config import (
@@ -17,7 +20,10 @@ from src.core.models.visualization.figure_config import (
     MarginsConfig,
     SeparatorConfig,
 )
-from src.core.models.visualization.legend_config import LegendConfig, LegendSpacingConfig
+from src.core.models.visualization.legend_config import (
+    LegendConfig,
+    LegendSpacingConfig,
+)
 from src.core.models.visualization.series_style_config import SeriesStyleConfig
 from src.core.models.visualization.typography_config import TypographyConfig
 
