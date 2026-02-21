@@ -151,3 +151,18 @@ def e2e_sample_data() -> pd.DataFrame:
     from tests.ui.helpers import make_e2e_sample_data
 
     return make_e2e_sample_data()
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _cleanup_perl_worker_pool() -> Any:
+    """Shut down the global PerlWorkerPool after the test session.
+
+    Prevents ResourceWarnings about subprocesses still running
+    when pytest tears down.
+    """
+    yield
+    from src.core.parsing.gem5.impl.strategies.perl_worker_pool import (
+        shutdown_worker_pool,
+    )
+
+    shutdown_worker_pool()

@@ -288,21 +288,32 @@ class PerlWorker:
     def shutdown(self) -> None:
         """Gracefully shutdown the worker."""
         with self._lock:
-            if self.process and self.process.poll() is None:
-                try:
-                    # Try graceful shutdown
-                    if self.process.stdin is not None:
-                        self.process.stdin.write("SHUTDOWN\n")
-                        self.process.stdin.flush()
-                    self.process.wait(timeout=2.0)
-                    logger.info(f"[Worker-{self.worker_id}] Graceful shutdown complete")
-                except Exception:
-                    # Force kill
-                    self.process.kill()
-                    logger.warning(f"[Worker-{self.worker_id}] Forced shutdown")
-                finally:
-                    self.process = None
-                    self.is_healthy = False
+            if self.process is not None:
+                if self.process.poll() is None:
+                    try:
+                        # Try graceful shutdown
+                        if self.process.stdin is not None:
+                            self.process.stdin.write("SHUTDOWN\n")
+                            self.process.stdin.flush()
+                        self.process.wait(timeout=2.0)
+                        logger.info(f"[Worker-{self.worker_id}] Graceful shutdown complete")
+                    except Exception:
+                        # Force kill
+                        self.process.kill()
+                        logger.warning(f"[Worker-{self.worker_id}] Forced shutdown")
+                # Always close subprocess pipes to prevent resource leaks
+                for pipe in (
+                    self.process.stdin,
+                    self.process.stdout,
+                    self.process.stderr,
+                ):
+                    if pipe:
+                        try:
+                            pipe.close()
+                        except OSError:
+                            pass
+                self.process = None
+                self.is_healthy = False
 
     def get_stats(self) -> WorkerStats:
         """Get worker statistics."""

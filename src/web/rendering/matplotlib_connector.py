@@ -273,6 +273,9 @@ class FigureSpecToMatplotlib:
 
             # Primary legend on the main axes
             if legend.role == "primary":
+                handles, labels = ax.get_legend_handles_labels()
+                if not labels:
+                    continue
                 leg = ax.legend(**kwargs)
                 if leg and legend.bold:
                     for text in leg.get_texts():
@@ -296,9 +299,9 @@ class FigureSpecToMatplotlib:
 
     @staticmethod
     def _escape_latex(text: str) -> str:
-        """Escape special LaTeX characters in display text.
+        r"""Escape special LaTeX characters in display text.
 
-        Preserves existing LaTeX commands (\\textbf, \\texttt, etc.)
+        Preserves existing LaTeX commands (\textbf, \texttt, etc.)
         and only escapes raw special characters.
         """
         if not text:
