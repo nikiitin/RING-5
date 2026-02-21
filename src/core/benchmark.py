@@ -5,6 +5,7 @@ Provides tools for measuring and comparing performance of critical operations.
 """
 
 import functools
+import logging
 import time
 from contextlib import contextmanager
 from typing import Any, Callable, Dict, List, Optional, TypeVar
@@ -12,6 +13,8 @@ from typing import Any, Callable, Dict, List, Optional, TypeVar
 import pandas as pd
 
 T = TypeVar("T")
+
+logger = logging.getLogger(__name__)
 
 
 class BenchmarkResult:
@@ -140,51 +143,22 @@ class BenchmarkSuite:
         return pd.DataFrame([r.to_dict() for r in self.results])
 
     def print_summary(self) -> None:
-        """Print formatted summary of all benchmarks."""
-        print(f"\n{'='*60}")
-        print(f"Benchmark Suite: {self.name}")
-        print(f"{'='*60}")
+        """Log formatted summary of all benchmarks."""
+        logger.info("=" * 60)
+        logger.info("Benchmark Suite: %s", self.name)
+        logger.info("=" * 60)
 
         if not self.results:
-            print("No benchmarks run yet.")
+            logger.info("No benchmarks run yet.")
             return
 
         for result in self.results:
-            print(f"  {result}")
+            logger.info("  %s", result)
 
         total_time = sum(r.duration_ms for r in self.results)
-        print(f"{'='*60}")
-        print(f"Total Time: {total_time:.2f}ms")
-        print(f"{'='*60}\n")
-
-    def compare_with(self, other: "BenchmarkSuite") -> pd.DataFrame:
-        """
-        Compare this suite with another suite.
-
-        Args:
-            other: Another benchmark suite to compare against
-
-        Returns:
-            DataFrame showing performance comparison
-        """
-        df1 = self.summary()
-        df2 = other.summary()
-
-        if df1.empty or df2.empty:
-            return pd.DataFrame()
-
-        # Merge on operation name
-        comparison = df1.merge(df2, on="name", suffixes=("_baseline", "_current"))
-
-        # Calculate speedup
-        comparison["speedup"] = comparison["avg_ms_baseline"] / comparison["avg_ms_current"]
-        comparison["improvement_pct"] = (
-            (comparison["avg_ms_baseline"] - comparison["avg_ms_current"])
-            / comparison["avg_ms_baseline"]
-            * 100
-        )
-
-        return comparison
+        logger.info("=" * 60)
+        logger.info("Total Time: %.2fms", total_time)
+        logger.info("=" * 60)
 
 
 def benchmark_decorator(
@@ -222,12 +196,15 @@ def benchmark_decorator(
             elapsed = (time.perf_counter() - start) * 1000  # ms
 
             if iterations == 1:
-                print(f"{operation_name}: {elapsed:.2f}ms")
+                logger.info("%s: %.2fms", operation_name, elapsed)
             else:
                 avg = elapsed / iterations
-                print(
-                    f"{operation_name}: {elapsed:.2f}ms total "
-                    f"({avg:.2f}ms avg over {iterations} iterations)"
+                logger.info(
+                    "%s: %.2fms total (%.2fms avg over %d iterations)",
+                    operation_name,
+                    elapsed,
+                    avg,
+                    iterations,
                 )
 
             # result is always bound (first call before loop)
@@ -255,4 +232,4 @@ def timer(name: str) -> Any:
         yield
     finally:
         elapsed = (time.perf_counter() - start) * 1000
-        print(f"{name}: {elapsed:.2f}ms")
+        logger.info("%s: %.2fms", name, elapsed)

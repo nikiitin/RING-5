@@ -6,9 +6,10 @@ Following Rule 004 (QA Testing Mastery):
 - AAA pattern (Arrange-Act-Assert)
 - Parametrization for multiple scenarios
 - Testing timing logic with tolerance
-- Monkeypatch for capturing print output
+- caplog for capturing log output
 """
 
+import logging
 import time
 
 import pytest
@@ -251,117 +252,65 @@ class TestBenchmarkSuiteSummary:
 class TestBenchmarkSuitePrintSummary:
     """Test BenchmarkSuite.print_summary method."""
 
-    def test_print_summary_empty_suite(self, capsys):
+    def test_print_summary_empty_suite(self, caplog):
         # Arrange
         suite = BenchmarkSuite("Empty")
 
         # Act
-        suite.print_summary()
+        with caplog.at_level(logging.INFO, logger="src.core.benchmark"):
+            suite.print_summary()
 
         # Assert
-        captured = capsys.readouterr()
-        assert "Empty" in captured.out
-        assert "No benchmarks run yet" in captured.out
+        assert "Empty" in caplog.text
+        assert "No benchmarks run yet" in caplog.text
 
-    def test_print_summary_with_results(self, sample_suite, capsys):
+    def test_print_summary_with_results(self, sample_suite, caplog):
         # Arrange
         suite = sample_suite
 
         # Act
-        suite.print_summary()
+        with caplog.at_level(logging.INFO, logger="src.core.benchmark"):
+            suite.print_summary()
 
         # Assert
-        captured = capsys.readouterr()
-        assert "Test Suite" in captured.out
-        assert "op1" in captured.out
-        assert "op2" in captured.out
-        assert "op3" in captured.out
-        assert "Total Time: 350.00ms" in captured.out
-
-
-class TestBenchmarkSuiteCompareWith:
-    """Test BenchmarkSuite.compare_with method."""
-
-    def test_compare_with_empty_suites(self):
-        # Arrange
-        suite1 = BenchmarkSuite("Baseline")
-        suite2 = BenchmarkSuite("Current")
-
-        # Act
-        comparison = suite1.compare_with(suite2)
-
-        # Assert
-        assert comparison.empty
-
-    def test_compare_with_matching_operations(self):
-        # Arrange
-        baseline = BenchmarkSuite("Baseline")
-        baseline.results.append(BenchmarkResult("parse", 100.0, 1))
-        baseline.results.append(BenchmarkResult("render", 200.0, 1))
-
-        current = BenchmarkSuite("Current")
-        current.results.append(BenchmarkResult("parse", 50.0, 1))
-        current.results.append(BenchmarkResult("render", 100.0, 1))
-
-        # Act
-        comparison = baseline.compare_with(current)
-
-        # Assert
-        assert len(comparison) == 2
-        assert "speedup" in comparison.columns
-        assert "improvement_pct" in comparison.columns
-        # Speedup: 100/50 = 2x, 200/100 = 2x
-        assert comparison[comparison["name"] == "parse"]["speedup"].iloc[0] == 2.0
-        assert comparison[comparison["name"] == "render"]["speedup"].iloc[0] == 2.0
-        # Improvement: (100-50)/100*100 = 50%
-        assert comparison[comparison["name"] == "parse"]["improvement_pct"].iloc[0] == 50.0
-
-    def test_compare_with_non_matching_operations(self):
-        # Arrange
-        baseline = BenchmarkSuite("Baseline")
-        baseline.results.append(BenchmarkResult("op1", 100.0, 1))
-
-        current = BenchmarkSuite("Current")
-        current.results.append(BenchmarkResult("op2", 50.0, 1))
-
-        # Act
-        comparison = baseline.compare_with(current)
-
-        # Assert - No matching names, so no comparison rows
-        assert len(comparison) == 0
+        assert "Test Suite" in caplog.text
+        assert "op1" in caplog.text
+        assert "op2" in caplog.text
+        assert "op3" in caplog.text
+        assert "Total Time: 350.00ms" in caplog.text
 
 
 class TestBenchmarkDecorator:
     """Test benchmark_decorator function."""
 
-    def test_decorator_single_iteration(self, capsys):
+    def test_decorator_single_iteration(self, caplog):
         # Arrange
         @benchmark_decorator(iterations=1, name="test_func")
         def sample_func(x):
             return x * 2
 
         # Act
-        result = sample_func(5)
+        with caplog.at_level(logging.INFO, logger="src.core.benchmark"):
+            result = sample_func(5)
 
         # Assert
         assert result == 10
-        captured = capsys.readouterr()
-        assert "test_func" in captured.out
-        assert "ms" in captured.out
+        assert "test_func" in caplog.text
+        assert "ms" in caplog.text
 
-    def test_decorator_multiple_iterations(self, capsys):
+    def test_decorator_multiple_iterations(self, caplog):
         # Arrange
         @benchmark_decorator(iterations=3)
         def sample_func():
             return 42
 
         # Act
-        result = sample_func()
+        with caplog.at_level(logging.INFO, logger="src.core.benchmark"):
+            result = sample_func()
 
         # Assert
         assert result == 42
-        captured = capsys.readouterr()
-        assert "avg over 3 iterations" in captured.out
+        assert "avg over 3 iterations" in caplog.text
 
     def test_decorator_preserves_function_name(self):
         # Arrange
@@ -372,41 +321,41 @@ class TestBenchmarkDecorator:
         # Act & Assert
         assert my_function.__name__ == "my_function"
 
-    def test_decorator_with_args_and_kwargs(self, capsys):
+    def test_decorator_with_args_and_kwargs(self, caplog):
         # Arrange
         @benchmark_decorator(iterations=1, name="Complex Func")
         def complex_func(a, b, c=3):
             return a + b + c
 
         # Act
-        result = complex_func(1, 2, c=4)
+        with caplog.at_level(logging.INFO, logger="src.core.benchmark"):
+            result = complex_func(1, 2, c=4)
 
         # Assert
         assert result == 7
-        captured = capsys.readouterr()
-        assert "Complex Func" in captured.out
+        assert "Complex Func" in caplog.text
 
 
 class TestTimer:
     """Test timer context manager."""
 
-    def test_timer_prints_duration(self, capsys):
+    def test_timer_prints_duration(self, caplog):
         # Arrange & Act
-        with timer("test operation"):
-            time.sleep(0.01)  # 10ms
+        with caplog.at_level(logging.INFO, logger="src.core.benchmark"):
+            with timer("test operation"):
+                time.sleep(0.01)  # 10ms
 
         # Assert
-        captured = capsys.readouterr()
-        assert "test operation" in captured.out
-        assert "ms" in captured.out
+        assert "test operation" in caplog.text
+        assert "ms" in caplog.text
 
-    def test_timer_with_exception_still_prints(self, capsys):
+    def test_timer_with_exception_still_prints(self, caplog):
         # Arrange & Act & Assert
-        with pytest.raises(RuntimeError):
-            with timer("failing operation"):
-                raise RuntimeError("Error")
+        with caplog.at_level(logging.INFO, logger="src.core.benchmark"):
+            with pytest.raises(RuntimeError):
+                with timer("failing operation"):
+                    raise RuntimeError("Error")
 
-        # Assert timing was still printed
-        captured = capsys.readouterr()
-        assert "failing operation" in captured.out
-        assert "ms" in captured.out
+        # Assert timing was still logged
+        assert "failing operation" in caplog.text
+        assert "ms" in caplog.text
