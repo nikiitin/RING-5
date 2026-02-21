@@ -80,23 +80,28 @@ Apply these patterns whenever the context matches:
 ## 9. Visualization Engine Architecture
 
 ### 9.1 FigureSpec as Single Source of Truth
+
 - `FigureSpec` is the canonical representation of a plot's styling. ALL rendering flows through it.
 - Building: `ConfigSpecBuilder.from_config(config) → resolve_spec(spec) → FigureSpec`
 - Applying: `FigureSpecToPlotly.apply(spec, fig)` or `FigureSpecToMatplotlib.apply(spec, ax)`
 
 ### 9.2 Engine Connectors are Stateless Translators
+
 - `FigureSpecToPlotly` and `FigureSpecToMatplotlib` are pure functions. No state, no side effects beyond the figure mutation.
 - Same `FigureSpec` must produce visually equivalent output in both engines.
 
 ### 9.3 Plotly Templates Map 1:1 to LaTeX Presets
+
 - Each LaTeX preset (ISCA, MICRO, etc.) has a corresponding Plotly template: `"ring5_isca"`, `"ring5_micro"`.
 - Application: `fig.update_layout(template="plotly_white+ring5_isca")`
 
 ### 9.4 Interactive Plotly Component is Sacrosanct
+
 - `interactive_plotly_chart` in `src/web/pages/ui/components/interactive_plot.py` must NEVER be replaced with `st.plotly_chart`.
 - It captures `relayoutData` for legend position persistence.
 
 ### 9.5 Memory Discipline
+
 - Every `matplotlib.figure.Figure` must be closed after rendering: `plt.close(fig)`.
 - In Streamlit: use `st.pyplot(fig, clear_figure=True)`.
 - Store figure bytes for download, not figure objects.

@@ -27,10 +27,15 @@
 
 - [Architecture](Architecture)
 - [Web Layer Architecture](web-layer-architecture)
+- [Services Architecture](services-architecture)
+- [Parsing Architecture](parsing-architecture)
+- [Architecture Diagram](architecture-diagram)
+- [Phase 5 — MVC Refactoring](phase5-architecture)
 - [Development Setup](Development-Setup)
 - [Testing Guide](Testing-Guide)
 - [Adding Plot Types](Adding-Plot-Types)
 - [Adding Shapers](Adding-Shapers)
+- [Streamlit Best Practices](Streamlit-Best-Practices)
 - [AI Agent Setup](AI-Agent-Setup)
 
 ## API Reference
@@ -38,18 +43,14 @@
 - [Parsing API](api/Parsing-API)
 - [Plotting API](api/Plotting-API)
 - [Shaper API](api/Shaper-API)
-- [Backend Facade](api/Backend-Facade)
+- [Application API](api/Backend-Facade)
 
-## Advanced
+## Historical
 
-- [Pattern Aggregation](Pattern-Aggregation)
-- [Async Parsing](Async-Parsing)
-- [Type System](Type-System)
-- [Performance](Performance)
-- [Debugging](Debugging)
+- [Phase 3 — FigureEngine](phase3-architecture)
+- [Phase 4 — Widget System](phase4-architecture)
 
 ## Contributing
 
 - [Contributing Guide](../CONTRIBUTING)
-- [Code Style](Code-Style)
-- [PR Process](PR-Process)
+- [Dependency Updates](Dependency-Updates)

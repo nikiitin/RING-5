@@ -63,6 +63,7 @@ You treat data with scientific rigor. Every transformation is documented, reprod
 ## 4. Plotting Best Practices
 
 ### 4.1 Matplotlib (OO API — MANDATORY)
+
 - **ALWAYS** use `fig, ax = plt.subplots(layout='constrained')`. NEVER use pyplot state machine (`plt.plot()`, `plt.xlabel()`).
 - **`layout='constrained'`** over `tight_layout()` — more robust for external legends, multi-axis, colorbars.
 - **PGF backend for LaTeX**: `fig.savefig(buf, format="pgf", backend="pgf")` with `pgf.texsystem="xelatex"` by default.
@@ -72,6 +73,7 @@ You treat data with scientific rigor. Every transformation is documented, reprod
 - **Data-ink ratio**: Remove top/right spines by default, minimize gridlines, no 3D effects or chartjunk.
 
 ### 4.2 Plotly (Graph Objects — MANDATORY)
+
 - **Custom Templates** for theming: `pio.templates["ring5_base"] = go.layout.Template(layout=go.Layout(…))`. Apply via `fig.update_layout(template="ring5_base")`.
 - **Template composition**: `"plotly_white+ring5_isca"` layers templates. Custom always on top of base.
 - **Kaleido v1** for static export: `fig.to_image(format="png", scale=2)`. Uses system Chrome. No Orca.
@@ -80,6 +82,7 @@ You treat data with scientific rigor. Every transformation is documented, reprod
 - **Streamlit integration**: `st.plotly_chart(fig, theme=None)` when using custom templates to prevent Streamlit overrides.
 
 ### 4.3 Accessibility & Publication Quality
+
 - **Colorblind-safe palettes**: Wong palette as default (8 discrete colors). Viridis for continuous. 4.5:1 contrast minimum.
 - **Font sizing by venue**: Ticks 7-8pt, labels 8-9pt, titles 9-10pt, legends 7-8pt.
 - **Vector formats mandatory**: PDF/SVG/PGF for print. Raster at 2× scale minimum (scale=2 in Kaleido).

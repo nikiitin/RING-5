@@ -3,7 +3,7 @@ title: "Testing Guide"
 nav_order: 18
 ---
 
-# Testing Guide
+## Testing Guide
 
 Comprehensive guide to testing in RING-5.
 
@@ -314,12 +314,12 @@ pytest -vv --tb=long tests/unit/test_file.py
 
 Available markers (registered in `pyproject.toml`):
 
-| Marker | Purpose |
-|--------|---------|
-| `@pytest.mark.slow` | Long-running tests |
-| `@pytest.mark.benchmark` | Performance benchmarks |
-| `@pytest.mark.smoke` | Quick smoke tests |
-| `@pytest.mark.requires_latex` | Tests needing LaTeX |
+| Marker                          | Purpose                 |
+| ------------------------------- | ----------------------- |
+| `@pytest.mark.slow`             | Long-running tests      |
+| `@pytest.mark.benchmark`        | Performance benchmarks  |
+| `@pytest.mark.smoke`            | Quick smoke tests       |
+| `@pytest.mark.requires_latex`   | Tests needing LaTeX     |
 | `@pytest.mark.requires_browser` | Tests needing a browser |
 
 ## Next Steps

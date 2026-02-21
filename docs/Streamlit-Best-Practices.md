@@ -27,7 +27,7 @@
 
 **Streamlit re-executes your entire script from top to bottom on every user interaction.** Every click, every slider drag, every text input triggers a full re-run. This is the single most important concept to internalize — every design decision flows from it.
 
-```
+```text
 User interacts with widget
     → st.session_state updated
     → Callback executed (if any)
@@ -37,12 +37,12 @@ User interacts with widget
 
 ### Implications for RING-5
 
-| Implication | What This Means for Us |
-|---|---|
-| **No persistent variables** | Local variables reset on every rerun. All state must live in `st.session_state` or be cached. |
+| Implication                     | What This Means for Us                                                                                                               |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **No persistent variables**     | Local variables reset on every rerun. All state must live in `st.session_state` or be cached.                                        |
 | **Expensive operations repeat** | Parsing gem5 stats, computing shapers, generating Plotly figures — all of these re-execute unless protected by caching or fragments. |
-| **Widget values reset** | Without `key=` parameters and proper state management, widget values revert to defaults on rerun. |
-| **Import cost** | Module-level code runs every rerun. Keep top-level scope minimal. |
+| **Widget values reset**         | Without `key=` parameters and proper state management, widget values revert to defaults on rerun.                                    |
+| **Import cost**                 | Module-level code runs every rerun. Keep top-level scope minimal.                                                                    |
 
 ### Rules
 
@@ -61,18 +61,18 @@ RING-5 uses a **centralized typed state manager** (`src/web/state/ui_state_manag
 
 #### Why Centralized State
 
-| Direct Access (Anti-Pattern) | `UIStateManager` (Correct) |
-|---|---|
-| Typos in key strings cause silent bugs | Typed methods prevent typos |
-| No discovery — you don't know what state exists | Central module documents all state keys |
-| Inconsistent naming across files | Enforced namespace hierarchy |
-| No validation on reads/writes | Can add validation, logging, and type checking |
+| Direct Access (Anti-Pattern)                    | `UIStateManager` (Correct)                     |
+| ----------------------------------------------- | ---------------------------------------------- |
+| Typos in key strings cause silent bugs          | Typed methods prevent typos                    |
+| No discovery — you don't know what state exists | Central module documents all state keys        |
+| Inconsistent naming across files                | Enforced namespace hierarchy                   |
+| No validation on reads/writes                   | Can add validation, logging, and type checking |
 
 ### Namespace Convention
 
 All state keys MUST follow a **dot-notation namespace hierarchy**:
 
-```
+```text
 plot.{plot_id}.auto_refresh      # Per-plot settings
 plot.{plot_id}.show_save_dialog  # Per-plot UI state
 manager.{name}.load_trigger      # Data manager triggers
@@ -113,7 +113,7 @@ if config is not None:
 
 The underscore prefix (`_outlier_load`) signals that this is a transient, one-shot key.
 
-### Rules
+### Session State Rules
 
 1. **All new session state access MUST go through `UIStateManager`.** Do not add new direct `st.session_state` calls in component files.
 2. **Use dictionary-style access** (`st.session_state["key"]`), not attribute-style (`st.session_state.key`).
@@ -164,11 +164,13 @@ for i, col in enumerate(columns):
 RING-5 currently uses the **rerun model** — widgets are read after the full script re-executes, not via callbacks. This is simpler and correct for most cases.
 
 **When to use callbacks (`on_change`/`on_click`):**
+
 - When you need to process a value **before** the UI re-renders (e.g., validation that must happen before layout)
 - When a button triggers a one-time action that modifies `session_state` (the callback runs before the rerun)
 - In `st.form` — only `st.form_submit_button` supports callbacks inside forms
 
 **When NOT to use callbacks:**
+
 - For reading widget values — just read them after the rerun
 - For complex state mutations — prefer explicit state updates in the main script flow
 - When you need to render UI elements — callbacks render above the rest of the page
@@ -194,7 +196,7 @@ def process():
 st.button("Submit", on_click=process)
 ```
 
-### Rules
+### Widget Key Rules
 
 1. **Every widget gets a `key=`.** No exceptions.
 2. **Keys must be unique across the entire page** (not just within a function).
@@ -212,10 +214,10 @@ RING-5 uses a single `@st.cache_resource` to cache the `ApplicationAPI` singleto
 
 ### When to Use Each Decorator
 
-| Decorator | Use When | RING-5 Examples |
-|---|---|---|
-| `@st.cache_data` | Function returns **serializable data** (DataFrame, dict, list, str, int). Creates a copy on each access — safe from mutations. | Parsing gem5 stats, loading CSV files, computing shaper transformations, DataFrame operations |
-| `@st.cache_resource` | Function returns **unserializable resources** that should be shared as singletons (connections, models, API objects). Returns the **same object** — not thread-safe against mutations. | `ApplicationAPI` instance, potentially `WorkPool` singleton |
+| Decorator            | Use When                                                                                                                                                                               | RING-5 Examples                                                                               |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `@st.cache_data`     | Function returns **serializable data** (DataFrame, dict, list, str, int). Creates a copy on each access — safe from mutations.                                                         | Parsing gem5 stats, loading CSV files, computing shaper transformations, DataFrame operations |
+| `@st.cache_resource` | Function returns **unserializable resources** that should be shared as singletons (connections, models, API objects). Returns the **same object** — not thread-safe against mutations. | `ApplicationAPI` instance, potentially `WorkPool` singleton                                   |
 
 ### Key Principle: `@st.cache_data` for DataFrames
 
@@ -314,12 +316,12 @@ def render_outlier_remover(data: pd.DataFrame) -> None:
 
 #### When to Use Fragments
 
-| Use Fragment | Don't Use Fragment |
-|---|---|
-| Independent UI sections (tabs, panels) | Simple pages with few widgets |
-| Sections with expensive computations | When all widgets affect all outputs |
-| Streaming/auto-refreshing components | When you need return values |
-| Dynamic forms that shouldn't rerun the whole page | When caching is sufficient |
+| Use Fragment                                      | Don't Use Fragment                  |
+| ------------------------------------------------- | ----------------------------------- |
+| Independent UI sections (tabs, panels)            | Simple pages with few widgets       |
+| Sections with expensive computations              | When all widgets affect all outputs |
+| Streaming/auto-refreshing components              | When you need return values         |
+| Dynamic forms that shouldn't rerun the whole page | When caching is sufficient          |
 
 #### Fragment Pitfalls
 
@@ -363,11 +365,13 @@ st.rerun()  # Necessary to switch pages
 ```
 
 **Legitimate uses of `st.rerun()`:**
+
 - After a fragment modifies state that the main page needs to re-render
 - After navigation/page switching
 - After a dialog/modal is dismissed
 
 **Illegitimate uses (refactor these):**
+
 - To refresh displayed data — use `@st.fragment` or `@st.cache_data` invalidation
 - To update a widget value — use callbacks instead
 - After every button click — restructure the control flow
@@ -471,6 +475,7 @@ with st.form("toggle_form"):
 ```
 
 **Form limitations to remember:**
+
 - `st.button` and `st.download_button` cannot be inside a form.
 - Only `st.form_submit_button` supports `on_click` callbacks inside forms.
 - Interdependent widgets inside a form won't update each other until submit.
@@ -499,16 +504,16 @@ with st.sidebar:
 
 RING-5 uses a clear hierarchy of feedback — **maintain this consistently**:
 
-| Function | Purpose | When to Use | Duration |
-|---|---|---|---|
-| `st.info()` | Instructional guidance | Explain features, suggest next steps | Persistent |
-| `st.success()` | Operation confirmation | After successful parse/export/save | Persistent (consider `st.toast` for transient) |
-| `st.warning()` | Soft warning | Missing optional data, suboptimal config | Persistent |
-| `st.error()` | Critical error | Parse failure, missing required data, exceptions | Persistent |
-| `st.toast()` | Transient notification | Quick confirmations that don't need to persist | Auto-dismiss (~4s) |
-| `st.exception()` | Debug traceback | **Development/debug mode only** — never in production | Persistent |
+| Function         | Purpose                | When to Use                                           | Duration                                       |
+| ---------------- | ---------------------- | ----------------------------------------------------- | ---------------------------------------------- |
+| `st.info()`      | Instructional guidance | Explain features, suggest next steps                  | Persistent                                     |
+| `st.success()`   | Operation confirmation | After successful parse/export/save                    | Persistent (consider `st.toast` for transient) |
+| `st.warning()`   | Soft warning           | Missing optional data, suboptimal config              | Persistent                                     |
+| `st.error()`     | Critical error         | Parse failure, missing required data, exceptions      | Persistent                                     |
+| `st.toast()`     | Transient notification | Quick confirmations that don't need to persist        | Auto-dismiss (~4s)                             |
+| `st.exception()` | Debug traceback        | **Development/debug mode only** — never in production | Persistent                                     |
 
-### Rules
+### Feedback Rules
 
 ```python
 # ✅ CORRECT — Actionable error messages
@@ -563,7 +568,7 @@ def render_plot_config(data: pd.DataFrame, plot_id: str) -> None:
 
 The **Manage Plots** page implements a clean **Model-View-Presenter (MVP)** architecture. This is the reference architecture for new page implementations.
 
-```
+```text
 Controller (Business Logic)     → No st.* imports
     ↕ uses protocols
 Presenter (Rendering)           → Only st.* calls, no domain logic
@@ -607,15 +612,15 @@ Older pages use a **component-based pattern** where UI and logic are partially m
 
 ### File Organization Rules
 
-| Layer | Directory | Allowed Imports |
-|---|---|---|
-| **Pages** | `src/web/pages/` | Controllers, presenters, adapters, `UIStateManager` |
-| **Controllers** | `src/web/controllers/` | Domain models, protocols, core services — **no `st.*`** |
-| **Presenters** | `src/web/presenters/` | `streamlit`, models — **no domain services** |
-| **UI Components** | `src/web/pages/ui/` | `streamlit`, utility functions |
-| **State** | `src/web/state/` | `streamlit.session_state` |
-| **Models** | `src/web/models/` | Standard library, typing — **no `st.*`** |
-| **Domain/Core** | `src/core/` | **NEVER import streamlit** |
+| Layer             | Directory              | Allowed Imports                                         |
+| ----------------- | ---------------------- | ------------------------------------------------------- |
+| **Pages**         | `src/web/pages/`       | Controllers, presenters, adapters, `UIStateManager`     |
+| **Controllers**   | `src/web/controllers/` | Domain models, protocols, core services — **no `st.*`** |
+| **Presenters**    | `src/web/presenters/`  | `streamlit`, models — **no domain services**            |
+| **UI Components** | `src/web/pages/ui/`    | `streamlit`, utility functions                          |
+| **State**         | `src/web/state/`       | `streamlit.session_state`                               |
+| **Models**        | `src/web/models/`      | Standard library, typing — **no `st.*`**                |
+| **Domain/Core**   | `src/core/`            | **NEVER import streamlit**                              |
 
 ### The `ApplicationAPI` Singleton
 
@@ -640,13 +645,13 @@ RING-5 uses `pytest` for all testing. Streamlit UI code presents unique testing 
 
 #### What to Test and How
 
-| Layer | Test Approach | Tools |
-|---|---|---|
-| **Domain/Core logic** | Standard unit tests — no Streamlit dependency | `pytest`, mocks |
-| **Controllers** | Unit tests with mocked protocol adapters | `pytest`, `unittest.mock` |
-| **Presenters** | Integration tests with `AppTest` (if needed) | `streamlit.testing.v1.AppTest` |
-| **State management** | Unit tests mocking `st.session_state` | `pytest`, mock dict |
-| **Full page flows** | Streamlit's `AppTest` framework | `streamlit.testing.v1.AppTest` |
+| Layer                 | Test Approach                                 | Tools                          |
+| --------------------- | --------------------------------------------- | ------------------------------ |
+| **Domain/Core logic** | Standard unit tests — no Streamlit dependency | `pytest`, mocks                |
+| **Controllers**       | Unit tests with mocked protocol adapters      | `pytest`, `unittest.mock`      |
+| **Presenters**        | Integration tests with `AppTest` (if needed)  | `streamlit.testing.v1.AppTest` |
+| **State management**  | Unit tests mocking `st.session_state`         | `pytest`, mock dict            |
+| **Full page flows**   | Streamlit's `AppTest` framework               | `streamlit.testing.v1.AppTest` |
 
 #### `AppTest` for Streamlit Integration Tests
 
@@ -700,30 +705,33 @@ def test_state_manager_reads_plot_config() -> None:
 
 ### Audit Summary
 
-| Area | Current State | Target State | Priority |
-|---|---|---|---|
-| **Session State centralization** | 11 files bypass `UIStateManager` | All state through `UIStateManager` | Medium |
-| **Widget keys** | ~95% coverage, ~20 widgets missing keys | 100% coverage | High |
-| **Caching** | 1 `@st.cache_resource`, 0 `@st.cache_data` | Cache expensive computations | Medium |
-| **`st.rerun()` usage** | ~55 calls | Reduce by 50%+ | Low |
-| **Fragment coverage** | 12 fragments | Evaluate adding more | Low |
-| **Navigation** | Manual `st.radio` dispatch | Consider `st.navigation` (Streamlit 1.36+) | Low |
-| **`st.toast` usage** | 2 calls | Use for transient success messages | Low |
-| **Presenter key coverage** | Some presenters lack widget keys | All presenter widgets keyed | High |
+| Area                             | Current State                              | Target State                               | Priority |
+| -------------------------------- | ------------------------------------------ | ------------------------------------------ | -------- |
+| **Session State centralization** | 11 files bypass `UIStateManager`           | All state through `UIStateManager`         | Medium   |
+| **Widget keys**                  | ~95% coverage, ~20 widgets missing keys    | 100% coverage                              | High     |
+| **Caching**                      | 1 `@st.cache_resource`, 0 `@st.cache_data` | Cache expensive computations               | Medium   |
+| **`st.rerun()` usage**           | ~55 calls                                  | Reduce by 50%+                             | Low      |
+| **Fragment coverage**            | 12 fragments                               | Evaluate adding more                       | Low      |
+| **Navigation**                   | Manual `st.radio` dispatch                 | Consider `st.navigation` (Streamlit 1.36+) | Low      |
+| **`st.toast` usage**             | 2 calls                                    | Use for transient success messages         | Low      |
+| **Presenter key coverage**       | Some presenters lack widget keys           | All presenter widgets keyed                | High     |
 
 ### Migration Guidelines
 
 #### Phase 1: Quick Wins (Do Now)
+
 - Add `key=` to all widgets missing keys (especially in presenters).
 - Replace `st.session_state.attr = val` with `st.session_state["attr"] = val` (1 instance in `app.py`).
 - Use `st.toast()` for transient success messages instead of `st.success()` where appropriate.
 
 #### Phase 2: State Consolidation (Next Sprint)
+
 - Migrate remaining 11 direct `st.session_state` files to use `UIStateManager`.
 - Remove legacy key naming (`show_save_for_plot_{id}` → `plot.{id}.show_save_dialog`).
 - Add `@st.cache_data` to expensive DataFrame computations in shaper pipeline.
 
 #### Phase 3: Architecture Alignment (Future)
+
 - Refactor Data Manager pages toward MVP pattern.
 - Evaluate `st.navigation` / `st.Page` for multipage app (requires Streamlit 1.36+).
 - Audit and reduce `st.rerun()` calls by restructuring control flow.
@@ -750,7 +758,7 @@ Before submitting any new RING-5 feature involving Streamlit UI:
 
 ## Quick Reference Card
 
-```
+```text
 ┌──────────────────────────────────────────────────────────┐
 │                  STREAMLIT DECISION TREE                  │
 ├──────────────────────────────────────────────────────────┤
@@ -790,4 +798,4 @@ Before submitting any new RING-5 feature involving Streamlit UI:
 
 ---
 
-*Last updated: 2025. Based on Streamlit 1.53.1 and official documentation at [docs.streamlit.io](https://docs.streamlit.io/).*
+_Last updated: 2025. Based on Streamlit 1.53.1 and official documentation at [docs.streamlit.io](https://docs.streamlit.io/)._

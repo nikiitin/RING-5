@@ -3,7 +3,7 @@ title: "Phase 5 — MVC Refactoring (Phase B)"
 nav_order: 30
 ---
 
-# Phase 5 — MVC Architecture Refactoring (Phase B)
+## Phase 5 — MVC Architecture Refactoring (Phase B)
 
 ## Overview
 
@@ -27,18 +27,18 @@ The pre-Phase B architecture had several issues:
 
 ## Phase Summary
 
-| Phase | Name | What Changed |
-|-------|------|-------------|
-| B1 | Dead Code Removal | Deleted unused files and dead imports |
-| B2 | Core Visualization Models | Renamed `specs` → `configs` (`FigureSpec` → `FigureConfig`, etc.) |
-| B3 | Visualization Repository + API | Created `VisualizationRepository` and `ApplicationAPI.get/set_visualization_config()` |
-| B4 | Move Connectors | Moved `src/core/visualization/connectors/` → `src/web/rendering/` |
-| B5 | Widgets Dissolution | Moved widgets to `src/web/rendering/widgets/`, dissolved `src/web/services/` and `src/web/figures/` |
-| B6 | Render Controller | Moved UI rendering from `PlotRenderer` into `ChartPresenter`, eliminated `ChartDisplay`/`ChartDisplayAdapter` |
-| B7 | Plot Types → TraceBuildResult | All 8 plot types now produce `TraceBuildResult` via `create_traces()` |
-| B8 | Eliminate Bridges | Removed `FigureEngine`, `ConfigBridge`, `FigureCreator`/`FigureStyler` protocols |
-| B9 | Final Cleanup | Layer violation audit, orphan removal, export verification |
-| B10 | Documentation | Updated all architecture docs to match new structure |
+| Phase | Name                           | What Changed                                                                                                  |
+| ----- | ------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| B1    | Dead Code Removal              | Deleted unused files and dead imports                                                                         |
+| B2    | Core Visualization Models      | Renamed `specs` → `configs` (`FigureSpec` → `FigureConfig`, etc.)                                             |
+| B3    | Visualization Repository + API | Created `VisualizationRepository` and `ApplicationAPI.get/set_visualization_config()`                         |
+| B4    | Move Connectors                | Moved `src/core/visualization/connectors/` → `src/web/rendering/`                                             |
+| B5    | Widgets Dissolution            | Moved widgets to `src/web/rendering/widgets/`, dissolved `src/web/services/` and `src/web/figures/`           |
+| B6    | Render Controller              | Moved UI rendering from `PlotRenderer` into `ChartPresenter`, eliminated `ChartDisplay`/`ChartDisplayAdapter` |
+| B7    | Plot Types → TraceBuildResult  | All 8 plot types now produce `TraceBuildResult` via `create_traces()`                                         |
+| B8    | Eliminate Bridges              | Removed `FigureEngine`, `ConfigBridge`, `FigureCreator`/`FigureStyler` protocols                              |
+| B9    | Final Cleanup                  | Layer violation audit, orphan removal, export verification                                                    |
+| B10   | Documentation                  | Updated all architecture docs to match new structure                                                          |
 
 ## Architecture After Phase B
 
@@ -133,13 +133,15 @@ The `TraceBuildResult` is then converted to a `go.Figure` by
 ### 2. FigureEngine Elimination (B8)
 
 **Before**: 5-layer indirection chain.
-```
+
+```text
 PlotRenderer → FigureEngine → FigureCreator → plot.create_figure()
                             → FigureStyler → ConfigSpecBuilder → ConfigBridge
 ```
 
 **After**: Direct, inlined calls.
-```
+
+```text
 RenderController → plot.generate_figure()
                        ├── create_traces() → TraceBuildResult
                        ├── traces_to_plotly() → go.Figure
@@ -155,27 +157,27 @@ and Matplotlib imports are appropriate.
 
 ### 4. Protocol Simplification (B6, B8)
 
-| Removed Protocol | Reason |
-|-----------------|--------|
-| `ChartDisplay` | Replaced by direct `ChartPresenter` calls |
-| `ChartDisplayAdapter` | Bridge no longer needed |
-| `FigureCreator` | Inlined into `BasePlot.generate_figure()` |
-| `FigureStyler` | Inlined into `BasePlot.generate_figure()` |
+| Removed Protocol      | Reason                                    |
+| --------------------- | ----------------------------------------- |
+| `ChartDisplay`        | Replaced by direct `ChartPresenter` calls |
+| `ChartDisplayAdapter` | Bridge no longer needed                   |
+| `FigureCreator`       | Inlined into `BasePlot.generate_figure()` |
+| `FigureStyler`        | Inlined into `BasePlot.generate_figure()` |
 
 Remaining protocols (6): `PlotHandle`, `ConfigRenderer`, `RenderablePlot`,
 `PlotLifecycleService`, `PlotTypeRegistry`, `PipelineExecutor`.
 
 ## Deleted Components
 
-| Component | Phase | Replacement |
-|-----------|-------|-------------|
-| `src/web/figures/` | B5, B8 | Logic inlined into callers |
-| `src/web/services/` | B5 | Merged into `src/core/services/` |
-| `src/core/visualization/connectors/` | B4 | Moved to `src/web/rendering/` |
-| `FigureEngine` | B8 | `BasePlot.generate_figure()` + `RenderController` |
-| `ConfigBridge` | B8 | Dead code, no production callers |
-| `PlotlyTraceExtractor` | B7 | `TraceBuildResult` pipeline |
-| `ConfigSpecBuilder` | B4 | `config_builder.py` in rendering |
+| Component                            | Phase  | Replacement                                       |
+| ------------------------------------ | ------ | ------------------------------------------------- |
+| `src/web/figures/`                   | B5, B8 | Logic inlined into callers                        |
+| `src/web/services/`                  | B5     | Merged into `src/core/services/`                  |
+| `src/core/visualization/connectors/` | B4     | Moved to `src/web/rendering/`                     |
+| `FigureEngine`                       | B8     | `BasePlot.generate_figure()` + `RenderController` |
+| `ConfigBridge`                       | B8     | Dead code, no production callers                  |
+| `PlotlyTraceExtractor`               | B7     | `TraceBuildResult` pipeline                       |
+| `ConfigSpecBuilder`                  | B4     | `config_builder.py` in rendering                  |
 
 ## Data Flow (Current)
 
@@ -195,23 +197,23 @@ PlotRenderController._render_visualization()
 
 ## Test Results
 
-| Phase | Tests | Status |
-|-------|-------|--------|
-| B7 | 3340 | ✅ pass |
-| B8 | 3288 | ✅ pass |
-| B9 | 3288 | ✅ pass |
+| Phase | Tests | Status  |
+| ----- | ----- | ------- |
+| B7    | 3340  | ✅ pass |
+| B8    | 3288  | ✅ pass |
+| B9    | 3288  | ✅ pass |
 
 Test count decreased from B7→B8 because tests for deleted components
 (`FigureEngine`, `PlotlyTraceExtractor`, `ConfigBridge`) were removed.
 
 ## Commits
 
-| Phase | Commit | Message |
-|-------|--------|---------|
-| B7 | `c79ded5` | Plot types produce TraceBuildResult |
-| B8 | `8da3953` | Eliminate FigureEngine, ConfigBridge, FigureCreator/FigureStyler |
-| B9 | `7d98d86` | Final cleanup + layer verification |
-| B10 | — | Documentation update (this file) |
+| Phase | Commit    | Message                                                          |
+| ----- | --------- | ---------------------------------------------------------------- |
+| B7    | `c79ded5` | Plot types produce TraceBuildResult                              |
+| B8    | `8da3953` | Eliminate FigureEngine, ConfigBridge, FigureCreator/FigureStyler |
+| B9    | `7d98d86` | Final cleanup + layer verification                               |
+| B10   | —         | Documentation update (this file)                                 |
 
 ## Related Documentation
 

@@ -3,7 +3,7 @@ title: "Creating Plots"
 nav_order: 8
 ---
 
-# Creating Plots Guide
+## Creating Plots Guide
 
 Comprehensive guide to creating and customizing visualizations in RING-5.
 
@@ -41,15 +41,15 @@ Plot configuration uses a **pills-based navigation** system instead of expanders
 
 ### Settings Sections
 
-| Pill | Description |
-|------|-------------|
-| **Layout** | Width, height, margins, title, grid lines |
-| **Axes** | X-axis, Y-Left, Y-Right labels and scales (sub-pills) |
-| **Colors** | Color palette selector with colorblind-safe options |
-| **Legend** | Position, font, box styling (sub-pills: Primary/Secondary/Boxed) |
-| **Typography** | Font family, sizes for ticks, labels, annotations |
-| **Download** | Format selection, scale factor, dimension preview |
-| **Advanced** | Engine-specific controls, reference lines |
+| Pill           | Description                                                      |
+| -------------- | ---------------------------------------------------------------- |
+| **Layout**     | Width, height, margins, title, grid lines                        |
+| **Axes**       | X-axis, Y-Left, Y-Right labels and scales (sub-pills)            |
+| **Colors**     | Color palette selector with colorblind-safe options              |
+| **Legend**     | Position, font, box styling (sub-pills: Primary/Secondary/Boxed) |
+| **Typography** | Font family, sizes for ticks, labels, annotations                |
+| **Download**   | Format selection, scale factor, dimension preview                |
+| **Advanced**   | Engine-specific controls, reference lines                        |
 
 ### Progressive Disclosure
 
@@ -61,12 +61,14 @@ Plot configuration uses a **pills-based navigation** system instead of expanders
 ### Presets
 
 Select from journal-specific presets via the **Presets** pill:
+
 - Single/double column, Nature, IEEE, poster formats
 - Automatically configures dimensions, fonts, and DPI
 
 ### Engine Toggle
 
 Switch between rendering engines at any time:
+
 - **Plotly**: Interactive hover, zoom, pan. Best for exploration.
 - **Matplotlib**: LaTeX text, PGF output. Best for papers.
 
@@ -226,4 +228,4 @@ Each plot has an independent pipeline for transformations. Order matters: Column
 - **Data Transformations**: Master [Shapers](Data-Transformations.md)
 - **API Reference**: See [Plotting API](api/Plotting-API.md)
 
-**Need Help?** Check [Troubleshooting](Debugging.md) or open a GitHub issue.
+**Need Help?** Check [Testing Guide](Testing-Guide.md) or open a GitHub issue.

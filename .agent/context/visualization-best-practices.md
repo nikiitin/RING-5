@@ -7,15 +7,15 @@
 
 ## 1. Publication rcParams by Venue
 
-| Venue | Width (in) | Height (in) | DPI | Font Family | Base Font Size |
-|-------|-----------|------------|-----|-------------|----------------|
-| IEEE single column | 3.5 | 2.625 | 300 | serif | 8 pt |
-| IEEE double column | 7.0 | 5.25 | 300 | serif | 8 pt |
-| ISCA / MICRO / ASPLOS / HPCA | 3.5 | 2.5 | 300 | serif | 8 pt |
-| Nature | 3.5 | 3.5 | 600 | Arial | 7 pt |
-| Science | 3.5 | 2.5 | 600 | sans-serif | 7 pt |
-| Poster | 10.0 | 7.0 | 150 | sans-serif | 24 pt |
-| Slides | 8.0 | 4.5 | 150 | sans-serif | 18 pt |
+| Venue                        | Width (in) | Height (in) | DPI | Font Family | Base Font Size |
+| ---------------------------- | ---------- | ----------- | --- | ----------- | -------------- |
+| IEEE single column           | 3.5        | 2.625       | 300 | serif       | 8 pt           |
+| IEEE double column           | 7.0        | 5.25        | 300 | serif       | 8 pt           |
+| ISCA / MICRO / ASPLOS / HPCA | 3.5        | 2.5         | 300 | serif       | 8 pt           |
+| Nature                       | 3.5        | 3.5         | 600 | Arial       | 7 pt           |
+| Science                      | 3.5        | 2.5         | 600 | sans-serif  | 7 pt           |
+| Poster                       | 10.0       | 7.0         | 150 | sans-serif  | 24 pt          |
+| Slides                       | 8.0        | 4.5         | 150 | sans-serif  | 18 pt          |
 
 **DPI rules**:
 
@@ -27,15 +27,15 @@
 
 ## 2. Font Size Guidelines
 
-| Element | Minimum (pt) | Recommended (pt) | Notes |
-|---------|-------------|------------------|-------|
-| Tick labels | 7 | 7–8 | Must be legible at final print size |
-| Axis labels | 8 | 8–9 | Slightly larger than ticks |
-| Title | 9 | 9–10 | Largest text element |
-| Legend text | 7 | 7–8 | Compact but readable |
-| Data annotations | 6 | 6–7 | On-bar or near-point labels |
+| Element          | Minimum (pt) | Recommended (pt) | Notes                               |
+| ---------------- | ------------ | ---------------- | ----------------------------------- |
+| Tick labels      | 7            | 7–8              | Must be legible at final print size |
+| Axis labels      | 8            | 8–9              | Slightly larger than ticks          |
+| Title            | 9            | 9–10             | Largest text element                |
+| Legend text      | 7            | 7–8              | Compact but readable                |
+| Data annotations | 6            | 6–7              | On-bar or near-point labels         |
 
-**Rule**: Always verify readability at the *final rendered size* (e.g., 3.5" column
+**Rule**: Always verify readability at the _final rendered size_ (e.g., 3.5" column
 width). A 7pt font at 3.5" is very different from 7pt at 10".
 
 ---
@@ -68,7 +68,7 @@ WONG_PALETTE = [
 - **Minimum contrast ratio**: 4.5:1 for text on colored backgrounds (WCAG AA).
 - **Auto-contrast**: For bar data labels, compute luminance of bar color and choose
   white or black text:
-  ```
+  ```python
   luminance = 0.299*R + 0.587*G + 0.114*B
   text_color = "white" if luminance < 128 else "black"
   ```

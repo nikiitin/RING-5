@@ -3,7 +3,7 @@ title: "Data Transformations"
 nav_order: 7
 ---
 
-# Data Transformations Guide
+## Data Transformations Guide
 
 Complete guide to data transformations using the shaper system in RING-5.
 
@@ -481,4 +481,4 @@ Pipelines are saved with plots in portfolios:
 - **API Reference**: See [Shaper API](api/Shaper-API.md)
 - **Custom Shapers**: Build custom transformations (advanced)
 
-**Need Help?** Check [Troubleshooting](Debugging.md) or open a GitHub issue.
+**Need Help?** Check [Testing Guide](Testing-Guide.md) or open a GitHub issue.

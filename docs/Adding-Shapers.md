@@ -3,7 +3,7 @@ title: "Adding Shapers"
 nav_order: 20
 ---
 
-# Adding Shapers
+## Adding Shapers
 
 Guide to creating custom data transformation shapers.
 

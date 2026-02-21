@@ -37,7 +37,7 @@ graph TD
 
 ## 2. Directory Structure
 
-```
+```text
 src/
 ├── core/                           # Layer A + B: Core Domain
 │   ├── application_api.py          # 🎯 MAIN FACADE - Single entry point
@@ -110,18 +110,18 @@ UI Widgets (Pills) → ConfigSpecBuilder → FigureSpec (frozen dataclass)
 
 **Key Components:**
 
-| Component | Location | Responsibility |
-|-----------|----------|----------------|
-| `FigureSpec` | `src/core/visualization/figure_spec.py` | Immutable spec (typography, dimensions, legend, axes, colors) |
-| `TypographySpec` | `src/core/visualization/typography_spec.py` | Font family and sizes |
-| `DimensionsSpec` | `src/core/visualization/figure_spec.py` | Width, height, DPI |
-| `LegendSpec` | `src/core/visualization/figure_spec.py` | Legend position, font, box styling |
-| `ConfigSpecBuilder` | `src/core/visualization/config_spec_builder.py` | `from_config()` to build spec from widget dict |
-| `ConfigBridge` | `src/core/visualization/config_bridge.py` | `spec_to_config()` to convert spec back to dict |
-| `EngineManager` | `src/core/visualization/engine_manager.py` | Engine selection and dispatch |
-| `StyleApplicator` | `src/web/pages/ui/plotting/styles/applicator.py` | Applies FigureSpec to a figure object |
-| `PlotlyConnector` | `src/core/visualization/connectors/plotly_connector.py` | Translates spec to Plotly API calls |
-| `MatplotlibConnector` | `src/core/visualization/connectors/matplotlib_connector.py` | Translates spec to Matplotlib API calls |
+| Component             | Location                                                    | Responsibility                                                |
+| --------------------- | ----------------------------------------------------------- | ------------------------------------------------------------- |
+| `FigureSpec`          | `src/core/visualization/figure_spec.py`                     | Immutable spec (typography, dimensions, legend, axes, colors) |
+| `TypographySpec`      | `src/core/visualization/typography_spec.py`                 | Font family and sizes                                         |
+| `DimensionsSpec`      | `src/core/visualization/figure_spec.py`                     | Width, height, DPI                                            |
+| `LegendSpec`          | `src/core/visualization/figure_spec.py`                     | Legend position, font, box styling                            |
+| `ConfigSpecBuilder`   | `src/core/visualization/config_spec_builder.py`             | `from_config()` to build spec from widget dict                |
+| `ConfigBridge`        | `src/core/visualization/config_bridge.py`                   | `spec_to_config()` to convert spec back to dict               |
+| `EngineManager`       | `src/core/visualization/engine_manager.py`                  | Engine selection and dispatch                                 |
+| `StyleApplicator`     | `src/web/pages/ui/plotting/styles/applicator.py`            | Applies FigureSpec to a figure object                         |
+| `PlotlyConnector`     | `src/core/visualization/connectors/plotly_connector.py`     | Translates spec to Plotly API calls                           |
+| `MatplotlibConnector` | `src/core/visualization/connectors/matplotlib_connector.py` | Translates spec to Matplotlib API calls                       |
 
 ### Pills-Based Settings UI
 
@@ -136,6 +136,7 @@ Plot configuration uses a **pills navigation** (not expanders):
 ### Portfolio Migration
 
 Saved portfolios auto-migrate between schema versions:
+
 - **V1** → **V2**: Adds `engine` field, removes `export_*` keys, adds `figure_spec`
 - `PortfolioMigrator` handles all migrations transparently on load
 

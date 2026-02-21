@@ -3,7 +3,7 @@ title: "Parsing Architecture"
 nav_order: 27
 ---
 
-# RING-5 Parsing Module — Complete Architecture
+## RING-5 Parsing Module — Complete Architecture
 
 Comprehensive architecture documentation for `src/core/parsing/`, covering every class, dependency, protocol relationship, singleton, and the complete scanning/parsing data flows.
 
@@ -465,86 +465,86 @@ classDiagram
 
 ### Protocols (Structural Typing)
 
-| Protocol | File | Implementors |
-|----------|------|-------------|
-| `ParserProtocol` | `parser_protocol.py` | `Gem5Parser` (static methods) |
-| `ScannerProtocol` | `scanner_protocol.py` | `Gem5Scanner` (static methods) |
-| `ParserAPI` | `parser_api.py` | `Gem5ParserAPI` (instance methods) |
+| Protocol             | File                                 | Implementors                                 |
+| -------------------- | ------------------------------------ | -------------------------------------------- |
+| `ParserProtocol`     | `parser_protocol.py`                 | `Gem5Parser` (static methods)                |
+| `ScannerProtocol`    | `scanner_protocol.py`                | `Gem5Scanner` (static methods)               |
+| `ParserAPI`          | `parser_api.py`                      | `Gem5ParserAPI` (instance methods)           |
 | `FileParserStrategy` | `strategies/file_parser_strategy.py` | `SimpleStatsStrategy`, `ConfigAwareStrategy` |
 
 ### Singletons
 
-| Singleton | Pattern | File |
-|-----------|---------|------|
-| `WorkPool` | `__new__` override | `pool/work_pool.py` |
-| `ScanWorkPool` | `_singleton` classvar | `pool/pool.py` |
-| `ParseWorkPool` | `_instance` classvar | `pool/pool.py` |
-| `Gem5StatsScanner` | `_instance` classvar | `scanning/scanner.py` |
-| `PerlWorkerPool` | Module-level `_worker_pool_instance` | `strategies/perl_worker_pool.py` |
+| Singleton          | Pattern                              | File                             |
+| ------------------ | ------------------------------------ | -------------------------------- |
+| `WorkPool`         | `__new__` override                   | `pool/work_pool.py`              |
+| `ScanWorkPool`     | `_singleton` classvar                | `pool/pool.py`                   |
+| `ParseWorkPool`    | `_instance` classvar                 | `pool/pool.py`                   |
+| `Gem5StatsScanner` | `_instance` classvar                 | `scanning/scanner.py`            |
+| `PerlWorkerPool`   | Module-level `_worker_pool_instance` | `strategies/perl_worker_pool.py` |
 
 ### Factories
 
-| Factory | Method | Products |
-|---------|--------|----------|
-| `ParserAPIFactory` | `create(simulator)` | `Gem5ParserAPI` |
-| `StrategyFactory` | `create(strategy_type)` | `SimpleStatsStrategy`, `ConfigAwareStrategy` |
-| `StatTypeRegistry` | `create(type_name)` | `Scalar`, `Vector`, `Distribution`, `Histogram`, `Configuration` |
+| Factory            | Method                  | Products                                                         |
+| ------------------ | ----------------------- | ---------------------------------------------------------------- |
+| `ParserAPIFactory` | `create(simulator)`     | `Gem5ParserAPI`                                                  |
+| `StrategyFactory`  | `create(strategy_type)` | `SimpleStatsStrategy`, `ConfigAwareStrategy`                     |
+| `StatTypeRegistry` | `create(type_name)`     | `Scalar`, `Vector`, `Distribution`, `Histogram`, `Configuration` |
 
 ### Other Patterns
 
-| Pattern | Where | Description |
-|---------|-------|-------------|
-| **Strategy** | `FileParserStrategy` → Simple/ConfigAware | Pluggable parsing strategies |
-| **Command** | `Job` → `ParseWork`/`ScanWork` | Encapsulated work units |
-| **Facade** | `Gem5ParserAPI` | Combines parser + scanner behind unified API |
-| **Registry** | `StatTypeRegistry._types` | Type name → class registration |
-| **Template Method** | `StatType.content` setter | Calls `_validate_content` + `_set_content` hooks |
+| Pattern             | Where                                     | Description                                      |
+| ------------------- | ----------------------------------------- | ------------------------------------------------ |
+| **Strategy**        | `FileParserStrategy` → Simple/ConfigAware | Pluggable parsing strategies                     |
+| **Command**         | `Job` → `ParseWork`/`ScanWork`            | Encapsulated work units                          |
+| **Facade**          | `Gem5ParserAPI`                           | Combines parser + scanner behind unified API     |
+| **Registry**        | `StatTypeRegistry._types`                 | Type name → class registration                   |
+| **Template Method** | `StatType.content` setter                 | Calls `_validate_content` + `_set_content` hooks |
 
 ---
 
 ## Complete Dependency Matrix
 
-| File | Depends On |
-|------|-----------|
-| `core/models/parsing_models.py` | *(none -- leaf, canonical location)* |
-| `parsing/models.py` | `core/models` *(backward-compat shim)* |
-| `parser_protocol.py` | `core/models` |
-| `scanner_protocol.py` | `core/models` |
-| `parser_api.py` | `core/models` |
-| `factory.py` | `parser_api`, `gem5_parser_api` (lazy) |
-| `__init__.py` | `gem5_parser`, `gem5_scanner` |
-| `gem5/types/base.py` | *(none — leaf)* |
-| `gem5/types/scalar.py` | `types/base` |
-| `gem5/types/vector.py` | `types/base` |
-| `gem5/types/distribution.py` | `types/base` |
-| `gem5/types/histogram.py` | `types/base` |
-| `gem5/types/configuration.py` | `types/base` |
-| `gem5/types/type_mapper.py` | `core/models`, `types/__init__` |
-| `gem5/impl/pool/job.py` | *(none — leaf)* |
-| `gem5/impl/pool/work_pool.py` | `pool/job` |
-| `gem5/impl/pool/parse_work.py` | `pool/job` |
-| `gem5/impl/pool/scan_work.py` | `pool/job` |
-| `gem5/impl/pool/pool.py` | `pool/work_pool`, `pool/parse_work`, `pool/scan_work` |
-| `gem5/impl/scanning/scanner.py` | `core/models`, `types/type_mapper` |
-| `gem5/impl/scanning/pattern_aggregator.py` | `core/models` |
-| `gem5/impl/scanning/gem5_scan_work.py` | `core/models`, `scanning/scanner`, `pool/scan_work` |
-| `gem5/impl/strategies/file_parser_strategy.py` | `core/models`, `pool/parse_work` |
-| `gem5/impl/strategies/factory.py` | `strategies/file_parser_strategy`, `strategies/simple` (lazy), `strategies/config_aware` (lazy) |
-| `gem5/impl/strategies/perl_worker_pool.py` | *(none — leaf, uses subprocess)* |
-| `gem5/impl/strategies/gem5_parse_work.py` | `common/utils`, `types/type_mapper`, `pool/parse_work`, `strategies/perl_worker_pool` |
-| `gem5/impl/strategies/simple.py` | `common/utils`, `core/models`, `types/type_mapper`, `pool/pool`, `strategies/gem5_parse_work` |
-| `gem5/impl/strategies/config_aware.py` | `strategies/simple` |
-| `gem5/impl/gem5_parser.py` | `common/utils`, `core/models`, `strategies/factory`, `pool/pool` |
-| `gem5/impl/gem5_scanner.py` | `common/utils`, `core/models`, `scanning/pattern_aggregator`, `scanning/gem5_scan_work`, `pool/pool` |
-| `gem5/impl/gem5_parser_api.py` | `gem5_parser`, `gem5_scanner`, `core/models` |
+| File                                           | Depends On                                                                                           |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `core/models/parsing_models.py`                | _(none -- leaf, canonical location)_                                                                 |
+| `parsing/models.py`                            | `core/models` _(backward-compat shim)_                                                               |
+| `parser_protocol.py`                           | `core/models`                                                                                        |
+| `scanner_protocol.py`                          | `core/models`                                                                                        |
+| `parser_api.py`                                | `core/models`                                                                                        |
+| `factory.py`                                   | `parser_api`, `gem5_parser_api` (lazy)                                                               |
+| `__init__.py`                                  | `gem5_parser`, `gem5_scanner`                                                                        |
+| `gem5/types/base.py`                           | _(none — leaf)_                                                                                      |
+| `gem5/types/scalar.py`                         | `types/base`                                                                                         |
+| `gem5/types/vector.py`                         | `types/base`                                                                                         |
+| `gem5/types/distribution.py`                   | `types/base`                                                                                         |
+| `gem5/types/histogram.py`                      | `types/base`                                                                                         |
+| `gem5/types/configuration.py`                  | `types/base`                                                                                         |
+| `gem5/types/type_mapper.py`                    | `core/models`, `types/__init__`                                                                      |
+| `gem5/impl/pool/job.py`                        | _(none — leaf)_                                                                                      |
+| `gem5/impl/pool/work_pool.py`                  | `pool/job`                                                                                           |
+| `gem5/impl/pool/parse_work.py`                 | `pool/job`                                                                                           |
+| `gem5/impl/pool/scan_work.py`                  | `pool/job`                                                                                           |
+| `gem5/impl/pool/pool.py`                       | `pool/work_pool`, `pool/parse_work`, `pool/scan_work`                                                |
+| `gem5/impl/scanning/scanner.py`                | `core/models`, `types/type_mapper`                                                                   |
+| `gem5/impl/scanning/pattern_aggregator.py`     | `core/models`                                                                                        |
+| `gem5/impl/scanning/gem5_scan_work.py`         | `core/models`, `scanning/scanner`, `pool/scan_work`                                                  |
+| `gem5/impl/strategies/file_parser_strategy.py` | `core/models`, `pool/parse_work`                                                                     |
+| `gem5/impl/strategies/factory.py`              | `strategies/file_parser_strategy`, `strategies/simple` (lazy), `strategies/config_aware` (lazy)      |
+| `gem5/impl/strategies/perl_worker_pool.py`     | _(none — leaf, uses subprocess)_                                                                     |
+| `gem5/impl/strategies/gem5_parse_work.py`      | `common/utils`, `types/type_mapper`, `pool/parse_work`, `strategies/perl_worker_pool`                |
+| `gem5/impl/strategies/simple.py`               | `common/utils`, `core/models`, `types/type_mapper`, `pool/pool`, `strategies/gem5_parse_work`        |
+| `gem5/impl/strategies/config_aware.py`         | `strategies/simple`                                                                                  |
+| `gem5/impl/gem5_parser.py`                     | `common/utils`, `core/models`, `strategies/factory`, `pool/pool`                                     |
+| `gem5/impl/gem5_scanner.py`                    | `common/utils`, `core/models`, `scanning/pattern_aggregator`, `scanning/gem5_scan_work`, `pool/pool` |
+| `gem5/impl/gem5_parser_api.py`                 | `gem5_parser`, `gem5_scanner`, `core/models`                                                         |
 
 ### External Dependencies (outside parsing/)
 
-| External Module | Used By | Purpose |
-|-----------------|---------|---------|
-| `core/models/parsing_models.py` | All protocols, all gem5 impl modules | Shared data models (ScannedVariable, StatConfig) |
-| `core/common/utils.normalize_user_path` | `Gem5Parser`, `Gem5Scanner`, `SimpleStatsStrategy` | Path resolution |
-| `core/common/utils.sanitize_log_value` | `SimpleStatsStrategy` | Safe logging |
-| `core/common/utils.checkFileExistsOrException` | `Gem5ParseWork` | File guard |
-| `gem5/perl/statsScanner.pl` | `Gem5StatsScanner` | Variable discovery |
-| `gem5/perl/fileParserServer.pl` | `PerlWorkerPool` | Persistent parse server |
+| External Module                                | Used By                                            | Purpose                                          |
+| ---------------------------------------------- | -------------------------------------------------- | ------------------------------------------------ |
+| `core/models/parsing_models.py`                | All protocols, all gem5 impl modules               | Shared data models (ScannedVariable, StatConfig) |
+| `core/common/utils.normalize_user_path`        | `Gem5Parser`, `Gem5Scanner`, `SimpleStatsStrategy` | Path resolution                                  |
+| `core/common/utils.sanitize_log_value`         | `SimpleStatsStrategy`                              | Safe logging                                     |
+| `core/common/utils.checkFileExistsOrException` | `Gem5ParseWork`                                    | File guard                                       |
+| `gem5/perl/statsScanner.pl`                    | `Gem5StatsScanner`                                 | Variable discovery                               |
+| `gem5/perl/fileParserServer.pl`                | `PerlWorkerPool`                                   | Persistent parse server                          |

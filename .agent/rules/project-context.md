@@ -34,6 +34,7 @@ You possess deep knowledge of the gem5 output structure:
 ## 3. The Tech Stack (Strict)
 
 - **Core:** Python 3.12+ (**STRONGLY TYPED** - all functions/methods/classes must have complete type annotations).
+- **Environment:** Use the project virtual environment (`python_venv/`) for development.
 - **Type Checking:** mypy with `--strict` mode (no implicit Any, no untyped definitions).
 - **Frontend:** Streamlit (must reflect backend state instantly).
 - **Viz:** Plotly Graph Objects (`go.Figure`). _Express_ is allowed for quick exploration, but final paper plots use _Graph Objects_ for granular control.
@@ -55,9 +56,10 @@ Use specific types (e.g., `List[str]`, `Dict[str, int]`) instead of generic `lis
 3.  **Variable Scanning is Sacred:** The logic that scrapes `stats.txt` is the single point of failure. It must be robust against whitespace changes, version differences (gem5 v21 vs v24), and missing keys.
 4.  **Back-to-Front Sync:** If I filter the dataframe in the backend to remove "cold start" ticks, the Streamlit UI must immediately reflect this. No stale caches.
 5.  **Reproducibility:** The tool must be deterministic. Reading the same file twice must yield the exact same graph.
-6.  **NO SYSTEM-WIDE INSTALLATIONS:** PROHIBITED from installing any package system-wide on the host. Use the Docker container for all dependencies.
-7.  **DIRECTORY ACCESS RESTRICTION:** STRICTLY FORBIDDEN from accessing or modifying anything outside of the `RING-5` directory or the Docker container root.
-8.  **DOCKER MANDATORY:** All commands MUST be wrapped in `docker-compose run --rm ring5-dev`.
+6.  **DIRECTORY ACCESS RESTRICTION:** STRICTLY FORBIDDEN from accessing or modifying anything outside of the `RING-5` workspace directory.
+7.  **QUALITY GATE:** Run `.agent/workflows/code-quality-gate.md` before declaring any task complete.
+8.  **SECURITY:** Follow `.agent/rules/005-security-enforcement.md` for all code changes.
+9.  **ARCHITECTURE:** Run `.agent/workflows/architecture-validation.md` after any structural changes.
 
 ## Architecture & Tech Stack
 
@@ -185,7 +187,7 @@ Apply these patterns whenever the context matches:
 - **Fail Fast, Fail Loud:** If a critical gem5 variable is missing, raise a custom exception (`MetricNotFoundError`) immediately. Do not silently plot 0.
 - **User Feedback:** In the Streamlit layer, catch these custom exceptions and display a friendly `st.error()` message, while logging the full stack trace to the console.
 
-# Rule Verification Protocol
+## Rule Verification Protocol
 
 ## Context
 
@@ -385,11 +387,11 @@ docker-compose run --rm ring5-dev ./python_venv/bin/python3 -m pytest tests/unit
 
 ## Output & Communication Standards
 
-### Context
+### Context — Communication
 
 I need you to be transparent about what you are changing ("tell me before modifying"), but I do NOT want to see your raw internal chain-of-thought or `<thinking>` blocks in the chat.
 
-## Requirements
+## Communication Requirements
 
 1.  **Hide Internal Monologue:**
     - NEVER output text inside `<thinking>`, `<plan>`, or `<scratchpad>` XML tags.

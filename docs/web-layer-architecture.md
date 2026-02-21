@@ -3,7 +3,7 @@ title: "Web Layer Architecture"
 nav_order: 29
 ---
 
-# Web Layer — 5-Layer Architecture
+## Web Layer — 5-Layer Architecture
 
 The web layer (`src/web/`) follows a strict **5-layer architecture** with
 protocol-based dependency injection, ensuring testability, separation of
@@ -182,18 +182,18 @@ flowchart LR
 **Role**: Thin composition root. Creates adapters, injects dependencies into
 controllers, contains minimal wiring logic.
 
-| File | Purpose |
-|------|---------|
-| `manage_plots.py` | Entry point. Creates 3 adapters, 3 controllers, calls their `render()` methods |
-| `plot_adapters.py` | 3 adapter classes bridging old `pages.ui.*` code to Layer 5 protocols |
+| File               | Purpose                                                                        |
+| ------------------ | ------------------------------------------------------------------------------ |
+| `manage_plots.py`  | Entry point. Creates 3 adapters, 3 controllers, calls their `render()` methods |
+| `plot_adapters.py` | 3 adapter classes bridging old `pages.ui.*` code to Layer 5 protocols          |
 
 **Adapters**:
 
-| Adapter | Protocol | Wraps |
-|---------|----------|-------|
-| `PlotLifecycleAdapter` | `PlotLifecycleService` | `PlotService` static methods |
-| `PlotTypeRegistryAdapter` | `PlotTypeRegistry` | `PlotFactory.get_available_plot_types()` |
-| `PipelineExecutorAdapter` | `PipelineExecutor` | `apply_shapers`, `configure_shaper` |
+| Adapter                   | Protocol               | Wraps                                    |
+| ------------------------- | ---------------------- | ---------------------------------------- |
+| `PlotLifecycleAdapter`    | `PlotLifecycleService` | `PlotService` static methods             |
+| `PlotTypeRegistryAdapter` | `PlotTypeRegistry`     | `PlotFactory.get_available_plot_types()` |
+| `PipelineExecutorAdapter` | `PipelineExecutor`     | `apply_shapers`, `configure_shaper`      |
 
 ### Layer 2 — Controllers (`src/web/controllers/plot/`)
 
@@ -201,11 +201,11 @@ controllers, contains minimal wiring logic.
 presenters, delegates domain work to injected protocol services, triggers
 `st.rerun()` for state transitions.
 
-| Controller | Injected Protocols | Presenters Used |
-|------------|-------------------|-----------------|
+| Controller               | Injected Protocols                         | Presenters Used                                      |
+| ------------------------ | ------------------------------------------ | ---------------------------------------------------- |
 | `PlotCreationController` | `PlotLifecycleService`, `PlotTypeRegistry` | Selector, Creation, Controls, SaveDialog, LoadDialog |
-| `PipelineController` | `PipelineExecutor` | Pipeline, PipelineStep |
-| `PlotRenderController` | `PlotLifecycleService`, `PlotTypeRegistry` | Chart, Config |
+| `PipelineController`     | `PipelineExecutor`                         | Pipeline, PipelineStep                               |
+| `PlotRenderController`   | `PlotLifecycleService`, `PlotTypeRegistry` | Chart, Config                                        |
 
 **Allowed `st.*` calls** (flow control only):
 `st.rerun()`, `st.warning()`, `st.success()`, `st.error()`
@@ -216,29 +216,29 @@ presenters, delegates domain work to injected protocol services, triggers
 returns a plain `Dict[str, Any]` with user inputs — no domain logic, no
 side effects beyond widget display.
 
-| Presenter | Widgets | Returns |
-|-----------|---------|---------|
-| `SelectorPresenter` | `st.radio` | Selected plot name |
-| `CreationPresenter` | `st.text_input`, `st.selectbox`, `st.button` | Name, type, create flag |
-| `ControlsPresenter` | `st.text_input`, `st.button` | Rename, delete, duplicate, save/load flags |
-| `PipelinePresenter` | `st.selectbox`, `st.button`, `st.markdown` | Add shaper, reorder, delete flags |
-| `PipelineStepPresenter` | `st.expander`, `st.dataframe` | Step config, move/delete flags, preview |
-| `ChartPresenter` | `st.toggle`, `st.button` | Auto-refresh, manual refresh, should_generate |
-| `SaveDialogPresenter` | `st.text_input`, `st.button` | Name, confirm, cancel flags |
-| `LoadDialogPresenter` | `st.selectbox`, `st.button` | Selected pipeline, confirm, cancel flags |
-| `ConfigPresenter` | Delegates to `ConfigRenderer` protocol | Config dict, type change |
+| Presenter               | Widgets                                      | Returns                                       |
+| ----------------------- | -------------------------------------------- | --------------------------------------------- |
+| `SelectorPresenter`     | `st.radio`                                   | Selected plot name                            |
+| `CreationPresenter`     | `st.text_input`, `st.selectbox`, `st.button` | Name, type, create flag                       |
+| `ControlsPresenter`     | `st.text_input`, `st.button`                 | Rename, delete, duplicate, save/load flags    |
+| `PipelinePresenter`     | `st.selectbox`, `st.button`, `st.markdown`   | Add shaper, reorder, delete flags             |
+| `PipelineStepPresenter` | `st.expander`, `st.dataframe`                | Step config, move/delete flags, preview       |
+| `ChartPresenter`        | `st.toggle`, `st.button`                     | Auto-refresh, manual refresh, should_generate |
+| `SaveDialogPresenter`   | `st.text_input`, `st.button`                 | Name, confirm, cancel flags                   |
+| `LoadDialogPresenter`   | `st.selectbox`, `st.button`                  | Selected pipeline, confirm, cancel flags      |
+| `ConfigPresenter`       | Delegates to `ConfigRenderer` protocol       | Config dict, type change                      |
 
 ### Layer 4 — UIStateManager (`src/web/state/`)
 
 **Role**: Typed, namespaced access to `st.session_state` for transient UI
 state. Prevents scattered key access and naming collisions.
 
-| Sub-Manager | Scope |
-|-------------|-------|
-| `_PlotUIState` | Auto-refresh, dialog visibility, ordering, pending updates, shape editing |
-| `_ManagerUIState` | Load triggers, form values |
-| `_NavUIState` | Current page and tab |
-| `_ExportUIState` | Last export path |
+| Sub-Manager       | Scope                                                                     |
+| ----------------- | ------------------------------------------------------------------------- |
+| `_PlotUIState`    | Auto-refresh, dialog visibility, ordering, pending updates, shape editing |
+| `_ManagerUIState` | Load triggers, form values                                                |
+| `_NavUIState`     | Current page and tab                                                      |
+| `_ExportUIState`  | Last export path                                                          |
 
 ### Layer 5 — Models & Protocols (`src/web/models/`)
 
@@ -251,29 +251,29 @@ state. Prevents scattered key access and naming collisions.
 
 **Protocols** (`plot_protocols.py`):
 
-| Protocol | Purpose | Key Methods |
-|----------|---------|-------------|
-| `PlotHandle` | Abstract plot reference | `.plot_id`, `.name`, `.plot_type`, `.config`, `.processed_data`, `.pipeline` |
-| `ConfigRenderer` | Render config widgets | `.render_config_ui()`, `.render_advanced_options()`, `.render_display_options()`, `.render_theme_options()` |
-| `RenderablePlot` | Combined plot+config | Inherits `PlotHandle` + `ConfigRenderer` |
-| `PlotLifecycleService` | Plot CRUD | `.create_plot()`, `.delete_plot()`, `.duplicate_plot()`, `.change_plot_type()` |
-| `PlotTypeRegistry` | Available plot types | `.get_available_types()` |
-| `PipelineExecutor` | Run shaper pipeline | `.apply_shapers()`, `.configure_shaper()` |
+| Protocol               | Purpose                 | Key Methods                                                                                                 |
+| ---------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `PlotHandle`           | Abstract plot reference | `.plot_id`, `.name`, `.plot_type`, `.config`, `.processed_data`, `.pipeline`                                |
+| `ConfigRenderer`       | Render config widgets   | `.render_config_ui()`, `.render_advanced_options()`, `.render_display_options()`, `.render_theme_options()` |
+| `RenderablePlot`       | Combined plot+config    | Inherits `PlotHandle` + `ConfigRenderer`                                                                    |
+| `PlotLifecycleService` | Plot CRUD               | `.create_plot()`, `.delete_plot()`, `.duplicate_plot()`, `.change_plot_type()`                              |
+| `PlotTypeRegistry`     | Available plot types    | `.get_available_types()`                                                                                    |
+| `PipelineExecutor`     | Run shaper pipeline     | `.apply_shapers()`, `.configure_shaper()`                                                                   |
 
 ### Rendering (`src/web/rendering/`)
 
 **Role**: Engine-agnostic figure rendering. Connectors translate typed
 `TraceBuildResult` and `FigureConfig` into engine-specific figures.
 
-| File | Purpose |
-|------|---------|
-| `engine_manager.py` | Dispatches to active engine connector |
-| `plotly_connector.py` | TraceBuildResult → `go.Figure` |
-| `matplotlib_connector.py` | TraceBuildResult → `mpl.Figure` |
-| `trace_to_plotly.py` | Typed trace dispatch (bar, line, scatter, histogram) |
-| `preset_applicator.py` | Applies preset styling to figures |
-| `config_builder.py` | Builds FigureConfig from plot config dict |
-| `widgets/` | Declarative widget definitions and renderer |
+| File                      | Purpose                                              |
+| ------------------------- | ---------------------------------------------------- |
+| `engine_manager.py`       | Dispatches to active engine connector                |
+| `plotly_connector.py`     | TraceBuildResult → `go.Figure`                       |
+| `matplotlib_connector.py` | TraceBuildResult → `mpl.Figure`                      |
+| `trace_to_plotly.py`      | Typed trace dispatch (bar, line, scatter, histogram) |
+| `preset_applicator.py`    | Applies preset styling to figures                    |
+| `config_builder.py`       | Builds FigureConfig from plot config dict            |
+| `widgets/`                | Declarative widget definitions and renderer          |
 
 ## Data Flow
 

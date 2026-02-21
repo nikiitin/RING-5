@@ -56,21 +56,20 @@ This documentation is organized into several categories to help you find what yo
 
 ### Advanced Topics
 
-| Document                                          | Description                   |
-| ------------------------------------------------- | ----------------------------- |
-| [**Pattern Aggregation**](Pattern-Aggregation.md) | Handling repeated variables   |
-| [**Async Parsing**](Async-Parsing.md)             | Parallel processing internals |
-| [**Type System**](Type-System.md)                 | gem5 variable types           |
-| [**Performance**](Performance.md)                 | Optimization tips             |
-| [**Debugging**](Debugging.md)                     | Troubleshooting guide         |
+| Document                                                | Description                  |
+| ------------------------------------------------------- | ---------------------------- |
+| [**Parsing Architecture**](parsing-architecture.md)     | Parsing internals & patterns |
+| [**Services Architecture**](services-architecture.md)   | Service layer design         |
+| [**Web Layer Architecture**](web-layer-architecture.md) | Web layer design             |
+| [**Parsing Guide**](Parsing-Guide.md)                   | Parsing usage guide          |
+| [**Testing Guide**](Testing-Guide.md)                   | Testing & troubleshooting    |
 
 ### Contributing
 
-| Document                                     | Description               |
-| -------------------------------------------- | ------------------------- |
-| [**Contributing Guide**](../CONTRIBUTING.md) | How to contribute         |
-| [**Code Style**](Code-Style.md)              | Conventions and standards |
-| [**PR Process**](PR-Process.md)              | Submitting changes        |
+| Document                                        | Description           |
+| ----------------------------------------------- | --------------------- |
+| [**Contributing Guide**](../CONTRIBUTING.md)    | How to contribute     |
+| [**Dependency Updates**](Dependency-Updates.md) | Managing dependencies |
 
 ## Quick Navigation
 
@@ -123,8 +122,8 @@ All documentation follows these conventions:
 1. [Installation](Installation.md) - Set up properly
 2. [Parsing Guide](Parsing-Guide.md) - Understand parsing
 3. [Data Transformations](Data-Transformations.md) - Process data
-4. [Pattern Aggregation](Pattern-Aggregation.md) - Advanced patterns
-5. [Performance](Performance.md) - Optimize workflows
+4. [Parsing Architecture](parsing-architecture.md) - Advanced patterns
+5. [Architecture](Architecture.md) - Optimize workflows
 
 **Time**: ~3-4 hours
 
@@ -143,8 +142,8 @@ All documentation follows these conventions:
 1. [Parsing Guide](Parsing-Guide.md) - gem5 specifics
 2. [Data Transformations](Data-Transformations.md) - Analysis
 3. [Creating Plots](Creating-Plots.md) - Publication quality
-4. [Performance](Performance.md) - Large datasets
-5. [Debugging](Debugging.md) - Troubleshooting
+4. [Architecture](Architecture.md) - Large datasets
+5. [Testing Guide](Testing-Guide.md) - Troubleshooting
 
 **Time**: ~4-5 hours
 

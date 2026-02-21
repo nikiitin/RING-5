@@ -3,7 +3,7 @@ title: "Services Architecture"
 nav_order: 28
 ---
 
-# Services Module Architecture
+## Services Module Architecture
 
 This document describes the internal architecture of the `src/core/services/` module — the business logic layer of RING-5.
 
@@ -153,29 +153,29 @@ class DefaultServicesAPI:
 
 ### ManagersAPI (8 methods)
 
-| Category | Methods |
-|----------|---------|
-| Arithmetic | `list_operators()`, `apply_operation()` |
-| Mixer | `apply_mixer()`, `validate_merge_inputs()` |
-| Outlier | `remove_outliers()`, `validate_outlier_inputs()` |
-| Reduction | `reduce_seeds()`, `validate_seeds_reducer_inputs()` |
+| Category   | Methods                                             |
+| ---------- | --------------------------------------------------- |
+| Arithmetic | `list_operators()`, `apply_operation()`             |
+| Mixer      | `apply_mixer()`, `validate_merge_inputs()`          |
+| Outlier    | `remove_outliers()`, `validate_outlier_inputs()`    |
+| Reduction  | `reduce_seeds()`, `validate_seeds_reducer_inputs()` |
 
 ### DataServicesAPI (~30 methods)
 
-| Category | Methods |
-|----------|---------|
-| CSV Pool | `load_csv_pool()`, `add_to_csv_pool()`, `delete_from_csv_pool()`, `load_csv_file()` |
-| Config | `save_configuration()`, `load_configuration()`, `load_saved_configs()`, `delete_configuration()` |
-| Cache | `get_cache_stats()`, `clear_caches()` |
-| Variables | `generate_variable_id()`, `add_variable()`, `update_variable()`, `delete_variable()`, `ensure_variable_ids()`, `filter_internal_stats()`, `find_variable_by_name()`, `aggregate_discovered_entries()`, `aggregate_distribution_range()`, `parse_comma_separated_entries()`, `format_entries_as_string()` |
-| Portfolios | `list_portfolios()`, `save_portfolio()`, `load_portfolio()`, `delete_portfolio()` |
+| Category   | Methods                                                                                                                                                                                                                                                                                                  |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CSV Pool   | `load_csv_pool()`, `add_to_csv_pool()`, `delete_from_csv_pool()`, `load_csv_file()`                                                                                                                                                                                                                      |
+| Config     | `save_configuration()`, `load_configuration()`, `load_saved_configs()`, `delete_configuration()`                                                                                                                                                                                                         |
+| Cache      | `get_cache_stats()`, `clear_caches()`                                                                                                                                                                                                                                                                    |
+| Variables  | `generate_variable_id()`, `add_variable()`, `update_variable()`, `delete_variable()`, `ensure_variable_ids()`, `filter_internal_stats()`, `find_variable_by_name()`, `aggregate_discovered_entries()`, `aggregate_distribution_range()`, `parse_comma_separated_entries()`, `format_entries_as_string()` |
+| Portfolios | `list_portfolios()`, `save_portfolio()`, `load_portfolio()`, `delete_portfolio()`                                                                                                                                                                                                                        |
 
 ### ShapersAPI (7 methods)
 
-| Category | Methods |
-|----------|---------|
+| Category      | Methods                                                                       |
+| ------------- | ----------------------------------------------------------------------------- |
 | Pipeline CRUD | `list_pipelines()`, `save_pipeline()`, `load_pipeline()`, `delete_pipeline()` |
-| Execution | `process_pipeline()`, `create_shaper()`, `get_available_shaper_types()` |
+| Execution     | `process_pipeline()`, `create_shaper()`, `get_available_shaper_types()`       |
 
 ## Design Principles
 

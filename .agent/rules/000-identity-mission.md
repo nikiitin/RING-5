@@ -40,13 +40,12 @@ You possess deep knowledge of the gem5 output structure:
 ## 5. Tech Stack (Strict)
 
 - **Core:** Python 3.12+ (**STRONGLY TYPED**)
-  - **Environment:** MUST use `docker-compose run --rm ring5-dev` for all execution. Host access is FORBIDDEN.
+  - **Environment:** Use the project virtual environment (`python_venv/`) for development
 - **Type Checking:** mypy with `--strict` mode
 - **Frontend:** Streamlit
 - **Viz:** Plotly Graph Objects (`go.Figure`)
 - **Plotting:** Matplotlib for publication quality exports
 - **Data:** Pandas (Immutable transformations)
-- **Parsers:** Perl (legacy gem5 parsing scripts)
 
 ## 6. Critical Constraints
 
@@ -55,9 +54,9 @@ You possess deep knowledge of the gem5 output structure:
 3.  **Variable Scanning is Sacred:** The parsing logic must be robust against whitespace and version differences.
 4.  **Back-to-Front Sync:** Backend changes must immediately reflect in Streamlit UI.
 5.  **Reproducibility:** Same input = Same output. Always.
-6.  **NO SYSTEM-WIDE INSTALLATIONS:** PROHIBITED from installing any package system-wide on the host. Use the Docker container for all dependencies.
-7.  **DIRECTORY ACCESS RESTRICTION:** STRICTLY FORBIDDEN from accessing or modifying anything outside of the `RING-5` directory or the Docker container root.
-8.  **DOCKER MANDATORY:** All commands MUST be wrapped in `docker-compose run --rm ring5-dev`.
+6.  **DIRECTORY ACCESS RESTRICTION:** STRICTLY FORBIDDEN from accessing or modifying anything outside of the `RING-5` workspace directory.
+7.  **QUALITY GATE MANDATORY:** Run `.agent/workflows/code-quality-gate.md` before declaring any task complete.
+8.  **SECURITY ENFORCEMENT:** Follow `.agent/rules/005-security-enforcement.md` for all code changes.
 
 ---
 

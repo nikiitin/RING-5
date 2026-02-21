@@ -3,7 +3,7 @@ title: "Quick Start"
 nav_order: 2
 ---
 
-# Quick Start Guide
+## Quick Start Guide
 
 Get up and running with RING-5 in just 5 minutes!
 

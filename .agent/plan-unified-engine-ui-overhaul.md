@@ -16,14 +16,14 @@
 > **Current position**: Phase 3, Step 24 (not yet started)
 > **Last completed step**: Phase 3, Step 23
 >
-> | Phase | Steps | Status |
-> |-------|-------|--------|
-> | Phase 0 — Foundation | Steps 0–3 | ✅ Complete |
-> | Phase 1 — Spec Layer | Steps 4–12 + Review | ✅ Complete |
-> | Phase 2 — Wiring & Export | Steps 13–22 + Review | ✅ Complete |
+> | Phase                             | Steps                | Status                        |
+> | --------------------------------- | -------------------- | ----------------------------- |
+> | Phase 0 — Foundation              | Steps 0–3            | ✅ Complete                   |
+> | Phase 1 — Spec Layer              | Steps 4–12 + Review  | ✅ Complete                   |
+> | Phase 2 — Wiring & Export         | Steps 13–22 + Review | ✅ Complete                   |
 > | Phase 3 — Pills UI Reorganization | Steps 23–31 + Review | 🔄 Step 23 done, Step 24 next |
-> | Phase 4 — Delete Old Code | Steps 32–37 + Review | ⬜ Not started |
-> | Phase 5 — Final Review | Steps 38–39 | ⬜ Not started |
+> | Phase 4 — Delete Old Code         | Steps 32–37 + Review | ⬜ Not started                |
+> | Phase 5 — Final Review            | Steps 38–39          | ⬜ Not started                |
 
 ---
 
@@ -50,7 +50,7 @@
     - **No compatibility shims.** If old code, old patterns, or deprecated APIs are encountered during any step, they must be removed or replaced on the spot — not wrapped, not kept "for now."
     - **Mandatory dead-code cleanup.** Everything that is not actively used by the current architecture must be deleted. Unused imports, unreachable branches, orphaned helpers, stale test utilities — all go.
     - **Consistency with new features.** When a new pattern or module is introduced (e.g., `FigureSpec`, `EngineManager`, `PresetApplicator`), all remaining code that still uses the old pattern it replaces must be migrated in the same step or the immediately following step. There is no grace period.
-    - **Breaking old code is beneficial.** If removing deprecated code causes errors elsewhere, that is a *feature*, not a bug — it surfaces every caller that still depends on the old path and forces an immediate update. Fix the callers; do not re-introduce the old code.
+    - **Breaking old code is beneficial.** If removing deprecated code causes errors elsewhere, that is a _feature_, not a bug — it surfaces every caller that still depends on the old path and forces an immediate update. Fix the callers; do not re-introduce the old code.
     - **No "optional" old paths.** Do not maintain two ways of doing the same thing (old + new). One canonical path only.
     - **Applies during Phase Reviews.** Every Phase Review must include a sweep for lingering old-architecture code and flag it for removal before proceeding.
 
@@ -92,6 +92,7 @@ At the end of each phase, conduct a thorough review as if you were reviewing a G
 You are working in RING-5, a scientific data analysis tool for gem5 simulator output. The visualization stack has these key layers:
 
 ### Core Visualization Module (`src/core/visualization/`)
+
 - **`figure_spec.py`** (205 lines) — Top-level `FigureSpec` frozen dataclass. Contains `DimensionsSpec`, `MarginsSpec`, `SeparatorSpec`. **5 fields use `Any` that must be fixed in Step 0.**
 - **`typography_spec.py`** (71 lines) — `TypographySpec` with per-element font sizes (title, xlabel, ylabel, ticks, yticks, text) + bold flags. Uses sentinel value `-1` for inheritance.
 - **`axis_spec.py`** (120 lines) — `AxisSpec` (single axis: label, ticks, range, scale, grid, categories, dtick, automargin) + `AxesSpec` container (x, y, y2).
@@ -101,6 +102,7 @@ You are working in RING-5, a scientific data analysis tool for gem5 simulator ou
 - **`resolvers.py`** (205 lines) — Sentinel resolution: fills `-1` values via typography chains, legend inheritance, y2→y fallback.
 
 ### Connectors (`src/core/visualization/connectors/`)
+
 - **`plotly_connector.py`** (255 lines) — `FigureSpecToPlotly.apply(spec, fig)`. Implements: dimensions, backgrounds, title, xaxis, yaxis, y2axis, legends. **Missing**: data labels, series styling, reference lines, axis colors, color palette, hatching, hover, stripes, auto-contrast, separators, font family.
 - **`matplotlib_connector.py`** (307 lines) — `FigureSpecToMatplotlib.apply(spec, ax)`. Implements: title, axis labels, axis ticks, axis ranges, grids, legends, LaTeX escaping, `create_figure()`. **Missing**: backgrounds, annotations, reference lines, separators, font family, data labels, color palette, hatching, constrained_layout.
 - **`builders.py`** (593 lines) — Three builders:
@@ -109,20 +111,25 @@ You are working in RING-5, a scientific data analysis tool for gem5 simulator ou
   - `ConfigSpecBuilder.from_config(config, plot_type)` — builds from flat UI config dict. **Missing**: data labels, annotations, separators, bold flags, y2-axis, reference lines, ~30 unmapped keys.
 
 ### Widgets (`src/core/visualization/widgets/`)
+
 - **`widget_def.py`** (440 lines) — 10 `WidgetSection` constants, ~50 widget instances. **Only 18 of 50 have `spec_path` set.** Sections: `LAYOUT_MARGINS`, `LAYOUT_DIMENSIONS`, `TYPOGRAPHY`, `LEGEND_POSITION`, `LEGEND_APPEARANCE`, `LEGEND_SIZING`, `LEGEND` (aggregate), `BACKGROUNDS`, `AXIS_COLORS`, `DATA_LABELS`.
 - **`config_bridge.py`** (155 lines) — Bidirectional FigureSpec ↔ flat config dict via `spec_path`.
 - **`widget_renderer.py`** (199 lines) — Streamlit widget rendering from `WidgetDef` definitions.
 
 ### StyleApplicator (`src/web/pages/ui/plotting/styles/applicator.py`, 654 lines)
+
 The Plotly-side styling engine. Builds `FigureSpec` via `ConfigSpecBuilder` (stored as `self.last_spec`) but then applies Plotly styling **directly** via `fig.update_layout()` calls — NOT through the connector. Key methods:
+
 - `apply_styles()` — orchestrator
 - `_apply_dimensions_and_margins()`, `_apply_backgrounds()`, `_apply_axes_styling()`, `_apply_xaxis_label_overrides()`, `_apply_axis_colors()`, `_apply_titles()`, `_apply_data_labels()`, `_apply_conditional_labels()`, `_apply_auto_contrast()`, `_apply_legend_layout()`, `_apply_series_styling()`, `_apply_yaxis_title_annotation()`
 
 ### Plot Renderer (`src/web/pages/ui/plotting/plot_renderer.py`, 1,242 lines)
+
 - `_render_download_button()` (L240–L1227, **~987 lines**) — The export monolith. Renders the entire "Export for LaTeX" expander with 5 nested expanders, preset selector, format selector, preview, and download. All values assembled into a `preset_to_use` dict.
 - Uses `interactive_plotly_chart()` (custom component) for rendering — **never replace this**.
 
 ### Export Infrastructure (`src/web/pages/ui/plotting/export/`, ~3,100 lines total)
+
 - **`latex_export_service.py`** (175 lines) — Facade: `export()`, `list_presets()`, `generate_preview()`
 - **`converters/impl/matplotlib_converter.py`** (910 lines) — Plotly→matplotlib→PDF/PGF/EPS
 - **`converters/impl/layout_applier.py`** (891 lines) — Applies layout to matplotlib. **Duplicates much of `FigureSpecToMatplotlib`**.
@@ -132,12 +139,15 @@ The Plotly-side styling engine. Builds `FigureSpec` via `ConfigSpecBuilder` (sto
 - **`presets/latex_presets.yaml`** (~250 lines) — 13 presets (ISCA, MICRO, ASPLOS, Nature, etc.)
 
 ### Portfolio System (`src/core/services/data_services/portfolio_service.py`)
+
 Saves portfolios as JSON with raw flat `Dict[str, Any]` config per plot. Does NOT go through `FigureSpec.to_dict()` — configs are Plotly-vocabulary-dependent.
 
 ### Session State (`src/core/state/state_manager.py`, 186 lines)
+
 `StateManager` Protocol with NO engine/visualization-specific state keys. Visualization state stored per-plot in `plot.config` (flat dict).
 
 ### Custom Plotly Component
+
 `interactive_plotly_chart()` in `src/web/pages/ui/components/interactive_plot.py` — wraps Plotly.js with event capture for legend dragging. **Must not be modified or replaced.**
 
 ---
@@ -147,6 +157,7 @@ Saves portfolios as JSON with raw flat `Dict[str, Any]` config per plot. Does NO
 These principles MUST be applied throughout all phases:
 
 ### Matplotlib Best Practices
+
 1. **ALWAYS use OO API**: `fig, ax = plt.subplots(...)`. NEVER use `plt.plot()`, `plt.xlabel()`, etc.
 2. **Use `layout='constrained'`** (not `constrained_layout=True`, which is deprecated). This is Matplotlib 3.x recommended for complex layouts with external legends and multi-axis.
 3. **PGF backend for LaTeX**: `fig.savefig(buf, format="pgf")` produces native LaTeX commands. Fonts match the document automatically. Configure via `rcParams`:
@@ -163,6 +174,7 @@ These principles MUST be applied throughout all phases:
 7. **Data-ink ratio**: Remove top/right spines (`ax.spines['top'].set_visible(False)`), minimize gridlines, no chartjunk.
 
 ### Plotly Best Practices
+
 1. **Plotly Templates for theming**: Create `go.layout.Template` objects with layout defaults and register with `pio.templates["ring5_base"]`. Apply via `fig.update_layout(template="ring5_base")`. Combine with `"plotly_white+ring5_isca"`.
 2. **Template structure**: `template.layout` sets layout defaults. `template.data.bar = [go.Bar(marker=dict(...))]` sets trace defaults. Templates are composable.
 3. **Kaleido v1 for static export**: `fig.to_image(format="png", width=w, height=h, scale=2)` returns bytes. Supported: PNG, JPEG, WebP, SVG, PDF. Kaleido v1 uses system Chrome (no bundled browser).
@@ -171,6 +183,7 @@ These principles MUST be applied throughout all phases:
 6. **Streamlit theming**: `st.plotly_chart(fig, theme=None)` disables Streamlit theme override — use when custom template is applied.
 
 ### Streamlit `st.pills` API
+
 ```python
 selected = st.pills(
     "Label",
@@ -181,22 +194,25 @@ selected = st.pills(
     default=None,  # or specific value
 )
 ```
+
 - Returns selected value (single mode) or list (multi mode), or `None`.
 - Supports Material Design icons via `:material/icon_name:` in labels.
 - `width="stretch"` to fill container.
 
 ### Publication Standards by Venue
-| Venue | Width | Height | DPI | Font Family | Font Base |
-|-------|-------|--------|-----|-------------|-----------|
-| IEEE single column | 3.5" | 2.625" | 300 | serif | 8pt |
-| IEEE double column | 7.0" | 5.25" | 300 | serif | 8pt |
-| ISCA/MICRO/ASPLOS/HPCA | 3.5" | 2.5" | 300 | serif | 8pt |
-| Nature | 3.5" | 3.5" | 600 | Arial | 7pt |
-| Science | 3.5" | 2.5" | 600 | sans-serif | 7pt |
-| Poster | 10.0" | 7.0" | 150 | sans-serif | 24pt |
-| Slides | 8.0" | 4.5" | 150 | sans-serif | 18pt |
+
+| Venue                  | Width | Height | DPI | Font Family | Font Base |
+| ---------------------- | ----- | ------ | --- | ----------- | --------- |
+| IEEE single column     | 3.5"  | 2.625" | 300 | serif       | 8pt       |
+| IEEE double column     | 7.0"  | 5.25"  | 300 | serif       | 8pt       |
+| ISCA/MICRO/ASPLOS/HPCA | 3.5"  | 2.5"   | 300 | serif       | 8pt       |
+| Nature                 | 3.5"  | 3.5"   | 600 | Arial       | 7pt       |
+| Science                | 3.5"  | 2.5"   | 600 | sans-serif  | 7pt       |
+| Poster                 | 10.0" | 7.0"   | 150 | sans-serif  | 24pt      |
+| Slides                 | 8.0"  | 4.5"   | 150 | sans-serif  | 18pt      |
 
 ### Font Size Guidelines
+
 - Tick labels: 7–8pt minimum
 - Axis labels: 8–9pt
 - Title: 9–10pt
@@ -204,7 +220,9 @@ selected = st.pills(
 - Data annotations: 6–7pt
 
 ### Colorblind-Safe Defaults
+
 **Wong palette** (8 colors, optimized for discrete categories):
+
 ```python
 WONG_PALETTE = [
     "#000000",  # Black
@@ -217,10 +235,12 @@ WONG_PALETTE = [
     "#CC79A7",  # Reddish Purple
 ]
 ```
+
 Additional built-in palettes: Viridis (continuous), Plasma (continuous), seaborn-colorblind (categorical).
 Minimum contrast ratio: 4.5:1 for text on colored backgrounds.
 
 ### Data-Ink Ratio Principles (Tufte)
+
 - Remove non-data-ink: decorative borders, shadows, 3D effects
 - Remove top/right spines by default
 - Use gridlines sparingly (light gray, thin)
@@ -238,6 +258,7 @@ Minimum contrast ratio: 4.5:1 for text on colored backgrounds.
 **File**: `src/core/visualization/figure_spec.py`
 
 **Problem**: 5 fields use `Any` to avoid circular imports:
+
 ```python
 typography: Any = None       # Should be Optional[TypographySpec]
 axes: Any = None             # Should be Optional[AxesSpec]
@@ -247,6 +268,7 @@ annotations: List[Any] = ... # Should be List[AnnotationSpec]
 ```
 
 **Solution**: Use `TYPE_CHECKING` guard + string annotations:
+
 ```python
 from __future__ import annotations
 from typing import TYPE_CHECKING
@@ -302,10 +324,12 @@ class FigureSpec:
 **Current §4** (around line 64-70): Very brief — just 4 bullet points about font sizes, vector formats, Plotly GO, and labels.
 
 **Replace with expanded §4**:
+
 ```markdown
 ## 4. Plotting Best Practices
 
 ### 4.1 Matplotlib (OO API — MANDATORY)
+
 - **ALWAYS** use `fig, ax = plt.subplots(layout='constrained')`. NEVER use pyplot state machine (`plt.plot()`, `plt.xlabel()`).
 - **`layout='constrained'`** over `tight_layout()` — more robust for external legends, multi-axis, colorbars.
 - **PGF backend for LaTeX**: `fig.savefig(buf, format="pgf", backend="pgf")` with `pgf.texsystem="xelatex"` by default.
@@ -315,6 +339,7 @@ class FigureSpec:
 - **Data-ink ratio**: Remove top/right spines by default, minimize gridlines, no 3D effects or chartjunk.
 
 ### 4.2 Plotly (Graph Objects — MANDATORY)
+
 - **Custom Templates** for theming: `pio.templates["ring5_base"] = go.layout.Template(layout=go.Layout(…))`. Apply via `fig.update_layout(template="ring5_base")`.
 - **Template composition**: `"plotly_white+ring5_isca"` layers templates. Custom always on top of base.
 - **Kaleido v1** for static export: `fig.to_image(format="png", scale=2)`. Uses system Chrome. No Orca.
@@ -323,6 +348,7 @@ class FigureSpec:
 - **Streamlit integration**: `st.plotly_chart(fig, theme=None)` when using custom templates to prevent Streamlit overrides.
 
 ### 4.3 Accessibility & Publication Quality
+
 - **Colorblind-safe palettes**: Wong palette as default (8 discrete colors). Viridis for continuous. 4.5:1 contrast minimum.
 - **Font sizing by venue**: Ticks 7-8pt, labels 8-9pt, titles 9-10pt, legends 7-8pt.
 - **Vector formats mandatory**: PDF/SVG/PGF for print. Raster at 2× scale minimum (scale=2 in Kaleido).
@@ -339,27 +365,33 @@ class FigureSpec:
 **File**: `.agent/rules/001-architecture-standards.md`
 
 **Add new section before the closing status block**:
+
 ```markdown
 ## 9. Visualization Engine Architecture
 
 ### 9.1 FigureSpec as Single Source of Truth
+
 - `FigureSpec` is the canonical representation of a plot's styling. ALL rendering flows through it.
 - Building: `ConfigSpecBuilder.from_config(config) → resolve_spec(spec) → FigureSpec`
 - Applying: `FigureSpecToPlotly.apply(spec, fig)` or `FigureSpecToMatplotlib.apply(spec, ax)`
 
 ### 9.2 Engine Connectors are Stateless Translators
+
 - `FigureSpecToPlotly` and `FigureSpecToMatplotlib` are pure functions. No state, no side effects beyond the figure mutation.
 - Same `FigureSpec` must produce visually equivalent output in both engines.
 
 ### 9.3 Plotly Templates Map 1:1 to LaTeX Presets
+
 - Each LaTeX preset (ISCA, MICRO, etc.) has a corresponding Plotly template: `"ring5_isca"`, `"ring5_micro"`.
 - Application: `fig.update_layout(template="plotly_white+ring5_isca")`
 
 ### 9.4 Interactive Plotly Component is Sacrosanct
+
 - `interactive_plotly_chart` in `src/web/pages/ui/components/interactive_plot.py` must NEVER be replaced with `st.plotly_chart`.
 - It captures `relayoutData` for legend position persistence.
 
 ### 9.5 Memory Discipline
+
 - Every `matplotlib.figure.Figure` must be closed after rendering: `plt.close(fig)`.
 - In Streamlit: use `st.pyplot(fig, clear_figure=True)`.
 - Store figure bytes for download, not figure objects.
@@ -404,6 +436,7 @@ class DataLabelSpec:
 Add `data_labels: Optional[DataLabelSpec] = None` to `FigureSpec`.
 
 **Tests**: `tests/unit/core/visualization/test_data_label_spec.py`
+
 - `test_default_values` — verify all defaults
 - `test_to_dict_from_dict_roundtrip` — serialize/deserialize
 - `test_frozen` — cannot mutate
@@ -447,6 +480,7 @@ Add `series_styles: List[SeriesStyleSpec] = field(default_factory=list)` to `Fig
 **File**: `src/core/visualization/figure_spec.py`
 
 Add these fields to `FigureSpec`:
+
 ```python
 color_palette: List[str] = field(default_factory=lambda: [
     "#000000", "#E69F00", "#56B4E9", "#009E73",
@@ -474,6 +508,7 @@ show_error_bars: bool = False
 **File**: `src/core/visualization/axis_spec.py`
 
 Add to `AxisSpec`:
+
 ```python
 tick_font_color: str = ""      # Empty = inherit from theme
 label_standoff: int = -1       # Sentinel: -1 = auto
@@ -493,6 +528,7 @@ axis_line_width: float = 1.0
 **File**: `src/core/visualization/legend_spec.py`
 
 Add to `LegendSpec`:
+
 ```python
 col_width: float = -1.0            # Sentinel: -1 = auto
 order: Literal["normal", "reversed"] = "normal"
@@ -512,6 +548,7 @@ trace_distribution: str = ""       # Comma-separated trace indices, empty = all
 Map ALL currently-unmapped config keys in `ConfigSpecBuilder.from_config()`:
 
 **Data labels** (11 keys):
+
 - `show_values` → `data_labels.enabled`
 - `value_text_color_mode` → `data_labels.color_mode`
 - `value_text_custom_color` → `data_labels.custom_color`
@@ -525,21 +562,26 @@ Map ALL currently-unmapped config keys in `ConfigSpecBuilder.from_config()`:
 - `value_suffix` → `data_labels.suffix`
 
 **Axis colors** (4 keys):
+
 - `axis_color` → `axes.xaxis.axis_line_color`, `axes.yaxis.axis_line_color`
 - `grid_color` → `axes.xaxis.tick_font_color` (or create grid_color field)
 
 **Series styling** (3 keys):
+
 - `bar_border_width` → `series_styles[*].bar_border_width`
 - `marker_size` → `series_styles[*].marker_size`
 - `line_width` → `series_styles[*].line_width`
 
 **Reference lines** (5 keys):
+
 - `reference_lines` → `reference_lines` (list serialization)
 
 **Ordering** (2 keys):
+
 - `legend_traceorder` → `legends[0].order`
 
 **Other**:
+
 - `shapes` → `separator` config
 - `show_error_bars` → `show_error_bars`
 - `color_palette` → `color_palette`
@@ -663,6 +705,7 @@ def _apply_hatching(spec: FigureSpec, ax: Axes) -> None:
 ```
 
 Update `create_figure()` to use `layout='constrained'`:
+
 ```python
 @staticmethod
 def create_figure(spec: FigureSpec) -> Tuple[Figure, Axes]:
@@ -750,6 +793,7 @@ def register_all_templates(presets: Dict[str, Dict]) -> None:
 Read presets from `latex_presets.yaml` via `PresetManager.list_presets()`.
 
 **Tests**:
+
 - `test_base_template_properties` — verify colorway, no top/right axis lines concept
 - `test_preset_template_matches_yaml` — for each preset, verify font size/family match YAML
 - `test_template_registration` — after `register_all_templates()`, `"ring5_isca" in pio.templates`
@@ -762,6 +806,7 @@ Read presets from `latex_presets.yaml` via `PresetManager.list_presets()`.
 ## Phase 1 Review Checkpoint
 
 Before proceeding to Phase 2:
+
 1. `./python_venv/bin/pytest tests/ -q -x --tb=short` — ALL green
 2. `./python_venv/bin/mypy src/core/visualization/ --strict` — zero errors
 3. `./python_venv/bin/black src/ tests/ -q` — formatted
@@ -769,6 +814,7 @@ Before proceeding to Phase 2:
 5. Verify new test count: should be ~3,328 + ~150 = ~3,478
 
 **PR-Level Review** (see Phase Review Protocol in ABSOLUTE RULES):
+
 - Review EVERY file created/modified in Steps 4–12
 - Verify all new dataclasses have complete type annotations, `__post_init__` validation, and docstrings
 - Verify template factory does not leak Plotly internals to domain layer
@@ -790,6 +836,7 @@ Before proceeding to Phase 2:
 **File**: `src/web/pages/ui/plotting/styles/applicator.py`
 
 **Replace** all direct `fig.update_layout()` calls in `apply_styles()` with:
+
 ```python
 def apply_styles(self, fig: go.Figure, config: Dict[str, Any], plot_type: str) -> None:
     from src.core.visualization.connectors.builders import ConfigSpecBuilder
@@ -1034,6 +1081,7 @@ Consider whether `StyleApplicator` class is still needed or should be inlined in
 **File**: `src/web/pages/ui/plotting/plot_renderer.py`
 
 Replace the ~987 line `_render_download_button()` method with a slim `_render_download_section()` that:
+
 1. Checks current engine via `EngineManager`
 2. For Plotly: calls the download function from Step 18
 3. For Matplotlib: calls the download function from Step 19
@@ -1052,6 +1100,7 @@ Target: ~50-80 lines replacing ~987 lines.
 ### Step 22 — Delete legacy export infrastructure
 
 **Delete these files**:
+
 - `src/web/pages/ui/plotting/export/converters/impl/layout_applier.py` (891 lines)
 - `src/web/pages/ui/plotting/export/converters/impl/layout_mapper.py` (430 lines)
 - `src/web/pages/ui/plotting/export/converters/impl/matplotlib_converter.py` (910 lines)
@@ -1074,6 +1123,7 @@ Update all imports that referenced deleted files. If any remaining code imports 
 ## Phase 2 Review Checkpoint
 
 Before proceeding to Phase 3:
+
 1. `./python_venv/bin/pytest tests/ -q -x --tb=short` — ALL green
 2. `./python_venv/bin/mypy src/core/visualization/ --strict` — zero errors
 3. `./python_venv/bin/mypy src/web/services/ --strict` — zero errors
@@ -1083,6 +1133,7 @@ Before proceeding to Phase 3:
 7. **Manual verification (if possible)**: Run `./python_venv/bin/streamlit run app.py`, create a grouped bar plot, toggle engine, verify both render correctly, test download in both engines.
 
 **PR-Level Review** (see Phase Review Protocol in ABSOLUTE RULES):
+
 - Review EVERY file modified in Steps 13–22
 - This phase has the HIGHEST RISK — it rewires the rendering pipeline and deletes ~2,400 lines
 - Verify `StyleApplicator.apply_styles()` is now a thin dispatcher (< 30 lines), not a monolith
@@ -1161,10 +1212,12 @@ def render_settings_pills(show_advanced: bool = False) -> Optional[str]:
 **File**: `src/web/pages/ui/plotting/styles/base_ui.py` (or wherever the sidebar styling expanders currently live)
 
 Find the two `st.expander` blocks:
+
 - "⚙️ Advanced Options" (~L358 in `plot_manager_components.py`)
 - "🎨 Theme & Style" (~L363)
 
 Replace both with:
+
 ```python
 from src.web.pages.ui.plotting.settings_pills import render_settings_pills
 
@@ -1300,25 +1353,25 @@ ADVANCED = WidgetSection(
 
 Currently only 18 of ~50 widgets have `spec_path`. Complete the mapping for ALL:
 
-| Widget Key | `spec_path` |
-|-----------|-------------|
-| `width` | `dimensions.width` |
-| `height` | `dimensions.height` |
-| `automargin` | `axes.xaxis.automargin` |
-| `xaxis_tickangle` | `axes.xaxis.tick_angle` |
-| `legend_orientation` | `legends.0.orientation` |
-| `legend_x` | `legends.0.x` |
-| `legend_y` | `legends.0.y` |
-| `legend_xanchor` | `legends.0.xanchor` |
-| `legend_yanchor` | `legends.0.yanchor` |
-| `show_values` | `data_labels.enabled` |
-| `text_font_size` | `data_labels.font_size` |
-| `axis_color` | `axes.xaxis.axis_line_color` |
-| `grid_color` | `axes.xaxis.tick_font_color` |
-| `title` | `title` |
-| `xlabel` | `axes.xaxis.label` |
-| `ylabel` | `axes.yaxis.label` |
-| ... (complete all remaining) |
+| Widget Key                   | `spec_path`                  |
+| ---------------------------- | ---------------------------- |
+| `width`                      | `dimensions.width`           |
+| `height`                     | `dimensions.height`          |
+| `automargin`                 | `axes.xaxis.automargin`      |
+| `xaxis_tickangle`            | `axes.xaxis.tick_angle`      |
+| `legend_orientation`         | `legends.0.orientation`      |
+| `legend_x`                   | `legends.0.x`                |
+| `legend_y`                   | `legends.0.y`                |
+| `legend_xanchor`             | `legends.0.xanchor`          |
+| `legend_yanchor`             | `legends.0.yanchor`          |
+| `show_values`                | `data_labels.enabled`        |
+| `text_font_size`             | `data_labels.font_size`      |
+| `axis_color`                 | `axes.xaxis.axis_line_color` |
+| `grid_color`                 | `axes.xaxis.tick_font_color` |
+| `title`                      | `title`                      |
+| `xlabel`                     | `axes.xaxis.label`           |
+| `ylabel`                     | `axes.yaxis.label`           |
+| ... (complete all remaining) |                              |
 
 This enables `ConfigBridge` to do full bidirectional FigureSpec ↔ config translation, which is critical for portfolio save/load.
 
@@ -1362,11 +1415,13 @@ if preset and preset != "none":
 Below the pills, show conditional sections:
 
 **Plotly mode**:
+
 - Hovermode selector (x unified, closest, off)
 - Zoom config toggle
 - Legend drag toggle
 
 **Matplotlib mode**:
+
 - LaTeX preamble text input (`spec.latex_extra_preamble`)
 - TeX system choice (xelatex / pdflatex / lualatex)
 - PGF vs PDF backend radio
@@ -1416,6 +1471,7 @@ This follows "less is more" from data visualization literature — don't overwhe
 4. Manual verification: pills UI works, sections render, sub-pills for legends/axes work
 
 **PR-Level Review** (see Phase Review Protocol in ABSOLUTE RULES):
+
 - Review EVERY file created/modified in Steps 23–31
 - Verify `st.pills` usage is correct and follows Streamlit 1.53+ API
 - Verify progressive disclosure logic is clean — no complex nested conditionals
@@ -1475,6 +1531,7 @@ class PortfolioMigrator:
 ```
 
 **Tests**:
+
 - `test_v1_migration` — V1 portfolio gets engine field, export keys removed
 - `test_unknown_keys_preserved` — custom keys survive migration
 - `test_already_v2_no_change` — idempotent
@@ -1498,6 +1555,7 @@ plot_data = {
 ```
 
 On load:
+
 ```python
 if "figure_spec" in plot_data:
     spec = FigureSpec.from_dict(plot_data["figure_spec"])
@@ -1518,6 +1576,7 @@ else:
 **Create**: `tests/integration/test_portfolio_migration.py`
 
 Test with sample portfolio JSON fixtures:
+
 - Load V1 portfolio → migrate → verify valid FigureSpec
 - Load V2 portfolio → no migration needed → verify passes through
 - Render migrated portfolio in both engines without errors
@@ -1534,6 +1593,7 @@ Test with sample portfolio JSON fixtures:
 3. Portfolio save/load works with migration
 
 **PR-Level Review** (see Phase Review Protocol in ABSOLUTE RULES):
+
 - Review EVERY file created/modified in Steps 32–34
 - Verify `PortfolioMigrator` handles ALL config key changes from Phases 1–3
 - Verify migration is idempotent (migrating an already-migrated portfolio is a no-op)
@@ -1619,6 +1679,7 @@ Show warnings as `st.warning()` in the download section.
 ### Step 37 — Rename "Export" → "Download" in all UI strings
 
 **Global search and replace**:
+
 - "Export for LaTeX" → "Download"
 - "Export Settings" → removed (settings are inline)
 - "Export" → "Download" (in button labels, headers, tooltips)
@@ -1640,6 +1701,7 @@ Replace UI-facing strings only. Internal variable names like `export_format` can
 ### Step 38 — Update documentation
 
 **Files**:
+
 - `docs/LaTeX-Export-Guide.md` → Rename to `docs/Download-Guide.md`. Rewrite with engine comparison table (Plotly formats vs Matplotlib formats).
 - `docs/Creating-Plots.md` → Update with pills UI description (no screenshots needed, describe the navigation).
 - `docs/Architecture.md` → Add/update pipeline diagram showing FigureSpec → Engine dispatch → Connector → Render.
@@ -1728,6 +1790,7 @@ Run `git diff 0c2c56d..HEAD --stat` and `git diff 0c2c56d..HEAD` to review EVERY
 ### 8. Final Verdict
 
 Write a comprehensive **Final Review Report** containing:
+
 - **Executive summary**: What was accomplished across all 5 phases
 - **Architecture changes**: New patterns introduced, old patterns removed
 - **Risk assessment**: Any areas of concern, technical debt, known limitations
@@ -1759,57 +1822,60 @@ After the final review passes, update `.agent/ARCHITECTURE.md` to reflect ALL ar
 
 ## Key Decisions Reference
 
-| Decision | Choice | Rationale |
-|:---------|:-------|:----------|
-| Plotly theming | Templates over manual `update_layout` | Idiomatic Plotly; composable; per-figure overridable |
-| LaTeX export | PGF backend over PDF backend | PGF produces native LaTeX commands; fonts match document |
-| Matplotlib layout | `layout='constrained'` over `tight_layout` | More robust for complex layouts; Matplotlib 3.x recommended |
-| Static Plotly export | Kaleido v1 over Orca | Current recommended engine; uses system Chrome |
-| Default palette | Wong 8-color over Viridis | Optimized for discrete categories; Viridis for continuous |
-| Navigation | `st.pills` over `st.tabs` | User preference; more compact; Material icons |
-| Portfolio format | FigureSpec-based over raw config | Future-proof; engine-agnostic by design |
-| UI complexity | Progressive disclosure (3→7 pills) | "Less is more"; don't overwhelm with 50+ controls |
+| Decision             | Choice                                     | Rationale                                                   |
+| :------------------- | :----------------------------------------- | :---------------------------------------------------------- |
+| Plotly theming       | Templates over manual `update_layout`      | Idiomatic Plotly; composable; per-figure overridable        |
+| LaTeX export         | PGF backend over PDF backend               | PGF produces native LaTeX commands; fonts match document    |
+| Matplotlib layout    | `layout='constrained'` over `tight_layout` | More robust for complex layouts; Matplotlib 3.x recommended |
+| Static Plotly export | Kaleido v1 over Orca                       | Current recommended engine; uses system Chrome              |
+| Default palette      | Wong 8-color over Viridis                  | Optimized for discrete categories; Viridis for continuous   |
+| Navigation           | `st.pills` over `st.tabs`                  | User preference; more compact; Material icons               |
+| Portfolio format     | FigureSpec-based over raw config           | Future-proof; engine-agnostic by design                     |
+| UI complexity        | Progressive disclosure (3→7 pills)         | "Less is more"; don't overwhelm with 50+ controls           |
 
 ---
 
 ## File Impact Summary
 
 ### Files to CREATE (~2,000 lines)
-| File | Purpose |
-|------|---------|
-| `src/core/visualization/data_label_spec.py` | DataLabelSpec dataclass |
-| `src/core/visualization/series_style_spec.py` | SeriesStyleSpec dataclass |
-| `src/core/visualization/connectors/plotly_templates.py` | PlotlyTemplateFactory |
-| `src/core/visualization/publication_validator.py` | Publication quality checks |
-| `src/web/services/engine_manager.py` | Engine state management |
-| `src/web/services/preset_applicator.py` | Unified preset application |
-| `src/web/services/portfolio_migrator.py` | Portfolio schema migration |
-| `src/web/pages/ui/plotting/download_section.py` | Slim download UI |
-| `src/web/pages/ui/plotting/settings_pills.py` | Pills navigation + routing |
-| `.agent/context/visualization-best-practices.md` | Knowledge reference |
-| ~15 test files | ~290 new test functions |
+
+| File                                                    | Purpose                    |
+| ------------------------------------------------------- | -------------------------- |
+| `src/core/visualization/data_label_spec.py`             | DataLabelSpec dataclass    |
+| `src/core/visualization/series_style_spec.py`           | SeriesStyleSpec dataclass  |
+| `src/core/visualization/connectors/plotly_templates.py` | PlotlyTemplateFactory      |
+| `src/core/visualization/publication_validator.py`       | Publication quality checks |
+| `src/web/services/engine_manager.py`                    | Engine state management    |
+| `src/web/services/preset_applicator.py`                 | Unified preset application |
+| `src/web/services/portfolio_migrator.py`                | Portfolio schema migration |
+| `src/web/pages/ui/plotting/download_section.py`         | Slim download UI           |
+| `src/web/pages/ui/plotting/settings_pills.py`           | Pills navigation + routing |
+| `.agent/context/visualization-best-practices.md`        | Knowledge reference        |
+| ~15 test files                                          | ~290 new test functions    |
 
 ### Files to HEAVILY MODIFY
-| File | Change |
-|------|--------|
-| `src/core/visualization/figure_spec.py` | Fix `Any`, add ~6 fields |
-| `src/core/visualization/axis_spec.py` | Add 5 fields |
-| `src/core/visualization/legend_spec.py` | Add 3 fields |
-| `src/core/visualization/connectors/plotly_connector.py` | Add ~16 methods |
-| `src/core/visualization/connectors/matplotlib_connector.py` | Add ~12 methods |
-| `src/core/visualization/connectors/builders.py` | Map ~30 keys |
-| `src/core/visualization/widgets/widget_def.py` | New sections + spec_path |
-| `src/web/pages/ui/plotting/plot_renderer.py` | Engine toggle + download |
-| `src/web/pages/ui/plotting/styles/applicator.py` | Collapse to ~15 lines |
-| `.agent/rules/001-architecture-standards.md` | Add §9 |
-| `.agent/rules/002-data-science-mastery.md` | Expand §4 |
+
+| File                                                        | Change                   |
+| ----------------------------------------------------------- | ------------------------ |
+| `src/core/visualization/figure_spec.py`                     | Fix `Any`, add ~6 fields |
+| `src/core/visualization/axis_spec.py`                       | Add 5 fields             |
+| `src/core/visualization/legend_spec.py`                     | Add 3 fields             |
+| `src/core/visualization/connectors/plotly_connector.py`     | Add ~16 methods          |
+| `src/core/visualization/connectors/matplotlib_connector.py` | Add ~12 methods          |
+| `src/core/visualization/connectors/builders.py`             | Map ~30 keys             |
+| `src/core/visualization/widgets/widget_def.py`              | New sections + spec_path |
+| `src/web/pages/ui/plotting/plot_renderer.py`                | Engine toggle + download |
+| `src/web/pages/ui/plotting/styles/applicator.py`            | Collapse to ~15 lines    |
+| `.agent/rules/001-architecture-standards.md`                | Add §9                   |
+| `.agent/rules/002-data-science-mastery.md`                  | Expand §4                |
 
 ### Files to DELETE (~3,800 lines)
-| File | Lines |
-|------|-------|
-| `src/web/pages/ui/plotting/export/converters/impl/layout_applier.py` | 891 |
-| `src/web/pages/ui/plotting/export/converters/impl/layout_mapper.py` | 430 |
-| `src/web/pages/ui/plotting/export/converters/impl/matplotlib_converter.py` | 910 |
-| `src/web/pages/ui/plotting/export/latex_export_service.py` | 175 |
-| StyleApplicator `_apply_*` methods (dead code) | ~600 |
-| `_render_download_button` monolith | ~987 |
+
+| File                                                                       | Lines |
+| -------------------------------------------------------------------------- | ----- |
+| `src/web/pages/ui/plotting/export/converters/impl/layout_applier.py`       | 891   |
+| `src/web/pages/ui/plotting/export/converters/impl/layout_mapper.py`        | 430   |
+| `src/web/pages/ui/plotting/export/converters/impl/matplotlib_converter.py` | 910   |
+| `src/web/pages/ui/plotting/export/latex_export_service.py`                 | 175   |
+| StyleApplicator `_apply_*` methods (dead code)                             | ~600  |
+| `_render_download_button` monolith                                         | ~987  |

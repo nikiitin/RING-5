@@ -307,14 +307,14 @@ Real Streamlit rendering via `streamlit.testing.v1.AppTest` — tests actual wid
 
 ### 4.4 When to Use Each Layer
 
-| Need | Layer |
-|------|-------|
-| Controller delegates correctly | Layer 1 (ui_logic) |
+| Need                                     | Layer              |
+| ---------------------------------------- | ------------------ |
+| Controller delegates correctly           | Layer 1 (ui_logic) |
 | Config change detects + error resilience | Layer 1 (ui_logic) |
-| Widget renders correct options | Layer 2 (ui_unit) |
-| Page loads without crash | Layer 3 (AppTest) |
-| Widget is present on page | Layer 3 (AppTest) |
-| Empty-state messages shown | Layer 3 (AppTest) |
+| Widget renders correct options           | Layer 2 (ui_unit)  |
+| Page loads without crash                 | Layer 3 (AppTest)  |
+| Widget is present on page                | Layer 3 (AppTest)  |
+| Empty-state messages shown               | Layer 3 (AppTest)  |
 
 ## 5. Property-Based Testing (_Hypothesis_)
 

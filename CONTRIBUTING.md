@@ -198,7 +198,7 @@ class TestCalculateSpeedup:
 
 RING-5 follows strict architectural layers:
 
-```
+```text
 UI Layer (Streamlit)
     ↓ uses
 Service Layer (Business Logic)

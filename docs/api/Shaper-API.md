@@ -3,7 +3,7 @@ title: "Shaper API"
 nav_order: 25
 ---
 
-# Shaper API
+## Shaper API
 
 Complete API reference for RING-5's data transformation system.
 
@@ -22,7 +22,7 @@ Shapers transform DataFrames in the analysis pipeline. All shapers:
 
 Factory for creating shaper instances.
 
-**Location**: `src/web/services/shapers/shaper_factory.py`
+**Location**: `src/core/services/shapers/factory.py`
 
 #### Methods
 
@@ -89,7 +89,7 @@ shaper = ShaperFactory.create_shaper("column_selector", config)
 result = shaper(data)
 ```
 
-**Location**: `src/web/services/shapers/column_selector.py`
+**Location**: `src/core/services/shapers/impl/selector.py`
 
 ### SortShaper
 
@@ -118,7 +118,7 @@ config = {
 }
 ```
 
-**Location**: `src/web/services/shapers/sort_shaper.py`
+**Location**: `src/core/services/shapers/impl/sort.py`
 
 ### MeanCalculator
 
@@ -144,7 +144,7 @@ shaper = ShaperFactory.create_shaper("mean_calculator", config)
 result = shaper(data)  # Aggregated data
 ```
 
-**Location**: `src/web/services/shapers/mean_calculator.py`
+**Location**: `src/core/services/shapers/impl/mean.py`
 
 ### NormalizeShaper
 
@@ -189,7 +189,7 @@ config = {
 shaper = ShaperFactory.create_shaper("normalize", config)
 ```
 
-**Location**: `src/web/services/shapers/normalize_shaper.py`
+**Location**: `src/core/services/shapers/impl/normalize.py`
 
 ### FilterShaper
 
@@ -236,7 +236,7 @@ config = {
 shaper = ShaperFactory.create_shaper("filter", config)
 ```
 
-**Location**: `src/web/services/shapers/filter_shaper.py`
+**Location**: `src/core/services/shapers/impl/selector.py`
 
 ### TransformerShaper
 
@@ -291,7 +291,7 @@ config = {
 shaper = ShaperFactory.create_shaper("transformer", config)
 ```
 
-**Location**: `src/web/services/shapers/transformer_shaper.py`
+**Location**: `src/core/services/shapers/impl/transformer.py`
 
 ## Pipeline Execution
 
@@ -299,7 +299,7 @@ shaper = ShaperFactory.create_shaper("transformer", config)
 
 Apply multiple shapers sequentially.
 
-**Location**: `src/web/services/shapers/pipeline.py`
+**Location**: `src/core/services/shapers/pipeline_service.py`
 
 **Parameters**:
 

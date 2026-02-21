@@ -5,9 +5,9 @@ nav_order: 1
 permalink: /
 ---
 
-# RING-5 Documentation
+## RING-5 Documentation
 
-**Reproducible Instrumentation for Numerical Graphics for gem5**
+Reproducible Instrumentation for Numerical Graphics for gem5
 
 RING-5 turns raw gem5 simulator output into publication-ready figures through an interactive web interface. Parse stats files, transform data, build plots, and export -- all without writing a single script.
 
@@ -15,14 +15,14 @@ RING-5 turns raw gem5 simulator output into publication-ready figures through an
 
 ## Quick Links
 
-| | |
-|---|---|
-| [Quick Start](Quick-Start) | Get up and running in 5 minutes |
-| [Installation](Installation) | Detailed setup instructions |
-| [First Analysis](First-Analysis) | Step-by-step walkthrough |
-| [Web Interface](Web-Interface) | Dashboard reference |
-| [Creating Plots](Creating-Plots) | Visualization options |
-| [Architecture](Architecture) | System design for contributors |
+|                                  |                                 |
+| -------------------------------- | ------------------------------- |
+| [Quick Start](Quick-Start)       | Get up and running in 5 minutes |
+| [Installation](Installation)     | Detailed setup instructions     |
+| [First Analysis](First-Analysis) | Step-by-step walkthrough        |
+| [Web Interface](Web-Interface)   | Dashboard reference             |
+| [Creating Plots](Creating-Plots) | Visualization options           |
+| [Architecture](Architecture)     | System design for contributors  |
 
 ---
 

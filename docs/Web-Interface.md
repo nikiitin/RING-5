@@ -3,7 +3,7 @@ title: "Web Interface"
 nav_order: 5
 ---
 
-# Web Interface Guide
+## Web Interface Guide
 
 Comprehensive guide to the RING-5 Streamlit web interface.
 
@@ -440,4 +440,4 @@ Chain multiple data managers:
 - **Portfolios**: Advanced portfolio management
 - **API Reference**: [Backend Facade API](api/Backend-Facade.md)
 
-**Need Help?** See [Troubleshooting](Debugging.md) or open an issue on GitHub.
+**Need Help?** See [Testing Guide](Testing-Guide.md) or open an issue on GitHub.

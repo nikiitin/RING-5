@@ -3,7 +3,7 @@ title: "Parsing Guide"
 nav_order: 6
 ---
 
-# Parsing gem5 Statistics
+## Parsing gem5 Statistics
 
 Complete guide to parsing gem5 simulator output with RING-5.
 
@@ -389,6 +389,6 @@ In the Streamlit interface:
 
 - [Data Transformations](Data-Transformations) - Process parsed data
 - [Creating Plots](Creating-Plots) - Visualize results
-- [Pattern Aggregation](Pattern-Aggregation) - Deep dive into patterns
+- [Parsing Architecture](parsing-architecture) - Deep dive into parsing internals
 
-**Need help?** [Debugging Guide](Debugging) or [Open an issue](https://github.com/vnicolas/RING-5/issues)
+**Need help?** [Testing Guide](Testing-Guide) or [Open an issue](https://github.com/vnicolas/RING-5/issues)

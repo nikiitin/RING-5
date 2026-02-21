@@ -3,7 +3,7 @@ title: "Architecture"
 nav_order: 16
 ---
 
-# Architecture Overview
+## Architecture Overview
 
 RING-5 follows a **clean layered architecture** with strict separation of concerns, async-first design, and production-grade patterns.
 
@@ -478,6 +478,6 @@ See [API Reference](api/) for details
 - [Development Setup](Development-Setup.md)
 - [Testing Guide](Testing-Guide.md)
 - [API Reference](api/)
-- [Code Style](Code-Style.md)
+- [Contributing](../CONTRIBUTING.md)
 
 **Next**: [Development Setup](Development-Setup.md) to start building with this architecture.

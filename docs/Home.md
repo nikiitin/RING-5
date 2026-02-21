@@ -45,18 +45,14 @@ Welcome to the **RING-5** documentation! This wiki provides comprehensive guides
 
 ### Advanced Topics
 
-- [**Pattern Aggregation**](Pattern-Aggregation.md) - Handling repeated variables
-- [**Async Parsing**](Async-Parsing.md) - Parallel processing internals
-- [**Type System**](Type-System.md) - gem5 variable types
-- [**Performance Optimization**](Performance.md) - Tips for large datasets
-- [**Debugging**](Debugging.md) - Troubleshooting common issues
+- [**Services Architecture**](services-architecture.md) - Business logic layer
+- [**Parsing Architecture**](parsing-architecture.md) - Parsing internals
+- [**Phase 5 — MVC Refactoring**](phase5-architecture.md) - Phase B documentation
 
 ### Contributing
 
 - [**Contributing Guide**](../CONTRIBUTING.md) - How to contribute
-- [**Code Style**](Code-Style.md) - Conventions and standards
-- [**Pull Request Process**](PR-Process.md) - Submitting changes
-- [**Release Process**](Release-Process.md) - Version management
+- [**Dependency Updates**](Dependency-Updates.md) - Managing dependencies
 
 ## Quick Links
 
@@ -120,9 +116,9 @@ This documentation follows these conventions:
 ### For Researchers
 
 1. Review [Parsing Guide](Parsing-Guide.md) for gem5 specifics
-2. Explore [Pattern Aggregation](Pattern-Aggregation.md)
-3. Learn [Performance Optimization](Performance.md)
-4. Check [Publication Tips](Publication-Tips.md)
+2. Explore [Parsing Architecture](parsing-architecture.md)
+3. Learn [Architecture](Architecture.md)
+4. Check the [Testing Guide](Testing-Guide.md)
 
 ## Getting Help
 

@@ -3,7 +3,7 @@ title: "Portfolios"
 nav_order: 10
 ---
 
-# Portfolios Guide
+## Portfolios Guide
 
 Complete guide to saving and managing analysis portfolios in RING-5.
 
@@ -96,4 +96,4 @@ Portfolios work well with Git version control.
 - **Creating Plots**: Master [Plot Creation](Creating-Plots.md)
 - **Data Transformations**: Explore [Shapers](Data-Transformations.md)
 
-**Need Help?** Check [Troubleshooting](Debugging.md) or open a GitHub issue.
+**Need Help?** Check [Testing Guide](Testing-Guide.md) or open a GitHub issue.

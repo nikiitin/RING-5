@@ -3,7 +3,7 @@ title: "First Analysis"
 nav_order: 4
 ---
 
-# First Analysis Guide
+## First Analysis Guide
 
 Complete walkthrough of your first gem5 data analysis with RING-5.
 
@@ -245,7 +245,7 @@ Restore a previous session:
 - **Data Transformations**: Learn about [Data Transformations](Data-Transformations.md)
 - **Advanced Plotting**: Explore [Creating Plots](Creating-Plots.md)
 - **Shapers**: Master [Shaper Pipelines](Parsing-Guide.md)
-- **Pattern Aggregation**: Understand [Pattern Aggregation](Pattern-Aggregation.md)
+- **Pattern Aggregation**: Understand [Parsing Architecture](parsing-architecture.md)
 
 ## Tips for Effective Analysis
 
@@ -255,4 +255,4 @@ Restore a previous session:
 4. **Name Descriptively**: Use clear names for plots and portfolios
 5. **Check Data**: Always review raw data in Data Managers first
 
-**Need Help?** Check [Troubleshooting](Debugging.md) or open a GitHub issue.
+**Need Help?** Check [Testing Guide](Testing-Guide.md) or open a GitHub issue.

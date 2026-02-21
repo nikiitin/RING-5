@@ -3,7 +3,7 @@ title: "Full Architecture Diagram"
 nav_order: 26
 ---
 
-# RING-5 Full Project Architecture
+## RING-5 Full Project Architecture
 
 This document provides a comprehensive view of the RING-5 codebase architecture, including all modules, their dependencies, and the layered structure.
 
@@ -177,18 +177,24 @@ flowchart TB
 ## Layer Descriptions
 
 ### 🌱 LEAF MODULES
+
 Foundational modules with **zero** internal dependencies. These form the stable base of the architecture:
+
 - **models/**: Core data models, protocols, and configuration (ScannedVariable, StatConfig, PortfolioData, PlotProtocol, ConfigValidator, ConfigTemplateGenerator)
 - **common/utils.py**: Shared utilities (path normalization, JSON validation)
 - **performance.py**: Caching, profiling decorators
 
 ### 📦 STATE LAYER
+
 Application state management using the Repository pattern:
+
 - **repositories/**: Individual state stores (data, config, parser, plot, preview, session)
 - **state_manager.py**: Facade composing all repositories
 
 ### 🔬 PARSING LAYER
+
 gem5 simulator output parsing with Strategy pattern:
+
 - **Protocols**: Simulator-agnostic interfaces (ParserProtocol, ScannerProtocol)
 - **Factory**: Creates parser instances by simulator type
 - **gem5/**: Complete gem5 implementation
@@ -198,7 +204,9 @@ gem5 simulator output parsing with Strategy pattern:
   - **impl/strategies/**: Parsing strategies (simple, config-aware)
 
 ### ⚙️ SERVICES LAYER
+
 Business logic services organized into three domain-aligned submodules:
+
 - **ServicesAPI / DefaultServicesAPI**: Top-level facade and composition root
 - **managers/**: Stateless data transformation operations (arithmetic, outlier removal, seed reduction)
 - **data_services/**: Data storage and retrieval (CSV pool, config persistence, path navigation, variable management, portfolio snapshots)
@@ -207,12 +215,16 @@ Business logic services organized into three domain-aligned submodules:
 Each submodule has its own Protocol (API) and default implementation. Cross-module dependencies are resolved via dependency injection at the composition root.
 
 ### 🎯 APPLICATION API (Facade)
+
 Single entry point for all backend operations:
+
 - Orchestrates parsing, CSV loading, pipelines, portfolios
 - All web layer components import through this facade
 
 ### 🖥️ WEB LAYER (Streamlit UI)
+
 Presentation layer:
+
 - **pages/**: Page-level components (data source, upload, plots, portfolio)
 - **ui/components/**: Reusable UI widgets
 - **ui/data_managers/**: Data preprocessing UIs (mixer, outlier, reducer)
@@ -230,14 +242,14 @@ Presentation layer:
 
 ## Dependency Rules
 
-| From Layer | Can Import From |
-|------------|-----------------|
-| Leaf Modules | *(nothing)* |
-| State | models |
-| Parsing | models, common |
-| Services | common, performance, models, state |
-| ApplicationAPI | parsing, services (facade), state, models |
-| Web | ApplicationAPI, services (managers), performance, models |
+| From Layer     | Can Import From                                          |
+| -------------- | -------------------------------------------------------- |
+| Leaf Modules   | _(nothing)_                                              |
+| State          | models                                                   |
+| Parsing        | models, common                                           |
+| Services       | common, performance, models, state                       |
+| ApplicationAPI | parsing, services (facade), state, models                |
+| Web            | ApplicationAPI, services (managers), performance, models |
 
 **Important**: The only `core→web` dependency is a `TYPE_CHECKING`-only import in `session_repository.py` for `BasePlot` type hints.
 

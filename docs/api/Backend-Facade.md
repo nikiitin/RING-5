@@ -1,29 +1,42 @@
 ---
-title: "Backend Facade"
+title: "Application API"
 nav_order: 22
 ---
 
-# Backend Facade
+## Application API
 
 Complete API reference for RING-5's unified backend interface.
 
 ## Overview
 
-The `BackendFacade` provides a single entry point to all backend services. It implements the **Facade Pattern**, simplifying interactions with parsing, scanning, CSV management, and configuration.
+The `ApplicationAPI` provides a single entry point to all backend services. It implements the **Facade Pattern**, orchestrating the interaction between Core Services, StateManager, and the Presentation Layer.
 
-**Location**: `src/web/facade.py`
+**Location**: `src/core/application_api.py`
 
-## BackendFacade Class
+## ApplicationAPI Class
 
 ### Initialization
 
 ```python
-from src.web.facade import BackendFacade
+from src.core.application_api import ApplicationAPI
 
-facade = BackendFacade()
+api = ApplicationAPI()
 ```
 
-The facade is typically instantiated once and accessed through the UI layer.
+The API is typically instantiated once and accessed through the UI layer.
+
+### Sub-API Access
+
+```python
+# Stateless data transformation operations
+api.managers.apply_operation(data, operator, columns)
+
+# Data storage, retrieval, and domain entity management
+api.data_services.load_csv_pool()
+
+# Pipeline and shaper operations
+api.shapers.process_pipeline(data, pipeline_steps)
+```
 
 ## Scanning Methods
 
@@ -42,39 +55,27 @@ Submit asynchronous variable scanning jobs.
 **Example**:
 
 ```python
-futures = facade.submit_scan_async(
+futures = api.submit_scan_async(
     "/path/to/results",
     "stats.txt",
     limit=100
 )
-
-# Wait for completion
 results = [f.result() for f in futures]
 ```
 
 ### `finalize_scan(scan_results)`
 
-Aggregate scan results into unified variable map.
+Aggregate scan results into unified variable list.
 
 **Parameters**:
 
-- `scan_results` (List[Dict]): Results from scan futures
+- `scan_results` (List[List]): Results from scan futures
 
-**Returns**: `Dict[str, VariableInfo]` - Variable information map
-
-**Example**:
-
-```python
-variables = facade.finalize_scan(results)
-
-# Iterate variables
-for name, info in variables.items():
-    print(f"{name}: {info['type']}")
-```
+**Returns**: `List[Any]` - Aggregated variable information
 
 ## Parsing Methods
 
-### `submit_parse_async(stats_path, stats_pattern, variables, output_dir, scanned_vars=None)`
+### `submit_parse_async(stats_path, stats_pattern, variables, output_dir, ...)`
 
 Submit asynchronous parsing jobs.
 
@@ -82,25 +83,11 @@ Submit asynchronous parsing jobs.
 
 - `stats_path` (str | Path): Stats directory
 - `stats_pattern` (str): Filename pattern
-- `variables` (List[str]): Variables to parse
+- `variables` (List[Dict]): Variables to parse
 - `output_dir` (str | Path): Output directory
-- `scanned_vars` (Dict | None): Pre-scanned variable info
+- `scanned_vars` (List | None): Pre-scanned variable info
 
 **Returns**: `List[Future]` - Future objects for parse results
-
-**Example**:
-
-```python
-futures = facade.submit_parse_async(
-    stats_path="/path/to/results",
-    stats_pattern="stats.txt",
-    variables=["system.cpu.ipc", "system.cpu\d+.numCycles"],
-    output_dir="/output",
-    scanned_vars=scanned_variables
-)
-
-results = [f.result() for f in futures]
-```
 
 ### `finalize_parsing(output_dir, parse_results)`
 
@@ -113,257 +100,147 @@ Consolidate parsed CSVs into single file.
 
 **Returns**: `str` - Path to consolidated CSV
 
-**Example**:
+## Data Access Methods
 
-```python
-csv_path = facade.finalize_parsing("/output", results)
-```
-
-## CSV Management Methods
-
-### `load_csv_file(csv_path)`
+### `load_csv_file(file_path)`
 
 Load CSV file into DataFrame.
 
 **Parameters**:
 
-- `csv_path` (str | Path): Path to CSV file
+- `file_path` (str): Path to CSV file
 
-**Returns**: `pd.DataFrame` - Loaded data
+**Returns**: `DataFrame` - Loaded data
 
-**Raises**: `FileNotFoundError` - If file doesn't exist
+### `load_csv_pool()`
 
-**Example**:
+List CSV files in the pool.
 
-```python
-data = facade.load_csv_file("/output/consolidated.csv")
-print(data.head())
-```
+**Returns**: `List[Dict]` - Pool entries
 
-### `get_csv_columns(csv_path)`
+### `add_to_csv_pool(file_path)`
 
-Get column names from CSV without loading full data.
+Add CSV file to pool.
 
-**Parameters**:
+### `delete_from_csv_pool(file_path)`
 
-- `csv_path` (str | Path): Path to CSV
+Remove CSV file from pool.
 
-**Returns**: `List[str]` - Column names
+### `get_column_info(df)`
 
-**Example**:
+Get detailed column metadata for a DataFrame.
 
-```python
-columns = facade.get_csv_columns("/output/data.csv")
-print(f"Available columns: {columns}")
-```
-
-### `list_csv_files(directory)`
-
-List all CSV files in directory.
-
-**Parameters**:
-
-- `directory` (str | Path): Directory to search
-
-**Returns**: `List[Path]` - List of CSV file paths
-
-**Example**:
-
-```python
-csv_files = facade.list_csv_files("/output")
-for csv in csv_files:
-    print(csv.name)
-```
+**Returns**: `Dict[str, Any]` with `total_columns`, `numeric_columns`, `string_columns`, etc.
 
 ## Configuration Methods
 
-### `get_config(key, default=None)`
+### `save_configuration(config, name, description)`
 
-Get configuration value.
+Save configuration to disk.
+
+### `load_configuration(config_path)`
+
+Load configuration from disk.
+
+### `load_saved_configs()`
+
+List all saved configurations.
+
+### `delete_configuration(config_path)`
+
+Delete a saved configuration.
+
+## Visualization Config Methods
+
+### `get_visualization_config(plot_id)`
+
+Get the FigureConfig for a specific plot.
 
 **Parameters**:
 
-- `key` (str): Configuration key
-- `default` (Any): Default value if key not found
+- `plot_id` (int): Plot identifier
 
-**Returns**: Configuration value
+**Returns**: `FigureConfig | None`
 
-**Example**:
+### `set_visualization_config(plot_id, config)`
 
-```python
-max_workers = facade.get_config("max_workers", default=4)
-output_dir = facade.get_config("output_directory")
-```
-
-### `set_config(key, value)`
-
-Set configuration value.
+Store a FigureConfig for a specific plot.
 
 **Parameters**:
 
-- `key` (str): Configuration key
-- `value` (Any): Configuration value
+- `plot_id` (int): Plot identifier
+- `config` (FigureConfig): Visualization configuration
 
-**Example**:
+### `remove_visualization_config(plot_id)`
 
-```python
-facade.set_config("max_workers", 8)
-facade.set_config("output_directory", "/custom/output")
-```
+Remove stored visualization config for a plot.
+
+## Preview Methods
+
+### `set_preview(operation_name, data)` / `get_preview(operation_name)`
+
+Store and retrieve preview data for data manager operations.
+
+### `has_preview(operation_name)` / `clear_preview(operation_name)`
+
+Check and clear preview state.
+
+## History Methods
+
+### `add_manager_history_record(record)`
+
+Add an operation record to manager history.
+
+### `get_manager_history()` / `get_portfolio_history()`
+
+Retrieve operation histories.
 
 ## Complete Workflow Example
 
-### Scan → Parse → Load → Transform → Plot
-
 ```python
-import streamlit as st
-import pandas as pd
-from src.web.facade import BackendFacade
-from src.web.services.shapers.shaper_factory import ShaperFactory
-from src.plotting.plot_factory import PlotFactory
+from src.core.application_api import ApplicationAPI
 
-# Initialize
-facade = BackendFacade()
+api = ApplicationAPI()
 
 # Step 1: Scan for variables
-st.write("Scanning variables...")
-scan_futures = facade.submit_scan_async(
-    "/path/to/results",
-    "stats.txt",
-    limit=100
-)
+scan_futures = api.submit_scan_async("/path/to/results", "stats.txt", limit=100)
 scan_results = [f.result() for f in scan_futures]
-variables = facade.finalize_scan(scan_results)
-st.success(f"Found {len(variables)} variables")
+variables = api.finalize_scan(scan_results)
 
-# Step 2: Select and parse
-selected_vars = ["system.cpu.ipc", "system.cpu.numCycles"]
-st.write(f"Parsing {len(selected_vars)} variables...")
-
-parse_futures = facade.submit_parse_async(
-    "/path/to/results",
-    "stats.txt",
-    selected_vars,
-    "/output",
+# Step 2: Parse selected variables
+selected_vars = [{"name": "system.cpu.ipc", "type": "scalar"}]
+parse_futures = api.submit_parse_async(
+    "/path/to/results", "stats.txt", selected_vars, "/output",
     scanned_vars=variables
 )
 parse_results = [f.result() for f in parse_futures]
-csv_path = facade.finalize_parsing("/output", parse_results)
-st.success("Parsing complete")
+csv_path = api.finalize_parsing("/output", parse_results)
 
 # Step 3: Load and transform
-data = facade.load_csv_file(csv_path)
+data = api.load_csv_file(csv_path)
+pipeline_steps = [{"type": "sort", "column": "system.cpu.ipc", "ascending": False}]
+data = api.apply_shapers(data, pipeline_steps)
 
-# Apply shapers
-sort_shaper = ShaperFactory.create_shaper("sort", {
-    "column": "system.cpu.ipc",
-    "ascending": False
-})
-data = sort_shaper(data)
-
-# Step 4: Plot
-plot = PlotFactory.create_plot("bar", plot_id=1, name="IPC Comparison")
-plot.config = {
-    "x_column": "benchmark",
-    "y_column": "system.cpu.ipc",
-    "title": "IPC by Benchmark"
-}
-fig = plot.create_figure(data)
-st.plotly_chart(fig, use_container_width=True)
-```
-
-## Integration with State Management
-
-The facade integrates with `StateManager` for Streamlit state:
-
-```python
-from src.web.state_manager import StateManager
-
-# After scanning
-variables = facade.finalize_scan(scan_results)
-StateManager.set_scanned_variables(variables)
-
-# After parsing
-csv_path = facade.finalize_parsing(output_dir, parse_results)
-StateManager.set_csv_path(csv_path)
-
-# Loading data
-data = facade.load_csv_file(StateManager.get_csv_path())
-StateManager.set_current_data(data)
+# Step 4: Visualize
+config = api.get_visualization_config(plot_id=1)
 ```
 
 ## Error Handling
 
-### Common Patterns
-
-**Scanning errors**:
-
 ```python
 try:
-    futures = facade.submit_scan_async(stats_path, pattern)
+    futures = api.submit_scan_async(stats_path, pattern)
     results = [f.result() for f in futures]
-    variables = facade.finalize_scan(results)
+    variables = api.finalize_scan(results)
 except FileNotFoundError:
     st.error("Stats directory not found")
 except Exception as e:
     st.error(f"Scan failed: {e}")
 ```
 
-**Parsing errors**:
-
-```python
-try:
-    futures = facade.submit_parse_async(...)
-    results = [f.result() for f in futures]
-    csv_path = facade.finalize_parsing(output_dir, results)
-except KeyError as e:
-    st.error(f"Variable not found: {e}")
-except ValueError as e:
-    st.error(f"Invalid configuration: {e}")
-```
-
-**CSV loading errors**:
-
-```python
-try:
-    data = facade.load_csv_file(csv_path)
-except FileNotFoundError:
-    st.error("CSV file not found")
-except pd.errors.ParserError:
-    st.error("Invalid CSV format")
-```
-
-## Performance Considerations
-
-**Async Operations**:
-
-- Scanning and parsing use thread pools
-- Number of workers: `facade.get_config("max_workers", default=4)`
-- Scales with CPU cores
-
-**Memory Usage**:
-
-- CSV loading loads full DataFrame into memory
-- For large files, use chunked reading or filtering
-
-**Optimization Tips**:
-
-1. Limit scan results: `limit=100` parameter
-2. Parse only needed variables
-3. Apply column selection shaper early
-4. Use pattern aggregation to reduce variable count
-
-## Best Practices
-
-1. **Single Facade Instance**: Create once, reuse throughout session
-2. **Always finalize**: Call `finalize_scan()` and `finalize_parsing()`
-3. **Pass scanned_vars**: Required for regex variable parsing
-4. **Handle errors**: Wrap facade calls in try/except
-5. **Use State Manager**: Integrate with Streamlit state for UI consistency
-
 ## Next Steps
 
-- Parsing API: [Parsing-API.md](Parsing-API.md)
-- Plotting API: [Plotting-API.md](Plotting-API.md)
-- Shaper API: [Shaper-API.md](Shaper-API.md)
-- Architecture: [../Architecture.md](../Architecture.md)
+- [Parsing API](Parsing-API.md)
+- [Plotting API](Plotting-API.md)
+- [Shaper API](Shaper-API.md)
+- [Architecture](../Architecture.md)

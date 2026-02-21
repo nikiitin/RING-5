@@ -3,7 +3,7 @@ title: "Download Guide"
 nav_order: 9
 ---
 
-# Download Guide
+## Download Guide
 
 Complete guide to downloading publication-quality plots from RING-5.
 
@@ -13,17 +13,17 @@ RING-5 uses a **dual-engine architecture** for rendering. Each engine supports d
 
 ### Engine Comparison
 
-| Feature | Plotly | Matplotlib |
-|---------|--------|------------|
-| **Interactive preview** | ✅ Native | ❌ Static image |
-| **PNG download** | ✅ via Kaleido | ✅ via savefig |
-| **SVG download** | ✅ via Kaleido | ✅ via savefig |
-| **PDF download** | ✅ via Kaleido | ✅ via savefig (LaTeX fonts) |
-| **PGF format** | ❌ | ✅ LaTeX-native |
-| **EPS format** | ❌ | ✅ via savefig |
-| **HTML download** | ✅ Native | ❌ |
-| **LaTeX text rendering** | ❌ | ✅ pdflatex/xelatex |
-| **Best for** | Web, dashboards | Papers, LaTeX docs |
+| Feature                  | Plotly          | Matplotlib                   |
+| ------------------------ | --------------- | ---------------------------- |
+| **Interactive preview**  | ✅ Native       | ❌ Static image              |
+| **PNG download**         | ✅ via Kaleido  | ✅ via savefig               |
+| **SVG download**         | ✅ via Kaleido  | ✅ via savefig               |
+| **PDF download**         | ✅ via Kaleido  | ✅ via savefig (LaTeX fonts) |
+| **PGF format**           | ❌              | ✅ LaTeX-native              |
+| **EPS format**           | ❌              | ✅ via savefig               |
+| **HTML download**        | ✅ Native       | ❌                           |
+| **LaTeX text rendering** | ❌              | ✅ pdflatex/xelatex          |
+| **Best for**             | Web, dashboards | Papers, LaTeX docs           |
 
 ### When to Use Each Engine
 
@@ -34,22 +34,22 @@ RING-5 uses a **dual-engine architecture** for rendering. Each engine supports d
 
 ### Plotly Formats
 
-| Format | Extension | Use Case |
-|--------|-----------|----------|
-| PNG | `.png` | Presentations, web |
-| SVG | `.svg` | Scalable vector, editing |
-| PDF | `.pdf` | General documents |
-| HTML | `.html` | Interactive sharing |
+| Format | Extension | Use Case                 |
+| ------ | --------- | ------------------------ |
+| PNG    | `.png`    | Presentations, web       |
+| SVG    | `.svg`    | Scalable vector, editing |
+| PDF    | `.pdf`    | General documents        |
+| HTML   | `.html`   | Interactive sharing      |
 
 ### Matplotlib Formats
 
-| Format | Extension | Use Case |
-|--------|-----------|----------|
-| PDF | `.pdf` | LaTeX `\\includegraphics` (recommended) |
-| PGF | `.pgf` | LaTeX-native `\\input` (inherits doc fonts) |
-| EPS | `.eps` | Legacy LaTeX compatibility |
-| PNG | `.png` | Presentations, web |
-| SVG | `.svg` | Scalable vector, editing |
+| Format | Extension | Use Case                                    |
+| ------ | --------- | ------------------------------------------- |
+| PDF    | `.pdf`    | LaTeX `\\includegraphics` (recommended)     |
+| PGF    | `.pgf`    | LaTeX-native `\\input` (inherits doc fonts) |
+| EPS    | `.eps`    | Legacy LaTeX compatibility                  |
+| PNG    | `.png`    | Presentations, web                          |
+| SVG    | `.svg`    | Scalable vector, editing                    |
 
 ## Presets for Publication
 
@@ -331,7 +331,7 @@ RING-5 automatically preserves your interactive adjustments:
 
 **Export**: Legend position preserved in exported file
 
-**Technical**: Uses [LayoutMapper](LayoutMapper.md) to extract `legend.x`, `legend.y`, `legend.xanchor`, `legend.yanchor` from Plotly figure
+**Technical**: Uses the layout mapper to extract `legend.x`, `legend.y`, `legend.xanchor`, `legend.yanchor` from Plotly figure
 
 ### Axis Ranges (Zoom)
 
