@@ -53,6 +53,12 @@ repos:
         args: [--maxkb=1000]
       - id: debug-statements
       - id: mixed-line-ending
+      - id: check-ast
+      - id: check-case-conflict
+      - id: check-docstring-first
+      - id: detect-private-key
+      - id: no-commit-to-branch
+        args: [--branch, main]
 
   # Security checks
   - repo: https://github.com/PyCQA/bandit
@@ -62,3 +68,48 @@ repos:
         args: [-c, pyproject.toml]
         additional_dependencies: ["bandit[toml]"]
         exclude: ^tests/
+
+  # Python upgrade syntax
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.19.1
+    hooks:
+      - id: pyupgrade
+        args: [--py312-plus]
+
+  # Architecture boundary enforcement (custom local hooks)
+  - repo: local
+    hooks:
+      - id: no-streamlit-in-core
+        name: No Streamlit imports in core layer
+        entry: bash -c 'RESULT=$(grep -rn "import streamlit\|from streamlit" src/core/ --include="*.py" 2>/dev/null | grep -v __pycache__); if [ -n "$RESULT" ]; then echo "Architecture violation - Streamlit imports in src/core/:"; echo "$RESULT"; exit 1; fi'
+        language: system
+        files: ^src/core/.*\.py$
+        pass_filenames: false
+
+      - id: no-session-state-in-core
+        name: No session_state in core layer
+        entry: bash -c 'RESULT=$(grep -rn "session_state" src/core/ --include="*.py" 2>/dev/null | grep -v __pycache__); if [ -n "$RESULT" ]; then echo "Architecture violation - session_state in src/core/:"; echo "$RESULT"; exit 1; fi'
+        language: system
+        files: ^src/core/.*\.py$
+        pass_filenames: false
+
+      - id: no-inplace-true
+        name: No inplace=True on DataFrames
+        entry: bash -c 'RESULT=$(grep -rn "inplace=True" src/ --include="*.py" 2>/dev/null | grep -v __pycache__); if [ -n "$RESULT" ]; then echo "Immutability violation - inplace=True found:"; echo "$RESULT"; exit 1; fi'
+        language: system
+        files: ^src/.*\.py$
+        pass_filenames: false
+
+      - id: no-bare-except
+        name: No bare except clauses
+        entry: bash -c 'RESULT=$(grep -rn "^[[:space:]]*except:" src/ --include="*.py" 2>/dev/null | grep -v __pycache__); if [ -n "$RESULT" ]; then echo "Error handling violation - bare except found:"; echo "$RESULT"; exit 1; fi'
+        language: system
+        files: ^src/.*\.py$
+        pass_filenames: false
+
+      - id: no-eval-exec
+        name: No eval/exec in production code
+        entry: bash -c 'RESULT=$(grep -rn "eval(\|exec(" src/ --include="*.py" 2>/dev/null | grep -v __pycache__ | grep -v test); if [ -n "$RESULT" ]; then echo "Security violation - eval/exec found:"; echo "$RESULT"; exit 1; fi'
+        language: system
+        files: ^src/.*\.py$
+        pass_filenames: false

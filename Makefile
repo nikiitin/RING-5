@@ -12,6 +12,9 @@ help:
 	@echo "  test                         - Run full test suite"
 	@echo "  dev                          - Install dev dependencies (pytest, black, etc.)"
 	@echo "  clean                        - Remove caches and build artifacts"
+	@echo "  quality-gate                 - Run ALL quality checks (architecture + type + format + lint + security)"
+	@echo "  arch-check                   - Check architecture boundary violations"
+	@echo "  pre-commit                   - Run pre-commit hooks on all files"
 	@echo ""
 	@echo "Docker Specific:"
 	@echo "  docker-build                 - Build/Rebuild the Docker image"
@@ -337,3 +340,55 @@ clean:
 	rm -rf *.egg-info
 	find . -type d -name __pycache__ -exec rm -rf {} +
 	find . -type f -name "*.pyc" -delete
+
+# === Code Quality Gate ===
+# Run ALL quality checks (architecture + type + format + lint + security)
+quality-gate:
+	@echo "╔══════════════════════════════════╗"
+	@echo "║     RING-5 QUALITY GATE          ║"
+	@echo "╚══════════════════════════════════╝"
+	@echo ""
+	@PASS=0; FAIL=0; \
+	echo "▸ Gate 1: Architecture..."; \
+	V=$$(grep -rn "import streamlit\|from streamlit" src/core/ --include="*.py" 2>/dev/null | grep -v __pycache__ | wc -l); \
+	V=$$((V + $$(grep -rn "inplace=True" src/ --include="*.py" 2>/dev/null | grep -v __pycache__ | wc -l))); \
+	V=$$((V + $$(grep -rn "^[[:space:]]*except:" src/ --include="*.py" 2>/dev/null | grep -v __pycache__ | wc -l))); \
+	V=$$((V + $$(grep -rn "session_state" src/core/ --include="*.py" 2>/dev/null | grep -v __pycache__ | grep -v "^\s*#" | grep -v "^.*#.*session_state" | grep -v "st\.session_state is" | wc -l))); \
+	if [ $$V -eq 0 ]; then echo "  ✅ Architecture OK"; PASS=$$((PASS+1)); else echo "  ❌ $$V violations"; FAIL=$$((FAIL+1)); fi; \
+	echo "▸ Gate 2: Type Safety..."; \
+	MYPY_ERRORS=$$($(VENV_BIN)/mypy src/ --no-error-summary 2>&1 | grep ": error:" | wc -l); \
+	if [ "$$MYPY_ERRORS" -eq 0 ]; then echo "  ✅ Types OK"; PASS=$$((PASS+1)); else echo "  ❌ $$MYPY_ERRORS mypy errors"; FAIL=$$((FAIL+1)); fi; \
+	echo "▸ Gate 3: Formatting..."; \
+	if $(VENV_BIN)/black --check --quiet src/ 2>&1; then echo "  ✅ Formatting OK"; PASS=$$((PASS+1)); else echo "  ❌ Needs formatting"; FAIL=$$((FAIL+1)); fi; \
+	echo "▸ Gate 4: Linting..."; \
+	LINT_ERRORS=$$($(VENV_BIN)/flake8 src/ --count 2>&1 | tail -1); \
+	if [ "$$LINT_ERRORS" = "0" ] || [ -z "$$LINT_ERRORS" ]; then echo "  ✅ Linting OK"; PASS=$$((PASS+1)); else echo "  ❌ $$LINT_ERRORS lint issues"; FAIL=$$((FAIL+1)); fi; \
+	echo "▸ Gate 5: Security..."; \
+	SEC=$$(grep -rn "eval(\|exec(" src/ --include="*.py" 2>/dev/null | grep -v __pycache__ | grep -v test | wc -l); \
+	if [ $$SEC -eq 0 ]; then echo "  ✅ Security OK"; PASS=$$((PASS+1)); else echo "  ⚠️ $$SEC security findings"; FAIL=$$((FAIL+1)); fi; \
+	echo ""; \
+	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"; \
+	echo "Results: $$PASS passed, $$FAIL failed"; \
+	if [ $$FAIL -eq 0 ]; then echo "🟢 ALL GATES PASSED"; else echo "🔴 QUALITY GATE FAILED"; exit 1; fi
+
+# Check architecture boundaries only
+arch-check:
+	@echo "=== Architecture Boundary Check ==="
+	@VIOLATIONS=0; \
+	echo "--- Streamlit in core ---"; \
+	RESULT=$$(grep -rn "import streamlit\|from streamlit" src/core/ --include="*.py" 2>/dev/null | grep -v __pycache__); \
+	if [ -n "$$RESULT" ]; then echo "❌ $$RESULT"; VIOLATIONS=$$((VIOLATIONS+1)); fi; \
+	echo "--- session_state in core ---"; \
+	RESULT=$$(grep -rn "session_state" src/core/ --include="*.py" 2>/dev/null | grep -v __pycache__ | grep -v "^\s*#" | grep -v "^.*#.*session_state" | grep -v "st\.session_state is"); \
+	if [ -n "$$RESULT" ]; then echo "❌ $$RESULT"; VIOLATIONS=$$((VIOLATIONS+1)); fi; \
+	echo "--- inplace=True ---"; \
+	RESULT=$$(grep -rn "inplace=True" src/ --include="*.py" 2>/dev/null | grep -v __pycache__); \
+	if [ -n "$$RESULT" ]; then echo "❌ $$RESULT"; VIOLATIONS=$$((VIOLATIONS+1)); fi; \
+	echo "--- bare except ---"; \
+	RESULT=$$(grep -rn "^[[:space:]]*except:" src/ --include="*.py" 2>/dev/null | grep -v __pycache__); \
+	if [ -n "$$RESULT" ]; then echo "❌ $$RESULT"; VIOLATIONS=$$((VIOLATIONS+1)); fi; \
+	echo "--- eval/exec ---"; \
+	RESULT=$$(grep -rn "eval(\|exec(" src/ --include="*.py" 2>/dev/null | grep -v __pycache__ | grep -v test); \
+	if [ -n "$$RESULT" ]; then echo "❌ $$RESULT"; VIOLATIONS=$$((VIOLATIONS+1)); fi; \
+	echo ""; \
+	if [ $$VIOLATIONS -eq 0 ]; then echo "✅ All architecture checks passed"; else echo "❌ $$VIOLATIONS violations found"; exit 1; fi

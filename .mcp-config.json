@@ -15,24 +15,63 @@
         "resources": true
       },
       "description": "Full access limited STRICTLY to the RING-5 project workspace."
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp@latest"],
+      "capabilities": {
+        "tools": true
+      },
+      "description": "Documentation lookup for libraries (pandas, plotly, streamlit, pytest, mypy). Use to verify API usage and find correct patterns."
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
+      "capabilities": {
+        "tools": true
+      },
+      "description": "Structured reasoning for complex architecture decisions, debugging, and multi-step refactoring. Use for non-trivial design choices."
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${env:GITHUB_TOKEN}"
+      },
+      "capabilities": {
+        "tools": true,
+        "resources": true
+      },
+      "description": "GitHub integration for issues, PRs, and code review. Read-only for repository operations. NEVER use for git push/commit operations."
     }
   },
   "security": {
     "allowedPaths": ["${workspaceFolder}"],
     "prohibitedOperations": [
-      "git",
-      "rm -rf",
+      "git add",
+      "git commit",
+      "git push",
+      "git pull",
+      "git checkout",
+      "git branch",
+      "git merge",
+      "git rebase",
+      "git stash",
+      "git reset",
+      "git revert",
+      "git tag",
+      "git clone",
+      "rm -rf /",
+      "rm -rf ~",
       "sudo",
-      "chmod",
+      "chmod 777",
       "chown",
       "pip install --break-system-packages",
       "pip3 install --break-system-packages",
-      "apt-get",
-      "yum"
+      "apt-get install",
+      "yum install",
+      "dnf install"
     ],
-    "mandatoryEnvironment": "docker-compose run --rm ring5-dev",
-    "executionWrapper": "docker-compose run --rm ring5-dev",
-    "requireDocker": true,
-    "note": "AI is PHYSICALLY FORBIDDEN from host execution. All commands MUST be wrapped in 'docker-compose run --rm ring5-dev'. Directory access is locked to the workspace container."
+    "note": "AI agents are restricted to workspace-scoped operations only. Git version control is STRICTLY human-only. System-level installations are PROHIBITED."
   }
 }

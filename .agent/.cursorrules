@@ -109,6 +109,18 @@ New Shaper:
 - Using bare except clauses
 - Executing git commands
 - Guessing values when regex fails to match
+- Using eval()/exec() in production code
+- Using pickle.load() on untrusted data
+- Importing streamlit in src/core/
+- Accessing session_state outside src/web/
+
+# === MANDATORY BEFORE DECLARING DONE ===
+Quality Gate (.agent/workflows/code-quality-gate.md):
+  1. Architecture boundaries (no streamlit in core, no inplace=True, no bare except)
+  2. Type check: ./python_venv/bin/mypy src/
+  3. Format: ./python_venv/bin/black --check src/
+  4. Lint: ./python_venv/bin/flake8 src/
+  5. Security: no eval/exec, no pickle.load, no hardcoded secrets
 
 # === SKILLS & WORKFLOWS ===
 Skills (Detailed Guides):
@@ -118,8 +130,13 @@ Skills (Detailed Guides):
   - debug-async-parsing.md: Troubleshooting async issues
 
 Workflows (Process Automation):
+  - code-quality-gate.md: Run after EVERY code change (MANDATORY)
+  - architecture-validation.md: After structural changes
   - test-driven-development.md: TDD process
+  - release-branch-review.md: Before merge to main
   - new-variable-type.md: Support new gem5 types
+  - new-plot-type.md: Adding new visualizations
+  - parsing-workflow.md: Parsing-related work
 
 Location: .agent/skills/ and .agent/workflows/
 
@@ -140,7 +157,7 @@ Rules 001 (Architecture): .agent/rules/001-architecture-standards.md
 Rules 002 (Data Science): .agent/rules/002-data-science-mastery.md
 Rules 003 (SW Engineering): .agent/rules/003-software-engineering.md
 Rules 004 (QA Testing): .agent/rules/004-qa-testing-mastery.md
+Rules 005 (Security): .agent/rules/005-security-enforcement.md
 Full Rules Context: .agent/rules/project-context.md
-Quick Guide: .ai-assistant-guide.md
 VS Code: .github/copilot-instructions.md
 Examples: tests/integration/

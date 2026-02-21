@@ -66,7 +66,11 @@ py-modules = ["argumentParser", "ring5"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-norecursedirs = ["tests/tests_principle_compliance", "tests/manual", "tests/data"]
+norecursedirs = [
+  "tests/tests_principle_compliance",
+  "tests/manual",
+  "tests/data",
+]
 pythonpath = ["."]
 python_files = "test_*.py"
 python_classes = "Test*"
@@ -89,14 +93,22 @@ target-version = ['py312']
 
 [tool.coverage.run]
 omit = [
-    # WIP feature — tests are excluded via -k "not dual_axis and not dual"
-    "src/web/pages/ui/plotting/types/dual_axis_bar_dot_plot.py",
+  # WIP feature — tests are excluded via -k "not dual_axis and not dual"
+  "src/web/pages/ui/plotting/types/dual_axis_bar_dot_plot.py",
 ]
 
 [tool.flake8]
 max-line-length = 100
 extend-ignore = ["E203", "W503"]
-exclude = [".git", "__pycache__", "python_venv", ".pytest_cache", "*.egg-info", "build", "dist"]
+exclude = [
+  ".git",
+  "__pycache__",
+  "python_venv",
+  ".pytest_cache",
+  "*.egg-info",
+  "build",
+  "dist",
+]
 
 [tool.mypy]
 python_version = "3.12"
