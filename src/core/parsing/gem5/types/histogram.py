@@ -1,7 +1,6 @@
 """Histogram stat type for range-based frequency distributions."""
 
 import re
-from typing import Any
 
 from src.core.models.parsing_models import StatParamValue
 from src.core.parsing.gem5.types.base import StatType, register_type
@@ -74,7 +73,7 @@ class Histogram(StatType):
         object.__setattr__(self, "_statistics", list(statistics) if statistics else [])
 
         # Pre-initialize content with statistics to ensure column presence
-        content: dict[str, list[Any]] = {stat: [] for stat in self._statistics}
+        content: dict[str, list[float]] = {stat: [] for stat in self._statistics}
         object.__setattr__(self, "_content", content)
 
     @property
@@ -118,7 +117,7 @@ class Histogram(StatType):
         return content_dict
 
     @content.setter
-    def content(self, value: dict[str, Any]) -> None:
+    def content(self, value: dict[str, list[str | int | float] | str | int | float]) -> None:
         """
         Set and aggregate content from a dictionary.
 

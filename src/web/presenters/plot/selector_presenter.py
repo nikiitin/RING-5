@@ -5,8 +5,6 @@ Pure rendering: takes data in, renders widgets, returns selection.
 No state reads, no API calls, no side effects beyond widget rendering.
 """
 
-from typing import List
-
 import streamlit as st
 
 
@@ -27,7 +25,7 @@ class PlotSelectorPresenter:
 
     @staticmethod
     def render(
-        plot_names: List[str],
+        plot_names: list[str],
         default_index: int = 0,
     ) -> str:
         """

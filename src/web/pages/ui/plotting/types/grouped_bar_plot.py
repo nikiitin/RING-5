@@ -1,6 +1,6 @@
 """Grouped bar plot implementation."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pandas as pd
 import streamlit as st
@@ -18,7 +18,7 @@ class GroupedBarPlot(BasePlot):
     def __init__(self, plot_id: int, name: str):
         super().__init__(plot_id, name, "grouped_bar")
 
-    def render_config_ui(self, data: pd.DataFrame, saved_config: Dict[str, Any]) -> Dict[str, Any]:
+    def render_config_ui(self, data: pd.DataFrame, saved_config: dict[str, Any]) -> dict[str, Any]:
         """Render configuration UI for grouped bar plot."""
         # Common config
         config = self.render_common_config(data, saved_config)
@@ -54,8 +54,8 @@ class GroupedBarPlot(BasePlot):
         }
 
     def render_advanced_options(
-        self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame] = None
-    ) -> Dict[str, Any]:
+        self, saved_config: dict[str, Any], data: pd.DataFrame | None = None
+    ) -> dict[str, Any]:
         """Override to apply filters before rendering advanced options."""
         if data is not None:
             # Apply X filter
@@ -69,8 +69,8 @@ class GroupedBarPlot(BasePlot):
         return super().render_advanced_options(saved_config, data)
 
     def render_theme_options(
-        self, saved_config: Dict[str, Any], items: Optional[List[str]] = None
-    ) -> Dict[str, Any]:
+        self, saved_config: dict[str, Any], items: list[str] | None = None
+    ) -> dict[str, Any]:
         """Add specific styling options for Grouped Bar."""
         config = super().render_theme_options(saved_config, items)
 
@@ -124,7 +124,7 @@ class GroupedBarPlot(BasePlot):
 
         return config
 
-    def create_traces(self, data: pd.DataFrame, config: Dict[str, Any]) -> TraceBuildResult:
+    def create_traces(self, data: pd.DataFrame, config: dict[str, Any]) -> TraceBuildResult:
         """Create grouped bar trace configurations using manual coordinates."""
 
         # 1. Data Preparation
@@ -178,7 +178,7 @@ class GroupedBarPlot(BasePlot):
         distinction_shapes = coord_result["shapes"]
 
         # 3. Create Traces
-        traces: List[BarTraceConfig] = []
+        traces: list[BarTraceConfig] = []
 
         # If grouped by color
         if group_col:
@@ -186,7 +186,7 @@ class GroupedBarPlot(BasePlot):
                 grp_data = data[data[group_col] == grp]
                 x_coords = grp_data[x_col].map(x_map).tolist()
 
-                error_y_vals: Optional[List[float]] = None
+                error_y_vals: list[float] | None = None
                 if config.get("show_error_bars"):
                     sd_col = f"{config['y']}.sd"
                     if sd_col in data.columns:
@@ -230,7 +230,7 @@ class GroupedBarPlot(BasePlot):
             custom_x_ticks={"vals": tick_vals, "text": tick_text},
         )
 
-    def get_legend_column(self, config: Dict[str, Any]) -> Optional[str]:
+    def get_legend_column(self, config: dict[str, Any]) -> str | None:
         """Get legend column for grouped bar plot."""
         result = config.get("group")
         return str(result) if result is not None else None

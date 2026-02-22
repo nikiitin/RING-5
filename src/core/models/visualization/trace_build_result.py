@@ -9,9 +9,11 @@ connector needs to build the final figure.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any
 
+from src.core.models.plot_config import ShapeConfig
 from src.core.models.visualization.annotation_config import AnnotationConfig
 from src.core.models.visualization.trace_config import TraceConfig
 
@@ -33,9 +35,9 @@ class TraceBuildResult:
     """
 
     traces: Sequence[TraceConfig] = field(default_factory=list)
-    annotations: List[AnnotationConfig] = field(default_factory=list)
-    layout_annotations: List[Dict[str, Any]] = field(default_factory=list)
-    shapes: List[Dict[str, Any]] = field(default_factory=list)
+    annotations: list[AnnotationConfig] = field(default_factory=list)
+    layout_annotations: list[dict[str, Any]] = field(default_factory=list)
+    shapes: list[ShapeConfig] = field(default_factory=list)
     barmode: str = "group"
-    custom_x_ticks: Optional[Dict[str, List[Any]]] = None
+    custom_x_ticks: dict[str, list[float] | list[str] | list[bool]] | None = None
     secondary_y: bool = False

@@ -5,7 +5,7 @@ A composite plot that overlays bars (primary Y-axis) with a dot/line series
 are optional. Dot color, symbol, size, and line width are all configurable.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pandas as pd
 import streamlit as st
@@ -15,6 +15,7 @@ from src.core.models.visualization.trace_config import (
     BarTraceConfig,
     LineTraceConfig,
     ScatterTraceConfig,
+    TraceConfig,
 )
 from src.web.pages.ui.plotting.base_plot import BasePlot
 
@@ -34,10 +35,10 @@ class DualAxisBarDotPlot(BasePlot):
     # Configuration UI
     # ------------------------------------------------------------------
 
-    def render_config_ui(self, data: pd.DataFrame, saved_config: Dict[str, Any]) -> Dict[str, Any]:
+    def render_config_ui(self, data: pd.DataFrame, saved_config: dict[str, Any]) -> dict[str, Any]:
         """Render configuration UI for dual-axis bar+dot plot."""
-        numeric_cols: List[str] = data.select_dtypes(include=["number"]).columns.tolist()
-        categorical_cols: List[str] = data.select_dtypes(
+        numeric_cols: list[str] = data.select_dtypes(include=["number"]).columns.tolist()
+        categorical_cols: list[str] = data.select_dtypes(
             include=["object", "string", "category"]
         ).columns.tolist()
 
@@ -57,12 +58,12 @@ class DualAxisBarDotPlot(BasePlot):
 
         with col2:
             # Color grouping
-            color_options: List[Optional[str]] = [None] + categorical_cols
+            color_options: list[str | None] = [None] + categorical_cols
             color_default_idx: int = 0
             if saved_config.get("color") and saved_config["color"] in categorical_cols:
                 color_default_idx = color_options.index(saved_config["color"])
 
-            color_column: Optional[str] = st.selectbox(
+            color_column: str | None = st.selectbox(
                 "Color by (optional)",
                 options=color_options,
                 index=color_default_idx,
@@ -107,7 +108,7 @@ class DualAxisBarDotPlot(BasePlot):
         default_ylabel_dot: str = saved_config.get("ylabel_dot", y_dot)
         default_legend_title: str = saved_config.get("legend_title", "")
 
-        label_config: Dict[str, Any] = PlotConfigComponents.render_title_labels_section(
+        label_config: dict[str, Any] = PlotConfigComponents.render_title_labels_section(
             saved_config=saved_config,
             plot_id=self.plot_id,
             default_title=default_title,
@@ -133,7 +134,7 @@ class DualAxisBarDotPlot(BasePlot):
                 key=f"show_lines_{self.plot_id}",
             )
         with dc2:
-            dot_symbol_options: List[str] = [
+            dot_symbol_options: list[str] = [
                 "circle",
                 "square",
                 "diamond",
@@ -172,7 +173,7 @@ class DualAxisBarDotPlot(BasePlot):
                 disabled=not show_lines,
             )
         with dc5:
-            dot_color: Optional[str] = None
+            dot_color: str | None = None
             if not color_column:
                 dot_color = st.color_picker(
                     "Dot Color",
@@ -205,7 +206,7 @@ class DualAxisBarDotPlot(BasePlot):
     # Figure creation
     # ------------------------------------------------------------------
 
-    def create_traces(self, data: pd.DataFrame, config: Dict[str, Any]) -> TraceBuildResult:
+    def create_traces(self, data: pd.DataFrame, config: dict[str, Any]) -> TraceBuildResult:
         """Create dual-axis bar + dot/line trace configurations.
 
         Args:
@@ -219,11 +220,11 @@ class DualAxisBarDotPlot(BasePlot):
         x_col: str = config["x"]
         y_bar: str = config["y_bar"]
         y_dot: str = config["y_dot"]
-        color_col: Optional[str] = config.get("color")
+        color_col: str | None = config.get("color")
         show_lines: bool = config.get("show_lines", True)
         dot_size: int = config.get("dot_size", 10)
         dot_symbol: str = config.get("dot_symbol", "circle")
-        dot_color: Optional[str] = config.get("dot_color")
+        dot_color: str | None = config.get("dot_color")
         line_width: int = config.get("line_width", 2)
 
         # Ensure categorical x-axis
@@ -232,8 +233,8 @@ class DualAxisBarDotPlot(BasePlot):
             data[color_col] = data[color_col].astype(str)
 
         # Error bar helpers
-        bar_sd_col: Optional[str] = None
-        dot_sd_col: Optional[str] = None
+        bar_sd_col: str | None = None
+        dot_sd_col: str | None = None
         if config.get("show_error_bars"):
             bar_sd_candidate = f"{y_bar}.sd"
             if bar_sd_candidate in data.columns:
@@ -247,29 +248,29 @@ class DualAxisBarDotPlot(BasePlot):
         isolate_last: bool = bool(config.get("isolate_last_group")) and show_lines
 
         # Resolve ordered x-categories for isolation split
-        ordered_x: List[str]
+        ordered_x: list[str]
         if config.get("xaxis_order"):
             ordered_x = [str(v) for v in config["xaxis_order"]]
         else:
             ordered_x = sorted(data[x_col].unique().tolist())
-        last_x: Optional[str] = ordered_x[-1] if ordered_x else None
+        last_x: str | None = ordered_x[-1] if ordered_x else None
 
-        traces: List[Any] = []
+        traces: list[TraceConfig] = []
 
         if color_col:
-            groups: List[str] = sorted(data[color_col].unique().tolist())
+            groups: list[str] = sorted(data[color_col].unique().tolist())
             if config.get("legend_order"):
-                ordered: List[str] = [
+                ordered: list[str] = [
                     str(g) for g in config["legend_order"] if str(g) in data[color_col].unique()
                 ]
-                missing: List[str] = [g for g in groups if g not in ordered]
+                missing: list[str] = [g for g in groups if g not in ordered]
                 groups = ordered + missing
 
             for grp in groups:
                 grp_data: pd.DataFrame = data[data[color_col] == grp]
 
                 # Bar trace (primary Y)
-                bar_error: Optional[List[float]] = None
+                bar_error: list[float] | None = None
                 if bar_sd_col:
                     bar_error = grp_data[bar_sd_col].tolist()
 
@@ -290,7 +291,7 @@ class DualAxisBarDotPlot(BasePlot):
                     iso_data = grp_data[grp_data[x_col] == last_x]
 
                     if not main_data.empty:
-                        main_dot_error: Optional[List[float]] = None
+                        main_dot_error: list[float] | None = None
                         if dot_sd_col:
                             main_dot_error = main_data[dot_sd_col].tolist()
                         traces.append(
@@ -309,7 +310,7 @@ class DualAxisBarDotPlot(BasePlot):
                         )
 
                     if not iso_data.empty:
-                        iso_dot_error: Optional[List[float]] = None
+                        iso_dot_error: list[float] | None = None
                         if dot_sd_col:
                             iso_dot_error = iso_data[dot_sd_col].tolist()
                         traces.append(
@@ -326,7 +327,7 @@ class DualAxisBarDotPlot(BasePlot):
                             )
                         )
                 else:
-                    dot_error: Optional[List[float]] = None
+                    dot_error: list[float] | None = None
                     if dot_sd_col:
                         dot_error = grp_data[dot_sd_col].tolist()
 
@@ -360,7 +361,7 @@ class DualAxisBarDotPlot(BasePlot):
                         )
         else:
             # No color grouping — single bar + single dot trace
-            bar_error_vals: Optional[List[float]] = None
+            bar_error_vals: list[float] | None = None
             if bar_sd_col:
                 bar_error_vals = data[bar_sd_col].tolist()
 
@@ -379,7 +380,7 @@ class DualAxisBarDotPlot(BasePlot):
                 iso_data = data[data[x_col] == last_x]
 
                 if not main_data.empty:
-                    main_dot_error_vals: Optional[List[float]] = None
+                    main_dot_error_vals: list[float] | None = None
                     if dot_sd_col:
                         main_dot_error_vals = main_data[dot_sd_col].tolist()
                     traces.append(
@@ -398,7 +399,7 @@ class DualAxisBarDotPlot(BasePlot):
                     )
 
                 if not iso_data.empty:
-                    iso_dot_error_vals: Optional[List[float]] = None
+                    iso_dot_error_vals: list[float] | None = None
                     if dot_sd_col:
                         iso_dot_error_vals = iso_data[dot_sd_col].tolist()
                     traces.append(
@@ -415,7 +416,7 @@ class DualAxisBarDotPlot(BasePlot):
                         )
                     )
             else:
-                dot_error_vals: Optional[List[float]] = None
+                dot_error_vals: list[float] | None = None
                 if dot_sd_col:
                     dot_error_vals = data[dot_sd_col].tolist()
 
@@ -459,10 +460,10 @@ class DualAxisBarDotPlot(BasePlot):
     # ------------------------------------------------------------------
 
     def render_specific_advanced_options(
-        self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame] = None
-    ) -> Dict[str, Any]:
+        self, saved_config: dict[str, Any], data: pd.DataFrame | None = None
+    ) -> dict[str, Any]:
         """Render advanced options specific to dual-axis bar+dot plot."""
-        config: Dict[str, Any] = {}
+        config: dict[str, Any] = {}
 
         st.markdown("#### Bar Settings")
         col_bar1, col_bar2 = st.columns(2)
@@ -485,7 +486,7 @@ class DualAxisBarDotPlot(BasePlot):
                 key=f"adv_show_lines_{self.plot_id}",
             )
         with dc2:
-            symbols: List[str] = [
+            symbols: list[str] = [
                 "circle",
                 "square",
                 "diamond",
@@ -551,7 +552,7 @@ class DualAxisBarDotPlot(BasePlot):
     # Legend column
     # ------------------------------------------------------------------
 
-    def get_legend_column(self, config: Dict[str, Any]) -> Optional[str]:
+    def get_legend_column(self, config: dict[str, Any]) -> str | None:
         """Get the column used for legend grouping."""
-        result: Optional[str] = config.get("color")
+        result: str | None = config.get("color")
         return str(result) if result is not None else None

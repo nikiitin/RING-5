@@ -11,7 +11,6 @@ from __future__ import annotations
 import logging
 import os
 from pathlib import Path
-from typing import List
 
 from src.core.models import ScannedVariable
 from src.core.parsing.gem5.impl.pool.scan_work import ScanWork
@@ -30,7 +29,7 @@ class Gem5ScanWork(ScanWork):
         super().__init__()
         self.file_path = str(file_path)
 
-    def __call__(self) -> List[ScannedVariable]:
+    def __call__(self) -> list[ScannedVariable]:
         """
         Execute scanning using the Gem5StatsScanner.
         Returns full list of variables with types and entries.

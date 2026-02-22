@@ -5,7 +5,7 @@ Pure rendering: renders widgets, returns user selection.
 The controller handles the actual load operation.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import streamlit as st
 
@@ -24,7 +24,7 @@ class LoadDialogPresenter:
     """
 
     @staticmethod
-    def render_empty(plot_id: int) -> Dict[str, Any]:
+    def render_empty(plot_id: int) -> dict[str, Any]:
         """
         Render the dialog when no pipelines are available.
 
@@ -44,8 +44,8 @@ class LoadDialogPresenter:
     @staticmethod
     def render(
         plot_id: int,
-        available_pipelines: List[str],
-    ) -> Dict[str, Any]:
+        available_pipelines: list[str],
+    ) -> dict[str, Any]:
         """
         Render load pipeline dialog widgets.
 
@@ -62,7 +62,7 @@ class LoadDialogPresenter:
         st.markdown("---")
         st.markdown("### Load Pipeline")
 
-        selected: Optional[str] = st.selectbox(
+        selected: str | None = st.selectbox(
             "Select Pipeline",
             available_pipelines,
             key=f"load_p_sel_{plot_id}",

@@ -13,10 +13,10 @@ All functions are pure (no UI dependencies, no side effects beyond returned data
 """
 
 import math
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 
-def try_float(value: str) -> Union[float, str]:
+def try_float(value: str) -> float | str:
     """Try to convert a string value to float, return original string on failure.
 
     Useful for shape coordinate values that may be numeric or categorical.
@@ -41,7 +41,7 @@ def try_float(value: str) -> Union[float, str]:
         return value
 
 
-def try_float_edit(value: Any) -> Union[float, str]:
+def try_float_edit(value: Any) -> float | str:
     """Try to convert any value to float, fallback to string.
 
     Similar to try_float but handles non-string types (int, None, etc.).
@@ -85,8 +85,8 @@ def _is_close(a: Any, b: Any) -> bool:
 
 
 def update_config_from_relayout(
-    config: Dict[str, Any], relayout_data: Dict[str, Any]
-) -> Tuple[Dict[str, Any], bool]:
+    config: dict[str, Any], relayout_data: dict[str, Any]
+) -> tuple[dict[str, Any], bool]:
     """
     Update plot config from Plotly client-side relayout data (zoom/pan, legend drag).
 
@@ -143,7 +143,7 @@ def update_config_from_relayout(
     # 1. Custom Range (Zoom)
     # x-axis
     if "xaxis.range[0]" in relayout_data and "xaxis.range[1]" in relayout_data:
-        new_range: List[Any] = [
+        new_range: list[float] = [
             relayout_data["xaxis.range[0]"],
             relayout_data["xaxis.range[1]"],
         ]
@@ -153,7 +153,7 @@ def update_config_from_relayout(
 
     # y-axis
     if "yaxis.range[0]" in relayout_data and "yaxis.range[1]" in relayout_data:
-        new_range_y: List[Any] = [
+        new_range_y: list[float] = [
             relayout_data["yaxis.range[0]"],
             relayout_data["yaxis.range[1]"],
         ]
@@ -177,7 +177,7 @@ def update_config_from_relayout(
         if not key.startswith("legend"):
             continue
 
-        parts: List[str] = key.split(".")
+        parts: list[str] = key.split(".")
         if len(parts) != 2:
             continue
 
@@ -211,10 +211,10 @@ def update_config_from_relayout(
 
 
 def resolve_item_order(
-    items: List[Any],
-    default_order: Optional[List[Any]] = None,
-    current_order: Optional[List[Any]] = None,
-) -> List[Any]:
+    items: list[str],
+    default_order: list[str] | None = None,
+    current_order: list[str] | None = None,
+) -> list[str]:
     """
     Resolve the display order for a list of items.
 
@@ -247,14 +247,14 @@ def resolve_item_order(
         if set(current_order) == set(items):
             return list(current_order)
         # Items changed: filter out removed, append new
-        ordered: List[Any] = [x for x in current_order if x in items]
+        ordered: list[str] = [x for x in current_order if x in items]
         ordered.extend([x for x in items if x not in current_order])
         return ordered
 
     if default_order:
         # Use default order, filtered to current items, with new items appended
-        valid_defaults: List[Any] = [x for x in default_order if x in items]
-        missing_items: List[Any] = [x for x in items if x not in valid_defaults]
+        valid_defaults: list[str] = [x for x in default_order if x in items]
+        missing_items: list[str] = [x for x in items if x not in valid_defaults]
         return valid_defaults + missing_items
 
     return list(items)

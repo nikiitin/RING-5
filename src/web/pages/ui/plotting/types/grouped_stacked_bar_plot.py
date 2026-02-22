@@ -1,7 +1,7 @@
 """Grouped stacked bar plot implementation."""
 
 import math
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -28,7 +28,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         # Override plot_type set by parent chain ("stacked_bar" → "grouped_stacked_bar")
         self.plot_type: str = "grouped_stacked_bar"
 
-    def render_config_ui(self, data: pd.DataFrame, saved_config: Dict[str, Any]) -> Dict[str, Any]:
+    def render_config_ui(self, data: pd.DataFrame, saved_config: dict[str, Any]) -> dict[str, Any]:
         """Render configuration UI for grouped stacked bar plot."""
         numeric_cols = data.select_dtypes(include=["number"]).columns.tolist()
         categorical_cols = data.select_dtypes(include=["object", "string"]).columns.tolist()
@@ -55,8 +55,8 @@ class GroupedStackedBarPlot(StackedBarPlot):
                 group_default_idx = categorical_cols.index(saved_config["group"])
 
             # Filter out None from categorical_cols for selectbox
-            filtered_cols: List[str] = [col for col in categorical_cols if col is not None]
-            options_list: List[Optional[str]] = [None] + filtered_cols
+            filtered_cols: list[str] = [col for col in categorical_cols if col is not None]
+            options_list: list[str | None] = [None] + filtered_cols
             group_column = st.selectbox(
                 "X-Axis / Minor Grouping (Inner)",
                 options=options_list,
@@ -114,7 +114,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
             ),
         )
 
-        y_columns_right: List[str] = []
+        y_columns_right: list[str] = []
         right_axis_type: str = "bars"
         ylabel_right: str = ""
 
@@ -137,8 +137,8 @@ class GroupedStackedBarPlot(StackedBarPlot):
                     key=f"ylabel_right_{self.plot_id}",
                 )
 
-            available_right: List[str] = [c for c in numeric_cols if c not in y_columns]
-            default_right: List[str] = [
+            available_right: list[str] = [c for c in numeric_cols if c not in y_columns]
+            default_right: list[str] = [
                 c for c in saved_config.get("y_columns_right", []) if c in available_right
             ]
             y_columns_right = st.multiselect(
@@ -180,7 +180,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         }
 
     def _render_stack_total_options(
-        self, saved_config: Dict[str, Any], config: Dict[str, Any]
+        self, saved_config: dict[str, Any], config: dict[str, Any]
     ) -> None:
         """Render options for Stack Totals."""
         st.markdown("**Stack Totals**")
@@ -267,8 +267,8 @@ class GroupedStackedBarPlot(StackedBarPlot):
             )
 
     def render_theme_options(
-        self, saved_config: Dict[str, Any], items: Optional[List[str]] = None
-    ) -> Dict[str, Any]:
+        self, saved_config: dict[str, Any], items: list[str] | None = None
+    ) -> dict[str, Any]:
         """Override to add specific styling options."""
         # Get base theme options
         # Fix: Pass stacks as items to ensure correct Series Styling
@@ -413,10 +413,10 @@ class GroupedStackedBarPlot(StackedBarPlot):
         return config
 
     def render_advanced_options(
-        self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame] = None
-    ) -> Dict[str, Any]:
+        self, saved_config: dict[str, Any], data: pd.DataFrame | None = None
+    ) -> dict[str, Any]:
         """Custom Advanced Options for Grouped Stacked Bar."""
-        config: Dict[str, Any] = {}
+        config: dict[str, Any] = {}
 
         # 1. General Settings
         self._render_general_settings(saved_config, config)
@@ -435,7 +435,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
 
         # 2d. Right-axis series configuration (reorder & rename)
         if saved_config.get("dual_axis"):
-            y_cols_right: List[str] = saved_config.get("y_columns_right", [])
+            y_cols_right: list[str] = saved_config.get("y_columns_right", [])
             if y_cols_right:
                 st.markdown("#### Right-Axis Series Configuration")
                 with st.expander("Reorder & Rename Right-Axis Series"):
@@ -554,7 +554,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
 
         return config
 
-    def create_traces(self, data: pd.DataFrame, config: Dict[str, Any]) -> TraceBuildResult:
+    def create_traces(self, data: pd.DataFrame, config: dict[str, Any]) -> TraceBuildResult:
         """Create grouped stacked bar trace configurations."""
         x_col = config.get("x")
         group_col = config.get("group")
@@ -569,8 +569,8 @@ class GroupedStackedBarPlot(StackedBarPlot):
             return TraceBuildResult(traces=[], barmode="stack")
 
         # Prepare data — include right-axis columns in total calculation
-        y_cols_right: List[str] = config.get("y_columns_right", []) if dual_axis else []
-        all_y_cols: List[str] = y_cols + [c for c in y_cols_right if c not in y_cols]
+        y_cols_right: list[str] = config.get("y_columns_right", []) if dual_axis else []
+        all_y_cols: list[str] = y_cols + [c for c in y_cols_right if c not in y_cols]
         data = self._prepare_data(data, x_col, all_y_cols, config)
 
         # Define hover template
@@ -586,8 +586,8 @@ class GroupedStackedBarPlot(StackedBarPlot):
         data: pd.DataFrame,
         x_col: str,
         group_col: str,
-        y_cols: List[str],
-        config: Dict[str, Any],
+        y_cols: list[str],
+        config: dict[str, Any],
         hover_template: str,
         dual_axis: bool = False,
     ) -> TraceBuildResult:
@@ -627,7 +627,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         )
 
         # Build bar traces (LEFT axis)
-        traces: List[TraceConfig] = []
+        traces: list[TraceConfig] = []
         for y_col in y_cols:
             trace = self._build_bar_trace(
                 data, y_col, "__x_coord", bar_width, hover_template, config
@@ -636,7 +636,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
 
         # Build RIGHT-axis traces (dual-axis mode)
         if dual_axis:
-            y_cols_right: List[str] = config.get("y_columns_right", [])
+            y_cols_right: list[str] = config.get("y_columns_right", [])
             right_type: str = config.get("right_axis_type", "bars")
             right_traces = self._build_right_axis_traces(
                 data, "__x_coord", y_cols_right, right_type, bar_width, config
@@ -647,7 +647,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         tick_text, numbered_legend = self._apply_numbered_xaxis(tick_text, config)
 
         # Build custom_x_ticks
-        custom_x_ticks: Dict[str, List[Any]] = {"vals": tick_vals, "text": tick_text}
+        custom_x_ticks: dict[str, list[Any]] = {"vals": tick_vals, "text": tick_text}
 
         # Handle numbered xaxis: hide ticks via custom_x_ticks with empty text
         if numbered_legend is not None:
@@ -681,8 +681,8 @@ class GroupedStackedBarPlot(StackedBarPlot):
         )
 
     def _get_ordered_categories_and_groups(
-        self, data: pd.DataFrame, x_col: str, group_col: str, config: Dict[str, Any]
-    ) -> tuple[List[str], List[str]]:
+        self, data: pd.DataFrame, x_col: str, group_col: str, config: dict[str, Any]
+    ) -> tuple[list[str], list[str]]:
         """Get ordered lists of categories and groups."""
         # Categories
         if config.get("xaxis_order"):
@@ -709,10 +709,10 @@ class GroupedStackedBarPlot(StackedBarPlot):
         data: pd.DataFrame,
         x_col: str,
         group_col: str,
-        categories: List[str],
-        groups: List[str],
-        config: Dict[str, Any],
-    ) -> tuple[pd.DataFrame, List[str], List[str]]:
+        categories: list[str],
+        groups: list[str],
+        config: dict[str, Any],
+    ) -> tuple[pd.DataFrame, list[str], list[str]]:
         """Apply renames to data and ordered lists."""
         # X-axis renames
         x_renames = config.get("xaxis_labels", {})
@@ -732,13 +732,13 @@ class GroupedStackedBarPlot(StackedBarPlot):
 
     def _build_coordinate_map(
         self,
-        categories: List[str],
-        groups: List[str],
+        categories: list[str],
+        groups: list[str],
         data: pd.DataFrame,
         x_col: str,
         group_col: str,
-        config: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        config: dict[str, Any],
+    ) -> dict[str, Any]:
         """Build coordinate mapping for grouped bars using centralized utility."""
         return GroupedBarUtils.calculate_grouped_coordinates(
             categories=categories, groups=groups, config=config
@@ -746,9 +746,9 @@ class GroupedStackedBarPlot(StackedBarPlot):
 
     def _apply_numbered_xaxis(
         self,
-        tick_text: List[str],
-        config: Dict[str, Any],
-    ) -> tuple[List[str], Optional[Dict[str, Any]]]:
+        tick_text: list[str],
+        config: dict[str, Any],
+    ) -> tuple[list[str], dict[str, Any] | None]:
         """Replace tick labels with numbered indices and build legend annotation.
 
         When enabled via config["numbered_xaxis"], replaces verbose X-axis labels
@@ -766,14 +766,14 @@ class GroupedStackedBarPlot(StackedBarPlot):
             return tick_text, None
 
         # Unique groups preserving insertion order
-        unique_groups: List[str] = list(dict.fromkeys(tick_text))
+        unique_groups: list[str] = list(dict.fromkeys(tick_text))
 
         # Return empty tick text — X-ticks are fully hidden when numbered
         # xaxis is on; the boxed legend annotation is the only reference.
-        numbered_text: List[str] = [""] * len(tick_text)
+        numbered_text: list[str] = [""] * len(tick_text)
 
         # Build legend text — vertical list inside a bordered box
-        legend_parts: List[str] = [f"{i + 1}. {g}" for i, g in enumerate(unique_groups)]
+        legend_parts: list[str] = [f"{i + 1}. {g}" for i, g in enumerate(unique_groups)]
         max_cols: int = int(config.get("numbered_legend_columns", 1))
         if max_cols > 1:
             # Lay out items **column-wise** (top-to-bottom, then next column)
@@ -790,7 +790,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
             n_items: int = len(legend_parts)
             n_rows: int = math.ceil(n_items / max_cols)
 
-            col_widths: List[int] = []
+            col_widths: list[int] = []
             for col in range(max_cols):
                 col_items = [
                     legend_parts[col * n_rows + r]
@@ -800,9 +800,9 @@ class GroupedStackedBarPlot(StackedBarPlot):
                 col_widths.append(max(len(p) for p in col_items) if col_items else 0)
 
             sep = "  "
-            rows: List[str] = []
+            rows: list[str] = []
             for row_idx in range(n_rows):
-                parts: List[str] = []
+                parts: list[str] = []
                 for col_idx in range(max_cols):
                     item_idx = col_idx * n_rows + row_idx
                     if item_idx < n_items:
@@ -817,7 +817,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         legend_y: float = float(config.get("numbered_legend_y", 0.5))
         bgcolor: str = str(config.get("numbered_legend_bgcolor", "#FFFFFF"))
 
-        legend_annotation: Dict[str, Any] = dict(
+        legend_annotation: dict[str, Any] = dict(
             x=legend_x,
             y=legend_y,
             xref="paper",
@@ -837,8 +837,8 @@ class GroupedStackedBarPlot(StackedBarPlot):
         return numbered_text, legend_annotation
 
     def _build_category_annotations(
-        self, cat_centers: List[tuple[float, str]], config: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        self, cat_centers: list[tuple[float, str]], config: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """Build annotations for category labels (grouped bars only)."""
         return GroupedBarUtils.build_category_annotations(
             cat_centers=cat_centers,
@@ -847,7 +847,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
             y_offset=config.get("major_label_offset", -0.15),
         )
 
-    def apply_common_layout(self, fig: go.Figure, config: Dict[str, Any]) -> go.Figure:
+    def apply_common_layout(self, fig: go.Figure, config: dict[str, Any]) -> go.Figure:
         """Apply common layout and enforce hover template."""
         fig = super().apply_common_layout(fig, config)
 
@@ -889,7 +889,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
     # ------------------------------------------------------------------
 
     def _render_dual_axis_display_settings(
-        self, saved_config: Dict[str, Any], config: Dict[str, Any]
+        self, saved_config: dict[str, Any], config: dict[str, Any]
     ) -> None:
         """Render dual-axis display settings: grid, typography, legend.
 
@@ -973,7 +973,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         if not config.get("unified_legend", True):
             self._render_secondary_legend_controls(saved_config, config)
 
-    def _apply_dual_axis_titles(self, fig: go.Figure, config: Dict[str, Any]) -> None:
+    def _apply_dual_axis_titles(self, fig: go.Figure, config: dict[str, Any]) -> None:
         """Apply Y-axis titles as symmetrical annotations for dual-axis mode.
 
         When dual-axis is active **both** Y labels are rendered as
@@ -1078,7 +1078,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
             # Ensure the secondary Y title stays cleared
             fig.update_yaxes(title_text="", secondary_y=True)
 
-    def _apply_separate_legends(self, fig: go.Figure, config: Dict[str, Any]) -> None:
+    def _apply_separate_legends(self, fig: go.Figure, config: dict[str, Any]) -> None:
         """Split traces into separate legends for left and right axis groups.
 
         Left-axis traces are assigned to ``legend``, right-axis traces to
@@ -1098,7 +1098,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
                 trace.update(legend="legend2")
 
         # Secondary legend config from user controls (fallback to defaults)
-        legend2_cfg: Dict[str, Any] = {
+        legend2_cfg: dict[str, Any] = {
             "x": config.get("legend2_x", 1.0),
             "y": config.get("legend2_y", 1.0),
             "xanchor": config.get("legend2_xanchor", "right"),
@@ -1107,7 +1107,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         }
 
         # Font
-        legend2_font: Dict[str, Any] = {}
+        legend2_font: dict[str, Any] = {}
         if config.get("legend2_font_color"):
             legend2_font["color"] = config["legend2_font_color"]
         if config.get("legend2_font_size"):
@@ -1147,7 +1147,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         )
 
     def _render_secondary_legend_controls(
-        self, saved_config: Dict[str, Any], config: Dict[str, Any]
+        self, saved_config: dict[str, Any], config: dict[str, Any]
     ) -> None:
         """Render full legend controls for the secondary (right-axis) legend.
 
@@ -1251,7 +1251,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
             )
 
     def _render_right_axis_dot_settings(
-        self, saved_config: Dict[str, Any], config: Dict[str, Any]
+        self, saved_config: dict[str, Any], config: dict[str, Any]
     ) -> None:
         """Render dot & line settings for the right (secondary) Y-axis.
 
@@ -1271,7 +1271,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
                 key=f"right_show_lines_{self.plot_id}",
             )
         with dc2:
-            symbols: List[str] = [
+            symbols: list[str] = [
                 "circle",
                 "square",
                 "diamond",
@@ -1314,11 +1314,11 @@ class GroupedStackedBarPlot(StackedBarPlot):
         self,
         data: pd.DataFrame,
         x_coord_col: str,
-        y_cols: List[str],
+        y_cols: list[str],
         trace_type: str,
-        bar_width: Optional[float],
-        config: Dict[str, Any],
-    ) -> List[TraceConfig]:
+        bar_width: float | None,
+        config: dict[str, Any],
+    ) -> list[TraceConfig]:
         """Build traces for the secondary (right) Y-axis.
 
         Args:
@@ -1332,17 +1332,17 @@ class GroupedStackedBarPlot(StackedBarPlot):
         Returns:
             List of TraceConfig for the right axis.
         """
-        series_styles: Dict[str, Any] = config.get("series_styles", {})
-        traces: List[TraceConfig] = []
+        series_styles: dict[str, Any] = config.get("series_styles", {})
+        traces: list[TraceConfig] = []
 
         for y_col in y_cols:
-            error_y_vals: Optional[List[float]] = None
+            error_y_vals: list[float] | None = None
             if config.get("show_error_bars"):
                 sd_col: str = f"{y_col}.sd"
                 if sd_col in data.columns:
                     error_y_vals = data[sd_col].tolist()
 
-            style: Dict[str, Any] = series_styles.get(y_col, {})
+            style: dict[str, Any] = series_styles.get(y_col, {})
             trace_name: str = style.get("name", y_col)
 
             if trace_type == "bars":
@@ -1389,6 +1389,6 @@ class GroupedStackedBarPlot(StackedBarPlot):
 
         return traces
 
-    def get_legend_column(self, config: Dict[str, Any]) -> Optional[str]:
+    def get_legend_column(self, config: dict[str, Any]) -> str | None:
         """Get legend column for grouped stacked bar plot."""
         return None

@@ -58,7 +58,7 @@ Version: 2.0.0
 Last Modified: 2026-01-27
 """
 
-from typing import Any, Dict
+from typing import Any
 
 import pandas as pd
 
@@ -70,7 +70,7 @@ class Selector(UniDfShaper):
     Abstract base for shapers that filter data by column values.
     """
 
-    def __init__(self, params: Dict[str, Any]) -> None:
+    def __init__(self, params: dict[str, Any]) -> None:
         """
         Initialize the selector.
 

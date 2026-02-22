@@ -10,7 +10,6 @@ without any UI or engine-specific dependencies.
 from __future__ import annotations
 
 import logging
-from typing import Dict, Optional
 
 from src.core.models.visualization.figure_config import FigureConfig
 
@@ -26,9 +25,9 @@ class VisualizationRepository:
     """
 
     def __init__(self) -> None:
-        self._configs: Dict[int, FigureConfig] = {}
+        self._configs: dict[int, FigureConfig] = {}
 
-    def get_config(self, plot_id: int) -> Optional[FigureConfig]:
+    def get_config(self, plot_id: int) -> FigureConfig | None:
         """Return the FigureConfig for *plot_id*, or ``None``."""
         return self._configs.get(plot_id)
 
@@ -47,7 +46,7 @@ class VisualizationRepository:
         """Check whether a config exists for *plot_id*."""
         return plot_id in self._configs
 
-    def get_all(self) -> Dict[int, FigureConfig]:
+    def get_all(self) -> dict[int, FigureConfig]:
         """Return a shallow copy of the entire config map."""
         return dict(self._configs)
 

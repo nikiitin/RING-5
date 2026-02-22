@@ -1,7 +1,7 @@
 {
-    "include": ["src", "tests"],
-    "exclude": ["python_venv", "**/__pycache__"],
-    "pythonVersion": "3.12",
-    "pythonPlatform": "Linux",
-    "typeCheckingMode": "standard"
+  "include": ["src", "tests"],
+  "exclude": ["python_venv", "**/__pycache__"],
+  "pythonVersion": "3.12",
+  "pythonPlatform": "Linux",
+  "typeCheckingMode": "standard"
 }

@@ -12,11 +12,14 @@ Features:
 - Job queue management and result tracking
 """
 
+from __future__ import annotations
+
 import multiprocessing
 import os
+from collections.abc import Callable
 from concurrent.futures import Future, ProcessPoolExecutor, ThreadPoolExecutor
 from multiprocessing.context import SpawnContext
-from typing import Any, Callable, Optional, Union
+from typing import Any
 
 from src.core.parsing.gem5.impl.pool.job import Job
 
@@ -27,12 +30,12 @@ class WorkPool:
     Supports both ProcessPool (for CPU-bound tasks) and ThreadPool (for IO-bound tasks).
     """
 
-    _instance: Optional["WorkPool"] = None
+    _instance: WorkPool | None = None
     _initialized: bool
 
-    def __new__(cls) -> "WorkPool":
+    def __new__(cls) -> WorkPool:
         if cls._instance is None:
-            cls._instance = super(WorkPool, cls).__new__(cls)
+            cls._instance = super().__new__(cls)
             cls._instance._initialized = False
         return cls._instance
 
@@ -41,19 +44,19 @@ class WorkPool:
             return
 
         self._num_workers = os.cpu_count() or 1
-        self._process_executor: Optional[ProcessPoolExecutor] = None
-        self._thread_executor: Optional[ThreadPoolExecutor] = None
+        self._process_executor: ProcessPoolExecutor | None = None
+        self._thread_executor: ThreadPoolExecutor | None = None
 
         # Use spawn context for processes to avoid fork warnings
         try:
-            self._mp_context: Optional[SpawnContext] = multiprocessing.get_context("spawn")
+            self._mp_context: SpawnContext | None = multiprocessing.get_context("spawn")
         except ValueError:
             self._mp_context = None
 
         self._initialized = True
 
     @classmethod
-    def get_instance(cls) -> "WorkPool":
+    def get_instance(cls) -> WorkPool:
         return cls()
 
     def _get_process_executor(self) -> ProcessPoolExecutor:
@@ -68,7 +71,7 @@ class WorkPool:
             self._thread_executor = ThreadPoolExecutor(max_workers=self._num_workers * 2)
         return self._thread_executor
 
-    def submit(self, task: Union[Job, Callable[[], Any]], use_threads: bool = False) -> Future[Any]:
+    def submit(self, task: Job | Callable[[], Any], use_threads: bool = False) -> Future[Any]:
         """Submit a single task to the pool."""
         executor = self._get_thread_executor() if use_threads else self._get_process_executor()
         return executor.submit(task)

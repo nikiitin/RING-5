@@ -7,7 +7,7 @@ data, plots, and all configurations as portfolio files.
 
 import copy
 import logging
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 import streamlit as st
 
@@ -47,9 +47,7 @@ def _portfolio_fragment(api: ApplicationAPI) -> None:
                     config=api.state_manager.get_config(),
                     plot_counter=api.state_manager.get_plot_counter(),
                     csv_path=api.state_manager.get_csv_path(),
-                    parse_variables=cast(
-                        Optional[list[str]], api.state_manager.get_parse_variables()
-                    ),
+                    parse_variables=cast(list[str] | None, api.state_manager.get_parse_variables()),
                     figure_spec_enricher=_build_figure_spec,
                 )
                 st.toast(f"Portfolio saved: {portfolio_name}", icon="✅")

@@ -10,7 +10,7 @@ Schema versions:
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 
 
 class PortfolioMigrator:
@@ -28,7 +28,7 @@ class PortfolioMigrator:
     CURRENT_VERSION: int = 2
 
     @staticmethod
-    def migrate(portfolio_data: Dict[str, Any]) -> Dict[str, Any]:
+    def migrate(portfolio_data: dict[str, Any]) -> dict[str, Any]:
         """Migrate portfolio to current schema version.
 
         Args:
@@ -46,7 +46,7 @@ class PortfolioMigrator:
         return portfolio_data
 
     @staticmethod
-    def _migrate_v1_to_v2(data: Dict[str, Any]) -> Dict[str, Any]:
+    def _migrate_v1_to_v2(data: dict[str, Any]) -> dict[str, Any]:
         """V1 → V2: add engine field, clean export keys.
 
         Changes:
@@ -55,11 +55,11 @@ class PortfolioMigrator:
               are superseded by the download section in V2).
             - Preserves unknown keys for forward compatibility.
         """
-        plots: List[Dict[str, Any]] = data.get("plots", [])
+        plots: list[dict[str, Any]] = data.get("plots", [])
         for plot in plots:
-            config: Dict[str, Any] = plot.get("config", {})
+            config: dict[str, Any] = plot.get("config", {})
             config.setdefault("engine", "plotly")
-            keys_to_remove: List[str] = [k for k in config if k.startswith("export_")]
+            keys_to_remove: list[str] = [k for k in config if k.startswith("export_")]
             for k in keys_to_remove:
                 del config[k]
         return data

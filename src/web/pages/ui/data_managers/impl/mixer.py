@@ -3,7 +3,6 @@ Mixer Manager
 """
 
 from datetime import datetime, timezone
-from typing import Optional
 
 import pandas as pd
 import streamlit as st
@@ -150,7 +149,7 @@ class MixerManager(DataManager):
         # Separate confirmation
         if self.api.has_preview("mixer"):
             if st.button("Confirm and Merge", key="confirm_mixer", type="primary"):
-                confirmed_df: Optional[pd.DataFrame] = self.api.get_preview("mixer")
+                confirmed_df: pd.DataFrame | None = self.api.get_preview("mixer")
                 if confirmed_df is not None:
                     self.set_data(confirmed_df)
                     self.api.clear_preview("mixer")

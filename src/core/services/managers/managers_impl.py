@@ -4,8 +4,6 @@ Default implementation of the ManagersAPI protocol.
 Delegates to ArithmeticService, OutlierService, and ReductionService.
 """
 
-from typing import List
-
 import pandas as pd
 
 from src.core.services.managers.arithmetic_service import ArithmeticService
@@ -21,7 +19,7 @@ class DefaultManagersAPI:
 
     # -- Arithmetic (Preprocessor) --
 
-    def list_operators(self) -> List[str]:
+    def list_operators(self) -> list[str]:
         """Return supported binary arithmetic operators."""
         return ArithmeticService.list_operators()
 
@@ -42,7 +40,7 @@ class DefaultManagersAPI:
         self,
         df: pd.DataFrame,
         dest_col: str,
-        source_cols: List[str],
+        source_cols: list[str],
         operation: str = "Sum",
         separator: str = "_",
     ) -> pd.DataFrame:
@@ -52,10 +50,10 @@ class DefaultManagersAPI:
     def validate_merge_inputs(
         self,
         df: pd.DataFrame,
-        columns: List[str],
+        columns: list[str],
         operation: str,
         new_column_name: str,
-    ) -> List[str]:
+    ) -> list[str]:
         """Validate inputs for merge/mixer operations."""
         return ArithmeticService.validate_merge_inputs(df, columns, operation, new_column_name)
 
@@ -65,7 +63,7 @@ class DefaultManagersAPI:
         self,
         df: pd.DataFrame,
         outlier_col: str,
-        group_by_cols: List[str],
+        group_by_cols: list[str],
     ) -> pd.DataFrame:
         """Remove statistical outliers based on Q3 threshold."""
         return OutlierService.remove_outliers(df, outlier_col, group_by_cols)
@@ -74,8 +72,8 @@ class DefaultManagersAPI:
         self,
         df: pd.DataFrame,
         outlier_col: str,
-        group_by_cols: List[str],
-    ) -> List[str]:
+        group_by_cols: list[str],
+    ) -> list[str]:
         """Validate inputs for outlier removal."""
         return OutlierService.validate_outlier_inputs(df, outlier_col, group_by_cols)
 
@@ -84,8 +82,8 @@ class DefaultManagersAPI:
     def reduce_seeds(
         self,
         df: pd.DataFrame,
-        categorical_cols: List[str],
-        statistic_cols: List[str],
+        categorical_cols: list[str],
+        statistic_cols: list[str],
     ) -> pd.DataFrame:
         """Aggregate data across random seeds (mean + stdev)."""
         return ReductionService.reduce_seeds(df, categorical_cols, statistic_cols)
@@ -93,8 +91,8 @@ class DefaultManagersAPI:
     def validate_seeds_reducer_inputs(
         self,
         df: pd.DataFrame,
-        categorical_cols: List[str],
-        statistic_cols: List[str],
-    ) -> List[str]:
+        categorical_cols: list[str],
+        statistic_cols: list[str],
+    ) -> list[str]:
         """Validate inputs for seeds reduction."""
         return ReductionService.validate_seeds_reducer_inputs(df, categorical_cols, statistic_cols)

@@ -1,7 +1,5 @@
 """Distribution stat type for fixed-bucket frequency distributions."""
 
-from typing import Any
-
 from src.core.models.parsing_models import StatParamValue
 from src.core.parsing.gem5.types.base import StatType, register_type
 
@@ -77,7 +75,7 @@ class Distribution(StatType):
             object.__setattr__(self, "_maximum", 0)
             object.__setattr__(self, "_statistics", statistics or [])
             # Initialize content with only statistics keys
-            content: dict[str, list[Any]] = {}
+            content: dict[str, list[float]] = {}
             for stat in statistics or []:
                 content[stat] = []
         else:
@@ -132,7 +130,7 @@ class Distribution(StatType):
         return content_dict
 
     @content.setter
-    def content(self, value: dict[str, Any]) -> None:
+    def content(self, value: dict[str, list[str | int | float] | str | int | float]) -> None:
         """
         Set and aggregate content from a dictionary.
 

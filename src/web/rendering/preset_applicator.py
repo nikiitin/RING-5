@@ -19,7 +19,7 @@ Usage::
 from __future__ import annotations
 
 import dataclasses
-from typing import Any, Dict
+from typing import Any
 
 from src.core.models.visualization.figure_config import FigureConfig
 from src.web.rendering.config_builder import PresetSpecBuilder
@@ -42,7 +42,7 @@ class PresetApplicator:
     @staticmethod
     def apply(
         spec: FigureConfig,
-        preset_info: Dict[str, Any],
+        preset_info: dict[str, Any],
     ) -> FigureConfig:
         """Overlay preset values onto an existing spec.
 
@@ -74,7 +74,7 @@ class PresetApplicator:
     @staticmethod
     def apply_partial(
         spec: FigureConfig,
-        preset_info: Dict[str, Any],
+        preset_info: dict[str, Any],
     ) -> FigureConfig:
         """Overlay **only explicitly-set** preset keys onto *spec*.
 
@@ -90,7 +90,7 @@ class PresetApplicator:
         Returns:
             A new :class:`FigureConfig` with selective overrides.
         """
-        overrides: Dict[str, Any] = {}
+        overrides: dict[str, Any] = {}
 
         # Map preset-key groups → FigureConfig field names.
         _DIMENSION_KEYS = {

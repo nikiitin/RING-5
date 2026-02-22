@@ -7,8 +7,9 @@ Provides tools for measuring and comparing performance of critical operations.
 import functools
 import logging
 import time
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, List, Optional, TypeVar
+from typing import Any, TypeVar
 
 import pandas as pd
 
@@ -44,7 +45,7 @@ class BenchmarkResult:
                 f"({self.avg_ms:.2f}ms avg over {self.iterations} iterations)"
             )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "name": self.name,
@@ -65,10 +66,10 @@ class BenchmarkSuite:
             name: Name of the benchmark suite
         """
         self.name = name
-        self.results: List[BenchmarkResult] = []
+        self.results: list[BenchmarkResult] = []
 
     @contextmanager
-    def measure(self, operation_name: str) -> Any:
+    def measure(self, operation_name: str) -> Generator[None, None, None]:
         """
         Context manager to measure operation duration.
 
@@ -94,7 +95,7 @@ class BenchmarkSuite:
         func: Callable[..., T],
         *args: Any,
         iterations: int = 1,
-        name: Optional[str] = None,
+        name: str | None = None,
         **kwargs: Any,
     ) -> T:
         """
@@ -162,7 +163,7 @@ class BenchmarkSuite:
 
 
 def benchmark_decorator(
-    iterations: int = 1, name: Optional[str] = None
+    iterations: int = 1, name: str | None = None
 ) -> Callable[[Callable[..., T]], Callable[..., T]]:
     """
     Decorator to benchmark a function.
@@ -216,7 +217,7 @@ def benchmark_decorator(
 
 
 @contextmanager
-def timer(name: str) -> Any:
+def timer(name: str) -> Generator[None, None, None]:
     """
     Simple context manager timer.
 

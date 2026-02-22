@@ -6,7 +6,8 @@ Supports comparisons, range queries, categorical inclusion, and substring matchi
 Part of the selector algorithm family for flexible data filtering.
 """
 
-from typing import Any, Callable, Dict, List, Optional, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 import pandas as pd
 
@@ -25,7 +26,7 @@ class ConditionSelector(Selector):
     - Legacy direct comparison strings (<, >, ==, etc.)
     """
 
-    def __init__(self, params: Dict[str, Any]) -> None:
+    def __init__(self, params: dict[str, Any]) -> None:
         """
         Initialize ConditionSelector.
 
@@ -33,19 +34,19 @@ class ConditionSelector(Selector):
             params: Dictionary containing 'column' and one or more filter definitions:
                 - mode (str): 'greater_than', 'less_than', 'equals', 'contains', 'legacy'
                 - threshold (float): threshold for numeric modes
-                - range (List[float]): [min, max] for range mode
-                - values (List[Any]): Allowed values for categorical mode
+                - range (list[float]): [min, max] for range mode
+                - values (list[str]): Allowed values for categorical mode
                 - condition (str): operator for legacy mode
-                - value (Any): comparison value for legacy/equals/contains mode
+                - value (str | float | int): comparison value for legacy/equals/contains mode
         """
         # Load parameters with defaults BEFORE super().__init__
         # because super().__init__ calls _verify_params which uses these.
         self.mode: str = params.get("mode", "legacy")
-        self.condition: Optional[str] = params.get("condition")
-        self.value: Any = params.get("value")
-        self.threshold: Optional[float] = params.get("threshold")
-        self.range: Optional[List[float]] = params.get("range")
-        self.values: Optional[List[Any]] = params.get("values")
+        self.condition: str | None = params.get("condition")
+        self.value: str | float | int | None = params.get("value")
+        self.threshold: float | None = params.get("threshold")
+        self.range: list[float] | None = params.get("range")
+        self.values: list[str] | None = params.get("values")
 
         super().__init__(params)
 
@@ -98,8 +99,7 @@ class ConditionSelector(Selector):
         elif self.mode == "less_than":
             return data_frame[data_frame[col] < self.threshold]
         elif self.mode == "equals":
-            # Equality comparison may return Any in some pandas contexts
-            return cast(pd.DataFrame, data_frame[data_frame[col] == self.value])
+            return data_frame[data_frame[col] == self.value]
         elif self.mode == "contains":
             mask = data_frame[col].astype(str).str.contains(str(self.value), na=False)
             return data_frame[mask]
@@ -122,7 +122,7 @@ class ConditionSelector(Selector):
                 "==": lambda x, y: x == y,
                 "!=": lambda x, y: x != y,
             }
-            typed_ops: Dict[str, Callable[[Any, Any], Any]] = ops
+            typed_ops: dict[str, Callable[[Any, Any], Any]] = ops
             if self.condition in typed_ops:
                 # Lambda returns Any - cast to document DataFrame return
                 return cast(

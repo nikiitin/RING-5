@@ -77,7 +77,7 @@ Last Modified: 2026-01-27
 """
 
 import hashlib
-from typing import Any, Dict, List
+from typing import Any
 
 import pandas as pd
 from scipy.stats import gmean, hmean
@@ -92,26 +92,26 @@ class Mean(UniDfShaper):
     selected variables across groups and appends the results to the dataframe.
     """
 
-    def __init__(self, params: Dict[str, Any]) -> None:
+    def __init__(self, params: dict[str, Any]) -> None:
         """
         Initialize Mean shaper.
 
         Args:
             params: Dictionary containing:
-                - meanVars (List[str]): Columns to average.
+                - meanVars (list[str]): Columns to average.
                 - meanAlgorithm (str): 'arithmean', 'geomean', or 'hmean'.
-                - groupingColumns (List[str]): Columns to group by.
+                - groupingColumns (list[str]): Columns to group by.
                 - replacingColumn (str): Column where the algorithm name
                   will be stored in the new rows.
         """
         # Assigning attributes before super().__init__
-        self.mean_vars: List[str] = params.get("meanVars", [])
+        self.mean_vars: list[str] = params.get("meanVars", [])
         self.mean_algorithm: str = params.get("meanAlgorithm", "")
         self.replacing_column: str = params.get("replacingColumn", "")
 
         # Support both new 'groupingColumns' and legacy 'groupingColumn'
         if "groupingColumns" in params:
-            self.grouping_columns: List[str] = params["groupingColumns"]
+            self.grouping_columns: list[str] = params["groupingColumns"]
         elif "groupingColumn" in params:
             self.grouping_columns = [params["groupingColumn"]]
         else:
@@ -152,7 +152,7 @@ class Mean(UniDfShaper):
         return True
 
     @staticmethod
-    def _compute_data_fingerprint(data: pd.DataFrame, params: Dict[str, Any]) -> str:
+    def _compute_data_fingerprint(data: pd.DataFrame, params: dict[str, Any]) -> str:
         """
         Compute fingerprint for caching mean calculation results.
 

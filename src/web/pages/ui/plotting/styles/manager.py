@@ -6,7 +6,7 @@ for UI configuration and StyleApplicator → FigureConfig → FigureSpecToPlotly
 for engine-agnostic styling.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -30,17 +30,17 @@ class StyleManager:
         self.ui_manager = StyleUIFactory.get_strategy(plot_id, plot_type)
         self.applicator = StyleApplicator(plot_type)
 
-    def render_layout_options(self, saved_config: Dict[str, Any]) -> Dict[str, Any]:
+    def render_layout_options(self, saved_config: dict[str, Any]) -> dict[str, Any]:
         """Render layout options UI."""
         return self.ui_manager.render_layout_options(saved_config)
 
     def render_style_ui(
         self,
-        saved_config: Dict[str, Any],
-        data: Optional[pd.DataFrame] = None,
-        items: Optional[List[str]] = None,
+        saved_config: dict[str, Any],
+        data: pd.DataFrame | None = None,
+        items: list[str] | None = None,
         key_prefix: str = "",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Render generic style UI."""
         return self.ui_manager.render_style_ui(
             saved_config, data, items=items, key_prefix=key_prefix
@@ -48,29 +48,29 @@ class StyleManager:
 
     def render_theme_options(
         self,
-        saved_config: Dict[str, Any],
-        data: Optional[pd.DataFrame] = None,
-        items: Optional[List[str]] = None,
+        saved_config: dict[str, Any],
+        data: pd.DataFrame | None = None,
+        items: list[str] | None = None,
         key_prefix: str = "",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Alias for render_style_ui to maintain compatibility with BasePlot."""
         return self.render_style_ui(saved_config, data, items=items, key_prefix=key_prefix)
 
     def render_series_colors_ui(
         self,
-        saved_config: Dict[str, Any],
-        data: Optional[pd.DataFrame] = None,
+        saved_config: dict[str, Any],
+        data: pd.DataFrame | None = None,
         key_prefix: str = "",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Render series color UI."""
         return self.ui_manager.render_series_colors_ui(saved_config, data, key_prefix=key_prefix)
 
     def render_series_renaming_ui(
         self,
-        saved_config: Dict[str, Any],
-        data: Optional[pd.DataFrame] = None,
-        items: Optional[List[str]] = None,
-    ) -> Dict[str, Any]:
+        saved_config: dict[str, Any],
+        data: pd.DataFrame | None = None,
+        items: list[str] | None = None,
+    ) -> dict[str, Any]:
         """Render series renaming UI."""
         # Renaming doesn't usually conflict as it's not
         # reused in the same way, but could add prefix
@@ -79,27 +79,27 @@ class StyleManager:
 
     def render_xaxis_labels_ui(
         self,
-        saved_config: Dict[str, Any],
-        data: Optional[pd.DataFrame] = None,
+        saved_config: dict[str, Any],
+        data: pd.DataFrame | None = None,
         key_prefix: str = "xlabel",
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         """Render X-axis label UI."""
         return self.ui_manager.render_xaxis_labels_ui(saved_config, data, key_prefix)
 
     def render_data_labels_ui(
         self,
-        saved_config: Dict[str, Any],
+        saved_config: dict[str, Any],
         key_prefix: str = "",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Render data labels UI."""
         return self.ui_manager.render_data_labels_ui(saved_config, key_prefix)
 
-    def apply_styles(self, fig: go.Figure, config: Dict[str, Any]) -> go.Figure:
+    def apply_styles(self, fig: go.Figure, config: dict[str, Any]) -> go.Figure:
         """Apply styles to figure."""
         return self.applicator.apply_styles(fig, config)
 
     # Helper proxy if needed directly
     def _get_unique_values(
-        self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame], items: Optional[List[str]]
-    ) -> List[Any]:
+        self, saved_config: dict[str, Any], data: pd.DataFrame | None, items: list[str] | None
+    ) -> list[str]:
         return self.ui_manager._get_unique_values(saved_config, data, items)

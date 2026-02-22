@@ -6,12 +6,13 @@ It handles script execution, path validation, and result parsing following
 the Fail-Fast principle.
 """
 
+from __future__ import annotations
+
 import json
 import logging
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Optional
 
 from src.core.models import ScannedVariable
 from src.core.parsing.gem5.types.type_mapper import TypeMapper
@@ -27,7 +28,7 @@ class Gem5StatsScanner:
     checks. Ensures that all scanning operations are deterministic and error-aware.
     """
 
-    _instance: Optional["Gem5StatsScanner"] = None
+    _instance: Gem5StatsScanner | None = None
 
     def __init__(self) -> None:
         """
@@ -53,7 +54,7 @@ class Gem5StatsScanner:
             )
 
     @classmethod
-    def get_instance(cls) -> "Gem5StatsScanner":
+    def get_instance(cls) -> Gem5StatsScanner:
         """
         Get the singleton scanner instance.
 

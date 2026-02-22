@@ -1,6 +1,6 @@
 """Shared utilities for grouped bar plots."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class GroupedBarUtils:
@@ -9,7 +9,7 @@ class GroupedBarUtils:
     @staticmethod
     def create_shade_shape(
         x0: float, x1: float, shade_color: str = "#F5F5F5", opacity: float = 0.5
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Create a shading rectangle shape for alternating categories.
 
@@ -42,7 +42,7 @@ class GroupedBarUtils:
         sep_color: str = "#E0E0E0",
         dash: str = "dash",
         width: int = 1,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Create a dashed separator line shape between categories.
 
@@ -68,7 +68,7 @@ class GroupedBarUtils:
         )
 
     @staticmethod
-    def create_isolation_separator(sep_x: float) -> Dict[str, Any]:
+    def create_isolation_separator(sep_x: float) -> dict[str, Any]:
         """
         Create a solid isolation separator line (thicker, solid).
 
@@ -92,11 +92,11 @@ class GroupedBarUtils:
 
     @staticmethod
     def build_category_annotations(
-        cat_centers: List[tuple[float, str]],
+        cat_centers: list[tuple[float, str]],
         font_size: int = 14,
         font_color: str = "#000000",
         y_offset: float = -0.15,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Build annotations for category labels below the plot.
 
@@ -127,10 +127,10 @@ class GroupedBarUtils:
 
     @staticmethod
     def calculate_grouped_coordinates(
-        categories: List[str],
-        groups: List[str],
-        config: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        categories: list[str],
+        groups: list[str],
+        config: dict[str, Any],
+    ) -> dict[str, Any]:
         """
         Calculate manual X-axis coordinates for grouped bar plots.
 
@@ -154,7 +154,7 @@ class GroupedBarUtils:
 
         # Determine strict bar width based on gaps
         # If groups is empty (simple bar), treat as single group
-        actual_groups: List[Optional[str]]
+        actual_groups: list[str | None]
         if groups:
             actual_groups = list(groups)  # Copy to satisfy variance
         else:

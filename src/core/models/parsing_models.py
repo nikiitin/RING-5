@@ -16,12 +16,12 @@ All models are **immutable** (``frozen=True``) to guarantee reproducibility.
 
 from concurrent.futures import Future
 from dataclasses import dataclass, field
-from typing import Any, Union
+from typing import Any
 
 from src.core.models.data_models import ScannedVariableDict
 
 # Type alias for StatConfig parameter values
-StatParamValue = Union[str, int, float, bool, list[str], None]
+StatParamValue = str | int | float | bool | list[str] | None
 
 
 @dataclass(frozen=True)
@@ -35,7 +35,7 @@ class ParseBatchResult:
     mutable state.
     """
 
-    futures: list[Future[Any]]
+    futures: list[Future[dict[str, Any]]]
     var_names: list[str]
 
 

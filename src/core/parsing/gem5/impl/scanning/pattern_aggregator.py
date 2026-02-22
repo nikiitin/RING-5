@@ -12,7 +12,6 @@ Example:
 
 import logging
 import re
-from typing import Any, Dict, List, Optional, Tuple
 
 from src.core.models import ScannedVariable
 
@@ -32,7 +31,7 @@ class PatternAggregator:
     """
 
     @staticmethod
-    def aggregate_patterns(variables: List[ScannedVariable]) -> List[ScannedVariable]:
+    def aggregate_patterns(variables: list[ScannedVariable]) -> list[ScannedVariable]:
         r"""
         Aggregate variables with repeated numeric patterns into regex patterns.
 
@@ -60,8 +59,8 @@ class PatternAggregator:
                 ]
         """
         # Group variables by their pattern signature
-        pattern_groups: Dict[str, List[Tuple[str, ScannedVariable]]] = {}
-        non_pattern_vars: List[ScannedVariable] = []
+        pattern_groups: dict[str, list[tuple[str, ScannedVariable]]] = {}
+        non_pattern_vars: list[ScannedVariable] = []
 
         for var in variables:
             var_name: str = var.name
@@ -81,7 +80,7 @@ class PatternAggregator:
                 pattern_groups[pattern_signature].append((numeric_id, var))
 
         # Convert pattern groups to aggregated variables
-        aggregated_vars: List[ScannedVariable] = []
+        aggregated_vars: list[ScannedVariable] = []
 
         for pattern_signature, instances in pattern_groups.items():
             if len(instances) == 1:
@@ -100,7 +99,7 @@ class PatternAggregator:
         return sorted(result, key=lambda x: x.name)
 
     @staticmethod
-    def _extract_pattern(var_name: str) -> Tuple[str, str] | None:
+    def _extract_pattern(var_name: str) -> tuple[str, str] | None:
         """
         Extract numeric pattern from variable name.
 
@@ -128,7 +127,7 @@ class PatternAggregator:
 
         # Build pattern signature by replacing numbers with {}
         pattern_signature = var_name
-        numeric_parts: List[str] = []
+        numeric_parts: list[str] = []
 
         # Replace from right to left to maintain positions
         for match in reversed(matches):
@@ -146,7 +145,7 @@ class PatternAggregator:
 
     @staticmethod
     def _create_pattern_variable(
-        pattern_signature: str, instances: List[Tuple[str, ScannedVariable]]
+        pattern_signature: str, instances: list[tuple[str, ScannedVariable]]
     ) -> ScannedVariable:
         """
         Create a regex pattern variable from multiple instances.
@@ -162,7 +161,7 @@ class PatternAggregator:
         regex_pattern = pattern_signature.replace("{}", r"\d+")
 
         # Extract numeric IDs as entries
-        entries: List[str] = sorted([numeric_id for numeric_id, _ in instances])
+        entries: list[str] = sorted([numeric_id for numeric_id, _ in instances])
 
         # Get type from first instance (should be consistent)
         first_var = instances[0][1]
@@ -174,7 +173,7 @@ class PatternAggregator:
             result_type = "vector"
             result_entries = entries
             # For scalars, store the actual matched variable names for proper reduction
-            pattern_indices: Optional[List[str]] = [
+            pattern_indices: list[str] | None = [
                 var.name for _, var in instances
             ]  # Store full variable names, not just numeric IDs
         else:
@@ -195,10 +194,10 @@ class PatternAggregator:
             result_entries = sorted(list(all_entries))
 
         # Handle distribution min/max if applicable
-        kwargs: Dict[str, Any] = {}
+        kwargs: dict[str, float] = {}
         if base_type == "distribution":
-            min_val: Optional[float] = None
-            max_val: Optional[float] = None
+            min_val: float | None = None
+            max_val: float | None = None
 
             for _, var in instances:
                 if var.minimum is not None:

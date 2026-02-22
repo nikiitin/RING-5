@@ -3,7 +3,6 @@ Seeds Reducer Manager
 """
 
 from datetime import datetime, timezone
-from typing import Optional
 
 import pandas as pd
 import streamlit as st
@@ -158,7 +157,7 @@ class SeedsReducerManager(DataManager):
         # Separate confirmation button outside the first button's scope
         if self.api.has_preview("seeds_reduction"):
             if st.button("Confirm and Apply Seeds Reducer", key="confirm_seeds", type="primary"):
-                confirmed_df: Optional[pd.DataFrame] = self.api.get_preview("seeds_reduction")
+                confirmed_df: pd.DataFrame | None = self.api.get_preview("seeds_reduction")
                 if confirmed_df is not None:
                     self.set_data(confirmed_df)
                     self.api.clear_preview("seeds_reduction")

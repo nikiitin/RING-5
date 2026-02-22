@@ -2,11 +2,13 @@
 JSON Schema validator and template generator for RING-5 configuration files.
 """
 
+from __future__ import annotations
+
 import json
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional, TypedDict, cast
+from typing import Any, TypedDict, cast
 
 from jsonschema import Draft7Validator, validate
 
@@ -29,7 +31,7 @@ class PlotDataConfig(TypedDict, total=False):
     x: str
     y: str
     hue: str
-    filters: Dict[str, Any]
+    filters: dict[str, Any]
     aggregate: str
 
 
@@ -42,9 +44,9 @@ class PlotStyleConfig(TypedDict, total=False):
     title: str
     xlabel: str
     ylabel: str
-    ylim: List[float]
+    ylim: list[float]
     grid: bool
-    legend: Dict[str, Any]
+    legend: dict[str, Any]
 
 
 class PlotConfig(TypedDict):
@@ -70,15 +72,15 @@ class ParseConfig(TypedDict):
     parser: str
     statsPath: str
     statsPattern: str
-    variables: List[VariableConfig]
+    variables: list[VariableConfig]
 
 
 class DataManagersConfig(TypedDict, total=False):
     """Type definition for data managers configuration."""
 
     seedsReducer: bool
-    outlierRemover: Dict[str, Any]
-    normalizer: Dict[str, Any]
+    outlierRemover: dict[str, Any]
+    normalizer: dict[str, Any]
 
 
 class RingConfig(TypedDict):
@@ -87,13 +89,13 @@ class RingConfig(TypedDict):
     outputPath: str
     parseConfig: ParseConfig
     dataManagers: DataManagersConfig
-    plots: List[PlotConfig]
+    plots: list[PlotConfig]
 
 
 class ConfigValidator:
     """Validates RING-5 configuration files against JSON schema."""
 
-    def __init__(self, schema_path: Optional[str] = None) -> None:
+    def __init__(self, schema_path: str | None = None) -> None:
         """
         Initialize the validator with a schema file.
 
@@ -106,12 +108,12 @@ class ConfigValidator:
 
         # Validate schema_path is within the schemas directory
         validated_schema = validate_path_within(Path(schema_path), Path(schemas_dir))
-        with open(validated_schema, "r") as f:
-            self.schema: Dict[str, Any] = json.load(f)
+        with open(validated_schema) as f:
+            self.schema: dict[str, Any] = json.load(f)
 
         self.validator: Draft7Validator = Draft7Validator(self.schema)
 
-    def validate(self, config: Dict[str, Any]) -> bool:
+    def validate(self, config: dict[str, Any]) -> bool:
         """
         Validate a configuration dictionary.
 
@@ -141,12 +143,12 @@ class ConfigValidator:
             ValidationError: If validation fails
         """
         resolved_path = Path(config_path).resolve()
-        with open(resolved_path, "r") as f:
+        with open(resolved_path) as f:
             config = json.load(f)
 
         return self.validate(config)
 
-    def get_errors(self, config: Dict[str, Any]) -> List[str]:
+    def get_errors(self, config: dict[str, Any]) -> list[str]:
         """
         Get all validation errors for a configuration.
 
@@ -156,7 +158,7 @@ class ConfigValidator:
         Returns:
             List of error messages
         """
-        errors: List[str] = []
+        errors: list[str] = []
         for error in self.validator.iter_errors(config):
             error_path: str = ".".join(str(p) for p in error.path)
             errors.append(f"{error_path}: {error.message}")
@@ -167,7 +169,7 @@ class ConfigValidator:
 class ConfigTemplateGenerator:
     """Generates configuration templates with guided prompts."""
 
-    PLOT_TYPES: Dict[str, str] = {
+    PLOT_TYPES: dict[str, str] = {
         "bar": "Bar plot - vertical bars for comparing categories",
         "line": "Line plot - trends over continuous variables",
         "heatmap": "Heatmap - 2D matrix of values with color encoding",
@@ -178,14 +180,14 @@ class ConfigTemplateGenerator:
         "scatter": "Scatter plot - relationship between two variables",
     }
 
-    AGGREGATE_METHODS: Dict[str, str] = {
+    AGGREGATE_METHODS: dict[str, str] = {
         "mean": "Arithmetic mean",
         "median": "Median value",
         "sum": "Sum of values",
         "geomean": "Geometric mean (useful for normalized values)",
     }
 
-    THEMES: Dict[str, str] = {
+    THEMES: dict[str, str] = {
         "default": "Default matplotlib theme",
         "whitegrid": "White background with grid",
         "darkgrid": "Dark background with grid",
@@ -283,8 +285,8 @@ class ConfigTemplateGenerator:
 
     @staticmethod
     def add_variable(
-        config: Dict[str, Any], name: str, var_type: str, rename: Optional[str] = None
-    ) -> Dict[str, Any]:
+        config: dict[str, Any], name: str, var_type: str, rename: str | None = None
+    ) -> dict[str, Any]:
         """
         Add a variable to parse configuration.
 
@@ -306,15 +308,15 @@ class ConfigTemplateGenerator:
         return config
 
     @staticmethod
-    def enable_seeds_reducer(config: Dict[str, Any]) -> Dict[str, Any]:
+    def enable_seeds_reducer(config: dict[str, Any]) -> dict[str, Any]:
         """Enable automatic reduction of random seeds."""
         config["dataManagers"]["seedsReducer"] = True
         return config
 
     @staticmethod
     def enable_outlier_removal(
-        config: Dict[str, Any], column: str, method: str = "iqr", threshold: float = 1.5
-    ) -> Dict[str, Any]:
+        config: dict[str, Any], column: str, method: str = "iqr", threshold: float = 1.5
+    ) -> dict[str, Any]:
         """
         Enable outlier removal.
 
@@ -337,8 +339,8 @@ class ConfigTemplateGenerator:
 
     @staticmethod
     def enable_normalizer(
-        config: Dict[str, Any], baseline: Dict[str, str], columns: List[str], group_by: List[str]
-    ) -> Dict[str, Any]:
+        config: dict[str, Any], baseline: dict[str, str], columns: list[str], group_by: list[str]
+    ) -> dict[str, Any]:
         """
         Enable data normalization.
 
@@ -360,7 +362,7 @@ class ConfigTemplateGenerator:
         return config
 
     @staticmethod
-    def save_config(config: Dict[str, Any], output_path: str) -> None:
+    def save_config(config: dict[str, Any], output_path: str) -> None:
         """
         Save configuration to JSON file.
 
@@ -377,7 +379,7 @@ class ConfigTemplateGenerator:
 
 # Example usage functions
 def create_simple_bar_plot_config(
-    output_path: str, stats_path: str, x_var: str, y_var: str, hue_var: Optional[str] = None
+    output_path: str, stats_path: str, x_var: str, y_var: str, hue_var: str | None = None
 ) -> RingConfig:
     """
     Create a simple configuration for a bar plot.
@@ -393,7 +395,7 @@ def create_simple_bar_plot_config(
         Complete configuration
     """
     config: RingConfig = ConfigTemplateGenerator.create_minimal_config(output_path, stats_path)
-    config_dict: Dict[str, Any] = cast(Dict[str, Any], config)
+    config_dict: dict[str, Any] = cast(dict[str, Any], config)
 
     # Add variables
     ConfigTemplateGenerator.add_variable(config_dict, x_var, "configuration")
@@ -406,7 +408,7 @@ def create_simple_bar_plot_config(
     ConfigTemplateGenerator.enable_seeds_reducer(config_dict)
 
     # Add plot
-    plot_kwargs: Dict[str, Any] = {
+    plot_kwargs: dict[str, Any] = {
         "title": f"{y_var} by {x_var}",
         "xlabel": x_var,
         "ylabel": y_var,

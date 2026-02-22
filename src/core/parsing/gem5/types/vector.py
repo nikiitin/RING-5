@@ -9,7 +9,6 @@ Implements type registry pattern for stat type dispatch.
 """
 
 import logging
-from typing import Any
 
 from src.core.models.parsing_models import StatParamValue
 from src.core.parsing.gem5.types.base import StatType, register_type
@@ -67,12 +66,12 @@ class Vector(StatType):
         return entries_list
 
     @property
-    def content(self) -> dict[str, list[Any]]:
-        content_dict: dict[str, list[Any]] = object.__getattribute__(self, "_content")
+    def content(self) -> dict[str, list[float]]:
+        content_dict: dict[str, list[float]] = object.__getattribute__(self, "_content")
         return content_dict
 
     @content.setter
-    def content(self, value: dict[str, list[Any] | Any]) -> None:
+    def content(self, value: dict[str, list[str | int | float] | str | int | float]) -> None:
         """
         Set content from dict, extending existing entries.
 

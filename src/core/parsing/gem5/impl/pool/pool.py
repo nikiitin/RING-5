@@ -5,15 +5,15 @@ Provides singleton facades for submitting async work to the unified WorkPool.
 Follows the Facade Pattern to simplify async job submission and tracking.
 """
 
-from concurrent.futures import Future
-from typing import Any, List, Optional, Sequence, TypeVar
+from __future__ import annotations
 
-from src.core.parsing.gem5.impl.pool.parse_work import ParseWork
+from collections.abc import Sequence
+from concurrent.futures import Future
+
+from src.core.models import ScannedVariable
+from src.core.parsing.gem5.impl.pool.parse_work import ParsedVarsDict, ParseWork
 from src.core.parsing.gem5.impl.pool.scan_work import ScanWork
 from src.core.parsing.gem5.impl.pool.work_pool import WorkPool
-
-# Type variable for generic Future results
-T = TypeVar("T")
 
 
 class ScanWorkPool:
@@ -29,10 +29,10 @@ class ScanWorkPool:
         results = [f.result() for f in futures]
     """
 
-    _singleton: Optional["ScanWorkPool"] = None
+    _singleton: ScanWorkPool | None = None
 
     @classmethod
-    def get_instance(cls) -> "ScanWorkPool":
+    def get_instance(cls) -> ScanWorkPool:
         """
         Get the singleton instance of ScanWorkPool.
 
@@ -51,11 +51,11 @@ class ScanWorkPool:
     def __init__(self) -> None:
         """Initialize the scan work pool with WorkPool backend."""
         self._workPool: WorkPool = WorkPool.get_instance()
-        self._futures: List[Future[Any]] = []
+        self._futures: list[Future[list[ScannedVariable]]] = []
 
     def submit_batch_async(
-        self, works: Sequence[ScanWork], chunk_size: Optional[int] = None
-    ) -> List[Future[Any]]:
+        self, works: Sequence[ScanWork], chunk_size: int | None = None
+    ) -> list[Future[list[ScannedVariable]]]:
         """
         Submit a batch of scan works with optimized chunking.
 
@@ -74,14 +74,14 @@ class ScanWorkPool:
         if chunk_size is None:
             chunk_size = max(1, len(works) // 8)  # Conservative default
 
-        current_batch_futures: List[Future[Any]] = []
+        current_batch_futures: list[Future[list[ScannedVariable]]] = []
 
         # Submit in optimized chunks to reduce overhead
         for i in range(0, len(works), chunk_size):
             chunk = works[i : i + chunk_size]
             for work in chunk:
                 if work is not None:
-                    future: Future[Any] = self._workPool.submit(work)
+                    future: Future[list[ScannedVariable]] = self._workPool.submit(work)
                     self._futures.append(future)
                     current_batch_futures.append(future)
 
@@ -110,10 +110,10 @@ class ParseWorkPool:
         results = [f.result() for f in futures]
     """
 
-    _instance: Optional["ParseWorkPool"] = None
+    _instance: ParseWorkPool | None = None
 
     @classmethod
-    def get_instance(cls) -> "ParseWorkPool":
+    def get_instance(cls) -> ParseWorkPool:
         """
         Get the singleton instance of ParseWorkPool.
 
@@ -136,9 +136,9 @@ class ParseWorkPool:
     def __init__(self) -> None:
         """Initialize the parse work pool with WorkPool backend."""
         self._work_pool: WorkPool = WorkPool.get_instance()
-        self._futures: List[Future[Any]] = []
+        self._futures: list[Future[ParsedVarsDict]] = []
 
-    def submit_batch_async(self, works: Sequence[ParseWork]) -> List[Future[Any]]:
+    def submit_batch_async(self, works: Sequence[ParseWork]) -> list[Future[ParsedVarsDict]]:
         """
         Submit a batch of parsing works with optimized chunking.
 
@@ -155,14 +155,14 @@ class ParseWorkPool:
         # Use conservative default to avoid overhead
         chunk_size = max(1, len(works) // 8)
 
-        current_batch_futures: List[Future[Any]] = []
+        current_batch_futures: list[Future[ParsedVarsDict]] = []
 
         # Submit in optimized chunks to reduce overhead
         for i in range(0, len(works), chunk_size):
             chunk = works[i : i + chunk_size]
             for work in chunk:
                 if work is not None:
-                    future: Future[Any] = self._work_pool.submit(work)
+                    future: Future[ParsedVarsDict] = self._work_pool.submit(work)
                     self._futures.append(future)
                     current_batch_futures.append(future)
 

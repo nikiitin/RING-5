@@ -1,6 +1,6 @@
 """Stacked bar plot implementation."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pandas as pd
 import streamlit as st
@@ -18,7 +18,7 @@ class StackedBarPlot(BasePlot):
         """Initialize stacked bar plot."""
         super().__init__(plot_id, name, "stacked_bar")
 
-    def render_config_ui(self, data: pd.DataFrame, saved_config: Dict[str, Any]) -> Dict[str, Any]:
+    def render_config_ui(self, data: pd.DataFrame, saved_config: dict[str, Any]) -> dict[str, Any]:
         """Render configuration UI for stacked bar plot."""
         numeric_cols = data.select_dtypes(include=["number"]).columns.tolist()
         all_cols = data.columns.tolist()
@@ -68,7 +68,7 @@ class StackedBarPlot(BasePlot):
             **label_config,
         }
 
-    def create_traces(self, data: pd.DataFrame, config: Dict[str, Any]) -> TraceBuildResult:
+    def create_traces(self, data: pd.DataFrame, config: dict[str, Any]) -> TraceBuildResult:
         """Create stacked bar trace configurations."""
         x_col = config.get("x")
         y_cols = config.get("y_columns", [])
@@ -86,7 +86,7 @@ class StackedBarPlot(BasePlot):
         traces = self._create_stacked_traces(data, x_col, y_cols, config, hover_template)
 
         # Build annotations
-        layout_annotations: List[Dict[str, Any]] = []
+        layout_annotations: list[dict[str, Any]] = []
         if config.get("show_totals"):
             layout_annotations = self._build_totals_annotations(data, x_col, config)
 
@@ -97,7 +97,7 @@ class StackedBarPlot(BasePlot):
         )
 
     def _prepare_data(
-        self, data: pd.DataFrame, x_col: str, y_cols: List[str], config: Dict[str, Any]
+        self, data: pd.DataFrame, x_col: str, y_cols: list[str], config: dict[str, Any]
     ) -> pd.DataFrame:
         """Prepare data: apply filters, calculate totals, convert types."""
         data = data.copy()
@@ -125,12 +125,12 @@ class StackedBarPlot(BasePlot):
         self,
         data: pd.DataFrame,
         x_col: str,
-        y_cols: List[str],
-        config: Dict[str, Any],
+        y_cols: list[str],
+        config: dict[str, Any],
         hover_template: str,
-    ) -> List[BarTraceConfig]:
+    ) -> list[BarTraceConfig]:
         """Build list of bar traces for stacked bars."""
-        traces: List[BarTraceConfig] = []
+        traces: list[BarTraceConfig] = []
         for y_col in y_cols:
             trace = self._build_bar_trace(data, y_col, x_col, None, hover_template, config)
             traces.append(trace)
@@ -141,12 +141,12 @@ class StackedBarPlot(BasePlot):
         data: pd.DataFrame,
         y_col: str,
         x_col: str,
-        bar_width: Optional[float],
+        bar_width: float | None,
         hover_template: str,
-        config: Dict[str, Any],
+        config: dict[str, Any],
     ) -> BarTraceConfig:
         """Build a single BarTraceConfig for a stacked series."""
-        error_y_vals: Optional[List[float]] = None
+        error_y_vals: list[float] | None = None
         if config.get("show_error_bars"):
             sd_col = f"{y_col}.sd"
             if sd_col in data.columns:
@@ -177,8 +177,8 @@ class StackedBarPlot(BasePlot):
         )
 
     def _build_totals_annotations(
-        self, data: pd.DataFrame, x_col: str, config: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        self, data: pd.DataFrame, x_col: str, config: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """Build annotations for stack totals."""
         total_fmt = config.get("net_total_format", ".2f")
         font_size = config.get("total_font_size", 12)
@@ -237,6 +237,6 @@ class StackedBarPlot(BasePlot):
                 return 0, "bottom"
         return val, "bottom"
 
-    def get_legend_column(self, config: Dict[str, Any]) -> Optional[str]:
+    def get_legend_column(self, config: dict[str, Any]) -> str | None:
         """Get legend column for stacked bar plot."""
         return None

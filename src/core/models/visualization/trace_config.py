@@ -13,7 +13,7 @@ x-positions, widths, and offsets pre-computed.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Literal
 
 
 @dataclass
@@ -36,15 +36,15 @@ class TraceConfig:
 
     name: str = ""
     trace_type: Literal["bar", "line", "scatter", "histogram"] = "bar"
-    x: List[Any] = field(default_factory=list)
-    y: List[Union[int, float]] = field(default_factory=list)
+    x: list[str | int | float] = field(default_factory=list)
+    y: list[int | float] = field(default_factory=list)
     yaxis: Literal["y", "y2"] = "y"
     color: str = ""
     opacity: float = 1.0
     visible: bool = True
     show_in_legend: bool = True
     legendgroup: str = ""
-    custom_data: Dict[str, Any] = field(default_factory=dict)
+    custom_data: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -58,7 +58,7 @@ class BarTraceConfig(TraceConfig):
     trace_type: Literal["bar", "line", "scatter", "histogram"] = "bar"
 
     # ── Bar positioning (pre-computed) ───────────────────────────
-    x_positions: List[float] = field(default_factory=list)  # center of each bar
+    x_positions: list[float] = field(default_factory=list)  # center of each bar
     bar_width: float = 0.8  # width of each bar
     offset: float = 0.0  # horizontal offset for grouped bars
 
@@ -66,13 +66,13 @@ class BarTraceConfig(TraceConfig):
     pattern: str = ""  # hatch pattern: "", "/", "\\", "x", etc.
     border_width: float = 0.0
     border_color: str = ""
-    text_values: Optional[List[str]] = None  # data label text
+    text_values: list[str] | None = None  # data label text
     text_position: Literal["inside", "outside", "auto", "none"] = "none"
     text_angle: float = 0.0
     text_font_size: int = 6
 
     # ── Error bars ───────────────────────────────────────────────
-    error_y: Optional[List[float]] = None
+    error_y: list[float] | None = None
 
 
 @dataclass
@@ -89,7 +89,7 @@ class LineTraceConfig(TraceConfig):
     fill: Literal["none", "tozeroy", "tonexty"] = "none"
 
     # ── Error bars ───────────────────────────────────────────────
-    error_y: Optional[List[float]] = None
+    error_y: list[float] | None = None
 
 
 @dataclass
@@ -102,11 +102,11 @@ class ScatterTraceConfig(TraceConfig):
     marker_size: int = 8
     marker_line_width: float = 0.0
     marker_line_color: str = ""
-    colorscale: Optional[str] = None  # for continuous color mapping
-    size_values: Optional[List[float]] = None  # bubble chart sizes
+    colorscale: str | None = None  # for continuous color mapping
+    size_values: list[float] | None = None  # bubble chart sizes
 
     # ── Error bars ───────────────────────────────────────────────
-    error_y: Optional[List[float]] = None
+    error_y: list[float] | None = None
 
 
 @dataclass

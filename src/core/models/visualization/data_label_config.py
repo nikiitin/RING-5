@@ -9,7 +9,7 @@ point annotations). Settings map to widget section ``DATA_LABELS`` in
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Literal
+from typing import Any, Literal
 
 
 @dataclass(frozen=True)
@@ -56,7 +56,7 @@ class DataLabelConfig:
     size_constraint: Literal["none", "inside"] = "none"
     auto_contrast: bool = True
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize to a plain dictionary for JSON persistence."""
         return {
             "enabled": self.enabled,
@@ -74,7 +74,7 @@ class DataLabelConfig:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> DataLabelConfig:
+    def from_dict(cls, data: dict[str, Any]) -> DataLabelConfig:
         """Deserialize from a plain dictionary.
 
         Args:

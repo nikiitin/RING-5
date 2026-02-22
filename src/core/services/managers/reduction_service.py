@@ -6,8 +6,6 @@ columns and computing mean and standard deviation. Enables robust statistical
 analysis across different random seeds.
 """
 
-from typing import List
-
 import pandas as pd
 
 
@@ -16,7 +14,7 @@ class ReductionService:
 
     @staticmethod
     def reduce_seeds(
-        df: pd.DataFrame, categorical_cols: List[str], statistic_cols: List[str]
+        df: pd.DataFrame, categorical_cols: list[str], statistic_cols: list[str]
     ) -> pd.DataFrame:
         """Group by categorical columns and calculate mean and std dev."""
         if df.empty:
@@ -34,10 +32,10 @@ class ReductionService:
 
     @staticmethod
     def validate_seeds_reducer_inputs(
-        df: pd.DataFrame, categorical_cols: List[str], statistic_cols: List[str]
-    ) -> List[str]:
+        df: pd.DataFrame, categorical_cols: list[str], statistic_cols: list[str]
+    ) -> list[str]:
         """Validate inputs for reduce_seeds operation."""
-        errors: List[str] = []
+        errors: list[str] = []
 
         if not categorical_cols:
             errors.append("At least one categorical column must be selected")

@@ -16,13 +16,11 @@ Usage::
 
 from __future__ import annotations
 
-from typing import Dict, List
-
 # ────────────────────────────────────────────────────────────────────
 # Colorblind-safe palettes  (listed first in get_palette_names)
 # ────────────────────────────────────────────────────────────────────
 
-_COLORBLIND_PALETTES: Dict[str, List[str]] = {
+_COLORBLIND_PALETTES: dict[str, list[str]] = {
     "wong": [
         "#000000",
         "#E69F00",
@@ -79,7 +77,7 @@ _COLORBLIND_PALETTES: Dict[str, List[str]] = {
 # Plotly qualitative palettes  (resolved to hex at module load)
 # ────────────────────────────────────────────────────────────────────
 
-_PLOTLY_PALETTES: Dict[str, List[str]] = {
+_PLOTLY_PALETTES: dict[str, list[str]] = {
     "Plotly": [
         "#636EFA",
         "#EF553B",
@@ -302,16 +300,16 @@ _PLOTLY_PALETTES: Dict[str, List[str]] = {
 # Combined registry
 # ────────────────────────────────────────────────────────────────────
 
-PALETTE_REGISTRY: Dict[str, List[str]] = {
+PALETTE_REGISTRY: dict[str, list[str]] = {
     **_COLORBLIND_PALETTES,
     **_PLOTLY_PALETTES,
 }
 
 # Ordered list: colorblind-safe first, then Plotly alphabetical
-_PALETTE_ORDER: List[str] = list(_COLORBLIND_PALETTES.keys()) + sorted(_PLOTLY_PALETTES.keys())
+_PALETTE_ORDER: list[str] = list(_COLORBLIND_PALETTES.keys()) + sorted(_PLOTLY_PALETTES.keys())
 
 
-def resolve_palette(name: object) -> List[str]:
+def resolve_palette(name: object) -> list[str]:
     """Resolve a palette name to a list of hex color strings.
 
     Falls back to the Wong colorblind-safe palette when *name* is
@@ -339,7 +337,7 @@ def resolve_palette(name: object) -> List[str]:
     return list(PALETTE_REGISTRY["wong"])
 
 
-def get_palette_names() -> List[str]:
+def get_palette_names() -> list[str]:
     """Return palette names with colorblind-safe palettes listed first.
 
     Returns:

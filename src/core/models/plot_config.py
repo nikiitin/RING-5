@@ -8,7 +8,7 @@ pure data definitions with no UI dependencies.
 - ShapeConfig: Annotation shape configuration (lines, circles, rectangles)
 """
 
-from typing import Any, Required, TypedDict
+from typing import Required, TypedDict
 
 
 class ShapeConfig(TypedDict, total=False):
@@ -23,4 +23,4 @@ class ShapeConfig(TypedDict, total=False):
     y0: Required[float | str]
     x1: Required[float | str]
     y1: Required[float | str]
-    line: dict[str, Any]  # Contains color, width
+    line: dict[str, str | float | int]  # Contains color (str), width (float/int)

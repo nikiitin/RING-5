@@ -22,8 +22,6 @@ Usage Example:
     ['l', 'cntrl']
 """
 
-from typing import Dict, List
-
 
 class PatternIndexService:
     r"""
@@ -56,7 +54,7 @@ class PatternIndexService:
         return r"\d+" in var_name
 
     @staticmethod
-    def extract_index_positions(var_name: str) -> List[str]:
+    def extract_index_positions(var_name: str) -> list[str]:
         r"""
         Extract position labels from pattern variable name.
 
@@ -78,7 +76,7 @@ class PatternIndexService:
             >>> PatternIndexService.extract_index_positions("system.cpu.ipc")
             []
         """
-        cleaned: List[str] = []
+        cleaned: list[str] = []
         marker = r"\d+"
         parts = var_name.split(marker)
         # Each part (except the last) ends with the label before \d+
@@ -98,7 +96,7 @@ class PatternIndexService:
         return cleaned
 
     @staticmethod
-    def parse_entry_indices(entries: List[str]) -> Dict[int, set[str]]:
+    def parse_entry_indices(entries: list[str]) -> dict[int, set[str]]:
         """
         Parse entries to extract unique indices at each position.
 
@@ -129,7 +127,7 @@ class PatternIndexService:
         num_positions = len(parts)
 
         # Collect all values at each position
-        position_values: Dict[int, set[str]] = {i: set() for i in range(num_positions)}
+        position_values: dict[int, set[str]] = {i: set() for i in range(num_positions)}
 
         for entry in entries:
             parts = entry.split("_")
@@ -142,7 +140,7 @@ class PatternIndexService:
         return position_values
 
     @staticmethod
-    def filter_entries(entries: List[str], selections: Dict[int, List[str]]) -> List[str]:
+    def filter_entries(entries: list[str], selections: dict[int, list[str]]) -> list[str]:
         """
         Filter entries based on selected indices at each position.
 
@@ -166,7 +164,7 @@ class PatternIndexService:
             ... )
             []
         """
-        filtered: List[str] = []
+        filtered: list[str] = []
 
         for entry in entries:
             parts = entry.split("_")
@@ -189,7 +187,7 @@ class PatternIndexService:
         return filtered
 
     @staticmethod
-    def format_entry_display(entry: str, positions: List[str]) -> str:
+    def format_entry_display(entry: str, positions: list[str]) -> str:
         """
         Format entry for display (e.g., "0_1" -> "l{0}_cntrl{1}").
 
@@ -209,7 +207,7 @@ class PatternIndexService:
             'l{0}_cntrl{1}_2'
         """
         parts = entry.split("_")
-        formatted_parts: List[str] = []
+        formatted_parts: list[str] = []
 
         for i, part in enumerate(parts):
             if i < len(positions):
@@ -261,7 +259,7 @@ class PatternIndexService:
                 f"but numeric_id '{numeric_id}' has {len(parts)} part(s)."
             )
 
-        result: List[str] = []
+        result: list[str] = []
         for i, seg in enumerate(segments):
             result.append(seg)
             if i < len(parts):

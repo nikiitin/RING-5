@@ -20,7 +20,7 @@ Usage:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -45,9 +45,9 @@ class WidgetDef:
 class NumberWidgetDef(WidgetDef):
     """``st.number_input`` — numeric entry with optional bounds."""
 
-    min_value: Optional[float] = None
-    max_value: Optional[float] = None
-    step: Optional[float] = None
+    min_value: float | None = None
+    max_value: float | None = None
+    step: float | None = None
     format_str: str = ""
     # If True, render as int; else float
     as_int: bool = True
@@ -66,7 +66,7 @@ class SliderWidgetDef(WidgetDef):
 class SelectWidgetDef(WidgetDef):
     """``st.selectbox`` — dropdown selection from a list of options."""
 
-    options: Tuple[str, ...] = ()
+    options: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -88,7 +88,7 @@ class TextWidgetDef(WidgetDef):
     """``st.text_input`` — free-text entry."""
 
     default: str = ""
-    max_chars: Optional[int] = None
+    max_chars: int | None = None
 
 
 @dataclass(frozen=True)
@@ -100,19 +100,19 @@ class WidgetSection:
 
     id: str
     label: str
-    widgets: Tuple[WidgetDef, ...] = ()
+    widgets: tuple[WidgetDef, ...] = ()
     icon: str = ""
     collapsed: bool = True
 
-    def keys(self) -> List[str]:
+    def keys(self) -> list[str]:
         """Return all config keys defined in this section."""
         return [w.key for w in self.widgets]
 
-    def defaults(self) -> Dict[str, Any]:
+    def defaults(self) -> dict[str, Any]:
         """Return a dict of {key: default_value} for all widgets."""
         return {w.key: w.default for w in self.widgets}
 
-    def find(self, key: str) -> Optional[WidgetDef]:
+    def find(self, key: str) -> WidgetDef | None:
         """Find a widget definition by key. Returns None if not found."""
         for w in self.widgets:
             if w.key == key:
@@ -560,7 +560,7 @@ DATA_LABELS = WidgetSection(
 # Collect all standard sections for easy iteration
 # Note: LEGEND is a convenience aggregate — STANDARD_SECTIONS uses the
 # granular sub-sections to avoid duplicate spec_path entries.
-STANDARD_SECTIONS: Tuple[WidgetSection, ...] = (
+STANDARD_SECTIONS: tuple[WidgetSection, ...] = (
     LAYOUT_DIMENSIONS,
     LAYOUT_MARGINS,
     TYPOGRAPHY,
@@ -733,7 +733,7 @@ ADVANCED_SECTION = WidgetSection(
 )
 
 # Extended collection including all sections
-ALL_SECTIONS: Tuple[WidgetSection, ...] = (
+ALL_SECTIONS: tuple[WidgetSection, ...] = (
     *STANDARD_SECTIONS,
     AXIS_X,
     AXIS_Y,

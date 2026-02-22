@@ -13,7 +13,7 @@ like, and the connectors translate to engine-specific API calls.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Literal
 
 INHERIT_F: float = -1.0
 
@@ -37,14 +37,14 @@ class AxisConfig:
     tick_pad: float = 5.0  # distance from axis (pts)
     tick_ha: Literal["left", "center", "right"] = "center"  # horizontal alignment
     tick_offset: float = 0.0  # horizontal offset (pts, for fine-tuning)
-    tick_values: Optional[List[Any]] = None  # explicit tick positions
-    tick_text: Optional[List[str]] = None  # explicit tick labels
+    tick_values: list[float | int | str] | None = None  # explicit tick positions
+    tick_text: list[str] | None = None  # explicit tick labels
     tick_font_color: str = ""  # empty = inherit from theme
     show_tick_labels: bool = True
-    dtick: Optional[float] = None  # fixed tick interval
+    dtick: float | None = None  # fixed tick interval
 
-    # ── Range & Scale ────────────────────────────────────────────
-    range: Optional[List[float]] = None  # [min, max] or None for auto
+    # ── Range & Scale ────────────────────────────────────────
+    range: list[float] | None = None  # [min, max] or None for auto
     scale: Literal["linear", "log"] = "linear"
     margin: float = 0.02  # margin as fraction of data range
     automargin: bool = True  # let engine auto-adjust margins
@@ -58,17 +58,17 @@ class AxisConfig:
     axis_line_width: float = 1.0
 
     # ── Ordering ─────────────────────────────────────────────────
-    category_order: Optional[List[str]] = None  # explicit category order
-    label_aliases: Optional[Dict[str, str]] = None  # tick label remapping
+    category_order: list[str] | None = None  # explicit category order
+    label_aliases: dict[str, str] | None = None  # tick label remapping
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize to a plain dictionary."""
         from dataclasses import asdict
 
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "AxisConfig":
+    def from_dict(cls, data: dict[str, Any]) -> AxisConfig:
         """Reconstruct from serialized dictionary."""
         return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
 
@@ -83,17 +83,17 @@ class AxesConfig:
 
     x: AxisConfig = field(default_factory=AxisConfig)
     y: AxisConfig = field(default_factory=AxisConfig)
-    y2: Optional[AxisConfig] = None  # None = no secondary Y-axis
+    y2: AxisConfig | None = None  # None = no secondary Y-axis
 
-    # ── Group labels (below X-axis) ──────────────────────────────
+    # ── Group labels (below X-axis) ──────────────────────────
     group_label_offset: float = -0.12  # vertical offset below axis
     group_label_alternate: bool = True  # alternate up/down
     group_label_alt_spacing: float = 0.05  # distance between levels
-    group_order: Optional[List[str]] = None  # explicit group ordering
+    group_order: list[str] | None = None  # explicit group ordering
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize to a plain dictionary."""
-        result: Dict[str, Any] = {
+        result: dict[str, Any] = {
             "x": self.x.to_dict(),
             "y": self.y.to_dict(),
             "group_label_offset": self.group_label_offset,
@@ -106,7 +106,7 @@ class AxesConfig:
         return result
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "AxesConfig":
+    def from_dict(cls, data: dict[str, Any]) -> AxesConfig:
         """Reconstruct from serialized dictionary."""
         x_data = data.get("x", {})
         y_data = data.get("y", {})

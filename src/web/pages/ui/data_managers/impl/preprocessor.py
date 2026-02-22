@@ -3,7 +3,6 @@ Preprocessor Manager
 """
 
 from datetime import datetime, timezone
-from typing import Optional
 
 import pandas as pd
 import streamlit as st
@@ -125,7 +124,7 @@ class PreprocessorManager(DataManager):
             if st.button(
                 "Confirm and Add Column to Dataset", key="confirm_preproc", type="primary"
             ):
-                confirmed_data: Optional[pd.DataFrame] = self.api.get_preview("preprocessor")
+                confirmed_data: pd.DataFrame | None = self.api.get_preview("preprocessor")
                 if confirmed_data is not None:
                     self.set_data(confirmed_data)
                     self.api.clear_preview("preprocessor")

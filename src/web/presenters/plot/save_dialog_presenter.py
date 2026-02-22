@@ -5,7 +5,7 @@ Pure rendering: renders widgets, returns user input.
 The controller handles the actual save operation.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 import streamlit as st
 
@@ -25,7 +25,7 @@ class SaveDialogPresenter:
     def render(
         plot_id: int,
         plot_name: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Render save pipeline dialog widgets inside a form.
 

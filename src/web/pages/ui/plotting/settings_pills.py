@@ -17,7 +17,6 @@ Progressive disclosure (Step 31):
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional
 
 import streamlit as st
 
@@ -52,7 +51,7 @@ class SettingsSection:
 # Top-level navigation sections
 # ------------------------------------------------------------------
 
-SETTINGS_SECTIONS: List[SettingsSection] = [
+SETTINGS_SECTIONS: list[SettingsSection] = [
     # Basic sections — always visible
     SettingsSection("layout", "Layout", "dashboard"),
     SettingsSection("typography", "Typography", "text_fields"),
@@ -65,7 +64,7 @@ SETTINGS_SECTIONS: List[SettingsSection] = [
 ]
 
 
-def render_preset_pills(plot_id: int) -> Optional[str]:
+def render_preset_pills(plot_id: int) -> str | None:
     """Render preset selector pills and return the selected preset name.
 
     Parameters
@@ -75,14 +74,14 @@ def render_preset_pills(plot_id: int) -> Optional[str]:
 
     Returns
     -------
-    Optional[str]
+    str | None
         The selected preset name (e.g. ``"isca"``), or ``None`` if
         "None" is selected or nothing is chosen.
     """
-    preset_names: List[str] = PresetManager.list_presets()
-    options: List[str] = ["none"] + preset_names
+    preset_names: list[str] = PresetManager.list_presets()
+    options: list[str] = ["none"] + preset_names
 
-    selected: Optional[str] = st.pills(
+    selected: str | None = st.pills(
         "Preset",
         options=options,
         format_func=lambda x: "None" if x == "none" else x.upper(),
@@ -95,7 +94,7 @@ def render_preset_pills(plot_id: int) -> Optional[str]:
     return selected
 
 
-def render_settings_pills(show_advanced: bool = False) -> Optional[str]:
+def render_settings_pills(show_advanced: bool = False) -> str | None:
     """Render the top-level pills navigation and return the selected key.
 
     Parameters
@@ -105,17 +104,17 @@ def render_settings_pills(show_advanced: bool = False) -> Optional[str]:
 
     Returns
     -------
-    Optional[str]
+    str | None
         The ``key`` of the currently selected section, or ``None``
         if nothing is selected.
     """
-    visible: List[SettingsSection] = [
+    visible: list[SettingsSection] = [
         s for s in SETTINGS_SECTIONS if not s.advanced or show_advanced
     ]
-    options: List[str] = [s.key for s in visible]
+    options: list[str] = [s.key for s in visible]
     labels: dict[str, str] = {s.key: f":material/{s.icon}: {s.label}" for s in visible}
 
-    selected: Optional[str] = st.pills(
+    selected: str | None = st.pills(
         "Settings",
         options=options,
         format_func=lambda x: labels[x],

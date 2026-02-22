@@ -16,7 +16,8 @@ Usage:
 
 from __future__ import annotations
 
-from typing import Any, Dict, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from src.web.rendering.widgets.widget_def import (
     CheckboxWidgetDef,
@@ -51,9 +52,9 @@ class WidgetRenderer:
     def render_section(
         self,
         section: WidgetSection,
-        saved_config: Dict[str, Any],
+        saved_config: dict[str, Any],
         use_expander: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Render all widgets in a section and return collected config.
 
         Args:
@@ -66,7 +67,7 @@ class WidgetRenderer:
         """
         import streamlit as st
 
-        result: Dict[str, Any] = {}
+        result: dict[str, Any] = {}
 
         if use_expander:
             label = f"{section.icon} {section.label}" if section.icon else section.label
@@ -84,8 +85,8 @@ class WidgetRenderer:
     def render_sections(
         self,
         sections: Sequence[WidgetSection],
-        saved_config: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        saved_config: dict[str, Any],
+    ) -> dict[str, Any]:
         """Render multiple sections and merge results.
 
         Args:
@@ -95,7 +96,7 @@ class WidgetRenderer:
         Returns:
             Merged dict of all widget values.
         """
-        result: Dict[str, Any] = {}
+        result: dict[str, Any] = {}
         for section in sections:
             result.update(self.render_section(section, saved_config))
         return result
@@ -103,7 +104,7 @@ class WidgetRenderer:
     def _render_widget(
         self,
         widget_def: WidgetDef,
-        saved_config: Dict[str, Any],
+        saved_config: dict[str, Any],
     ) -> Any:
         """Render a single widget and return its value.
 

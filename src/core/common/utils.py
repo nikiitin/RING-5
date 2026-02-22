@@ -11,12 +11,11 @@ import os
 import re
 import tempfile
 from pathlib import Path
-from typing import Union
 
 logger = logging.getLogger(__name__)
 
 # Type alias for JSON-compatible values
-JsonValue = Union[bool, int, float, str, list["JsonValue"], dict[str, "JsonValue"], None]
+JsonValue = bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"] | None
 
 
 def getElementValue(

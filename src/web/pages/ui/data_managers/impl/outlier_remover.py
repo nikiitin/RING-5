@@ -3,7 +3,6 @@ Outlier Remover Manager
 """
 
 from datetime import datetime, timezone
-from typing import Optional
 
 import pandas as pd
 import streamlit as st
@@ -163,7 +162,7 @@ class OutlierRemoverManager(DataManager):
             if st.button(
                 "Confirm and Apply Outlier Remover", key="confirm_outlier", type="primary"
             ):
-                confirmed_df: Optional[pd.DataFrame] = self.api.get_preview("outlier_removal")
+                confirmed_df: pd.DataFrame | None = self.api.get_preview("outlier_removal")
                 if confirmed_df is not None:
                     self.set_data(confirmed_df)
                     self.api.clear_preview("outlier_removal")

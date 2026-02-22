@@ -5,7 +5,7 @@ Returns the user's input (name, type, button click) without performing
 any creation logic. The controller decides what to do with the result.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import streamlit as st
 
@@ -24,8 +24,8 @@ class PlotCreationPresenter:
     @staticmethod
     def render(
         default_name: str,
-        available_types: List[str],
-    ) -> Dict[str, Any]:
+        available_types: list[str],
+    ) -> dict[str, Any]:
         """
         Render plot creation widgets inside a form.
 
@@ -47,7 +47,7 @@ class PlotCreationPresenter:
             with col1:
                 name: str = st.text_input("New plot name", value=default_name, key="new_plot_name")
             with col2:
-                plot_type: Optional[str] = st.selectbox(
+                plot_type: str | None = st.selectbox(
                     "Plot type", options=available_types, key="new_plot_type"
                 )
             with col3:

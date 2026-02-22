@@ -6,7 +6,7 @@ data transformation pipelines, rendering, and export operations.
 """
 
 import logging
-from typing import Any, cast
+from typing import cast
 
 import streamlit as st
 
@@ -379,7 +379,7 @@ class PlotManagerComponents:
                                         f"Downloading **{p.name}** " f"({i + 1}/{len(plots)})..."
                                     )
                                     res = PlotService.export_plot_to_file(
-                                        cast(BasePlot, p), export_path, format=cast(Any, fmt_to_use)
+                                        cast(BasePlot, p), export_path, format=fmt_to_use
                                     )
                                     if res:
                                         count += 1

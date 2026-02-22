@@ -27,7 +27,7 @@ Usage in Controllers:
     ``ui_state.plot.set_dialog_visible(plot_id, "save", True)``
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import streamlit as st
 
@@ -73,13 +73,13 @@ class _PlotUIState:
 
     # ─── Ordering State ──────────────────────────────────────────────────
 
-    def get_order(self, plot_id: int, order_type: str) -> Optional[List[Any]]:
+    def get_order(self, plot_id: int, order_type: str) -> list[Any] | None:
         """Get custom ordering for a dimension (xaxis, group, legend)."""
         key: str = self._key(plot_id, f"order.{order_type}")
-        result: Optional[List[Any]] = st.session_state.get(key)
+        result: list[Any] | None = st.session_state.get(key)
         return result
 
-    def set_order(self, plot_id: int, order_type: str, order: List[Any]) -> None:
+    def set_order(self, plot_id: int, order_type: str, order: list[Any]) -> None:
         """Set custom ordering for a dimension."""
         st.session_state[self._key(plot_id, f"order.{order_type}")] = order
 
@@ -95,18 +95,18 @@ class _PlotUIState:
 
     # ─── Pending Relayout Updates ────────────────────────────────────────
 
-    def get_pending_updates(self) -> Optional[Dict[str, Any]]:
+    def get_pending_updates(self) -> dict[str, Any] | None:
         """Get pending widget updates from a previous relayout event."""
-        result: Optional[Dict[str, Any]] = st.session_state.get("plot.pending_updates")
+        result: dict[str, Any] | None = st.session_state.get("plot.pending_updates")
         return result
 
-    def set_pending_updates(self, updates: Dict[str, Any]) -> None:
+    def set_pending_updates(self, updates: dict[str, Any]) -> None:
         """Store pending widget updates for the next rerun."""
         st.session_state["plot.pending_updates"] = updates
 
-    def consume_pending_updates(self) -> Optional[Dict[str, Any]]:
+    def consume_pending_updates(self) -> dict[str, Any] | None:
         """Get and clear pending updates (atomic pop)."""
-        result: Optional[Dict[str, Any]] = st.session_state.pop("plot.pending_updates", None)
+        result: dict[str, Any] | None = st.session_state.pop("plot.pending_updates", None)
         return result
 
     # ─── Scoped Cleanup ──────────────────────────────────────────────────
@@ -119,7 +119,7 @@ class _PlotUIState:
         Cleans both new namespaced keys and legacy keys for backward compat.
         """
         prefix: str = f"plot.{plot_id}."
-        legacy_prefixes: List[str] = [
+        legacy_prefixes: list[str] = [
             f"auto_{plot_id}",
             f"show_save_for_plot_{plot_id}",
             f"show_load_for_plot_{plot_id}",
@@ -127,7 +127,7 @@ class _PlotUIState:
             f"auto_t_{plot_id}",
         ]
 
-        keys_to_remove: List[str] = []
+        keys_to_remove: list[str] = []
         for key in list(st.session_state.keys()):
             if isinstance(key, str) and (key.startswith(prefix) or key in legacy_prefixes):
                 keys_to_remove.append(key)
@@ -150,20 +150,20 @@ class _ManagerUIState:
 
     # ─── Load Triggers ───────────────────────────────────────────────────
 
-    def get_load_trigger(self, manager_name: str) -> Optional[Dict[str, Any]]:
+    def get_load_trigger(self, manager_name: str) -> dict[str, Any] | None:
         """Get a pending load-from-history trigger for a manager."""
-        result: Optional[Dict[str, Any]] = st.session_state.get(
+        result: dict[str, Any] | None = st.session_state.get(
             self._key(manager_name, "load_trigger")
         )
         return result
 
-    def set_load_trigger(self, manager_name: str, record: Dict[str, Any]) -> None:
+    def set_load_trigger(self, manager_name: str, record: dict[str, Any]) -> None:
         """Set a load-from-history trigger for a manager."""
         st.session_state[self._key(manager_name, "load_trigger")] = record
 
-    def consume_load_trigger(self, manager_name: str) -> Optional[Dict[str, Any]]:
+    def consume_load_trigger(self, manager_name: str) -> dict[str, Any] | None:
         """Get and clear a load trigger (atomic pop)."""
-        result: Optional[Dict[str, Any]] = st.session_state.pop(
+        result: dict[str, Any] | None = st.session_state.pop(
             self._key(manager_name, "load_trigger"), None
         )
         return result
@@ -174,7 +174,7 @@ class _ManagerUIState:
         """Set a form field value for a manager."""
         st.session_state[self._key(manager_name, f"form.{field}")] = value
 
-    def get_form_value(self, manager_name: str, field: str) -> Optional[Any]:
+    def get_form_value(self, manager_name: str, field: str) -> Any | None:
         """Get a form field value for a manager."""
         return st.session_state.get(self._key(manager_name, f"form.{field}"))
 
@@ -183,7 +183,7 @@ class _ManagerUIState:
     def cleanup(self, manager_name: str) -> None:
         """Remove all session_state keys for a manager."""
         prefix: str = f"manager.{manager_name}."
-        keys_to_remove: List[str] = [
+        keys_to_remove: list[str] = [
             key
             for key in st.session_state.keys()
             if isinstance(key, str) and key.startswith(prefix)
@@ -199,18 +199,18 @@ class _NavUIState:
     Namespaced under ``nav.*``.
     """
 
-    def get_current_page(self) -> Optional[str]:
+    def get_current_page(self) -> str | None:
         """Get the currently active page name."""
-        result: Optional[str] = st.session_state.get("nav.current_page")
+        result: str | None = st.session_state.get("nav.current_page")
         return result
 
     def set_current_page(self, page: str) -> None:
         """Set the current page."""
         st.session_state["nav.current_page"] = page
 
-    def get_current_tab(self) -> Optional[str]:
+    def get_current_tab(self) -> str | None:
         """Get the current tab within a page."""
-        result: Optional[str] = st.session_state.get("nav.current_tab")
+        result: str | None = st.session_state.get("nav.current_tab")
         return result
 
     def set_current_tab(self, tab: str) -> None:
@@ -273,8 +273,8 @@ class UIStateManager:
         Removes all namespaced keys (``plot.*``, ``manager.*``, ``nav.*``,
         ``export.*``) from session_state.
         """
-        prefixes: List[str] = ["plot.", "manager.", "nav.", "export."]
-        keys_to_remove: List[str] = [
+        prefixes: list[str] = ["plot.", "manager.", "nav.", "export."]
+        keys_to_remove: list[str] = [
             key
             for key in list(st.session_state.keys())
             if isinstance(key, str) and any(key.startswith(p) for p in prefixes)
@@ -282,14 +282,14 @@ class UIStateManager:
         for key in keys_to_remove:
             del st.session_state[key]
 
-    def get_all_keys(self) -> List[str]:
+    def get_all_keys(self) -> list[str]:
         """
         Get all namespaced UI state keys (for debugging/performance page).
 
         Returns:
             List of all session_state keys managed by UIStateManager.
         """
-        prefixes: List[str] = ["plot.", "manager.", "nav.", "export."]
+        prefixes: list[str] = ["plot.", "manager.", "nav.", "export."]
         return [
             key
             for key in st.session_state.keys()

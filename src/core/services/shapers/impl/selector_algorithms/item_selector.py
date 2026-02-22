@@ -7,7 +7,7 @@ Part of the selector algorithm family for value-based filtering.
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 import pandas as pd
 
@@ -20,7 +20,7 @@ class ItemSelector(Selector):
     Supports exact match (isin) or substring matching (contains).
     """
 
-    def __init__(self, params: Dict[str, Any]) -> None:
+    def __init__(self, params: dict[str, Any]) -> None:
         """
         Initialize ItemSelector.
 
@@ -28,7 +28,7 @@ class ItemSelector(Selector):
             params: Must contain 'column' and 'strings'.
                 - mode (str): 'exact' (default) or 'contains'.
         """
-        self.strings: List[str] = [str(s) for s in params.get("strings", [])]
+        self.strings: list[str] = [str(s) for s in params.get("strings", [])]
         self.mode: str = params.get("mode", "exact")
         super().__init__(params)
 

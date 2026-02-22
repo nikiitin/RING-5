@@ -1,6 +1,6 @@
 """Scatter plot implementation."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pandas as pd
 import streamlit as st
@@ -16,7 +16,7 @@ class ScatterPlot(BasePlot):
     def __init__(self, plot_id: int, name: str):
         super().__init__(plot_id, name, "scatter")
 
-    def render_config_ui(self, data: pd.DataFrame, saved_config: Dict[str, Any]) -> Dict[str, Any]:
+    def render_config_ui(self, data: pd.DataFrame, saved_config: dict[str, Any]) -> dict[str, Any]:
         """Render configuration UI for scatter plot."""
         # Common config
         config = self.render_common_config(data, saved_config)
@@ -36,23 +36,23 @@ class ScatterPlot(BasePlot):
 
         return {**config, "color": color_column}
 
-    def create_traces(self, data: pd.DataFrame, config: Dict[str, Any]) -> TraceBuildResult:
+    def create_traces(self, data: pd.DataFrame, config: dict[str, Any]) -> TraceBuildResult:
         """Produce scatter traces from data and config."""
         x_col: str = config["x"]
         y_col: str = config["y"]
-        color_col: Optional[str] = config.get("color")
+        color_col: str | None = config.get("color")
 
         # Error bar column
-        sd_col: Optional[str] = None
+        sd_col: str | None = None
         if config.get("show_error_bars"):
             candidate = f"{y_col}.sd"
             if candidate in data.columns:
                 sd_col = candidate
 
-        traces: List[ScatterTraceConfig] = []
+        traces: list[ScatterTraceConfig] = []
 
         if color_col:
-            groups: List[str] = sorted(data[color_col].unique().astype(str))
+            groups: list[str] = sorted(data[color_col].unique().astype(str))
             data = data.copy()
             data[color_col] = data[color_col].astype(str)
             for grp in groups:
@@ -79,7 +79,7 @@ class ScatterPlot(BasePlot):
 
         return TraceBuildResult(traces=traces)
 
-    def get_legend_column(self, config: Dict[str, Any]) -> Optional[str]:
+    def get_legend_column(self, config: dict[str, Any]) -> str | None:
         """Get legend column for scatter plot."""
         result = config.get("color")
         return str(result) if result is not None else None

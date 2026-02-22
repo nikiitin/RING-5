@@ -5,8 +5,6 @@ Detects and removes statistical outliers from data using quartile-based
 methods. Supports global and grouped outlier removal for robust analysis.
 """
 
-from typing import List
-
 import pandas as pd
 
 
@@ -15,7 +13,7 @@ class OutlierService:
 
     @staticmethod
     def remove_outliers(
-        df: pd.DataFrame, outlier_col: str, group_by_cols: List[str]
+        df: pd.DataFrame, outlier_col: str, group_by_cols: list[str]
     ) -> pd.DataFrame:
         """Remove outliers relative to the 3rd Quartile (Q3)."""
         if df.empty or outlier_col not in df.columns:
@@ -30,10 +28,10 @@ class OutlierService:
 
     @staticmethod
     def validate_outlier_inputs(
-        df: pd.DataFrame, outlier_col: str, group_by_cols: List[str]
-    ) -> List[str]:
+        df: pd.DataFrame, outlier_col: str, group_by_cols: list[str]
+    ) -> list[str]:
         """Validate inputs for remove_outliers operation."""
-        errors: List[str] = []
+        errors: list[str] = []
 
         if not outlier_col:
             errors.append("Outlier column must be specified")

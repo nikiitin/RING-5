@@ -4,7 +4,6 @@ Single Responsibility: Manage operation history state for managers and portfolio
 """
 
 import logging
-from typing import List
 
 from src.core.models.history_models import OperationRecord
 
@@ -26,12 +25,12 @@ class HistoryRepository:
 
     def __init__(self) -> None:
         """Initialize empty history lists."""
-        self._manager_history: List[OperationRecord] = []
-        self._portfolio_history: List[OperationRecord] = []
+        self._manager_history: list[OperationRecord] = []
+        self._portfolio_history: list[OperationRecord] = []
 
     # ==================== Manager History ====================
 
-    def get_manager_history(self) -> List[OperationRecord]:
+    def get_manager_history(self) -> list[OperationRecord]:
         """Return a copy of the manager history list."""
         return list(self._manager_history)
 
@@ -46,7 +45,7 @@ class HistoryRepository:
             len(self._manager_history),
         )
 
-    def set_manager_history(self, records: List[OperationRecord]) -> None:
+    def set_manager_history(self, records: list[OperationRecord]) -> None:
         """Bulk-set manager history (used for portfolio restore)."""
         self._manager_history = list(records)
 
@@ -56,7 +55,7 @@ class HistoryRepository:
 
     # ==================== Portfolio History ====================
 
-    def get_portfolio_history(self) -> List[OperationRecord]:
+    def get_portfolio_history(self) -> list[OperationRecord]:
         """Return a copy of the portfolio history list."""
         return list(self._portfolio_history)
 
@@ -69,7 +68,7 @@ class HistoryRepository:
             len(self._portfolio_history),
         )
 
-    def set_portfolio_history(self, records: List[OperationRecord]) -> None:
+    def set_portfolio_history(self, records: list[OperationRecord]) -> None:
         """Bulk-set portfolio history (used for portfolio restore)."""
         self._portfolio_history = list(records)
 

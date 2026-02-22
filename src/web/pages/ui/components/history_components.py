@@ -5,7 +5,7 @@ Provides reusable Streamlit components for rendering operation history
 tables, filtered by manager type or showing the full portfolio history.
 """
 
-from typing import Callable, List, Optional
+from collections.abc import Callable
 
 import pandas as pd
 import streamlit as st
@@ -18,9 +18,9 @@ class HistoryComponents:
 
     @staticmethod
     def render_history_table(
-        records: List[OperationRecord],
+        records: list[OperationRecord],
         *,
-        title: Optional[str] = None,
+        title: str | None = None,
     ) -> None:
         """Render a list of OperationRecords as a Streamlit table.
 
@@ -50,7 +50,7 @@ class HistoryComponents:
 
     @staticmethod
     def render_global_history(
-        all_records: List[OperationRecord],
+        all_records: list[OperationRecord],
         delete_callback: Callable[[OperationRecord], None],
         *,
         key_prefix: str = "global",
@@ -96,7 +96,7 @@ class HistoryComponents:
 
     @staticmethod
     def render_manager_history(
-        all_records: List[OperationRecord],
+        all_records: list[OperationRecord],
         operation_prefix: str,
         load_session_key: str,
         delete_callback: Callable[[OperationRecord], None],
@@ -154,7 +154,7 @@ class HistoryComponents:
                     )
 
     @staticmethod
-    def render_portfolio_history(records: List[OperationRecord]) -> None:
+    def render_portfolio_history(records: list[OperationRecord]) -> None:
         """Render the full portfolio history (all managers).
 
         Intended for the dedicated "Operations History" tab.

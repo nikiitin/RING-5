@@ -7,7 +7,7 @@ Chart display, engine selection, and download are handled by
 
 import hashlib
 import json
-from typing import Any, Dict
+from typing import Any
 
 import pandas as pd
 
@@ -25,7 +25,7 @@ class PlotRenderer:
     """
 
     @staticmethod
-    def _compute_figure_cache_key(plot_id: int, config: Dict[str, Any], data_hash: str) -> str:
+    def _compute_figure_cache_key(plot_id: int, config: dict[str, Any], data_hash: str) -> str:
         """
         Compute stable cache key for plot figure.
 

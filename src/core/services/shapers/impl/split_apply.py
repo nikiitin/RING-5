@@ -82,10 +82,11 @@ Version: 1.0.0
 """
 
 import logging
-from typing import Any, cast
+from typing import Any
 
 import pandas as pd
 
+from src.core.models.data_models import ShaperStepConfig, SplitApplyGroupConfig
 from src.core.services.shapers.uni_df_shaper import UniDfShaper
 
 logger = logging.getLogger(__name__)
@@ -112,7 +113,7 @@ class SplitApply(UniDfShaper):
                     - pipeline (List[Dict]): Shaper configs to apply.
         """
         self._join_columns: list[str] = params.get("joinColumns", [])
-        self._groups: list[dict[str, Any]] = params.get("groups", [])
+        self._groups: list[SplitApplyGroupConfig] = params.get("groups", [])
         self._params = params
 
         super().__init__(params)
@@ -183,7 +184,7 @@ class SplitApply(UniDfShaper):
     @staticmethod
     def _apply_sub_pipeline(
         data: pd.DataFrame,
-        pipeline: list[dict[str, Any]],
+        pipeline: list[ShaperStepConfig],
     ) -> pd.DataFrame:
         """Apply a sequence of shapers to a DataFrame slice.
 
@@ -205,9 +206,7 @@ class SplitApply(UniDfShaper):
             shaper_type = step_cfg.get("type")
             if not shaper_type:
                 continue
-            from src.core.models.data_models import ShaperStepConfig
-
-            shaper = ShaperFactory.create_shaper(shaper_type, cast(ShaperStepConfig, step_cfg))
+            shaper = ShaperFactory.create_shaper(shaper_type, step_cfg)
             result = shaper(result)
         return result
 
@@ -236,7 +235,7 @@ class SplitApply(UniDfShaper):
         group_results: list[pd.DataFrame] = []
         for idx, group in enumerate(self._groups):
             group_cols: list[str] = list(group["columns"])
-            pipeline: list[dict[str, Any]] = group.get("pipeline", [])
+            pipeline: list[ShaperStepConfig] = group.get("pipeline", [])
 
             # Include matching .sd columns automatically
             sd_cols: list[str] = [

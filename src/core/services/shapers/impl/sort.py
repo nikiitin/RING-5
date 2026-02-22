@@ -70,7 +70,7 @@ Version: 2.0.0
 Last Modified: 2026-01-27
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 import pandas as pd
 
@@ -82,7 +82,7 @@ class Sort(UniDfShaper):
     Shaper that sorts a DataFrame based on a custom categorical order for multiple columns.
     """
 
-    def __init__(self, params: Dict[str, Any]) -> None:
+    def __init__(self, params: dict[str, Any]) -> None:
         """
         Initialize Sort shaper.
 
@@ -90,7 +90,7 @@ class Sort(UniDfShaper):
             params: Must contain 'order_dict' which maps column names to
                     a list of values defining the preferred sort order.
         """
-        self.order_dict: Dict[str, List[str]] = params.get("order_dict", {})
+        self.order_dict: dict[str, list[str]] = params.get("order_dict", {})
         super().__init__(params)
 
     def _verify_params(self) -> bool:

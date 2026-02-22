@@ -9,7 +9,8 @@ state changes happen atomically in the callback phase, eliminating the
 need for an explicit ``st.rerun()`` in the controller.
 """
 
-from typing import Any, Callable, Dict, Optional
+from collections.abc import Callable
+from typing import Any
 
 import streamlit as st
 
@@ -29,9 +30,9 @@ class PlotControlsPresenter:
     def render(
         plot_id: int,
         current_name: str,
-        on_save: Optional[Callable[[], None]] = None,
-        on_load: Optional[Callable[[], None]] = None,
-    ) -> Dict[str, Any]:
+        on_save: Callable[[], None] | None = None,
+        on_load: Callable[[], None] | None = None,
+    ) -> dict[str, Any]:
         """
         Render plot control widgets.
 
@@ -63,7 +64,7 @@ class PlotControlsPresenter:
         with col2:
             c2_1, c2_2 = st.columns(2)
             with c2_1:
-                save_kwargs: Dict[str, Any] = {
+                save_kwargs: dict[str, Any] = {
                     "key": f"save_plot_{plot_id}",
                     "help": "Save current pipeline",
                 }
@@ -71,7 +72,7 @@ class PlotControlsPresenter:
                     save_kwargs["on_click"] = on_save
                 save_clicked: bool = st.button("Save Pipe", **save_kwargs)
             with c2_2:
-                load_kwargs: Dict[str, Any] = {
+                load_kwargs: dict[str, Any] = {
                     "key": f"load_plot_{plot_id}",
                     "help": "Load to current pipeline",
                 }

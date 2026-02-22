@@ -7,15 +7,11 @@ with plots without depending on concrete web implementations.
 """
 
 from collections.abc import Callable
-from typing import Any, Optional, Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 import pandas as pd
 
 from src.core.models.data_models import PipelineStep
-
-# Type alias: a callable that deserializes a dict into a PlotProtocol.
-# Injected at startup so the core layer never imports web-layer classes.
-PlotDeserializer = Callable[[dict[str, Any]], Optional["PlotProtocol"]]
 
 
 @runtime_checkable
@@ -38,3 +34,8 @@ class PlotProtocol(Protocol):
     def to_dict(self) -> dict[str, Any]:
         """Serialize the plot to a dictionary."""
         ...
+
+
+# Type alias: a callable that deserializes a dict into a PlotProtocol.
+# Injected at startup so the core layer never imports web-layer classes.
+PlotDeserializer = Callable[[dict[str, Any]], PlotProtocol | None]

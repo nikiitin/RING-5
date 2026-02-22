@@ -1,6 +1,6 @@
 """Histogram plot implementation."""
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import pandas as pd
 import streamlit as st
@@ -31,7 +31,7 @@ class HistogramPlot(BasePlot):
         """
         super().__init__(plot_id, name, "histogram")
 
-    def render_config_ui(self, data: pd.DataFrame, saved_config: Dict[str, Any]) -> Dict[str, Any]:
+    def render_config_ui(self, data: pd.DataFrame, saved_config: dict[str, Any]) -> dict[str, Any]:
         """
         Render configuration UI for histogram plot.
 
@@ -73,7 +73,7 @@ class HistogramPlot(BasePlot):
 
         # Grouping variable (for multiple histograms)
         categorical_cols = config["categorical_cols"]
-        group_options: List[Optional[str]] = [None] + categorical_cols
+        group_options: list[str | None] = [None] + categorical_cols
 
         group_default_idx = 0
         if saved_config.get("group_by") and saved_config["group_by"] in categorical_cols:
@@ -127,7 +127,7 @@ class HistogramPlot(BasePlot):
             "cumulative": cumulative,
         }
 
-    def create_traces(self, data: pd.DataFrame, config: Dict[str, Any]) -> TraceBuildResult:
+    def create_traces(self, data: pd.DataFrame, config: dict[str, Any]) -> TraceBuildResult:
         """
         Create histogram trace configurations.
 
@@ -173,7 +173,7 @@ class HistogramPlot(BasePlot):
             barmode=barmode,
         )
 
-    def get_legend_column(self, config: Dict[str, Any]) -> Optional[str]:
+    def get_legend_column(self, config: dict[str, Any]) -> str | None:
         """
         Get legend column for histogram plot.
 
@@ -188,7 +188,7 @@ class HistogramPlot(BasePlot):
 
     # ========== Helper Methods ==========
 
-    def _detect_histogram_variables(self, data: pd.DataFrame) -> List[str]:
+    def _detect_histogram_variables(self, data: pd.DataFrame) -> list[str]:
         """
         Detect histogram variables from DataFrame columns.
 
@@ -211,9 +211,9 @@ class HistogramPlot(BasePlot):
     def _extract_bucket_data(
         self,
         data: pd.DataFrame,
-        bucket_cols: List[str],
-        config: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        bucket_cols: list[str],
+        config: dict[str, Any],
+    ) -> dict[str, Any]:
         """
         Extract and process bucket data from DataFrame.
 
@@ -226,7 +226,7 @@ class HistogramPlot(BasePlot):
             Dictionary with processed bucket data
         """
         # Parse bucket ranges
-        buckets: List[Tuple[float, float]] = []
+        buckets: list[tuple[float, float]] = []
         for col in bucket_cols:
             bucket_part = col.split("..")[1]
             if "-" in bucket_part:
@@ -272,9 +272,9 @@ class HistogramPlot(BasePlot):
 
     def _add_single_histogram(
         self,
-        bucket_data: Dict[str, Any],
-        config: Dict[str, Any],
-    ) -> List[BarTraceConfig]:
+        bucket_data: dict[str, Any],
+        config: dict[str, Any],
+    ) -> list[BarTraceConfig]:
         """
         Build a single histogram trace.
 
@@ -306,9 +306,9 @@ class HistogramPlot(BasePlot):
 
     def _add_grouped_histograms(
         self,
-        bucket_data: Dict[str, Any],
-        config: Dict[str, Any],
-    ) -> List[BarTraceConfig]:
+        bucket_data: dict[str, Any],
+        config: dict[str, Any],
+    ) -> list[BarTraceConfig]:
         """
         Build multiple grouped histogram traces.
 
@@ -323,7 +323,7 @@ class HistogramPlot(BasePlot):
         groups = bucket_data["groups"]
 
         x_centers = [(b[0] + b[1]) / 2 for b in buckets]
-        traces: List[BarTraceConfig] = []
+        traces: list[BarTraceConfig] = []
 
         for group in groups:
             values = bucket_data["data"].get(str(group), [])
@@ -342,7 +342,7 @@ class HistogramPlot(BasePlot):
 
         return traces
 
-    def _normalize_values(self, values: List[float], config: Dict[str, Any]) -> List[float]:
+    def _normalize_values(self, values: list[float], config: dict[str, Any]) -> list[float]:
         """
         Normalize histogram values according to config.
 

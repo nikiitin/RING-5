@@ -110,7 +110,7 @@ class Normalize(UniDfShaper):
         # Assign properties before super().__init__ as _verify_params needs them
         self._normalize_vars: list[str] = params.get("normalizeVars", [])
         self._normalizer_column: str = params.get("normalizerColumn", "")
-        self._normalizer_value: Any = params.get("normalizerValue", "")
+        self._normalizer_value: str = params.get("normalizerValue", "")
         self._group_by: list[str] = params.get("groupBy", [])
         self._normalizer_vars: list[str] = params.get("normalizerVars", self._normalize_vars)
         self._normalize_sd: bool = params.get("normalizeSd", True)

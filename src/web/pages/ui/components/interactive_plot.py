@@ -7,7 +7,7 @@ event handling and relayout data capture.
 
 import json
 import os
-from typing import Any, Dict, Optional
+from typing import Any
 
 import plotly.graph_objects as go
 import streamlit.components.v1 as components
@@ -20,8 +20,8 @@ _component_func = components.declare_component("interactive_plotly", path=compon
 
 
 def interactive_plotly_chart(
-    fig: go.Figure, config: Optional[Dict[str, Any]] = None, key: Optional[str] = None
-) -> Optional[Dict[str, Any]]:
+    fig: go.Figure, config: dict[str, Any] | None = None, key: str | None = None
+) -> dict[str, Any] | None:
     """
     Render a Plotly figure with custom interactivity.
 
@@ -41,7 +41,7 @@ def interactive_plotly_chart(
     fig_json: str = fig.to_json()
 
     # Render component
-    component_value: Optional[Dict[str, Any]] = _component_func(
+    component_value: dict[str, Any] | None = _component_func(
         spec=fig_json, config=json.dumps(config) if config else "{}", key=key, default=None
     )
 

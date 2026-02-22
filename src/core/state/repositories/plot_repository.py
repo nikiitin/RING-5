@@ -15,7 +15,6 @@ Responsibilities:
 from __future__ import annotations
 
 import logging
-from typing import List, Optional
 
 from src.core.models import PlotProtocol
 
@@ -37,11 +36,11 @@ class PlotRepository:
 
     def __init__(self) -> None:
         """Initialize in-memory storage."""
-        self._plots: List[PlotProtocol] = []
+        self._plots: list[PlotProtocol] = []
         self._plot_counter: int = 0
-        self._current_plot_id: Optional[int] = None
+        self._current_plot_id: int | None = None
 
-    def get_plots(self) -> List[PlotProtocol]:
+    def get_plots(self) -> list[PlotProtocol]:
         """
         Retrieve all plot objects.
 
@@ -50,7 +49,7 @@ class PlotRepository:
         """
         return self._plots
 
-    def set_plots(self, plots: List[PlotProtocol]) -> None:
+    def set_plots(self, plots: list[PlotProtocol]) -> None:
         """
         Replace the entire plot list.
 
@@ -118,7 +117,7 @@ class PlotRepository:
         self._plot_counter += 1
         return current
 
-    def get_current_plot_id(self) -> Optional[int]:
+    def get_current_plot_id(self) -> int | None:
         """
         Get the currently active plot ID.
 
@@ -127,7 +126,7 @@ class PlotRepository:
         """
         return self._current_plot_id
 
-    def set_current_plot_id(self, plot_id: Optional[int]) -> None:
+    def set_current_plot_id(self, plot_id: int | None) -> None:
         """
         Set the currently active plot ID.
 

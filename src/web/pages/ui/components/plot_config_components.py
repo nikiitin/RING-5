@@ -1,6 +1,6 @@
 """Reusable UI components for plot configuration."""
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import pandas as pd
 import streamlit as st
@@ -12,13 +12,13 @@ class PlotConfigComponents:
     @staticmethod
     def render_filter_multiselects(
         data: pd.DataFrame,
-        x_col: Optional[str],
-        group_col: Optional[str],
-        saved_config: Dict[str, Any],
+        x_col: str | None,
+        group_col: str | None,
+        saved_config: dict[str, Any],
         plot_id: int,
         x_label: str = "Filter X values",
         group_label: str = "Filter Groups",
-    ) -> Tuple[List[str], List[str]]:
+    ) -> tuple[list[str], list[str]]:
         """
         Render X and Group filter multiselects in a two-column layout.
 
@@ -36,8 +36,8 @@ class PlotConfigComponents:
         """
         col_filter1, col_filter2 = st.columns(2)
 
-        x_values: List[str] = []
-        group_values: List[str] = []
+        x_values: list[str] = []
+        group_values: list[str] = []
 
         # Filter X values
         if x_col and x_col in data.columns:
@@ -75,12 +75,12 @@ class PlotConfigComponents:
 
     @staticmethod
     def render_statistics_multiselect(
-        numeric_cols: List[str],
-        saved_config: Dict[str, Any],
+        numeric_cols: list[str],
+        saved_config: dict[str, Any],
         plot_id: int,
         label: str = "Statistics to Stack",
         help_text: str = "Select multiple statistics to stack on top of each other",
-    ) -> List[str]:
+    ) -> list[str]:
         """
         Render a multiselect for choosing statistics to stack.
 
@@ -115,14 +115,14 @@ class PlotConfigComponents:
 
     @staticmethod
     def render_title_labels_section(
-        saved_config: Dict[str, Any],
+        saved_config: dict[str, Any],
         plot_id: int,
         default_title: str = "",
         default_xlabel: str = "",
         default_ylabel: str = "Value",
         include_legend_title: bool = False,
         default_legend_title: str = "",
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         """
         Render title and label inputs.
 

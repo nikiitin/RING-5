@@ -78,7 +78,7 @@ Version: 2.0.0
 Last Modified: 2026-01-27
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pandas as pd
 
@@ -92,7 +92,7 @@ class Transformer(UniDfShaper):
     Can also apply a fixed sorting order when converting to Factor.
     """
 
-    def __init__(self, params: Dict[str, Any]) -> None:
+    def __init__(self, params: dict[str, Any]) -> None:
         """
         Initialize Transformer.
 
@@ -100,11 +100,11 @@ class Transformer(UniDfShaper):
             params: Dictionary containing:
                 - column (str): Target column to transform.
                 - target_type (str): 'scalar' or 'factor'.
-                - order (Optional[List[str]]): Specific categorical order for factors.
+                - order (list[str] | None): Specific categorical order for factors.
         """
         self.column: str = params.get("column", "")
         self.target_type: str = params.get("target_type", "")
-        self.order: Optional[List[str]] = params.get("order")
+        self.order: list[str] | None = params.get("order")
         super().__init__(params)
 
     def _verify_params(self) -> bool:

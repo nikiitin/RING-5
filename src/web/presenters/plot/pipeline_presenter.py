@@ -5,7 +5,7 @@ Renders the list of shapers with config, preview, reorder, and
 add/remove controls. Returns user actions without performing them.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 import streamlit as st
 
@@ -27,7 +27,7 @@ class PipelinePresenter:
         - Trigger reruns
     """
 
-    SHAPER_DISPLAY_MAP: Dict[str, str] = {
+    SHAPER_DISPLAY_MAP: dict[str, str] = {
         "Column Selector": "columnSelector",
         "Sort": "sort",
         "Mean Calculator": "mean",
@@ -37,7 +37,7 @@ class PipelinePresenter:
         "Transformer": "transformer",
     }
 
-    REVERSE_MAP: Dict[str, str] = {v: k for k, v in SHAPER_DISPLAY_MAP.items()}
+    REVERSE_MAP: dict[str, str] = {v: k for k, v in SHAPER_DISPLAY_MAP.items()}
 
     @staticmethod
     def render_section_header() -> None:
@@ -55,7 +55,7 @@ class PipelinePresenter:
         st.markdown("**Current Pipeline:**")
 
     @staticmethod
-    def render_add_shaper(plot_id: int) -> Dict[str, Any]:
+    def render_add_shaper(plot_id: int) -> dict[str, Any]:
         """
         Render the "Add transformation" selector and Add button.
 
@@ -69,7 +69,7 @@ class PipelinePresenter:
         """
         col1, col2 = st.columns([3, 1])
         with col1:
-            display_type: Optional[str] = st.selectbox(
+            display_type: str | None = st.selectbox(
                 "Add transformation",
                 list(PipelinePresenter.SHAPER_DISPLAY_MAP.keys()),
                 key=f"shaper_add_{plot_id}",
@@ -93,7 +93,7 @@ class PipelinePresenter:
         shaper_type: str,
         is_first: bool,
         is_last: bool,
-    ) -> Dict[str, bool]:
+    ) -> dict[str, bool]:
         """
         Render up/down/delete controls for a single shaper step.
 
@@ -110,7 +110,7 @@ class PipelinePresenter:
                 - move_down (bool): Down button clicked.
                 - delete (bool): Delete button clicked.
         """
-        result: Dict[str, bool] = {
+        result: dict[str, bool] = {
             "move_up": False,
             "move_down": False,
             "delete": False,

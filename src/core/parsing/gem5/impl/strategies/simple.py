@@ -12,11 +12,16 @@ Workflow:
 4. Handles type conversion and validation
 """
 
+from __future__ import annotations
+
 import logging
 import os
 from collections.abc import Sequence
 from dataclasses import replace
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from src.core.parsing.gem5.types.base import StatType
 
 from src.core.common.utils import (
     normalize_user_path,
@@ -97,13 +102,13 @@ class SimpleStatsStrategy:
         )
         return files
 
-    def _map_variables(self, variables: Sequence[StatConfig]) -> dict[str, Any]:
+    def _map_variables(self, variables: Sequence[StatConfig]) -> dict[str, StatType]:
         """
         Convert configuration models into typed Stat objects.
 
         Handles multi-ID mapping (e.g., regex variables matching multiple controllers).
         """
-        var_map: dict[str, Any] = {}
+        var_map: dict[str, StatType] = {}
 
         for var in variables:
             name = var.name

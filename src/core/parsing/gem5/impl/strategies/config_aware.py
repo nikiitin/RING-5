@@ -15,7 +15,7 @@ Features:
 import configparser
 import logging
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from src.core.parsing.gem5.impl.strategies.simple import SimpleStatsStrategy
 
@@ -31,7 +31,7 @@ class ConfigAwareStrategy(SimpleStatsStrategy):
     the gem5 configuration file found in the same directory.
     """
 
-    def post_process(self, results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def post_process(self, results: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         Augment results with config data.
         """
@@ -58,7 +58,7 @@ class ConfigAwareStrategy(SimpleStatsStrategy):
 
         return augmented_results
 
-    def _parse_config(self, config_path: Path) -> Dict[str, Any]:
+    def _parse_config(self, config_path: Path) -> dict[str, Any]:
         """
         Parse the config.ini file.
 

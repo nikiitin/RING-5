@@ -15,7 +15,8 @@ various gem5 configurations, versions, and output formats while maintaining
 a unified interface for the parsing service layer.
 """
 
-from typing import Any, Dict, List, Protocol, Sequence
+from collections.abc import Sequence
+from typing import Any, Protocol
 
 from src.core.models import StatConfig
 from src.core.parsing.gem5.impl.pool.parse_work import ParseWork
@@ -45,8 +46,8 @@ class FileParserStrategy(Protocol):
     """
 
     def execute(
-        self, stats_path: str, stats_pattern: str, variables: List[StatConfig]
-    ) -> List[Dict[str, Any]]:
+        self, stats_path: str, stats_pattern: str, variables: list[StatConfig]
+    ) -> list[dict[str, Any]]:
         """
         Execute the complete parsing workflow.
 
@@ -67,7 +68,7 @@ class FileParserStrategy(Protocol):
         """
 
     def get_work_items(
-        self, stats_path: str, stats_pattern: str, variables: List[StatConfig]
+        self, stats_path: str, stats_pattern: str, variables: list[StatConfig]
     ) -> Sequence[ParseWork]:
         """
         Discover and prepare work items for parallel execution.
@@ -89,7 +90,7 @@ class FileParserStrategy(Protocol):
             15
         """
 
-    def post_process(self, results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def post_process(self, results: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         Post-process and aggregate raw parsing results.
 

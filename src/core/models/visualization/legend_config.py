@@ -14,7 +14,7 @@ This eliminates:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, Literal
+from typing import Any, Literal
 
 INHERIT_F: float = -1.0
 
@@ -34,7 +34,7 @@ class LegendSpacingConfig:
     borderpad: float = 0.2
     borderaxespad: float = 0.5
 
-    def to_dict(self) -> Dict[str, float]:
+    def to_dict(self) -> dict[str, float]:
         """Serialize to a plain dictionary."""
         return {
             "columnspacing": self.columnspacing,
@@ -47,7 +47,7 @@ class LegendSpacingConfig:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, float]) -> "LegendSpacingConfig":
+    def from_dict(cls, data: dict[str, float]) -> LegendSpacingConfig:
         """Reconstruct from serialized dictionary."""
         return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
 
@@ -121,9 +121,9 @@ class LegendConfig:
     number_fontsize: int = -1  # -1 = follow font_size
     text_fontsize: int = -1  # -1 = follow font_size
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize to a plain dictionary."""
-        result: Dict[str, Any] = {
+        result: dict[str, Any] = {
             "role": self.role,
             "visible": self.visible,
             "font_size": self.font_size,
@@ -153,7 +153,7 @@ class LegendConfig:
         return result
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "LegendConfig":
+    def from_dict(cls, data: dict[str, Any]) -> LegendConfig:
         """Reconstruct from serialized dictionary."""
         spacing_data = data.pop("spacing", {}) if isinstance(data.get("spacing"), dict) else {}
         spacing = (

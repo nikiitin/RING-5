@@ -12,7 +12,7 @@ Migration Strategy:
     standalone presenter methods, one plot type at a time.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 import pandas as pd
 import streamlit as st
@@ -39,8 +39,8 @@ class ConfigPresenter:
     def render_type_config(
         renderer: ConfigRenderer,
         data: pd.DataFrame,
-        saved_config: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        saved_config: dict[str, Any],
+    ) -> dict[str, Any]:
         """
         Render type-specific configuration widgets.
 
@@ -69,9 +69,9 @@ class ConfigPresenter:
     @staticmethod
     def render_advanced_and_theme(
         renderer: ConfigRenderer,
-        current_config: Dict[str, Any],
+        current_config: dict[str, Any],
         data: pd.DataFrame,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Render settings via pills-driven navigation.
 
@@ -91,15 +91,15 @@ class ConfigPresenter:
             value=False,
             key=f"show_advanced_{renderer.plot_id}",
         )
-        selected: Optional[str] = render_settings_pills(show_advanced=show_adv)
+        selected: str | None = render_settings_pills(show_advanced=show_adv)
         return renderer.render_settings_section(selected, current_config, data)
 
     @staticmethod
     def render_advanced(
         renderer: ConfigRenderer,
-        current_config: Dict[str, Any],
+        current_config: dict[str, Any],
         data: pd.DataFrame,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Render advanced options inside an expander.
 
@@ -117,8 +117,8 @@ class ConfigPresenter:
     @staticmethod
     def render_theme(
         renderer: ConfigRenderer,
-        current_config: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        current_config: dict[str, Any],
+    ) -> dict[str, Any]:
         """
         Render theme/style options inside an expander.
 
@@ -130,10 +130,10 @@ class ConfigPresenter:
             Combined layout + theme configuration dict.
         """
         with st.expander("Theme & Style"):
-            layout: Dict[str, Any] = renderer.render_display_options(current_config)
+            layout: dict[str, Any] = renderer.render_display_options(current_config)
             st.markdown("---")
-            theme: Dict[str, Any] = renderer.render_theme_options(current_config)
-            combined: Dict[str, Any] = {}
+            theme: dict[str, Any] = renderer.render_theme_options(current_config)
+            combined: dict[str, Any] = {}
             combined.update(layout)
             combined.update(theme)
             return combined
@@ -143,7 +143,7 @@ class ConfigPresenter:
         plot_type: str,
         available_types: list[str],
         plot_id: int,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Render the plot type selector dropdown.
 
@@ -157,7 +157,7 @@ class ConfigPresenter:
                 - new_type (Optional[str]): Selected plot type.
                 - type_changed (bool): Whether the type changed.
         """
-        new_type: Optional[str] = st.selectbox(
+        new_type: str | None = st.selectbox(
             "Plot Type",
             options=available_types,
             index=(available_types.index(plot_type) if plot_type in available_types else 0),

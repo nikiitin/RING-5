@@ -4,7 +4,7 @@ Single Responsibility: Manage primary and processed datasets.
 """
 
 import logging
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import pandas as pd
 
@@ -26,10 +26,10 @@ class DataRepository:
 
     def __init__(self) -> None:
         """Initialize in-memory storage."""
-        self._data: Optional[pd.DataFrame] = None
-        self._processed_data: Optional[pd.DataFrame] = None
+        self._data: pd.DataFrame | None = None
+        self._processed_data: pd.DataFrame | None = None
 
-    def get_data(self) -> Optional[pd.DataFrame]:
+    def get_data(self) -> pd.DataFrame | None:
         """
         Retrieve the primary dataset.
 
@@ -39,7 +39,7 @@ class DataRepository:
         return self._data
 
     def set_data(
-        self, data: Optional[pd.DataFrame], on_change: Optional[Callable[[], None]] = None
+        self, data: pd.DataFrame | None, on_change: Callable[[], None] | None = None
     ) -> None:
         """
         Store the primary dataset with optional change callback.
@@ -60,7 +60,7 @@ class DataRepository:
         else:
             logger.info("DATA_REPO: Data cleared")
 
-    def get_processed_data(self) -> Optional[pd.DataFrame]:
+    def get_processed_data(self) -> pd.DataFrame | None:
         """
         Retrieve the processed dataset (after shapers/transformations).
 
@@ -69,7 +69,7 @@ class DataRepository:
         """
         return self._processed_data
 
-    def set_processed_data(self, data: Optional[pd.DataFrame]) -> None:
+    def set_processed_data(self, data: pd.DataFrame | None) -> None:
         """
         Store the processed dataset.
 

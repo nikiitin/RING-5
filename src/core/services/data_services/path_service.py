@@ -7,15 +7,14 @@ consistent, testable access to file system locations.
 """
 
 from pathlib import Path
-from typing import Optional
 
 
 class PathService:
     # Cached directory paths — mkdir is called only once per process.
-    _root_dir: Optional[Path] = None
-    _data_dir: Optional[Path] = None
-    _pipelines_dir: Optional[Path] = None
-    _portfolios_dir: Optional[Path] = None
+    _root_dir: Path | None = None
+    _data_dir: Path | None = None
+    _pipelines_dir: Path | None = None
+    _portfolios_dir: Path | None = None
 
     @staticmethod
     def reset_caches() -> None:

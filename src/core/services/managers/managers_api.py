@@ -6,7 +6,7 @@ the data-manager UI components: arithmetic operations, outlier removal,
 and seed reduction.
 """
 
-from typing import List, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 import pandas as pd
 
@@ -21,7 +21,7 @@ class ManagersAPI(Protocol):
 
     # -- Arithmetic (Preprocessor) --
 
-    def list_operators(self) -> List[str]:
+    def list_operators(self) -> list[str]:
         """Return supported binary arithmetic operators."""
 
     def apply_operation(
@@ -40,7 +40,7 @@ class ManagersAPI(Protocol):
         self,
         df: pd.DataFrame,
         dest_col: str,
-        source_cols: List[str],
+        source_cols: list[str],
         operation: str = "Sum",
         separator: str = "_",
     ) -> pd.DataFrame:
@@ -49,10 +49,10 @@ class ManagersAPI(Protocol):
     def validate_merge_inputs(
         self,
         df: pd.DataFrame,
-        columns: List[str],
+        columns: list[str],
         operation: str,
         new_column_name: str,
-    ) -> List[str]:
+    ) -> list[str]:
         """Validate inputs for merge/mixer operations."""
 
     # -- Outlier Removal --
@@ -61,7 +61,7 @@ class ManagersAPI(Protocol):
         self,
         df: pd.DataFrame,
         outlier_col: str,
-        group_by_cols: List[str],
+        group_by_cols: list[str],
     ) -> pd.DataFrame:
         """Remove statistical outliers based on Q3 threshold."""
 
@@ -69,8 +69,8 @@ class ManagersAPI(Protocol):
         self,
         df: pd.DataFrame,
         outlier_col: str,
-        group_by_cols: List[str],
-    ) -> List[str]:
+        group_by_cols: list[str],
+    ) -> list[str]:
         """Validate inputs for outlier removal."""
 
     # -- Seeds Reduction --
@@ -78,15 +78,15 @@ class ManagersAPI(Protocol):
     def reduce_seeds(
         self,
         df: pd.DataFrame,
-        categorical_cols: List[str],
-        statistic_cols: List[str],
+        categorical_cols: list[str],
+        statistic_cols: list[str],
     ) -> pd.DataFrame:
         """Aggregate data across random seeds (mean + stdev)."""
 
     def validate_seeds_reducer_inputs(
         self,
         df: pd.DataFrame,
-        categorical_cols: List[str],
-        statistic_cols: List[str],
-    ) -> List[str]:
+        categorical_cols: list[str],
+        statistic_cols: list[str],
+    ) -> list[str]:
         """Validate inputs for seeds reduction."""

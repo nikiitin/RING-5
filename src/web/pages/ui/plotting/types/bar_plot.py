@@ -1,6 +1,6 @@
 """Bar plot implementation."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pandas as pd
 import streamlit as st
@@ -16,7 +16,7 @@ class BarPlot(BasePlot):
     def __init__(self, plot_id: int, name: str):
         super().__init__(plot_id, name, "bar")
 
-    def render_config_ui(self, data: pd.DataFrame, saved_config: Dict[str, Any]) -> Dict[str, Any]:
+    def render_config_ui(self, data: pd.DataFrame, saved_config: dict[str, Any]) -> dict[str, Any]:
         """Render configuration UI for bar plot."""
         # Common config (x, y, title, labels)
         config = self.render_common_config(data, saved_config)
@@ -36,14 +36,14 @@ class BarPlot(BasePlot):
 
         return {**config, "color": color_column}
 
-    def create_traces(self, data: pd.DataFrame, config: Dict[str, Any]) -> TraceBuildResult:
+    def create_traces(self, data: pd.DataFrame, config: dict[str, Any]) -> TraceBuildResult:
         """Produce bar traces from data and config."""
         x_col: str = config["x"]
         y_col: str = config["y"]
-        color_col: Optional[str] = config.get("color")
+        color_col: str | None = config.get("color")
 
         # Error bar column
-        sd_col: Optional[str] = None
+        sd_col: str | None = None
         if config.get("show_error_bars"):
             candidate = f"{y_col}.sd"
             if candidate in data.columns:
@@ -57,15 +57,15 @@ class BarPlot(BasePlot):
 
         # Determine ordering
         if config.get("xaxis_order"):
-            x_order: List[str] = [str(x) for x in config["xaxis_order"]]
+            x_order: list[str] = [str(x) for x in config["xaxis_order"]]
         else:
             x_order = sorted(data[x_col].unique())
 
-        traces: List[BarTraceConfig] = []
+        traces: list[BarTraceConfig] = []
 
         if color_col:
             if config.get("legend_order"):
-                groups: List[str] = [str(g) for g in config["legend_order"]]
+                groups: list[str] = [str(g) for g in config["legend_order"]]
             else:
                 groups = sorted(data[color_col].unique())
 
@@ -103,7 +103,7 @@ class BarPlot(BasePlot):
 
         return TraceBuildResult(traces=traces)
 
-    def get_legend_column(self, config: Dict[str, Any]) -> Optional[str]:
+    def get_legend_column(self, config: dict[str, Any]) -> str | None:
         """Get legend column for bar plot."""
         result = config.get("color")
         return str(result) if result is not None else None

@@ -6,7 +6,7 @@ operations performed by managers (preprocessor, mixer, outlier remover,
 seeds reducer).
 """
 
-from typing import List, TypedDict
+from typing import TypedDict
 
 
 class OperationRecord(TypedDict):
@@ -20,7 +20,7 @@ class OperationRecord(TypedDict):
         timestamp: ISO-8601 timestamp of when the operation was confirmed.
     """
 
-    source_columns: List[str]
-    dest_columns: List[str]
+    source_columns: list[str]
+    dest_columns: list[str]
     operation: str
     timestamp: str
