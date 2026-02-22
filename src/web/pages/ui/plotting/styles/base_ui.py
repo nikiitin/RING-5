@@ -731,9 +731,9 @@ class BaseStyleUI:
 
     def _get_unique_values(
         self, saved_config: dict[str, Any], data: pd.DataFrame | None, items: list[str] | None
-    ) -> list[Any]:
+    ) -> list[str]:
         """Helper to determine series items."""
-        unique_vals: list[Any] = []
+        unique_vals: list[str] = []
         if items is not None:
             unique_vals = sorted([str(i) for i in items])
         elif data is not None:

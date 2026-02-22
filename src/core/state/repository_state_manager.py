@@ -118,7 +118,7 @@ class RepositoryStateManager:
     def set_config(self, config: dict[str, Any]) -> None:
         self._session_repo.config_repo.set_config(config)
 
-    def update_config(self, key: str, value: Any) -> None:
+    def update_config(self, key: str, value: object) -> None:
         self._session_repo.config_repo.update_config(key, value)
 
     def get_temp_dir(self) -> str | None:

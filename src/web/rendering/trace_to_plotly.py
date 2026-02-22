@@ -9,7 +9,7 @@ and this converter builds the Plotly figure from it.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -53,10 +53,10 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
             fig.add_trace(plotly_trace)
 
     # Layout updates
-    layout_updates: Dict[str, Any] = {"barmode": result.barmode}
+    layout_updates: dict[str, Any] = {"barmode": result.barmode}
 
     if result.custom_x_ticks:
-        xaxis_update: Dict[str, Any] = {
+        xaxis_update: dict[str, Any] = {
             "tickmode": "array",
             "tickvals": result.custom_x_ticks["vals"],
             "ticktext": result.custom_x_ticks["text"],
@@ -71,7 +71,7 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
         layout_updates["shapes"] = result.shapes
 
     if result.annotations or result.layout_annotations:
-        all_annotations: List[Dict[str, Any]] = []
+        all_annotations: list[dict[str, Any]] = []
         if result.annotations:
             all_annotations.extend(_convert_annotations(result.annotations))
         if result.layout_annotations:
@@ -86,7 +86,7 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
 # ── Private helpers ──────────────────────────────────────────────────────
 
 
-def _convert_trace(trace: TraceConfig) -> go.BaseTraceType:
+def _convert_trace(trace: TraceConfig) -> go.BaseTraceType:  # type: ignore[name-defined]
     """Dispatch to the appropriate trace converter."""
     if isinstance(trace, BarTraceConfig):
         return _bar_trace(trace)
@@ -106,7 +106,7 @@ def _bar_trace(trace: BarTraceConfig) -> go.Bar:
     # Use x_positions for manually positioned bars, else use x values
     x_data = trace.x_positions if trace.x_positions else trace.x
 
-    kwargs: Dict[str, Any] = {
+    kwargs: dict[str, Any] = {
         "x": x_data,
         "y": trace.y,
         "name": trace.name,
@@ -121,7 +121,7 @@ def _bar_trace(trace: BarTraceConfig) -> go.Bar:
         kwargs["yaxis"] = "y2"
 
     # Marker styling
-    marker: Dict[str, Any] = {}
+    marker: dict[str, Any] = {}
     if trace.color:
         marker["color"] = trace.color
     if trace.pattern:
@@ -166,7 +166,7 @@ def _line_trace(trace: LineTraceConfig) -> go.Scatter:
     """Convert a ``LineTraceConfig`` to ``go.Scatter`` with lines mode."""
     mode = "lines+markers" if trace.show_markers else "lines"
 
-    kwargs: Dict[str, Any] = {
+    kwargs: dict[str, Any] = {
         "x": trace.x,
         "y": trace.y,
         "name": trace.name,
@@ -185,7 +185,7 @@ def _line_trace(trace: LineTraceConfig) -> go.Scatter:
         kwargs["line"]["color"] = trace.color
 
     if trace.show_markers:
-        marker_dict: Dict[str, Any] = {
+        marker_dict: dict[str, Any] = {
             "symbol": trace.marker_symbol,
             "size": trace.marker_size,
         }
@@ -211,7 +211,7 @@ def _line_trace(trace: LineTraceConfig) -> go.Scatter:
 
 def _scatter_trace(trace: ScatterTraceConfig) -> go.Scatter:
     """Convert a ``ScatterTraceConfig`` to ``go.Scatter`` with markers mode."""
-    marker: Dict[str, Any] = {
+    marker: dict[str, Any] = {
         "symbol": trace.marker_symbol,
         "size": trace.size_values or trace.marker_size,
     }
@@ -225,7 +225,7 @@ def _scatter_trace(trace: ScatterTraceConfig) -> go.Scatter:
     if trace.colorscale:
         marker["colorscale"] = trace.colorscale
 
-    kwargs: Dict[str, Any] = {
+    kwargs: dict[str, Any] = {
         "x": trace.x,
         "y": trace.y,
         "name": trace.name,
@@ -252,7 +252,7 @@ def _scatter_trace(trace: ScatterTraceConfig) -> go.Scatter:
 
 def _histogram_trace(trace: HistogramTraceConfig) -> go.Histogram:
     """Convert a ``HistogramTraceConfig`` to ``go.Histogram``."""
-    kwargs: Dict[str, Any] = {
+    kwargs: dict[str, Any] = {
         "x": trace.x,
         "name": trace.name,
         "opacity": trace.opacity,
@@ -276,7 +276,7 @@ def _histogram_trace(trace: HistogramTraceConfig) -> go.Histogram:
 
 def _bar_trace_from_base(trace: TraceConfig) -> go.Bar:
     """Fallback: convert a base ``TraceConfig`` to ``go.Bar``."""
-    kwargs: Dict[str, Any] = {
+    kwargs: dict[str, Any] = {
         "x": trace.x,
         "y": trace.y,
         "name": trace.name,
@@ -290,15 +290,15 @@ def _bar_trace_from_base(trace: TraceConfig) -> go.Bar:
 
 
 def _convert_annotations(
-    annotations: List[AnnotationConfig],
-) -> List[Dict[str, Any]]:
+    annotations: list[AnnotationConfig],
+) -> list[dict[str, Any]]:
     """Convert ``AnnotationConfig`` list to Plotly annotation dicts."""
 
-    result: List[Dict[str, Any]] = []
+    result: list[dict[str, Any]] = []
     for ann in annotations:
         if not isinstance(ann, AnnotationConfig):
             continue
-        d: Dict[str, Any] = {
+        d: dict[str, Any] = {
             "text": ann.text,
             "x": ann.x,
             "y": ann.y,

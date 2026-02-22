@@ -12,7 +12,7 @@ These replace:
 
 from __future__ import annotations
 
-from typing import Any, Literal, cast
+from typing import Any, Literal
 
 import plotly.graph_objects as go
 
@@ -62,7 +62,7 @@ class PlotlyFigureSpecBuilder:
             A FigureConfig populated from the figure's current state.
             May contain sentinel values (-1) for fields not set.
         """
-        layout = fig.layout if hasattr(fig, "layout") else {}
+        layout: Any = fig.layout if hasattr(fig, "layout") else {}
 
         # ── Dimensions ───────────────────────────────────────────
         margins = _extract_margins(layout)
@@ -123,13 +123,13 @@ class PlotlyFigureSpecBuilder:
             spec: An already-built FigureConfig (typically from config).
             fig: A ``plotly.graph_objects.Figure`` with finalised layout.
         """
-        layout = fig.layout if hasattr(fig, "layout") else None
+        layout: Any = fig.layout if hasattr(fig, "layout") else None
         if layout is None:
             return
 
         # ── Tick positions / labels ─────────────────────────────
         xaxis = getattr(layout, "xaxis", None)
-        if xaxis is not None and spec.axes is not None:
+        if xaxis is not None:
             tv = getattr(xaxis, "tickvals", None)
             tt = getattr(xaxis, "ticktext", None)
             if tv is not None:
@@ -140,7 +140,7 @@ class PlotlyFigureSpecBuilder:
                 spec.axes.x.tick_text = [str(t) for t in raw_t]
 
         yaxis = getattr(layout, "yaxis", None)
-        if yaxis is not None and spec.axes is not None:
+        if yaxis is not None:
             tv = getattr(yaxis, "tickvals", None)
             tt = getattr(yaxis, "ticktext", None)
             if tv is not None:
@@ -160,10 +160,7 @@ class PlotlyFigureSpecBuilder:
         if plotly_barmode is not None:
             barmode_str = str(plotly_barmode)
             if barmode_str in ("group", "stack", "overlay", "relative"):
-                spec.barmode = cast(
-                    Literal["group", "stack", "overlay", "relative"],
-                    barmode_str,
-                )
+                spec.barmode = barmode_str  # type: ignore[assignment]
 
         # ── Legend3 (boxed legend items) ─────────────────────────
         legend3 = getattr(layout, "legend3", None)
@@ -497,8 +494,8 @@ class ConfigSpecBuilder:
             raw_color_mode_str = str(config.get("text_color_mode", "auto")).lower()
             if raw_color_mode_str not in ("auto", "contrast", "custom"):
                 raw_color_mode_str = "auto"
-            raw_color_mode: Literal["auto", "contrast", "custom"] = cast(
-                Literal["auto", "contrast", "custom"], raw_color_mode_str
+            raw_color_mode: Literal["auto", "contrast", "custom"] = (
+                raw_color_mode_str  # type: ignore[assignment]
             )
 
             # Position validation
@@ -559,23 +556,20 @@ class ConfigSpecBuilder:
 
         # ── Per-trace overrides from UI series_styles dict ───────
         trace_overrides: dict[str, SeriesStyleConfig] = {}
-        raw_overrides = config.get("series_styles", {})
-        if isinstance(raw_overrides, dict):
-            for trace_name, style_dict in raw_overrides.items():
-                if not isinstance(style_dict, dict):
-                    continue
-                trace_overrides[str(trace_name)] = SeriesStyleConfig(
-                    color=(
-                        str(style_dict["color"])
-                        if style_dict.get("use_color") and style_dict.get("color")
-                        else ""
-                    ),
-                    symbol=str(style_dict.get("symbol", "")),
-                    display_name=str(style_dict.get("name", "")),
-                    marker_size=int(style_dict.get("marker_size") or 0),
-                    line_width=float(style_dict.get("line_width") or 0.0),
-                    hatching_pattern=str(style_dict.get("pattern", "")),
-                )
+        raw_overrides: dict[str, Any] = config.get("series_styles", {})
+        for trace_name_raw, style_dict_raw in raw_overrides.items():
+            if not isinstance(style_dict_raw, dict):
+                continue
+            t_name: str = str(trace_name_raw)
+            sd: dict[str, Any] = style_dict_raw  # type: ignore[assignment]
+            trace_overrides[t_name] = SeriesStyleConfig(
+                color=(str(sd["color"]) if sd.get("use_color") and sd.get("color") else ""),
+                symbol=str(sd.get("symbol", "")),
+                display_name=str(sd.get("name", "")),
+                marker_size=int(sd.get("marker_size") or 0),
+                line_width=float(sd.get("line_width") or 0.0),
+                hatching_pattern=str(sd.get("pattern", "")),
+            )
 
         # ── Color palette (resolve name → hex list) ─────────────
         color_palette = resolve_palette(config.get("color_palette"))
@@ -589,9 +583,9 @@ class ConfigSpecBuilder:
         barmode_raw_str = str(config.get("barmode", "group")).lower()
         if barmode_raw_str not in ("group", "stack", "overlay", "relative"):
             barmode_raw_str = "group"
-        barmode_raw: Literal["group", "stack", "overlay", "relative"] = cast(
-            Literal["group", "stack", "overlay", "relative"], barmode_raw_str
-        )
+        barmode_raw: Literal[
+            "group", "stack", "overlay", "relative"
+        ] = barmode_raw_str  # type: ignore[assignment]
 
         return FigureConfig(
             dimensions=dims,
@@ -742,7 +736,7 @@ def _extract_legends(layout: Any, config: dict[str, Any]) -> list[LegendConfig]:
 def _extract_annotations(layout: Any) -> list[AnnotationConfig]:
     """Extract annotation objects from Plotly layout."""
     annotations: list[AnnotationConfig] = []
-    layout_anns = getattr(layout, "annotations", None) or []
+    layout_anns: list[Any] = list(getattr(layout, "annotations", None) or [])
 
     for ann in layout_anns:
         font = getattr(ann, "font", None)

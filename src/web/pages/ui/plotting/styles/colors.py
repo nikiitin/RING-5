@@ -4,12 +4,11 @@ Shared color utilities for consistent palette loading.
 
 import logging
 import re
-from typing import List
 
 from src.core.models.visualization.palettes import resolve_palette
 
 
-def get_palette_colors(palette_name: str) -> List[str]:
+def get_palette_colors(palette_name: str) -> list[str]:
     """
     Get a list of colors for a given palette name.
 
@@ -44,7 +43,7 @@ def to_hex(color_str: str) -> str:
             nums = re.findall(r"\d+", color_str)
             if len(nums) >= 3:
                 r, g, b = int(nums[0]), int(nums[1]), int(nums[2])
-                return "#{:02x}{:02x}{:02x}".format(r, g, b)
+                return f"#{r:02x}{g:02x}{b:02x}"
         except Exception:
             logging.warning(f"Could not parse rgb color: {color_str}")
 
@@ -53,7 +52,8 @@ def to_hex(color_str: str) -> str:
     try:
         import plotly.colors as pc
 
-        result: List[tuple[str, ...]] = pc.convert_colors_to_same_type(color_str, "hex")
+        converted = pc.convert_colors_to_same_type(color_str, "hex")  # type: ignore[attr-defined]
+        result: list[tuple[str, ...]] = converted
         return str(result[0][0])
     except Exception:
         logging.warning(f"Could not convert color {color_str} to hex. Fallback to black.")

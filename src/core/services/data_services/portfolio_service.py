@@ -127,7 +127,7 @@ class PortfolioService:
             raise ValueError("Portfolio name cannot be empty")
 
         logger = logging.getLogger(__name__)
-        serialized_plots = []
+        serialized_plots: list[dict[str, Any]] = []
         for plot in plots:
             plot_dict: dict[str, Any] = plot.to_dict()
             plot_config: dict[str, Any] = plot_dict.get("config", {})
@@ -145,7 +145,7 @@ class PortfolioService:
 
         data_csv = data.to_csv(index=False) if data is not None and not data.empty else ""
 
-        portfolio_data = {
+        portfolio_data: dict[str, Any] = {
             "schema_version": PortfolioMigrator.CURRENT_VERSION,
             "version": "2.0",
             "timestamp": pd.Timestamp.now().isoformat(),

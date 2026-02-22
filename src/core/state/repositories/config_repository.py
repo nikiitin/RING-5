@@ -53,7 +53,7 @@ class ConfigRepository:
         self._config = config
         logger.info("CONFIG_REPO: Configuration updated - %d keys", len(config))
 
-    def update_config(self, key: str, value: Any) -> None:
+    def update_config(self, key: str, value: object) -> None:
         """
         Update a specific configuration key.
 
@@ -64,7 +64,7 @@ class ConfigRepository:
         self._config[key] = value
         logger.debug(f"CONFIG_REPO: Config key '{key}' updated")
 
-    def get_config_value(self, key: str, default: Any = None) -> Any:
+    def get_config_value(self, key: str, default: object = None) -> object:
         """
         Get a specific configuration value.
 

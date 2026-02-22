@@ -125,7 +125,9 @@ class CsvPoolService:
             # Try to get cached metadata
             metadata = CsvPoolService._get_csv_metadata(str(csv_file))
             if metadata:
-                file_info.update(metadata)
+                file_info["columns"] = metadata["columns"]
+                file_info["rows"] = metadata["rows"]
+                file_info["dtypes"] = metadata["dtypes"]
 
             pool.append(file_info)
             new_index[csv_file.name] = file_info
@@ -222,10 +224,10 @@ class CsvPoolService:
         CsvPoolService._dataframe_cache.set(cache_key, result)
 
         # Also cache metadata
-        metadata = {
+        metadata: CsvMetadata = {
             "columns": list(result.columns),
             "rows": len(result),
-            "dtypes": {col: str(dtype) for col, dtype in result.dtypes.items()},
+            "dtypes": {str(col): str(dtype) for col, dtype in result.dtypes.items()},
         }
         CsvPoolService._metadata_cache.set(resolved_path, metadata)
 

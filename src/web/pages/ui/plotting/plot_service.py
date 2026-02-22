@@ -8,7 +8,8 @@ Coordinates plot factory, state persistence, and configuration updates.
 import copy
 import logging
 import os
-from typing import TYPE_CHECKING, Optional
+from pathlib import Path
+from typing import TYPE_CHECKING
 
 from src.core.common.utils import normalize_user_path, validate_path_within
 from src.web.pages.ui.plotting.base_plot import BasePlot
@@ -86,8 +87,8 @@ class PlotService:
 
     @staticmethod
     def export_plot_to_file(
-        plot: BasePlot, directory: str, format: Optional[str] = None
-    ) -> Optional[str]:
+        plot: BasePlot, directory: str, format: str | None = None
+    ) -> str | None:
         """
         Export a plot to a file in the specified directory.
 
@@ -135,7 +136,7 @@ class PlotService:
         path = os.path.normpath(str(validated_path))
 
         if fmt == "html":
-            fig.write_html(path)
+            fig.write_html(Path(path))
         elif fmt in ("pdf", "png", "svg"):
             from typing import cast
 

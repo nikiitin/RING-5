@@ -159,7 +159,7 @@ class DataSourceComponents:
             """)
 
             # Scanner UI
-            col_scan1, col_scan2 = st.columns([1, 3])
+            col_scan1, _col_scan2 = st.columns([1, 3])
             with col_scan1:
                 deep_scan = st.checkbox(
                     "Deep Scan (check all files)", help="Scan ALL files for variables (slower)"
@@ -230,7 +230,7 @@ class DataSourceComponents:
 
             # Preview configuration
             st.markdown("#### Configuration Preview")
-            parse_config = {
+            parse_config: dict[str, Any] = {
                 "parser": "gem5_stats",
                 "statsPath": stats_path,
                 "statsPattern": stats_pattern,
@@ -298,12 +298,13 @@ class DataSourceComponents:
                 st.warning("No variables scanned yet. Run 'Scan for Variables' first.")
             else:
 
-                def format_func(v: Any) -> str:
+                def format_func(v: ScannedVariableDict) -> str:
                     label = f"{v['name']} ({v['type']})"
                     if v["type"] == "vector" and "entries" in v:
                         label += f" [{len(v['entries'])} items]"
-                    if "count" in v and v["count"] > 1:
-                        label += f" (Grouped {v['count']}x)"
+                    count = v.get("count", 0)
+                    if count > 1:
+                        label += f" (Grouped {count}x)"
                     return label
 
                 options = range(len(scanned_vars))
@@ -340,14 +341,16 @@ class DataSourceComponents:
             if method == "Search Scanned Variables":
                 name = st.text_input("Name", value=name, key="dialog_final_name")
 
-            config: ParseVariableConfig = {}
+            config: ParseVariableConfig = {"name": name, "type": var_type, "_id": ""}
             temp_id = "dialog_new_var"
             defaults: ParseVariableConfig = cast(
                 ParseVariableConfig,
-                selected_scanned_var if selected_scanned_var else {},
+                (
+                    selected_scanned_var
+                    if selected_scanned_var
+                    else {"name": "", "type": "", "entries": []}
+                ),
             )
-
-            config["name"] = name
 
             if var_type == "vector":
                 VariableEditor.render_vector_config(
@@ -381,7 +384,7 @@ class DataSourceComponents:
                     help="If variable repeats in strict sequence (Perl parser specific)",
                     key="adv_repeat",
                 )
-                repeat_int = int(repeat) if repeat is not None else 1
+                repeat_int = int(repeat)
                 if repeat_int > 1:
                     config["repeat"] = str(repeat_int)
 
@@ -415,8 +418,8 @@ class DataSourceComponents:
         progress_bar = st.progress(0, text="Starting...")
         status_text = st.empty()
 
-        results = []
-        errors = []
+        results: list[Any] = []
+        errors: list[str] = []
 
         # User defined rule: "futures could be asked for only once... use these in the UI"
         completed_count = 0

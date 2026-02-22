@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 
 from src.core.models import StatConfig
 from src.core.models.data_models import ScannedVariableDict
+from src.core.models.parsing_models import StatParamValue
 from src.core.parsing.gem5.types import StatTypeRegistry
 
 if TYPE_CHECKING:
@@ -56,7 +57,7 @@ class TypeMapper:
         return norm in ("vector", "distribution", "histogram")
 
     @classmethod
-    def create_stat(cls, var_config: StatConfig | dict[str, Any]) -> "StatType":
+    def create_stat(cls, var_config: StatConfig | dict[str, StatParamValue]) -> "StatType":
         """
         Create a strongly-typed Stat object from a configuration.
 
@@ -69,7 +70,7 @@ class TypeMapper:
         var_type: str = ""
         repeat: int = 1
         statistics_only: bool = False
-        params: dict[str, Any] = {}
+        params: dict[str, StatParamValue] = {}
 
         if isinstance(var_config, StatConfig):
             var_type = var_config.type
@@ -77,9 +78,10 @@ class TypeMapper:
             statistics_only = var_config.statistics_only
             params = var_config.params
         else:
-            var_type_raw: str | None = var_config.get("type")
+            var_type_raw = var_config.get("type")
             var_type = str(var_type_raw) if var_type_raw else ""
-            repeat = int(var_config.get("repeat", 1))
+            repeat_raw = var_config.get("repeat", 1)
+            repeat = int(repeat_raw) if isinstance(repeat_raw, (int, float, str)) else 1
             statistics_only = bool(
                 var_config.get("statistics_only", var_config.get("statisticsOnly", False))
             )
@@ -89,7 +91,7 @@ class TypeMapper:
             raise ValueError("Configuration missing 'type' field")
 
         # Common args
-        kwargs: dict[str, Any] = {"repeat": repeat}
+        kwargs: dict[str, StatParamValue] = {"repeat": repeat}
 
         # Type-specific mapping
         norm_type = cls.normalize_type(var_type)
@@ -124,4 +126,4 @@ class TypeMapper:
         elif norm_type == "configuration":
             kwargs["onEmpty"] = params.get("onEmpty", "None")
 
-        return StatTypeRegistry.create(norm_type, **kwargs)
+        return StatTypeRegistry.create(norm_type, **kwargs)  # type: ignore[arg-type]

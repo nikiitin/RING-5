@@ -93,4 +93,4 @@ class PlotFactory:
                 raise ValueError(
                     f"Plot class must be a subclass of BasePlot, got {plot_class.__name__}"
                 )
-        cls._plot_classes[plot_type] = plot_class
+        cls._plot_classes[plot_type] = plot_class  # type: ignore[assignment]

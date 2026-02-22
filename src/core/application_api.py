@@ -43,6 +43,7 @@ from src.core.models.data_models import (
     ShaperStepConfig,
 )
 from src.core.models.history_models import OperationRecord
+from src.core.models.parsing_models import StatParamValue
 from src.core.models.plot_protocol import PlotDeserializer
 from src.core.models.visualization import FigureConfig
 from src.core.parsing import ParseService, ScannerService
@@ -180,7 +181,7 @@ class ApplicationAPI:
                 # Check for aliasing (legacy compatibility)
                 name = str(var.get("name", ""))
                 alias = var.get("alias")
-                params = dict(var)
+                params: dict[str, StatParamValue] = cast(dict[str, StatParamValue], dict(var))
 
                 if alias:
                     params["parsed_ids"] = [name]
@@ -206,7 +207,7 @@ class ApplicationAPI:
                     is_regex=r"\d+" in var.name,
                 )
             else:
-                config = var if isinstance(var, StatConfig) else cast(StatConfig, var)
+                config = var
 
             stat_configs.append(config)
 

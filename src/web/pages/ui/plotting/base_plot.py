@@ -158,7 +158,11 @@ class BasePlot(ABC):
             Updated figure
         """
         if legend_labels:
-            fig.for_each_trace(lambda t: t.update(name=legend_labels.get(t.name, t.name)))
+            fig.for_each_trace(
+                lambda t: t.update(  # type: ignore[attr-defined]
+                    name=legend_labels.get(t.name, t.name)  # type: ignore[attr-defined]
+                )
+            )
         return fig
 
     def apply_common_layout(self, fig: go.Figure, config: dict[str, Any]) -> go.Figure:
@@ -181,7 +185,11 @@ class BasePlot(ABC):
         fig = self.apply_common_layout(fig, self.config)
         legend_labels: dict[str, str] | None = self.config.get("legend_labels")
         if legend_labels:
-            fig.for_each_trace(lambda t: t.update(name=legend_labels.get(t.name, t.name)))
+            fig.for_each_trace(
+                lambda t: t.update(  # type: ignore[attr-defined]
+                    name=legend_labels.get(t.name, t.name)  # type: ignore[attr-defined]
+                )
+            )
 
         self.last_generated_fig = fig
         return fig
@@ -389,14 +397,15 @@ class BasePlot(ABC):
     def _section_legends(
         self, saved_config: dict[str, Any], data: pd.DataFrame | None
     ) -> dict[str, Any]:
+        _LEGEND_LABELS: dict[str, str] = {
+            "primary": ":material/legend_toggle: Primary",
+            "secondary": ":material/legend_toggle: Secondary",
+            "boxed": ":material/legend_toggle: Boxed",
+        }
         legend_tab: str | None = st.pills(
             "Legend",
-            options=["primary", "secondary", "boxed"],
-            format_func=lambda x: {
-                "primary": ":material/legend_toggle: Primary",
-                "secondary": ":material/legend_toggle: Secondary",
-                "boxed": ":material/legend_toggle: Boxed",
-            }.get(x, x),
+            options=list(_LEGEND_LABELS.keys()),
+            format_func=lambda x: _LEGEND_LABELS.get(x, str(x)),
             selection_mode="single",
             key=f"legend_nav_{self.plot_id}",
             default="primary",
@@ -412,14 +421,15 @@ class BasePlot(ABC):
     def _section_axes(
         self, saved_config: dict[str, Any], data: pd.DataFrame | None
     ) -> dict[str, Any]:
+        _AXIS_LABELS: dict[str, str] = {
+            "x": ":material/straighten: X-Axis",
+            "y_left": ":material/straighten: Y-Left",
+            "y_right": ":material/straighten: Y-Right",
+        }
         axis_tab: str | None = st.pills(
             "Axis",
-            options=["x", "y_left", "y_right"],
-            format_func=lambda x: {
-                "x": ":material/straighten: X-Axis",
-                "y_left": ":material/straighten: Y-Left",
-                "y_right": ":material/straighten: Y-Right",
-            }.get(x, x),
+            options=list(_AXIS_LABELS.keys()),
+            format_func=lambda x: _AXIS_LABELS.get(x, str(x)),
             selection_mode="single",
             key=f"axis_nav_{self.plot_id}",
             default="x",
@@ -826,7 +836,7 @@ class BasePlot(ABC):
         # X-axis Order
         if saved_config.get("x") and saved_config["x"] in data.columns:
             with st.expander("Reorder X-axis Labels"):
-                unique_x: list[Any] = sorted(data[saved_config["x"]].unique().tolist())
+                unique_x: list[str] = sorted(data[saved_config["x"]].unique().tolist())
                 config["xaxis_order"] = self.render_reorderable_list(
                     "X-axis Order", unique_x, "xaxis", default_order=saved_config.get("xaxis_order")
                 )
@@ -834,7 +844,7 @@ class BasePlot(ABC):
         # Group Order
         if saved_config.get("group") and saved_config["group"] in data.columns:
             with st.expander("Reorder Groups"):
-                unique_g: list[Any] = sorted(data[saved_config["group"]].unique().tolist())
+                unique_g: list[str] = sorted(data[saved_config["group"]].unique().tolist())
                 config["group_order"] = self.render_reorderable_list(
                     "Group Order",
                     unique_g,
@@ -846,7 +856,7 @@ class BasePlot(ABC):
         # Legend Order (Color)
         if saved_config.get("color") and saved_config["color"] in data.columns:
             with st.expander("Reorder Legend Items"):
-                unique_c: list[Any] = sorted(data[saved_config["color"]].unique().tolist())
+                unique_c: list[str] = sorted(data[saved_config["color"]].unique().tolist())
                 config["legend_order"] = self.render_reorderable_list(
                     "Legend Order",
                     unique_c,
@@ -967,11 +977,11 @@ class BasePlot(ABC):
     def render_reorderable_list(
         self,
         label: str,
-        items: list[Any],
+        items: list[str],
         key_prefix: str,
         legend_labels: dict[str, str] | None = None,
-        default_order: list[Any] | None = None,
-    ) -> list[Any]:
+        default_order: list[str] | None = None,
+    ) -> list[str]:
         """
         Render a list that can be reordered using up/down buttons.
 
@@ -994,7 +1004,7 @@ class BasePlot(ABC):
             st.session_state[ss_key] = resolve_item_order(items, default_order=default_order)
 
         # Sync if items changed (e.g. data update) — use service for logic
-        current_items: list[Any] = st.session_state[ss_key]
+        current_items: list[str] = st.session_state[ss_key]
         if set(current_items) != set(items):
             current_items = resolve_item_order(items, current_order=current_items)
             st.session_state[ss_key] = current_items

@@ -1,7 +1,8 @@
 """Configuration stat type for metadata values."""
 
-from typing import Any, Optional
+from typing import Any
 
+from src.core.models.parsing_models import StatParamValue
 from src.core.parsing.gem5.types.base import StatType, register_type
 
 
@@ -34,7 +35,9 @@ class Configuration(StatType):
         }
     )
 
-    def __init__(self, repeat: int = 1, onEmpty: Optional[str] = None, **kwargs: Any) -> None:
+    def __init__(
+        self, repeat: int = 1, onEmpty: str | None = None, **kwargs: StatParamValue
+    ) -> None:
         super().__init__(repeat, **kwargs)
         object.__setattr__(self, "_on_empty", onEmpty or "None")
 

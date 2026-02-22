@@ -24,6 +24,18 @@ if TYPE_CHECKING:
     from src.core.models.visualization.axis_config import AxisConfig
 
 
+def _fig_traces(fig: go.Figure) -> tuple[Any, ...]:
+    """Return figure traces with correct typing.
+
+    Plotly 6.x inline types do not properly annotate ``Figure.data``;
+    iterating it makes Pyright infer each element as a string literal
+    instead of a trace object.  This thin wrapper centralises the
+    single ``type: ignore`` needed to work around the gap.
+    """
+    traces: tuple[Any, ...] = fig.data  # type: ignore[assignment]
+    return traces
+
+
 class FigureSpecToPlotly:
     """Stateless translator: FigureConfig → Plotly figure updates.
 
@@ -247,7 +259,7 @@ class FigureSpecToPlotly:
                 continue
             legend_key = f"legend{i}"
             legend_dict = FigureSpecToPlotly._build_legend_dict(legend)
-            fig.update_layout(**{legend_key: legend_dict})
+            fig.update_layout(**{legend_key: legend_dict})  # type: ignore[arg-type]
 
     @staticmethod
     def _build_legend_dict(legend: LegendConfig) -> dict[str, Any]:
@@ -309,7 +321,7 @@ class FigureSpecToPlotly:
 
         fig.update_layout(colorway=spec.color_palette)
 
-        for i, trace in enumerate(fig.data):
+        for i, trace in enumerate(_fig_traces(fig)):
             # Skip traces that already have an explicit marker color
             existing_color = (
                 getattr(trace.marker, "color", None) if hasattr(trace, "marker") else None
@@ -385,7 +397,7 @@ class FigureSpecToPlotly:
         else:
             texttemplate = f"%{{y:{fmt}}}"
 
-        for trace in fig.data:
+        for trace in _fig_traces(fig):
             update: dict[str, Any] = {
                 "texttemplate": texttemplate,
                 "textposition": text_position,
@@ -424,7 +436,7 @@ class FigureSpecToPlotly:
         if not spec.series_styles:
             return
 
-        for i, trace in enumerate(fig.data):
+        for i, trace in enumerate(_fig_traces(fig)):
             # Use modular index to cycle through styles
             style = spec.series_styles[i % len(spec.series_styles)]
 
@@ -459,7 +471,7 @@ class FigureSpecToPlotly:
 
         # Separators require X-axis category data; infer boundaries
         x_data: list[Any] | None = None
-        for trace in fig.data:
+        for trace in _fig_traces(fig):
             if hasattr(trace, "x") and trace.x is not None:
                 x_data = list(trace.x)
                 break
@@ -492,7 +504,7 @@ class FigureSpecToPlotly:
         # Apply hatching pattern to bar-like traces only (scatter doesn't
         # support marker.pattern).
         if spec.hatching_sequence:
-            for i, trace in enumerate(fig.data):
+            for i, trace in enumerate(_fig_traces(fig)):
                 if not isinstance(trace, (go.Bar, go.Histogram)):
                     continue
                 pattern = spec.hatching_sequence[i % len(spec.hatching_sequence)]
@@ -548,7 +560,7 @@ class FigureSpecToPlotly:
         if not spec.trace_overrides:
             return
 
-        for trace in fig.data:
+        for trace in _fig_traces(fig):
             t_name = str(getattr(trace, "name", ""))
             if t_name not in spec.trace_overrides:
                 continue
@@ -612,7 +624,7 @@ class FigureSpecToPlotly:
             # Collect unique x-values from traces
             unique_vals: list[str] = []
             seen: set[str] = set()
-            for trace in fig.data:
+            for trace in _fig_traces(fig):
                 if hasattr(trace, "x") and trace.x is not None:
                     for x_val in trace.x:
                         key = str(x_val)

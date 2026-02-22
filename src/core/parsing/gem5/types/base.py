@@ -5,7 +5,10 @@ This module provides a self-registering type system for gem5 statistics.
 Types register themselves using the @register_type decorator.
 """
 
+from collections.abc import Callable
 from typing import Any
+
+from src.core.models.parsing_models import StatParamValue
 
 
 class StatTypeRegistry:
@@ -14,7 +17,7 @@ class StatTypeRegistry:
     _types: dict[str, type["StatType"]] = {}
 
     @classmethod
-    def register(cls, type_name: str) -> Any:
+    def register(cls, type_name: str) -> Callable[[type["StatType"]], type["StatType"]]:
         """Decorator to register a stat type class."""
 
         def decorator(klass: type["StatType"]) -> type["StatType"]:
@@ -25,7 +28,7 @@ class StatTypeRegistry:
         return decorator
 
     @classmethod
-    def create(cls, type_name: str, repeat: int = 1, **kwargs: Any) -> "StatType":
+    def create(cls, type_name: str, repeat: int = 1, **kwargs: StatParamValue) -> "StatType":
         """Create a stat type instance by name."""
         if type_name not in cls._types:
             available = ", ".join(cls._types.keys())
@@ -67,7 +70,7 @@ class StatType:
         }
     )
 
-    def __init__(self, repeat: int = 1, **kwargs: Any) -> None:
+    def __init__(self, repeat: int = 1, **kwargs: StatParamValue) -> None:
         # Use object.__setattr__ to bypass our protective __setattr__
         object.__setattr__(self, "_repeat", int(repeat))
         object.__setattr__(self, "_content", [])

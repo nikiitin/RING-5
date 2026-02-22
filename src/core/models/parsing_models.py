@@ -16,9 +16,12 @@ All models are **immutable** (``frozen=True``) to guarantee reproducibility.
 
 from concurrent.futures import Future
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Union
 
 from src.core.models.data_models import ScannedVariableDict
+
+# Type alias for StatConfig parameter values
+StatParamValue = Union[str, int, float, bool, list[str], None]
 
 
 @dataclass(frozen=True)
@@ -45,7 +48,7 @@ class ScannedVariable:
 
     name: str
     type: str  # "scalar", "vector", "distribution", "histogram", "configuration"
-    entries: list[str] = field(default_factory=list)
+    entries: list[str] = field(default_factory=lambda: list[str]())
     minimum: float | None = None
     maximum: float | None = None
     pattern_indices: list[str] | None = None
@@ -99,7 +102,7 @@ class StatConfig:
     name: str
     type: str
     repeat: int = 1
-    params: dict[str, Any] = field(default_factory=dict)
+    params: dict[str, StatParamValue] = field(default_factory=lambda: dict[str, StatParamValue]())
     statistics_only: bool = False
     is_regex: bool = False
     keep_indices: bool = False

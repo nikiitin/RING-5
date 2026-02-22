@@ -8,10 +8,8 @@ These override the base trace styling when finer per-series control is
 needed (e.g., different line widths or opacity for overlay traces).
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -45,7 +43,7 @@ class SeriesStyleConfig:
     symbol: str = ""  # marker symbol (e.g., "square", "diamond")
     display_name: str = ""  # rename the trace legend entry
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize to a plain dictionary for JSON persistence."""
         return {
             "line_width": self.line_width,
@@ -60,7 +58,7 @@ class SeriesStyleConfig:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> SeriesStyleConfig:
+    def from_dict(cls, data: dict[str, Any]) -> "SeriesStyleConfig":
         """Deserialize from a plain dictionary.
 
         Args:

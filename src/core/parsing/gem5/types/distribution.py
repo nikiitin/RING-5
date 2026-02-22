@@ -1,7 +1,8 @@
 """Distribution stat type for fixed-bucket frequency distributions."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
+from src.core.models.parsing_models import StatParamValue
 from src.core.parsing.gem5.types.base import StatType, register_type
 
 # Scientific Safety: Prevent memory explosion for incorrectly configured large ranges.
@@ -49,9 +50,9 @@ class Distribution(StatType):
         repeat: int = 1,
         minimum: int = 0,
         maximum: int = 100,
-        statistics: Optional[List[str]] = None,
+        statistics: list[str] | None = None,
         statistics_only: bool = False,
-        **kwargs: Any,
+        **kwargs: StatParamValue,
     ) -> None:
         """
         Initialize Distribution type.
@@ -76,7 +77,7 @@ class Distribution(StatType):
             object.__setattr__(self, "_maximum", 0)
             object.__setattr__(self, "_statistics", statistics or [])
             # Initialize content with only statistics keys
-            content: Dict[str, List[Any]] = {}
+            content: dict[str, list[Any]] = {}
             for stat in statistics or []:
                 content[stat] = []
         else:
@@ -114,24 +115,24 @@ class Distribution(StatType):
         return int(object.__getattribute__(self, "_maximum"))
 
     @property
-    def statistics(self) -> List[str]:
+    def statistics(self) -> list[str]:
         """Get the list of extra statistics being extracted."""
         return list(object.__getattribute__(self, "_statistics"))
 
     @property
-    def entries(self) -> List[str]:
+    def entries(self) -> list[str]:
         """Return all bucket names in order for layout reconstruction."""
         content_dict = object.__getattribute__(self, "_content")
         return list(content_dict.keys())
 
     @property
-    def content(self) -> Dict[str, List[float]]:
+    def content(self) -> dict[str, list[float]]:
         """Get the raw accumulated frequency lists."""
-        content_dict: Dict[str, List[float]] = object.__getattribute__(self, "_content")
+        content_dict: dict[str, list[float]] = object.__getattribute__(self, "_content")
         return content_dict
 
     @content.setter
-    def content(self, value: Dict[str, Any]) -> None:
+    def content(self, value: dict[str, Any]) -> None:
         """
         Set and aggregate content from a dictionary.
 
@@ -239,7 +240,7 @@ class Distribution(StatType):
         object.__setattr__(self, "_reduced_content", reduced)
 
     @property
-    def reduced_content(self) -> Dict[str, float]:
+    def reduced_content(self) -> dict[str, float]:
         """Get the final processed distribution data."""
         balanced = object.__getattribute__(self, "_balanced")
         reduced = object.__getattribute__(self, "_reduced")
@@ -247,11 +248,11 @@ class Distribution(StatType):
             raise AttributeError(
                 "DISTRIBUTION: Process incomplete. Call balance_content() and reduce_duplicates()."
             )
-        reduced_dict: Dict[str, float] = object.__getattribute__(self, "_reduced_content")
+        reduced_dict: dict[str, float] = object.__getattribute__(self, "_reduced_content")
         return reduced_dict
 
     @property
-    def reducedContent(self) -> Dict[str, float]:
+    def reducedContent(self) -> dict[str, float]:
         """Backward compatibility alias."""
         return self.reduced_content
 

@@ -11,15 +11,17 @@ import os
 import re
 import tempfile
 from pathlib import Path
-from typing import Any, Union
+from typing import Union
 
 logger = logging.getLogger(__name__)
 
 # Type alias for JSON-compatible values
-JsonValue = Union[bool, int, float, str, list[Any], dict[Any, Any], None]
+JsonValue = Union[bool, int, float, str, list["JsonValue"], dict[str, "JsonValue"], None]
 
 
-def getElementValue(jsonElement: dict[str, Any], key: str, optional: bool = True) -> JsonValue:
+def getElementValue(
+    jsonElement: dict[str, JsonValue], key: str, optional: bool = True
+) -> JsonValue:
     """
     Get the value of a key in a JSON element.
 
@@ -48,7 +50,7 @@ def getElementValue(jsonElement: dict[str, Any], key: str, optional: bool = True
         raise KeyError(f"Key not found: {key}")
 
 
-def checkElementExists(jsonElement: dict[str, Any], key: str) -> None:
+def checkElementExists(jsonElement: dict[str, JsonValue], key: str) -> None:
     """
     Check if a key exists in a JSON element, raise exception if not.
 
@@ -63,7 +65,7 @@ def checkElementExists(jsonElement: dict[str, Any], key: str) -> None:
         raise KeyError(f"Key not found: {key}")
 
 
-def checkElementExistNoException(jsonElement: dict[str, Any], key: str) -> bool:
+def checkElementExistNoException(jsonElement: dict[str, JsonValue], key: str) -> bool:
     """
     Check if a key exists in a JSON element without raising exception.
 
@@ -77,7 +79,7 @@ def checkElementExistNoException(jsonElement: dict[str, Any], key: str) -> bool:
     return key in jsonElement
 
 
-def checkEnumExistsNoException(jsonElement: dict[str, Any], enum: enum.EnumMeta) -> bool:
+def checkEnumExistsNoException(jsonElement: dict[str, JsonValue], enum: type[enum.Enum]) -> bool:
     """
     Check if any key in jsonElement matches an enum member.
 
@@ -94,7 +96,7 @@ def checkEnumExistsNoException(jsonElement: dict[str, Any], enum: enum.EnumMeta)
     return False
 
 
-def getEnumValue(jsonElement: dict[str, Any], enumType: enum.EnumMeta) -> str | None:
+def getEnumValue(jsonElement: dict[str, JsonValue], enumType: type[enum.Enum]) -> str | None:
     """
     Get the first enum value that matches a key in jsonElement.
 
@@ -208,7 +210,7 @@ def createTmpFile() -> str:
     return path
 
 
-def checkVarType(var: Any, varType: type) -> None:
+def checkVarType(var: object, varType: type) -> None:
     """
     Check if a variable is of the expected type, raise exception if not.
 

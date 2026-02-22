@@ -10,13 +10,25 @@ PipelineController._render_pipeline_steps.
 """
 
 from collections.abc import Callable
-from typing import Any
+from typing import TypedDict
 
 import pandas as pd
 import streamlit as st
 
 from src.core.models.data_models import ShaperStepConfig
 from src.web.presenters.plot.pipeline_presenter import PipelinePresenter
+
+
+class PipelineStepResult(TypedDict):
+    """Result of rendering a single pipeline step."""
+
+    new_config: ShaperStepConfig
+    move_up: bool
+    move_down: bool
+    delete: bool
+    preview_data: pd.DataFrame | None
+    preview_error: str | None
+    step_output: pd.DataFrame | None
 
 
 class PipelineStepPresenter:
@@ -51,7 +63,7 @@ class PipelineStepPresenter:
             [pd.DataFrame, list[ShaperStepConfig]],
             pd.DataFrame,
         ],
-    ) -> dict[str, Any]:
+    ) -> PipelineStepResult:
         """
         Render a complete pipeline step inside an expander.
 
@@ -83,7 +95,7 @@ class PipelineStepPresenter:
         """
         display_name: str = PipelinePresenter.REVERSE_MAP.get(shaper_type, shaper_type)
 
-        result: dict[str, Any] = {
+        result: PipelineStepResult = {
             "new_config": current_config,
             "move_up": False,
             "move_down": False,

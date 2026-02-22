@@ -15,17 +15,18 @@ Categories:
     - Cache monitoring: CacheStatsEntry, CacheStatsInfo
 """
 
-from typing import TypedDict
+from typing import Required, TypedDict
 
 # ──────────────────────────────────────────────────────────────────────
 # CSV Pool
 # ──────────────────────────────────────────────────────────────────────
 
 
-class CsvMetadata(TypedDict, total=False):
+class CsvMetadata(TypedDict):
     """Metadata for a single CSV file (columns, row count, dtypes).
 
     Produced by ``CsvPoolService._get_csv_metadata()``.
+    All fields are always present.
     """
 
     columns: list[str]
@@ -44,10 +45,10 @@ class CsvPoolEntry(TypedDict, total=False):
     """
 
     # Always present
-    path: str
-    name: str
-    size: int
-    modified: float
+    path: Required[str]
+    name: Required[str]
+    size: Required[int]
+    modified: Required[float]
 
     # From CsvMetadata (optional)
     columns: list[str]
@@ -80,10 +81,10 @@ class SavedConfigData(TypedDict, total=False):
     ``name`` and ``shapers`` are always present when saving.
     """
 
-    name: str
+    name: Required[str]
     description: str
     timestamp: str
-    shapers: list["ShaperStepConfig"]
+    shapers: Required[list["ShaperStepConfig"]]
     csv_path: str | None
 
 
@@ -164,9 +165,9 @@ class PipelineData(TypedDict, total=False):
     Uses the **nested** ``PipelineStep`` format.
     """
 
-    name: str
+    name: Required[str]
     description: str
-    pipeline: list["PipelineStep"]
+    pipeline: Required[list["PipelineStep"]]
     timestamp: str
 
 
@@ -187,9 +188,9 @@ class ParseVariableConfig(TypedDict, total=False):
     """
 
     # Required (always present)
-    name: str
-    type: str
-    _id: str
+    name: Required[str]
+    type: Required[str]
+    _id: Required[str]
 
     # Optional: alias
     alias: str
@@ -237,12 +238,13 @@ class ScannedVariableDict(TypedDict, total=False):
     ``name``, ``type``, and ``entries`` are always present.
     """
 
-    name: str
-    type: str
-    entries: list[str]
+    name: Required[str]
+    type: Required[str]
+    entries: Required[list[str]]
     minimum: float
     maximum: float
     pattern_indices: list[str]
+    count: int
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -250,7 +252,7 @@ class ScannedVariableDict(TypedDict, total=False):
 # ──────────────────────────────────────────────────────────────────────
 
 
-class PipelineStep(TypedDict, total=False):
+class PipelineStep(TypedDict):
     """A single step in a plot's data processing pipeline.
 
     This is the **nested** format stored in ``BasePlot.pipeline``,

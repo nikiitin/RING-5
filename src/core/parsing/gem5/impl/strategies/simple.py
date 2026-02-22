@@ -14,8 +14,9 @@ Workflow:
 
 import logging
 import os
+from collections.abc import Sequence
 from dataclasses import replace
-from typing import Any, Dict, List, Sequence
+from typing import Any
 
 from src.core.common.utils import (
     normalize_user_path,
@@ -41,7 +42,7 @@ class SimpleStatsStrategy:
 
     def execute(
         self, stats_path: str, stats_pattern: str, variables: Sequence[StatConfig]
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Execute the simple parsing workflow.
         """
@@ -77,11 +78,11 @@ class SimpleStatsStrategy:
 
         return [Gem5ParseWork(str(file_path), variable_map) for file_path in files]
 
-    def post_process(self, results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def post_process(self, results: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Perform any post-processing on aggregated results."""
         return results
 
-    def _get_files(self, stats_path: str, stats_pattern: str) -> List[str]:
+    def _get_files(self, stats_path: str, stats_pattern: str) -> list[str]:
         """Find all stats files matching the pattern in the target path."""
         # Path is already validated/resolved by ParseService before reaching strategy
         safe_path: str = os.path.normpath(stats_path) if stats_path else "."
@@ -96,13 +97,13 @@ class SimpleStatsStrategy:
         )
         return files
 
-    def _map_variables(self, variables: Sequence[StatConfig]) -> Dict[str, Any]:
+    def _map_variables(self, variables: Sequence[StatConfig]) -> dict[str, Any]:
         """
         Convert configuration models into typed Stat objects.
 
         Handles multi-ID mapping (e.g., regex variables matching multiple controllers).
         """
-        var_map: Dict[str, Any] = {}
+        var_map: dict[str, Any] = {}
 
         for var in variables:
             name = var.name
@@ -114,7 +115,8 @@ class SimpleStatsStrategy:
                 raise RuntimeError(f"PARSER: Duplicate variable definition: {name}")
 
             # Handle multi-ID mapping (Variables matched via regex scanning)
-            parsed_ids = var.params.get("parsed_ids", [])
+            parsed_ids_raw = var.params.get("parsed_ids", [])
+            parsed_ids: list[str] = parsed_ids_raw if isinstance(parsed_ids_raw, list) else []
 
             if parsed_ids:
                 # Update repeat count for the logical variable (Spatial aggregation)

@@ -71,12 +71,14 @@ def validate_shaper_config(
         - list_of_missing_fields: List of missing/empty field names, None if valid
     """
     required_params = SHAPER_REQUIRED_PARAMS.get(shaper_type, [])
-    missing_fields = []
+    missing_fields: list[str] = []
 
     for param in required_params:
         value = config.get(param)
         # Check if param is missing or empty (empty list, empty string, None, etc.)
-        if value is None or (isinstance(value, (list, str)) and len(value) == 0):
+        if value is None or (isinstance(value, str) and not value):
+            missing_fields.append(param)
+        elif isinstance(value, list) and not value:
             missing_fields.append(param)
 
     if missing_fields:
@@ -124,8 +126,7 @@ def configure_shaper(
         try:
             config = config_dispatch[shaper_type](data, existing_config, key_prefix, shaper_id)
             # Ensure 'type' is ALWAYS present even if component returned empty or partial
-            if isinstance(config, dict):
-                config["type"] = shaper_type
+            config["type"] = shaper_type
 
             return config
         except Exception as e:
@@ -138,13 +139,15 @@ def configure_shaper(
     return {"type": shaper_type}
 
 
-def apply_shapers(data: pd.DataFrame, shapers_config: list[ShaperStepConfig]) -> pd.DataFrame:
+def apply_shapers(
+    data: pd.DataFrame | None, shapers_config: list[ShaperStepConfig]
+) -> pd.DataFrame:
     """
     Apply a sequence of shapers to the data.
     Delegates to ShaperFactory (Layer B interaction).
 
     Args:
-        data: Input DataFrame
+        data: Input DataFrame (or None)
         shapers_config: List of shaper configurations
 
     Returns:

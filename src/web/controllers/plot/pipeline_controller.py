@@ -28,7 +28,10 @@ from src.core.application_api import ApplicationAPI
 from src.core.models.data_models import ShaperStepConfig
 from src.web.models.plot_protocols import PipelineExecutor, PlotHandle
 from src.web.presenters.plot.pipeline_presenter import PipelinePresenter
-from src.web.presenters.plot.pipeline_step_presenter import PipelineStepPresenter
+from src.web.presenters.plot.pipeline_step_presenter import (
+    PipelineStepPresenter,
+    PipelineStepResult,
+)
 from src.web.state.ui_state_manager import UIStateManager
 
 logger = logging.getLogger(__name__)
@@ -121,7 +124,7 @@ class PipelineController:
         for idx, shaper in enumerate(plot.pipeline):
             try:
                 # Render step via presenter
-                result: dict[str, Any] = PipelineStepPresenter.render_step(
+                result: PipelineStepResult = PipelineStepPresenter.render_step(
                     plot_id=plot.plot_id,
                     idx=idx,
                     shaper_type=shaper["type"],
@@ -167,8 +170,9 @@ class PipelineController:
                 st.rerun()
 
             # Advance step_input for next step using already-computed output
-            if result.get("step_output") is not None:
-                step_input = result["step_output"]
+            step_output = result.get("step_output")
+            if step_output is not None:
+                step_input = step_output
 
             # Log preview errors
             if result["preview_error"]:

@@ -111,7 +111,7 @@ class Gem5Parser:
         # 1. Regex Expansion (Centralized Logic)
         # If scanned_vars are provided, we expand patterns (e.g., cpu\d+)
         # before passing to the strategies.
-        processed_configs = []
+        processed_configs: list[StatConfig] = []
         for config in variables:
             expanded_config = config
             if scanned_vars and config.is_regex:
@@ -121,7 +121,7 @@ class Gem5Parser:
                         f"against {len(scanned_vars)} scanned variables"
                     )
                     pattern = re.compile(config.name)
-                    matched_ids = []
+                    matched_ids: list[str] = []
                     for sv in scanned_vars:
                         sv_name = sv.name
                         if config.name == sv_name or pattern.fullmatch(sv_name):
@@ -138,7 +138,10 @@ class Gem5Parser:
                             # Respect user-filtered parsed_ids from the UI
                             # (PatternIndexSelector), falling back to all
                             # matched_ids when no filter was applied.
-                            user_ids: list[str] = config.params.get("parsed_ids", [])
+                            user_ids_raw = config.params.get("parsed_ids", [])
+                            user_ids: list[str] = (
+                                user_ids_raw if isinstance(user_ids_raw, list) else []
+                            )
                             ids_to_expand = user_ids if user_ids else matched_ids
 
                             # Determine if IDs are full variable names
@@ -207,7 +210,7 @@ class Gem5Parser:
         if not batch_work:
             return ParseBatchResult(futures=[], var_names=[])
 
-        var_names = [v.name for v in processed_configs]
+        var_names: list[str] = [v.name for v in processed_configs]
 
         pool = ParseWorkPool.get_instance()
         futures = pool.submit_batch_async(batch_work)

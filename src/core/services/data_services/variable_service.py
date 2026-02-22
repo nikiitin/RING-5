@@ -183,7 +183,7 @@ class VariableService:
             >>> all("_id" in v for v in vars)
             True
         """
-        updated_vars = []
+        updated_vars: list[ParseVariableConfig] = []
         for var in variables:
             var_copy = var.copy()
             if "_id" not in var_copy:

@@ -211,7 +211,11 @@ class PlotRenderController:
                 fig = plot.apply_common_layout(fig, plot.config)
                 legend_labels: dict[str, str] | None = plot.config.get("legend_labels")
                 if legend_labels:
-                    fig.for_each_trace(lambda t: t.update(name=legend_labels.get(t.name, t.name)))
+                    fig.for_each_trace(
+                        lambda t: t.update(  # type: ignore[attr-defined]
+                            name=legend_labels.get(t.name, t.name)  # type: ignore[attr-defined]
+                        )
+                    )
                 plot.last_generated_fig = fig
                 cache.set(cache_key, fig)
             except Exception as e:
@@ -219,10 +223,9 @@ class PlotRenderController:
                 return
 
         # ── Display ──────────────────────────────────────────────
-        if plot.last_generated_fig is None:
-            return
-
         fig = plot.last_generated_fig
+        if fig is None:  # type: ignore[redundant-expr]
+            return
 
         # Engine selector (presenter renders st.pills)
         engine_choice: str | None = ChartPresenter.render_engine_selector(

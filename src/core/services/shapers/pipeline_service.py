@@ -101,7 +101,7 @@ class PipelineService:
 
         safe_name: str = sanitize_filename(name)
 
-        data = {
+        data: PipelineData = {
             "name": name,
             "description": description,
             "pipeline": pipeline_config,

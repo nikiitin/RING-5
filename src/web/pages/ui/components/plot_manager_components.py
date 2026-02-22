@@ -363,7 +363,7 @@ class PlotManagerComponents:
                         st.warning("No plots to download.")
                     else:
                         count = 0
-                        errors = []
+                        errors: list[str] = []
                         # Determine override
                         fmt_arg = None
                         if export_fmt_override != "Keep Individual":

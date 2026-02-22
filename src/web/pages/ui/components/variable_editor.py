@@ -3,6 +3,7 @@ Variable Editor Component for RING-5.
 Handles rendering and interaction for defining parser variables (scalars, vectors, distributions).
 """
 
+import uuid
 from concurrent.futures import Future, as_completed
 
 import streamlit as st
@@ -44,8 +45,8 @@ class VariableEditor:
 
         st.markdown("**Current Variables:**")
 
-        updated_vars = []
-        deleted_indices = []
+        updated_vars: list[ParseVariableConfig] = []
+        deleted_indices: list[int] = []
 
         for idx, var in enumerate(variables):
             # Get ID (should exist after ensuring IDs above)
@@ -449,8 +450,8 @@ class VariableEditor:
         st.write(f"Scanning {len(futures)} files...")
         progress_bar = st.progress(0, text="Starting scan...")
 
-        results = []
-        errors = []
+        results: list[list[ScannedVariable]] = []
+        errors: list[str] = []
         completed = 0
         total = len(futures)
 
@@ -630,7 +631,7 @@ class VariableEditor:
                 key=f"stat_stdev_{var_id}",
             )
 
-        special_members = []
+        special_members: list[str] = []
         if extract_total:
             special_members.append("total")
         if extract_mean:
@@ -770,7 +771,7 @@ class VariableEditor:
                 "overflows", value="overflows" in current_stats, key=f"dist_stat_overflows_{var_id}"
             )
 
-        selected_stats = []
+        selected_stats: list[str] = []
         if extract_mean:
             selected_stats.append("mean")
         if extract_stdev:
@@ -832,7 +833,11 @@ class VariableEditor:
                     var_type = selected_option.split(" (")[1][:-1]
 
                     if st.button("Add Selected", key="add_selected_var"):
-                        new_var: ParseVariableConfig = {"name": name, "type": var_type}
+                        new_var: ParseVariableConfig = {
+                            "name": name,
+                            "type": var_type,
+                            "_id": str(uuid.uuid4()),
+                        }
                         # Mutate in-place for Streamlit state management
                         variables.append(new_var)
                         st.rerun()
@@ -841,7 +846,11 @@ class VariableEditor:
 
         with col_add2:
             if st.button("+ Add Manual", key="add_manual_var"):
-                manual_var: ParseVariableConfig = {"name": "new_variable", "type": "scalar"}
+                manual_var: ParseVariableConfig = {
+                    "name": "new_variable",
+                    "type": "scalar",
+                    "_id": str(uuid.uuid4()),
+                }
                 # Mutate in-place for Streamlit state management
                 variables.append(manual_var)
                 st.rerun()

@@ -6,8 +6,6 @@ in gem5 statistics files. Used by scanner service for parallel discovery
 of scalar, vector, and other statistics.
 """
 
-from typing import Any
-
 from src.core.models import ScannedVariable
 from src.core.parsing.gem5.impl.pool.job import Job
 
@@ -18,7 +16,7 @@ class ScanWork(Job):
     Inherits from the core Job class to be compatible with WorkPool.
     """
 
-    def __init__(self, **kwargs: Any) -> None:
+    def __init__(self) -> None:
         pass
 
     def __call__(self) -> list[ScannedVariable]:

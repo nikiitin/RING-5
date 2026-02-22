@@ -8,7 +8,7 @@ pure data definitions with no UI dependencies.
 - ShapeConfig: Annotation shape configuration (lines, circles, rectangles)
 """
 
-from typing import Any, Dict, TypedDict, Union
+from typing import Any, Required, TypedDict
 
 
 class ShapeConfig(TypedDict, total=False):
@@ -18,9 +18,9 @@ class ShapeConfig(TypedDict, total=False):
     drawn on plots via Plotly's layout.shapes mechanism.
     """
 
-    type: str  # "line", "circle", "rect"
-    x0: Union[float, str]
-    y0: Union[float, str]
-    x1: Union[float, str]
-    y1: Union[float, str]
-    line: Dict[str, Any]  # Contains color, width
+    type: Required[str]  # "line", "circle", "rect"
+    x0: Required[float | str]
+    y0: Required[float | str]
+    x1: Required[float | str]
+    y1: Required[float | str]
+    line: dict[str, Any]  # Contains color, width

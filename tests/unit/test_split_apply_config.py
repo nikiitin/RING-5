@@ -1,9 +1,10 @@
 """Tests for SplitApplyConfig shaper UI component — N-group delegation."""
 
-from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
+
+from src.core.models.data_models import ShaperStepConfig
 
 # ── Helpers ───────────────────────────────────────────────────────
 
@@ -88,19 +89,20 @@ class TestSplitApplyConfigRender:
         mock_st.session_state = {}
         mock_st.button.return_value = False
 
-        result: dict[str, Any] = SplitApplyConfig.render(
+        result = SplitApplyConfig.render(
             data=data,
             existing_config={},
             key_prefix="p_",
-            shaper_id="x",
+            shaper_id=0,
         )
 
-        assert result["joinColumns"] == ["benchmark", "config"]
-        assert len(result["groups"]) == 2
-        assert result["groups"][0]["columns"] == ["ipc"]
-        assert result["groups"][0]["pipeline"] == []
-        assert result["groups"][1]["columns"] == ["cycles"]
-        assert result["groups"][1]["pipeline"] == []
+        assert result.get("joinColumns") == ["benchmark", "config"]
+        groups = result.get("groups", [])
+        assert len(groups) == 2
+        assert groups[0].get("columns") == ["ipc"]
+        assert groups[0].get("pipeline") == []
+        assert groups[1].get("columns") == ["cycles"]
+        assert groups[1].get("pipeline") == []
 
     @patch(f"{_MOD}._init_dispatch")
     @patch(f"{_MOD}.st")
@@ -126,14 +128,14 @@ class TestSplitApplyConfigRender:
         mock_st.session_state = {}
         mock_st.button.return_value = False
 
-        result: dict[str, Any] = SplitApplyConfig.render(
+        result = SplitApplyConfig.render(
             data=data,
             existing_config={"joinColumns": ["benchmark"]},
             key_prefix="p_",
-            shaper_id="x",
+            shaper_id=0,
         )
 
-        assert result["joinColumns"] == ["benchmark"]
+        assert result.get("joinColumns") == ["benchmark"]
 
 
 # ── TestSplitApplyConfigSubStepDelegation ────────────────────────
@@ -184,12 +186,12 @@ class TestSplitApplyConfigSubStepDelegation:
         )
 
         assert result is not None
-        assert result["type"] == "mean"
-        assert result["meanAlgorithm"] == "arithmean"
+        assert result.get("type") == "mean"
+        assert result.get("meanAlgorithm") == "arithmean"
 
         # Verify the real render function was called
         _, render_fn = _SUB_SHAPER_DISPATCH["Mean Calculator"]
-        render_fn.assert_called_once()
+        render_fn.assert_called_once()  # type: ignore[attr-defined]
 
     @patch(
         f"{_MOD}._SUB_SHAPER_DISPATCH",
@@ -233,11 +235,11 @@ class TestSplitApplyConfigSubStepDelegation:
         )
 
         assert result is not None
-        assert result["type"] == "normalize"
-        assert result["normalizerColumn"] == "config"
+        assert result.get("type") == "normalize"
+        assert result.get("normalizerColumn") == "config"
 
         _, render_fn = _SUB_SHAPER_DISPATCH["Normalize"]
-        render_fn.assert_called_once()
+        render_fn.assert_called_once()  # type: ignore[attr-defined]
 
     @patch(
         f"{_MOD}._SUB_SHAPER_DISPATCH",
@@ -277,10 +279,10 @@ class TestSplitApplyConfigSubStepDelegation:
         )
 
         assert result is not None
-        assert result["type"] == "sort"
+        assert result.get("type") == "sort"
 
         _, render_fn = _SUB_SHAPER_DISPATCH["Sort"]
-        render_fn.assert_called_once()
+        render_fn.assert_called_once()  # type: ignore[attr-defined]
 
     @patch(
         f"{_MOD}._SUB_SHAPER_DISPATCH",
@@ -320,10 +322,10 @@ class TestSplitApplyConfigSubStepDelegation:
         )
 
         assert result is not None
-        assert result["type"] == "conditionSelector"
+        assert result.get("type") == "conditionSelector"
 
         _, render_fn = _SUB_SHAPER_DISPATCH["Filter"]
-        render_fn.assert_called_once()
+        render_fn.assert_called_once()  # type: ignore[attr-defined]
 
 
 # ── TestSplitApplyConfigWithStep ─────────────────────────────────
@@ -379,22 +381,24 @@ class TestSplitApplyConfigWithStep:
 
         # session_state: group A has 1 step, group B has 0
         mock_st.session_state = {
-            "p_sa_g0_x_step_count": 1,
+            "p_sa_g0_0_step_count": 1,
         }
         mock_st.button.return_value = False
 
-        result: dict[str, Any] = SplitApplyConfig.render(
+        result = SplitApplyConfig.render(
             data=data,
             existing_config={},
             key_prefix="p_",
-            shaper_id="x",
+            shaper_id=0,
         )
 
-        grp_a: dict[str, Any] = result["groups"][0]
-        assert len(grp_a["pipeline"]) == 1
-        step: dict[str, Any] = grp_a["pipeline"][0]
-        assert step["type"] == "mean"
-        assert step["meanAlgorithm"] == "arithmean"
+        groups = result.get("groups", [])
+        grp_a = groups[0]
+        pipeline_a = grp_a.get("pipeline", [])
+        assert len(pipeline_a) == 1
+        step = pipeline_a[0]
+        assert step.get("type") == "mean"
+        assert step.get("meanAlgorithm") == "arithmean"
 
 
 # ── TestSplitApplyConfigNGroups ──────────────────────────────────
@@ -429,17 +433,18 @@ class TestSplitApplyConfigNGroups:
         mock_st.session_state = {}
         mock_st.button.return_value = False
 
-        result: dict[str, Any] = SplitApplyConfig.render(
+        result = SplitApplyConfig.render(
             data=data,
             existing_config={},
             key_prefix="p_",
-            shaper_id="x",
+            shaper_id=0,
         )
 
-        assert len(result["groups"]) == 3
-        assert result["groups"][0]["columns"] == ["v1"]
-        assert result["groups"][1]["columns"] == ["v2"]
-        assert result["groups"][2]["columns"] == ["v3"]
+        groups = result.get("groups", [])
+        assert len(groups) == 3
+        assert groups[0].get("columns") == ["v1"]
+        assert groups[1].get("columns") == ["v2"]
+        assert groups[2].get("columns") == ["v3"]
 
     @patch(f"{_MOD}._init_dispatch")
     @patch(f"{_MOD}.st")
@@ -474,16 +479,17 @@ class TestSplitApplyConfigNGroups:
         mock_st.session_state = {}
         mock_st.button.return_value = False
 
-        result: dict[str, Any] = SplitApplyConfig.render(
+        result = SplitApplyConfig.render(
             data=data,
             existing_config={},
             key_prefix="p_",
-            shaper_id="x",
+            shaper_id=0,
         )
 
-        assert len(result["groups"]) == 4
+        groups = result.get("groups", [])
+        assert len(groups) == 4
         for i in range(4):
-            assert result["groups"][i]["columns"] == [f"v{i + 1}"]
+            assert groups[i].get("columns") == [f"v{i + 1}"]
 
     @patch(f"{_MOD}._init_dispatch")
     @patch(f"{_MOD}.st")
@@ -497,7 +503,7 @@ class TestSplitApplyConfigNGroups:
 
         data: pd.DataFrame = _sample_data_4cols()
 
-        existing: dict[str, Any] = {
+        existing: ShaperStepConfig = {
             "joinColumns": ["benchmark", "config"],
             "groups": [
                 {"columns": ["v1"], "pipeline": []},
@@ -522,14 +528,14 @@ class TestSplitApplyConfigNGroups:
         mock_st.session_state = {}
         mock_st.button.return_value = False
 
-        result: dict[str, Any] = SplitApplyConfig.render(
+        result = SplitApplyConfig.render(
             data=data,
             existing_config=existing,
             key_prefix="p_",
-            shaper_id="x",
+            shaper_id=0,
         )
 
-        assert len(result["groups"]) == 3
+        assert len(result.get("groups", [])) == 3
         # Verify slider was called with value=3
         mock_st.slider.assert_called_once()
         call_kwargs = mock_st.slider.call_args
@@ -574,7 +580,7 @@ class TestSplitApplyConfigExistingPipeline:
 
         data: pd.DataFrame = _sample_data()
 
-        existing: dict[str, Any] = {
+        existing: ShaperStepConfig = {
             "joinColumns": ["benchmark", "config"],
             "groups": [
                 {
@@ -608,20 +614,22 @@ class TestSplitApplyConfigExistingPipeline:
         mock_st.session_state = {}
         mock_st.button.return_value = False
 
-        result: dict[str, Any] = SplitApplyConfig.render(
+        result = SplitApplyConfig.render(
             data=data,
             existing_config=existing,
             key_prefix="p_",
-            shaper_id="x",
+            shaper_id=0,
         )
 
-        grp_a: dict[str, Any] = result["groups"][0]
-        assert len(grp_a["pipeline"]) == 1
-        assert grp_a["pipeline"][0]["meanAlgorithm"] == "geomean"
+        groups = result.get("groups", [])
+        grp_a = groups[0]
+        pipeline_a = grp_a.get("pipeline", [])
+        assert len(pipeline_a) == 1
+        assert pipeline_a[0].get("meanAlgorithm") == "geomean"
 
         # Verify the existing_step was passed to the delegated renderer
         _, render_fn = _SUB_SHAPER_DISPATCH["Mean Calculator"]
-        call_args = render_fn.call_args
+        call_args = render_fn.call_args  # type: ignore[attr-defined]
         passed_existing = call_args[0][1]  # 2nd positional arg
         assert passed_existing["type"] == "mean"
         assert passed_existing["meanAlgorithm"] == "geomean"
@@ -659,14 +667,14 @@ class TestSplitApplyConfigKeyPrefixing:
             join_columns=["benchmark", "config"],
             categorical_cols=["benchmark", "config"],
             existing_step={},
-            key_base="p_sa_g1_x_s0",
+            key_base="p_sa_g1_0_s0",
             step_index=0,
         )
 
         _, render_fn = _SUB_SHAPER_DISPATCH["Mean Calculator"]
-        call_args = render_fn.call_args
-        # key_prefix should be "p_sa_g1_x_s0_"
-        assert call_args[0][2] == "p_sa_g1_x_s0_"
+        call_args = render_fn.call_args  # type: ignore[attr-defined]
+        # key_prefix should be "p_sa_g1_0_s0_"
+        assert call_args[0][2] == "p_sa_g1_0_s0_"
         # shaper_id should be "sub0"
         assert call_args[0][3] == "sub0"
 

@@ -5,7 +5,7 @@ Loads and validates journal-specific export presets from YAML configuration.
 """
 
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import yaml
 
@@ -26,8 +26,8 @@ class PresetManager:
         >>> PresetManager.validate_preset(preset)  # Validates structure
     """
 
-    _cache: Dict[str, LaTeXPreset] = {}
-    _presets_data: Dict[str, Any] = {}
+    _cache: dict[str, LaTeXPreset] = {}
+    _presets_data: dict[str, Any] = {}
     _initialized: bool = False
 
     @classmethod
@@ -42,7 +42,7 @@ class PresetManager:
         if not config_path.exists():
             raise FileNotFoundError(f"Presets file not found: {config_path}")
 
-        with open(config_path, "r") as f:
+        with open(config_path) as f:
             data = yaml.safe_load(f)
             cls._presets_data = data.get("presets", {})
 
@@ -171,7 +171,7 @@ class PresetManager:
         return preset
 
     @classmethod
-    def list_presets(cls) -> List[str]:
+    def list_presets(cls) -> list[str]:
         """
         List all available preset names.
 
@@ -182,7 +182,7 @@ class PresetManager:
         return list(cls._presets_data.keys())
 
     @classmethod
-    def get_preset_info(cls, preset_name: str) -> Dict[str, str]:
+    def get_preset_info(cls, preset_name: str) -> dict[str, str]:
         """
         Get metadata about a preset without loading full configuration.
 
@@ -207,7 +207,7 @@ class PresetManager:
         }
 
     @classmethod
-    def validate_preset(cls, preset: Any) -> None:
+    def validate_preset(cls, preset: LaTeXPreset) -> None:
         """
         Validate a LaTeX preset configuration.
 

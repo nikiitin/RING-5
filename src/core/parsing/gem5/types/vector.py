@@ -11,6 +11,7 @@ Implements type registry pattern for stat type dispatch.
 import logging
 from typing import Any
 
+from src.core.models.parsing_models import StatParamValue
 from src.core.parsing.gem5.types.base import StatType, register_type
 
 logger = logging.getLogger(__name__)
@@ -46,7 +47,9 @@ class Vector(StatType):
         }
     )
 
-    def __init__(self, repeat: int = 1, entries: list[str] | None = None, **kwargs: Any) -> None:
+    def __init__(
+        self, repeat: int = 1, entries: list[str] | None = None, **kwargs: StatParamValue
+    ) -> None:
         super().__init__(repeat, **kwargs)
         if entries is None:
             raise ValueError("VECTOR: entries parameter is required")

@@ -4,13 +4,13 @@ Provides shared fixtures for testing UI orchestration, adapters,
 controllers, and page-level logic without a real Streamlit runtime.
 """
 
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
 
-from src.core.models.data_models import PipelineStep
+from src.core.models.data_models import PipelineStep, ShaperStepConfig
 
 
 # ---------------------------------------------------------------------------
@@ -88,10 +88,13 @@ def stub_plot_with_data(sample_data: pd.DataFrame) -> StubPlotHandle:
 def stub_plot_with_pipeline() -> StubPlotHandle:
     """A PlotHandle stub with a 2-step pipeline."""
     return StubPlotHandle(
-        pipeline=[
-            {"id": 1, "type": "columnSelector", "config": {"columns": ["a"]}},
-            {"id": 2, "type": "normalize", "config": {"target": "b"}},
-        ],
+        pipeline=cast(
+            list[PipelineStep],
+            [
+                {"id": 1, "type": "columnSelector", "config": {"columns": ["a"]}},
+                {"id": 2, "type": "normalize", "config": cast(ShaperStepConfig, {"target": "b"})},
+            ],
+        ),
         pipeline_counter=2,
     )
 
