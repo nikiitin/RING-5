@@ -16,7 +16,9 @@ All models are **immutable** (``frozen=True``) to guarantee reproducibility.
 
 from concurrent.futures import Future
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
+
+from src.core.models.data_models import ScannedVariableDict
 
 
 @dataclass(frozen=True)
@@ -30,8 +32,8 @@ class ParseBatchResult:
     mutable state.
     """
 
-    futures: List[Future[Any]]
-    var_names: List[str]
+    futures: list[Future[Any]]
+    var_names: list[str]
 
 
 @dataclass(frozen=True)
@@ -43,18 +45,18 @@ class ScannedVariable:
 
     name: str
     type: str  # "scalar", "vector", "distribution", "histogram", "configuration"
-    entries: List[str] = field(default_factory=list)
-    minimum: Optional[float] = None
-    maximum: Optional[float] = None
-    pattern_indices: Optional[List[str]] = None
+    entries: list[str] = field(default_factory=list)
+    minimum: float | None = None
+    maximum: float | None = None
+    pattern_indices: list[str] | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> ScannedVariableDict:
         """Serialize to dictionary for JSON-compatible output."""
-        result: Dict[str, Any] = {
-            "name": self.name,
-            "type": self.type,
-            "entries": self.entries,
-        }
+        result: ScannedVariableDict = ScannedVariableDict(
+            name=self.name,
+            type=self.type,
+            entries=self.entries,
+        )
         if self.minimum is not None:
             result["minimum"] = self.minimum
         if self.maximum is not None:
@@ -64,7 +66,7 @@ class ScannedVariable:
         return result
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ScannedVariable":
+    def from_dict(cls, data: ScannedVariableDict) -> "ScannedVariable":
         """Reconstruct model from dictionary."""
         return cls(
             name=data["name"],
@@ -97,7 +99,7 @@ class StatConfig:
     name: str
     type: str
     repeat: int = 1
-    params: Dict[str, Any] = field(default_factory=dict)
+    params: dict[str, Any] = field(default_factory=dict)
     statistics_only: bool = False
     is_regex: bool = False
     keep_indices: bool = False

@@ -57,6 +57,7 @@ You possess deep knowledge of the gem5 output structure:
 6.  **DIRECTORY ACCESS RESTRICTION:** STRICTLY FORBIDDEN from accessing or modifying anything outside of the `RING-5` workspace directory.
 7.  **QUALITY GATE MANDATORY:** Run `.agent/workflows/code-quality-gate.md` before declaring any task complete.
 8.  **SECURITY ENFORCEMENT:** Follow `.agent/rules/005-security-enforcement.md` for all code changes.
+9.  **TESTING THREAD LIMIT:** All parallel test executions MUST use a maximum of 3 threads (`-n 3`). Never exceed this limit to ensure system stability.
 
 ---
 

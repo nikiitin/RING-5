@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 import pytest
@@ -27,16 +28,16 @@ class TestGem5Parsing:
         ConfigService.reset_caches()
 
     @pytest.fixture
-    def facade(self):
+    def facade(self) -> ApplicationAPI:
         """Create a ApplicationAPI instance."""
         return ApplicationAPI()
 
     @pytest.fixture
-    def output_dir(self, tmp_path):
+    def output_dir(self, tmp_path: Any) -> None:
         """Create a temporary output directory."""
         return tmp_path / "output"
 
-    def test_scan_variables(self, facade):
+    def test_scan_variables(self, facade: Any) -> None:
         """Test scanning variables from real data."""
         if not self.TEST_DATA_DIR.exists():
             pytest.skip("Test data not found")
@@ -64,7 +65,7 @@ class TestGem5Parsing:
             any(common_var in name for common_var in common_vars) for name in var_names
         ), f"Expected to find common gem5 variables, but got: {var_names[:5]}"
 
-    def test_parse_workflow(self, facade, output_dir):
+    def test_parse_workflow(self, facade: Any, output_dir: Any) -> None:
         """Test the full parsing workflow."""
         if not self.TEST_DATA_DIR.exists():
             pytest.skip("Test data not found")
@@ -134,7 +135,7 @@ class TestGem5Parsing:
 
         # Verify presence of inferred columns.
 
-    def test_histogram_parsing(self, tmp_path):
+    def test_histogram_parsing(self, tmp_path: Any) -> None:
         """Test scanning and parsing a file containing histograms."""
 
         # Use the builtin tmp_path fixture for Rule 004 compliance

@@ -3,7 +3,6 @@
 import tempfile
 import time
 from pathlib import Path
-from typing import List
 
 import pytest
 
@@ -35,14 +34,14 @@ system.mem.bytes_written::total            524288                       # Bytes 
 
 
 @pytest.fixture
-def multiple_stats_files(test_stats_file: Path, count: int = 20) -> List[Path]:
+def multiple_stats_files(test_stats_file: Path, count: int = 20) -> list[Path]:
     """Create multiple stats files for performance testing."""
     files = [test_stats_file]
 
     # Create more files with same content
     for _i in range(count - 1):
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
-            with open(test_stats_file, "r") as src:
+            with open(test_stats_file) as src:
                 f.write(src.read())
             files.append(Path(f.name))
 
@@ -57,8 +56,8 @@ def multiple_stats_files(test_stats_file: Path, count: int = 20) -> List[Path]:
 
 
 def test_worker_pool_performance_vs_subprocess(
-    test_stats_file: Path, multiple_stats_files: List[Path]
-):
+    test_stats_file: Path, multiple_stats_files: list[Path]
+) -> None:
     """
     Benchmark worker pool performance.
 
@@ -111,7 +110,7 @@ def test_worker_pool_performance_vs_subprocess(
     assert stats["healthy_workers"] == stats["pool_size"], "All workers should be healthy"
 
 
-def test_worker_pool_scalability(test_stats_file: Path):
+def test_worker_pool_scalability(test_stats_file: Path) -> None:
     """
     Test that worker pool scales with number of workers.
 
@@ -170,7 +169,7 @@ def test_worker_pool_scalability(test_stats_file: Path):
         ), f"Pool size {pool_size} wrong request count"
 
 
-def test_worker_pool_memory_efficiency(test_stats_file: Path):
+def test_worker_pool_memory_efficiency(test_stats_file: Path) -> None:
     """
     Test that worker pool maintains stable resource usage over many requests.
 

@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 import pandas as pd
@@ -11,7 +12,7 @@ from src.core.services.data_services.path_service import PathService
 
 
 @pytest.fixture
-def facade(tmp_path):
+def facade(tmp_path: Any) -> None:
     """
     Fixture creates a ApplicationAPI instance with temporary directories.
     Patches PathService to use temp directories for isolation.
@@ -51,7 +52,7 @@ def facade(tmp_path):
                 yield f
 
 
-def test_csv_pool_operations(facade, tmp_path):
+def test_csv_pool_operations(facade: Any, tmp_path: Any) -> None:
     """Test adding, listing, loading, and deleting CSV files."""
 
     # 1. Create a dummy CSV
@@ -81,7 +82,7 @@ def test_csv_pool_operations(facade, tmp_path):
     assert len(facade.load_csv_pool()) == 0
 
 
-def test_configuration_operations(facade, tmp_path):
+def test_configuration_operations(facade: Any, tmp_path: Any) -> None:
     """Test saving, listing, loading, and deleting configurations."""
 
     # 1. Save Config
@@ -115,7 +116,7 @@ def test_configuration_operations(facade, tmp_path):
     assert len(facade.load_saved_configs()) == 0
 
 
-def test_csv_pool_sorting(facade, tmp_path):
+def test_csv_pool_sorting(facade: Any, tmp_path: Any) -> None:
     """Test that CSV pool is sorted by modification time (reverse)."""
 
     # Create 3 files with different times

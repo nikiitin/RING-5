@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import patch
 
 import pandas as pd
@@ -8,7 +9,7 @@ from src.core.state.repository_state_manager import RepositoryStateManager
 
 
 @pytest.fixture
-def clean_portfolio_env(tmp_path):
+def clean_portfolio_env(tmp_path: Any) -> None:
     """Create isolated portfolio environment using tmp_path instead of real .ring5/."""
     portfolios_dir = tmp_path / "portfolios"
     portfolios_dir.mkdir(parents=True, exist_ok=True)
@@ -23,7 +24,7 @@ def clean_portfolio_env(tmp_path):
         # Teardown: tmp_path cleanup is automatic
 
 
-def test_stats_config_persistence(clean_portfolio_env, tmp_path):
+def test_stats_config_persistence(clean_portfolio_env: Any, tmp_path: Any) -> None:
     """Test that stats path, pattern, and scanned variables are saved and restored."""
     state_manager, portfolio_service = clean_portfolio_env
 

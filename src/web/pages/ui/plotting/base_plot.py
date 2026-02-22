@@ -2,12 +2,13 @@
 
 from abc import ABC, abstractmethod
 from io import StringIO
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from src.core.models.data_models import PipelineStep
 from src.core.models.plot_config import ShapeConfig
 from src.core.models.visualization.palettes import (
     PALETTE_REGISTRY,
@@ -43,19 +44,19 @@ class BasePlot(ABC):
         self.name: str = name
         self.plot_type: str = plot_type
         self.config: PlotConfig = {}
-        self.processed_data: Optional[pd.DataFrame] = None
-        self.last_generated_fig: Optional[go.Figure] = None
-        self.last_traces: Optional[TraceBuildResult] = None
-        self.pipeline: List[Dict[str, Any]] = []
+        self.processed_data: pd.DataFrame | None = None
+        self.last_generated_fig: go.Figure | None = None
+        self.last_traces: TraceBuildResult | None = None
+        self.pipeline: list[PipelineStep] = []
         self.pipeline_counter: int = 0
-        self.legend_mappings_by_column: Dict[str, Dict[str, str]] = {}
-        self.legend_mappings: Dict[str, str] = {}
+        self.legend_mappings_by_column: dict[str, dict[str, str]] = {}
+        self.legend_mappings: dict[str, str] = {}
 
         # Initialize Style Manager
         self.style_manager: StyleManager = StyleManager(self.plot_id, self.plot_type)
 
     @abstractmethod
-    def render_config_ui(self, data: pd.DataFrame, saved_config: Dict[str, Any]) -> Dict[str, Any]:
+    def render_config_ui(self, data: pd.DataFrame, saved_config: dict[str, Any]) -> dict[str, Any]:
         """
         Render the configuration UI for this plot type.
 
@@ -66,10 +67,9 @@ class BasePlot(ABC):
         Returns:
             Current configuration dictionary
         """
-        pass
 
     @abstractmethod
-    def create_traces(self, data: pd.DataFrame, config: Dict[str, Any]) -> TraceBuildResult:
+    def create_traces(self, data: pd.DataFrame, config: dict[str, Any]) -> TraceBuildResult:
         """
         Produce engine-agnostic trace data from *data* and *config*.
 
@@ -84,9 +84,8 @@ class BasePlot(ABC):
         Returns:
             ``TraceBuildResult`` with traces and metadata.
         """
-        pass
 
-    def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
+    def create_figure(self, data: pd.DataFrame, config: dict[str, Any]) -> go.Figure:
         """
         Create the Plotly figure from data and configuration.
 
@@ -113,7 +112,7 @@ class BasePlot(ABC):
 
         return fig
 
-    def update_from_relayout(self, relayout_data: Dict[str, Any]) -> bool:
+    def update_from_relayout(self, relayout_data: dict[str, Any]) -> bool:
         """
         Update config from client-side relayout data (zoom/pan, legend drag).
 
@@ -134,7 +133,7 @@ class BasePlot(ABC):
         return changed
 
     @abstractmethod
-    def get_legend_column(self, config: Dict[str, Any]) -> Optional[str]:
+    def get_legend_column(self, config: dict[str, Any]) -> str | None:
         """
         Get the column name used for legend/color coding.
 
@@ -144,10 +143,9 @@ class BasePlot(ABC):
         Returns:
             Column name or None
         """
-        pass
 
     def apply_legend_labels(
-        self, fig: go.Figure, legend_labels: Optional[Dict[str, str]]
+        self, fig: go.Figure, legend_labels: dict[str, str] | None
     ) -> go.Figure:
         """
         Apply custom legend labels to the figure.
@@ -163,7 +161,7 @@ class BasePlot(ABC):
             fig.for_each_trace(lambda t: t.update(name=legend_labels.get(t.name, t.name)))
         return fig
 
-    def apply_common_layout(self, fig: go.Figure, config: Dict[str, Any]) -> go.Figure:
+    def apply_common_layout(self, fig: go.Figure, config: dict[str, Any]) -> go.Figure:
         """
         Apply common layout settings.
         Delegates to StyleManager.
@@ -181,14 +179,14 @@ class BasePlot(ABC):
 
         fig = self.create_figure(self.processed_data, self.config)
         fig = self.apply_common_layout(fig, self.config)
-        legend_labels: Optional[Dict[str, str]] = self.config.get("legend_labels")
+        legend_labels: dict[str, str] | None = self.config.get("legend_labels")
         if legend_labels:
             fig.for_each_trace(lambda t: t.update(name=legend_labels.get(t.name, t.name)))
 
         self.last_generated_fig = fig
         return fig
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """
         Convert plot to dictionary for serialization.
 
@@ -212,7 +210,7 @@ class BasePlot(ABC):
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "BasePlot":
+    def from_dict(cls, data: dict[str, Any]) -> "BasePlot":
         """
         Create plot instance from dictionary.
 
@@ -242,8 +240,8 @@ class BasePlot(ABC):
         return plot
 
     def render_common_config(
-        self, data: pd.DataFrame, saved_config: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, data: pd.DataFrame, saved_config: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Render common configuration options.
 
@@ -319,13 +317,13 @@ class BasePlot(ABC):
             "categorical_cols": categorical_cols,
         }
 
-    def render_display_options(self, saved_config: Dict[str, Any]) -> Dict[str, Any]:
+    def render_display_options(self, saved_config: dict[str, Any]) -> dict[str, Any]:
         """Render sizing and layout options via StyleManager."""
         return self.style_manager.render_layout_options(saved_config)
 
     def render_theme_options(
-        self, saved_config: Dict[str, Any], items: Optional[List[str]] = None
-    ) -> Dict[str, Any]:
+        self, saved_config: dict[str, Any], items: list[str] | None = None
+    ) -> dict[str, Any]:
         """Render theme options via StyleManager."""
         # Pass data for potential data-dependent theming (e.g. series colors)
         # Use a prefix to distinguish from advanced options
@@ -339,10 +337,10 @@ class BasePlot(ABC):
 
     def render_settings_section(
         self,
-        section: Optional[str],
-        saved_config: Dict[str, Any],
-        data: Optional[pd.DataFrame] = None,
-    ) -> Dict[str, Any]:
+        section: str | None,
+        saved_config: dict[str, Any],
+        data: pd.DataFrame | None = None,
+    ) -> dict[str, Any]:
         """Render UI for a single settings section selected via pills.
 
         Each pill maps to one or more existing rendering methods so that
@@ -377,21 +375,21 @@ class BasePlot(ABC):
     # -- individual section helpers ---
 
     def _section_layout(
-        self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame]
-    ) -> Dict[str, Any]:
+        self, saved_config: dict[str, Any], data: pd.DataFrame | None
+    ) -> dict[str, Any]:
         return self.render_display_options(saved_config)
 
     def _section_typography(
-        self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame]
-    ) -> Dict[str, Any]:
+        self, saved_config: dict[str, Any], data: pd.DataFrame | None
+    ) -> dict[str, Any]:
         return self.style_manager.ui_manager._render_typography_section(
             saved_config, key_prefix="theme_"
         )
 
     def _section_legends(
-        self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame]
-    ) -> Dict[str, Any]:
-        legend_tab: Optional[str] = st.pills(
+        self, saved_config: dict[str, Any], data: pd.DataFrame | None
+    ) -> dict[str, Any]:
+        legend_tab: str | None = st.pills(
             "Legend",
             options=["primary", "secondary", "boxed"],
             format_func=lambda x: {
@@ -412,9 +410,9 @@ class BasePlot(ABC):
         return self.style_manager.ui_manager._render_legend_section(saved_config, key_prefix=prefix)
 
     def _section_axes(
-        self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame]
-    ) -> Dict[str, Any]:
-        axis_tab: Optional[str] = st.pills(
+        self, saved_config: dict[str, Any], data: pd.DataFrame | None
+    ) -> dict[str, Any]:
+        axis_tab: str | None = st.pills(
             "Axis",
             options=["x", "y_left", "y_right"],
             format_func=lambda x: {
@@ -426,7 +424,7 @@ class BasePlot(ABC):
             key=f"axis_nav_{self.plot_id}",
             default="x",
         )
-        config: Dict[str, Any] = {}
+        config: dict[str, Any] = {}
         if axis_tab == "x" or axis_tab is None:
             self._render_general_settings(saved_config, config)
             specific = self.render_specific_advanced_options(saved_config, data)
@@ -442,8 +440,8 @@ class BasePlot(ABC):
 
     def _render_y_axis_settings(
         self,
-        saved_config: Dict[str, Any],
-        config: Dict[str, Any],
+        saved_config: dict[str, Any],
+        config: dict[str, Any],
         prefix: str,
     ) -> None:
         """Render Y-axis settings for left or right axis.
@@ -467,8 +465,8 @@ class BasePlot(ABC):
             config[dtick_key] = dtick
 
     def _section_data_labels(
-        self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame]
-    ) -> Dict[str, Any]:
+        self, saved_config: dict[str, Any], data: pd.DataFrame | None
+    ) -> dict[str, Any]:
         dl = self.style_manager.render_data_labels_ui(saved_config, key_prefix="theme_")
         return {
             "show_values": dl.get("show_values", False),
@@ -485,8 +483,8 @@ class BasePlot(ABC):
         }
 
     def _section_colors(
-        self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame]
-    ) -> Dict[str, Any]:
+        self, saved_config: dict[str, Any], data: pd.DataFrame | None
+    ) -> dict[str, Any]:
         """Unified palette selector using core PALETTE_REGISTRY."""
         st.markdown("#### :material/palette: Color Palette")
         palette_names = get_palette_names()
@@ -524,7 +522,7 @@ class BasePlot(ABC):
             for c in palette_colors
         )
         st.markdown(swatch_html, unsafe_allow_html=True)
-        config: Dict[str, Any] = {"color_palette": selected_palette}
+        config: dict[str, Any] = {"color_palette": selected_palette}
 
         st.markdown("---")
         series = self.style_manager.ui_manager._render_series_section(
@@ -543,9 +541,9 @@ class BasePlot(ABC):
         return config
 
     def _section_advanced(
-        self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame]
-    ) -> Dict[str, Any]:
-        config: Dict[str, Any] = {}
+        self, saved_config: dict[str, Any], data: pd.DataFrame | None
+    ) -> dict[str, Any]:
+        config: dict[str, Any] = {}
 
         # Legend & Interactivity
         st.markdown("#### Legend & Interactivity")
@@ -588,8 +586,8 @@ class BasePlot(ABC):
 
     def _render_engine_specific_controls(
         self,
-        saved_config: Dict[str, Any],
-        config: Dict[str, Any],
+        saved_config: dict[str, Any],
+        config: dict[str, Any],
     ) -> None:
         """Render controls that depend on the current engine mode.
 
@@ -631,8 +629,8 @@ class BasePlot(ABC):
             )
 
     def render_advanced_options(
-        self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame] = None
-    ) -> Dict[str, Any]:
+        self, saved_config: dict[str, Any], data: pd.DataFrame | None = None
+    ) -> dict[str, Any]:
         """
         Render advanced options (legend, error bars, download format, axis settings).
         Should be called within an expander.
@@ -644,7 +642,7 @@ class BasePlot(ABC):
         Returns:
             Configuration dictionary with advanced options
         """
-        config: Dict[str, Any] = {}
+        config: dict[str, Any] = {}
 
         # 1. General & Axis Settings
         self._render_general_settings(saved_config, config)
@@ -703,8 +701,8 @@ class BasePlot(ABC):
         return config
 
     def render_specific_advanced_options(
-        self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame] = None
-    ) -> Dict[str, Any]:
+        self, saved_config: dict[str, Any], data: pd.DataFrame | None = None
+    ) -> dict[str, Any]:
         """
         Hook for subclasses to render plot-specific advanced options.
         Default implementation renders Bar settings if plot_type contains 'bar'.
@@ -747,7 +745,7 @@ class BasePlot(ABC):
         return config
 
     def _render_general_settings(
-        self, saved_config: Dict[str, Any], config: Dict[str, Any]
+        self, saved_config: dict[str, Any], config: dict[str, Any]
     ) -> None:
         """Helper to render general settings.
 
@@ -775,7 +773,7 @@ class BasePlot(ABC):
                 config["yaxis_dtick"] = dtick
 
         with col2:
-            download_formats: List[str] = ["html", "png", "pdf", "svg"]
+            download_formats: list[str] = ["html", "png", "pdf", "svg"]
             default_fmt_idx: int = 0
             if saved_config.get("download_format") in download_formats:
                 default_fmt_idx = download_formats.index(saved_config["download_format"])
@@ -814,7 +812,7 @@ class BasePlot(ABC):
             )
 
     def _render_ordering_ui(
-        self, saved_config: Dict[str, Any], data: pd.DataFrame, config: Dict[str, Any]
+        self, saved_config: dict[str, Any], data: pd.DataFrame, config: dict[str, Any]
     ) -> None:
         """Helper to render ordering UI.
 
@@ -828,7 +826,7 @@ class BasePlot(ABC):
         # X-axis Order
         if saved_config.get("x") and saved_config["x"] in data.columns:
             with st.expander("Reorder X-axis Labels"):
-                unique_x: List[Any] = sorted(data[saved_config["x"]].unique().tolist())
+                unique_x: list[Any] = sorted(data[saved_config["x"]].unique().tolist())
                 config["xaxis_order"] = self.render_reorderable_list(
                     "X-axis Order", unique_x, "xaxis", default_order=saved_config.get("xaxis_order")
                 )
@@ -836,7 +834,7 @@ class BasePlot(ABC):
         # Group Order
         if saved_config.get("group") and saved_config["group"] in data.columns:
             with st.expander("Reorder Groups"):
-                unique_g: List[Any] = sorted(data[saved_config["group"]].unique().tolist())
+                unique_g: list[Any] = sorted(data[saved_config["group"]].unique().tolist())
                 config["group_order"] = self.render_reorderable_list(
                     "Group Order",
                     unique_g,
@@ -848,7 +846,7 @@ class BasePlot(ABC):
         # Legend Order (Color)
         if saved_config.get("color") and saved_config["color"] in data.columns:
             with st.expander("Reorder Legend Items"):
-                unique_c: List[Any] = sorted(data[saved_config["color"]].unique().tolist())
+                unique_c: list[Any] = sorted(data[saved_config["color"]].unique().tolist())
                 config["legend_order"] = self.render_reorderable_list(
                     "Legend Order",
                     unique_c,
@@ -857,7 +855,7 @@ class BasePlot(ABC):
                     default_order=saved_config.get("legend_order"),
                 )
 
-    def _render_shapes_ui(self, saved_config: Dict[str, Any]) -> List[ShapeConfig]:
+    def _render_shapes_ui(self, saved_config: dict[str, Any]) -> list[ShapeConfig]:
         """Helper to render Shapes UI.
 
         Args:
@@ -866,7 +864,7 @@ class BasePlot(ABC):
         Returns:
             List of shape configuration dictionaries
         """
-        shapes: List[ShapeConfig] = saved_config.get("shapes", [])
+        shapes: list[ShapeConfig] = saved_config.get("shapes", [])
 
         # Add new shape
         with st.expander("Add New Shape"):
@@ -969,11 +967,11 @@ class BasePlot(ABC):
     def render_reorderable_list(
         self,
         label: str,
-        items: List[Any],
+        items: list[Any],
         key_prefix: str,
-        legend_labels: Optional[Dict[str, str]] = None,
-        default_order: Optional[List[Any]] = None,
-    ) -> List[Any]:
+        legend_labels: dict[str, str] | None = None,
+        default_order: list[Any] | None = None,
+    ) -> list[Any]:
         """
         Render a list that can be reordered using up/down buttons.
 
@@ -996,7 +994,7 @@ class BasePlot(ABC):
             st.session_state[ss_key] = resolve_item_order(items, default_order=default_order)
 
         # Sync if items changed (e.g. data update) — use service for logic
-        current_items: List[Any] = st.session_state[ss_key]
+        current_items: list[Any] = st.session_state[ss_key]
         if set(current_items) != set(items):
             current_items = resolve_item_order(items, current_order=current_items)
             st.session_state[ss_key] = current_items
@@ -1032,9 +1030,9 @@ class BasePlot(ABC):
 
     def _render_reference_line_ui(
         self,
-        saved_config: Dict[str, Any],
-        data: Optional[pd.DataFrame],
-        config: Dict[str, Any],
+        saved_config: dict[str, Any],
+        data: pd.DataFrame | None,
+        config: dict[str, Any],
     ) -> None:
         """
         Render UI controls for a horizontal reference line (normalizer baseline).
@@ -1084,7 +1082,7 @@ class BasePlot(ABC):
                     )
 
                 with col2:
-                    ref_value: Optional[str] = None
+                    ref_value: str | None = None
                     if ref_column and ref_column in data.columns:
                         unique_vals = sorted(data[ref_column].unique().tolist())
                         saved_val = saved_config.get("reference_line_value", "")

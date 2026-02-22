@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import io
 import logging
-from typing import List, Optional
 
 import pandas as pd
 
@@ -37,7 +36,7 @@ class SessionRepository:
     Adheres to SRP: Only manages session lifecycle, nothing else.
     """
 
-    def __init__(self, plot_deserializer: Optional[PlotDeserializer] = None) -> None:
+    def __init__(self, plot_deserializer: PlotDeserializer | None = None) -> None:
         """Initialize domain repositories.
 
         Args:
@@ -79,14 +78,13 @@ class SessionRepository:
         Clear widget-specific state markers.
 
         NOTE: With the move to Pure Python repositories, strict "widget state" stored in
-        st.session_state is no longer managed here directly.
+        st session state is no longer managed here directly.
         However, if we re-introduce a persistence layer, this logic belongs there.
         For now, this is a no-op/placeholder or needs to interact with the UI layer differently.
 
         Ideally, ApplicationAPI exposes a way to clear UI specific cache if needed,
         but domain repositories should be UI agnostic.
         """
-        pass
 
     def restore_from_portfolio(self, portfolio_data: PortfolioData) -> None:
         """
@@ -123,7 +121,7 @@ class SessionRepository:
             logger.info("SESSION_REPO: No data in portfolio (config-only save)")
 
         # Restore plots via injected deserializer (no web-layer import)
-        loaded_plots: List[PlotProtocol] = []
+        loaded_plots: list[PlotProtocol] = []
         if self._plot_deserializer is not None:
             for plot_data in portfolio_data.get("plots", []):
                 try:

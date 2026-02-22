@@ -40,7 +40,7 @@ system.mem.latency_dist::total               500
         stats_path.write_text(stats_content)
         return stats_path
 
-    def test_distribution_statistics_only_parsing(self, stats_file: Path, tmp_path: Path):
+    def test_distribution_statistics_only_parsing(self, stats_file: Path, tmp_path: Path) -> None:
         """Test parsing distribution with only statistics (no buckets)."""
         # Configure variable with statisticsOnly=True
         variables = [
@@ -95,7 +95,7 @@ system.mem.latency_dist::total               500
         assert df["system.mem.latency_dist..stdev"].iloc[0] == 2.3
         assert df["system.mem.latency_dist..total"].iloc[0] == 500
 
-    def test_distribution_full_mode_parsing(self, stats_file: Path, tmp_path: Path):
+    def test_distribution_full_mode_parsing(self, stats_file: Path, tmp_path: Path) -> None:
         """Test parsing distribution with full buckets (statisticsOnly=False)."""
         # Configure variable with statisticsOnly=False
         variables = [
@@ -141,7 +141,7 @@ system.mem.latency_dist::total               500
         # Just check that we have significantly more columns than statistics_only mode
         assert len(df.columns) > 10  # Should have many bucket columns
 
-    def test_statistics_only_reduces_column_count(self, stats_file: Path, tmp_path: Path):
+    def test_statistics_only_reduces_column_count(self, stats_file: Path, tmp_path: Path) -> None:
         """Verify that statistics-only mode significantly reduces column count."""
         variables_full = [
             StatConfig(

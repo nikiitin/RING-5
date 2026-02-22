@@ -5,10 +5,10 @@ Delegates to PipelineService and ShaperFactory.
 """
 
 from pathlib import Path
-from typing import Any, Dict, List
 
 import pandas as pd
 
+from src.core.models.data_models import PipelineData, PipelineStep, ShaperStepConfig
 from src.core.services.shapers.factory import ShaperFactory
 from src.core.services.shapers.pipeline_service import PipelineService
 from src.core.services.shapers.shaper import Shaper
@@ -28,20 +28,20 @@ class DefaultShapersAPI:
         """
         self._pipeline_service = PipelineService(pipelines_dir)
 
-    def list_pipelines(self) -> List[str]:
+    def list_pipelines(self) -> list[str]:
         """List all available saved pipelines."""
         return self._pipeline_service.list_pipelines()
 
     def save_pipeline(
         self,
         name: str,
-        pipeline_config: List[Dict[str, Any]],
+        pipeline_config: list[PipelineStep],
         description: str = "",
     ) -> None:
         """Save a pipeline configuration to disk."""
         self._pipeline_service.save_pipeline(name, pipeline_config, description)
 
-    def load_pipeline(self, name: str) -> Dict[str, Any]:
+    def load_pipeline(self, name: str) -> PipelineData:
         """Load a pipeline configuration by name."""
         return self._pipeline_service.load_pipeline(name)
 
@@ -52,7 +52,7 @@ class DefaultShapersAPI:
     def process_pipeline(
         self,
         data: pd.DataFrame,
-        pipeline_config: List[Dict[str, Any]],
+        pipeline_config: list[ShaperStepConfig],
     ) -> pd.DataFrame:
         """Apply a sequence of shapers to a DataFrame."""
         return PipelineService.process_pipeline(data, pipeline_config)
@@ -60,11 +60,11 @@ class DefaultShapersAPI:
     def create_shaper(
         self,
         shaper_type: str,
-        params: Dict[str, Any],
+        params: ShaperStepConfig,
     ) -> Shaper:
         """Create a shaper instance from type and parameters."""
         return ShaperFactory.create_shaper(shaper_type, params)
 
-    def get_available_shaper_types(self) -> List[str]:
+    def get_available_shaper_types(self) -> list[str]:
         """Return all registered shaper type identifiers."""
         return ShaperFactory.get_available_types()

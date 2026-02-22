@@ -80,14 +80,14 @@ On the **Manage Plots** page, create visualizations:
 - Configure axes, grouping columns, colors, and legend placement.
 - Preview interactively, then export.
 
-| Plot Type          | Typical Use                           |
-|--------------------|---------------------------------------|
-| Bar                | Comparing a single metric             |
-| Grouped Bar        | Comparing multiple configurations     |
-| Stacked Bar        | Part-to-whole breakdowns              |
-| Line               | Trends over parameters or time        |
-| Scatter            | Correlations between two metrics      |
-| Histogram          | Value distributions                   |
+| Plot Type   | Typical Use                       |
+| ----------- | --------------------------------- |
+| Bar         | Comparing a single metric         |
+| Grouped Bar | Comparing multiple configurations |
+| Stacked Bar | Part-to-whole breakdowns          |
+| Line        | Trends over parameters or time    |
+| Scatter     | Correlations between two metrics  |
+| Histogram   | Value distributions               |
 
 ### 4. Save
 
@@ -127,7 +127,7 @@ make pre-commit     # Run all 14 pre-commit hooks
 
 ### Project structure
 
-```
+```text
 src/
   core/
     models/          # Data models, protocols, configuration
@@ -157,11 +157,11 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines. The short version:
 
 RING-5 uses persistent Perl worker pools for parsing. Compared to spawning subprocesses per variable:
 
-| Operation           | Subprocess | Worker Pool | Speedup   |
-|---------------------|-----------|-------------|-----------|
-| Parse 20 variables  | 54s       | 1s          | **54x**   |
-| Scan 1000 variables | 120s      | 8s          | **15x**   |
-| Full pipeline       | 180s      | 12s         | **15x**   |
+| Operation           | Subprocess | Worker Pool | Speedup |
+| ------------------- | ---------- | ----------- | ------- |
+| Parse 20 variables  | 54s        | 1s          | **54x** |
+| Scan 1000 variables | 120s       | 8s          | **15x** |
+| Full pipeline       | 180s       | 12s         | **15x** |
 
 ---
 

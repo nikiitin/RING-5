@@ -4,11 +4,13 @@ Provides shared fixtures for testing UI orchestration, adapters,
 controllers, and page-level logic without a real Streamlit runtime.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
+
+from src.core.models.data_models import PipelineStep
 
 
 # ---------------------------------------------------------------------------
@@ -22,44 +24,52 @@ class StubPlotHandle:
         plot_id: int = 1,
         name: str = "Test Plot",
         plot_type: str = "grouped_bar",
-        config: Optional[Dict[str, Any]] = None,
-        processed_data: Optional[pd.DataFrame] = None,
-        pipeline: Optional[List[Dict[str, Any]]] = None,
+        config: dict[str, Any] | None = None,
+        processed_data: pd.DataFrame | None = None,
+        pipeline: list[PipelineStep] | None = None,
         pipeline_counter: int = 0,
     ) -> None:
         self.plot_id = plot_id
         self.name = name
         self.plot_type = plot_type
-        self.config: Dict[str, Any] = config or {}
+        self.config: dict[str, Any] = config or {}
         self.processed_data = processed_data
-        self.pipeline: List[Dict[str, Any]] = pipeline or []
+        self.pipeline: list[PipelineStep] = pipeline or []
         self.pipeline_counter = pipeline_counter
         self.last_generated_fig: Any = None
+        self.last_traces: Any = None
         self.style_manager = MagicMock()
 
     # ConfigRenderer stubs (needed for RenderablePlot)
-    def render_config_ui(self, data: pd.DataFrame, config: Dict[str, Any]) -> Dict[str, Any]:
+    def render_config_ui(self, data: pd.DataFrame, config: dict[str, Any]) -> dict[str, Any]:
         return config
 
-    def render_advanced_options(self, config: Dict[str, Any], data: pd.DataFrame) -> Dict[str, Any]:
+    def render_advanced_options(self, config: dict[str, Any], data: pd.DataFrame) -> dict[str, Any]:
         return config
 
-    def render_display_options(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def render_display_options(self, config: dict[str, Any]) -> dict[str, Any]:
         return config
 
-    def render_theme_options(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def render_theme_options(self, config: dict[str, Any]) -> dict[str, Any]:
         return config
 
     def render_settings_section(
         self,
-        section: Optional[str],
-        saved_config: Dict[str, Any],
-        data: Optional[pd.DataFrame] = None,
-    ) -> Dict[str, Any]:
+        section: str | None,
+        saved_config: dict[str, Any],
+        data: pd.DataFrame | None = None,
+    ) -> dict[str, Any]:
         return saved_config
 
-    def update_from_relayout(self, relayout_data: Dict[str, Any]) -> bool:
+    def update_from_relayout(self, relayout_data: dict[str, Any]) -> bool:
         return False
+
+    # RenderablePlot stubs
+    def create_figure(self, data: pd.DataFrame, config: dict[str, Any]) -> Any:
+        return MagicMock()
+
+    def apply_common_layout(self, fig: Any, config: dict[str, Any]) -> Any:
+        return fig
 
 
 @pytest.fixture

@@ -5,7 +5,6 @@ ApplicationAPI facade.
 """
 
 from pathlib import Path
-from typing import Dict
 from unittest.mock import patch
 
 import pytest
@@ -38,7 +37,7 @@ class TestTypeMapper:
     def test_map_scan_result_no_type_key(self) -> None:
         result = {"name": "ipc"}
         mapped = TypeMapper.map_scan_result(result)
-        assert "type" not in mapped
+        assert mapped["type"] == ""
 
     @pytest.mark.parametrize(
         "type_name,expected",
@@ -171,7 +170,7 @@ class TestScannerService:
         from src.core.models.parsing_models import ScannedVariable
         from src.core.parsing.scanner_service import ScannerService
 
-        registry: Dict[str, ScannedVariable] = {}
+        registry: dict[str, ScannedVariable] = {}
         var = ScannedVariable(name="ipc", type="scalar", entries=[])
         ScannerService._merge_variable(registry, var)
         assert "ipc" in registry

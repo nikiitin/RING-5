@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, Dict, Tuple
+from typing import Any
 
 from src.core.models.visualization.data_label_config import DataLabelConfig
 from src.core.models.visualization.figure_config import FigureConfig
@@ -80,7 +80,8 @@ class FigureSpecToMatplotlib:
             return
 
         typo = spec.typography
-        assert typo is not None  # guaranteed by __post_init__  # nosec B101
+        if typo is None:
+            raise ValueError("FigureConfig requires typography")
         weight = "bold" if typo.bold_title else "normal"
         ax.set_title(
             FigureSpecToMatplotlib._escape_latex(spec.title),
@@ -92,8 +93,10 @@ class FigureSpecToMatplotlib:
     def _apply_axis_labels(spec: FigureConfig, ax: Any) -> None:
         """Set X and Y axis labels with proper typography."""
         typo = spec.typography
-        assert typo is not None  # guaranteed by __post_init__  # nosec B101
-        assert spec.axes is not None  # guaranteed by __post_init__  # nosec B101
+        if typo is None:
+            raise ValueError("FigureConfig requires typography")
+        if spec.axes is None:
+            raise ValueError("FigureConfig requires axes")
 
         # X-axis label
         x_label = spec.axes.x.label
@@ -145,8 +148,10 @@ class FigureSpecToMatplotlib:
         import matplotlib.transforms as transforms
 
         typo = spec.typography
-        assert typo is not None  # guaranteed by __post_init__  # nosec B101
-        assert spec.axes is not None  # guaranteed by __post_init__  # nosec B101
+        if typo is None:
+            raise ValueError("FigureConfig requires typography")
+        if spec.axes is None:
+            raise ValueError("FigureConfig requires axes")
         x_axis = spec.axes.x
         y_axis = spec.axes.y
 
@@ -198,7 +203,8 @@ class FigureSpecToMatplotlib:
     @staticmethod
     def _apply_axis_ranges(spec: FigureConfig, ax: Any) -> None:
         """Set axis range limits and scale."""
-        assert spec.axes is not None  # guaranteed by __post_init__  # nosec B101
+        if spec.axes is None:
+            raise ValueError("FigureConfig requires axes")
         x_axis = spec.axes.x
         y_axis = spec.axes.y
 
@@ -219,7 +225,8 @@ class FigureSpecToMatplotlib:
     @staticmethod
     def _apply_grids(spec: FigureConfig, ax: Any) -> None:
         """Configure grid visibility and styling."""
-        assert spec.axes is not None  # guaranteed by __post_init__  # nosec B101
+        if spec.axes is None:
+            raise ValueError("FigureConfig requires axes")
         x_axis = spec.axes.x
         y_axis = spec.axes.y
 
@@ -247,7 +254,7 @@ class FigureSpecToMatplotlib:
                 continue
 
             spacing = legend.spacing
-            kwargs: Dict[str, Any] = {
+            kwargs: dict[str, Any] = {
                 "fontsize": legend.font_size,
                 "ncol": max(1, legend.ncol),
                 "columnspacing": spacing.columnspacing,
@@ -324,7 +331,7 @@ class FigureSpecToMatplotlib:
     #  Step 11 — new feature methods
     # ──────────────────────────────────────────────────────────────────
 
-    _DASH_MAP: Dict[str, str] = {
+    _DASH_MAP: dict[str, str] = {
         "solid": "-",
         "dash": "--",
         "dot": ":",
@@ -370,7 +377,7 @@ class FigureSpecToMatplotlib:
             if not rl.enabled:
                 continue
             ls = FigureSpecToMatplotlib._DASH_MAP.get(rl.style, "--")
-            kwargs: Dict[str, Any] = {
+            kwargs: dict[str, Any] = {
                 "color": rl.color,
                 "linewidth": rl.width,
                 "linestyle": ls,
@@ -536,7 +543,7 @@ class FigureSpecToMatplotlib:
     @staticmethod
     def create_figure(
         spec: FigureConfig,
-    ) -> Tuple[Any, Any]:
+    ) -> tuple[Any, Any]:
         """Create a new matplotlib figure + axes from spec dimensions.
 
         When the spec uses ``dpi=1`` (the pixel-passthrough convention from

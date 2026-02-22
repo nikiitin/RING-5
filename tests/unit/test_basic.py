@@ -5,6 +5,7 @@ Run: pytest tests/test_basic.py -v
 
 import json
 from pathlib import Path
+from typing import Any
 
 from src.core.models.config.config_manager import (
     ConfigTemplateGenerator,
@@ -12,7 +13,7 @@ from src.core.models.config.config_manager import (
 )
 
 
-def test_minimal_config_validation():
+def test_minimal_config_validation() -> None:
     """Test that minimal config passes validation."""
     config = {
         "name": "test_pipeline",
@@ -23,7 +24,7 @@ def test_minimal_config_validation():
     assert validator.validate(config) is True
 
 
-def test_invalid_config_detection():
+def test_invalid_config_detection() -> None:
     """Test that invalid config is detected."""
     config = {
         "name": "test"
@@ -37,7 +38,7 @@ def test_invalid_config_detection():
     assert any("pipeline" in error for error in errors)
 
 
-def test_template_generation():
+def test_template_generation() -> None:
     """Test template generation."""
     config = ConfigTemplateGenerator.create_minimal_config("./output", "/path/to/stats")
 
@@ -47,7 +48,7 @@ def test_template_generation():
     assert isinstance(config["plots"], list)
 
 
-def test_plot_config_creation():
+def test_plot_config_creation() -> None:
     """Test plot configuration creation."""
     plot = ConfigTemplateGenerator.create_plot_config(
         "bar", "benchmark", "simTicks", "test_plot", title="Test Plot", grid=True
@@ -61,7 +62,7 @@ def test_plot_config_creation():
     assert plot["style"]["grid"] is True
 
 
-def test_variable_addition():
+def test_variable_addition() -> None:
     """Test adding variables to configuration."""
     config = ConfigTemplateGenerator.create_minimal_config("./out", "/stats")
 
@@ -73,7 +74,7 @@ def test_variable_addition():
     assert config["parseConfig"]["variables"][0]["type"] == "scalar"
 
 
-def test_seeds_reducer_enable():
+def test_seeds_reducer_enable() -> None:
     """Test enabling seeds reducer."""
     config = ConfigTemplateGenerator.create_minimal_config("./out", "/stats")
 
@@ -82,7 +83,7 @@ def test_seeds_reducer_enable():
     assert config["dataManagers"]["seedsReducer"] is True
 
 
-def test_outlier_removal_config():
+def test_outlier_removal_config() -> None:
     """Test outlier removal configuration."""
     config = ConfigTemplateGenerator.create_minimal_config("./out", "/stats")
 
@@ -93,7 +94,7 @@ def test_outlier_removal_config():
     assert config["dataManagers"]["outlierRemover"]["method"] == "iqr"
 
 
-def test_normalizer_config():
+def test_normalizer_config() -> None:
     """Test normalizer configuration."""
     config = ConfigTemplateGenerator.create_minimal_config("./out", "/stats")
 
@@ -106,7 +107,7 @@ def test_normalizer_config():
     assert "simTicks" in config["dataManagers"]["normalizer"]["columns"]
 
 
-def test_example_config_validity():
+def test_example_config_validity() -> None:
     """Test that the example configuration is valid."""
     example_path = Path(__file__).parent.parent / "examples" / "complete_example.json"
 
@@ -115,7 +116,8 @@ def test_example_config_validity():
             config = json.load(f)
 
         # Remove comments (not valid in strict JSON)
-        def remove_comments(obj):
+        def remove_comments(obj: Any) -> Any:
+
             if isinstance(obj, dict):
                 return {k: remove_comments(v) for k, v in obj.items() if not k.startswith("$")}
             elif isinstance(obj, list):

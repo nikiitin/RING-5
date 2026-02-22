@@ -15,6 +15,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import pytest
 
+from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.web.pages.ui.plotting.base_plot import BasePlot
 
 
@@ -24,7 +25,7 @@ class ConcretePlot(BasePlot):
     def render_config_ui(self, data: pd.DataFrame, saved_config: dict) -> dict:
         return {}
 
-    def create_traces(self, data: pd.DataFrame, config: dict):
+    def create_traces(self, data: pd.DataFrame, config: dict) -> TraceBuildResult:
         from src.core.models.visualization.trace_build_result import TraceBuildResult
         from src.core.models.visualization.trace_config import ScatterTraceConfig
 

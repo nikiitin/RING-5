@@ -1,27 +1,33 @@
+from typing import Any
+
 import pytest
 
+from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.web.pages.ui.plotting.base_plot import BasePlot
 
 
 class ConcretePlot(BasePlot):
-    def render_config_ui(self, data, saved_config):
+    def render_config_ui(self, data: Any, saved_config: Any) -> dict:
+
         return {}
 
-    def create_traces(self, data, config):
+    def create_traces(self, data: Any, config: Any) -> TraceBuildResult:
+
         from src.core.models.visualization.trace_build_result import TraceBuildResult
 
         return TraceBuildResult(traces=[])
 
-    def get_legend_column(self, config):
+    def get_legend_column(self, config: Any) -> str:
+
         return "col"
 
 
 @pytest.fixture
-def concrete_plot():
+def concrete_plot() -> ConcretePlot:
     return ConcretePlot(plot_id=1, name="Test Plot", plot_type="test")
 
 
-def test_update_from_relayout_legend_title(concrete_plot):
+def test_update_from_relayout_legend_title(concrete_plot: Any) -> None:
     """Test that legend title updates are processed."""
 
     # 1. Initial State
@@ -39,7 +45,7 @@ def test_update_from_relayout_legend_title(concrete_plot):
     assert concrete_plot.last_generated_fig is None  # Cache invalidated
 
 
-def test_update_from_relayout_mixed_events(concrete_plot):
+def test_update_from_relayout_mixed_events(concrete_plot: Any) -> None:
     """Test mixed events including drag and rename."""
     concrete_plot.config = {"legend_title": "Old", "legend_x": 0}
 

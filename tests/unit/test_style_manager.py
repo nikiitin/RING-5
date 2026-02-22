@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import patch
 
 import pandas as pd
@@ -9,12 +10,12 @@ from tests.conftest import columns_side_effect
 
 
 @pytest.fixture
-def style_manager():
+def style_manager() -> StyleManager:
     return StyleManager(plot_id=1, plot_type="bar")
 
 
 @pytest.fixture
-def mock_streamlit():
+def mock_streamlit() -> None:
     with patch("src.web.pages.ui.plotting.styles.base_ui.st") as mock_st:
         mock_st.session_state = {}
 
@@ -22,7 +23,7 @@ def mock_streamlit():
         yield mock_st
 
 
-def test_apply_styles_basic(style_manager):
+def test_apply_styles_basic(style_manager: Any) -> None:
     """Test applying basic layout styles."""
     fig = go.Figure()
     config = {"width": 1000, "height": 600, "title": "Test Plot", "plot_bgcolor": "#fafafa"}
@@ -35,7 +36,7 @@ def test_apply_styles_basic(style_manager):
     assert fig.layout.plot_bgcolor == "#fafafa"
 
 
-def test_apply_styles_legend(style_manager):
+def test_apply_styles_legend(style_manager: Any) -> None:
     """Test applying legend styles."""
     fig = go.Figure()
     config = {
@@ -53,7 +54,7 @@ def test_apply_styles_legend(style_manager):
     assert fig.layout.legend.font.size == 14
 
 
-def test_apply_styles_axis(style_manager):
+def test_apply_styles_axis(style_manager: Any) -> None:
     """Test applying axis styles."""
     fig = go.Figure()
     config = {"xaxis_title": "X Axis", "xaxis_tickangle": -90, "grid_color": "#cccccc"}
@@ -65,7 +66,7 @@ def test_apply_styles_axis(style_manager):
     assert fig.layout.yaxis.gridcolor == "#cccccc"
 
 
-def test_render_style_ui(style_manager, mock_streamlit):
+def test_render_style_ui(style_manager: Any, mock_streamlit: Any) -> None:
     """Test rendering theme options UI."""
     saved_config = {"color_palette": "G10", "transparent_bg": False}
 
@@ -84,7 +85,7 @@ def test_render_style_ui(style_manager, mock_streamlit):
     assert "plot_bgcolor" in result
 
 
-def test_render_xaxis_labels_ui(style_manager, mock_streamlit):
+def test_render_xaxis_labels_ui(style_manager: Any, mock_streamlit: Any) -> None:
     """Test X-axis renaming UI."""
     saved_config = {"x": "col1", "xaxis_labels": {"A": "Label A"}}
     data = pd.DataFrame({"col1": ["A", "B", "C"]})
@@ -102,7 +103,7 @@ def test_render_xaxis_labels_ui(style_manager, mock_streamlit):
     assert "C" not in result
 
 
-def test_render_layout_options(style_manager, mock_streamlit):
+def test_render_layout_options(style_manager: Any, mock_streamlit: Any) -> None:
     """Test layout options rendering."""
     saved_config = {"width": 900}
     mock_streamlit.slider.return_value = 900

@@ -10,7 +10,7 @@ from pathlib import Path
 import pandas as pd
 
 
-def test_complete_workflow_integration():
+def test_complete_workflow_integration() -> None:
     """Test complete workflow: load CSV, configure pipeline, apply transformations."""
 
     from src.core.application_api import ApplicationAPI
@@ -94,7 +94,7 @@ def test_complete_workflow_integration():
             shutil.rmtree(test_dir)
 
 
-def test_pipeline_reordering():
+def test_pipeline_reordering() -> None:
     """Test pipeline reordering functionality."""
     pipeline = [
         {"type": "columnSelector", "columns": ["a", "b"]},
@@ -109,7 +109,7 @@ def test_pipeline_reordering():
     assert pipeline[1]["type"] == "columnSelector"
 
 
-def test_multiple_same_shapers():
+def test_multiple_same_shapers() -> None:
     """Test adding multiple shapers of the same type."""
     from src.core.application_api import ApplicationAPI
 

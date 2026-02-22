@@ -1,5 +1,6 @@
 import os
 import sys
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -7,20 +8,20 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
-def _mock_streamlit_module():
+def _mock_streamlit_module() -> None:
     """Patch streamlit in sys.modules for isolation — undone after each test."""
     with patch.dict(sys.modules, {"streamlit": MagicMock()}):
         yield
 
 
 @pytest.fixture
-def temp_dir(tmp_path):
+def temp_dir(tmp_path: Any) -> None:
     """Use pytest's tmp_path for automatic cleanup."""
     return tmp_path
 
 
 @pytest.fixture
-def plot_factory():
+def plot_factory() -> Any:
     """Import PlotFactory lazily (after streamlit mock is in place)."""
     from src.web.pages.ui.plotting import PlotFactory
 
@@ -28,14 +29,14 @@ def plot_factory():
 
 
 @pytest.fixture
-def plot_service():
+def plot_service() -> Any:
     """Import PlotService lazily (after streamlit mock is in place)."""
     from src.web.pages.ui.plotting.plot_service import PlotService
 
     return PlotService
 
 
-def test_export_plot_to_file(temp_dir, plot_factory, plot_service):
+def test_export_plot_to_file(temp_dir: Any, plot_factory: Any, plot_service: Any) -> None:
     """Test that export_plot_to_file creates a file."""
     plot = plot_factory.create_plot("bar", 1, "Test Plot")
 
@@ -60,7 +61,7 @@ def test_export_plot_to_file(temp_dir, plot_factory, plot_service):
     assert os.path.getsize(path) > 0
 
 
-def test_export_plot_format_override(temp_dir, plot_factory, plot_service):
+def test_export_plot_format_override(temp_dir: Any, plot_factory: Any, plot_service: Any) -> None:
     """Test that format argument overrides config."""
     plot = plot_factory.create_plot("bar", 2, "HTML Plot")
     df = pd.DataFrame({"x": ["A", "B"], "y": [1, 2]})
@@ -78,7 +79,7 @@ def test_export_plot_format_override(temp_dir, plot_factory, plot_service):
     assert os.path.exists(path)
 
 
-def test_export_rejects_invalid_format(temp_dir, plot_factory, plot_service):
+def test_export_rejects_invalid_format(temp_dir: Any, plot_factory: Any, plot_service: Any) -> None:
     """Test that invalid formats are rejected (security: prevent path traversal)."""
     plot = plot_factory.create_plot("bar", 3, "Security Test")
     df = pd.DataFrame({"x": ["A"], "y": [1]})

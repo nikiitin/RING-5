@@ -24,12 +24,24 @@ Architecture:
 """
 
 import logging
-from typing import Any, Dict, List, Optional, cast
+from collections.abc import Sequence
+from concurrent.futures import Future
+from typing import Any, cast
 
 import numpy as np
+import pandas as pd
 
 from src.core.common.utils import normalize_user_path, sanitize_glob_pattern
-from src.core.models import ParseBatchResult, StatConfig
+from src.core.models import ParseBatchResult, ScannedVariable, StatConfig
+from src.core.models.data_models import (
+    ColumnInfoResult,
+    CsvPoolEntry,
+    ParseVariableConfig,
+    SavedConfigData,
+    SavedConfigEntry,
+    ScannedVariableDict,
+    ShaperStepConfig,
+)
 from src.core.models.history_models import OperationRecord
 from src.core.models.plot_protocol import PlotDeserializer
 from src.core.models.visualization import FigureConfig
@@ -57,7 +69,7 @@ class ApplicationAPI:
 
     def __init__(
         self,
-        plot_deserializer: Optional[PlotDeserializer] = None,
+        plot_deserializer: PlotDeserializer | None = None,
     ) -> None:
         """
         Initialize the Application API.
@@ -119,7 +131,7 @@ class ApplicationAPI:
         # Using pure string path from pool
         self.load_data(csv_path)
 
-    def get_current_view(self) -> Dict[str, Any]:
+    def get_current_view(self) -> dict[str, Any]:
         """Assemble the current data pipeline state for UI consumption."""
         return {
             "raw_data": self.state_manager.get_data(),
@@ -148,10 +160,10 @@ class ApplicationAPI:
         self,
         stats_path: str,
         stats_pattern: str,
-        variables: list[Any],
+        variables: Sequence[ParseVariableConfig | StatConfig],
         output_dir: str,
         strategy_type: str = "simple",
-        **kwargs: Any,
+        scanned_vars: list[ScannedVariable] | list[ScannedVariableDict] | None = None,
     ) -> ParseBatchResult:
         """
         Submit parsing job to the service.
@@ -159,7 +171,7 @@ class ApplicationAPI:
         Converts variable dictionaries to StatConfig objects.
         Repetition and regex expansion are handled by the parsing module.
         """
-        stat_configs: List[StatConfig] = []
+        stat_configs: list[StatConfig] = []
         for var in variables:
             if isinstance(var, dict):
                 # Normalize type for consistency
@@ -168,7 +180,7 @@ class ApplicationAPI:
                 # Check for aliasing (legacy compatibility)
                 name = str(var.get("name", ""))
                 alias = var.get("alias")
-                params = var.copy()
+                params = dict(var)
 
                 if alias:
                     params["parsed_ids"] = [name]
@@ -194,19 +206,25 @@ class ApplicationAPI:
                     is_regex=r"\d+" in var.name,
                 )
             else:
-                config = cast(StatConfig, var)
+                config = var if isinstance(var, StatConfig) else cast(StatConfig, var)
 
             stat_configs.append(config)
 
-        scanned_vars = kwargs.get("scanned_vars")
+        # Convert ScannedVariableDict to ScannedVariable if needed
+        resolved_scanned: list[ScannedVariable] | None = None
+        if scanned_vars is not None:
+            resolved_scanned = [
+                ScannedVariable.from_dict(sv) if isinstance(sv, dict) else sv for sv in scanned_vars
+            ]
+
         return ParseService.submit_parse_async(
-            stats_path, stats_pattern, stat_configs, output_dir, strategy_type, scanned_vars
+            stats_path, stats_pattern, stat_configs, output_dir, strategy_type, resolved_scanned
         )
 
     def finalize_parsing(
         self,
         output_dir: str,
-        results: list[Any],
+        results: list[dict[str, Any]],
         strategy_type: str = "simple",
         var_names: list[str] | None = None,
     ) -> str | None:
@@ -217,11 +235,11 @@ class ApplicationAPI:
 
     def submit_scan_async(
         self, stats_path: str, stats_pattern: str = "stats.txt", limit: int = 5
-    ) -> list[Any]:
+    ) -> list[Future[list[ScannedVariable]]]:
         """Submit scanning job."""
         return ScannerService.submit_scan_async(stats_path, stats_pattern, limit)
 
-    def finalize_scan(self, results: list[list[Any]]) -> list[Any]:
+    def finalize_scan(self, results: list[list[ScannedVariable]]) -> list[ScannedVariable]:
         """Aggregate scan results."""
         return ScannerService.aggregate_scan_results(results)
 
@@ -241,7 +259,9 @@ class ApplicationAPI:
     # Shapers & Pipelines
     # =========================================================================
 
-    def apply_shapers(self, data: Any, pipeline_config: list[dict[str, Any]]) -> Any:
+    def apply_shapers(
+        self, data: pd.DataFrame, pipeline_config: list[ShaperStepConfig]
+    ) -> pd.DataFrame:
         """Apply a sequence of shapers to a DataFrame."""
         return self._services.shapers.process_pipeline(data, pipeline_config)
 
@@ -253,7 +273,7 @@ class ApplicationAPI:
         self,
         name: str,
         description: str,
-        shapers_config: list[dict[str, Any]],
+        shapers_config: list[ShaperStepConfig],
         csv_path: str | None = None,
     ) -> str:
         """Save current configuration to disk."""
@@ -261,15 +281,15 @@ class ApplicationAPI:
             name, description, shapers_config, csv_path
         )
 
-    def load_configuration(self, config_path: str) -> dict[str, Any]:
+    def load_configuration(self, config_path: str) -> SavedConfigData:
         """Load configuration from file."""
         return self._services.data_services.load_configuration(config_path)
 
-    def load_csv_pool(self) -> list[dict[str, Any]]:
+    def load_csv_pool(self) -> list[CsvPoolEntry]:
         """List available CSV files in the pool."""
         return self._services.data_services.load_csv_pool()
 
-    def load_saved_configs(self) -> list[dict[str, Any]]:
+    def load_saved_configs(self) -> list[SavedConfigEntry]:
         """List all saved configurations."""
         return self._services.data_services.load_saved_configs()
 
@@ -289,31 +309,31 @@ class ApplicationAPI:
         """Alias for delete_from_pool."""
         return self.delete_from_pool(file_path)
 
-    def load_csv_file(self, file_path: str) -> Any:
+    def load_csv_file(self, file_path: str) -> pd.DataFrame:
         """Load a CSV file directly returning DataFrame."""
         return self._services.data_services.load_csv_file(file_path)
 
-    def get_column_info(self, df: Any) -> Dict[str, Any]:
+    def get_column_info(self, df: pd.DataFrame | None) -> ColumnInfoResult:
         """Get summary information about DataFrame columns for UI."""
         if df is None:
-            return {
-                "total_columns": 0,
-                "total_rows": 0,
-                "numeric_columns": [],
-                "categorical_columns": [],
-                "columns": [],
-            }
+            return ColumnInfoResult(
+                total_columns=0,
+                total_rows=0,
+                numeric_columns=[],
+                categorical_columns=[],
+                columns=[],
+            )
 
         numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
         categorical_cols = df.select_dtypes(exclude=[np.number]).columns.tolist()
 
-        return {
-            "total_columns": len(df.columns),
-            "total_rows": len(df),
-            "numeric_columns": numeric_cols,
-            "categorical_columns": categorical_cols,
-            "columns": df.columns.tolist(),
-        }
+        return ColumnInfoResult(
+            total_columns=len(df.columns),
+            total_rows=len(df),
+            numeric_columns=numeric_cols,
+            categorical_columns=categorical_cols,
+            columns=df.columns.tolist(),
+        )
 
     # =========================================================================
     # Visualization Config (Delegated to StateManager)
@@ -335,11 +355,11 @@ class ApplicationAPI:
     # Previews (Delegated to StateManager)
     # =========================================================================
 
-    def set_preview(self, operation_name: str, data: Any) -> None:
+    def set_preview(self, operation_name: str, data: pd.DataFrame) -> None:
         """Store a preview DataFrame for an operation."""
         self.state_manager.set_preview(operation_name, data)
 
-    def get_preview(self, operation_name: str) -> Any:
+    def get_preview(self, operation_name: str) -> pd.DataFrame | None:
         """Retrieve a preview DataFrame for an operation."""
         return self.state_manager.get_preview(operation_name)
 
@@ -360,11 +380,11 @@ class ApplicationAPI:
         self.state_manager.add_manager_history_record(record)
         self.state_manager.add_portfolio_history_record(record)
 
-    def get_manager_history(self) -> List[OperationRecord]:
+    def get_manager_history(self) -> list[OperationRecord]:
         """Get the rolling manager operation history (last 20)."""
         return self.state_manager.get_manager_history()
 
-    def get_portfolio_history(self) -> List[OperationRecord]:
+    def get_portfolio_history(self) -> list[OperationRecord]:
         """Get the full portfolio operation history."""
         return self.state_manager.get_portfolio_history()
 

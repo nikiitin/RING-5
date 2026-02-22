@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -12,18 +13,21 @@ from tests.conftest import columns_side_effect
 class MockPlot(BasePlot):
     """Mock implementation of BasePlot for testing."""
 
-    def render_config_ui(self, data, config):
+    def render_config_ui(self, data: Any, config: Any) -> dict:
+
         return {}
 
-    def create_traces(self, data, config):
+    def create_traces(self, data: Any, config: Any) -> TraceBuildResult:
+
         return TraceBuildResult(traces=[])
 
-    def get_legend_column(self, config):
+    def get_legend_column(self, config: Any) -> None:
+
         return None
 
 
 @pytest.fixture
-def mock_streamlit():
+def mock_streamlit() -> None:
     with patch("src.web.pages.ui.components.plot_manager_components.st") as mock_st:
         mock_st.session_state = {}
 
@@ -33,7 +37,7 @@ def mock_streamlit():
 
 
 @pytest.fixture
-def mock_api():
+def mock_api() -> Any:
     api = MagicMock()
     api.state_manager = MagicMock()
     api.backend = MagicMock()
@@ -41,18 +45,20 @@ def mock_api():
 
 
 @pytest.fixture
-def mock_plot_service():
+def mock_plot_service() -> None:
     with patch("src.web.pages.ui.components.plot_manager_components.PlotService") as mock_ps:
         yield mock_ps
 
 
 @pytest.fixture
-def mock_plot_factory():
+def mock_plot_factory() -> None:
     with patch("src.web.pages.ui.components.plot_manager_components.PlotFactory") as mock_pf:
         yield mock_pf
 
 
-def test_render_create_plot_section(mock_streamlit, mock_api, mock_plot_service, mock_plot_factory):
+def test_render_create_plot_section(
+    mock_streamlit: Any, mock_api: Any, mock_plot_service: Any, mock_plot_factory: Any
+) -> None:
     """Test creating a new plot."""
     mock_api.state_manager.get_plot_counter.return_value = 0
     mock_plot_factory.get_available_plot_types.return_value = ["Bar"]
@@ -67,7 +73,7 @@ def test_render_create_plot_section(mock_streamlit, mock_api, mock_plot_service,
     mock_streamlit.rerun.assert_called()
 
 
-def test_render_plot_selector(mock_streamlit, mock_api):
+def test_render_plot_selector(mock_streamlit: Any, mock_api: Any) -> None:
     """Test selecting a plot."""
     plot1 = MockPlot(1, "Plot 1", "Bar")
     plot2 = MockPlot(2, "Plot 2", "Line")
@@ -82,13 +88,14 @@ def test_render_plot_selector(mock_streamlit, mock_api):
     mock_api.state_manager.set_current_plot_id.assert_called_with(2)
 
 
-def test_render_plot_controls(mock_streamlit, mock_api, mock_plot_service):
+def test_render_plot_controls(mock_streamlit: Any, mock_api: Any, mock_plot_service: Any) -> None:
     """Test plot controls (rename, delete, duplicate)."""
     plot = MockPlot(1, "Original Name", "Bar")
 
     mock_streamlit.text_input.return_value = "New Name"
 
-    def button_side_effect(label, key=None, on_click=None, **kwargs):
+    def button_side_effect(label: Any, key: Any = None, on_click: Any = None, **kwargs: Any) -> int:
+
         if key == f"delete_plot_{plot.plot_id}":
             if on_click:
                 on_click()
@@ -103,7 +110,7 @@ def test_render_plot_controls(mock_streamlit, mock_api, mock_plot_service):
     mock_plot_service.delete_plot.assert_called_with(1, mock_api.state_manager)
 
 
-def test_render_pipeline_editor_add_shaper(mock_streamlit, mock_api):
+def test_render_pipeline_editor_add_shaper(mock_streamlit: Any, mock_api: Any) -> None:
     """Test adding a shaper to the pipeline."""
     plot = MockPlot(1, "Test Plot", "Bar")
     plot.pipeline = []
@@ -112,7 +119,8 @@ def test_render_pipeline_editor_add_shaper(mock_streamlit, mock_api):
 
     mock_streamlit.selectbox.return_value = "Sort"
 
-    def button_side_effect(label, key=None, **kwargs):
+    def button_side_effect(label: Any, key: Any = None, **kwargs: Any) -> int:
+
         if key == f"add_shaper_btn_{plot.plot_id}":
             return True
         return False
@@ -125,7 +133,7 @@ def test_render_pipeline_editor_add_shaper(mock_streamlit, mock_api):
     assert plot.pipeline[0]["type"] == "sort"
 
 
-def test_render_pipeline_editor_finalize(mock_streamlit, mock_api):
+def test_render_pipeline_editor_finalize(mock_streamlit: Any, mock_api: Any) -> None:
     """Test finalizing the pipeline."""
     plot = MockPlot(1, "Test Plot", "Bar")
     plot.pipeline = [{"type": "sort", "config": {"col": "A"}, "id": 0}]
@@ -133,7 +141,8 @@ def test_render_pipeline_editor_finalize(mock_streamlit, mock_api):
     df = pd.DataFrame({"A": [2, 1]})
     mock_api.state_manager.get_data.return_value = df
 
-    def button_side_effect(label, key=None, **kwargs):
+    def button_side_effect(label: Any, key: Any = None, **kwargs: Any) -> int:
+
         if key == f"finalize_{plot.plot_id}":
             return True
         return False

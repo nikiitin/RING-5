@@ -16,7 +16,7 @@ from src.core.parsing.gem5.types.scalar import Scalar
 class TestScalarInitialization:
     """Test Scalar type initialization."""
 
-    def test_init_default_repeat(self):
+    def test_init_default_repeat(self) -> None:
         # Arrange & Act
         scalar = Scalar()
 
@@ -26,14 +26,14 @@ class TestScalarInitialization:
         assert scalar._balanced is False
         assert scalar._reduced is False
 
-    def test_init_with_custom_repeat(self):
+    def test_init_with_custom_repeat(self) -> None:
         # Arrange & Act
         scalar = Scalar(repeat=5)
 
         # Assert
         assert scalar.repeat == 5
 
-    def test_required_params_empty(self):
+    def test_required_params_empty(self) -> None:
         # Arrange & Act & Assert
         assert Scalar.required_params == []
 
@@ -41,21 +41,21 @@ class TestScalarInitialization:
 class TestScalarValidateContent:
     """Test Scalar content validation."""
 
-    def test_validate_integer(self):
+    def test_validate_integer(self) -> None:
         # Arrange
         scalar = Scalar()
 
         # Act & Assert - Should not raise
         scalar._validate_content(42)
 
-    def test_validate_float(self):
+    def test_validate_float(self) -> None:
         # Arrange
         scalar = Scalar()
 
         # Act & Assert - Should not raise
         scalar._validate_content(3.14)
 
-    def test_validate_numeric_string(self):
+    def test_validate_numeric_string(self) -> None:
         # Arrange
         scalar = Scalar()
 
@@ -63,7 +63,7 @@ class TestScalarValidateContent:
         scalar._validate_content("123")
         scalar._validate_content("45.67")
 
-    def test_validate_non_numeric_string_raises(self):
+    def test_validate_non_numeric_string_raises(self) -> None:
         # Arrange
         scalar = Scalar()
 
@@ -71,7 +71,7 @@ class TestScalarValidateContent:
         with pytest.raises(TypeError, match="non-convertible to float or int"):
             scalar._validate_content("not_a_number")
 
-    def test_validate_none_raises(self):
+    def test_validate_none_raises(self) -> None:
         # Arrange
         scalar = Scalar()
 
@@ -79,7 +79,7 @@ class TestScalarValidateContent:
         with pytest.raises(TypeError, match="non-convertible"):
             scalar._validate_content(None)
 
-    def test_validate_list_raises(self):
+    def test_validate_list_raises(self) -> None:
         # Arrange
         scalar = Scalar()
 
@@ -91,7 +91,7 @@ class TestScalarValidateContent:
 class TestScalarSetContent:
     """Test Scalar content setting."""
 
-    def test_set_content_int(self):
+    def test_set_content_int(self) -> None:
         # Arrange
         scalar = Scalar()
 
@@ -102,7 +102,7 @@ class TestScalarSetContent:
         assert len(scalar._content) == 1
         assert scalar._content[0] == 100.0
 
-    def test_set_content_float(self):
+    def test_set_content_float(self) -> None:
         # Arrange
         scalar = Scalar()
 
@@ -113,7 +113,7 @@ class TestScalarSetContent:
         assert len(scalar._content) == 1
         assert scalar._content[0] == 3.0
 
-    def test_set_content_numeric_string(self):
+    def test_set_content_numeric_string(self) -> None:
         # Arrange
         scalar = Scalar()
 
@@ -123,7 +123,7 @@ class TestScalarSetContent:
         # Assert
         assert scalar._content[0] == 42.0
 
-    def test_set_content_float_string(self):
+    def test_set_content_float_string(self) -> None:
         # Arrange
         scalar = Scalar()
 
@@ -133,7 +133,7 @@ class TestScalarSetContent:
         # Assert
         assert scalar._content[0] == 2.718
 
-    def test_set_content_multiple_values(self):
+    def test_set_content_multiple_values(self) -> None:
         # Arrange
         scalar = Scalar(repeat=3)
 
@@ -149,7 +149,7 @@ class TestScalarSetContent:
 class TestScalarContentProperty:
     """Test Scalar content property (via base class)."""
 
-    def test_content_setter_validates(self):
+    def test_content_setter_validates(self) -> None:
         # Arrange
         scalar = Scalar()
 
@@ -159,7 +159,7 @@ class TestScalarContentProperty:
         # Assert
         assert scalar._content[0] == 42.0
 
-    def test_content_setter_invalid_value_raises(self):
+    def test_content_setter_invalid_value_raises(self) -> None:
         # Arrange
         scalar = Scalar()
 
@@ -167,7 +167,7 @@ class TestScalarContentProperty:
         with pytest.raises(TypeError):
             scalar.content = "invalid"
 
-    def test_content_getter(self):
+    def test_content_getter(self) -> None:
         # Arrange
         scalar = Scalar()
         scalar._set_content(100)
@@ -182,7 +182,7 @@ class TestScalarContentProperty:
 class TestScalarReduceDuplicates:
     """Test Scalar reduce_duplicates (arithmetic mean)."""
 
-    def test_reduce_single_value(self):
+    def test_reduce_single_value(self) -> None:
         # Arrange
         scalar = Scalar(repeat=1)
         scalar._set_content(42)
@@ -195,7 +195,7 @@ class TestScalarReduceDuplicates:
         assert scalar._reduced is True
         assert scalar._reduced_content == 42.0
 
-    def test_reduce_multiple_values_mean(self):
+    def test_reduce_multiple_values_mean(self) -> None:
         # Arrange
         scalar = Scalar(repeat=3)
         scalar._set_content(10)
@@ -210,7 +210,7 @@ class TestScalarReduceDuplicates:
         # Mean: (10 + 20 + 30) / 3 = 20.0
         assert scalar._reduced_content == 20.0
 
-    def test_reduce_empty_content(self):
+    def test_reduce_empty_content(self) -> None:
         # Arrange
         scalar = Scalar()
         # Don't call balance_content() - that would pad with zeros
@@ -221,7 +221,7 @@ class TestScalarReduceDuplicates:
         # Assert - truly empty content returns "NA"
         assert scalar._reduced_content == "NA"
 
-    def test_reduce_with_integer_division(self):
+    def test_reduce_with_integer_division(self) -> None:
         # Arrange
         scalar = Scalar(repeat=2)
         scalar._set_content(100)
@@ -234,7 +234,7 @@ class TestScalarReduceDuplicates:
         # Assert
         assert scalar._reduced_content == 150.0
 
-    def test_reduce_uses_int_conversion(self):
+    def test_reduce_uses_int_conversion(self) -> None:
         # Arrange - Test that reduce uses int() before summing
         scalar = Scalar(repeat=2)
         scalar._set_content(10.9)
@@ -252,7 +252,7 @@ class TestScalarReduceDuplicates:
 class TestScalarBalanceContent:
     """Test Scalar balance_content (via base class)."""
 
-    def test_balance_pads_with_zeros(self):
+    def test_balance_pads_with_zeros(self) -> None:
         # Arrange
         scalar = Scalar(repeat=5)
         scalar._set_content(10)
@@ -266,7 +266,7 @@ class TestScalarBalanceContent:
         assert len(scalar._content) == 5
         assert scalar._content == [10.0, 20.0, 0, 0, 0]
 
-    def test_balance_exact_count_no_change(self):
+    def test_balance_exact_count_no_change(self) -> None:
         # Arrange
         scalar = Scalar(repeat=3)
         scalar._set_content(1)
@@ -279,7 +279,7 @@ class TestScalarBalanceContent:
         # Assert
         assert scalar._content == [1.0, 2.0, 3.0]
 
-    def test_balance_too_many_values_raises(self):
+    def test_balance_too_many_values_raises(self) -> None:
         # Arrange
         scalar = Scalar(repeat=2)
         scalar._set_content(1)
@@ -294,7 +294,7 @@ class TestScalarBalanceContent:
 class TestScalarReducedContentAccess:
     """Test reduced_content property access guards."""
 
-    def test_access_reduced_content_before_balance_raises(self):
+    def test_access_reduced_content_before_balance_raises(self) -> None:
         # Arrange
         scalar = Scalar()
         scalar._set_content(10)
@@ -303,7 +303,7 @@ class TestScalarReducedContentAccess:
         with pytest.raises(AttributeError, match="before calling balance_content"):
             _ = scalar.reduced_content
 
-    def test_access_reduced_content_before_reduce_raises(self):
+    def test_access_reduced_content_before_reduce_raises(self) -> None:
         # Arrange
         scalar = Scalar()
         scalar._set_content(10)
@@ -313,7 +313,7 @@ class TestScalarReducedContentAccess:
         with pytest.raises(AttributeError, match="before calling.*reduce_duplicates"):
             _ = scalar.reduced_content
 
-    def test_access_reduced_content_after_both_succeeds(self):
+    def test_access_reduced_content_after_both_succeeds(self) -> None:
         # Arrange
         scalar = Scalar()
         scalar._set_content(42)
@@ -330,14 +330,14 @@ class TestScalarReducedContentAccess:
 class TestScalarTypeRegistration:
     """Test Scalar type registration."""
 
-    def test_scalar_registered_with_decorator(self):
+    def test_scalar_registered_with_decorator(self) -> None:
         # Arrange & Act
         from src.core.parsing.gem5.types.base import StatTypeRegistry
 
         # Assert
         assert "scalar" in StatTypeRegistry.get_types()
 
-    def test_create_scalar_via_registry(self):
+    def test_create_scalar_via_registry(self) -> None:
         # Arrange
         from src.core.parsing.gem5.types.base import StatTypeRegistry
 
@@ -352,7 +352,7 @@ class TestScalarTypeRegistration:
 class TestScalarEdgeCases:
     """Test edge cases and boundary conditions."""
 
-    def test_zero_value(self):
+    def test_zero_value(self) -> None:
         # Arrange
         scalar = Scalar()
 
@@ -364,7 +364,7 @@ class TestScalarEdgeCases:
         # Assert
         assert scalar._reduced_content == 0.0
 
-    def test_negative_value(self):
+    def test_negative_value(self) -> None:
         # Arrange
         scalar = Scalar()
 
@@ -376,7 +376,7 @@ class TestScalarEdgeCases:
         # Assert
         assert scalar._reduced_content == -42.0
 
-    def test_very_large_value(self):
+    def test_very_large_value(self) -> None:
         # Arrange
         scalar = Scalar()
 
@@ -388,7 +388,7 @@ class TestScalarEdgeCases:
         # Assert
         assert scalar._reduced_content == 1e100
 
-    def test_scientific_notation_string(self):
+    def test_scientific_notation_string(self) -> None:
         # Arrange
         scalar = Scalar()
 
@@ -398,7 +398,7 @@ class TestScalarEdgeCases:
         # Assert
         assert scalar._content[0] == 1.5e10
 
-    def test_entries_property_returns_none(self):
+    def test_entries_property_returns_none(self) -> None:
         # Arrange
         scalar = Scalar()
 

@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -6,7 +7,7 @@ from src.core.parsing.gem5.impl.pool.pool import ScanWorkPool
 from src.core.parsing.gem5.impl.scanning.gem5_scan_work import Gem5ScanWork
 
 
-def test_stats_scan_work_success():
+def test_stats_scan_work_success() -> None:
     work = Gem5ScanWork("test_file.txt")
 
     from src.core.models import ScannedVariable
@@ -30,7 +31,7 @@ def test_stats_scan_work_success():
         assert result[0].name == "var1"
 
 
-def test_stats_scan_work_failure():
+def test_stats_scan_work_failure() -> None:
     work = Gem5ScanWork("test_file.txt")
 
     with patch(
@@ -50,19 +51,20 @@ def test_stats_scan_work_failure():
 
 
 @pytest.fixture
-def clean_pool_singleton():
+def clean_pool_singleton() -> None:
     ScanWorkPool._singleton = None
     yield
     ScanWorkPool._singleton = None
 
 
-def test_scan_work_pool_singleton(clean_pool_singleton):
+def test_scan_work_pool_singleton(clean_pool_singleton: Any) -> None:
+
     pool1 = ScanWorkPool.get_instance()
     pool2 = ScanWorkPool.get_instance()
     assert pool1 is pool2
 
 
-def test_scan_work_pool_async_flow(clean_pool_singleton):
+def test_scan_work_pool_async_flow(clean_pool_singleton: Any) -> None:
     """Test the core async flow of the pool."""
     from concurrent.futures import Future
 

@@ -6,13 +6,16 @@ layer from web layer implementation details. This allows core services to work
 with plots without depending on concrete web implementations.
 """
 
-from typing import Any, Callable, Dict, List, Optional, Protocol, runtime_checkable
+from collections.abc import Callable
+from typing import Any, Optional, Protocol, runtime_checkable
 
 import pandas as pd
 
+from src.core.models.data_models import PipelineStep
+
 # Type alias: a callable that deserializes a dict into a PlotProtocol.
 # Injected at startup so the core layer never imports web-layer classes.
-PlotDeserializer = Callable[[Dict[str, Any]], Optional["PlotProtocol"]]
+PlotDeserializer = Callable[[dict[str, Any]], Optional["PlotProtocol"]]
 
 
 @runtime_checkable
@@ -25,12 +28,12 @@ class PlotProtocol(Protocol):
     plot_id: int
     name: str
     plot_type: str
-    config: Dict[str, Any]
-    pipeline: List[Dict[str, Any]]
+    config: dict[str, Any]
+    pipeline: list[PipelineStep]
     pipeline_counter: int
-    legend_mappings_by_column: Dict[str, Dict[str, str]]
-    legend_mappings: Dict[str, str]
-    processed_data: Optional[pd.DataFrame]
+    legend_mappings_by_column: dict[str, dict[str, str]]
+    legend_mappings: dict[str, str]
+    processed_data: pd.DataFrame | None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize the plot to a dictionary."""

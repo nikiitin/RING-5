@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, mock_open, patch
 
 from src.core.application_api import ApplicationAPI
@@ -6,7 +7,8 @@ from src.core.models import ParseBatchResult
 
 class TestAliasing:
     @patch("builtins.open", new_callable=mock_open)
-    def test_aliasing_config_generation(self, mock_file_open):
+    def test_aliasing_config_generation(self, mock_file_open: Any) -> None:
+
         # Setup
         facade = ApplicationAPI()  # Use ApplicationAPI instead of BackendFacade
         stats_path = "/tmp/stats"

@@ -18,9 +18,17 @@ Protocol Hierarchy::
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 import pandas as pd
+
+from src.core.models.data_models import PipelineStep, ShaperStepConfig
+
+if TYPE_CHECKING:
+    import plotly.graph_objects as go
+
+    from src.core.models.visualization.trace_build_result import TraceBuildResult
+    from src.core.state.repository_state_manager import RepositoryStateManager
 
 # ─── Plot Object Protocols ──────────────────────────────────────────────────
 
@@ -41,9 +49,9 @@ class PlotHandle(Protocol):
     plot_id: int
     name: str
     plot_type: str
-    config: Dict[str, Any]
-    processed_data: Optional[pd.DataFrame]
-    pipeline: List[Dict[str, Any]]
+    config: dict[str, Any]
+    processed_data: pd.DataFrame | None
+    pipeline: list[PipelineStep]
     pipeline_counter: int
 
 
@@ -61,22 +69,22 @@ class ConfigRenderer(Protocol):
 
     plot_id: int
 
-    def render_config_ui(self, data: pd.DataFrame, config: Dict[str, Any]) -> Dict[str, Any]: ...
+    def render_config_ui(self, data: pd.DataFrame, config: dict[str, Any]) -> dict[str, Any]: ...
 
     def render_advanced_options(
-        self, config: Dict[str, Any], data: pd.DataFrame
-    ) -> Dict[str, Any]: ...
+        self, config: dict[str, Any], data: pd.DataFrame
+    ) -> dict[str, Any]: ...
 
-    def render_display_options(self, config: Dict[str, Any]) -> Dict[str, Any]: ...
+    def render_display_options(self, config: dict[str, Any]) -> dict[str, Any]: ...
 
-    def render_theme_options(self, config: Dict[str, Any]) -> Dict[str, Any]: ...
+    def render_theme_options(self, config: dict[str, Any]) -> dict[str, Any]: ...
 
     def render_settings_section(
         self,
-        section: Optional[str],
-        saved_config: Dict[str, Any],
-        data: Optional[pd.DataFrame] = None,
-    ) -> Dict[str, Any]: ...
+        section: str | None,
+        saved_config: dict[str, Any],
+        data: pd.DataFrame | None = None,
+    ) -> dict[str, Any]: ...
 
 
 @runtime_checkable
@@ -91,7 +99,14 @@ class RenderablePlot(PlotHandle, ConfigRenderer, Protocol):
     Replaces the unsafe ``cast(ConfigRenderer, plot)`` pattern.
     """
 
-    ...
+    last_generated_fig: go.Figure | None
+    last_traces: TraceBuildResult | None
+
+    def create_figure(self, data: pd.DataFrame, config: dict[str, Any]) -> go.Figure: ...
+
+    def apply_common_layout(self, fig: go.Figure, config: dict[str, Any]) -> go.Figure: ...
+
+    def update_from_relayout(self, relayout_data: dict[str, Any]) -> bool: ...
 
 
 # ─── Service Protocols ──────────────────────────────────────────────────────
@@ -105,14 +120,18 @@ class PlotLifecycleService(Protocol):
     that satisfies this protocol.
     """
 
-    def create_plot(self, name: str, plot_type: str, state_manager: Any) -> PlotHandle: ...
+    def create_plot(
+        self, name: str, plot_type: str, state_manager: RepositoryStateManager
+    ) -> PlotHandle: ...
 
-    def delete_plot(self, plot_id: int, state_manager: Any) -> None: ...
+    def delete_plot(self, plot_id: int, state_manager: RepositoryStateManager) -> None: ...
 
-    def duplicate_plot(self, plot: PlotHandle, state_manager: Any) -> PlotHandle: ...
+    def duplicate_plot(
+        self, plot: PlotHandle, state_manager: RepositoryStateManager
+    ) -> PlotHandle: ...
 
     def change_plot_type(
-        self, plot: PlotHandle, new_type: str, state_manager: Any
+        self, plot: PlotHandle, new_type: str, state_manager: RepositoryStateManager
     ) -> PlotHandle: ...
 
 
@@ -124,7 +143,7 @@ class PlotTypeRegistry(Protocol):
     into an adapter that satisfies this protocol.
     """
 
-    def get_available_types(self) -> List[str]: ...
+    def get_available_types(self) -> list[str]: ...
 
 
 class PipelineExecutor(Protocol):
@@ -138,14 +157,14 @@ class PipelineExecutor(Protocol):
     def apply_shapers(
         self,
         data: pd.DataFrame,
-        configs: List[Dict[str, Any]],
+        configs: list[ShaperStepConfig],
     ) -> pd.DataFrame: ...
 
     def configure_shaper(
         self,
         shaper_type: str,
         data: pd.DataFrame,
-        shaper_id: Any,
-        config: Optional[Dict[str, Any]],
-        owner_id: Optional[int] = None,
-    ) -> Dict[str, Any]: ...
+        shaper_id: int,
+        config: ShaperStepConfig | None,
+        owner_id: int | None = None,
+    ) -> ShaperStepConfig: ...

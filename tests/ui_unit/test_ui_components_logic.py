@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -8,7 +9,7 @@ from tests.conftest import columns_side_effect
 
 
 @pytest.fixture
-def mock_streamlit():
+def mock_streamlit() -> None:
     with (patch("src.web.pages.ui.components.data_source_components.st") as mock_st_ds,):
 
         mock_st_ds.session_state = {}
@@ -22,12 +23,14 @@ def mock_streamlit():
 
 
 @pytest.fixture
-def mock_card_components():
+def mock_card_components() -> None:
     with patch("src.web.pages.ui.components.data_source_components.CardComponents") as mock_card:
         yield mock_card
 
 
-def test_render_csv_pool_load(mock_streamlit, mock_api, mock_card_components):
+def test_render_csv_pool_load(
+    mock_streamlit: Any, mock_api: Any, mock_card_components: Any
+) -> None:
     """Test loading a CSV file from the pool."""
     mock_st = mock_streamlit
 
@@ -49,7 +52,7 @@ def test_render_csv_pool_load(mock_streamlit, mock_api, mock_card_components):
     mock_st.success.assert_called()
 
 
-def test_execute_parser(mock_streamlit, mock_api):
+def test_execute_parser(mock_streamlit: Any, mock_api: Any) -> None:
     """Test the async parsing workflow."""
 
     # Mock the async workflow

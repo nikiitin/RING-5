@@ -7,7 +7,8 @@ Provides business logic for variable management without UI dependencies.
 
 import re
 import uuid
-from typing import Any, Dict, List, Optional, Set
+
+from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
 
 # Maximum allowed regex pattern length to prevent ReDoS abuse
 _MAX_REGEX_LEN: int = 500
@@ -17,7 +18,7 @@ _MAX_REGEX_LEN: int = 500
 _SAFE_PATTERN_RE: re.Pattern[str] = re.compile(r"^[a-zA-Z0-9_.\\+\[\]{}()|^$*?]+$")
 
 
-def _compile_safe_pattern(pattern: str) -> Optional[re.Pattern[str]]:
+def _compile_safe_pattern(pattern: str) -> re.Pattern[str] | None:
     """Compile a regex pattern with safety checks against ReDoS/injection.
 
     Validates the pattern length, character allowlist, and syntax before
@@ -44,7 +45,7 @@ class VariableService:
     """Service for managing parser variables with CRUD operations."""
 
     # Scientific filter: Internal gem5 statistics that should not appear as regular entries
-    INTERNAL_STATS: Set[str] = {
+    INTERNAL_STATS: set[str] = {
         "total",
         "mean",
         "gmean",
@@ -66,8 +67,8 @@ class VariableService:
 
     @classmethod
     def add_variable(
-        cls, variables: List[Dict[str, Any]], var_config: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        cls, variables: list[ParseVariableConfig], var_config: ParseVariableConfig
+    ) -> list[ParseVariableConfig]:
         """
         Add a new variable to the list.
 
@@ -99,8 +100,8 @@ class VariableService:
 
     @classmethod
     def update_variable(
-        cls, variables: List[Dict[str, Any]], index: int, var_config: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        cls, variables: list[ParseVariableConfig], index: int, var_config: ParseVariableConfig
+    ) -> list[ParseVariableConfig]:
         """
         Update an existing variable at the specified index.
 
@@ -132,7 +133,9 @@ class VariableService:
         return updated_vars
 
     @classmethod
-    def delete_variable(cls, variables: List[Dict[str, Any]], index: int) -> List[Dict[str, Any]]:
+    def delete_variable(
+        cls, variables: list[ParseVariableConfig], index: int
+    ) -> list[ParseVariableConfig]:
         """
         Delete a variable at the specified index.
 
@@ -163,7 +166,7 @@ class VariableService:
         return updated_vars
 
     @classmethod
-    def ensure_variable_ids(cls, variables: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def ensure_variable_ids(cls, variables: list[ParseVariableConfig]) -> list[ParseVariableConfig]:
         """
         Ensure all variables have unique IDs, generating them if missing.
 
@@ -189,7 +192,7 @@ class VariableService:
         return updated_vars
 
     @classmethod
-    def filter_internal_stats(cls, entries: List[str]) -> List[str]:
+    def filter_internal_stats(cls, entries: list[str]) -> list[str]:
         """
         Filter out internal gem5 statistics from entry list.
 
@@ -211,8 +214,8 @@ class VariableService:
 
     @classmethod
     def find_variable_by_name(
-        cls, variables: List[Dict[str, Any]], name: str, exact: bool = True
-    ) -> Optional[Dict[str, Any]]:
+        cls, variables: list[ParseVariableConfig], name: str, exact: bool = True
+    ) -> ParseVariableConfig | None:
         """
         Find a variable by name in the list.
 
@@ -252,8 +255,8 @@ class VariableService:
 
     @classmethod
     def aggregate_discovered_entries(
-        cls, snapshot: List[Dict[str, Any]], var_name: str
-    ) -> List[str]:
+        cls, snapshot: list[ScannedVariableDict], var_name: str
+    ) -> list[str]:
         r"""
         Aggregate all discovered entries for a variable across scanned files.
 
@@ -274,11 +277,10 @@ class VariableService:
             >>> entries
             ['cpu0', 'cpu1']
         """
-        found_entries: Set[str] = set()
+        found_entries: set[str] = set()
         for var in snapshot:
-            # Handle both ScannedVariable models and legacy dicts
-            name = var.name if hasattr(var, "name") else var.get("name", "")
-            entries = var.entries if hasattr(var, "entries") else var.get("entries", [])
+            name = var.get("name", "")
+            entries = var.get("entries", [])
 
             var_name_match = name == var_name
             if not var_name_match:
@@ -293,8 +295,8 @@ class VariableService:
 
     @classmethod
     def aggregate_distribution_range(
-        cls, snapshot: List[Dict[str, Any]], var_name: str
-    ) -> tuple[Optional[float], Optional[float]]:
+        cls, snapshot: list[ScannedVariableDict], var_name: str
+    ) -> tuple[float | None, float | None]:
         """
         Aggregate min/max range for a distribution variable across scanned files.
 
@@ -319,15 +321,14 @@ class VariableService:
             >>> (min_val, max_val)
             (5, 150)
         """
-        global_min: Optional[float] = None
-        global_max: Optional[float] = None
+        global_min: float | None = None
+        global_max: float | None = None
 
         for var in snapshot:
-            # Handle both ScannedVariable models and legacy dicts
-            name = var.name if hasattr(var, "name") else var.get("name", "")
-            v_type = var.type if hasattr(var, "type") else var.get("type", "")
-            v_min = var.minimum if hasattr(var, "minimum") else var.get("minimum")
-            v_max = var.maximum if hasattr(var, "maximum") else var.get("maximum")
+            name = var.get("name", "")
+            v_type = var.get("type", "")
+            v_min = var.get("minimum")
+            v_max = var.get("maximum")
 
             var_name_match = name == var_name
             if not var_name_match:
@@ -344,7 +345,7 @@ class VariableService:
         return global_min, global_max
 
     @classmethod
-    def parse_comma_separated_entries(cls, entries_str: str) -> List[str]:
+    def parse_comma_separated_entries(cls, entries_str: str) -> list[str]:
         """
         Parse comma-separated entry string into list.
 
@@ -363,7 +364,7 @@ class VariableService:
         return [e.strip() for e in entries_str.split(",") if e.strip()]
 
     @classmethod
-    def format_entries_as_string(cls, entries: List[str]) -> str:
+    def format_entries_as_string(cls, entries: list[str]) -> str:
         """
         Format list of entries as comma-separated string.
 
@@ -383,9 +384,9 @@ class VariableService:
     @classmethod
     def find_entries_for_variable(
         cls,
-        available_variables: List[Dict[str, Any]],
+        available_variables: list[ScannedVariableDict],
         var_name: str,
-    ) -> List[str]:
+    ) -> list[str]:
         r"""
         Find all entries for a variable by searching available/scanned variables.
 
@@ -410,7 +411,7 @@ class VariableService:
             >>> service.find_entries_for_variable(avail, "system.cpu.ipc")
             ['cpu0', 'cpu1']
         """
-        found_entries: Set[str] = set()
+        found_entries: set[str] = set()
 
         for var in available_variables:
             v_name = var.get("name", "")
@@ -430,10 +431,10 @@ class VariableService:
     @classmethod
     def update_scanned_entries(
         cls,
-        scanned_vars: List[Dict[str, Any]],
+        scanned_vars: list[ScannedVariableDict],
         var_name: str,
-        new_entries: List[str],
-    ) -> List[Dict[str, Any]]:
+        new_entries: list[str],
+    ) -> list[ScannedVariableDict]:
         """
         Update or add entries for a variable in the scanned variables list.
 
@@ -475,7 +476,7 @@ class VariableService:
     @classmethod
     def has_variable_with_name(
         cls,
-        variables: List[Dict[str, Any]],
+        variables: list[ParseVariableConfig],
         name: str,
     ) -> bool:
         """
@@ -501,8 +502,8 @@ class VariableService:
     @classmethod
     def build_statistics_list(
         cls,
-        selected: Dict[str, bool],
-    ) -> List[str]:
+        selected: dict[str, bool],
+    ) -> list[str]:
         """
         Build a list of selected statistics from a boolean mapping.
 

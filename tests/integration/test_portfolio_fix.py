@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -10,7 +11,7 @@ from src.web.pages.portfolio import PortfolioData, show_portfolio_page
 
 class TestPortfolioFix:
     @pytest.fixture
-    def mock_api(self):
+    def mock_api(self) -> Any:
         """Mock the ApplicationAPI."""
         api = MagicMock(spec=ApplicationAPI)
         api.state_manager = MagicMock()
@@ -18,7 +19,7 @@ class TestPortfolioFix:
         return api
 
     @pytest.fixture
-    def mock_streamlit(self):
+    def mock_streamlit(self) -> None:
         """Mock streamlit to prevent UI rendering errors."""
         with patch("src.web.pages.portfolio.st") as mock_st:
             # Fragment passthrough — execute the decorated function directly
@@ -29,12 +30,12 @@ class TestPortfolioFix:
             mock_st.expander.return_value.__enter__.return_value = MagicMock()
             yield mock_st
 
-    def test_portfolio_data_type_is_available(self):
+    def test_portfolio_data_type_is_available(self) -> None:
         """Test that PortfolioData is importable and usable as a type."""
         # This is a runtime check of the type definition
         assert isinstance(PortfolioData, type) or isinstance(PortfolioData, object)
 
-    def test_show_portfolio_page_no_name_error(self, mock_api, mock_streamlit):
+    def test_show_portfolio_page_no_name_error(self, mock_api: Any, mock_streamlit: Any) -> None:
         """
         Test that show_portfolio_page runs without NameError.
         This verifies that the type hint `PortfolioData` in the function

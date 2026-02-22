@@ -5,12 +5,12 @@ from src.web.pages.ui.plotting.plot_service import PlotService
 
 class TestPlotLifecycle:
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         self.state_manager = RepositoryStateManager()
         # Ensure clean state
         self.state_manager.clear_all()
 
-    def test_create_plot(self):
+    def test_create_plot(self) -> None:
         plot = PlotService.create_plot("Test Plot", "bar", self.state_manager)
 
         assert isinstance(plot, BasePlot)
@@ -23,7 +23,7 @@ class TestPlotLifecycle:
         assert plots[0] == plot
         assert self.state_manager.get_current_plot_id() == 0
 
-    def test_duplicate_plot(self):
+    def test_duplicate_plot(self) -> None:
         plot1 = PlotService.create_plot("Original", "line", self.state_manager)
         plot1.config = {"x": "my_col"}
 
@@ -37,7 +37,7 @@ class TestPlotLifecycle:
         plots = self.state_manager.get_plots()
         assert len(plots) == 2
 
-    def test_change_plot_type(self):
+    def test_change_plot_type(self) -> None:
         plot = PlotService.create_plot("My Plot", "bar", self.state_manager)
         plot.config = {"some": "config"}
 
@@ -53,7 +53,7 @@ class TestPlotLifecycle:
         current_plot = next(p for p in plots if p.plot_id == plot.plot_id)
         assert current_plot.plot_type == "line"
 
-    def test_delete_plot(self):
+    def test_delete_plot(self) -> None:
         p1 = PlotService.create_plot("P1", "bar", self.state_manager)
         p2 = PlotService.create_plot("P2", "bar", self.state_manager)
 

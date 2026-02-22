@@ -9,7 +9,7 @@ Validates end-to-end that:
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -29,16 +29,9 @@ from src.core.models.visualization.trace_config import (
     LineTraceConfig,
     ScatterTraceConfig,
 )
-from src.web.rendering.config_builder import (
-    ConfigSpecBuilder,
-    PlotlyFigureSpecBuilder,
-)
-from src.web.rendering.matplotlib_connector import (
-    FigureSpecToMatplotlib,
-)
-from src.web.rendering.matplotlib_trace_renderer import (
-    MatplotlibTraceRenderer,
-)
+from src.web.rendering.config_builder import ConfigSpecBuilder, PlotlyFigureSpecBuilder
+from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
+from src.web.rendering.matplotlib_trace_renderer import MatplotlibTraceRenderer
 
 matplotlib.use("Agg")
 
@@ -224,7 +217,7 @@ class TestEnrichAndApply:
 
     def test_enriched_tick_labels_applied(self) -> None:
         """Tick labels from Plotly figure appear on matplotlib axes."""
-        config: Dict[str, Any] = {"width": 800, "height": 500}
+        config: dict[str, Any] = {"width": 800, "height": 500}
         spec = ConfigSpecBuilder.from_config(config, "bar")
 
         plotly_fig = go.Figure()
@@ -245,7 +238,7 @@ class TestEnrichAndApply:
 
     def test_enriched_annotations_applied(self) -> None:
         """Annotations from Plotly figure appear on matplotlib axes."""
-        config: Dict[str, Any] = {"width": 800, "height": 500}
+        config: dict[str, Any] = {"width": 800, "height": 500}
         spec = ConfigSpecBuilder.from_config(config, "bar")
 
         plotly_fig = go.Figure()

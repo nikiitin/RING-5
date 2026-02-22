@@ -5,10 +5,10 @@ Defines TypedDict structures for type safety and clear API contracts.
 All export-related data structures are defined here.
 """
 
-from typing import Any, Optional, TypedDict
+from typing import Any, TypedDict
 
 
-class LaTeXPreset(TypedDict):
+class LaTeXPreset(TypedDict, total=False):
     """
     LaTeX export preset configuration.
 
@@ -47,6 +47,7 @@ class LaTeXPreset(TypedDict):
     font_family: str
     font_size_base: int
     # Font sizes for different text elements
+    font_size_labels: int  # Generic axis label font size
     font_size_title: int  # Title font size
     font_size_xlabel: int  # X-axis label font size
     font_size_ylabel: int  # Y-axis label font size
@@ -151,7 +152,7 @@ class ExportResult(TypedDict):
     """
 
     success: bool
-    data: Optional[bytes]
+    data: bytes | None
     format: str
-    error: Optional[str]
+    error: str | None
     metadata: dict[str, Any]

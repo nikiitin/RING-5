@@ -5,10 +5,10 @@ Provides Streamlit components for configuring the Normalize shaper, which
 applies numerical normalization (min-max, z-score, etc.) to data columns.
 """
 
-from typing import Any, Dict
-
 import pandas as pd
 import streamlit as st
+
+from src.core.models.data_models import ShaperStepConfig
 
 
 class NormalizeConfig:
@@ -16,8 +16,8 @@ class NormalizeConfig:
 
     @staticmethod
     def render(
-        data: pd.DataFrame, existing_config: Dict[str, Any], key_prefix: str, shaper_id: str
-    ) -> Dict[str, Any]:
+        data: pd.DataFrame, existing_config: ShaperStepConfig, key_prefix: str, shaper_id: int
+    ) -> ShaperStepConfig:
         """
         Render the normalization configuration UI.
 
@@ -104,7 +104,7 @@ class NormalizeConfig:
             "normalizerVars": normalizer_vars,
             "normalizeVars": normalize_vars,
             "normalizerColumn": normalizer_column,
-            "normalizerValue": normalizer_value,
+            "normalizerValue": str(normalizer_value) if normalizer_value is not None else "",
             "groupBy": group_by,
             "normalizeSd": normalize_sd,
         }

@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import patch
 
 import pandas as pd
@@ -8,14 +9,16 @@ from tests.conftest import columns_side_effect
 
 
 @pytest.fixture
-def mock_streamlit():
+def mock_streamlit() -> None:
     with patch("src.web.pages.ui.components.data_manager_components.st") as mock_st:
         # Mock session_state to support both attribute (state.x) and item (state['x']) access
         class MockState(dict):
-            def __getattr__(self, key):
+            def __getattr__(self, key: Any) -> Any:
+
                 return self.get(key)
 
-            def __setattr__(self, key, value):
+            def __setattr__(self, key: Any, value: Any) -> None:
+
                 self[key] = value
 
         mock_st.session_state = MockState()
@@ -27,7 +30,8 @@ def mock_streamlit():
         yield mock_st
 
 
-def test_render_summary_tab_stats(mock_streamlit):
+def test_render_summary_tab_stats(mock_streamlit: Any) -> None:
+
     df = pd.DataFrame({"num": [1, 2, 3], "cat": ["a", "b", "a"], "mixed": [1.1, None, 3.3]})
 
     DataManagerComponents.render_summary_tab(df)
@@ -36,13 +40,15 @@ def test_render_summary_tab_stats(mock_streamlit):
     mock_streamlit.metric.assert_called()
 
 
-def test_render_summary_tab_empty(mock_streamlit):
+def test_render_summary_tab_empty(mock_streamlit: Any) -> None:
+
     df = pd.DataFrame()
     DataManagerComponents.render_summary_tab(df)
     mock_streamlit.info.assert_called()
 
 
-def test_render_visualization_tab_search_all(mock_streamlit):
+def test_render_visualization_tab_search_all(mock_streamlit: Any) -> None:
+
     df = pd.DataFrame({"A": ["foo", "bar"], "B": ["baz", "qux"]})
 
     mock_streamlit.selectbox.return_value = "All Columns"
@@ -55,7 +61,8 @@ def test_render_visualization_tab_search_all(mock_streamlit):
     mock_streamlit.info.assert_any_call("Found 1 matching rows (out of 2 total)")
 
 
-def test_render_visualization_tab_search_specific(mock_streamlit):
+def test_render_visualization_tab_search_specific(mock_streamlit: Any) -> None:
+
     df = pd.DataFrame({"A": ["foo", "bar"], "B": ["foo", "qux"]})
 
     mock_streamlit.selectbox.side_effect = ["B", "All"]
@@ -66,7 +73,8 @@ def test_render_visualization_tab_search_specific(mock_streamlit):
     mock_streamlit.info.assert_any_call("Found 1 matching rows (out of 2 total)")
 
 
-def test_render_visualization_tab_pagination(mock_streamlit):
+def test_render_visualization_tab_pagination(mock_streamlit: Any) -> None:
+
     df = pd.DataFrame({"A": range(100)})
 
     mock_streamlit.text_input.return_value = ""
@@ -80,7 +88,8 @@ def test_render_visualization_tab_pagination(mock_streamlit):
     mock_streamlit.info.assert_any_call("Showing rows 21 to 40 of 100 (Page 2/5)")
 
 
-def test_render_visualization_tab_download(mock_streamlit):
+def test_render_visualization_tab_download(mock_streamlit: Any) -> None:
+
     df = pd.DataFrame({"A": [1]})
 
     mock_streamlit.text_input.return_value = ""

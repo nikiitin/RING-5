@@ -15,11 +15,7 @@ Uses the AppTest data injection pattern:
 
 from typing import Any
 
-from tests.ui.helpers import (
-    create_app_with_data,
-    get_api,
-    navigate_to,
-)
+from tests.ui.helpers import create_app_with_data, get_api, navigate_to
 
 
 def _go_to_data_managers(data: Any = None) -> Any:

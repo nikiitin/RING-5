@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Module: src.core.services/shapers/impl/normalize.py
 
@@ -76,7 +75,7 @@ Last Modified: 2026-01-27
 import hashlib
 import logging
 import warnings
-from typing import Any, Dict, List
+from typing import Any
 
 import pandas as pd
 from pandas import DataFrame
@@ -95,7 +94,7 @@ class Normalize(UniDfShaper):
     by the value(s) found in a designated baseline row within each group.
     """
 
-    def __init__(self, params: Dict[str, Any]) -> None:
+    def __init__(self, params: dict[str, Any]) -> None:
         """
         Initialize the Normalize shaper with parameters.
 
@@ -109,11 +108,11 @@ class Normalize(UniDfShaper):
                 - normalizeSd (Optional[bool]): Whether to normalize .sd columns. Defaults to True.
         """
         # Assign properties before super().__init__ as _verify_params needs them
-        self._normalize_vars: List[str] = params.get("normalizeVars", [])
+        self._normalize_vars: list[str] = params.get("normalizeVars", [])
         self._normalizer_column: str = params.get("normalizerColumn", "")
         self._normalizer_value: Any = params.get("normalizerValue", "")
-        self._group_by: List[str] = params.get("groupBy", [])
-        self._normalizer_vars: List[str] = params.get("normalizerVars", self._normalize_vars)
+        self._group_by: list[str] = params.get("groupBy", [])
+        self._normalizer_vars: list[str] = params.get("normalizerVars", self._normalize_vars)
         self._normalize_sd: bool = params.get("normalizeSd", True)
 
         # Store params for caching fingerprint
@@ -245,7 +244,7 @@ class Normalize(UniDfShaper):
         return result
 
     @staticmethod
-    def _compute_data_fingerprint(data: pd.DataFrame, params: Dict[str, Any]) -> str:
+    def _compute_data_fingerprint(data: pd.DataFrame, params: dict[str, Any]) -> str:
         """
         Compute fingerprint for caching normalization results.
 

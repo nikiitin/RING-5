@@ -4,16 +4,17 @@ Handles information cards for files, configurations, etc.
 """
 
 import datetime
-from typing import Any, Dict, Tuple
 
 import streamlit as st
+
+from src.core.models.data_models import CsvPoolEntry, SavedConfigEntry
 
 
 class CardComponents:
     """Reusable information card components."""
 
     @staticmethod
-    def file_info_card(file_info: Dict[str, Any], index: int) -> Tuple[bool, bool, bool]:
+    def file_info_card(file_info: CsvPoolEntry, index: int) -> tuple[bool, bool, bool]:
         """
         Display a file information card with actions.
 
@@ -45,7 +46,7 @@ class CardComponents:
             return load_clicked, preview_clicked, delete_clicked
 
     @staticmethod
-    def config_info_card(config_info: Dict[str, Any], index: int) -> Tuple[bool, bool]:
+    def config_info_card(config_info: SavedConfigEntry, index: int) -> tuple[bool, bool]:
         """
         Display a configuration information card with actions.
 

@@ -1,14 +1,16 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import plotly.graph_objects as go
 import pytest
+from pandas import DataFrame
 
 from src.web.pages.ui.plotting.types.grouped_bar_plot import GroupedBarPlot
 
 
 @pytest.fixture
-def sample_data():
+def sample_data() -> DataFrame:
     return pd.DataFrame(
         {
             "Category": ["Bench1", "Bench1", "Bench2", "Bench2"],
@@ -20,7 +22,7 @@ def sample_data():
 
 
 @pytest.fixture
-def mock_streamlit():
+def mock_streamlit() -> None:
     with (
         patch("src.web.pages.ui.plotting.types.grouped_bar_plot.st") as mock_st,
         patch("src.web.pages.ui.components.plot_config_components.st", mock_st),
@@ -32,7 +34,8 @@ def mock_streamlit():
         yield mock_st
 
 
-def test_render_config_ui(mock_streamlit, sample_data):
+def test_render_config_ui(mock_streamlit: Any, sample_data: Any) -> None:
+
     plot = GroupedBarPlot(1, "Test Plot")
     saved_config = {"x": "Category"}
 
@@ -61,7 +64,8 @@ def test_render_config_ui(mock_streamlit, sample_data):
     assert config["group_filter"] == ["X", "Y"]
 
 
-def test_create_figure_basic(sample_data):
+def test_create_figure_basic(sample_data: Any) -> None:
+
     plot = GroupedBarPlot(1, "Test Plot")
     config = {
         "x": "Category",
@@ -82,7 +86,8 @@ def test_create_figure_basic(sample_data):
     assert fig.layout.barmode == "group"
 
 
-def test_create_figure_with_error_bars_and_filters(sample_data):
+def test_create_figure_with_error_bars_and_filters(sample_data: Any) -> None:
+
     plot = GroupedBarPlot(1, "Test Plot")
     config = {
         "x": "Category",
@@ -113,13 +118,14 @@ def test_create_figure_with_error_bars_and_filters(sample_data):
     assert fig.data[0].error_y.array is not None
 
 
-def test_get_legend_column():
+def test_get_legend_column() -> None:
     plot = GroupedBarPlot(1, "Test Plot")
     assert plot.get_legend_column({"group": "G"}) == "G"
     assert plot.get_legend_column({}) is None
 
 
-def test_render_advanced_options_filtering(sample_data):
+def test_render_advanced_options_filtering(sample_data: Any) -> None:
+
     plot = GroupedBarPlot(1, "Test Plot")
     config = {"x": "Category", "group": "Group", "x_filter": ["Bench1"], "group_filter": ["X"]}
 

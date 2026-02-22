@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -7,7 +8,7 @@ from src.web.pages.ui.shaper_config import configure_shaper
 
 
 @pytest.fixture
-def mock_streamlit():
+def mock_streamlit() -> None:
     with (
         patch("src.web.pages.ui.shaper_config.st") as mock_st,
         patch("src.web.pages.ui.components.shapers.normalize_config.st", mock_st),
@@ -24,7 +25,8 @@ def mock_streamlit():
         yield mock_st
 
 
-def test_configure_normalize_ui(mock_streamlit):
+def test_configure_normalize_ui(mock_streamlit: Any) -> None:
+
     df = pd.DataFrame({"A": [1, 2], "B": ["x", "y"], "C": [10, 20]})
 
     # Mock inputs logic order:
@@ -52,7 +54,8 @@ def test_configure_normalize_ui(mock_streamlit):
     assert config["normalizeSd"] is True
 
 
-def test_configure_transformer_ui(mock_streamlit):
+def test_configure_transformer_ui(mock_streamlit: Any) -> None:
+
     df = pd.DataFrame({"A": [1, 2, 3]})
 
     mock_streamlit.selectbox.return_value = "A"  # target_col
@@ -67,7 +70,8 @@ def test_configure_transformer_ui(mock_streamlit):
     assert config["order"] == ["1", "2", "3"]
 
 
-def test_configure_filter_ui_numeric(mock_streamlit):
+def test_configure_filter_ui_numeric(mock_streamlit: Any) -> None:
+
     df = pd.DataFrame({"A": [10, 20, 30]})
 
     # Setup side effects for selectboxes (Column, Mode)
@@ -81,7 +85,8 @@ def test_configure_filter_ui_numeric(mock_streamlit):
     assert config["range"] == [10.0, 20.0]
 
 
-def test_configure_filter_ui_categorical(mock_streamlit):
+def test_configure_filter_ui_categorical(mock_streamlit: Any) -> None:
+
     df = pd.DataFrame({"B": ["x", "y", "z"]})
 
     mock_streamlit.selectbox.return_value = "B"

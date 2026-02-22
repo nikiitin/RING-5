@@ -14,9 +14,11 @@ Design Principle:
     - Specific types over Dict[str, Any] wherever possible
 """
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from typing_extensions import TypedDict
+
+from src.core.models.data_models import ShaperStepConfig
 
 # ─── Annotation Shapes ───────────────────────────────────────────────────────
 
@@ -37,10 +39,10 @@ class AnnotationShapeConfig(TypedDict, total=False):
     """
 
     type: str  # "line", "circle", "rect"
-    x0: Union[float, str]
-    y0: Union[float, str]
-    x1: Union[float, str]
-    y1: Union[float, str]
+    x0: float | str
+    y0: float | str
+    x1: float | str
+    y1: float | str
     line: AnnotationLineConfig
 
 
@@ -73,8 +75,8 @@ class RelayoutEventData(TypedDict, total=False):
     """
 
     # Axis ranges (zoom/pan)
-    xaxis_range: List[float]
-    yaxis_range: List[float]
+    xaxis_range: list[float]
+    yaxis_range: list[float]
     xaxis_autorange: bool
     yaxis_autorange: bool
 
@@ -99,7 +101,7 @@ class ShaperStep(TypedDict):
 
     id: int  # Unique step ID within the pipeline
     type: str  # Shaper type key (columnSelector, sort, mean, ...)
-    config: Dict[str, Any]  # Shaper-specific configuration
+    config: ShaperStepConfig  # Shaper-specific configuration
 
 
 # ─── Layout & Dimensions ────────────────────────────────────────────────────
@@ -153,12 +155,12 @@ class PlotDisplayConfig(TypedDict, total=False):
     legend_title: str  # Legend title text
 
     # ── Grouping ──
-    color: Optional[str]  # Color-by column
-    group: Optional[str]  # Group-by column (grouped/stacked bars)
+    color: str | None  # Color-by column
+    group: str | None  # Group-by column (grouped/stacked bars)
 
     # ── Column Metadata (computed, not user-set) ──
-    numeric_cols: List[str]
-    categorical_cols: List[str]
+    numeric_cols: list[str]
+    categorical_cols: list[str]
 
     # ── Dimensions & Layout ──
     width: int  # Plot width in pixels
@@ -178,31 +180,31 @@ class PlotDisplayConfig(TypedDict, total=False):
 
     # ── Axis Configuration ──
     xaxis_tickangle: int  # Label rotation (-90 to 90)
-    xaxis_dtick: Optional[float]  # X-axis step (None = auto)
-    yaxis_dtick: Optional[float]  # Y-axis step (None = auto)
-    xaxis_labels: Dict[str, str]  # Renamed x-axis tick labels
+    xaxis_dtick: float | None  # X-axis step (None = auto)
+    yaxis_dtick: float | None  # Y-axis step (None = auto)
+    xaxis_labels: dict[str, str]  # Renamed x-axis tick labels
 
     # ── Ordering ──
-    xaxis_order: Optional[List[str]]  # Custom x-axis category order
-    group_order: Optional[List[str]]  # Custom group order
-    legend_order: Optional[List[str]]  # Custom legend item order
+    xaxis_order: list[str] | None  # Custom x-axis category order
+    group_order: list[str] | None  # Custom group order
+    legend_order: list[str] | None  # Custom legend item order
 
     # ── Interactive State (from relayout events) ──
-    range_x: Optional[List[float]]  # Current zoom range for x-axis
-    range_y: Optional[List[float]]  # Current zoom range for y-axis
-    legend_x: Optional[float]  # Legend x position
-    legend_y: Optional[float]  # Legend y position
-    legend_xanchor: Optional[str]  # Legend x anchor
-    legend_yanchor: Optional[str]  # Legend y anchor
+    range_x: list[float] | None  # Current zoom range for x-axis
+    range_y: list[float] | None  # Current zoom range for y-axis
+    legend_x: float | None  # Legend x position
+    legend_y: float | None  # Legend y position
+    legend_xanchor: str | None  # Legend x anchor
+    legend_yanchor: str | None  # Legend y anchor
 
     # ── Legend Labels ──
-    legend_labels: Optional[Dict[str, str]]  # Original → display label
+    legend_labels: dict[str, str] | None  # Original → display label
 
     # ── Series Styling ──
-    series_styles: Dict[str, SeriesStyleConfig]
+    series_styles: dict[str, SeriesStyleConfig]
 
     # ── Annotations ──
-    shapes: List[AnnotationShapeConfig]
+    shapes: list[AnnotationShapeConfig]
 
     # ── Error Bars ──
     show_error_bars: bool
@@ -279,8 +281,8 @@ class PlotDisplayConfig(TypedDict, total=False):
     reference_line_style: str
 
     # ── Filter columns ──
-    x_filter: Optional[List[str]]
-    group_filter: Optional[List[str]]
+    x_filter: list[str] | None
+    group_filter: list[str] | None
 
 
 # ── PlotConfig: Progressive typing alias ──────────────────────────────
@@ -292,4 +294,4 @@ class PlotDisplayConfig(TypedDict, total=False):
 #
 # Migration path: as widgets and applicators become fully spec-driven,
 # narrow ``PlotConfig`` → ``PlotDisplayConfig`` one site at a time.
-PlotConfig = Dict[str, Any]
+PlotConfig = dict[str, Any]

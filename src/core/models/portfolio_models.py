@@ -5,8 +5,13 @@ Defines the PortfolioData TypedDict used for session serialization
 and restoration across all layers.
 """
 
-from typing import Any, Dict, List, TypedDict
+from typing import Any, TypedDict
 
+from src.core.models.data_models import (
+    ParseVariableConfig,
+    ScannedVariableDict,
+    ShaperStepConfig,
+)
 from src.core.models.history_models import OperationRecord
 
 
@@ -29,15 +34,16 @@ class PortfolioData(TypedDict, total=False):
         portfolio_history: Full list of operations performed in this portfolio
     """
 
-    parse_variables: List[Dict[str, Any]]
+    parse_variables: list[ParseVariableConfig]
     stats_path: str
     stats_pattern: str
     csv_path: str
     use_parser: bool
-    scanned_variables: List[Dict[str, Any]]
+    scanned_variables: list[ScannedVariableDict]
     data_csv: str
-    plots: List[Dict[str, Any]]
+    plots: list[dict[str, Any]]
     plot_counter: int
-    config: Dict[str, Any]
-    manager_history: List[OperationRecord]
-    portfolio_history: List[OperationRecord]
+    config: dict[str, Any]
+    shapers: list[ShaperStepConfig]
+    manager_history: list[OperationRecord]
+    portfolio_history: list[OperationRecord]

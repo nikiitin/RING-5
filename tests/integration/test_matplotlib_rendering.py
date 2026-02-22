@@ -5,7 +5,7 @@ Validates the full pipeline:
   Plotly figure → PlotlyTraceExtractor → MatplotlibTraceRenderer → matplotlib Figure
 """
 
-from typing import Any, Dict
+from typing import Any
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -20,12 +20,8 @@ from src.core.models.visualization.trace_config import (
     ScatterTraceConfig,
 )
 from src.web.rendering.config_builder import ConfigSpecBuilder
-from src.web.rendering.matplotlib_connector import (
-    FigureSpecToMatplotlib,
-)
-from src.web.rendering.matplotlib_trace_renderer import (
-    MatplotlibTraceRenderer,
-)
+from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
+from src.web.rendering.matplotlib_trace_renderer import MatplotlibTraceRenderer
 
 # Use non-interactive backend for tests
 matplotlib.use("Agg")
@@ -67,7 +63,7 @@ def _make_stacked_bar_figure() -> go.Figure:
     return fig
 
 
-def _minimal_config() -> Dict[str, Any]:
+def _minimal_config() -> dict[str, Any]:
     """Return a minimal config dict for ConfigSpecBuilder."""
     return {
         "title": "Test Plot",

@@ -1,4 +1,5 @@
 import importlib
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -9,7 +10,7 @@ from tests.conftest import columns_side_effect
 
 
 @pytest.fixture
-def components_bundle():
+def components_bundle() -> None:
     """Patch st and reload module to capture decorator."""
 
     # 1. Patch streamlit.dialog globally so the decorator is intercepted during reload
@@ -40,7 +41,7 @@ def components_bundle():
 
 
 @pytest.fixture
-def mock_api():
+def mock_api() -> Any:
     api = MagicMock()
     api.state_manager = MagicMock()
     api.state_manager.get_scanned_variables.return_value = []
@@ -57,7 +58,7 @@ def mock_api():
     return api
 
 
-def test_variable_config_dialog_manual_entry_scalar(components_bundle, mock_api):
+def test_variable_config_dialog_manual_entry_scalar(components_bundle: Any, mock_api: Any) -> None:
     """Test manual entry of a scalar variable."""
     mock_streamlit, DataSourceComponents = components_bundle
 
@@ -81,7 +82,7 @@ def test_variable_config_dialog_manual_entry_scalar(components_bundle, mock_api)
     mock_streamlit.rerun.assert_called()
 
 
-def test_variable_config_dialog_manual_entry_vector(components_bundle, mock_api):
+def test_variable_config_dialog_manual_entry_vector(components_bundle: Any, mock_api: Any) -> None:
     """Test manual entry of a vector variable."""
     mock_streamlit, DataSourceComponents = components_bundle
 
@@ -111,7 +112,7 @@ def test_variable_config_dialog_manual_entry_vector(components_bundle, mock_api)
     assert "cpu0" in entries
 
 
-def test_variable_config_dialog_search_scanned(components_bundle, mock_api):
+def test_variable_config_dialog_search_scanned(components_bundle: Any, mock_api: Any) -> None:
     """Test adding from scanned variables."""
     mock_streamlit, DataSourceComponents = components_bundle
 
@@ -136,7 +137,7 @@ def test_variable_config_dialog_search_scanned(components_bundle, mock_api):
     assert new_vars[0]["type"] == "scalar"
 
 
-def test_variable_config_dialog_validation_fail(components_bundle, mock_api):
+def test_variable_config_dialog_validation_fail(components_bundle: Any, mock_api: Any) -> None:
     """Test validation failure (no name)."""
     mock_streamlit, DataSourceComponents = components_bundle
 

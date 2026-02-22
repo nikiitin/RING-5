@@ -20,7 +20,7 @@ Architecture Note — Streamlit usage:
 import hashlib
 import json
 import logging
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, cast
 
 import pandas as pd
 import streamlit as st
@@ -101,12 +101,12 @@ class PlotRenderController:
             return
 
         ConfigPresenter.render_section_headers()
-        saved_config: Dict[str, Any] = plot.config
-        current_config: Dict[str, Any] = saved_config.copy()
+        saved_config: dict[str, Any] = plot.config
+        current_config: dict[str, Any] = saved_config.copy()
         config_error: bool = False
 
         # 1. Plot type selector (via ConfigPresenter)
-        available_types: List[str] = self._registry.get_available_types()
+        available_types: list[str] = self._registry.get_available_types()
         type_result = ConfigPresenter.render_plot_type_selector(
             plot_type=plot.plot_type,
             available_types=available_types,
@@ -121,7 +121,7 @@ class PlotRenderController:
         data: pd.DataFrame = plot.processed_data
         # plot satisfies RenderablePlot (PlotHandle + ConfigRenderer)
         try:
-            ui_config: Dict[str, Any] = ConfigPresenter.render_type_config(
+            ui_config: dict[str, Any] = ConfigPresenter.render_type_config(
                 renderer=plot,
                 data=data,
                 saved_config=saved_config,
@@ -139,7 +139,7 @@ class PlotRenderController:
 
         # 3. Advanced & Theme (via ConfigPresenter)
         try:
-            extra_config: Dict[str, Any] = ConfigPresenter.render_advanced_and_theme(
+            extra_config: dict[str, Any] = ConfigPresenter.render_advanced_and_theme(
                 renderer=plot,
                 current_config=current_config,
                 data=data,
@@ -176,7 +176,7 @@ class PlotRenderController:
 
     # ── Private helpers ──────────────────────────────────────────
 
-    def _render_visualization(self, plot: Any, should_generate: bool) -> None:
+    def _render_visualization(self, plot: RenderablePlot, should_generate: bool) -> None:
         """
         Generate figure (with caching) and delegate display to presenter.
 
@@ -209,7 +209,7 @@ class PlotRenderController:
             try:
                 fig = plot.create_figure(plot.processed_data, plot.config)
                 fig = plot.apply_common_layout(fig, plot.config)
-                legend_labels: Optional[Dict[str, str]] = plot.config.get("legend_labels")
+                legend_labels: dict[str, str] | None = plot.config.get("legend_labels")
                 if legend_labels:
                     fig.for_each_trace(lambda t: t.update(name=legend_labels.get(t.name, t.name)))
                 plot.last_generated_fig = fig
@@ -225,7 +225,7 @@ class PlotRenderController:
         fig = plot.last_generated_fig
 
         # Engine selector (presenter renders st.pills)
-        engine_choice: Optional[str] = ChartPresenter.render_engine_selector(
+        engine_choice: str | None = ChartPresenter.render_engine_selector(
             plot.plot_id, EngineManager.get_engine()
         )
         if engine_choice is not None:
@@ -235,11 +235,8 @@ class PlotRenderController:
         try:
             if EngineManager.is_matplotlib():
                 # Use pre-computed traces when available (B7 forward path)
-                pre_traces = (
-                    plot.last_traces.traces
-                    if getattr(plot, "last_traces", None) is not None
-                    else None
-                )
+                _traces_result = plot.last_traces
+                pre_traces = list(_traces_result.traces) if _traces_result is not None else None
                 ChartPresenter.render_matplotlib_chart(
                     fig,
                     plot.plot_id,
@@ -267,7 +264,7 @@ class PlotRenderController:
             ChartPresenter.render_error(e)
 
     @staticmethod
-    def _compute_figure_cache_key(plot_id: int, config: Dict[str, Any], data_hash: str) -> str:
+    def _compute_figure_cache_key(plot_id: int, config: dict[str, Any], data_hash: str) -> str:
         """
         Compute stable cache key for plot figure.
 

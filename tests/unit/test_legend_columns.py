@@ -4,6 +4,8 @@ Verifies that legend positioning and styling properties are correctly
 applied to Plotly figures following publication-quality standards.
 """
 
+from typing import Any
+
 import plotly.graph_objects as go
 import pytest
 
@@ -14,11 +16,11 @@ class TestLegendStyling:
     """Test suite for legend styling features."""
 
     @pytest.fixture
-    def applicator(self):
+    def applicator(self) -> StyleApplicator:
         """Create a StyleApplicator instance for testing."""
         return StyleApplicator(plot_type="bar")
 
-    def test_legend_position_applied(self, applicator):
+    def test_legend_position_applied(self, applicator: Any) -> None:
         """
         Verify legend x/y positioning is correctly applied.
         """
@@ -35,7 +37,7 @@ class TestLegendStyling:
         assert fig.layout.legend.x == 0.5
         assert fig.layout.legend.y == 1.05
 
-    def test_legend_orientation_horizontal(self, applicator):
+    def test_legend_orientation_horizontal(self, applicator: Any) -> None:
         """
         Verify horizontal legend orientation is applied.
         """
@@ -50,7 +52,7 @@ class TestLegendStyling:
 
         assert fig.layout.legend.orientation == "h"
 
-    def test_legend_anchor_settings(self, applicator):
+    def test_legend_anchor_settings(self, applicator: Any) -> None:
         """
         Verify legend anchor settings for proper alignment.
         """
@@ -67,7 +69,7 @@ class TestLegendStyling:
         assert fig.layout.legend.xanchor == "center"
         assert fig.layout.legend.yanchor == "bottom"
 
-    def test_legend_no_columns_default_behavior(self, applicator):
+    def test_legend_no_columns_default_behavior(self, applicator: Any) -> None:
         """
         Verify that ncols=0 does not set a fixed entrywidth.
 

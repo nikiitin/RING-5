@@ -1,10 +1,12 @@
 """Tests for PlotFactory and BarStyleUI — branch coverage."""
 
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
+
+from src.core.models.visualization.trace_build_result import TraceBuildResult
 
 
 class TestPlotFactory:
@@ -42,18 +44,18 @@ class TestPlotFactory:
                 super().__init__(plot_id, name, "custom")
 
             def render_config_ui(
-                self, data: pd.DataFrame, saved_config: Dict[str, Any]
-            ) -> Dict[str, Any]:
+                self, data: pd.DataFrame, saved_config: dict[str, Any]
+            ) -> dict[str, Any]:
                 return {}
 
-            def create_traces(self, data: pd.DataFrame, config: Dict[str, Any]):
+            def create_traces(self, data: pd.DataFrame, config: dict[str, Any]) -> TraceBuildResult:
                 from src.core.models.visualization.trace_build_result import (
                     TraceBuildResult,
                 )
 
                 return TraceBuildResult(traces=[])
 
-            def get_legend_column(self, config: Dict[str, Any]) -> None:
+            def get_legend_column(self, config: dict[str, Any]) -> None:
                 return None
 
         PlotFactory.register_plot_type("custom", CustomPlot)
@@ -78,7 +80,7 @@ class TestBarStyleUI:
 
         ui = BarStyleUI(plot_id=1, plot_type="bar")
         mock_st.selectbox.return_value = "/"
-        style: Dict[str, Any] = {"pattern": "/"}
+        style: dict[str, Any] = {"pattern": "/"}
 
         ui._render_specific_series_visuals(style, "trace_0")
         assert style["pattern"] == "/"
@@ -89,7 +91,7 @@ class TestBarStyleUI:
 
         ui = BarStyleUI(plot_id=1, plot_type="bar")
         mock_st.selectbox.return_value = "x"
-        style: Dict[str, Any] = {"pattern": {"shape": "x"}}
+        style: dict[str, Any] = {"pattern": {"shape": "x"}}
 
         ui._render_specific_series_visuals(style, "trace_0")
         assert style["pattern"] == "x"
@@ -100,7 +102,7 @@ class TestBarStyleUI:
 
         ui = BarStyleUI(plot_id=1, plot_type="bar")
         mock_st.selectbox.return_value = ""
-        style: Dict[str, Any] = {"pattern": "unknown_pat"}
+        style: dict[str, Any] = {"pattern": "unknown_pat"}
 
         ui._render_specific_series_visuals(style, "trace_0")
         assert style["pattern"] == ""

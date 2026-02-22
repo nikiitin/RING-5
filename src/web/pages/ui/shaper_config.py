@@ -4,11 +4,11 @@ Dispatches configuration requests to specialized shaper UI components.
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 import streamlit as st
 
+from src.core.models.data_models import ShaperStepConfig
 from src.core.services.shapers.factory import ShaperFactory
 from src.web.pages.ui.components.shapers.mean_config import MeanConfig
 from src.web.pages.ui.components.shapers.normalize_config import NormalizeConfig
@@ -18,9 +18,7 @@ from src.web.pages.ui.components.shapers.selector_transformer_configs import (
     TransformerConfig,
 )
 from src.web.pages.ui.components.shapers.sort_config import SortConfig
-from src.web.pages.ui.components.shapers.split_apply_config import (
-    SplitApplyConfig,
-)
+from src.web.pages.ui.components.shapers.split_apply_config import SplitApplyConfig
 
 logger = logging.getLogger(__name__)
 
@@ -58,8 +56,8 @@ SHAPER_REQUIRED_PARAMS = {
 
 
 def validate_shaper_config(
-    shaper_type: str, config: Dict[str, Any]
-) -> Tuple[bool, Optional[List[str]]]:
+    shaper_type: str, config: ShaperStepConfig
+) -> tuple[bool, list[str] | None]:
     """
     Validate if a shaper configuration has all required parameters filled.
 
@@ -90,10 +88,10 @@ def validate_shaper_config(
 def configure_shaper(
     shaper_type: str,
     data: pd.DataFrame,
-    shaper_id: str,
-    existing_config: Optional[Dict[str, Any]],
-    owner_id: Optional[int] = None,
-) -> Dict[str, Any]:
+    shaper_id: int,
+    existing_config: ShaperStepConfig | None,
+    owner_id: int | None = None,
+) -> ShaperStepConfig:
     """
     Orchestrate the configuration UI for a given shaper type.
 
@@ -140,7 +138,7 @@ def configure_shaper(
     return {"type": shaper_type}
 
 
-def apply_shapers(data: pd.DataFrame, shapers_config: List[Dict[str, Any]]) -> pd.DataFrame:
+def apply_shapers(data: pd.DataFrame, shapers_config: list[ShaperStepConfig]) -> pd.DataFrame:
     """
     Apply a sequence of shapers to the data.
     Delegates to ShaperFactory (Layer B interaction).

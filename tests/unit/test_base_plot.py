@@ -1,34 +1,39 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import plotly.graph_objects as go
 import pytest
 
+from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from tests.conftest import columns_side_effect
 
 
 # Concrete implementation for testing abstract class
 class ConcretePlot(BasePlot):
-    def render_config_ui(self, data, saved_config):
+    def render_config_ui(self, data: Any, saved_config: Any) -> dict:
+
         return {}
 
-    def create_traces(self, data, config):
+    def create_traces(self, data: Any, config: Any) -> TraceBuildResult:
+
         from src.core.models.visualization.trace_build_result import TraceBuildResult
 
         return TraceBuildResult(traces=[])
 
-    def get_legend_column(self, config):
+    def get_legend_column(self, config: Any) -> str:
+
         return "col"
 
 
 @pytest.fixture
-def concrete_plot():
+def concrete_plot() -> ConcretePlot:
     return ConcretePlot(plot_id=1, name="Test Plot", plot_type="test")
 
 
 @pytest.fixture
-def mock_streamlit():
+def mock_streamlit() -> None:
     with patch("src.web.pages.ui.plotting.base_plot.st") as mock_st:
         mock_st.session_state = {}
 
@@ -39,7 +44,10 @@ def mock_streamlit():
         mock_st.slider.return_value = 0
 
         # Mock selectbox to return first option or specific logic
-        def selectbox_side_effect(label, options, index=0, **kwargs):
+        def selectbox_side_effect(
+            label: Any, options: Any, index: Any = 0, **kwargs: Any
+        ) -> MagicMock:
+
             if isinstance(options, list) and len(options) > index:
                 return options[index]
             return MagicMock()
@@ -49,7 +57,7 @@ def mock_streamlit():
         yield mock_st
 
 
-def test_serialization(concrete_plot):
+def test_serialization(concrete_plot: Any) -> None:
     """Test to_dict and from_dict serialization."""
     concrete_plot.config = {"x": "col1"}
     concrete_plot.processed_data = pd.DataFrame({"col1": [1, 2, 3]})
@@ -76,7 +84,7 @@ def test_serialization(concrete_plot):
         assert len(loaded_plot.processed_data) == 3
 
 
-def test_render_common_config(concrete_plot, mock_streamlit):
+def test_render_common_config(concrete_plot: Any, mock_streamlit: Any) -> None:
     """Test common config UI rendering."""
     data = pd.DataFrame({"num": [1, 2], "cat": ["a", "b"]})
     saved_config = {"x": "num", "title": "My Title"}
@@ -91,7 +99,7 @@ def test_render_common_config(concrete_plot, mock_streamlit):
     assert config["title"] == "My Title"
 
 
-def test_apply_legend_labels(concrete_plot):
+def test_apply_legend_labels(concrete_plot: Any) -> None:
     """Test legend label application."""
     fig = go.Figure()
     fig.add_trace(go.Scatter(name="trace1", x=[1], y=[1]))
@@ -105,7 +113,7 @@ def test_apply_legend_labels(concrete_plot):
     assert fig.data[1].name == "trace2"
 
 
-def test_render_reorderable_list(concrete_plot, mock_streamlit):
+def test_render_reorderable_list(concrete_plot: Any, mock_streamlit: Any) -> None:
     """Test reorderable list UI."""
     items = ["A", "B", "C"]
 
@@ -122,7 +130,8 @@ def test_render_reorderable_list(concrete_plot, mock_streamlit):
     # Mock button returns
     # We have loops. Up on index 1 should trigger swap.
     # Pattern: up_{i}
-    def button_side_effect(label, key, **kwargs):
+    def button_side_effect(label: Any, key: Any, **kwargs: Any) -> int:
+
         if key == f"test_key_up_1_{concrete_plot.plot_id}":
             return True
         return False
@@ -136,14 +145,15 @@ def test_render_reorderable_list(concrete_plot, mock_streamlit):
     mock_streamlit.rerun.assert_called()
 
 
-def test_render_advanced_options_shapes(concrete_plot, mock_streamlit):
+def test_render_advanced_options_shapes(concrete_plot: Any, mock_streamlit: Any) -> None:
     """Test advanced options with shape management."""
     config = {"shapes": []}
 
     # Mock adding a shape
     # Button "Add Shape" returns True
     # Inputs return minimal valid data
-    def button_side_effect(label, key=None, **kwargs):
+    def button_side_effect(label: Any, key: Any = None, **kwargs: Any) -> int:
+
         if "add_shape" in str(key):
             return True
         return False
@@ -161,7 +171,7 @@ def test_render_advanced_options_shapes(concrete_plot, mock_streamlit):
     mock_streamlit.rerun.assert_called()
 
 
-def test_render_advanced_options_display(concrete_plot, mock_streamlit):
+def test_render_advanced_options_display(concrete_plot: Any, mock_streamlit: Any) -> None:
     """Test advanced options output dict."""
     config = {"download_format": "png"}
 

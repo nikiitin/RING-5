@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -8,7 +9,7 @@ from src.web.pages.ui.plotting.styles import StyleManager
 
 
 @pytest.fixture
-def mock_streamlit():
+def mock_streamlit() -> None:
     with (
         patch("src.web.pages.ui.plotting.styles.base_ui.st") as mock_st,
         patch("src.web.pages.ui.plotting.styles.line_ui.st", mock_st),
@@ -25,7 +26,8 @@ def mock_streamlit():
         yield mock_st
 
 
-def test_render_series_renaming_ui_full(mock_streamlit):
+def test_render_series_renaming_ui_full(mock_streamlit: Any) -> None:
+
     # Setup data and config
     df = pd.DataFrame({"group": ["A", "B"], "val": [1, 2]})
     config = {"color": "group", "series_styles": {}}
@@ -41,7 +43,8 @@ def test_render_series_renaming_ui_full(mock_streamlit):
     assert styles["B"]["name"] == "B_new"
 
 
-def test_render_series_colors_ui_full(mock_streamlit):
+def test_render_series_colors_ui_full(mock_streamlit: Any) -> None:
+
     # Setup data and config
     df = pd.DataFrame({"group": ["A", "B"], "val": [1, 2]})
     config = {"color": "group", "series_styles": {}}
@@ -83,7 +86,8 @@ def test_render_series_colors_ui_full(mock_streamlit):
     assert styles["B"]["symbol"] == "square"
 
 
-def test_render_xaxis_labels_ui_filtering(mock_streamlit):
+def test_render_xaxis_labels_ui_filtering(mock_streamlit: Any) -> None:
+
     df = pd.DataFrame({"x": ["a", "b"]})
     config = {"x": "x", "xaxis_labels": {"a": "A_lbl"}}
     sm = StyleManager(1, "bar")
@@ -96,7 +100,8 @@ def test_render_xaxis_labels_ui_filtering(mock_streamlit):
     assert "b" not in labels
 
 
-def test_apply_styles_palette_and_series(mock_streamlit):
+def test_apply_styles_palette_and_series(mock_streamlit: Any) -> None:
+
     sm = StyleManager(1, "scatter")
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=[1], y=[1], name="A"))
@@ -129,7 +134,8 @@ def test_apply_styles_palette_and_series(mock_streamlit):
     assert trace_b.marker.color != "#123456"
 
 
-def test_apply_styles_axis_labels_sorting(mock_streamlit):
+def test_apply_styles_axis_labels_sorting(mock_streamlit: Any) -> None:
+
     sm = StyleManager(1, "bar")
     fig = go.Figure()
     fig.add_trace(go.Bar(x=["b", "a"], y=[1, 2]))
@@ -146,7 +152,8 @@ def test_apply_styles_axis_labels_sorting(mock_streamlit):
     assert list(layout.xaxis.ticktext) == ["Alpha", "Beta"]
 
 
-def test_apply_styles_axis_order(mock_streamlit):
+def test_apply_styles_axis_order(mock_streamlit: Any) -> None:
+
     sm = StyleManager(1, "bar")
     fig = go.Figure()
     fig.add_trace(go.Bar(x=["b", "a", "c"], y=[1, 2, 3]))

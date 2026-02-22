@@ -1,25 +1,29 @@
 from typing import Any
 
+from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.web.pages.ui.plotting.base_plot import BasePlot
 
 
 class MockPlot(BasePlot):
-    def create_traces(self, data, config):
+    def create_traces(self, data: Any, config: Any) -> TraceBuildResult:
+
         from src.core.models.visualization.trace_build_result import TraceBuildResult
 
         return TraceBuildResult(traces=[])
 
-    def get_legend_column(self, config):
+    def get_legend_column(self, config: Any) -> None:
+
         return None
 
-    def process_data(self, data):
+    def process_data(self, data: Any) -> None:
+
         return data
 
     def render_config_ui(self, data: "Any", saved_config: "Any") -> "Any":  # type: ignore[override]
         pass
 
 
-def test_update_from_relayout_zoom():
+def test_update_from_relayout_zoom() -> None:
     plot = MockPlot(1, "test", "bar")
     plot.config = {}
 
@@ -35,7 +39,7 @@ def test_update_from_relayout_zoom():
     assert changed is False
 
 
-def test_update_from_relayout_legend_drag():
+def test_update_from_relayout_legend_drag() -> None:
     plot = MockPlot(1, "test", "bar")
     plot.config = {}
 
@@ -49,7 +53,7 @@ def test_update_from_relayout_legend_drag():
     assert plot.config["legend_yanchor"] == "top"
 
 
-def test_update_from_relayout_anchor_sync():
+def test_update_from_relayout_anchor_sync() -> None:
     plot = MockPlot(1, "test", "bar")
     plot.config = {"legend_xanchor": "auto"}
 
@@ -61,7 +65,7 @@ def test_update_from_relayout_anchor_sync():
     assert plot.config["legend_yanchor"] == "bottom"
 
 
-def test_update_from_relayout_autosize():
+def test_update_from_relayout_autosize() -> None:
     plot = MockPlot(1, "test", "bar")
     plot.config = {"range_x": [0, 10]}
 

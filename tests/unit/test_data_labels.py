@@ -3,8 +3,11 @@ Tests for Data Labels features in GroupedStackedBarPlot.
 Tests: font size, constraint to bar, uniformtext, and style application flow.
 """
 
+from typing import Any
+
 import pandas as pd
 import pytest
+from pandas import DataFrame
 
 from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
 from src.web.pages.ui.plotting.types.grouped_stacked_bar_plot import (
@@ -13,7 +16,7 @@ from src.web.pages.ui.plotting.types.grouped_stacked_bar_plot import (
 
 
 @pytest.fixture
-def sample_data():
+def sample_data() -> DataFrame:
     """Sample data for testing."""
     return pd.DataFrame(
         {
@@ -26,13 +29,13 @@ def sample_data():
 
 
 @pytest.fixture
-def plot():
+def plot() -> GroupedStackedBarPlot:
     """Create a GroupedStackedBarPlot instance."""
     return GroupedStackedBarPlot(1, "Test Plot")
 
 
 @pytest.fixture
-def applicator():
+def applicator() -> StyleApplicator:
     """Create a StyleApplicator instance."""
     return StyleApplicator("grouped_stacked_bar")
 
@@ -40,7 +43,9 @@ def applicator():
 class TestDataLabelsBasic:
     """Test basic data labels functionality."""
 
-    def test_show_values_disabled_by_default(self, plot, sample_data, applicator):
+    def test_show_values_disabled_by_default(
+        self, plot: Any, sample_data: Any, applicator: Any
+    ) -> None:
         """Test that data labels are not shown by default."""
         config = {
             "x": "Category",
@@ -54,7 +59,7 @@ class TestDataLabelsBasic:
         for trace in fig.data:
             assert trace.texttemplate is None or trace.texttemplate == ""
 
-    def test_show_values_enabled(self, plot, sample_data, applicator):
+    def test_show_values_enabled(self, plot: Any, sample_data: Any, applicator: Any) -> None:
         """Test that data labels are shown when enabled."""
         config = {
             "x": "Category",
@@ -73,7 +78,7 @@ class TestDataLabelsBasic:
 class TestDataLabelsFontSize:
     """Test font size configuration."""
 
-    def test_default_font_size(self, plot, sample_data, applicator):
+    def test_default_font_size(self, plot: Any, sample_data: Any, applicator: Any) -> None:
         """Test default font size of 12."""
         config = {"x": "Category", "group": "Group", "y_columns": ["Val1"], "show_values": True}
         fig = plot.create_figure(sample_data, config)
@@ -82,7 +87,7 @@ class TestDataLabelsFontSize:
         for trace in fig.data:
             assert trace.textfont.size == 12
 
-    def test_custom_font_size(self, plot, sample_data, applicator):
+    def test_custom_font_size(self, plot: Any, sample_data: Any, applicator: Any) -> None:
         """Test custom font size."""
         config = {
             "x": "Category",
@@ -101,7 +106,7 @@ class TestDataLabelsFontSize:
 class TestConstrainToBar:
     """Test Constrain to Bar functionality."""
 
-    def test_constraint_disabled(self, plot, sample_data, applicator):
+    def test_constraint_disabled(self, plot: Any, sample_data: Any, applicator: Any) -> None:
         """Test that constraintext is 'none' when disabled."""
         config = {
             "x": "Category",
@@ -116,7 +121,7 @@ class TestConstrainToBar:
         for trace in fig.data:
             assert trace.constraintext == "none"
 
-    def test_constraint_enabled(self, plot, sample_data, applicator):
+    def test_constraint_enabled(self, plot: Any, sample_data: Any, applicator: Any) -> None:
         """Test that constraintext is 'inside' when enabled."""
         config = {
             "x": "Category",
@@ -132,7 +137,9 @@ class TestConstrainToBar:
             assert trace.constraintext == "inside"
             assert trace.textposition == "inside"
 
-    def test_constraint_sets_uniformtext(self, plot, sample_data, applicator):
+    def test_constraint_sets_uniformtext(
+        self, plot: Any, sample_data: Any, applicator: Any
+    ) -> None:
         """Test that uniformtext is set when constraint is enabled."""
         config = {
             "x": "Category",
@@ -153,7 +160,7 @@ class TestConstrainToBar:
 class TestTextPosition:
     """Test text position and anchor."""
 
-    def test_position_auto(self, plot, sample_data, applicator):
+    def test_position_auto(self, plot: Any, sample_data: Any, applicator: Any) -> None:
         """Test auto position."""
         config = {
             "x": "Category",
@@ -168,7 +175,9 @@ class TestTextPosition:
         for trace in fig.data:
             assert trace.textposition == "auto"
 
-    def test_position_inside_with_anchor(self, plot, sample_data, applicator):
+    def test_position_inside_with_anchor(
+        self, plot: Any, sample_data: Any, applicator: Any
+    ) -> None:
         """Test inside position with middle anchor."""
         config = {
             "x": "Category",
@@ -189,7 +198,7 @@ class TestTextPosition:
 class TestTextRotation:
     """Test text rotation."""
 
-    def test_default_rotation(self, plot, sample_data, applicator):
+    def test_default_rotation(self, plot: Any, sample_data: Any, applicator: Any) -> None:
         """Test default rotation of 0."""
         config = {"x": "Category", "group": "Group", "y_columns": ["Val1"], "show_values": True}
         fig = plot.create_figure(sample_data, config)
@@ -198,7 +207,7 @@ class TestTextRotation:
         for trace in fig.data:
             assert trace.textangle == 0
 
-    def test_custom_rotation(self, plot, sample_data, applicator):
+    def test_custom_rotation(self, plot: Any, sample_data: Any, applicator: Any) -> None:
         """Test custom rotation."""
         config = {
             "x": "Category",
@@ -217,7 +226,7 @@ class TestTextRotation:
 class TestTextColor:
     """Test text color modes."""
 
-    def test_custom_color(self, plot, sample_data, applicator):
+    def test_custom_color(self, plot: Any, sample_data: Any, applicator: Any) -> None:
         """Test custom text color."""
         config = {
             "x": "Category",
@@ -237,7 +246,7 @@ class TestTextColor:
 class TestEdgeCasesAndValidation:
     """Test edge cases and input validation for robustness."""
 
-    def test_invalid_font_size_string(self, plot, sample_data, applicator):
+    def test_invalid_font_size_string(self, plot: Any, sample_data: Any, applicator: Any) -> None:
         """Test that invalid font size string falls back to default."""
         config = {
             "x": "Category",
@@ -252,7 +261,7 @@ class TestEdgeCasesAndValidation:
         for trace in fig.data:
             assert trace.textfont.size == 12  # Default
 
-    def test_font_size_clamped_to_min(self, plot, sample_data, applicator):
+    def test_font_size_clamped_to_min(self, plot: Any, sample_data: Any, applicator: Any) -> None:
         """Test that font size is clamped to minimum of 6."""
         config = {
             "x": "Category",
@@ -267,7 +276,7 @@ class TestEdgeCasesAndValidation:
         for trace in fig.data:
             assert trace.textfont.size == 6  # Clamped to min
 
-    def test_font_size_clamped_to_max(self, plot, sample_data, applicator):
+    def test_font_size_clamped_to_max(self, plot: Any, sample_data: Any, applicator: Any) -> None:
         """Test that font size is clamped to maximum of 48."""
         config = {
             "x": "Category",
@@ -282,7 +291,7 @@ class TestEdgeCasesAndValidation:
         for trace in fig.data:
             assert trace.textfont.size == 100  # Clamped to max (100)
 
-    def test_invalid_rotation_string(self, plot, sample_data, applicator):
+    def test_invalid_rotation_string(self, plot: Any, sample_data: Any, applicator: Any) -> None:
         """Test that invalid rotation string falls back to default."""
         config = {
             "x": "Category",
@@ -297,7 +306,7 @@ class TestEdgeCasesAndValidation:
         for trace in fig.data:
             assert trace.textangle == 0  # Default
 
-    def test_rotation_clamped_to_range(self, plot, sample_data, applicator):
+    def test_rotation_clamped_to_range(self, plot: Any, sample_data: Any, applicator: Any) -> None:
         """Test that rotation is clamped to -360 to 360."""
         config = {
             "x": "Category",
@@ -314,7 +323,9 @@ class TestEdgeCasesAndValidation:
         for trace in fig.data:
             assert -360 <= trace.textangle <= 360
 
-    def test_invalid_position_falls_back(self, plot, sample_data, applicator):
+    def test_invalid_position_falls_back(
+        self, plot: Any, sample_data: Any, applicator: Any
+    ) -> None:
         """Test that invalid position falls back to auto."""
         config = {
             "x": "Category",
@@ -329,7 +340,7 @@ class TestEdgeCasesAndValidation:
         for trace in fig.data:
             assert trace.textposition == "auto"
 
-    def test_invalid_anchor_ignored(self, plot, sample_data, applicator):
+    def test_invalid_anchor_ignored(self, plot: Any, sample_data: Any, applicator: Any) -> None:
         """Test that invalid anchor is ignored."""
         config = {
             "x": "Category",
@@ -346,7 +357,7 @@ class TestEdgeCasesAndValidation:
         for trace in fig.data:
             assert trace.insidetextanchor is None
 
-    def test_invalid_threshold_string(self, plot, sample_data, applicator):
+    def test_invalid_threshold_string(self, plot: Any, sample_data: Any, applicator: Any) -> None:
         """Test that invalid threshold string falls back to 0."""
         config = {
             "x": "Category",
@@ -360,7 +371,7 @@ class TestEdgeCasesAndValidation:
         # Should not raise
         _ = applicator.apply_styles(fig, config)
 
-    def test_none_values_handled(self, plot, sample_data, applicator):
+    def test_none_values_handled(self, plot: Any, sample_data: Any, applicator: Any) -> None:
         """Test that None values are handled gracefully."""
         config = {
             "x": "Category",

@@ -9,11 +9,18 @@ This separation ensures the interface is fully agnostic of the implementation,
 following the Dependency Inversion Principle.
 """
 
-from typing import Any, Callable, Dict, List, Optional, Protocol, runtime_checkable
+from collections.abc import Callable
+from typing import Any, Protocol, runtime_checkable
 
 import pandas as pd
 
 from src.core.models import PlotProtocol, PortfolioData
+from src.core.models.data_models import (
+    CsvPoolEntry,
+    ParseVariableConfig,
+    SavedConfigEntry,
+    ScannedVariableDict,
+)
 from src.core.models.history_models import OperationRecord
 
 
@@ -29,18 +36,18 @@ class StateManager(Protocol):
 
     # Data
 
-    def get_data(self) -> Optional[pd.DataFrame]:
+    def get_data(self) -> pd.DataFrame | None:
         """Get the current raw DataFrame."""
 
     def set_data(
-        self, data: Optional[pd.DataFrame], on_change: Optional[Callable[[], None]] = None
+        self, data: pd.DataFrame | None, on_change: Callable[[], None] | None = None
     ) -> None:
         """Set the raw DataFrame with optional change callback."""
 
-    def get_processed_data(self) -> Optional[pd.DataFrame]:
+    def get_processed_data(self) -> pd.DataFrame | None:
         """Get the current processed DataFrame."""
 
-    def set_processed_data(self, data: Optional[pd.DataFrame]) -> None:
+    def set_processed_data(self, data: pd.DataFrame | None) -> None:
         """Set the processed DataFrame."""
 
     def has_data(self) -> bool:
@@ -50,37 +57,37 @@ class StateManager(Protocol):
         """Clear all loaded data."""
 
     # Config
-    def get_config(self) -> Dict[str, Any]:
+    def get_config(self) -> dict[str, Any]:
         """Get the current configuration dictionary."""
 
-    def set_config(self, config: Dict[str, Any]) -> None:
+    def set_config(self, config: dict[str, Any]) -> None:
         """Set the configuration dictionary."""
 
     def update_config(self, key: str, value: Any) -> None:
         """Update a single configuration key."""
 
-    def get_temp_dir(self) -> Optional[str]:
+    def get_temp_dir(self) -> str | None:
         """Get the temporary directory path."""
 
     def set_temp_dir(self, path: str) -> None:
         """Set the temporary directory path."""
 
-    def get_csv_path(self) -> Optional[str]:
+    def get_csv_path(self) -> str | None:
         """Get the current CSV file path."""
 
     def set_csv_path(self, path: str) -> None:
         """Set the current CSV file path."""
 
-    def get_csv_pool(self) -> List[Dict[str, Any]]:
+    def get_csv_pool(self) -> list[CsvPoolEntry]:
         """Get the CSV file pool."""
 
-    def set_csv_pool(self, pool: List[Dict[str, Any]]) -> None:
+    def set_csv_pool(self, pool: list[CsvPoolEntry]) -> None:
         """Set the CSV file pool."""
 
-    def get_saved_configs(self) -> List[Dict[str, Any]]:
+    def get_saved_configs(self) -> list[SavedConfigEntry]:
         """Get list of saved configurations."""
 
-    def set_saved_configs(self, configs: List[Dict[str, Any]]) -> None:
+    def set_saved_configs(self, configs: list[SavedConfigEntry]) -> None:
         """Set the saved configurations list."""
 
     # Parser
@@ -90,10 +97,10 @@ class StateManager(Protocol):
     def set_use_parser(self, use: bool) -> None:
         """Enable or disable parser mode."""
 
-    def get_parse_variables(self) -> List[Dict[str, Any]]:
+    def get_parse_variables(self) -> list[ParseVariableConfig]:
         """Get the list of parse variable configurations."""
 
-    def set_parse_variables(self, variables: List[Dict[str, Any]]) -> None:
+    def set_parse_variables(self, variables: list[ParseVariableConfig]) -> None:
         """Set the parse variable configurations."""
 
     def get_stats_path(self) -> str:
@@ -108,10 +115,10 @@ class StateManager(Protocol):
     def set_stats_pattern(self, pattern: str) -> None:
         """Set the stats filename pattern."""
 
-    def get_scanned_variables(self) -> List[Dict[str, Any]]:
+    def get_scanned_variables(self) -> list[ScannedVariableDict]:
         """Get the list of scanned variables."""
 
-    def set_scanned_variables(self, variables: List[Dict[str, Any]]) -> None:
+    def set_scanned_variables(self, variables: list[ScannedVariableDict]) -> None:
         """Set the scanned variables list."""
 
     def get_parser_strategy(self) -> str:
@@ -121,10 +128,10 @@ class StateManager(Protocol):
         """Set the parser strategy type."""
 
     # Plots
-    def get_plots(self) -> List[PlotProtocol]:
+    def get_plots(self) -> list[PlotProtocol]:
         """Get the list of plot objects."""
 
-    def set_plots(self, plots: List[PlotProtocol]) -> None:
+    def set_plots(self, plots: list[PlotProtocol]) -> None:
         """Set the list of plot objects."""
 
     def add_plot(self, plot_obj: PlotProtocol) -> None:
@@ -139,17 +146,17 @@ class StateManager(Protocol):
     def start_next_plot_id(self) -> int:
         """Increment and return the next plot ID."""
 
-    def get_current_plot_id(self) -> Optional[int]:
+    def get_current_plot_id(self) -> int | None:
         """Get the currently selected plot ID."""
 
-    def set_current_plot_id(self, plot_id: Optional[int]) -> None:
+    def set_current_plot_id(self, plot_id: int | None) -> None:
         """Set the currently selected plot ID."""
 
     # Previews
     def set_preview(self, operation_name: str, data: pd.DataFrame) -> None:
         """Store a preview DataFrame for an operation."""
 
-    def get_preview(self, operation_name: str) -> Optional[pd.DataFrame]:
+    def get_preview(self, operation_name: str) -> pd.DataFrame | None:
         """Get a preview DataFrame for an operation."""
 
     def has_preview(self, operation_name: str) -> bool:
@@ -162,13 +169,13 @@ class StateManager(Protocol):
     def add_manager_history_record(self, record: OperationRecord) -> None:
         """Add an operation record to the manager history (rolling 20)."""
 
-    def get_manager_history(self) -> List[OperationRecord]:
+    def get_manager_history(self) -> list[OperationRecord]:
         """Get the manager operation history."""
 
     def add_portfolio_history_record(self, record: OperationRecord) -> None:
         """Add an operation record to the portfolio history (unbounded)."""
 
-    def get_portfolio_history(self) -> List[OperationRecord]:
+    def get_portfolio_history(self) -> list[OperationRecord]:
         """Get the portfolio operation history."""
 
     def remove_manager_history_record(self, record: OperationRecord) -> None:

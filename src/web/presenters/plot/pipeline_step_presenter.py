@@ -9,11 +9,13 @@ This presenter replaces the inline rendering that was in
 PipelineController._render_pipeline_steps.
 """
 
-from typing import Any, Callable, Dict, List, Optional
+from collections.abc import Callable
+from typing import Any
 
 import pandas as pd
 import streamlit as st
 
+from src.core.models.data_models import ShaperStepConfig
 from src.web.presenters.plot.pipeline_presenter import PipelinePresenter
 
 
@@ -38,18 +40,18 @@ class PipelineStepPresenter:
         shaper_type: str,
         shaper_id: int,
         step_input: pd.DataFrame,
-        current_config: Dict[str, Any],
+        current_config: ShaperStepConfig,
         is_first: bool,
         is_last: bool,
         configure_fn: Callable[
-            [str, pd.DataFrame, int, Dict[str, Any], Optional[int]],
-            Dict[str, Any],
+            [str, pd.DataFrame, int, ShaperStepConfig | None, int | None],
+            ShaperStepConfig,
         ],
         apply_fn: Callable[
-            [pd.DataFrame, List[Dict[str, Any]]],
+            [pd.DataFrame, list[ShaperStepConfig]],
             pd.DataFrame,
         ],
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Render a complete pipeline step inside an expander.
 
@@ -81,7 +83,7 @@ class PipelineStepPresenter:
         """
         display_name: str = PipelinePresenter.REVERSE_MAP.get(shaper_type, shaper_type)
 
-        result: Dict[str, Any] = {
+        result: dict[str, Any] = {
             "new_config": current_config,
             "move_up": False,
             "move_down": False,
@@ -96,7 +98,7 @@ class PipelineStepPresenter:
 
             with c1:
                 try:
-                    new_config: Dict[str, Any] = configure_fn(
+                    new_config: ShaperStepConfig = configure_fn(
                         shaper_type,
                         step_input,
                         shaper_id,
@@ -109,7 +111,7 @@ class PipelineStepPresenter:
                     new_config = current_config
 
             with c2:
-                controls: Dict[str, bool] = PipelinePresenter.render_shaper_controls(
+                controls: dict[str, bool] = PipelinePresenter.render_shaper_controls(
                     plot_id=plot_id,
                     idx=idx,
                     shaper_type=shaper_type,

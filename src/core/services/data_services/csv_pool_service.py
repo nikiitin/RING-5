@@ -65,12 +65,13 @@ import hashlib
 import logging
 import shutil
 from pathlib import Path
-from typing import Any, Dict, List, Optional, cast
+from typing import cast
 
 import pandas as pd
 from pandas import DataFrame
 
 from src.core.common.utils import validate_path_within
+from src.core.models.data_models import CacheStatsInfo, CsvMetadata, CsvPoolEntry
 from src.core.performance import SimpleCache
 from src.core.services.data_services.path_service import PathService
 
@@ -87,9 +88,9 @@ class CsvPoolService:
     _dataframe_cache: SimpleCache = SimpleCache(maxsize=10, ttl=300)  # 5 min TTL
 
     # Index for fast filename lookups
-    _pool_index: Dict[str, Dict[str, Any]] = {}
+    _pool_index: dict[str, CsvPoolEntry] = {}
 
-    _pool_dir: Optional[Path] = None
+    _pool_dir: Path | None = None
 
     @staticmethod
     def get_pool_dir() -> Path:
@@ -100,7 +101,7 @@ class CsvPoolService:
         return CsvPoolService._pool_dir
 
     @staticmethod
-    def load_pool() -> List[Dict[str, Any]]:
+    def load_pool() -> list[CsvPoolEntry]:
         """
         Load list of CSV files in the pool with metadata caching.
 
@@ -108,13 +109,13 @@ class CsvPoolService:
             List of dicts with 'path', 'name', 'size', 'modified', 'columns', 'rows' keys.
         """
         pool_dir = CsvPoolService.get_pool_dir()
-        pool = []
-        new_index: Dict[str, Dict[str, Any]] = {}
+        pool: list[CsvPoolEntry] = []
+        new_index: dict[str, CsvPoolEntry] = {}
 
         for csv_file in sorted(
             pool_dir.glob("*.csv"), key=lambda x: x.stat().st_mtime, reverse=True
         ):
-            file_info = {
+            file_info: CsvPoolEntry = {
                 "path": str(csv_file),
                 "name": csv_file.name,
                 "size": csv_file.stat().st_size,
@@ -249,7 +250,7 @@ class CsvPoolService:
         return file_path
 
     @staticmethod
-    def _get_csv_metadata(csv_path: str) -> Optional[Dict[str, Any]]:
+    def _get_csv_metadata(csv_path: str) -> CsvMetadata | None:
         """
         Get cached metadata for a CSV file, or compute it.
 
@@ -262,8 +263,7 @@ class CsvPoolService:
         # Check cache
         cached = CsvPoolService._metadata_cache.get(csv_path)
         if cached is not None:
-            result: Dict[str, Any] | None = cached
-            return result
+            return cast(CsvMetadata, cached)
 
         # Compute metadata by reading just the header and counting rows
         try:
@@ -271,16 +271,16 @@ class CsvPoolService:
             resolved_path = str(Path(csv_path).resolve())
 
             # Fast row count without loading entire file
-            with open(resolved_path, "r") as f:
+            with open(resolved_path) as f:
                 row_count = sum(1 for _ in f) - 1  # Subtract header
 
             # Read just first row to get columns and types
             sample_df = pd.read_csv(resolved_path, sep=None, engine="python", nrows=100)
 
-            metadata = {
+            metadata: CsvMetadata = {
                 "columns": list(sample_df.columns),
                 "rows": row_count,
-                "dtypes": {col: str(dtype) for col, dtype in sample_df.dtypes.items()},
+                "dtypes": {str(col): str(dtype) for col, dtype in sample_df.dtypes.items()},
             }
 
             # Cache it
@@ -299,10 +299,13 @@ class CsvPoolService:
         CsvPoolService._pool_dir = None
 
     @staticmethod
-    def get_cache_stats() -> Dict[str, Any]:
+    def get_cache_stats() -> CacheStatsInfo:
         """Get cache statistics for monitoring."""
-        return {
-            "metadata_cache": CsvPoolService._metadata_cache.stats(),
-            "dataframe_cache": CsvPoolService._dataframe_cache.stats(),
-            "index_size": len(CsvPoolService._pool_index),
-        }
+        return cast(
+            CacheStatsInfo,
+            {
+                "metadata_cache": CsvPoolService._metadata_cache.stats(),
+                "dataframe_cache": CsvPoolService._dataframe_cache.stats(),
+                "index_size": len(CsvPoolService._pool_index),
+            },
+        )

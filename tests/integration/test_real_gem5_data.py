@@ -1,7 +1,9 @@
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 import pytest
+from pandas import DataFrame
 
 from src.core.application_api import ApplicationAPI
 from src.core.models import StatConfig
@@ -11,7 +13,7 @@ TEST_DATA_PATH = Path(__file__).parent.parent / "data" / "results-micro26-sens"
 
 
 @pytest.fixture
-def test_data_available():
+def test_data_available() -> Any:
     """Check if test data is available."""
     if not TEST_DATA_PATH.exists():
         pytest.skip(f"Test data not found at {TEST_DATA_PATH}")
@@ -82,7 +84,7 @@ class TestRealDataWithShapers:
         finally:
             pass
 
-    def test_column_selector_on_real_data(self, parsed_data):
+    def test_column_selector_on_real_data(self, parsed_data: Any) -> None:
         """Test column selector on real data."""
         from src.core.services.shapers.factory import ShaperFactory
 
@@ -106,7 +108,7 @@ class TestRealDataWithManagers:
     """Tests applying data managers to real data."""
 
     @pytest.fixture
-    def sample_real_like_data(self):
+    def sample_real_like_data(self) -> DataFrame:
         """Create sample data that mimics real gem5 output structure."""
         import numpy as np
 
@@ -124,7 +126,7 @@ class TestRealDataWithManagers:
 
         return pd.DataFrame(data)
 
-    def test_seeds_reducer_via_service(self, sample_real_like_data):
+    def test_seeds_reducer_via_service(self, sample_real_like_data: Any) -> None:
         """Test seeds reducer via service."""
         from src.core.services.managers.reduction_service import ReductionService
 
@@ -140,7 +142,7 @@ class TestRealDataWithManagers:
         # Should have random_seed removed
         assert "random_seed" not in result.columns or result["random_seed"].nunique() == 1
 
-    def test_preprocessor_via_facade(self, sample_real_like_data):
+    def test_preprocessor_via_facade(self, sample_real_like_data: Any) -> None:
         """Test preprocessor divide operation via direct calculation."""
         # Direct calculation test since Preprocessor needs complex init
         result = sample_real_like_data.copy()
@@ -150,7 +152,7 @@ class TestRealDataWithManagers:
         expected_cpi = sample_real_like_data["simTicks"] / sample_real_like_data["sim_insts"]
         pd.testing.assert_series_equal(result["cpi"], expected_cpi, check_names=False)
 
-    def test_outlier_remover_via_service(self, sample_real_like_data):
+    def test_outlier_remover_via_service(self, sample_real_like_data: Any) -> None:
         """Test outlier remover via service."""
         from src.core.services.managers.outlier_service import OutlierService
 
@@ -169,7 +171,7 @@ class TestRealDataWithManagers:
 class TestCompleteWorkflow:
     """Test complete workflows from parsing to visualization."""
 
-    def test_facade_methods_available(self, facade: ApplicationAPI):
+    def test_facade_methods_available(self, facade: ApplicationAPI) -> None:
         """Test that all facade methods are available."""
         # Check essential methods exist
         assert hasattr(facade, "find_stats_files")
@@ -182,7 +184,7 @@ class TestCompleteWorkflow:
         assert hasattr(facade, "save_configuration")
         assert hasattr(facade, "load_configuration")
 
-    def test_shaper_factory_available(self):
+    def test_shaper_factory_available(self) -> None:
         """Test that shaper factory can create column selector with proper config."""
         from src.core.services.shapers.factory import ShaperFactory
 
@@ -192,7 +194,7 @@ class TestCompleteWorkflow:
         )
         assert col_selector is not None
 
-    def test_plot_factory_available(self):
+    def test_plot_factory_available(self) -> None:
         """Test that plot factory can create all plot types."""
         from src.web.pages.ui.plotting.plot_factory import PlotFactory
 

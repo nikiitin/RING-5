@@ -25,9 +25,7 @@ from src.web.rendering.config_builder import (
     PresetSpecBuilder,
 )
 from src.web.rendering.engine_manager import EngineManager
-from src.web.rendering.matplotlib_connector import (
-    FigureSpecToMatplotlib,
-)
+from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
 from src.web.rendering.matplotlib_trace_renderer import MatplotlibTraceRenderer
 from src.web.rendering.plotly_connector import FigureSpecToPlotly
 from src.web.rendering.preset_applicator import PresetApplicator

@@ -10,12 +10,13 @@ import tempfile
 import uuid
 from concurrent.futures import as_completed
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, cast
 
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
 from src.core.models import ParseBatchResult, ScannedVariable
+from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
 from src.web.pages.ui.components.card_components import CardComponents
 from src.web.pages.ui.components.data_components import DataComponents
 from src.web.pages.ui.components.variable_editor import VariableEditor
@@ -175,7 +176,7 @@ class DataSourceComponents:
                             st.write(f"Scanning {len(scan_futures)} files...")
                             scan_results = [f.result() for f in scan_futures]
                             st.write("Aggregating patterns...")
-                            scanned_vars_result: List[ScannedVariable] = api.finalize_scan(
+                            scanned_vars_result: list[ScannedVariable] = api.finalize_scan(
                                 scan_results
                             )
                             scanned_vars_dicts = [v.to_dict() for v in scanned_vars_result]
@@ -200,7 +201,7 @@ class DataSourceComponents:
                             exc_info=True,
                         )
 
-            scanned_vars: List[Dict[str, Any]] = api.state_manager.get_scanned_variables()
+            scanned_vars: list[ScannedVariableDict] = api.state_manager.get_scanned_variables()
             if scanned_vars:
                 st.success(
                     f"Scanner found {len(scanned_vars)} variables. "
@@ -339,9 +340,12 @@ class DataSourceComponents:
             if method == "Search Scanned Variables":
                 name = st.text_input("Name", value=name, key="dialog_final_name")
 
-            config = {}
+            config: ParseVariableConfig = {}
             temp_id = "dialog_new_var"
-            defaults = selected_scanned_var if selected_scanned_var else {}
+            defaults: ParseVariableConfig = cast(
+                ParseVariableConfig,
+                selected_scanned_var if selected_scanned_var else {},
+            )
 
             config["name"] = name
 
@@ -388,13 +392,11 @@ class DataSourceComponents:
                 elif var_type == "vector" and not config.get("vectorEntries"):
                     st.error("Vector variables require at least one entry.")
                 else:
-                    new_var = {
-                        "name": name,
-                        "type": var_type,
-                        "id": None,
-                        "_id": str(uuid.uuid4()),
-                        **config,
-                    }
+                    # Build new variable from config + dialog fields
+                    config["name"] = name
+                    config["type"] = var_type
+                    config["_id"] = str(uuid.uuid4())
+                    new_var: ParseVariableConfig = config
                     current_vars = api.state_manager.get_parse_variables()
                     if api.data_services.has_variable_with_name(current_vars, name):
                         st.warning(f"Variable '{name}' already exists.")

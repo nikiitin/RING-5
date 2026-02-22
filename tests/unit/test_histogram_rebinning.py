@@ -3,7 +3,7 @@ import pytest
 from src.core.parsing.gem5.types.histogram import Histogram
 
 
-def test_histogram_selection_priority():
+def test_histogram_selection_priority() -> None:
     """Verify that explicit entry selection overrides rebinning even if configured."""
     # User selected only 'mean', but also configured 10 bins
     hist = Histogram(repeat=1, entries=["mean"], bins=10, max_range=1000)
@@ -24,7 +24,7 @@ def test_histogram_selection_priority():
     assert "0-111" in hist.reduced_content
 
 
-def test_histogram_rebinning_with_summary_stats():
+def test_histogram_rebinning_with_summary_stats() -> None:
     """Verify that rebinning preserves non-range statistics in reduced_content."""
     # bins=3, max=100.
     # Regular bins: 2 (0-50, 50-100). Overflow: 1 (100+)
@@ -43,7 +43,7 @@ def test_histogram_rebinning_with_summary_stats():
     assert hist.reduced_content["mean"] == 50.0
 
 
-def test_histogram_rebinning_fallback_to_raw():
+def test_histogram_rebinning_fallback_to_raw() -> None:
     """Verify fallback to raw buckets when no rebinning or selection is provided."""
     hist = Histogram(repeat=1)  # bins=0, entries=None
 
@@ -55,7 +55,7 @@ def test_histogram_rebinning_fallback_to_raw():
     assert hist.reduced_content["0-10"] == 10.0
 
 
-def test_histogram_rebinning_exact_values():
+def test_histogram_rebinning_exact_values() -> None:
     """Regression test for rebinning distribution logic."""
     # bins=3. max=200.
     # Regular=2. Width=100. Keys: 0-100, 100-200, 200+
@@ -75,7 +75,7 @@ def test_histogram_rebinning_exact_values():
     assert pytest.approx(hist.reduced_content["200+"]) == 0.0
 
 
-def test_histogram_rebinning_overflow():
+def test_histogram_rebinning_overflow() -> None:
     """Verify that values above max_range are added to the dedicated overflow bucket."""
     # Max range 100, 2 bins.
     # Logic: 1 regular bin (0-100), 1 overflow bin (100+)

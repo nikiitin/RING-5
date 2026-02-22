@@ -1,6 +1,6 @@
 """Base class for parsing work units."""
 
-from typing import Any, Dict
+from typing import Any
 
 from src.core.parsing.gem5.impl.pool.job import Job
 
@@ -9,7 +9,7 @@ from src.core.parsing.gem5.impl.pool.job import Job
 # Value: StatType instance with parsed content
 # Using Any for value since StatType is defined in
 # parsers.types and we want to avoid circular imports
-ParsedVarsDict = Dict[str, Any]
+ParsedVarsDict = dict[str, Any]
 
 
 class ParseWork(Job):
@@ -30,7 +30,6 @@ class ParseWork(Job):
         Args:
             **kwargs: Subclass-specific initialization parameters
         """
-        pass
 
     def __call__(self) -> ParsedVarsDict:
         """

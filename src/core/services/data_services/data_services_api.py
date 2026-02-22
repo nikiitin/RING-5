@@ -6,20 +6,25 @@ configuration persistence, variable management, and portfolio workspace
 snapshots.
 """
 
+from collections.abc import Callable
 from typing import (
     Any,
-    Callable,
-    Dict,
-    List,
-    Optional,
     Protocol,
-    Tuple,
     runtime_checkable,
 )
 
 import pandas as pd
 
-from src.core.models import PlotProtocol
+from src.core.models import PlotProtocol, PortfolioData
+from src.core.models.data_models import (
+    CacheStatsInfo,
+    CsvPoolEntry,
+    ParseVariableConfig,
+    SavedConfigData,
+    SavedConfigEntry,
+    ScannedVariableDict,
+    ShaperStepConfig,
+)
 
 
 @runtime_checkable
@@ -32,7 +37,7 @@ class DataServicesAPI(Protocol):
 
     # -- CSV Pool --
 
-    def load_csv_pool(self) -> List[Dict[str, Any]]:
+    def load_csv_pool(self) -> list[CsvPoolEntry]:
         """List available CSV files in the pool with metadata."""
 
     def add_to_csv_pool(self, file_path: str) -> str:
@@ -50,15 +55,15 @@ class DataServicesAPI(Protocol):
         self,
         name: str,
         description: str,
-        shapers_config: List[Dict[str, Any]],
-        csv_path: Optional[str] = None,
+        shapers_config: list[ShaperStepConfig],
+        csv_path: str | None = None,
     ) -> str:
         """Save a configuration to disk. Returns saved file path."""
 
-    def load_configuration(self, config_path: str) -> Dict[str, Any]:
+    def load_configuration(self, config_path: str) -> SavedConfigData:
         """Load a configuration from file."""
 
-    def load_saved_configs(self) -> List[Dict[str, Any]]:
+    def load_saved_configs(self) -> list[SavedConfigEntry]:
         """List all saved configurations."""
 
     def delete_configuration(self, config_path: str) -> bool:
@@ -66,7 +71,7 @@ class DataServicesAPI(Protocol):
 
     # -- Cache Management --
 
-    def get_cache_stats(self) -> Dict[str, Any]:
+    def get_cache_stats(self) -> CacheStatsInfo:
         """Return CSV pool cache statistics."""
 
     def clear_caches(self) -> None:
@@ -79,109 +84,111 @@ class DataServicesAPI(Protocol):
 
     def add_variable(
         self,
-        variables: List[Dict[str, Any]],
-        var_config: Dict[str, Any],
-    ) -> List[Dict[str, Any]]:
+        variables: list[ParseVariableConfig],
+        var_config: ParseVariableConfig,
+    ) -> list[ParseVariableConfig]:
         """Add a new variable to the list."""
 
     def update_variable(
         self,
-        variables: List[Dict[str, Any]],
+        variables: list[ParseVariableConfig],
         index: int,
-        var_config: Dict[str, Any],
-    ) -> List[Dict[str, Any]]:
+        var_config: ParseVariableConfig,
+    ) -> list[ParseVariableConfig]:
         """Update an existing variable at the specified index."""
 
     def delete_variable(
         self,
-        variables: List[Dict[str, Any]],
+        variables: list[ParseVariableConfig],
         index: int,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[ParseVariableConfig]:
         """Delete a variable at the specified index."""
 
-    def ensure_variable_ids(self, variables: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def ensure_variable_ids(
+        self, variables: list[ParseVariableConfig]
+    ) -> list[ParseVariableConfig]:
         """Ensure all variables have unique IDs."""
 
-    def filter_internal_stats(self, entries: List[str]) -> List[str]:
+    def filter_internal_stats(self, entries: list[str]) -> list[str]:
         """Filter out internal gem5 statistics from entry list."""
 
     def find_variable_by_name(
         self,
-        variables: List[Dict[str, Any]],
+        variables: list[ParseVariableConfig],
         name: str,
         exact: bool = True,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> ParseVariableConfig | None:
         """Find a variable by name (exact or regex match)."""
 
     def aggregate_discovered_entries(
         self,
-        snapshot: List[Dict[str, Any]],
+        snapshot: list[ScannedVariableDict],
         var_name: str,
-    ) -> List[str]:
+    ) -> list[str]:
         """Aggregate entries for a variable across scanned files."""
 
     def aggregate_distribution_range(
         self,
-        snapshot: List[Dict[str, Any]],
+        snapshot: list[ScannedVariableDict],
         var_name: str,
-    ) -> Tuple[Optional[float], Optional[float]]:
+    ) -> tuple[float | None, float | None]:
         """Aggregate min/max range for a distribution variable."""
 
-    def parse_comma_separated_entries(self, entries_str: str) -> List[str]:
+    def parse_comma_separated_entries(self, entries_str: str) -> list[str]:
         """Parse comma-separated entry string into list."""
 
-    def format_entries_as_string(self, entries: List[str]) -> str:
+    def format_entries_as_string(self, entries: list[str]) -> str:
         """Format list of entries as comma-separated string."""
 
     def find_entries_for_variable(
         self,
-        available_variables: List[Dict[str, Any]],
+        available_variables: list[ScannedVariableDict],
         var_name: str,
-    ) -> List[str]:
+    ) -> list[str]:
         """Find all entries for a variable by searching available/scanned variables."""
 
     def update_scanned_entries(
         self,
-        scanned_vars: List[Dict[str, Any]],
+        scanned_vars: list[ScannedVariableDict],
         var_name: str,
-        new_entries: List[str],
-    ) -> List[Dict[str, Any]]:
+        new_entries: list[str],
+    ) -> list[ScannedVariableDict]:
         """Update or add entries for a variable in the scanned variables list."""
 
     def has_variable_with_name(
         self,
-        variables: List[Dict[str, Any]],
+        variables: list[ParseVariableConfig],
         name: str,
     ) -> bool:
         """Check if a variable with the given name already exists."""
 
     def build_statistics_list(
         self,
-        selected: Dict[str, bool],
-    ) -> List[str]:
+        selected: dict[str, bool],
+    ) -> list[str]:
         """Build a list of selected statistics from a boolean mapping."""
 
     # -- Portfolio Management --
 
-    def list_portfolios(self) -> List[str]:
+    def list_portfolios(self) -> list[str]:
         """List all available saved portfolios."""
 
     def save_portfolio(
         self,
         name: str,
-        data: Optional[pd.DataFrame],
-        plots: List[PlotProtocol],
-        config: Dict[str, Any],
+        data: pd.DataFrame | None,
+        plots: list[PlotProtocol],
+        config: dict[str, Any],
         plot_counter: int,
-        csv_path: Optional[str] = None,
-        parse_variables: Optional[List[str]] = None,
-        figure_spec_enricher: Optional[
-            Callable[[Dict[str, Any], str], Optional[Dict[str, Any]]]
-        ] = None,
+        csv_path: str | None = None,
+        parse_variables: list[str] | None = None,
+        figure_spec_enricher: None | (
+            Callable[[dict[str, Any], str], dict[str, Any] | None]
+        ) = None,
     ) -> None:
         """Serialize and save the current workspace state."""
 
-    def load_portfolio(self, name: str) -> Dict[str, Any]:
+    def load_portfolio(self, name: str) -> PortfolioData:
         """Load a portfolio by name."""
 
     def delete_portfolio(self, name: str) -> None:

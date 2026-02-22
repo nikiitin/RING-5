@@ -23,15 +23,13 @@ Validates:
 import csv
 import re
 from dataclasses import replace
-from typing import Any, Dict, List
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from src.core.models import ScannedVariable, StatConfig
-from src.core.services.data_services.pattern_index_service import (
-    PatternIndexService,
-)
+from src.core.services.data_services.pattern_index_service import PatternIndexService
 
 # ---------------------------------------------------------------------------
 # Unit: StatConfig.keep_indices field
@@ -105,7 +103,7 @@ class TestApplicationAPIKeepIndices:
         mock_svc.submit_parse_async.return_value = MagicMock()
         api = self._make_api()
 
-        variables: List[Dict[str, Any]] = [
+        variables: list[dict[str, Any]] = [
             {"name": r"system.cpu\d+.ipc", "type": "scalar", "keepIndices": True},
         ]
         api.submit_parse_async(
@@ -116,7 +114,7 @@ class TestApplicationAPIKeepIndices:
         )
 
         call_args = mock_svc.submit_parse_async.call_args
-        configs: List[StatConfig] = call_args[0][2]
+        configs: list[StatConfig] = call_args[0][2]
         assert len(configs) == 1
         assert configs[0].keep_indices is True
 
@@ -126,7 +124,7 @@ class TestApplicationAPIKeepIndices:
         mock_svc.submit_parse_async.return_value = MagicMock()
         api = self._make_api()
 
-        variables: List[Dict[str, Any]] = [
+        variables: list[dict[str, Any]] = [
             {"name": r"system.cpu\d+.ipc", "type": "scalar"},
         ]
         api.submit_parse_async(
@@ -137,7 +135,7 @@ class TestApplicationAPIKeepIndices:
         )
 
         call_args = mock_svc.submit_parse_async.call_args
-        configs: List[StatConfig] = call_args[0][2]
+        configs: list[StatConfig] = call_args[0][2]
         assert len(configs) == 1
         assert configs[0].keep_indices is False
 
@@ -147,7 +145,7 @@ class TestApplicationAPIKeepIndices:
         mock_svc.submit_parse_async.return_value = MagicMock()
         api = self._make_api()
 
-        variables: List[Dict[str, Any]] = [
+        variables: list[dict[str, Any]] = [
             {"name": r"system.cpu\d+.ipc", "type": "scalar", "keep_indices": True},
         ]
         api.submit_parse_async(
@@ -158,7 +156,7 @@ class TestApplicationAPIKeepIndices:
         )
 
         call_args = mock_svc.submit_parse_async.call_args
-        configs: List[StatConfig] = call_args[0][2]
+        configs: list[StatConfig] = call_args[0][2]
         assert len(configs) == 1
         assert configs[0].keep_indices is True
 
@@ -175,7 +173,7 @@ class TestKeepIndicesExpansion:
     """
 
     @staticmethod
-    def _expand(config: StatConfig, scanned: List[ScannedVariable]) -> List[StatConfig]:
+    def _expand(config: StatConfig, scanned: list[ScannedVariable]) -> list[StatConfig]:
         """
         Reproduce the expansion logic from Gem5Parser / ParseService.
 
@@ -186,12 +184,12 @@ class TestKeepIndicesExpansion:
 
         Returns the list of processed configs for the given input config.
         """
-        processed: List[StatConfig] = []
+        processed: list[StatConfig] = []
         expanded_config = config
 
         if config.is_regex and scanned:
             pattern = re.compile(config.name)
-            matched_ids: List[str] = []
+            matched_ids: list[str] = []
             for sv in scanned:
                 sv_name = sv.name if hasattr(sv, "name") else ""
                 if config.name == sv_name or pattern.fullmatch(sv_name):
@@ -204,13 +202,13 @@ class TestKeepIndicesExpansion:
                 if config.keep_indices:
                     # Respect user-filtered parsed_ids, falling back to
                     # all matched_ids when no filter was applied.
-                    user_ids: List[str] = config.params.get("parsed_ids", [])
+                    user_ids: list[str] = config.params.get("parsed_ids", [])
                     ids_to_expand = user_ids if user_ids else matched_ids
 
                     # Detect full names vs numeric IDs
                     ids_are_full_names = any("." in pid for pid in ids_to_expand)
 
-                    concrete_names: List[str] = []
+                    concrete_names: list[str] = []
                     if ids_are_full_names:
                         concrete_names = list(ids_to_expand)
                     else:
@@ -413,7 +411,7 @@ class TestKeepIndicesExpansion:
             ),
         ]
 
-        all_results: List[StatConfig] = []
+        all_results: list[StatConfig] = []
         for cfg in configs:
             all_results.extend(self._expand(cfg, scanned))
 
@@ -497,7 +495,7 @@ class TestKeepIndicesUserFiltered:
     """Verify that user-filtered IDs from PatternIndexSelector are respected."""
 
     @staticmethod
-    def _expand(config: StatConfig, scanned: List[ScannedVariable]) -> List[StatConfig]:
+    def _expand(config: StatConfig, scanned: list[ScannedVariable]) -> list[StatConfig]:
         """Mirror the expansion logic (same as TestKeepIndicesExpansion._expand)."""
         return TestKeepIndicesExpansion._expand(config, scanned)
 
@@ -650,7 +648,7 @@ class TestMultiDimensionalExpansion:
     r"""Test expansion with multi-dimensional patterns (l\d+_cntrl\d+, etc.)."""
 
     @staticmethod
-    def _expand(config: StatConfig, scanned: List[ScannedVariable]) -> List[StatConfig]:
+    def _expand(config: StatConfig, scanned: list[ScannedVariable]) -> list[StatConfig]:
         """Mirror the expansion logic."""
         return TestKeepIndicesExpansion._expand(config, scanned)
 
@@ -753,7 +751,7 @@ class TestConstructFinalCsvNA:
         csv_path = Gem5Parser.construct_final_csv(output_dir, results, var_names=var_names)
         assert csv_path is not None
 
-        with open(csv_path, "r", encoding="utf-8") as f:
+        with open(csv_path, encoding="utf-8") as f:
             reader = csv.reader(f)
             header = next(reader)
             rows = list(reader)
@@ -787,7 +785,7 @@ class TestConstructFinalCsvNA:
         csv_path = Gem5Parser.construct_final_csv(output_dir, results, var_names=var_names)
         assert csv_path is not None
 
-        with open(csv_path, "r", encoding="utf-8") as f:
+        with open(csv_path, encoding="utf-8") as f:
             reader = csv.reader(f)
             _ = next(reader)  # header
             rows = list(reader)
@@ -812,7 +810,7 @@ class TestConstructFinalCsvNA:
         csv_path = Gem5Parser.construct_final_csv(output_dir, results, var_names=var_names)
         assert csv_path is not None
 
-        with open(csv_path, "r", encoding="utf-8") as f:
+        with open(csv_path, encoding="utf-8") as f:
             content = f.read()
         assert "NaN" not in content
 
@@ -833,7 +831,7 @@ class TestConstructFinalCsvNA:
         csv_path = ParseService.construct_final_csv(output_dir, results, var_names=var_names)
         assert csv_path is not None
 
-        with open(csv_path, "r", encoding="utf-8") as f:
+        with open(csv_path, encoding="utf-8") as f:
             reader = csv.reader(f)
             header = next(reader)
             rows = list(reader)

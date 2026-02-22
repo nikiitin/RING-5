@@ -11,7 +11,7 @@ This validates the state management infrastructure for long-running analysis ses
 """
 
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import patch
 
 import pandas as pd
@@ -26,7 +26,7 @@ from src.web.pages.ui.plotting.types.grouped_bar_plot import GroupedBarPlot
 
 
 @pytest.fixture
-def sample_workspace_data() -> Dict[str, Any]:
+def sample_workspace_data() -> dict[str, Any]:
     """
     Create sample workspace data for state persistence testing.
     """
@@ -57,20 +57,20 @@ def sample_workspace_data() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def mock_session_state():
+def mock_session_state() -> None:
     """Mock streamlit.session_state as a dictionary."""
     with patch("streamlit.session_state", new_callable=dict) as mock_state:
         yield mock_state
 
 
 @pytest.fixture
-def state_manager(mock_session_state):
+def state_manager(mock_session_state: Any) -> RepositoryStateManager:
     """Initialize RepositoryStateManager with mocked session state."""
     return RepositoryStateManager()
 
 
 @pytest.fixture
-def portfolio_service(state_manager, tmp_path):
+def portfolio_service(state_manager: Any, tmp_path: Any) -> None:
     """Create PortfolioService instance."""
     # Mock PathService to return tmp_path for portfolios
     with patch(
@@ -85,7 +85,7 @@ class TestStateManagement:
     """Integration tests for state persistence and recovery."""
 
     def test_portfolio_save_and_load(
-        self, sample_workspace_data: Dict[str, Any], portfolio_service: PortfolioService
+        self, sample_workspace_data: dict[str, Any], portfolio_service: PortfolioService
     ) -> None:
         """
         Test complete portfolio save and load cycle.
@@ -165,7 +165,7 @@ class TestStateManagement:
 
     def test_session_recovery_after_crash(
         self,
-        sample_workspace_data: Dict[str, Any],
+        sample_workspace_data: dict[str, Any],
         portfolio_service: PortfolioService,
     ) -> None:
         """
@@ -241,7 +241,7 @@ class TestStateManagement:
         assert loaded_v2["config"]["version"] == "2.0"
 
     def test_multiple_portfolio_management(
-        self, sample_workspace_data: Dict[str, Any], portfolio_service: PortfolioService
+        self, sample_workspace_data: dict[str, Any], portfolio_service: PortfolioService
     ) -> None:
         """
         Test managing multiple portfolios simultaneously.
@@ -273,7 +273,7 @@ class TestStateManagement:
         updated_list = portfolio_service.list_portfolios()
         assert "baseline_analysis" not in updated_list
 
-    def test_facade_state_integration(self, mock_session_state, tmp_path: Path) -> None:
+    def test_facade_state_integration(self, mock_session_state: Any, tmp_path: Path) -> None:
         """
         Test state management through ApplicationAPI (user-facing API).
         """

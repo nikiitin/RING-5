@@ -4,9 +4,7 @@ Tests for PatternIndexService — pure business logic for pattern variable opera
 Extracted from UI layer (pattern_index_selector.py) to Layer B.
 """
 
-from src.core.services.data_services.pattern_index_service import (
-    PatternIndexService,
-)
+from src.core.services.data_services.pattern_index_service import PatternIndexService
 
 
 class TestIsPatternVariable:

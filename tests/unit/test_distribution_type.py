@@ -23,7 +23,7 @@ from src.core.parsing.gem5.types.distribution import SAFETY_MAX_BUCKETS, Distrib
 class TestDistributionInitialization:
     """Test Distribution object creation and initialization."""
 
-    def test_init_with_default_range(self):
+    def test_init_with_default_range(self) -> None:
         # Arrange & Act
         dist = Distribution(minimum=0, maximum=10)
 
@@ -40,14 +40,14 @@ class TestDistributionInitialization:
         assert "10" in dist._content
         assert len(dist._content) == 13  # underflows + 0-10 + overflows
 
-    def test_init_with_custom_repeat(self):
+    def test_init_with_custom_repeat(self) -> None:
         # Arrange & Act
         dist = Distribution(repeat=5, minimum=0, maximum=5)
 
         # Assert
         assert dist._repeat == 5
 
-    def test_init_with_statistics(self):
+    def test_init_with_statistics(self) -> None:
         # Arrange & Act
         dist = Distribution(minimum=0, maximum=5, statistics=["mean", "stdev"])
 
@@ -56,7 +56,7 @@ class TestDistributionInitialization:
         assert "mean" in dist._content
         assert "stdev" in dist._content
 
-    def test_init_statistics_only_mode(self):
+    def test_init_statistics_only_mode(self) -> None:
         # Arrange & Act
         dist = Distribution(statistics=["mean", "samples"], statistics_only=True)
 
@@ -70,19 +70,19 @@ class TestDistributionInitialization:
         assert "underflows" not in dist._content
         assert "overflows" not in dist._content
 
-    def test_init_exceeds_safety_limit_raises(self):
+    def test_init_exceeds_safety_limit_raises(self) -> None:
         # Arrange & Act & Assert
         with pytest.raises(ValueError, match="exceeds safety limit"):
             Distribution(minimum=0, maximum=SAFETY_MAX_BUCKETS + 1)
 
-    def test_init_large_range_within_limit(self):
+    def test_init_large_range_within_limit(self) -> None:
         # Arrange & Act
         dist = Distribution(minimum=0, maximum=1000)
 
         # Assert
         assert len(dist._content) == 1003  # underflows + 0-1000 + overflows
 
-    def test_required_params_contains_min_max(self):
+    def test_required_params_contains_min_max(self) -> None:
         # Arrange & Act
         required = Distribution.required_params
 
@@ -95,7 +95,7 @@ class TestDistributionInitialization:
 class TestDistributionProperties:
     """Test Distribution property getters."""
 
-    def test_minimum_property(self):
+    def test_minimum_property(self) -> None:
         # Arrange
         dist = Distribution(minimum=10, maximum=20)
 
@@ -106,7 +106,7 @@ class TestDistributionProperties:
         assert result == 10
         assert isinstance(result, int)
 
-    def test_maximum_property(self):
+    def test_maximum_property(self) -> None:
         # Arrange
         dist = Distribution(minimum=10, maximum=20)
 
@@ -117,7 +117,7 @@ class TestDistributionProperties:
         assert result == 20
         assert isinstance(result, int)
 
-    def test_statistics_property(self):
+    def test_statistics_property(self) -> None:
         # Arrange
         dist = Distribution(minimum=0, maximum=5, statistics=["mean", "total"])
 
@@ -128,7 +128,7 @@ class TestDistributionProperties:
         assert result == ["mean", "total"]
         assert isinstance(result, list)
 
-    def test_entries_property_returns_bucket_names(self):
+    def test_entries_property_returns_bucket_names(self) -> None:
         # Arrange
         dist = Distribution(minimum=0, maximum=2)
 
@@ -144,7 +144,7 @@ class TestDistributionProperties:
         assert "2" in result
         assert "overflows" in result
 
-    def test_content_property_getter(self):
+    def test_content_property_getter(self) -> None:
         # Arrange
         dist = Distribution(minimum=0, maximum=1)
 
@@ -160,7 +160,7 @@ class TestDistributionProperties:
 class TestDistributionContentValidation:
     """Test content setter validation rules."""
 
-    def test_content_setter_non_dict_raises(self):
+    def test_content_setter_non_dict_raises(self) -> None:
         # Arrange
         dist = Distribution(minimum=0, maximum=5)
 
@@ -168,7 +168,7 @@ class TestDistributionContentValidation:
         with pytest.raises(TypeError, match="DISTRIBUTION.*Content must be dict"):
             dist.content = [1, 2, 3]
 
-    def test_content_setter_missing_underflows_raises(self):
+    def test_content_setter_missing_underflows_raises(self) -> None:
         # Arrange
         dist = Distribution(minimum=0, maximum=1)
 
@@ -176,7 +176,7 @@ class TestDistributionContentValidation:
         with pytest.raises(TypeError, match="Missing mandatory keys.*underflows"):
             dist.content = {"0": [10], "1": [20], "overflows": [0]}
 
-    def test_content_setter_missing_overflows_raises(self):
+    def test_content_setter_missing_overflows_raises(self) -> None:
         # Arrange
         dist = Distribution(minimum=0, maximum=1)
 
@@ -184,7 +184,7 @@ class TestDistributionContentValidation:
         with pytest.raises(TypeError, match="Missing mandatory keys.*overflows"):
             dist.content = {"underflows": [0], "0": [10], "1": [20]}
 
-    def test_content_setter_missing_boundary_buckets_raises(self):
+    def test_content_setter_missing_boundary_buckets_raises(self) -> None:
         # Arrange
         dist = Distribution(minimum=0, maximum=5)
 
@@ -192,7 +192,7 @@ class TestDistributionContentValidation:
         with pytest.raises(RuntimeError, match="Boundary buckets.*missing"):
             dist.content = {"underflows": [0], "1": [10], "5": [20], "overflows": [0]}
 
-    def test_content_setter_out_of_range_bucket_raises(self):
+    def test_content_setter_out_of_range_bucket_raises(self) -> None:
         # Arrange
         dist = Distribution(minimum=0, maximum=5)
 
@@ -206,7 +206,7 @@ class TestDistributionContentValidation:
                 "overflows": [0],
             }
 
-    def test_content_setter_non_numeric_values_raises(self):
+    def test_content_setter_non_numeric_values_raises(self) -> None:
         # Arrange
         dist = Distribution(minimum=0, maximum=1)
 
@@ -218,7 +218,7 @@ class TestDistributionContentValidation:
 class TestDistributionContentSetting:
     """Test content setter with valid data."""
 
-    def test_content_setter_with_valid_dict(self):
+    def test_content_setter_with_valid_dict(self) -> None:
         # Arrange
         dist = Distribution(minimum=0, maximum=2)
 
@@ -230,7 +230,7 @@ class TestDistributionContentSetting:
         assert dist._content["0"] == [10]
         assert dist._content["2"] == [30]
 
-    def test_content_setter_aggregates_list_values(self):
+    def test_content_setter_aggregates_list_values(self) -> None:
         # Arrange
         dist = Distribution(minimum=0, maximum=1)
 
@@ -247,7 +247,7 @@ class TestDistributionContentSetting:
         assert dist._content["0"] == [30.0]
         assert dist._content["1"] == [45.0]
 
-    def test_content_setter_with_statistics(self):
+    def test_content_setter_with_statistics(self) -> None:
         # Arrange
         dist = Distribution(minimum=0, maximum=1, statistics=["mean"])
 
@@ -257,7 +257,7 @@ class TestDistributionContentSetting:
         # Assert
         assert dist._content["mean"] == [15.5]
 
-    def test_content_setter_statistics_only_mode(self):
+    def test_content_setter_statistics_only_mode(self) -> None:
         # Arrange
         dist = Distribution(statistics=["mean", "samples"], statistics_only=True)
 
@@ -268,7 +268,7 @@ class TestDistributionContentSetting:
         assert dist._content["mean"] == [42.5]
         assert dist._content["samples"] == [1000]
 
-    def test_content_setter_statistics_only_skips_bucket_data(self):
+    def test_content_setter_statistics_only_skips_bucket_data(self) -> None:
         # Arrange
         dist = Distribution(statistics=["mean"], statistics_only=True)
 
@@ -280,7 +280,7 @@ class TestDistributionContentSetting:
         assert "0" not in dist._content
         assert "underflows" not in dist._content
 
-    def test_content_setter_skips_unknown_non_numeric_keys(self):
+    def test_content_setter_skips_unknown_non_numeric_keys(self) -> None:
         # Arrange
         dist = Distribution(minimum=0, maximum=1)
 
@@ -296,7 +296,7 @@ class TestDistributionContentSetting:
         # Assert - unknown_stat not added
         assert "unknown_stat" not in dist._content
 
-    def test_content_setter_multiple_assignments_extend(self):
+    def test_content_setter_multiple_assignments_extend(self) -> None:
         # Arrange
         dist = Distribution(minimum=0, maximum=1)
 
@@ -312,7 +312,7 @@ class TestDistributionContentSetting:
 class TestDistributionBalanceContent:
     """Test balance_content method (padding per bucket)."""
 
-    def test_balance_empty_buckets_pads_with_zeros(self):
+    def test_balance_empty_buckets_pads_with_zeros(self) -> None:
         # Arrange
         dist = Distribution(repeat=3, minimum=0, maximum=1)
         # No content set
@@ -326,7 +326,7 @@ class TestDistributionBalanceContent:
         assert dist._content["0"] == [0.0, 0.0, 0.0]
         assert dist._content["overflows"] == [0.0, 0.0, 0.0]
 
-    def test_balance_partial_buckets_pads_remainder(self):
+    def test_balance_partial_buckets_pads_remainder(self) -> None:
         # Arrange
         dist = Distribution(repeat=4, minimum=0, maximum=1)
         # Assign values individually to avoid aggregation
@@ -341,7 +341,7 @@ class TestDistributionBalanceContent:
         assert dist._content["0"] == [10, 20, 0.0, 0.0]
         assert dist._content["1"] == [30, 0, 0.0, 0.0]
 
-    def test_balance_exact_count_no_change(self):
+    def test_balance_exact_count_no_change(self) -> None:
         # Arrange
         dist = Distribution(repeat=2, minimum=0, maximum=1)
         dist.content = {"underflows": [1], "0": [10], "1": [20], "overflows": [0]}
@@ -354,7 +354,7 @@ class TestDistributionBalanceContent:
         assert dist._content["0"] == [10, 30]
         assert dist._content["1"] == [20, 40]
 
-    def test_balance_too_many_values_raises(self):
+    def test_balance_too_many_values_raises(self) -> None:
         # Arrange
         dist = Distribution(repeat=1, minimum=0, maximum=1)
         # Assign 2 values when repeat=1
@@ -369,7 +369,7 @@ class TestDistributionBalanceContent:
 class TestDistributionReduceDuplicates:
     """Test reduce_duplicates method (arithmetic mean per bucket)."""
 
-    def test_reduce_single_value_per_bucket(self):
+    def test_reduce_single_value_per_bucket(self) -> None:
         # Arrange
         dist = Distribution(minimum=0, maximum=1)
         dist.content = {"underflows": [5], "0": [100], "1": [200], "overflows": [3]}
@@ -384,7 +384,7 @@ class TestDistributionReduceDuplicates:
         assert dist._reduced_content["0"] == 100.0
         assert dist._reduced_content["1"] == 200.0
 
-    def test_reduce_multiple_values_calculates_mean(self):
+    def test_reduce_multiple_values_calculates_mean(self) -> None:
         # Arrange
         dist = Distribution(repeat=3, minimum=0, maximum=1)
         dist.content = {
@@ -403,7 +403,7 @@ class TestDistributionReduceDuplicates:
         assert dist._reduced_content["0"] == 20.0
         assert dist._reduced_content["1"] == 200.0
 
-    def test_reduce_empty_bucket_returns_zero(self):
+    def test_reduce_empty_bucket_returns_zero(self) -> None:
         # Arrange
         dist = Distribution(minimum=0, maximum=1)
         dist.balance_content()  # All buckets padded with zeros
@@ -415,7 +415,7 @@ class TestDistributionReduceDuplicates:
         assert dist._reduced_content["underflows"] == 0.0
         assert dist._reduced_content["0"] == 0.0
 
-    def test_reduce_with_statistics(self):
+    def test_reduce_with_statistics(self) -> None:
         # Arrange
         dist = Distribution(minimum=0, maximum=1, statistics=["mean"])
         dist.content = {"underflows": [0], "0": [10], "1": [20], "overflows": [0], "mean": [15.5]}
@@ -431,7 +431,7 @@ class TestDistributionReduceDuplicates:
 class TestDistributionReducedContentAccess:
     """Test reduced_content property access guards."""
 
-    def test_access_reduced_content_before_balance_raises(self):
+    def test_access_reduced_content_before_balance_raises(self) -> None:
         # Arrange
         dist = Distribution(minimum=0, maximum=1)
         dist.content = {"underflows": [0], "0": [10], "1": [20], "overflows": [0]}
@@ -441,7 +441,7 @@ class TestDistributionReducedContentAccess:
         with pytest.raises(AttributeError, match="balance_content.*reduce_duplicates"):
             _ = dist.reduced_content
 
-    def test_access_reduced_content_before_reduce_raises(self):
+    def test_access_reduced_content_before_reduce_raises(self) -> None:
         # Arrange
         dist = Distribution(minimum=0, maximum=1)
         dist.content = {"underflows": [0], "0": [10], "1": [20], "overflows": [0]}
@@ -452,7 +452,7 @@ class TestDistributionReducedContentAccess:
         with pytest.raises(AttributeError, match="balance_content.*reduce_duplicates"):
             _ = dist.reduced_content
 
-    def test_access_reduced_content_after_both_succeeds(self):
+    def test_access_reduced_content_after_both_succeeds(self) -> None:
         # Arrange
         dist = Distribution(minimum=0, maximum=1)
         dist.content = {"underflows": [0], "0": [10], "1": [20], "overflows": [0]}
@@ -470,14 +470,14 @@ class TestDistributionReducedContentAccess:
 class TestDistributionTypeRegistration:
     """Test Distribution is properly registered in the type system."""
 
-    def test_distribution_registered_with_decorator(self):
+    def test_distribution_registered_with_decorator(self) -> None:
         # Act
         registered_types = StatTypeRegistry.get_types()
 
         # Assert
         assert "distribution" in registered_types
 
-    def test_create_distribution_via_registry(self):
+    def test_create_distribution_via_registry(self) -> None:
         # Act
         dist = StatTypeRegistry.create("distribution", minimum=0, maximum=10)
 
@@ -490,7 +490,7 @@ class TestDistributionTypeRegistration:
 class TestDistributionStrMethod:
     """Test __str__ method for string representation."""
 
-    def test_str_method(self):
+    def test_str_method(self) -> None:
         # Arrange
         dist = Distribution(repeat=3, minimum=0, maximum=100)
 
@@ -506,7 +506,7 @@ class TestDistributionStrMethod:
 class TestDistributionEdgeCases:
     """Test edge cases and special scenarios."""
 
-    def test_zero_range_distribution(self):
+    def test_zero_range_distribution(self) -> None:
         # Arrange & Act
         dist = Distribution(minimum=0, maximum=0)
 
@@ -514,7 +514,7 @@ class TestDistributionEdgeCases:
         assert "0" in dist._content
         assert len(dist._content) == 3  # underflows, 0, overflows
 
-    def test_negative_range(self):
+    def test_negative_range(self) -> None:
         # Arrange & Act
         dist = Distribution(minimum=-10, maximum=-5)
 
@@ -524,7 +524,7 @@ class TestDistributionEdgeCases:
         assert "-10" in dist._content
         assert "-5" in dist._content
 
-    def test_float_values_in_content(self):
+    def test_float_values_in_content(self) -> None:
         # Arrange
         dist = Distribution(minimum=0, maximum=1)
 
@@ -534,7 +534,7 @@ class TestDistributionEdgeCases:
         # Assert - floats accepted
         assert dist._content["0"] == [10.7]
 
-    def test_large_bucket_values(self):
+    def test_large_bucket_values(self) -> None:
         # Arrange
         dist = Distribution(minimum=0, maximum=1)
 
@@ -547,7 +547,7 @@ class TestDistributionEdgeCases:
         assert dist._reduced_content["0"] == 1_000_000.0
         assert dist._reduced_content["1"] == 9_999_999.0
 
-    def test_statistics_only_no_validation_errors(self):
+    def test_statistics_only_no_validation_errors(self) -> None:
         # Arrange
         dist = Distribution(statistics=["mean"], statistics_only=True)
 
@@ -559,7 +559,7 @@ class TestDistributionEdgeCases:
         # Assert
         assert dist._reduced_content["mean"] == 42.0
 
-    def test_reduce_with_truly_empty_bucket(self):
+    def test_reduce_with_truly_empty_bucket(self) -> None:
         # Arrange
         dist = Distribution(minimum=0, maximum=2)
         dist.content = {

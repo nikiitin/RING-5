@@ -1,7 +1,7 @@
 """Test auto-refresh functionality for plots."""
 
 
-def test_auto_refresh_config_detection():
+def test_auto_refresh_config_detection() -> None:
     """Test that configuration changes are properly detected."""
 
     # Simulate initial plot configuration
@@ -63,7 +63,7 @@ def test_auto_refresh_config_detection():
     assert config_changed, "Config should be detected as changed"
 
 
-def test_auto_refresh_triggers():
+def test_auto_refresh_triggers() -> None:
     """Test various triggers for auto-refresh."""
 
     triggers = {

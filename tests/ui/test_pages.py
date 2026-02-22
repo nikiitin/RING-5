@@ -13,7 +13,7 @@ _APP_PATH = str(Path(__file__).parents[2] / "app.py")
 class TestDataSourcePage:
     """UI tests for Data Source page."""
 
-    def test_page_loads(self):
+    def test_page_loads(self) -> None:
         """Test that Data Source page loads without error."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
@@ -24,7 +24,7 @@ class TestDataSourcePage:
 
         assert not at.exception
 
-    def test_data_source_options_present(self):
+    def test_data_source_options_present(self) -> None:
         """Test that data source options are available."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
@@ -33,7 +33,7 @@ class TestDataSourcePage:
         at.run()
         assert not at.exception
 
-    def test_interaction_tabs(self):
+    def test_interaction_tabs(self) -> None:
         """Test interaction with Data Source interaction tabs/radios."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
@@ -49,7 +49,7 @@ class TestDataSourcePage:
 class TestDataManagersPage:
     """UI tests for Data Managers page."""
 
-    def test_page_loads(self):
+    def test_page_loads(self) -> None:
         """Test that Data Managers page loads."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
@@ -57,7 +57,7 @@ class TestDataManagersPage:
         at.run()
         assert not at.exception
 
-    def test_page_renders_tabs(self):
+    def test_page_renders_tabs(self) -> None:
         """Test that Data Managers page has tabs for different managers."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
@@ -65,7 +65,7 @@ class TestDataManagersPage:
         at.run()
         assert not at.exception
 
-    def test_no_data_message(self):
+    def test_no_data_message(self) -> None:
         """Test that appropriate message is shown when no data loaded."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
@@ -77,7 +77,7 @@ class TestDataManagersPage:
 class TestManagePlotsPage:
     """UI tests for Manage Plots page."""
 
-    def test_page_loads(self):
+    def test_page_loads(self) -> None:
         """Test that Manage Plots page loads."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
@@ -85,7 +85,7 @@ class TestManagePlotsPage:
         at.run()
         assert not at.exception
 
-    def test_create_plot_interaction(self):
+    def test_create_plot_interaction(self) -> None:
         """Test interacting with Create Plot section."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
@@ -102,7 +102,7 @@ class TestManagePlotsPage:
 class TestPortfolioPage:
     """UI tests for Portfolio (Save/Load) page."""
 
-    def test_page_loads(self):
+    def test_page_loads(self) -> None:
         """Test that Portfolio page loads."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
@@ -110,7 +110,7 @@ class TestPortfolioPage:
         at.run()
         assert not at.exception
 
-    def test_page_renders_content(self):
+    def test_page_renders_content(self) -> None:
         """Test that Portfolio page renders content."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
@@ -122,7 +122,7 @@ class TestPortfolioPage:
 class TestNavigation:
     """Tests for navigation between pages."""
 
-    def test_navigate_through_all_pages(self):
+    def test_navigate_through_all_pages(self) -> None:
         """Test navigating through all pages in order."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
@@ -139,7 +139,7 @@ class TestNavigation:
             at.run()
             assert not at.exception, f"Navigation to '{page}' failed"
 
-    def test_navigate_back_and_forth(self):
+    def test_navigate_back_and_forth(self) -> None:
         """Test navigating back and forth between pages."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
@@ -160,20 +160,20 @@ class TestNavigation:
 class TestSidebarElements:
     """Tests for sidebar elements."""
 
-    def test_sidebar_has_navigation(self):
+    def test_sidebar_has_navigation(self) -> None:
         """Test that sidebar contains navigation buttons."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
         nav_buttons = [b for b in at.sidebar.button if b.key and b.key.startswith("nav_")]
         assert len(nav_buttons) > 0
 
-    def test_clear_button_present(self):
+    def test_clear_button_present(self) -> None:
         """Test that clear data button is present."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
         assert len(at.sidebar.button) > 0 or not at.exception
 
-    def test_sidebar_title(self):
+    def test_sidebar_title(self) -> None:
         """Test that sidebar has title."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()

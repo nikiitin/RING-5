@@ -4,22 +4,24 @@ Tests for async scanning behavior with Futures-based API.
 
 import time
 from concurrent.futures import as_completed
+from typing import Any
 
 from src.core.parsing.gem5.impl.pool.pool import ScanWorkPool
 from src.core.parsing.gem5.impl.pool.scan_work import ScanWork
 
 
 class MockWork(ScanWork):
-    def __init__(self, val, duration=0.1):
+    def __init__(self, val: Any, duration: Any = 0.1) -> None:
+
         self.val = val
         self.duration = duration
 
-    def __call__(self):
+    def __call__(self) -> dict:
         time.sleep(self.duration)
         return {"name": f"var_{self.val}", "type": "scalar"}
 
 
-def test_async_scan_flow():
+def test_async_scan_flow() -> None:
     """Test full async flow with futures."""
     pool = ScanWorkPool.get_instance()
 
@@ -43,7 +45,7 @@ def test_async_scan_flow():
         assert result["type"] == "scalar"
 
 
-def test_async_scan_cancellation():
+def test_async_scan_cancellation() -> None:
     """Test cancellation of async scan via futures."""
     pool = ScanWorkPool.get_instance()
 
@@ -74,7 +76,7 @@ def test_async_scan_cancellation():
     assert len(results) < 5 or cancelled_count > 0
 
 
-def test_multiple_batch_submissions():
+def test_multiple_batch_submissions() -> None:
     """Test that multiple batch submissions work independently."""
     pool = ScanWorkPool.get_instance()
 

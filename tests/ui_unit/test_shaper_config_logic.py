@@ -1,7 +1,9 @@
+from typing import Any
 from unittest.mock import patch
 
 import pandas as pd
 import pytest
+from pandas import DataFrame
 
 from src.web.pages.ui.shaper_config import configure_shaper
 from tests.conftest import columns_side_effect
@@ -9,7 +11,7 @@ from tests.conftest import columns_side_effect
 
 # Mock streamlit
 @pytest.fixture
-def mock_streamlit():
+def mock_streamlit() -> None:
     with (
         patch("src.web.pages.ui.shaper_config.st") as mock_st,
         patch("src.web.pages.ui.components.shapers.normalize_config.st", mock_st),
@@ -25,7 +27,7 @@ def mock_streamlit():
 
 
 @pytest.fixture
-def sample_data():
+def sample_data() -> DataFrame:
     return pd.DataFrame(
         {
             "dataset": ["A", "A", "B", "B"],
@@ -35,7 +37,7 @@ def sample_data():
     )
 
 
-def test_configure_column_selector(mock_streamlit, sample_data):
+def test_configure_column_selector(mock_streamlit: Any, sample_data: Any) -> None:
     """Test Column Selector configuration UI."""
     # Setup mock return values
     mock_streamlit.multiselect.return_value = ["metric"]
@@ -53,7 +55,7 @@ def test_configure_column_selector(mock_streamlit, sample_data):
     assert kwargs["default"] == ["dataset"]
 
 
-def test_configure_filter_numeric(mock_streamlit, sample_data):
+def test_configure_filter_numeric(mock_streamlit: Any, sample_data: Any) -> None:
     """Test Numeric Filter configuration UI."""
     # Filter on 'metric'
     mock_streamlit.selectbox.side_effect = ["metric", "greater_than"]
@@ -67,7 +69,7 @@ def test_configure_filter_numeric(mock_streamlit, sample_data):
     assert config["threshold"] == 15.0
 
 
-def test_configure_filter_categorical(mock_streamlit, sample_data):
+def test_configure_filter_categorical(mock_streamlit: Any, sample_data: Any) -> None:
     """Test Categorical Filter configuration UI."""
     # Filter on 'dataset'
     mock_streamlit.selectbox.side_effect = ["dataset"]
@@ -82,7 +84,7 @@ def test_configure_filter_categorical(mock_streamlit, sample_data):
     assert config["values"] == ["A"]
 
 
-def test_configure_mean(mock_streamlit, sample_data):
+def test_configure_mean(mock_streamlit: Any, sample_data: Any) -> None:
     """Test Mean Calculator configuration UI."""
     # col1: algo, col2: vars, col3: group
     # Calls: selectbox(algo), multiselect(vars), multiselect(group), selectbox(replace)

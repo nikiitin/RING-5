@@ -5,7 +5,8 @@ Single Responsibility: Manage gem5 parser configuration and state.
 
 import logging
 import uuid
-from typing import Any, Dict, List
+
+from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
 
 logger = logging.getLogger(__name__)
 
@@ -24,23 +25,23 @@ class ParserStateRepository:
     """
 
     # Default variables for new sessions
-    DEFAULT_PARSE_VARIABLES = [
-        {"name": "simTicks", "type": "scalar", "_id": str(uuid.uuid4())},
-        {"name": "benchmark_name", "type": "configuration", "_id": str(uuid.uuid4())},
-        {"name": "config_description", "type": "configuration", "_id": str(uuid.uuid4())},
+    DEFAULT_PARSE_VARIABLES: list[ParseVariableConfig] = [
+        ParseVariableConfig(name="simTicks", type="scalar", _id=str(uuid.uuid4())),
+        ParseVariableConfig(name="benchmark_name", type="configuration", _id=str(uuid.uuid4())),
+        ParseVariableConfig(name="config_description", type="configuration", _id=str(uuid.uuid4())),
     ]
 
     def __init__(self) -> None:
         """Initialize in-memory storage."""
         # Initialize default state
-        self._parse_variables: List[Dict[str, Any]] = self.DEFAULT_PARSE_VARIABLES.copy()
+        self._parse_variables: list[ParseVariableConfig] = self.DEFAULT_PARSE_VARIABLES.copy()
         self._stats_path: str = "/path/to/gem5/stats"
         self._stats_pattern: str = "stats.txt"
-        self._scanned_variables: List[Dict[str, Any]] = []
+        self._scanned_variables: list[ScannedVariableDict] = []
         self._use_parser: bool = False
         self._parser_strategy: str = "simple"
 
-    def get_parse_variables(self) -> List[Dict[str, Any]]:
+    def get_parse_variables(self) -> list[ParseVariableConfig]:
         """
         Get the list of variables to parse from gem5 stats.
 
@@ -49,7 +50,7 @@ class ParserStateRepository:
         """
         return self._parse_variables
 
-    def set_parse_variables(self, variables: List[Dict[str, Any]]) -> None:
+    def set_parse_variables(self, variables: list[ParseVariableConfig]) -> None:
         """
         Set the parse variable list, ensuring each has a unique ID.
 
@@ -68,7 +69,7 @@ class ParserStateRepository:
         self._parse_variables = variables
         logger.info("PARSER_REPO: Parse variables updated - %d variables", len(variables))
 
-    def add_parse_variable(self, variable: Dict[str, Any]) -> None:
+    def add_parse_variable(self, variable: ParseVariableConfig) -> None:
         """
         Add a new variable to the parse list.
 
@@ -137,7 +138,7 @@ class ParserStateRepository:
         self._stats_pattern = pattern
         logger.info("PARSER_REPO: Stats pattern set to '%s'", pattern)
 
-    def get_scanned_variables(self) -> List[Dict[str, Any]]:
+    def get_scanned_variables(self) -> list[ScannedVariableDict]:
         """
         Get variables discovered via scanning stats files.
 
@@ -146,7 +147,7 @@ class ParserStateRepository:
         """
         return self._scanned_variables
 
-    def set_scanned_variables(self, variables: List[Dict[str, Any]]) -> None:
+    def set_scanned_variables(self, variables: list[ScannedVariableDict]) -> None:
         """
         Set the scanned variables list.
 

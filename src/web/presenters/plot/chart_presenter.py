@@ -14,25 +14,18 @@ The controller orchestrates figure generation and delegates all
 ``st.*`` display calls to this presenter.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
+import plotly.graph_objects as go
 import streamlit as st
 
 from src.core.models.visualization.resolvers import resolve_config
-from src.web.pages.ui.components.interactive_plot import (
-    interactive_plotly_chart,
-)
-from src.web.pages.ui.plotting.download_section import (
-    render_download_section,
-)
-from src.web.rendering.config_builder import (
-    ConfigSpecBuilder,
-    PlotlyFigureSpecBuilder,
-)
+from src.core.models.visualization.trace_config import TraceConfig
+from src.web.pages.ui.components.interactive_plot import interactive_plotly_chart
+from src.web.pages.ui.plotting.download_section import render_download_section
+from src.web.rendering.config_builder import ConfigSpecBuilder, PlotlyFigureSpecBuilder
 from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
-from src.web.rendering.matplotlib_trace_renderer import (
-    MatplotlibTraceRenderer,
-)
+from src.web.rendering.matplotlib_trace_renderer import MatplotlibTraceRenderer
 
 
 class ChartPresenter:
@@ -60,7 +53,7 @@ class ChartPresenter:
         plot_id: int,
         auto_refresh: bool,
         config_changed: bool,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Render auto-refresh toggle and manual Refresh button.
 
@@ -99,7 +92,7 @@ class ChartPresenter:
     def render_engine_selector(
         plot_id: int,
         current_engine: str,
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Render engine-selection pills (Plotly / Matplotlib).
 
@@ -112,7 +105,7 @@ class ChartPresenter:
             The selected engine string, or ``None`` if nothing was
             selected (e.g. user deselected).
         """
-        engine_choice: Optional[str] = st.pills(
+        engine_choice: str | None = st.pills(
             "Engine",
             options=["plotly", "matplotlib"],
             format_func=lambda x: (
@@ -130,11 +123,11 @@ class ChartPresenter:
 
     @staticmethod
     def render_plotly_chart(
-        fig: Any,
+        fig: go.Figure,
         plot_id: int,
         plot_name: str,
-        config: Dict[str, Any],
-    ) -> Optional[Dict[str, Any]]:
+        config: dict[str, Any],
+    ) -> dict[str, Any] | None:
         """
         Render an interactive Plotly chart with relayout feedback.
 
@@ -152,7 +145,7 @@ class ChartPresenter:
             Relayout event data dict if the user interacted with
             the chart (zoom, pan, legend drag), or ``None``.
         """
-        plotly_config: Dict[str, Any] = {
+        plotly_config: dict[str, Any] = {
             "responsive": False,
             "editable": True,
             "edits": {
@@ -180,7 +173,7 @@ class ChartPresenter:
             },
         }
 
-        relayout_data: Optional[Dict[str, Any]] = interactive_plotly_chart(
+        relayout_data: dict[str, Any] | None = interactive_plotly_chart(
             fig, config=plotly_config, key=f"chart_{plot_id}"
         )
 
@@ -192,12 +185,12 @@ class ChartPresenter:
 
     @staticmethod
     def render_matplotlib_chart(
-        plotly_fig: Any,
+        plotly_fig: go.Figure,
         plot_id: int,
         plot_name: str,
-        config: Dict[str, Any],
+        config: dict[str, Any],
         plot_type: str,
-        traces: Optional[List[Any]] = None,
+        traces: list[TraceConfig] | None = None,
     ) -> None:
         """
         Render a matplotlib chart derived from a Plotly figure.

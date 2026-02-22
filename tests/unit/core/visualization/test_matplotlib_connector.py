@@ -34,9 +34,7 @@ from src.core.models.visualization.figure_config import (  # noqa: E402
     FigureConfig,
     SeparatorConfig,
 )
-from src.web.rendering.matplotlib_connector import (  # noqa: E402
-    FigureSpecToMatplotlib,
-)
+from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib  # noqa: E402
 
 
 @pytest.fixture()

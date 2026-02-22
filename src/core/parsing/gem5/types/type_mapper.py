@@ -5,10 +5,14 @@ Centralizes logic for mapping external (Perl/Scanner) type strings to internal P
 Ensures consistency between Scanner and Parser.
 """
 
-from typing import Any, Dict, Union
+from typing import TYPE_CHECKING, Any
 
 from src.core.models import StatConfig
+from src.core.models.data_models import ScannedVariableDict
 from src.core.parsing.gem5.types import StatTypeRegistry
+
+if TYPE_CHECKING:
+    from src.core.parsing.gem5.types.base import StatType
 
 
 class TypeMapper:
@@ -24,14 +28,26 @@ class TypeMapper:
         return type_name.lower()
 
     @classmethod
-    def map_scan_result(cls, scan_result: Dict[str, Any]) -> Dict[str, Any]:
+    def map_scan_result(cls, scan_result: dict[str, Any]) -> ScannedVariableDict:
         """
         Normalize a dictionary result from the scanner.
         Ensures 'type' field is consistent.
         """
         if "type" in scan_result:
             scan_result["type"] = cls.normalize_type(scan_result["type"])
-        return scan_result
+        # The scan_result dict has the same shape as ScannedVariableDict
+        result: ScannedVariableDict = ScannedVariableDict(
+            name=scan_result.get("name", ""),
+            type=scan_result.get("type", ""),
+            entries=scan_result.get("entries", []),
+        )
+        if "minimum" in scan_result:
+            result["minimum"] = scan_result["minimum"]
+        if "maximum" in scan_result:
+            result["maximum"] = scan_result["maximum"]
+        if "pattern_indices" in scan_result:
+            result["pattern_indices"] = scan_result["pattern_indices"]
+        return result
 
     @staticmethod
     def is_entry_type(type_name: str) -> bool:
@@ -40,7 +56,7 @@ class TypeMapper:
         return norm in ("vector", "distribution", "histogram")
 
     @classmethod
-    def create_stat(cls, var_config: Union[StatConfig, Dict[str, Any]]) -> Any:
+    def create_stat(cls, var_config: StatConfig | dict[str, Any]) -> "StatType":
         """
         Create a strongly-typed Stat object from a configuration.
 
@@ -53,7 +69,7 @@ class TypeMapper:
         var_type: str = ""
         repeat: int = 1
         statistics_only: bool = False
-        params: Dict[str, Any] = {}
+        params: dict[str, Any] = {}
 
         if isinstance(var_config, StatConfig):
             var_type = var_config.type
@@ -61,7 +77,7 @@ class TypeMapper:
             statistics_only = var_config.statistics_only
             params = var_config.params
         else:
-            var_type_raw: Any = var_config.get("type")
+            var_type_raw: str | None = var_config.get("type")
             var_type = str(var_type_raw) if var_type_raw else ""
             repeat = int(var_config.get("repeat", 1))
             statistics_only = bool(
@@ -73,7 +89,7 @@ class TypeMapper:
             raise ValueError("Configuration missing 'type' field")
 
         # Common args
-        kwargs: Dict[str, Any] = {"repeat": repeat}
+        kwargs: dict[str, Any] = {"repeat": repeat}
 
         # Type-specific mapping
         norm_type = cls.normalize_type(var_type)

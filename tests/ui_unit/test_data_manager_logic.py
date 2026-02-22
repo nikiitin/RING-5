@@ -1,7 +1,9 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
+from pandas import DataFrame
 
 from src.web.pages.ui.data_managers.impl.outlier_remover import OutlierRemoverManager
 from src.web.pages.ui.data_managers.impl.seeds_reducer import SeedsReducerManager
@@ -10,7 +12,7 @@ from tests.conftest import columns_side_effect
 
 # Mock streamlit
 @pytest.fixture
-def mock_streamlit():
+def mock_streamlit() -> None:
     with (
         patch("src.web.pages.ui.data_managers.impl.seeds_reducer.st") as mock_st_seeds,
         patch("src.web.pages.ui.data_managers.impl.outlier_remover.st") as mock_st_outlier,
@@ -27,7 +29,7 @@ def mock_streamlit():
 
 
 @pytest.fixture
-def sample_data():
+def sample_data() -> DataFrame:
     return pd.DataFrame(
         {
             "benchmark": ["b1", "b1", "b2"],
@@ -38,7 +40,9 @@ def sample_data():
     )
 
 
-def test_seeds_reducer_render_no_random_seed(mock_streamlit, mock_api, sample_data):
+def test_seeds_reducer_render_no_random_seed(
+    mock_streamlit: Any, mock_api: Any, sample_data: Any
+) -> None:
     """Test Seeds Reducer warns if no random_seed column."""
     mock_st, _ = mock_streamlit
 
@@ -52,7 +56,7 @@ def test_seeds_reducer_render_no_random_seed(mock_streamlit, mock_api, sample_da
     assert "No `random_seed` column" in mock_st.warning.call_args[0][0]
 
 
-def test_seeds_reducer_apply(mock_streamlit, mock_api, sample_data):
+def test_seeds_reducer_apply(mock_streamlit: Any, mock_api: Any, sample_data: Any) -> None:
     """Test Seeds Reducer apply logic."""
     mock_st, _ = mock_streamlit
 
@@ -83,7 +87,7 @@ def test_seeds_reducer_apply(mock_streamlit, mock_api, sample_data):
     mock_api.set_preview.assert_called_once_with("seeds_reduction", result_df)
 
 
-def test_seeds_reducer_confirm(mock_streamlit, mock_api, sample_data):
+def test_seeds_reducer_confirm(mock_streamlit: Any, mock_api: Any, sample_data: Any) -> None:
     """Test Seeds Reducer confirm logic."""
     mock_st, _ = mock_streamlit
 
@@ -110,7 +114,7 @@ def test_seeds_reducer_confirm(mock_streamlit, mock_api, sample_data):
     mock_st.rerun.assert_called_once()
 
 
-def test_outlier_remover_run(mock_streamlit, mock_api, sample_data):
+def test_outlier_remover_run(mock_streamlit: Any, mock_api: Any, sample_data: Any) -> None:
     """Test Outlier Remover run flows."""
     _, mock_st = mock_streamlit
 

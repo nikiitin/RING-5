@@ -9,9 +9,9 @@ the Fail-Fast principle.
 import json
 import logging
 import shutil
-import subprocess  # nosec B404 - Required for gem5 Perl parser execution
+import subprocess
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 from src.core.models import ScannedVariable
 from src.core.parsing.gem5.types.type_mapper import TypeMapper
@@ -65,8 +65,8 @@ class Gem5StatsScanner:
         return cls._instance
 
     def scan_file(
-        self, file_path: Path, config_vars: Optional[List[str]] = None
-    ) -> List[ScannedVariable]:
+        self, file_path: Path, config_vars: list[str] | None = None
+    ) -> list[ScannedVariable]:
         """
         Scan a single stats file to discover variable schemas.
 
@@ -90,7 +90,7 @@ class Gem5StatsScanner:
 
         try:
             # Command constructed from validated paths, shell=False enforced for safety
-            result = subprocess.run(  # nosec B603 - Validated perl script path
+            result = subprocess.run(
                 cmd, capture_output=True, text=True, check=True, shell=False, timeout=60
             )
 

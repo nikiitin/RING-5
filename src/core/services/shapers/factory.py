@@ -8,8 +8,7 @@ all available transformation types (filter, sort, normalize, mean, etc.).
 Enables runtime shaper selection and dynamic pipeline construction.
 """
 
-from typing import Any, Dict, List, Optional, Type
-
+from src.core.models.data_models import ShaperStepConfig
 from src.core.services.shapers.impl.mean import Mean
 from src.core.services.shapers.impl.normalize import Normalize
 from src.core.services.shapers.impl.selector_algorithms.column_selector import (
@@ -37,7 +36,7 @@ class ShaperFactory:
     """
 
     # Registry of shaper types mapping to their implementing classes
-    _registry: Dict[str, Type[Shaper]] = {
+    _registry: dict[str, type[Shaper]] = {
         "mean": Mean,
         "columnSelector": ColumnSelector,
         "conditionSelector": ConditionSelector,
@@ -49,7 +48,7 @@ class ShaperFactory:
     }
 
     # Human-readable display names for the UI layer
-    _display_names: Dict[str, str] = {
+    _display_names: dict[str, str] = {
         "columnSelector": "Column Selector",
         "sort": "Sort",
         "mean": "Mean Calculator",
@@ -60,7 +59,7 @@ class ShaperFactory:
     }
 
     @classmethod
-    def register(cls, shaper_type: str, shaper_class: Type[Shaper]) -> None:
+    def register(cls, shaper_type: str, shaper_class: type[Shaper]) -> None:
         """
         Register a new shaper type for extensibility (Open/Closed Principle).
 
@@ -71,7 +70,7 @@ class ShaperFactory:
         cls._registry[shaper_type] = shaper_class
 
     @classmethod
-    def get_available_types(cls) -> List[str]:
+    def get_available_types(cls) -> list[str]:
         """
         Return a list of all registered shaper type identifiers.
 
@@ -81,7 +80,7 @@ class ShaperFactory:
         return list(cls._registry.keys())
 
     @classmethod
-    def get_display_name_map(cls) -> Dict[str, str]:
+    def get_display_name_map(cls) -> dict[str, str]:
         """
         Return mapping of display names to shaper type identifiers.
 
@@ -112,7 +111,7 @@ class ShaperFactory:
         return cls._display_names.get(shaper_type, shaper_type)
 
     @classmethod
-    def create_shaper(cls, shaper_type: str, params: Dict[str, Any]) -> Shaper:
+    def create_shaper(cls, shaper_type: str, params: ShaperStepConfig) -> Shaper:
         """
         Instantiate a shaper of the specified type.
 
@@ -126,10 +125,10 @@ class ShaperFactory:
         Raises:
             ValueError: If the shaper_type is not found in the registry
         """
-        shaper_class: Optional[Type[Shaper]] = cls._registry.get(shaper_type)
+        shaper_class: type[Shaper] | None = cls._registry.get(shaper_type)
         if shaper_class is None:
             available: str = ", ".join(cls._registry.keys())
             raise ValueError(
                 f"FACTORY: Unknown shaper type '{shaper_type}'. " f"Available types: {available}"
             )
-        return shaper_class(params)
+        return shaper_class(dict(params))

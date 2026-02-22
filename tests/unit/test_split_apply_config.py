@@ -1,6 +1,6 @@
 """Tests for SplitApplyConfig shaper UI component — N-group delegation."""
 
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -88,7 +88,7 @@ class TestSplitApplyConfigRender:
         mock_st.session_state = {}
         mock_st.button.return_value = False
 
-        result: Dict[str, Any] = SplitApplyConfig.render(
+        result: dict[str, Any] = SplitApplyConfig.render(
             data=data,
             existing_config={},
             key_prefix="p_",
@@ -126,7 +126,7 @@ class TestSplitApplyConfigRender:
         mock_st.session_state = {}
         mock_st.button.return_value = False
 
-        result: Dict[str, Any] = SplitApplyConfig.render(
+        result: dict[str, Any] = SplitApplyConfig.render(
             data=data,
             existing_config={"joinColumns": ["benchmark"]},
             key_prefix="p_",
@@ -383,16 +383,16 @@ class TestSplitApplyConfigWithStep:
         }
         mock_st.button.return_value = False
 
-        result: Dict[str, Any] = SplitApplyConfig.render(
+        result: dict[str, Any] = SplitApplyConfig.render(
             data=data,
             existing_config={},
             key_prefix="p_",
             shaper_id="x",
         )
 
-        grp_a: Dict[str, Any] = result["groups"][0]
+        grp_a: dict[str, Any] = result["groups"][0]
         assert len(grp_a["pipeline"]) == 1
-        step: Dict[str, Any] = grp_a["pipeline"][0]
+        step: dict[str, Any] = grp_a["pipeline"][0]
         assert step["type"] == "mean"
         assert step["meanAlgorithm"] == "arithmean"
 
@@ -429,7 +429,7 @@ class TestSplitApplyConfigNGroups:
         mock_st.session_state = {}
         mock_st.button.return_value = False
 
-        result: Dict[str, Any] = SplitApplyConfig.render(
+        result: dict[str, Any] = SplitApplyConfig.render(
             data=data,
             existing_config={},
             key_prefix="p_",
@@ -474,7 +474,7 @@ class TestSplitApplyConfigNGroups:
         mock_st.session_state = {}
         mock_st.button.return_value = False
 
-        result: Dict[str, Any] = SplitApplyConfig.render(
+        result: dict[str, Any] = SplitApplyConfig.render(
             data=data,
             existing_config={},
             key_prefix="p_",
@@ -497,7 +497,7 @@ class TestSplitApplyConfigNGroups:
 
         data: pd.DataFrame = _sample_data_4cols()
 
-        existing: Dict[str, Any] = {
+        existing: dict[str, Any] = {
             "joinColumns": ["benchmark", "config"],
             "groups": [
                 {"columns": ["v1"], "pipeline": []},
@@ -522,7 +522,7 @@ class TestSplitApplyConfigNGroups:
         mock_st.session_state = {}
         mock_st.button.return_value = False
 
-        result: Dict[str, Any] = SplitApplyConfig.render(
+        result: dict[str, Any] = SplitApplyConfig.render(
             data=data,
             existing_config=existing,
             key_prefix="p_",
@@ -574,7 +574,7 @@ class TestSplitApplyConfigExistingPipeline:
 
         data: pd.DataFrame = _sample_data()
 
-        existing: Dict[str, Any] = {
+        existing: dict[str, Any] = {
             "joinColumns": ["benchmark", "config"],
             "groups": [
                 {
@@ -608,14 +608,14 @@ class TestSplitApplyConfigExistingPipeline:
         mock_st.session_state = {}
         mock_st.button.return_value = False
 
-        result: Dict[str, Any] = SplitApplyConfig.render(
+        result: dict[str, Any] = SplitApplyConfig.render(
             data=data,
             existing_config=existing,
             key_prefix="p_",
             shaper_id="x",
         )
 
-        grp_a: Dict[str, Any] = result["groups"][0]
+        grp_a: dict[str, Any] = result["groups"][0]
         assert len(grp_a["pipeline"]) == 1
         assert grp_a["pipeline"][0]["meanAlgorithm"] == "geomean"
 
@@ -683,11 +683,11 @@ class TestInitDispatch:
 
         # Reset state
         mod._SUB_SHAPER_DISPATCH.clear()
-        mod._DISPATCH_INITIALIZED = False
+        mod._STATE["initialized"] = False
 
         mod._init_dispatch()
 
-        assert mod._DISPATCH_INITIALIZED is True
+        assert mod._STATE["initialized"] is True
         assert "Mean Calculator" in mod._SUB_SHAPER_DISPATCH
         assert "Normalize" in mod._SUB_SHAPER_DISPATCH
         assert "Sort" in mod._SUB_SHAPER_DISPATCH
@@ -703,7 +703,7 @@ class TestInitDispatch:
         import src.web.pages.ui.components.shapers.split_apply_config as mod
 
         mod._SUB_SHAPER_DISPATCH.clear()
-        mod._DISPATCH_INITIALIZED = False
+        mod._STATE["initialized"] = False
 
         mod._init_dispatch()
         first_count: int = len(mod._SUB_SHAPER_DISPATCH)

@@ -13,7 +13,7 @@ Usage:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
 
 import plotly.graph_objects as go
 
@@ -98,7 +98,8 @@ class FigureSpecToPlotly:
         """Set figure title with typography from spec."""
         if spec.title:
             typo = spec.typography
-            assert typo is not None  # guaranteed by __post_init__  # nosec B101
+            if typo is None:
+                raise ValueError("FigureConfig.typography must not be None")
             fig.update_layout(
                 title=dict(
                     text=spec.title,
@@ -111,12 +112,14 @@ class FigureSpecToPlotly:
     @staticmethod
     def _apply_xaxis(spec: FigureConfig, fig: go.Figure) -> None:
         """Configure the primary X-axis."""
-        assert spec.axes is not None  # guaranteed by __post_init__  # nosec B101
-        assert spec.typography is not None  # guaranteed by __post_init__  # nosec B101
+        if spec.axes is None:
+            raise ValueError("FigureConfig requires axes")
+        if spec.typography is None:
+            raise ValueError("FigureConfig requires typography")
         x_axis = spec.axes.x
         typo = spec.typography
 
-        update: Dict[str, Any] = {}
+        update: dict[str, Any] = {}
 
         if x_axis.label:
             update["title"] = dict(
@@ -159,12 +162,14 @@ class FigureSpecToPlotly:
     @staticmethod
     def _apply_yaxis(spec: FigureConfig, fig: go.Figure) -> None:
         """Configure the primary Y-axis."""
-        assert spec.axes is not None  # guaranteed by __post_init__  # nosec B101
-        assert spec.typography is not None  # guaranteed by __post_init__  # nosec B101
+        if spec.axes is None:
+            raise ValueError("FigureConfig requires axes")
+        if spec.typography is None:
+            raise ValueError("FigureConfig requires typography")
         y_axis = spec.axes.y
         typo = spec.typography
 
-        update: Dict[str, Any] = {}
+        update: dict[str, Any] = {}
 
         if y_axis.label:
             update["title"] = dict(
@@ -193,15 +198,17 @@ class FigureSpecToPlotly:
     @staticmethod
     def _apply_y2axis(spec: FigureConfig, fig: go.Figure) -> None:
         """Configure the secondary Y-axis (if present)."""
-        assert spec.axes is not None  # guaranteed by __post_init__  # nosec B101
-        assert spec.typography is not None  # guaranteed by __post_init__  # nosec B101
+        if spec.axes is None:
+            raise ValueError("FigureConfig requires axes")
+        if spec.typography is None:
+            raise ValueError("FigureConfig requires typography")
         if spec.axes.y2 is None:
             return
 
         y2 = spec.axes.y2
         typo = spec.typography
 
-        update: Dict[str, Any] = {
+        update: dict[str, Any] = {
             "overlaying": "y",
             "side": "right",
         }
@@ -243,9 +250,9 @@ class FigureSpecToPlotly:
             fig.update_layout(**{legend_key: legend_dict})
 
     @staticmethod
-    def _build_legend_dict(legend: LegendConfig) -> Dict[str, Any]:
+    def _build_legend_dict(legend: LegendConfig) -> dict[str, Any]:
         """Build a Plotly legend configuration dictionary."""
-        result: Dict[str, Any] = {
+        result: dict[str, Any] = {
             "font": dict(
                 size=legend.font_size,
                 color=legend.font_color,
@@ -379,7 +386,7 @@ class FigureSpecToPlotly:
             texttemplate = f"%{{y:{fmt}}}"
 
         for trace in fig.data:
-            update: Dict[str, Any] = {
+            update: dict[str, Any] = {
                 "texttemplate": texttemplate,
                 "textposition": text_position,
                 "textangle": rotation,
@@ -398,11 +405,8 @@ class FigureSpecToPlotly:
                 update["constraintext"] = "none"
 
             # Inside text anchor (only for "inside" position)
-            if (text_position == "inside" or dl.size_constraint == "inside") and dl.anchor in (
-                "top",
-                "middle",
-                "bottom",
-            ):
+            is_inside = text_position == "inside" or dl.size_constraint == "inside"
+            if is_inside and dl.anchor in ("top", "middle", "bottom"):
                 update["insidetextanchor"] = dl.anchor
 
             trace.update(**update)
@@ -424,18 +428,20 @@ class FigureSpecToPlotly:
             # Use modular index to cycle through styles
             style = spec.series_styles[i % len(spec.series_styles)]
 
-            update: Dict[str, Any] = {}
+            update: dict[str, Any] = {}
             if style.opacity > 0:
                 update["opacity"] = style.opacity
             if style.line_width > 0:
                 if hasattr(trace, "line"):
                     update["line"] = dict(width=style.line_width)
             if style.marker_size > 0:
-                # marker.size only applies to scatter-like traces, not Bar
-                if not isinstance(trace, go.Bar):
-                    update["marker"] = dict(size=style.marker_size)
+                # marker.size only applies to scatter-like traces
+                if hasattr(trace, "marker") and not isinstance(trace, go.Bar):
+                    marker_update = update.get("marker", {})
+                    marker_update["size"] = style.marker_size
+                    update["marker"] = marker_update
             if style.bar_border_width > 0:
-                marker_update: Dict[str, Any] = update.get("marker", {})
+                marker_update = update.get("marker", {})
                 marker_update["line"] = dict(
                     width=style.bar_border_width,
                     color=style.bar_border_color or "#000",
@@ -452,7 +458,7 @@ class FigureSpecToPlotly:
             return
 
         # Separators require X-axis category data; infer boundaries
-        x_data: Optional[List[Any]] = None
+        x_data: list[Any] | None = None
         for trace in fig.data:
             if hasattr(trace, "x") and trace.x is not None:
                 x_data = list(trace.x)
@@ -499,12 +505,13 @@ class FigureSpecToPlotly:
     @staticmethod
     def _apply_axis_colors(spec: FigureConfig, fig: go.Figure) -> None:
         """Apply tick/label/line colors per axis from new AxisConfig fields."""
-        assert spec.axes is not None  # guaranteed by __post_init__  # nosec B101
+        if spec.axes is None:
+            raise ValueError("FigureConfig requires axes")
 
         x = spec.axes.x
         y = spec.axes.y
 
-        x_update: Dict[str, Any] = {}
+        x_update: dict[str, Any] = {}
         if x.tick_font_color:
             x_update["tickfont"] = dict(color=x.tick_font_color)
         if x.axis_line_color:
@@ -515,7 +522,7 @@ class FigureSpecToPlotly:
         if x_update:
             fig.update_xaxes(**x_update)
 
-        y_update: Dict[str, Any] = {}
+        y_update: dict[str, Any] = {}
         if y.tick_font_color:
             y_update["tickfont"] = dict(color=y.tick_font_color)
         if y.axis_line_color:
@@ -581,7 +588,7 @@ class FigureSpecToPlotly:
     def _apply_label_aliases(
         axis: AxisConfig,
         fig: go.Figure,
-        update: Dict[str, Any],
+        update: dict[str, Any],
     ) -> None:
         """Translate axis label aliases to Plotly tickvals/ticktext.
 
@@ -596,14 +603,14 @@ class FigureSpecToPlotly:
         if not axis.label_aliases:
             return
 
-        mapping: Dict[str, str] = axis.label_aliases
+        mapping: dict[str, str] = axis.label_aliases
 
         # Determine order: explicit category_order if set, else sorted unique
         if axis.category_order is not None:
             ordered = list(axis.category_order)
         else:
             # Collect unique x-values from traces
-            unique_vals: List[str] = []
+            unique_vals: list[str] = []
             seen: set[str] = set()
             for trace in fig.data:
                 if hasattr(trace, "x") and trace.x is not None:
@@ -615,8 +622,8 @@ class FigureSpecToPlotly:
             ordered = sorted(unique_vals)
 
         # Build tickvals/ticktext: map through aliases, preserving originals
-        tickvals: List[str] = ordered
-        ticktext: List[str] = [mapping.get(v, v) for v in ordered]
+        tickvals: list[str] = ordered
+        ticktext: list[str] = [mapping.get(v, v) for v in ordered]
 
         update["tickmode"] = "array"
         update["tickvals"] = tickvals

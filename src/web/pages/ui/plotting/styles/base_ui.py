@@ -7,17 +7,14 @@ through Streamlit UI components.
 """
 
 import hashlib
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, cast
 
 import pandas as pd
 import streamlit as st
 
 from src.core.models.visualization.palettes import resolve_palette
 from src.web.pages.ui.plotting.styles.colors import to_hex
-from src.web.rendering.widgets import (
-    LEGEND_SIZING,
-    WidgetRenderer,
-)
+from src.web.rendering.widgets import LEGEND_SIZING, WidgetRenderer
 
 
 class BaseStyleUI:
@@ -34,7 +31,7 @@ class BaseStyleUI:
         self.plot_type = plot_type
         self._renderer = WidgetRenderer(key_prefix=f"p{plot_id}_")
 
-    def render_layout_options(self, saved_config: Dict[str, Any]) -> Dict[str, Any]:
+    def render_layout_options(self, saved_config: dict[str, Any]) -> dict[str, Any]:
         """Render layout sizing, margins, and spacing options."""
         st.markdown("**Dimensions & Margins**")
 
@@ -96,11 +93,11 @@ class BaseStyleUI:
 
     def render_style_ui(
         self,
-        saved_config: Dict[str, Any],
-        data: Optional[pd.DataFrame] = None,
-        items: Optional[List[str]] = None,
+        saved_config: dict[str, Any],
+        data: pd.DataFrame | None = None,
+        items: list[str] | None = None,
         key_prefix: str = "",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Render style configurator UI (Theme, Colors, Fonts).
         Delegates to specific render methods for each section.
@@ -153,12 +150,12 @@ class BaseStyleUI:
 
     def _render_series_section(
         self,
-        saved_config: Dict[str, Any],
-        data: Optional[pd.DataFrame],
-        items: Optional[List[str]],
+        saved_config: dict[str, Any],
+        data: pd.DataFrame | None,
+        items: list[str] | None,
         key_prefix: str,
-        palette_name: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        palette_name: str | None = None,
+    ) -> dict[str, Any]:
         """Render per-series color overrides.
 
         The palette dropdown has been consolidated into
@@ -192,8 +189,8 @@ class BaseStyleUI:
         return {"series_styles": series_styles}
 
     def _render_backgrounds_section(
-        self, saved_config: Dict[str, Any], key_prefix: str
-    ) -> Dict[str, Any]:
+        self, saved_config: dict[str, Any], key_prefix: str
+    ) -> dict[str, Any]:
         """Render backgrounds and grid section."""
         st.markdown("#### Backgrounds & Grid")
 
@@ -262,8 +259,8 @@ class BaseStyleUI:
         }
 
     def _render_legend_section(
-        self, saved_config: Dict[str, Any], key_prefix: str
-    ) -> Dict[str, Any]:
+        self, saved_config: dict[str, Any], key_prefix: str
+    ) -> dict[str, Any]:
         """Render legend styling section."""
         st.markdown("#### Legend Styling")
 
@@ -279,8 +276,8 @@ class BaseStyleUI:
         return {**pos_config, **app_config, **sz_config}
 
     def _render_legend_position(
-        self, saved_config: Dict[str, Any], key_prefix: str
-    ) -> Dict[str, Any]:
+        self, saved_config: dict[str, Any], key_prefix: str
+    ) -> dict[str, Any]:
         """Render legend position and orientation controls."""
         st.markdown("**Position & Orientation**")
         pos_c1, pos_c2 = st.columns(2)
@@ -336,8 +333,8 @@ class BaseStyleUI:
         }
 
     def _render_legend_appearance(
-        self, saved_config: Dict[str, Any], key_prefix: str
-    ) -> Dict[str, Any]:
+        self, saved_config: dict[str, Any], key_prefix: str
+    ) -> dict[str, Any]:
         """Render legend appearance controls (colors, border, fonts)."""
         st.markdown("**Appearance**")
         app_c1, app_c2 = st.columns(2)
@@ -417,8 +414,8 @@ class BaseStyleUI:
         }
 
     def _render_legend_sizing(
-        self, saved_config: Dict[str, Any], key_prefix: str
-    ) -> Dict[str, Any]:
+        self, saved_config: dict[str, Any], key_prefix: str
+    ) -> dict[str, Any]:
         """Render legend sizing and spacing controls (declarative)."""
         st.markdown("**Sizing & Spacing**")
         result = self._renderer.render_section(LEGEND_SIZING, saved_config, use_expander=False)
@@ -429,8 +426,8 @@ class BaseStyleUI:
         return result
 
     def _render_typography_section(
-        self, saved_config: Dict[str, Any], key_prefix: str
-    ) -> Dict[str, Any]:
+        self, saved_config: dict[str, Any], key_prefix: str
+    ) -> dict[str, Any]:
         """Render typography section (font sizes and colors).
 
         Note: Title text inputs (Main Title, X-label, Y-label) are in
@@ -532,18 +529,18 @@ class BaseStyleUI:
 
     def render_series_colors_ui(
         self,
-        saved_config: Dict[str, Any],
-        data: Optional[pd.DataFrame] = None,
-        items: Optional[List[str]] = None,
+        saved_config: dict[str, Any],
+        data: pd.DataFrame | None = None,
+        items: list[str] | None = None,
         key_prefix: str = "",
-        current_palette: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        current_palette: str | None = None,
+    ) -> dict[str, Any]:
         """
         Render UI for per-series coloring.
         """
         series_styles_raw = saved_config.get("series_styles", {})
-        series_styles: Dict[str, Any] = (
-            cast(Dict[str, Any], series_styles_raw) if series_styles_raw else {}
+        series_styles: dict[str, Any] = (
+            cast(dict[str, Any], series_styles_raw) if series_styles_raw else {}
         )
         unique_vals = self._get_unique_values(saved_config, data, items)
 
@@ -580,11 +577,11 @@ class BaseStyleUI:
         self,
         val_str: str,
         default_color: str,
-        current_style: Dict[str, Any],
+        current_style: dict[str, Any],
         val_hash: str,
         key_prefix: str = "",
         palette_name: str = "",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         c2, c3 = st.columns([1, 2])
 
         # Keys for widgets
@@ -640,23 +637,22 @@ class BaseStyleUI:
         return current_style
 
     def _render_specific_series_visuals(
-        self, current_style: Dict[str, Any], key_suffix: str, key_prefix: str = ""
+        self, current_style: dict[str, Any], key_suffix: str, key_prefix: str = ""
     ) -> None:
         """Hook for subclasses to render specific style options."""
-        pass
 
     def render_series_renaming_ui(
         self,
-        saved_config: Dict[str, Any],
-        data: Optional[pd.DataFrame] = None,
-        items: Optional[List[str]] = None,
-    ) -> Dict[str, Any]:
+        saved_config: dict[str, Any],
+        data: pd.DataFrame | None = None,
+        items: list[str] | None = None,
+    ) -> dict[str, Any]:
         """
         Render UI for per-series renaming.
         """
         series_styles_raw = saved_config.get("series_styles", {})
-        series_styles: Dict[str, Any] = (
-            cast(Dict[str, Any], series_styles_raw) if series_styles_raw else {}
+        series_styles: dict[str, Any] = (
+            cast(dict[str, Any], series_styles_raw) if series_styles_raw else {}
         )
         unique_vals = self._get_unique_values(saved_config, data, items)
 
@@ -687,16 +683,16 @@ class BaseStyleUI:
 
     def render_xaxis_labels_ui(
         self,
-        saved_config: Dict[str, Any],
-        data: Optional[pd.DataFrame] = None,
+        saved_config: dict[str, Any],
+        data: pd.DataFrame | None = None,
         key_prefix: str = "xlabel",
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         """
         Render UI for X-Axis label renaming.
         """
         xaxis_labels_raw = saved_config.get("xaxis_labels", {})
-        xaxis_labels: Dict[str, str] = (
-            cast(Dict[str, str], xaxis_labels_raw) if xaxis_labels_raw else {}
+        xaxis_labels: dict[str, str] = (
+            cast(dict[str, str], xaxis_labels_raw) if xaxis_labels_raw else {}
         )
         x_col = saved_config.get("x")
 
@@ -734,10 +730,10 @@ class BaseStyleUI:
         return xaxis_labels
 
     def _get_unique_values(
-        self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame], items: Optional[List[str]]
-    ) -> List[Any]:
+        self, saved_config: dict[str, Any], data: pd.DataFrame | None, items: list[str] | None
+    ) -> list[Any]:
         """Helper to determine series items."""
-        unique_vals: List[Any] = []
+        unique_vals: list[Any] = []
         if items is not None:
             unique_vals = sorted([str(i) for i in items])
         elif data is not None:
@@ -751,8 +747,8 @@ class BaseStyleUI:
         return unique_vals
 
     def render_data_labels_ui(
-        self, saved_config: Dict[str, Any], key_prefix: str = ""
-    ) -> Dict[str, Any]:
+        self, saved_config: dict[str, Any], key_prefix: str = ""
+    ) -> dict[str, Any]:
         """
         Render UI for Data Values/Labels.
         """

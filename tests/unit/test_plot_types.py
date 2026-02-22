@@ -1,6 +1,9 @@
+from typing import Any
+
 import pandas as pd
 import plotly.graph_objects as go
 import pytest
+from pandas import DataFrame
 
 from src.web.pages.ui.plotting.types.grouped_stacked_bar_plot import (
     GroupedStackedBarPlot,
@@ -10,7 +13,7 @@ from src.web.pages.ui.plotting.types.scatter_plot import ScatterPlot
 
 
 @pytest.fixture
-def sample_data():
+def sample_data() -> DataFrame:
     return pd.DataFrame(
         {
             "Benchmark": ["A", "A", "B", "B", "C"],
@@ -23,7 +26,8 @@ def sample_data():
 
 
 class TestLinePlot:
-    def test_create_figure(self, sample_data):
+    def test_create_figure(self, sample_data: Any) -> None:
+
         plot = LinePlot(1, "Test Line")
         config = {
             "x": "Benchmark",
@@ -44,7 +48,8 @@ class TestLinePlot:
 
 
 class TestScatterPlot:
-    def test_create_figure(self, sample_data):
+    def test_create_figure(self, sample_data: Any) -> None:
+
         plot = ScatterPlot(2, "Test Scatter")
         config = {
             "x": "Value",
@@ -63,7 +68,8 @@ class TestScatterPlot:
 
 
 class TestGroupedStackedBarPlot:
-    def test_create_figure_grouped(self, sample_data):
+    def test_create_figure_grouped(self, sample_data: Any) -> None:
+
         plot = GroupedStackedBarPlot(3, "Test GSB")
         config = {
             "x": "Benchmark",
@@ -93,7 +99,7 @@ class TestGroupedStackedBarPlot:
         totals = trace0.customdata
         assert total_A_Low in totals
 
-    def test_create_figure_simple_stack(self, sample_data):
+    def test_create_figure_simple_stack(self, sample_data: Any) -> None:
         """Test without sub-grouping."""
         plot = GroupedStackedBarPlot(4, "Simple Stack")
         config = {

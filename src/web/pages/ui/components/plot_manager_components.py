@@ -6,7 +6,7 @@ data transformation pipelines, rendering, and export operations.
 """
 
 import logging
-from typing import Optional
+from typing import Any, cast
 
 import streamlit as st
 
@@ -43,7 +43,7 @@ class PlotManagerComponents:
                     st.rerun()
 
     @staticmethod
-    def render_plot_selector(api: ApplicationAPI) -> Optional[BasePlot]:
+    def render_plot_selector(api: ApplicationAPI) -> BasePlot | None:
         """Render tabs/selector for plots and return the current plot."""
         plots = api.state_manager.get_plots()
         if not plots:
@@ -72,7 +72,7 @@ class PlotManagerComponents:
         if selected_plot.plot_id != current_id:
             api.state_manager.set_current_plot_id(selected_plot.plot_id)
 
-        return selected_plot  # type: ignore[return-value]
+        return cast(BasePlot, selected_plot)
 
     @staticmethod
     def render_plot_controls(api: ApplicationAPI, plot: BasePlot) -> None:
@@ -187,9 +187,7 @@ class PlotManagerComponents:
         selected = st.selectbox("Select Pipeline", pipelines, key=f"load_p_sel_{plot.plot_id}")
         if st.button("Load", type="primary", key=f"load_p_btn_{plot.plot_id}"):
             try:
-                from src.core.services.shapers.pipeline_service import (
-                    PipelineService,
-                )
+                from src.core.services.shapers.pipeline_service import PipelineService
 
                 data = api.shapers.load_pipeline(selected)
                 steps, counter = PipelineService.prepare_loaded_pipeline(data)
@@ -381,7 +379,7 @@ class PlotManagerComponents:
                                         f"Downloading **{p.name}** " f"({i + 1}/{len(plots)})..."
                                     )
                                     res = PlotService.export_plot_to_file(
-                                        p, export_path, format=fmt_to_use  # type: ignore[arg-type]
+                                        cast(BasePlot, p), export_path, format=cast(Any, fmt_to_use)
                                     )
                                     if res:
                                         count += 1

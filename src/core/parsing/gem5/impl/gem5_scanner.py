@@ -8,7 +8,6 @@ import os
 from concurrent.futures import Future
 from dataclasses import replace
 from pathlib import Path
-from typing import Any, Dict, List
 
 from src.core.common.utils import normalize_user_path, sanitize_glob_pattern
 from src.core.models import ScannedVariable
@@ -29,7 +28,7 @@ class Gem5Scanner:
     @staticmethod
     def submit_scan_async(
         stats_path: str, stats_pattern: str = "stats.txt", limit: int = 5
-    ) -> List[Future[List[ScannedVariable]]]:
+    ) -> list[Future[list[ScannedVariable]]]:
         """
         Submit async scan job and return futures.
 
@@ -49,18 +48,20 @@ class Gem5Scanner:
             raise FileNotFoundError(f"Stats path does not exist: {stats_path}")
 
         safe_pattern: str = sanitize_glob_pattern(stats_pattern)
-        files: List[Path] = sorted(search_path.rglob(safe_pattern))
+        files: list[Path] = sorted(search_path.rglob(safe_pattern))
         if not files:
             raise FileNotFoundError("No stats files found.")
 
-        files_to_sample: List[Path] = files[:limit] if limit > 0 else files
+        files_to_sample: list[Path] = files[:limit] if limit > 0 else files
 
         pool: ScanWorkPool = ScanWorkPool.get_instance()
-        batch_work: List[Any] = [Gem5ScanWork(str(file_path)) for file_path in files_to_sample]
+        batch_work: list[Gem5ScanWork] = [
+            Gem5ScanWork(str(file_path)) for file_path in files_to_sample
+        ]
         return pool.submit_batch_async(batch_work)
 
     @staticmethod
-    def aggregate_scan_results(results: List[List[ScannedVariable]]) -> List[ScannedVariable]:
+    def aggregate_scan_results(results: list[list[ScannedVariable]]) -> list[ScannedVariable]:
         """
         Aggregate results from async scan into unified variable list.
 
@@ -70,7 +71,7 @@ class Gem5Scanner:
         Returns:
             Sorted list of merged variables with deduplicated entries
         """
-        merged_registry: Dict[str, ScannedVariable] = {}
+        merged_registry: dict[str, ScannedVariable] = {}
         for file_vars in results:
             for var in file_vars:
                 Gem5Scanner._merge_variable(merged_registry, var)
@@ -84,7 +85,7 @@ class Gem5Scanner:
         return aggregated_vars
 
     @staticmethod
-    def _merge_variable(registry: Dict[str, ScannedVariable], var: ScannedVariable) -> None:
+    def _merge_variable(registry: dict[str, ScannedVariable], var: ScannedVariable) -> None:
         """
         Merge a single variable into the registry.
 

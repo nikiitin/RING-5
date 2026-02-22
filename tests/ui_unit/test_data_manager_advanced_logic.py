@@ -1,7 +1,9 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
+from pandas import DataFrame
 
 from src.web.pages.ui.data_managers.impl.mixer import MixerManager
 from src.web.pages.ui.data_managers.impl.preprocessor import PreprocessorManager
@@ -9,7 +11,7 @@ from tests.conftest import columns_side_effect
 
 
 @pytest.fixture
-def mock_streamlit():
+def mock_streamlit() -> None:
     with (
         patch("src.web.pages.ui.data_managers.impl.mixer.st") as mock_st_mixer,
         patch("src.web.pages.ui.data_managers.impl.preprocessor.st") as mock_st_prep,
@@ -25,12 +27,13 @@ def mock_streamlit():
 
 
 @pytest.fixture
-def mock_api():
+def mock_api() -> dict:
     api = MagicMock()
     api.state_manager = MagicMock()
 
     # Mock get_column_info to return realistic metadata
-    def get_column_info(df):
+    def get_column_info(df: Any) -> dict:
+
         if df is None:
             return {"numeric_columns": [], "categorical_columns": [], "columns": []}
         import numpy as np
@@ -48,11 +51,11 @@ def mock_api():
 
 
 @pytest.fixture
-def sample_data():
+def sample_data() -> DataFrame:
     return pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "S": ["x", "y", "z"]})
 
 
-def test_mixer_render_numeric_op(mock_streamlit, mock_api, sample_data):
+def test_mixer_render_numeric_op(mock_streamlit: Any, mock_api: Any, sample_data: Any) -> None:
     """Test Mixer numeric operation workflow."""
     mock_st, _ = mock_streamlit
 
@@ -79,7 +82,7 @@ def test_mixer_render_numeric_op(mock_streamlit, mock_api, sample_data):
     mock_st.success.assert_called()
 
 
-def test_mixer_confirm(mock_streamlit, mock_api, sample_data):
+def test_mixer_confirm(mock_streamlit: Any, mock_api: Any, sample_data: Any) -> None:
     """Test Mixer confirm workflow."""
     mock_st, _ = mock_streamlit
 
@@ -103,7 +106,7 @@ def test_mixer_confirm(mock_streamlit, mock_api, sample_data):
     mock_api.clear_preview.assert_called_once_with("mixer")
 
 
-def test_preprocessor_render_op(mock_streamlit, mock_api, sample_data):
+def test_preprocessor_render_op(mock_streamlit: Any, mock_api: Any, sample_data: Any) -> None:
     """Test Preprocessor operation workflow."""
     _, mock_st = mock_streamlit
 
@@ -127,7 +130,7 @@ def test_preprocessor_render_op(mock_streamlit, mock_api, sample_data):
     mock_api.set_preview.assert_called_once_with("preprocessor", result_df)
 
 
-def test_preprocessor_no_numeric_cols(mock_streamlit, mock_api):
+def test_preprocessor_no_numeric_cols(mock_streamlit: Any, mock_api: Any) -> None:
     """Test Preprocessor fails gracefully with no numeric cols."""
     _, mock_st = mock_streamlit
 

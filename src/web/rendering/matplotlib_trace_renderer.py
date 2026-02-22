@@ -20,8 +20,10 @@ Design notes:
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from collections.abc import Sequence
+from typing import Any, cast
 
+import numpy as np
 from matplotlib.axes import Axes
 
 from src.core.models.visualization.trace_config import (
@@ -47,10 +49,10 @@ class MatplotlibTraceRenderer:
 
     @staticmethod
     def render(
-        traces: List[TraceConfig],
+        traces: Sequence[TraceConfig],
         ax: Axes,
         barmode: str = "group",
-        palette_colors: Optional[List[str]] = None,
+        palette_colors: Sequence[str] | None = None,
     ) -> int:
         """Render all traces onto *ax*.
 
@@ -70,24 +72,24 @@ class MatplotlibTraceRenderer:
             Number of traces successfully rendered.
         """
         # Collect bar traces for stacking computation
-        bar_specs: List[BarTraceConfig] = [t for t in traces if isinstance(t, BarTraceConfig)]
+        bar_specs: list[BarTraceConfig] = [t for t in traces if isinstance(t, BarTraceConfig)]
 
         # Secondary Y handling
         has_secondary = any(t.yaxis == "y2" for t in traces)
-        ax2: Optional[Axes] = None
+        ax2: Axes | None = None
         if has_secondary:
             ax2 = ax.twinx()
-            ax._ring5_twin = ax2  # type: ignore[attr-defined]
+            cast(Any, ax)._ring5_twin = ax2
 
         count = 0
-        categorical_labels: List[str] = []
+        categorical_labels: list[str] = []
 
         for idx, trace in enumerate(traces):
             is_secondary = trace.yaxis == "y2"
             target = ax2 if (is_secondary and ax2 is not None) else ax
 
             # Override trace colour with palette when provided
-            override_color: Optional[str] = None
+            override_color: str | None = None
             if palette_colors:
                 override_color = palette_colors[idx % len(palette_colors)]
 
@@ -142,66 +144,56 @@ class MatplotlibTraceRenderer:
         spec: BarTraceConfig,
         ax: Axes,
         bar_idx: int,
-        bar_specs: List[BarTraceConfig],
+        bar_specs: list[BarTraceConfig],
         barmode: str,
-        categorical_labels: List[str],
-        override_color: Optional[str] = None,
+        categorical_labels: list[str],
+        override_color: str | None = None,
     ) -> None:
         """Draw a single bar trace from its ``BarTraceConfig``."""
         color = override_color or spec.color or None
         is_categorical = bool(spec.x) and isinstance(spec.x[0], str)
 
-        if is_categorical:
+        # 2) Compute standard x-positions and effective bar width
+        if spec.x_positions:
+            # Pre-filled numeric axis (e.g., histogram overlay)
+            x_pos = spec.x_positions
+            eff_bar_width = spec.bar_width
+            is_categorical = False
+        else:
+            # Categorical string axis
+            x_pos, eff_bar_width = _compute_categorical_positions(spec, bar_idx, bar_specs, barmode)
+            is_categorical = True
+
+        props: dict[str, Any] = {}
+        if eff_bar_width is not None:
+            props["width"] = eff_bar_width
+        props["edgecolor"] = "white"
+        props["linewidth"] = 0.5
+
+        # 3) Sanitize y-values (None -> np.nan)
+        y_clean = [float(v) if v is not None else np.nan for v in spec.y]
+
+        # 4) Compute stacking bottom
+        if barmode == "stack" and bar_idx > 0:
+            if is_categorical:
+                bottom = _stack_bottom(bar_idx, bar_specs)
+            else:
+                bottom = _stack_bottom_numeric(bar_idx, bar_specs, x_pos)
+            props["bottom"] = bottom
+
+        # 5) Render
+        color = override_color or spec.color
+        if color:
+            props["color"] = color
+
+        ax.bar(x_pos, y_clean, label=spec.name, **props)
+
+        if is_categorical and bar_idx == 0:
+            base_positions = list(range(len(spec.x)))
+            ax.set_xticks(base_positions)
             if not categorical_labels:
                 categorical_labels.extend(str(v) for v in spec.x)
-
-            if barmode == "stack":
-                bottom = _stack_bottom(bar_idx, bar_specs)
-                ax.bar(
-                    spec.x_positions,
-                    spec.y,
-                    bottom=bottom,
-                    label=spec.name,
-                    color=color,
-                    width=spec.bar_width,
-                    edgecolor="white",
-                    linewidth=0.5,
-                )
-            else:
-                ax.bar(
-                    spec.x_positions,
-                    spec.y,
-                    label=spec.name,
-                    color=color,
-                    width=spec.bar_width,
-                    edgecolor="white",
-                    linewidth=0.5,
-                )
-
-            if bar_idx == 0:
-                base_positions = list(range(len(spec.x)))
-                ax.set_xticks(base_positions)
-                ax.set_xticklabels(categorical_labels)
-        elif barmode == "stack":
-            bottom = _stack_bottom_numeric(bar_idx, bar_specs, spec.x_positions)
-            ax.bar(
-                spec.x_positions,
-                spec.y,
-                bottom=bottom,
-                label=spec.name,
-                color=color,
-                width=spec.bar_width,
-                edgecolor="white",
-                linewidth=0.5,
-            )
-        else:
-            ax.bar(
-                spec.x_positions,
-                spec.y,
-                label=spec.name,
-                color=color,
-                width=spec.bar_width,
-            )
+            ax.set_xticklabels(categorical_labels)
 
     # ── line ───────────────────────────────────────────────────────────────
 
@@ -209,10 +201,10 @@ class MatplotlibTraceRenderer:
     def _draw_line(
         spec: LineTraceConfig,
         ax: Axes,
-        override_color: Optional[str] = None,
+        override_color: str | None = None,
     ) -> None:
         """Draw a single line trace from its ``LineTraceConfig``."""
-        props: Dict[str, Any] = {}
+        props: dict[str, Any] = {}
         color = override_color or spec.color
         if color:
             props["color"] = color
@@ -220,7 +212,9 @@ class MatplotlibTraceRenderer:
             props["linewidth"] = spec.line_width
         if spec.line_dash:
             props["linestyle"] = _DASH_MAP.get(spec.line_dash, "-")
-        ax.plot(spec.x, spec.y, label=spec.name, **props)
+
+        y_clean = [float(v) if v is not None else np.nan for v in spec.y]
+        ax.plot(spec.x, y_clean, label=spec.name, **props)
 
     # ── scatter ────────────────────────────────────────────────────────────
 
@@ -228,16 +222,18 @@ class MatplotlibTraceRenderer:
     def _draw_scatter(
         spec: ScatterTraceConfig,
         ax: Axes,
-        override_color: Optional[str] = None,
+        override_color: str | None = None,
     ) -> None:
         """Draw a single scatter trace from its ``ScatterTraceConfig``."""
-        props: Dict[str, Any] = {}
+        props: dict[str, Any] = {}
         color = override_color or spec.color
         if color:
             props["color"] = color
         if spec.marker_size:
             props["s"] = spec.marker_size
-        ax.scatter(spec.x, spec.y, label=spec.name, **props)
+
+        y_clean = [float(v) if v is not None else np.nan for v in spec.y]
+        ax.scatter(spec.x, y_clean, label=spec.name, **props)
 
     # ── histogram ──────────────────────────────────────────────────────────
 
@@ -245,19 +241,21 @@ class MatplotlibTraceRenderer:
     def _draw_histogram(
         spec: HistogramTraceConfig,
         ax: Axes,
-        override_color: Optional[str] = None,
+        override_color: str | None = None,
     ) -> None:
         """Draw a single histogram trace from its ``HistogramTraceConfig``."""
-        props: Dict[str, Any] = {}
+        props: dict[str, Any] = {}
         color = override_color or spec.color
         if color:
             props["color"] = color
-        ax.hist(spec.x, bins=spec.nbins, label=spec.name, **props)
+
+        x_clean = [float(v) if v is not None else np.nan for v in spec.x]
+        ax.hist(x_clean, bins=spec.nbins, label=spec.name, **props)
 
 
 # ── module-level helpers ──────────────────────────────────────────────────────
 
-_DASH_MAP: Dict[str, str] = {
+_DASH_MAP: dict[str, str] = {
     "dash": "--",
     "dot": ":",
     "dashdot": "-.",
@@ -267,10 +265,48 @@ _DASH_MAP: Dict[str, str] = {
 }
 
 
+def _compute_categorical_positions(
+    spec: BarTraceConfig,
+    bar_idx: int,
+    bar_specs: list[BarTraceConfig],
+    barmode: str,
+) -> tuple[list[float], float]:
+    """Compute bar x-positions for categorical data when not pre-filled.
+
+    For stacked bars all traces share the same integer positions.
+    For grouped bars each trace is offset so bars sit side by side.
+
+    Returns:
+        A tuple of (x_positions, effective_bar_width). It is structurally
+        important that we DO NOT mutate spec.bar_width directly.
+    """
+    n_categories = len(spec.x)
+    base = list(range(n_categories))
+
+    if barmode == "stack":
+        return ([float(b) for b in base], spec.bar_width)
+
+    # Grouped: distribute traces around each integer tick
+    n_traces = len(bar_specs)
+    if n_traces <= 1:
+        return ([float(b) for b in base], spec.bar_width)
+
+    total_width = spec.bar_width * n_traces
+    # Keep total group width ≤ 0.9 to avoid overlap between categories
+    if total_width > 0.9:
+        bar_w = 0.9 / n_traces
+    else:
+        bar_w = spec.bar_width
+
+    start_offset = -(n_traces - 1) * bar_w / 2
+    offset = start_offset + bar_idx * bar_w
+    return ([float(b) + offset for b in base], bar_w)
+
+
 def _stack_bottom(
     bar_idx: int,
-    bar_specs: List[BarTraceConfig],
-) -> List[float]:
+    bar_specs: list[BarTraceConfig],
+) -> list[float]:
     """Compute cumulative bottom for stacked bars."""
     n_positions = len(bar_specs[bar_idx].y) if bar_specs else 0
     bottom = [0.0] * n_positions
@@ -283,14 +319,15 @@ def _stack_bottom(
 
 def _stack_bottom_numeric(
     bar_idx: int,
-    bar_specs: List[BarTraceConfig],
-    x_positions: List[float],
-) -> List[float]:
+    bar_specs: list[BarTraceConfig],
+    x_positions: list[float],
+) -> list[float]:
     """Compute cumulative bottom for numeric-axis stacked bars."""
     bottom = [0.0] * len(x_positions)
     for prev in bar_specs[:bar_idx]:
+        prev_positions = prev.x_positions if prev.x_positions else [float(v) for v in prev.x]
         for i, xi in enumerate(x_positions):
-            for j, pxi in enumerate(prev.x_positions):
+            for j, pxi in enumerate(prev_positions):
                 if abs(xi - pxi) < 1e-6 and j < len(prev.y):
                     bottom[i] += float(prev.y[j]) if prev.y[j] is not None else 0.0
                     break

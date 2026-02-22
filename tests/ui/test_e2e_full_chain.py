@@ -10,16 +10,12 @@ Complements existing integration tests by:
 - Verifying pipeline modification → re-render cycle
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 import pandas as pd
 import plotly.graph_objects as go
 
-from tests.ui.helpers import (
-    create_app_with_data,
-    get_api,
-    navigate_to,
-)
+from tests.ui.helpers import create_app_with_data, get_api, navigate_to
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -30,7 +26,7 @@ def _create_plot_and_finalize(
     api: Any,
     name: str,
     plot_type: str,
-    pipeline_configs: List[Dict[str, Any]],
+    pipeline_configs: list[dict[str, Any]],
 ) -> Any:
     """Create a plot, apply pipeline, and set processed_data."""
     from src.core.services.shapers.factory import ShaperFactory
@@ -63,7 +59,7 @@ class TestDataTransformRenderChain:
         at = create_app_with_data()
         api: Any = get_api(at)
 
-        pipeline: List[Dict[str, Any]] = [
+        pipeline: list[dict[str, Any]] = [
             {
                 "type": "columnSelector",
                 "columns": ["benchmark_name", "system.cpu.ipc"],
@@ -77,7 +73,7 @@ class TestDataTransformRenderChain:
         ]
         plot = _create_plot_and_finalize(api, "Bar Chain", "bar", pipeline)
 
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "benchmark_name",
             "y": "system.cpu.ipc",
             "title": "IPC by Benchmark",
@@ -97,7 +93,7 @@ class TestDataTransformRenderChain:
         at = create_app_with_data()
         api: Any = get_api(at)
 
-        pipeline: List[Dict[str, Any]] = [
+        pipeline: list[dict[str, Any]] = [
             {
                 "type": "columnSelector",
                 "columns": [
@@ -116,7 +112,7 @@ class TestDataTransformRenderChain:
         ]
         plot = _create_plot_and_finalize(api, "Grouped Bar Chain", "grouped_bar", pipeline)
 
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "benchmark_name",
             "y": "system.cpu.ipc",
             "color": "config_description",
@@ -133,7 +129,7 @@ class TestDataTransformRenderChain:
         at = create_app_with_data()
         api: Any = get_api(at)
 
-        pipeline: List[Dict[str, Any]] = [
+        pipeline: list[dict[str, Any]] = [
             {
                 "type": "conditionSelector",
                 "column": "config_description",
@@ -150,7 +146,7 @@ class TestDataTransformRenderChain:
         ]
         plot = _create_plot_and_finalize(api, "Line Chain", "line", pipeline)
 
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "benchmark_name",
             "y": "system.cpu.ipc",
             "title": "IPC Baseline Line",
@@ -169,7 +165,7 @@ class TestDataTransformRenderChain:
         at = create_app_with_data()
         api: Any = get_api(at)
 
-        pipeline: List[Dict[str, Any]] = [
+        pipeline: list[dict[str, Any]] = [
             {
                 "type": "columnSelector",
                 "columns": [
@@ -180,7 +176,7 @@ class TestDataTransformRenderChain:
         ]
         plot = _create_plot_and_finalize(api, "Scatter Chain", "scatter", pipeline)
 
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "system.cpu.ipc",
             "y": "system.cpu.dcache.overall_miss_rate",
             "title": "IPC vs Miss Rate",

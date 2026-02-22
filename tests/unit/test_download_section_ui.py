@@ -42,9 +42,7 @@ class TestRenderDownloadSectionPlotly:
     @patch("src.web.pages.ui.plotting.download_section.st")
     def test_expander_created(self, mock_st: MagicMock, mock_em: MagicMock) -> None:
         """An expander labelled '📥 Download' should be created."""
-        from src.web.pages.ui.plotting.download_section import (
-            render_download_section,
-        )
+        from src.web.pages.ui.plotting.download_section import render_download_section
 
         mock_em.is_matplotlib.return_value = False
         # Make pills return None (no selection yet)
@@ -61,9 +59,7 @@ class TestRenderDownloadSectionPlotly:
     @patch("src.web.pages.ui.plotting.download_section.st")
     def test_plotly_pills_options(self, mock_st: MagicMock, mock_em: MagicMock) -> None:
         """Plotly path should show png/svg/pdf pills."""
-        from src.web.pages.ui.plotting.download_section import (
-            render_download_section,
-        )
+        from src.web.pages.ui.plotting.download_section import render_download_section
 
         mock_em.is_matplotlib.return_value = False
         ctx = MagicMock()
@@ -91,9 +87,7 @@ class TestRenderDownloadSectionPlotly:
         mock_bytes: MagicMock,
     ) -> None:
         """When a format is selected, a download button should appear."""
-        from src.web.pages.ui.plotting.download_section import (
-            render_download_section,
-        )
+        from src.web.pages.ui.plotting.download_section import render_download_section
 
         mock_em.is_matplotlib.return_value = False
         ctx = MagicMock()
@@ -114,9 +108,7 @@ class TestRenderDownloadSectionPlotly:
     @patch("src.web.pages.ui.plotting.download_section.st")
     def test_plotly_no_selection_no_download(self, mock_st: MagicMock, mock_em: MagicMock) -> None:
         """When pills returns None, no download button should appear."""
-        from src.web.pages.ui.plotting.download_section import (
-            render_download_section,
-        )
+        from src.web.pages.ui.plotting.download_section import render_download_section
 
         mock_em.is_matplotlib.return_value = False
         ctx = MagicMock()
@@ -139,9 +131,7 @@ class TestRenderDownloadSectionMatplotlib:
     @patch("src.web.pages.ui.plotting.download_section.st")
     def test_mpl_pills_options(self, mock_st: MagicMock, mock_em: MagicMock) -> None:
         """Matplotlib path should show pdf/pgf/png/svg pills."""
-        from src.web.pages.ui.plotting.download_section import (
-            render_download_section,
-        )
+        from src.web.pages.ui.plotting.download_section import render_download_section
 
         mock_em.is_matplotlib.return_value = True
         ctx = MagicMock()
@@ -160,9 +150,7 @@ class TestRenderDownloadSectionMatplotlib:
     @patch("src.web.pages.ui.plotting.download_section.st")
     def test_mpl_no_fig_shows_warning(self, mock_st: MagicMock, mock_em: MagicMock) -> None:
         """When no mpl figure is in session state, show a warning."""
-        from src.web.pages.ui.plotting.download_section import (
-            render_download_section,
-        )
+        from src.web.pages.ui.plotting.download_section import render_download_section
 
         mock_em.is_matplotlib.return_value = True
         ctx = MagicMock()
@@ -188,9 +176,7 @@ class TestRenderDownloadSectionMatplotlib:
         mock_bytes: MagicMock,
     ) -> None:
         """When format is selected, download button should appear."""
-        from src.web.pages.ui.plotting.download_section import (
-            render_download_section,
-        )
+        from src.web.pages.ui.plotting.download_section import render_download_section
 
         mock_em.is_matplotlib.return_value = True
         ctx = MagicMock()
@@ -212,9 +198,7 @@ class TestRenderDownloadSectionMatplotlib:
     @patch("src.web.pages.ui.plotting.download_section.st")
     def test_widget_keys_scoped_to_plot_id(self, mock_st: MagicMock, mock_em: MagicMock) -> None:
         """Widget keys must include plot_id to avoid collisions."""
-        from src.web.pages.ui.plotting.download_section import (
-            render_download_section,
-        )
+        from src.web.pages.ui.plotting.download_section import render_download_section
 
         mock_em.is_matplotlib.return_value = False
         ctx = MagicMock()

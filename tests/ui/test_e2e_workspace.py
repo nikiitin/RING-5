@@ -9,23 +9,19 @@ Tests workspace-level workflows that span multiple features:
 - Cross-page state consistency
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 import pandas as pd
 import plotly.graph_objects as go
 
-from tests.ui.helpers import (
-    create_app_with_data,
-    get_api,
-    navigate_to,
-)
+from tests.ui.helpers import create_app_with_data, get_api, navigate_to
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
 
-def _apply_pipeline(raw_data: pd.DataFrame, configs: List[Dict[str, Any]]) -> pd.DataFrame:
+def _apply_pipeline(raw_data: pd.DataFrame, configs: list[dict[str, Any]]) -> pd.DataFrame:
     """Apply a shaper pipeline to a DataFrame."""
     from src.core.services.shapers.factory import ShaperFactory
 
@@ -313,7 +309,7 @@ class TestFigureEngineMultiType:
         for plot_type in ["bar", "line", "scatter"]:
             plot = PlotFactory.create_plot(plot_type, 999, f"test_{plot_type}")
 
-            config: Dict[str, Any] = {
+            config: dict[str, Any] = {
                 "x": "benchmark_name",
                 "y": "system.cpu.ipc",
                 "title": f"Test {plot_type}",

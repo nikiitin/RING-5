@@ -1,26 +1,31 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
+from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.web.pages.ui.plotting.base_plot import BasePlot
 
 
 # Concrete implementation for testing abstract class
 class ConcretePlot(BasePlot):
-    def render_config_ui(self, data, saved_config):
+    def render_config_ui(self, data: Any, saved_config: Any) -> dict:
+
         return {}
 
-    def create_traces(self, data, config):
+    def create_traces(self, data: Any, config: Any) -> TraceBuildResult:
+
         from src.core.models.visualization.trace_build_result import TraceBuildResult
 
         return TraceBuildResult(traces=[])
 
-    def get_legend_column(self, config):
+    def get_legend_column(self, config: Any) -> None:
+
         return None
 
 
 @pytest.fixture
-def mock_streamlit():
+def mock_streamlit() -> None:
     with patch("src.web.pages.ui.plotting.base_plot.st") as mock_st:
         # Mock columns
         mock_st.columns.side_effect = lambda n: (
@@ -33,7 +38,8 @@ def mock_streamlit():
         yield mock_st
 
 
-def test_render_advanced_options_shapes_add(mock_streamlit):
+def test_render_advanced_options_shapes_add(mock_streamlit: Any) -> None:
+
     plot = ConcretePlot(1, "Test Plot", "scatter")
     config = {"shapes": []}
 
@@ -54,7 +60,8 @@ def test_render_advanced_options_shapes_add(mock_streamlit):
     mock_streamlit.number_input.return_value = 2
 
     # Mock specific button return for "Add Shape".
-    def button_side_effect(label, key=None, **kwargs):
+    def button_side_effect(label: Any, key: Any = None, **kwargs: Any) -> int:
+
         if key == "add_shape_1":
             return True
         return False
@@ -72,7 +79,8 @@ def test_render_advanced_options_shapes_add(mock_streamlit):
     assert shape_cfg["y0"] == 0.0
 
 
-def test_render_advanced_options_shapes_edit_delete(mock_streamlit):
+def test_render_advanced_options_shapes_edit_delete(mock_streamlit: Any) -> None:
+
     plot = ConcretePlot(1, "Test Plot", "scatter")
     config = {
         "shapes": [{"type": "line", "x0": 0, "y0": 0, "x1": 1, "y1": 1, "line": {"color": "red"}}]
@@ -85,7 +93,8 @@ def test_render_advanced_options_shapes_edit_delete(mock_streamlit):
     # We want to delete the shape.
     # key=f"del_shape_{i}_{self.plot_id}" -> "del_shape_0_1"
 
-    def button_side_effect(label, key=None, **kwargs):
+    def button_side_effect(label: Any, key: Any = None, **kwargs: Any) -> int:
+
         if key == "del_shape_0_1":
             return True
         return False
@@ -117,7 +126,8 @@ def test_render_advanced_options_shapes_edit_delete(mock_streamlit):
     assert len(config["shapes"]) == 0
 
 
-def test_render_reorderable_list(mock_streamlit):
+def test_render_reorderable_list(mock_streamlit: Any) -> None:
+
     plot = ConcretePlot(1, "Test Plot", "bar")
     items = ["A", "B", "C"]
 
@@ -129,7 +139,8 @@ def test_render_reorderable_list(mock_streamlit):
     # Second render: Trigger Move Down on A (index 0)
     # key=f"{key_prefix}_down_{i}_{self.plot_id}" -> "test_down_0_1"
 
-    def button_side_effect(label, key=None, **kwargs):
+    def button_side_effect(label: Any, key: Any = None, **kwargs: Any) -> int:
+
         if key == "test_down_0_1":
             return True
         return False

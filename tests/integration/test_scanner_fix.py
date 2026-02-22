@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -11,7 +12,7 @@ from tests.conftest import columns_side_effect
 
 class TestScannerFix:
     @pytest.fixture
-    def mock_api(self):
+    def mock_api(self) -> Any:
         """Mock the ApplicationAPI."""
         api = MagicMock(spec=ApplicationAPI)
         api.state_manager = MagicMock()
@@ -20,7 +21,7 @@ class TestScannerFix:
         return api
 
     @pytest.fixture
-    def mock_streamlit(self):
+    def mock_streamlit(self) -> None:
         """Mock streamlit in all relevant modules."""
         with (
             patch("src.web.pages.ui.components.data_source_components.st") as mock_st_ds,
@@ -38,7 +39,7 @@ class TestScannerFix:
 
             yield {"ds": mock_st_ds, "ve": mock_st_ve}
 
-    def test_render_csv_pool_calls_api_directly(self, mock_api, mock_streamlit):
+    def test_render_csv_pool_calls_api_directly(self, mock_api: Any, mock_streamlit: Any) -> None:
         """Test that render_csv_pool calls api.load_csv_pool, not api.backend.load_csv_pool"""
         # Setup
         mock_api.load_csv_pool.return_value = []
@@ -52,7 +53,9 @@ class TestScannerFix:
         # Verify
         mock_api.load_csv_pool.assert_called_once()
 
-    def test_render_parser_config_calls_api_directly(self, mock_api, mock_streamlit):
+    def test_render_parser_config_calls_api_directly(
+        self, mock_api: Any, mock_streamlit: Any
+    ) -> None:
         """Test that scanner calls api.submit_scan_async, not api.backend..."""
         # Setup
         mock_api.state_manager.get_stats_path.return_value = "/tmp"
@@ -84,7 +87,9 @@ class TestScannerFix:
         mock_api.submit_scan_async.assert_called_once()
         mock_api.finalize_scan.assert_called_once()
 
-    def test_variable_editor_deep_scan_calls_api_directly(self, mock_api, mock_streamlit):
+    def test_variable_editor_deep_scan_calls_api_directly(
+        self, mock_api: Any, mock_streamlit: Any
+    ) -> None:
         """Test that VariableEditor deep scan calls api.submit_scan_async"""
         # Setup
         variables = [{"name": "test_var", "type": "vector", "_id": "123"}]
@@ -118,7 +123,9 @@ class TestScannerFix:
         # Verify call to api.submit_scan_async (NOT backend)
         mock_api.submit_scan_async.assert_called()
 
-    def test_parser_dialog_calls_finalize_parsing_correctly(self, mock_api, mock_streamlit):
+    def test_parser_dialog_calls_finalize_parsing_correctly(
+        self, mock_api: Any, mock_streamlit: Any
+    ) -> None:
         """Test that _show_parse_dialog calls finalize_parsing with
         correct keyword arg 'strategy_type'.
         """

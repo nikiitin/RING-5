@@ -5,9 +5,12 @@ Defines the contract for pipeline CRUD (save/load/list/delete) and
 execution of shaper transformation chains.
 """
 
-from typing import Any, Dict, List, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 import pandas as pd
+
+from src.core.models.data_models import PipelineData, PipelineStep, ShaperStepConfig
+from src.core.services.shapers.shaper import Shaper
 
 
 @runtime_checkable
@@ -18,18 +21,18 @@ class ShapersAPI(Protocol):
     shaper transformation chains.
     """
 
-    def list_pipelines(self) -> List[str]:
+    def list_pipelines(self) -> list[str]:
         """List all available saved pipelines."""
 
     def save_pipeline(
         self,
         name: str,
-        pipeline_config: List[Dict[str, Any]],
+        pipeline_config: list[PipelineStep],
         description: str = "",
     ) -> None:
         """Save a pipeline configuration to disk."""
 
-    def load_pipeline(self, name: str) -> Dict[str, Any]:
+    def load_pipeline(self, name: str) -> PipelineData:
         """Load a pipeline configuration by name."""
 
     def delete_pipeline(self, name: str) -> None:
@@ -38,16 +41,16 @@ class ShapersAPI(Protocol):
     def process_pipeline(
         self,
         data: pd.DataFrame,
-        pipeline_config: List[Dict[str, Any]],
+        pipeline_config: list[ShaperStepConfig],
     ) -> pd.DataFrame:
         """Apply a sequence of shapers to a DataFrame."""
 
     def create_shaper(
         self,
         shaper_type: str,
-        params: Dict[str, Any],
-    ) -> Any:
+        params: ShaperStepConfig,
+    ) -> Shaper:
         """Create a shaper instance from type and parameters."""
 
-    def get_available_shaper_types(self) -> List[str]:
+    def get_available_shaper_types(self) -> list[str]:
         """Return all registered shaper type identifiers."""

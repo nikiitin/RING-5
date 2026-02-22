@@ -21,7 +21,7 @@ Architecture Note — Streamlit usage:
 
 import copy
 import logging
-from typing import Optional
+from typing import cast
 
 import streamlit as st
 
@@ -30,6 +30,7 @@ from src.web.models.plot_protocols import (
     PlotHandle,
     PlotLifecycleService,
     PlotTypeRegistry,
+    RenderablePlot,
 )
 from src.web.presenters.plot.controls_presenter import PlotControlsPresenter
 from src.web.presenters.plot.creation_presenter import PlotCreationPresenter
@@ -94,7 +95,7 @@ class PlotCreationController:
             )
             st.rerun()
 
-    def render_selector(self) -> Optional[PlotHandle]:
+    def render_selector(self) -> RenderablePlot | None:
         """
         Render plot selector and return the currently selected plot.
 
@@ -107,7 +108,7 @@ class PlotCreationController:
             return None
 
         plot_names: list[str] = [p.name for p in plots]
-        current_id: Optional[int] = self._api.state_manager.get_current_plot_id()
+        current_id: int | None = self._api.state_manager.get_current_plot_id()
         default_index: int = 0
 
         if current_id is not None:
@@ -118,7 +119,10 @@ class PlotCreationController:
 
         selected_name: str = PlotSelectorPresenter.render(plot_names, default_index=default_index)
 
-        selected_plot: PlotHandle = next((p for p in plots if p.name == selected_name), plots[0])
+        # BasePlot satisfies RenderablePlot
+        selected_plot: RenderablePlot = cast(
+            RenderablePlot, next((p for p in plots if p.name == selected_name), plots[0])
+        )
         if selected_plot.plot_id != current_id:
             self._api.state_manager.set_current_plot_id(selected_plot.plot_id)
 

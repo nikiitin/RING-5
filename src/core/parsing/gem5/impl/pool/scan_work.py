@@ -8,6 +8,7 @@ of scalar, vector, and other statistics.
 
 from typing import Any
 
+from src.core.models import ScannedVariable
 from src.core.parsing.gem5.impl.pool.job import Job
 
 
@@ -20,7 +21,7 @@ class ScanWork(Job):
     def __init__(self, **kwargs: Any) -> None:
         pass
 
-    def __call__(self) -> Any:
+    def __call__(self) -> list[ScannedVariable]:
         raise NotImplementedError("This method must be implemented by the child class")
 
     def __str__(self) -> str:

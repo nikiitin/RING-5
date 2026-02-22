@@ -2,6 +2,7 @@
 
 from concurrent.futures import as_completed
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -11,7 +12,7 @@ from src.core.application_api import ApplicationAPI
 class TestScannerFunctional:
 
     @pytest.fixture
-    def test_data_path(self):
+    def test_data_path(self) -> str:
         """Path to the test data directory."""
         candidates = [
             Path("tests/data/results-micro26-sens"),
@@ -23,7 +24,7 @@ class TestScannerFunctional:
         pytest.skip("Test data not found")
         return None  # Unreachable, but makes return type explicit
 
-    def test_scan_real_stats(self, test_data_path):
+    def test_scan_real_stats(self, test_data_path: Any) -> None:
         """
         Test scanning actual gem5 stats files using valid futures.
         """

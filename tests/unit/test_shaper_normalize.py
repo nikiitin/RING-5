@@ -1,12 +1,15 @@
+from typing import Any
+
 import numpy as np
 import pandas as pd
 import pytest
+from pandas import DataFrame
 
 from src.core.services.shapers.impl.normalize import Normalize
 
 
 @pytest.fixture
-def base_data():
+def base_data() -> DataFrame:
     return pd.DataFrame(
         {
             "config": ["baseline", "test", "baseline", "test"],
@@ -18,7 +21,7 @@ def base_data():
     )
 
 
-def test_init_validation():
+def test_init_validation() -> None:
     # Missing required params
     # Now handled in Normalize._verify_params and raised in BaseShaper constructor
     with pytest.raises(ValueError, match="Missing required parameter 'normalizeVars'"):
@@ -40,7 +43,8 @@ def test_init_validation():
     assert n._normalizer_vars == ["metric"]
 
 
-def test_verify_preconditions_missing_col(base_data):
+def test_verify_preconditions_missing_col(base_data: Any) -> None:
+
     n = Normalize(
         {
             "normalizeVars": ["missing"],
@@ -53,7 +57,8 @@ def test_verify_preconditions_missing_col(base_data):
         n._verify_preconditions(base_data)
 
 
-def test_verify_preconditions_non_numeric(base_data):
+def test_verify_preconditions_non_numeric(base_data: Any) -> None:
+
     n = Normalize(
         {
             "normalizeVars": ["other"],  # non-numeric
@@ -66,7 +71,7 @@ def test_verify_preconditions_non_numeric(base_data):
         n._verify_preconditions(base_data)
 
 
-def test_verify_preconditions_multiple_normalizers():
+def test_verify_preconditions_multiple_normalizers() -> None:
     df = pd.DataFrame(
         {
             "config": ["baseline", "baseline", "test"],
@@ -86,7 +91,8 @@ def test_verify_preconditions_multiple_normalizers():
         n._verify_preconditions(df)
 
 
-def test_normalization_logic(base_data):
+def test_normalization_logic(base_data: Any) -> None:
+
     n = Normalize(
         {
             "normalizeVars": ["metric"],
@@ -116,7 +122,8 @@ def test_normalization_logic(base_data):
     assert b2[b2["config"] == "test"]["metric"].iloc[0] == 0.5
 
 
-def test_normalization_sd(base_data):
+def test_normalization_sd(base_data: Any) -> None:
+
     n = Normalize(
         {
             "normalizeVars": ["metric"],
@@ -142,7 +149,7 @@ def test_normalization_sd(base_data):
     np.testing.assert_almost_equal(b1[b1["config"] == "test"]["metric.sd"].iloc[0], 0.2)
 
 
-def test_zero_division():
+def test_zero_division() -> None:
     df = pd.DataFrame(
         {
             "config": ["baseline", "test"],
@@ -167,7 +174,7 @@ def test_zero_division():
     assert result["metric"].iloc[1] == 0.0
 
 
-def test_different_normalizer_vars():
+def test_different_normalizer_vars() -> None:
     # Use 'norm_base' col to normalize 'metric' col
     df = pd.DataFrame(
         {

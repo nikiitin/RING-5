@@ -1,5 +1,6 @@
 """Tests for portfolio page — 57% → 90%+ coverage."""
 
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -197,7 +198,8 @@ class TestShowPortfolioPage:
         mock_st.fragment.side_effect = lambda func: func
         mock_st.columns.side_effect = _columns_side_effect
 
-        def button_side_effect(label, on_click=None, **kwargs):
+        def button_side_effect(label: Any, on_click: Any = None, **kwargs: Any) -> int:
+
             if on_click:
                 on_click()
             return True

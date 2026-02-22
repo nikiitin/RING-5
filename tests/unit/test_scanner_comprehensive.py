@@ -11,6 +11,7 @@ Following Rule 004 (QA Testing Mastery):
 import json
 import subprocess
 from pathlib import Path
+from typing import Any
 from unittest.mock import Mock
 
 import pytest
@@ -20,23 +21,24 @@ from src.core.parsing.gem5.impl.scanning.scanner import Gem5StatsScanner
 
 
 @pytest.fixture
-def mock_perl_available(monkeypatch):
+def mock_perl_available(monkeypatch: Any) -> None:
     """Mock Perl as available in PATH."""
     monkeypatch.setattr("shutil.which", lambda x: "/usr/bin/perl" if x == "perl" else None)
 
 
 @pytest.fixture
-def mock_scanner_script_exists(monkeypatch):
+def mock_scanner_script_exists(monkeypatch: Any) -> None:
     """Mock scanner script as existing."""
 
-    def mock_exists(self):
+    def mock_exists(self) -> int:
+
         return True
 
     monkeypatch.setattr(Path, "exists", mock_exists)
 
 
 @pytest.fixture
-def clean_scanner():
+def clean_scanner() -> None:
     """Reset scanner singleton before each test."""
     Gem5StatsScanner._instance = None
     yield
@@ -46,7 +48,8 @@ def clean_scanner():
 class TestScannerInitialization:
     """Test Gem5StatsScanner initialization."""
 
-    def test_init_without_perl_raises(self, monkeypatch, clean_scanner):
+    def test_init_without_perl_raises(self, monkeypatch: Any, clean_scanner: Any) -> None:
+
         # Arrange - Perl not available
         monkeypatch.setattr("shutil.which", lambda x: None)
 
@@ -56,9 +59,10 @@ class TestScannerInitialization:
 
     def test_init_without_scanner_script_raises(
         self, mock_perl_available, monkeypatch, clean_scanner
-    ):
+    ) -> None:
         # Arrange - Script missing
-        def mock_exists(self):
+        def mock_exists(self) -> int:
+
             return False
 
         monkeypatch.setattr(Path, "exists", mock_exists)
@@ -69,7 +73,7 @@ class TestScannerInitialization:
 
     def test_init_with_valid_environment(
         self, mock_perl_available, mock_scanner_script_exists, clean_scanner
-    ):
+    ) -> None:
         # Arrange & Act
         scanner = Gem5StatsScanner()
 
@@ -79,7 +83,7 @@ class TestScannerInitialization:
 
     def test_get_instance_returns_singleton(
         self, mock_perl_available, mock_scanner_script_exists, clean_scanner
-    ):
+    ) -> None:
         # Arrange & Act
         scanner1 = Gem5StatsScanner.get_instance()
         scanner2 = Gem5StatsScanner.get_instance()
@@ -89,7 +93,7 @@ class TestScannerInitialization:
 
     def test_get_instance_creates_on_first_call(
         self, mock_perl_available, mock_scanner_script_exists, clean_scanner
-    ):
+    ) -> None:
         # Arrange
         assert Gem5StatsScanner._instance is None
 
@@ -102,7 +106,7 @@ class TestScannerInitialization:
 
     def test_script_path_resolution(
         self, mock_perl_available, mock_scanner_script_exists, clean_scanner
-    ):
+    ) -> None:
         # Arrange & Act
         scanner = Gem5StatsScanner()
 
@@ -115,12 +119,15 @@ class TestScanFileScanFile:
     """Test Gem5StatsScanner.scan_file method."""
 
     @pytest.fixture
-    def scanner(self, mock_perl_available, clean_scanner, monkeypatch):
+    def scanner(
+        self, mock_perl_available: Any, clean_scanner: Any, monkeypatch: Any
+    ) -> Gem5StatsScanner:
         """Create a scanner instance with selective path mocking."""
         # Only mock the scanner script to exist, not all paths
         original_exists = Path.exists
 
-        def selective_exists(self):
+        def selective_exists(self) -> bool:
+
             if "statsScanner.pl" in str(self):
                 return True
             return original_exists(self)
@@ -128,7 +135,8 @@ class TestScanFileScanFile:
         monkeypatch.setattr(Path, "exists", selective_exists)
         return Gem5StatsScanner()
 
-    def test_scan_file_with_missing_file_raises(self, scanner, tmp_path):
+    def test_scan_file_with_missing_file_raises(self, scanner: Any, tmp_path: Any) -> None:
+
         # Arrange
         missing_file = tmp_path / "nonexistent.txt"
         # Real file doesn't exist, Python-level check should catch it
@@ -137,7 +145,10 @@ class TestScanFileScanFile:
         with pytest.raises(FileNotFoundError, match="File not found"):
             scanner.scan_file(missing_file)
 
-    def test_scan_file_calls_perl_subprocess(self, scanner, tmp_path, monkeypatch):
+    def test_scan_file_calls_perl_subprocess(
+        self, scanner: Any, tmp_path: Any, monkeypatch: Any
+    ) -> None:
+
         # Arrange
         test_file = tmp_path / "stats.txt"
         test_file.write_text("dummy")
@@ -155,7 +166,10 @@ class TestScanFileScanFile:
         assert "statsScanner.pl" in args[1]
         assert str(test_file) in args[2]
 
-    def test_scan_file_returns_scanned_variables(self, scanner, tmp_path, monkeypatch):
+    def test_scan_file_returns_scanned_variables(
+        self, scanner: Any, tmp_path: Any, monkeypatch: Any
+    ) -> None:
+
         # Arrange
         test_file = tmp_path / "stats.txt"
         test_file.write_text("dummy")
@@ -176,7 +190,10 @@ class TestScanFileScanFile:
         assert len(result) == 2
         assert all(isinstance(v, ScannedVariable) for v in result)
 
-    def test_scan_file_with_config_vars(self, scanner, tmp_path, monkeypatch):
+    def test_scan_file_with_config_vars(
+        self, scanner: Any, tmp_path: Any, monkeypatch: Any
+    ) -> None:
+
         # Arrange
         test_file = tmp_path / "stats.txt"
         test_file.write_text("dummy")
@@ -191,7 +208,10 @@ class TestScanFileScanFile:
         args = mock_run.call_args[0][0]
         assert "benchmark,seed" in args
 
-    def test_scan_file_with_empty_output(self, scanner, tmp_path, monkeypatch):
+    def test_scan_file_with_empty_output(
+        self, scanner: Any, tmp_path: Any, monkeypatch: Any
+    ) -> None:
+
         # Arrange
         test_file = tmp_path / "stats.txt"
         test_file.write_text("dummy")
@@ -205,7 +225,10 @@ class TestScanFileScanFile:
         # Assert
         assert result == []
 
-    def test_scan_file_with_whitespace_only_output(self, scanner, tmp_path, monkeypatch):
+    def test_scan_file_with_whitespace_only_output(
+        self, scanner: Any, tmp_path: Any, monkeypatch: Any
+    ) -> None:
+
         # Arrange
         test_file = tmp_path / "stats.txt"
         test_file.write_text("dummy")
@@ -219,7 +242,10 @@ class TestScanFileScanFile:
         # Assert
         assert result == []
 
-    def test_scan_file_with_timeout_raises(self, scanner, tmp_path, monkeypatch):
+    def test_scan_file_with_timeout_raises(
+        self, scanner: Any, tmp_path: Any, monkeypatch: Any
+    ) -> None:
+
         # Arrange
         test_file = tmp_path / "stats.txt"
         test_file.write_text("dummy")
@@ -231,7 +257,10 @@ class TestScanFileScanFile:
         with pytest.raises(RuntimeError, match="timed out"):
             scanner.scan_file(test_file)
 
-    def test_scan_file_with_perl_error_raises(self, scanner, tmp_path, monkeypatch):
+    def test_scan_file_with_perl_error_raises(
+        self, scanner: Any, tmp_path: Any, monkeypatch: Any
+    ) -> None:
+
         # Arrange
         test_file = tmp_path / "stats.txt"
         test_file.write_text("dummy")
@@ -243,7 +272,10 @@ class TestScanFileScanFile:
         with pytest.raises(RuntimeError, match="Perl scanner failed"):
             scanner.scan_file(test_file)
 
-    def test_scan_file_with_invalid_json_raises(self, scanner, tmp_path, monkeypatch):
+    def test_scan_file_with_invalid_json_raises(
+        self, scanner: Any, tmp_path: Any, monkeypatch: Any
+    ) -> None:
+
         # Arrange
         test_file = tmp_path / "stats.txt"
         test_file.write_text("dummy")
@@ -255,7 +287,10 @@ class TestScanFileScanFile:
         with pytest.raises(RuntimeError, match="corrupt JSON"):
             scanner.scan_file(test_file)
 
-    def test_scan_file_enforces_shell_false(self, scanner, tmp_path, monkeypatch):
+    def test_scan_file_enforces_shell_false(
+        self, scanner: Any, tmp_path: Any, monkeypatch: Any
+    ) -> None:
+
         # Arrange
         test_file = tmp_path / "stats.txt"
         test_file.write_text("dummy")
@@ -269,7 +304,10 @@ class TestScanFileScanFile:
         # Assert
         assert mock_run.call_args[1]["shell"] is False
 
-    def test_scan_file_enforces_timeout(self, scanner, tmp_path, monkeypatch):
+    def test_scan_file_enforces_timeout(
+        self, scanner: Any, tmp_path: Any, monkeypatch: Any
+    ) -> None:
+
         # Arrange
         test_file = tmp_path / "stats.txt"
         test_file.write_text("dummy")

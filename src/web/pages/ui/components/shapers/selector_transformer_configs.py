@@ -5,17 +5,17 @@ Provides Streamlit components for configuring data selection and filtering shape
 column selection, conditional filtering, and item-based selection.
 """
 
-from typing import Any, Dict
-
 import pandas as pd
 import streamlit as st
+
+from src.core.models.data_models import ShaperStepConfig
 
 
 class ColumnSelectorConfig:
     @staticmethod
     def render(
-        data: pd.DataFrame, existing_config: Dict[str, Any], key_prefix: str, shaper_id: str
-    ) -> Dict[str, Any]:
+        data: pd.DataFrame, existing_config: ShaperStepConfig, key_prefix: str, shaper_id: int
+    ) -> ShaperStepConfig:
         st.markdown("Select which columns to keep")
         default_cols = [c for c in existing_config.get("columns", []) if c in data.columns]
         if not default_cols and not data.columns.empty:
@@ -33,8 +33,8 @@ class ColumnSelectorConfig:
 class ConditionSelectorConfig:
     @staticmethod
     def render(
-        data: pd.DataFrame, existing_config: Dict[str, Any], key_prefix: str, shaper_id: str
-    ) -> Dict[str, Any]:
+        data: pd.DataFrame, existing_config: ShaperStepConfig, key_prefix: str, shaper_id: int
+    ) -> ShaperStepConfig:
         categorical_cols = data.select_dtypes(
             include=["object", "string", "category"]
         ).columns.tolist()
@@ -121,8 +121,8 @@ class ConditionSelectorConfig:
 class TransformerConfig:
     @staticmethod
     def render(
-        data: pd.DataFrame, existing_config: Dict[str, Any], key_prefix: str, shaper_id: str
-    ) -> Dict[str, Any]:
+        data: pd.DataFrame, existing_config: ShaperStepConfig, key_prefix: str, shaper_id: int
+    ) -> ShaperStepConfig:
         col1, col2 = st.columns(2)
         with col1:
             target_col = st.selectbox(
@@ -149,7 +149,7 @@ class TransformerConfig:
             if is_factor and target_col in data.columns:
                 unique_vals = sorted([str(x) for x in data[target_col].unique()])
                 default_order = [
-                    v for v in existing_config.get("order", []) if v in unique_vals
+                    v for v in (existing_config.get("order") or []) if v in unique_vals
                 ] or unique_vals
                 order_list = st.multiselect(
                     "Define Factor Order",

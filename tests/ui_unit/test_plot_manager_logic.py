@@ -1,8 +1,10 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
 
+from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.web.pages.ui.components.plot_manager_components import PlotManagerComponents
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from tests.conftest import columns_side_effect
@@ -10,7 +12,7 @@ from tests.conftest import columns_side_effect
 
 # Mock streamlit
 @pytest.fixture
-def mock_streamlit():
+def mock_streamlit() -> None:
     with patch("src.web.pages.ui.components.plot_manager_components.st") as mock_st:
         # Mock session state as a dict
         mock_st.session_state = {}
@@ -20,31 +22,36 @@ def mock_streamlit():
 
 
 @pytest.fixture
-def mock_plot_service():
+def mock_plot_service() -> None:
     with patch("src.web.pages.ui.components.plot_manager_components.PlotService") as mock_ps:
         yield mock_ps
 
 
 @pytest.fixture
-def mock_plot_factory():
+def mock_plot_factory() -> None:
     with patch("src.web.pages.ui.components.plot_manager_components.PlotFactory") as mock_pf:
         yield mock_pf
 
 
 class DummyPlot(BasePlot):
-    def render_config_ui(self, data, saved_config):
+    def render_config_ui(self, data: Any, saved_config: Any) -> dict:
+
         return {}
 
-    def create_traces(self, data, config):
+    def create_traces(self, data: Any, config: Any) -> TraceBuildResult:
+
         from src.core.models.visualization.trace_build_result import TraceBuildResult
 
         return TraceBuildResult(traces=[])
 
-    def get_legend_column(self, config):
+    def get_legend_column(self, config: Any) -> None:
+
         return None
 
 
-def test_render_create_plot_section(mock_streamlit, mock_plot_service, mock_api, mock_plot_factory):
+def test_render_create_plot_section(
+    mock_streamlit: Any, mock_plot_service: Any, mock_api: Any, mock_plot_factory: Any
+) -> None:
     """Test creating a new plot via UI."""
 
     # Setup Mocks
@@ -66,7 +73,9 @@ def test_render_create_plot_section(mock_streamlit, mock_plot_service, mock_api,
     mock_streamlit.rerun.assert_called_once()
 
 
-def test_render_plot_controls_rename(mock_streamlit, mock_api, mock_plot_service):
+def test_render_plot_controls_rename(
+    mock_streamlit: Any, mock_api: Any, mock_plot_service: Any
+) -> None:
     """Test renaming a plot."""
     plot = DummyPlot(1, "Old Name", "bar")
 
@@ -80,7 +89,9 @@ def test_render_plot_controls_rename(mock_streamlit, mock_api, mock_plot_service
     assert plot.name == "New Name"
 
 
-def test_render_plot_controls_delete(mock_streamlit, mock_api, mock_plot_service):
+def test_render_plot_controls_delete(
+    mock_streamlit: Any, mock_api: Any, mock_plot_service: Any
+) -> None:
     """Test deleting a plot."""
     plot = DummyPlot(1, "To Delete", "bar")
 
@@ -89,7 +100,8 @@ def test_render_plot_controls_delete(mock_streamlit, mock_api, mock_plot_service
     mock_streamlit.columns.return_value = cols
     mock_streamlit.text_input.return_value = "To Delete"
 
-    def button_side_effect(label, key=None, on_click=None, **kwargs):
+    def button_side_effect(label: Any, key: Any = None, on_click: Any = None, **kwargs: Any) -> int:
+
         if key == f"delete_plot_{plot.plot_id}":
             if on_click:
                 on_click()
@@ -103,7 +115,7 @@ def test_render_plot_controls_delete(mock_streamlit, mock_api, mock_plot_service
     mock_plot_service.delete_plot.assert_called_once_with(1, mock_api.state_manager)
 
 
-def test_pipeline_editor_add_shaper(mock_streamlit, mock_api):
+def test_pipeline_editor_add_shaper(mock_streamlit: Any, mock_api: Any) -> None:
     """Test adding a shaper to the pipeline."""
     plot = DummyPlot(1, "Pipe Plot", "bar")
 
@@ -114,7 +126,8 @@ def test_pipeline_editor_add_shaper(mock_streamlit, mock_api):
     mock_streamlit.columns.return_value = [MagicMock(), MagicMock()]
     mock_streamlit.selectbox.return_value = "Sort"  # Selected Shaper
 
-    def button_side_effect(label=None, key=None, **kwargs):
+    def button_side_effect(label: Any = None, key: Any = None, **kwargs: Any) -> int:
+
         if key == f"add_shaper_btn_{plot.plot_id}":
             return True
         return False

@@ -13,12 +13,12 @@ Features:
 import logging
 import queue
 import shutil
-import subprocess  # nosec B404 - Required for persistent Perl worker processes
+import subprocess
 import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ class PerlWorker:
         self.worker_id = worker_id
         self.script_path = script_path
         self.perl_exe = perl_exe
-        self.process: Optional[subprocess.Popen[str]] = None
+        self.process: subprocess.Popen[str] | None = None
         self.is_healthy = False
         self.requests_served = 0
         self.errors_encountered = 0
@@ -72,7 +72,7 @@ class PerlWorker:
             logger.info(f"[Worker-{self.worker_id}] Starting Perl worker process...")
 
             # Start Perl server with full executable path
-            self.process = subprocess.Popen(  # nosec B603 - Validated paths, no shell
+            self.process = subprocess.Popen(
                 [self.perl_exe, self.script_path],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
@@ -144,8 +144,8 @@ class PerlWorker:
         return result[0] if result else ""
 
     def parse_file(
-        self, file_path: str, variables: List[str], timeout: float = 120.0
-    ) -> Tuple[List[str], bool]:
+        self, file_path: str, variables: list[str], timeout: float = 120.0
+    ) -> tuple[list[str], bool]:
         """
         Parse a file using this worker.
 
@@ -346,12 +346,12 @@ class PerlWorkerPool:
             pool_size: Number of worker processes to maintain
         """
         self.pool_size = pool_size
-        self.workers: List[PerlWorker] = []
+        self.workers: list[PerlWorker] = []
         self.worker_queue: queue.Queue[PerlWorker] = queue.Queue()
         self._lock = threading.Lock()
         self._shutdown = False
         self._health_check_interval = 30.0  # seconds
-        self._health_monitor_thread: Optional[threading.Thread] = None
+        self._health_monitor_thread: threading.Thread | None = None
 
         # Locate Perl executable (full path for security)
         perl_exe_path = shutil.which("perl")
@@ -422,7 +422,7 @@ class PerlWorkerPool:
                     else:
                         logger.error(f"Worker-{worker.worker_id} restart failed!")
 
-    def parse_file(self, file_path: str, variables: List[str], timeout: float = 120.0) -> List[str]:
+    def parse_file(self, file_path: str, variables: list[str], timeout: float = 120.0) -> list[str]:
         """
         Parse a file using the worker pool.
 
@@ -473,7 +473,7 @@ class PerlWorkerPool:
         logger.error("CRITICAL: All workers failed to parse file!")
         raise RuntimeError("All workers failed")
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get pool statistics."""
         with self._lock:
             return {
@@ -500,7 +500,7 @@ class PerlWorkerPool:
 
 
 # Singleton instance
-_worker_pool_instance: Optional[PerlWorkerPool] = None
+_worker_pool_instance: PerlWorkerPool | None = None
 _pool_lock = threading.Lock()
 
 

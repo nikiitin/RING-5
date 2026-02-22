@@ -1,4 +1,5 @@
 import io
+from typing import Any
 from unittest.mock import patch
 
 import pandas as pd
@@ -11,7 +12,8 @@ from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
 # Fixture to mock the portfolios directory
 @pytest.fixture
-def mock_portfolios_dir(tmp_path):
+def mock_portfolios_dir(tmp_path: Any) -> None:
+
     # Create a temporary directory for portfolios
     portfolios_dir = tmp_path / "portfolios"
     portfolios_dir.mkdir()
@@ -25,25 +27,27 @@ def mock_portfolios_dir(tmp_path):
 
 
 @pytest.fixture
-def mock_session_state():
+def mock_session_state() -> None:
     """Mock streamlit.session_state as a dictionary."""
     with patch("streamlit.session_state", new_callable=dict) as mock_state:
         yield mock_state
 
 
 @pytest.fixture
-def state_manager(mock_session_state):
+def state_manager(mock_session_state: Any) -> RepositoryStateManager:
     """Initialize RepositoryStateManager with mocked session state."""
     return RepositoryStateManager()
 
 
 @pytest.fixture
-def portfolio_service(state_manager, mock_portfolios_dir):
+def portfolio_service(state_manager: Any, mock_portfolios_dir: Any) -> PortfolioService:
     """Create PortfolioService instance."""
     return PortfolioService(state_manager)
 
 
-def test_save_and_load_portfolio(portfolio_service, tmp_path, mock_portfolios_dir, state_manager):
+def test_save_and_load_portfolio(
+    portfolio_service: Any, tmp_path: Any, mock_portfolios_dir: Any, state_manager: Any
+) -> None:
     """Test saving a portfolio and then loading it back to verify data integrity."""
 
     # 1. Setup Test Data
@@ -102,7 +106,7 @@ def test_save_and_load_portfolio(portfolio_service, tmp_path, mock_portfolios_di
     assert loaded_plot["config"] == plot_config
 
 
-def test_list_portfolios(portfolio_service, mock_portfolios_dir):
+def test_list_portfolios(portfolio_service: Any, mock_portfolios_dir: Any) -> None:
     """Test listing available portfolios."""
     # Create two dummy portfolio files
     (mock_portfolios_dir / "p1.json").touch()
@@ -113,7 +117,7 @@ def test_list_portfolios(portfolio_service, mock_portfolios_dir):
     assert set(portfolios) == {"p1", "p2"}
 
 
-def test_delete_portfolio(portfolio_service, mock_portfolios_dir):
+def test_delete_portfolio(portfolio_service: Any, mock_portfolios_dir: Any) -> None:
     """Test deleting a portfolio."""
     # Create a dummy portfolio file
     p_path = mock_portfolios_dir / "to_delete.json"
@@ -124,13 +128,13 @@ def test_delete_portfolio(portfolio_service, mock_portfolios_dir):
     assert not p_path.exists()
 
 
-def test_save_portfolio_empty_name(portfolio_service):
+def test_save_portfolio_empty_name(portfolio_service: Any) -> None:
     """Test error handling for empty name."""
     with pytest.raises(ValueError, match="Portfolio name cannot be empty"):
         portfolio_service.save_portfolio("", pd.DataFrame(), [], {}, 0)
 
 
-def test_load_nonexistent_portfolio(portfolio_service):
+def test_load_nonexistent_portfolio(portfolio_service: Any) -> None:
     """Test error handling for loading missing portfolio."""
     with pytest.raises(FileNotFoundError):
         portfolio_service.load_portfolio("ghost")

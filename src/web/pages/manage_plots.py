@@ -8,7 +8,8 @@ Composes controllers that each handle a single concern:
     PlotRenderController — config + figure generation + display
 
 The page itself is pure wiring. All logic lives in controllers.
-All rendering lives in presenters. All state access goes through UIStateManager.
+All rendering lives in presenters. All state access goes through
+UIStateManager.
 
 Dependency Injection:
     This page creates adapter instances that wrap old ``pages.ui.plotting.*``
@@ -22,15 +23,22 @@ from src.core.application_api import ApplicationAPI
 from src.web.controllers.plot.creation_controller import PlotCreationController
 from src.web.controllers.plot.pipeline_controller import PipelineController
 from src.web.controllers.plot.render_controller import PlotRenderController
+from src.web.models.plot_protocols import PlotHandle, RenderablePlot
 from src.web.pages.plot_adapters import (
     PipelineExecutorAdapter,
     PlotLifecycleAdapter,
     PlotTypeRegistryAdapter,
 )
-from src.web.pages.ui.components.plot_manager_components import (
-    PlotManagerComponents,
-)
+from src.web.pages.ui.components.plot_manager_components import PlotManagerComponents
 from src.web.state.ui_state_manager import UIStateManager
+
+
+def _pipeline_fragment(pipeline: PipelineController, current_plot: PlotHandle) -> None:
+    pipeline.render(current_plot)
+
+
+def _render_fragment(render: PlotRenderController, current_plot: RenderablePlot) -> None:
+    render.render(current_plot)
 
 
 def show_manage_plots_page(api: ApplicationAPI) -> None:
@@ -86,19 +94,11 @@ def show_manage_plots_page(api: ApplicationAPI) -> None:
         creation.render_controls(current_plot)
         st.markdown("---")
 
-        # 4. Pipeline Editor (fragmented — widget interactions only rerun this section)
-        @st.fragment
-        def _pipeline_fragment() -> None:
-            pipeline.render(current_plot)
+        # 4. Pipeline Editor (fragmented)
+        st.fragment(_pipeline_fragment)(pipeline, current_plot)
 
-        _pipeline_fragment()
-
-        # 5. Visualization (fragmented — config widgets only rerun this section)
-        @st.fragment
-        def _render_fragment() -> None:
-            render.render(current_plot)  # type: ignore[arg-type]
-
-        _render_fragment()
+        # 5. Visualization (fragmented)
+        st.fragment(_render_fragment)(render, current_plot)
 
     # 6. Workspace Management (export all, etc.)
     PlotManagerComponents.render_workspace_management(api)

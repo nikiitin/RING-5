@@ -6,7 +6,7 @@ Tests cover:
 - Config propagation (enabled/disabled states)
 """
 
-from typing import Any, Dict
+from typing import Any
 
 import plotly.graph_objects as go
 import pytest
@@ -17,7 +17,7 @@ import pytest
 
 
 @pytest.fixture
-def base_config() -> Dict[str, Any]:
+def base_config() -> dict[str, Any]:
     """Minimal config with reference line enabled."""
     return {
         "reference_line_enabled": True,
@@ -46,12 +46,10 @@ class TestPlotlyReferenceLine:
     """Tests for reference line rendering in Plotly figures."""
 
     def test_hline_added_when_enabled(
-        self, simple_figure: go.Figure, base_config: Dict[str, Any]
+        self, simple_figure: go.Figure, base_config: dict[str, Any]
     ) -> None:
         """Reference line shape should be added to figure when enabled."""
-        from src.web.pages.ui.plotting.styles.applicator import (
-            StyleApplicator,
-        )
+        from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
 
         applicator = StyleApplicator("grouped_bar")
         result = applicator.apply_styles(simple_figure, base_config)
@@ -72,11 +70,9 @@ class TestPlotlyReferenceLine:
 
     def test_no_hline_when_disabled(self, simple_figure: go.Figure) -> None:
         """No reference line should be added when feature is disabled."""
-        from src.web.pages.ui.plotting.styles.applicator import (
-            StyleApplicator,
-        )
+        from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
 
-        config: Dict[str, Any] = {"reference_line_enabled": False}
+        config: dict[str, Any] = {"reference_line_enabled": False}
         applicator = StyleApplicator("grouped_bar")
         result = applicator.apply_styles(simple_figure, config)
 
@@ -92,11 +88,9 @@ class TestPlotlyReferenceLine:
 
     def test_no_hline_when_key_missing(self, simple_figure: go.Figure) -> None:
         """No reference line when config key is absent."""
-        from src.web.pages.ui.plotting.styles.applicator import (
-            StyleApplicator,
-        )
+        from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
 
-        config: Dict[str, Any] = {}
+        config: dict[str, Any] = {}
         applicator = StyleApplicator("grouped_bar")
         result = applicator.apply_styles(simple_figure, config)
 
@@ -110,11 +104,9 @@ class TestPlotlyReferenceLine:
 
     def test_custom_y_position(self, simple_figure: go.Figure) -> None:
         """Reference line at custom Y position."""
-        from src.web.pages.ui.plotting.styles.applicator import (
-            StyleApplicator,
-        )
+        from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
 
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "reference_line_enabled": True,
             "reference_line_y": 2.5,
             "reference_line_color": "#00FF00",
@@ -137,12 +129,10 @@ class TestPlotlyReferenceLine:
 
     def test_all_line_styles(self, simple_figure: go.Figure) -> None:
         """All Plotly dash styles should be accepted."""
-        from src.web.pages.ui.plotting.styles.applicator import (
-            StyleApplicator,
-        )
+        from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
 
         for style in ["dash", "dot", "dashdot", "solid"]:
-            config: Dict[str, Any] = {
+            config: dict[str, Any] = {
                 "reference_line_enabled": True,
                 "reference_line_y": 1.0,
                 "reference_line_style": style,
@@ -171,7 +161,7 @@ class TestReferenceLineConfig:
 
     def test_default_values(self) -> None:
         """Default config values should produce a valid reference line."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "reference_line_enabled": True,
         }
         # Defaults when keys are missing
@@ -182,10 +172,10 @@ class TestReferenceLineConfig:
 
     def test_disabled_by_default(self) -> None:
         """Reference line should be disabled when not explicitly enabled."""
-        config: Dict[str, Any] = {}
+        config: dict[str, Any] = {}
         assert config.get("reference_line_enabled", False) is False
 
-    def test_full_config_structure(self, base_config: Dict[str, Any]) -> None:
+    def test_full_config_structure(self, base_config: dict[str, Any]) -> None:
         """Full config should contain all required keys."""
         expected_keys = {
             "reference_line_enabled",

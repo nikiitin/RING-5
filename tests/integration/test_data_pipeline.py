@@ -1,6 +1,9 @@
+from typing import Any
+
 import numpy as np
 import pandas as pd
 import pytest
+from pandas import DataFrame
 
 from src.core.services.managers.arithmetic_service import ArithmeticService
 from src.core.services.managers.outlier_service import OutlierService
@@ -11,7 +14,7 @@ from src.core.services.shapers.factory import ShaperFactory
 class TestDataPipeline:
 
     @pytest.fixture
-    def sample_data(self):
+    def sample_data(self) -> DataFrame:
         return pd.DataFrame(
             {
                 "group": ["A", "A", "B", "B", "C", "C"],
@@ -21,7 +24,8 @@ class TestDataPipeline:
             }
         )
 
-    def test_seeds_reduction(self, sample_data):
+    def test_seeds_reduction(self, sample_data: Any) -> None:
+
         # Add seed column
         df = sample_data.copy()
         df["random_seed"] = [1, 2, 1, 2, 1, 2]
@@ -37,7 +41,8 @@ class TestDataPipeline:
         assert "value.sd" in reduced.columns
         assert reduced[reduced["group"] == "A"]["value"].iloc[0] == 11.0  # (10+12)/2
 
-    def test_outlier_removal(self, sample_data):
+    def test_outlier_removal(self, sample_data: Any) -> None:
+
         # Outlier logic works on IQR.
         # Create a clear outlier case within a group.
         df = pd.DataFrame(
@@ -52,7 +57,8 @@ class TestDataPipeline:
         assert len(cleaned) == 9
         assert 1000 not in cleaned["value"].values
 
-    def test_shaper_pipeline_execution(self, sample_data):
+    def test_shaper_pipeline_execution(self, sample_data: Any) -> None:
+
         # Configure a pipeline: Filter > Sort
 
         # To strictly test the factory and execution
@@ -70,7 +76,8 @@ class TestDataPipeline:
         df_filtered = filter_shaper(sample_data)
         assert "C" not in df_filtered["group"].values  # C has values 100+
 
-    def test_mixer_operations(self, sample_data):
+    def test_mixer_operations(self, sample_data: Any) -> None:
+
         df = sample_data.copy()
         # Add implicit SD cols
         df["value.sd"] = [1] * 6

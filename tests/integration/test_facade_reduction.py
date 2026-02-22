@@ -1,4 +1,5 @@
 import os
+from typing import Any
 
 import pandas as pd
 import pytest
@@ -8,11 +9,12 @@ from src.core.application_api import ApplicationAPI
 
 class TestFacadeReduction:
     @pytest.fixture
-    def facade(self):
+    def facade(self) -> ApplicationAPI:
         return ApplicationAPI()
 
     @pytest.fixture
-    def temp_dirs(self, tmp_path):
+    def temp_dirs(self, tmp_path: Any) -> Any:
+
         # Create temp dirs for stats and output
         stats_dir = tmp_path / "stats"
         output_dir = tmp_path / "output"
@@ -47,7 +49,8 @@ class TestFacadeReduction:
 
         return str(stats_dir), str(output_dir)
 
-    def test_reduction_end_to_end(self, facade, temp_dirs):
+    def test_reduction_end_to_end(self, facade: Any, temp_dirs: Any) -> None:
+
         stats_path, output_dir = temp_dirs
 
         # 1. Define variable with Regex Pattern
@@ -102,7 +105,8 @@ class TestFacadeReduction:
         values = sorted(df[target_col].tolist())
         assert values == [15.0, 20.0]
 
-    def test_vector_reduction(self, facade, temp_dirs):
+    def test_vector_reduction(self, facade: Any, temp_dirs: Any) -> None:
+
         # Test vector reduction if possible
         # Skipping complex vector mock setup for brevity, relying on scalar reduction coverage.
         pass

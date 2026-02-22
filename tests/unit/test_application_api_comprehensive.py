@@ -157,12 +157,18 @@ class TestSubmitParseAsync:
 
     def test_scanned_vars_kwarg_forwarded(self, api: ApplicationAPI) -> None:
         """scanned_vars kwarg is forwarded to ParseService."""
+        from src.core.models.parsing_models import ScannedVariable
+
         with patch("src.core.application_api.ParseService") as mock_ps:
             mock_ps.submit_parse_async.return_value = MagicMock()
-            scanned = [MagicMock()]
+            sv = ScannedVariable(name="test_var", type="scalar", entries=[])
+            scanned = [sv]
             api.submit_parse_async("/path", "stats.txt", [], "/out", scanned_vars=scanned)
             kwargs_passed = mock_ps.submit_parse_async.call_args
-            assert kwargs_passed[0][5] is scanned  # positional arg #6
+            forwarded = kwargs_passed[0][5]
+            assert forwarded is not None
+            assert len(forwarded) == 1
+            assert forwarded[0].name == "test_var"
 
 
 class TestFinalizeParsing:

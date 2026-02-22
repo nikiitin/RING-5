@@ -9,15 +9,18 @@ Following Rule 004 (QA Testing Mastery):
 - No mocks needed (pure data transformations)
 """
 
+from typing import Any
+
 import numpy as np
 import pandas as pd
 import pytest
+from pandas import DataFrame
 
 from src.core.services.managers.arithmetic_service import ArithmeticService as MixerService
 
 
 @pytest.fixture
-def sample_dataframe():
+def sample_dataframe() -> DataFrame:
     """Basic DataFrame with numeric columns."""
     return pd.DataFrame(
         {
@@ -30,7 +33,7 @@ def sample_dataframe():
 
 
 @pytest.fixture
-def dataframe_with_sd():
+def dataframe_with_sd() -> DataFrame:
     """DataFrame with SD columns for variance propagation."""
     return pd.DataFrame(
         {
@@ -47,7 +50,8 @@ def dataframe_with_sd():
 class TestApplyMixerSumOperation:
     """Test apply_mixer with Sum operation."""
 
-    def test_sum_two_columns(self, sample_dataframe):
+    def test_sum_two_columns(self, sample_dataframe: Any) -> None:
+
         # Arrange
         df = sample_dataframe
 
@@ -61,7 +65,8 @@ class TestApplyMixerSumOperation:
         assert result["AB_sum"].tolist() == [15.0, 30.0, 45.0]
         assert len(result.columns) == len(df.columns) + 1  # Original + new col
 
-    def test_sum_three_columns(self, sample_dataframe):
+    def test_sum_three_columns(self, sample_dataframe: Any) -> None:
+
         # Arrange
         df = sample_dataframe
 
@@ -73,7 +78,8 @@ class TestApplyMixerSumOperation:
         # Assert
         assert result["total"].tolist() == [17.0, 34.0, 51.0]
 
-    def test_sum_with_sd_propagation(self, dataframe_with_sd):
+    def test_sum_with_sd_propagation(self, dataframe_with_sd: Any) -> None:
+
         # Arrange
         df = dataframe_with_sd
 
@@ -92,7 +98,8 @@ class TestApplyMixerSumOperation:
         # SD propagation: sqrt(2^2 + 4^2) = sqrt(20) ≈ 4.472
         assert np.isclose(result["AB_sum.sd"].iloc[1], 4.4721359)
 
-    def test_sum_mixed_sd_naming(self, dataframe_with_sd):
+    def test_sum_mixed_sd_naming(self, dataframe_with_sd: Any) -> None:
+
         # Arrange - Mix .sd and _stdev columns
         df = dataframe_with_sd
 
@@ -106,7 +113,8 @@ class TestApplyMixerSumOperation:
         # A.sd=1.0, C_stdev=0.5 → sqrt(1^2 + 0.5^2) = sqrt(1.25) ≈ 1.118
         assert np.isclose(result["AC_sum.sd"].iloc[0], 1.1180339)
 
-    def test_sum_without_sd_columns(self, sample_dataframe):
+    def test_sum_without_sd_columns(self, sample_dataframe: Any) -> None:
+
         # Arrange
         df = sample_dataframe
 
@@ -122,7 +130,8 @@ class TestApplyMixerSumOperation:
 class TestApplyMixerMeanOperation:
     """Test apply_mixer with Mean operations."""
 
-    def test_mean_two_columns(self, sample_dataframe):
+    def test_mean_two_columns(self, sample_dataframe: Any) -> None:
+
         # Arrange
         df = sample_dataframe
 
@@ -135,7 +144,8 @@ class TestApplyMixerMeanOperation:
         assert "mean_AB" in result.columns
         assert result["mean_AB"].tolist() == [7.5, 15.0, 22.5]
 
-    def test_mean_average_alias(self, sample_dataframe):
+    def test_mean_average_alias(self, sample_dataframe: Any) -> None:
+
         # Arrange - "Mean (Average)" is accepted alias
         df = sample_dataframe
 
@@ -147,7 +157,8 @@ class TestApplyMixerMeanOperation:
         # Assert
         assert result["avg"].tolist() == [7.5, 15.0, 22.5]
 
-    def test_mean_with_sd_propagation(self, dataframe_with_sd):
+    def test_mean_with_sd_propagation(self, dataframe_with_sd: Any) -> None:
+
         # Arrange
         df = dataframe_with_sd
 
@@ -169,7 +180,8 @@ class TestApplyMixerMeanOperation:
 class TestApplyMixerConcatenateOperation:
     """Test apply_mixer with Concatenate operation."""
 
-    def test_concatenate_default_separator(self, sample_dataframe):
+    def test_concatenate_default_separator(self, sample_dataframe: Any) -> None:
+
         # Arrange
         df = sample_dataframe
 
@@ -181,7 +193,8 @@ class TestApplyMixerConcatenateOperation:
         # Assert
         assert result["concat"].tolist() == ["10.0_x", "20.0_y", "30.0_z"]
 
-    def test_concatenate_custom_separator(self, sample_dataframe):
+    def test_concatenate_custom_separator(self, sample_dataframe: Any) -> None:
+
         # Arrange
         df = sample_dataframe
 
@@ -197,7 +210,8 @@ class TestApplyMixerConcatenateOperation:
         # Assert
         assert result["joined"].tolist() == ["x|10.0", "y|20.0", "z|30.0"]
 
-    def test_concatenate_no_sd_propagation(self, dataframe_with_sd):
+    def test_concatenate_no_sd_propagation(self, dataframe_with_sd: Any) -> None:
+
         # Arrange - Concatenate should not produce SD columns
         df = dataframe_with_sd
 
@@ -214,7 +228,8 @@ class TestApplyMixerConcatenateOperation:
 class TestApplyMixerEdgeCases:
     """Test edge cases and error conditions."""
 
-    def test_empty_source_cols_returns_unchanged(self, sample_dataframe):
+    def test_empty_source_cols_returns_unchanged(self, sample_dataframe: Any) -> None:
+
         # Arrange
         df = sample_dataframe
 
@@ -224,7 +239,8 @@ class TestApplyMixerEdgeCases:
         # Assert
         pd.testing.assert_frame_equal(result, df)  # Unchanged
 
-    def test_invalid_operation_raises_error(self, sample_dataframe):
+    def test_invalid_operation_raises_error(self, sample_dataframe: Any) -> None:
+
         # Arrange
         df = sample_dataframe
 
@@ -232,7 +248,8 @@ class TestApplyMixerEdgeCases:
         with pytest.raises(ValueError, match="Unknown mixer operation"):
             MixerService.apply_mixer(df, dest_col="bad", source_cols=["A"], operation="Invalid")
 
-    def test_single_column_sum(self, sample_dataframe):
+    def test_single_column_sum(self, sample_dataframe: Any) -> None:
+
         # Arrange
         df = sample_dataframe
 
@@ -242,7 +259,7 @@ class TestApplyMixerEdgeCases:
         # Assert
         assert result["single"].tolist() == [10.0, 20.0, 30.0]
 
-    def test_partial_sd_columns_skips_propagation(self):
+    def test_partial_sd_columns_skips_propagation(self) -> None:
         # Arrange - Only one column has SD
         df = pd.DataFrame(
             {
@@ -266,7 +283,8 @@ class TestApplyMixerEdgeCases:
 class TestMergeColumnsAlias:
     """Test merge_columns as alias for apply_mixer."""
 
-    def test_merge_columns_delegates_to_apply_mixer(self, sample_dataframe):
+    def test_merge_columns_delegates_to_apply_mixer(self, sample_dataframe: Any) -> None:
+
         # Arrange
         df = sample_dataframe
 
@@ -287,7 +305,8 @@ class TestMergeColumnsAlias:
 class TestValidateMergeInputs:
     """Test input validation for merge operations."""
 
-    def test_validate_success_with_valid_inputs(self, sample_dataframe):
+    def test_validate_success_with_valid_inputs(self, sample_dataframe: Any) -> None:
+
         # Arrange
         df = sample_dataframe
 
@@ -299,7 +318,8 @@ class TestValidateMergeInputs:
         # Assert
         assert errors == []
 
-    def test_validate_empty_columns_list(self, sample_dataframe):
+    def test_validate_empty_columns_list(self, sample_dataframe: Any) -> None:
+
         # Arrange
         df = sample_dataframe
 
@@ -312,7 +332,8 @@ class TestValidateMergeInputs:
         assert len(errors) == 1
         assert "At least one column must be selected" in errors[0]
 
-    def test_validate_single_column_error(self, sample_dataframe):
+    def test_validate_single_column_error(self, sample_dataframe: Any) -> None:
+
         # Arrange
         df = sample_dataframe
 
@@ -325,7 +346,8 @@ class TestValidateMergeInputs:
         assert len(errors) == 1
         assert "At least two columns must be selected" in errors[0]
 
-    def test_validate_missing_columns(self, sample_dataframe):
+    def test_validate_missing_columns(self, sample_dataframe: Any) -> None:
+
         # Arrange
         df = sample_dataframe
 
@@ -339,7 +361,8 @@ class TestValidateMergeInputs:
         assert "Columns not found" in errors[0]
         assert "Z" in errors[0] and "Y" in errors[0]
 
-    def test_validate_invalid_operation(self, sample_dataframe):
+    def test_validate_invalid_operation(self, sample_dataframe: Any) -> None:
+
         # Arrange
         df = sample_dataframe
 
@@ -352,7 +375,8 @@ class TestValidateMergeInputs:
         assert len(errors) == 1
         assert "Invalid operation" in errors[0]
 
-    def test_validate_empty_new_column_name(self, sample_dataframe):
+    def test_validate_empty_new_column_name(self, sample_dataframe: Any) -> None:
+
         # Arrange
         df = sample_dataframe
 
@@ -365,7 +389,8 @@ class TestValidateMergeInputs:
         assert len(errors) == 1
         assert "cannot be empty" in errors[0]
 
-    def test_validate_existing_column_name(self, sample_dataframe):
+    def test_validate_existing_column_name(self, sample_dataframe: Any) -> None:
+
         # Arrange
         df = sample_dataframe
 
@@ -378,7 +403,8 @@ class TestValidateMergeInputs:
         assert len(errors) == 1
         assert "already exists" in errors[0]
 
-    def test_validate_multiple_errors(self, sample_dataframe):
+    def test_validate_multiple_errors(self, sample_dataframe: Any) -> None:
+
         # Arrange
         df = sample_dataframe
 

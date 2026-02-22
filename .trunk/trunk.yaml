@@ -22,15 +22,32 @@ lint:
       paths:
         - tests/**
         - scripts/verify_installation.py # Installation checker uses subprocess for system validation
+        - src/core/parsing/gem5/impl/scanning/scanner.py # Subprocess used for Perl parser - validated paths only
+        - src/core/parsing/gem5/impl/strategies/perl_worker_pool.py # Subprocess used for Perl parser - validated paths only
+    - linters: [mypy]
+      paths:
+        - tests/** # mypy runs on tests via project's own mypy with full module resolution
+  definitions:
+    - name: mypy
+      run_linter_from: workspace
+      commands:
+        - name: lint
+          output: mypy
+          run: mypy --config-file=pyproject.toml --explicit-package-bases
+            --follow-imports=normal --no-incremental --show-error-codes
+            --show-column-numbers ${target}
+          success_codes: [0, 1]
   enabled:
     - flake8@7.3.0
     - mypy@1.19.1
+    - black@26.1.0:
+        extra_args: [--config=pyproject.toml]
     - hadolint@2.14.0
     - actionlint@1.7.11
     - isort@8.0.0
-    - bandit@1.9.3
-    - black@26.1.0
-    - checkov@3.2.504
+    - bandit@1.9.3:
+        extra_args: [-c, pyproject.toml]
+    - checkov@3.2.505
     - git-diff-check
     - markdownlint@0.47.0
     - prettier@3.8.1

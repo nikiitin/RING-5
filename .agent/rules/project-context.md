@@ -59,7 +59,8 @@ Use specific types (e.g., `List[str]`, `Dict[str, int]`) instead of generic `lis
 6.  **DIRECTORY ACCESS RESTRICTION:** STRICTLY FORBIDDEN from accessing or modifying anything outside of the `RING-5` workspace directory.
 7.  **QUALITY GATE:** Run `.agent/workflows/code-quality-gate.md` before declaring any task complete.
 8.  **SECURITY:** Follow `.agent/rules/005-security-enforcement.md` for all code changes.
-9.  **ARCHITECTURE:** Run `.agent/workflows/architecture-validation.md` after any structural changes.
+9.  **TESTING THREAD LIMIT:** All parallel test executions MUST use a maximum of 3 threads (`-n 3`). Never exceed this limit to ensure system stability.
+10. **ARCHITECTURE:** Run `.agent/workflows/architecture-validation.md` after any structural changes.
 
 ## Architecture & Tech Stack
 
@@ -344,45 +345,45 @@ This is a security requirement. Never execute, suggest, or attempt git operation
 
 ```bash
 # Run all tests
-docker-compose run --rm ring5-dev ./python_venv/bin/python3 -m pytest
+./python_venv/bin/python3 -m pytest -n 3
 
 # Run specific test file
-docker-compose run --rm ring5-dev ./python_venv/bin/python3 -m pytest tests/unit/test_shapers.py -v
+./python_venv/bin/python3 -m pytest tests/unit/test_shapers.py -v
 
 # Run with coverage
-docker-compose run --rm ring5-dev ./python_venv/bin/python3 -m pytest --cov=src tests/ --cov-report=html
+./python_venv/bin/python3 -m pytest --cov=src tests/ --cov-report=html
 
 # Run specific test function
-docker-compose run --rm ring5-dev ./python_venv/bin/python3 -m pytest tests/unit/test_shapers.py::test_rename_basic -v
+./python_venv/bin/python3 -m pytest tests/unit/test_shapers.py::test_rename_basic -v
 ```
 
 ## Development
 
 ```bash
 # Start Streamlit app
-docker-compose run --rm ring5-dev ./python_venv/bin/python3 -m streamlit run app.py
+./python_venv/bin/python3 -m streamlit run app.py
 
 # Format code
-docker-compose run --rm ring5-dev ./python_venv/bin/python3 -m black src/ tests/
+./python_venv/bin/python3 -m black src/ tests/
 
 # Lint code
-docker-compose run --rm ring5-dev ./python_venv/bin/python3 -m flake8 src/ tests/
+./python_venv/bin/python3 -m flake8 src/ tests/
 
 # Type check
-docker-compose run --rm ring5-dev ./python_venv/bin/python3 -m mypy src/
+./python_venv/bin/python3 -m mypy src/
 ```
 
 ## Debugging
 
 ```bash
 # Run with debugger
-docker-compose run --rm ring5-dev ./python_venv/bin/python3 -m pytest tests/unit/test_file.py --pdb
+./python_venv/bin/python3 -m pytest tests/unit/test_file.py --pdb
 
 # Show print statements
-docker-compose run --rm ring5-dev ./python_venv/bin/python3 -m pytest tests/unit/test_file.py -s
+./python_venv/bin/python3 -m pytest tests/unit/test_file.py -s
 
 # Verbose output
-docker-compose run --rm ring5-dev ./python_venv/bin/python3 -m pytest tests/unit/test_file.py -vv
+./python_venv/bin/python3 -m pytest tests/unit/test_file.py -vv
 ```
 
 ## Output & Communication Standards

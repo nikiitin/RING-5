@@ -1,6 +1,6 @@
 """Tests for HistoryComponents — branch coverage."""
 
-from typing import List
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from src.core.models.history_models import OperationRecord
@@ -9,8 +9,8 @@ from src.web.pages.ui.components.history_components import HistoryComponents
 
 def _make_record(
     op: str = "Preprocessor: Division",
-    src: List[str] | None = None,
-    dst: List[str] | None = None,
+    src: list[str] | None = None,
+    dst: list[str] | None = None,
     ts: str = "2024-01-15T10:30:00",
 ) -> OperationRecord:
     return {
@@ -113,7 +113,8 @@ class TestRenderGlobalHistory:
 
         delete_cb = MagicMock()
 
-        def button_side_effect(label, on_click=None, **kwargs):
+        def button_side_effect(label: Any, on_click: Any = None, **kwargs: Any) -> int:
+
             if label == "🗑️":
                 if on_click:
                     on_click()
@@ -172,7 +173,8 @@ class TestRenderManagerHistory:
         mock_st.expander.return_value = exp
         mock_st.columns.side_effect = _columns_side_effect
 
-        def button_side_effect(label, on_click=None, **kwargs):
+        def button_side_effect(label: Any, on_click: Any = None, **kwargs: Any) -> int:
+
             if label == "🔄":
                 if on_click:
                     on_click()
@@ -198,7 +200,8 @@ class TestRenderManagerHistory:
 
         delete_cb = MagicMock()
 
-        def button_side_effect(label, on_click=None, **kwargs):
+        def button_side_effect(label: Any, on_click: Any = None, **kwargs: Any) -> int:
+
             if label == "🗑️":
                 if on_click:
                     on_click()

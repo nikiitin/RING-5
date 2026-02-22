@@ -7,6 +7,7 @@ import json
 import shutil
 import tempfile
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 import pandas as pd
@@ -17,16 +18,14 @@ class TestStateManager:
     """Test the StateManager class."""
 
     @pytest.fixture
-    def mock_session_state(self):
+    def mock_session_state(self) -> None:
         """Mock streamlit.session_state as a dictionary."""
         with patch("streamlit.session_state", new_callable=dict) as mock_state:
             yield mock_state
 
-    def test_initialize_creates_defaults(self, mock_session_state):
+    def test_initialize_creates_defaults(self, mock_session_state: Any) -> None:
         """Test that initialize creates default values."""
-        from src.core.state.repository_state_manager import (
-            RepositoryStateManager as StateManager,
-        )
+        from src.core.state.repository_state_manager import RepositoryStateManager as StateManager
 
         # StateManager() instantiation triggers SessionRepository.initialize_session()
         mgr = StateManager()
@@ -41,11 +40,9 @@ class TestStateManager:
         assert not mgr.has_data()
         assert mgr.get_data() is None
 
-    def test_get_set_data(self, mock_session_state):
+    def test_get_set_data(self, mock_session_state: Any) -> None:
         """Test data getter and setter."""
-        from src.core.state.repository_state_manager import (
-            RepositoryStateManager as StateManager,
-        )
+        from src.core.state.repository_state_manager import RepositoryStateManager as StateManager
 
         mgr = StateManager()
 
@@ -57,11 +54,9 @@ class TestStateManager:
         assert len(retrieved) == 3
         pd.testing.assert_frame_equal(retrieved, test_data)
 
-    def test_get_set_config(self, mock_session_state):
+    def test_get_set_config(self, mock_session_state: Any) -> None:
         """Test config getter and setter."""
-        from src.core.state.repository_state_manager import (
-            RepositoryStateManager as StateManager,
-        )
+        from src.core.state.repository_state_manager import RepositoryStateManager as StateManager
 
         mgr = StateManager()
 
@@ -71,11 +66,9 @@ class TestStateManager:
         retrieved = mgr.get_config()
         assert retrieved == test_config
 
-    def test_update_config(self, mock_session_state):
+    def test_update_config(self, mock_session_state: Any) -> None:
         """Test config update method."""
-        from src.core.state.repository_state_manager import (
-            RepositoryStateManager as StateManager,
-        )
+        from src.core.state.repository_state_manager import RepositoryStateManager as StateManager
 
         mgr = StateManager()
 
@@ -85,11 +78,9 @@ class TestStateManager:
         assert "test_key" in config
         assert config["test_key"] == "test_value"
 
-    def test_has_data(self, mock_session_state):
+    def test_has_data(self, mock_session_state: Any) -> None:
         """Test has_data method."""
-        from src.core.state.repository_state_manager import (
-            RepositoryStateManager as StateManager,
-        )
+        from src.core.state.repository_state_manager import RepositoryStateManager as StateManager
 
         mgr = StateManager()
         assert not mgr.has_data()
@@ -102,7 +93,7 @@ class TestStateManager:
 class TestApplicationAPI:
     """Test the ApplicationAPI class."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Setup test environment."""
         from src.core.services.data_services.config_service import ConfigService
         from src.core.services.data_services.csv_pool_service import CsvPoolService
@@ -113,7 +104,7 @@ class TestApplicationAPI:
         ConfigService.reset_caches()
         self.test_dir = Path(tempfile.mkdtemp())
 
-    def teardown_method(self):
+    def teardown_method(self) -> None:
         """Cleanup test environment."""
         from src.core.services.data_services.config_service import ConfigService
         from src.core.services.data_services.csv_pool_service import CsvPoolService
@@ -125,7 +116,7 @@ class TestApplicationAPI:
         if self.test_dir.exists():
             shutil.rmtree(self.test_dir)
 
-    def test_api_initialization(self):
+    def test_api_initialization(self) -> None:
         """Test API initializes services."""
         from src.core.application_api import ApplicationAPI
 
@@ -139,7 +130,7 @@ class TestApplicationAPI:
         # API doesn't allow direct property access to csv_pool_dir by default but uses service
         # We check functionality instead of internal properties
 
-    def test_load_csv_pool_empty(self):
+    def test_load_csv_pool_empty(self) -> None:
         """Test loading empty CSV pool."""
         from unittest.mock import patch
 
@@ -166,7 +157,7 @@ class TestApplicationAPI:
             assert isinstance(pool, list)
             assert len(pool) == 0
 
-    def test_add_to_csv_pool(self):
+    def test_add_to_csv_pool(self) -> None:
         """Test adding CSV to pool."""
         from src.core.application_api import ApplicationAPI
 
@@ -184,7 +175,7 @@ class TestApplicationAPI:
         assert Path(pool_path).exists()
         assert "parsed_" in Path(pool_path).name
 
-    def test_load_csv_file(self):
+    def test_load_csv_file(self) -> None:
         """Test loading CSV file."""
         from src.core.application_api import ApplicationAPI
 
@@ -200,7 +191,7 @@ class TestApplicationAPI:
         assert len(loaded_data) == 3
         assert list(loaded_data.columns) == ["a", "b"]
 
-    def test_save_configuration(self):
+    def test_save_configuration(self) -> None:
         """Test saving configuration."""
         from src.core.application_api import ApplicationAPI
 
@@ -224,14 +215,14 @@ class TestApplicationAPI:
         assert Path(config_path).exists()
 
         # Verify content
-        with open(config_path, "r") as f:
+        with open(config_path) as f:
             config_data = json.load(f)
 
         assert config_data["name"] == "test_config"
         assert config_data["description"] == "Test description"
         assert len(config_data["shapers"]) == 1
 
-    def test_load_configuration(self):
+    def test_load_configuration(self) -> None:
         """Test loading configuration."""
         from src.core.application_api import ApplicationAPI
 
@@ -254,7 +245,7 @@ class TestApplicationAPI:
         assert loaded_config["name"] == "test"
         assert loaded_config["description"] == "Test config"
 
-    def test_find_stats_files(self):
+    def test_find_stats_files(self) -> None:
         """Test finding stats files."""
         from src.core.application_api import ApplicationAPI
 
@@ -272,7 +263,7 @@ class TestApplicationAPI:
 
         assert len(found_files) == 2
 
-    def test_apply_shapers(self):
+    def test_apply_shapers(self) -> None:
         """Test applying shapers to data (requires shaper module)."""
         from src.core.application_api import ApplicationAPI
 
@@ -293,7 +284,7 @@ class TestApplicationAPI:
             # Skip if shaper module has import issues
             pytest.skip("Shaper module not properly configured")
 
-    def test_get_column_info(self):
+    def test_get_column_info(self) -> None:
         """Test getting column information."""
         from src.core.application_api import ApplicationAPI
 
@@ -313,21 +304,21 @@ class TestApplicationAPI:
 class TestUIComponents:
     """Test the UI Components."""
 
-    def test_data_components_preview(self):
+    def test_data_components_preview(self) -> None:
         """Test DataComponents.show_data_preview exist."""
         from src.web.pages.ui.components.data_components import DataComponents
 
         assert hasattr(DataComponents, "show_data_preview")
         assert callable(DataComponents.show_data_preview)
 
-    def test_variable_editor_exists(self):
+    def test_variable_editor_exists(self) -> None:
         """Test VariableEditor.render exists."""
         from src.web.pages.ui.components.variable_editor import VariableEditor
 
         assert hasattr(VariableEditor, "render")
         assert callable(VariableEditor.render)
 
-    def test_variable_editor_histogram_support(self):
+    def test_variable_editor_histogram_support(self) -> None:
         """Test VariableEditor supports histogram configuration."""
         from unittest.mock import MagicMock
 

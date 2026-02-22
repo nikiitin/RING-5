@@ -3,7 +3,7 @@ import os
 from src.core.application_api import ApplicationAPI
 
 
-def test_parser_integration():
+def test_parser_integration() -> None:
     facade = ApplicationAPI()
 
     # Mock variables

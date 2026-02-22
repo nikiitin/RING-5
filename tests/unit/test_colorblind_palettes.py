@@ -93,29 +93,21 @@ class TestCssRgbToHex:
     """Verify CSS rgb() → hex conversion for Matplotlib compatibility."""
 
     def test_basic_rgb_conversion(self) -> None:
-        from src.web.rendering.matplotlib_connector import (
-            _css_rgb_to_hex,
-        )
+        from src.web.rendering.matplotlib_connector import _css_rgb_to_hex
 
         assert _css_rgb_to_hex("rgb(102,194,165)") == "#66c2a5"
 
     def test_rgb_with_spaces(self) -> None:
-        from src.web.rendering.matplotlib_connector import (
-            _css_rgb_to_hex,
-        )
+        from src.web.rendering.matplotlib_connector import _css_rgb_to_hex
 
         assert _css_rgb_to_hex("rgb( 255 , 0 , 128 )") == "#ff0080"
 
     def test_hex_passthrough(self) -> None:
-        from src.web.rendering.matplotlib_connector import (
-            _css_rgb_to_hex,
-        )
+        from src.web.rendering.matplotlib_connector import _css_rgb_to_hex
 
         assert _css_rgb_to_hex("#E69F00") == "#E69F00"
 
     def test_named_color_passthrough(self) -> None:
-        from src.web.rendering.matplotlib_connector import (
-            _css_rgb_to_hex,
-        )
+        from src.web.rendering.matplotlib_connector import _css_rgb_to_hex
 
         assert _css_rgb_to_hex("red") == "red"

@@ -9,7 +9,7 @@ Implements type registry pattern for stat type dispatch.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from src.core.parsing.gem5.types.base import StatType, register_type
 
@@ -46,7 +46,7 @@ class Vector(StatType):
         }
     )
 
-    def __init__(self, repeat: int = 1, entries: Optional[List[str]] = None, **kwargs: Any) -> None:
+    def __init__(self, repeat: int = 1, entries: list[str] | None = None, **kwargs: Any) -> None:
         super().__init__(repeat, **kwargs)
         if entries is None:
             raise ValueError("VECTOR: entries parameter is required")
@@ -59,17 +59,17 @@ class Vector(StatType):
         object.__setattr__(self, "_content", {e: [] for e in self._entries})
 
     @property
-    def entries(self) -> List[str]:
-        entries_list: List[str] = object.__getattribute__(self, "_entries")
+    def entries(self) -> list[str]:
+        entries_list: list[str] = object.__getattribute__(self, "_entries")
         return entries_list
 
     @property
-    def content(self) -> Dict[str, List[Any]]:
-        content_dict: Dict[str, List[Any]] = object.__getattribute__(self, "_content")
+    def content(self) -> dict[str, list[Any]]:
+        content_dict: dict[str, list[Any]] = object.__getattribute__(self, "_content")
         return content_dict
 
     @content.setter
-    def content(self, value: Dict[str, List[Any]]) -> None:
+    def content(self, value: dict[str, list[Any] | Any]) -> None:
         """
         Set content from dict, extending existing entries.
 
@@ -106,7 +106,7 @@ class Vector(StatType):
                             ) from e
 
         # Check for unknown entries - warn but continue
-        found_keys = set(str(k) for k in value.keys())
+        found_keys = {str(k) for k in value.keys()}
         expected_keys = set(self._entries)
         unknown_keys = found_keys - expected_keys
 
@@ -174,7 +174,7 @@ class Vector(StatType):
         object.__setattr__(self, "_reduced_content", reduced)
 
     @property
-    def reduced_content(self) -> Dict[str, float]:
+    def reduced_content(self) -> dict[str, float]:
         balanced = object.__getattribute__(self, "_balanced")
         reduced = object.__getattribute__(self, "_reduced")
         if not balanced or not reduced:
@@ -182,12 +182,12 @@ class Vector(StatType):
                 "VECTOR: Cannot access reducedContent before calling "
                 "balance_content() AND reduce_duplicates()"
             )
-        reduced_dict: Dict[str, float] = object.__getattribute__(self, "_reduced_content")
+        reduced_dict: dict[str, float] = object.__getattribute__(self, "_reduced_content")
         return reduced_dict
 
     # Backward compatibility
     @property
-    def reducedContent(self) -> Dict[str, float]:
+    def reducedContent(self) -> dict[str, float]:
         return self.reduced_content
 
     def __str__(self) -> str:

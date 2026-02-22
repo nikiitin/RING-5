@@ -5,32 +5,16 @@
       "args": [
         "-y",
         "@modelcontextprotocol/server-filesystem",
-        "${workspaceFolder}"
-      ],
-      "env": {
-        "READONLY": "false"
-      },
-      "capabilities": {
-        "tools": true,
-        "resources": true
-      },
-      "description": "Full access limited STRICTLY to the RING-5 project workspace."
+        "/home/vnicolas/workspace/repos/RING-5-unified-engine-v2"
+      ]
     },
     "context7": {
-      "command": "npx",
-      "args": ["-y", "@upstash/context7-mcp@latest"],
-      "capabilities": {
-        "tools": true
-      },
-      "description": "Documentation lookup for libraries (pandas, plotly, streamlit, pytest, mypy). Use to verify API usage and find correct patterns."
+      "command": "python3",
+      "args": ["-m", "mcp_server_context7"]
     },
     "sequential-thinking": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
-      "capabilities": {
-        "tools": true
-      },
-      "description": "Structured reasoning for complex architecture decisions, debugging, and multi-step refactoring. Use for non-trivial design choices."
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
     },
     "github": {
       "command": "npx",
@@ -43,6 +27,22 @@
         "resources": true
       },
       "description": "GitHub integration for issues, PRs, and code review. Read-only for repository operations. NEVER use for git push/commit operations."
+    },
+    "puppeteer": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-puppeteer"],
+      "capabilities": {
+        "tools": true
+      },
+      "description": "Headless browser tool to aid in E2E Streamlit interactions, taking screenshots, and debugging Web UI logic natively."
+    },
+    "fetch": {
+      "command": "uvx",
+      "args": ["mcp-server-fetch"],
+      "capabilities": {
+        "tools": true
+      },
+      "description": "Fetches modern Python, Streamlit, or Pandas documentation from the web. Ideal when context7 is missing recent frameworks."
     }
   },
   "security": {

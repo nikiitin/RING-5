@@ -12,12 +12,19 @@ Architecture:
 
 import logging
 import shutil
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 import pandas as pd
 
 from src.core.models import PlotProtocol, PortfolioData
+from src.core.models.data_models import (
+    CsvPoolEntry,
+    ParseVariableConfig,
+    SavedConfigEntry,
+    ScannedVariableDict,
+)
 from src.core.models.history_models import OperationRecord
 from src.core.models.plot_protocol import PlotDeserializer
 from src.core.models.visualization.figure_config import FigureConfig
@@ -32,7 +39,7 @@ class RepositoryStateManager:
     Holds the SessionRepository acting as the Aggregate Root.
     """
 
-    def __init__(self, plot_deserializer: Optional[PlotDeserializer] = None) -> None:
+    def __init__(self, plot_deserializer: PlotDeserializer | None = None) -> None:
         """Initialize the repository layer.
 
         Args:
@@ -51,11 +58,11 @@ class RepositoryStateManager:
 
     # ==================== Data Management ====================
 
-    def get_data(self) -> Optional[pd.DataFrame]:
+    def get_data(self) -> pd.DataFrame | None:
         return self._session_repo.data_repo.get_data()
 
     def set_data(
-        self, data: Optional[pd.DataFrame], on_change: Optional[Callable[[], None]] = None
+        self, data: pd.DataFrame | None, on_change: Callable[[], None] | None = None
     ) -> None:
         # Skip if setting the exact same DataFrame object (avoids re-typing on every rerun)
         if data is self._session_repo.data_repo.get_data():
@@ -65,7 +72,7 @@ class RepositoryStateManager:
         if data is not None:
             try:
                 variables = self._session_repo.parser_repo.get_parse_variables()
-                config_vars: List[str] = [
+                config_vars: list[str] = [
                     v["name"] for v in variables if v.get("type") == "configuration"
                 ]
                 cols_to_cast = [col for col in config_vars if col in data.columns]
@@ -78,10 +85,10 @@ class RepositoryStateManager:
 
         self._session_repo.data_repo.set_data(data, on_change)
 
-    def get_processed_data(self) -> Optional[pd.DataFrame]:
+    def get_processed_data(self) -> pd.DataFrame | None:
         return self._session_repo.data_repo.get_processed_data()
 
-    def set_processed_data(self, data: Optional[pd.DataFrame]) -> None:
+    def set_processed_data(self, data: pd.DataFrame | None) -> None:
         self._session_repo.data_repo.set_processed_data(data)
 
     def has_data(self) -> bool:
@@ -105,37 +112,37 @@ class RepositoryStateManager:
 
     # ==================== Config & Parser ====================
 
-    def get_config(self) -> Dict[str, Any]:
+    def get_config(self) -> dict[str, Any]:
         return self._session_repo.config_repo.get_config()
 
-    def set_config(self, config: Dict[str, Any]) -> None:
+    def set_config(self, config: dict[str, Any]) -> None:
         self._session_repo.config_repo.set_config(config)
 
     def update_config(self, key: str, value: Any) -> None:
         self._session_repo.config_repo.update_config(key, value)
 
-    def get_temp_dir(self) -> Optional[str]:
+    def get_temp_dir(self) -> str | None:
         return self._session_repo.config_repo.get_temp_dir()
 
     def set_temp_dir(self, path: str) -> None:
         self._session_repo.config_repo.set_temp_dir(path)
 
-    def get_csv_path(self) -> Optional[str]:
+    def get_csv_path(self) -> str | None:
         return self._session_repo.config_repo.get_csv_path()
 
     def set_csv_path(self, path: str) -> None:
         self._session_repo.config_repo.set_csv_path(path)
 
-    def get_csv_pool(self) -> List[Dict[str, Any]]:
+    def get_csv_pool(self) -> list[CsvPoolEntry]:
         return self._session_repo.config_repo.get_csv_pool()
 
-    def set_csv_pool(self, pool: List[Dict[str, Any]]) -> None:
+    def set_csv_pool(self, pool: list[CsvPoolEntry]) -> None:
         self._session_repo.config_repo.set_csv_pool(pool)
 
-    def get_saved_configs(self) -> List[Dict[str, Any]]:
+    def get_saved_configs(self) -> list[SavedConfigEntry]:
         return self._session_repo.config_repo.get_saved_configs()
 
-    def set_saved_configs(self, configs: List[Dict[str, Any]]) -> None:
+    def set_saved_configs(self, configs: list[SavedConfigEntry]) -> None:
         self._session_repo.config_repo.set_saved_configs(configs)
 
     def is_using_parser(self) -> bool:
@@ -144,10 +151,10 @@ class RepositoryStateManager:
     def set_use_parser(self, use: bool) -> None:
         self._session_repo.parser_repo.set_using_parser(use)
 
-    def get_parse_variables(self) -> List[Dict[str, Any]]:
+    def get_parse_variables(self) -> list[ParseVariableConfig]:
         return self._session_repo.parser_repo.get_parse_variables()
 
-    def set_parse_variables(self, variables: List[Dict[str, Any]]) -> None:
+    def set_parse_variables(self, variables: list[ParseVariableConfig]) -> None:
         self._session_repo.parser_repo.set_parse_variables(variables)
 
     def get_stats_path(self) -> str:
@@ -162,10 +169,10 @@ class RepositoryStateManager:
     def set_stats_pattern(self, pattern: str) -> None:
         self._session_repo.parser_repo.set_stats_pattern(pattern)
 
-    def get_scanned_variables(self) -> List[Dict[str, Any]]:
+    def get_scanned_variables(self) -> list[ScannedVariableDict]:
         return self._session_repo.parser_repo.get_scanned_variables()
 
-    def set_scanned_variables(self, variables: List[Dict[str, Any]]) -> None:
+    def set_scanned_variables(self, variables: list[ScannedVariableDict]) -> None:
         self._session_repo.parser_repo.set_scanned_variables(variables)
 
     def get_parser_strategy(self) -> str:
@@ -176,10 +183,10 @@ class RepositoryStateManager:
 
     # ==================== Plots ====================
 
-    def get_plots(self) -> List[PlotProtocol]:
+    def get_plots(self) -> list[PlotProtocol]:
         return self._session_repo.plot_repo.get_plots()
 
-    def set_plots(self, plots: List[PlotProtocol]) -> None:
+    def set_plots(self, plots: list[PlotProtocol]) -> None:
         self._session_repo.plot_repo.set_plots(plots)
 
     def add_plot(self, plot_obj: PlotProtocol) -> None:
@@ -194,15 +201,15 @@ class RepositoryStateManager:
     def start_next_plot_id(self) -> int:
         return self._session_repo.plot_repo.increment_plot_counter()
 
-    def get_current_plot_id(self) -> Optional[int]:
+    def get_current_plot_id(self) -> int | None:
         return self._session_repo.plot_repo.get_current_plot_id()
 
-    def set_current_plot_id(self, plot_id: Optional[int]) -> None:
+    def set_current_plot_id(self, plot_id: int | None) -> None:
         self._session_repo.plot_repo.set_current_plot_id(plot_id)
 
     # ==================== Visualization ====================
 
-    def get_visualization_config(self, plot_id: int) -> Optional[FigureConfig]:
+    def get_visualization_config(self, plot_id: int) -> FigureConfig | None:
         return self._session_repo.visualization_repo.get_config(plot_id)
 
     def set_visualization_config(self, plot_id: int, config: FigureConfig) -> None:
@@ -216,7 +223,7 @@ class RepositoryStateManager:
     def set_preview(self, operation_name: str, data: pd.DataFrame) -> None:
         self._session_repo.preview_repo.set_preview(operation_name, data)
 
-    def get_preview(self, operation_name: str) -> Optional[pd.DataFrame]:
+    def get_preview(self, operation_name: str) -> pd.DataFrame | None:
         return self._session_repo.preview_repo.get_preview(operation_name)
 
     def has_preview(self, operation_name: str) -> bool:
@@ -230,13 +237,13 @@ class RepositoryStateManager:
     def add_manager_history_record(self, record: OperationRecord) -> None:
         self._session_repo.history_repo.add_manager_record(record)
 
-    def get_manager_history(self) -> List[OperationRecord]:
+    def get_manager_history(self) -> list[OperationRecord]:
         return self._session_repo.history_repo.get_manager_history()
 
     def add_portfolio_history_record(self, record: OperationRecord) -> None:
         self._session_repo.history_repo.add_portfolio_record(record)
 
-    def get_portfolio_history(self) -> List[OperationRecord]:
+    def get_portfolio_history(self) -> list[OperationRecord]:
         return self._session_repo.history_repo.get_portfolio_history()
 
     def remove_manager_history_record(self, record: OperationRecord) -> None:

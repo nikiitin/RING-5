@@ -6,9 +6,11 @@ Run with: pytest tests/performance/ -v
 """
 
 import time
+from typing import Any
 
 import pandas as pd
 import pytest
+from pandas import DataFrame
 
 from src.core.benchmark import BenchmarkSuite
 from src.core.services.shapers.impl.normalize import Normalize
@@ -19,7 +21,7 @@ class TestPlotPerformance:
     """Test plot generation performance."""
 
     @pytest.fixture
-    def sample_data(self):
+    def sample_data(self) -> DataFrame:
         """Create sample dataset for plotting."""
         return pd.DataFrame(
             {
@@ -30,7 +32,7 @@ class TestPlotPerformance:
             }
         )
 
-    def test_bar_plot_generation_speed(self, sample_data):
+    def test_bar_plot_generation_speed(self, sample_data: Any) -> None:
         """Bar plot generation should complete in < 500ms."""
         suite = BenchmarkSuite("Bar Plot Generation")
 
@@ -57,7 +59,7 @@ class TestPlotPerformance:
         assert result is not None, "Plot generation failed"
         assert avg_time < 500, f"Bar plot too slow: {avg_time:.2f}ms (threshold: 500ms)"
 
-    def test_grouped_bar_plot_speed(self, sample_data):
+    def test_grouped_bar_plot_speed(self, sample_data: Any) -> None:
         """Grouped bar plot should complete in < 800ms."""
         suite = BenchmarkSuite("Grouped Bar Plot")
 
@@ -89,7 +91,7 @@ class TestShaperPerformance:
     """Test shaper performance."""
 
     @pytest.fixture
-    def large_dataset(self):
+    def large_dataset(self) -> DataFrame:
         """Create large dataset for shaper testing."""
         # Create non-baseline data
         benchmarks = ["bzip2", "gcc", "mcf", "perlbench"]
@@ -108,7 +110,7 @@ class TestShaperPerformance:
 
         return pd.DataFrame(data_rows)
 
-    def test_normalize_shaper_speed(self, large_dataset):
+    def test_normalize_shaper_speed(self, large_dataset: Any) -> None:
         """Normalize shaper should handle 2000 rows in < 200ms."""
         # Add exactly ONE baseline row per benchmark
         baseline_rows = []
@@ -147,7 +149,7 @@ class TestShaperPerformance:
         assert len(result) == len(data)
         assert avg_time < 200, f"Normalize too slow: {avg_time:.2f}ms (threshold: 200ms)"
 
-    def test_normalize_caching_effectiveness(self, large_dataset):
+    def test_normalize_caching_effectiveness(self, large_dataset: Any) -> None:
         """Second normalize call should be significantly faster (cached)."""
         # Add exactly ONE baseline row per benchmark
         baseline_rows = []
@@ -200,7 +202,7 @@ class TestShaperPerformance:
 class TestCsvPoolPerformance:
     """Test CSV pool operations performance."""
 
-    def test_csv_metadata_caching(self, tmp_path):
+    def test_csv_metadata_caching(self, tmp_path: Any) -> None:
         """CSV metadata should be cached for fast repeated access."""
 
         from src.core.services.data_services.csv_pool_service import CsvPoolService
@@ -238,7 +240,7 @@ class TestCsvPoolPerformance:
             f"(expected >= 5.0x). First: {duration1:.2f}ms, Second: {duration2:.2f}ms"
         )
 
-    def test_csv_loading_with_cache(self, tmp_path):
+    def test_csv_loading_with_cache(self, tmp_path: Any) -> None:
         """CSV DataFrame loading should be cached."""
         from src.core.services.data_services.csv_pool_service import CsvPoolService
 
@@ -273,11 +275,11 @@ class TestCsvPoolPerformance:
 class TestDataLoadingPerformance:
     """Test data loading and processing performance."""
 
-    def test_dataframe_creation_speed(self):
+    def test_dataframe_creation_speed(self) -> None:
         """Creating large DataFrame should be fast."""
         suite = BenchmarkSuite("DataFrame Creation")
 
-        def create_large_df():
+        def create_large_df() -> DataFrame:
             return pd.DataFrame(
                 {
                     "col1": range(10000),
@@ -293,7 +295,7 @@ class TestDataLoadingPerformance:
         assert len(result) == 10000
         assert avg_time < 100, f"DataFrame creation too slow: {avg_time:.2f}ms"
 
-    def test_dataframe_groupby_speed(self):
+    def test_dataframe_groupby_speed(self) -> None:
         """GroupBy operations should be efficient."""
         df = pd.DataFrame(
             {
@@ -304,7 +306,7 @@ class TestDataLoadingPerformance:
 
         suite = BenchmarkSuite("GroupBy Operations")
 
-        def do_groupby():
+        def do_groupby() -> pd.Series:  # type: ignore[type-arg]
             return df.groupby("category")["value"].mean()
 
         result = suite.benchmark(do_groupby, iterations=5, name="GroupBy with 3000 rows")
@@ -319,7 +321,7 @@ class TestDataLoadingPerformance:
 class TestEndToEndPerformance:
     """End-to-end performance tests."""
 
-    def test_full_pipeline_speed(self):
+    def test_full_pipeline_speed(self) -> None:
         """Complete analysis pipeline should complete reasonably fast."""
         # Create data with ONE baseline per benchmark, plus other configs
         benchmarks = ["bzip2", "gcc"]

@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -7,7 +8,7 @@ from tests.conftest import columns_side_effect
 
 
 @pytest.fixture
-def mock_streamlit():
+def mock_streamlit() -> None:
     with patch("src.web.pages.ui.components.plot_manager_components.st") as mock_st:
         mock_st.session_state = {}
 
@@ -19,14 +20,14 @@ def mock_streamlit():
 
 
 @pytest.fixture
-def mock_api():
+def mock_api() -> Any:
     """Create a mock ApplicationAPI with pipeline sub-API."""
     api = MagicMock()
     return api
 
 
 @pytest.fixture
-def mock_plot():
+def mock_plot() -> Any:
     plot = MagicMock()
     plot.name = "TestPlot"
     plot.plot_id = "test_id"
@@ -34,7 +35,8 @@ def mock_plot():
     return plot
 
 
-def test_save_pipeline_dialog_success(mock_streamlit, mock_api, mock_plot):
+def test_save_pipeline_dialog_success(mock_streamlit: Any, mock_api: Any, mock_plot: Any) -> None:
+
     # Setup inputs
     mock_streamlit.text_input.return_value = "MyPipeline"
 
@@ -51,8 +53,10 @@ def test_save_pipeline_dialog_success(mock_streamlit, mock_api, mock_plot):
     assert mock_streamlit.session_state["plot.test_id.dialog.save"] is False
 
 
-def test_save_pipeline_dialog_cancel(mock_streamlit, mock_api, mock_plot):
-    def button_side_effect(label, on_click=None, **k):
+def test_save_pipeline_dialog_cancel(mock_streamlit: Any, mock_api: Any, mock_plot: Any) -> None:
+
+    def button_side_effect(label: Any, on_click: Any = None, **k: Any) -> int:
+
         if label == "Cancel":
             if on_click:
                 on_click()
@@ -67,11 +71,13 @@ def test_save_pipeline_dialog_cancel(mock_streamlit, mock_api, mock_plot):
     assert mock_streamlit.session_state["plot.test_id.dialog.save"] is False
 
 
-def test_load_pipeline_dialog_empty(mock_streamlit, mock_api, mock_plot):
+def test_load_pipeline_dialog_empty(mock_streamlit: Any, mock_api: Any, mock_plot: Any) -> None:
+
     mock_api.shapers.list_pipelines.return_value = []
 
     # Close button click
-    def button_side_effect(label, on_click=None, **k):
+    def button_side_effect(label: Any, on_click: Any = None, **k: Any) -> int:
+
         if label == "Close":
             if on_click:
                 on_click()
@@ -86,7 +92,8 @@ def test_load_pipeline_dialog_empty(mock_streamlit, mock_api, mock_plot):
     assert mock_streamlit.session_state["plot.test_id.dialog.load"] is False
 
 
-def test_load_pipeline_dialog_success(mock_streamlit, mock_api, mock_plot):
+def test_load_pipeline_dialog_success(mock_streamlit: Any, mock_api: Any, mock_plot: Any) -> None:
+
     mock_api.shapers.list_pipelines.return_value = ["MyPipe"]
     mock_api.shapers.load_pipeline.return_value = {"pipeline": [{"type": "mean"}]}
 
@@ -106,10 +113,12 @@ def test_load_pipeline_dialog_success(mock_streamlit, mock_api, mock_plot):
     mock_streamlit.rerun.assert_called()
 
 
-def test_load_pipeline_dialog_cancel(mock_streamlit, mock_api, mock_plot):
+def test_load_pipeline_dialog_cancel(mock_streamlit: Any, mock_api: Any, mock_plot: Any) -> None:
+
     mock_api.shapers.list_pipelines.return_value = ["MyPipe"]
 
-    def button_side_effect(label, on_click=None, **k):
+    def button_side_effect(label: Any, on_click: Any = None, **k: Any) -> int:
+
         if label == "Cancel":
             if on_click:
                 on_click()

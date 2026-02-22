@@ -43,16 +43,17 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import fields
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from src.core.models.visualization.figure_config import FigureConfig
+    from src.core.models.visualization.legend_config import LegendConfig
 
 SENTINEL_INT: int = -1
 SENTINEL_FLOAT: float = -1.0
 
 
-def resolve_config(spec: "FigureConfig") -> "FigureConfig":
+def resolve_config(spec: FigureConfig) -> FigureConfig:
     """Return a new FigureConfig with all sentinel values resolved.
 
     This function is **pure** — it does not mutate the input.
@@ -106,7 +107,7 @@ def _resolve_typography(typo: object) -> None:
     typo.legend3_text_fontsize = _resolve_int(typo.legend3_text_fontsize, typo.font_size_legend3)
 
 
-def _resolve_legends(legends: "list[Any]") -> None:
+def _resolve_legends(legends: list[LegendConfig]) -> None:
     """Resolve LegendConfig list: secondary/boxed inherit from primary."""
     from src.core.models.visualization.legend_config import LegendConfig
 

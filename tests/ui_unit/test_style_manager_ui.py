@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -8,7 +9,7 @@ from tests.conftest import columns_side_effect
 
 
 @pytest.fixture
-def mock_streamlit():
+def mock_streamlit() -> None:
     with patch("src.web.pages.ui.plotting.styles.base_ui.st") as mock_st:
         mock_st.columns.side_effect = columns_side_effect
 
@@ -26,11 +27,12 @@ def mock_streamlit():
 
 
 @pytest.fixture
-def style_manager():
+def style_manager() -> StyleManager:
     return StyleManager("plot1", "bar")
 
 
-def test_render_layout_options(mock_streamlit, style_manager):
+def test_render_layout_options(mock_streamlit: Any, style_manager: Any) -> None:
+
     config = {"width": 100}
     # Mock return values for sliders/inputs
     # Layout order: Width, Height, then Margin Inputs
@@ -44,7 +46,8 @@ def test_render_layout_options(mock_streamlit, style_manager):
     mock_streamlit.slider.assert_called()
 
 
-def test_render_style_ui_basic(style_manager, mock_streamlit):
+def test_render_style_ui_basic(style_manager: Any, mock_streamlit: Any) -> None:
+
     config = {}
 
     # Just verify it runs and collects basics
@@ -57,13 +60,15 @@ def test_render_style_ui_basic(style_manager, mock_streamlit):
     assert "legend_orientation" in result
 
 
-def test_render_series_styling_ui_no_data(mock_streamlit, style_manager):
+def test_render_series_styling_ui_no_data(mock_streamlit: Any, style_manager: Any) -> None:
+
     config = {}
     result = style_manager.render_series_renaming_ui(config, None)
     assert result == {}
 
 
-def test_render_series_styling_ui_with_data(mock_streamlit, style_manager):
+def test_render_series_styling_ui_with_data(mock_streamlit: Any, style_manager: Any) -> None:
+
     config = {"color": "C"}
     data = pd.DataFrame({"C": ["G1", "G2"]})
 
@@ -82,13 +87,15 @@ def test_render_series_styling_ui_with_data(mock_streamlit, style_manager):
     assert "**G2**" in calls
 
 
-def test_render_xaxis_labels_ui(mock_streamlit, style_manager):
+def test_render_xaxis_labels_ui(mock_streamlit: Any, style_manager: Any) -> None:
+
     config = {"x": "XCol"}
     data = pd.DataFrame({"XCol": [1, 2]})
 
     # Mock text_input for renaming
     # Renaming 1 -> "One", 2 -> "" (no change)
-    def text_input_side_effect(label, value, key, **k):
+    def text_input_side_effect(label: Any, value: Any, key: Any, **k: Any) -> str:
+
         # Validate key matching via placeholder argument.
         placeholder = k.get("placeholder", "")
         if str(placeholder) == "1":

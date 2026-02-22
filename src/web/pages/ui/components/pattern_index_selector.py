@@ -5,13 +5,9 @@ Allows users to select specific indices from pattern variables (e.g., l{0,1}_cnt
 UI-only thin wrapper around PatternIndexService (Layer B).
 """
 
-from typing import Dict, List, Optional, Tuple
-
 import streamlit as st
 
-from src.core.services.data_services.pattern_index_service import (
-    PatternIndexService,
-)
+from src.core.services.data_services.pattern_index_service import PatternIndexService
 
 
 class PatternIndexSelector:
@@ -32,12 +28,12 @@ class PatternIndexSelector:
         return PatternIndexService.is_pattern_variable(var_name)
 
     @staticmethod
-    def extract_index_positions(var_name: str) -> List[str]:
+    def extract_index_positions(var_name: str) -> list[str]:
         r"""Extract position labels from pattern variable name. Delegates to service."""
         return PatternIndexService.extract_index_positions(var_name)
 
     @staticmethod
-    def parse_entry_indices(entries: List[str]) -> Dict[int, set[str]]:
+    def parse_entry_indices(entries: list[str]) -> dict[int, set[str]]:
         """Parse entries to extract unique indices at each position. Delegates to service."""
         return PatternIndexService.parse_entry_indices(entries)
 
@@ -45,10 +41,10 @@ class PatternIndexSelector:
     def render_selector(
         cls,
         var_name: str,
-        entries: List[str],
+        entries: list[str],
         var_id: str,
-        current_selection: Optional[Dict[int, List[str]]] = None,
-    ) -> Tuple[bool, List[str]]:
+        current_selection: list[str] | dict[int, list[str]] | None = None,
+    ) -> tuple[bool, list[str]]:
         """
         Render pattern index selector UI.
 
@@ -94,7 +90,7 @@ class PatternIndexSelector:
         # Render selection for each position
         st.markdown("**Select which indices to include:**")
 
-        selections: Dict[int, List[str]] = {}
+        selections: dict[int, list[str]] = {}
 
         for pos_idx, pos_label in enumerate(positions):
             if pos_idx not in position_values:
@@ -105,7 +101,7 @@ class PatternIndexSelector:
             )
 
             # Determine defaults
-            if current_selection and pos_idx in current_selection:
+            if isinstance(current_selection, dict) and pos_idx in current_selection:
                 defaults = [v for v in current_selection[pos_idx] if v in available]
             else:
                 defaults = available  # All by default
@@ -156,11 +152,11 @@ class PatternIndexSelector:
         return use_filter, filtered_entries
 
     @staticmethod
-    def _filter_entries(entries: List[str], selections: Dict[int, List[str]]) -> List[str]:
+    def _filter_entries(entries: list[str], selections: dict[int, list[str]]) -> list[str]:
         """Filter entries based on selected indices. Delegates to service."""
         return PatternIndexService.filter_entries(entries, selections)
 
     @staticmethod
-    def _format_entry_display(entry: str, positions: List[str]) -> str:
+    def _format_entry_display(entry: str, positions: list[str]) -> str:
         """Format entry for display. Delegates to service."""
         return PatternIndexService.format_entry_display(entry, positions)

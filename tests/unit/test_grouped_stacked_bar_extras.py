@@ -1,7 +1,9 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
+from pandas import DataFrame
 
 from src.web.pages.ui.plotting.types.grouped_stacked_bar_plot import (
     GroupedStackedBarPlot,
@@ -9,7 +11,7 @@ from src.web.pages.ui.plotting.types.grouped_stacked_bar_plot import (
 
 
 @pytest.fixture
-def mock_streamlit():
+def mock_streamlit() -> None:
     with (
         patch("src.web.pages.ui.plotting.types.grouped_stacked_bar_plot.st") as mock_st_plot,
         patch("src.web.pages.ui.plotting.base_plot.st", mock_st_plot),
@@ -32,7 +34,7 @@ def mock_streamlit():
 
 
 @pytest.fixture
-def sample_data():
+def sample_data() -> DataFrame:
     return pd.DataFrame(
         {
             "Benchmark": ["A", "A", "B", "B"],
@@ -44,7 +46,8 @@ def sample_data():
     )
 
 
-def test_render_advanced_options_defaults(sample_data, mock_streamlit):
+def test_render_advanced_options_defaults(sample_data: Any, mock_streamlit: Any) -> None:
+
     plot = GroupedStackedBarPlot(1, "Test Plot")
     config = plot.render_advanced_options({}, sample_data)
 
@@ -55,7 +58,7 @@ def test_render_advanced_options_defaults(sample_data, mock_streamlit):
     assert "show_error_bars" in config
 
 
-def test_specific_advanced_options_overrides(sample_data, mock_streamlit):
+def test_specific_advanced_options_overrides(sample_data: Any, mock_streamlit: Any) -> None:
     """Test that advanced options correctly capture user overrides."""
     plot = GroupedStackedBarPlot(1, "Test Plot")
 
@@ -95,7 +98,8 @@ def test_specific_advanced_options_overrides(sample_data, mock_streamlit):
     assert config.get("enable_editable") is True
 
 
-def test_create_figure_renaming(sample_data, mock_streamlit):
+def test_create_figure_renaming(sample_data: Any, mock_streamlit: Any) -> None:
+
     plot = GroupedStackedBarPlot(1, "Test Plot")
 
     # Config with renaming via StyleManager (Stacks)
@@ -122,7 +126,8 @@ def test_create_figure_renaming(sample_data, mock_streamlit):
     assert t2.marker.color == "#00FF00"
 
 
-def test_create_figure_major_minor_renaming(sample_data, mock_streamlit):
+def test_create_figure_major_minor_renaming(sample_data: Any, mock_streamlit: Any) -> None:
+
     plot = GroupedStackedBarPlot(1, "Test Plot")
 
     # Rename Major Group (Benchmark): A -> Alpha

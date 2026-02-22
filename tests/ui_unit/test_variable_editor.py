@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -6,7 +7,7 @@ from tests.conftest import columns_side_effect
 
 
 @pytest.fixture
-def mock_streamlit():
+def mock_streamlit() -> None:
     # Patch st in all 3 modules used
     with (
         patch("src.web.pages.ui.components.data_components.st") as mock_st_data,
@@ -36,8 +37,10 @@ def mock_streamlit():
         mock_st_var.session_state = mock_st.session_state
 
         # Mock st.dialog as a pass-through decorator, supporting **kwargs like dismissible
-        def dialog_mock(title, **kwargs):
-            def decorator(f):
+        def dialog_mock(title: Any, **kwargs: Any) -> Any:
+
+            def decorator(f: Any) -> None:
+
                 return f
 
             return decorator
@@ -58,7 +61,7 @@ def mock_streamlit():
 
 
 @pytest.fixture
-def mock_api():
+def mock_api() -> Any:
     api = MagicMock()
     api.state_manager = MagicMock()
     api.backend = MagicMock()
@@ -70,7 +73,8 @@ def mock_api():
     return api
 
 
-def test_variable_editor_render_existing(mock_streamlit, mock_api):
+def test_variable_editor_render_existing(mock_streamlit: Any, mock_api: Any) -> None:
+
     vars_config = [{"name": "v1", "type": "scalar", "_id": "1"}]
 
     # Setup inputs
@@ -87,7 +91,8 @@ def test_variable_editor_render_existing(mock_streamlit, mock_api):
     assert updated[0]["type"] == "scalar"
 
 
-def test_variable_editor_add_manual(mock_streamlit, mock_api):
+def test_variable_editor_add_manual(mock_streamlit: Any, mock_api: Any) -> None:
+
     vars_config = []
 
     # Button clicks: X (delete) -> False, Add Selected -> False, Add Manual -> True
@@ -103,7 +108,8 @@ def test_variable_editor_add_manual(mock_streamlit, mock_api):
     mock_streamlit.rerun.assert_called()
 
 
-def test_variable_editor_deep_scan(mock_streamlit, mock_api):
+def test_variable_editor_deep_scan(mock_streamlit: Any, mock_api: Any) -> None:
+
     vars_config = [{"name": "vec", "type": "vector", "_id": "1"}]
 
     mock_streamlit.text_input.return_value = "vec"
@@ -115,7 +121,8 @@ def test_variable_editor_deep_scan(mock_streamlit, mock_api):
     mock_streamlit.pills.return_value = "Select from Discovered Entries"
 
     # Simulate clicking the Deep Scan button
-    def button_side_effect(label, key=None, **kwargs):
+    def button_side_effect(label: Any, key: Any = None, **kwargs: Any) -> int:
+
         if key and key.startswith("deep_scan"):
             return True
         return False
@@ -136,7 +143,8 @@ def test_variable_editor_deep_scan(mock_streamlit, mock_api):
         mock_dialog.assert_called_once()
 
 
-def test_variable_editor_vector_stats_checkboxes(mock_streamlit, mock_api):
+def test_variable_editor_vector_stats_checkboxes(mock_streamlit: Any, mock_api: Any) -> None:
+
     vars_config = [{"name": "vec", "type": "vector", "_id": "1", "vectorEntries": []}]
 
     mock_streamlit.text_input.return_value = "vec"
@@ -146,7 +154,8 @@ def test_variable_editor_vector_stats_checkboxes(mock_streamlit, mock_api):
     mock_streamlit.segmented_control.return_value = "Statistics Only"
 
     # Checkboxes: total=True, mean=False
-    def checkbox_side_effect(label, **kwargs):
+    def checkbox_side_effect(label: Any, **kwargs: Any) -> int:
+
         if "total" in label:
             return True
         return False

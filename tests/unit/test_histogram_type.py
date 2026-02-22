@@ -24,7 +24,7 @@ from src.core.parsing.gem5.types.histogram import Histogram
 class TestHistogramInitialization:
     """Test Histogram object creation and initialization."""
 
-    def test_init_with_defaults(self):
+    def test_init_with_defaults(self) -> None:
         # Arrange & Act
         hist = Histogram()
 
@@ -36,21 +36,21 @@ class TestHistogramInitialization:
         assert hist._statistics == []
         assert hist._content == {}
 
-    def test_init_with_custom_repeat(self):
+    def test_init_with_custom_repeat(self) -> None:
         # Arrange & Act
         hist = Histogram(repeat=5)
 
         # Assert
         assert hist._repeat == 5
 
-    def test_init_with_explicit_entries(self):
+    def test_init_with_explicit_entries(self) -> None:
         # Arrange & Act
         hist = Histogram(entries=["0-10", "10-20", "20-30"])
 
         # Assert
         assert hist._entries == ["0-10", "10-20", "20-30"]
 
-    def test_init_with_rebinning_params(self):
+    def test_init_with_rebinning_params(self) -> None:
         # Arrange & Act
         hist = Histogram(bins=10, max_range=100.0)
 
@@ -58,7 +58,7 @@ class TestHistogramInitialization:
         assert hist._bins == 10
         assert hist._max_range == 100.0
 
-    def test_init_with_statistics(self):
+    def test_init_with_statistics(self) -> None:
         # Arrange & Act
         hist = Histogram(statistics=["mean", "total"])
 
@@ -68,14 +68,14 @@ class TestHistogramInitialization:
         assert "mean" in hist._content
         assert "total" in hist._content
 
-    def test_init_with_comma_separated_statistics(self):
+    def test_init_with_comma_separated_statistics(self) -> None:
         # Arrange & Act
         hist = Histogram(statistics="mean, total, samples")
 
         # Assert - string parsed and trimmed
         assert hist._statistics == ["mean", "total", "samples"]
 
-    def test_required_params_empty(self):
+    def test_required_params_empty(self) -> None:
         # Arrange & Act
         required = Histogram.required_params
 
@@ -86,7 +86,7 @@ class TestHistogramInitialization:
 class TestHistogramEntriesProperty:
     """Test entries property with priority ordering."""
 
-    def test_entries_priority_1_explicit_entries(self):
+    def test_entries_priority_1_explicit_entries(self) -> None:
         # Arrange
         hist = Histogram(entries=["0-10", "10-20"], bins=5, max_range=50.0)
 
@@ -96,7 +96,7 @@ class TestHistogramEntriesProperty:
         # Assert - explicit entries take priority over rebinning
         assert result == ["0-10", "10-20"]
 
-    def test_entries_priority_2_rebinning_with_overflow(self):
+    def test_entries_priority_2_rebinning_with_overflow(self) -> None:
         # Arrange - bins > 1 creates overflow bucket
         hist = Histogram(bins=3, max_range=30.0)
 
@@ -110,7 +110,7 @@ class TestHistogramEntriesProperty:
         assert "30+" in result
         assert len(result) == 3
 
-    def test_entries_priority_2_rebinning_single_bin(self):
+    def test_entries_priority_2_rebinning_single_bin(self) -> None:
         # Arrange - bins = 1, no overflow
         hist = Histogram(bins=1, max_range=10.0)
 
@@ -121,7 +121,7 @@ class TestHistogramEntriesProperty:
         assert "0-10" in result
         assert len(result) == 1
 
-    def test_entries_priority_3_discovered_buckets(self):
+    def test_entries_priority_3_discovered_buckets(self) -> None:
         # Arrange
         hist = Histogram()
         hist.content = {"0-10": 5, "10-20": 10, "20-30": 3}
@@ -134,7 +134,7 @@ class TestHistogramEntriesProperty:
         assert "10-20" in result
         assert "20-30" in result
 
-    def test_entries_includes_statistics(self):
+    def test_entries_includes_statistics(self) -> None:
         # Arrange
         hist = Histogram(statistics=["mean", "samples"])
         hist.content = {"0-10": 5}
@@ -150,7 +150,7 @@ class TestHistogramEntriesProperty:
 class TestHistogramContentProperty:
     """Test content property getter and setter."""
 
-    def test_content_getter(self):
+    def test_content_getter(self) -> None:
         # Arrange
         hist = Histogram()
 
@@ -160,7 +160,7 @@ class TestHistogramContentProperty:
         # Assert
         assert isinstance(result, dict)
 
-    def test_content_setter_non_dict_raises(self):
+    def test_content_setter_non_dict_raises(self) -> None:
         # Arrange
         hist = Histogram()
 
@@ -168,7 +168,7 @@ class TestHistogramContentProperty:
         with pytest.raises(TypeError, match="HISTOGRAM.*Content must be dict"):
             hist.content = [1, 2, 3]
 
-    def test_content_setter_non_numeric_values_raises(self):
+    def test_content_setter_non_numeric_values_raises(self) -> None:
         # Arrange
         hist = Histogram()
 
@@ -180,7 +180,7 @@ class TestHistogramContentProperty:
 class TestHistogramContentSetting:
     """Test content setter with valid data."""
 
-    def test_content_setter_with_single_values(self):
+    def test_content_setter_with_single_values(self) -> None:
         # Arrange
         hist = Histogram()
 
@@ -191,7 +191,7 @@ class TestHistogramContentSetting:
         assert hist._content["0-10"] == [5.0]
         assert hist._content["10-20"] == [10.0]
 
-    def test_content_setter_aggregates_list_values(self):
+    def test_content_setter_aggregates_list_values(self) -> None:
         # Arrange
         hist = Histogram()
 
@@ -201,7 +201,7 @@ class TestHistogramContentSetting:
         # Assert - aggregated: 5+10+15=30
         assert hist._content["0-10"] == [30.0]
 
-    def test_content_setter_multiple_assignments_extend(self):
+    def test_content_setter_multiple_assignments_extend(self) -> None:
         # Arrange
         hist = Histogram()
 
@@ -212,7 +212,7 @@ class TestHistogramContentSetting:
         # Assert - values extended
         assert hist._content["0-10"] == [5.0, 10.0]
 
-    def test_content_setter_dynamic_bucket_discovery(self):
+    def test_content_setter_dynamic_bucket_discovery(self) -> None:
         # Arrange
         hist = Histogram()
 
@@ -224,7 +224,7 @@ class TestHistogramContentSetting:
         assert "0-100" in hist._content
         assert "100-200" in hist._content
 
-    def test_content_setter_with_statistics(self):
+    def test_content_setter_with_statistics(self) -> None:
         # Arrange
         hist = Histogram(statistics=["mean"])
 
@@ -238,7 +238,7 @@ class TestHistogramContentSetting:
 class TestHistogramBalanceContent:
     """Test balance_content method (padding per bucket)."""
 
-    def test_balance_empty_buckets_pads_with_zeros(self):
+    def test_balance_empty_buckets_pads_with_zeros(self) -> None:
         # Arrange
         hist = Histogram(repeat=3)
         hist.content = {"0-10": 5}
@@ -251,7 +251,7 @@ class TestHistogramBalanceContent:
         assert hist._balanced is True
         assert hist._content["0-10"] == [5.0, 0.0, 0.0]
 
-    def test_balance_partial_buckets_pads_remainder(self):
+    def test_balance_partial_buckets_pads_remainder(self) -> None:
         # Arrange
         hist = Histogram(repeat=4)
         hist.content = {"0-10": 10}
@@ -263,7 +263,7 @@ class TestHistogramBalanceContent:
         # Assert
         assert hist._content["0-10"] == [10.0, 20.0, 0.0, 0.0]
 
-    def test_balance_exact_count_no_change(self):
+    def test_balance_exact_count_no_change(self) -> None:
         # Arrange
         hist = Histogram(repeat=2)
         hist.content = {"0-10": 5}
@@ -275,7 +275,7 @@ class TestHistogramBalanceContent:
         # Assert - no padding needed
         assert hist._content["0-10"] == [5.0, 10.0]
 
-    def test_balance_too_many_values_raises(self):
+    def test_balance_too_many_values_raises(self) -> None:
         # Arrange
         hist = Histogram(repeat=1)
         hist.content = {"0-10": 5}
@@ -285,7 +285,7 @@ class TestHistogramBalanceContent:
         with pytest.raises(RuntimeError, match="more values than expected"):
             hist.balance_content()
 
-    def test_balance_initializes_missing_statistics(self):
+    def test_balance_initializes_missing_statistics(self) -> None:
         # Arrange
         hist = Histogram(repeat=2, statistics=["mean"])
         hist.content = {"0-10": 5}
@@ -301,7 +301,7 @@ class TestHistogramBalanceContent:
 class TestHistogramReduceDuplicates:
     """Test reduce_duplicates method (mean calculation)."""
 
-    def test_reduce_single_value_per_bucket(self):
+    def test_reduce_single_value_per_bucket(self) -> None:
         # Arrange
         hist = Histogram()
         hist.content = {"0-10": 100, "10-20": 200}
@@ -315,7 +315,7 @@ class TestHistogramReduceDuplicates:
         assert hist._reduced_content["0-10"] == 100.0
         assert hist._reduced_content["10-20"] == 200.0
 
-    def test_reduce_multiple_values_calculates_mean(self):
+    def test_reduce_multiple_values_calculates_mean(self) -> None:
         # Arrange
         hist = Histogram(repeat=3)
         hist.content = {"0-10": [10, 20, 30], "10-20": [100, 200, 300]}
@@ -328,7 +328,7 @@ class TestHistogramReduceDuplicates:
         assert hist._reduced_content["0-10"] == 20.0
         assert hist._reduced_content["10-20"] == 200.0
 
-    def test_reduce_empty_bucket_returns_zero(self):
+    def test_reduce_empty_bucket_returns_zero(self) -> None:
         # Arrange
         hist = Histogram()
         hist.balance_content()  # All empty
@@ -343,7 +343,7 @@ class TestHistogramReduceDuplicates:
 class TestHistogramRebinning:
     """Test rebinning logic."""
 
-    def test_reduce_with_rebinning_enabled(self):
+    def test_reduce_with_rebinning_enabled(self) -> None:
         # Arrange - simple 2-bin rebinning
         hist = Histogram(repeat=1, bins=2, max_range=20.0)
         # Provide raw data: 0-10 has 5, 10-20 has 10
@@ -358,7 +358,7 @@ class TestHistogramRebinning:
         assert "0-20" in hist._reduced_content
         assert "20+" in hist._reduced_content
 
-    def test_rebinning_proportional_distribution(self):
+    def test_rebinning_proportional_distribution(self) -> None:
         # Arrange - raw bucket overlaps multiple target bins
         hist = Histogram(repeat=1, bins=3, max_range=30.0)
         # bin_width = 30/(3-1) = 15
@@ -376,7 +376,7 @@ class TestHistogramRebinning:
         assert hist._reduced_content["0-15"] == 15.0
         assert hist._reduced_content["15-30"] == 15.0
 
-    def test_rebinning_overflow_bucket(self):
+    def test_rebinning_overflow_bucket(self) -> None:
         # Arrange
         hist = Histogram(repeat=1, bins=2, max_range=10.0)
         # bin_width = 10/(2-1) = 10
@@ -392,7 +392,7 @@ class TestHistogramRebinning:
         assert hist._reduced_content["0-10"] == 10.0
         assert hist._reduced_content["10+"] == 10.0
 
-    def test_rebinning_preserves_summary_stats(self):
+    def test_rebinning_preserves_summary_stats(self) -> None:
         # Arrange
         hist = Histogram(repeat=1, bins=2, max_range=10.0, statistics=["mean"])
         hist.content = {"0-10": 5, "mean": 7.5}
@@ -404,7 +404,7 @@ class TestHistogramRebinning:
         # Assert - mean preserved as-is
         assert hist._reduced_content["mean"] == 7.5
 
-    def test_rebinning_single_bin_no_overflow(self):
+    def test_rebinning_single_bin_no_overflow(self) -> None:
         # Arrange - bins=1, no overflow bucket
         hist = Histogram(repeat=1, bins=1, max_range=10.0)
         hist.content = {"0-20": 20}
@@ -420,7 +420,7 @@ class TestHistogramRebinning:
 class TestHistogramRangeParser:
     """Test _parse_range_key helper method."""
 
-    def test_parse_range_key_valid(self):
+    def test_parse_range_key_valid(self) -> None:
         # Arrange
         hist = Histogram()
 
@@ -430,7 +430,7 @@ class TestHistogramRangeParser:
         # Assert
         assert result == [0.0, 1023.0]
 
-    def test_parse_range_key_multi_digit(self):
+    def test_parse_range_key_multi_digit(self) -> None:
         # Arrange
         hist = Histogram()
 
@@ -440,7 +440,7 @@ class TestHistogramRangeParser:
         # Assert
         assert result == [128.0, 255.0]
 
-    def test_parse_range_key_invalid(self):
+    def test_parse_range_key_invalid(self) -> None:
         # Arrange
         hist = Histogram()
 
@@ -450,7 +450,7 @@ class TestHistogramRangeParser:
         # Assert - empty list
         assert result == []
 
-    def test_parse_range_key_overflow_format(self):
+    def test_parse_range_key_overflow_format(self) -> None:
         # Arrange
         hist = Histogram()
 
@@ -464,7 +464,7 @@ class TestHistogramRangeParser:
 class TestHistogramReducedContentAccess:
     """Test reduced_content property access guards."""
 
-    def test_access_reduced_content_before_balance_raises(self):
+    def test_access_reduced_content_before_balance_raises(self) -> None:
         # Arrange
         hist = Histogram()
         hist.content = {"0-10": 5}
@@ -474,7 +474,7 @@ class TestHistogramReducedContentAccess:
         with pytest.raises(AttributeError, match="balance_content.*reduce_duplicates"):
             _ = hist.reduced_content
 
-    def test_access_reduced_content_before_reduce_raises(self):
+    def test_access_reduced_content_before_reduce_raises(self) -> None:
         # Arrange
         hist = Histogram()
         hist.content = {"0-10": 5}
@@ -485,7 +485,7 @@ class TestHistogramReducedContentAccess:
         with pytest.raises(AttributeError, match="balance_content.*reduce_duplicates"):
             _ = hist.reduced_content
 
-    def test_access_reduced_content_after_both_succeeds(self):
+    def test_access_reduced_content_after_both_succeeds(self) -> None:
         # Arrange
         hist = Histogram()
         hist.content = {"0-10": 50}
@@ -503,14 +503,14 @@ class TestHistogramReducedContentAccess:
 class TestHistogramTypeRegistration:
     """Test Histogram is properly registered in the type system."""
 
-    def test_histogram_registered_with_decorator(self):
+    def test_histogram_registered_with_decorator(self) -> None:
         # Act
         registered_types = StatTypeRegistry.get_types()
 
         # Assert
         assert "histogram" in registered_types
 
-    def test_create_histogram_via_registry(self):
+    def test_create_histogram_via_registry(self) -> None:
         # Act
         hist = StatTypeRegistry.create("histogram", bins=5, max_range=100.0)
 
@@ -523,7 +523,7 @@ class TestHistogramTypeRegistration:
 class TestHistogramStrMethod:
     """Test __str__ method for string representation."""
 
-    def test_str_method_empty_histogram(self):
+    def test_str_method_empty_histogram(self) -> None:
         # Arrange
         hist = Histogram(repeat=3)
 
@@ -535,7 +535,7 @@ class TestHistogramStrMethod:
         assert "buckets=0" in result
         assert "repeat=3" in result
 
-    def test_str_method_with_buckets(self):
+    def test_str_method_with_buckets(self) -> None:
         # Arrange
         hist = Histogram()
         hist.content = {"0-10": 5, "10-20": 10}
@@ -551,7 +551,7 @@ class TestHistogramStrMethod:
 class TestHistogramEdgeCases:
     """Test edge cases and special scenarios."""
 
-    def test_zero_value_buckets(self):
+    def test_zero_value_buckets(self) -> None:
         # Arrange
         hist = Histogram()
 
@@ -563,7 +563,7 @@ class TestHistogramEdgeCases:
         # Assert
         assert hist._reduced_content["0-10"] == 0.0
 
-    def test_float_bucket_values(self):
+    def test_float_bucket_values(self) -> None:
         # Arrange
         hist = Histogram()
 
@@ -574,7 +574,7 @@ class TestHistogramEdgeCases:
         assert hist._content["0-10"] == [5.5]
         assert hist._content["10-20"] == [10.7]
 
-    def test_large_bucket_values(self):
+    def test_large_bucket_values(self) -> None:
         # Arrange
         hist = Histogram()
 
@@ -586,7 +586,7 @@ class TestHistogramEdgeCases:
         # Assert
         assert hist._reduced_content["0-1000000"] == 999999.0
 
-    def test_rebinning_with_zero_span_bucket(self):
+    def test_rebinning_with_zero_span_bucket(self) -> None:
         # Arrange - raw bucket with start == end (zero span)
         hist = Histogram(repeat=1, bins=2, max_range=10.0)
         # Zero span buckets are skipped during rebinning (raw_span <= 0 check)
@@ -605,7 +605,7 @@ class TestHistogramEdgeCases:
         assert hist._reduced_content["0-10"] == 0.0
         assert hist._reduced_content["10+"] == 0.0
 
-    def test_entries_property_sorted_order(self):
+    def test_entries_property_sorted_order(self) -> None:
         # Arrange
         hist = Histogram()
         hist.content = {"100-200": 1, "0-100": 2, "200-300": 3}

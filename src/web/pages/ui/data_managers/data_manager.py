@@ -4,7 +4,6 @@ Abstract base class for all data managers.
 """
 
 from abc import ABC, abstractmethod
-from typing import Optional
 
 import pandas as pd
 
@@ -22,14 +21,12 @@ class DataManager(ABC):
     @abstractmethod
     def name(self) -> str:
         """Name of the manager (displayed in tab)."""
-        pass
 
     @abstractmethod
     def render(self) -> None:
         """Render the manager's UI."""
-        pass
 
-    def get_data(self) -> Optional[pd.DataFrame]:
+    def get_data(self) -> pd.DataFrame | None:
         """Helper to get current data from StateManager."""
         return self.api.state_manager.get_data()
 

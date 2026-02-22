@@ -1,5 +1,6 @@
 """Tests for performance.py page — 0% coverage target."""
 
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 
@@ -91,7 +92,8 @@ class TestRenderPerformancePage:
 
         mock_st.session_state = {}
 
-        def button_side_effect(label, on_click=None, **kwargs):
+        def button_side_effect(label: Any, on_click: Any = None, **kwargs: Any) -> int:
+
             if on_click:
                 on_click()
             return True

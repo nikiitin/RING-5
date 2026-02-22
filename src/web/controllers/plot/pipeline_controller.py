@@ -19,12 +19,13 @@ Architecture Note — Streamlit usage:
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pandas as pd
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
+from src.core.models.data_models import ShaperStepConfig
 from src.web.models.plot_protocols import PipelineExecutor, PlotHandle
 from src.web.presenters.plot.pipeline_presenter import PipelinePresenter
 from src.web.presenters.plot.pipeline_step_presenter import PipelineStepPresenter
@@ -76,13 +77,13 @@ class PipelineController:
         """
         PipelinePresenter.render_section_header()
 
-        raw_data: Optional[pd.DataFrame] = self._api.state_manager.get_data()
+        raw_data: pd.DataFrame | None = self._api.state_manager.get_data()
         if raw_data is None:
             PipelinePresenter.render_no_data_warning()
             return
 
         # 1. Add shaper (via presenter)
-        add_result: Dict[str, Any] = PipelinePresenter.render_add_shaper(plot.plot_id)
+        add_result: dict[str, Any] = PipelinePresenter.render_add_shaper(plot.plot_id)
         if add_result["add_clicked"]:
             plot.pipeline.append(
                 {
@@ -120,7 +121,7 @@ class PipelineController:
         for idx, shaper in enumerate(plot.pipeline):
             try:
                 # Render step via presenter
-                result: Dict[str, Any] = PipelineStepPresenter.render_step(
+                result: dict[str, Any] = PipelineStepPresenter.render_step(
                     plot_id=plot.plot_id,
                     idx=idx,
                     shaper_type=shaper["type"],
@@ -187,7 +188,7 @@ class PipelineController:
             raw_data: Original uploaded data.
         """
         try:
-            confs: List[Dict[str, Any]] = [s["config"] for s in plot.pipeline if s["config"]]
+            confs: list[ShaperStepConfig] = [s["config"] for s in plot.pipeline if s["config"]]
             processed: pd.DataFrame = self._pipeline.apply_shapers(raw_data, confs)
             plot.processed_data = processed
             PipelineStepPresenter.render_finalize_result(processed)

@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import ANY, MagicMock, patch
 
 import pytest
@@ -7,7 +8,7 @@ from tests.conftest import columns_side_effect
 
 
 @pytest.fixture
-def mock_streamlit():
+def mock_streamlit() -> None:
     with patch("src.web.pages.ui.components.data_source_components.st") as mock_st:
         mock_st.columns.side_effect = columns_side_effect
         mock_st.session_state = {}
@@ -23,7 +24,7 @@ def mock_streamlit():
 
 
 @pytest.fixture
-def mock_api():
+def mock_api() -> Any:
     api = MagicMock()
     api.state_manager = MagicMock()
 
@@ -40,12 +41,13 @@ def mock_api():
 
 
 @pytest.fixture
-def mock_card_components():
+def mock_card_components() -> None:
     with patch("src.web.pages.ui.components.data_source_components.CardComponents") as mock_card:
         yield mock_card
 
 
-def test_render_csv_pool_empty(mock_streamlit, mock_api):
+def test_render_csv_pool_empty(mock_streamlit: Any, mock_api: Any) -> None:
+
     mock_api.load_csv_pool.return_value = []
     mock_api.state_manager.get_csv_pool.return_value = []
 
@@ -55,7 +57,10 @@ def test_render_csv_pool_empty(mock_streamlit, mock_api):
     mock_api.state_manager.set_csv_pool.assert_called_with([])
 
 
-def test_render_csv_pool_with_files(mock_streamlit, mock_api, mock_card_components):
+def test_render_csv_pool_with_files(
+    mock_streamlit: Any, mock_api: Any, mock_card_components: Any
+) -> None:
+
     csv_info = {"name": "test.csv", "path": "/path/to/test.csv"}
     mock_api.load_csv_pool.return_value = [csv_info]
     mock_api.state_manager.get_csv_pool.return_value = []
@@ -74,7 +79,10 @@ def test_render_csv_pool_with_files(mock_streamlit, mock_api, mock_card_componen
         mock_streamlit.success.assert_called()
 
 
-def test_render_csv_pool_delete(mock_streamlit, mock_api, mock_card_components):
+def test_render_csv_pool_delete(
+    mock_streamlit: Any, mock_api: Any, mock_card_components: Any
+) -> None:
+
     csv_info = {"name": "del.csv", "path": "/del.csv"}
     mock_api.load_csv_pool.return_value = [csv_info]
     mock_api.state_manager.get_csv_pool.return_value = []
@@ -89,7 +97,8 @@ def test_render_csv_pool_delete(mock_streamlit, mock_api, mock_card_components):
         mock_streamlit.rerun.assert_called()
 
 
-def test_render_parser_config(mock_streamlit, mock_api):
+def test_render_parser_config(mock_streamlit: Any, mock_api: Any) -> None:
+
     # Simulate clicking "Quick Scan" button
     mock_streamlit.button.side_effect = lambda label, **k: "Quick Scan" in label
 
@@ -110,7 +119,7 @@ def test_render_parser_config(mock_streamlit, mock_api):
     mock_streamlit.rerun.assert_called()
 
 
-def test_execute_parser_success(mock_streamlit, mock_api):
+def test_execute_parser_success(mock_streamlit: Any, mock_api: Any) -> None:
     """Test that parsing button triggers async parse workflow."""
     stats_path = "/stats"
     pattern = "*.txt"
@@ -139,7 +148,7 @@ def test_execute_parser_success(mock_streamlit, mock_api):
         assert csv_path == generated_csv
 
 
-def test_execute_parser_no_files(mock_streamlit, mock_api):
+def test_execute_parser_no_files(mock_streamlit: Any, mock_api: Any) -> None:
     """Test that we can handle the case when submit_parse_async would fail."""
     # This test verifies the mock can be called - the actual FileNotFoundError
     # is raised by the real ParseService when Path doesn't exist

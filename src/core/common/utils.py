@@ -11,15 +11,15 @@ import os
 import re
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Union
 
 logger = logging.getLogger(__name__)
 
 # Type alias for JSON-compatible values
-JsonValue = Union[bool, int, float, str, List[Any], Dict[Any, Any], None]
+JsonValue = Union[bool, int, float, str, list[Any], dict[Any, Any], None]
 
 
-def getElementValue(jsonElement: Dict[str, Any], key: str, optional: bool = True) -> JsonValue:
+def getElementValue(jsonElement: dict[str, Any], key: str, optional: bool = True) -> JsonValue:
     """
     Get the value of a key in a JSON element.
 
@@ -48,7 +48,7 @@ def getElementValue(jsonElement: Dict[str, Any], key: str, optional: bool = True
         raise KeyError(f"Key not found: {key}")
 
 
-def checkElementExists(jsonElement: Dict[str, Any], key: str) -> None:
+def checkElementExists(jsonElement: dict[str, Any], key: str) -> None:
     """
     Check if a key exists in a JSON element, raise exception if not.
 
@@ -63,7 +63,7 @@ def checkElementExists(jsonElement: Dict[str, Any], key: str) -> None:
         raise KeyError(f"Key not found: {key}")
 
 
-def checkElementExistNoException(jsonElement: Dict[str, Any], key: str) -> bool:
+def checkElementExistNoException(jsonElement: dict[str, Any], key: str) -> bool:
     """
     Check if a key exists in a JSON element without raising exception.
 
@@ -77,7 +77,7 @@ def checkElementExistNoException(jsonElement: Dict[str, Any], key: str) -> bool:
     return key in jsonElement
 
 
-def checkEnumExistsNoException(jsonElement: Dict[str, Any], enum: enum.EnumMeta) -> bool:
+def checkEnumExistsNoException(jsonElement: dict[str, Any], enum: enum.EnumMeta) -> bool:
     """
     Check if any key in jsonElement matches an enum member.
 
@@ -94,7 +94,7 @@ def checkEnumExistsNoException(jsonElement: Dict[str, Any], enum: enum.EnumMeta)
     return False
 
 
-def getEnumValue(jsonElement: Dict[str, Any], enumType: enum.EnumMeta) -> Optional[str]:
+def getEnumValue(jsonElement: dict[str, Any], enumType: enum.EnumMeta) -> str | None:
     """
     Get the first enum value that matches a key in jsonElement.
 
@@ -106,14 +106,14 @@ def getEnumValue(jsonElement: Dict[str, Any], enumType: enum.EnumMeta) -> Option
         Matched enum value as string, or None if no match
     """
     for key in jsonElement:
-        enum_member: Any
+        enum_member: enum.Enum
         for enum_member in enumType:
             if key == enum_member.value:
                 return key
     return None
 
 
-def checkFilesExistOrException(filePaths: List[Union[str, Path]]) -> None:
+def checkFilesExistOrException(filePaths: list[str | Path]) -> None:
     """
     Check if all files exist, raise exception for first missing file.
 
@@ -127,7 +127,7 @@ def checkFilesExistOrException(filePaths: List[Union[str, Path]]) -> None:
         checkFileExistsOrException(filePath)
 
 
-def checkFileExistsOrException(filePath: Union[str, Path]) -> None:
+def checkFileExistsOrException(filePath: str | Path) -> None:
     """
     Check if a file exists, raise exception if not.
 
@@ -141,7 +141,7 @@ def checkFileExistsOrException(filePath: Union[str, Path]) -> None:
         raise FileNotFoundError(f"File does not exist: {filePath}")
 
 
-def checkFileExists(filePath: Union[str, Path]) -> bool:
+def checkFileExists(filePath: str | Path) -> bool:
     """
     Check if a file exists.
 
@@ -154,7 +154,7 @@ def checkFileExists(filePath: Union[str, Path]) -> bool:
     return os.path.isfile(filePath)
 
 
-def checkDirExistsOrException(dirPath: Union[str, Path]) -> None:
+def checkDirExistsOrException(dirPath: str | Path) -> None:
     """
     Check if a directory exists, raise exception if not.
 
@@ -168,7 +168,7 @@ def checkDirExistsOrException(dirPath: Union[str, Path]) -> None:
         raise FileNotFoundError(f"Directory does not exist: {dirPath}")
 
 
-def checkDirExists(dirPath: Union[str, Path]) -> bool:
+def checkDirExists(dirPath: str | Path) -> bool:
     """
     Check if a directory exists.
 
@@ -181,7 +181,7 @@ def checkDirExists(dirPath: Union[str, Path]) -> bool:
     return os.path.isdir(dirPath)
 
 
-def createDir(dirPath: Union[str, Path]) -> None:
+def createDir(dirPath: str | Path) -> None:
     """
     Create a directory if it doesn't exist.
 

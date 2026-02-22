@@ -2,6 +2,7 @@
 
 import os
 import shutil
+from typing import Any
 
 import pandas as pd
 
@@ -20,7 +21,7 @@ class TestE2EShapers:
     expectsDir = os.path.relpath("tests/data/mock/expects")
     configDir = os.path.relpath("tests/data/mock/config_files/json_components/config")
 
-    def test_e2e_column_selector_with_gem5_data(self, tmp_path):
+    def test_e2e_column_selector_with_gem5_data(self, tmp_path: Any) -> None:
         """Test ColumnSelector shaper with real gem5 data."""
         # Copy input CSV
         input_csv = os.path.join(self.inputsDir, "csv/configurer/configurer_test_case01.csv")
@@ -46,7 +47,7 @@ class TestE2EShapers:
         assert result_df["benchmark_name"].equals(data["benchmark_name"])
         assert result_df["simTicks"].equals(data["simTicks"])
 
-    def test_e2e_sort_with_gem5_data(self, tmp_path):
+    def test_e2e_sort_with_gem5_data(self, tmp_path: Any) -> None:
         """Test Sort shaper with real gem5 data."""
         # Copy input CSV
         input_csv = os.path.join(self.inputsDir, "csv/configurer/configurer_test_case01.csv")
@@ -94,7 +95,7 @@ class TestE2EShapers:
                 ), f"Benchmarks not in order: {benchmark} at {curr_idx}, prev was {prev_idx}"
                 prev_idx = curr_idx
 
-    def test_e2e_mean_with_gem5_data(self, tmp_path):
+    def test_e2e_mean_with_gem5_data(self, tmp_path: Any) -> None:
         """Test Mean shaper with real gem5 data."""
         # Copy input CSV
         input_csv = os.path.join(self.inputsDir, "csv/configurer/configurer_test_case01.csv")
@@ -127,7 +128,7 @@ class TestE2EShapers:
         # Should have 'arithmean' in benchmark_name
         assert "arithmean" in result_df["benchmark_name"].values
 
-    def test_e2e_normalize_with_gem5_data(self, tmp_path):
+    def test_e2e_normalize_with_gem5_data(self, tmp_path: Any) -> None:
         """Test Normalize shaper with real gem5 data."""
         # Copy input CSV
         input_csv = os.path.join(self.inputsDir, "csv/configurer/configurer_test_case01.csv")
@@ -178,7 +179,7 @@ class TestE2EShapers:
         ]
         assert len(non_baseline_rows) > 0, "Should have non-baseline rows"
 
-    def test_e2e_shaper_pipeline(self, tmp_path):
+    def test_e2e_shaper_pipeline(self, tmp_path: Any) -> None:
         """Test complete shaper pipeline: ColumnSelector -> Mean -> Sort."""
         # Copy input CSV
         input_csv = os.path.join(self.inputsDir, "csv/configurer/configurer_test_case01.csv")
@@ -242,7 +243,7 @@ class TestE2EIntegration:
 
     inputsDir = os.path.relpath("tests/data/mock/inputs")
 
-    def test_e2e_simple_workflow_with_gem5_data(self, tmp_path):
+    def test_e2e_simple_workflow_with_gem5_data(self, tmp_path: Any) -> None:
         """Test simple end-to-end workflow with real gem5 data: load → select → sort."""
         # Copy input CSV
         input_csv = os.path.join(self.inputsDir, "csv/configurer/configurer_test_case01.csv")
@@ -305,7 +306,7 @@ class TestE2EIntegration:
         result_csv = tmp_path / "e2e_result.csv"
         final_data.to_csv(result_csv, index=False)
 
-    def test_complete_pipeline_with_plot(self, tmp_path):
+    def test_complete_pipeline_with_plot(self, tmp_path: Any) -> None:
         """
         Complete integration test: Load → Select Columns → Normalize → Mean → Rename → Sort → Plot
         Tests the full pipeline from raw gem5 data to a PDF plot.

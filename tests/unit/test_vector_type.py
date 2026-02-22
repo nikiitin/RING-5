@@ -16,6 +16,7 @@ Tests cover:
 """
 
 import logging
+from typing import Any
 
 import pytest
 
@@ -26,7 +27,7 @@ from src.core.parsing.gem5.types.vector import Vector
 class TestVectorInitialization:
     """Test Vector object creation and initialization."""
 
-    def test_init_with_entry_list(self):
+    def test_init_with_entry_list(self) -> None:
         # Arrange & Act
         vector = Vector(entries=["entry0", "entry1", "entry2"])
 
@@ -37,7 +38,7 @@ class TestVectorInitialization:
         assert vector._balanced is False
         assert vector._reduced is False
 
-    def test_init_with_comma_separated_string(self):
+    def test_init_with_comma_separated_string(self) -> None:
         # Arrange & Act
         vector = Vector(entries="entry0, entry1, entry2")
 
@@ -46,7 +47,7 @@ class TestVectorInitialization:
         assert "entry0" in vector._content
         assert "entry1" in vector._content
 
-    def test_init_with_custom_repeat(self):
+    def test_init_with_custom_repeat(self) -> None:
         # Arrange & Act
         vector = Vector(repeat=5, entries=["a", "b"])
 
@@ -54,17 +55,17 @@ class TestVectorInitialization:
         assert vector._repeat == 5
         assert vector._entries == ["a", "b"]
 
-    def test_init_without_entries_raises(self):
+    def test_init_without_entries_raises(self) -> None:
         # Act & Assert
         with pytest.raises(ValueError, match="VECTOR.*entries parameter is required"):
             Vector()
 
-    def test_init_with_none_entries_raises(self):
+    def test_init_with_none_entries_raises(self) -> None:
         # Act & Assert
         with pytest.raises(ValueError, match="VECTOR.*entries parameter is required"):
             Vector(entries=None)
 
-    def test_required_params_contains_entries(self):
+    def test_required_params_contains_entries(self) -> None:
         # Arrange & Act
         required = Vector.required_params
 
@@ -76,7 +77,7 @@ class TestVectorInitialization:
 class TestVectorEntriesProperty:
     """Test entries property getter."""
 
-    def test_entries_property_returns_list(self):
+    def test_entries_property_returns_list(self) -> None:
         # Arrange
         vector = Vector(entries=["e0", "e1", "e2"])
 
@@ -91,7 +92,7 @@ class TestVectorEntriesProperty:
 class TestVectorContentProperty:
     """Test content property getter and setter."""
 
-    def test_content_getter(self):
+    def test_content_getter(self) -> None:
         # Arrange
         vector = Vector(entries=["e0", "e1"])
 
@@ -102,7 +103,7 @@ class TestVectorContentProperty:
         assert isinstance(result, dict)
         assert result == {"e0": [], "e1": []}
 
-    def test_content_setter_with_valid_dict(self):
+    def test_content_setter_with_valid_dict(self) -> None:
         # Arrange
         vector = Vector(entries=["e0", "e1"])
 
@@ -116,7 +117,7 @@ class TestVectorContentProperty:
         assert vector._content["e0"] == [10, 20]
         assert vector._content["e1"] == [30, 40]
 
-    def test_content_setter_non_dict_raises(self):
+    def test_content_setter_non_dict_raises(self) -> None:
         # Arrange
         vector = Vector(entries=["e0"])
 
@@ -124,20 +125,20 @@ class TestVectorContentProperty:
         with pytest.raises(TypeError, match="VECTOR.*Content must be dict"):
             vector.content = [1, 2, 3]
 
-    def test_content_setter_non_string_keys_raises(self):
+    def test_content_setter_non_string_keys_raises(self) -> None:
         # Arrange
         vector = Vector(entries=["e0"])
 
         # Create object with non-stringable keys
         class NonStringable:
-            def __str__(self):
+            def __str__(self) -> None:
                 raise RuntimeError("Cannot convert")
 
         # Act & Assert
         with pytest.raises(TypeError, match="VECTOR.*Unable to convert keys to strings"):
             vector.content = {NonStringable(): [1, 2]}
 
-    def test_content_setter_non_numeric_list_values_raises(self):
+    def test_content_setter_non_numeric_list_values_raises(self) -> None:
         # Arrange
         vector = Vector(entries=["e0"])
 
@@ -145,7 +146,7 @@ class TestVectorContentProperty:
         with pytest.raises(TypeError, match="VECTOR.*non-convertible to int or float"):
             vector.content = {"e0": ["invalid", "values"]}
 
-    def test_content_setter_aggregates_list_values(self):
+    def test_content_setter_aggregates_list_values(self) -> None:
         # Arrange
         vector = Vector(entries=["e0", "e1"])
 
@@ -156,7 +157,7 @@ class TestVectorContentProperty:
         assert vector._content["e0"] == [60.0]
         assert vector._content["e1"] == [20.0]
 
-    def test_content_setter_with_single_value(self):
+    def test_content_setter_with_single_value(self) -> None:
         # Arrange
         vector = Vector(entries=["e0"])
 
@@ -166,7 +167,8 @@ class TestVectorContentProperty:
         # Assert
         assert vector._content["e0"] == [42]
 
-    def test_content_setter_skips_unknown_entries(self, caplog):
+    def test_content_setter_skips_unknown_entries(self, caplog: Any) -> None:
+
         # Arrange
         vector = Vector(entries=["e0", "e1"])
 
@@ -181,7 +183,8 @@ class TestVectorContentProperty:
         assert "not the same as configured entries" in caplog.text
         assert "e2" in caplog.text
 
-    def test_content_setter_no_warning_for_standard_stats(self, caplog):
+    def test_content_setter_no_warning_for_standard_stats(self, caplog: Any) -> None:
+
         # Arrange
         vector = Vector(entries=["e0"])
 
@@ -197,7 +200,7 @@ class TestVectorContentProperty:
 class TestVectorBalanceContent:
     """Test balance_content method (padding per entry)."""
 
-    def test_balance_empty_entries_pads_with_zeros(self):
+    def test_balance_empty_entries_pads_with_zeros(self) -> None:
         # Arrange
         vector = Vector(repeat=3, entries=["e0", "e1"])
         # Empty content
@@ -210,7 +213,7 @@ class TestVectorBalanceContent:
         assert vector._content["e0"] == [0, 0, 0]
         assert vector._content["e1"] == [0, 0, 0]
 
-    def test_balance_partial_entries_pads_remainder(self):
+    def test_balance_partial_entries_pads_remainder(self) -> None:
         # Arrange
         vector = Vector(repeat=4, entries=["e0", "e1"])
         # Assign individually to avoid aggregation
@@ -225,7 +228,7 @@ class TestVectorBalanceContent:
         assert vector._content["e0"] == [10, 20, 0, 0]
         assert vector._content["e1"] == [30, 0, 0, 0]
 
-    def test_balance_exact_count_no_change(self):
+    def test_balance_exact_count_no_change(self) -> None:
         # Arrange
         vector = Vector(repeat=2, entries=["e0"])
         # Assign individually
@@ -238,7 +241,7 @@ class TestVectorBalanceContent:
         # Assert - no padding needed
         assert vector._content["e0"] == [10, 20]
 
-    def test_balance_too_many_values_raises(self):
+    def test_balance_too_many_values_raises(self) -> None:
         # Arrange
         vector = Vector(repeat=2, entries=["e0"])
         # Assign 3 values individually
@@ -254,7 +257,7 @@ class TestVectorBalanceContent:
 class TestVectorReduceDuplicates:
     """Test reduce_duplicates method (arithmetic mean per entry)."""
 
-    def test_reduce_single_value_per_entry(self):
+    def test_reduce_single_value_per_entry(self) -> None:
         # Arrange
         vector = Vector(entries=["e0", "e1"])
         vector.content = {"e0": [100], "e1": [200]}
@@ -267,7 +270,7 @@ class TestVectorReduceDuplicates:
         assert vector._reduced is True
         assert vector._reduced_content == {"e0": 100.0, "e1": 200.0}
 
-    def test_reduce_multiple_values_calculates_mean(self):
+    def test_reduce_multiple_values_calculates_mean(self) -> None:
         # Arrange
         vector = Vector(repeat=3, entries=["e0", "e1"])
         vector.content = {"e0": [10, 20, 30], "e1": [100, 200, 300]}
@@ -280,7 +283,7 @@ class TestVectorReduceDuplicates:
         assert vector._reduced_content["e0"] == 20.0
         assert vector._reduced_content["e1"] == 200.0
 
-    def test_reduce_empty_entry_returns_zero(self):
+    def test_reduce_empty_entry_returns_zero(self) -> None:
         # Arrange
         vector = Vector(entries=["e0", "e1"])
         vector.balance_content()  # Pads with zeros
@@ -292,7 +295,7 @@ class TestVectorReduceDuplicates:
         assert vector._reduced_content["e0"] == 0.0
         assert vector._reduced_content["e1"] == 0.0
 
-    def test_reduce_uses_int_conversion(self):
+    def test_reduce_uses_int_conversion(self) -> None:
         # Arrange
         vector = Vector(repeat=2, entries=["e0"])
         vector.content = {"e0": [10, 20]}
@@ -304,7 +307,7 @@ class TestVectorReduceDuplicates:
         # Assert - int() then division: (10+20)/2=15.0
         assert vector._reduced_content["e0"] == 15.0
 
-    def test_reduce_with_truly_empty_entry(self):
+    def test_reduce_with_truly_empty_entry(self) -> None:
         # Arrange
         vector = Vector(entries=["e0", "e1"])
         # Only set content for e0, leave e1 truly empty
@@ -317,7 +320,7 @@ class TestVectorReduceDuplicates:
         # Assert - e1 has no values, defaults to 0
         assert object.__getattribute__(vector, "_reduced_content")["e1"] == 0.0
 
-    def test_aggregation_error_handling(self):
+    def test_aggregation_error_handling(self) -> None:
         # Arrange
         Vector(entries=["e0"])
 
@@ -331,7 +334,7 @@ class TestVectorReduceDuplicates:
 class TestVectorReducedContentAccess:
     """Test reduced_content property access guards."""
 
-    def test_access_reduced_content_before_balance_raises(self):
+    def test_access_reduced_content_before_balance_raises(self) -> None:
         # Arrange
         vector = Vector(entries=["e0"])
         vector.content = {"e0": [10]}
@@ -341,7 +344,7 @@ class TestVectorReducedContentAccess:
         with pytest.raises(AttributeError, match="balance_content.*reduce_duplicates"):
             _ = vector.reduced_content
 
-    def test_access_reduced_content_before_reduce_raises(self):
+    def test_access_reduced_content_before_reduce_raises(self) -> None:
         # Arrange
         vector = Vector(entries=["e0"])
         vector.content = {"e0": [10]}
@@ -352,7 +355,7 @@ class TestVectorReducedContentAccess:
         with pytest.raises(AttributeError, match="balance_content.*reduce_duplicates"):
             _ = vector.reduced_content
 
-    def test_access_reduced_content_after_both_succeeds(self):
+    def test_access_reduced_content_after_both_succeeds(self) -> None:
         # Arrange
         vector = Vector(entries=["e0"])
         vector.content = {"e0": [10]}
@@ -365,7 +368,7 @@ class TestVectorReducedContentAccess:
         # Assert
         assert result == {"e0": 10.0}
 
-    def test_access_reduced_content_property_directly(self):
+    def test_access_reduced_content_property_directly(self) -> None:
         # Arrange
         vector = Vector(entries=["e0"])
         vector.content = {"e0": 15}
@@ -379,14 +382,14 @@ class TestVectorReducedContentAccess:
 class TestVectorTypeRegistration:
     """Test Vector is properly registered in the type system."""
 
-    def test_vector_registered_with_decorator(self):
+    def test_vector_registered_with_decorator(self) -> None:
         # Act
         registered_types = StatTypeRegistry.get_types()
 
         # Assert
         assert "vector" in registered_types
 
-    def test_create_vector_via_registry(self):
+    def test_create_vector_via_registry(self) -> None:
         # Act
         vector = StatTypeRegistry.create("vector", entries=["e0", "e1"])
 
@@ -398,7 +401,7 @@ class TestVectorTypeRegistration:
 class TestVectorStrMethod:
     """Test __str__ method for string representation."""
 
-    def test_str_method_empty_content(self):
+    def test_str_method_empty_content(self) -> None:
         # Arrange
         vector = Vector(entries=["e0", "e1"])
 
@@ -410,7 +413,7 @@ class TestVectorStrMethod:
         assert "e0" in result
         assert "e1" in result
 
-    def test_str_method_with_content(self):
+    def test_str_method_with_content(self) -> None:
         # Arrange
         vector = Vector(entries=["e0"])
         # List values are aggregated: [10, 20, 30] → 60.0
@@ -427,7 +430,7 @@ class TestVectorStrMethod:
 class TestVectorEdgeCases:
     """Test edge cases and special scenarios."""
 
-    def test_zero_values(self):
+    def test_zero_values(self) -> None:
         # Arrange
         vector = Vector(entries=["e0"])
 
@@ -439,7 +442,7 @@ class TestVectorEdgeCases:
         # Assert
         assert vector._reduced_content["e0"] == 0.0
 
-    def test_negative_values(self):
+    def test_negative_values(self) -> None:
         # Arrange
         vector = Vector(entries=["e0"])
 
@@ -451,7 +454,7 @@ class TestVectorEdgeCases:
         # Assert - aggregated then reduced: -60.0 / 1 = -60.0
         assert vector._reduced_content["e0"] == -60.0
 
-    def test_float_values(self):
+    def test_float_values(self) -> None:
         # Arrange
         vector = Vector(entries=["e0"])
 
@@ -463,7 +466,7 @@ class TestVectorEdgeCases:
         # Assert - int(6.0) / 1 = 6.0
         assert vector._reduced_content["e0"] == 6.0
 
-    def test_mixed_numeric_types(self):
+    def test_mixed_numeric_types(self) -> None:
         # Arrange
         vector = Vector(entries=["e0"])
 
@@ -473,7 +476,7 @@ class TestVectorEdgeCases:
         # Assert - all aggregated as floats: 10+20.5+30=60.5
         assert vector._content["e0"] == [60.5]
 
-    def test_empty_entries_list(self):
+    def test_empty_entries_list(self) -> None:
         # Arrange & Act
         vector = Vector(entries=[])
 
@@ -481,7 +484,7 @@ class TestVectorEdgeCases:
         assert vector._entries == []
         assert vector._content == {}
 
-    def test_multiple_content_assignments_extend(self):
+    def test_multiple_content_assignments_extend(self) -> None:
         # Arrange
         vector = Vector(entries=["e0"])
 

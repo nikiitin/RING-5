@@ -75,7 +75,7 @@ def populated_pool(empty_pool_dir: Path, sample_csv: Path) -> Path:
 
 
 @pytest.fixture(autouse=True)
-def clear_service_state():
+def clear_service_state() -> None:
     """
     Clear CsvPoolService caches before each test.
 
@@ -97,7 +97,7 @@ class TestPoolDirectory:
 
     def test_get_pool_dir_creates_directory_if_missing(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ):
+    ) -> None:
         """Verify pool directory is created on first access."""
         # Arrange
         monkeypatch.setattr(
@@ -114,7 +114,7 @@ class TestPoolDirectory:
         assert pool_dir.exists()
         assert pool_dir.is_dir()
 
-    def test_get_pool_dir_returns_existing_directory(self, empty_pool_dir: Path):
+    def test_get_pool_dir_returns_existing_directory(self, empty_pool_dir: Path) -> None:
         """Verify get_pool_dir is idempotent."""
         # Act
         pool_dir = CsvPoolService.get_pool_dir()
@@ -132,7 +132,7 @@ class TestPoolDirectory:
 class TestCSVLoading:
     """Test CSV file loading with caching."""
 
-    def test_load_csv_file_reads_data_correctly(self, sample_csv: Path):
+    def test_load_csv_file_reads_data_correctly(self, sample_csv: Path) -> None:
         """Verify CSV loading produces correct DataFrame."""
         # Act
         df = CsvPoolService.load_csv_file(str(sample_csv))
@@ -142,7 +142,7 @@ class TestCSVLoading:
         assert list(df.columns) == ["benchmark", "value", "cycles"]
         assert df["benchmark"].tolist() == ["bzip2", "gcc", "mcf"]
 
-    def test_load_csv_file_caches_dataframe(self, sample_csv: Path):
+    def test_load_csv_file_caches_dataframe(self, sample_csv: Path) -> None:
         """Verify DataFrame is cached on first load."""
         # Arrange - First load
         df1 = CsvPoolService.load_csv_file(str(sample_csv))
@@ -155,7 +155,7 @@ class TestCSVLoading:
             mock_read.assert_not_called()
             assert df2.equals(df1)
 
-    def test_load_csv_file_caches_metadata(self, sample_csv: Path):
+    def test_load_csv_file_caches_metadata(self, sample_csv: Path) -> None:
         """Verify metadata is cached during DataFrame load."""
         # Act
         CsvPoolService.load_csv_file(str(sample_csv))
@@ -168,7 +168,9 @@ class TestCSVLoading:
         assert "dtypes" in metadata
 
     @pytest.mark.parametrize("separator", [",", ";", "\t"])
-    def test_load_csv_file_handles_different_separators(self, tmp_path: Path, separator: str):
+    def test_load_csv_file_handles_different_separators(
+        self, tmp_path: Path, separator: str
+    ) -> None:
         """Verify automatic separator detection works."""
         # Arrange
         sep_label = "tab" if separator == "\t" else separator
@@ -191,7 +193,7 @@ class TestCSVLoading:
 class TestMetadataCaching:
     """Test CSV metadata extraction and caching."""
 
-    def test_get_csv_metadata_extracts_info_correctly(self, sample_csv: Path):
+    def test_get_csv_metadata_extracts_info_correctly(self, sample_csv: Path) -> None:
         """Verify metadata extraction without loading full DataFrame."""
         # Act
         metadata = CsvPoolService._get_csv_metadata(str(sample_csv))
@@ -203,7 +205,7 @@ class TestMetadataCaching:
         assert "dtypes" in metadata
         assert "benchmark" in metadata["dtypes"]
 
-    def test_get_csv_metadata_uses_cache_on_second_call(self, sample_csv: Path):
+    def test_get_csv_metadata_uses_cache_on_second_call(self, sample_csv: Path) -> None:
         """Verify metadata cache prevents redundant file reads."""
         # Arrange - First call computes metadata
         metadata1 = CsvPoolService._get_csv_metadata(str(sample_csv))
@@ -216,7 +218,7 @@ class TestMetadataCaching:
             mock_open.assert_not_called()
             assert metadata2 == metadata1
 
-    def test_get_csv_metadata_returns_none_on_error(self, tmp_path: Path):
+    def test_get_csv_metadata_returns_none_on_error(self, tmp_path: Path) -> None:
         """Verify graceful handling of read errors."""
         # Arrange
         nonexistent_file = tmp_path / "missing.csv"
@@ -236,7 +238,7 @@ class TestMetadataCaching:
 class TestPoolManagement:
     """Test pool listing, adding, and deletion operations."""
 
-    def test_load_pool_returns_empty_list_for_empty_directory(self, empty_pool_dir: Path):
+    def test_load_pool_returns_empty_list_for_empty_directory(self, empty_pool_dir: Path) -> None:
         """Verify empty pool returns empty list."""
         # Act
         pool = CsvPoolService.load_pool()
@@ -244,7 +246,7 @@ class TestPoolManagement:
         # Assert
         assert pool == []
 
-    def test_load_pool_lists_all_csv_files(self, populated_pool: Path):
+    def test_load_pool_lists_all_csv_files(self, populated_pool: Path) -> None:
         """Verify all CSV files in pool are listed."""
         # Act
         pool = CsvPoolService.load_pool()
@@ -256,7 +258,7 @@ class TestPoolManagement:
         assert all("size" in item for item in pool)
         assert all("modified" in item for item in pool)
 
-    def test_load_pool_sorts_by_modified_time_descending(self, populated_pool: Path):
+    def test_load_pool_sorts_by_modified_time_descending(self, populated_pool: Path) -> None:
         """Verify pool items sorted by modification time (newest first)."""
         # Arrange - Set explicit mtimes to ensure reliable ordering
         # Use os.utime() instead of touch() for reliable mtime in CI
@@ -276,7 +278,7 @@ class TestPoolManagement:
         assert pool[0]["name"] == "parsed_20260102_120000.csv"
         assert pool[0]["modified"] >= pool[1]["modified"]
 
-    def test_load_pool_includes_metadata_when_available(self, populated_pool: Path):
+    def test_load_pool_includes_metadata_when_available(self, populated_pool: Path) -> None:
         """Verify metadata is included in pool listing."""
         # Act
         pool = CsvPoolService.load_pool()
@@ -288,7 +290,9 @@ class TestPoolManagement:
         assert "rows" in first_item
         assert "dtypes" in first_item
 
-    def test_add_to_pool_copies_file_with_timestamp(self, sample_csv: Path, empty_pool_dir: Path):
+    def test_add_to_pool_copies_file_with_timestamp(
+        self, sample_csv: Path, empty_pool_dir: Path
+    ) -> None:
         """Verify CSV is copied to pool with timestamped name."""
         # Act
         pool_path = CsvPoolService.add_to_pool(str(sample_csv))
@@ -304,7 +308,9 @@ class TestPoolManagement:
         pooled_df = pd.read_csv(pool_path)
         assert pooled_df.equals(original_df)
 
-    def test_add_to_pool_generates_unique_filenames(self, sample_csv: Path, empty_pool_dir: Path):
+    def test_add_to_pool_generates_unique_filenames(
+        self, sample_csv: Path, empty_pool_dir: Path
+    ) -> None:
         """Verify consecutive adds create unique filenames."""
         import time
 
@@ -318,7 +324,7 @@ class TestPoolManagement:
         assert Path(path1).exists()
         assert Path(path2).exists()
 
-    def test_delete_from_pool_removes_file(self, populated_pool: Path):
+    def test_delete_from_pool_removes_file(self, populated_pool: Path) -> None:
         """Verify file deletion from pool."""
         # Arrange
         target_file = populated_pool / "parsed_20260101_120000.csv"
@@ -331,7 +337,7 @@ class TestPoolManagement:
         assert success is True
         assert not target_file.exists()
 
-    def test_delete_from_pool_returns_false_on_error(self, tmp_path: Path):
+    def test_delete_from_pool_returns_false_on_error(self, tmp_path: Path) -> None:
         """Verify graceful handling of deletion errors."""
         # Arrange
         nonexistent_file = tmp_path / "missing.csv"
@@ -351,7 +357,7 @@ class TestPoolManagement:
 class TestCacheManagement:
     """Test cache operations and statistics."""
 
-    def test_clear_caches_empties_all_caches(self, sample_csv: Path):
+    def test_clear_caches_empties_all_caches(self, sample_csv: Path) -> None:
         """Verify all caches are cleared."""
         # Arrange - Populate caches
         CsvPoolService.load_csv_file(str(sample_csv))
@@ -371,7 +377,7 @@ class TestCacheManagement:
         assert CsvPoolService._metadata_cache.get(str(sample_csv)) is None
         assert stats["index_size"] == 0
 
-    def test_get_cache_stats_returns_metrics(self, sample_csv: Path):
+    def test_get_cache_stats_returns_metrics(self, sample_csv: Path) -> None:
         """Verify cache statistics are provided."""
         # Arrange
         CsvPoolService.load_csv_file(str(sample_csv))
@@ -396,7 +402,7 @@ class TestCacheManagement:
 class TestFileHashing:
     """Test file hash computation for cache keys."""
 
-    def test_compute_file_hash_includes_mtime(self, sample_csv: Path):
+    def test_compute_file_hash_includes_mtime(self, sample_csv: Path) -> None:
         """Verify hash includes modification time."""
         # Arrange
         hash1 = CsvPoolService._compute_file_hash(str(sample_csv))
@@ -409,7 +415,7 @@ class TestFileHashing:
         # Assert - Hash should change
         assert hash1 != hash2
 
-    def test_compute_file_hash_stable_for_same_file(self, sample_csv: Path):
+    def test_compute_file_hash_stable_for_same_file(self, sample_csv: Path) -> None:
         """Verify hash is stable when file unchanged."""
         # Act
         hash1 = CsvPoolService._compute_file_hash(str(sample_csv))
@@ -418,7 +424,7 @@ class TestFileHashing:
         # Assert
         assert hash1 == hash2
 
-    def test_compute_file_hash_handles_nonexistent_file(self, tmp_path: Path):
+    def test_compute_file_hash_handles_nonexistent_file(self, tmp_path: Path) -> None:
         """Verify hash computation for missing files."""
         # Arrange
         missing_file = tmp_path / "missing.csv"
@@ -438,7 +444,7 @@ class TestFileHashing:
 class TestEdgeCases:
     """Test edge cases and error conditions."""
 
-    def test_load_csv_with_large_file_uses_chunking(self, tmp_path: Path):
+    def test_load_csv_with_large_file_uses_chunking(self, tmp_path: Path) -> None:
         """Verify large files are handled efficiently."""
         # Arrange - Create large CSV
         large_csv = tmp_path / "large.csv"
@@ -452,7 +458,7 @@ class TestEdgeCases:
         assert len(loaded_df) == 1000
         assert list(loaded_df.columns) == ["col1", "col2"]
 
-    def test_load_pool_ignores_non_csv_files(self, empty_pool_dir: Path):
+    def test_load_pool_ignores_non_csv_files(self, empty_pool_dir: Path) -> None:
         """Verify only CSV files are included in pool."""
         # Arrange - Create non-CSV file
         (empty_pool_dir / "other.txt").write_text("not a csv")
@@ -473,7 +479,7 @@ class TestEdgeCases:
             "    ",
         ],
     )
-    def test_load_csv_handles_invalid_paths(self, invalid_path: str):
+    def test_load_csv_handles_invalid_paths(self, invalid_path: str) -> None:
         """Verify graceful handling of invalid file paths."""
         # Act & Assert - Should raise or return gracefully
         with pytest.raises(

@@ -1,7 +1,9 @@
+from typing import Any
 from unittest.mock import patch
 
 import pandas as pd
 import pytest
+from pandas import DataFrame
 
 from src.web.pages.ui.plotting.types.grouped_stacked_bar_plot import (
     GroupedStackedBarPlot,
@@ -10,7 +12,7 @@ from tests.conftest import columns_side_effect
 
 
 @pytest.fixture
-def mock_streamlit():
+def mock_streamlit() -> None:
     with (
         patch("src.web.pages.ui.plotting.types.grouped_stacked_bar_plot.st") as mock_st,
         patch("src.web.pages.ui.components.plot_config_components.st", mock_st),
@@ -23,13 +25,13 @@ def mock_streamlit():
 
 
 @pytest.fixture
-def sample_data():
+def sample_data() -> DataFrame:
     return pd.DataFrame(
         {"Benchmark": ["A", "B"], "Config": ["Low", "High"], "Value": [10, 20], "Value2": [5, 15]}
     )
 
 
-def test_render_config_ui_basic(mock_streamlit, sample_data):
+def test_render_config_ui_basic(mock_streamlit: Any, sample_data: Any) -> None:
     """Test basic configuration UI rendering."""
     plot = GroupedStackedBarPlot(1, "Test Plot")
     saved_config = {"x": "Benchmark", "y_columns": ["Value"]}
@@ -53,7 +55,7 @@ def test_render_config_ui_basic(mock_streamlit, sample_data):
     assert config["group"] is None
 
 
-def test_render_config_ui_grouped(mock_streamlit, sample_data):
+def test_render_config_ui_grouped(mock_streamlit: Any, sample_data: Any) -> None:
     """Test configuration UI with grouping."""
     plot = GroupedStackedBarPlot(1, "Test Plot")
     saved_config = {"x": "Benchmark", "group": "Config", "y_columns": ["Value", "Value2"]}
@@ -78,7 +80,7 @@ def test_render_config_ui_grouped(mock_streamlit, sample_data):
     assert len(config["y_columns"]) == 2
 
 
-def test_render_config_filter_options(mock_streamlit, sample_data):
+def test_render_config_filter_options(mock_streamlit: Any, sample_data: Any) -> None:
     """Test filter options rendering."""
     plot = GroupedStackedBarPlot(1, "Test Plot")
     saved_config = {"x": "Benchmark", "group": "Config", "y_columns": ["Value"]}
@@ -91,7 +93,10 @@ def test_render_config_filter_options(mock_streamlit, sample_data):
     # 2. X Filter
     # 3. Group Filter
 
-    def multiselect_side_effect(label, options, default=None, key=None, **kwargs):
+    def multiselect_side_effect(
+        label: Any, options: Any, default: Any = None, key: Any = None, **kwargs: Any
+    ) -> list:
+
         if "Statistics" in label:
             return ["Value"]
         if "Filter Benchmark" in label:
@@ -108,7 +113,7 @@ def test_render_config_filter_options(mock_streamlit, sample_data):
     assert config["group_filter"] == ["Low"]
 
 
-def test_create_figure_grouped_calculated(sample_data):
+def test_create_figure_grouped_calculated(sample_data: Any) -> None:
     """Test figure creation with calculated logic for grouping."""
     plot = GroupedStackedBarPlot(1, "Test")
     config = {

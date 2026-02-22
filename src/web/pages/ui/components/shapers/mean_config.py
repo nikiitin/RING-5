@@ -5,10 +5,10 @@ Provides Streamlit components for configuring the Mean shaper, which
 aggregates values across specified columns or groups.
 """
 
-from typing import Any, Dict
-
 import pandas as pd
 import streamlit as st
+
+from src.core.models.data_models import ShaperStepConfig
 
 
 class MeanConfig:
@@ -16,8 +16,8 @@ class MeanConfig:
 
     @staticmethod
     def render(
-        data: pd.DataFrame, existing_config: Dict[str, Any], key_prefix: str, shaper_id: str
-    ) -> Dict[str, Any]:
+        data: pd.DataFrame, existing_config: ShaperStepConfig, key_prefix: str, shaper_id: int
+    ) -> ShaperStepConfig:
         """
         Render the mean configuration UI.
         """
@@ -52,7 +52,8 @@ class MeanConfig:
             # Handle legacy config
             group_cols_default = existing_config.get("groupingColumns", [])
             if not group_cols_default and existing_config.get("groupingColumn"):
-                group_cols_default = [existing_config.get("groupingColumn")]
+                legacy_col = existing_config.get("groupingColumn")
+                group_cols_default = [legacy_col] if legacy_col else []
             group_cols_default = [c for c in group_cols_default if c in categorical_cols]
 
             grouping_columns = st.multiselect(

@@ -8,7 +8,8 @@ application performance.
 import functools
 import logging
 import time
-from typing import Any, Callable, Dict, Optional, TypeVar, cast
+from collections.abc import Callable
+from typing import Any, TypeVar, cast
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,7 @@ class SimpleCache:
     Optimized for Streamlit's execution model.
     """
 
-    def __init__(self, maxsize: int = 128, ttl: Optional[float] = None):
+    def __init__(self, maxsize: int = 128, ttl: float | None = None):
         """
         Initialize cache.
 
@@ -32,13 +33,13 @@ class SimpleCache:
             maxsize: Maximum number of cached entries
             ttl: Time-to-live in seconds (None = no expiration)
         """
-        self._cache: Dict[str, tuple[Any, float]] = {}
+        self._cache: dict[str, tuple[Any, float]] = {}
         self._maxsize = maxsize
         self._ttl = ttl
         self._hits = 0
         self._misses = 0
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         """Get value from cache if not expired."""
         if key not in self._cache:
             self._misses += 1
@@ -70,11 +71,11 @@ class SimpleCache:
         self._hits = 0
         self._misses = 0
 
-    def stats(self) -> Dict[str, int | float]:
+    def stats(self) -> dict[str, int | float]:
         """Get cache statistics."""
         total = self._hits + self._misses
         hit_rate = (self._hits / total * 100) if total > 0 else 0
-        stats: Dict[str, int | float] = {
+        stats: dict[str, int | float] = {
             "hits": self._hits,
             "misses": self._misses,
             "size": len(self._cache),
@@ -88,10 +89,10 @@ _plot_cache = SimpleCache(maxsize=32, ttl=300)  # 5 min TTL
 
 
 def cached(
-    ttl: Optional[float] = None,
+    ttl: float | None = None,
     maxsize: int = 128,
-    cache_instance: Optional[SimpleCache] = None,
-    key_func: Optional[Callable[..., str]] = None,
+    cache_instance: SimpleCache | None = None,
+    key_func: Callable[..., str] | None = None,
 ) -> Callable[[Callable[..., T]], Callable[..., T]]:
     """
     Decorator to cache function results with optional custom key generation.
@@ -142,9 +143,9 @@ def cached(
             return result
 
         # Attach cache management methods (dynamic attributes)
-        wrapper.cache = cache  # type: ignore[attr-defined]
-        wrapper.cache_clear = cache.clear  # type: ignore[attr-defined]
-        wrapper.cache_stats = cache.stats  # type: ignore[attr-defined]
+        cast(Any, wrapper).cache = cache
+        cast(Any, wrapper).cache_clear = cache.clear
+        cast(Any, wrapper).cache_stats = cache.stats
 
         return wrapper
 
@@ -190,7 +191,7 @@ def clear_all_caches() -> None:
     logger.info("All caches cleared")
 
 
-def get_cache_stats() -> Dict[str, Any]:
+def get_cache_stats() -> dict[str, Any]:
     """Get statistics from all caches."""
     return {
         "plot_cache": _plot_cache.stats(),

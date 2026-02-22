@@ -8,7 +8,7 @@ Both the Plotly and matplotlib connectors read from it; neither modifies it.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 if TYPE_CHECKING:
     from src.core.models.visualization.annotation_config import (
@@ -42,7 +42,7 @@ class MarginsConfig:
     right: float = 30.0
     pad: float = 0.0  # inner padding between axes and plot area
 
-    def to_dict(self) -> Dict[str, float]:
+    def to_dict(self) -> dict[str, float]:
         """Serialize to a plain dictionary."""
         return {
             "top": self.top,
@@ -116,34 +116,34 @@ class FigureConfig:
     dimensions: DimensionConfig = field(default_factory=DimensionConfig)
 
     # Typography  (font family + per-element sizes/bold)
-    typography: Optional[TypographyConfig] = None  # replaced by post_init if None
+    typography: TypographyConfig = field(default=cast(Any, None))  # replaced by post_init
 
     # Axes configuration
-    axes: Optional[AxesConfig] = None  # replaced by post_init if None
+    axes: AxesConfig = field(default=cast(Any, None))  # replaced by post_init
 
     # Legends — uniform list (legend1, legend2, legend3)
-    legends: List[LegendConfig] = field(default_factory=list)
+    legends: list[LegendConfig] = field(default_factory=list)
 
     # Trace descriptions
-    traces: List[TraceConfig] = field(default_factory=list)
+    traces: list[TraceConfig] = field(default_factory=list)
 
     # Text annotations
-    annotations: List[AnnotationConfig] = field(default_factory=list)
+    annotations: list[AnnotationConfig] = field(default_factory=list)
 
     # Group separators
     separator: SeparatorConfig = field(default_factory=SeparatorConfig)
 
     # Data labels (value annotations on bars/points)
-    data_labels: Optional[DataLabelConfig] = None
+    data_labels: DataLabelConfig | None = None
 
     # Per-trace styling overrides
-    series_styles: List[SeriesStyleConfig] = field(default_factory=list)
+    series_styles: list[SeriesStyleConfig] = field(default_factory=list)
 
     # Per-trace overrides keyed by trace name (e.g., {"trace_A": ...})
-    trace_overrides: Dict[str, SeriesStyleConfig] = field(default_factory=dict)
+    trace_overrides: dict[str, SeriesStyleConfig] = field(default_factory=dict)
 
     # Color palette (Wong colorblind-safe by default)
-    color_palette: List[str] = field(
+    color_palette: list[str] = field(
         default_factory=lambda: [
             "#000000",
             "#E69F00",
@@ -160,12 +160,12 @@ class FigureConfig:
     barmode: Literal["group", "stack", "overlay", "relative"] = "group"
 
     # Hatching sequence for B&W-friendly bar differentiation
-    hatching_sequence: List[str] = field(
+    hatching_sequence: list[str] = field(
         default_factory=lambda: ["/", "\\", "|", "-", "+", "x", "o", "O"]
     )
 
     # Reference lines (horizontal/vertical baselines, thresholds)
-    reference_lines: List[ReferenceLineConfig] = field(default_factory=list)
+    reference_lines: list[ReferenceLineConfig] = field(default_factory=list)
 
     # Hover / interactivity
     hovermode: str = "x unified"
@@ -186,7 +186,7 @@ class FigureConfig:
     latex_extra_preamble: str = ""
 
     # Arbitrary metadata (benchmark name, seed, etc.)
-    metadata: Dict[str, str] = field(default_factory=dict)
+    metadata: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         """Initialize sub-specs with proper defaults if not provided."""
@@ -200,7 +200,7 @@ class FigureConfig:
         if self.axes is None:
             self.axes = AxesConfig()
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize the entire spec tree to a plain dictionary.
 
         Useful for persistence (portfolio JSON) and debugging.
@@ -210,7 +210,7 @@ class FigureConfig:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "FigureConfig":
+    def from_dict(cls, data: dict[str, Any]) -> FigureConfig:
         """Reconstruct a FigureConfig from a serialized dictionary.
 
         Round-trip: ``FigureConfig.from_dict(spec.to_dict()) == spec``.
@@ -254,7 +254,7 @@ class FigureConfig:
         series_styles = [SeriesStyleConfig.from_dict(sd) for sd in ss_data if isinstance(sd, dict)]
 
         to_raw = data.get("trace_overrides", {})
-        trace_overrides: Dict[str, SeriesStyleConfig] = {
+        trace_overrides: dict[str, SeriesStyleConfig] = {
             k: SeriesStyleConfig.from_dict(v) for k, v in to_raw.items() if isinstance(v, dict)
         }
 

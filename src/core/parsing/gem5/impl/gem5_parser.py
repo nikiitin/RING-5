@@ -79,15 +79,13 @@ import logging
 import os
 import re
 from dataclasses import replace
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from src.core.common.utils import normalize_user_path
-from src.core.models import ParseBatchResult, StatConfig
+from src.core.models import ParseBatchResult, ScannedVariable, StatConfig
 from src.core.parsing.gem5.impl.pool.pool import ParseWorkPool
 from src.core.parsing.gem5.impl.strategies.factory import StrategyFactory
-from src.core.services.data_services.pattern_index_service import (
-    PatternIndexService,
-)
+from src.core.services.data_services.pattern_index_service import PatternIndexService
 
 logger = logging.getLogger(__name__)
 
@@ -99,10 +97,10 @@ class Gem5Parser:
     def submit_parse_async(
         stats_path: str,
         stats_pattern: str,
-        variables: List[StatConfig],
+        variables: list[StatConfig],
         output_dir: str,
         strategy_type: str = "simple",
-        scanned_vars: Optional[List[Any]] = None,
+        scanned_vars: list[ScannedVariable] | None = None,
     ) -> ParseBatchResult:
         """Submit async parsing job and return a ParseBatchResult."""
         safe_path: str = os.path.normpath(stats_path) if stats_path else "."
@@ -125,14 +123,11 @@ class Gem5Parser:
                     pattern = re.compile(config.name)
                     matched_ids = []
                     for sv in scanned_vars:
-                        # Handle both dict and ScannedVariable objects
-                        sv_name = sv.name if hasattr(sv, "name") else str(sv.get("name", ""))
+                        sv_name = sv.name
                         if config.name == sv_name or pattern.fullmatch(sv_name):
                             # If sv is already an aggregated pattern, use its constituents
-                            if hasattr(sv, "pattern_indices") and sv.pattern_indices:
+                            if sv.pattern_indices:
                                 matched_ids.extend(sv.pattern_indices)
-                            elif isinstance(sv, dict) and sv.get("pattern_indices"):
-                                matched_ids.extend(sv.get("pattern_indices", []))
                             else:
                                 matched_ids.append(sv_name)
 
@@ -143,7 +138,7 @@ class Gem5Parser:
                             # Respect user-filtered parsed_ids from the UI
                             # (PatternIndexSelector), falling back to all
                             # matched_ids when no filter was applied.
-                            user_ids: List[str] = config.params.get("parsed_ids", [])
+                            user_ids: list[str] = config.params.get("parsed_ids", [])
                             ids_to_expand = user_ids if user_ids else matched_ids
 
                             # Determine if IDs are full variable names
@@ -151,7 +146,7 @@ class Gem5Parser:
                             # Full names contain '.' — numeric IDs don't.
                             ids_are_full_names = any("." in pid for pid in ids_to_expand)
 
-                            concrete_names: List[str] = []
+                            concrete_names: list[str] = []
                             if ids_are_full_names:
                                 concrete_names = list(ids_to_expand)
                             else:
@@ -221,10 +216,10 @@ class Gem5Parser:
     @staticmethod
     def finalize_parsing(
         output_dir: str,
-        results: List[Any],
+        results: list[dict[str, Any]],
         strategy_type: str = "simple",
-        var_names: Optional[List[str]] = None,
-    ) -> Optional[str]:
+        var_names: list[str] | None = None,
+    ) -> str | None:
         """
         Post-process and aggregate provided results into final CSV.
         """
@@ -241,9 +236,9 @@ class Gem5Parser:
     @staticmethod
     def construct_final_csv(
         output_dir: str,
-        results: List[Any],
-        var_names: Optional[List[str]] = None,
-    ) -> Optional[str]:
+        results: list[dict[str, Any]],
+        var_names: list[str] | None = None,
+    ) -> str | None:
         """
         Aggregate provided results and save to CSV.
 
@@ -257,12 +252,12 @@ class Gem5Parser:
             return None
 
         # Logic adapted from Gem5StatsParser._persist_results
-        header_parts: List[str] = []
+        header_parts: list[str] = []
         sample = results[0]
-        column_map: Dict[str, Optional[List[str]]] = {}
+        column_map: dict[str, list[str] | None] = {}
 
         # Use provided var_names to ensure consistent order
-        ordered_names: List[str] = var_names if var_names else list(sample.keys())
+        ordered_names: list[str] = var_names if var_names else list(sample.keys())
 
         for var_name in ordered_names:
             if var_name not in sample:
@@ -274,7 +269,7 @@ class Gem5Parser:
                 continue
 
             var = sample[var_name]
-            entries = var.entries
+            entries = getattr(var, "entries", None)
             if entries:
                 column_map[var_name] = entries
                 header_parts.extend(f"{var_name}..{e}" for e in entries)
@@ -290,7 +285,7 @@ class Gem5Parser:
             writer.writerow(header_parts)
 
             for file_stats in results:
-                row_parts: List[str] = []
+                row_parts: list[str] = []
                 for var_name in ordered_names:
                     if var_name not in file_stats:
                         row_parts.append("NaN")

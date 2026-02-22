@@ -8,7 +8,7 @@ from src.core.parsing.gem5.types.type_mapper import TypeMapper
 class TestStatisticsOnlyMode:
     """Test that statisticsOnly flag correctly configures stat types."""
 
-    def test_distribution_statistics_only(self):
+    def test_distribution_statistics_only(self) -> None:
         """Distribution with statisticsOnly=True should skip bucket validation."""
         config = {
             "type": "distribution",
@@ -36,7 +36,7 @@ class TestStatisticsOnlyMode:
         assert "mean" in dist.content
         assert "stdev" in dist.content
 
-    def test_distribution_full_mode(self):
+    def test_distribution_full_mode(self) -> None:
         """Distribution with statisticsOnly=False should require buckets."""
         config = {
             "type": "distribution",
@@ -59,7 +59,7 @@ class TestStatisticsOnlyMode:
         with pytest.raises(TypeError, match="Missing mandatory keys"):
             dist.content = {"mean": [10.5], "stdev": [2.3]}
 
-    def test_vector_statistics_only(self):
+    def test_vector_statistics_only(self) -> None:
         """Vector with statisticsOnly=True should use only statistics entries."""
         config = {
             "type": "vector",
@@ -73,7 +73,7 @@ class TestStatisticsOnlyMode:
         # When statistics_only, entries should be just the statistics
         assert vec._entries == ["mean", "sum"]
 
-    def test_histogram_statistics_only(self):
+    def test_histogram_statistics_only(self) -> None:
         """Histogram with statisticsOnly=True should skip bins."""
         config = {
             "type": "histogram",
@@ -94,7 +94,7 @@ class TestStatisticsOnlyMode:
         # Statistics should be preserved
         assert hist._statistics == ["mean", "samples"]
 
-    def test_distribution_default_statistics_only(self):
+    def test_distribution_default_statistics_only(self) -> None:
         """Test that statisticsOnly defaults to False if not specified."""
         config = {
             "type": "distribution",

@@ -6,19 +6,20 @@ into a single cohesive API for the gem5 simulator backend.
 """
 
 from concurrent.futures import Future
-from typing import Any, List, Optional
+from typing import Any
 
 from src.core.models import ParseBatchResult, ScannedVariable, StatConfig
 from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser
 from src.core.parsing.gem5.impl.gem5_scanner import Gem5Scanner
+from src.core.parsing.parser_protocol import SimulationParser
 
 
-class Gem5ParserAPI:
+class Gem5ParserAPI(SimulationParser):
     """
     Unified facade for gem5 parsing and scanning operations.
 
     Combines Gem5Parser (parsing) and Gem5Scanner (scanning) behind a
-    single API, implementing the ParserAPI protocol.
+    single API, implementing the SimulationParser protocol.
 
     Usage:
         >>> api = Gem5ParserAPI()
@@ -31,10 +32,10 @@ class Gem5ParserAPI:
         self,
         stats_path: str,
         stats_pattern: str,
-        variables: List[StatConfig],
+        variables: list[StatConfig],
         output_dir: str,
         strategy_type: str = "simple",
-        scanned_vars: Optional[List[ScannedVariable]] = None,
+        scanned_vars: list[ScannedVariable] | None = None,
     ) -> ParseBatchResult:
         """Submit async parsing job via Gem5Parser."""
         return Gem5Parser.submit_parse_async(
@@ -49,10 +50,10 @@ class Gem5ParserAPI:
     def finalize_parsing(
         self,
         output_dir: str,
-        results: List[Any],
+        results: list[dict[str, Any]],
         strategy_type: str = "simple",
-        var_names: Optional[List[str]] = None,
-    ) -> Optional[str]:
+        var_names: list[str] | None = None,
+    ) -> str | None:
         """Post-process and aggregate results into CSV via Gem5Parser."""
         return Gem5Parser.finalize_parsing(output_dir, results, strategy_type, var_names=var_names)
 
@@ -61,13 +62,13 @@ class Gem5ParserAPI:
         stats_path: str,
         stats_pattern: str = "stats.txt",
         limit: int = 5,
-    ) -> List[Future[List[ScannedVariable]]]:
+    ) -> list[Future[list[ScannedVariable]]]:
         """Submit async scanning job via Gem5Scanner."""
         return Gem5Scanner.submit_scan_async(stats_path, stats_pattern, limit)
 
     def aggregate_scan_results(
         self,
-        results: List[List[ScannedVariable]],
-    ) -> List[ScannedVariable]:
+        results: list[list[ScannedVariable]],
+    ) -> list[ScannedVariable]:
         """Aggregate scan results via Gem5Scanner."""
         return Gem5Scanner.aggregate_scan_results(results)

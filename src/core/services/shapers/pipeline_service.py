@@ -64,11 +64,12 @@ Last Modified: 2026-01-27
 import copy
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Tuple, cast
+from typing import cast
 
 import pandas as pd
 
 from src.core.common.utils import sanitize_filename, validate_path_within
+from src.core.models.data_models import PipelineData, PipelineStep, ShaperStepConfig
 from src.core.services.shapers.factory import ShaperFactory
 
 
@@ -84,7 +85,7 @@ class PipelineService:
         self._pipelines_dir = pipelines_dir
         self._pipelines_dir.mkdir(parents=True, exist_ok=True)
 
-    def list_pipelines(self) -> List[str]:
+    def list_pipelines(self) -> list[str]:
         """List all available saved pipelines."""
         if not self._pipelines_dir.exists():
             return []
@@ -92,7 +93,7 @@ class PipelineService:
         return [p.stem for p in self._pipelines_dir.glob("*.json")]
 
     def save_pipeline(
-        self, name: str, pipeline_config: List[Dict[str, Any]], description: str = ""
+        self, name: str, pipeline_config: list[PipelineStep], description: str = ""
     ) -> None:
         """Save a pipeline configuration to disk."""
         if not name:
@@ -113,7 +114,7 @@ class PipelineService:
         with open(save_path, "w") as f:
             json.dump(data, f, indent=2)
 
-    def load_pipeline(self, name: str) -> Dict[str, Any]:
+    def load_pipeline(self, name: str) -> PipelineData:
         """Load a pipeline configuration by name."""
         safe_name: str = sanitize_filename(name)
         load_path = validate_path_within(
@@ -123,8 +124,8 @@ class PipelineService:
         if not load_path.exists():
             raise FileNotFoundError(f"Pipeline '{name}' not found")
 
-        with open(load_path, "r") as f:
-            return cast(Dict[str, Any], json.load(f))
+        with open(load_path) as f:
+            return cast(PipelineData, json.load(f))
 
     def delete_pipeline(self, name: str) -> None:
         """Delete a pipeline configuration."""
@@ -134,7 +135,9 @@ class PipelineService:
             path.unlink()
 
     @staticmethod
-    def process_pipeline(data: pd.DataFrame, pipeline_config: List[Dict[str, Any]]) -> pd.DataFrame:
+    def process_pipeline(
+        data: pd.DataFrame, pipeline_config: list[ShaperStepConfig]
+    ) -> pd.DataFrame:
         """
         Apply a sequence of shapers to a DataFrame.
 
@@ -165,8 +168,8 @@ class PipelineService:
 
     @staticmethod
     def prepare_loaded_pipeline(
-        pipeline_data: Dict[str, Any],
-    ) -> Tuple[List[Dict[str, Any]], int]:
+        pipeline_data: PipelineData,
+    ) -> tuple[list[PipelineStep], int]:
         """
         Prepare a loaded pipeline for use in a plot.
 
@@ -181,7 +184,7 @@ class PipelineService:
 
         Returns:
             Tuple of (pipeline_steps, next_counter):
-            - pipeline_steps: Deep-copied list of shaper step dicts
+            - pipeline_steps: Deep-copied list of pipeline step dicts
             - next_counter: Value for pipeline_counter (max_id + 1)
 
         Examples:
@@ -192,7 +195,7 @@ class PipelineService:
             >>> steps[0] is not data["pipeline"][0]
             True
         """
-        steps: List[Dict[str, Any]] = copy.deepcopy(pipeline_data.get("pipeline", []))
+        steps: list[PipelineStep] = copy.deepcopy(pipeline_data.get("pipeline", []))
 
         if steps:
             max_id: int = max(

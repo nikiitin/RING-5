@@ -11,8 +11,6 @@ New code should import from the canonical location or from
 ``__init__.py``).
 """
 
-from src.core.parsing.gem5.impl.gem5_scanner import (  # noqa: F401
-    Gem5Scanner as ScannerService,
-)
+from src.core.parsing.gem5.impl.gem5_scanner import Gem5Scanner as ScannerService
 
 __all__ = ["ScannerService"]

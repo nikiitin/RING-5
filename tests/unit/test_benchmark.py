@@ -11,6 +11,7 @@ Following Rule 004 (QA Testing Mastery):
 
 import logging
 import time
+from typing import Any
 
 import pytest
 
@@ -23,13 +24,13 @@ from src.core.benchmark import (
 
 
 @pytest.fixture
-def sample_benchmark_result():
+def sample_benchmark_result() -> BenchmarkResult:
     """Create a sample benchmark result."""
     return BenchmarkResult(name="test_op", duration_ms=150.5, iterations=10)
 
 
 @pytest.fixture
-def sample_suite():
+def sample_suite() -> Any:
     """Create a benchmark suite with some results."""
     suite = BenchmarkSuite("Test Suite")
     suite.results.append(BenchmarkResult("op1", 100.0, 1))
@@ -41,7 +42,7 @@ def sample_suite():
 class TestBenchmarkResult:
     """Test BenchmarkResult container."""
 
-    def test_initialization(self):
+    def test_initialization(self) -> None:
         # Arrange & Act
         result = BenchmarkResult("parse_file", 123.45, iterations=5)
 
@@ -51,21 +52,21 @@ class TestBenchmarkResult:
         assert result.iterations == 5
         assert result.avg_ms == 123.45 / 5
 
-    def test_single_iteration_avg(self):
+    def test_single_iteration_avg(self) -> None:
         # Arrange & Act
         result = BenchmarkResult("single_op", 100.0, iterations=1)
 
         # Assert
         assert result.avg_ms == 100.0
 
-    def test_zero_iterations_avg(self):
+    def test_zero_iterations_avg(self) -> None:
         # Arrange & Act
         result = BenchmarkResult("zero_op", 0.0, iterations=0)
 
         # Assert
         assert result.avg_ms == 0.0  # No division by zero
 
-    def test_str_single_iteration(self):
+    def test_str_single_iteration(self) -> None:
         # Arrange
         result = BenchmarkResult("test_op", 42.5, iterations=1)
 
@@ -77,7 +78,7 @@ class TestBenchmarkResult:
         assert "42.5" in output
         assert "avg" not in output.lower()  # Single iteration doesn't show avg
 
-    def test_str_multiple_iterations(self):
+    def test_str_multiple_iterations(self) -> None:
         # Arrange
         result = BenchmarkResult("test_op", 200.0, iterations=10)
 
@@ -90,7 +91,8 @@ class TestBenchmarkResult:
         assert "20.0" in output  # avg
         assert "10 iterations" in output
 
-    def test_to_dict(self, sample_benchmark_result):
+    def test_to_dict(self, sample_benchmark_result: Any) -> None:
+
         # Arrange
         result = sample_benchmark_result
 
@@ -107,7 +109,7 @@ class TestBenchmarkResult:
 class TestBenchmarkSuiteInitialization:
     """Test BenchmarkSuite initialization."""
 
-    def test_initialization(self):
+    def test_initialization(self) -> None:
         # Arrange & Act
         suite = BenchmarkSuite("My Suite")
 
@@ -119,7 +121,7 @@ class TestBenchmarkSuiteInitialization:
 class TestBenchmarkSuiteMeasure:
     """Test BenchmarkSuite.measure context manager."""
 
-    def test_measure_records_duration(self):
+    def test_measure_records_duration(self) -> None:
         # Arrange
         suite = BenchmarkSuite("Test")
 
@@ -133,7 +135,7 @@ class TestBenchmarkSuiteMeasure:
         assert suite.results[0].duration_ms >= 10.0  # At least 10ms
         assert suite.results[0].iterations == 1
 
-    def test_measure_multiple_operations(self):
+    def test_measure_multiple_operations(self) -> None:
         # Arrange
         suite = BenchmarkSuite("Multi")
 
@@ -148,7 +150,7 @@ class TestBenchmarkSuiteMeasure:
         assert suite.results[0].name == "op1"
         assert suite.results[1].name == "op2"
 
-    def test_measure_with_exception_still_records(self):
+    def test_measure_with_exception_still_records(self) -> None:
         # Arrange
         suite = BenchmarkSuite("Error Test")
 
@@ -165,11 +167,12 @@ class TestBenchmarkSuiteMeasure:
 class TestBenchmarkSuiteBenchmark:
     """Test BenchmarkSuite.benchmark method."""
 
-    def test_benchmark_single_iteration(self):
+    def test_benchmark_single_iteration(self) -> None:
         # Arrange
         suite = BenchmarkSuite("Func Test")
 
-        def add_numbers(a, b):
+        def add_numbers(a: Any, b: Any) -> None:
+
             return a + b
 
         # Act
@@ -181,12 +184,12 @@ class TestBenchmarkSuiteBenchmark:
         assert suite.results[0].name == "add_numbers"
         assert suite.results[0].iterations == 1
 
-    def test_benchmark_multiple_iterations(self):
+    def test_benchmark_multiple_iterations(self) -> None:
         # Arrange
         suite = BenchmarkSuite("Multi Iter")
         counter = [0]
 
-        def increment():
+        def increment() -> Any:
             counter[0] += 1
             return counter[0]
 
@@ -198,7 +201,7 @@ class TestBenchmarkSuiteBenchmark:
         assert counter[0] == 5  # Called 5 times
         assert suite.results[0].iterations == 5
 
-    def test_benchmark_with_custom_name(self):
+    def test_benchmark_with_custom_name(self) -> None:
         # Arrange
         suite = BenchmarkSuite("Named")
 
@@ -208,11 +211,12 @@ class TestBenchmarkSuiteBenchmark:
         # Assert
         assert suite.results[0].name == "custom_operation"
 
-    def test_benchmark_with_kwargs(self):
+    def test_benchmark_with_kwargs(self) -> None:
         # Arrange
         suite = BenchmarkSuite("Kwargs Test")
 
-        def divide(numerator, denominator=1):
+        def divide(numerator: Any, denominator: Any = 1) -> None:
+
             return numerator / denominator
 
         # Act
@@ -225,7 +229,7 @@ class TestBenchmarkSuiteBenchmark:
 class TestBenchmarkSuiteSummary:
     """Test BenchmarkSuite.summary method."""
 
-    def test_summary_empty_suite(self):
+    def test_summary_empty_suite(self) -> None:
         # Arrange
         suite = BenchmarkSuite("Empty")
 
@@ -235,7 +239,8 @@ class TestBenchmarkSuiteSummary:
         # Assert
         assert df.empty
 
-    def test_summary_with_results(self, sample_suite):
+    def test_summary_with_results(self, sample_suite: Any) -> None:
+
         # Arrange
         suite = sample_suite
 
@@ -252,7 +257,8 @@ class TestBenchmarkSuiteSummary:
 class TestBenchmarkSuitePrintSummary:
     """Test BenchmarkSuite.print_summary method."""
 
-    def test_print_summary_empty_suite(self, caplog):
+    def test_print_summary_empty_suite(self, caplog: Any) -> None:
+
         # Arrange
         suite = BenchmarkSuite("Empty")
 
@@ -264,7 +270,8 @@ class TestBenchmarkSuitePrintSummary:
         assert "Empty" in caplog.text
         assert "No benchmarks run yet" in caplog.text
 
-    def test_print_summary_with_results(self, sample_suite, caplog):
+    def test_print_summary_with_results(self, sample_suite: Any, caplog: Any) -> None:
+
         # Arrange
         suite = sample_suite
 
@@ -283,10 +290,12 @@ class TestBenchmarkSuitePrintSummary:
 class TestBenchmarkDecorator:
     """Test benchmark_decorator function."""
 
-    def test_decorator_single_iteration(self, caplog):
+    def test_decorator_single_iteration(self, caplog: Any) -> None:
+
         # Arrange
         @benchmark_decorator(iterations=1, name="test_func")
-        def sample_func(x):
+        def sample_func(x: Any) -> None:
+
             return x * 2
 
         # Act
@@ -298,10 +307,11 @@ class TestBenchmarkDecorator:
         assert "test_func" in caplog.text
         assert "ms" in caplog.text
 
-    def test_decorator_multiple_iterations(self, caplog):
+    def test_decorator_multiple_iterations(self, caplog: Any) -> None:
+
         # Arrange
         @benchmark_decorator(iterations=3)
-        def sample_func():
+        def sample_func() -> int:
             return 42
 
         # Act
@@ -312,19 +322,21 @@ class TestBenchmarkDecorator:
         assert result == 42
         assert "avg over 3 iterations" in caplog.text
 
-    def test_decorator_preserves_function_name(self):
+    def test_decorator_preserves_function_name(self) -> None:
         # Arrange
         @benchmark_decorator(iterations=1)
-        def my_function():
+        def my_function() -> str:
             return "result"
 
         # Act & Assert
         assert my_function.__name__ == "my_function"
 
-    def test_decorator_with_args_and_kwargs(self, caplog):
+    def test_decorator_with_args_and_kwargs(self, caplog: Any) -> None:
+
         # Arrange
         @benchmark_decorator(iterations=1, name="Complex Func")
-        def complex_func(a, b, c=3):
+        def complex_func(a: Any, b: Any, c: Any = 3) -> None:
+
             return a + b + c
 
         # Act
@@ -339,7 +351,8 @@ class TestBenchmarkDecorator:
 class TestTimer:
     """Test timer context manager."""
 
-    def test_timer_prints_duration(self, caplog):
+    def test_timer_prints_duration(self, caplog: Any) -> None:
+
         # Arrange & Act
         with caplog.at_level(logging.INFO, logger="src.core.benchmark"):
             with timer("test operation"):
@@ -349,7 +362,8 @@ class TestTimer:
         assert "test operation" in caplog.text
         assert "ms" in caplog.text
 
-    def test_timer_with_exception_still_prints(self, caplog):
+    def test_timer_with_exception_still_prints(self, caplog: Any) -> None:
+
         # Arrange & Act & Assert
         with caplog.at_level(logging.INFO, logger="src.core.benchmark"):
             with pytest.raises(RuntimeError):

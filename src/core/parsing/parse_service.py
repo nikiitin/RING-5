@@ -12,17 +12,11 @@ New code should import from the canonical location or from
 """
 
 # Canonical implementation
-from src.core.parsing.gem5.impl.gem5_parser import (  # noqa: F401
-    Gem5Parser as ParseService,
-)
+from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
 
 # Re-exports required by test @patch targets
-from src.core.parsing.gem5.impl.pool.pool import ParseWorkPool  # noqa: F401
-from src.core.parsing.gem5.impl.strategies.factory import (  # noqa: F401
-    StrategyFactory,
-)
-from src.core.services.data_services.pattern_index_service import (  # noqa: F401
-    PatternIndexService,
-)
+from src.core.parsing.gem5.impl.pool.pool import ParseWorkPool
+from src.core.parsing.gem5.impl.strategies.factory import StrategyFactory
+from src.core.services.data_services.pattern_index_service import PatternIndexService
 
-__all__ = ["ParseService"]
+__all__ = ["ParseService", "ParseWorkPool", "StrategyFactory", "PatternIndexService"]

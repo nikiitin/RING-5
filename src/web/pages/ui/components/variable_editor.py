@@ -3,12 +3,13 @@ Variable Editor Component for RING-5.
 Handles rendering and interaction for defining parser variables (scalars, vectors, distributions).
 """
 
-from concurrent.futures import as_completed
-from typing import Any, Dict, List, Optional
+from concurrent.futures import Future, as_completed
 
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
+from src.core.models import ScannedVariable
+from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
 from src.web.pages.ui.components.pattern_index_selector import PatternIndexSelector
 
 
@@ -19,11 +20,11 @@ class VariableEditor:
     def render(
         cls,
         api: ApplicationAPI,
-        variables: List[Dict[str, Any]],
-        available_variables: Optional[List[Dict[str, Any]]] = None,
-        stats_path: Optional[str] = None,
+        variables: list[ParseVariableConfig],
+        available_variables: list[ScannedVariableDict] | None = None,
+        stats_path: str | None = None,
         stats_pattern: str = "stats.txt",
-    ) -> List[Dict[str, Any]]:
+    ) -> list[ParseVariableConfig]:
         """
         Display an editor for parser variables.
 
@@ -59,7 +60,7 @@ class VariableEditor:
                 deleted_indices.append(idx)
                 continue
 
-            var_config = {"name": var_name, "type": var_type, "_id": var_id}
+            var_config: ParseVariableConfig = {"name": var_name, "type": var_type, "_id": var_id}
             if var_alias:
                 var_config["alias"] = var_alias
 
@@ -92,7 +93,7 @@ class VariableEditor:
 
     @staticmethod
     def _render_common_fields(
-        idx: int, var: Dict[str, Any], var_id: str
+        idx: int, var: ParseVariableConfig, var_id: str
     ) -> tuple[str, str, str, bool]:
         """Render common variable fields (Name, Alias, Type)."""
         col1, col2, col3, col4 = st.columns([3, 2, 2, 1])
@@ -139,8 +140,8 @@ class VariableEditor:
     def _render_pattern_index_for_variable(
         cls,
         api: ApplicationAPI,
-        var_config: Dict[str, Any],
-        original_var: Dict[str, Any],
+        var_config: ParseVariableConfig,
+        original_var: ParseVariableConfig,
         var_id: str,
     ) -> None:
         """
@@ -152,7 +153,7 @@ class VariableEditor:
         """
         var_name = var_config.get("name", "")
         scanned_vars = api.state_manager.get_scanned_variables() or []
-        pattern_indices: Optional[List[str]] = None
+        pattern_indices: list[str] | None = None
 
         for v in scanned_vars:
             if v["name"] == var_name and "pattern_indices" in v:
@@ -178,11 +179,11 @@ class VariableEditor:
     def render_histogram_config(
         cls,
         api: ApplicationAPI,
-        var_config: Dict[str, Any],
-        original_var: Dict[str, Any],
+        var_config: ParseVariableConfig,
+        original_var: ParseVariableConfig,
         var_id: str,
-        available_variables: Optional[List[Dict[str, Any]]],
-        stats_path: Optional[str],
+        available_variables: list[ScannedVariableDict] | None,
+        stats_path: str | None,
         stats_pattern: str,
     ) -> None:
         """Render configuration for histogram variables."""
@@ -195,7 +196,7 @@ class VariableEditor:
             "You can use **Deep Scan** to find all range buckets found across all simulations."
         )
 
-        discovered_entries: List[str] = []
+        discovered_entries: list[str] = []
         if available_variables:
             for v in available_variables:
                 if v["name"] == var_name and "entries" in v:
@@ -305,11 +306,11 @@ class VariableEditor:
     def render_vector_config(
         cls,
         api: ApplicationAPI,
-        var_config: Dict[str, Any],
-        original_var: Dict[str, Any],
+        var_config: ParseVariableConfig,
+        original_var: ParseVariableConfig,
         var_id: str,
-        available_variables: Optional[List[Dict[str, Any]]],
-        stats_path: Optional[str],
+        available_variables: list[ScannedVariableDict] | None,
+        stats_path: str | None,
         stats_pattern: str,
     ) -> None:
         """Render configuration for vector variables."""
@@ -324,7 +325,7 @@ class VariableEditor:
             "to automatically find them in your stats files."
         )
 
-        discovered_entries: List[str] = []
+        discovered_entries: list[str] = []
         if available_variables:
             for v in available_variables:
                 if v["name"] == var_name and "entries" in v:
@@ -402,7 +403,7 @@ class VariableEditor:
         var_id: str,
         entry_mode: str,
         discover_entries_available: bool,
-        stats_path: Optional[str],
+        stats_path: str | None,
         stats_pattern: str,
         var_type: str = "vector",
     ) -> None:
@@ -440,7 +441,7 @@ class VariableEditor:
         api: ApplicationAPI,
         var_name: str,
         var_id: str,
-        futures: List[Any],
+        futures: list[Future[list[ScannedVariable]]],
         is_distribution: bool,
     ) -> None:
         """Blocking dialog for async scanning using futures."""
@@ -481,12 +482,13 @@ class VariableEditor:
         with st.status("Processing scan results...", expanded=True) as status:
             st.write("Aggregating scan data...")
             snapshot = api.finalize_scan(results)
+            snapshot_dicts = [sv.to_dict() for sv in snapshot]
 
             # Process results based on type
             if is_distribution:
                 st.write("Computing distribution range...")
                 global_min, global_max = api.data_services.aggregate_distribution_range(
-                    snapshot, var_name
+                    snapshot_dicts, var_name
                 )
 
                 if global_min is not None or global_max is not None:
@@ -507,7 +509,7 @@ class VariableEditor:
                 st.write("Discovering entries...")
                 # Aggregate entries using VariableServicesAPI
                 filtered_entries = api.data_services.aggregate_discovered_entries(
-                    snapshot, var_name
+                    snapshot_dicts, var_name
                 )
 
                 if filtered_entries:
@@ -535,10 +537,10 @@ class VariableEditor:
     def _render_vector_discovered_selection(
         cls,
         api: ApplicationAPI,
-        var_config: Dict[str, Any],
-        original_var: Dict[str, Any],
+        var_config: ParseVariableConfig,
+        original_var: ParseVariableConfig,
         var_id: str,
-        discovered_entries: List[str],
+        discovered_entries: list[str],
     ) -> None:
         """Render multiselect for discovered vector entries."""
         # Filter internal gem5 statistics using variable services
@@ -568,7 +570,10 @@ class VariableEditor:
 
     @staticmethod
     def _render_vector_manual_entry(
-        api: ApplicationAPI, var_config: Dict[str, Any], original_var: Dict[str, Any], var_id: str
+        api: ApplicationAPI,
+        var_config: ParseVariableConfig,
+        original_var: ParseVariableConfig,
+        var_id: str,
     ) -> None:
         """Render text input for manual vector entries."""
         default_entries = original_var.get("vectorEntries", "")
@@ -596,7 +601,7 @@ class VariableEditor:
 
     @staticmethod
     def _render_vector_statistics_selection(
-        var_config: Dict[str, Any], original_var: Dict[str, Any], var_id: str
+        var_config: ParseVariableConfig, original_var: ParseVariableConfig, var_id: str
     ) -> None:
         """Render checkboxes for vector statistics."""
         st.markdown("**Select statistics to extract from the vector:**")
@@ -648,10 +653,10 @@ class VariableEditor:
     def render_distribution_config(
         cls,
         api: ApplicationAPI,
-        var_config: Dict[str, Any],
-        original_var: Dict[str, Any],
+        var_config: ParseVariableConfig,
+        original_var: ParseVariableConfig,
         var_id: str,
-        stats_path: Optional[str],
+        stats_path: str | None,
         stats_pattern: str,
     ) -> None:
         """Render configuration for distribution variables."""
@@ -730,7 +735,7 @@ class VariableEditor:
 
     @staticmethod
     def _render_distribution_statistics_selection(
-        var_config: Dict[str, Any], original_var: Dict[str, Any], var_id: str
+        var_config: ParseVariableConfig, original_var: ParseVariableConfig, var_id: str
     ) -> None:
         """Render checkboxes for distribution statistics."""
         st.markdown("**Extract additional statistics:**")
@@ -786,7 +791,7 @@ class VariableEditor:
 
     @staticmethod
     def render_configuration_config(
-        var_config: Dict[str, Any], original_var: Dict[str, Any], var_id: str
+        var_config: ParseVariableConfig, original_var: ParseVariableConfig, var_id: str
     ) -> None:
         """Render configuration for configuration variables."""
         var_name = var_config.get("name", "")
@@ -803,7 +808,8 @@ class VariableEditor:
 
     @staticmethod
     def _render_add_variable_section(
-        variables: List[Dict[str, Any]], available_variables: Optional[List[Dict[str, Any]]]
+        variables: list[ParseVariableConfig],
+        available_variables: list[ScannedVariableDict] | None,
     ) -> None:
         """Render the 'Add Variable' section with search and manual add options."""
         st.markdown("---")
@@ -826,7 +832,7 @@ class VariableEditor:
                     var_type = selected_option.split(" (")[1][:-1]
 
                     if st.button("Add Selected", key="add_selected_var"):
-                        new_var = {"name": name, "type": var_type}
+                        new_var: ParseVariableConfig = {"name": name, "type": var_type}
                         # Mutate in-place for Streamlit state management
                         variables.append(new_var)
                         st.rerun()
@@ -835,7 +841,7 @@ class VariableEditor:
 
         with col_add2:
             if st.button("+ Add Manual", key="add_manual_var"):
-                new_var = {"name": "new_variable", "type": "scalar"}
+                manual_var: ParseVariableConfig = {"name": "new_variable", "type": "scalar"}
                 # Mutate in-place for Streamlit state management
-                variables.append(new_var)
+                variables.append(manual_var)
                 st.rerun()

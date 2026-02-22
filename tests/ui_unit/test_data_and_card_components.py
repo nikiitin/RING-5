@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -9,7 +10,7 @@ from tests.conftest import columns_side_effect
 
 
 @pytest.fixture
-def mock_streamlit():
+def mock_streamlit() -> None:
     # We need to patch st in both modules where it is used
     with (
         patch("src.web.pages.ui.components.data_components.st") as mock_st_data,
@@ -38,7 +39,8 @@ def mock_streamlit():
         yield mock_st
 
 
-def test_show_data_preview(mock_streamlit):
+def test_show_data_preview(mock_streamlit: Any) -> None:
+
     df = pd.DataFrame({"A": [1, 2, 3], "B": ["x", "y", "z"]})
 
     DataComponents.show_data_preview(df, "Test Preview", rows=2)
@@ -49,7 +51,8 @@ def test_show_data_preview(mock_streamlit):
     assert mock_streamlit.metric.call_count == 4
 
 
-def test_show_column_details(mock_streamlit):
+def test_show_column_details(mock_streamlit: Any) -> None:
+
     df = pd.DataFrame({"A": [1, 2], "B": ["x", None]})
 
     DataComponents.show_column_details(df)
@@ -60,7 +63,8 @@ def test_show_column_details(mock_streamlit):
     mock_streamlit.expander.assert_called_with("Column Details")
 
 
-def test_file_info_card(mock_streamlit):
+def test_file_info_card(mock_streamlit: Any) -> None:
+
     # Setup
     info = {"name": "test.csv", "size": 1024, "modified": 1678886400.0}
 
@@ -77,7 +81,8 @@ def test_file_info_card(mock_streamlit):
     assert "test.csv" in mock_streamlit.expander.call_args[0][0]
 
 
-def test_config_info_card(mock_streamlit):
+def test_config_info_card(mock_streamlit: Any) -> None:
+
     info = {"name": "conf1", "description": "desc", "modified": 1678886400.0}
 
     # Mock buttons: Load, Delete
@@ -91,7 +96,8 @@ def test_config_info_card(mock_streamlit):
     mock_streamlit.expander.assert_called()
 
 
-def test_download_buttons(mock_streamlit):
+def test_download_buttons(mock_streamlit: Any) -> None:
+
     df = pd.DataFrame({"A": [1, 2]})
 
     # Mock NamedTemporaryFile

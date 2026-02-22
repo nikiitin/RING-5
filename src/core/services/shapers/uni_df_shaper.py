@@ -6,8 +6,6 @@ enabling transformations like filtering, sorting, normalization, aggregation,
 and selection on individual datasets.
 """
 
-from typing import Any
-
 import pandas as pd
 
 from src.core.services.shapers.shaper import Shaper
@@ -18,7 +16,7 @@ class UniDfShaper(Shaper):
     Abstract class for shapers that operate on a single pandas DataFrame.
     """
 
-    def __call__(self, data_frame: Any) -> pd.DataFrame:
+    def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
         """
         Execute the transformation after validating that input is a DataFrame.
 

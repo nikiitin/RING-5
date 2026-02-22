@@ -12,7 +12,9 @@ These replace:
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Literal, Optional, cast
+from typing import Any, Literal, cast
+
+import plotly.graph_objects as go
 
 from src.core.models.visualization.annotation_config import (
     AnnotationConfig,
@@ -47,8 +49,8 @@ class PlotlyFigureSpecBuilder:
 
     @staticmethod
     def from_plotly(
-        fig: Any,
-        config: Dict[str, Any],
+        fig: go.Figure,
+        config: dict[str, Any],
     ) -> FigureConfig:
         """Extract a FigureConfig from an existing Plotly figure and config.
 
@@ -107,7 +109,7 @@ class PlotlyFigureSpecBuilder:
         )
 
     @staticmethod
-    def enrich_from_plotly(spec: FigureConfig, fig: Any) -> None:
+    def enrich_from_plotly(spec: FigureConfig, fig: go.Figure) -> None:
         """Merge layout metadata from a Plotly figure into an existing spec.
 
         Transfers computed layout data (tick positions/labels, annotations,
@@ -168,7 +170,7 @@ class PlotlyFigureSpecBuilder:
         if legend3 is not None:
             from src.core.models.visualization.legend_config import LegendConfig
 
-            box_kwargs: Dict[str, Any] = {"role": "boxed"}
+            box_kwargs: dict[str, Any] = {"role": "boxed"}
             x = getattr(legend3, "x", None)
             y = getattr(legend3, "y", None)
             if x is not None:
@@ -199,7 +201,7 @@ class PresetSpecBuilder:
     """
 
     @staticmethod
-    def from_preset(preset: Dict[str, Any]) -> FigureConfig:
+    def from_preset(preset: dict[str, Any]) -> FigureConfig:
         """Build a FigureConfig from a LaTeXPreset dictionary.
 
         Args:
@@ -357,7 +359,7 @@ class ConfigSpecBuilder:
 
     @staticmethod
     def from_config(
-        config: Dict[str, Any],
+        config: dict[str, Any],
         plot_type: str = "",
     ) -> FigureConfig:
         """Build a FigureConfig from a flat config dictionary.
@@ -449,7 +451,7 @@ class ConfigSpecBuilder:
             itemsizing=config.get("legend_itemsizing", "constant"),
         )
 
-        legends: List[LegendConfig] = [primary_legend]
+        legends: list[LegendConfig] = [primary_legend]
 
         # ── Multi-column secondary legends (if ncols > 1) ───────
         try:
@@ -480,7 +482,7 @@ class ConfigSpecBuilder:
         title = str(config.get("title") or "").replace("undefined", "")
 
         # ── Data labels ──────────────────────────────────────────
-        data_labels: Optional[DataLabelConfig] = None
+        data_labels: DataLabelConfig | None = None
         if config.get("show_values"):
             try:
                 dl_font_size = int(config.get("text_font_size") or 12)
@@ -528,7 +530,7 @@ class ConfigSpecBuilder:
             )
 
         # ── Reference lines ─────────────────────────────────────
-        reference_lines: List[ReferenceLineConfig] = []
+        reference_lines: list[ReferenceLineConfig] = []
         if config.get("reference_line_enabled"):
             rl = ReferenceLineConfig(
                 enabled=True,
@@ -542,7 +544,7 @@ class ConfigSpecBuilder:
             reference_lines.append(rl)
 
         # ── Series styling (global defaults) ─────────────────────
-        series_styles: List[SeriesStyleConfig] = []
+        series_styles: list[SeriesStyleConfig] = []
         has_series = any(
             config.get(k) is not None for k in ("bar_border_width", "marker_size", "line_width")
         )
@@ -556,7 +558,7 @@ class ConfigSpecBuilder:
             )
 
         # ── Per-trace overrides from UI series_styles dict ───────
-        trace_overrides: Dict[str, SeriesStyleConfig] = {}
+        trace_overrides: dict[str, SeriesStyleConfig] = {}
         raw_overrides = config.get("series_styles", {})
         if isinstance(raw_overrides, dict):
             for trace_name, style_dict in raw_overrides.items():
@@ -640,7 +642,7 @@ def _extract_margins(layout: Any) -> MarginsConfig:
     )
 
 
-def _extract_typography(layout: Any, config: Dict[str, Any]) -> TypographyConfig:
+def _extract_typography(layout: Any, config: dict[str, Any]) -> TypographyConfig:
     """Extract typography settings from Plotly layout and config."""
     # Plotly stores font sizes in various places; config dict is primary
     return TypographyConfig(
@@ -654,7 +656,7 @@ def _extract_typography(layout: Any, config: Dict[str, Any]) -> TypographyConfig
     )
 
 
-def _extract_axes(layout: Any, config: Dict[str, Any]) -> AxesConfig:
+def _extract_axes(layout: Any, config: dict[str, Any]) -> AxesConfig:
     """Extract axis configuration from Plotly layout."""
     xaxis = getattr(layout, "xaxis", None)
     yaxis = getattr(layout, "yaxis", None)
@@ -676,7 +678,7 @@ def _extract_axes(layout: Any, config: Dict[str, Any]) -> AxesConfig:
         show_grid=config.get("show_grid", True),
     )
 
-    y2: Optional[AxisConfig] = None
+    y2: AxisConfig | None = None
     if yaxis2 is not None:
         y2 = AxisConfig(
             label=_get_axis_title(yaxis2),
@@ -686,9 +688,9 @@ def _extract_axes(layout: Any, config: Dict[str, Any]) -> AxesConfig:
     return AxesConfig(x=x, y=y, y2=y2)
 
 
-def _extract_legends(layout: Any, config: Dict[str, Any]) -> List[LegendConfig]:
+def _extract_legends(layout: Any, config: dict[str, Any]) -> list[LegendConfig]:
     """Extract legend configurations from Plotly layout."""
-    legends: List[LegendConfig] = []
+    legends: list[LegendConfig] = []
 
     legend = getattr(layout, "legend", None)
     primary = LegendConfig(
@@ -737,9 +739,9 @@ def _extract_legends(layout: Any, config: Dict[str, Any]) -> List[LegendConfig]:
     return legends
 
 
-def _extract_annotations(layout: Any) -> List[AnnotationConfig]:
+def _extract_annotations(layout: Any) -> list[AnnotationConfig]:
     """Extract annotation objects from Plotly layout."""
-    annotations: List[AnnotationConfig] = []
+    annotations: list[AnnotationConfig] = []
     layout_anns = getattr(layout, "annotations", None) or []
 
     for ann in layout_anns:
@@ -782,7 +784,7 @@ def _get_axis_title(axis: Any) -> str:
     return str(text) if text else ""
 
 
-def _get_range(axis: Any) -> Optional[List[float]]:
+def _get_range(axis: Any) -> list[float] | None:
     """Extract range from a Plotly axis object."""
     if axis is None:
         return None

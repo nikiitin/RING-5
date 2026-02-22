@@ -5,19 +5,19 @@ This module provides a self-registering type system for gem5 statistics.
 Types register themselves using the @register_type decorator.
 """
 
-from typing import Any, Dict, List, Optional, Type
+from typing import Any
 
 
 class StatTypeRegistry:
     """Registry for stat type classes. Types self-register via decorator."""
 
-    _types: Dict[str, Type["StatType"]] = {}
+    _types: dict[str, type["StatType"]] = {}
 
     @classmethod
     def register(cls, type_name: str) -> Any:
         """Decorator to register a stat type class."""
 
-        def decorator(klass: Type["StatType"]) -> Type["StatType"]:
+        def decorator(klass: type["StatType"]) -> type["StatType"]:
             cls._types[type_name] = klass
             klass._type_name = type_name
             return klass
@@ -33,7 +33,7 @@ class StatTypeRegistry:
         return cls._types[type_name](repeat=repeat, **kwargs)
 
     @classmethod
-    def get_types(cls) -> List[str]:
+    def get_types(cls) -> list[str]:
         """Get list of registered type names."""
         return list(cls._types.keys())
 
@@ -55,7 +55,7 @@ class StatType:
     """
 
     _type_name: str = "base"
-    required_params: List[str] = []
+    required_params: list[str] = []
     # Valid attributes that can be set on type instances
     _allowed_attributes = frozenset(
         {
@@ -132,17 +132,16 @@ class StatType:
 
     def _validate_content(self, value: Any) -> None:
         """Override to validate content before setting. Raise TypeError on invalid."""
-        pass
 
     def _set_content(self, value: Any) -> None:
         """Override to customize how content is stored."""
-        content_list: List[Any] = self._content
+        content_list: list[Any] = self._content
         content_list.append(value)
 
     def balance_content(self) -> None:
         """Ensure content has exactly `repeat` entries, padding with zeros if needed."""
         object.__setattr__(self, "_balanced", True)
-        content_list: List[Any] = self._content
+        content_list: list[Any] = self._content
         content_len: int = len(content_list)
         repeat: int = self._repeat
 
@@ -173,7 +172,7 @@ class StatType:
             )
 
     @property
-    def entries(self) -> Optional[List[str]]:
+    def entries(self) -> list[str] | None:
         """
         Return entry keys for complex types (Vector, Distribution).
         Returns None for Scalar and Configuration types.

@@ -68,12 +68,13 @@ Last Modified: 2026-01-27
 
 import json
 import logging
-from typing import Any, Callable, Dict, List, Optional, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 import pandas as pd
 
 from src.core.common.utils import sanitize_filename, validate_path_within
-from src.core.models import PlotProtocol
+from src.core.models import PlotProtocol, PortfolioData
 from src.core.services.data_services.path_service import PathService
 from src.core.services.portfolio_migrator import PortfolioMigrator
 from src.core.state.state_manager import StateManager
@@ -89,7 +90,7 @@ class PortfolioService:
         """Initialize the PortfolioService with a StateManager instance."""
         self.state_manager = state_manager
 
-    def list_portfolios(self) -> List[str]:
+    def list_portfolios(self) -> list[str]:
         portfolios_dir = PathService.get_portfolios_dir()
         if not portfolios_dir.exists():
             return []
@@ -98,15 +99,15 @@ class PortfolioService:
     def save_portfolio(
         self,
         name: str,
-        data: Optional[pd.DataFrame],
-        plots: List[PlotProtocol],
-        config: Dict[str, Any],
+        data: pd.DataFrame | None,
+        plots: list[PlotProtocol],
+        config: dict[str, Any],
         plot_counter: int,
-        csv_path: Optional[str] = None,
-        parse_variables: Optional[List[str]] = None,
-        figure_spec_enricher: Optional[
-            Callable[[Dict[str, Any], str], Optional[Dict[str, Any]]]
-        ] = None,
+        csv_path: str | None = None,
+        parse_variables: list[str] | None = None,
+        figure_spec_enricher: None | (
+            Callable[[dict[str, Any], str], dict[str, Any] | None]
+        ) = None,
     ) -> None:
         """Serialize and save the current workspace state.
 
@@ -128,8 +129,8 @@ class PortfolioService:
         logger = logging.getLogger(__name__)
         serialized_plots = []
         for plot in plots:
-            plot_dict: Dict[str, Any] = plot.to_dict()
-            plot_config: Dict[str, Any] = plot_dict.get("config", {})
+            plot_dict: dict[str, Any] = plot.to_dict()
+            plot_config: dict[str, Any] = plot_dict.get("config", {})
             if figure_spec_enricher is not None:
                 try:
                     spec_dict = figure_spec_enricher(plot_config, plot_dict.get("plot_type", ""))
@@ -170,7 +171,7 @@ class PortfolioService:
         with open(save_path, "w") as f:
             json.dump(portfolio_data, f, indent=2)
 
-    def load_portfolio(self, name: str) -> Dict[str, Any]:
+    def load_portfolio(self, name: str) -> PortfolioData:
         """Load a portfolio JSON by name.
 
         Runs schema migration via :class:`PortfolioMigrator` to ensure
@@ -183,10 +184,10 @@ class PortfolioService:
         if not load_path.exists():
             raise FileNotFoundError(f"Portfolio '{name}' not found")
 
-        with open(load_path, "r") as f:
-            raw: Dict[str, Any] = cast(Dict[str, Any], json.load(f))
+        with open(load_path) as f:
+            raw: dict[str, Any] = cast(dict[str, Any], json.load(f))
 
-        return PortfolioMigrator.migrate(raw)
+        return cast(PortfolioData, PortfolioMigrator.migrate(raw))
 
     def delete_portfolio(self, name: str) -> None:
         path = validate_path_within(

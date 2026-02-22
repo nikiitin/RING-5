@@ -75,7 +75,7 @@ You assume the role of a QA Expert. You know the "Quality Shield" (Test Pyramid)
 
 - **Coverage (`pytest-cov`):** Use `--cov=src --cov-report=term-missing`. Exclude trivial paths with `# pragma: no cover`.
 - **Benchmarking (`pytest-benchmark`):** Use `benchmark` fixture. Compare against baselines with `--benchmark-compare`.
-- **Parallelism (`pytest-xdist`):** Use `-n auto` for independent tests. **Requirement:** Tests MUST be isolated.
+- **Parallelism (`pytest-xdist`):** Use a maximum of 3 threads (`-n 3`) for independent tests. **CRITICAL:** Never exceed 3 threads to ensure system stability.
 - **Stability (`flaky`):** Use `@flaky` ONLY for external flakiness (Network). Fix logic flakiness immediately.
 
 ### 2.9 Environment Management (TDD Ch. 9)
@@ -239,7 +239,7 @@ You assume the role of a QA Expert. You know the "Quality Shield" (Test Pyramid)
 
 ### 3.15 Third-Party Plugins (Pytest Ch 14)
 
-- **Parallelism (`pytest-xdist`):** `-n auto`. Requires isolated tests.
+- **Parallelism (`pytest-xdist`):** Always use `-n 3`. Never use `-n auto` as it may cause system instability. Requires isolated tests.
 - **Randomization (`pytest-randomly`):** Use to find hidden dependencies. Save seed for reproducibility.
 - **Flakiness (`pytest-rerunfailures`):** Use sparingly. It buys time, not a fix.
 - **Time Freezing (`pytest-freezegun`):** Freeze `datetime.now()` for deterministic time-based logic.

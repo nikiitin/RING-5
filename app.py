@@ -12,7 +12,7 @@ if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
 
-def run_app():
+def run_app() -> None:
     """Main application entry point."""
     # LATE IMPORTS: Avoid loading UI/Plotting modules when this file is imported by workers.
     # This prevents the "missing ScriptRunContext" warnings.

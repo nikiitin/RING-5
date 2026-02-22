@@ -82,7 +82,7 @@ Version: 1.0.0
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Any, cast
 
 import pandas as pd
 
@@ -100,7 +100,7 @@ class SplitApply(UniDfShaper):
     columns without cross-contamination.
     """
 
-    def __init__(self, params: Dict[str, Any]) -> None:
+    def __init__(self, params: dict[str, Any]) -> None:
         """Initialize SplitApply shaper.
 
         Args:
@@ -111,8 +111,8 @@ class SplitApply(UniDfShaper):
                     - columns (List[str]): Numeric columns for this group.
                     - pipeline (List[Dict]): Shaper configs to apply.
         """
-        self._join_columns: List[str] = params.get("joinColumns", [])
-        self._groups: List[Dict[str, Any]] = params.get("groups", [])
+        self._join_columns: list[str] = params.get("joinColumns", [])
+        self._groups: list[dict[str, Any]] = params.get("groups", [])
         self._params = params
 
         super().__init__(params)
@@ -134,7 +134,7 @@ class SplitApply(UniDfShaper):
             )
 
         # Validate each group
-        all_group_cols: List[str] = []
+        all_group_cols: list[str] = []
         for idx, group in enumerate(self._groups):
             cols = group.get("columns", [])
             if not cols:
@@ -183,7 +183,7 @@ class SplitApply(UniDfShaper):
     @staticmethod
     def _apply_sub_pipeline(
         data: pd.DataFrame,
-        pipeline: List[Dict[str, Any]],
+        pipeline: list[dict[str, Any]],
     ) -> pd.DataFrame:
         """Apply a sequence of shapers to a DataFrame slice.
 
@@ -205,7 +205,9 @@ class SplitApply(UniDfShaper):
             shaper_type = step_cfg.get("type")
             if not shaper_type:
                 continue
-            shaper = ShaperFactory.create_shaper(shaper_type, step_cfg)
+            from src.core.models.data_models import ShaperStepConfig
+
+            shaper = ShaperFactory.create_shaper(shaper_type, cast(ShaperStepConfig, step_cfg))
             result = shaper(result)
         return result
 
@@ -231,16 +233,16 @@ class SplitApply(UniDfShaper):
         self._verify_preconditions(data_frame)
 
         # Also include any .sd columns that correspond to group columns
-        group_results: List[pd.DataFrame] = []
+        group_results: list[pd.DataFrame] = []
         for idx, group in enumerate(self._groups):
-            group_cols: List[str] = list(group["columns"])
-            pipeline: List[Dict[str, Any]] = group.get("pipeline", [])
+            group_cols: list[str] = list(group["columns"])
+            pipeline: list[dict[str, Any]] = group.get("pipeline", [])
 
             # Include matching .sd columns automatically
-            sd_cols: List[str] = [
+            sd_cols: list[str] = [
                 f"{col}.sd" for col in group_cols if f"{col}.sd" in data_frame.columns
             ]
-            select_cols: List[str] = self._join_columns + group_cols + sd_cols
+            select_cols: list[str] = self._join_columns + group_cols + sd_cols
 
             # Slice the DataFrame to only this group's columns
             slice_df: pd.DataFrame = data_frame[select_cols].copy()

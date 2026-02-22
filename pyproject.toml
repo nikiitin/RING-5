@@ -75,7 +75,7 @@ pythonpath = ["."]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
-addopts = "-v --tb=short --strict-markers -n auto --dist loadgroup --cov=src --cov-report=term-missing --cov-branch --cov-fail-under=90"
+addopts = "-v --tb=short --strict-markers -n 3 --dist loadgroup --cov=src --cov-report=term-missing --cov-branch --cov-fail-under=90"
 xfail_strict = true
 markers = [
   "requires_latex: Tests that require LaTeX installation",
@@ -97,6 +97,10 @@ omit = [
   "src/web/pages/ui/plotting/types/dual_axis_bar_dot_plot.py",
 ]
 
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
 [tool.flake8]
 max-line-length = 100
 extend-ignore = ["E203", "W503"]
@@ -112,6 +116,9 @@ exclude = [
 
 [tool.mypy]
 python_version = "3.12"
+explicit_package_bases = true
+mypy_path = "."
+namespace_packages = true
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -124,7 +131,16 @@ check_untyped_defs = true
 strict_equality = true
 
 [[tool.mypy.overrides]]
-module = ["pandas.*", "plotly.*", "streamlit.*", "matplotlib.*", "scipy.*"]
+module = [
+  "pandas.*",
+  "plotly.*",
+  "streamlit.*",
+  "matplotlib.*",
+  "scipy.*",
+  "numpy.*",
+  "yaml.*",
+  "jsonschema.*",
+]
 ignore_missing_imports = true
 
 [tool.bandit]

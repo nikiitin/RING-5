@@ -3,8 +3,13 @@ Perl Parse Work - Worker unit for parsing a single gem5 stats file.
 Executed in parallel across multiple stats files.
 """
 
+from __future__ import annotations
+
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.core.parsing.gem5.types.base import StatType
 
 import src.core.common.utils as utils
 from src.core.parsing.gem5.impl.pool.parse_work import ParsedVarsDict, ParseWork
@@ -13,11 +18,10 @@ from src.core.parsing.gem5.types.type_mapper import TypeMapper
 
 # Type aliases for clarity
 # EntryBuffer: baseID -> {entryKey -> [values]}
-EntryBufferType = Dict[str, Dict[str, List[str]]]
+EntryBufferType = dict[str, dict[str, list[str]]]
 
 # Variable dictionary: varID -> StatType instance
-# Using Any for StatType to avoid circular import with src.core.parsing.types.base
-VarsDictType = Dict[str, Any]
+VarsDictType = dict[str, "StatType"]
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +89,7 @@ class Gem5ParseWork(ParseWork):
 
     # ========== Line Processing ==========
 
-    def _parseLine(self, line: str) -> Tuple[str, str, str]:
+    def _parseLine(self, line: str) -> tuple[str, str, str]:
         """
         Parse a Perl output line into its components.
 
@@ -95,30 +99,24 @@ class Gem5ParseWork(ParseWork):
         Returns:
             Tuple of (varType, varID, varValue)
         """
-        parts: List[str] = line.split("/")
+        parts: list[str] = line.split("/")
         return parts[0], parts[1], parts[2]
 
-    def _getExpectedType(self, var: Any) -> str:
+    def _getExpectedType(self, var: StatType) -> str:
         """
         Get the normalized type name from a StatType variable object.
 
         Args:
-            var: StatType instance (using Any to avoid circular import
-                 with src.core.parsing.types.base)
+            var: StatType instance.
 
         Returns:
             Normalized type name (e.g., 'scalar', 'vector', 'distribution')
-
-        Note:
-            Uses Any for var parameter because StatType is defined in src.core.parsing.types.base
-            and importing it here would create a circular dependency. At runtime, var is
-            always a StatType instance.
         """
         return TypeMapper.normalize_type(type(var).__name__)
 
     def _processEntryType(
         self, varType: str, varID: str, varValue: str, varsToParse: VarsDictType
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Process entry-based types (Vector, Distribution, Histogram).
 
@@ -132,7 +130,7 @@ class Gem5ParseWork(ParseWork):
             Normalized type name if successful, None if variable is unknown
         """
         baseID: str = varID.split("::")[0]
-        targetVar: Optional[Any] = varsToParse.get(baseID)  # Any = StatType instance
+        targetVar: StatType | None = varsToParse.get(baseID)
 
         if targetVar is None:
             return None  # Unknown variable
@@ -170,7 +168,7 @@ class Gem5ParseWork(ParseWork):
             varsToParse: Dictionary of variables being parsed
         """
         baseID: str = varID.split("::")[0]
-        targetVar: Optional[Any] = varsToParse.get(baseID)  # Any = StatType instance
+        targetVar: StatType | None = varsToParse.get(baseID)
 
         # Check if it's an entry-style summary (::key)
         if targetVar and "::" in varID:
@@ -202,9 +200,7 @@ class Gem5ParseWork(ParseWork):
         normalizedType: str = TypeMapper.normalize_type(rawType)
 
         if TypeMapper.is_entry_type(normalizedType):
-            resolvedType: Optional[str] = self._processEntryType(
-                rawType, varID, varValue, varsToParse
-            )
+            resolvedType: str | None = self._processEntryType(rawType, varID, varValue, varsToParse)
             if resolvedType is None:
                 return  # Unknown variable, skip
 
@@ -289,7 +285,7 @@ class Gem5ParseWork(ParseWork):
         utils.checkFileExistsOrException(self._fileToParse)
 
         # Build keys and validate they are safe (no leading dashes)
-        safe_keys: List[str] = []
+        safe_keys: list[str] = []
         for varID in self._varsToParse.keys():
             key: str = varID.split("__")[0]
             if key.startswith("-"):
