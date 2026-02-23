@@ -1,13 +1,15 @@
-from typing import Any
+from collections.abc import Generator
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
 
+from src.core.models.data_models import ParseVariableConfig
 from tests.conftest import columns_side_effect
 
 
 @pytest.fixture
-def mock_streamlit() -> None:
+def mock_streamlit() -> Generator[MagicMock, None, None]:
     # Patch st in all 3 modules used
     with (
         patch("src.web.pages.ui.components.data_components.st") as mock_st_data,
@@ -75,7 +77,7 @@ def mock_api() -> Any:
 
 def test_variable_editor_render_existing(mock_streamlit: Any, mock_api: Any) -> None:
 
-    vars_config = [{"name": "v1", "type": "scalar", "_id": "1"}]
+    vars_config = cast(list[ParseVariableConfig], [{"name": "v1", "type": "scalar", "_id": "1"}])
 
     # Setup inputs
     mock_streamlit.text_input.side_effect = ["v1", "ali"]  # Name, Alias
@@ -87,13 +89,13 @@ def test_variable_editor_render_existing(mock_streamlit: Any, mock_api: Any) -> 
 
     assert len(updated) == 1
     assert updated[0]["name"] == "v1"
-    assert updated[0]["alias"] == "ali"
+    assert updated[0].get("alias") == "ali"
     assert updated[0]["type"] == "scalar"
 
 
 def test_variable_editor_add_manual(mock_streamlit: Any, mock_api: Any) -> None:
 
-    vars_config = []
+    vars_config: list[ParseVariableConfig] = []
 
     # Button clicks: X (delete) -> False, Add Selected -> False, Add Manual -> True
     mock_streamlit.button.side_effect = lambda label, **k: label == "+ Add Manual"
@@ -110,7 +112,7 @@ def test_variable_editor_add_manual(mock_streamlit: Any, mock_api: Any) -> None:
 
 def test_variable_editor_deep_scan(mock_streamlit: Any, mock_api: Any) -> None:
 
-    vars_config = [{"name": "vec", "type": "vector", "_id": "1"}]
+    vars_config = cast(list[ParseVariableConfig], [{"name": "vec", "type": "vector", "_id": "1"}])
 
     mock_streamlit.text_input.return_value = "vec"
     mock_streamlit.selectbox.return_value = "vector"
@@ -145,7 +147,10 @@ def test_variable_editor_deep_scan(mock_streamlit: Any, mock_api: Any) -> None:
 
 def test_variable_editor_vector_stats_checkboxes(mock_streamlit: Any, mock_api: Any) -> None:
 
-    vars_config = [{"name": "vec", "type": "vector", "_id": "1", "vectorEntries": []}]
+    vars_config = cast(
+        list[ParseVariableConfig],
+        [{"name": "vec", "type": "vector", "_id": "1", "vectorEntries": []}],
+    )
 
     mock_streamlit.text_input.return_value = "vec"
     mock_streamlit.selectbox.return_value = "vector"

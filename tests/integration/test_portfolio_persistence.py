@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from typing import Any
 from unittest.mock import patch
 
@@ -9,7 +10,9 @@ from src.core.state.repository_state_manager import RepositoryStateManager
 
 
 @pytest.fixture
-def clean_portfolio_env(tmp_path: Any) -> None:
+def clean_portfolio_env(
+    tmp_path: Any,
+) -> Generator[tuple[RepositoryStateManager, PortfolioService], None, None]:
     """Create isolated portfolio environment using tmp_path instead of real .ring5/."""
     portfolios_dir = tmp_path / "portfolios"
     portfolios_dir.mkdir(parents=True, exist_ok=True)

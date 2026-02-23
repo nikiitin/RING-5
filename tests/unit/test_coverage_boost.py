@@ -27,7 +27,7 @@ Targets the following files/lines:
 
 import os
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -55,9 +55,9 @@ class TestScannedVariableToDict:
         assert d["name"] == "cpu.ipc"
         assert d["type"] == "scalar"
         assert d["entries"] == ["0", "1"]
-        assert d["minimum"] == 0.5
-        assert d["maximum"] == 10.0
-        assert d["pattern_indices"] == ["cpu0", "cpu1"]
+        assert d.get("minimum") == 0.5
+        assert d.get("maximum") == 10.0
+        assert d.get("pattern_indices") == ["cpu0", "cpu1"]
 
     def test_to_dict_without_optional_fields(self) -> None:
         from src.core.models.parsing_models import ScannedVariable
@@ -74,7 +74,7 @@ class TestScannedVariableToDict:
 
         sv = ScannedVariable(name="dist.var", type="distribution", minimum=0.0)
         d = sv.to_dict()
-        assert d["minimum"] == 0.0
+        assert d.get("minimum") == 0.0
         assert "maximum" not in d
         assert "pattern_indices" not in d
 
@@ -290,8 +290,6 @@ class TestParseWork:
         class ConcreteParseWork(ParseWork):
             """Minimal concrete subclass that does NOT override __call__."""
 
-            pass
-
         work = ConcreteParseWork()
         with pytest.raises(NotImplementedError, match="Subclass must implement"):
             work()
@@ -300,7 +298,7 @@ class TestParseWork:
         from src.core.parsing.gem5.impl.pool.parse_work import ParseWork
 
         class MyWork(ParseWork):
-            def __call__(self) -> Dict[str, Any]:
+            def __call__(self) -> dict[str, Any]:
                 return {}
 
         work = MyWork()
@@ -749,7 +747,7 @@ class TestParseServiceFinalize:
         # Raw data still needs 'entries' for header construction,
         # but lacks 'balance_content' triggering the raw-data row path.
         class RawVar:
-            entries: List[str] = []
+            entries: list[str] = []
 
             def __str__(self) -> str:
                 return "benchmark_x"
@@ -1304,7 +1302,7 @@ class TestPlotManagerComponents:
 
         api = MagicMock()
 
-        def _make_cols(n: Any) -> List[MagicMock]:
+        def _make_cols(n: Any) -> list[MagicMock]:
             count = len(n) if isinstance(n, list) else int(n)
             cols = []
             for _ in range(count):
@@ -1357,7 +1355,7 @@ class TestPlotManagerComponents:
 
         api = MagicMock()
 
-        def _make_cols(n: Any) -> List[MagicMock]:
+        def _make_cols(n: Any) -> list[MagicMock]:
             count = len(n) if isinstance(n, list) else int(n)
             cols = []
             for _ in range(count):
@@ -1749,7 +1747,7 @@ class TestUniDfShaper:
 
         shaper = DummyShaper({"type": "dummy"})
         with pytest.raises(ValueError, match="cannot be None"):
-            shaper(None)
+            shaper(cast(Any, None))
 
     def test_non_dataframe_input_raises(self) -> None:
         from src.core.services.shapers.uni_df_shaper import UniDfShaper
@@ -1763,7 +1761,7 @@ class TestUniDfShaper:
 
         shaper = DummyShaper({"type": "dummy"})
         with pytest.raises(ValueError, match="Expected pandas DataFrame"):
-            shaper("not a dataframe")
+            shaper(cast(Any, "not a dataframe"))
 
 
 # ===================================================================
@@ -1819,7 +1817,7 @@ class TestDefaultShapersAPI:
         from src.core.services.shapers.shapers_impl import DefaultShapersAPI
 
         api = DefaultShapersAPI(tmp_path)
-        api.save_pipeline("test_pipe", [{"type": "rename", "config": {}}], "desc")
+        api.save_pipeline("test_pipe", cast(Any, [{"type": "rename", "config": {}}]), "desc")
         result = api.load_pipeline("test_pipe")
         assert "pipeline" in result or isinstance(result, dict)
 
@@ -1827,7 +1825,7 @@ class TestDefaultShapersAPI:
         from src.core.services.shapers.shapers_impl import DefaultShapersAPI
 
         api = DefaultShapersAPI(tmp_path)
-        api.save_pipeline("to_delete", [{"type": "rename"}], "desc")
+        api.save_pipeline("to_delete", cast(Any, [{"type": "rename"}]), "desc")
         api.delete_pipeline("to_delete")
         assert "to_delete" not in api.list_pipelines()
 
@@ -2011,7 +2009,7 @@ class TestPlotManagerComponentsExtra:
         ]
         plot.pipeline_counter = 1
 
-        def _make_cols(n: Any) -> List[MagicMock]:
+        def _make_cols(n: Any) -> list[MagicMock]:
             count = len(n) if isinstance(n, list) else int(n)
             cols = []
             for _ in range(count):
@@ -2094,7 +2092,7 @@ class TestDataSourceComponentsExtra:
 
         mock_st.fragment = fragment_bypass
 
-        def _make_cols(n: Any) -> List[MagicMock]:
+        def _make_cols(n: Any) -> list[MagicMock]:
             count = len(n) if isinstance(n, list) else int(n)
             cols = []
             for _ in range(count):
@@ -2388,7 +2386,7 @@ class TestRepositoryStateManager:
 
         mgr = RepositoryStateManager()
         mgr._session_repo.parser_repo.set_parse_variables(
-            [{"name": "benchmark", "type": "configuration"}]
+            cast(Any, [{"name": "benchmark", "type": "configuration"}])
         )
 
         df = pd.DataFrame({"benchmark": [1, 2, 3], "ipc": [1.0, 2.0, 3.0]})

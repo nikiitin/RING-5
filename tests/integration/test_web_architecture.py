@@ -11,7 +11,7 @@ Tests that:
 
 import re
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, cast
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -138,7 +138,7 @@ class TestFigureEngineIntegration:
         from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
 
         class SimpleBarCreator:
-            def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
+            def create_figure(self, data: pd.DataFrame, config: dict[str, Any]) -> go.Figure:
                 fig = go.Figure()
                 fig.add_trace(
                     go.Bar(
@@ -152,7 +152,7 @@ class TestFigureEngineIntegration:
         creator = SimpleBarCreator()
         styler = StyleApplicator("bar")
 
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "title": "Test Plot",
             "width": 600,
             "height": 400,
@@ -162,7 +162,7 @@ class TestFigureEngineIntegration:
         fig = styler.apply_styles(fig, config)
 
         assert isinstance(fig, go.Figure)
-        assert len(fig.data) == 1
+        assert len(list(fig.data)) == 1
         assert fig.layout.width == 600
         assert fig.layout.height == 400
 
@@ -170,7 +170,7 @@ class TestFigureEngineIntegration:
         """Legend labels are applied inline after styling."""
 
         class SimpleBarCreator:
-            def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
+            def create_figure(self, data: pd.DataFrame, config: dict[str, Any]) -> go.Figure:
                 fig = go.Figure()
                 fig.add_trace(go.Bar(x=["A"], y=[1], name="original"))
                 return fig
@@ -180,14 +180,14 @@ class TestFigureEngineIntegration:
         creator = SimpleBarCreator()
         styler = StyleApplicator("bar")
 
-        config: Dict[str, Any] = {}
-        legend_labels: Dict[str, str] = {"original": "Custom Label"}
+        config: dict[str, Any] = {}
+        legend_labels: dict[str, str] = {"original": "Custom Label"}
 
         fig = creator.create_figure(sample_data, config)
         fig = styler.apply_styles(fig, config)
         fig.for_each_trace(lambda t: t.update(name=legend_labels.get(t.name, t.name)))
 
-        assert fig.data[0].name == "Custom Label"
+        assert cast(go.Bar, fig.data[0]).name == "Custom Label"
 
 
 # ─── Model TypedDict Compatibility ──────────────────────────────────────────
@@ -198,7 +198,7 @@ class TestModelCompatibility:
 
     def test_shaper_step_creation(self) -> None:
         """ShaperStep can be created with required fields."""
-        step: ShaperStep = {"id": 0, "type": "sort", "config": {"by": "x"}}
+        step: ShaperStep = {"id": 0, "type": "sort", "config": {"order_dict": {"x": ["a"]}}}
         assert step["type"] == "sort"
 
     def test_margins_config(self) -> None:
@@ -460,7 +460,7 @@ class TestProtocolCompliance:
         from src.web.models.plot_protocols import RenderablePlot
 
         # RenderablePlot inherits from both protocols
-        bases = RenderablePlot.__mro__
+        bases = cast(type, RenderablePlot).__mro__
         base_names = [cls.__name__ for cls in bases]
         assert "PlotHandle" in base_names
         assert "ConfigRenderer" in base_names

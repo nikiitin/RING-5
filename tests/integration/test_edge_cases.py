@@ -10,11 +10,16 @@ but valid combinations that are unlikely to appear in normal unit tests.
 """
 
 from pathlib import Path
-from typing import Any
+from typing import cast
 from unittest.mock import patch
 
 import pytest
 
+from src.core.models.data_models import (
+    SavedConfigData,
+    SavedConfigEntry,
+    ShaperStepConfig,
+)
 from src.core.models.parsing_models import ScannedVariable
 
 # ===========================================================================
@@ -152,17 +157,17 @@ class TestConfigServiceEdgeCases:
             return_value=config_dir,
         ):
             # Save
-            shapers: list[dict[str, Any]] = [
-                {"type": "columnSelector", "columns": ["a", "b"]},
+            shapers: list[ShaperStepConfig] = [
+                cast(ShaperStepConfig, {"type": "columnSelector", "columns": ["a", "b"]}),
             ]
             saved_path: str = ConfigService.save_configuration(
                 "test_config", "A test description", shapers
             )
 
             # Load
-            loaded: dict[str, Any] = ConfigService.load_configuration(saved_path)
+            loaded: SavedConfigData = ConfigService.load_configuration(saved_path)
             assert loaded["name"] == "test_config"
-            assert loaded["description"] == "A test description"
+            assert loaded.get("description") == "A test description"
             assert loaded["shapers"] == shapers
 
             # Delete
@@ -191,7 +196,7 @@ class TestConfigServiceEdgeCases:
             "get_config_dir",
             return_value=config_dir,
         ):
-            configs: list[dict[str, Any]] = ConfigService.load_saved_configs()
+            configs: list[SavedConfigEntry] = ConfigService.load_saved_configs()
 
             # Should get exactly 1 (the valid one), corrupt is skipped
             assert len(configs) == 1
@@ -210,12 +215,12 @@ class TestConfigServiceEdgeCases:
             saved_path: str = ConfigService.save_configuration(
                 "test/../../etc/passwd",
                 "Malicious name test",
-                [{"type": "columnSelector", "columns": ["a"]}],
+                [cast(ShaperStepConfig, {"type": "columnSelector", "columns": ["a"]})],
             )
 
             # Should still save (name sanitized)
-            loaded: dict[str, Any] = ConfigService.load_configuration(saved_path)
-            assert loaded["description"] == "Malicious name test"
+            loaded: SavedConfigData = ConfigService.load_configuration(saved_path)
+            assert loaded.get("description") == "Malicious name test"
 
 
 # ===========================================================================

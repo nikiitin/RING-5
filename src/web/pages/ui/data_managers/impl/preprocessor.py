@@ -69,15 +69,22 @@ class PreprocessorManager(DataManager):
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            src_col1 = st.selectbox("Source Column 1", options=numeric_cols, key="preproc_src1")
+            src_col1: str = str(
+                st.selectbox("Source Column 1", options=numeric_cols, key="preproc_src1") or ""
+            )
 
         with col2:
-            operation = st.selectbox(
-                "Operation", options=self.api.managers.list_operators(), key="preproc_op"
+            operation: str = str(
+                st.selectbox(
+                    "Operation", options=self.api.managers.list_operators(), key="preproc_op"
+                )
+                or ""
             )
 
         with col3:
-            src_col2 = st.selectbox("Source Column 2", options=numeric_cols, key="preproc_src2")
+            src_col2: str = str(
+                st.selectbox("Source Column 2", options=numeric_cols, key="preproc_src2") or ""
+            )
 
         # Generate default name
         op_lower = operation.lower()
@@ -92,7 +99,9 @@ class PreprocessorManager(DataManager):
         else:
             default_name = "new_column"
 
-        new_col_name = st.text_input("New column name", value=default_name, key="preproc_name")
+        new_col_name: str = str(
+            st.text_input("New column name", value=default_name, key="preproc_name") or ""
+        )
 
         if st.button("Preview Result", key="preview_preproc"):
             try:

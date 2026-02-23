@@ -1,7 +1,9 @@
-from typing import Any
+from collections.abc import Generator
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
+import plotly.graph_objects as go
 import pytest
 from pandas import DataFrame
 
@@ -11,7 +13,7 @@ from src.web.pages.ui.plotting.types.grouped_stacked_bar_plot import (
 
 
 @pytest.fixture
-def mock_streamlit() -> None:
+def mock_streamlit() -> Generator[None, None, None]:
     with (
         patch("src.web.pages.ui.plotting.types.grouped_stacked_bar_plot.st") as mock_st_plot,
         patch("src.web.pages.ui.plotting.base_plot.st", mock_st_plot),
@@ -119,11 +121,12 @@ def test_create_figure_renaming(sample_data: Any, mock_streamlit: Any) -> None:
 
     # Check traces - Ticks and Energy
     # Ticks -> Total Cycles
-    t1 = next(t for t in fig.data if t.name == "Total Cycles")
-    assert t1.marker.color == "#FF0000"
+    traces = cast(list[go.Bar], list(fig.data))
+    t1 = next(t for t in traces if t.name == "Total Cycles")
+    assert cast(go.bar.Marker, t1.marker).color == "#FF0000"
 
-    t2 = next(t for t in fig.data if t.name == "Joules")
-    assert t2.marker.color == "#00FF00"
+    t2 = next(t for t in traces if t.name == "Joules")
+    assert cast(go.bar.Marker, t2.marker).color == "#00FF00"
 
 
 def test_create_figure_major_minor_renaming(sample_data: Any, mock_streamlit: Any) -> None:
@@ -161,11 +164,13 @@ def test_create_figure_major_minor_renaming(sample_data: Any, mock_streamlit: An
     # Bug 2 Check: Bars should exist (have valid X coordinates)
     # If data mismatch occurred, X coordinates would be None (or NaNs)
     # We check the first trace (Ticks)
-    trace0 = fig.data[0]
+    trace0 = cast(go.Bar, fig.data[0])
     # Check if x values are valid numbers
-    assert len(trace0.x) > 0
+    x_values = trace0.x
+    assert x_values is not None
+    assert len(list(x_values)) > 0
     # If get_coord returned None, we might see None in x or Plotly might filter them.
     # GroupedStackedBarPlot puts None if lookup fails.
     assert all(
-        x is not None for x in trace0.x
-    ), f"Found None in X coordinates: {trace0.x}. Traces lost?"
+        x is not None for x in x_values
+    ), f"Found None in X coordinates: {x_values}. Traces lost?"

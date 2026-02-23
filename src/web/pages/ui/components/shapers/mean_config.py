@@ -76,9 +76,10 @@ class MeanConfig:
             key=f"{key_prefix}mean_replace_{shaper_id}",
         )
 
-        return {
-            "meanAlgorithm": mean_algorithm,
-            "meanVars": mean_vars,
-            "groupingColumns": grouping_columns,
-            "replacingColumn": replacing_column,
+        result: ShaperStepConfig = {
+            "meanAlgorithm": str(mean_algorithm or ""),
+            "meanVars": list(mean_vars) if mean_vars else [],
+            "groupingColumns": list(grouping_columns) if grouping_columns else [],
+            "replacingColumn": str(replacing_column or ""),
         }
+        return result

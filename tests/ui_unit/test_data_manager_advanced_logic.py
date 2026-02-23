@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -11,7 +12,7 @@ from tests.conftest import columns_side_effect
 
 
 @pytest.fixture
-def mock_streamlit() -> None:
+def mock_streamlit() -> Generator[tuple[Any, Any], None, None]:
     with (
         patch("src.web.pages.ui.data_managers.impl.mixer.st") as mock_st_mixer,
         patch("src.web.pages.ui.data_managers.impl.preprocessor.st") as mock_st_prep,

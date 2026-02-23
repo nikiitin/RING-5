@@ -3,7 +3,7 @@ Integration tests for DataProcessingService methods.
 Replaces legacy facade manager tests.
 """
 
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import pandas as pd
@@ -78,7 +78,8 @@ class TestServiceSeedsReducer:
         # Verify mean calculation for bench1
         bench1_row = result[result["benchmark"] == "bench1"]
         expected_mean = np.mean([100, 110, 105])
-        assert np.isclose(bench1_row["cycles"].values[0], expected_mean)
+        cycles = cast("pd.Series", bench1_row["cycles"])
+        assert np.isclose(cycles.iloc[0], expected_mean)
 
     def test_seeds_reducer_with_normalization(self, sample_data_with_seeds: Any) -> None:
         """Test seeds reduction - std columns created but NOT pre-normalized."""
@@ -95,7 +96,7 @@ class TestServiceSeedsReducer:
 
         # Std should be absolute values, NOT normalized
         # For cycles [100, 110, 105], mean=105, std≈5
-        sd_cycles = bench1_row["cycles.sd"].values[0]
+        sd_cycles = cast("pd.Series", bench1_row["cycles.sd"]).iloc[0]
         assert sd_cycles > 1.0  # Should be absolute std, not relative
 
 
@@ -112,7 +113,7 @@ class TestServiceOutlierRemover:
 
         # Should remove the row with cycles=1000
         assert len(result) < len(sample_data_with_outliers)
-        assert 1000 not in result["cycles"].values
+        assert 1000 not in result["cycles"].tolist()
 
     def test_outlier_remover_keeps_normal_data(self, sample_data_with_outliers: Any) -> None:
         """Test that normal data is preserved."""
@@ -123,7 +124,7 @@ class TestServiceOutlierRemover:
         )
 
         # Normal values should still be present
-        assert 100 in result["cycles"].values or 110 in result["cycles"].values
+        assert 100 in result["cycles"].tolist() or 110 in result["cycles"].tolist()
 
 
 class TestServicePreprocessor:

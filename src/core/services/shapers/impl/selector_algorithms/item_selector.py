@@ -51,7 +51,7 @@ class ItemSelector(Selector):
             pattern = "|".join(self.strings)
             mask = data_frame[self.column].astype(str).str.contains(pattern, na=False)
 
-        if not mask.any():
+        if not bool(mask.any()):
             logging.getLogger(__name__).warning(
                 f"ItemSelector: None of the strings {self.strings} found in column '{self.column}'."
             )
@@ -65,8 +65,10 @@ class ItemSelector(Selector):
         self._verify_preconditions(data_frame)
 
         if self.mode == "exact":
-            return data_frame[data_frame[self.column].astype(str).isin(self.strings)]
+            return pd.DataFrame(data_frame[data_frame[self.column].astype(str).isin(self.strings)])
         else:
             # Regex mode (previous behavior)
             pattern = "|".join(self.strings)
-            return data_frame[data_frame[self.column].astype(str).str.contains(pattern, na=False)]
+            return pd.DataFrame(
+                data_frame[data_frame[self.column].astype(str).str.contains(pattern, na=False)]
+            )

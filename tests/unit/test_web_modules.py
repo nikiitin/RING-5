@@ -6,19 +6,22 @@ Tests for styles, state manager, facade, and components.
 import json
 import shutil
 import tempfile
+from collections.abc import Generator
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from unittest.mock import patch
 
 import pandas as pd
 import pytest
+
+from src.core.models.data_models import ParseVariableConfig, ShaperStepConfig
 
 
 class TestStateManager:
     """Test the StateManager class."""
 
     @pytest.fixture
-    def mock_session_state(self) -> None:
+    def mock_session_state(self) -> Generator[dict[str, Any], None, None]:
         """Mock streamlit.session_state as a dictionary."""
         with patch("streamlit.session_state", new_callable=dict) as mock_state:
             yield mock_state
@@ -243,7 +246,7 @@ class TestApplicationAPI:
             loaded_config = api.load_configuration(str(config_file))
 
         assert loaded_config["name"] == "test"
-        assert loaded_config["description"] == "Test config"
+        assert loaded_config.get("description") == "Test config"
 
     def test_find_stats_files(self) -> None:
         """Test finding stats files."""
@@ -272,7 +275,9 @@ class TestApplicationAPI:
             api = ApplicationAPI()
             test_data = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
 
-            shapers_config = [{"type": "columnSelector", "columns": ["a", "b"]}]
+            shapers_config = cast(
+                list[ShaperStepConfig], [{"type": "columnSelector", "columns": ["a", "b"]}]
+            )
 
             result = api.apply_shapers(test_data, shapers_config)
 
@@ -336,6 +341,8 @@ class TestUIComponents:
                 [MagicMock(), MagicMock(), MagicMock(), MagicMock()],
                 [MagicMock(), MagicMock()],
             ]
-            variables = [{"name": "test_hist", "type": "histogram"}]
+            variables = cast(
+                list[ParseVariableConfig], [{"name": "test_hist", "type": "histogram"}]
+            )
             # Pass mock API
             VariableEditor.render(mock_api, variables)

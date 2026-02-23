@@ -48,8 +48,8 @@ class StackedBarPlot(BasePlot):
 
         # Title & Labels
         default_title = saved_config.get("title", f"Stacked Statistics by {x_col}")
-        default_xlabel = saved_config.get("xlabel", x_col)
-        default_ylabel = saved_config.get("ylabel", "Value")
+        default_xlabel: str = str(saved_config.get("xlabel", x_col) or "")
+        default_ylabel: str = str(saved_config.get("ylabel", "Value") or "")
 
         label_config = PlotConfigComponents.render_title_labels_section(
             saved_config=saved_config,
@@ -105,7 +105,7 @@ class StackedBarPlot(BasePlot):
 
         # Apply X Filter
         if config.get("x_filter") is not None:
-            data = data[data[x_col].isin(config["x_filter"])]
+            data = pd.DataFrame(data[data[x_col].isin(config["x_filter"])])
 
         # Calculate Total for each row
         data["__total"] = data[y_cols].sum(axis=1)
@@ -197,7 +197,7 @@ class StackedBarPlot(BasePlot):
 
         annotations = []
         for _, row in data.iterrows():
-            val = row["__total"]
+            val = float(row["__total"])
 
             if val <= threshold:
                 continue

@@ -157,8 +157,9 @@ class TransformerConfig:
                     default=default_order,
                     key=f"{key_prefix}trans_order_{shaper_id}",
                 )
-        return {
-            "column": target_col,
+        result: ShaperStepConfig = {
+            "column": str(target_col or ""),
             "target_type": "factor" if is_factor else "scalar",
-            "order": order_list,
+            "order": list(order_list) if order_list else None,
         }
+        return result

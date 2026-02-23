@@ -323,7 +323,7 @@ class PresetSpecBuilder:
         # ── Separator ────────────────────────────────────────────
         separator = SeparatorConfig(
             enabled=preset.get("group_separator", False),
-            style=preset.get("group_separator_style", "dashed"),
+            style=preset.get("group_separator_style", "dash"),
             color=preset.get("group_separator_color", "gray"),
         )
 

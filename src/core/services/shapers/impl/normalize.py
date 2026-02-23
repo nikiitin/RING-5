@@ -221,7 +221,8 @@ class Normalize(UniDfShaper):
             return result
 
         # Calculate denominator (sum of specified normalizer variables)
-        denominator = baseline[self._normalizer_vars].iloc[0].sum()
+        baseline_vars = pd.DataFrame(baseline[self._normalizer_vars])
+        denominator = baseline_vars.iloc[0].sum()
 
         if denominator == 0:
             # Prevent division by zero: zero out normalized columns

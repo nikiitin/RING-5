@@ -89,6 +89,7 @@ class Gem5StatsScanner:
         if config_vars:
             cmd.append(",".join(str(v) for v in config_vars))
 
+        result: subprocess.CompletedProcess[str] | None = None
         try:
             # Command constructed from validated paths, shell=False enforced for safety
             result = subprocess.run(
@@ -109,5 +110,6 @@ class Gem5StatsScanner:
             logger.error(f"SCANNER: Perl script failed: {e.stderr}")
             raise RuntimeError(f"Perl scanner failed for {file_path}: {e.stderr}") from e
         except json.JSONDecodeError as e:
-            logger.error(f"SCANNER: Invalid JSON output from script: {result.stdout[:200]}")
+            raw_output = result.stdout[:200] if result is not None else "<no output>"
+            logger.error(f"SCANNER: Invalid JSON output from script: {raw_output}")
             raise RuntimeError("Perl scanner produced corrupt JSON output.") from e

@@ -6,6 +6,7 @@ from typing import Any
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+from plotly.basedatatypes import BaseTraceType
 
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import (
@@ -85,8 +86,8 @@ class GroupedStackedBarPlot(StackedBarPlot):
 
             # Title & Labels
             default_title = saved_config.get("title", f"Stacked Statistics by {x_column}")
-            default_xlabel = saved_config.get("xlabel", x_column)
-            default_ylabel = saved_config.get("ylabel", "Value")
+            default_xlabel: str = str(saved_config.get("xlabel", x_column) or "")
+            default_ylabel: str = str(saved_config.get("ylabel", "Value") or "")
 
             label_config = PlotConfigComponents.render_title_labels_section(
                 saved_config=saved_config,
@@ -131,10 +132,13 @@ class GroupedStackedBarPlot(StackedBarPlot):
                     or "bars"
                 )
             with da2:
-                ylabel_right = st.text_input(
-                    "Right Y-axis Label",
-                    value=saved_config.get("ylabel_right", ""),
-                    key=f"ylabel_right_{self.plot_id}",
+                ylabel_right = (
+                    st.text_input(
+                        "Right Y-axis Label",
+                        value=saved_config.get("ylabel_right", ""),
+                        key=f"ylabel_right_{self.plot_id}",
+                    )
+                    or ""
                 )
 
             available_right: list[str] = [c for c in numeric_cols if c not in y_columns]
@@ -600,7 +604,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
 
         # Apply Group Filter
         if config.get("group_filter") is not None:
-            data = data[data[group_col].isin(config["group_filter"])]
+            data = pd.DataFrame(data[data[group_col].isin(config["group_filter"])])
 
         # Get ordered categories and groups
         categories, groups = self._get_ordered_categories_and_groups(data, x_col, group_col, config)
@@ -1092,6 +1096,8 @@ class GroupedStackedBarPlot(StackedBarPlot):
         n_left: int = len(config.get("y_columns", []))
 
         for i, trace in enumerate(fig.data):
+            if not isinstance(trace, BaseTraceType):
+                continue
             if i < n_left:
                 trace.update(legend="legend")
             else:

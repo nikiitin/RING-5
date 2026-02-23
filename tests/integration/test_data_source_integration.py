@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
@@ -12,7 +13,7 @@ from src.core.services.data_services.path_service import PathService
 
 
 @pytest.fixture
-def facade(tmp_path: Any) -> None:
+def facade(tmp_path: Any) -> Generator[ApplicationAPI, None, None]:
     """
     Fixture creates a ApplicationAPI instance with temporary directories.
     Patches PathService to use temp directories for isolation.
@@ -46,9 +47,9 @@ def facade(tmp_path: Any) -> None:
                 # Initialize facade (will use patched paths)
                 f = ApplicationAPI()
                 # Override paths on facade too for backward compatibility
-                f.ring5_data_dir = ring5_dir
-                f.csv_pool_dir = csv_pool
-                f.config_pool_dir = config_pool
+                setattr(f, "ring5_data_dir", ring5_dir)
+                setattr(f, "csv_pool_dir", csv_pool)
+                setattr(f, "config_pool_dir", config_pool)
                 yield f
 
 

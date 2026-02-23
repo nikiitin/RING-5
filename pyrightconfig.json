@@ -3,5 +3,7 @@
   "exclude": ["python_venv", "**/__pycache__"],
   "pythonVersion": "3.12",
   "pythonPlatform": "Linux",
-  "typeCheckingMode": "standard"
+  "typeCheckingMode": "standard",
+  "venvPath": ".",
+  "venv": "python_venv"
 }

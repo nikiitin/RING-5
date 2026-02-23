@@ -6,6 +6,7 @@ import time
 from concurrent.futures import as_completed
 from typing import Any
 
+from src.core.models import ScannedVariable
 from src.core.parsing.gem5.impl.pool.pool import ScanWorkPool
 from src.core.parsing.gem5.impl.pool.scan_work import ScanWork
 
@@ -16,9 +17,9 @@ class MockWork(ScanWork):
         self.val = val
         self.duration = duration
 
-    def __call__(self) -> dict:
+    def __call__(self) -> list[ScannedVariable]:
         time.sleep(self.duration)
-        return {"name": f"var_{self.val}", "type": "scalar"}
+        return [ScannedVariable(name=f"var_{self.val}", type="scalar")]
 
 
 def test_async_scan_flow() -> None:
@@ -33,16 +34,16 @@ def test_async_scan_flow() -> None:
     assert len(futures) == 5
 
     # Collect results
-    results = []
+    results: list[ScannedVariable] = []
     for future in as_completed(futures):
         res = future.result()
         if res:
-            results.append(res)
+            results.extend(res)
 
     assert len(results) == 5
-    for i, result in enumerate(sorted(results, key=lambda x: x["name"])):
-        assert result["name"] == f"var_{i}"
-        assert result["type"] == "scalar"
+    for i, result in enumerate(sorted(results, key=lambda x: x.name)):
+        assert result.name == f"var_{i}"
+        assert result.type == "scalar"
 
 
 def test_async_scan_cancellation() -> None:

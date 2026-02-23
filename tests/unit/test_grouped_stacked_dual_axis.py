@@ -1,6 +1,6 @@
 """Tests for GroupedStackedBarPlot dual-axis feature."""
 
-from typing import Any, Dict
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -42,7 +42,7 @@ class TestDualAxisCreateFigure:
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """Dual-axis with bars on both axes produces correct traces."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks", "Energy"],
@@ -57,7 +57,7 @@ class TestDualAxisCreateFigure:
         fig: go.Figure = plot.create_figure(sample_data, config)
 
         # 2 left-axis bars + 1 right-axis bar = 3 traces
-        assert len(fig.data) == 3
+        assert len(list(fig.data)) == 3
         # All traces are Bar type
         for trace in fig.data:
             assert isinstance(trace, go.Bar)
@@ -69,7 +69,7 @@ class TestDualAxisCreateFigure:
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """Dual-axis with dots on the right axis."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks"],
@@ -84,7 +84,7 @@ class TestDualAxisCreateFigure:
         fig: go.Figure = plot.create_figure(sample_data, config)
 
         # 1 left-axis bar + 1 right-axis scatter = 2 traces
-        assert len(fig.data) == 2
+        assert len(list(fig.data)) == 2
         assert isinstance(fig.data[0], go.Bar)
         assert isinstance(fig.data[1], go.Scatter)
 
@@ -92,7 +92,7 @@ class TestDualAxisCreateFigure:
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """Dots on right axis with lines enabled."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks"],
@@ -107,17 +107,19 @@ class TestDualAxisCreateFigure:
         }
         fig: go.Figure = plot.create_figure(sample_data, config)
 
-        scatter_trace: go.Scatter = fig.data[1]  # type: ignore[assignment]
+        scatter_trace = cast(go.Scatter, fig.data[1])
         assert scatter_trace.mode == "lines+markers"
-        assert scatter_trace.marker.size == 12
-        assert scatter_trace.marker.symbol == "diamond"
-        assert scatter_trace.line.width == 3
+        scatter_marker = cast(go.scatter.Marker, scatter_trace.marker)
+        assert scatter_marker.size == 12
+        assert scatter_marker.symbol == "diamond"
+        scatter_line = cast(go.scatter.Line, scatter_trace.line)
+        assert scatter_line.width == 3
 
     def test_dual_axis_dots_no_lines(
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """Dots on right axis with lines disabled."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks"],
@@ -129,14 +131,14 @@ class TestDualAxisCreateFigure:
         }
         fig: go.Figure = plot.create_figure(sample_data, config)
 
-        scatter_trace: go.Scatter = fig.data[1]  # type: ignore[assignment]
+        scatter_trace = cast(go.Scatter, fig.data[1])
         assert scatter_trace.mode == "markers"
 
     def test_dual_axis_ylabel_right(
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """Dual-axis mode enables secondary_y and assigns traces correctly."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks"],
@@ -161,7 +163,7 @@ class TestDualAxisCreateFigure:
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """Multiple columns on the right axis produce multiple traces."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks"],
@@ -173,7 +175,7 @@ class TestDualAxisCreateFigure:
         fig: go.Figure = plot.create_figure(sample_data, config)
 
         # 1 left + 2 right = 3 traces
-        assert len(fig.data) == 3
+        assert len(list(fig.data)) == 3
         for trace in fig.data:
             assert isinstance(trace, go.Bar)
 
@@ -181,7 +183,7 @@ class TestDualAxisCreateFigure:
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """Dual-axis with no right columns still works (only left bars)."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks"],
@@ -193,7 +195,7 @@ class TestDualAxisCreateFigure:
         fig: go.Figure = plot.create_figure(sample_data, config)
 
         # Only left-axis traces
-        assert len(fig.data) == 1
+        assert len(list(fig.data)) == 1
         assert isinstance(fig.data[0], go.Bar)
 
     def test_dual_axis_with_error_bars(self, plot: GroupedStackedBarPlot) -> None:
@@ -207,7 +209,7 @@ class TestDualAxisCreateFigure:
                 "IPC.sd": [0.1, 0.2, 0.15, 0.1],
             }
         )
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Bench",
             "group": "Cfg",
             "y_columns": ["Val"],
@@ -220,15 +222,16 @@ class TestDualAxisCreateFigure:
         fig: go.Figure = plot.create_figure(data, config)
 
         # Right-axis bar should have error bars
-        right_trace: go.Bar = fig.data[-1]  # type: ignore[assignment]
+        right_trace = cast(go.Bar, fig.data[-1])
         assert right_trace.error_y is not None
-        assert right_trace.error_y.visible is True
+        right_error_y = cast(go.bar.ErrorY, right_trace.error_y)
+        assert right_error_y.visible is True
 
     def test_dual_axis_with_series_styles(
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """Series styles (color, pattern, rename) apply to right-axis traces."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks"],
@@ -242,9 +245,10 @@ class TestDualAxisCreateFigure:
         }
         fig: go.Figure = plot.create_figure(sample_data, config)
 
-        right_trace: go.Bar = fig.data[-1]  # type: ignore[assignment]
+        right_trace = cast(go.Bar, fig.data[-1])
         assert right_trace.name == "Renamed IPC"
-        assert right_trace.marker.color == "#FF0000"
+        right_marker = cast(go.bar.Marker, right_trace.marker)
+        assert right_marker.color == "#FF0000"
 
 
 class TestDualAxisDisabled:
@@ -254,7 +258,7 @@ class TestDualAxisDisabled:
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """Standard (non-dual) creates go.Figure, not make_subplots."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks", "Energy"],
@@ -263,7 +267,7 @@ class TestDualAxisDisabled:
         }
         fig: go.Figure = plot.create_figure(sample_data, config)
 
-        assert len(fig.data) == 2
+        assert len(list(fig.data)) == 2
         # No secondary Y-axis — accessing yaxis2 raises AttributeError
         with pytest.raises(AttributeError):
             _ = fig.layout.yaxis2
@@ -276,7 +280,7 @@ class TestApplyCommonLayoutDual:
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """apply_common_layout converts secondary Y title to annotation."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks"],
@@ -307,7 +311,7 @@ class TestDualAxisDotScenarios:
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """Dots ignore bar-specific styles like pattern."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks"],
@@ -319,7 +323,7 @@ class TestDualAxisDotScenarios:
         }
         fig: go.Figure = plot.create_figure(sample_data, config)
 
-        scatter: go.Scatter = fig.data[-1]  # type: ignore[assignment]
+        scatter = cast(go.Scatter, fig.data[-1])
         assert scatter.name == "Custom IPC"
         assert isinstance(scatter, go.Scatter)
 
@@ -327,7 +331,7 @@ class TestDualAxisDotScenarios:
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """Right-axis bars support pattern fill."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks"],
@@ -341,8 +345,10 @@ class TestDualAxisDotScenarios:
         }
         fig: go.Figure = plot.create_figure(sample_data, config)
 
-        right_trace: go.Bar = fig.data[-1]  # type: ignore[assignment]
-        assert right_trace.marker.pattern.shape == "/"
+        right_trace = cast(go.Bar, fig.data[-1])
+        right_marker = cast(go.bar.Marker, right_trace.marker)
+        right_pattern = cast(go.bar.marker.Pattern, right_marker.pattern)
+        assert right_pattern.shape == "/"
 
 
 # ── Config UI tests ──────────────────────────────────────────────
@@ -396,7 +402,7 @@ class TestDualAxisConfigUI:
         # dual_axis checkbox unchecked
         mock_st.checkbox.return_value = False
 
-        result: Dict[str, Any] = plot.render_config_ui(data, {})
+        result: dict[str, Any] = plot.render_config_ui(data, {})
 
         assert result["dual_axis"] is False
         assert result["y_columns_right"] == []
@@ -445,7 +451,7 @@ class TestDualAxisConfigUI:
         # text_input: ylabel_right
         mock_st.text_input.return_value = "Right Label"
 
-        result: Dict[str, Any] = plot.render_config_ui(data, {})
+        result: dict[str, Any] = plot.render_config_ui(data, {})
 
         assert result["dual_axis"] is True
         assert result["y_columns_right"] == ["V2"]
@@ -463,7 +469,7 @@ class TestDualAxisTitleRotation:
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """Right Y-label should be an annotation with textangle=90."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks"],
@@ -496,7 +502,7 @@ class TestDualAxisTitleRotation:
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """In dual-axis mode the left Y is ALSO an annotation for visual symmetry."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks"],
@@ -528,7 +534,7 @@ class TestDualAxisTitleRotation:
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """Both Y-axis annotations share the same font colour."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks"],
@@ -552,7 +558,7 @@ class TestDualAxisTitleRotation:
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """No annotation should be added when ylabel_right is empty."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks"],
@@ -574,7 +580,7 @@ class TestDualAxisTitleRotation:
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """Right Y-label falls back to yaxis_title_font_size when no override."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks"],
@@ -606,7 +612,7 @@ class TestDualAxisGridLines:
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """Both grids enabled by default."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks"],
@@ -627,7 +633,7 @@ class TestDualAxisGridLines:
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """Disabling left grid hides only primary Y grid lines."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks"],
@@ -648,7 +654,7 @@ class TestDualAxisGridLines:
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """Disabling right grid hides only secondary Y grid lines."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks"],
@@ -669,7 +675,7 @@ class TestDualAxisGridLines:
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """Both grids can be disabled simultaneously."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks"],
@@ -697,7 +703,7 @@ class TestDualAxisLegendUnification:
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """Default (unified_legend=True) keeps all traces in one legend."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks"],
@@ -717,7 +723,7 @@ class TestDualAxisLegendUnification:
 
     def test_separate_legend(self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame) -> None:
         """When unified_legend=False, traces are split into legend + legend2."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks", "Energy"],
@@ -731,15 +737,15 @@ class TestDualAxisLegendUnification:
         fig = plot.apply_common_layout(fig, config)
 
         # 2 left traces → legend, 1 right trace → legend2
-        assert fig.data[0].legend == "legend"
-        assert fig.data[1].legend == "legend"
-        assert fig.data[2].legend == "legend2"
+        assert cast(go.Bar, fig.data[0]).legend == "legend"
+        assert cast(go.Bar, fig.data[1]).legend == "legend"
+        assert cast(go.Bar, fig.data[2]).legend == "legend2"
 
     def test_separate_legend_positions(
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """Separate legends are positioned on left (legend) and right (legend2)."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks"],
@@ -761,7 +767,7 @@ class TestDualAxisLegendUnification:
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """Separate legends work correctly with dots on the right axis."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks"],
@@ -775,8 +781,8 @@ class TestDualAxisLegendUnification:
         fig = plot.apply_common_layout(fig, config)
 
         # 1 left (bar) → legend, 1 right (scatter) → legend2
-        assert fig.data[0].legend == "legend"
-        assert fig.data[1].legend == "legend2"
+        assert cast(go.Bar, fig.data[0]).legend == "legend"
+        assert cast(go.Scatter, fig.data[1]).legend == "legend2"
 
 
 # ── Dual-axis display settings UI test ───────────────────────────
@@ -789,7 +795,7 @@ class TestDualAxisDisplaySettingsUI:
     def test_display_settings_keys_in_config(self, mock_st: MagicMock) -> None:
         """Config dict contains grid and legend keys after render."""
         plot = GroupedStackedBarPlot(99, "Test")
-        config: Dict[str, Any] = {}
+        config: dict[str, Any] = {}
 
         mock_st.columns.return_value = [_ctx(), _ctx()]
         mock_st.checkbox.side_effect = [False, True, True]  # left_grid, right_grid, unified
@@ -811,7 +817,7 @@ class TestSecondaryYTypography:
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """yaxis2_title_font_size controls the right Y-label annotation size."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks"],
@@ -834,7 +840,7 @@ class TestSecondaryYTypography:
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """yaxis2_title_standoff adjusts the annotation xshift."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks"],
@@ -858,7 +864,7 @@ class TestSecondaryYTypography:
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """yaxis2_tickfont_size and color are applied to yaxis2."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks"],
@@ -887,7 +893,7 @@ class TestSeparateLegendControls:
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """legend2_x/y/xanchor/yanchor control legend2 position."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks"],
@@ -911,7 +917,7 @@ class TestSeparateLegendControls:
 
     def test_legend2_bgcolor(self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame) -> None:
         """legend2_bgcolor is applied."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks"],
@@ -929,7 +935,7 @@ class TestSeparateLegendControls:
 
     def test_legend2_font(self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame) -> None:
         """legend2_font_color and legend2_font_size are applied."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks"],
@@ -949,7 +955,7 @@ class TestSeparateLegendControls:
 
     def test_legend2_border(self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame) -> None:
         """legend2_bordercolor and legend2_borderwidth are applied."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks"],
@@ -971,7 +977,7 @@ class TestSeparateLegendControls:
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """legend2_orientation controls horizontal/vertical layout."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks"],
@@ -991,7 +997,7 @@ class TestSeparateLegendControls:
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """legend2_title sets the legend2 title."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks"],

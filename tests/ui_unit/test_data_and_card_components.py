@@ -1,16 +1,18 @@
-from typing import Any
+from collections.abc import Generator
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
 
+from src.core.models.data_models import CsvPoolEntry, SavedConfigEntry
 from src.web.pages.ui.components.card_components import CardComponents
 from src.web.pages.ui.components.data_components import DataComponents
 from tests.conftest import columns_side_effect
 
 
 @pytest.fixture
-def mock_streamlit() -> None:
+def mock_streamlit() -> Generator[MagicMock, None, None]:
     # We need to patch st in both modules where it is used
     with (
         patch("src.web.pages.ui.components.data_components.st") as mock_st_data,
@@ -66,7 +68,7 @@ def test_show_column_details(mock_streamlit: Any) -> None:
 def test_file_info_card(mock_streamlit: Any) -> None:
 
     # Setup
-    info = {"name": "test.csv", "size": 1024, "modified": 1678886400.0}
+    info = cast(CsvPoolEntry, {"name": "test.csv", "size": 1024, "modified": 1678886400.0})
 
     # Mock buttons to return True sequence
     mock_streamlit.button.side_effect = [True, False, False]  # Load clicked
@@ -83,7 +85,9 @@ def test_file_info_card(mock_streamlit: Any) -> None:
 
 def test_config_info_card(mock_streamlit: Any) -> None:
 
-    info = {"name": "conf1", "description": "desc", "modified": 1678886400.0}
+    info = cast(
+        SavedConfigEntry, {"name": "conf1", "description": "desc", "modified": 1678886400.0}
+    )
 
     # Mock buttons: Load, Delete
     mock_streamlit.button.side_effect = [False, True]  # Delete clicked

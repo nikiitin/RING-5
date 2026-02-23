@@ -10,6 +10,7 @@ Following Rule 004 (QA Testing Mastery):
 
 import json
 import subprocess
+from collections.abc import Generator
 from pathlib import Path
 from typing import Any
 from unittest.mock import Mock
@@ -38,7 +39,7 @@ def mock_scanner_script_exists(monkeypatch: Any) -> None:
 
 
 @pytest.fixture
-def clean_scanner() -> None:
+def clean_scanner() -> Generator[None, None, None]:
     """Reset scanner singleton before each test."""
     Gem5StatsScanner._instance = None
     yield

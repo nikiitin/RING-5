@@ -10,7 +10,7 @@ Tests:
     - Config error recovery in render pipeline
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -19,7 +19,7 @@ import plotly.graph_objects as go
 from src.core.application_api import ApplicationAPI
 from src.core.state.repository_state_manager import RepositoryStateManager
 from src.web.controllers.plot.render_controller import PlotRenderController
-from src.web.models.plot_protocols import PlotHandle
+from src.web.models.plot_protocols import PlotHandle, RenderablePlot
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 from src.web.pages.ui.plotting.plot_service import PlotService
@@ -49,7 +49,7 @@ class _LifecycleAdapter:
 class _RegistryAdapter:
     """Adapter wrapping PlotFactory for PlotTypeRegistry."""
 
-    def get_available_types(self) -> List[str]:
+    def get_available_types(self) -> list[str]:
         return PlotFactory.get_available_plot_types()
 
 
@@ -57,9 +57,9 @@ class _RenderVisualizationTracker:
     """Tracks _render_visualization calls for assertions."""
 
     def __init__(self) -> None:
-        self.calls: List[Dict[str, Any]] = []
-        self.last_plot: Optional[PlotHandle] = None
-        self.last_should_gen: Optional[bool] = None
+        self.calls: list[dict[str, Any]] = []
+        self.last_plot: PlotHandle | None = None
+        self.last_should_gen: bool | None = None
 
     def __call__(self, plot: PlotHandle, should_generate: bool) -> None:
         self.calls.append({"plot": plot, "should_generate": should_generate})
@@ -115,7 +115,9 @@ class TestPlotRenderControllerIntegration:
 
         # Create a real plot with data
         plot: BasePlot = PlotFactory.create_plot("bar", plot_id=1, name="Test")
-        data: pd.DataFrame = loaded_facade.state_manager.get_data()
+        data_or_none = loaded_facade.state_manager.get_data()
+        assert data_or_none is not None
+        data: pd.DataFrame = data_or_none
         plot.processed_data = data
         plot.config = {
             "x": "benchmark_name",
@@ -157,7 +159,7 @@ class TestPlotRenderControllerIntegration:
                 },
             ),
         ):
-            controller.render(plot)
+            controller.render(cast(RenderablePlot, plot))
 
         # _render_visualization should have been called
         assert len(tracker.calls) == 1
@@ -182,7 +184,7 @@ class TestPlotRenderControllerIntegration:
         with patch(
             "src.web.presenters.plot.config_presenter.ConfigPresenter.render_no_data_warning",
         ) as mock_warning:
-            controller.render(plot)
+            controller.render(cast(RenderablePlot, plot))
 
         mock_warning.assert_called_once()
         assert len(tracker.calls) == 0
@@ -230,7 +232,7 @@ class TestPlotRenderControllerIntegration:
                 },
             ),
         ):
-            controller.render(plot)
+            controller.render(cast(RenderablePlot, plot))
 
         # _render_visualization called but with should_gen=False due to error
         assert len(tracker.calls) == 1
@@ -252,7 +254,7 @@ class TestChartPresenterIntegration:
         mock_st.toggle.return_value = True  # auto-refresh ON
         mock_st.button.return_value = False  # no manual click
 
-        result: Dict[str, Any] = ChartPresenter.render_refresh_controls(
+        result: dict[str, Any] = ChartPresenter.render_refresh_controls(
             plot_id=1, auto_refresh=True, config_changed=True
         )
 
@@ -266,7 +268,7 @@ class TestChartPresenterIntegration:
         mock_st.toggle.return_value = True  # auto-refresh ON
         mock_st.button.return_value = False  # no manual click
 
-        result: Dict[str, Any] = ChartPresenter.render_refresh_controls(
+        result: dict[str, Any] = ChartPresenter.render_refresh_controls(
             plot_id=2, auto_refresh=True, config_changed=False
         )
 
@@ -280,7 +282,7 @@ class TestChartPresenterIntegration:
         mock_st.toggle.return_value = False  # auto-refresh OFF
         mock_st.button.return_value = True  # manual clicked
 
-        result: Dict[str, Any] = ChartPresenter.render_refresh_controls(
+        result: dict[str, Any] = ChartPresenter.render_refresh_controls(
             plot_id=3, auto_refresh=False, config_changed=False
         )
 
@@ -294,7 +296,7 @@ class TestChartPresenterIntegration:
         mock_st.toggle.return_value = False
         mock_st.button.return_value = False
 
-        result: Dict[str, Any] = ChartPresenter.render_refresh_controls(
+        result: dict[str, Any] = ChartPresenter.render_refresh_controls(
             plot_id=4, auto_refresh=False, config_changed=True  # even though changed
         )
 
@@ -335,7 +337,7 @@ class TestPlotLifecycleIntegration:
         # 4. Generate figure
         fig: go.Figure = plot.create_figure(rich_sample_data, plot.config)
         assert isinstance(fig, go.Figure)
-        assert len(fig.data) > 0
+        assert len(list(fig.data)) > 0
 
     def test_change_plot_type_preserves_data(
         self, state_manager: RepositoryStateManager, rich_sample_data: pd.DataFrame
@@ -389,14 +391,14 @@ class TestPlotLifecycleIntegration:
         plot_id: int = plot.plot_id
 
         # Verify it exists
-        plots: List[Any] = state_manager.get_plots()
-        plot_ids: List[int] = [p.plot_id for p in plots]
+        plots: list[Any] = state_manager.get_plots()
+        plot_ids: list[int] = [p.plot_id for p in plots]
         assert plot_id in plot_ids
 
         # Delete
         PlotService.delete_plot(plot_id, state_manager)
 
         # Verify removed
-        plots_after: List[Any] = state_manager.get_plots()
-        plot_ids_after: List[int] = [p.plot_id for p in plots_after]
+        plots_after: list[Any] = state_manager.get_plots()
+        plot_ids_after: list[int] = [p.plot_id for p in plots_after]
         assert plot_id not in plot_ids_after

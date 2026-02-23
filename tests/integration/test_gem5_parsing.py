@@ -1,11 +1,13 @@
 import os
+from collections.abc import Generator
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 import pytest
 
 from src.core.application_api import ApplicationAPI
+from src.core.models.data_models import ParseVariableConfig
 from src.core.services.data_services.config_service import ConfigService
 from src.core.services.data_services.csv_pool_service import CsvPoolService
 from src.core.services.data_services.path_service import PathService
@@ -17,7 +19,7 @@ class TestGem5Parsing:
     TEST_DATA_DIR = Path("tests/data/results-micro26-sens")
 
     @pytest.fixture(autouse=True)
-    def reset_service_caches(self) -> None:
+    def reset_service_caches(self) -> Generator[None, None, None]:
         """Reset class-level caches for test isolation."""
         PathService.reset_caches()
         CsvPoolService.clear_caches()
@@ -176,7 +178,10 @@ system.mem.ctrl::1024-2047                    5      50.00%     100.00%      # H
 
             # 2. Parse
             # Configure variables
-            variables = [{"name": "system.mem.ctrl", "type": "histogram"}]
+            variables = cast(
+                list[ParseVariableConfig],
+                [{"name": "system.mem.ctrl", "type": "histogram"}],
+            )
 
             parse_batch = facade.submit_parse_async(
                 str(stats_dir), "stats.txt", variables, str(output_dir), scanned_vars=vars_found

@@ -1,10 +1,11 @@
 """Tests for PresetManager and PresetSchema — target 0% → 80%+."""
 
-from typing import Any, Dict
+from typing import Any, cast
 
 import pytest
 
 from src.web.pages.ui.plotting.export.presets.preset_manager import PresetManager
+from src.web.pages.ui.plotting.export.presets.preset_schema import LaTeXPreset
 
 
 class TestPresetManager:
@@ -50,9 +51,9 @@ class TestPresetManager:
             PresetManager.get_preset_info("nonexistent")
 
     def test_validate_preset_missing_field(self) -> None:
-        incomplete: Dict[str, Any] = {"width_inches": 3.5}
+        incomplete: dict[str, Any] = {"width_inches": 3.5}
         with pytest.raises(ValueError, match="Missing required field"):
-            PresetManager.validate_preset(incomplete)
+            PresetManager.validate_preset(cast(LaTeXPreset, incomplete))
 
     def test_validate_preset_negative_width(self) -> None:
         preset = self._make_valid_preset()
@@ -125,34 +126,37 @@ class TestPresetManager:
         # Should not raise
         PresetManager.validate_preset(preset)
 
-    def _make_valid_preset(self) -> Dict[str, Any]:
+    def _make_valid_preset(self) -> LaTeXPreset:
         """Create a minimal valid preset for testing validation."""
-        return {
-            "width_inches": 3.5,
-            "height_inches": 2.625,
-            "font_family": "serif",
-            "font_size_base": 9,
-            "font_size_title": 10,
-            "font_size_xlabel": 9,
-            "font_size_ylabel": 9,
-            "font_size_legend": 8,
-            "font_size_ticks": 7,
-            "font_size_annotations": 6,
-            "bold_title": False,
-            "bold_xlabel": False,
-            "bold_ylabel": False,
-            "bold_legend": False,
-            "bold_ticks": False,
-            "bold_annotations": True,
-            "line_width": 1.0,
-            "marker_size": 4,
-            "dpi": 300,
-            "legend_columnspacing": 2.0,
-            "legend_handletextpad": 0.8,
-            "legend_labelspacing": 0.5,
-            "legend_handlelength": 2.0,
-            "legend_handleheight": 0.7,
-            "legend_borderpad": 0.4,
-            "legend_borderaxespad": 0.5,
-            "latex_extra_preamble": "",
-        }
+        return cast(
+            LaTeXPreset,
+            {
+                "width_inches": 3.5,
+                "height_inches": 2.625,
+                "font_family": "serif",
+                "font_size_base": 9,
+                "font_size_title": 10,
+                "font_size_xlabel": 9,
+                "font_size_ylabel": 9,
+                "font_size_legend": 8,
+                "font_size_ticks": 7,
+                "font_size_annotations": 6,
+                "bold_title": False,
+                "bold_xlabel": False,
+                "bold_ylabel": False,
+                "bold_legend": False,
+                "bold_ticks": False,
+                "bold_annotations": True,
+                "line_width": 1.0,
+                "marker_size": 4,
+                "dpi": 300,
+                "legend_columnspacing": 2.0,
+                "legend_handletextpad": 0.8,
+                "legend_labelspacing": 0.5,
+                "legend_handlelength": 2.0,
+                "legend_handleheight": 0.7,
+                "legend_borderpad": 0.4,
+                "legend_borderaxespad": 0.5,
+                "latex_extra_preamble": "",
+            },
+        )

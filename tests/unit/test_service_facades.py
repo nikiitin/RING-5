@@ -4,11 +4,13 @@ Tests DefaultDataServicesAPI and DefaultManagersAPI to verify they
 correctly delegate every method to the appropriate sub-service.
 """
 
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
 
+from src.core.models.data_models import ParseVariableConfig
 from src.core.services.data_services.data_services_impl import DefaultDataServicesAPI
 from src.core.services.managers.managers_impl import DefaultManagersAPI
 
@@ -101,28 +103,32 @@ class TestDefaultDataServicesAPI:
 
     @patch("src.core.services.data_services.data_services_impl.VariableService")
     def test_add_variable(self, mock_svc: MagicMock, api: DefaultDataServicesAPI) -> None:
-        mock_svc.add_variable.return_value = [{"name": "ipc"}]
-        result = api.add_variable([], {"name": "ipc"})
-        mock_svc.add_variable.assert_called_once_with([], {"name": "ipc"})
-        assert result == [{"name": "ipc"}]
+        var_config = cast(ParseVariableConfig, {"name": "ipc"})
+        mock_svc.add_variable.return_value = [var_config]
+        result = api.add_variable([], var_config)
+        mock_svc.add_variable.assert_called_once_with([], var_config)
+        assert result == [var_config]
 
     @patch("src.core.services.data_services.data_services_impl.VariableService")
     def test_update_variable(self, mock_svc: MagicMock, api: DefaultDataServicesAPI) -> None:
-        vars_list = [{"name": "old"}]
-        mock_svc.update_variable.return_value = [{"name": "new"}]
-        result = api.update_variable(vars_list, 0, {"name": "new"})
-        mock_svc.update_variable.assert_called_once_with(vars_list, 0, {"name": "new"})
-        assert result == [{"name": "new"}]
+        vars_list = cast(list[ParseVariableConfig], [{"name": "old"}])
+        new_config = cast(ParseVariableConfig, {"name": "new"})
+        mock_svc.update_variable.return_value = [new_config]
+        result = api.update_variable(vars_list, 0, new_config)
+        mock_svc.update_variable.assert_called_once_with(vars_list, 0, new_config)
+        assert result == [new_config]
 
     @patch("src.core.services.data_services.data_services_impl.VariableService")
     def test_delete_variable(self, mock_svc: MagicMock, api: DefaultDataServicesAPI) -> None:
         mock_svc.delete_variable.return_value = []
-        assert api.delete_variable([{"name": "x"}], 0) == []
+        assert api.delete_variable(cast(list[ParseVariableConfig], [{"name": "x"}]), 0) == []
 
     @patch("src.core.services.data_services.data_services_impl.VariableService")
     def test_ensure_variable_ids(self, mock_svc: MagicMock, api: DefaultDataServicesAPI) -> None:
-        inp = [{"name": "x"}]
-        mock_svc.ensure_variable_ids.return_value = [{"name": "x", "_id": "id1"}]
+        inp = cast(list[ParseVariableConfig], [{"name": "x"}])
+        mock_svc.ensure_variable_ids.return_value = cast(
+            list[ParseVariableConfig], [{"name": "x", "_id": "id1"}]
+        )
         result = api.ensure_variable_ids(inp)
         assert result[0]["_id"] == "id1"
 
@@ -133,9 +139,12 @@ class TestDefaultDataServicesAPI:
 
     @patch("src.core.services.data_services.data_services_impl.VariableService")
     def test_find_variable_by_name(self, mock_svc: MagicMock, api: DefaultDataServicesAPI) -> None:
-        mock_svc.find_variable_by_name.return_value = {"name": "ipc"}
-        result = api.find_variable_by_name([{"name": "ipc"}], "ipc")
-        mock_svc.find_variable_by_name.assert_called_once_with([{"name": "ipc"}], "ipc", True)
+        var_config = cast(ParseVariableConfig, {"name": "ipc"})
+        mock_svc.find_variable_by_name.return_value = var_config
+        result = api.find_variable_by_name(cast(list[ParseVariableConfig], [var_config]), "ipc")
+        mock_svc.find_variable_by_name.assert_called_once_with(
+            cast(list[ParseVariableConfig], [var_config]), "ipc", True
+        )
         assert result == {"name": "ipc"}
 
     @patch("src.core.services.data_services.data_services_impl.VariableService")

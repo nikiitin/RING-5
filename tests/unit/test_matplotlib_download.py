@@ -11,6 +11,7 @@ from collections.abc import Iterator
 import matplotlib
 import matplotlib.pyplot as plt
 import pytest
+from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
 from src.core.models.visualization.figure_config import FigureConfig
@@ -44,8 +45,10 @@ def _ensure_agg_backend() -> Iterator[None]:
 def simple_mpl_figure() -> Figure:
     """A minimal matplotlib figure for export tests."""
     fig, ax = plt.subplots(figsize=(4, 3))
+    assert isinstance(ax, Axes)
     ax.bar(["A", "B", "C"], [1, 3, 2])
     ax.set_title("Test")
+    assert isinstance(fig, Figure)
     return fig
 
 
@@ -53,7 +56,9 @@ def simple_mpl_figure() -> Figure:
 def line_mpl_figure() -> Figure:
     """A minimal matplotlib line figure."""
     fig, ax = plt.subplots(figsize=(4, 3))
+    assert isinstance(ax, Axes)
     ax.plot([1, 2, 3], [10, 20, 15], label="line")
+    assert isinstance(fig, Figure)
     return fig
 
 

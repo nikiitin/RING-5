@@ -72,6 +72,7 @@ system.mem.latency_dist::total               500
         )
 
         # Load and verify CSV
+        assert csv_path is not None
         df = pd.read_csv(csv_path)
 
         # Should have 1 row (1 simpoint)
@@ -127,6 +128,7 @@ system.mem.latency_dist::total               500
         )
 
         # Load and verify CSV
+        assert csv_path is not None
         df = pd.read_csv(csv_path)
 
         # Should have 1 row (1 simpoint)
@@ -183,6 +185,7 @@ system.mem.latency_dist::total               500
         csv_full = ParseService.construct_final_csv(
             output_dir_full, results_full, var_names=batch_full.var_names
         )
+        assert csv_full is not None
         df_full = pd.read_csv(csv_full)
 
         output_dir_stats = str(tmp_path / "stats_only_stats")
@@ -199,6 +202,7 @@ system.mem.latency_dist::total               500
         csv_stats = ParseService.construct_final_csv(
             output_dir_stats, results_stats, var_names=batch_stats.var_names
         )
+        assert csv_stats is not None
         df_stats = pd.read_csv(csv_stats)
 
         # Statistics-only should have fewer columns

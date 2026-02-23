@@ -131,7 +131,7 @@ class TestVectorContentProperty:
 
         # Create object with non-stringable keys
         class NonStringable:
-            def __str__(self) -> None:
+            def __str__(self) -> str:
                 raise RuntimeError("Cannot convert")
 
         # Act & Assert

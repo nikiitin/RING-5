@@ -83,7 +83,8 @@ class DataComponents:
             )
 
         with col2:
-            json_data = data.to_json(orient="records", indent=2).encode("utf-8")
+            json_str = data.to_json(orient="records", indent=2) or ""
+            json_data = json_str.encode("utf-8")
             st.download_button(
                 label="Download JSON",
                 data=json_data,

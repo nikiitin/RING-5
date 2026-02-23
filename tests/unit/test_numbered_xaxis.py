@@ -1,6 +1,6 @@
 """Tests for GroupedStackedBarPlot numbered X-axis labels feature."""
 
-from typing import Any, Dict, List
+from typing import Any, cast
 
 import pandas as pd
 import pytest
@@ -28,9 +28,9 @@ def plot() -> GroupedStackedBarPlot:
     return GroupedStackedBarPlot(1, "Test")
 
 
-def _base_config(**overrides: Any) -> Dict[str, Any]:
+def _base_config(**overrides: Any) -> dict[str, Any]:
     """Build a minimal config dict with optional overrides."""
-    cfg: Dict[str, Any] = {
+    cfg: dict[str, Any] = {
         "x": "Benchmark",
         "group": "Config",
         "y_columns": ["Ticks", "Energy"],
@@ -51,8 +51,8 @@ class TestApplyNumberedXaxis:
 
     def test_disabled_returns_original(self, plot: GroupedStackedBarPlot) -> None:
         """When numbered_xaxis is False, tick_text is returned unchanged."""
-        tick_text: List[str] = ["c1", "c2", "c3", "c1", "c2", "c3"]
-        config: Dict[str, Any] = {"numbered_xaxis": False}
+        tick_text: list[str] = ["c1", "c2", "c3", "c1", "c2", "c3"]
+        config: dict[str, Any] = {"numbered_xaxis": False}
 
         result_text, legend = plot._apply_numbered_xaxis(tick_text, config)
 
@@ -61,15 +61,15 @@ class TestApplyNumberedXaxis:
 
     def test_missing_key_returns_original(self, plot: GroupedStackedBarPlot) -> None:
         """When numbered_xaxis key is absent, tick_text is returned unchanged."""
-        tick_text: List[str] = ["x", "y"]
+        tick_text: list[str] = ["x", "y"]
         result_text, legend = plot._apply_numbered_xaxis(tick_text, {})
         assert result_text == tick_text
         assert legend is None
 
     def test_enabled_replaces_with_empty(self, plot: GroupedStackedBarPlot) -> None:
         """When enabled, tick_text entries become empty strings (ticks hidden)."""
-        tick_text: List[str] = ["c1", "c2", "c3", "c1", "c2", "c3"]
-        config: Dict[str, Any] = {"numbered_xaxis": True}
+        tick_text: list[str] = ["c1", "c2", "c3", "c1", "c2", "c3"]
+        config: dict[str, Any] = {"numbered_xaxis": True}
 
         result_text, legend = plot._apply_numbered_xaxis(tick_text, config)
 
@@ -78,8 +78,8 @@ class TestApplyNumberedXaxis:
 
     def test_legend_annotation_structure(self, plot: GroupedStackedBarPlot) -> None:
         """Legend annotation has correct Plotly annotation keys for box style."""
-        tick_text: List[str] = ["alpha", "beta"]
-        config: Dict[str, Any] = {
+        tick_text: list[str] = ["alpha", "beta"]
+        config: dict[str, Any] = {
             "numbered_xaxis": True,
             "numbered_legend_x": 1.05,
             "numbered_legend_y": 0.5,
@@ -106,8 +106,8 @@ class TestApplyNumberedXaxis:
 
     def test_legend_text_contains_all_groups(self, plot: GroupedStackedBarPlot) -> None:
         """Legend text includes all unique groups with numbering."""
-        tick_text: List[str] = ["c1", "c2", "c3", "c1", "c2", "c3"]
-        config: Dict[str, Any] = {"numbered_xaxis": True}
+        tick_text: list[str] = ["c1", "c2", "c3", "c1", "c2", "c3"]
+        config: dict[str, Any] = {"numbered_xaxis": True}
 
         _, legend = plot._apply_numbered_xaxis(tick_text, config)
         assert legend is not None
@@ -119,8 +119,8 @@ class TestApplyNumberedXaxis:
 
     def test_column_wrapping(self, plot: GroupedStackedBarPlot) -> None:
         """numbered_legend_columns fills columns top-to-bottom (column-wise)."""
-        tick_text: List[str] = ["a", "b", "c", "d", "a", "b", "c", "d"]
-        config: Dict[str, Any] = {
+        tick_text: list[str] = ["a", "b", "c", "d", "a", "b", "c", "d"]
+        config: dict[str, Any] = {
             "numbered_xaxis": True,
             "numbered_legend_columns": 2,
         }
@@ -140,7 +140,7 @@ class TestApplyNumberedXaxis:
 
     def test_per_column_padding(self, plot: GroupedStackedBarPlot) -> None:
         """All columns are padded so every row has equal width."""
-        tick_text: List[str] = [
+        tick_text: list[str] = [
             "short",
             "very_long_name",
             "medium",
@@ -150,7 +150,7 @@ class TestApplyNumberedXaxis:
             "medium",
             "x",
         ]
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "numbered_xaxis": True,
             "numbered_legend_columns": 2,
         }
@@ -172,8 +172,8 @@ class TestApplyNumberedXaxis:
 
     def test_single_column_means_vertical_list(self, plot: GroupedStackedBarPlot) -> None:
         """numbered_legend_columns=1 means one entry per line (vertical list)."""
-        tick_text: List[str] = ["x", "y", "z"]
-        config: Dict[str, Any] = {
+        tick_text: list[str] = ["x", "y", "z"]
+        config: dict[str, Any] = {
             "numbered_xaxis": True,
             "numbered_legend_columns": 1,
         }
@@ -188,8 +188,8 @@ class TestApplyNumberedXaxis:
 
     def test_preserves_insertion_order(self, plot: GroupedStackedBarPlot) -> None:
         """Numbering preserves insertion order, not alphabetical."""
-        tick_text: List[str] = ["zeta", "alpha", "mid", "zeta", "alpha", "mid"]
-        config: Dict[str, Any] = {"numbered_xaxis": True}
+        tick_text: list[str] = ["zeta", "alpha", "mid", "zeta", "alpha", "mid"]
+        config: dict[str, Any] = {"numbered_xaxis": True}
 
         result_text, legend = plot._apply_numbered_xaxis(tick_text, config)
 
@@ -200,8 +200,8 @@ class TestApplyNumberedXaxis:
 
     def test_single_group(self, plot: GroupedStackedBarPlot) -> None:
         """Works correctly with a single group."""
-        tick_text: List[str] = ["only"]
-        config: Dict[str, Any] = {"numbered_xaxis": True}
+        tick_text: list[str] = ["only"]
+        config: dict[str, Any] = {"numbered_xaxis": True}
 
         result_text, legend = plot._apply_numbered_xaxis(tick_text, config)
 
@@ -223,10 +223,11 @@ class TestCreateFigureNumberedXaxis:
         config = _base_config(numbered_xaxis=True)
         fig = plot.create_figure(sample_data, config)
 
+        layout = cast(Any, fig.layout)
         # Tick labels should be hidden
-        assert fig.layout.xaxis.showticklabels is False
+        assert layout.xaxis.showticklabels is False
         # Tick marks should be removed
-        assert fig.layout.xaxis.ticks == ""
+        assert layout.xaxis.ticks == ""
 
     def test_figure_has_legend_annotation(
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
@@ -235,8 +236,9 @@ class TestCreateFigureNumberedXaxis:
         config = _base_config(numbered_xaxis=True)
         fig = plot.create_figure(sample_data, config)
 
+        layout = cast(Any, fig.layout)
         # Find the legend annotation (xref=paper, yref=paper)
-        legend_anns = [a for a in fig.layout.annotations if a.xref == "paper" and a.yref == "paper"]
+        legend_anns = [a for a in layout.annotations if a.xref == "paper" and a.yref == "paper"]
         assert len(legend_anns) == 1, f"Expected 1 legend annotation, got {len(legend_anns)}"
 
         ann = legend_anns[0]
@@ -253,12 +255,13 @@ class TestCreateFigureNumberedXaxis:
         config = _base_config(numbered_xaxis=False)
         fig = plot.create_figure(sample_data, config)
 
-        x_ticktext = list(fig.layout.xaxis.ticktext)
+        layout = cast(Any, fig.layout)
+        x_ticktext = list(layout.xaxis.ticktext)
         # Alphabetical sort of configs repeated per benchmark
         assert x_ticktext == ["c1", "c2", "c3", "c4", "c1", "c2", "c3", "c4"]
 
         # No paper-paper annotation
-        legend_anns = [a for a in fig.layout.annotations if a.xref == "paper" and a.yref == "paper"]
+        legend_anns = [a for a in layout.annotations if a.xref == "paper" and a.yref == "paper"]
         assert len(legend_anns) == 0
 
     def test_numbered_with_renames(
@@ -271,7 +274,8 @@ class TestCreateFigureNumberedXaxis:
         )
         fig = plot.create_figure(sample_data, config)
 
-        legend_anns = [a for a in fig.layout.annotations if a.xref == "paper" and a.yref == "paper"]
+        layout = cast(Any, fig.layout)
+        legend_anns = [a for a in layout.annotations if a.xref == "paper" and a.yref == "paper"]
         assert len(legend_anns) == 1
         assert "ConfigAlpha" in legend_anns[0].text
         assert "ConfigBeta" in legend_anns[0].text
@@ -288,7 +292,8 @@ class TestCreateFigureNumberedXaxis:
         )
         fig = plot.create_figure(sample_data, config)
 
-        legend_anns = [a for a in fig.layout.annotations if a.xref == "paper" and a.yref == "paper"]
+        layout = cast(Any, fig.layout)
+        legend_anns = [a for a in layout.annotations if a.xref == "paper" and a.yref == "paper"]
         assert len(legend_anns) == 1
         assert legend_anns[0].x == 0.0
         assert legend_anns[0].y == -0.40
@@ -301,8 +306,9 @@ class TestCreateFigureNumberedXaxis:
         config = _base_config(numbered_xaxis=True)
         fig = plot.create_figure(sample_data, config)
 
+        layout = cast(Any, fig.layout)
         # Grouping labels have xref="x" and yref="paper"
-        group_anns = [a for a in fig.layout.annotations if a.xref == "x" and a.yref == "paper"]
+        group_anns = [a for a in layout.annotations if a.xref == "x" and a.yref == "paper"]
         # should have 2 benchmarks (A, B)
         assert len(group_anns) == 2
         texts = {a.text for a in group_anns}
@@ -341,8 +347,8 @@ class TestBoxedAnnotationExport:
 
     def test_boxed_annotation_detected(self) -> None:
         """Annotation with borderwidth > 0 is detected as boxed."""
-        ann_boxed = {"borderwidth": 1, "text": "1. a"}
+        ann_boxed: dict[str, Any] = {"borderwidth": 1, "text": "1. a"}
         assert ann_boxed.get("borderwidth", 0) > 0
 
-        ann_plain = {"text": "plain"}
+        ann_plain: dict[str, Any] = {"text": "plain"}
         assert not (ann_plain.get("borderwidth", 0) > 0)

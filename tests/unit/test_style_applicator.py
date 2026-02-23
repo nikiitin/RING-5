@@ -4,7 +4,7 @@ After Phase 2 Step 20 the private ``_apply_*`` helpers were deleted.
 This file retains only the public-API integration tests.
 """
 
-from typing import Any, Dict
+from typing import Any, cast
 
 import plotly.graph_objects as go
 
@@ -41,7 +41,7 @@ class TestApplyStyles:
     def test_full_pipeline(self) -> None:
         sa = StyleApplicator("grouped_bar")
         fig = _multi_bar_fig()
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "width": 1000,
             "height": 600,
             "title": "Test",
@@ -53,23 +53,23 @@ class TestApplyStyles:
         }
         result = sa.apply_styles(fig, config)
 
-        assert result.layout.width == 1000
-        assert result.layout.title.text == "Test"
+        assert result.to_plotly_json()["layout"]["width"] == 1000
+        assert result.to_plotly_json()["layout"]["title"]["text"] == "Test"
 
     def test_with_show_values(self) -> None:
         sa = StyleApplicator("bar")
         fig = _bar_fig()
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "show_values": True,
             "text_format": "%{y:.1f}",
             "text_position": "outside",
         }
         result = sa.apply_styles(fig, config)
-        assert result.data[0].textposition == "outside"
+        assert cast(go.Bar, result.data[0]).textposition == "outside"
 
     def test_with_shapes(self) -> None:
         sa = StyleApplicator("bar")
         fig = _bar_fig()
         shapes = [{"type": "line", "x0": 0, "x1": 1, "y0": 0.5, "y1": 0.5}]
         result = sa.apply_styles(fig, {"shapes": shapes})
-        assert len(result.layout.shapes) == 1
+        assert len(result.to_plotly_json()["layout"].get("shapes", [])) == 1

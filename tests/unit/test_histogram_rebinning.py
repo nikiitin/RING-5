@@ -51,6 +51,7 @@ def test_histogram_rebinning_fallback_to_raw() -> None:
     hist.balance_content()
     hist.reduce_duplicates()
 
+    assert hist.entries is not None
     assert sorted(hist.entries) == ["0-10", "10-20"]
     assert hist.reduced_content["0-10"] == 10.0
 

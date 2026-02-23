@@ -113,13 +113,13 @@ def test_normalization_logic(base_data: Any) -> None:
 
     # Bench b1: baseline=10. test=20. Ratio should be 1.0 and 2.0
     b1 = result[result["bench"] == "b1"]
-    assert b1[b1["config"] == "baseline"]["metric"].iloc[0] == 1.0
-    assert b1[b1["config"] == "test"]["metric"].iloc[0] == 2.0
+    assert pd.Series(b1[b1["config"] == "baseline"]["metric"]).iloc[0] == 1.0
+    assert pd.Series(b1[b1["config"] == "test"]["metric"]).iloc[0] == 2.0
 
     # Bench b2: baseline=50. test=25. Ratio should be 1.0 and 0.5
     b2 = result[result["bench"] == "b2"]
-    assert b2[b2["config"] == "baseline"]["metric"].iloc[0] == 1.0
-    assert b2[b2["config"] == "test"]["metric"].iloc[0] == 0.5
+    assert pd.Series(b2[b2["config"] == "baseline"]["metric"]).iloc[0] == 1.0
+    assert pd.Series(b2[b2["config"] == "test"]["metric"]).iloc[0] == 0.5
 
 
 def test_normalization_sd(base_data: Any) -> None:
@@ -145,8 +145,10 @@ def test_normalization_sd(base_data: Any) -> None:
 
     # Bench b1: baseline=10 (metric).
     b1 = result[result["bench"] == "b1"]
-    np.testing.assert_almost_equal(b1[b1["config"] == "baseline"]["metric.sd"].iloc[0], 0.1)
-    np.testing.assert_almost_equal(b1[b1["config"] == "test"]["metric.sd"].iloc[0], 0.2)
+    np.testing.assert_almost_equal(
+        pd.Series(b1[b1["config"] == "baseline"]["metric.sd"]).iloc[0], 0.1
+    )
+    np.testing.assert_almost_equal(pd.Series(b1[b1["config"] == "test"]["metric.sd"]).iloc[0], 0.2)
 
 
 def test_zero_division() -> None:
@@ -279,7 +281,7 @@ class TestNormalizeSdDisabled:
         )
         result = n(df)
         # .sd columns should remain unchanged
-        np.testing.assert_array_equal(result["metric.sd"].values, [1.0, 2.0, 5.0, 2.5])
+        np.testing.assert_array_equal(list(result["metric.sd"].values), [1.0, 2.0, 5.0, 2.5])
 
 
 class TestComputeDataFingerprint:

@@ -12,13 +12,19 @@ Tests:
 """
 
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, cast
 from unittest.mock import patch
 
 import pandas as pd
 import plotly.graph_objects as go
 
 from src.core.application_api import ApplicationAPI
+from src.core.models.data_models import (
+    CsvPoolEntry,
+    PipelineStep,
+    SavedConfigData,
+    ShaperStepConfig,
+)
 from src.core.state.repository_state_manager import RepositoryStateManager
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.plot_service import PlotService
@@ -77,7 +83,7 @@ class TestCsvPoolCycle:
         ):
             facade.add_to_csv_pool(str(csv_one))
 
-            pool: List[Dict[str, Any]] = facade.load_csv_pool()
+            pool: list[CsvPoolEntry] = facade.load_csv_pool()
             assert len(pool) >= 1
             # Verify metadata present
             assert "path" in pool[0]
@@ -99,15 +105,21 @@ class TestConfigurationRoundTrip:
         tmp_path: Path,
     ) -> None:
         """Saved configuration can be loaded back with same structure."""
-        pipeline: List[Dict[str, Any]] = [
-            {
-                "type": "columnSelector",
-                "columns": ["benchmark_name", "system.cpu.ipc"],
-            },
-            {
-                "type": "sort",
-                "order_dict": {"benchmark_name": ["mcf", "omnetpp"]},
-            },
+        pipeline: list[ShaperStepConfig] = [
+            cast(
+                ShaperStepConfig,
+                {
+                    "type": "columnSelector",
+                    "columns": ["benchmark_name", "system.cpu.ipc"],
+                },
+            ),
+            cast(
+                ShaperStepConfig,
+                {
+                    "type": "sort",
+                    "order_dict": {"benchmark_name": ["mcf", "omnetpp"]},
+                },
+            ),
         ]
 
         with patch(
@@ -123,12 +135,12 @@ class TestConfigurationRoundTrip:
             assert Path(saved_path).exists()
 
             # Load
-            loaded: Dict[str, Any] = facade.load_configuration(saved_path)
+            loaded: SavedConfigData = facade.load_configuration(saved_path)
             assert loaded["name"] == "test_config"
-            assert loaded["description"] == "Integration test config"
+            assert loaded.get("description") == "Integration test config"
             assert len(loaded["shapers"]) == 2
-            assert loaded["shapers"][0]["type"] == "columnSelector"
-            assert loaded["shapers"][1]["type"] == "sort"
+            assert loaded["shapers"][0].get("type") == "columnSelector"
+            assert loaded["shapers"][1].get("type") == "sort"
 
     def test_delete_configuration(
         self,
@@ -136,8 +148,8 @@ class TestConfigurationRoundTrip:
         tmp_path: Path,
     ) -> None:
         """Deleted configuration file no longer exists."""
-        pipeline: List[Dict[str, Any]] = [
-            {"type": "columnSelector", "columns": ["x"]},
+        pipeline: list[ShaperStepConfig] = [
+            cast(ShaperStepConfig, {"type": "columnSelector", "columns": ["x"]}),
         ]
 
         with patch(
@@ -177,14 +189,14 @@ class TestMultiPlotStateConsistency:
         )  # type: ignore[assignment]
 
         # All exist in state
-        plots: List[Any] = state_manager.get_plots()
+        plots: list[Any] = state_manager.get_plots()
         assert len(plots) == 3
 
         plot_types: set[str] = {p.plot_type for p in plots}
         assert plot_types == {"bar", "line", "scatter"}
 
         # Each can generate a figure
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "benchmark_name",
             "y": "system.cpu.ipc",
             "title": "Test",
@@ -195,7 +207,7 @@ class TestMultiPlotStateConsistency:
         for plot in [bar_plot, line_plot, scatter_plot]:
             fig: go.Figure = plot.create_figure(rich_sample_data, config)
             assert isinstance(fig, go.Figure)
-            assert len(fig.data) > 0
+            assert len(list(fig.data)) > 0
 
     def test_delete_middle_plot_preserves_others(
         self,
@@ -215,7 +227,7 @@ class TestMultiPlotStateConsistency:
         # Delete middle
         PlotService.delete_plot(p2.plot_id, state_manager)
 
-        plots: List[Any] = state_manager.get_plots()
+        plots: list[Any] = state_manager.get_plots()
         assert len(plots) == 2
         remaining_ids: set[int] = {p.plot_id for p in plots}
         assert p1.plot_id in remaining_ids
@@ -242,7 +254,11 @@ class TestPlotTypeSwitchWithData:
         )  # type: ignore[assignment]
         plot.processed_data = rich_sample_data
         plot.pipeline = [
-            {"type": "columnSelector", "columns": ["benchmark_name", "system.cpu.ipc"]},
+            PipelineStep(
+                id=0,
+                type="columnSelector",
+                config=cast(ShaperStepConfig, {"columns": ["benchmark_name", "system.cpu.ipc"]}),
+            ),
         ]
 
         new_plot: BasePlot = PlotService.change_plot_type(
@@ -271,7 +287,7 @@ class TestPlotTypeSwitchWithData:
         )  # type: ignore[assignment]
         assert new_plot.plot_type == "scatter"
 
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "system.cpu.numCycles",
             "y": "system.cpu.ipc",
             "title": "Switched Plot",
@@ -280,7 +296,7 @@ class TestPlotTypeSwitchWithData:
         }
         fig: go.Figure = new_plot.create_figure(rich_sample_data, config)
         assert isinstance(fig, go.Figure)
-        assert len(fig.data) > 0
+        assert len(list(fig.data)) > 0
 
     def test_multiple_type_switches(
         self,

@@ -11,13 +11,14 @@ Tests:
     - Export with invalid format
 """
 
-from typing import Any, Dict, List
+from typing import Any, cast
 
 import pandas as pd
 import plotly.graph_objects as go
 import pytest
 
 from src.core.application_api import ApplicationAPI
+from src.core.models.data_models import ColumnInfoResult, ShaperStepConfig
 from src.core.services.shapers.factory import ShaperFactory
 from src.core.state.repository_state_manager import RepositoryStateManager
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
@@ -80,20 +81,27 @@ class TestShaperPipelineErrors:
         loaded_facade: ApplicationAPI,
     ) -> None:
         """When pipeline fails mid-way, original data is unchanged."""
-        data: pd.DataFrame = loaded_facade.state_manager.get_data()
+        data = loaded_facade.state_manager.get_data()
+        assert data is not None
         original_shape = data.shape
         original_columns = list(data.columns)
 
         # First shaper succeeds, second fails
-        pipeline: List[Dict[str, Any]] = [
-            {
-                "type": "columnSelector",
-                "columns": ["benchmark_name", "system.cpu.ipc"],
-            },
-            {
-                "type": "sort",
-                "order_dict": {"nonexistent_column": ["a", "b"]},
-            },
+        pipeline: list[ShaperStepConfig] = [
+            cast(
+                ShaperStepConfig,
+                {
+                    "type": "columnSelector",
+                    "columns": ["benchmark_name", "system.cpu.ipc"],
+                },
+            ),
+            cast(
+                ShaperStepConfig,
+                {
+                    "type": "sort",
+                    "order_dict": {"nonexistent_column": ["a", "b"]},
+                },
+            ),
         ]
 
         with pytest.raises(ValueError):
@@ -127,7 +135,7 @@ class TestEmptyDataEdgeCases:
                 "value": [2.1],
             }
         )
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "name",
             "y": "value",
             "title": "Single Row",
@@ -139,21 +147,21 @@ class TestEmptyDataEdgeCases:
         fig: go.Figure = plot.create_figure(single_row, config)
 
         assert isinstance(fig, go.Figure)
-        assert len(fig.data) > 0
+        assert len(list(fig.data)) > 0
 
     def test_get_column_info_empty_dataframe(self, facade: ApplicationAPI) -> None:
         """get_column_info with empty DataFrame returns zero-count."""
         empty_df = pd.DataFrame()
-        info: Dict[str, Any] = facade.get_column_info(empty_df)
+        info: ColumnInfoResult = facade.get_column_info(empty_df)
 
         assert info["total_columns"] == 0
         assert info["total_rows"] == 0
 
     def test_large_column_count_data(self, facade: ApplicationAPI) -> None:
         """get_column_info handles DataFrame with many columns."""
-        data: Dict[str, list[float]] = {f"col_{i}": [1.0, 2.0] for i in range(100)}
+        data: dict[str, list[float]] = {f"col_{i}": [1.0, 2.0] for i in range(100)}
         df = pd.DataFrame(data)
-        info: Dict[str, Any] = facade.get_column_info(df)
+        info: ColumnInfoResult = facade.get_column_info(df)
 
         assert info["total_columns"] == 100
         assert len(info["numeric_columns"]) == 100
@@ -175,7 +183,7 @@ class TestPlotCreationErrors:
     def test_bar_plot_missing_y_column(self, rich_sample_data: pd.DataFrame) -> None:
         """Bar plot with non-existent y column raises error."""
         plot = PlotFactory.create_plot("bar", plot_id=1, name="MissingY")
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "benchmark_name",
             "y": "nonexistent_column",
             "title": "Bad Y",
@@ -196,14 +204,14 @@ class TestStateConsistencyAfterErrors:
 
     def test_failed_load_keeps_previous_data(self, loaded_facade: ApplicationAPI) -> None:
         """Loading a non-existent file does not clear existing data."""
-        original_data: pd.DataFrame = loaded_facade.state_manager.get_data()
+        original_data = loaded_facade.state_manager.get_data()
         assert original_data is not None
 
         with pytest.raises((FileNotFoundError, ValueError)):
             loaded_facade.load_data("/nonexistent/path/to/file.csv")
 
         # Previous data should still be there
-        current_data: pd.DataFrame = loaded_facade.state_manager.get_data()
+        current_data = loaded_facade.state_manager.get_data()
         assert current_data is not None
         assert len(current_data) == len(original_data)
 

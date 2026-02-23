@@ -2,7 +2,7 @@
 
 import os
 import shutil
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 
@@ -106,7 +106,7 @@ class TestE2EShapers:
         data = pd.read_csv(test_csv, sep=r"\s+")
 
         # Select only the columns we need
-        data = data[["benchmark_name", "config_description_abbrev", "simTicks"]]
+        data = cast(pd.DataFrame, data[["benchmark_name", "config_description_abbrev", "simTicks"]])
 
         # Create Mean shaper
         mean_shaper = Mean(
@@ -139,7 +139,7 @@ class TestE2EShapers:
         data = pd.read_csv(test_csv, sep=r"\s+")
 
         # Select only the columns we need
-        data = data[["benchmark_name", "config_description_abbrev", "simTicks"]]
+        data = cast(pd.DataFrame, data[["benchmark_name", "config_description_abbrev", "simTicks"]])
 
         # Create Normalize shaper
         normalize_shaper = Normalize(

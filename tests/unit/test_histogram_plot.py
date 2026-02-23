@@ -1,6 +1,6 @@
 """Unit tests for Histogram plot type."""
 
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import patch
 
 import pandas as pd
@@ -38,7 +38,7 @@ class TestHistogramPlotConfiguration:
             }
         )
 
-        saved_config: Dict[str, Any] = {}
+        saved_config: dict[str, Any] = {}
 
         with patch("src.web.pages.ui.plotting.types.histogram_plot.st") as mock_st:
             # Mock selectbox returns
@@ -65,7 +65,7 @@ class TestHistogramPlotConfiguration:
             }
         )
 
-        saved_config: Dict[str, Any] = {"group_by": "benchmark"}
+        saved_config: dict[str, Any] = {"group_by": "benchmark"}
 
         with patch("src.web.pages.ui.plotting.types.histogram_plot.st") as mock_st:
             mock_st.selectbox.side_effect = ["latency", "benchmark", 20, "count"]
@@ -108,7 +108,7 @@ class TestHistogramPlotFigureCreation:
         fig = plot.create_figure(data, config)
 
         assert fig is not None
-        assert len(fig.data) > 0
+        assert len(list(fig.data)) > 0
 
     def test_create_figure_grouped_histograms(self) -> None:
         """Test creating figure with multiple grouped histograms."""
@@ -138,7 +138,7 @@ class TestHistogramPlotFigureCreation:
 
         assert fig is not None
         # Should have 2 traces (one per benchmark)
-        assert len(fig.data) == 2
+        assert len(list(fig.data)) == 2
 
     def test_create_figure_with_rebinning(self) -> None:
         """Test histogram with custom bucket size (rebinning)."""
@@ -169,7 +169,7 @@ class TestHistogramPlotFigureCreation:
 
         assert fig is not None
         # Should have rebinned the data
-        assert len(fig.data) > 0
+        assert len(list(fig.data)) > 0
 
     def test_create_figure_normalized(self) -> None:
         """Test histogram with probability normalization."""
@@ -197,7 +197,7 @@ class TestHistogramPlotFigureCreation:
         fig = plot.create_figure(data, config)
 
         assert fig is not None
-        assert len(fig.data) > 0
+        assert len(list(fig.data)) > 0
 
 
 class TestHistogramPlotLegend:

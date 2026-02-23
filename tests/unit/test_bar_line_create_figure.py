@@ -37,7 +37,7 @@ class TestBarPlotCreateFigure:
         }
         fig = plot.create_figure(sample_data, config)
         assert isinstance(fig, go.Figure)
-        assert len(fig.data) >= 1
+        assert len(list(fig.data)) >= 1
 
     def test_bar_with_color(self, sample_data: pd.DataFrame) -> None:
         plot = BarPlot(1, "test")
@@ -50,7 +50,7 @@ class TestBarPlotCreateFigure:
             "ylabel": "IPC",
         }
         fig = plot.create_figure(sample_data, config)
-        assert len(fig.data) >= 2  # one trace per color
+        assert len(list(fig.data)) >= 2  # one trace per color
 
     def test_bar_with_error_bars(self, sample_data: pd.DataFrame) -> None:
         plot = BarPlot(1, "test")
@@ -144,7 +144,7 @@ class TestLinePlotCreateFigure:
             "ylabel": "IPC",
         }
         fig = plot.create_figure(sample_data, config)
-        assert len(fig.data) >= 2
+        assert len(list(fig.data)) >= 2
 
     def test_line_with_error_bars(self, sample_data: pd.DataFrame) -> None:
         plot = LinePlot(1, "test")

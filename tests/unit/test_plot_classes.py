@@ -1,8 +1,9 @@
 """Tests for the new plot class hierarchy."""
 
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
+import plotly.graph_objects as go
 import pytest
 from pandas import DataFrame
 
@@ -106,7 +107,7 @@ class TestBarPlot:
         }
         fig = plot.create_figure(sample_data, config)
         assert fig is not None
-        assert len(fig.data) > 0
+        assert len(list(fig.data)) > 0
 
     def test_get_legend_column(self) -> None:
         """Test getting legend column."""
@@ -122,7 +123,7 @@ class TestBarPlot:
         plot = BarPlot(1, "Test")
         plot.processed_data = sample_data
         plot.config = {"x": "category", "y": "value"}
-        plot.pipeline = [{"type": "columnSelector", "config": {}}]
+        plot.pipeline = [{"id": 0, "type": "columnSelector", "config": {}}]
 
         data_dict = plot.to_dict()
         assert data_dict["id"] == 1
@@ -130,7 +131,7 @@ class TestBarPlot:
         assert data_dict["plot_type"] == "bar"
         assert data_dict["config"] == {"x": "category", "y": "value"}
         assert isinstance(data_dict["processed_data"], str)  # CSV string
-        assert data_dict["pipeline"] == [{"type": "columnSelector", "config": {}}]
+        assert data_dict["pipeline"] == [{"id": 0, "type": "columnSelector", "config": {}}]
 
 
 class TestGroupedBarPlot:
@@ -150,7 +151,7 @@ class TestGroupedBarPlot:
         }
         fig = plot.create_figure(sample_data, config)
         assert fig is not None
-        assert len(fig.data) >= 2  # Multiple groups
+        assert len(list(fig.data)) >= 2  # Multiple groups
 
     def test_get_legend_column(self) -> None:
         """Test getting legend column for grouped bar."""
@@ -232,7 +233,9 @@ class TestPlotSerialization:
         plot = BarPlot(1, "Test Plot")
         plot.processed_data = sample_data
         plot.config = {"x": "category", "y": "value"}
-        plot.pipeline = [{"type": "columnSelector", "config": {"columns": ["category", "value"]}}]
+        plot.pipeline = [
+            {"id": 0, "type": "columnSelector", "config": {"columns": ["category", "value"]}}
+        ]
         plot.legend_mappings = {"A": "Label A", "B": "Label B"}
 
         # Serialize
@@ -247,6 +250,8 @@ class TestPlotSerialization:
         assert restored_plot.config == plot.config
         assert restored_plot.pipeline == plot.pipeline
         assert restored_plot.legend_mappings == plot.legend_mappings
+        assert restored_plot.processed_data is not None
+        assert plot.processed_data is not None
         assert restored_plot.processed_data.equals(plot.processed_data)
 
 
@@ -271,9 +276,10 @@ class TestPlotCommonLayout:
         fig = plot.create_figure(sample_data, config)
         fig = plot.apply_common_layout(fig, config)
 
-        assert fig.layout.width == 1000
-        assert fig.layout.height == 600
-        assert fig.layout.legend.title.text == "My Legend"
+        assert fig.to_plotly_json()["layout"]["width"] == 1000
+        assert fig.to_plotly_json()["layout"]["height"] == 600
+        legend = fig.to_plotly_json()["layout"].get("legend", {})
+        assert legend.get("title", {}).get("text") == "My Legend"
 
 
 class TestPlotLegendLabels:
@@ -299,5 +305,5 @@ class TestPlotLegendLabels:
         fig = plot.apply_legend_labels(fig, legend_labels)
 
         # Check that labels were applied
-        trace_names = [trace.name for trace in fig.data]
+        trace_names = [cast(go.Bar, trace).name for trace in fig.data]
         assert "Group One" in trace_names or "Group Two" in trace_names

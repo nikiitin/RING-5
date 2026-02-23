@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -8,7 +9,7 @@ from tests.conftest import columns_side_effect
 
 
 @pytest.fixture
-def mock_streamlit() -> None:
+def mock_streamlit() -> Generator[None, None, None]:
     with patch("src.web.pages.ui.components.plot_manager_components.st") as mock_st:
         mock_st.session_state = {}
 

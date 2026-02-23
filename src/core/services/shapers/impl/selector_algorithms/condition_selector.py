@@ -85,24 +85,24 @@ class ConditionSelector(Selector):
         col = self.column
         # 1. Categorical inclusion
         if self.values is not None:
-            return data_frame[data_frame[col].isin(self.values)]
+            return pd.DataFrame(data_frame[data_frame[col].isin(self.values)])
 
         # 2. Numeric Range
         if self.range is not None:
             v_min, v_max = self.range
             mask = (data_frame[col] >= v_min) & (data_frame[col] <= v_max)
-            return data_frame[mask]
+            return pd.DataFrame(data_frame[mask])
 
         # 3. Explicit UI Modes
         if self.mode == "greater_than":
-            return data_frame[data_frame[col] > self.threshold]
+            return pd.DataFrame(data_frame[data_frame[col] > self.threshold])
         elif self.mode == "less_than":
-            return data_frame[data_frame[col] < self.threshold]
+            return pd.DataFrame(data_frame[data_frame[col] < self.threshold])
         elif self.mode == "equals":
-            return data_frame[data_frame[col] == self.value]
+            return pd.DataFrame(data_frame[data_frame[col] == self.value])
         elif self.mode == "contains":
             mask = data_frame[col].astype(str).str.contains(str(self.value), na=False)
-            return data_frame[mask]
+            return pd.DataFrame(data_frame[mask])
 
         # 4. Legacy Operator/Value pair
         if self.condition is not None and self.value is not None:

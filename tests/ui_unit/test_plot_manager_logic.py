@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -12,7 +13,7 @@ from tests.conftest import columns_side_effect
 
 # Mock streamlit
 @pytest.fixture
-def mock_streamlit() -> None:
+def mock_streamlit() -> Generator[None, None, None]:
     with patch("src.web.pages.ui.components.plot_manager_components.st") as mock_st:
         # Mock session state as a dict
         mock_st.session_state = {}
@@ -22,13 +23,13 @@ def mock_streamlit() -> None:
 
 
 @pytest.fixture
-def mock_plot_service() -> None:
+def mock_plot_service() -> Generator[None, None, None]:
     with patch("src.web.pages.ui.components.plot_manager_components.PlotService") as mock_ps:
         yield mock_ps
 
 
 @pytest.fixture
-def mock_plot_factory() -> None:
+def mock_plot_factory() -> Generator[None, None, None]:
     with patch("src.web.pages.ui.components.plot_manager_components.PlotFactory") as mock_pf:
         yield mock_pf
 

@@ -3,17 +3,19 @@ Unit tests for the decoupled state management layer.
 Verifies that StateManager and repositories can function by mocking Streamlit session state.
 """
 
-from typing import Any
+from collections.abc import Generator
+from typing import Any, cast
 from unittest.mock import patch
 
 import pandas as pd
 import pytest
 
+from src.core.models.portfolio_models import PortfolioData
 from src.core.state.repository_state_manager import RepositoryStateManager as StateManager
 
 
 @pytest.fixture
-def mock_session_state() -> None:
+def mock_session_state() -> Generator[dict[str, Any], None, None]:
     """Mock streamlit.session_state as a dictionary."""
     with patch("streamlit.session_state", new_callable=dict) as mock_state:
         yield mock_state
@@ -74,12 +76,15 @@ def test_session_restoration(mock_session_state: Any) -> None:
     """Verify that SessionRepository can restore data."""
     mgr = StateManager()
 
-    portfolio_data = {
-        "csv_path": "/mock/path.csv",
-        "plot_counter": 42,
-        "config": {"theme": "scientific"},
-        "data_csv": "col1,col2\nval1,val2",
-    }
+    portfolio_data = cast(
+        PortfolioData,
+        {
+            "csv_path": "/mock/path.csv",
+            "plot_counter": 42,
+            "config": {"theme": "scientific"},
+            "data_csv": "col1,col2\nval1,val2",
+        },
+    )
 
     mgr.restore_session(portfolio_data)
 

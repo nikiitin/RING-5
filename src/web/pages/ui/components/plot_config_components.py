@@ -138,22 +138,31 @@ class PlotConfigComponents:
         Returns:
             Dictionary with title, xlabel, ylabel, (and legend_title if requested)
         """
-        title = st.text_input(
-            "Title",
-            value=saved_config.get("title", default_title),
-            key=f"title_{plot_id}",
+        title = (
+            st.text_input(
+                "Title",
+                value=saved_config.get("title", default_title),
+                key=f"title_{plot_id}",
+            )
+            or ""
         )
 
-        xlabel = st.text_input(
-            "X-label",
-            value=saved_config.get("xlabel", default_xlabel),
-            key=f"xlabel_{plot_id}",
+        xlabel = (
+            st.text_input(
+                "X-label",
+                value=saved_config.get("xlabel", default_xlabel),
+                key=f"xlabel_{plot_id}",
+            )
+            or ""
         )
 
-        ylabel = st.text_input(
-            "Y-label",
-            value=saved_config.get("ylabel", default_ylabel),
-            key=f"ylabel_{plot_id}",
+        ylabel = (
+            st.text_input(
+                "Y-label",
+                value=saved_config.get("ylabel", default_ylabel),
+                key=f"ylabel_{plot_id}",
+            )
+            or ""
         )
 
         result = {
@@ -163,11 +172,14 @@ class PlotConfigComponents:
         }
 
         if include_legend_title:
-            legend_title = st.text_input(
-                "Legend Title",
-                value=saved_config.get("legend_title", default_legend_title),
-                key=f"legend_title_{plot_id}",
-                help="Custom title for the legend.",
+            legend_title = (
+                st.text_input(
+                    "Legend Title",
+                    value=saved_config.get("legend_title", default_legend_title),
+                    key=f"legend_title_{plot_id}",
+                    help="Custom title for the legend.",
+                )
+                or ""
             )
             result["legend_title"] = legend_title
 

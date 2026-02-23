@@ -85,7 +85,7 @@ class SeparatorConfig:
     """Group separator lines between bar clusters."""
 
     enabled: bool = False
-    style: Literal["solid", "dashed", "dotted", "dashdot"] = "dashed"
+    style: Literal["solid", "dash", "dot", "dashdot"] = "dash"
     color: str = "gray"
 
 

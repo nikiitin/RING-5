@@ -9,12 +9,21 @@ tests verify the delegation wiring plus any logic in the manager itself
 
 import tempfile
 from pathlib import Path
+from typing import cast
 from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
 
+from src.core.models.data_models import (
+    CsvPoolEntry,
+    ParseVariableConfig,
+    SavedConfigEntry,
+    ScannedVariableDict,
+)
 from src.core.models.history_models import OperationRecord
+from src.core.models.plot_protocol import PlotProtocol
+from src.core.models.portfolio_models import PortfolioData
 from src.core.state.repository_state_manager import RepositoryStateManager
 
 
@@ -73,10 +82,13 @@ class TestDataManagement:
     ) -> None:
         """Configuration variables should be cast to str."""
         manager.set_parse_variables(
-            [
-                {"name": "benchmark", "type": "configuration"},
-                {"name": "value", "type": "scalar"},
-            ]
+            cast(
+                list[ParseVariableConfig],
+                [
+                    {"name": "benchmark", "type": "configuration"},
+                    {"name": "value", "type": "scalar"},
+                ],
+            )
         )
         df = pd.DataFrame({"benchmark": [1, 2], "value": [3.0, 4.0]})
         manager.set_data(df)
@@ -170,13 +182,15 @@ class TestConfigManagement:
 
     def test_csv_pool_management(self, manager: RepositoryStateManager) -> None:
         assert manager.get_csv_pool() == []
-        pool = [{"path": "/a.csv", "label": "A"}]
+        pool: list[CsvPoolEntry] = cast(list[CsvPoolEntry], [{"path": "/a.csv", "label": "A"}])
         manager.set_csv_pool(pool)
         assert manager.get_csv_pool() == pool
 
     def test_saved_configs_management(self, manager: RepositoryStateManager) -> None:
         assert manager.get_saved_configs() == []
-        configs = [{"name": "config1", "data": {}}]
+        configs: list[SavedConfigEntry] = cast(
+            list[SavedConfigEntry], [{"name": "config1", "data": {}}]
+        )
         manager.set_saved_configs(configs)
         assert manager.get_saved_configs() == configs
 
@@ -195,7 +209,9 @@ class TestParserManagement:
         # Default includes simTicks, benchmark_name, config_description
         defaults = manager.get_parse_variables()
         assert len(defaults) >= 3
-        variables = [{"name": "cpu.ipc", "type": "scalar"}]
+        variables: list[ParseVariableConfig] = cast(
+            list[ParseVariableConfig], [{"name": "cpu.ipc", "type": "scalar"}]
+        )
         manager.set_parse_variables(variables)
         result = manager.get_parse_variables()
         assert len(result) == 1
@@ -214,7 +230,10 @@ class TestParserManagement:
 
     def test_scanned_variables(self, manager: RepositoryStateManager) -> None:
         assert manager.get_scanned_variables() == []
-        scanned = [{"name": "cpu.ipc", "entries": ["0", "1"]}]
+        scanned: list[ScannedVariableDict] = cast(
+            list[ScannedVariableDict],
+            [{"name": "cpu.ipc", "entries": ["0", "1"]}],
+        )
         manager.set_scanned_variables(scanned)
         assert manager.get_scanned_variables() == scanned
 
@@ -240,7 +259,7 @@ class TestPlotManagement:
         assert len(plots) == 2
 
     def test_set_plots(self, manager: RepositoryStateManager) -> None:
-        plots = [MagicMock(), MagicMock()]
+        plots: list[PlotProtocol] = cast(list[PlotProtocol], [MagicMock(), MagicMock()])
         manager.set_plots(plots)
         assert len(manager.get_plots()) == 2
 
@@ -326,19 +345,22 @@ class TestRestoreSession:
     """Tests for portfolio restore."""
 
     def test_restore_session_from_portfolio(self, manager: RepositoryStateManager) -> None:
-        portfolio_data = {
-            "parse_variables": [{"name": "ipc", "type": "scalar"}],
-            "stats_path": "/data/stats.txt",
-            "stats_pattern": "stats*.txt",
-            "csv_path": "/output.csv",
-            "use_parser": True,
-            "scanned_variables": [{"name": "cpu.cycles"}],
-            "plots": [],
-            "plot_counter": 3,
-            "config": {"theme": "dark"},
-            "manager_history": [],
-            "portfolio_history": [],
-        }
+        portfolio_data: PortfolioData = cast(
+            PortfolioData,
+            {
+                "parse_variables": [{"name": "ipc", "type": "scalar"}],
+                "stats_path": "/data/stats.txt",
+                "stats_pattern": "stats*.txt",
+                "csv_path": "/output.csv",
+                "use_parser": True,
+                "scanned_variables": [{"name": "cpu.cycles"}],
+                "plots": [],
+                "plot_counter": 3,
+                "config": {"theme": "dark"},
+                "manager_history": [],
+                "portfolio_history": [],
+            },
+        )
         manager.restore_session(portfolio_data)
 
         assert manager.get_stats_path() == "/data/stats.txt"

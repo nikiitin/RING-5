@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -9,7 +10,7 @@ from tests.conftest import columns_side_effect
 
 
 @pytest.fixture
-def mock_streamlit() -> None:
+def mock_streamlit() -> Generator[None, None, None]:
     with patch("src.web.pages.ui.plotting.styles.base_ui.st") as mock_st:
         mock_st.columns.side_effect = columns_side_effect
 
@@ -28,7 +29,7 @@ def mock_streamlit() -> None:
 
 @pytest.fixture
 def style_manager() -> StyleManager:
-    return StyleManager("plot1", "bar")
+    return StyleManager(1, "bar")
 
 
 def test_render_layout_options(mock_streamlit: Any, style_manager: Any) -> None:

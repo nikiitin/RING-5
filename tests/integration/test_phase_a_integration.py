@@ -9,12 +9,14 @@ Validates end-to-end that:
 
 from __future__ import annotations
 
+from collections.abc import Generator
 from typing import Any
 
 import matplotlib
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import pytest
+from matplotlib.axes import Axes as MplAxes
 
 from src.core.models.visualization.annotation_config import AnnotationConfig
 from src.core.models.visualization.figure_config import FigureConfig
@@ -79,8 +81,11 @@ class TestTraceRendererPaletteOverride:
     """MatplotlibTraceRenderer uses palette_colors override."""
 
     @pytest.fixture(autouse=True)
-    def _setup(self) -> None:
-        self.fig, self.ax = plt.subplots()
+    def _setup(self) -> Generator[None]:
+        fig, ax = plt.subplots()
+        assert isinstance(ax, MplAxes)
+        self.fig = fig
+        self.ax: MplAxes = ax
         yield
         plt.close(self.fig)
 
@@ -157,8 +162,11 @@ class TestAnnotationRendering:
     """FigureSpecToMatplotlib._apply_annotations works correctly."""
 
     @pytest.fixture(autouse=True)
-    def _setup(self) -> None:
-        self.fig, self.ax = plt.subplots()
+    def _setup(self) -> Generator[None]:
+        fig, ax = plt.subplots()
+        assert isinstance(ax, MplAxes)
+        self.fig = fig
+        self.ax: MplAxes = ax
         yield
         plt.close(self.fig)
 
@@ -210,8 +218,11 @@ class TestEnrichAndApply:
     """Full pipeline: config -> FigureConfig -> enrich -> resolve -> apply."""
 
     @pytest.fixture(autouse=True)
-    def _setup(self) -> None:
-        self.fig, self.ax = plt.subplots()
+    def _setup(self) -> Generator[None]:
+        fig, ax = plt.subplots()
+        assert isinstance(ax, MplAxes)
+        self.fig = fig
+        self.ax: MplAxes = ax
         yield
         plt.close(self.fig)
 
@@ -233,7 +244,8 @@ class TestEnrichAndApply:
 
         FigureSpecToMatplotlib.apply(spec, self.ax)
 
-        labels = [t.get_text() for t in self.ax.get_xticklabels()]
+        get_labels_fn = getattr(self.ax, "get_xticklabels")
+        labels = [t.get_text() for t in get_labels_fn()]
         assert "A" in labels
 
     def test_enriched_annotations_applied(self) -> None:

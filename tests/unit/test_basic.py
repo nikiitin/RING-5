@@ -5,7 +5,7 @@ Run: pytest tests/test_basic.py -v
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from src.core.models.config.config_manager import (
     ConfigTemplateGenerator,
@@ -55,56 +55,68 @@ def test_plot_config_creation() -> None:
     )
 
     assert plot["type"] == "bar"
-    assert plot["data"]["x"] == "benchmark"
-    assert plot["data"]["y"] == "simTicks"
+    data = cast(dict[str, Any], plot["data"])
+    assert data["x"] == "benchmark"
+    assert data["y"] == "simTicks"
     assert plot["output"]["filename"] == "test_plot"
-    assert plot["style"]["title"] == "Test Plot"
-    assert plot["style"]["grid"] is True
+    style = cast(dict[str, Any], plot["style"])
+    assert style["title"] == "Test Plot"
+    assert style["grid"] is True
 
 
 def test_variable_addition() -> None:
     """Test adding variables to configuration."""
     config = ConfigTemplateGenerator.create_minimal_config("./out", "/stats")
+    config_dict = cast(dict[str, Any], config)
 
-    ConfigTemplateGenerator.add_variable(config, "simTicks", "scalar")
-    ConfigTemplateGenerator.add_variable(config, "benchmark", "configuration")
+    ConfigTemplateGenerator.add_variable(config_dict, "simTicks", "scalar")
+    ConfigTemplateGenerator.add_variable(config_dict, "benchmark", "configuration")
 
-    assert len(config["parseConfig"]["variables"]) == 2
-    assert config["parseConfig"]["variables"][0]["name"] == "simTicks"
-    assert config["parseConfig"]["variables"][0]["type"] == "scalar"
+    variables = cast(list[dict[str, Any]], config["parseConfig"]["variables"])
+    assert len(variables) == 2
+    assert variables[0]["name"] == "simTicks"
+    assert variables[0]["type"] == "scalar"
 
 
 def test_seeds_reducer_enable() -> None:
     """Test enabling seeds reducer."""
     config = ConfigTemplateGenerator.create_minimal_config("./out", "/stats")
+    config_dict = cast(dict[str, Any], config)
 
-    ConfigTemplateGenerator.enable_seeds_reducer(config)
+    ConfigTemplateGenerator.enable_seeds_reducer(config_dict)
 
-    assert config["dataManagers"]["seedsReducer"] is True
+    dm = cast(dict[str, Any], config["dataManagers"])
+    assert dm["seedsReducer"] is True
 
 
 def test_outlier_removal_config() -> None:
     """Test outlier removal configuration."""
     config = ConfigTemplateGenerator.create_minimal_config("./out", "/stats")
+    config_dict = cast(dict[str, Any], config)
 
-    ConfigTemplateGenerator.enable_outlier_removal(config, "simTicks", method="iqr", threshold=1.5)
+    ConfigTemplateGenerator.enable_outlier_removal(
+        config_dict, "simTicks", method="iqr", threshold=1.5
+    )
 
-    assert config["dataManagers"]["outlierRemover"]["enabled"] is True
-    assert config["dataManagers"]["outlierRemover"]["column"] == "simTicks"
-    assert config["dataManagers"]["outlierRemover"]["method"] == "iqr"
+    dm = cast(dict[str, Any], config["dataManagers"])
+    assert dm["outlierRemover"]["enabled"] is True
+    assert dm["outlierRemover"]["column"] == "simTicks"
+    assert dm["outlierRemover"]["method"] == "iqr"
 
 
 def test_normalizer_config() -> None:
     """Test normalizer configuration."""
     config = ConfigTemplateGenerator.create_minimal_config("./out", "/stats")
+    config_dict = cast(dict[str, Any], config)
 
     ConfigTemplateGenerator.enable_normalizer(
-        config, baseline={"config": "baseline"}, columns=["simTicks"], group_by=["benchmark"]
+        config_dict, baseline={"config": "baseline"}, columns=["simTicks"], group_by=["benchmark"]
     )
 
-    assert config["dataManagers"]["normalizer"]["enabled"] is True
-    assert config["dataManagers"]["normalizer"]["baseline"]["config"] == "baseline"
-    assert "simTicks" in config["dataManagers"]["normalizer"]["columns"]
+    dm = cast(dict[str, Any], config["dataManagers"])
+    assert dm["normalizer"]["enabled"] is True
+    assert dm["normalizer"]["baseline"]["config"] == "baseline"
+    assert "simTicks" in dm["normalizer"]["columns"]
 
 
 def test_example_config_validity() -> None:

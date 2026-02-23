@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, cast
 
 import pytest
 
@@ -30,8 +30,8 @@ class TestConfigTemplateGenerator:
     def test_create_plot_config_minimal(self) -> None:
         plot = ConfigTemplateGenerator.create_plot_config("bar", "x", "y", "out")
         assert plot["type"] == "bar"
-        assert plot["data"]["x"] == "x"
-        assert plot["data"]["y"] == "y"
+        assert plot["data"].get("x") == "x"
+        assert plot["data"].get("y") == "y"
         assert plot["output"]["filename"] == "out"
         assert plot["output"]["dpi"] == 300
 
@@ -56,30 +56,30 @@ class TestConfigTemplateGenerator:
             height=8,
             theme="darkgrid",
         )
-        assert plot["data"]["hue"] == "config"
-        assert plot["style"]["title"] == "IPC Plot"
-        assert plot["style"]["ylim"] == [0.0, 3.0]
+        assert plot["data"].get("hue") == "config"
+        assert plot["style"].get("title") == "IPC Plot"
+        assert plot["style"].get("ylim") == [0.0, 3.0]
         assert plot["output"]["format"] == "pdf"
         assert plot["output"]["dpi"] == 600
 
     def test_add_variable(self) -> None:
-        cfg: Dict[str, Any] = ConfigTemplateGenerator.create_minimal_config("/o", "/s")
+        cfg = cast(dict[str, Any], ConfigTemplateGenerator.create_minimal_config("/o", "/s"))
         ConfigTemplateGenerator.add_variable(cfg, "system.cpu.ipc", "scalar")
         assert len(cfg["parseConfig"]["variables"]) == 1
         assert cfg["parseConfig"]["variables"][0]["name"] == "system.cpu.ipc"
 
     def test_add_variable_with_rename(self) -> None:
-        cfg: Dict[str, Any] = ConfigTemplateGenerator.create_minimal_config("/o", "/s")
+        cfg = cast(dict[str, Any], ConfigTemplateGenerator.create_minimal_config("/o", "/s"))
         ConfigTemplateGenerator.add_variable(cfg, "simTicks", "scalar", rename="ticks")
         assert cfg["parseConfig"]["variables"][0]["rename"] == "ticks"
 
     def test_enable_seeds_reducer(self) -> None:
-        cfg: Dict[str, Any] = ConfigTemplateGenerator.create_minimal_config("/o", "/s")
+        cfg = cast(dict[str, Any], ConfigTemplateGenerator.create_minimal_config("/o", "/s"))
         ConfigTemplateGenerator.enable_seeds_reducer(cfg)
-        assert cfg["dataManagers"]["seedsReducer"] is True
+        assert cfg["dataManagers"].get("seedsReducer") is True
 
     def test_enable_outlier_removal(self) -> None:
-        cfg: Dict[str, Any] = ConfigTemplateGenerator.create_minimal_config("/o", "/s")
+        cfg = cast(dict[str, Any], ConfigTemplateGenerator.create_minimal_config("/o", "/s"))
         ConfigTemplateGenerator.enable_outlier_removal(cfg, "ipc", "zscore", 2.0)
         oc = cfg["dataManagers"]["outlierRemover"]
         assert oc["enabled"] is True
@@ -87,7 +87,7 @@ class TestConfigTemplateGenerator:
         assert oc["threshold"] == 2.0
 
     def test_enable_normalizer(self) -> None:
-        cfg: Dict[str, Any] = ConfigTemplateGenerator.create_minimal_config("/o", "/s")
+        cfg = cast(dict[str, Any], ConfigTemplateGenerator.create_minimal_config("/o", "/s"))
         ConfigTemplateGenerator.enable_normalizer(
             cfg,
             baseline={"config": "baseline"},
@@ -99,7 +99,7 @@ class TestConfigTemplateGenerator:
         assert norm["columns"] == ["ipc"]
 
     def test_save_config(self, tmp_path: Path) -> None:
-        cfg: Dict[str, Any] = ConfigTemplateGenerator.create_minimal_config("/o", "/s")
+        cfg = cast(dict[str, Any], ConfigTemplateGenerator.create_minimal_config("/o", "/s"))
         out = str(tmp_path / "test_cfg.json")
         ConfigTemplateGenerator.save_config(cfg, out)
 
@@ -175,11 +175,11 @@ class TestCreateSimpleBarPlotConfig:
         cfg = create_simple_bar_plot_config("/out", "/stats", "bench", "ipc")
         assert cfg["outputPath"] == "/out"
         assert len(cfg["parseConfig"]["variables"]) == 2
-        assert cfg["dataManagers"]["seedsReducer"] is True
+        assert cfg["dataManagers"].get("seedsReducer") is True
         assert len(cfg["plots"]) == 1
         assert cfg["plots"][0]["type"] == "bar"
 
     def test_with_hue(self) -> None:
         cfg = create_simple_bar_plot_config("/out", "/stats", "bench", "ipc", "config")
         assert len(cfg["parseConfig"]["variables"]) == 3
-        assert cfg["plots"][0]["data"]["hue"] == "config"
+        assert cfg["plots"][0]["data"].get("hue") == "config"

@@ -1,9 +1,11 @@
-from typing import Any
+from collections.abc import Generator
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
 
+from src.core.models.data_models import PipelineStep
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.web.pages.ui.components.plot_manager_components import PlotManagerComponents
 from src.web.pages.ui.plotting.base_plot import BasePlot
@@ -13,7 +15,7 @@ from tests.conftest import columns_side_effect
 class MockPlot(BasePlot):
     """Mock implementation of BasePlot for testing."""
 
-    def render_config_ui(self, data: Any, config: Any) -> dict:
+    def render_config_ui(self, data: Any, saved_config: Any) -> dict:
 
         return {}
 
@@ -27,7 +29,7 @@ class MockPlot(BasePlot):
 
 
 @pytest.fixture
-def mock_streamlit() -> None:
+def mock_streamlit() -> Generator[None, None, None]:
     with patch("src.web.pages.ui.components.plot_manager_components.st") as mock_st:
         mock_st.session_state = {}
 
@@ -45,13 +47,13 @@ def mock_api() -> Any:
 
 
 @pytest.fixture
-def mock_plot_service() -> None:
+def mock_plot_service() -> Generator[None, None, None]:
     with patch("src.web.pages.ui.components.plot_manager_components.PlotService") as mock_ps:
         yield mock_ps
 
 
 @pytest.fixture
-def mock_plot_factory() -> None:
+def mock_plot_factory() -> Generator[None, None, None]:
     with patch("src.web.pages.ui.components.plot_manager_components.PlotFactory") as mock_pf:
         yield mock_pf
 
@@ -136,7 +138,7 @@ def test_render_pipeline_editor_add_shaper(mock_streamlit: Any, mock_api: Any) -
 def test_render_pipeline_editor_finalize(mock_streamlit: Any, mock_api: Any) -> None:
     """Test finalizing the pipeline."""
     plot = MockPlot(1, "Test Plot", "Bar")
-    plot.pipeline = [{"type": "sort", "config": {"col": "A"}, "id": 0}]
+    plot.pipeline = cast(list[PipelineStep], [{"type": "sort", "config": {"col": "A"}, "id": 0}])
 
     df = pd.DataFrame({"A": [2, 1]})
     mock_api.state_manager.get_data.return_value = df

@@ -2,6 +2,7 @@
 
 from typing import Any
 
+import pandas as pd
 import pytest
 
 from src.core.services.shapers.factory import ShaperFactory
@@ -33,10 +34,10 @@ class TestShaperFactoryRegistry:
         from src.core.services.shapers.shaper import Shaper
 
         class CustomShaper(Shaper):
-            def _verify_params(self) -> int:
+            def _verify_params(self) -> bool:
                 return True
 
-            def __call__(self, df: Any) -> None:
+            def __call__(self, df: Any) -> pd.DataFrame:
 
                 return df
 

@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -9,7 +10,7 @@ from tests.conftest import columns_side_effect
 
 
 @pytest.fixture
-def mock_streamlit() -> None:
+def mock_streamlit() -> Generator[None, None, None]:
     with (patch("src.web.pages.ui.components.data_source_components.st") as mock_st_ds,):
 
         mock_st_ds.session_state = {}
@@ -23,7 +24,7 @@ def mock_streamlit() -> None:
 
 
 @pytest.fixture
-def mock_card_components() -> None:
+def mock_card_components() -> Generator[None, None, None]:
     with patch("src.web.pages.ui.components.data_source_components.CardComponents") as mock_card:
         yield mock_card
 

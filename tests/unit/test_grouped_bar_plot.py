@@ -1,8 +1,10 @@
-from typing import Any
+from collections.abc import Generator
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import plotly.graph_objects as go
+import plotly.graph_objs.bar as bar_mod
 import pytest
 from pandas import DataFrame
 
@@ -22,7 +24,7 @@ def sample_data() -> DataFrame:
 
 
 @pytest.fixture
-def mock_streamlit() -> None:
+def mock_streamlit() -> Generator[None, None, None]:
     with (
         patch("src.web.pages.ui.plotting.types.grouped_bar_plot.st") as mock_st,
         patch("src.web.pages.ui.components.plot_config_components.st", mock_st),
@@ -82,7 +84,7 @@ def test_create_figure_basic(sample_data: Any) -> None:
     assert isinstance(fig, go.Figure)
     # px.bar with barmode='group'
     # 2 groups (X, Y) -> 2 traces usually in px
-    assert len(fig.data) == 2
+    assert len(list(fig.data)) == 2
     assert fig.layout.barmode == "group"
 
 
@@ -106,7 +108,7 @@ def test_create_figure_with_error_bars_and_filters(sample_data: Any) -> None:
 
     # Should only have Category Bench1
     # Group Y and X present
-    assert len(fig.data) == 2
+    assert len(list(fig.data)) == 2
 
     # Check data content
     # Trace 0 should be first group in order. px handles order via category_orders
@@ -114,8 +116,10 @@ def test_create_figure_with_error_bars_and_filters(sample_data: Any) -> None:
     # Plotly might convert list to tuple internally for layout properties
     assert list(layout.xaxis.ticktext) == ["Bench1"]
     # Check logic for error bars
-    assert fig.data[0].error_y is not None
-    assert fig.data[0].error_y.array is not None
+    bar_trace = cast(go.Bar, fig.data[0])
+    assert bar_trace.error_y is not None
+    error_y = cast(bar_mod.ErrorY, bar_trace.error_y)
+    assert error_y.array is not None
 
 
 def test_get_legend_column() -> None:

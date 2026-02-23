@@ -6,8 +6,11 @@ Tests the complete workflow with new features.
 import shutil
 import tempfile
 from pathlib import Path
+from typing import cast
 
 import pandas as pd
+
+from src.core.models.data_models import ShaperStepConfig
 
 
 def test_complete_workflow_integration() -> None:
@@ -47,10 +50,16 @@ def test_complete_workflow_integration() -> None:
         assert len(pool) > 0
 
         # Test 4: Create dynamic pipeline
-        pipeline = [
-            {"type": "columnSelector", "columns": ["benchmark", "ipc"]},
-            {"type": "columnSelector", "columns": ["benchmark", "ipc"]},  # Multiple of same type
-        ]
+        pipeline = cast(
+            list[ShaperStepConfig],
+            [
+                {"type": "columnSelector", "columns": ["benchmark", "ipc"]},
+                {
+                    "type": "columnSelector",
+                    "columns": ["benchmark", "ipc"],
+                },  # Multiple of same type
+            ],
+        )
 
         # Test 5: Apply pipeline
         result = facade.apply_shapers(test_data, pipeline)
@@ -96,17 +105,20 @@ def test_complete_workflow_integration() -> None:
 
 def test_pipeline_reordering() -> None:
     """Test pipeline reordering functionality."""
-    pipeline = [
-        {"type": "columnSelector", "columns": ["a", "b"]},
-        {"type": "sort", "order_dict": {"col": ["x", "y"]}},
-        {"type": "normalize", "normalizeVars": ["val"]},
-    ]
+    pipeline: list[ShaperStepConfig] = cast(
+        list[ShaperStepConfig],
+        [
+            {"type": "columnSelector", "columns": ["a", "b"]},
+            {"type": "sort", "order_dict": {"col": ["x", "y"]}},
+            {"type": "normalize", "normalizeVars": ["val"]},
+        ],
+    )
 
     # Simulate moving item up
     pipeline[1], pipeline[0] = pipeline[0], pipeline[1]
 
-    assert pipeline[0]["type"] == "sort"
-    assert pipeline[1]["type"] == "columnSelector"
+    assert pipeline[0].get("type") == "sort"
+    assert pipeline[1].get("type") == "columnSelector"
 
 
 def test_multiple_same_shapers() -> None:
@@ -118,10 +130,13 @@ def test_multiple_same_shapers() -> None:
     test_data = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9], "d": [10, 11, 12]})
 
     # Pipeline with multiple column selectors
-    pipeline = [
-        {"type": "columnSelector", "columns": ["a", "b", "c"]},
-        {"type": "columnSelector", "columns": ["a", "b"]},
-    ]
+    pipeline = cast(
+        list[ShaperStepConfig],
+        [
+            {"type": "columnSelector", "columns": ["a", "b", "c"]},
+            {"type": "columnSelector", "columns": ["a", "b"]},
+        ],
+    )
 
     result = facade.apply_shapers(test_data, pipeline)
 

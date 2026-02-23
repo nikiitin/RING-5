@@ -86,14 +86,14 @@ class DataManagerComponents:
                 mask = filtered_data.astype(str).apply(
                     lambda row: row.str.contains(search_term, case=False, na=False).any(), axis=1
                 )
-                filtered_data = filtered_data[mask]
+                filtered_data = pd.DataFrame(filtered_data[mask])
             else:
                 mask = (
                     filtered_data[search_column]
                     .astype(str)
                     .str.contains(search_term, case=False, na=False)
                 )
-                filtered_data = filtered_data[mask]
+                filtered_data = pd.DataFrame(filtered_data[mask])
             st.info(f"Found {len(filtered_data)} matching rows (out of {len(data)} total)")
 
         # Column selection
@@ -112,7 +112,9 @@ class DataManagerComponents:
             )
 
         # Prepare display data
-        display_data = filtered_data[display_columns] if display_columns else filtered_data
+        display_data: pd.DataFrame = (
+            pd.DataFrame(filtered_data[display_columns]) if display_columns else filtered_data
+        )
 
         # Pagination
         st.markdown("---")

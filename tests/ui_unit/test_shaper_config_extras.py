@@ -1,14 +1,16 @@
-from typing import Any
+from collections.abc import Generator
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
 
+from src.core.models.data_models import ShaperStepConfig
 from src.web.pages.ui.shaper_config import configure_shaper
 
 
 @pytest.fixture
-def mock_streamlit() -> None:
+def mock_streamlit() -> Generator[None, None, None]:
     with (
         patch("src.web.pages.ui.shaper_config.st") as mock_st,
         patch("src.web.pages.ui.components.shapers.normalize_config.st", mock_st),
@@ -43,15 +45,15 @@ def test_configure_normalize_ui(mock_streamlit: Any) -> None:
     ]
     mock_streamlit.checkbox.return_value = True  # normalize_sd
 
-    config = configure_shaper("normalize", df, "test_id", {}, owner_id="plot1")
+    config = configure_shaper("normalize", df, 1, cast(ShaperStepConfig, {}), owner_id=1)
 
-    assert config["type"] == "normalize"
-    assert config["normalizerVars"] == ["A"]
-    assert config["normalizeVars"] == ["C"]
-    assert config["normalizerColumn"] == "B"
-    assert config["normalizerValue"] == "x"
-    assert config["groupBy"] == ["B"]
-    assert config["normalizeSd"] is True
+    assert config.get("type") == "normalize"
+    assert config.get("normalizerVars") == ["A"]
+    assert config.get("normalizeVars") == ["C"]
+    assert config.get("normalizerColumn") == "B"
+    assert config.get("normalizerValue") == "x"
+    assert config.get("groupBy") == ["B"]
+    assert config.get("normalizeSd") is True
 
 
 def test_configure_transformer_ui(mock_streamlit: Any) -> None:
@@ -62,12 +64,12 @@ def test_configure_transformer_ui(mock_streamlit: Any) -> None:
     mock_streamlit.segmented_control.return_value = "Factor (String/Categorical)"  # target_type_str
     mock_streamlit.multiselect.return_value = ["1", "2", "3"]  # order_list
 
-    config = configure_shaper("transformer", df, "test_id", {}, owner_id="plot1")
+    config = configure_shaper("transformer", df, 1, cast(ShaperStepConfig, {}), owner_id=1)
 
-    assert config["type"] == "transformer"
-    assert config["target_type"] == "factor"
-    assert config["column"] == "A"
-    assert config["order"] == ["1", "2", "3"]
+    assert config.get("type") == "transformer"
+    assert config.get("target_type") == "factor"
+    assert config.get("column") == "A"
+    assert config.get("order") == ["1", "2", "3"]
 
 
 def test_configure_filter_ui_numeric(mock_streamlit: Any) -> None:
@@ -78,11 +80,11 @@ def test_configure_filter_ui_numeric(mock_streamlit: Any) -> None:
     mock_streamlit.selectbox.side_effect = ["A", "range"]
     mock_streamlit.slider.return_value = (10.0, 20.0)
 
-    config = configure_shaper("conditionSelector", df, "test_id", {}, owner_id="plot1")
+    config = configure_shaper("conditionSelector", df, 1, cast(ShaperStepConfig, {}), owner_id=1)
 
-    assert config["type"] == "conditionSelector"
-    assert config["mode"] == "range"
-    assert config["range"] == [10.0, 20.0]
+    assert config.get("type") == "conditionSelector"
+    assert config.get("mode") == "range"
+    assert config.get("range") == [10.0, 20.0]
 
 
 def test_configure_filter_ui_categorical(mock_streamlit: Any) -> None:
@@ -92,8 +94,8 @@ def test_configure_filter_ui_categorical(mock_streamlit: Any) -> None:
     mock_streamlit.selectbox.return_value = "B"
     mock_streamlit.multiselect.return_value = ["x", "z"]
 
-    config = configure_shaper("conditionSelector", df, "test_id", {}, owner_id="plot1")
+    config = configure_shaper("conditionSelector", df, 1, cast(ShaperStepConfig, {}), owner_id=1)
 
-    assert config["type"] == "conditionSelector"
-    assert config["column"] == "B"
-    assert config["values"] == ["x", "z"]
+    assert config.get("type") == "conditionSelector"
+    assert config.get("column") == "B"
+    assert config.get("values") == ["x", "z"]

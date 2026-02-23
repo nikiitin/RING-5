@@ -71,9 +71,10 @@ class OutlierRemoverManager(DataManager):
 
         col1, col2 = st.columns(2)
         with col1:
-            outlier_column = st.selectbox(
+            outlier_column_raw = st.selectbox(
                 "Column to check for outliers", options=numeric_cols, key="outlier_col"
             )
+            outlier_column: str = str(outlier_column_raw) if outlier_column_raw is not None else ""
 
         with col2:
             if categorical_cols:
@@ -90,17 +91,20 @@ class OutlierRemoverManager(DataManager):
                 else:
                     default_cols = default_cols[:3]
 
-                group_by_cols = st.multiselect(
-                    "Group by columns (optional)",
-                    options=categorical_cols,
-                    default=default_cols,
-                    key="outlier_groupby",
-                    help=(
-                        "Columns to group data by before"
-                        " calculating Q3. Do NOT include"
-                        " 'random_seed' here!"
-                    ),
-                )
+                group_by_cols: list[str] = [
+                    str(c)
+                    for c in st.multiselect(
+                        "Group by columns (optional)",
+                        options=categorical_cols,
+                        default=default_cols,
+                        key="outlier_groupby",
+                        help=(
+                            "Columns to group data by before"
+                            " calculating Q3. Do NOT include"
+                            " 'random_seed' here!"
+                        ),
+                    )
+                ]
             else:
                 group_by_cols = []
                 st.info("No categorical columns for grouping. Will use global Q3.")

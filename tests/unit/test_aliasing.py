@@ -1,8 +1,9 @@
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, mock_open, patch
 
 from src.core.application_api import ApplicationAPI
 from src.core.models import ParseBatchResult
+from src.core.models.data_models import ParseVariableConfig
 
 
 class TestAliasing:
@@ -15,14 +16,17 @@ class TestAliasing:
         stats_pattern = "stats.txt"
 
         # Define variables with Alias
-        variables = [
-            {"name": "system.cpu.ipc", "type": "scalar", "alias": "IPC"},  # ALIAS!
-            {
-                "name": "system.cpu.cpi",
-                "type": "scalar",
-                # No alias
-            },
-        ]
+        variables = cast(
+            list[ParseVariableConfig],
+            [
+                {"name": "system.cpu.ipc", "type": "scalar", "alias": "IPC"},  # ALIAS!
+                {
+                    "name": "system.cpu.cpi",
+                    "type": "scalar",
+                    # No alias
+                },
+            ],
+        )
 
         # Mock parser execution
         # Note: ParseService is now imported at module level in application_api,

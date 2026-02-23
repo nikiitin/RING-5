@@ -7,7 +7,7 @@ Since presenters call Streamlit widgets, we mock st.* to verify:
     3. No state mutations or API calls happen
 """
 
-from typing import Any, Dict, List
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 # ─── PlotCreationPresenter Tests ─────────────────────────────────────────────
@@ -28,7 +28,7 @@ class TestPlotCreationPresenter:
         mock_st.selectbox.return_value = "bar"
         mock_st.form_submit_button.return_value = False
 
-        result: Dict[str, Any] = PlotCreationPresenter.render(
+        result: dict[str, Any] = PlotCreationPresenter.render(
             default_name="Plot 1", available_types=["bar", "line"]
         )
 
@@ -91,9 +91,9 @@ class TestPlotControlsPresenter:
         mock_st.text_input.return_value = "My Plot"
         mock_st.button.return_value = False
 
-        result: Dict[str, Any] = PlotControlsPresenter.render(plot_id=1, current_name="My Plot")
+        result: dict[str, Any] = PlotControlsPresenter.render(plot_id=1, current_name="My Plot")
 
-        expected_keys: List[str] = [
+        expected_keys: list[str] = [
             "new_name",
             "save_clicked",
             "load_clicked",
@@ -171,7 +171,7 @@ class TestPipelinePresenter:
         mock_st.selectbox.return_value = "Sort"
         mock_st.button.return_value = True
 
-        result: Dict[str, Any] = PipelinePresenter.render_add_shaper(plot_id=1)
+        result: dict[str, Any] = PipelinePresenter.render_add_shaper(plot_id=1)
 
         assert result["add_clicked"] is True
         assert result["shaper_type"] == "sort"
@@ -202,7 +202,7 @@ class TestPipelinePresenter:
         mock_st.columns.return_value = [mock_col, mock_col, mock_col]
         mock_st.button.return_value = False
 
-        result: Dict[str, bool] = PipelinePresenter.render_shaper_controls(
+        result: dict[str, bool] = PipelinePresenter.render_shaper_controls(
             plot_id=1,
             idx=0,
             shaper_type="sort",
@@ -234,7 +234,7 @@ class TestChartPresenter:
         mock_st.toggle.return_value = True
         mock_st.button.return_value = False
 
-        result: Dict[str, Any] = ChartPresenter.render_refresh_controls(
+        result: dict[str, Any] = ChartPresenter.render_refresh_controls(
             plot_id=1,
             auto_refresh=True,
             config_changed=True,
@@ -325,7 +325,7 @@ class TestConfigPresenter:
         renderer.render_config_ui.return_value = {"x_col": "a"}
         df = pd.DataFrame({"a": [1]})
 
-        result: Dict[str, Any] = ConfigPresenter.render_type_config(renderer, df, {"saved": True})
+        result: dict[str, Any] = ConfigPresenter.render_type_config(renderer, df, {"saved": True})
 
         renderer.render_config_ui.assert_called_once_with(df, {"saved": True})
         assert result == {"x_col": "a"}
@@ -359,7 +359,7 @@ class TestConfigPresenter:
         renderer.render_advanced_options.return_value = {"show_grid": True}
         df = pd.DataFrame({"a": [1]})
 
-        result: Dict[str, Any] = ConfigPresenter.render_advanced(renderer, {"x_col": "a"}, df)
+        result: dict[str, Any] = ConfigPresenter.render_advanced(renderer, {"x_col": "a"}, df)
 
         renderer.render_advanced_options.assert_called_once_with({"x_col": "a"}, df)
         assert result == {"show_grid": True}
@@ -373,7 +373,7 @@ class TestConfigPresenter:
         renderer.render_display_options.return_value = {"width": 800}
         renderer.render_theme_options.return_value = {"color": "blue"}
 
-        result: Dict[str, Any] = ConfigPresenter.render_theme(renderer, {"x": "a"})
+        result: dict[str, Any] = ConfigPresenter.render_theme(renderer, {"x": "a"})
 
         assert result["width"] == 800
         assert result["color"] == "blue"
@@ -394,7 +394,7 @@ class TestConfigPresenter:
         mock_st.toggle.return_value = False
 
         data = pd.DataFrame({"a": [1]})
-        result: Dict[str, Any] = ConfigPresenter.render_advanced_and_theme(
+        result: dict[str, Any] = ConfigPresenter.render_advanced_and_theme(
             renderer, {"x": "a"}, data
         )
 
@@ -408,7 +408,7 @@ class TestConfigPresenter:
 
         mock_st.selectbox.return_value = "scatter"
 
-        result: Dict[str, Any] = ConfigPresenter.render_plot_type_selector(
+        result: dict[str, Any] = ConfigPresenter.render_plot_type_selector(
             "bar", ["bar", "scatter", "line"], 1
         )
 
@@ -443,6 +443,7 @@ class TestPipelineStepPresenter:
 
         from src.web.presenters.plot.pipeline_step_presenter import (
             PipelineStepPresenter,
+            PipelineStepResult,
         )
 
         mock_pp.REVERSE_MAP = {"sort": "Sort"}
@@ -459,7 +460,7 @@ class TestPipelineStepPresenter:
         configure_fn = MagicMock(return_value={"type": "sort"})
         apply_fn = MagicMock(return_value=output_df)
 
-        result: Dict[str, Any] = PipelineStepPresenter.render_step(
+        result: PipelineStepResult = PipelineStepPresenter.render_step(
             plot_id=1,
             idx=0,
             shaper_type="sort",
@@ -472,7 +473,7 @@ class TestPipelineStepPresenter:
             apply_fn=apply_fn,
         )
 
-        expected: List[str] = [
+        expected: list[str] = [
             "new_config",
             "move_up",
             "move_down",
@@ -608,7 +609,7 @@ class TestSaveDialogPresenter:
         mock_st.form_submit_button.return_value = False
         mock_st.button.return_value = False
 
-        result: Dict[str, Any] = SaveDialogPresenter.render(plot_id=1, plot_name="Plot 1")
+        result: dict[str, Any] = SaveDialogPresenter.render(plot_id=1, plot_name="Plot 1")
 
         assert "pipeline_name" in result
         assert "save_clicked" in result
@@ -659,7 +660,7 @@ class TestLoadDialogPresenter:
 
         mock_st.button.return_value = False
 
-        result: Dict[str, Any] = LoadDialogPresenter.render_empty(plot_id=1)
+        result: dict[str, Any] = LoadDialogPresenter.render_empty(plot_id=1)
 
         assert "close_clicked" in result
         mock_st.warning.assert_called_once()
@@ -683,7 +684,7 @@ class TestLoadDialogPresenter:
         mock_st.selectbox.return_value = "pipe_1"
         mock_st.button.side_effect = [False, False]
 
-        result: Dict[str, Any] = LoadDialogPresenter.render(
+        result: dict[str, Any] = LoadDialogPresenter.render(
             plot_id=1, available_pipelines=["pipe_1", "pipe_2"]
         )
 

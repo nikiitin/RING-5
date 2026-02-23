@@ -157,6 +157,8 @@ class TestFullParserWorkflow:
             parse_results = [f.result() for f in batch.futures]
             csv_path = facade.finalize_parsing(output_dir, parse_results, var_names=batch.var_names)
 
+            assert csv_path is not None
+
             # Step 4: Load into CSV pool
             facade.add_to_csv_pool(csv_path)
 

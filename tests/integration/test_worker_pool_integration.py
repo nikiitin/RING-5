@@ -7,6 +7,7 @@ Verifies that:
 3. No subprocess.run() calls are made during parsing
 """
 
+from collections.abc import Generator
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
@@ -42,7 +43,7 @@ system.cpu.dcache.overall_miss_rate::total  0.05                    # Miss rate
 
 
 @pytest.fixture(scope="module", autouse=True)
-def cleanup_worker_pool() -> None:
+def cleanup_worker_pool() -> Generator[None, None, None]:
     """Ensure worker pool is cleaned up after tests."""
     yield
     shutdown_worker_pool()

@@ -135,7 +135,7 @@ class TestConfigurationValidateContent:
 
         # Create an object that raises when stringified
         class NonStringable:
-            def __str__(self) -> None:
+            def __str__(self) -> str:
                 raise RuntimeError("Cannot convert to string")
 
         obj = NonStringable()

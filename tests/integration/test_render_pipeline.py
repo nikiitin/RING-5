@@ -9,7 +9,7 @@ Tests:
     - Config variations (error bars, color grouping, etc.)
 """
 
-from typing import Any, Dict
+from typing import Any, cast
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -27,8 +27,8 @@ from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
 def _build_figure(
     plot_type: str,
     data: pd.DataFrame,
-    config: Dict[str, Any],
-    legend_labels: Dict[str, str] | None = None,
+    config: dict[str, Any],
+    legend_labels: dict[str, str] | None = None,
 ) -> go.Figure:
     """Build a figure using PlotFactory inline (replaces FigureEngine)."""
     plot = PlotFactory.create_plot(plot_type, plot_id=99, name=f"test_{plot_type}")
@@ -51,54 +51,54 @@ class TestFigureEngineIntegration:
     def test_build_bar_plot(
         self,
         rich_sample_data: pd.DataFrame,
-        bar_config: Dict[str, Any],
+        bar_config: dict[str, Any],
     ) -> None:
         """Bar plot: inline build returns a valid go.Figure with traces."""
         fig: go.Figure = _build_figure("bar", rich_sample_data, bar_config)
 
         assert isinstance(fig, go.Figure)
-        assert len(fig.data) > 0
+        assert len(list(fig.data)) > 0
         assert fig.layout.title is not None
 
     def test_build_line_plot(
         self,
         rich_sample_data: pd.DataFrame,
-        line_config: Dict[str, Any],
+        line_config: dict[str, Any],
     ) -> None:
         """Line plot: inline build returns a valid go.Figure."""
         fig: go.Figure = _build_figure("line", rich_sample_data, line_config)
 
         assert isinstance(fig, go.Figure)
-        assert len(fig.data) > 0
+        assert len(list(fig.data)) > 0
 
     def test_build_scatter_plot(
         self,
         rich_sample_data: pd.DataFrame,
-        scatter_config: Dict[str, Any],
+        scatter_config: dict[str, Any],
     ) -> None:
         """Scatter plot: inline build returns a valid go.Figure."""
         fig: go.Figure = _build_figure("scatter", rich_sample_data, scatter_config)
 
         assert isinstance(fig, go.Figure)
-        assert len(fig.data) > 0
+        assert len(list(fig.data)) > 0
 
     def test_build_grouped_bar_plot(
         self,
         rich_sample_data: pd.DataFrame,
-        grouped_bar_config: Dict[str, Any],
+        grouped_bar_config: dict[str, Any],
     ) -> None:
         """Grouped bar plot: inline build returns a valid go.Figure."""
         fig: go.Figure = _build_figure("grouped_bar", rich_sample_data, grouped_bar_config)
 
         assert isinstance(fig, go.Figure)
-        assert len(fig.data) > 0
+        assert len(list(fig.data)) > 0
 
     def test_build_stacked_bar_plot(
         self,
         rich_sample_data: pd.DataFrame,
     ) -> None:
         """Stacked bar plot: inline build with y_columns list."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "benchmark_name",
             "y_columns": ["system.cpu.ipc", "system.cpu.numCycles"],
             "title": "Stacked Metrics",
@@ -109,7 +109,7 @@ class TestFigureEngineIntegration:
         fig: go.Figure = _build_figure("stacked_bar", rich_sample_data, config)
 
         assert isinstance(fig, go.Figure)
-        assert len(fig.data) >= 2  # At least one trace per y_column
+        assert len(list(fig.data)) >= 2  # At least one trace per y_column
 
     def test_build_histogram_plot(
         self,
@@ -124,7 +124,7 @@ class TestFigureEngineIntegration:
                 "system.cpu.ipc..2-3": [20, 15, 10],
             }
         )
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "histogram_variable": "system.cpu.ipc",
             "title": "IPC Distribution",
             "xlabel": "IPC",
@@ -133,14 +133,14 @@ class TestFigureEngineIntegration:
         fig: go.Figure = _build_figure("histogram", histogram_data, config)
 
         assert isinstance(fig, go.Figure)
-        assert len(fig.data) > 0
+        assert len(list(fig.data)) > 0
 
     def test_build_dual_axis_bar_dot_plot(
         self,
         rich_sample_data: pd.DataFrame,
     ) -> None:
         """Dual-axis bar-dot plot: inline build with y_bar and y_dot."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "benchmark_name",
             "y_bar": "system.cpu.numCycles",
             "y_dot": "system.cpu.ipc",
@@ -152,7 +152,7 @@ class TestFigureEngineIntegration:
         fig: go.Figure = _build_figure("dual_axis_bar_dot", rich_sample_data, config)
 
         assert isinstance(fig, go.Figure)
-        assert len(fig.data) >= 2  # Bar + dot traces
+        assert len(list(fig.data)) >= 2  # Bar + dot traces
 
     def test_build_unregistered_type_raises_value_error(
         self, rich_sample_data: pd.DataFrame
@@ -182,7 +182,7 @@ class TestFigureSpecStylingIntegration:
         rich_sample_data: pd.DataFrame,
     ) -> None:
         """FigureConfig pipeline modifies layout dimensions when config has them."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "benchmark_name",
             "y": "system.cpu.ipc",
             "title": "Styled Bar",
@@ -201,7 +201,7 @@ class TestFigureSpecStylingIntegration:
         rich_sample_data: pd.DataFrame,
     ) -> None:
         """FigureConfig pipeline applies bargap config to layout."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "benchmark_name",
             "y": "system.cpu.ipc",
             "title": "Bar Gap Test",
@@ -218,7 +218,7 @@ class TestFigureSpecStylingIntegration:
         rich_sample_data: pd.DataFrame,
     ) -> None:
         """FigureConfig pipeline applies background color overrides."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "benchmark_name",
             "y": "system.cpu.ipc",
             "title": "Background Test",
@@ -237,12 +237,12 @@ class TestFigureSpecStylingIntegration:
         rich_sample_data: pd.DataFrame,
     ) -> None:
         """Legend labels are renamed in final figure via inline application."""
-        legend_labels: Dict[str, str] = {
+        legend_labels: dict[str, str] = {
             "baseline": "Base",
             "optimized": "Opt",
             "aggressive": "Agg",
         }
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "benchmark_name",
             "y": "system.cpu.ipc",
             "color": "config_description",
@@ -252,7 +252,9 @@ class TestFigureSpecStylingIntegration:
         }
         fig: go.Figure = _build_figure("bar", rich_sample_data, config, legend_labels=legend_labels)
 
-        trace_names: list[str] = [t.name for t in fig.data if t.name]
+        trace_names: list[str] = [
+            cast(str, cast(go.Bar, t).name) for t in list(fig.data) if cast(go.Bar, t).name
+        ]
         # Original names should be replaced
         assert "baseline" not in trace_names
         assert "optimized" not in trace_names
@@ -277,8 +279,9 @@ class TestFullDataToRenderE2E:
         from src.core.services.shapers.factory import ShaperFactory
 
         api: ApplicationAPI = loaded_facade
-        data: pd.DataFrame = api.state_manager.get_data()
-        assert data is not None
+        data_or_none = api.state_manager.get_data()
+        assert data_or_none is not None
+        data: pd.DataFrame = data_or_none
 
         # 1. Column select
         col_shaper = ShaperFactory.create_shaper(
@@ -311,7 +314,7 @@ class TestFullDataToRenderE2E:
             assert abs(val - 1.0) < 1e-6, f"Baseline not normalized: {val}"
 
         # 3. Render grouped bar
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "benchmark_name",
             "y": "system.cpu.ipc",
             "group": "config_description",
@@ -324,7 +327,7 @@ class TestFullDataToRenderE2E:
 
         assert isinstance(fig, go.Figure)
         # Should have traces for each config_description
-        assert len(fig.data) >= 2
+        assert len(list(fig.data)) >= 2
 
     def test_mean_aggregation_then_bar_render(
         self,
@@ -334,8 +337,9 @@ class TestFullDataToRenderE2E:
         from src.core.services.shapers.factory import ShaperFactory
 
         api: ApplicationAPI = loaded_facade
-        data: pd.DataFrame = api.state_manager.get_data()
-        assert data is not None
+        data_or_none = api.state_manager.get_data()
+        assert data_or_none is not None
+        data: pd.DataFrame = data_or_none
 
         # 1. Column select
         col_shaper = ShaperFactory.create_shaper(
@@ -367,7 +371,7 @@ class TestFullDataToRenderE2E:
         assert len(mean_rows) > 0, "No mean rows added"
 
         # 3. Render bar
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "benchmark_name",
             "y": "system.cpu.ipc",
             "color": "config_description",
@@ -379,4 +383,4 @@ class TestFullDataToRenderE2E:
         fig: go.Figure = plot.create_figure(result_data, config)
 
         assert isinstance(fig, go.Figure)
-        assert len(fig.data) > 0
+        assert len(list(fig.data)) > 0

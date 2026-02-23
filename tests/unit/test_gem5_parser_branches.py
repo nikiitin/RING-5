@@ -2,11 +2,12 @@
 
 import os
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
+from src.core.models.parsing_models import ScannedVariable
 from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser
 
 
@@ -14,19 +15,13 @@ from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser
 class FakeStatConfig:
     name: str
     is_regex: bool = False
-    params: Dict[str, Any] = field(default_factory=dict)
+    params: dict[str, Any] = field(default_factory=dict)
     keep_indices: bool = False
 
 
 @dataclass
-class FakeScannedVar:
-    name: str
-    pattern_indices: Optional[List[str]] = None
-
-
-@dataclass
 class FakeStat:
-    entries: Optional[List[str]] = None
+    entries: list[str] | None = None
     reduced_content: Any = None
 
     def balance_content(self) -> None:
@@ -81,7 +76,7 @@ class TestSubmitParseAsync:
         stats_dir.mkdir()
 
         config = FakeStatConfig(name=r"system\.cpu\d+\.ipc", is_regex=True)
-        scanned = [FakeScannedVar(name="system.different.stat")]
+        scanned = [ScannedVariable(name="system.different.stat", type="scalar")]
 
         strategy = MagicMock()
         strategy.get_work_items.return_value = [MagicMock()]
@@ -110,8 +105,10 @@ class TestSubmitParseAsync:
 
         config = FakeStatConfig(name=r"system\.cpu\d+\.ipc", is_regex=True)
         scanned = [
-            FakeScannedVar(
-                name=r"system\.cpu\d+\.ipc", pattern_indices=["system.cpu0.ipc", "system.cpu1.ipc"]
+            ScannedVariable(
+                name=r"system\.cpu\d+\.ipc",
+                type="scalar",
+                pattern_indices=["system.cpu0.ipc", "system.cpu1.ipc"],
             )
         ]
 
@@ -140,7 +137,7 @@ class TestSubmitParseAsync:
         stats_dir.mkdir()
 
         config = FakeStatConfig(name=r"[invalid", is_regex=True)
-        scanned = [FakeScannedVar(name="something")]
+        scanned = [ScannedVariable(name="something", type="scalar")]
 
         strategy = MagicMock()
         strategy.get_work_items.return_value = [MagicMock()]

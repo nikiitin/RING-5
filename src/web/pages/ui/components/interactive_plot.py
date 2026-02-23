@@ -38,7 +38,7 @@ def interactive_plotly_chart(
         None otherwise
     """
     # Serialize figure to JSON string
-    fig_json: str = fig.to_json()
+    fig_json: str = fig.to_json() or ""
 
     # Render component
     component_value: dict[str, Any] | None = _component_func(

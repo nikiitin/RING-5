@@ -1,4 +1,5 @@
-from typing import Any
+from collections.abc import Generator
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -51,7 +52,7 @@ def test_stats_scan_work_failure() -> None:
 
 
 @pytest.fixture
-def clean_pool_singleton() -> None:
+def clean_pool_singleton() -> Generator[None, None, None]:
     ScanWorkPool._singleton = None
     yield
     ScanWorkPool._singleton = None
@@ -81,7 +82,7 @@ def test_scan_work_pool_async_flow(clean_pool_singleton: Any) -> None:
         f2.set_result("res2")
 
         # Mock the internal _workPool to return our futures
-        scan_pool._workPool.submit.side_effect = [f1, f2]
+        cast(MagicMock, scan_pool._workPool.submit).side_effect = [f1, f2]
 
         futures = scan_pool.submit_batch_async([work1, work2])
 

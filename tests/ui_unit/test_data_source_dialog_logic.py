@@ -1,4 +1,5 @@
 import importlib
+from collections.abc import Generator
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -10,7 +11,7 @@ from tests.conftest import columns_side_effect
 
 
 @pytest.fixture
-def components_bundle() -> None:
+def components_bundle() -> Generator[tuple[Any, type[Any]], None, None]:
     """Patch st and reload module to capture decorator."""
 
     # 1. Patch streamlit.dialog globally so the decorator is intercepted during reload

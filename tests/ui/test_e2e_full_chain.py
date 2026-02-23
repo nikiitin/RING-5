@@ -10,11 +10,12 @@ Complements existing integration tests by:
 - Verifying pipeline modification → re-render cycle
 """
 
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 import plotly.graph_objects as go
 
+from src.core.models.data_models import PipelineStep, ShaperStepConfig
 from tests.ui.helpers import create_app_with_data, get_api, navigate_to
 
 # ---------------------------------------------------------------------------
@@ -38,13 +39,14 @@ def _create_plot_and_finalize(
     result: pd.DataFrame = raw_data.copy()
 
     for config in pipeline_configs:
-        shaper = ShaperFactory.create_shaper(config["type"], config)
+        shaper = ShaperFactory.create_shaper(config["type"], cast(ShaperStepConfig, config))
         result = shaper(result)
 
     plot.processed_data = result
-    plot.pipeline = [
-        {"id": i, "type": c["type"], "config": c} for i, c in enumerate(pipeline_configs)
-    ]
+    plot.pipeline = cast(
+        list[PipelineStep],
+        [{"id": i, "type": c["type"], "config": c} for i, c in enumerate(pipeline_configs)],
+    )
     return plot
 
 
@@ -86,7 +88,7 @@ class TestDataTransformRenderChain:
         fig = plot.apply_common_layout(fig, config)
 
         assert isinstance(fig, go.Figure)
-        assert len(fig.data) > 0
+        assert len(list(fig.data)) > 0
 
     def test_grouped_bar_full_chain(self) -> None:
         """Grouped bar: load → column select → mean → create figure."""
@@ -158,7 +160,7 @@ class TestDataTransformRenderChain:
         fig = plot.apply_common_layout(fig, config)
 
         assert isinstance(fig, go.Figure)
-        assert len(fig.data) > 0
+        assert len(list(fig.data)) > 0
 
     def test_scatter_plot_full_chain(self) -> None:
         """Scatter plot: load → column select → create figure."""

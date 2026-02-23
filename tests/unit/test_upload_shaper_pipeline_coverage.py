@@ -10,7 +10,7 @@ Targets uncovered lines:
 - manager.py: 90, 100
 """
 
-from typing import Any, List
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -21,7 +21,7 @@ import pytest
 # ---------------------------------------------------------------------------
 
 
-def _columns_side_effect(*args: Any, **kwargs: Any) -> List[MagicMock]:
+def _columns_side_effect(*args: Any, **kwargs: Any) -> list[MagicMock]:
     n = args[0] if args else kwargs.get("spec", 2)
     count = len(n) if isinstance(n, list) else n
     return [MagicMock() for _ in range(count)]
@@ -46,9 +46,9 @@ class TestShaperConfigBranches:
         from src.web.pages.ui.shaper_config import configure_shaper
 
         df = pd.DataFrame({"a": [1]})
-        result = configure_shaper("unknownType", df, "s1", None)
+        result = configure_shaper("unknownType", df, 1, None)
 
-        assert result["type"] == "unknownType"
+        assert result.get("type") == "unknownType"
 
     @patch("src.web.pages.ui.shaper_config.st")
     @patch("src.web.pages.ui.shaper_config.ColumnSelectorConfig")
@@ -58,10 +58,10 @@ class TestShaperConfigBranches:
         mock_cs.render.side_effect = RuntimeError("boom")
         df = pd.DataFrame({"a": [1]})
 
-        result = configure_shaper("columnSelector", df, "s1", None)
+        result = configure_shaper("columnSelector", df, 1, None)
 
         mock_st.exception.assert_called()
-        assert result["type"] == "columnSelector"
+        assert result.get("type") == "columnSelector"
 
 
 class TestShaperApplyBranches:

@@ -6,8 +6,9 @@ and are JSON-serializable (critical for portfolio save/load).
 """
 
 import json
-from typing import Any, Dict, List
+from typing import Any, cast
 
+from src.core.models.data_models import ShaperStepConfig
 from src.web.models.plot_models import (
     AnnotationShapeConfig,
     MarginsConfig,
@@ -116,20 +117,21 @@ class TestShaperStep:
         step: ShaperStep = {
             "id": 0,
             "type": "columnSelector",
-            "config": {"columns": ["col_a", "col_b"]},
+            "config": cast(ShaperStepConfig, {"columns": ["col_a", "col_b"]}),
         }
         assert step["id"] == 0
         assert step["type"] == "columnSelector"
-        assert step["config"]["columns"] == ["col_a", "col_b"]
+        assert step["config"].get("columns") == ["col_a", "col_b"]
 
     def test_create_sort_shaper(self) -> None:
         step: ShaperStep = {
             "id": 1,
             "type": "sort",
-            "config": {"by": "value", "ascending": True},
+            "config": cast(ShaperStepConfig, {"by": "value", "ascending": True}),
         }
         assert step["type"] == "sort"
-        assert step["config"]["ascending"] is True
+        config_dict = cast(dict[str, Any], step["config"])
+        assert config_dict["ascending"] is True
 
     def test_create_empty_config(self) -> None:
         step: ShaperStep = {"id": 2, "type": "mean", "config": {}}
@@ -139,10 +141,10 @@ class TestShaperStep:
         step: ShaperStep = {
             "id": 5,
             "type": "normalize",
-            "config": {"baseline": "config_a", "column": "ipc"},
+            "config": cast(ShaperStepConfig, {"baseline": "config_a", "column": "ipc"}),
         }
         json_str: str = json.dumps(step)
-        restored: ShaperStep = json.loads(json_str)
+        restored: dict[str, Any] = json.loads(json_str)
         assert restored == step
 
 
@@ -280,7 +282,7 @@ class TestPlotDisplayConfig:
             ],
         }
         json_str: str = json.dumps(config)
-        restored: Dict[str, Any] = json.loads(json_str)
+        restored: dict[str, Any] = json.loads(json_str)
         assert restored["x"] == "benchmark"
         assert restored["series_styles"]["config_a"]["color"] == "#FF0000"
         assert len(restored["shapes"]) == 1
@@ -319,21 +321,33 @@ class TestPipeline:
     """Tests for a pipeline as a list of ShaperSteps."""
 
     def test_create_pipeline(self) -> None:
-        pipeline: List[ShaperStep] = [
-            {"id": 0, "type": "columnSelector", "config": {"columns": ["a", "b"]}},
-            {"id": 1, "type": "sort", "config": {"by": "a"}},
-            {"id": 2, "type": "mean", "config": {"group_by": "a"}},
+        pipeline: list[ShaperStep] = [
+            {
+                "id": 0,
+                "type": "columnSelector",
+                "config": cast(ShaperStepConfig, {"columns": ["a", "b"]}),
+            },
+            {"id": 1, "type": "sort", "config": cast(ShaperStepConfig, {"by": "a"})},
+            {"id": 2, "type": "mean", "config": cast(ShaperStepConfig, {"group_by": "a"})},
         ]
         assert len(pipeline) == 3
         assert pipeline[0]["type"] == "columnSelector"
         assert pipeline[2]["type"] == "mean"
 
     def test_json_round_trip(self) -> None:
-        pipeline: List[ShaperStep] = [
-            {"id": 0, "type": "normalize", "config": {"baseline": "x", "column": "y"}},
-            {"id": 1, "type": "conditionSelector", "config": {"condition": "a > 5"}},
+        pipeline: list[ShaperStep] = [
+            {
+                "id": 0,
+                "type": "normalize",
+                "config": cast(ShaperStepConfig, {"baseline": "x", "column": "y"}),
+            },
+            {
+                "id": 1,
+                "type": "conditionSelector",
+                "config": cast(ShaperStepConfig, {"condition": "a > 5"}),
+            },
         ]
         json_str: str = json.dumps(pipeline)
-        restored: List[Dict[str, Any]] = json.loads(json_str)
+        restored: list[dict[str, Any]] = json.loads(json_str)
         assert len(restored) == 2
         assert restored[0]["type"] == "normalize"

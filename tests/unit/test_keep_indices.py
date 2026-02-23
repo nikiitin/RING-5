@@ -23,7 +23,7 @@ Validates:
 import csv
 import re
 from dataclasses import replace
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -202,7 +202,7 @@ class TestKeepIndicesExpansion:
                 if config.keep_indices:
                     # Respect user-filtered parsed_ids, falling back to
                     # all matched_ids when no filter was applied.
-                    user_ids: list[str] = config.params.get("parsed_ids", [])
+                    user_ids: list[str] = cast(list[str], config.params.get("parsed_ids", []))
                     ids_to_expand = user_ids if user_ids else matched_ids
 
                     # Detect full names vs numeric IDs

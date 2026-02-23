@@ -64,7 +64,7 @@ class TestMeanExtended:
         # Should append a row
         mean_row = result[result["Group"] == "geomean"]
         assert len(mean_row) == 1
-        assert np.isclose(mean_row["Value"].iloc[0], 10.0)
+        assert np.isclose(pd.Series(mean_row["Value"]).iloc[0], 10.0)
 
     def test_harmonic_mean(self) -> None:
         """Test harmonic mean calculation."""
@@ -82,4 +82,4 @@ class TestMeanExtended:
 
         result = shaper(df)
         mean_row = result[result["Group"] == "hmean"]
-        assert np.isclose(mean_row["Value"].iloc[0], 3.0)
+        assert np.isclose(pd.Series(mean_row["Value"]).iloc[0], 3.0)

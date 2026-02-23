@@ -8,6 +8,8 @@ Covers:
   - PresetSpecBuilder: build spec from LaTeXPreset
 """
 
+from typing import Any, cast
+
 import plotly.graph_objects as go
 
 from src.core.models.visualization.annotation_config import ReferenceLineConfig
@@ -49,12 +51,13 @@ class TestFigureSpecToPlotly:
 
         FigureSpecToPlotly.apply(resolved, fig)
 
-        assert fig.layout.width == 700
-        assert fig.layout.height == 400
-        assert fig.layout.margin.t == 10
-        assert fig.layout.margin.b == 20
-        assert fig.layout.margin.l == 30
-        assert fig.layout.margin.r == 40
+        layout = cast(Any, fig.layout)
+        assert layout.width == 700
+        assert layout.height == 400
+        assert layout.margin.t == 10
+        assert layout.margin.b == 20
+        assert layout.margin.l == 30
+        assert layout.margin.r == 40
 
     def test_apply_backgrounds(self) -> None:
         """Background colors should be applied."""
@@ -67,8 +70,9 @@ class TestFigureSpecToPlotly:
 
         FigureSpecToPlotly.apply(resolved, fig)
 
-        assert fig.layout.paper_bgcolor == "#F0F0F0"
-        assert fig.layout.plot_bgcolor == "#FFFFFF"
+        layout = cast(Any, fig.layout)
+        assert layout.paper_bgcolor == "#F0F0F0"
+        assert layout.plot_bgcolor == "#FFFFFF"
 
     def test_apply_title(self) -> None:
         """Title should be applied."""
@@ -81,8 +85,9 @@ class TestFigureSpecToPlotly:
 
         FigureSpecToPlotly.apply(resolved, fig)
 
-        assert fig.layout.title.text == "My Plot"
-        assert fig.layout.title.font.size == 16
+        layout = cast(Any, fig.layout)
+        assert layout.title.text == "My Plot"
+        assert layout.title.font.size == 16
 
     def test_apply_xaxis(self) -> None:
         """X-axis configuration should be applied."""
@@ -102,10 +107,11 @@ class TestFigureSpecToPlotly:
 
         FigureSpecToPlotly.apply(resolved, fig)
 
-        assert fig.layout.xaxis.title.text == "Benchmark"
-        assert fig.layout.xaxis.title.font.size == 12
-        assert fig.layout.xaxis.tickangle == 45.0
-        assert fig.layout.xaxis.tickfont.size == 8
+        layout = cast(Any, fig.layout)
+        assert layout.xaxis.title.text == "Benchmark"
+        assert layout.xaxis.title.font.size == 12
+        assert layout.xaxis.tickangle == 45.0
+        assert layout.xaxis.tickfont.size == 8
 
     def test_apply_yaxis(self) -> None:
         """Y-axis configuration should be applied."""
@@ -121,9 +127,10 @@ class TestFigureSpecToPlotly:
 
         FigureSpecToPlotly.apply(resolved, fig)
 
-        assert fig.layout.yaxis.title.text == "Speedup"
-        assert fig.layout.yaxis.title.font.size == 11
-        assert fig.layout.yaxis.dtick == 0.5
+        layout = cast(Any, fig.layout)
+        assert layout.yaxis.title.text == "Speedup"
+        assert layout.yaxis.title.font.size == 11
+        assert layout.yaxis.dtick == 0.5
 
     def test_apply_legend(self) -> None:
         """Legend configuration should be applied."""
@@ -147,12 +154,13 @@ class TestFigureSpecToPlotly:
 
         FigureSpecToPlotly.apply(resolved, fig)
 
-        assert fig.layout.legend.font.size == 10
-        assert fig.layout.legend.orientation == "h"
-        assert fig.layout.legend.x == 0.5
-        assert fig.layout.legend.y == 1.1
-        assert fig.layout.legend.xanchor == "center"
-        assert fig.layout.legend.yanchor == "bottom"
+        layout = cast(Any, fig.layout)
+        assert layout.legend.font.size == 10
+        assert layout.legend.orientation == "h"
+        assert layout.legend.x == 0.5
+        assert layout.legend.y == 1.1
+        assert layout.legend.xanchor == "center"
+        assert layout.legend.yanchor == "bottom"
 
     def test_no_legend(self) -> None:
         """Empty legends list should not crash."""
@@ -285,7 +293,7 @@ class TestPresetSpecBuilder:
             "xaxis_margin": 0.03,
             "bar_width_scale": 0.9,
             "group_separator": True,
-            "group_separator_style": "dotted",
+            "group_separator_style": "dot",
             "group_separator_color": "blue",
             "group_label_offset": -0.15,
             "group_label_alternate": False,
@@ -351,7 +359,7 @@ class TestPresetSpecBuilder:
         spec = PresetSpecBuilder.from_preset(preset)
 
         assert spec.separator.enabled is True
-        assert spec.separator.style == "dotted"
+        assert spec.separator.style == "dot"
         assert spec.separator.color == "blue"
 
     def test_font_family(self) -> None:
@@ -393,7 +401,7 @@ class TestPlotlyConnectorColorPalette:
         spec = FigureConfig(color_palette=["#AA0000", "#00BB00"])
         fig = go.Figure(data=[go.Bar(x=["A"], y=[1])])
         FigureSpecToPlotly._apply_color_palette(spec, fig)
-        assert fig.layout.colorway == ("#AA0000", "#00BB00")
+        assert cast(Any, fig.layout).colorway == ("#AA0000", "#00BB00")
 
     def test_empty_palette_no_op(self) -> None:
         spec = FigureConfig(color_palette=[])
@@ -409,13 +417,13 @@ class TestPlotlyConnectorHovermode:
         spec = FigureConfig(hovermode="closest")
         fig = go.Figure()
         FigureSpecToPlotly._apply_hovermode(spec, fig)
-        assert fig.layout.hovermode == "closest"
+        assert cast(Any, fig.layout).hovermode == "closest"
 
     def test_hovermode_x_unified(self) -> None:
         spec = FigureConfig(hovermode="x unified")
         fig = go.Figure()
         FigureSpecToPlotly._apply_hovermode(spec, fig)
-        assert fig.layout.hovermode == "x unified"
+        assert cast(Any, fig.layout).hovermode == "x unified"
 
 
 class TestPlotlyConnectorFontFamily:
@@ -425,13 +433,13 @@ class TestPlotlyConnectorFontFamily:
         spec = FigureConfig(font_family="serif")
         fig = go.Figure()
         FigureSpecToPlotly._apply_font_family(spec, fig)
-        assert fig.layout.font.family == "serif"
+        assert cast(Any, fig.layout).font.family == "serif"
 
     def test_font_family_sans_serif(self) -> None:
         spec = FigureConfig(font_family="sans-serif")
         fig = go.Figure()
         FigureSpecToPlotly._apply_font_family(spec, fig)
-        assert fig.layout.font.family == "sans-serif"
+        assert cast(Any, fig.layout).font.family == "sans-serif"
 
 
 class TestPlotlyConnectorReferenceLines:
@@ -445,21 +453,21 @@ class TestPlotlyConnectorReferenceLines:
         fig = go.Figure(data=[go.Bar(x=["A", "B"], y=[1, 2])])
         FigureSpecToPlotly._apply_reference_lines(spec, fig)
         # Should add a shape
-        assert len(fig.layout.shapes) >= 1
+        assert len(cast(Any, fig.layout).shapes) >= 1
 
     def test_vertical_reference_line(self) -> None:
         rl = ReferenceLineConfig(enabled=True, axis="x", value=0.5, color="blue", style="solid")
         spec = FigureConfig(reference_lines=[rl])
         fig = go.Figure(data=[go.Bar(x=["A", "B"], y=[1, 2])])
         FigureSpecToPlotly._apply_reference_lines(spec, fig)
-        assert len(fig.layout.shapes) >= 1
+        assert len(cast(Any, fig.layout).shapes) >= 1
 
     def test_disabled_reference_line_skipped(self) -> None:
         rl = ReferenceLineConfig(enabled=False, axis="y", value=1.0)
         spec = FigureConfig(reference_lines=[rl])
         fig = go.Figure(data=[go.Bar(x=["A", "B"], y=[1, 2])])
         FigureSpecToPlotly._apply_reference_lines(spec, fig)
-        assert len(fig.layout.shapes) == 0
+        assert len(cast(Any, fig.layout).shapes) == 0
 
 
 class TestPlotlyConnectorDataLabels:
@@ -470,28 +478,29 @@ class TestPlotlyConnectorDataLabels:
         spec = FigureConfig(data_labels=dl)
         fig = go.Figure(data=[go.Bar(x=["A", "B"], y=[1.1, 2.2])])
         FigureSpecToPlotly._apply_data_labels(spec, fig)
-        assert fig.data[0].texttemplate == "%{y:.1f}"
-        assert fig.data[0].textfont.size == 12
+        trace = cast(Any, fig.data[0])
+        assert trace.texttemplate == "%{y:.1f}"
+        assert trace.textfont.size == 12
 
     def test_data_labels_disabled_no_op(self) -> None:
         spec = FigureConfig(data_labels=None)
         fig = go.Figure(data=[go.Bar(x=["A"], y=[1])])
         FigureSpecToPlotly._apply_data_labels(spec, fig)
-        assert fig.data[0].texttemplate is None
+        assert cast(Any, fig.data[0]).texttemplate is None
 
     def test_data_labels_custom_color(self) -> None:
         dl = DataLabelConfig(enabled=True, color_mode="custom", custom_color="#FF0000")
         spec = FigureConfig(data_labels=dl)
         fig = go.Figure(data=[go.Bar(x=["A"], y=[1])])
         FigureSpecToPlotly._apply_data_labels(spec, fig)
-        assert fig.data[0].textfont.color == "#FF0000"
+        assert cast(Any, fig.data[0]).textfont.color == "#FF0000"
 
     def test_data_labels_rotation(self) -> None:
         dl = DataLabelConfig(enabled=True, rotation=45)
         spec = FigureConfig(data_labels=dl)
         fig = go.Figure(data=[go.Bar(x=["A"], y=[1])])
         FigureSpecToPlotly._apply_data_labels(spec, fig)
-        assert fig.data[0].textangle == 45
+        assert cast(Any, fig.data[0]).textangle == 45
 
 
 class TestPlotlyConnectorSeriesStyling:
@@ -502,7 +511,7 @@ class TestPlotlyConnectorSeriesStyling:
         spec = FigureConfig(series_styles=[ss])
         fig = go.Figure(data=[go.Bar(x=["A"], y=[1])])
         FigureSpecToPlotly._apply_series_styling(spec, fig)
-        assert fig.data[0].marker.line.width == 1.5
+        assert cast(Any, fig.data[0]).marker.line.width == 1.5
 
     def test_no_styles_no_op(self) -> None:
         spec = FigureConfig(series_styles=[])
@@ -523,8 +532,9 @@ class TestPlotlyConnectorAxisColors:
         )
         fig = go.Figure(data=[go.Bar(x=["A"], y=[1])])
         FigureSpecToPlotly._apply_axis_colors(spec, fig)
-        assert fig.layout.xaxis.tickfont.color == "#333"
-        assert fig.layout.yaxis.tickfont.color == "#666"
+        layout = cast(Any, fig.layout)
+        assert layout.xaxis.tickfont.color == "#333"
+        assert layout.yaxis.tickfont.color == "#666"
 
     def test_axis_line_color(self) -> None:
         spec = FigureConfig(
@@ -535,8 +545,9 @@ class TestPlotlyConnectorAxisColors:
         )
         fig = go.Figure(data=[go.Bar(x=["A"], y=[1])])
         FigureSpecToPlotly._apply_axis_colors(spec, fig)
-        assert fig.layout.xaxis.linecolor == "black"
-        assert fig.layout.xaxis.showline is True
+        layout = cast(Any, fig.layout)
+        assert layout.xaxis.linecolor == "black"
+        assert layout.xaxis.showline is True
 
     def test_no_colors_no_update(self) -> None:
         spec = FigureConfig()
@@ -553,13 +564,13 @@ class TestPlotlyConnectorSeparatorLines:
         fig = go.Figure(data=[go.Bar(x=["A", "B", "C"], y=[1, 2, 3])])
         FigureSpecToPlotly._apply_separator_lines(spec, fig)
         # Should create N-1 = 2 shapes for 3 categories
-        assert len(fig.layout.shapes) == 2
+        assert len(cast(Any, fig.layout).shapes) == 2
 
     def test_separator_disabled_no_shapes(self) -> None:
         spec = FigureConfig(separator=SeparatorConfig(enabled=False))
         fig = go.Figure(data=[go.Bar(x=["A", "B"], y=[1, 2])])
         FigureSpecToPlotly._apply_separator_lines(spec, fig)
-        assert len(fig.layout.shapes) == 0
+        assert len(cast(Any, fig.layout).shapes) == 0
 
 
 class TestPlotlyConnectorLegendOrder:
@@ -570,7 +581,7 @@ class TestPlotlyConnectorLegendOrder:
         spec = FigureConfig(legends=[legend])
         fig = go.Figure(data=[go.Bar(x=["A"], y=[1])])
         FigureSpecToPlotly._apply_legends(spec, fig)
-        assert fig.layout.legend.traceorder == "reversed"
+        assert cast(Any, fig.layout).legend.traceorder == "reversed"
 
     def test_normal_order_no_traceorder(self) -> None:
         legend = LegendConfig(role="primary", order="normal")
@@ -578,4 +589,4 @@ class TestPlotlyConnectorLegendOrder:
         fig = go.Figure(data=[go.Bar(x=["A"], y=[1])])
         FigureSpecToPlotly._apply_legends(spec, fig)
         # traceorder not set for normal
-        assert fig.layout.legend.traceorder is None
+        assert cast(Any, fig.layout).legend.traceorder is None

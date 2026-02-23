@@ -5,7 +5,7 @@ _create_stacked_figure, _add_bar_trace, _build_totals_annotations,
 _get_total_position, and get_legend_column.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 import pandas as pd
 
@@ -26,7 +26,7 @@ def _sample_df() -> pd.DataFrame:
     )
 
 
-def _base_config() -> Dict[str, Any]:
+def _base_config() -> dict[str, Any]:
     return {"x": "benchmark", "y_columns": ["ipc", "cpi"]}
 
 
@@ -59,7 +59,7 @@ class TestPrepareData:
 
     def test_x_filter_applied(self) -> None:
         plot = StackedBarPlot(1, "test")
-        config: Dict[str, Any] = {"x_filter": ["bfs", "sssp"]}
+        config: dict[str, Any] = {"x_filter": ["bfs", "sssp"]}
         result = plot._prepare_data(_sample_df(), "benchmark", ["ipc", "cpi"], config)
         assert set(result["benchmark"]) == {"bfs", "sssp"}
 
@@ -160,7 +160,7 @@ class TestBuildTotalsAnnotations:
         plot = StackedBarPlot(1, "test")
         df = pd.DataFrame({"x": ["a"], "v": [1.0]})
         df["__total"] = df["v"]
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "total_font_size": 16,
             "total_font_color": "#FF0000",
         }
@@ -172,7 +172,7 @@ class TestBuildTotalsAnnotations:
         plot = StackedBarPlot(1, "test")
         df = pd.DataFrame({"x": ["a"], "v": [2.0]})
         df["__total"] = df["v"]
-        config: Dict[str, Any] = {"total_rotation": 45, "total_offset": 5}
+        config: dict[str, Any] = {"total_rotation": 45, "total_offset": 5}
         annotations = plot._build_totals_annotations(df, "x", config)
         assert annotations[0]["textangle"] == 45
         assert annotations[0]["yshift"] == 5
@@ -199,7 +199,7 @@ class TestBuildBarTrace:
         df = _sample_df()
         df["__total"] = df["ipc"] + df["cpi"]
         df["ipc.sd"] = [0.1, 0.2, 0.1, 0.15]
-        config: Dict[str, Any] = {"show_error_bars": True}
+        config: dict[str, Any] = {"show_error_bars": True}
         trace = plot._build_bar_trace(df, "ipc", "benchmark", None, "", config)
         assert trace.error_y is not None
         assert len(trace.error_y) == 4
@@ -208,7 +208,7 @@ class TestBuildBarTrace:
         plot = StackedBarPlot(1, "test")
         df = _sample_df()
         df["__total"] = df["ipc"] + df["cpi"]
-        config: Dict[str, Any] = {"series_styles": {"ipc": {"color": "#00FF00"}}}
+        config: dict[str, Any] = {"series_styles": {"ipc": {"color": "#00FF00"}}}
         trace = plot._build_bar_trace(df, "ipc", "benchmark", None, "", config)
         assert trace.color == "#00FF00"
 
@@ -216,7 +216,7 @@ class TestBuildBarTrace:
         plot = StackedBarPlot(1, "test")
         df = _sample_df()
         df["__total"] = df["ipc"] + df["cpi"]
-        config: Dict[str, Any] = {"series_styles": {"ipc": {"pattern": "x"}}}
+        config: dict[str, Any] = {"series_styles": {"ipc": {"pattern": "x"}}}
         trace = plot._build_bar_trace(df, "ipc", "benchmark", None, "", config)
         assert trace.pattern == "x"
 
@@ -224,7 +224,7 @@ class TestBuildBarTrace:
         plot = StackedBarPlot(1, "test")
         df = _sample_df()
         df["__total"] = df["ipc"] + df["cpi"]
-        config: Dict[str, Any] = {"series_styles": {"ipc": {"name": "Instructions/Cycle"}}}
+        config: dict[str, Any] = {"series_styles": {"ipc": {"name": "Instructions/Cycle"}}}
         trace = plot._build_bar_trace(df, "ipc", "benchmark", None, "", config)
         assert trace.name == "Instructions/Cycle"
 
@@ -247,19 +247,21 @@ class TestCreateFigure:
     def test_missing_x_shows_message(self) -> None:
         plot = StackedBarPlot(1, "test")
         fig = plot.create_figure(_sample_df(), {"y_columns": ["ipc"]})
-        assert "Please select" in fig.layout.title.text
+        title = fig.layout.title  # type: ignore[union-attr]
+        assert "Please select" in title.text
 
     def test_missing_y_shows_message(self) -> None:
         plot = StackedBarPlot(1, "test")
         fig = plot.create_figure(_sample_df(), {"x": "benchmark", "y_columns": []})
-        assert "Please select" in fig.layout.title.text
+        title = fig.layout.title  # type: ignore[union-attr]
+        assert "Please select" in title.text
 
     def test_creates_traces(self) -> None:
         plot = StackedBarPlot(1, "test")
         config = _base_config()
         fig = plot.create_figure(_sample_df(), config)
-        assert len(fig.data) == 2  # ipc + cpi
-        assert fig.layout.barmode == "stack"
+        assert len(list(fig.data)) == 2  # ipc + cpi
+        assert fig.to_plotly_json()["layout"]["barmode"] == "stack"
 
     def test_layout_barmode(self) -> None:
         plot = StackedBarPlot(1, "test")
@@ -271,7 +273,7 @@ class TestCreateFigure:
         plot = StackedBarPlot(1, "test")
         config = {**_base_config(), "show_totals": True}
         fig = plot.create_figure(_sample_df(), config)
-        assert len(fig.layout.annotations) == 4  # One per row
+        assert len(fig.to_plotly_json()["layout"].get("annotations", [])) == 4  # One per row
 
 
 # ===================================================================

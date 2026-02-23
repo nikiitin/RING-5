@@ -1,5 +1,7 @@
 """Tests for GroupedStackedBarPlot.create_figure — uncovered branches."""
 
+from typing import cast
+
 import pandas as pd
 import plotly.graph_objects as go
 import pytest
@@ -50,7 +52,7 @@ class TestCreateFigure:
         fig = plot.create_figure(data, config)
         assert isinstance(fig, go.Figure)
         # Parent builds stacked traces
-        assert len(fig.data) > 0
+        assert len(list(fig.data)) > 0
 
     def test_no_x_returns_empty_traces(self, plot: GroupedStackedBarPlot) -> None:
         """When x_col is missing, returns empty TraceBuildResult."""
@@ -82,10 +84,10 @@ class TestCreateFigure:
         fig = plot.create_figure(sample_data, config)
         assert isinstance(fig, go.Figure)
         # 2 y_columns → 2 bar traces
-        assert len(fig.data) == 2
+        assert len(list(fig.data)) == 2
         # Title/ylabel/legend_title are applied by the style chain,
         # not by create_figure().  Verify trace count only.
-        assert len(fig.data) > 0
+        assert len(list(fig.data)) > 0
 
     def test_with_group_filter(
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
@@ -262,4 +264,5 @@ class TestHelperMethods:
         fig = go.Figure()
         fig.add_trace(go.Bar(x=[1, 2], y=[3, 4], name="test"))
         result = plot.apply_common_layout(fig, {})
-        assert "customdata" in result.data[0].hovertemplate
+        hovertemplate = cast(str, cast(go.Bar, result.data[0]).hovertemplate)
+        assert "customdata" in hovertemplate

@@ -1,10 +1,11 @@
 """Tests for plot adapters -- delegation correctness to underlying services."""
 
-from typing import Any, Dict, List
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 
+from src.core.models.data_models import ShaperStepConfig
 from tests.ui_logic.conftest import StubPlotHandle
 
 
@@ -125,7 +126,7 @@ class TestPipelineExecutorAdapter:
         from src.web.pages.plot_adapters import PipelineExecutorAdapter
 
         adapter = PipelineExecutorAdapter()
-        configs: List[Dict[str, Any]] = [{"type": "sort", "config": {}}]
+        configs = cast(list[ShaperStepConfig], [{"type": "sort", "config": {}}])
 
         with patch(
             "src.web.pages.plot_adapters.apply_shapers",
@@ -140,15 +141,15 @@ class TestPipelineExecutorAdapter:
         from src.web.pages.plot_adapters import PipelineExecutorAdapter
 
         adapter = PipelineExecutorAdapter()
-        existing: Dict[str, Any] = {"type": "normalize"}
+        existing = cast(ShaperStepConfig, {"type": "normalize"})
 
         with patch(
             "src.web.pages.plot_adapters.configure_shaper",
-            return_value={"type": "normalize", "target": "x"},
+            return_value=cast(ShaperStepConfig, {"type": "normalize", "target": "x"}),
         ) as mock_cfg:
-            result = adapter.configure_shaper("normalize", sample_data, "s1", existing, owner_id=5)
-            mock_cfg.assert_called_once_with("normalize", sample_data, "s1", existing, owner_id=5)
-            assert result["type"] == "normalize"
+            result = adapter.configure_shaper("normalize", sample_data, 1, existing, owner_id=5)
+            mock_cfg.assert_called_once_with("normalize", sample_data, 1, existing, owner_id=5)
+            assert result.get("type") == "normalize"
 
     def test_configure_shaper_no_owner_id(self, sample_data: pd.DataFrame) -> None:
         """configure_shaper defaults owner_id to None."""
@@ -158,10 +159,10 @@ class TestPipelineExecutorAdapter:
 
         with patch(
             "src.web.pages.plot_adapters.configure_shaper",
-            return_value={"type": "sort"},
+            return_value=cast(ShaperStepConfig, {"type": "sort"}),
         ) as mock_cfg:
-            adapter.configure_shaper("sort", sample_data, "s2", None)
-            mock_cfg.assert_called_once_with("sort", sample_data, "s2", None, owner_id=None)
+            adapter.configure_shaper("sort", sample_data, 2, None)
+            mock_cfg.assert_called_once_with("sort", sample_data, 2, None, owner_id=None)
 
 
 # ---------------------------------------------------------------------------

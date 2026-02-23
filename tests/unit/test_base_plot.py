@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -33,7 +34,7 @@ def concrete_plot() -> ConcretePlot:
 
 
 @pytest.fixture
-def mock_streamlit() -> None:
+def mock_streamlit() -> Generator[None, None, None]:
     with patch("src.web.pages.ui.plotting.base_plot.st") as mock_st:
         mock_st.session_state = {}
 

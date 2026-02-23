@@ -2,9 +2,11 @@
 
 import json
 from pathlib import Path
+from typing import cast
 
 import pytest
 
+from src.core.models.data_models import PipelineStep
 from src.core.services.shapers.pipeline_service import PipelineService
 
 
@@ -39,7 +41,7 @@ class TestPipelineService:
     def test_save_pipeline(self, tmp_path: Path) -> None:
         """Test saving a pipeline."""
         service = PipelineService(tmp_path)
-        config = [{"type": "columnSelector", "columns": ["a"]}]
+        config = cast(list[PipelineStep], [{"type": "columnSelector", "columns": ["a"]}])
         service.save_pipeline("test_pipeline", config, "Test description")
 
         saved_path = tmp_path / "test_pipeline.json"

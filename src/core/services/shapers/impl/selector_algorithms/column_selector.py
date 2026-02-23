@@ -55,4 +55,4 @@ class ColumnSelector(UniDfShaper):
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
         """Subsets the dataframe to only include specified columns."""
         self._verify_preconditions(data_frame)
-        return data_frame[self.columns]
+        return pd.DataFrame(data_frame[self.columns])

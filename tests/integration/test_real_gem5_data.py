@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 import pytest
@@ -7,6 +7,7 @@ from pandas import DataFrame
 
 from src.core.application_api import ApplicationAPI
 from src.core.models import StatConfig
+from src.core.models.data_models import ShaperStepConfig
 
 # Path to real gem5 test data
 TEST_DATA_PATH = Path(__file__).parent.parent / "data" / "results-micro26-sens"
@@ -95,7 +96,7 @@ class TestRealDataWithShapers:
             pytest.skip("Not enough columns to test")
 
         # Select first column
-        config = {"type": "columnSelector", "columns": [available_cols[0]]}
+        config = cast(ShaperStepConfig, {"type": "columnSelector", "columns": [available_cols[0]]})
         shaper = ShaperFactory.create_shaper("columnSelector", config)
 
         result = shaper(parsed_data)
@@ -218,14 +219,17 @@ class TestConfigurationPersistence:
     ) -> None:
         """Test saving and loading configuration."""
         # Override config dir
-        facade.config_pool_dir = Path(temp_output_dir) / "configs"
-        facade.config_pool_dir.mkdir(parents=True, exist_ok=True)
+        config_pool_dir = Path(temp_output_dir) / "configs"
+        config_pool_dir.mkdir(parents=True, exist_ok=True)
 
         # Save config
         config_path = facade.save_configuration(
             name="test_config",
             description="Test configuration",
-            shapers_config=[{"type": "columnSelector", "columns": ["a", "b"]}],
+            shapers_config=cast(
+                list[ShaperStepConfig],
+                [{"type": "columnSelector", "columns": ["a", "b"]}],
+            ),
             csv_path="/path/to/data.csv",
         )
 
@@ -235,7 +239,7 @@ class TestConfigurationPersistence:
         loaded = facade.load_configuration(config_path)
 
         assert loaded["name"] == "test_config"
-        assert loaded["description"] == "Test configuration"
+        assert loaded.get("description") == "Test configuration"
         assert len(loaded["shapers"]) == 1
 
     def test_load_csv_pool(self, temp_output_dir: Path, facade: ApplicationAPI) -> None:
@@ -255,7 +259,9 @@ class TestConfigurationPersistence:
             "src.core.services.data_services.csv_pool_service.PathService.get_data_dir",
             return_value=temp_path,
         ):
-            facade.csv_pool_dir = csv_pool
+            from src.core.services.data_services.csv_pool_service import CsvPoolService
+
+            CsvPoolService._pool_dir = None  # Reset cached pool dir
 
             # Load pool
             pool = facade.load_csv_pool()

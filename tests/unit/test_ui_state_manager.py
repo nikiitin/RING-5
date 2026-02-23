@@ -5,7 +5,8 @@ Uses a mock session_state dictionary to validate typed accessors,
 namespaced keys, and scoped cleanup without requiring Streamlit runtime.
 """
 
-from typing import Any, Dict, List
+from collections.abc import Generator
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -24,7 +25,7 @@ class MockSessionState(dict):
 
 
 @pytest.fixture
-def mock_state() -> MockSessionState:
+def mock_state() -> Generator[MockSessionState, None, None]:
     """Provide a fresh mock session_state and patch st.session_state."""
     state = MockSessionState()
     with patch("src.web.state.ui_state_manager.st") as mock_st:
@@ -95,7 +96,7 @@ class TestPlotUIState:
         assert ui_state.plot.get_order(1, "xaxis") is None
 
     def test_ordering_set_and_get(self, ui_state: Any, mock_state: MockSessionState) -> None:
-        order: List[str] = ["bench_a", "bench_c", "bench_b"]
+        order: list[str] = ["bench_a", "bench_c", "bench_b"]
         ui_state.plot.set_order(1, "xaxis", order)
         assert ui_state.plot.get_order(1, "xaxis") == order
 
@@ -116,13 +117,13 @@ class TestPlotUIState:
         assert ui_state.plot.get_pending_updates() is None
 
     def test_pending_updates_set_and_get(self, ui_state: Any, mock_state: MockSessionState) -> None:
-        updates: Dict[str, Any] = {"x_1": [0.5, 10.5]}
+        updates: dict[str, Any] = {"x_1": [0.5, 10.5]}
         ui_state.plot.set_pending_updates(updates)
         assert ui_state.plot.get_pending_updates() == updates
 
     def test_pending_updates_consume(self, ui_state: Any, mock_state: MockSessionState) -> None:
         """consume_pending_updates should return and clear."""
-        updates: Dict[str, Any] = {"auto_1": True}
+        updates: dict[str, Any] = {"auto_1": True}
         ui_state.plot.set_pending_updates(updates)
         consumed = ui_state.plot.consume_pending_updates()
         assert consumed == updates
@@ -193,7 +194,7 @@ class TestManagerUIState:
         assert ui_state.manager.get_load_trigger("seeds_reducer") is None
 
     def test_load_trigger_set_and_get(self, ui_state: Any, mock_state: MockSessionState) -> None:
-        record: Dict[str, Any] = {
+        record: dict[str, Any] = {
             "manager_name": "Seeds Reducer",
             "source_columns": ["benchmark", "config"],
             "dest_columns": ["ipc"],
@@ -202,7 +203,7 @@ class TestManagerUIState:
         assert ui_state.manager.get_load_trigger("seeds_reducer") == record
 
     def test_load_trigger_consume(self, ui_state: Any, mock_state: MockSessionState) -> None:
-        record: Dict[str, Any] = {"manager_name": "Outlier Remover"}
+        record: dict[str, Any] = {"manager_name": "Outlier Remover"}
         ui_state.manager.set_load_trigger("outlier_remover", record)
 
         consumed = ui_state.manager.consume_load_trigger("outlier_remover")

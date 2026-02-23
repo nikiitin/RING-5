@@ -10,14 +10,16 @@ Tests the state management and session persistence layer:
 This validates the state management infrastructure for long-running analysis sessions.
 """
 
+from collections.abc import Generator
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from unittest.mock import patch
 
 import pandas as pd
 import pytest
 
 from src.core.application_api import ApplicationAPI
+from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
 from src.core.services.data_services.path_service import PathService
 from src.core.services.data_services.portfolio_service import PortfolioService
 from src.core.state.repositories.parser_state_repository import ParserStateRepository
@@ -57,7 +59,7 @@ def sample_workspace_data() -> dict[str, Any]:
 
 
 @pytest.fixture
-def mock_session_state() -> None:
+def mock_session_state() -> Generator[dict[str, Any], None, None]:
     """Mock streamlit.session_state as a dictionary."""
     with patch("streamlit.session_state", new_callable=dict) as mock_state:
         yield mock_state
@@ -70,7 +72,7 @@ def state_manager(mock_session_state: Any) -> RepositoryStateManager:
 
 
 @pytest.fixture
-def portfolio_service(state_manager: Any, tmp_path: Any) -> None:
+def portfolio_service(state_manager: Any, tmp_path: Any) -> Generator[PortfolioService, None, None]:
     """Create PortfolioService instance."""
     # Mock PathService to return tmp_path for portfolios
     with patch(
@@ -123,7 +125,8 @@ class TestStateManagement:
 
             loaded_data = pd.read_csv(io.StringIO(loaded["data_csv"]))
         else:
-            loaded_data = loaded["data"]
+            loaded_any = cast(dict[str, Any], loaded)
+            loaded_data = loaded_any["data"]
 
         pd.testing.assert_frame_equal(
             data.reset_index(drop=True), loaded_data.reset_index(drop=True)
@@ -145,15 +148,15 @@ class TestStateManagement:
         repo.set_stats_path("/gem5/output")
         repo.set_stats_pattern("*.stats.txt")
 
-        variables = [
-            {"name": "system.cpu.ipc", "type": "scalar", "params": {}, "_id": "1"},
-            {"name": "system.cpu.numCycles", "type": "scalar", "params": {}, "_id": "2"},
+        variables: list[ParseVariableConfig] = [
+            {"name": "system.cpu.ipc", "type": "scalar", "_id": "1"},
+            {"name": "system.cpu.numCycles", "type": "scalar", "_id": "2"},
         ]
         repo.set_parse_variables(variables)
 
-        scanned_vars = [
-            {"name": "system.cpu.ipc", "type": "scalar"},
-            {"name": "system.cpu.numCycles", "type": "scalar"},
+        scanned_vars: list[ScannedVariableDict] = [
+            {"name": "system.cpu.ipc", "type": "scalar", "entries": []},
+            {"name": "system.cpu.numCycles", "type": "scalar", "entries": []},
         ]
         repo.set_scanned_variables(scanned_vars)
 
@@ -194,6 +197,7 @@ class TestStateManagement:
 
         # Verify recovery successful
         assert recovered is not None
+        assert "plots" in recovered
         assert len(recovered["plots"]) > 0
 
         # Verify can continue work
@@ -202,7 +206,8 @@ class TestStateManagement:
 
             recovered_data = pd.read_csv(io.StringIO(recovered["data_csv"]))
         else:
-            recovered_data = recovered["data"]
+            recovered_any = cast(dict[str, Any], recovered)
+            recovered_data = recovered_any["data"]
 
         new_row = pd.DataFrame({"benchmark": ["lbm"], "config": ["baseline"], "ipc": [2.0]})
 
@@ -226,6 +231,7 @@ class TestStateManagement:
 
         # Load and verify version is preserved
         loaded = portfolio_service.load_portfolio("v1_format")
+        assert "config" in loaded
         assert loaded["config"]["version"] == "1.0"
 
         # Create v2.0 portfolio format
@@ -238,6 +244,7 @@ class TestStateManagement:
         )
 
         loaded_v2 = portfolio_service.load_portfolio("v2_format")
+        assert "config" in loaded_v2
         assert loaded_v2["config"]["version"] == "2.0"
 
     def test_multiple_portfolio_management(
@@ -266,6 +273,7 @@ class TestStateManagement:
 
         # Load specific portfolio
         loaded = portfolio_service.load_portfolio("comparison")
+        assert "config" in loaded
         assert loaded["config"]["analysis_type"] == "comparison"
 
         # Delete portfolio

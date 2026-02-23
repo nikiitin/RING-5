@@ -5,12 +5,13 @@ Validates the full pipeline:
   Plotly figure → PlotlyTraceExtractor → MatplotlibTraceRenderer → matplotlib Figure
 """
 
-from typing import Any
+from typing import Any, cast
 
 import matplotlib
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 from matplotlib.axes import Axes
+from matplotlib.container import BarContainer
 from matplotlib.figure import Figure
 
 from src.core.models.visualization.resolvers import resolve_config
@@ -100,6 +101,7 @@ class TestMatplotlibTraceRenderer:
         ]
         barmode = "group"
         fig, ax = plt.subplots()
+        assert isinstance(ax, Axes)
 
         count = MatplotlibTraceRenderer.render(traces, ax, barmode=barmode)
 
@@ -114,6 +116,7 @@ class TestMatplotlibTraceRenderer:
             LineTraceConfig(name="Line 2", x=[1, 2, 3], y=[15, 25, 35]),
         ]
         fig, ax = plt.subplots()
+        assert isinstance(ax, Axes)
 
         count = MatplotlibTraceRenderer.render(traces, ax)
 
@@ -127,6 +130,7 @@ class TestMatplotlibTraceRenderer:
             ScatterTraceConfig(name="Scatter 1", x=[1, 2, 3], y=[10, 20, 30]),
         ]
         fig, ax = plt.subplots()
+        assert isinstance(ax, Axes)
 
         count = MatplotlibTraceRenderer.render(traces, ax)
 
@@ -154,6 +158,7 @@ class TestMatplotlibTraceRenderer:
         ]
         barmode = "stack"
         fig, ax = plt.subplots()
+        assert isinstance(ax, Axes)
 
         count = MatplotlibTraceRenderer.render(traces, ax, barmode=barmode)
 
@@ -164,6 +169,7 @@ class TestMatplotlibTraceRenderer:
     def test_render_empty_figure(self) -> None:
         """Empty trace list should return 0."""
         fig, ax = plt.subplots()
+        assert isinstance(ax, Axes)
 
         count = MatplotlibTraceRenderer.render([], ax)
 
@@ -184,6 +190,7 @@ class TestMatplotlibTraceRenderer:
         ]
 
         fig, ax = plt.subplots()
+        assert isinstance(ax, Axes)
         count = MatplotlibTraceRenderer.render(traces, ax)
 
         assert count == 2
@@ -196,6 +203,7 @@ class TestMatplotlibTraceRenderer:
             LineTraceConfig(name="dashed", x=[1, 2], y=[1, 2], line_dash="dash"),
         ]
         fig, ax = plt.subplots()
+        assert isinstance(ax, Axes)
 
         count = MatplotlibTraceRenderer.render(traces, ax)
 
@@ -217,13 +225,14 @@ class TestMatplotlibTraceRenderer:
             ),
         ]
         fig, ax = plt.subplots()
+        assert isinstance(ax, Axes)
 
         MatplotlibTraceRenderer.render(traces, ax)
 
         container = ax.containers[0]
-        patches = container.patches
-        assert len(patches) == 1
-        fc = patches[0].get_facecolor()
+        bar_patches = cast(BarContainer, container).patches
+        assert len(bar_patches) == 1
+        fc = cast(tuple[float, ...], bar_patches[0].get_facecolor())
         assert fc[0] < 0.5  # R channel ~0.4
         plt.close(fig)
 

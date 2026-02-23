@@ -79,9 +79,9 @@ def test_portfolio_serialization() -> None:
     # Deserialize plot
     loaded_plot = loaded_portfolio["plots"][0]
     if isinstance(loaded_plot["processed_data"], str):
-        loaded_plot["processed_data"] = pd.read_csv(
-            pd.io.common.StringIO(loaded_plot["processed_data"])
-        )
+        from io import StringIO
+
+        loaded_plot["processed_data"] = pd.read_csv(StringIO(loaded_plot["processed_data"]))
 
     # Verify all configurations are preserved
     assert loaded_plot["plot_config"]["type"] == "grouped_bar"

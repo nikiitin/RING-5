@@ -9,11 +9,12 @@ Tests workspace-level workflows that span multiple features:
 - Cross-page state consistency
 """
 
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 import plotly.graph_objects as go
 
+from src.core.models.data_models import ShaperStepConfig
 from tests.ui.helpers import create_app_with_data, get_api, navigate_to
 
 # ---------------------------------------------------------------------------
@@ -27,7 +28,7 @@ def _apply_pipeline(raw_data: pd.DataFrame, configs: list[dict[str, Any]]) -> pd
 
     result: pd.DataFrame = raw_data.copy()
     for config in configs:
-        shaper = ShaperFactory.create_shaper(config["type"], config)
+        shaper = ShaperFactory.create_shaper(config["type"], cast(ShaperStepConfig, config))
         result = shaper(result)
     return result
 
@@ -321,4 +322,4 @@ class TestFigureEngineMultiType:
             fig: go.Figure = plot.create_figure(selected_cols, config)
             fig = plot.apply_common_layout(fig, config)
             assert isinstance(fig, go.Figure), f"Failed for {plot_type}"
-            assert len(fig.data) > 0, f"No data traces for {plot_type}"
+            assert len(list(fig.data)) > 0, f"No data traces for {plot_type}"

@@ -4,6 +4,9 @@ Tests for ShaperFactory display name methods and PipelineService.prepare_loaded_
 Tests the business logic extracted from plot_manager_components.py to Layer B.
 """
 
+from typing import cast
+
+from src.core.models.data_models import PipelineData, PipelineStep, ShaperStepConfig
 from src.core.services.shapers.factory import ShaperFactory
 from src.core.services.shapers.pipeline_service import PipelineService
 
@@ -65,61 +68,72 @@ class TestPrepareLoadedPipeline:
     """Tests for prepare_loaded_pipeline business logic."""
 
     def test_basic_pipeline(self) -> None:
-        data = {
-            "pipeline": [
-                {"id": 0, "type": "sort", "config": {}},
-                {"id": 1, "type": "mean", "config": {}},
-            ]
-        }
+        data = cast(
+            PipelineData,
+            {
+                "pipeline": [
+                    {"id": 0, "type": "sort", "config": {}},
+                    {"id": 1, "type": "mean", "config": {}},
+                ]
+            },
+        )
         steps, counter = PipelineService.prepare_loaded_pipeline(data)
         assert len(steps) == 2
         assert counter == 2
 
     def test_non_sequential_ids(self) -> None:
-        data = {
-            "pipeline": [
-                {"id": 0, "type": "sort", "config": {}},
-                {"id": 5, "type": "mean", "config": {}},
-            ]
-        }
+        data = cast(
+            PipelineData,
+            {
+                "pipeline": [
+                    {"id": 0, "type": "sort", "config": {}},
+                    {"id": 5, "type": "mean", "config": {}},
+                ]
+            },
+        )
         steps, counter = PipelineService.prepare_loaded_pipeline(data)
         assert counter == 6  # max_id (5) + 1
 
     def test_empty_pipeline(self) -> None:
-        data = {"pipeline": []}
+        data = cast(PipelineData, {"pipeline": []})
         steps, counter = PipelineService.prepare_loaded_pipeline(data)
         assert steps == []
         assert counter == 0
 
     def test_missing_pipeline_key(self) -> None:
-        data = {}
+        data = cast(PipelineData, {})
         steps, counter = PipelineService.prepare_loaded_pipeline(data)
         assert steps == []
         assert counter == 0
 
     def test_deep_copy_independence(self) -> None:
         """Steps should be deep-copied, not sharing references."""
-        original_pipeline = [{"id": 0, "type": "sort", "config": {"key": "value"}}]
-        data = {"pipeline": original_pipeline}
+        original_pipeline: list[PipelineStep] = [
+            {"id": 0, "type": "sort", "config": cast(ShaperStepConfig, {"key": "value"})}
+        ]
+        data = cast(PipelineData, {"pipeline": original_pipeline})
         steps, counter = PipelineService.prepare_loaded_pipeline(data)
 
         # Mutating returned steps should not affect original
-        steps[0]["config"]["key"] = "modified"
-        assert original_pipeline[0]["config"]["key"] == "value"
+        steps[0]["config"]["column"] = "modified"
+        assert "column" not in original_pipeline[0]["config"]
 
     def test_steps_without_id_field(self) -> None:
         """Steps missing id field should default to -1."""
-        data = {
-            "pipeline": [
-                {"type": "sort", "config": {}},
-                {"type": "mean", "config": {}},
-            ]
-        }
+        data = cast(
+            PipelineData,
+            {
+                "pipeline": [
+                    {"type": "sort", "config": {}},
+                    {"type": "mean", "config": {}},
+                ]
+            },
+        )
         steps, counter = PipelineService.prepare_loaded_pipeline(data)
         assert counter == 0  # max(-1, -1) + 1 = 0
 
     def test_single_step(self) -> None:
-        data = {"pipeline": [{"id": 3, "type": "normalize", "config": {}}]}
+        data = cast(PipelineData, {"pipeline": [{"id": 3, "type": "normalize", "config": {}}]})
         steps, counter = PipelineService.prepare_loaded_pipeline(data)
         assert len(steps) == 1
         assert counter == 4

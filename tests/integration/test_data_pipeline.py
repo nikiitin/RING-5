@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import pandas as pd
@@ -39,7 +39,9 @@ class TestDataPipeline:
         assert len(reduced) == 3
         assert "value" in reduced.columns
         assert "value.sd" in reduced.columns
-        assert reduced[reduced["group"] == "A"]["value"].iloc[0] == 11.0  # (10+12)/2
+        assert (
+            cast(pd.Series, reduced[reduced["group"] == "A"]["value"]).iloc[0] == 11.0
+        )  # (10+12)/2
 
     def test_outlier_removal(self, sample_data: Any) -> None:
 

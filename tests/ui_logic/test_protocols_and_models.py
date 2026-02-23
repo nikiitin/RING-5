@@ -1,6 +1,6 @@
 """Tests for plot protocols -- runtime_checkable conformance and structural typing."""
 
-from typing import Any, Dict
+from typing import Any
 
 import pandas as pd
 
@@ -63,7 +63,7 @@ class TestRenderablePlotProtocol:
         """ConfigRenderer methods are callable on StubPlotHandle."""
         plot = StubPlotHandle()
         data = pd.DataFrame({"a": [1]})
-        config: Dict[str, Any] = {"x": "a"}
+        config: dict[str, Any] = {"x": "a"}
 
         result = plot.render_config_ui(data, config)
         assert isinstance(result, dict)
@@ -88,7 +88,7 @@ class TestPlotModels:
         step: ShaperStep = {"id": 1, "type": "sort", "config": {"column": "a"}}
         assert step["id"] == 1
         assert step["type"] == "sort"
-        assert step["config"]["column"] == "a"
+        assert step["config"].get("column") == "a"
 
     def test_plot_display_config_partial(self) -> None:
         """PlotDisplayConfig can be constructed with partial fields (total=False)."""
@@ -98,7 +98,7 @@ class TestPlotModels:
             "x_column": "benchmark",
             "y_column": "ipc",
         }
-        assert cfg["x_column"] == "benchmark"
+        assert cfg.get("x_column") == "benchmark"
 
     def test_margins_config(self) -> None:
         """MarginsConfig holds top/bottom/left/right."""

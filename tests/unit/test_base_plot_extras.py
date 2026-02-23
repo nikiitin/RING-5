@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -25,7 +26,7 @@ class ConcretePlot(BasePlot):
 
 
 @pytest.fixture
-def mock_streamlit() -> None:
+def mock_streamlit() -> Generator[None, None, None]:
     with patch("src.web.pages.ui.plotting.base_plot.st") as mock_st:
         # Mock columns
         mock_st.columns.side_effect = lambda n: (

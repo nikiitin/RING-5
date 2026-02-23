@@ -16,6 +16,7 @@ def test_histogram_entries_merging() -> None:
     # Verify that entries merges buckets and statistics correctly
     h = Histogram(repeat=1, bins=3, max_range=10.0, statistics=["samples"])
     entries = h.entries
+    assert entries is not None
     assert "samples" in entries
     assert "0-5" in entries
     assert "5-10" in entries

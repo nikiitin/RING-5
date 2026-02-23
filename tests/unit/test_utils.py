@@ -10,6 +10,7 @@ from typing import Any
 import pytest
 
 import src.core.common.utils as utils
+from src.core.common.utils import JsonValue
 
 
 class TestGetElementValue:
@@ -23,31 +24,31 @@ class TestGetElementValue:
 
     def test_get_missing_key_raises(self) -> None:
         """Test that missing key raises exception."""
-        data = {"name": "test"}
+        data: dict[str, JsonValue] = {"name": "test"}
         with pytest.raises(Exception, match="Key not found"):
             utils.getElementValue(data, "missing")
 
     def test_get_none_value_optional(self) -> None:
         """Test getting None value with optional=True."""
-        data = {"name": None}
+        data: dict[str, JsonValue] = {"name": None}
         result = utils.getElementValue(data, "name", optional=True)
         assert result is None
 
     def test_get_none_value_not_optional(self) -> None:
         """Test getting None value with optional=False raises."""
-        data = {"name": None}
+        data: dict[str, JsonValue] = {"name": None}
         with pytest.raises(Exception, match="not optional"):
             utils.getElementValue(data, "name", optional=False)
 
     def test_get_list_value(self) -> None:
         """Test getting a list value."""
-        data = {"items": [1, 2, 3]}
+        data: dict[str, JsonValue] = {"items": [1, 2, 3]}
         result = utils.getElementValue(data, "items")
         assert result == [1, 2, 3]
 
     def test_get_dict_value(self) -> None:
         """Test getting a dict value."""
-        data = {"nested": {"a": 1, "b": 2}}
+        data: dict[str, JsonValue] = {"nested": {"a": 1, "b": 2}}
         result = utils.getElementValue(data, "nested")
         assert result == {"a": 1, "b": 2}
 
@@ -57,12 +58,12 @@ class TestCheckElementExists:
 
     def test_existing_key_passes(self) -> None:
         """Test that existing key doesn't raise."""
-        data = {"key": "value"}
+        data: dict[str, JsonValue] = {"key": "value"}
         utils.checkElementExists(data, "key")  # Should not raise
 
     def test_missing_key_raises(self) -> None:
         """Test that missing key raises."""
-        data = {"key": "value"}
+        data: dict[str, JsonValue] = {"key": "value"}
         with pytest.raises(Exception, match="Key not found"):
             utils.checkElementExists(data, "missing")
 
@@ -72,12 +73,12 @@ class TestCheckElementExistNoException:
 
     def test_existing_key_returns_true(self) -> None:
         """Test existing key returns True."""
-        data = {"key": "value"}
+        data: dict[str, JsonValue] = {"key": "value"}
         assert utils.checkElementExistNoException(data, "key") is True
 
     def test_missing_key_returns_false(self) -> None:
         """Test missing key returns False."""
-        data = {"key": "value"}
+        data: dict[str, JsonValue] = {"key": "value"}
         assert utils.checkElementExistNoException(data, "missing") is False
 
 
@@ -93,23 +94,23 @@ class TestEnumFunctions:
 
     def test_check_enum_exists_true(self) -> None:
         """Test finding existing enum member."""
-        data = {"OPTION_A": "value"}
+        data: dict[str, JsonValue] = {"OPTION_A": "value"}
         assert utils.checkEnumExistsNoException(data, self.SampleEnum) is True
 
     def test_check_enum_exists_false(self) -> None:
         """Test not finding enum member."""
-        data = {"OTHER": "value"}
+        data: dict[str, JsonValue] = {"OTHER": "value"}
         assert utils.checkEnumExistsNoException(data, self.SampleEnum) is False
 
     def test_get_enum_value_found(self) -> None:
         """Test getting enum value when found."""
-        data = {"option_a": "value"}
+        data: dict[str, JsonValue] = {"option_a": "value"}
         result = utils.getEnumValue(data, self.SampleEnum)
         assert result == "option_a"
 
     def test_get_enum_value_not_found(self) -> None:
         """Test getting enum value when not found."""
-        data = {"other": "value"}
+        data: dict[str, JsonValue] = {"other": "value"}
         result = utils.getEnumValue(data, self.SampleEnum)
         assert result is None
 

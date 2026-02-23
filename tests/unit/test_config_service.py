@@ -11,9 +11,11 @@ Test Strategy:
 
 import json
 from pathlib import Path
+from typing import cast
 
 import pytest
 
+from src.core.models.data_models import ShaperStepConfig
 from src.core.services.data_services.config_service import ConfigService
 
 # ============================================================================
@@ -111,7 +113,10 @@ class TestConfigurationSaving:
     def test_save_configuration_creates_file(self, empty_config_dir: Path) -> None:
         """Verify configuration file is created."""
         # Arrange
-        shapers = [{"type": "normalize", "baseline": "config1"}]
+        shapers = cast(
+            list[ShaperStepConfig],
+            [{"type": "normalize", "baseline": "config1"}],
+        )
 
         # Act
         config_path = ConfigService.save_configuration(
@@ -299,7 +304,7 @@ class TestConfigurationLoading:
 
         # Assert
         assert loaded_config["name"] == "config_0"
-        assert loaded_config["description"] == sample_config_dict["description"]
+        assert loaded_config.get("description") == sample_config_dict["description"]
         assert loaded_config["shapers"] == sample_config_dict["shapers"]
 
     def test_load_configuration_raises_on_missing_file(self, empty_config_dir: Path) -> None:
@@ -333,10 +338,13 @@ class TestConfigurationRoundTrip:
     def test_save_and_load_preserves_data(self, empty_config_dir: Path) -> None:
         """Verify round-trip save and load preserves all data."""
         # Arrange
-        original_shapers = [
-            {"type": "normalize", "baseline": "base", "column": "value"},
-            {"type": "mean", "method": "geometric"},
-        ]
+        original_shapers = cast(
+            list[ShaperStepConfig],
+            [
+                {"type": "normalize", "baseline": "base", "column": "value"},
+                {"type": "mean", "method": "geometric"},
+            ],
+        )
 
         # Act - Save
         saved_path = ConfigService.save_configuration(
@@ -351,9 +359,9 @@ class TestConfigurationRoundTrip:
 
         # Assert - Data preserved
         assert loaded_config["name"] == "roundtrip"
-        assert loaded_config["description"] == "Round trip test"
+        assert loaded_config.get("description") == "Round trip test"
         assert loaded_config["shapers"] == original_shapers
-        assert loaded_config["csv_path"] == "/data/test.csv"
+        assert loaded_config.get("csv_path") == "/data/test.csv"
 
     def test_multiple_saves_create_unique_files(self, empty_config_dir: Path) -> None:
         """Verify multiple saves of same config create unique files."""
@@ -372,5 +380,5 @@ class TestConfigurationRoundTrip:
         # Verify different descriptions
         config1 = ConfigService.load_configuration(path1)
         config2 = ConfigService.load_configuration(path2)
-        assert config1["description"] == "desc1"
-        assert config2["description"] == "desc2"
+        assert config1.get("description") == "desc1"
+        assert config2.get("description") == "desc2"

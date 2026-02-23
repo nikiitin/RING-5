@@ -12,6 +12,7 @@ Test Strategy:
 
 import os
 import time
+from collections.abc import Generator
 from pathlib import Path
 from unittest.mock import patch
 
@@ -75,7 +76,7 @@ def populated_pool(empty_pool_dir: Path, sample_csv: Path) -> Path:
 
 
 @pytest.fixture(autouse=True)
-def clear_service_state() -> None:
+def clear_service_state() -> Generator[None, None, None]:
     """
     Clear CsvPoolService caches before each test.
 

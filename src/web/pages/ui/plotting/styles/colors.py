@@ -53,8 +53,9 @@ def to_hex(color_str: str) -> str:
         import plotly.colors as pc
 
         converted = pc.convert_colors_to_same_type(color_str, "hex")  # type: ignore[attr-defined]
-        result: list[tuple[str, ...]] = converted
-        return str(result[0][0])
+        color_list: list[str] = [str(c) for c in converted[0]]
+        if color_list:
+            return str(color_list[0])
     except Exception:
         logging.warning(f"Could not convert color {color_str} to hex. Fallback to black.")
 

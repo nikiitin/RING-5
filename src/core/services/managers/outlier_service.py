@@ -21,10 +21,10 @@ class OutlierService:
 
         if not group_by_cols:
             q3 = df[outlier_col].quantile(0.75)
-            return df[df[outlier_col] <= q3]
+            return pd.DataFrame(df[df[outlier_col] <= q3])
 
         q3_series = df.groupby(group_by_cols)[outlier_col].transform(lambda x: x.quantile(0.75))
-        return df[df[outlier_col] <= q3_series]
+        return pd.DataFrame(df[df[outlier_col] <= q3_series])
 
     @staticmethod
     def validate_outlier_inputs(

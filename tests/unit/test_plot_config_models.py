@@ -2,6 +2,8 @@
 Tests for plot_config models — TypedDicts extracted from base_plot.py to Layer B.
 """
 
+from typing import cast
+
 from src.core.models.plot_config import ShapeConfig
 
 
@@ -35,5 +37,5 @@ class TestShapeConfig:
 
     def test_partial_shape(self) -> None:
         """total=False allows partial TypedDicts."""
-        shape: ShapeConfig = {"type": "circle"}
+        shape: ShapeConfig = cast(ShapeConfig, {"type": "circle"})
         assert shape["type"] == "circle"

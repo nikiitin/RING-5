@@ -13,11 +13,12 @@ Validates:
     9. Factory registration and instantiation.
 """
 
-from typing import Any, Dict
+from typing import Any, cast
 
 import pandas as pd
 import pytest
 
+from src.core.models.data_models import ShaperStepConfig
 from src.core.services.shapers.factory import ShaperFactory
 from src.core.services.shapers.impl.split_apply import SplitApply
 
@@ -58,7 +59,7 @@ def dual_axis_data_with_sd() -> pd.DataFrame:
 
 
 @pytest.fixture
-def mean_split_config() -> Dict[str, Any]:
+def mean_split_config() -> dict[str, Any]:
     """SplitApply config: arithmean for IPC, geomean for numCycles."""
     return {
         "joinColumns": ["benchmark", "config"],
@@ -92,7 +93,7 @@ def mean_split_config() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def normalize_split_config() -> Dict[str, Any]:
+def normalize_split_config() -> dict[str, Any]:
     """SplitApply config: normalize each axis variable independently."""
     return {
         "joinColumns": ["benchmark", "config"],
@@ -234,7 +235,7 @@ class TestSplitApplyMean:
     def test_independent_mean_no_duplicate_rows(
         self,
         dual_axis_data: pd.DataFrame,
-        mean_split_config: Dict[str, Any],
+        mean_split_config: dict[str, Any],
     ) -> None:
         """Each group gets its own mean row; no duplicate mean rows."""
         shaper = SplitApply(mean_split_config)
@@ -247,7 +248,7 @@ class TestSplitApplyMean:
     def test_mean_values_are_correct_per_axis(
         self,
         dual_axis_data: pd.DataFrame,
-        mean_split_config: Dict[str, Any],
+        mean_split_config: dict[str, Any],
     ) -> None:
         """Mean values are computed independently for each variable."""
         shaper = SplitApply(mean_split_config)
@@ -257,27 +258,27 @@ class TestSplitApplyMean:
         mean_opt = result[(result["benchmark"] == "arithmean") & (result["config"] == "opt")]
 
         # IPC mean for base: (1.2 + 1.4) / 2 = 1.3
-        assert abs(mean_base["ipc"].iloc[0] - 1.3) < 1e-6
+        assert abs(pd.Series(mean_base["ipc"]).iloc[0] - 1.3) < 1e-6
         # IPC mean for opt: (1.5 + 1.6) / 2 = 1.55
-        assert abs(mean_opt["ipc"].iloc[0] - 1.55) < 1e-6
+        assert abs(pd.Series(mean_opt["ipc"]).iloc[0] - 1.55) < 1e-6
 
         # numCycles mean for base: (3210 + 7890) / 2 = 5550
-        assert abs(mean_base["numCycles"].iloc[0] - 5550) < 1e-6
+        assert abs(pd.Series(mean_base["numCycles"]).iloc[0] - 5550) < 1e-6
         # numCycles mean for opt: (2890 + 7120) / 2 = 5005
-        assert abs(mean_opt["numCycles"].iloc[0] - 5005) < 1e-6
+        assert abs(pd.Series(mean_opt["numCycles"]).iloc[0] - 5005) < 1e-6
 
     def test_original_rows_preserved(
         self,
         dual_axis_data: pd.DataFrame,
-        mean_split_config: Dict[str, Any],
+        mean_split_config: dict[str, Any],
     ) -> None:
         """Original data rows are unchanged after split-apply."""
         shaper = SplitApply(mean_split_config)
         result = shaper(dual_axis_data)
 
         non_mean = (
-            result[result["benchmark"] != "arithmean"]
-            .sort_values(["benchmark", "config"])
+            pd.DataFrame(result[result["benchmark"] != "arithmean"])
+            .sort_values(by=["benchmark", "config"])
             .reset_index(drop=True)
         )
 
@@ -289,7 +290,7 @@ class TestSplitApplyMean:
     def test_total_row_count_with_mean(
         self,
         dual_axis_data: pd.DataFrame,
-        mean_split_config: Dict[str, Any],
+        mean_split_config: dict[str, Any],
     ) -> None:
         """4 originals + 2 means = 6 total rows."""
         shaper = SplitApply(mean_split_config)
@@ -308,7 +309,7 @@ class TestSplitApplyNormalize:
     def test_normalized_values_independent(
         self,
         dual_axis_data: pd.DataFrame,
-        normalize_split_config: Dict[str, Any],
+        normalize_split_config: dict[str, Any],
     ) -> None:
         """Each variable is normalized by its own baseline value."""
         shaper = SplitApply(normalize_split_config)
@@ -316,20 +317,20 @@ class TestSplitApplyNormalize:
 
         # Baselines should be 1.0
         base_mcf = result[(result["benchmark"] == "mcf") & (result["config"] == "base")]
-        assert abs(base_mcf["ipc"].iloc[0] - 1.0) < 1e-6
-        assert abs(base_mcf["numCycles"].iloc[0] - 1.0) < 1e-6
+        assert abs(pd.Series(base_mcf["ipc"]).iloc[0] - 1.0) < 1e-6
+        assert abs(pd.Series(base_mcf["numCycles"]).iloc[0] - 1.0) < 1e-6
 
         # IPC for mcf/opt: 1.5 / 1.2 = 1.25
         opt_mcf = result[(result["benchmark"] == "mcf") & (result["config"] == "opt")]
-        assert abs(opt_mcf["ipc"].iloc[0] - 1.25) < 1e-6
+        assert abs(pd.Series(opt_mcf["ipc"]).iloc[0] - 1.25) < 1e-6
 
         # numCycles for mcf/opt: 2890 / 3210 ≈ 0.9003
-        assert abs(opt_mcf["numCycles"].iloc[0] - (2890 / 3210)) < 1e-4
+        assert abs(pd.Series(opt_mcf["numCycles"]).iloc[0] - (2890 / 3210)) < 1e-4
 
     def test_normalize_row_count_unchanged(
         self,
         dual_axis_data: pd.DataFrame,
-        normalize_split_config: Dict[str, Any],
+        normalize_split_config: dict[str, Any],
     ) -> None:
         """Normalize doesn't add or remove rows."""
         shaper = SplitApply(normalize_split_config)
@@ -347,7 +348,7 @@ class TestSplitApplyCombined:
 
     def test_mean_then_normalize_per_axis(self, dual_axis_data: pd.DataFrame) -> None:
         """Apply Mean then Normalize independently per group."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "joinColumns": ["benchmark", "config"],
             "groups": [
                 {
@@ -422,7 +423,7 @@ class TestSplitApplySD:
 
     def test_sd_columns_included_automatically(self, dual_axis_data_with_sd: pd.DataFrame) -> None:
         """SD columns matching group columns are carried through."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "joinColumns": ["benchmark", "config"],
             "groups": [
                 {"columns": ["ipc"], "pipeline": []},
@@ -446,7 +447,7 @@ class TestSplitApplyPassthrough:
 
     def test_no_pipeline_returns_original_data(self, dual_axis_data: pd.DataFrame) -> None:
         """With empty pipelines, result equals original data."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "joinColumns": ["benchmark", "config"],
             "groups": [
                 {"columns": ["ipc"], "pipeline": []},
@@ -480,14 +481,14 @@ class TestSplitApplyFactory:
 
     def test_factory_creates_instance(self) -> None:
         """Factory.create_shaper produces a SplitApply instance."""
-        params: Dict[str, Any] = {
+        params: dict[str, Any] = {
             "joinColumns": ["x"],
             "groups": [
                 {"columns": ["a"], "pipeline": []},
                 {"columns": ["b"], "pipeline": []},
             ],
         }
-        shaper = ShaperFactory.create_shaper("splitApply", params)
+        shaper = ShaperFactory.create_shaper("splitApply", cast(ShaperStepConfig, params))
         assert isinstance(shaper, SplitApply)
 
     def test_display_name_exists(self) -> None:
@@ -506,7 +507,7 @@ class TestSplitApplyErrors:
 
     def test_sub_pipeline_error_includes_group_info(self, dual_axis_data: pd.DataFrame) -> None:
         """Errors from sub-pipeline include which group failed."""
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "joinColumns": ["benchmark", "config"],
             "groups": [
                 {
@@ -548,7 +549,7 @@ class TestSplitApplyThreeGroups:
                 "v3": [1000.0, 2000.0],
             }
         )
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "joinColumns": ["bench", "cfg"],
             "groups": [
                 {
@@ -598,9 +599,9 @@ class TestSplitApplyThreeGroups:
 
         mean_row = result[result["bench"] == "arithmean"]
         assert len(mean_row) == 1
-        assert abs(mean_row["v1"].iloc[0] - 15.0) < 1e-6
-        assert abs(mean_row["v2"].iloc[0] - 150.0) < 1e-6
-        assert abs(mean_row["v3"].iloc[0] - 1500.0) < 1e-6
+        assert abs(pd.Series(mean_row["v1"]).iloc[0] - 15.0) < 1e-6
+        assert abs(pd.Series(mean_row["v2"]).iloc[0] - 150.0) < 1e-6
+        assert abs(pd.Series(mean_row["v3"]).iloc[0] - 1500.0) < 1e-6
 
 
 # ============================================================================
@@ -623,7 +624,7 @@ class TestSplitApplyFourGroups:
                 "v4": [10000.0, 20000.0],
             }
         )
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "joinColumns": ["bench", "cfg"],
             "groups": [
                 {"columns": ["v1"], "pipeline": []},
@@ -651,7 +652,7 @@ class TestSplitApplyFourGroups:
                 "v4": [10000.0, 20000.0],
             }
         )
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "joinColumns": ["bench", "cfg"],
             "groups": [
                 {
@@ -678,7 +679,7 @@ class TestSplitApplyFourGroups:
 
         mean_row = result[result["bench"] == "arithmean"]
         assert len(mean_row) == 1
-        assert abs(mean_row["v1"].iloc[0] - 15.0) < 1e-6
-        assert abs(mean_row["v2"].iloc[0] - 150.0) < 1e-6
-        assert abs(mean_row["v3"].iloc[0] - 1500.0) < 1e-6
-        assert abs(mean_row["v4"].iloc[0] - 15000.0) < 1e-6
+        assert abs(pd.Series(mean_row["v1"]).iloc[0] - 15.0) < 1e-6
+        assert abs(pd.Series(mean_row["v2"]).iloc[0] - 150.0) < 1e-6
+        assert abs(pd.Series(mean_row["v3"]).iloc[0] - 1500.0) < 1e-6
+        assert abs(pd.Series(mean_row["v4"]).iloc[0] - 15000.0) < 1e-6

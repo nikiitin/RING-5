@@ -1,17 +1,19 @@
-from typing import Any
+from collections.abc import Generator
+from typing import Any, cast
 from unittest.mock import patch
 
 import pandas as pd
 import pytest
 from pandas import DataFrame
 
+from src.core.models.data_models import ShaperStepConfig
 from src.web.pages.ui.shaper_config import configure_shaper
 from tests.conftest import columns_side_effect
 
 
 # Mock streamlit
 @pytest.fixture
-def mock_streamlit() -> None:
+def mock_streamlit() -> Generator[None, None, None]:
     with (
         patch("src.web.pages.ui.shaper_config.st") as mock_st,
         patch("src.web.pages.ui.components.shapers.normalize_config.st", mock_st),
@@ -44,11 +46,11 @@ def test_configure_column_selector(mock_streamlit: Any, sample_data: Any) -> Non
 
     config = configure_shaper("columnSelector", sample_data, 1, {})
 
-    assert config["type"] == "columnSelector"
-    assert config["columns"] == ["metric"]
+    assert config.get("type") == "columnSelector"
+    assert config.get("columns") == ["metric"]
 
     # Verify existing config usage
-    existing = {"columns": ["dataset"]}
+    existing = cast(ShaperStepConfig, {"columns": ["dataset"]})
     configure_shaper("columnSelector", sample_data, 1, existing)
     # Check default was passed correctly
     kwargs = mock_streamlit.multiselect.call_args[1]
@@ -63,10 +65,10 @@ def test_configure_filter_numeric(mock_streamlit: Any, sample_data: Any) -> None
 
     config = configure_shaper("conditionSelector", sample_data, 1, {})
 
-    assert config["type"] == "conditionSelector"
-    assert config["column"] == "metric"
-    assert config["mode"] == "greater_than"
-    assert config["threshold"] == 15.0
+    assert config.get("type") == "conditionSelector"
+    assert config.get("column") == "metric"
+    assert config.get("mode") == "greater_than"
+    assert config.get("threshold") == 15.0
 
 
 def test_configure_filter_categorical(mock_streamlit: Any, sample_data: Any) -> None:
@@ -79,9 +81,9 @@ def test_configure_filter_categorical(mock_streamlit: Any, sample_data: Any) -> 
 
     config = configure_shaper("conditionSelector", sample_data, 1, {})
 
-    assert config["type"] == "conditionSelector"
-    assert config["column"] == "dataset"
-    assert config["values"] == ["A"]
+    assert config.get("type") == "conditionSelector"
+    assert config.get("column") == "dataset"
+    assert config.get("values") == ["A"]
 
 
 def test_configure_mean(mock_streamlit: Any, sample_data: Any) -> None:
@@ -97,8 +99,8 @@ def test_configure_mean(mock_streamlit: Any, sample_data: Any) -> None:
 
     config = configure_shaper("mean", sample_data, 1, {})
 
-    assert config["type"] == "mean"
-    assert config["meanAlgorithm"] == "arithmean"
-    assert config["meanVars"] == ["metric"]
-    assert config["groupingColumns"] == ["dataset"]
-    assert config["replacingColumn"] == "category"
+    assert config.get("type") == "mean"
+    assert config.get("meanAlgorithm") == "arithmean"
+    assert config.get("meanVars") == ["metric"]
+    assert config.get("groupingColumns") == ["dataset"]
+    assert config.get("replacingColumn") == "category"

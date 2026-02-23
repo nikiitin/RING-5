@@ -7,9 +7,10 @@ Verifies that the controller correctly orchestrates:
     - Rerun triggers after state mutations
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
+from src.core.models.data_models import PipelineStep
 from tests.ui_logic.conftest import StubPlotHandle
 
 
@@ -17,10 +18,10 @@ from tests.ui_logic.conftest import StubPlotHandle
 # Helpers
 # ---------------------------------------------------------------------------
 def _make_controller(
-    api: Optional[MagicMock] = None,
-    ui_state: Optional[MagicMock] = None,
-    lifecycle: Optional[MagicMock] = None,
-    registry: Optional[MagicMock] = None,
+    api: MagicMock | None = None,
+    ui_state: MagicMock | None = None,
+    lifecycle: MagicMock | None = None,
+    registry: MagicMock | None = None,
 ) -> Any:
     """Build a PlotCreationController with sane mock defaults."""
     from src.web.controllers.plot.creation_controller import PlotCreationController
@@ -334,7 +335,7 @@ class TestRenderControls:
         """The on_save callback sets 'save' dialog visible and hides 'load'."""
         captured_on_save = None
 
-        def capture_render(**kwargs: Any) -> Dict[str, Any]:
+        def capture_render(**kwargs: Any) -> dict[str, Any]:
             nonlocal captured_on_save
             captured_on_save = kwargs.get("on_save")
             return {
@@ -368,7 +369,7 @@ class TestRenderControls:
         """The on_load callback sets 'load' dialog visible and hides 'save'."""
         captured_on_load = None
 
-        def capture_render(**kwargs: Any) -> Dict[str, Any]:
+        def capture_render(**kwargs: Any) -> dict[str, Any]:
             nonlocal captured_on_load
             captured_on_load = kwargs.get("on_load")
             return {
@@ -415,7 +416,7 @@ class TestHandleSaveDialog:
         plot = StubPlotHandle(
             plot_id=1,
             name="Test",
-            pipeline=[{"id": 1, "type": "sort"}],
+            pipeline=cast(list[PipelineStep], [{"id": 1, "type": "sort"}]),
         )
         api = MagicMock()
         ui_state = MagicMock()
@@ -520,7 +521,7 @@ class TestHandleLoadDialog:
             "cancel_clicked": False,
         }
 
-        loaded_pipeline: List[Dict[str, Any]] = [
+        loaded_pipeline: list[dict[str, Any]] = [
             {"id": 3, "type": "sort", "config": {}},
             {"id": 7, "type": "filter", "config": {}},
         ]

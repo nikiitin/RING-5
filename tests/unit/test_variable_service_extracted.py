@@ -5,8 +5,9 @@ Tests find_entries_for_variable, update_scanned_entries, has_variable_with_name,
 and build_statistics_list.
 """
 
-from typing import Any, Dict, List
+from typing import cast
 
+from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
 from src.core.services.data_services.variable_service import VariableService
 
 # ─── find_entries_for_variable ───────────────────────────────────────────────
@@ -16,33 +17,42 @@ class TestFindEntriesForVariable:
     """Tests for finding entries across available/scanned variables."""
 
     def test_exact_match(self) -> None:
-        avail = [
-            {"name": "system.cpu.ipc", "entries": ["cpu0", "cpu1", "total"]},
-            {"name": "system.mem.lat", "entries": ["bank0"]},
-        ]
+        avail = cast(
+            list[ScannedVariableDict],
+            [
+                {"name": "system.cpu.ipc", "entries": ["cpu0", "cpu1", "total"]},
+                {"name": "system.mem.lat", "entries": ["bank0"]},
+            ],
+        )
         result = VariableService.find_entries_for_variable(avail, "system.cpu.ipc")
         assert result == ["cpu0", "cpu1"]  # "total" filtered as internal stat
 
     def test_no_match(self) -> None:
-        avail = [{"name": "system.cpu.ipc", "entries": ["cpu0"]}]
+        avail = cast(list[ScannedVariableDict], [{"name": "system.cpu.ipc", "entries": ["cpu0"]}])
         result = VariableService.find_entries_for_variable(avail, "nonexistent")
         assert result == []
 
     def test_regex_pattern_match(self) -> None:
-        avail = [
-            {"name": "system.cpu0.ipc", "entries": ["e0", "e1"]},
-            {"name": "system.cpu1.ipc", "entries": ["e2", "e3"]},
-        ]
+        avail = cast(
+            list[ScannedVariableDict],
+            [
+                {"name": "system.cpu0.ipc", "entries": ["e0", "e1"]},
+                {"name": "system.cpu1.ipc", "entries": ["e2", "e3"]},
+            ],
+        )
         result = VariableService.find_entries_for_variable(avail, r"system\.cpu\d+\.ipc")
         assert set(result) == {"e0", "e1", "e2", "e3"}
 
     def test_filters_internal_stats(self) -> None:
-        avail = [
-            {
-                "name": "system.cpu.ipc",
-                "entries": ["cpu0", "total", "mean", "stdev", "cpu1"],
-            }
-        ]
+        avail = cast(
+            list[ScannedVariableDict],
+            [
+                {
+                    "name": "system.cpu.ipc",
+                    "entries": ["cpu0", "total", "mean", "stdev", "cpu1"],
+                }
+            ],
+        )
         result = VariableService.find_entries_for_variable(avail, "system.cpu.ipc")
         assert result == ["cpu0", "cpu1"]
 
@@ -51,15 +61,18 @@ class TestFindEntriesForVariable:
         assert result == []
 
     def test_variable_without_entries(self) -> None:
-        avail = [{"name": "system.cpu.ipc"}]
+        avail = cast(list[ScannedVariableDict], [{"name": "system.cpu.ipc"}])
         result = VariableService.find_entries_for_variable(avail, "system.cpu.ipc")
         assert result == []
 
     def test_aggregates_across_multiple_matches(self) -> None:
-        avail = [
-            {"name": "system.cpu.ipc", "entries": ["cpu0"]},
-            {"name": "system.cpu.ipc", "entries": ["cpu1"]},
-        ]
+        avail = cast(
+            list[ScannedVariableDict],
+            [
+                {"name": "system.cpu.ipc", "entries": ["cpu0"]},
+                {"name": "system.cpu.ipc", "entries": ["cpu1"]},
+            ],
+        )
         result = VariableService.find_entries_for_variable(avail, "system.cpu.ipc")
         assert set(result) == {"cpu0", "cpu1"}
 
@@ -71,9 +84,12 @@ class TestUpdateScannedEntries:
     """Tests for updating scanned variable entries."""
 
     def test_update_existing_variable(self) -> None:
-        scanned = [
-            {"name": "cpu.ipc", "type": "vector", "entries": ["old1", "old2"]},
-        ]
+        scanned = cast(
+            list[ScannedVariableDict],
+            [
+                {"name": "cpu.ipc", "type": "vector", "entries": ["old1", "old2"]},
+            ],
+        )
         result = VariableService.update_scanned_entries(
             scanned, "cpu.ipc", ["new1", "new2", "new3"]
         )
@@ -82,20 +98,25 @@ class TestUpdateScannedEntries:
 
     def test_preserves_other_fields(self) -> None:
         """Fields like pattern_indices should be preserved."""
-        scanned = [
-            {
-                "name": "cpu.ipc",
-                "type": "vector",
-                "entries": ["old"],
-                "pattern_indices": {"0": ["0", "1"]},
-            },
-        ]
+        scanned = cast(
+            list[ScannedVariableDict],
+            [
+                {
+                    "name": "cpu.ipc",
+                    "type": "vector",
+                    "entries": ["old"],
+                    "pattern_indices": {"0": ["0", "1"]},
+                },
+            ],
+        )
         result = VariableService.update_scanned_entries(scanned, "cpu.ipc", ["new"])
-        assert result[0]["pattern_indices"] == {"0": ["0", "1"]}
+        assert result[0].get("pattern_indices") == {"0": ["0", "1"]}
         assert result[0]["entries"] == ["new"]
 
     def test_add_new_variable(self) -> None:
-        scanned = [{"name": "existing", "type": "vector", "entries": ["e1"]}]
+        scanned = cast(
+            list[ScannedVariableDict], [{"name": "existing", "type": "vector", "entries": ["e1"]}]
+        )
         result = VariableService.update_scanned_entries(scanned, "new.var", ["a", "b"])
         assert len(result) == 2
         assert result[1]["name"] == "new.var"
@@ -103,7 +124,9 @@ class TestUpdateScannedEntries:
         assert result[1]["entries"] == ["a", "b"]
 
     def test_does_not_mutate_original(self) -> None:
-        scanned = [{"name": "cpu.ipc", "type": "vector", "entries": ["old"]}]
+        scanned = cast(
+            list[ScannedVariableDict], [{"name": "cpu.ipc", "type": "vector", "entries": ["old"]}]
+        )
         result = VariableService.update_scanned_entries(scanned, "cpu.ipc", ["new"])
         # Original should be unchanged
         assert scanned[0]["entries"] == ["old"]
@@ -122,18 +145,18 @@ class TestHasVariableWithName:
     """Tests for duplicate variable name detection."""
 
     def test_found(self) -> None:
-        variables = [{"name": "cpu.ipc"}, {"name": "mem.lat"}]
+        variables = cast(list[ParseVariableConfig], [{"name": "cpu.ipc"}, {"name": "mem.lat"}])
         assert VariableService.has_variable_with_name(variables, "cpu.ipc") is True
 
     def test_not_found(self) -> None:
-        variables = [{"name": "cpu.ipc"}]
+        variables = cast(list[ParseVariableConfig], [{"name": "cpu.ipc"}])
         assert VariableService.has_variable_with_name(variables, "nonexistent") is False
 
     def test_empty_list(self) -> None:
         assert VariableService.has_variable_with_name([], "any") is False
 
     def test_variable_without_name_key(self) -> None:
-        variables: List[Dict[str, Any]] = [{"type": "scalar"}]
+        variables = cast(list[ParseVariableConfig], [{"type": "scalar"}])
         assert VariableService.has_variable_with_name(variables, "cpu.ipc") is False
 
 

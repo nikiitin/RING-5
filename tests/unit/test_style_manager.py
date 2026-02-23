@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from typing import Any
 from unittest.mock import patch
 
@@ -15,7 +16,7 @@ def style_manager() -> StyleManager:
 
 
 @pytest.fixture
-def mock_streamlit() -> None:
+def mock_streamlit() -> Generator[None, None, None]:
     with patch("src.web.pages.ui.plotting.styles.base_ui.st") as mock_st:
         mock_st.session_state = {}
 

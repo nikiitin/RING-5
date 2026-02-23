@@ -2,12 +2,13 @@
 
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import cast
 
 import pandas as pd
 import pytest
 
 from src.core.application_api import ApplicationAPI
+from src.core.models.data_models import ParseVariableConfig
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
 
@@ -61,12 +62,15 @@ class TestHistogramPlotIntegration:
 
         # 2. Parse histogram data
         with tempfile.TemporaryDirectory() as tmpdir:
-            variables: List[Dict[str, Any]] = [
-                {
-                    "name": "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles",
-                    "type": "histogram",
-                    "entries": (htm_var.entries or [])[:5],  # Use first 5 buckets
-                }
+            variables: list[ParseVariableConfig] = [
+                cast(
+                    ParseVariableConfig,
+                    {
+                        "name": "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles",
+                        "type": "histogram",
+                        "entries": (htm_var.entries or [])[:5],  # Use first 5 buckets
+                    },
+                )
             ]
 
             parse_batch = facade.submit_parse_async(
@@ -108,7 +112,7 @@ class TestHistogramPlotIntegration:
             fig = plot.create_figure(data, config)
 
             assert fig is not None
-            assert len(fig.data) > 0
+            assert len(list(fig.data)) > 0
             # Title is applied by the style chain, not create_figure()
 
     def test_histogram_with_grouping(
@@ -135,16 +139,22 @@ class TestHistogramPlotIntegration:
 
         assert htm_var is not None
 
-        variables: List[Dict[str, Any]] = [
-            {
-                "name": "benchmark_name",
-                "type": "configuration",
-            },
-            {
-                "name": "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles",
-                "type": "histogram",
-                "entries": (htm_var.entries or [])[:5],
-            },
+        variables: list[ParseVariableConfig] = [
+            cast(
+                ParseVariableConfig,
+                {
+                    "name": "benchmark_name",
+                    "type": "configuration",
+                },
+            ),
+            cast(
+                ParseVariableConfig,
+                {
+                    "name": "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles",
+                    "type": "histogram",
+                    "entries": (htm_var.entries or [])[:5],
+                },
+            ),
         ]
 
         parse_batch = facade.submit_parse_async(
@@ -182,7 +192,7 @@ class TestHistogramPlotIntegration:
 
         assert fig is not None
         # Should have at least one trace
-        assert len(fig.data) >= 1
+        assert len(list(fig.data)) >= 1
 
     def test_histogram_normalization_modes(self) -> None:
         """Test different normalization modes."""
@@ -259,4 +269,4 @@ class TestHistogramPlotIntegration:
         fig = plot.create_figure(data, config)
 
         assert fig is not None
-        assert len(fig.data) > 0
+        assert len(list(fig.data)) > 0

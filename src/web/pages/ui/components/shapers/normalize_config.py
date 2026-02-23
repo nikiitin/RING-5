@@ -100,11 +100,12 @@ class NormalizeConfig:
                 ),
             )
 
-        return {
-            "normalizerVars": normalizer_vars,
-            "normalizeVars": normalize_vars,
-            "normalizerColumn": normalizer_column,
+        result: ShaperStepConfig = {
+            "normalizerVars": list(normalizer_vars) if normalizer_vars else [],
+            "normalizeVars": list(normalize_vars) if normalize_vars else [],
+            "normalizerColumn": str(normalizer_column or ""),
             "normalizerValue": str(normalizer_value) if normalizer_value is not None else "",
-            "groupBy": group_by,
-            "normalizeSd": normalize_sd,
+            "groupBy": list(group_by) if group_by else [],
+            "normalizeSd": bool(normalize_sd),
         }
+        return result

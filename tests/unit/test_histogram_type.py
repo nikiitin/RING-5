@@ -105,6 +105,7 @@ class TestHistogramEntriesProperty:
 
         # Assert - rebinned buckets: 2 standard + 1 overflow
         # bin_width = 30 / (3-1) = 15
+        assert result is not None
         assert "0-15" in result
         assert "15-30" in result
         assert "30+" in result
@@ -118,6 +119,7 @@ class TestHistogramEntriesProperty:
         result = hist.entries
 
         # Assert - single bucket, no overflow
+        assert result is not None
         assert "0-10" in result
         assert len(result) == 1
 
@@ -130,6 +132,7 @@ class TestHistogramEntriesProperty:
         result = hist.entries
 
         # Assert - sorted discovered buckets
+        assert result is not None
         assert "0-10" in result
         assert "10-20" in result
         assert "20-30" in result
@@ -143,6 +146,7 @@ class TestHistogramEntriesProperty:
         result = hist.entries
 
         # Assert - statistics appended
+        assert result is not None
         assert "mean" in result
         assert "samples" in result
 
@@ -614,6 +618,7 @@ class TestHistogramEdgeCases:
         result = hist.entries
 
         # Assert - sorted lexicographically
+        assert result is not None
         assert result[0] == "0-100"
         assert result[1] == "100-200"
         assert result[2] == "200-300"

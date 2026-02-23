@@ -1,5 +1,7 @@
 """Tests for GroupedBarPlot.create_figure — no-group and edge case branches."""
 
+from typing import cast
+
 import pandas as pd
 import plotly.graph_objects as go
 import pytest
@@ -41,7 +43,7 @@ class TestCreateFigureNoGroup:
         }
         fig = plot.create_figure(data, config)
         assert isinstance(fig, go.Figure)
-        assert len(fig.data) == 1  # Single trace
+        assert len(list(fig.data)) == 1  # Single trace
         assert fig.layout.barmode == "group"
 
     def test_no_group_with_error_bars(self, plot: GroupedBarPlot) -> None:
@@ -55,8 +57,10 @@ class TestCreateFigureNoGroup:
             "show_error_bars": True,
         }
         fig = plot.create_figure(data, config)
-        assert fig.data[0].error_y is not None
-        assert fig.data[0].error_y.visible is True
+        bar0 = cast(go.Bar, fig.data[0])
+        error_y_obj = cast(go.bar.ErrorY, bar0.error_y)
+        assert error_y_obj is not None
+        assert error_y_obj.visible is True
 
     def test_no_group_error_bars_no_sd_column(self, plot: GroupedBarPlot) -> None:
         """No-group with error bars but no .sd column → error_y has no array."""
@@ -70,8 +74,9 @@ class TestCreateFigureNoGroup:
         }
         fig = plot.create_figure(data, config)
         # No sd column means error_y dict is None (not set)
-        error_y = fig.data[0].error_y
-        assert error_y is None or error_y.array is None
+        bar0 = cast(go.Bar, fig.data[0])
+        error_y = bar0.error_y
+        assert error_y is None or cast(go.bar.ErrorY, error_y).array is None
 
     def test_no_group_empty_string(self, plot: GroupedBarPlot) -> None:
         """Empty string group is treated as no-group."""
@@ -84,7 +89,7 @@ class TestCreateFigureNoGroup:
             "show_error_bars": False,
         }
         fig = plot.create_figure(data, config)
-        assert len(fig.data) == 1
+        assert len(list(fig.data)) == 1
 
 
 class TestCreateFigureWithGroup:
@@ -116,7 +121,7 @@ class TestCreateFigureWithGroup:
             "show_error_bars": False,
         }
         fig = plot.create_figure(sample_data, config)
-        assert len(fig.data) == 1  # Only group X
+        assert len(list(fig.data)) == 1  # Only group X
 
     def test_xaxis_order(self, plot: GroupedBarPlot, sample_data: pd.DataFrame) -> None:
         """Custom xaxis_order is respected."""
@@ -144,8 +149,8 @@ class TestCreateFigureWithGroup:
         }
         fig = plot.create_figure(sample_data, config)
         # Trace names should follow order
-        assert fig.data[0].name == "Y"
-        assert fig.data[1].name == "X"
+        assert cast(go.Bar, fig.data[0]).name == "Y"
+        assert cast(go.Bar, fig.data[1]).name == "X"
 
     def test_group_with_error_bars(self, plot: GroupedBarPlot, sample_data: pd.DataFrame) -> None:
         """Grouped with error bars."""
@@ -158,7 +163,7 @@ class TestCreateFigureWithGroup:
         }
         fig = plot.create_figure(sample_data, config)
         for trace in fig.data:
-            assert trace.error_y is not None
+            assert cast(go.Bar, trace).error_y is not None
 
     def test_shapes_config_combined(self, plot: GroupedBarPlot, sample_data: pd.DataFrame) -> None:
         """User shapes and distinction shapes are combined."""

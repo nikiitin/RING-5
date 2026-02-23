@@ -1,9 +1,12 @@
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.parsing.gem5.impl.strategies.gem5_parse_work import Gem5ParseWork
+from src.core.parsing.gem5.impl.strategies.gem5_parse_work import (
+    Gem5ParseWork,
+    VarsDictType,
+)
 
 
 class MockType:
@@ -35,8 +38,8 @@ class Distribution:
 
 class Configuration:
     def __init__(self) -> None:
-        self.content = None
-        self.onEmpty = None
+        self.content: Any = None
+        self.onEmpty: str | None = None
 
 
 @pytest.fixture
@@ -118,7 +121,7 @@ def test_process_output_empty_returns_defaults(parser: Any) -> None:
 
 
 def test_validate_vars_config_default() -> None:
-    vars_map = {"config_var": Configuration()}
+    vars_map: VarsDictType = cast(VarsDictType, {"config_var": Configuration()})
     vars_map["config_var"].onEmpty = "Default"
     # Content must not be None to pass first check, but empty to trigger default logic
     vars_map["config_var"].content = []
@@ -130,7 +133,7 @@ def test_validate_vars_config_default() -> None:
 
 
 def test_validate_vars_config_no_default_fail() -> None:
-    vars_map = {"config_var": Configuration()}
+    vars_map: VarsDictType = cast(VarsDictType, {"config_var": Configuration()})
     vars_map["config_var"].onEmpty = None
     vars_map["config_var"].content = []
 

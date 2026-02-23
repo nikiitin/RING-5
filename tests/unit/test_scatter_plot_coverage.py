@@ -27,7 +27,7 @@ class TestScatterPlotCreateFigure:
         config = {"x": "x", "y": "y", "title": "T", "xlabel": "X", "ylabel": "Y"}
         fig = plot.create_figure(sample_data, config)
         assert isinstance(fig, go.Figure)
-        assert len(fig.data) >= 1
+        assert len(list(fig.data)) >= 1
 
     def test_scatter_with_color(self, sample_data: pd.DataFrame) -> None:
         plot = ScatterPlot(1, "test")
@@ -40,7 +40,7 @@ class TestScatterPlotCreateFigure:
             "ylabel": "Y",
         }
         fig = plot.create_figure(sample_data, config)
-        assert len(fig.data) >= 2
+        assert len(list(fig.data)) >= 2
 
     def test_scatter_with_error_bars(self, sample_data: pd.DataFrame) -> None:
         plot = ScatterPlot(1, "test")

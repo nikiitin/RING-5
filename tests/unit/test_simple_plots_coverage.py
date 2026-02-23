@@ -1,6 +1,6 @@
 """Tests for simple plot types render_config_ui and create_figure — branch coverage."""
 
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -79,7 +79,7 @@ class TestBarPlotCreateFigure:
         from src.web.pages.ui.plotting.types.bar_plot import BarPlot
 
         plot = BarPlot(1, "test")
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "benchmark",
             "y": "cycles",
             "title": "Test",
@@ -93,7 +93,7 @@ class TestBarPlotCreateFigure:
         from src.web.pages.ui.plotting.types.bar_plot import BarPlot
 
         plot = BarPlot(1, "test")
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "benchmark",
             "y": "ipc",
             "title": "Test",
@@ -108,7 +108,7 @@ class TestBarPlotCreateFigure:
         from src.web.pages.ui.plotting.types.bar_plot import BarPlot
 
         plot = BarPlot(1, "test")
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "benchmark",
             "y": "cycles",
             "title": "Test",
@@ -120,7 +120,7 @@ class TestBarPlotCreateFigure:
         }
         fig = plot.create_figure(sample_df, config)
         assert isinstance(fig, go.Figure)
-        assert len(fig.data) > 0
+        assert len(list(fig.data)) > 0
 
     def test_get_legend_column_none(self) -> None:
         from src.web.pages.ui.plotting.types.bar_plot import BarPlot
@@ -186,7 +186,7 @@ class TestLinePlotCreateFigure:
         from src.web.pages.ui.plotting.types.line_plot import LinePlot
 
         plot = LinePlot(1, "test")
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "benchmark",
             "y": "cycles",
             "title": "Test",
@@ -200,7 +200,7 @@ class TestLinePlotCreateFigure:
         from src.web.pages.ui.plotting.types.line_plot import LinePlot
 
         plot = LinePlot(1, "test")
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "benchmark",
             "y": "ipc",
             "title": "Test",
@@ -215,7 +215,7 @@ class TestLinePlotCreateFigure:
         from src.web.pages.ui.plotting.types.line_plot import LinePlot
 
         plot = LinePlot(1, "test")
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "cycles",
             "y": "ipc",
             "title": "Test",
@@ -297,7 +297,7 @@ class TestScatterPlotCreateFigure:
         from src.web.pages.ui.plotting.types.scatter_plot import ScatterPlot
 
         plot = ScatterPlot(1, "test")
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "cycles",
             "y": "ipc",
             "title": "Test",
@@ -311,7 +311,7 @@ class TestScatterPlotCreateFigure:
         from src.web.pages.ui.plotting.types.scatter_plot import ScatterPlot
 
         plot = ScatterPlot(1, "test")
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "cycles",
             "y": "ipc",
             "title": "Test",
@@ -326,7 +326,7 @@ class TestScatterPlotCreateFigure:
         from src.web.pages.ui.plotting.types.scatter_plot import ScatterPlot
 
         plot = ScatterPlot(1, "test")
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "cycles",
             "y": "ipc",
             "title": "Test",

@@ -6,7 +6,7 @@ Tests cover:
 - Config propagation (enabled/disabled states)
 """
 
-from typing import Any
+from typing import Any, cast
 
 import plotly.graph_objects as go
 import pytest
@@ -56,7 +56,8 @@ class TestPlotlyReferenceLine:
 
         # add_hline creates a shape with type="line",
         # xref="paper" (Plotly <6) or "x domain" (Plotly >=6)
-        shapes = result.layout.shapes
+        layout = cast("go.Layout", result.layout)
+        shapes = layout.shapes
         assert shapes is not None
         hlines = [
             s
@@ -76,7 +77,8 @@ class TestPlotlyReferenceLine:
         applicator = StyleApplicator("grouped_bar")
         result = applicator.apply_styles(simple_figure, config)
 
-        shapes = result.layout.shapes or ()
+        layout = cast("go.Layout", result.layout)
+        shapes = layout.shapes or ()
         hlines = [
             s
             for s in shapes
@@ -94,7 +96,8 @@ class TestPlotlyReferenceLine:
         applicator = StyleApplicator("grouped_bar")
         result = applicator.apply_styles(simple_figure, config)
 
-        shapes = result.layout.shapes or ()
+        layout = cast("go.Layout", result.layout)
+        shapes = layout.shapes or ()
         hlines = [
             s
             for s in shapes
@@ -116,7 +119,9 @@ class TestPlotlyReferenceLine:
         applicator = StyleApplicator("grouped_bar")
         result = applicator.apply_styles(simple_figure, config)
 
-        shapes = result.layout.shapes
+        layout = cast("go.Layout", result.layout)
+        shapes = layout.shapes
+        assert shapes is not None
         hlines = [
             s
             for s in shapes
@@ -141,7 +146,9 @@ class TestPlotlyReferenceLine:
             fig = go.Figure(data=[go.Bar(x=["a"], y=[1])])
             result = applicator.apply_styles(fig, config)
 
-            shapes = result.layout.shapes
+            layout = cast("go.Layout", result.layout)
+            shapes = layout.shapes
+            assert shapes is not None
             hlines = [
                 s
                 for s in shapes

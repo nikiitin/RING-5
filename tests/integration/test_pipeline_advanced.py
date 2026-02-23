@@ -12,12 +12,13 @@ Tests:
 """
 
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, cast
 
 import pandas as pd
 import pytest
 
 from src.core.application_api import ApplicationAPI
+from src.core.models.data_models import PipelineData, PipelineStep, ShaperStepConfig
 from src.core.services.shapers.factory import ShaperFactory
 from src.core.services.shapers.pipeline_service import PipelineService
 
@@ -33,7 +34,7 @@ class TestPipelineRoundTrip:
         """Saved pipeline loads back with identical config."""
         service = PipelineService(tmp_path / "pipelines")
 
-        pipeline: List[Dict[str, Any]] = [
+        pipeline: list[dict[str, Any]] = [
             {
                 "type": "columnSelector",
                 "columns": ["benchmark_name", "config_description", "system.cpu.ipc"],
@@ -47,12 +48,14 @@ class TestPipelineRoundTrip:
             },
         ]
 
-        service.save_pipeline("test_pipe", pipeline, description="Test description")
+        service.save_pipeline(
+            "test_pipe", cast(list[PipelineStep], pipeline), description="Test description"
+        )
 
-        loaded: Dict[str, Any] = service.load_pipeline("test_pipe")
+        loaded: PipelineData = service.load_pipeline("test_pipe")
 
         assert loaded["name"] == "test_pipe"
-        assert loaded["description"] == "Test description"
+        assert loaded.get("description") == "Test description"
         assert len(loaded["pipeline"]) == 2
         assert loaded["pipeline"][0]["type"] == "columnSelector"
         assert loaded["pipeline"][1]["type"] == "normalize"
@@ -65,7 +68,7 @@ class TestPipelineRoundTrip:
         """Saved pipeline → load → apply to data produces correct result."""
         service = PipelineService(tmp_path / "pipelines")
 
-        pipeline: List[Dict[str, Any]] = [
+        pipeline: list[dict[str, Any]] = [
             {
                 "type": "columnSelector",
                 "columns": ["benchmark_name", "config_description", "system.cpu.ipc"],
@@ -79,14 +82,14 @@ class TestPipelineRoundTrip:
         ]
 
         # Save
-        service.save_pipeline("apply_test", pipeline)
+        service.save_pipeline("apply_test", cast(list[PipelineStep], pipeline))
 
         # Load
-        loaded: Dict[str, Any] = service.load_pipeline("apply_test")
+        loaded: PipelineData = service.load_pipeline("apply_test")
 
         # Apply loaded pipeline to data
         result: pd.DataFrame = PipelineService.process_pipeline(
-            rich_sample_data, loaded["pipeline"]
+            rich_sample_data, cast(list[ShaperStepConfig], loaded["pipeline"])
         )
 
         assert list(result.columns) == [
@@ -100,16 +103,20 @@ class TestPipelineRoundTrip:
         """Saved pipelines appear in list, deleted ones disappear."""
         service = PipelineService(tmp_path / "pipelines")
 
-        service.save_pipeline("alpha", [{"type": "columnSelector", "columns": ["a"]}])
-        service.save_pipeline("beta", [{"type": "columnSelector", "columns": ["b"]}])
+        service.save_pipeline(
+            "alpha", cast(list[PipelineStep], [{"type": "columnSelector", "columns": ["a"]}])
+        )
+        service.save_pipeline(
+            "beta", cast(list[PipelineStep], [{"type": "columnSelector", "columns": ["b"]}])
+        )
 
-        names: List[str] = service.list_pipelines()
+        names: list[str] = service.list_pipelines()
         assert "alpha" in names
         assert "beta" in names
 
         service.delete_pipeline("alpha")
 
-        names_after: List[str] = service.list_pipelines()
+        names_after: list[str] = service.list_pipelines()
         assert "alpha" not in names_after
         assert "beta" in names_after
 
@@ -134,9 +141,11 @@ class TestComplexPipelines:
         loaded_facade: ApplicationAPI,
     ) -> None:
         """Pipeline: columnSelector → normalize → sort."""
-        data: pd.DataFrame = loaded_facade.state_manager.get_data()
+        data_or_none = loaded_facade.state_manager.get_data()
+        assert data_or_none is not None
+        data: pd.DataFrame = data_or_none
 
-        pipeline: List[Dict[str, Any]] = [
+        pipeline: list[dict[str, Any]] = [
             {
                 "type": "columnSelector",
                 "columns": [
@@ -160,7 +169,9 @@ class TestComplexPipelines:
             },
         ]
 
-        result: pd.DataFrame = loaded_facade.apply_shapers(data, pipeline)
+        result: pd.DataFrame = loaded_facade.apply_shapers(
+            data, cast(list[ShaperStepConfig], pipeline)
+        )
 
         # Check columns
         assert list(result.columns) == [
@@ -183,9 +194,11 @@ class TestComplexPipelines:
         loaded_facade: ApplicationAPI,
     ) -> None:
         """Pipeline: columnSelector → mean aggregation."""
-        data: pd.DataFrame = loaded_facade.state_manager.get_data()
+        data_or_none = loaded_facade.state_manager.get_data()
+        assert data_or_none is not None
+        data: pd.DataFrame = data_or_none
 
-        pipeline: List[Dict[str, Any]] = [
+        pipeline: list[dict[str, Any]] = [
             {
                 "type": "columnSelector",
                 "columns": [
@@ -203,7 +216,9 @@ class TestComplexPipelines:
             },
         ]
 
-        result: pd.DataFrame = loaded_facade.apply_shapers(data, pipeline)
+        result: pd.DataFrame = loaded_facade.apply_shapers(
+            data, cast(list[ShaperStepConfig], pipeline)
+        )
 
         # Should have original rows + mean rows
         assert len(result) > len(data)
@@ -213,9 +228,10 @@ class TestComplexPipelines:
         assert len(mean_rows) > 0
 
         # Mean of baseline IPC: (2.10 + 1.45 + 1.78) / 3 ≈ 1.7767
-        baseline_mean = mean_rows[mean_rows["config_description"] == "baseline"][
-            "system.cpu.ipc"
-        ].iloc[0]
+        baseline_col = pd.Series(
+            mean_rows[mean_rows["config_description"] == "baseline"]["system.cpu.ipc"]
+        )
+        baseline_mean = baseline_col.iloc[0]
         expected: float = (2.10 + 1.45 + 1.78) / 3
         assert abs(baseline_mean - expected) < 0.01
 
@@ -224,9 +240,11 @@ class TestComplexPipelines:
         loaded_facade: ApplicationAPI,
     ) -> None:
         """Full scientific pipeline: select → normalize → mean → sort."""
-        data: pd.DataFrame = loaded_facade.state_manager.get_data()
+        data_or_none = loaded_facade.state_manager.get_data()
+        assert data_or_none is not None
+        data: pd.DataFrame = data_or_none
 
-        pipeline: List[Dict[str, Any]] = [
+        pipeline: list[dict[str, Any]] = [
             {
                 "type": "columnSelector",
                 "columns": [
@@ -262,16 +280,19 @@ class TestComplexPipelines:
             },
         ]
 
-        result: pd.DataFrame = loaded_facade.apply_shapers(data, pipeline)
+        result: pd.DataFrame = loaded_facade.apply_shapers(
+            data, cast(list[ShaperStepConfig], pipeline)
+        )
 
         # Verify geomean row exists
         geomean_rows = result[result["benchmark_name"] == "geomean"]
         assert len(geomean_rows) > 0
 
         # Baseline geomean should be ~1.0 (all baselines are 1.0 after normalize)
-        baseline_geomean = geomean_rows[geomean_rows["config_description"] == "baseline"][
-            "system.cpu.ipc"
-        ].iloc[0]
+        baseline_col = pd.Series(
+            geomean_rows[geomean_rows["config_description"] == "baseline"]["system.cpu.ipc"]
+        )
+        baseline_geomean = baseline_col.iloc[0]
         assert abs(baseline_geomean - 1.0) < 1e-6
 
         # Check sort order

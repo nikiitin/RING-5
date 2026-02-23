@@ -4,6 +4,8 @@ Unit tests for preset manager.
 Tests loading, validation, and management of LaTeX export presets.
 """
 
+from typing import cast
+
 import pytest
 
 from src.web.pages.ui.plotting.export.presets.preset_manager import PresetManager
@@ -51,7 +53,7 @@ def create_valid_preset(**overrides: float | str | int | bool) -> LaTeXPreset:
         "xtick_ha": "right",
         "xtick_offset": 0.0,
         "group_separator": False,
-        "group_separator_style": "dashed",
+        "group_separator_style": "dash",
         "group_separator_color": "gray",
         "latex_extra_preamble": "",
     }
@@ -65,34 +67,34 @@ class TestPresetManager:
         """Verify single column preset loads correctly."""
         preset = PresetManager.load_preset("single_column")
 
-        assert preset["width_inches"] == 3.5
-        assert preset["height_inches"] == 1.96875  # Updated 9:16 aspect ratio
-        assert preset["font_family"] == "serif"
-        assert preset["dpi"] == 300
+        assert preset.get("width_inches") == 3.5
+        assert preset.get("height_inches") == 1.96875  # Updated 9:16 aspect ratio
+        assert preset.get("font_family") == "serif"
+        assert preset.get("dpi") == 300
 
     def test_load_double_column_preset(self) -> None:
         """Verify double column preset loads correctly."""
         preset = PresetManager.load_preset("double_column")
 
-        assert preset["width_inches"] == 7.0
-        assert preset["height_inches"] == 5.25
-        assert preset["font_size_base"] == 10
+        assert preset.get("width_inches") == 7.0
+        assert preset.get("height_inches") == 5.25
+        assert preset.get("font_size_base") == 10
 
     def test_load_nature_preset(self) -> None:
         """Verify Nature journal preset loads correctly."""
         preset = PresetManager.load_preset("nature")
 
-        assert preset["width_inches"] == 3.5
-        assert preset["height_inches"] == 3.5  # Square for Nature
-        assert preset["font_family"] == "Arial"  # Nature requires Arial
-        assert preset["dpi"] == 600  # Nature requires high DPI
+        assert preset.get("width_inches") == 3.5
+        assert preset.get("height_inches") == 3.5  # Square for Nature
+        assert preset.get("font_family") == "Arial"  # Nature requires Arial
+        assert preset.get("dpi") == 600  # Nature requires high DPI
 
     def test_load_ieee_preset(self) -> None:
         """Verify IEEE conference preset loads correctly."""
         preset = PresetManager.load_preset("ieee_single")
 
-        assert preset["width_inches"] == 3.5
-        assert preset["dpi"] == 300
+        assert preset.get("width_inches") == 3.5
+        assert preset.get("dpi") == 300
 
     def test_acm_preset_has_zi4_preamble(self) -> None:
         """ACM-based presets include zi4 font package for Inconsolata monospace."""
@@ -163,7 +165,7 @@ class TestPresetManager:
         }
 
         with pytest.raises(ValueError, match="Missing required field"):
-            PresetManager.validate_preset(incomplete_preset)
+            PresetManager.validate_preset(cast(LaTeXPreset, incomplete_preset))
 
     def test_validate_preset_with_negative_font_size_raises_error(self) -> None:
         """Verify validation catches negative font sizes."""

@@ -291,10 +291,10 @@ class BasePlot(ABC):
 
         with col2:
             # Title & Labels
-            default_title = saved_config.get("title", f"{y_column} by {x_column}")
-            default_xlabel = saved_config.get("xlabel", x_column)
-            default_ylabel = saved_config.get("ylabel", y_column)
-            default_legend_title = saved_config.get("legend_title", "")
+            default_title = saved_config.get("title", f"{y_column} by {x_column}") or ""
+            default_xlabel: str = str(saved_config.get("xlabel", x_column) or "")
+            default_ylabel: str = str(saved_config.get("ylabel", y_column) or "")
+            default_legend_title: str = str(saved_config.get("legend_title", "") or "")
 
             from src.web.pages.ui.components.plot_config_components import (
                 PlotConfigComponents,

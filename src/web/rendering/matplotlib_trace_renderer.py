@@ -190,10 +190,10 @@ class MatplotlibTraceRenderer:
 
         if is_categorical and bar_idx == 0:
             base_positions = list(range(len(spec.x)))
-            ax.set_xticks(base_positions)
+            ax.xaxis.set_ticks(base_positions)
             if not categorical_labels:
                 categorical_labels.extend(str(v) for v in spec.x)
-            ax.set_xticklabels(categorical_labels)
+            ax.xaxis.set_ticklabels(categorical_labels)
 
     # ── line ───────────────────────────────────────────────────────────────
 

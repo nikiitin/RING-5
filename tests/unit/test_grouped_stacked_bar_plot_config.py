@@ -1,7 +1,9 @@
-from typing import Any
+from collections.abc import Generator
+from typing import Any, cast
 from unittest.mock import patch
 
 import pandas as pd
+import plotly.graph_objects as go
 import pytest
 from pandas import DataFrame
 
@@ -12,7 +14,7 @@ from tests.conftest import columns_side_effect
 
 
 @pytest.fixture
-def mock_streamlit() -> None:
+def mock_streamlit() -> Generator[None, None, None]:
     with (
         patch("src.web.pages.ui.plotting.types.grouped_stacked_bar_plot.st") as mock_st,
         patch("src.web.pages.ui.components.plot_config_components.st", mock_st),
@@ -129,12 +131,13 @@ def test_create_figure_grouped_calculated(sample_data: Any) -> None:
     # Implementation loops over y_columns and adds trace.
     # GSB adds one trace per Y column.
 
-    assert len(fig.data) == 1
-    trace = fig.data[0]
+    assert len(list(fig.data)) == 1
+    trace = cast(go.Bar, fig.data[0])
 
     # Data has 2 rows (A, Low) and (B, High).
     # So 2 bars.
-    assert len(trace.x) == 2
+    x_data = cast(tuple[str, ...], trace.x)
+    assert len(x_data) == 2
 
     # Check customdata (totals)
     assert trace.customdata is not None

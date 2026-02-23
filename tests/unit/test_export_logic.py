@@ -1,5 +1,6 @@
 import os
 import sys
+from collections.abc import Generator
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -8,7 +9,7 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
-def _mock_streamlit_module() -> None:
+def _mock_streamlit_module() -> Generator[None, None, None]:
     """Patch streamlit in sys.modules for isolation — undone after each test."""
     with patch.dict(sys.modules, {"streamlit": MagicMock()}):
         yield

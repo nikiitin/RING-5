@@ -1,20 +1,25 @@
 import os
+from typing import cast
 
 from src.core.application_api import ApplicationAPI
+from src.core.models.data_models import ParseVariableConfig
 
 
 def test_parser_integration() -> None:
     facade = ApplicationAPI()
 
     # Mock variables
-    variables = [
-        {
-            "name": "test_vector",
-            "type": "vector",
-            "vectorEntries": ["entry1", "entry2"],
-            "useSpecialMembers": False,
-        }
-    ]
+    variables = cast(
+        list[ParseVariableConfig],
+        [
+            {
+                "name": "test_vector",
+                "type": "vector",
+                "vectorEntries": ["entry1", "entry2"],
+                "useSpecialMembers": False,
+            }
+        ],
+    )
 
     # Create dummy stats file
     stats_dir = "test_stats_dir"

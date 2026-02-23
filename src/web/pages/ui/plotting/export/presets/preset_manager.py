@@ -153,7 +153,7 @@ class PresetManager:
             "xtick_ha": raw_preset.get("xtick_ha", "right"),
             "xtick_offset": raw_preset.get("xtick_offset", 0.0),
             "group_separator": raw_preset.get("group_separator", False),
-            "group_separator_style": raw_preset.get("group_separator_style", "dashed"),
+            "group_separator_style": raw_preset.get("group_separator_style", "dash"),
             "group_separator_color": raw_preset.get("group_separator_color", "#808080"),
             # Legend position override
             "legend_x": raw_preset.get("legend_x", -1.0),
@@ -246,38 +246,38 @@ class PresetManager:
                 raise ValueError(f"Missing required field: {field}")
 
         # Validate dimensions are positive
-        if preset["width_inches"] <= 0:
+        if preset.get("width_inches", 0) <= 0:
             raise ValueError("width_inches must be positive")
 
-        if preset["height_inches"] <= 0:
+        if preset.get("height_inches", 0) <= 0:
             raise ValueError("height_inches must be positive")
 
         # Validate font sizes are positive
-        if preset["font_size_base"] <= 0:
+        if preset.get("font_size_base", 0) <= 0:
             raise ValueError("font_size_base must be positive")
 
-        if preset["font_size_title"] <= 0:
+        if preset.get("font_size_title", 0) <= 0:
             raise ValueError("font_size_title must be positive")
 
-        if preset["font_size_xlabel"] <= 0:
+        if preset.get("font_size_xlabel", 0) <= 0:
             raise ValueError("font_size_xlabel must be positive")
 
-        if preset["font_size_ylabel"] <= 0:
+        if preset.get("font_size_ylabel", 0) <= 0:
             raise ValueError("font_size_ylabel must be positive")
 
-        if preset["font_size_legend"] <= 0:
+        if preset.get("font_size_legend", 0) <= 0:
             raise ValueError("font_size_legend must be positive")
 
-        if preset["font_size_ticks"] <= 0:
+        if preset.get("font_size_ticks", 0) <= 0:
             raise ValueError("font_size_ticks must be positive")
 
         # Validate line width and marker size are positive
-        if preset["line_width"] <= 0:
+        if preset.get("line_width", 0) <= 0:
             raise ValueError("line_width must be positive")
 
-        if preset["marker_size"] <= 0:
+        if preset.get("marker_size", 0) <= 0:
             raise ValueError("marker_size must be positive")
 
         # Validate DPI is positive
-        if preset["dpi"] <= 0:
+        if preset.get("dpi", 0) <= 0:
             raise ValueError("dpi must be positive")

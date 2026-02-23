@@ -4,12 +4,15 @@ These are mid-layer modules that sit between raw parsing and the
 ApplicationAPI facade.
 """
 
+from collections.abc import Generator
 from pathlib import Path
+from typing import cast
 from unittest.mock import patch
 
 import pytest
 
 from src.core.models import ScannedVariable, StatConfig
+from src.core.models.parsing_models import StatParamValue
 from src.core.parsing.gem5.types.type_mapper import TypeMapper
 from src.core.services.data_services.path_service import PathService
 
@@ -59,7 +62,7 @@ class TestTypeMapper:
         assert stat is not None
 
     def test_create_stat_from_dict(self) -> None:
-        config = {"name": "ipc", "type": "scalar"}
+        config = cast(dict[str, StatParamValue], {"name": "ipc", "type": "scalar"})
         stat = TypeMapper.create_stat(config)
         assert stat is not None
 
@@ -186,7 +189,7 @@ class TestPathService:
     """Tests for PathService — centralized path resolution."""
 
     @pytest.fixture(autouse=True)
-    def reset_path_caches(self) -> None:
+    def reset_path_caches(self) -> Generator[None, None, None]:
         """Reset PathService class-level caches for test isolation."""
         PathService.reset_caches()
         yield

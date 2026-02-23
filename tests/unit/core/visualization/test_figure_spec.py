@@ -118,7 +118,7 @@ class TestFigureSpecConstruction:
         """Default separator should be disabled."""
         spec = FigureConfig()
         assert spec.separator.enabled is False
-        assert spec.separator.style == "dashed"
+        assert spec.separator.style == "dash"
         assert spec.separator.color == "gray"
 
 
@@ -166,7 +166,7 @@ class TestFigureSpecSerialization:
             ),
             legends=[legend],
             annotations=[annotation],
-            separator=SeparatorConfig(enabled=True, style="dotted", color="blue"),
+            separator=SeparatorConfig(enabled=True, style="dot", color="blue"),
             title="Performance Results",
             paper_bgcolor="#FAFAFA",
             font_family="sans-serif",
@@ -193,7 +193,7 @@ class TestFigureSpecSerialization:
         assert len(restored.annotations) == 1
         assert restored.annotations[0].text == "Threshold"
         assert restored.separator.enabled is True
-        assert restored.separator.style == "dotted"
+        assert restored.separator.style == "dot"
         assert restored.title == "Performance Results"
 
     def test_to_dict_is_plain_dict(self) -> None:

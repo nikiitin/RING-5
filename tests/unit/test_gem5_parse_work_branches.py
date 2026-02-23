@@ -10,11 +10,15 @@ Covers:
 - _processLine: unknown variable skip for entry types
 """
 
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.parsing.gem5.impl.strategies.gem5_parse_work import Gem5ParseWork
+from src.core.parsing.gem5.impl.strategies.gem5_parse_work import (
+    Gem5ParseWork,
+    VarsDictType,
+)
 
 
 class Scalar:
@@ -55,7 +59,7 @@ class TestStr:
     """Tests for __str__ method."""
 
     def test_str_representation(self) -> None:
-        work = Gem5ParseWork("path/to/stats.txt", {"var": Scalar()})
+        work = Gem5ParseWork("path/to/stats.txt", cast(VarsDictType, {"var": Scalar()}))
         assert str(work) == "Gem5ParseWork(path/to/stats.txt)"
 
 
@@ -64,7 +68,7 @@ class TestProcessEntryTypeResolution:
 
     def test_histogram_to_vector_resolution(self) -> None:
         """When target expects vector but Perl says histogram, resolve to vector."""
-        vars_map = {"myvar": Vector()}
+        vars_map = cast(VarsDictType, {"myvar": Vector()})
         work = Gem5ParseWork("f", vars_map)
         work._entryBuffer = {}
 
@@ -73,7 +77,7 @@ class TestProcessEntryTypeResolution:
 
     def test_histogram_to_distribution_resolution(self) -> None:
         """When target expects distribution but Perl says histogram, resolve to distribution."""
-        vars_map = {"myvar": Distribution()}
+        vars_map = cast(VarsDictType, {"myvar": Distribution()})
         work = Gem5ParseWork("f", vars_map)
         work._entryBuffer = {}
 
@@ -82,7 +86,7 @@ class TestProcessEntryTypeResolution:
 
     def test_histogram_to_histogram_resolution(self) -> None:
         """When target expects histogram and Perl says histogram."""
-        vars_map = {"myvar": Histogram()}
+        vars_map = cast(VarsDictType, {"myvar": Histogram()})
         work = Gem5ParseWork("f", vars_map)
         work._entryBuffer = {}
 
@@ -91,7 +95,7 @@ class TestProcessEntryTypeResolution:
 
     def test_vector_to_distribution_resolution(self) -> None:
         """When target expects distribution but Perl says vector, resolve to distribution."""
-        vars_map = {"myvar": Distribution()}
+        vars_map = cast(VarsDictType, {"myvar": Distribution()})
         work = Gem5ParseWork("f", vars_map)
         work._entryBuffer = {}
 
@@ -100,7 +104,7 @@ class TestProcessEntryTypeResolution:
 
     def test_vector_to_histogram_resolution(self) -> None:
         """When target expects histogram but Perl says vector, resolve to histogram."""
-        vars_map = {"myvar": Histogram()}
+        vars_map = cast(VarsDictType, {"myvar": Histogram()})
         work = Gem5ParseWork("f", vars_map)
         work._entryBuffer = {}
 
@@ -109,7 +113,7 @@ class TestProcessEntryTypeResolution:
 
     def test_unknown_variable_returns_none(self) -> None:
         """When baseID not in varsToParse, should return None."""
-        vars_map = {"known": Vector()}
+        vars_map = cast(VarsDictType, {"known": Vector()})
         work = Gem5ParseWork("f", vars_map)
         work._entryBuffer = {}
 
@@ -118,7 +122,7 @@ class TestProcessEntryTypeResolution:
 
     def test_entry_buffered_after_processing(self) -> None:
         """Entry should be buffered after type resolution."""
-        vars_map = {"myvar": Vector()}
+        vars_map = cast(VarsDictType, {"myvar": Vector()})
         work = Gem5ParseWork("f", vars_map)
         work._entryBuffer = {}
 
@@ -132,7 +136,7 @@ class TestProcessSummary:
 
     def test_standalone_summary(self) -> None:
         """Standalone summary via __get_summary should populate content."""
-        vars_map = {"myvar__get_summary": Summary()}
+        vars_map = cast(VarsDictType, {"myvar__get_summary": Summary()})
         work = Gem5ParseWork("f", vars_map)
 
         work._processSummary("myvar", "42.5", vars_map)
@@ -140,7 +144,7 @@ class TestProcessSummary:
 
     def test_entry_style_summary(self) -> None:
         """Entry-style summary (e.g., var::total) should be buffered."""
-        vars_map = {"myvar": Distribution()}
+        vars_map = cast(VarsDictType, {"myvar": Distribution()})
         work = Gem5ParseWork("f", vars_map)
         work._entryBuffer = {}
 
@@ -149,7 +153,7 @@ class TestProcessSummary:
 
     def test_summary_unknown_var_no_crash(self) -> None:
         """Summary for unknown variable should not crash."""
-        vars_map = {"other": Scalar()}
+        vars_map = cast(VarsDictType, {"other": Scalar()})
         work = Gem5ParseWork("f", vars_map)
         work._entryBuffer = {}
 
@@ -158,7 +162,7 @@ class TestProcessSummary:
 
     def test_summary_entry_style_non_entry_type(self) -> None:
         """Summary with :: but target is scalar (not entry type) should try standalone."""
-        vars_map = {"myvar": Scalar(), "myvar__get_summary": Summary()}
+        vars_map = cast(VarsDictType, {"myvar": Scalar(), "myvar__get_summary": Summary()})
         work = Gem5ParseWork("f", vars_map)
         work._entryBuffer = {}
 
@@ -171,7 +175,7 @@ class TestProcessLineEdgeCases:
 
     def test_configuration_type(self) -> None:
         """Configuration type should set content directly."""
-        vars_map = {"config_var": Configuration()}
+        vars_map = cast(VarsDictType, {"config_var": Configuration()})
         work = Gem5ParseWork("f", vars_map)
 
         work._processLine("Configuration/config_var/my_benchmark", vars_map)
@@ -179,7 +183,7 @@ class TestProcessLineEdgeCases:
 
     def test_unknown_type_raises(self) -> None:
         """Unknown type in Perl output should raise RuntimeError."""
-        vars_map = {"var": Scalar()}
+        vars_map = cast(VarsDictType, {"var": Scalar()})
         work = Gem5ParseWork("f", vars_map)
 
         with pytest.raises(RuntimeError, match="Unknown variable type"):
@@ -187,7 +191,7 @@ class TestProcessLineEdgeCases:
 
     def test_scalar_unknown_variable_skipped(self) -> None:
         """Scalar line with unknown variable ID should be skipped."""
-        vars_map = {"known": Scalar()}
+        vars_map = cast(VarsDictType, {"known": Scalar()})
         work = Gem5ParseWork("f", vars_map)
 
         # Should not crash — unknown variable is skipped
@@ -196,7 +200,7 @@ class TestProcessLineEdgeCases:
 
     def test_summary_line(self) -> None:
         """Summary type line should be dispatched to _processSummary."""
-        vars_map = {"myvar__get_summary": Summary()}
+        vars_map = cast(VarsDictType, {"myvar__get_summary": Summary()})
         work = Gem5ParseWork("f", vars_map)
 
         work._processLine("Summary/myvar/42", vars_map)
@@ -204,7 +208,7 @@ class TestProcessLineEdgeCases:
 
     def test_entry_type_unknown_variable_skipped(self) -> None:
         """Entry type with unknown baseID should be skipped silently."""
-        vars_map = {"known": Vector()}
+        vars_map = cast(VarsDictType, {"known": Vector()})
         work = Gem5ParseWork("f", vars_map)
         work._entryBuffer = {}
 
@@ -223,7 +227,7 @@ class TestRunPerlScriptErrors:
         mock_pool.parse_file.side_effect = TimeoutError("timed out")
         mock_pool_fn.return_value = mock_pool
 
-        work = Gem5ParseWork("stats.txt", {"var": Scalar()})
+        work = Gem5ParseWork("stats.txt", cast(VarsDictType, {"var": Scalar()}))
 
         with pytest.raises(RuntimeError, match="Parser timeout"):
             work._runPerlScript()
@@ -236,7 +240,7 @@ class TestRunPerlScriptErrors:
         mock_pool.parse_file.side_effect = OSError("connection failed")
         mock_pool_fn.return_value = mock_pool
 
-        work = Gem5ParseWork("stats.txt", {"var": Scalar()})
+        work = Gem5ParseWork("stats.txt", cast(VarsDictType, {"var": Scalar()}))
 
         with pytest.raises(RuntimeError, match="Worker pool parse failed"):
             work._runPerlScript()
@@ -250,7 +254,7 @@ class TestRunPerlScriptErrors:
         mock_pool_fn.return_value = mock_pool
 
         # Create a var with a key starting with '-' (flag injection)
-        vars_map = {"-dangerous_key": Scalar(), "safe_key": Scalar()}
+        vars_map = cast(VarsDictType, {"-dangerous_key": Scalar(), "safe_key": Scalar()})
         work = Gem5ParseWork("stats.txt", vars_map)
 
         work._runPerlScript()

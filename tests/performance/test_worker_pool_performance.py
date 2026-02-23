@@ -2,6 +2,7 @@
 
 import tempfile
 import time
+from collections.abc import Generator
 from pathlib import Path
 
 import pytest
@@ -34,7 +35,9 @@ system.mem.bytes_written::total            524288                       # Bytes 
 
 
 @pytest.fixture
-def multiple_stats_files(test_stats_file: Path, count: int = 20) -> list[Path]:
+def multiple_stats_files(
+    test_stats_file: Path, count: int = 20
+) -> Generator[list[Path], None, None]:
     """Create multiple stats files for performance testing."""
     files = [test_stats_file]
 

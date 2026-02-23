@@ -118,7 +118,7 @@ class LaTeXPreset(TypedDict, total=False):
     legend_y: float  # Y position of legend (0=bottom, 1=top, default 1.0)
     # Group separator for final group (e.g., arithmetic mean)
     group_separator: bool  # Draw vertical separator before last group (default False)
-    group_separator_style: str  # Line style: "dashed", "dotted", "solid" (default "dashed")
+    group_separator_style: str  # Line style: "dash", "dot", "solid", "dashdot" (default "dash")
     group_separator_color: str  # Color of separator line (default "gray")
     # LaTeX preamble for font matching
     latex_extra_preamble: str  # Extra LaTeX preamble packages (default "")

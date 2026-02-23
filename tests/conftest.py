@@ -4,7 +4,8 @@ Provides common helper functions and fixtures used across multiple
 test directories (unit, ui_unit, integration).
 """
 
-from typing import Any, Dict, List, Union
+from collections.abc import Generator
+from typing import Any
 from unittest.mock import MagicMock
 
 import pandas as pd
@@ -18,9 +19,7 @@ pytest_plugins = ["tests.helpers.gem5_fixtures"]
 # ---------------------------------------------------------------------------
 
 
-def columns_side_effect(
-    spec: Union[int, list[Any], tuple[Any, ...]], **kwargs: Any
-) -> List[MagicMock]:
+def columns_side_effect(spec: int | list[Any] | tuple[Any, ...], **kwargs: Any) -> list[MagicMock]:
     """Mock st.columns() behavior — returns a list of MagicMock column objects.
 
     Mimics Streamlit's columns() API which accepts either an int (number
@@ -99,7 +98,7 @@ def sample_data_extended(sample_data: pd.DataFrame) -> pd.DataFrame:
 
 
 @pytest.fixture
-def sample_pipeline_config() -> List[Dict[str, Any]]:
+def sample_pipeline_config() -> list[dict[str, Any]]:
     """Valid shaper pipeline config exercising the main shaper types."""
     return [
         {
@@ -154,7 +153,7 @@ def e2e_sample_data() -> pd.DataFrame:
 
 
 @pytest.fixture(autouse=True, scope="session")
-def _cleanup_perl_worker_pool() -> Any:
+def _cleanup_perl_worker_pool() -> Generator[Any, None, None]:
     """Shut down the global PerlWorkerPool after the test session.
 
     Prevents ResourceWarnings about subprocesses still running

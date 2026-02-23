@@ -1,10 +1,13 @@
-from typing import Any
+from collections.abc import Generator
+from concurrent.futures import Future
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
 
 from src.core.application_api import ApplicationAPI
+from src.core.models.data_models import ParseVariableConfig
 from src.web.pages.ui.components.data_source_components import DataSourceComponents
 from src.web.pages.ui.components.variable_editor import VariableEditor
 from tests.conftest import columns_side_effect
@@ -21,7 +24,7 @@ class TestScannerFix:
         return api
 
     @pytest.fixture
-    def mock_streamlit(self) -> None:
+    def mock_streamlit(self) -> Generator[dict[str, Any], None, None]:
         """Mock streamlit in all relevant modules."""
         with (
             patch("src.web.pages.ui.components.data_source_components.st") as mock_st_ds,
@@ -92,7 +95,9 @@ class TestScannerFix:
     ) -> None:
         """Test that VariableEditor deep scan calls api.submit_scan_async"""
         # Setup
-        variables = [{"name": "test_var", "type": "vector", "_id": "123"}]
+        variables = cast(
+            list[ParseVariableConfig], [{"name": "test_var", "type": "vector", "_id": "123"}]
+        )
         mock_api.state_manager.get_scanned_variables.return_value = []
 
         # Simulate "Deep Scan" button click
@@ -141,7 +146,7 @@ class TestScannerFix:
         # Create a future that returns a result
         mock_future = MagicMock()
         mock_future.result.return_value = {"some": "data"}
-        futures = [mock_future]
+        futures = cast(list[Future[dict[str, Any]]], [mock_future])
 
         # Wrap in ParseBatchResult
         batch = ParseBatchResult(futures=futures, var_names=["test_var"])

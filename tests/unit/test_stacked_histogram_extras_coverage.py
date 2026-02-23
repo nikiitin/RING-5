@@ -7,10 +7,11 @@ Targets uncovered lines:
 - plot_config_components.py: 43->59, 97-114, 165->174
 """
 
-from typing import Any, Dict, List
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
+import plotly.graph_objects as go
 import pytest
 
 # ---------------------------------------------------------------------------
@@ -18,7 +19,7 @@ import pytest
 # ---------------------------------------------------------------------------
 
 
-def _columns_side_effect(*args: Any, **kwargs: Any) -> List[MagicMock]:
+def _columns_side_effect(*args: Any, **kwargs: Any) -> list[MagicMock]:
     n = args[0] if args else kwargs.get("spec", 2)
     count = len(n) if isinstance(n, list) else n
     return [MagicMock() for _ in range(count)]
@@ -111,13 +112,14 @@ class TestStackedBarCreateFigure:
 
         plot = StackedBarPlot(plot_id=1, name="test")
         fig = plot.create_figure(_sample_stacked_data(), {"x": None, "y_columns": []})
-        assert "Please select" in fig.layout.title.text
+        layout = cast(Any, fig.layout)
+        assert "Please select" in layout.title.text
 
     def test_basic_stacked(self) -> None:
         from src.web.pages.ui.plotting.types.stacked_bar_plot import StackedBarPlot
 
         plot = StackedBarPlot(plot_id=1, name="test")
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "bench",
             "y_columns": ["ipc", "cpi"],
             "title": "T",
@@ -127,14 +129,15 @@ class TestStackedBarCreateFigure:
         }
         fig = plot.create_figure(_sample_stacked_data(), config)
 
-        assert len(fig.data) == 2
-        assert fig.layout.barmode == "stack"
+        assert len(list(fig.data)) == 2
+        layout = cast("go.Layout", fig.layout)
+        assert layout.barmode == "stack"
 
     def test_with_error_bars_and_styles(self) -> None:
         from src.web.pages.ui.plotting.types.stacked_bar_plot import StackedBarPlot
 
         plot = StackedBarPlot(plot_id=1, name="test")
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "bench",
             "y_columns": ["ipc"],
             "show_error_bars": True,
@@ -144,28 +147,32 @@ class TestStackedBarCreateFigure:
         }
         fig = plot.create_figure(_sample_stacked_data(), config)
 
-        assert len(fig.data) == 1
-        assert fig.data[0].error_y is not None
-        assert fig.data[0].marker.color == "#ff0000"
+        assert len(list(fig.data)) == 1
+        trace0 = cast(go.Bar, fig.data[0])
+        assert trace0.error_y is not None
+        marker = cast(Any, trace0.marker)
+        assert marker.color == "#ff0000"
 
     def test_with_x_filter(self) -> None:
         from src.web.pages.ui.plotting.types.stacked_bar_plot import StackedBarPlot
 
         plot = StackedBarPlot(plot_id=1, name="test")
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "bench",
             "y_columns": ["ipc"],
             "x_filter": ["A"],
         }
         fig = plot.create_figure(_sample_stacked_data(), config)
 
-        assert len(fig.data[0].x) == 1
+        trace0_x = cast(go.Bar, fig.data[0]).x
+        assert trace0_x is not None
+        assert len(list(trace0_x)) == 1
 
     def test_show_totals_annotations(self) -> None:
         from src.web.pages.ui.plotting.types.stacked_bar_plot import StackedBarPlot
 
         plot = StackedBarPlot(plot_id=1, name="test")
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "bench",
             "y_columns": ["ipc", "cpi"],
             "show_totals": True,
@@ -173,8 +180,10 @@ class TestStackedBarCreateFigure:
         }
         fig = plot.create_figure(_sample_stacked_data(), config)
 
-        assert fig.layout.annotations is not None
-        assert len(fig.layout.annotations) == 3
+        layout = cast("go.Layout", fig.layout)
+        annotations = cast("tuple[Any, ...]", layout.annotations)
+        assert annotations is not None
+        assert len(annotations) == 3
 
     def test_totals_inside_end(self) -> None:
         from src.web.pages.ui.plotting.types.stacked_bar_plot import StackedBarPlot
@@ -212,7 +221,7 @@ class TestStackedBarCreateFigure:
         from src.web.pages.ui.plotting.types.stacked_bar_plot import StackedBarPlot
 
         plot = StackedBarPlot(plot_id=1, name="test")
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "x": "bench",
             "y_columns": ["ipc"],
             "show_totals": True,
@@ -220,7 +229,9 @@ class TestStackedBarCreateFigure:
         }
         fig = plot.create_figure(_sample_stacked_data(), config)
 
-        assert len(fig.layout.annotations) == 0
+        layout = cast("go.Layout", fig.layout)
+        annotations = cast("tuple[Any, ...]", layout.annotations)
+        assert len(annotations) == 0
 
     def test_get_legend_column(self) -> None:
         from src.web.pages.ui.plotting.types.stacked_bar_plot import StackedBarPlot
@@ -284,7 +295,7 @@ class TestHistogramCreateFigure:
         from src.web.pages.ui.plotting.types.histogram_plot import HistogramPlot
 
         plot = HistogramPlot(plot_id=1, name="test")
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "histogram_variable": "latency",
             "title": "T",
             "xlabel": "X",
@@ -294,13 +305,13 @@ class TestHistogramCreateFigure:
         }
         fig = plot.create_figure(_sample_histogram_data(), config)
 
-        assert len(fig.data) == 1
+        assert len(list(fig.data)) == 1
 
     def test_grouped_histogram(self) -> None:
         from src.web.pages.ui.plotting.types.histogram_plot import HistogramPlot
 
         plot = HistogramPlot(plot_id=1, name="test")
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "histogram_variable": "latency",
             "group_by": "group",
             "title": "T",
@@ -311,7 +322,7 @@ class TestHistogramCreateFigure:
         }
         fig = plot.create_figure(_sample_histogram_data(), config)
 
-        assert len(fig.data) == 2  # g1 and g2
+        assert len(list(fig.data)) == 2  # g1 and g2
 
     def test_normalization_probability(self) -> None:
         from src.web.pages.ui.plotting.types.histogram_plot import HistogramPlot

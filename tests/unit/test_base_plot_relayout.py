@@ -9,6 +9,7 @@ Covers:
 - to_dict / from_dict with processed_data=None
 """
 
+from typing import Any, cast
 from unittest.mock import patch
 
 import pandas as pd
@@ -45,7 +46,7 @@ class TestUpdateFromRelayoutRanges:
 
     def test_empty_relayout_returns_false(self, plot: ConcretePlot) -> None:
         assert plot.update_from_relayout({}) is False
-        assert plot.update_from_relayout(None) is False
+        assert plot.update_from_relayout(cast(dict[str, Any], None)) is False
 
     def test_xaxis_range_bracket_notation(self, plot: ConcretePlot) -> None:
         """xaxis.range[0] and xaxis.range[1] should set range_x."""
@@ -193,7 +194,7 @@ class TestGenerateFigure:
         plot.processed_data = pd.DataFrame({"x": [1], "y": [2]})
         plot.config["legend_labels"] = {"trace1": "Renamed"}
         fig = plot.generate_figure()
-        assert fig.data[0].name == "Renamed"
+        assert cast(go.Scatter, fig.data[0]).name == "Renamed"
 
 
 class TestToDictFromDict:
@@ -254,18 +255,18 @@ class TestApplyLegendLabels:
         fig = go.Figure()
         fig.add_trace(go.Scatter(name="original"))
         result = plot.apply_legend_labels(fig, None)
-        assert result.data[0].name == "original"
+        assert cast(go.Scatter, result.data[0]).name == "original"
 
     def test_empty_labels_no_change(self, plot: ConcretePlot) -> None:
         fig = go.Figure()
         fig.add_trace(go.Scatter(name="original"))
         result = plot.apply_legend_labels(fig, {})
-        assert result.data[0].name == "original"
+        assert cast(go.Scatter, result.data[0]).name == "original"
 
     def test_partial_labels(self, plot: ConcretePlot) -> None:
         fig = go.Figure()
         fig.add_trace(go.Scatter(name="a"))
         fig.add_trace(go.Scatter(name="b"))
         result = plot.apply_legend_labels(fig, {"a": "Alpha"})
-        assert result.data[0].name == "Alpha"
-        assert result.data[1].name == "b"
+        assert cast(go.Scatter, result.data[0]).name == "Alpha"
+        assert cast(go.Scatter, result.data[1]).name == "b"

@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from typing import Any
 from unittest.mock import patch
 
@@ -8,7 +9,7 @@ from tests.conftest import columns_side_effect
 
 
 @pytest.fixture
-def mock_streamlit() -> None:
+def mock_streamlit() -> Generator[None, None, None]:
     with patch("src.web.pages.ui.components.layout_components.st") as mock_st:
         mock_st.columns.side_effect = columns_side_effect
         yield mock_st

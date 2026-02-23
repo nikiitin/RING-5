@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -9,7 +10,7 @@ from src.web.pages.ui.plotting.styles import StyleManager
 
 
 @pytest.fixture
-def mock_streamlit() -> None:
+def mock_streamlit() -> Generator[None, None, None]:
     with (
         patch("src.web.pages.ui.plotting.styles.base_ui.st") as mock_st,
         patch("src.web.pages.ui.plotting.styles.line_ui.st", mock_st),
@@ -123,15 +124,16 @@ def test_apply_styles_palette_and_series(mock_streamlit: Any) -> None:
 
     sm.apply_styles(fig, config)
 
-    trace_a = fig.data[0]
-    assert trace_a.marker.color == "#123456"
-    assert trace_a.marker.symbol == "square"
-    assert trace_a.marker.size == 15
-    assert trace_a.line.width == 5
+    fig_dict = fig.to_dict()
+    trace_a_data = fig_dict["data"][0]
+    assert trace_a_data["marker"]["color"] == "#123456"
+    assert trace_a_data["marker"]["symbol"] == "square"
+    assert trace_a_data["marker"]["size"] == 15
+    assert trace_a_data["line"]["width"] == 5
 
-    trace_b = fig.data[1]
-    assert trace_b.marker.color is not None
-    assert trace_b.marker.color != "#123456"
+    trace_b_data = fig_dict["data"][1]
+    assert trace_b_data["marker"]["color"] is not None
+    assert trace_b_data["marker"]["color"] != "#123456"
 
 
 def test_apply_styles_axis_labels_sorting(mock_streamlit: Any) -> None:

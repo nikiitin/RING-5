@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -19,7 +20,7 @@ class TestPortfolioFix:
         return api
 
     @pytest.fixture
-    def mock_streamlit(self) -> None:
+    def mock_streamlit(self) -> Generator[None, None, None]:
         """Mock streamlit to prevent UI rendering errors."""
         with patch("src.web.pages.portfolio.st") as mock_st:
             # Fragment passthrough — execute the decorated function directly

@@ -1,5 +1,7 @@
 """Tests for DualAxisBarDotPlot.create_figure — all execution branches."""
 
+from typing import cast
+
 import pandas as pd
 import plotly.graph_objects as go
 import pytest
@@ -53,7 +55,7 @@ class TestNoColorGrouping:
         fig = plot.create_figure(sample_data, base_config)
         assert isinstance(fig, go.Figure)
         # 1 bar trace + 1 scatter trace
-        assert len(fig.data) == 2
+        assert len(list(fig.data)) == 2
         assert isinstance(fig.data[0], go.Bar)
         assert isinstance(fig.data[1], go.Scatter)
 
@@ -63,7 +65,7 @@ class TestNoColorGrouping:
         """show_lines=False creates markers-only scatter."""
         base_config["show_lines"] = False
         fig = plot.create_figure(sample_data, base_config)
-        scatter = fig.data[1]
+        scatter = cast(go.Scatter, fig.data[1])
         assert scatter.mode == "markers"
 
     def test_with_dot_color(
@@ -72,8 +74,8 @@ class TestNoColorGrouping:
         """Explicit dot_color is applied to marker."""
         base_config["dot_color"] = "#FF0000"
         fig = plot.create_figure(sample_data, base_config)
-        scatter = fig.data[1]
-        assert scatter.marker.color == "#FF0000"
+        scatter = cast(go.Scatter, fig.data[1])
+        assert cast(go.scatter.Marker, scatter.marker).color == "#FF0000"
 
     def test_with_error_bars(
         self, plot: DualAxisBarDotPlot, sample_data: pd.DataFrame, base_config: dict
@@ -81,8 +83,10 @@ class TestNoColorGrouping:
         """Error bars from .sd columns."""
         base_config["show_error_bars"] = True
         fig = plot.create_figure(sample_data, base_config)
-        assert fig.data[0].error_y is not None  # Bar error
-        assert fig.data[1].error_y is not None  # Dot error
+        bar_trace = cast(go.Bar, fig.data[0])
+        scatter_trace = cast(go.Scatter, fig.data[1])
+        assert bar_trace.error_y is not None  # Bar error
+        assert scatter_trace.error_y is not None  # Dot error
 
     def test_isolate_last_no_color(
         self, plot: DualAxisBarDotPlot, sample_data: pd.DataFrame, base_config: dict
@@ -92,9 +96,9 @@ class TestNoColorGrouping:
         base_config["xaxis_order"] = ["A", "B", "Mean"]
         fig = plot.create_figure(sample_data, base_config)
         # 1 bar + 1 main scatter (A,B) + 1 isolated scatter (Mean)
-        assert len(fig.data) == 3
+        assert len(list(fig.data)) == 3
         # Isolated trace has markers-only mode
-        iso_trace = fig.data[2]
+        iso_trace = cast(go.Scatter, fig.data[2])
         assert iso_trace.mode == "markers"
         assert iso_trace.showlegend is False
 
@@ -107,10 +111,10 @@ class TestNoColorGrouping:
         base_config["xaxis_order"] = ["A", "B", "Mean"]
         fig = plot.create_figure(sample_data, base_config)
         # Main scatter should have error bars
-        main_scatter = fig.data[1]
+        main_scatter = cast(go.Scatter, fig.data[1])
         assert main_scatter.error_y is not None
         # Isolated scatter should also have error bars
-        iso_scatter = fig.data[2]
+        iso_scatter = cast(go.Scatter, fig.data[2])
         assert iso_scatter.error_y is not None
 
 
@@ -124,7 +128,7 @@ class TestWithColorGrouping:
         base_config["color"] = "Config"
         fig = plot.create_figure(sample_data, base_config)
         # 2 groups × (1 bar + 1 scatter) = 4 traces
-        assert len(fig.data) == 4
+        assert len(list(fig.data)) == 4
         bar_traces = [t for t in fig.data if isinstance(t, go.Bar)]
         scatter_traces = [t for t in fig.data if isinstance(t, go.Scatter)]
         assert len(bar_traces) == 2
@@ -161,7 +165,7 @@ class TestWithColorGrouping:
         base_config["xaxis_order"] = ["A", "B", "Mean"]
         fig = plot.create_figure(sample_data, base_config)
         # 2 groups × (1 bar + 1 main scatter + 1 iso scatter) = 6 traces
-        assert len(fig.data) == 6
+        assert len(list(fig.data)) == 6
         # Isolated traces have showlegend=False
         iso_traces = [t for t in fig.data if isinstance(t, go.Scatter) and t.showlegend is False]
         assert len(iso_traces) >= 1
@@ -187,7 +191,9 @@ class TestWithColorGrouping:
         base_config["legend_order"] = ["c2", "c1"]
         fig = plot.create_figure(sample_data, base_config)
         # First bar trace should be c2
-        assert "c2" in fig.data[0].name
+        first_trace = cast(go.Bar, fig.data[0])
+        assert first_trace.name is not None
+        assert "c2" in first_trace.name
 
 
 class TestLayout:

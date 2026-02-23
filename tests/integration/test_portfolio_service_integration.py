@@ -1,4 +1,5 @@
 import io
+from collections.abc import Generator
 from typing import Any
 from unittest.mock import patch
 
@@ -12,7 +13,7 @@ from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
 # Fixture to mock the portfolios directory
 @pytest.fixture
-def mock_portfolios_dir(tmp_path: Any) -> None:
+def mock_portfolios_dir(tmp_path: Any) -> Generator[None, None, None]:
 
     # Create a temporary directory for portfolios
     portfolios_dir = tmp_path / "portfolios"
@@ -27,7 +28,7 @@ def mock_portfolios_dir(tmp_path: Any) -> None:
 
 
 @pytest.fixture
-def mock_session_state() -> None:
+def mock_session_state() -> Generator[Any, None, None]:
     """Mock streamlit.session_state as a dictionary."""
     with patch("streamlit.session_state", new_callable=dict) as mock_state:
         yield mock_state
@@ -56,7 +57,7 @@ def test_save_and_load_portfolio(
 
     # Create a dummy plot
     plot = PlotFactory.create_plot("bar", 1, "Test Plot")
-    plot.result = df
+    plot.processed_data = df
     plot.config = plot_config
 
     config_state = {"theme": "dark"}

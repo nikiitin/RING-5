@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -12,7 +13,7 @@ from tests.conftest import columns_side_effect
 
 # Mock streamlit
 @pytest.fixture
-def mock_streamlit() -> None:
+def mock_streamlit() -> Generator[tuple[Any, Any], None, None]:
     with (
         patch("src.web.pages.ui.data_managers.impl.seeds_reducer.st") as mock_st_seeds,
         patch("src.web.pages.ui.data_managers.impl.outlier_remover.st") as mock_st_outlier,

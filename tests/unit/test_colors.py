@@ -1,5 +1,7 @@
 """Tests for color utilities."""
 
+from typing import cast
+
 from src.web.pages.ui.plotting.styles.colors import get_palette_colors, to_hex
 
 
@@ -32,7 +34,7 @@ class TestGetPaletteColors:
 
     def test_none_palette_name(self) -> None:
         """Test None palette name returns default."""
-        colors = get_palette_colors(None)
+        colors = get_palette_colors(cast(str, None))
         assert isinstance(colors, list)
         assert len(colors) > 0
 
@@ -72,8 +74,8 @@ class TestToHex:
 
     def test_non_string_returns_black(self) -> None:
         """Test non-string returns black."""
-        assert to_hex(None) == "#000000"
-        assert to_hex(123) == "#000000"
+        assert to_hex(cast(str, None)) == "#000000"
+        assert to_hex(cast(str, 123)) == "#000000"
 
     def test_named_color_fallback(self) -> None:
         """Test that named colors get handled."""

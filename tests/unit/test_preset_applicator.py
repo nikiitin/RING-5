@@ -6,7 +6,7 @@ FigureConfig while preserving data-derived fields (traces, colors, etc.).
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 from src.core.models.visualization.axis_config import AxesConfig, AxisConfig
 from src.core.models.visualization.figure_config import (
@@ -58,7 +58,7 @@ def _make_config_spec() -> FigureConfig:
     )
 
 
-def _isca_preset() -> Dict[str, Any]:
+def _isca_preset() -> dict[str, Any]:
     """Return an ISCA-style preset dictionary."""
     return {
         "width_inches": 3.5,
@@ -82,13 +82,13 @@ def _isca_preset() -> Dict[str, Any]:
         "xtick_pad": 5.0,
         "ytick_pad": 5.0,
         "group_separator": True,
-        "group_separator_style": "dotted",
+        "group_separator_style": "dot",
         "group_separator_color": "#888888",
         "latex_extra_preamble": "\\usepackage{times}",
     }
 
 
-def _poster_preset() -> Dict[str, Any]:
+def _poster_preset() -> dict[str, Any]:
     """Return a poster-style preset dictionary."""
     return {
         "width_inches": 10.0,
@@ -160,7 +160,7 @@ class TestPresetApplicatorApply:
         result = PresetApplicator.apply(spec, _isca_preset())
 
         assert result.separator.enabled is True
-        assert result.separator.style == "dotted"
+        assert result.separator.style == "dot"
         assert result.separator.color == "#888888"
 
     def test_font_family_overridden(self) -> None:
@@ -240,7 +240,7 @@ class TestPresetApplicatorPartial:
     def test_only_dimensions_when_only_dim_keys(self) -> None:
         """Only dimensions are overridden when only dim keys present."""
         spec = _make_config_spec()
-        partial_preset: Dict[str, Any] = {
+        partial_preset: dict[str, Any] = {
             "width_inches": 5.0,
             "height_inches": 3.0,
         }
@@ -256,7 +256,7 @@ class TestPresetApplicatorPartial:
     def test_only_typography_when_only_typo_keys(self) -> None:
         """Only typography is overridden when only font keys present."""
         spec = _make_config_spec()
-        partial_preset: Dict[str, Any] = {
+        partial_preset: dict[str, Any] = {
             "font_size_base": 12,
             "bold_title": True,
         }
@@ -291,7 +291,7 @@ class TestPresetApplicatorPartial:
     def test_separator_keys_override_separator(self) -> None:
         """Separator keys trigger separator override."""
         spec = _make_config_spec()
-        partial_preset: Dict[str, Any] = {
+        partial_preset: dict[str, Any] = {
             "group_separator": True,
             "group_separator_style": "solid",
         }
@@ -303,7 +303,7 @@ class TestPresetApplicatorPartial:
     def test_mixed_groups(self) -> None:
         """Multiple groups can be overridden simultaneously."""
         spec = _make_config_spec()
-        partial_preset: Dict[str, Any] = {
+        partial_preset: dict[str, Any] = {
             "width_inches": 7.0,
             "font_size_base": 20,
             "xtick_rotation": 0.0,

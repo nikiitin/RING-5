@@ -1,16 +1,19 @@
 """Tests for ApplicationAPI edge cases and uncovered methods."""
 
+from collections.abc import Generator
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
 
 from src.core.application_api import ApplicationAPI
+from src.core.models.data_models import ParseVariableConfig, ShaperStepConfig
 from src.core.models.history_models import OperationRecord
 
 
 @pytest.fixture
-def api() -> ApplicationAPI:
+def api() -> Generator[ApplicationAPI, None, None]:
     """Create ApplicationAPI with mocked internals."""
     with (
         patch("src.core.application_api.RepositoryStateManager") as mock_sm_cls,
@@ -42,7 +45,9 @@ class TestLoadData:
     """Test load_data error handling."""
 
     def test_load_data_raises_on_failure(self, api: ApplicationAPI) -> None:
-        api._services.data_services.load_csv_file.side_effect = FileNotFoundError("missing")
+        cast(MagicMock, api._services.data_services.load_csv_file).side_effect = FileNotFoundError(
+            "missing"
+        )
         with pytest.raises(FileNotFoundError, match="missing"):
             api.load_data("/nonexistent.csv")
 
@@ -79,7 +84,7 @@ class TestSubmitParseAsync:
             api.submit_parse_async(
                 "/path",
                 "stats.txt",
-                [{"name": "simTicks", "type": "scalar"}],
+                [cast(ParseVariableConfig, {"name": "simTicks", "type": "scalar"})],
                 "/out",
             )
             args = mock_ps.submit_parse_async.call_args[0]
@@ -95,7 +100,12 @@ class TestSubmitParseAsync:
             api.submit_parse_async(
                 "/path",
                 "stats.txt",
-                [{"name": "system.cpu.ipc", "type": "scalar", "alias": "IPC"}],
+                [
+                    cast(
+                        ParseVariableConfig,
+                        {"name": "system.cpu.ipc", "type": "scalar", "alias": "IPC"},
+                    )
+                ],
                 "/out",
             )
             configs = mock_ps.submit_parse_async.call_args[0][2]
@@ -109,7 +119,7 @@ class TestSubmitParseAsync:
             api.submit_parse_async(
                 "/path",
                 "stats.txt",
-                [{"name": r"system.cpu\d+.ipc", "type": "vector"}],
+                [cast(ParseVariableConfig, {"name": r"system.cpu\d+.ipc", "type": "vector"})],
                 "/out",
             )
             configs = mock_ps.submit_parse_async.call_args[0][2]
@@ -122,7 +132,12 @@ class TestSubmitParseAsync:
             api.submit_parse_async(
                 "/path",
                 "stats.txt",
-                [{"name": "hist", "type": "histogram", "statistics_only": True}],
+                [
+                    cast(
+                        ParseVariableConfig,
+                        {"name": "hist", "type": "histogram", "statistics_only": True},
+                    )
+                ],
                 "/out",
             )
             configs = mock_ps.submit_parse_async.call_args[0][2]
@@ -213,9 +228,11 @@ class TestShapersDelegation:
 
     def test_apply_shapers(self, api: ApplicationAPI) -> None:
         df = pd.DataFrame({"x": [1, 2]})
-        pipeline = [{"type": "selector", "columns": ["x"]}]
+        pipeline = [cast(ShaperStepConfig, {"type": "selector", "columns": ["x"]})]
         api.apply_shapers(df, pipeline)
-        api._services.shapers.process_pipeline.assert_called_once_with(df, pipeline)
+        cast(MagicMock, api._services.shapers.process_pipeline).assert_called_once_with(
+            df, pipeline
+        )
 
 
 class TestConfigurationManagement:
@@ -223,42 +240,54 @@ class TestConfigurationManagement:
 
     def test_save_configuration(self, api: ApplicationAPI) -> None:
         api.save_configuration("name", "desc", [], "/path.csv")
-        api._services.data_services.save_configuration.assert_called_once_with(
+        cast(MagicMock, api._services.data_services.save_configuration).assert_called_once_with(
             "name", "desc", [], "/path.csv"
         )
 
     def test_load_configuration(self, api: ApplicationAPI) -> None:
         api.load_configuration("/config.json")
-        api._services.data_services.load_configuration.assert_called_once_with("/config.json")
+        cast(MagicMock, api._services.data_services.load_configuration).assert_called_once_with(
+            "/config.json"
+        )
 
     def test_load_csv_pool(self, api: ApplicationAPI) -> None:
         api.load_csv_pool()
-        api._services.data_services.load_csv_pool.assert_called_once()
+        cast(MagicMock, api._services.data_services.load_csv_pool).assert_called_once()
 
     def test_load_saved_configs(self, api: ApplicationAPI) -> None:
         api.load_saved_configs()
-        api._services.data_services.load_saved_configs.assert_called_once()
+        cast(MagicMock, api._services.data_services.load_saved_configs).assert_called_once()
 
     def test_delete_configuration(self, api: ApplicationAPI) -> None:
         api.delete_configuration("/cfg.json")
-        api._services.data_services.delete_configuration.assert_called_once_with("/cfg.json")
+        cast(MagicMock, api._services.data_services.delete_configuration).assert_called_once_with(
+            "/cfg.json"
+        )
 
     def test_add_to_csv_pool(self, api: ApplicationAPI) -> None:
         api.add_to_csv_pool("/data.csv")
-        api._services.data_services.add_to_csv_pool.assert_called_once_with("/data.csv")
+        cast(MagicMock, api._services.data_services.add_to_csv_pool).assert_called_once_with(
+            "/data.csv"
+        )
 
     def test_delete_from_pool(self, api: ApplicationAPI) -> None:
         api.delete_from_pool("/data.csv")
-        api._services.data_services.delete_from_csv_pool.assert_called_once_with("/data.csv")
+        cast(MagicMock, api._services.data_services.delete_from_csv_pool).assert_called_once_with(
+            "/data.csv"
+        )
 
     def test_delete_from_csv_pool_alias(self, api: ApplicationAPI) -> None:
         """delete_from_csv_pool is an alias for delete_from_pool."""
         api.delete_from_csv_pool("/data.csv")
-        api._services.data_services.delete_from_csv_pool.assert_called_once_with("/data.csv")
+        cast(MagicMock, api._services.data_services.delete_from_csv_pool).assert_called_once_with(
+            "/data.csv"
+        )
 
     def test_load_csv_file(self, api: ApplicationAPI) -> None:
         api.load_csv_file("/data.csv")
-        api._services.data_services.load_csv_file.assert_called_once_with("/data.csv")
+        cast(MagicMock, api._services.data_services.load_csv_file).assert_called_once_with(
+            "/data.csv"
+        )
 
 
 class TestGetColumnInfo:
@@ -291,43 +320,56 @@ class TestPreviewDelegation:
     """Test preview methods delegate to state manager."""
 
     def test_set_preview(self, api: ApplicationAPI) -> None:
-        api.set_preview("op", "data")
-        api.state_manager.set_preview.assert_called_once_with("op", "data")
+        dummy_df = pd.DataFrame({"col": ["data"]})
+        api.set_preview("op", dummy_df)
+        cast(MagicMock, api.state_manager.set_preview).assert_called_once_with("op", dummy_df)
 
     def test_get_preview(self, api: ApplicationAPI) -> None:
         api.get_preview("op")
-        api.state_manager.get_preview.assert_called_once_with("op")
+        cast(MagicMock, api.state_manager.get_preview).assert_called_once_with("op")
 
     def test_has_preview(self, api: ApplicationAPI) -> None:
         api.has_preview("op")
-        api.state_manager.has_preview.assert_called_once_with("op")
+        cast(MagicMock, api.state_manager.has_preview).assert_called_once_with("op")
 
     def test_clear_preview(self, api: ApplicationAPI) -> None:
         api.clear_preview("op")
-        api.state_manager.clear_preview.assert_called_once_with("op")
+        cast(MagicMock, api.state_manager.clear_preview).assert_called_once_with("op")
 
 
 class TestHistoryDelegation:
     """Test history methods delegate to state manager."""
 
     def test_add_manager_history_record(self, api: ApplicationAPI) -> None:
-        record = OperationRecord(operation="test", description="desc")
+        record = OperationRecord(
+            source_columns=[], dest_columns=[], operation="test", timestamp="2024-01-01T00:00:00"
+        )
         api.add_manager_history_record(record)
-        api.state_manager.add_manager_history_record.assert_called_once_with(record)
-        api.state_manager.add_portfolio_history_record.assert_called_once_with(record)
+        cast(MagicMock, api.state_manager.add_manager_history_record).assert_called_once_with(
+            record
+        )
+        cast(MagicMock, api.state_manager.add_portfolio_history_record).assert_called_once_with(
+            record
+        )
 
     def test_get_manager_history(self, api: ApplicationAPI) -> None:
-        api.state_manager.get_manager_history.return_value = []
+        cast(MagicMock, api.state_manager.get_manager_history).return_value = []
         result = api.get_manager_history()
         assert result == []
 
     def test_get_portfolio_history(self, api: ApplicationAPI) -> None:
-        api.state_manager.get_portfolio_history.return_value = []
+        cast(MagicMock, api.state_manager.get_portfolio_history).return_value = []
         result = api.get_portfolio_history()
         assert result == []
 
     def test_remove_manager_history_record(self, api: ApplicationAPI) -> None:
-        record = OperationRecord(operation="test", description="desc")
+        record = OperationRecord(
+            source_columns=[], dest_columns=[], operation="test", timestamp="2024-01-01T00:00:00"
+        )
         api.remove_manager_history_record(record)
-        api.state_manager.remove_manager_history_record.assert_called_once_with(record)
-        api.state_manager.remove_portfolio_history_record.assert_called_once_with(record)
+        cast(MagicMock, api.state_manager.remove_manager_history_record).assert_called_once_with(
+            record
+        )
+        cast(MagicMock, api.state_manager.remove_portfolio_history_record).assert_called_once_with(
+            record
+        )

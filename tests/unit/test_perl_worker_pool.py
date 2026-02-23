@@ -8,6 +8,7 @@ import logging
 import shutil
 import tempfile
 import time
+from collections.abc import Generator
 from pathlib import Path
 from typing import Any
 
@@ -27,7 +28,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 @pytest.fixture
-def test_stats_file() -> None:
+def test_stats_file() -> Generator[str, None, None]:
     """Create a temporary stats file for testing."""
     content = """
 ---------- Begin Simulation Statistics ----------
@@ -69,7 +70,7 @@ def perl_script_path() -> str:
 
 
 @pytest.fixture
-def worker_pool() -> None:
+def worker_pool() -> Generator[PerlWorkerPool, None, None]:
     """Create a worker pool for testing."""
     # Small pool for testing
     pool = PerlWorkerPool(pool_size=2)
@@ -101,6 +102,7 @@ class TestPerlWorker:
             assert worker.health_check()
 
             # Kill the process
+            assert worker.process is not None
             worker.process.kill()
             time.sleep(0.1)
 
@@ -139,12 +141,14 @@ class TestPerlWorker:
         worker = PerlWorker(worker_id=0, script_path=perl_script_path, perl_exe=perl_exe)
 
         try:
+            assert worker.process is not None
             original_pid = worker.process.pid
 
             # Restart
             assert worker.restart()
 
             # Should have new PID and be healthy
+            assert worker.process is not None
             assert worker.process.pid != original_pid
             assert worker.is_healthy
             assert worker.restarts == 1
@@ -297,6 +301,7 @@ class TestErrorHandling:
 
         try:
             # Kill the worker
+            assert pool.workers[0].process is not None
             pool.workers[0].process.kill()
             pool.workers[0].is_healthy = False
 

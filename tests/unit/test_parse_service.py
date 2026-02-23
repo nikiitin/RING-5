@@ -4,12 +4,12 @@ import csv
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.models import ParseBatchResult, StatConfig
+from src.core.models import ParseBatchResult, ScannedVariable, StatConfig
 from src.core.parsing.parse_service import ParseService
 
 # ---------------------------------------------------------------------------
@@ -22,7 +22,7 @@ class FakeStat:
     """Mimics a Stat object returned by gem5 parsing strategies."""
 
     reduced_content: Any
-    entries: Optional[List[str]] = None
+    entries: list[str] | None = None
 
     def balance_content(self) -> None:
         pass
@@ -110,7 +110,7 @@ class TestSubmitParseAsync:
         sv = MagicMock()
         sv.name = r"system\.cpu\d+\.ipc"
         sv.pattern_indices = ["system.cpu0.ipc", "system.cpu1.ipc"]
-        scanned = [sv]
+        scanned = cast(list[ScannedVariable], [sv])
 
         ParseService.submit_parse_async(
             str(stats_dir),

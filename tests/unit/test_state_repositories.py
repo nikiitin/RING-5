@@ -13,12 +13,20 @@ Each repository is tested in isolation with no mocking required
 (except SessionRepository.restore_from_portfolio which needs BasePlot).
 """
 
+from typing import cast
 from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
 
+from src.core.models.data_models import (
+    CsvPoolEntry,
+    ParseVariableConfig,
+    SavedConfigEntry,
+    ScannedVariableDict,
+)
 from src.core.models.history_models import OperationRecord
+from src.core.models.plot_protocol import PlotProtocol
 from src.core.state.repositories.config_repository import ConfigRepository
 from src.core.state.repositories.data_repository import DataRepository
 from src.core.state.repositories.history_repository import HistoryRepository
@@ -148,13 +156,15 @@ class TestConfigRepository:
 
     def test_csv_pool(self, repo: ConfigRepository) -> None:
         assert repo.get_csv_pool() == []
-        pool = [{"name": "a.csv", "path": "/a.csv"}]
+        pool: list[CsvPoolEntry] = cast(list[CsvPoolEntry], [{"name": "a.csv", "path": "/a.csv"}])
         repo.set_csv_pool(pool)
         assert repo.get_csv_pool() == pool
 
     def test_saved_configs(self, repo: ConfigRepository) -> None:
         assert repo.get_saved_configs() == []
-        configs = [{"name": "cfg1", "shapers": []}]
+        configs: list[SavedConfigEntry] = cast(
+            list[SavedConfigEntry], [{"name": "cfg1", "shapers": []}]
+        )
         repo.set_saved_configs(configs)
         assert repo.get_saved_configs() == configs
 
@@ -191,7 +201,9 @@ class TestPlotRepository:
 
     def test_set_plots_replaces(self, repo: PlotRepository) -> None:
         repo.add_plot(self._make_plot(1))
-        new_plots = [self._make_plot(2), self._make_plot(3)]
+        new_plots: list[PlotProtocol] = cast(
+            list[PlotProtocol], [self._make_plot(2), self._make_plot(3)]
+        )
         repo.set_plots(new_plots)
         assert len(repo.get_plots()) == 2
 
@@ -356,7 +368,9 @@ class TestParserStateRepository:
             assert isinstance(var["_id"], str)
 
     def test_set_parse_variables(self, repo: ParserStateRepository) -> None:
-        new_vars = [{"name": "ipc", "type": "scalar"}]
+        new_vars: list[ParseVariableConfig] = cast(
+            list[ParseVariableConfig], [{"name": "ipc", "type": "scalar"}]
+        )
         repo.set_parse_variables(new_vars)
         result = repo.get_parse_variables()
         assert len(result) == 1
@@ -366,7 +380,7 @@ class TestParserStateRepository:
 
     def test_add_parse_variable(self, repo: ParserStateRepository) -> None:
         initial_count = len(repo.get_parse_variables())
-        repo.add_parse_variable({"name": "new_var", "type": "vector"})
+        repo.add_parse_variable(cast(ParseVariableConfig, {"name": "new_var", "type": "vector"}))
         assert len(repo.get_parse_variables()) == initial_count + 1
 
     def test_remove_parse_variable_found(self, repo: ParserStateRepository) -> None:
@@ -393,7 +407,9 @@ class TestParserStateRepository:
 
     def test_scanned_variables(self, repo: ParserStateRepository) -> None:
         assert repo.get_scanned_variables() == []
-        vars_data = [{"name": "ipc", "type": "scalar"}]
+        vars_data: list[ScannedVariableDict] = cast(
+            list[ScannedVariableDict], [{"name": "ipc", "type": "scalar"}]
+        )
         repo.set_scanned_variables(vars_data)
         assert repo.get_scanned_variables() == vars_data
 
@@ -416,7 +432,7 @@ class TestParserStateRepository:
         assert repo.get_parser_strategy() == "config_aware"
 
     def test_clear_parser_state(self, repo: ParserStateRepository) -> None:
-        repo.set_scanned_variables([{"name": "x"}])
+        repo.set_scanned_variables(cast(list[ScannedVariableDict], [{"name": "x"}]))
         repo.set_using_parser(True)
         repo.clear_parser_state()
         assert repo.get_scanned_variables() == []

@@ -13,11 +13,12 @@ Tests:
 
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, cast
 
 import pandas as pd
 
 from src.core.application_api import ApplicationAPI
+from src.core.models.data_models import ColumnInfoResult, ShaperStepConfig
 from src.core.models.history_models import OperationRecord
 
 # ===========================================================================
@@ -43,8 +44,9 @@ class TestDataLoadingFlow:
         facade.load_data(str(csv_path))
 
         # Verify state
-        loaded: pd.DataFrame = facade.state_manager.get_data()
-        assert loaded is not None
+        loaded_or_none = facade.state_manager.get_data()
+        assert loaded_or_none is not None
+        loaded: pd.DataFrame = loaded_or_none
         assert len(loaded) == len(rich_sample_data)
         assert set(loaded.columns) == set(rich_sample_data.columns)
 
@@ -72,8 +74,10 @@ class TestDataLoadingFlow:
         loaded_facade: ApplicationAPI,
     ) -> None:
         """get_column_info returns correct breakdown of numeric/categorical."""
-        data: pd.DataFrame = loaded_facade.state_manager.get_data()
-        info: Dict[str, Any] = loaded_facade.get_column_info(data)
+        data_or_none = loaded_facade.state_manager.get_data()
+        assert data_or_none is not None
+        data: pd.DataFrame = data_or_none
+        info: ColumnInfoResult = loaded_facade.get_column_info(data)
 
         assert info["total_rows"] == 9  # rich_sample_data has 9 rows
         assert info["total_columns"] == 5
@@ -85,7 +89,7 @@ class TestDataLoadingFlow:
         facade: ApplicationAPI,
     ) -> None:
         """get_column_info with None returns zero-count dict."""
-        info: Dict[str, Any] = facade.get_column_info(None)
+        info: ColumnInfoResult = facade.get_column_info(None)
 
         assert info["total_columns"] == 0
         assert info["total_rows"] == 0
@@ -115,8 +119,8 @@ class TestHistoryLifecycle:
         record: OperationRecord = self._make_record("Normalize simTicks")
         facade.add_manager_history_record(record)
 
-        manager_hist: List[OperationRecord] = facade.get_manager_history()
-        portfolio_hist: List[OperationRecord] = facade.get_portfolio_history()
+        manager_hist: list[OperationRecord] = facade.get_manager_history()
+        portfolio_hist: list[OperationRecord] = facade.get_portfolio_history()
 
         assert len(manager_hist) >= 1
         assert len(portfolio_hist) >= 1
@@ -129,7 +133,7 @@ class TestHistoryLifecycle:
             record: OperationRecord = self._make_record(f"Operation {i}")
             facade.add_manager_history_record(record)
 
-        manager_hist: List[OperationRecord] = facade.get_manager_history()
+        manager_hist: list[OperationRecord] = facade.get_manager_history()
         assert len(manager_hist) >= 5
 
     def test_remove_history_record(self, facade: ApplicationAPI) -> None:
@@ -169,8 +173,9 @@ class TestPreviewLifecycle:
         """set_preview stores data, get_preview retrieves it."""
         facade.set_preview("normalize", rich_sample_data)
 
-        result: pd.DataFrame = facade.get_preview("normalize")
-        assert result is not None
+        result_or_none = facade.get_preview("normalize")
+        assert result_or_none is not None
+        result: pd.DataFrame = result_or_none
         pd.testing.assert_frame_equal(result, rich_sample_data)
 
     def test_has_preview(
@@ -201,13 +206,17 @@ class TestPreviewLifecycle:
         rich_sample_data: pd.DataFrame,
     ) -> None:
         """Different operation names store independent previews."""
-        subset: pd.DataFrame = rich_sample_data[["benchmark_name", "system.cpu.ipc"]]
+        subset: pd.DataFrame = pd.DataFrame(rich_sample_data[["benchmark_name", "system.cpu.ipc"]])
 
         facade.set_preview("op_a", rich_sample_data)
         facade.set_preview("op_b", subset)
 
-        result_a: pd.DataFrame = facade.get_preview("op_a")
-        result_b: pd.DataFrame = facade.get_preview("op_b")
+        result_a_or_none = facade.get_preview("op_a")
+        result_b_or_none = facade.get_preview("op_b")
+        assert result_a_or_none is not None
+        assert result_b_or_none is not None
+        result_a: pd.DataFrame = result_a_or_none
+        result_b: pd.DataFrame = result_b_or_none
 
         assert len(result_a.columns) == 5
         assert len(result_b.columns) == 2
@@ -240,16 +249,20 @@ class TestApplyShapersPipeline:
         loaded_facade: ApplicationAPI,
     ) -> None:
         """Apply columnSelector shaper through API pipeline."""
-        data: pd.DataFrame = loaded_facade.state_manager.get_data()
+        data_or_none = loaded_facade.state_manager.get_data()
+        assert data_or_none is not None
+        data: pd.DataFrame = data_or_none
 
-        pipeline: List[Dict[str, Any]] = [
+        pipeline: list[dict[str, Any]] = [
             {
                 "type": "columnSelector",
                 "columns": ["benchmark_name", "system.cpu.ipc"],
             },
         ]
 
-        result: pd.DataFrame = loaded_facade.apply_shapers(data, pipeline)
+        result: pd.DataFrame = loaded_facade.apply_shapers(
+            data, cast(list[ShaperStepConfig], pipeline)
+        )
 
         assert list(result.columns) == ["benchmark_name", "system.cpu.ipc"]
         assert len(result) == 9
@@ -259,9 +272,11 @@ class TestApplyShapersPipeline:
         loaded_facade: ApplicationAPI,
     ) -> None:
         """Apply multiple shapers: columnSelector → sort sequentially."""
-        data: pd.DataFrame = loaded_facade.state_manager.get_data()
+        data_or_none = loaded_facade.state_manager.get_data()
+        assert data_or_none is not None
+        data: pd.DataFrame = data_or_none
 
-        pipeline: List[Dict[str, Any]] = [
+        pipeline: list[dict[str, Any]] = [
             {
                 "type": "columnSelector",
                 "columns": [
@@ -278,7 +293,9 @@ class TestApplyShapersPipeline:
             },
         ]
 
-        result: pd.DataFrame = loaded_facade.apply_shapers(data, pipeline)
+        result: pd.DataFrame = loaded_facade.apply_shapers(
+            data, cast(list[ShaperStepConfig], pipeline)
+        )
 
         assert list(result.columns) == [
             "benchmark_name",
@@ -294,9 +311,11 @@ class TestApplyShapersPipeline:
         loaded_facade: ApplicationAPI,
     ) -> None:
         """Apply normalize shaper through pipeline API."""
-        data: pd.DataFrame = loaded_facade.state_manager.get_data()
+        data_or_none = loaded_facade.state_manager.get_data()
+        assert data_or_none is not None
+        data: pd.DataFrame = data_or_none
 
-        pipeline: List[Dict[str, Any]] = [
+        pipeline: list[dict[str, Any]] = [
             {
                 "type": "columnSelector",
                 "columns": [
@@ -314,7 +333,9 @@ class TestApplyShapersPipeline:
             },
         ]
 
-        result: pd.DataFrame = loaded_facade.apply_shapers(data, pipeline)
+        result: pd.DataFrame = loaded_facade.apply_shapers(
+            data, cast(list[ShaperStepConfig], pipeline)
+        )
 
         # Baseline rows should be exactly 1.0
         baseline_rows = result[result["config_description"] == "baseline"]

@@ -310,11 +310,12 @@ class TestOperationsHistoryTab:
         api.state_manager.set_data(result_df)
 
         # Record operation (same as Confirm button handler)
-        record = OperationRecord(
-            operation="Seeds Reduction (mean + stdev)",
-            source_columns=["benchmark_name", "config_description", "system.cpu.ipc"],
-            dest_columns=["system.cpu.ipc"],
-        )
+        record: OperationRecord = {
+            "operation": "Seeds Reduction (mean + stdev)",
+            "source_columns": ["benchmark_name", "config_description", "system.cpu.ipc"],
+            "dest_columns": ["system.cpu.ipc"],
+            "timestamp": "",
+        }
         api.add_manager_history_record(record)
 
         # Check history records

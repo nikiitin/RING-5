@@ -3,6 +3,7 @@ Unit tests for the ApplicationAPI (Layer B Orchestrator).
 Verifies that the API correctly orchestrates the internal StateManager and ServicesAPI.
 """
 
+from collections.abc import Generator
 from typing import Any
 from unittest.mock import patch
 
@@ -13,14 +14,14 @@ from src.core.application_api import ApplicationAPI
 
 
 @pytest.fixture
-def application_api() -> None:
+def application_api() -> Generator[ApplicationAPI, None, None]:
     """Create ApplicationAPI with mocked internals."""
     with patch("src.core.application_api.RepositoryStateManager") as mock_sm_cls:
         with patch("src.core.application_api.DefaultServicesAPI") as mock_svc_cls:
             api = ApplicationAPI()
             api.state_manager = mock_sm_cls.return_value
             # Expose mock services for assertions
-            api._mock_services = mock_svc_cls.return_value
+            setattr(api, "_mock_services", mock_svc_cls.return_value)
             yield api
 
 

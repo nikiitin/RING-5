@@ -234,7 +234,7 @@ class SplitApply(UniDfShaper):
         # Also include any .sd columns that correspond to group columns
         group_results: list[pd.DataFrame] = []
         for idx, group in enumerate(self._groups):
-            group_cols: list[str] = list(group["columns"])
+            group_cols: list[str] = list(group.get("columns", []))
             pipeline: list[ShaperStepConfig] = group.get("pipeline", [])
 
             # Include matching .sd columns automatically
@@ -244,7 +244,7 @@ class SplitApply(UniDfShaper):
             select_cols: list[str] = self._join_columns + group_cols + sd_cols
 
             # Slice the DataFrame to only this group's columns
-            slice_df: pd.DataFrame = data_frame[select_cols].copy()
+            slice_df: pd.DataFrame = pd.DataFrame(data_frame[select_cols]).copy()
 
             # Apply sub-pipeline if any
             if pipeline:
