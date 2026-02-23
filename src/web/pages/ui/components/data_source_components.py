@@ -466,6 +466,8 @@ class DataSourceComponents:
         status_text.empty()
 
         with st.status("Finalizing results...", expanded=True) as status:
+            _loaded_data: Any = None
+            _parse_failed = False
             try:
                 st.write("Generating CSV output...")
                 strategy = api.state_manager.get_parser_strategy()
@@ -482,17 +484,24 @@ class DataSourceComponents:
                     data = api.load_csv_file(pool_path)
                     api.state_manager.set_data(data)
                     api.state_manager.set_csv_path(pool_path)
+                    _loaded_data = data
                     status.update(
                         label=f"Complete — {len(data)} rows loaded",
                         state="complete",
                         expanded=False,
                     )
-                    st.success(f"Done! Generated {len(data)} rows.")
-                    if st.button("Close & Reload", key="finish_parse_futures_btn"):
-                        st.rerun()
                 else:
+                    _parse_failed = True
                     status.update(label="Failed", state="error")
                     st.error("Failed to generate final CSV.")
             except Exception as e:
+                _parse_failed = True
                 status.update(label="Error", state="error")
                 st.exception(e)
+
+        # Success message and close button OUTSIDE the status block
+        # so they remain visible when the status collapses.
+        if _loaded_data is not None and not _parse_failed:
+            st.success(f"Done! Generated {len(_loaded_data)} rows.")
+            if st.button("Close & Reload", key="finish_parse_futures_btn"):
+                st.rerun()

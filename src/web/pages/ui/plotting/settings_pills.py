@@ -60,7 +60,8 @@ SETTINGS_SECTIONS: list[SettingsSection] = [
     SettingsSection("axes", "Axes", "straighten", advanced=True),
     SettingsSection("data_labels", "Data Labels", "label", advanced=True),
     SettingsSection("colors", "Colors", "palette", advanced=True),
-    SettingsSection("advanced", "Advanced", "tune", advanced=True),
+    SettingsSection("customization", "Customization", "tune", advanced=True),
+    SettingsSection("advanced", "Advanced", "settings", advanced=True),
 ]
 
 

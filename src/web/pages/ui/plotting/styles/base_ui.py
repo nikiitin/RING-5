@@ -14,7 +14,7 @@ import streamlit as st
 
 from src.core.models.visualization.palettes import resolve_palette
 from src.web.pages.ui.plotting.styles.colors import to_hex
-from src.web.rendering.widgets import LEGEND_SIZING, WidgetRenderer
+from src.web.rendering.widgets import WidgetRenderer
 
 
 class BaseStyleUI:
@@ -32,63 +32,75 @@ class BaseStyleUI:
         self._renderer = WidgetRenderer(key_prefix=f"p{plot_id}_")
 
     def render_layout_options(self, saved_config: dict[str, Any]) -> dict[str, Any]:
-        """Render layout sizing, margins, and spacing options."""
-        st.markdown("**Dimensions & Margins**")
+        """Render layout sizing options."""
+        st.markdown("**Dimensions**")
+
+        preset_options = {
+            "Single Column (~3.5in)": 3.5,
+            "Double Column (~7.0in)": 7.0,
+        }
+
+        default_preset = saved_config.get("document_width_preset", "Double Column (~7.0in)")
+        preset_idx = (
+            list(preset_options.keys()).index(default_preset)
+            if default_preset in preset_options
+            else 1
+        )
+
+        preset = st.selectbox(
+            "Document Size Preset",
+            list(preset_options.keys()),
+            index=preset_idx,
+            key=f"col_preset_{self.plot_id}",
+        )
 
         c1, c2 = st.columns(2)
         with c1:
-            width = st.slider(
-                "Width (px)", 400, 1600, saved_config.get("width", 800), 50, key=f"w_{self.plot_id}"
-            )
+            if preset == "Custom":
+                width_inches = st.number_input(
+                    "Width (inches)",
+                    min_value=1.0,
+                    max_value=30.0,
+                    value=float(saved_config.get("width_inches", 7.0)),
+                    step=0.5,
+                    key=f"wi_{self.plot_id}",
+                )
+            else:
+                width_inches = preset_options[preset]
+                st.number_input(
+                    "Width (inches)",
+                    value=width_inches,
+                    disabled=True,
+                    key=f"wi_disabled_{self.plot_id}",
+                )
+
         with c2:
-            height = st.slider(
-                "Height (px)",
-                300,
-                1200,
-                saved_config.get("height", 500),
-                50,
-                key=f"h_{self.plot_id}",
+            height_inches = st.number_input(
+                "Height (inches)",
+                min_value=1.0,
+                max_value=30.0,
+                value=float(saved_config.get("height_inches", 3.5)),
+                step=0.5,
+                key=f"hi_{self.plot_id}",
             )
 
-        with st.expander("Margins & Spacing", expanded=True):
-            m1, m2 = st.columns(2)
-            with m1:
-                margin_l = st.number_input(
-                    "Left", 0, 1000, saved_config.get("margin_l", 100), key=f"ml_{self.plot_id}"
-                )
-                margin_r = st.number_input(
-                    "Right", 0, 1000, saved_config.get("margin_r", 100), key=f"mr_{self.plot_id}"
-                )
-                margin_pad = st.number_input(
-                    "Padding (px)",
-                    0,
-                    200,
-                    saved_config.get("margin_pad", 0),
-                    key=f"mp_{self.plot_id}",
-                    help="Space between axis and labels",
-                )
-            with m2:
-                margin_t = st.number_input(
-                    "Top", 0, 1000, saved_config.get("margin_t", 80), key=f"mt_{self.plot_id}"
-                )
-                margin_b = st.number_input(
-                    "Bottom", 0, 1000, saved_config.get("margin_b", 120), key=f"mb_{self.plot_id}"
-                )
-                automargin = st.checkbox(
-                    "Auto-Marg (Prevents Cutoff)",
-                    value=saved_config.get("automargin", True),
-                    key=f"am_{self.plot_id}",
-                )
+        # Plotly expects pixels. We'll scale 1 inch to 100 pixels for the frontend preview.
+        # Exporting backend will use width_inches and height_inches natively or scale down.
+        width = int(width_inches * 100)
+        height = int(height_inches * 100)
 
         return {
+            "document_width_preset": preset,
+            "width_inches": width_inches,
+            "height_inches": height_inches,
             "width": width,
             "height": height,
-            "margin_l": margin_l,
-            "margin_r": margin_r,
-            "margin_t": margin_t,
-            "margin_b": margin_b,
-            "margin_pad": margin_pad,
-            "automargin": automargin,
+            "margin_l": 0,
+            "margin_r": 0,
+            "margin_t": 0,
+            "margin_b": 0,
+            "margin_pad": 0,
+            "automargin": True,
         }
 
     def render_style_ui(
@@ -262,21 +274,24 @@ class BaseStyleUI:
         self, saved_config: dict[str, Any], key_prefix: str
     ) -> dict[str, Any]:
         """Render legend styling section."""
+        # Determine the correct prefix for config dictionary:
+        # primary ('theme_') uses 'legend_', others ('legend2_') use 'legend2_'
+        config_prefix = "legend_" if key_prefix == "theme_" else key_prefix
         st.markdown("#### Legend Styling")
 
         # Position & Orientation
-        pos_config = self._render_legend_position(saved_config, key_prefix)
+        pos_config = self._render_legend_position(saved_config, key_prefix, config_prefix)
 
         # Appearance
-        app_config = self._render_legend_appearance(saved_config, key_prefix)
+        app_config = self._render_legend_appearance(saved_config, key_prefix, config_prefix)
 
         # Sizing & Spacing
-        sz_config = self._render_legend_sizing(saved_config, key_prefix)
+        sz_config = self._render_legend_sizing(saved_config, key_prefix, config_prefix)
 
         return {**pos_config, **app_config, **sz_config}
 
     def _render_legend_position(
-        self, saved_config: dict[str, Any], key_prefix: str
+        self, saved_config: dict[str, Any], key_prefix: str, config_prefix: str
     ) -> dict[str, Any]:
         """Render legend position and orientation controls."""
         st.markdown("**Position & Orientation**")
@@ -287,7 +302,7 @@ class BaseStyleUI:
                 "Orientation",
                 options=["v", "h"],
                 format_func=lambda x: "Vertical" if x == "v" else "Horizontal",
-                index=0 if saved_config.get("legend_orientation", "v") == "v" else 1,
+                index=0 if saved_config.get(f"{config_prefix}orientation", "v") == "v" else 1,
                 key=f"{key_prefix}leg_orient_{self.plot_id}",
             )
 
@@ -295,7 +310,7 @@ class BaseStyleUI:
                 "Columns",
                 min_value=0,
                 max_value=10,
-                value=saved_config.get("legend_ncols", 0),
+                value=int(saved_config.get(f"{config_prefix}ncols", 0)),
                 key=f"{key_prefix}leg_cols_{self.plot_id}",
                 help=(
                     "Number of legend columns. Uses multiple"
@@ -304,12 +319,32 @@ class BaseStyleUI:
                 ),
             )
 
+            legend_x = st.number_input(
+                "X Position",
+                value=float(
+                    saved_config.get(
+                        f"{config_prefix}x",
+                        1.02 if config_prefix == "legend_" else 1.0,
+                    )
+                ),
+                step=0.05,
+                key=f"{key_prefix}leg_x_{self.plot_id}",
+            )
+            legend_xanchor = st.selectbox(
+                "X Anchor",
+                options=["auto", "left", "center", "right"],
+                index=["auto", "left", "center", "right"].index(
+                    saved_config.get(f"{config_prefix}xanchor", "auto")
+                ),
+                key=f"{key_prefix}leg_xanc_{self.plot_id}",
+            )
+
         with pos_c2:
             legend_col_width = st.number_input(
                 "Column Width (px)",
                 min_value=0,
                 max_value=500,
-                value=saved_config.get("legend_col_width", 150),
+                value=int(saved_config.get(f"{config_prefix}col_width", 150)),
                 key=f"{key_prefix}leg_col_width_{self.plot_id}",
                 help="Width of each legend column in pixels.",
             )
@@ -318,35 +353,57 @@ class BaseStyleUI:
                 "Vertical Align",
                 options=["middle", "top", "bottom"],
                 index=(
-                    ["middle", "top", "bottom"].index(saved_config.get("legend_valign", "middle"))
-                    if saved_config.get("legend_valign", "middle") in ["middle", "top", "bottom"]
+                    ["middle", "top", "bottom"].index(
+                        saved_config.get(f"{config_prefix}valign", "middle")
+                    )
+                    if saved_config.get(f"{config_prefix}valign", "middle")
+                    in ["middle", "top", "bottom"]
                     else 0
                 ),
                 key=f"{key_prefix}leg_valign_{self.plot_id}",
             )
 
+            legend_y = st.number_input(
+                "Y Position",
+                value=float(saved_config.get(f"{config_prefix}y", 1.0)),
+                step=0.05,
+                key=f"{key_prefix}leg_y_{self.plot_id}",
+            )
+            legend_yanchor = st.selectbox(
+                "Y Anchor",
+                options=["auto", "top", "middle", "bottom"],
+                index=["auto", "top", "middle", "bottom"].index(
+                    saved_config.get(f"{config_prefix}yanchor", "auto")
+                ),
+                key=f"{key_prefix}leg_yanc_{self.plot_id}",
+            )
+
         return {
-            "legend_orientation": legend_orientation,
-            "legend_ncols": legend_ncols,
-            "legend_col_width": legend_col_width,
-            "legend_valign": legend_valign,
+            f"{config_prefix}orientation": legend_orientation,
+            f"{config_prefix}ncols": legend_ncols,
+            f"{config_prefix}col_width": legend_col_width,
+            f"{config_prefix}valign": legend_valign,
+            f"{config_prefix}x": legend_x,
+            f"{config_prefix}y": legend_y,
+            f"{config_prefix}xanchor": legend_xanchor,
+            f"{config_prefix}yanchor": legend_yanchor,
         }
 
     def _render_legend_appearance(
-        self, saved_config: dict[str, Any], key_prefix: str
+        self, saved_config: dict[str, Any], key_prefix: str, config_prefix: str
     ) -> dict[str, Any]:
         """Render legend appearance controls (colors, border, fonts)."""
         st.markdown("**Appearance**")
         app_c1, app_c2 = st.columns(2)
 
         with app_c1:
-            bg_col = saved_config.get("legend_bgcolor", "#ffffff")
+            bg_col = saved_config.get(f"{config_prefix}bgcolor", "#ffffff")
             if str(bg_col).startswith("rgba"):
                 bg_col = "#ffffff"
 
             transparent_legend = st.checkbox(
                 "Transparent Background",
-                value=saved_config.get("transparent_legend", False),
+                value=saved_config.get(f"{config_prefix}transparent", False),
                 key=f"{key_prefix}trans_leg_{self.plot_id}",
             )
 
@@ -362,14 +419,14 @@ class BaseStyleUI:
             st.caption("Border")
             legend_border_color = st.color_picker(
                 "Border Color",
-                saved_config.get("legend_border_color", "#000000"),
+                saved_config.get(f"{config_prefix}border_color", "#000000"),
                 key=f"{key_prefix}leg_bord_col_{self.plot_id}",
             )
             legend_border_width = st.number_input(
                 "Border Width",
                 min_value=0,
                 max_value=5,
-                value=saved_config.get("legend_border_width", 0),
+                value=int(saved_config.get(f"{config_prefix}border_width", 0)),
                 key=f"{key_prefix}leg_bord_wd_{self.plot_id}",
             )
 
@@ -377,53 +434,106 @@ class BaseStyleUI:
             st.caption("Font")
             legend_font_color = st.color_picker(
                 "Text Color",
-                saved_config.get("legend_font_color", "#000000"),
+                saved_config.get(f"{config_prefix}font_color", "#000000"),
                 key=f"{key_prefix}leg_font_col_{self.plot_id}",
             )
             legend_font_size = st.number_input(
                 "Font Size",
                 min_value=8,
                 max_value=100,
-                value=saved_config.get("legend_font_size", 12),
+                value=int(saved_config.get(f"{config_prefix}font_size", 12)),
                 key=f"{key_prefix}leg_font_sz_{self.plot_id}",
             )
 
             st.caption("Title Font")
+            legend_title = st.text_input(
+                "Legend Title",
+                value=saved_config.get(f"{config_prefix}title", ""),
+                key=f"{key_prefix}leg_title_txt_{self.plot_id}",
+            )
             legend_title_font_color = st.color_picker(
                 "Title Color",
-                saved_config.get("legend_title_font_color", "#000000"),
+                saved_config.get(f"{config_prefix}title_font_color", "#000000"),
                 key=f"{key_prefix}leg_title_col_{self.plot_id}",
             )
             legend_title_font_size = st.number_input(
                 "Title Size",
                 min_value=8,
                 max_value=100,
-                value=saved_config.get("legend_title_font_size", 14),
+                value=int(saved_config.get(f"{config_prefix}title_font_size", 14)),
                 key=f"{key_prefix}leg_title_sz_{self.plot_id}",
             )
 
         return {
-            "transparent_legend": transparent_legend,
-            "legend_bgcolor": legend_bgcolor,
-            "legend_border_color": legend_border_color,
-            "legend_border_width": legend_border_width,
-            "legend_font_color": legend_font_color,
-            "legend_font_size": legend_font_size,
-            "legend_title_font_color": legend_title_font_color,
-            "legend_title_font_size": legend_title_font_size,
+            f"{config_prefix}transparent": transparent_legend,
+            f"{config_prefix}bgcolor": legend_bgcolor,
+            f"{config_prefix}border_color": legend_border_color,
+            f"{config_prefix}border_width": legend_border_width,
+            f"{config_prefix}font_color": legend_font_color,
+            f"{config_prefix}font_size": legend_font_size,
+            f"{config_prefix}title": legend_title,
+            f"{config_prefix}title_font_color": legend_title_font_color,
+            f"{config_prefix}title_font_size": legend_title_font_size,
         }
 
     def _render_legend_sizing(
-        self, saved_config: dict[str, Any], key_prefix: str
+        self, saved_config: dict[str, Any], key_prefix: str, config_prefix: str
     ) -> dict[str, Any]:
         """Render legend sizing and spacing controls (declarative)."""
         st.markdown("**Sizing & Spacing**")
-        result = self._renderer.render_section(LEGEND_SIZING, saved_config, use_expander=False)
-        # Normalize itemwidth: 0 means None (auto)
-        iw = result.get("legend_itemwidth")
-        if iw is not None and iw <= 0:
-            result["legend_itemwidth"] = None
-        return result
+        sz_c1, sz_c2 = st.columns(2)
+        with sz_c1:
+            itemsizing = st.selectbox(
+                "Marker Scale",
+                options=["constant", "trace"],
+                index=["constant", "trace"].index(
+                    saved_config.get(f"{config_prefix}itemsizing", "constant")
+                ),
+                key=f"{key_prefix}leg_itemsz_{self.plot_id}",
+            )
+            itemwidth = st.number_input(
+                "Marker Width (px) [Min: 30]",
+                min_value=30,
+                max_value=120,
+                value=int(saved_config.get(f"{config_prefix}itemwidth", 30)),
+                key=f"{key_prefix}leg_itemw_{self.plot_id}",
+                help="Width of legend items. Plotly requires minimum 30px.",
+            )
+            marker_text_spacing = st.number_input(
+                "Marker-Text Space",
+                min_value=0.0,
+                max_value=10.0,
+                value=float(saved_config.get(f"{config_prefix}marker_text_spacing", 0.5)),
+                step=0.1,
+                key=f"{key_prefix}leg_mtspace_{self.plot_id}",
+                help="Space between color marker and text (Matplotlib handletextpad).",
+            )
+        with sz_c2:
+            tracegroupgap = st.number_input(
+                "Item Spacing (px)",
+                min_value=0,
+                max_value=100,
+                value=int(saved_config.get(f"{config_prefix}tracegroupgap", 10)),
+                key=f"{key_prefix}leg_tracegap_{self.plot_id}",
+                help="Vertical spacing between legend items.",
+            )
+            column_spacing = st.number_input(
+                "Column Spacing",
+                min_value=0.0,
+                max_value=10.0,
+                value=float(saved_config.get(f"{config_prefix}column_spacing", 1.0)),
+                step=0.5,
+                key=f"{key_prefix}leg_colspace_{self.plot_id}",
+                help="Space between columns in the legend (Matplotlib columnspacing).",
+            )
+
+        return {
+            f"{config_prefix}itemsizing": itemsizing,
+            f"{config_prefix}itemwidth": itemwidth,
+            f"{config_prefix}tracegroupgap": tracegroupgap,
+            f"{config_prefix}column_spacing": column_spacing,
+            f"{config_prefix}marker_text_spacing": marker_text_spacing,
+        }
 
     def _render_typography_section(
         self, saved_config: dict[str, Any], key_prefix: str
@@ -515,6 +625,40 @@ class BaseStyleUI:
                 key=f"{key_prefix}yaxis_tick_col_{self.plot_id}",
             )
 
+            st.markdown("**Tick Marks & Grid Lines**")
+            show_xtick_marks = st.checkbox(
+                "Show X-Axis Tick Marks",
+                value=saved_config.get("show_xtick_marks", True),
+                key=f"{key_prefix}x_show_ticks_{self.plot_id}",
+            )
+            dash_options = ["solid", "dot", "dash", "longdash", "dashdot", "longdashdot"]
+            xtick_dash_idx = 0
+            if saved_config.get("xtick_dash", "solid") in dash_options:
+                xtick_dash_idx = dash_options.index(saved_config.get("xtick_dash", "solid"))
+
+            xtick_dash = st.selectbox(
+                "X-Axis Grid Dash Style",
+                options=dash_options,
+                index=xtick_dash_idx,
+                key=f"{key_prefix}x_tickdash_{self.plot_id}",
+            )
+
+            show_ytick_marks = st.checkbox(
+                "Show Y-Axis Tick Marks",
+                value=saved_config.get("show_ytick_marks", True),
+                key=f"{key_prefix}y_show_ticks_{self.plot_id}",
+            )
+            ytick_dash_idx = 0
+            if saved_config.get("ytick_dash", "solid") in dash_options:
+                ytick_dash_idx = dash_options.index(saved_config.get("ytick_dash", "solid"))
+
+            ytick_dash = st.selectbox(
+                "Y-Axis Grid Dash Style",
+                options=dash_options,
+                index=ytick_dash_idx,
+                key=f"{key_prefix}y_tickdash_{self.plot_id}",
+            )
+
         return {
             "title_font_size": title_font_size,
             "xaxis_title_font_size": xaxis_title_font_size,
@@ -525,6 +669,10 @@ class BaseStyleUI:
             "xaxis_tickfont_color": xaxis_tickfont_color,
             "yaxis_tickfont_size": yaxis_tickfont_size,
             "yaxis_tickfont_color": yaxis_tickfont_color,
+            "show_xtick_marks": show_xtick_marks,
+            "xtick_dash": xtick_dash,
+            "show_ytick_marks": show_ytick_marks,
+            "ytick_dash": ytick_dash,
         }
 
     def render_series_colors_ui(
@@ -697,7 +845,8 @@ class BaseStyleUI:
         x_col = saved_config.get("x")
 
         if data is not None and x_col and x_col in data.columns:
-            st.markdown("#### X-Axis Label Overrides")
+            # Removed markdown title
+
             with st.expander("Rename X-Axis Labels"):
                 unique_x_raw = data[x_col].unique()
                 unique_x = sorted(unique_x_raw, key=str)

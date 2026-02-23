@@ -95,6 +95,8 @@ class LegendConfig:
     col_width: float = -1.0  # sentinel: -1 = auto column width
     orientation: Literal["horizontal", "vertical"] = "vertical"
     itemsizing: Literal["constant", "trace"] = "constant"
+    itemwidth: int = 30
+    tracegroupgap: int = 10
     order: Literal["normal", "reversed"] = "normal"
     trace_distribution: str = ""  # comma-separated trace indices, empty = all
 
@@ -132,6 +134,8 @@ class LegendConfig:
             "col_width": self.col_width,
             "orientation": self.orientation,
             "itemsizing": self.itemsizing,
+            "itemwidth": self.itemwidth,
+            "tracegroupgap": self.tracegroupgap,
             "order": self.order,
             "trace_distribution": self.trace_distribution,
             "position_x": self.position_x,

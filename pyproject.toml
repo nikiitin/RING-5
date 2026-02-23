@@ -71,6 +71,7 @@ norecursedirs = [
   "tests/tests_principle_compliance",
   "tests/manual",
   "tests/data",
+  "tests/visual",
 ]
 pythonpath = ["."]
 python_files = "test_*.py"

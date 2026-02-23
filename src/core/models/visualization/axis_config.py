@@ -40,6 +40,8 @@ class AxisConfig:
     tick_values: list[float | int | str] | None = None  # explicit tick positions
     tick_text: list[str] | None = None  # explicit tick labels
     tick_font_color: str = ""  # empty = inherit from theme
+    show_ticks: bool = True  # show the tick marks themselves
+    tick_dash: str = "solid"  # solid, dot, dash, longdash, dashdot, longdashdot
     show_tick_labels: bool = True
     dtick: float | None = None  # fixed tick interval
 

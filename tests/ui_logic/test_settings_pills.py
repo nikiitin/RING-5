@@ -21,8 +21,8 @@ class TestRenderSettingsPills:
         assert options == ["layout", "typography", "legends"]
 
     @patch("src.web.pages.ui.plotting.settings_pills.st")
-    def test_advanced_shows_all_seven(self, mock_st: MagicMock) -> None:
-        """When show_advanced=True, all 7 sections are offered."""
+    def test_advanced_shows_all_eight(self, mock_st: MagicMock) -> None:
+        """When show_advanced=True, all 8 sections are offered."""
         from src.web.pages.ui.plotting.settings_pills import render_settings_pills
 
         mock_st.pills.return_value = "axes"
@@ -30,10 +30,11 @@ class TestRenderSettingsPills:
 
         call_args = mock_st.pills.call_args
         options = call_args.kwargs.get("options") or call_args[1].get("options")
-        assert len(options) == 7
+        assert len(options) == 8
         assert "axes" in options
         assert "data_labels" in options
         assert "colors" in options
+        assert "customization" in options
         assert "advanced" in options
 
     @patch("src.web.pages.ui.plotting.settings_pills.st")

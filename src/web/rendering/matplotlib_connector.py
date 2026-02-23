@@ -72,6 +72,35 @@ class FigureSpecToMatplotlib:
         FigureSpecToMatplotlib._apply_annotations(spec, ax)
         FigureSpecToMatplotlib._apply_separators(spec, ax)
         FigureSpecToMatplotlib._apply_hatching(spec, ax)
+        FigureSpecToMatplotlib._apply_margins(spec, ax)
+
+    @staticmethod
+    def _apply_margins(spec: FigureConfig, ax: Any) -> None:
+        """Apply manual margins from FigureConfig to the current figure."""
+        if spec.dimensions is None or spec.dimensions.margins is None:
+            return
+
+        dims = spec.dimensions
+        margins = dims.margins
+
+        # Plotly margins are in pixels. Convert to fractions of figure width/height.
+        # Ensure we don't divide by zero.
+        if dims.width > 0 and dims.height > 0:
+            left = margins.left / dims.width
+            right = 1.0 - (margins.right / dims.width)
+            bottom = margins.bottom / dims.height
+            top = 1.0 - (margins.top / dims.height)
+
+            # Clamp values between 0 and 1 to prevent invalid margins
+            left = max(0.0, min(0.99, left))
+            right = max(left + 0.01, min(1.0, right))
+            bottom = max(0.0, min(0.99, bottom))
+            top = max(bottom + 0.01, min(1.0, top))
+
+            try:
+                ax.figure.subplots_adjust(left=left, right=right, top=top, bottom=bottom)
+            except ValueError as e:
+                logger.warning(f"Could not apply margins ({left}, {right}, {top}, {bottom}): {e}")
 
     @staticmethod
     def _apply_title(spec: FigureConfig, ax: Any) -> None:
@@ -161,6 +190,8 @@ class FigureSpecToMatplotlib:
             axis="x",
             labelsize=typo.font_size_ticks,
             pad=x_axis.tick_pad,
+            bottom=x_axis.show_ticks,
+            labelbottom=x_axis.show_tick_labels,
         )
 
         if x_axis.tick_values is not None and x_axis.tick_text is not None:
@@ -190,6 +221,8 @@ class FigureSpecToMatplotlib:
             axis="y",
             labelsize=typo.font_size_yticks,
             pad=y_axis.tick_pad,
+            left=y_axis.show_ticks,
+            labelleft=y_axis.show_tick_labels,
         )
 
         if y_axis.tick_values is not None and y_axis.tick_text is not None:
@@ -223,6 +256,19 @@ class FigureSpecToMatplotlib:
             ax.margins(x=x_axis.margin)
 
     @staticmethod
+    def _map_dash_style(dash_str: str) -> str:
+        """Map Plotly dash string to Matplotlib line style."""
+        mapping = {
+            "solid": "-",
+            "dot": ":",
+            "dash": "--",
+            "longdash": "--",
+            "dashdot": "-.",
+            "longdashdot": "-.",
+        }
+        return mapping.get(dash_str.lower(), "-")
+
+    @staticmethod
     def _apply_grids(spec: FigureConfig, ax: Any) -> None:
         """Configure grid visibility and styling."""
         if spec.axes is None:
@@ -235,12 +281,14 @@ class FigureSpecToMatplotlib:
             x_axis.show_grid,
             color=x_axis.grid_color,
             linewidth=x_axis.grid_width,
+            linestyle=FigureSpecToMatplotlib._map_dash_style(x_axis.tick_dash),
         )
         # Y grid
         ax.yaxis.grid(
             y_axis.show_grid,
             color=y_axis.grid_color,
             linewidth=y_axis.grid_width,
+            linestyle=FigureSpecToMatplotlib._map_dash_style(y_axis.tick_dash),
         )
 
     @staticmethod
@@ -577,6 +625,5 @@ class FigureSpecToMatplotlib:
         fig, ax = plt.subplots(
             figsize=(width_in, height_in),
             dpi=render_dpi,
-            layout="constrained",
         )
         return fig, ax

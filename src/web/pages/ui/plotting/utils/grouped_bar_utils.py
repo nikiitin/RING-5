@@ -96,6 +96,7 @@ class GroupedBarUtils:
         font_size: int = 14,
         font_color: str = "#000000",
         y_offset: float = -0.15,
+        stagger_dy: float = 0.0,
     ) -> list[dict[str, Any]]:
         """
         Build annotations for category labels below the plot.
@@ -105,16 +106,18 @@ class GroupedBarUtils:
             font_size: Font size for labels
             font_color: Font color
             y_offset: Y position offset (negative = below axis)
+            stagger_dy: Extra y-offset to apply to odd-indexed labels
 
         Returns:
             List of Plotly annotation dicts
         """
         annotations = []
-        for center, label in cat_centers:
+        for i, (center, label) in enumerate(cat_centers):
+            current_y = y_offset - (stagger_dy if i % 2 == 1 else 0.0)
             annotations.append(
                 dict(
                     x=center,
-                    y=y_offset,
+                    y=current_y,
                     xref="x",
                     yref="paper",
                     text=f"<b>{label}</b>",

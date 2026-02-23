@@ -32,15 +32,7 @@ def show_data_managers_page(api: ApplicationAPI) -> None:
     - Manage multiple data sources
     """)
 
-    if not api.state_manager.has_data():
-        st.warning("No data loaded. Please load data from the **Data Source** page.")
-        return
-
-    data_or_none = api.state_manager.get_data()
-    if data_or_none is None:
-        st.error("Failed to retrieve data.")
-        return
-    data = data_or_none
+    has_data: bool = api.state_manager.has_data()
 
     tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(
         [
@@ -53,6 +45,18 @@ def show_data_managers_page(api: ApplicationAPI) -> None:
             "Operations History",
         ]
     )
+
+    if not has_data:
+        with tab1:
+            st.warning("No data loaded. Please load data from the **Data Source** page.")
+        return
+
+    data_or_none = api.state_manager.get_data()
+    if data_or_none is None:
+        with tab1:
+            st.error("Failed to retrieve data.")
+        return
+    data = data_or_none
 
     with tab1:
 

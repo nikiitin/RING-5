@@ -138,6 +138,8 @@ class FigureSpecToPlotly:
                 text=x_axis.label,
                 font=dict(size=typo.font_size_xlabel),
             )
+            if x_axis.label_standoff >= 0:
+                update["title"]["standoff"] = x_axis.label_standoff
 
         update["tickfont"] = dict(size=typo.font_size_ticks)
         update["tickangle"] = x_axis.tick_angle
@@ -153,8 +155,10 @@ class FigureSpecToPlotly:
         if x_axis.show_grid:
             update["gridcolor"] = x_axis.grid_color
             update["gridwidth"] = x_axis.grid_width
+            update["griddash"] = x_axis.tick_dash
 
         update["showticklabels"] = x_axis.show_tick_labels
+        update["ticks"] = "outside" if x_axis.show_ticks else ""
         update["automargin"] = x_axis.automargin
 
         if x_axis.category_order is not None:
@@ -188,6 +192,8 @@ class FigureSpecToPlotly:
                 text=y_axis.label,
                 font=dict(size=typo.font_size_ylabel),
             )
+            if y_axis.label_standoff >= 0:
+                update["title"]["standoff"] = y_axis.label_standoff
 
         update["tickfont"] = dict(size=typo.font_size_yticks)
 
@@ -202,7 +208,10 @@ class FigureSpecToPlotly:
         if y_axis.show_grid:
             update["gridcolor"] = y_axis.grid_color
             update["gridwidth"] = y_axis.grid_width
+            update["griddash"] = y_axis.tick_dash
 
+        update["showticklabels"] = y_axis.show_tick_labels
+        update["ticks"] = "outside" if y_axis.show_ticks else ""
         update["automargin"] = y_axis.automargin
 
         fig.update_yaxes(**update, selector=dict(overlaying=None))
@@ -230,6 +239,8 @@ class FigureSpecToPlotly:
                 text=y2.label,
                 font=dict(size=typo.font_size_y2label),
             )
+            if y2.label_standoff >= 0:
+                update["title"]["standoff"] = y2.label_standoff
 
         update["tickfont"] = dict(size=typo.font_size_y2ticks)
 
@@ -239,6 +250,11 @@ class FigureSpecToPlotly:
             update["dtick"] = y2.dtick
 
         update["showgrid"] = y2.show_grid
+        if y2.show_grid:
+            update["griddash"] = y2.tick_dash
+
+        update["showticklabels"] = y2.show_tick_labels
+        update["ticks"] = "outside" if y2.show_ticks else ""
 
         fig.update_layout(yaxis2=update)
 
@@ -272,6 +288,11 @@ class FigureSpecToPlotly:
             "orientation": "h" if legend.orientation == "horizontal" else "v",
             "itemsizing": legend.itemsizing,
         }
+
+        if legend.itemwidth > 0:
+            result["itemwidth"] = legend.itemwidth
+        if legend.tracegroupgap > 0:
+            result["tracegroupgap"] = legend.tracegroupgap
 
         if legend.title:
             result["title"] = dict(

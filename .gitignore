@@ -27,6 +27,10 @@ config_files
 # Test data downloaded from GitHub Releases (not tracked in Git)
 tests/data/
 
+# Playwright visual test outputs (screenshots, traces, GIFs)
+tests/visual/screenshots/
+tests/visual/artifacts/
+
 # AI Assistant - keep configuration, ignore personal settings
 .mcp-config.local.json
 .cursor/
