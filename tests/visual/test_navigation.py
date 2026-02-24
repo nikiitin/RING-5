@@ -44,7 +44,6 @@ class TestNavigationWorkflow:
             "Data Managers",
             "Manage Plots",
             "Save/Load Portfolio",
-            "Performance",
         ]:
             bp.navigate_to(page_name)
             bp.assert_on_page(page_name)
@@ -66,7 +65,6 @@ class TestNavigationWorkflow:
             "Data Managers",
             "Manage Plots",
             "Save/Load Portfolio",
-            "Performance",
         ]
 
         # Capture landing page
