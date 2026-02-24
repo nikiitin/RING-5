@@ -422,6 +422,8 @@ class ConfigSpecBuilder:
             dtick=config.get("yaxis_dtick"),
             automargin=config.get("automargin", True),
             grid_color=config.get("grid_color", "#E5E5E5"),
+            label_standoff=config.get("yaxis_title_standoff", -1),
+            title_vshift=float(config.get("yaxis_title_vshift", 0.0)),
         )
 
         axes = AxesConfig(x=x_axis, y=y_axis)

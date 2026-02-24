@@ -194,6 +194,12 @@ class FigureSpecToPlotly:
             )
             if y_axis.label_standoff >= 0:
                 update["title"]["standoff"] = y_axis.label_standoff
+            if y_axis.title_vshift != 0.0:
+                # Plotly title.y is 0..1 (fraction of plot height);
+                # shift slider is in pixels → approximate conversion.
+                plot_h = spec.dimensions.height if spec.dimensions else 600
+                frac = y_axis.title_vshift / plot_h
+                update["title"]["y"] = 0.5 + frac
 
         update["tickfont"] = dict(size=typo.font_size_yticks)
 

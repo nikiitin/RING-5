@@ -142,16 +142,28 @@ class FigureSpecToMatplotlib:
         y_label = spec.axes.y.label
         if y_label:
             weight = "bold" if typo.bold_ylabel else "normal"
+            # Use standoff as labelpad when explicitly set (>= 0)
+            y_pad = (
+                spec.axes.y.label_standoff
+                if spec.axes.y.label_standoff >= 0
+                else spec.axes.y.label_pad
+            )
             ax.set_ylabel(
                 FigureSpecToMatplotlib._escape_latex(y_label),
                 fontsize=typo.font_size_ylabel,
                 fontweight=weight,
-                labelpad=spec.axes.y.label_pad,
+                labelpad=y_pad,
             )
-            # Custom y-label position
-            if spec.axes.y.label_position != 0.5:
+            # Custom y-label position (vshift overrides, then label_position)
+            if spec.axes.y.title_vshift != 0.0:
+                frac = spec.axes.y.title_vshift / 100.0
                 ax.yaxis.set_label_coords(
-                    -spec.axes.y.label_pad / 72.0,
+                    -y_pad / 72.0,
+                    0.5 + frac,
+                )
+            elif spec.axes.y.label_position != 0.5:
+                ax.yaxis.set_label_coords(
+                    -y_pad / 72.0,
                     spec.axes.y.label_position,
                 )
 
