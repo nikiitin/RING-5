@@ -1358,7 +1358,9 @@ class GroupedStackedBarPlot(StackedBarPlot):
                         x_positions=data[x_coord_col].tolist(),
                         y=data[y_col].tolist(),
                         bar_width=bar_width if bar_width is not None else 0.8,
-                        color=style.get("color", ""),
+                        color=(
+                            style.get("color", "") if style.get("use_color") else ""
+                        ),
                         pattern=style.get("pattern", ""),
                         error_y=error_y_vals,
                         yaxis="y2",

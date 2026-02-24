@@ -208,9 +208,20 @@ class TestBuildBarTrace:
         plot = StackedBarPlot(1, "test")
         df = _sample_df()
         df["__total"] = df["ipc"] + df["cpi"]
-        config: dict[str, Any] = {"series_styles": {"ipc": {"color": "#00FF00"}}}
+        config: dict[str, Any] = {
+            "series_styles": {"ipc": {"color": "#00FF00", "use_color": True}}
+        }
         trace = plot._build_bar_trace(df, "ipc", "benchmark", None, "", config)
         assert trace.color == "#00FF00"
+
+    def test_series_color_without_use_color_is_empty(self) -> None:
+        """Without use_color=True, palette handles color assignment."""
+        plot = StackedBarPlot(1, "test")
+        df = _sample_df()
+        df["__total"] = df["ipc"] + df["cpi"]
+        config: dict[str, Any] = {"series_styles": {"ipc": {"color": "#00FF00"}}}
+        trace = plot._build_bar_trace(df, "ipc", "benchmark", None, "", config)
+        assert trace.color == ""
 
     def test_series_pattern(self) -> None:
         plot = StackedBarPlot(1, "test")

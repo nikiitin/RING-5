@@ -159,7 +159,9 @@ class StackedBarPlot(BasePlot):
         # Use custom name if defined, otherwise use y_col
         trace_name = style.get("name", y_col)
 
-        color = style.get("color", "")
+        # Only use per-series color when explicitly enabled via use_color;
+        # otherwise let the palette mechanism assign colors.
+        color = style.get("color", "") if style.get("use_color") else ""
         pattern = style.get("pattern", "")
 
         return BarTraceConfig(

@@ -732,8 +732,9 @@ class BaseStyleUI:
     ) -> dict[str, Any]:
         c2, c3 = st.columns([1, 2])
 
-        # Keys for widgets
-        picker_key = f"{key_prefix}color_{self.plot_id}_{val_hash}"
+        # Keys for widgets — include palette_name so Streamlit resets
+        # the color picker widget value when the user changes the palette.
+        picker_key = f"{key_prefix}color_{self.plot_id}_{val_hash}_{palette_name}"
         override_key = f"{key_prefix}use_col_{self.plot_id}_{val_hash}"
 
         with c2:

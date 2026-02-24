@@ -110,14 +110,6 @@ def _portfolio_fragment(api: ApplicationAPI) -> None:
 
 
 def show_portfolio_page(api: ApplicationAPI) -> None:
-                        )
-            else:
-                st.info("No plots available to apply pipeline to.")
-        else:
-            st.info("No saved pipelines found.")
-
-
-def show_portfolio_page(api: ApplicationAPI) -> None:
     """
     Display the portfolio management page.
 

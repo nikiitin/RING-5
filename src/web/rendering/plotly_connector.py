@@ -335,7 +335,7 @@ class FigureSpecToPlotly:
         In addition to setting the layout ``colorway`` (for any future
         traces), this assigns palette colours to existing traces that
         don't already have an explicit ``marker.color`` set (e.g. by the
-        plot factory or upstream styling).
+        plot factory or upstream styling when ``use_color=True``).
         """
         if not spec.color_palette:
             return
@@ -344,6 +344,7 @@ class FigureSpecToPlotly:
 
         for i, trace in enumerate(_fig_traces(fig)):
             # Skip traces that already have an explicit marker color
+            # (set by the factory when use_color=True).
             existing_color = (
                 getattr(trace.marker, "color", None) if hasattr(trace, "marker") else None
             )

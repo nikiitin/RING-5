@@ -239,7 +239,11 @@ class TestDualAxisCreateFigure:
             "dual_axis": True,
             "right_axis_type": "bars",
             "series_styles": {
-                "IPC": {"name": "Renamed IPC", "color": "#FF0000"},
+                "IPC": {
+                    "name": "Renamed IPC",
+                    "color": "#FF0000",
+                    "use_color": True,
+                },
             },
             "title": "Styled",
         }

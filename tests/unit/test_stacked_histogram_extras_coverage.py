@@ -142,7 +142,12 @@ class TestStackedBarCreateFigure:
             "y_columns": ["ipc"],
             "show_error_bars": True,
             "series_styles": {
-                "ipc": {"name": "IPC", "color": "#ff0000", "pattern": "/"},
+                "ipc": {
+                    "name": "IPC",
+                    "color": "#ff0000",
+                    "use_color": True,
+                    "pattern": "/",
+                },
             },
         }
         fig = plot.create_figure(_sample_stacked_data(), config)
