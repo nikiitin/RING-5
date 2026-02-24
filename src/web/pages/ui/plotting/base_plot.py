@@ -397,11 +397,19 @@ class BasePlot(ABC):
     def _section_legends(
         self, saved_config: dict[str, Any], data: pd.DataFrame | None
     ) -> dict[str, Any]:
+        has_dual_axis: bool = (
+            self.plot_type == "dual_axis_bar_dot"
+            or bool(saved_config.get("dual_axis"))
+        )
+        has_boxed: bool = bool(saved_config.get("show_group_labels"))
+
         _LEGEND_LABELS: dict[str, str] = {
             "primary": ":material/legend_toggle: Primary",
-            "secondary": ":material/legend_toggle: Secondary",
-            "boxed": ":material/legend_toggle: Boxed",
         }
+        if has_dual_axis:
+            _LEGEND_LABELS["secondary"] = ":material/legend_toggle: Secondary"
+        if has_boxed:
+            _LEGEND_LABELS["boxed"] = ":material/legend_toggle: Boxed"
         legend_tab: str | None = st.pills(
             "Legend",
             options=list(_LEGEND_LABELS.keys()),
@@ -421,11 +429,16 @@ class BasePlot(ABC):
     def _section_axes(
         self, saved_config: dict[str, Any], data: pd.DataFrame | None
     ) -> dict[str, Any]:
+        has_dual_axis: bool = (
+            self.plot_type == "dual_axis_bar_dot"
+            or bool(saved_config.get("dual_axis"))
+        )
         _AXIS_LABELS: dict[str, str] = {
             "x": ":material/straighten: X-Axis",
             "y_left": ":material/straighten: Y-Left",
-            "y_right": ":material/straighten: Y-Right",
         }
+        if has_dual_axis:
+            _AXIS_LABELS["y_right"] = ":material/straighten: Y-Right"
         axis_tab: str | None = st.pills(
             "Axis",
             options=list(_AXIS_LABELS.keys()),
