@@ -31,8 +31,9 @@ class ConfigPresenter:
     Usage::
 
         config = ConfigPresenter.render_type_config(plot, data, saved_config)
-        config.update(ConfigPresenter.render_advanced(plot, config, data))
-        config.update(ConfigPresenter.render_theme(plot, config))
+        config.update(
+            ConfigPresenter.render_advanced_and_theme(plot, config, data)
+        )
     """
 
     @staticmethod
@@ -93,50 +94,6 @@ class ConfigPresenter:
         )
         selected: str | None = render_settings_pills(show_advanced=show_adv)
         return renderer.render_settings_section(selected, current_config, data)
-
-    @staticmethod
-    def render_advanced(
-        renderer: ConfigRenderer,
-        current_config: dict[str, Any],
-        data: pd.DataFrame,
-    ) -> dict[str, Any]:
-        """
-        Render advanced options inside an expander.
-
-        Args:
-            renderer: Object with render_advanced_options method.
-            current_config: Current accumulated configuration.
-            data: Processed DataFrame.
-
-        Returns:
-            Advanced options configuration dict.
-        """
-        with st.expander("Advanced Options"):
-            return renderer.render_advanced_options(current_config, data)
-
-    @staticmethod
-    def render_theme(
-        renderer: ConfigRenderer,
-        current_config: dict[str, Any],
-    ) -> dict[str, Any]:
-        """
-        Render theme/style options inside an expander.
-
-        Args:
-            renderer: Object with render_display_options/render_theme_options.
-            current_config: Current accumulated configuration.
-
-        Returns:
-            Combined layout + theme configuration dict.
-        """
-        with st.expander("Theme & Style"):
-            layout: dict[str, Any] = renderer.render_display_options(current_config)
-            st.markdown("---")
-            theme: dict[str, Any] = renderer.render_theme_options(current_config)
-            combined: dict[str, Any] = {}
-            combined.update(layout)
-            combined.update(theme)
-            return combined
 
     @staticmethod
     def render_plot_type_selector(

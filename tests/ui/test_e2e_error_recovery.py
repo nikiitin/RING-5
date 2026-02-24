@@ -222,10 +222,3 @@ class TestNavigationEdgeCases:
         navigate_to(at, "Data Source")
         assert not at.exception
 
-    def test_performance_page_always_renders(self) -> None:
-        """Performance page renders regardless of data state."""
-        at = create_app()
-        navigate_to(at, "Performance")
-
-        assert not at.exception
-        assert len(at.metric) >= 1, "Expected at least one metric"

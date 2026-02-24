@@ -60,8 +60,8 @@ class ConfigRenderer(Protocol):
     Contract for plot-type-specific config UI rendering.
 
     Satisfied by ``BasePlot`` (which has ``render_config_ui``,
-    ``render_advanced_options``, ``render_display_options``,
-    ``render_theme_options``, ``render_settings_section``).
+    ``render_display_options``, ``render_theme_options``,
+    ``render_settings_section``).
 
     Used by ``ConfigPresenter`` to delegate type-specific widget rendering
     without importing the concrete ``BasePlot`` class.
@@ -70,10 +70,6 @@ class ConfigRenderer(Protocol):
     plot_id: int
 
     def render_config_ui(self, data: pd.DataFrame, config: dict[str, Any]) -> dict[str, Any]: ...
-
-    def render_advanced_options(
-        self, config: dict[str, Any], data: pd.DataFrame
-    ) -> dict[str, Any]: ...
 
     def render_display_options(self, config: dict[str, Any]) -> dict[str, Any]: ...
 
