@@ -35,9 +35,10 @@ class BaseStyleUI:
         """Render layout sizing options."""
         st.markdown("**Dimensions**")
 
-        preset_options = {
+        preset_options: dict[str, float] = {
             "Single Column (~3.5in)": 3.5,
             "Double Column (~7.0in)": 7.0,
+            "Custom": 0.0,  # sentinel — uses manual width
         }
 
         default_preset = saved_config.get("document_width_preset", "Double Column (~7.0in)")
