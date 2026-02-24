@@ -5,7 +5,6 @@ Provides functionality to save and load complete analysis snapshots including
 data, plots, and all configurations as portfolio files.
 """
 
-import copy
 import logging
 from typing import Any, cast
 
@@ -109,88 +108,8 @@ def _portfolio_fragment(api: ApplicationAPI) -> None:
                     type="tertiary",
                 )
 
-    # Pipeline Management
-    st.markdown("---")
-    st.markdown("## Pipeline Templates")
-    st.markdown("Save configuration pipelines from existing plots and apply them to others.")
 
-    col1b, col2b = st.columns(2)
-
-    with col1b:
-        st.markdown("### Save Pipeline")
-        plots = api.state_manager.get_plots()
-        if plots:
-            plot_map = {p.name: p for p in plots}
-            selected_plot_name = st.selectbox(
-                "Extract pipeline from:", list(plot_map.keys()), key="pipe_extract_select"
-            )
-
-            if selected_plot_name:
-                selected_plot = plot_map[selected_plot_name]
-                pipeline_name = st.text_input(
-                    "Pipeline Name",
-                    value=f"{selected_plot_name}_pipeline",
-                    key="pipe_save_name",
-                )
-
-                if st.button("Save Pipeline", type="primary"):
-                    try:
-                        api.shapers.save_pipeline(
-                            pipeline_name,
-                            selected_plot.pipeline,
-                            description=f"Extracted from {selected_plot_name}",
-                        )
-                        st.toast(f"Pipeline saved: {pipeline_name}", icon="✅")
-                    except Exception as e:
-                        st.exception(e)
-                        logger.error(
-                            "PIPELINE: Failed to save pipeline %r: %s",
-                            str(pipeline_name).replace("\n", ""),
-                            e,
-                            exc_info=True,
-                        )
-        else:
-            st.info("Create some plots first to extract pipelines.")
-
-    with col2b:
-        st.markdown("### Apply Pipeline")
-        pipelines = api.shapers.list_pipelines()
-        if pipelines:
-            selected_pipeline_name = st.selectbox(
-                "Select Pipeline", pipelines, key="pipe_load_select"
-            )
-
-            plots = api.state_manager.get_plots()
-            if plots:
-                target_plots = st.multiselect(
-                    "Apply to plots:",
-                    [p.name for p in plots],
-                    key="pipe_apply_select",
-                )
-
-                if st.button("Apply Pipeline", type="primary"):
-                    try:
-                        pipeline_data = api.shapers.load_pipeline(selected_pipeline_name)
-                        new_pipeline = pipeline_data.get("pipeline", [])
-
-                        count = 0
-                        for p in plots:
-                            if p.name in target_plots:
-                                p.pipeline = copy.deepcopy(new_pipeline)
-                                p.processed_data = None
-                                count += 1
-
-                        # Update state
-                        api.state_manager.set_plots(plots)
-
-                        st.toast(f"Applied pipeline to {count} plots.", icon="✅")
-                    except Exception as e:
-                        st.exception(e)
-                        logger.error(
-                            "PIPELINE: Failed to apply pipeline '%s': %s",
-                            selected_pipeline_name,
-                            e,
-                            exc_info=True,
+def show_portfolio_page(api: ApplicationAPI) -> None:
                         )
             else:
                 st.info("No plots available to apply pipeline to.")

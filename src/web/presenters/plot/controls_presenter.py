@@ -1,15 +1,10 @@
 """
-Plot Controls Presenter — renders rename, save/load, delete, duplicate buttons.
+Plot Controls Presenter — renders rename, delete, duplicate buttons.
 
 Returns which actions the user triggered as a typed dict.
 The controller handles the actual operations.
-
-Save/Load dialog buttons accept optional ``on_click`` callbacks so that
-state changes happen atomically in the callback phase, eliminating the
-need for an explicit ``st.rerun()`` in the controller.
 """
 
-from collections.abc import Callable
 from typing import Any
 
 import streamlit as st
@@ -17,7 +12,7 @@ import streamlit as st
 
 class PlotControlsPresenter:
     """
-    Renders plot management controls (rename, pipeline I/O, delete, duplicate).
+    Renders plot management controls (rename, delete, duplicate).
 
     Usage::
 
@@ -30,8 +25,6 @@ class PlotControlsPresenter:
     def render(
         plot_id: int,
         current_name: str,
-        on_save: Callable[[], None] | None = None,
-        on_load: Callable[[], None] | None = None,
     ) -> dict[str, Any]:
         """
         Render plot control widgets.
@@ -39,22 +32,14 @@ class PlotControlsPresenter:
         Args:
             plot_id: Unique plot ID (for widget keys).
             current_name: Current plot display name.
-            on_save: Optional callback for Save Pipeline button.
-                When provided, fires via ``on_click`` — the controller
-                does not need to check ``save_clicked`` or call rerun.
-            on_load: Optional callback for Load Pipeline button.
-                When provided, fires via ``on_click`` — the controller
-                does not need to check ``load_clicked`` or call rerun.
 
         Returns:
             Dict with:
                 - new_name (str): Possibly changed name.
-                - save_clicked (bool): Save Pipeline clicked.
-                - load_clicked (bool): Load Pipeline clicked.
                 - delete_clicked (bool): Delete clicked.
                 - duplicate_clicked (bool): Duplicate clicked.
         """
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3 = st.columns(3)
 
         with col1:
             new_name: str = st.text_input(
@@ -62,38 +47,17 @@ class PlotControlsPresenter:
             )
 
         with col2:
-            c2_1, c2_2 = st.columns(2)
-            with c2_1:
-                save_kwargs: dict[str, Any] = {
-                    "key": f"save_plot_{plot_id}",
-                    "help": "Save current pipeline",
-                }
-                if on_save is not None:
-                    save_kwargs["on_click"] = on_save
-                save_clicked: bool = st.button("Save Pipe", **save_kwargs)
-            with c2_2:
-                load_kwargs: dict[str, Any] = {
-                    "key": f"load_plot_{plot_id}",
-                    "help": "Load to current pipeline",
-                }
-                if on_load is not None:
-                    load_kwargs["on_click"] = on_load
-                load_clicked: bool = st.button("Load Pipe", **load_kwargs)
-
-        with col3:
             delete_clicked: bool = st.button(
                 "Delete", key=f"delete_plot_{plot_id}", type="tertiary"
             )
 
-        with col4:
+        with col3:
             duplicate_clicked: bool = st.button(
                 "Duplicate", key=f"dup_plot_{plot_id}", type="tertiary"
             )
 
         return {
             "new_name": new_name,
-            "save_clicked": save_clicked,
-            "load_clicked": load_clicked,
             "delete_clicked": delete_clicked,
             "duplicate_clicked": duplicate_clicked,
         }

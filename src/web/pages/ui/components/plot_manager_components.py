@@ -77,8 +77,7 @@ class PlotManagerComponents:
     @staticmethod
     def render_plot_controls(api: ApplicationAPI, plot: BasePlot) -> None:
         """Render controls for renaming and managing the current plot."""
-        ui = UIStateManager()
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3 = st.columns(3)
 
         with col1:
             new_name = st.text_input("Rename plot", value=plot.name, key=f"rename_{plot.plot_id}")
@@ -86,33 +85,6 @@ class PlotManagerComponents:
                 plot.name = new_name
 
         with col2:
-            c2_1, c2_2 = st.columns(2)
-            with c2_1:
-
-                def _show_save_dialog() -> None:
-                    ui.plot.set_dialog_visible(plot.plot_id, "save", True)
-                    ui.plot.set_dialog_visible(plot.plot_id, "load", False)
-
-                st.button(
-                    "Save Pipe",
-                    key=f"save_plot_{plot.plot_id}",
-                    help="Save current pipeline",
-                    on_click=_show_save_dialog,
-                )
-            with c2_2:
-
-                def _show_load_dialog() -> None:
-                    ui.plot.set_dialog_visible(plot.plot_id, "load", True)
-                    ui.plot.set_dialog_visible(plot.plot_id, "save", False)
-
-                st.button(
-                    "Load Pipe",
-                    key=f"load_plot_{plot.plot_id}",
-                    help="Load to current pipeline",
-                    on_click=_show_load_dialog,
-                )
-
-        with col3:
             st.button(
                 "Delete",
                 key=f"delete_plot_{plot.plot_id}",
@@ -120,7 +92,7 @@ class PlotManagerComponents:
                 type="tertiary",
             )
 
-        with col4:
+        with col3:
 
             def _duplicate() -> None:
                 PlotService.duplicate_plot(plot, api.state_manager)
@@ -131,88 +103,6 @@ class PlotManagerComponents:
                 on_click=_duplicate,
                 type="tertiary",
             )
-
-        # Dialogs
-        if ui.plot.is_dialog_visible(plot.plot_id, "save"):
-            PlotManagerComponents._render_save_pipeline_dialog(api, plot)
-        if ui.plot.is_dialog_visible(plot.plot_id, "load"):
-            PlotManagerComponents._render_load_pipeline_dialog(api, plot)
-
-    @staticmethod
-    def _render_save_pipeline_dialog(api: ApplicationAPI, plot: BasePlot) -> None:
-        st.markdown("---")
-        st.markdown(f"### Save Pipeline for '{plot.name}'")
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            name = st.text_input(
-                "Pipeline Name", value=f"{plot.name}_pipeline", key=f"save_p_name_{plot.plot_id}"
-            )
-        with col2:
-            st.write("")
-            st.write("")
-            if st.button("Save", type="primary", key=f"save_p_btn_{plot.plot_id}"):
-                try:
-                    api.shapers.save_pipeline(
-                        name, plot.pipeline, description=f"Source: {plot.name}"
-                    )
-                    st.toast("Pipeline saved!", icon="✅")
-                    st.session_state[f"plot.{plot.plot_id}.dialog.save"] = False
-                    st.rerun()
-                except Exception as e:
-                    st.exception(e)
-            st.button(
-                "Cancel",
-                key=f"cancel_save_{plot.plot_id}",
-                on_click=lambda: st.session_state.__setitem__(
-                    f"plot.{plot.plot_id}.dialog.save", False
-                ),
-            )
-
-    @staticmethod
-    def _render_load_pipeline_dialog(api: ApplicationAPI, plot: BasePlot) -> None:
-        st.markdown("---")
-        st.markdown("### Load Pipeline")
-        pipelines = api.shapers.list_pipelines()
-        if not pipelines:
-            st.warning("No saved pipelines found.")
-            st.button(
-                "Close",
-                key=f"close_load_{plot.plot_id}",
-                on_click=lambda: st.session_state.__setitem__(
-                    f"plot.{plot.plot_id}.dialog.load", False
-                ),
-            )
-            return
-
-        selected = st.selectbox("Select Pipeline", pipelines, key=f"load_p_sel_{plot.plot_id}")
-        if st.button("Load", type="primary", key=f"load_p_btn_{plot.plot_id}"):
-            try:
-                from src.core.services.shapers.pipeline_service import PipelineService
-
-                data = api.shapers.load_pipeline(selected)
-                steps, counter = PipelineService.prepare_loaded_pipeline(data)
-                plot.pipeline = steps
-                plot.pipeline_counter = counter
-                plot.processed_data = None  # Reset data
-                st.toast("Pipeline loaded!", icon="✅")
-                st.session_state[f"plot.{plot.plot_id}.dialog.load"] = False
-                st.rerun()
-            except Exception as e:
-                st.exception(e)
-                logger.error(
-                    "PLOT: Failed to load pipeline for plot %r: %s",
-                    str(plot.name).replace("\n", ""),
-                    e,
-                    exc_info=True,
-                )
-
-        st.button(
-            "Cancel",
-            key=f"cancel_load_{plot.plot_id}",
-            on_click=lambda: st.session_state.__setitem__(
-                f"plot.{plot.plot_id}.dialog.load", False
-            ),
-        )
 
     @staticmethod
     def render_pipeline_editor(api: ApplicationAPI, plot: BasePlot) -> None:

@@ -11,15 +11,14 @@ Dependencies are injected via protocols (no concrete imports from pages.ui).
 
 Architecture Note — Streamlit usage:
     This controller uses ``st.rerun()`` for flow control after state mutations
-    (create/delete/duplicate, dialog open/close), ``st.toast()`` for transient
-    success notifications, and ``st.exception()`` for error handling. These are
+    (create/delete/duplicate), ``st.toast()`` for transient success
+    notifications, and ``st.exception()`` for error handling. These are
     intentional: ``st.rerun()`` is Streamlit's flow control mechanism,
     ``st.toast()`` is non-blocking feedback, and ``st.exception()`` renders
     full tracebacks. Presentation-only calls (warnings) are delegated to
     the presenter layer.
 """
 
-import copy
 import logging
 from typing import cast
 
@@ -34,8 +33,6 @@ from src.web.models.plot_protocols import (
 )
 from src.web.presenters.plot.controls_presenter import PlotControlsPresenter
 from src.web.presenters.plot.creation_presenter import PlotCreationPresenter
-from src.web.presenters.plot.load_dialog_presenter import LoadDialogPresenter
-from src.web.presenters.plot.save_dialog_presenter import SaveDialogPresenter
 from src.web.presenters.plot.selector_presenter import PlotSelectorPresenter
 from src.web.state.ui_state_manager import UIStateManager
 
@@ -132,30 +129,14 @@ class PlotCreationController:
         """
         Render plot controls and handle actions.
 
-        Handles: rename, save/load pipeline, delete, duplicate.
-
-        Save/Load dialog toggling uses ``on_click`` callbacks passed to the
-        presenter so that the state change is atomic and no manual
-        ``st.rerun()`` is needed for those buttons.
+        Handles: rename, delete, duplicate.
 
         Args:
             plot: The currently selected plot.
         """
-
-        # Callbacks for dialog visibility (fire before the natural rerun)
-        def _on_save() -> None:
-            self._ui.plot.set_dialog_visible(plot.plot_id, "save", True)
-            self._ui.plot.set_dialog_visible(plot.plot_id, "load", False)
-
-        def _on_load() -> None:
-            self._ui.plot.set_dialog_visible(plot.plot_id, "load", True)
-            self._ui.plot.set_dialog_visible(plot.plot_id, "save", False)
-
         actions = PlotControlsPresenter.render(
             plot_id=plot.plot_id,
             current_name=plot.name,
-            on_save=_on_save,
-            on_load=_on_load,
         )
 
         # Rename
@@ -171,81 +152,4 @@ class PlotCreationController:
         # Duplicate
         if actions["duplicate_clicked"]:
             self._lifecycle.duplicate_plot(plot, self._api.state_manager)
-            st.rerun()
-
-        # Dialogs — rendering delegated to presenters, logic stays here
-        if self._ui.plot.is_dialog_visible(plot.plot_id, "save"):
-            self._handle_save_dialog(plot)
-        if self._ui.plot.is_dialog_visible(plot.plot_id, "load"):
-            self._handle_load_dialog(plot)
-
-    def _handle_save_dialog(self, plot: PlotHandle) -> None:
-        """Handle save pipeline dialog: render via presenter, act on result."""
-        result = SaveDialogPresenter.render(
-            plot_id=plot.plot_id,
-            plot_name=plot.name,
-        )
-
-        if result["save_clicked"]:
-            try:
-                self._api.shapers.save_pipeline(
-                    result["pipeline_name"],
-                    plot.pipeline,
-                    description=f"Source: {plot.name}",
-                )
-                st.toast("Pipeline saved!", icon="✅")
-                self._ui.plot.set_dialog_visible(plot.plot_id, "save", False)
-                st.rerun()
-            except Exception as e:
-                st.exception(e)
-
-        if result["cancel_clicked"]:
-            self._ui.plot.set_dialog_visible(plot.plot_id, "save", False)
-            st.rerun()
-
-    def _handle_load_dialog(self, plot: PlotHandle) -> None:
-        """Handle load pipeline dialog: render via presenter, act on result."""
-        pipelines = self._api.shapers.list_pipelines()
-
-        if not pipelines:
-            empty_result = LoadDialogPresenter.render_empty(
-                plot_id=plot.plot_id,
-            )
-            if empty_result["close_clicked"]:
-                self._ui.plot.set_dialog_visible(plot.plot_id, "load", False)
-                st.rerun()
-            return
-
-        result = LoadDialogPresenter.render(
-            plot_id=plot.plot_id,
-            available_pipelines=pipelines,
-        )
-
-        if result["load_clicked"]:
-            try:
-                data = self._api.shapers.load_pipeline(result["selected_pipeline"])
-                plot.pipeline = copy.deepcopy(data.get("pipeline", []))
-                if plot.pipeline:
-                    max_id: int = max(
-                        (step.get("id", -1) for step in plot.pipeline),
-                        default=-1,
-                    )
-                    plot.pipeline_counter = max_id + 1
-                else:
-                    plot.pipeline_counter = 0
-                plot.processed_data = None
-                st.toast("Pipeline loaded!", icon="✅")
-                self._ui.plot.set_dialog_visible(plot.plot_id, "load", False)
-                st.rerun()
-            except Exception as e:
-                st.exception(e)
-                logger.error(
-                    "PLOT: Failed to load pipeline for plot %r: %s",
-                    str(plot.name).replace("\n", ""),
-                    e,
-                    exc_info=True,
-                )
-
-        if result["cancel_clicked"]:
-            self._ui.plot.set_dialog_visible(plot.plot_id, "load", False)
             st.rerun()
