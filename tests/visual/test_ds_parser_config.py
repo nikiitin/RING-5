@@ -1,12 +1,14 @@
 """Visual tests for Data Source page — parser configuration widgets.
 
-Split from the monolithic test_data_source.py for maintainability.
+Consolidated from 36 individual tests to 6 workflow-style tests using
+a class-scoped ``shared_page`` fixture.
+
 Covers:
-- File Location inputs
-- Parsing Strategy selector
-- Variables to Extract section
-- Configuration Preview (JSON)
-- Parse button & validation
+- File Location inputs (labels, editability, clearing)
+- Parsing Strategy selector (switching between Simple and Config-Aware)
+- Variables to Extract section (buttons, checkbox, type descriptions)
+- Configuration Preview (JSON keys, reflecting strategy/path changes)
+- Parse button visibility and validation behaviour
 """
 
 from __future__ import annotations
@@ -19,253 +21,185 @@ from tests.visual.pages.data_source_page import DataSourcePage
 pytestmark = pytest.mark.requires_browser
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
+class TestParserConfig:
+    """Consolidated parser configuration tests.
 
+    Uses ``shared_page`` (class-scoped) so the browser tab is created once
+    and reused across all six tests.  Tests run in definition order.
+    """
 
-def _setup(page: Page, live_server_url: str) -> DataSourcePage:
-    """Navigate to the Data Source page and wait for it to load."""
-    ds = DataSourcePage(page)
-    ds.goto_and_wait(live_server_url)
-    ds.assert_step_header_visible()
-    return ds
+    def test_file_location_inputs(self, shared_page: Page, live_server_url: str) -> None:
+        """File Location section renders correctly and inputs are editable.
 
+        Consolidates 8 original tests:
+        - File Location header visible
+        - Stats path label and input visible
+        - Stats pattern label and input visible
+        - Both inputs side by side
+        - Stats path is editable and clearable
+        - Stats pattern is editable and changeable
+        """
+        ds = DataSourcePage(shared_page)
+        ds.goto_and_wait(live_server_url)
+        ds.assert_step_header_visible()
 
-# ===================================================================
-# File Location inputs
-# ===================================================================
-
-
-class TestFileLocationInputs:
-    """Test the stats directory path and file pattern text inputs."""
-
-    def test_file_location_header_visible(self, page: Page, live_server_url: str) -> None:
-        """'File Location' heading is visible in Parse mode."""
-        ds = _setup(page, live_server_url)
+        # Header and labels
         ds.assert_file_location_visible()
+        expect(ds.stats_path_label).to_be_visible()
+        expect(ds.stats_pattern_label).to_be_visible()
 
-    def test_stats_path_input_is_editable(self, page: Page, live_server_url: str) -> None:
-        """User can type a path into the stats directory input."""
-        ds = _setup(page, live_server_url)
+        # Both inputs visible
+        expect(ds.stats_path_input).to_be_visible()
+        expect(ds.stats_pattern_input).to_be_visible()
+
+        # Edit stats path
         ds.fill_stats_path("/tmp/test_stats_dir")
         expect(ds.stats_path_input).to_have_value("/tmp/test_stats_dir")
 
-    def test_stats_pattern_input_is_editable(self, page: Page, live_server_url: str) -> None:
-        """User can type a pattern into the file pattern input."""
-        ds = _setup(page, live_server_url)
-        ds.fill_stats_pattern("*.txt")
-        expect(ds.stats_pattern_input).to_have_value("*.txt")
-
-    def test_stats_path_label_visible(self, page: Page, live_server_url: str) -> None:
-        """The 'Stats directory path' label is visible."""
-        ds = _setup(page, live_server_url)
-        expect(ds.stats_path_label).to_be_visible()
-
-    def test_stats_pattern_label_visible(self, page: Page, live_server_url: str) -> None:
-        """The 'File pattern' label is visible."""
-        ds = _setup(page, live_server_url)
-        expect(ds.stats_pattern_label).to_be_visible()
-
-    def test_stats_path_can_be_cleared(self, page: Page, live_server_url: str) -> None:
-        """User can clear the stats path input."""
-        ds = _setup(page, live_server_url)
-        ds.fill_stats_path("/some/path")
+        # Clear stats path
         ds.stats_path_input.fill("")
         ds.stats_path_input.press("Tab")
         ds.wait_for_streamlit()
         expect(ds.stats_path_input).to_have_value("")
 
-    def test_stats_pattern_can_be_changed(self, page: Page, live_server_url: str) -> None:
-        """User can change the file pattern from default to custom."""
-        ds = _setup(page, live_server_url)
+        # Edit file pattern
         ds.fill_stats_pattern("custom_stats*.txt")
         expect(ds.stats_pattern_input).to_have_value("custom_stats*.txt")
 
-    def test_both_inputs_side_by_side(self, page: Page, live_server_url: str) -> None:
-        """Both inputs are rendered (two-column layout)."""
-        ds = _setup(page, live_server_url)
-        expect(ds.stats_path_input).to_be_visible()
-        expect(ds.stats_pattern_input).to_be_visible()
+        # Change pattern again
+        ds.fill_stats_pattern("*.txt")
+        expect(ds.stats_pattern_input).to_have_value("*.txt")
 
+    def test_parsing_strategy(self, shared_page: Page, live_server_url: str) -> None:
+        """Parsing Strategy selector works correctly.
 
-# ===================================================================
-# Parsing Strategy selector
-# ===================================================================
+        Consolidates 5 original tests:
+        - Strategy header visible
+        - Both Simple and Config-Aware options visible
+        - Simple is default strategy
+        - Can switch to Config-Aware
+        - Can switch back to Simple
+        """
+        ds = DataSourcePage(shared_page)
+        ds.goto_and_wait(live_server_url)
+        ds.assert_step_header_visible()
 
-
-class TestParsingStrategy:
-    """Test the parsing strategy segmented control."""
-
-    def test_strategy_header_visible(self, page: Page, live_server_url: str) -> None:
-        """'Parsing Strategy' heading is visible in Parse mode."""
-        ds = _setup(page, live_server_url)
+        # Header and options visible
         ds.assert_strategy_section_visible()
-
-    def test_strategy_shows_two_options(self, page: Page, live_server_url: str) -> None:
-        """Both Simple and Config-Aware options are visible."""
-        ds = _setup(page, live_server_url)
         expect(ds.strategy_simple_option).to_be_visible()
         expect(ds.strategy_config_aware_option).to_be_visible()
 
-    def test_simple_is_default_strategy(self, page: Page, live_server_url: str) -> None:
-        """'Simple' strategy is active by default and stays active."""
-        ds = _setup(page, live_server_url)
-        # Ensure simple is selected (only clicks if not already active)
+        # Simple is default
         ds.ensure_simple_strategy()
         expect(ds.strategy_simple_option).to_have_attribute(
             "data-testid", "stBaseButton-segmented_controlActive"
         )
 
-    def test_switch_to_config_aware(self, page: Page, live_server_url: str) -> None:
-        """User can switch to Config-Aware strategy."""
-        ds = _setup(page, live_server_url)
+        # Switch to Config-Aware
         ds.select_config_aware_strategy()
         expect(ds.strategy_config_aware_option).to_have_attribute(
             "data-testid", "stBaseButton-segmented_controlActive"
         )
 
-    def test_switch_back_to_simple(self, page: Page, live_server_url: str) -> None:
-        """User can switch from Config-Aware back to Simple."""
-        ds = _setup(page, live_server_url)
-        ds.select_config_aware_strategy()
+        # Switch back to Simple
         ds.select_simple_strategy()
         expect(ds.strategy_simple_option).to_have_attribute(
             "data-testid", "stBaseButton-segmented_controlActive"
         )
 
+    def test_variables_section(self, shared_page: Page, live_server_url: str) -> None:
+        """Variables to Extract section renders all expected elements.
 
-# ===================================================================
-# Variables to Extract section
-# ===================================================================
+        Consolidates 10 original tests:
+        - Variables header visible
+        - Variable type descriptions visible (Scalar, Vector, Distribution, Config)
+        - Deep Scan checkbox visible and toggleable
+        - Quick Scan button visible
+        - Add Variable button visible
+        """
+        ds = DataSourcePage(shared_page)
+        ds.goto_and_wait(live_server_url)
+        ds.assert_step_header_visible()
 
-
-class TestVariablesSection:
-    """Test the Variables to Extract section."""
-
-    def test_variables_header_visible(self, page: Page, live_server_url: str) -> None:
-        """'Variables to Extract' heading is visible."""
-        ds = _setup(page, live_server_url)
+        # Header and description
         ds.assert_variables_section_visible()
-
-    def test_variable_type_descriptions_visible(self, page: Page, live_server_url: str) -> None:
-        """The text listing variable types (Scalar, Vector, etc.) is visible."""
-        ds = _setup(page, live_server_url)
         expect(ds.variables_description).to_be_visible()
 
-    def test_deep_scan_checkbox_visible(self, page: Page, live_server_url: str) -> None:
-        """'Deep Scan (check all files)' checkbox is visible."""
-        ds = _setup(page, live_server_url)
-        expect(ds.deep_scan_checkbox).to_be_visible()
+        # Variable type mentions
+        expect(shared_page.get_by_text("Scalar", exact=False).first).to_be_visible()
+        expect(shared_page.get_by_text("Vector", exact=False).first).to_be_visible()
+        expect(shared_page.get_by_text("Distribution", exact=False).first).to_be_visible()
+        expect(shared_page.get_by_text("Configuration", exact=False).first).to_be_visible()
 
-    def test_quick_scan_button_visible(self, page: Page, live_server_url: str) -> None:
-        """'Quick Scan' button is visible."""
-        ds = _setup(page, live_server_url)
+        # Buttons
         expect(ds.quick_scan_button).to_be_visible()
-
-    def test_add_variable_button_visible(self, page: Page, live_server_url: str) -> None:
-        """'Add Variable' button is visible."""
-        ds = _setup(page, live_server_url)
         expect(ds.add_variable_button).to_be_visible()
 
-    def test_deep_scan_checkbox_toggleable(self, page: Page, live_server_url: str) -> None:
-        """User can toggle the Deep Scan checkbox on and off."""
-        ds = _setup(page, live_server_url)
+        # Deep Scan checkbox — toggle on and off
+        expect(ds.deep_scan_checkbox).to_be_visible()
         ds.toggle_deep_scan()
         ds.toggle_deep_scan()
 
-    def test_scalar_type_mentioned(self, page: Page, live_server_url: str) -> None:
-        """The word 'Scalar' appears in the variable descriptions."""
-        _setup(page, live_server_url)
-        expect(page.get_by_text("Scalar", exact=False).first).to_be_visible()
+    def test_config_preview_static(self, shared_page: Page, live_server_url: str) -> None:
+        """Configuration Preview shows expected JSON keys.
 
-    def test_vector_type_mentioned(self, page: Page, live_server_url: str) -> None:
-        """'Vector' appears in the variable descriptions."""
-        _setup(page, live_server_url)
-        expect(page.get_by_text("Vector", exact=False).first).to_be_visible()
+        Consolidates 5 original tests:
+        - Config Preview header visible
+        - JSON contains 'parser' key
+        - JSON contains 'statsPath' key
+        - JSON contains 'strategy' key
+        - JSON contains 'variables' key
+        """
+        ds = DataSourcePage(shared_page)
+        ds.goto_and_wait(live_server_url)
+        ds.assert_step_header_visible()
 
-    def test_distribution_type_mentioned(self, page: Page, live_server_url: str) -> None:
-        """'Distribution' appears in the variable descriptions."""
-        _setup(page, live_server_url)
-        expect(page.get_by_text("Distribution", exact=False).first).to_be_visible()
-
-    def test_configuration_type_mentioned(self, page: Page, live_server_url: str) -> None:
-        """'Configuration' appears in the variable descriptions."""
-        _setup(page, live_server_url)
-        expect(page.get_by_text("Configuration", exact=False).first).to_be_visible()
-
-
-# ===================================================================
-# Configuration Preview
-# ===================================================================
-
-
-class TestConfigPreview:
-    """Test the JSON configuration preview section."""
-
-    def test_config_preview_header_visible(self, page: Page, live_server_url: str) -> None:
-        """'Configuration Preview' heading is visible."""
-        ds = _setup(page, live_server_url)
         ds.assert_config_preview_visible()
-
-    def test_config_json_contains_parser_key(self, page: Page, live_server_url: str) -> None:
-        """The JSON preview contains the 'parser' key."""
-        ds = _setup(page, live_server_url)
         expect(ds.config_json_view).to_contain_text("parser")
-
-    def test_config_json_contains_stats_path(self, page: Page, live_server_url: str) -> None:
-        """The JSON preview contains the 'statsPath' key."""
-        ds = _setup(page, live_server_url)
         expect(ds.config_json_view).to_contain_text("statsPath")
-
-    def test_config_json_contains_strategy(self, page: Page, live_server_url: str) -> None:
-        """The JSON preview contains the 'strategy' key."""
-        ds = _setup(page, live_server_url)
         expect(ds.config_json_view).to_contain_text("strategy")
-
-    def test_config_json_contains_variables(self, page: Page, live_server_url: str) -> None:
-        """The JSON preview contains the 'variables' key."""
-        ds = _setup(page, live_server_url)
         expect(ds.config_json_view).to_contain_text("variables")
 
-    def test_config_json_reflects_strategy_change(self, page: Page, live_server_url: str) -> None:
-        """Changing strategy updates the JSON preview."""
-        ds = _setup(page, live_server_url)
-        # Start from a known state
+    def test_config_preview_dynamic(self, shared_page: Page, live_server_url: str) -> None:
+        """Configuration Preview updates when strategy or path changes.
+
+        Consolidates 2 original tests:
+        - Changing strategy updates JSON preview
+        - Typing a stats path updates JSON preview
+        """
+        ds = DataSourcePage(shared_page)
+        ds.goto_and_wait(live_server_url)
+        ds.assert_step_header_visible()
+
+        # Strategy change reflects in JSON
         ds.select_simple_strategy()
         expect(ds.config_json_view).to_contain_text("simple")
-        # Switch to config_aware
         ds.select_config_aware_strategy()
         expect(ds.config_json_view).to_contain_text("config_aware")
 
-    def test_config_json_reflects_path_change(self, page: Page, live_server_url: str) -> None:
-        """Typing a stats path updates the JSON preview."""
-        ds = _setup(page, live_server_url)
+        # Path change reflects in JSON
         ds.fill_stats_path("/my/gem5/output")
         expect(ds.config_json_view).to_contain_text("/my/gem5/output")
 
+    def test_parse_button_behaviour(self, shared_page: Page, live_server_url: str) -> None:
+        """Parse button visibility and error validation work correctly.
 
-# ===================================================================
-# Parse button & validation
-# ===================================================================
+        Consolidates 6 original tests:
+        - Parse button visible with correct text
+        - Parse with empty path shows error
+        - Parse with nonexistent path shows error/dialog
+        - Parse button NOT visible in CSV mode
+        - Parse button NOT visible in Recent mode
+        """
+        ds = DataSourcePage(shared_page)
+        ds.goto_and_wait(live_server_url)
+        ds.assert_step_header_visible()
 
-
-class TestParseButton:
-    """Test the primary 'Parse gem5 Stats Files' button."""
-
-    def test_parse_button_visible(self, page: Page, live_server_url: str) -> None:
-        """The primary Parse button is visible at the bottom."""
-        ds = _setup(page, live_server_url)
+        # Parse button visible with correct text
         ds.assert_parse_button_visible()
-
-    def test_parse_button_text(self, page: Page, live_server_url: str) -> None:
-        """Parse button text reads 'Parse gem5 Stats Files'."""
-        ds = _setup(page, live_server_url)
         expect(ds.parse_button).to_contain_text("Parse gem5 Stats Files")
 
-    def test_parse_with_empty_path_shows_error(self, page: Page, live_server_url: str) -> None:
-        """Clicking Parse with an empty stats path shows an error alert."""
-        ds = _setup(page, live_server_url)
+        # Empty path shows error
         ds.stats_path_input.fill("")
         ds.stats_path_input.press("Tab")
         ds.wait_for_streamlit()
@@ -273,23 +207,19 @@ class TestParseButton:
         expect(ds.parser_error_message).to_be_visible(timeout=10_000)
         expect(ds.parser_error_message).to_contain_text("Please specify a stats directory path")
 
-    def test_parse_button_not_in_csv_mode(self, page: Page, live_server_url: str) -> None:
-        """Parse button is NOT visible in CSV mode."""
-        ds = _setup(page, live_server_url)
+        # Not visible in CSV mode
         ds.select_csv_mode()
         expect(ds.parse_button).not_to_be_visible()
 
-    def test_parse_button_not_in_recent_mode(self, page: Page, live_server_url: str) -> None:
-        """Parse button is NOT visible in Recent mode."""
-        ds = _setup(page, live_server_url)
+        # Not visible in Recent mode
         ds.select_recent_mode()
         expect(ds.parse_button).not_to_be_visible()
 
-    def test_parse_with_nonexistent_path_shows_error(
-        self, page: Page, live_server_url: str
-    ) -> None:
-        """Clicking Parse with a nonexistent path triggers error handling."""
-        ds = _setup(page, live_server_url)
+        # Back to Parse — visible again
+        ds.select_parse_mode()
+        ds.assert_parse_button_visible()
+
+        # Nonexistent path shows error
         ds.fill_stats_path("/nonexistent/path/that/should/fail")
         ds.fill_stats_pattern("stats.txt")
         ds.click_parse()

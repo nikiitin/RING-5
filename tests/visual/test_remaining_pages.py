@@ -1,9 +1,12 @@
 """Visual tests for Manage Plots, Portfolio, and Performance pages.
 
+Consolidated from 8 individual tests to 3 workflow-style tests using
+a class-scoped ``shared_page`` fixture.
+
 Covers:
-- Each page renders correctly after sidebar navigation
-- No-data guard messages display properly
-- Screenshot capture for documentation
+- Manage Plots page (renders, no-plots warning, screenshot)
+- Portfolio page (renders, screenshot)
+- Performance page (renders, cache stats, screenshot)
 """
 
 from __future__ import annotations
@@ -20,93 +23,61 @@ from tests.visual.pages.portfolio_page import PortfolioPage
 pytestmark = pytest.mark.requires_browser
 
 
-# ---------------------------------------------------------------------------
-# Manage Plots
-# ---------------------------------------------------------------------------
+class TestRemainingPages:
+    """Consolidated tests for Manage Plots, Portfolio, and Performance pages.
 
+    Uses ``shared_page`` (class-scoped) so the browser tab is created once
+    and reused across all three tests.
+    """
 
-class TestManagePlots:
-    """Visual tests for the Manage Plots page."""
+    def test_manage_plots_empty(
+        self, shared_page: Page, live_server_url: str, shared_screenshot_dir: Path
+    ) -> None:
+        """Manage Plots page renders with no-plots warning and screenshot.
 
-    def test_page_renders(self, page: Page, live_server_url: str) -> None:
-        """Manage Plots page renders after sidebar navigation."""
-        mp = ManagePlotsPage(page)
+        Consolidates 3 original tests:
+        - page_renders
+        - no_plots_warning
+        - capture_screenshot
+        """
+        mp = ManagePlotsPage(shared_page)
         mp.goto_and_wait(live_server_url)
         mp.navigate()
+
         mp.assert_page_header_visible()
-
-    def test_no_plots_warning(self, page: Page, live_server_url: str) -> None:
-        """Without plots, a warning is shown."""
-        mp = ManagePlotsPage(page)
-        mp.goto_and_wait(live_server_url)
-        mp.navigate()
         mp.assert_no_plots_warning()
+        mp.screenshot(shared_screenshot_dir / "manage_plots.png")
 
-    def test_capture_screenshot(
-        self, page: Page, live_server_url: str, screenshot_dir: Path
+    def test_portfolio_page(
+        self, shared_page: Page, live_server_url: str, shared_screenshot_dir: Path
     ) -> None:
-        """Capture Manage Plots page for documentation."""
-        mp = ManagePlotsPage(page)
-        mp.goto_and_wait(live_server_url)
-        mp.navigate()
-        mp.assert_page_header_visible()
-        mp.screenshot(screenshot_dir / "manage_plots.png")
+        """Portfolio page renders with header and screenshot.
 
-
-# ---------------------------------------------------------------------------
-# Portfolio
-# ---------------------------------------------------------------------------
-
-
-class TestPortfolio:
-    """Visual tests for the Portfolio page."""
-
-    def test_page_renders(self, page: Page, live_server_url: str) -> None:
-        """Portfolio page renders after sidebar navigation."""
-        pf = PortfolioPage(page)
+        Consolidates 2 original tests:
+        - page_renders
+        - capture_screenshot
+        """
+        pf = PortfolioPage(shared_page)
         pf.goto_and_wait(live_server_url)
         pf.navigate()
-        pf.assert_page_header_visible()
 
-    def test_capture_screenshot(
-        self, page: Page, live_server_url: str, screenshot_dir: Path
+        pf.assert_page_header_visible()
+        pf.screenshot(shared_screenshot_dir / "portfolio.png")
+
+    def test_performance_page(
+        self, shared_page: Page, live_server_url: str, shared_screenshot_dir: Path
     ) -> None:
-        """Capture Portfolio page for documentation."""
-        pf = PortfolioPage(page)
-        pf.goto_and_wait(live_server_url)
-        pf.navigate()
-        pf.assert_page_header_visible()
-        pf.screenshot(screenshot_dir / "portfolio.png")
+        """Performance page renders with cache stats and screenshot.
 
-
-# ---------------------------------------------------------------------------
-# Performance
-# ---------------------------------------------------------------------------
-
-
-class TestPerformance:
-    """Visual tests for the Performance page."""
-
-    def test_page_renders(self, page: Page, live_server_url: str) -> None:
-        """Performance page renders after sidebar navigation."""
-        perf = PerformancePage(page)
+        Consolidates 3 original tests:
+        - page_renders
+        - cache_stats_visible
+        - capture_screenshot
+        """
+        perf = PerformancePage(shared_page)
         perf.goto_and_wait(live_server_url)
         perf.navigate()
+
         perf.assert_page_title_visible()
-
-    def test_cache_stats_visible(self, page: Page, live_server_url: str) -> None:
-        """Cache statistics section is rendered."""
-        perf = PerformancePage(page)
-        perf.goto_and_wait(live_server_url)
-        perf.navigate()
         perf.assert_cache_stats_visible()
-
-    def test_capture_screenshot(
-        self, page: Page, live_server_url: str, screenshot_dir: Path
-    ) -> None:
-        """Capture Performance page for documentation."""
-        perf = PerformancePage(page)
-        perf.goto_and_wait(live_server_url)
-        perf.navigate()
-        perf.assert_page_title_visible()
-        perf.screenshot(screenshot_dir / "performance.png")
+        perf.screenshot(shared_screenshot_dir / "performance.png")

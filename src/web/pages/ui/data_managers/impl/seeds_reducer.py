@@ -23,15 +23,16 @@ class SeedsReducerManager(DataManager):
         """Render the Seeds Reducer UI."""
         st.markdown("### Seeds Reducer")
 
-        st.info("""
-        **Seeds Reducer** groups data by categorical columns and calculates statistics across
-        different random seeds.
-
-        - Removes the `random_seed` column
-        - Groups by categorical columns
-        - Calculates mean and standard deviation for numeric columns
-        - Useful for averaging results across multiple simulation runs
-        """)
+        st.info(
+            "**Seeds Reducer** groups data by a selected column and "
+            "calculates statistics (mean + standard deviation) across "
+            "its values.\n\n"
+            "- Choose which column to reduce over "
+            "(e.g. `random_seed`, `iteration`, `run_id`)\n"
+            "- Groups by remaining categorical columns\n"
+            "- Calculates mean and standard deviation for numeric columns\n"
+            "- Useful for averaging results across multiple simulation runs"
+        )
 
         # Get current data
         data = self.get_data()
@@ -40,27 +41,49 @@ class SeedsReducerManager(DataManager):
             st.error("No data available. Please load data first.")
             return
 
-        # Check if random_seed column exists
-        if "random_seed" not in data.columns:
+        # Build list of candidate columns to reduce over.
+        # Candidates: any column with <=50 unique values OR object/string dtype.
+        all_columns: list[str] = list(data.columns)
+        candidate_cols: list[str] = [
+            c for c in all_columns if data[c].nunique() <= 50 or data[c].dtype == "object"
+        ]
+
+        if not candidate_cols:
             st.warning(
-                "No `random_seed` column found in the dataset. "
-                "Seeds Reducer requires this column."
-            )
-            st.info(
-                "If your data has seeds in a different column, please rename it to `random_seed` "
-                "first."
+                "No suitable columns found for reduction. "
+                "Reduction works best with categorical columns or "
+                "columns with few unique values."
             )
             return
 
-        # Identify categorical and numeric columns
-        categorical_cols = data.select_dtypes(include=["object", "string"]).columns.tolist()
-        numeric_cols = data.select_dtypes(include=["number"]).columns.tolist()
+        # Auto-select random_seed when present for backward compatibility
+        default_idx: int = 0
+        if "random_seed" in candidate_cols:
+            default_idx = candidate_cols.index("random_seed")
 
-        # Remove random_seed from categorical if present
-        if "random_seed" in categorical_cols:
-            categorical_cols.remove("random_seed")
-        if "random_seed" in numeric_cols:
-            numeric_cols.remove("random_seed")
+        reduce_col: str = str(
+            st.selectbox(
+                "Column to reduce over",
+                options=candidate_cols,
+                index=default_idx,
+                help=(
+                    "Select the column whose values will be aggregated "
+                    "(e.g. random_seed, iteration, run_id)"
+                ),
+                key="reducer_target_column",
+            )
+        )
+
+        # Identify categorical and numeric columns, excluding the
+        # reduction target column
+        categorical_cols = [
+            c
+            for c in data.select_dtypes(include=["object", "string"]).columns.tolist()
+            if c != reduce_col
+        ]
+        numeric_cols = [
+            c for c in data.select_dtypes(include=["number"]).columns.tolist() if c != reduce_col
+        ]
 
         if not categorical_cols:
             st.warning("No categorical columns found for grouping.")

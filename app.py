@@ -66,7 +66,6 @@ def run_app() -> None:
             "Data Managers",
             "Manage Plots",
             "Save/Load Portfolio",
-            "Performance",
         ]
 
         if "_nav_page" not in st.session_state:
@@ -152,10 +151,6 @@ def run_app() -> None:
         from src.web.pages.portfolio import show_portfolio_page
 
         show_portfolio_page(api)
-    elif page == "Performance":
-        from src.web.pages.performance import render_performance_page
-
-        render_performance_page(api)
 
 
 if __name__ == "__main__":

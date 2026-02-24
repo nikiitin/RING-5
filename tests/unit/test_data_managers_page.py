@@ -15,6 +15,12 @@ class TestShowDataManagersPage:
         api = MagicMock()
         api.state_manager.has_data.return_value = False
 
+        # st.tabs must return 7 context managers for destructuring
+        tab = MagicMock()
+        tab.__enter__ = MagicMock(return_value=tab)
+        tab.__exit__ = MagicMock(return_value=False)
+        mock_st.tabs.return_value = [tab] * 7
+
         show_data_managers_page(api)
 
         mock_st.warning.assert_called_once()
@@ -26,6 +32,11 @@ class TestShowDataManagersPage:
         api = MagicMock()
         api.state_manager.has_data.return_value = True
         api.state_manager.get_data.return_value = None
+
+        tab = MagicMock()
+        tab.__enter__ = MagicMock(return_value=tab)
+        tab.__exit__ = MagicMock(return_value=False)
+        mock_st.tabs.return_value = [tab] * 7
 
         show_data_managers_page(api)
 

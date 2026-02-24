@@ -1,7 +1,11 @@
 """Visual tests for cross-page navigation workflows.
 
-These tests verify complete user journeys across multiple pages
-and generate animated GIFs for project documentation.
+Consolidated from 3 individual tests to 2 tests using a class-scoped
+``shared_page`` fixture.
+
+Covers:
+- Navigate all pages and return to home
+- Generate animated GIF for documentation
 """
 
 from __future__ import annotations
@@ -17,14 +21,24 @@ pytestmark = pytest.mark.requires_browser
 
 
 class TestNavigationWorkflow:
-    """Test full navigation workflow and capture documentation assets."""
+    """Consolidated navigation tests.
 
-    def test_navigate_all_pages(self, page: Page, live_server_url: str) -> None:
-        """Navigate to every page via sidebar buttons."""
-        bp = BasePage(page)
+    Uses ``shared_page`` (class-scoped) so the browser tab is created once
+    and reused across both tests.
+    """
+
+    def test_navigate_all_pages_and_return(self, shared_page: Page, live_server_url: str) -> None:
+        """Navigate to every page via sidebar and return to home.
+
+        Consolidates 2 original tests:
+        - navigate_all_pages
+        - return_to_home
+        """
+        bp = BasePage(shared_page)
         bp.goto_and_wait(live_server_url)
         bp.assert_page_loaded()
 
+        # Navigate through all pages
         for page_name in [
             "Data Source",
             "Data Managers",
@@ -35,11 +49,15 @@ class TestNavigationWorkflow:
             bp.navigate_to(page_name)
             bp.assert_on_page(page_name)
 
+        # Return to home
+        bp.navigate_to("Data Source")
+        bp.assert_on_page("Data Source")
+
     def test_generate_navigation_gif(
-        self, page: Page, live_server_url: str, screenshot_dir: Path
+        self, shared_page: Page, live_server_url: str, shared_screenshot_dir: Path
     ) -> None:
         """Capture a GIF showing navigation through all pages."""
-        bp = BasePage(page)
+        bp = BasePage(shared_page)
         bp.goto_and_wait(live_server_url)
 
         frames: list[Path] = []
@@ -52,7 +70,7 @@ class TestNavigationWorkflow:
         ]
 
         # Capture landing page
-        landing = screenshot_dir / "nav_step_0_landing.png"
+        landing = shared_screenshot_dir / "nav_step_0_landing.png"
         bp.screenshot(landing)
         frames.append(landing)
 
@@ -60,26 +78,13 @@ class TestNavigationWorkflow:
         for idx, page_name in enumerate(page_names, start=1):
             bp.navigate_to(page_name)
             frame_path = (
-                screenshot_dir
+                shared_screenshot_dir
                 / f"nav_step_{idx}_{page_name.lower().replace('/', '_').replace(' ', '_')}.png"
             )
             bp.screenshot(frame_path)
             frames.append(frame_path)
 
         # Generate animated GIF
-        gif_path = screenshot_dir / "navigation_workflow.gif"
+        gif_path = shared_screenshot_dir / "navigation_workflow.gif"
         BasePage.create_gif(frames, gif_path, duration_ms=1200)
         assert gif_path.exists(), f"GIF was not created at {gif_path}"
-
-    def test_return_to_home(self, page: Page, live_server_url: str) -> None:
-        """Navigate away and back to Data Source (home)."""
-        bp = BasePage(page)
-        bp.goto_and_wait(live_server_url)
-
-        # Go to Performance
-        bp.navigate_to("Performance")
-        bp.assert_on_page("Performance")
-
-        # Return to Data Source
-        bp.navigate_to("Data Source")
-        bp.assert_on_page("Data Source")

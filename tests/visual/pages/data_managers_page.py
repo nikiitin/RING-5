@@ -123,6 +123,11 @@ class DataManagersPage(BasePage):
         """Apply Seeds Reducer button."""
         return self.page.get_by_role("button", name="Apply")
 
+    @property
+    def reducer_target_selectbox(self) -> Locator:
+        """'Column to reduce over' selectbox in Seeds Reducer."""
+        return self._by_label("stSelectbox", "Column to reduce over")
+
     # ------------------------------------------------------------------
     # Data Visualization tab
     # ------------------------------------------------------------------
@@ -197,9 +202,9 @@ class DataManagersPage(BasePage):
 
     @property
     def seeds_no_random_seed_warning(self) -> Locator:
-        """Warning when no random_seed column exists."""
+        """Warning when no suitable columns exist for reduction."""
         return self.page.locator("[data-testid='stAlertContentWarning']").filter(
-            has_text="random_seed"
+            has_text="No suitable columns"
         )
 
     @property
@@ -223,8 +228,12 @@ class DataManagersPage(BasePage):
         return self._by_label("stMultiSelect", "Calculate stats for")
 
     def assert_seeds_requires_random_seed(self) -> None:
-        """Assert Seeds Reducer shows the 'no random_seed' warning."""
+        """Assert Seeds Reducer shows the 'no suitable columns' warning."""
         expect(self.seeds_no_random_seed_warning).to_be_visible(timeout=self.RENDER_TIMEOUT)
+
+    def assert_reducer_ready(self) -> None:
+        """Assert Seeds Reducer is ready (target column selector visible)."""
+        expect(self.reducer_target_selectbox).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
     def apply_seeds_reducer(self) -> None:
         """Click 'Apply Seeds Reducer' and wait."""

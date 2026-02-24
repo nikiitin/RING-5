@@ -61,11 +61,19 @@ class BasePage:
         """Wait until Streamlit finishes its current script run.
 
         Strategy:
-        1. Wait for ``networkidle`` (all XHR / WS frames settled).
-        2. Ensure the "Running..." status indicator is gone.
+        1. Try ``networkidle`` with a short timeout (pages with custom
+           component iframes may never reach true *networkidle*).
+        2. Ensure the "Running..." status indicator is gone — this is
+           the authoritative signal that the Streamlit script has finished.
         """
         effective_timeout = timeout or self.RENDER_TIMEOUT
-        self.page.wait_for_load_state("networkidle", timeout=effective_timeout)
+        try:
+            self.page.wait_for_load_state("networkidle", timeout=5_000)
+        except Exception:
+            # Custom components (iframes) or WebSocket heartbeats may
+            # keep activity going indefinitely — fall through to the
+            # status-widget check which is the reliable indicator.
+            pass
         # Streamlit shows a status element while re-running
         running = self.page.locator("[data-testid='stStatusWidget']")
         running.wait_for(state="hidden", timeout=effective_timeout)

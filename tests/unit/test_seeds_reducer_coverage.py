@@ -14,7 +14,7 @@ def _make_col_mock() -> MagicMock:
     return ctx
 
 
-def _columns_side_effect(n: Any) -> List[MagicMock]:
+def _columns_side_effect(n: Any) -> list[MagicMock]:
     count = len(n) if isinstance(n, list) else n
     return [_make_col_mock() for _ in range(count)]
 
@@ -59,21 +59,32 @@ class TestSeedsReducerRender:
     def test_no_random_seed_column(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock
     ) -> None:
+        """When data has candidate columns, the column selectbox is shown."""
         from src.web.pages.ui.data_managers.impl.seeds_reducer import (
             SeedsReducerManager,
         )
 
         df = pd.DataFrame({"benchmark": ["a", "b"], "cycles": [100.0, 200.0]})
         mock_api.state_manager.get_data.return_value = df
+        mock_st.session_state = {}
+        mock_st.columns.side_effect = _columns_side_effect
+        # selectbox returns 'benchmark' (the reduce column)
+        mock_st.selectbox.return_value = "benchmark"
+        # After reducing over benchmark, no categorical cols remain → warning
+        mock_st.multiselect.side_effect = [[], ["cycles"]]
+        mock_st.button.return_value = False
+
         mgr = SeedsReducerManager(mock_api)
         mgr.render()
-        mock_st.warning.assert_called()
+        # Column selectbox should have been rendered
+        mock_st.selectbox.assert_called()
 
     @patch("src.web.pages.ui.data_managers.impl.seeds_reducer.HistoryComponents")
     @patch("src.web.pages.ui.data_managers.impl.seeds_reducer.st")
     def test_random_seed_in_numeric(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock
     ) -> None:
+        """random_seed as numeric is still a candidate column."""
         from src.web.pages.ui.data_managers.impl.seeds_reducer import (
             SeedsReducerManager,
         )
@@ -88,13 +99,16 @@ class TestSeedsReducerRender:
         )
         mock_api.state_manager.get_data.return_value = df
         mock_st.columns.side_effect = _columns_side_effect
+        # selectbox returns 'random_seed' (the reduce column)
+        mock_st.selectbox.return_value = "random_seed"
         mock_st.multiselect.side_effect = [["benchmark"], ["cycles"]]
         mock_st.button.return_value = False
         mock_st.session_state = {}
 
         mgr = SeedsReducerManager(mock_api)
         mgr.render()
-        # random_seed should be removed from numeric_cols
+        # random_seed should be excluded from both categorical/numeric
+        # after being selected as reduce target
         mock_st.multiselect.assert_called()
 
     @patch("src.web.pages.ui.data_managers.impl.seeds_reducer.HistoryComponents")
@@ -102,6 +116,7 @@ class TestSeedsReducerRender:
     def test_no_categorical_after_removing_seed(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock
     ) -> None:
+        """When the only categorical col is selected as reduce target, warn."""
         from src.web.pages.ui.data_managers.impl.seeds_reducer import (
             SeedsReducerManager,
         )
@@ -115,6 +130,8 @@ class TestSeedsReducerRender:
         )
         mock_api.state_manager.get_data.return_value = df
         mock_st.session_state = {}
+        # selectbox returns 'random_seed' (the reduce column)
+        mock_st.selectbox.return_value = "random_seed"
 
         mgr = SeedsReducerManager(mock_api)
         mgr.render()
@@ -137,6 +154,8 @@ class TestSeedsReducerRender:
         )
         mock_api.state_manager.get_data.return_value = df
         mock_st.session_state = {}
+        # selectbox returns 'random_seed' (reduce column)
+        mock_st.selectbox.return_value = "random_seed"
 
         mgr = SeedsReducerManager(mock_api)
         mgr.render()
@@ -162,6 +181,7 @@ class TestSeedsReducerRender:
         mock_api.managers.validate_seeds_reducer_inputs.return_value = []
         mock_api.managers.reduce_seeds.return_value = reduced
         mock_st.columns.side_effect = _columns_side_effect
+        mock_st.selectbox.return_value = "random_seed"
         mock_st.multiselect.side_effect = [["benchmark"], ["cycles", "ipc"]]
         mock_st.button.side_effect = [True, False]  # Apply=True, Confirm=False
         mock_st.session_state = {}
@@ -183,6 +203,7 @@ class TestSeedsReducerRender:
         mock_api.state_manager.get_data.return_value = sample_df
         mock_api.managers.validate_seeds_reducer_inputs.return_value = ["No cols selected"]
         mock_st.columns.side_effect = _columns_side_effect
+        mock_st.selectbox.return_value = "random_seed"
         mock_st.multiselect.side_effect = [[], []]
         mock_st.button.side_effect = [True]  # Apply=True
         mock_st.session_state = {}
@@ -204,6 +225,7 @@ class TestSeedsReducerRender:
         mock_api.managers.validate_seeds_reducer_inputs.return_value = []
         mock_api.managers.reduce_seeds.side_effect = RuntimeError("Reduce failed")
         mock_st.columns.side_effect = _columns_side_effect
+        mock_st.selectbox.return_value = "random_seed"
         mock_st.multiselect.side_effect = [["benchmark"], ["cycles"]]
         mock_st.button.side_effect = [True, False]
         mock_st.session_state = {}
@@ -226,6 +248,7 @@ class TestSeedsReducerRender:
         mock_api.has_preview.return_value = True
         mock_api.get_preview.return_value = reduced
         mock_st.columns.side_effect = _columns_side_effect
+        mock_st.selectbox.return_value = "random_seed"
         mock_st.multiselect.side_effect = [["benchmark"], ["cycles"]]
         mock_st.button.side_effect = [False, True]
         mock_st.session_state = {}
@@ -249,6 +272,7 @@ class TestSeedsReducerRender:
         mock_api.has_preview.return_value = True
         mock_api.get_preview.return_value = None
         mock_st.columns.side_effect = _columns_side_effect
+        mock_st.selectbox.return_value = "random_seed"
         mock_st.multiselect.side_effect = [["benchmark"], ["cycles"]]
         mock_st.button.side_effect = [False, True]
         mock_st.session_state = {}
@@ -268,6 +292,7 @@ class TestSeedsReducerRender:
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
+        mock_st.selectbox.return_value = "random_seed"
         mock_st.multiselect.side_effect = [["benchmark"], ["cycles", "ipc"]]
         mock_st.button.return_value = False
         mock_st.session_state = {
@@ -292,6 +317,7 @@ class TestSeedsReducerRender:
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
+        mock_st.selectbox.return_value = "random_seed"
         mock_st.multiselect.side_effect = [["benchmark"], ["cycles"]]
         mock_st.button.return_value = False
         mock_st.session_state = {

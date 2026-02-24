@@ -284,7 +284,7 @@ class UIStateManager:
 
     def get_all_keys(self) -> list[str]:
         """
-        Get all namespaced UI state keys (for debugging/performance page).
+        Get all namespaced UI state keys (for debugging).
 
         Returns:
             List of all session_state keys managed by UIStateManager.
