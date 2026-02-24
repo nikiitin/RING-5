@@ -3,7 +3,8 @@
 Byte-producing functions + a thin ``render_download_section()`` that
 wires format selection and ``st.download_button`` for the active engine.
 
-**Plotly path**: Uses Kaleido v1 (``fig.to_image()``) for PNG/SVG/PDF.
+**Plotly path**: Uses Kaleido v1 (``fig.to_image()``) for PNG/SVG/PDF,
+and ``fig.to_html()`` for interactive HTML export.
 **Matplotlib path**: Uses ``savefig`` for PDF/PNG/SVG/PGF  (Step 19).
 """
 
@@ -22,18 +23,20 @@ from src.web.rendering.engine_manager import EngineManager
 
 # ── Type aliases ─────────────────────────────────────────────────
 
-PlotlyFormat = Literal["png", "svg", "pdf"]
+PlotlyFormat = Literal["png", "svg", "pdf", "html"]
 
 _FORMAT_MIME = {
     "png": "image/png",
     "svg": "image/svg+xml",
     "pdf": "application/pdf",
+    "html": "text/html",
 }
 
 _FORMAT_EXT = {
     "png": ".png",
     "svg": ".svg",
     "pdf": ".pdf",
+    "html": ".html",
 }
 
 
@@ -48,17 +51,17 @@ def plotly_download_bytes(
     height: int = 400,
     scale: int = 2,
 ) -> bytes:
-    """Export a Plotly figure to image bytes via Kaleido.
+    """Export a Plotly figure to bytes.
 
     Args:
         fig: The Plotly figure to export.
-        fmt: One of ``"png"``, ``"svg"``, ``"pdf"``.
-        width: Image width in pixels (before scale).
-        height: Image height in pixels (before scale).
+        fmt: One of ``"png"``, ``"svg"``, ``"pdf"``, ``"html"``.
+        width: Image width in pixels (before scale).  Ignored for HTML.
+        height: Image height in pixels (before scale).  Ignored for HTML.
         scale: Resolution multiplier (only affects raster formats).
 
     Returns:
-        Raw bytes of the exported image.
+        Raw bytes of the exported content.
 
     Raises:
         ValueError: If *fmt* is not a supported format.
@@ -67,6 +70,13 @@ def plotly_download_bytes(
         raise ValueError(
             f"Unsupported format {fmt!r}. " f"Choose from {list(_FORMAT_MIME.keys())}."
         )
+
+    if fmt == "html":
+        html_str: str = fig.to_html(
+            include_plotlyjs=True,
+            full_html=True,
+        )
+        return html_str.encode("utf-8")
 
     # For vector formats scale has no effect, but the API accepts it.
     raw: bytes = fig.to_image(
@@ -182,7 +192,7 @@ def render_download_section(
     Shows format pills and a download button appropriate for the
     active rendering engine.
 
-    - **Plotly** → PNG / SVG / PDF via Kaleido.
+    - **Plotly** → HTML / PNG / SVG / PDF via Kaleido + to_html.
     - **Matplotlib** → PDF / PGF / PNG / SVG via savefig.
 
     Args:
@@ -205,8 +215,8 @@ def _render_plotly_download(
     """Format pills + download button for the Plotly/Kaleido path."""
     fmt = st.pills(
         "Format",
-        options=["png", "svg", "pdf"],
-        default="pdf",
+        options=["html", "png", "svg", "pdf"],
+        default="html",
         key=f"dl_fmt_{plot_id}",
     )
     if fmt is None:
