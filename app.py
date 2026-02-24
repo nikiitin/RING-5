@@ -113,7 +113,6 @@ def run_app() -> None:
         current_view = api.get_current_view()
 
         if current_view["raw_data"] is not None and not current_view["raw_data"].empty:
-            st.markdown("#### Current Dataset")
             col1, col2, col3 = st.columns(3)
             data = current_view["raw_data"]
             config = current_view["config"]
@@ -128,9 +127,6 @@ def run_app() -> None:
                     st.metric("Source", Path(csv_path).name, border=True)
                 else:
                     st.metric("Source", "Uploaded", border=True)
-
-            with st.expander("View Current Data", expanded=False):
-                st.dataframe(data, width="stretch", height=300)
 
     _data_preview_fragment()
 
