@@ -453,49 +453,16 @@ class ConfigSpecBuilder:
         )
 
         # ── Primary Legend ───────────────────────────────────────
-        legend_orient = config.get("legend_orientation", "v")
-        primary_legend = LegendConfig(
-            role="primary",
-            font_size=config.get("legend_font_size", 12),
-            font_color=config.get("legend_font_color", "#444"),
-            title=config.get("legend_title", ""),
-            title_font_size=config.get("legend_title_font_size", 14),
-            title_font_color=config.get("legend_title_font_color", "#000000"),
-            orientation="horizontal" if legend_orient == "h" else "vertical",
-            position_x=float(config.get("legend_x", 1.02)),
-            position_y=float(config.get("legend_y", 1.0)),
-            anchor_x=config.get("legend_xanchor", "auto"),
-            anchor_y=config.get("legend_yanchor", "auto"),
-            custom_position=True,
-            visible=True,
-            bgcolor=config.get("legend_bgcolor", ""),
-            border_width=config.get("legend_border_width", 0),
-            border_color=config.get("legend_border_color", "#000000"),
-            itemsizing=config.get("legend_itemsizing", "constant"),
-        )
-
+        primary_legend = _build_legend_from_config(config, "legend_", "primary")
         legends: list[LegendConfig] = [primary_legend]
 
-        # ── Multi-column secondary legends (if ncols > 1) ───────
-        try:
-            ncols = int(config.get("legend_ncols") or 0)
-        except (ValueError, TypeError):
-            ncols = 0
+        # ── Secondary legend from UI (dual-axis) ────────────────
+        if any(config.get(f"legend2_{k}") is not None for k in ("font_size", "x", "orientation")):
+            legends.append(_build_legend_from_config(config, "legend2_", "secondary"))
 
-        for col_idx in range(1, ncols):
-            key_prefix = f"legend{col_idx + 1}"
-            sec = LegendConfig(
-                role="secondary",
-                font_size=primary_legend.font_size,
-                font_color=primary_legend.font_color,
-                position_x=float(config.get(f"{key_prefix}_x", -1)),
-                position_y=float(config.get(f"{key_prefix}_y", -1)),
-                anchor_x=config.get(f"{key_prefix}_xanchor", "auto"),
-                anchor_y=config.get(f"{key_prefix}_yanchor", "auto"),
-                custom_position=True,
-                bgcolor=primary_legend.bgcolor,
-            )
-            legends.append(sec)
+        # ── Boxed legend from UI ─────────────────────────────────
+        if any(config.get(f"legend3_{k}") is not None for k in ("font_size", "x", "orientation")):
+            legends.append(_build_legend_from_config(config, "legend3_", "boxed"))
 
         # ── Backgrounds ──────────────────────────────────────────
         paper_bg = config.get("paper_bgcolor", "white")
@@ -631,6 +598,55 @@ class ConfigSpecBuilder:
             hovermode=hovermode,
             barmode=barmode_raw,
         )
+
+
+# ────────────────────────────────────────────────────────────────────
+# Helper: build LegendConfig from prefixed config keys
+# ────────────────────────────────────────────────────────────────────
+
+
+def _build_legend_from_config(
+    config: dict[str, Any],
+    prefix: str,
+    role: str,
+) -> LegendConfig:
+    """Build a LegendConfig from a flat config dict with the given key prefix.
+
+    Args:
+        config: Flat configuration dictionary from UI widgets.
+        prefix: Key prefix, e.g. ``"legend_"``, ``"legend2_"``, ``"legend3_"``.
+        role: Semantic role — ``"primary"``, ``"secondary"``, or ``"boxed"``.
+
+    Returns:
+        Fully populated LegendConfig.
+    """
+    orient = config.get(f"{prefix}orientation", "v")
+    spacing = LegendSpacingConfig(
+        columnspacing=float(config.get(f"{prefix}column_spacing", 0.5)),
+        handletextpad=float(config.get(f"{prefix}marker_text_spacing", 0.3)),
+    )
+    return LegendConfig(
+        role=role,  # type: ignore[arg-type]
+        font_size=config.get(f"{prefix}font_size", 12),
+        font_color=config.get(f"{prefix}font_color", "#444"),
+        title=config.get(f"{prefix}title", ""),
+        title_font_size=config.get(f"{prefix}title_font_size", 14),
+        title_font_color=config.get(f"{prefix}title_font_color", "#000000"),
+        orientation="horizontal" if orient == "h" else "vertical",
+        position_x=float(config.get(f"{prefix}x", 1.02 if role == "primary" else -1.0)),
+        position_y=float(config.get(f"{prefix}y", 1.0 if role == "primary" else -1.0)),
+        anchor_x=config.get(f"{prefix}xanchor", "auto"),
+        anchor_y=config.get(f"{prefix}yanchor", "auto"),
+        custom_position=True,
+        visible=True,
+        bgcolor=config.get(f"{prefix}bgcolor", ""),
+        border_width=config.get(f"{prefix}border_width", 0),
+        border_color=config.get(f"{prefix}border_color", "#000000"),
+        itemsizing=config.get(f"{prefix}itemsizing", "constant"),
+        itemwidth=int(config.get(f"{prefix}itemwidth", 30)),
+        tracegroupgap=int(config.get(f"{prefix}tracegroupgap", 10)),
+        spacing=spacing,
+    )
 
 
 # ────────────────────────────────────────────────────────────────────
