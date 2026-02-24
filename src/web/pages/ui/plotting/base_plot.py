@@ -1152,55 +1152,20 @@ class BasePlot(ABC):
             data: The data being plotted (needed for column/value selection).
             config: Configuration dictionary to populate.
         """
-        st.markdown("#### Reference Line (Normalizer)")
+        st.markdown("#### Reference Line")
         ref_enabled = st.checkbox(
-            "Show normalizer reference line",
+            "Show reference line",
             value=saved_config.get("reference_line_enabled", False),
             key=f"ref_line_enabled_{self.plot_id}",
             help=(
-                "Draw a horizontal dashed line representing the normalizer "
-                "baseline. Useful after normalization to highlight Y=1."
+                "Draw a horizontal dashed line at a specific Y value. "
+                "Useful to highlight a baseline (e.g. Y=1 after normalization)."
             ),
         )
         config["reference_line_enabled"] = ref_enabled
 
         if ref_enabled and data is not None:
-            categorical_cols = data.select_dtypes(
-                include=["object", "string", "category"]
-            ).columns.tolist()
-
             with st.expander("Reference Line Settings", expanded=True):
-                col1, col2 = st.columns(2)
-                with col1:
-                    saved_col = saved_config.get("reference_line_column", "")
-                    col_index = (
-                        categorical_cols.index(saved_col) if saved_col in categorical_cols else 0
-                    )
-                    ref_column: str = (
-                        st.selectbox(
-                            "Normalizer column",
-                            options=categorical_cols,
-                            index=col_index if categorical_cols else 0,
-                            key=f"ref_line_col_{self.plot_id}",
-                            help="Categorical column identifying the normalizer",
-                        )
-                        or ""
-                    )
-
-                with col2:
-                    ref_value: str | None = None
-                    if ref_column and ref_column in data.columns:
-                        unique_vals = sorted(data[ref_column].unique().tolist())
-                        saved_val = saved_config.get("reference_line_value", "")
-                        val_index = unique_vals.index(saved_val) if saved_val in unique_vals else 0
-                        ref_value = st.selectbox(
-                            "Normalizer value",
-                            options=unique_vals,
-                            index=val_index if unique_vals else 0,
-                            key=f"ref_line_val_{self.plot_id}",
-                            help="Value that identifies the baseline",
-                        )
-
                 col3, col4, col5 = st.columns(3)
                 with col3:
                     ref_y = st.number_input(
@@ -1209,7 +1174,8 @@ class BasePlot(ABC):
                         step=0.1,
                         format="%.2f",
                         key=f"ref_line_y_{self.plot_id}",
-                        help="Y-axis value where the line is drawn (1.0 for " "normalized data)",
+                        help="Y-axis value where the line is drawn (1.0 for "
+                        "normalized data)",
                     )
                 with col4:
                     ref_color = st.color_picker(
@@ -1236,8 +1202,6 @@ class BasePlot(ABC):
                     key=f"ref_line_style_{self.plot_id}",
                 )
 
-                config["reference_line_column"] = ref_column
-                config["reference_line_value"] = ref_value
                 config["reference_line_y"] = ref_y
                 config["reference_line_color"] = ref_color
                 config["reference_line_width"] = ref_width

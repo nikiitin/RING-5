@@ -25,8 +25,6 @@ def base_config() -> dict[str, Any]:
         "reference_line_color": "#FF0000",
         "reference_line_width": 1.5,
         "reference_line_style": "dash",
-        "reference_line_column": "config",
-        "reference_line_value": "baseline",
     }
 
 
@@ -190,7 +188,5 @@ class TestReferenceLineConfig:
             "reference_line_color",
             "reference_line_width",
             "reference_line_style",
-            "reference_line_column",
-            "reference_line_value",
         }
         assert expected_keys.issubset(set(base_config.keys()))
