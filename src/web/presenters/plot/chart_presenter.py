@@ -231,6 +231,9 @@ class ChartPresenter:
             ax,
             barmode=spec.barmode,
             palette_colors=spec.color_palette or None,
+            bargap=spec.dimensions.bargap,
+            bargroupgap=spec.dimensions.bargroupgap,
+            bar_border_width=float(config.get("bar_border_width", 0.0)),
         )
 
         # 5. Apply spec-based styling

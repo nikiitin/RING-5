@@ -53,6 +53,9 @@ class MatplotlibTraceRenderer:
         ax: Axes,
         barmode: str = "group",
         palette_colors: Sequence[str] | None = None,
+        bargap: float = 0.2,
+        bargroupgap: float = 0.0,
+        bar_border_width: float = 0.0,
     ) -> int:
         """Render all traces onto *ax*.
 
@@ -64,6 +67,9 @@ class MatplotlibTraceRenderer:
                 each trace is coloured ``palette_colors[idx]`` instead of
                 using the colour embedded in the ``TraceConfig``.  This
                 ensures the user-selected palette is respected.
+            bargap: Gap between bar groups (0.0–1.0).
+            bargroupgap: Gap between bars within a group (0.0–1.0).
+            bar_border_width: Border width around each bar (stacked).
 
         Secondary-Y traces (``yaxis='y2'``) are rendered on a twin axis
         created via ``ax.twinx()``, stored as ``ax._ring5_twin``.
@@ -104,6 +110,9 @@ class MatplotlibTraceRenderer:
                         barmode,
                         categorical_labels,
                         override_color=override_color,
+                        bargap=bargap,
+                        bargroupgap=bargroupgap,
+                        bar_border_width=bar_border_width,
                     )
                     count += 1
                 elif isinstance(trace, LineTraceConfig):
@@ -148,6 +157,9 @@ class MatplotlibTraceRenderer:
         barmode: str,
         categorical_labels: list[str],
         override_color: str | None = None,
+        bargap: float = 0.2,
+        bargroupgap: float = 0.0,
+        bar_border_width: float = 0.0,
     ) -> None:
         """Draw a single bar trace from its ``BarTraceConfig``."""
         color = override_color or spec.color or None
@@ -161,14 +173,22 @@ class MatplotlibTraceRenderer:
             is_categorical = False
         else:
             # Categorical string axis
-            x_pos, eff_bar_width = _compute_categorical_positions(spec, bar_idx, bar_specs, barmode)
+            x_pos, eff_bar_width = _compute_categorical_positions(
+                spec, bar_idx, bar_specs, barmode, bargap, bargroupgap
+            )
             is_categorical = True
 
         props: dict[str, Any] = {}
         if eff_bar_width is not None:
             props["width"] = eff_bar_width
-        props["edgecolor"] = "white"
-        props["linewidth"] = 0.5
+
+        # Bar border: controls visual separation between stacked items
+        if bar_border_width > 0:
+            props["edgecolor"] = "white"
+            props["linewidth"] = bar_border_width
+        else:
+            props["edgecolor"] = "none"
+            props["linewidth"] = 0
 
         # 3) Sanitize y-values (None -> np.nan)
         y_clean = [float(v) if v is not None else np.nan for v in spec.y]
@@ -270,36 +290,48 @@ def _compute_categorical_positions(
     bar_idx: int,
     bar_specs: list[BarTraceConfig],
     barmode: str,
+    bargap: float = 0.2,
+    bargroupgap: float = 0.0,
 ) -> tuple[list[float], float]:
     """Compute bar x-positions for categorical data when not pre-filled.
 
     For stacked bars all traces share the same integer positions.
     For grouped bars each trace is offset so bars sit side by side.
 
+    Args:
+        bargap: Gap between bar groups (0.0–1.0).  A value of 0.2 means
+            20% of the available space between integer ticks is empty.
+        bargroupgap: Gap between bars within a group (0.0–1.0).
+
     Returns:
-        A tuple of (x_positions, effective_bar_width). It is structurally
-        important that we DO NOT mutate spec.bar_width directly.
+        A tuple of (x_positions, effective_bar_width).
     """
     n_categories = len(spec.x)
     base = list(range(n_categories))
 
+    # Available width for one group = 1.0 - bargap
+    group_width = max(0.05, 1.0 - bargap)
+
     if barmode == "stack":
-        return ([float(b) for b in base], spec.bar_width)
+        return ([float(b) for b in base], group_width)
 
     # Grouped: distribute traces around each integer tick
     n_traces = len(bar_specs)
     if n_traces <= 1:
-        return ([float(b) for b in base], spec.bar_width)
+        return ([float(b) for b in base], group_width)
 
-    total_width = spec.bar_width * n_traces
-    # Keep total group width ≤ 0.9 to avoid overlap between categories
-    if total_width > 0.9:
-        bar_w = 0.9 / n_traces
-    else:
-        bar_w = spec.bar_width
+    # Each bar gets (group_width / n_traces) minus inner gap
+    bar_w = group_width / n_traces
+    if bargroupgap > 0:
+        bar_w = bar_w * (1.0 - bargroupgap)
 
-    start_offset = -(n_traces - 1) * bar_w / 2
-    offset = start_offset + bar_idx * bar_w
+    # Ensure minimum visible width
+    bar_w = max(0.01, bar_w)
+
+    # Total span occupied by all bars + inner gaps
+    step = group_width / n_traces
+    start_offset = -(n_traces - 1) * step / 2
+    offset = start_offset + bar_idx * step
     return ([float(b) + offset for b in base], bar_w)
 
 

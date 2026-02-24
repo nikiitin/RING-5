@@ -744,13 +744,13 @@ class BasePlot(ABC):
 
                 if "stacked" in self.plot_type:
                     config["bar_border_width"] = st.slider(
-                        "Spacing between Stacked Items (Border)",
+                        "Bar Border Width",
                         min_value=0.0,
                         max_value=5.0,
                         value=saved_config.get("bar_border_width", 0.0),
                         step=0.5,
                         key=f"bar_border_{self.plot_id}",
-                        help="Adds a white border to separate stacked segments.",
+                        help="Adds a white border around each bar segment to separate stacked items.",
                     )
         return config
 
