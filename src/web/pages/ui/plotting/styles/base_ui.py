@@ -664,6 +664,34 @@ class BaseStyleUI:
                     key=f"{key_prefix}y_tickdash_{self.plot_id}",
                 )
 
+            st.markdown("**Label Spacing & Alternating**")
+            xtick_pad = st.number_input(
+                "X-Axis Tick Label Distance (px)",
+                min_value=0.0,
+                max_value=50.0,
+                value=float(saved_config.get("xtick_pad", 5.0)),
+                step=1.0,
+                key=f"{key_prefix}xtick_pad_{self.plot_id}",
+                help="Distance between X-axis tick marks and their labels.",
+            )
+            group_label_alternate = st.checkbox(
+                "Alternate Group Labels (up/down)",
+                value=saved_config.get("group_label_alternate", True),
+                key=f"{key_prefix}grp_alt_{self.plot_id}",
+                help="Stagger group labels to avoid overlap.",
+            )
+            group_label_alt_spacing = st.number_input(
+                "Alt. Label Row Spacing",
+                min_value=0.0,
+                max_value=0.5,
+                value=float(
+                    saved_config.get("group_label_alt_spacing", 0.05)
+                ),
+                step=0.01,
+                key=f"{key_prefix}grp_alt_sp_{self.plot_id}",
+                help="Vertical distance between alternating label rows.",
+            )
+
         return {
             "title_font_size": title_font_size,
             "xaxis_title_font_size": xaxis_title_font_size,
@@ -678,6 +706,9 @@ class BaseStyleUI:
             "xtick_dash": xtick_dash,
             "show_ytick_marks": show_ytick_marks,
             "ytick_dash": ytick_dash,
+            "xtick_pad": xtick_pad,
+            "group_label_alternate": group_label_alternate,
+            "group_label_alt_spacing": group_label_alt_spacing,
         }
 
     def render_series_colors_ui(

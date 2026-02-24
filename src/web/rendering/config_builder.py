@@ -421,6 +421,8 @@ class ConfigSpecBuilder:
             grid_color=config.get("grid_color", "#E5E5E5"),
             show_ticks=config.get("show_xtick_marks", True),
             tick_dash=config.get("xtick_dash", "solid"),
+            tick_font_color=config.get("xaxis_tickfont_color", ""),
+            tick_pad=float(config.get("xtick_pad", 5.0)),
         )
         y_axis = AxisConfig(
             label=y_label,
@@ -432,9 +434,17 @@ class ConfigSpecBuilder:
             title_vshift=float(config.get("yaxis_title_vshift", 0.0)),
             show_ticks=config.get("show_ytick_marks", True),
             tick_dash=config.get("ytick_dash", "solid"),
+            tick_font_color=config.get("yaxis_tickfont_color", ""),
         )
 
-        axes = AxesConfig(x=x_axis, y=y_axis)
+        axes = AxesConfig(
+            x=x_axis,
+            y=y_axis,
+            group_label_alternate=config.get("group_label_alternate", True),
+            group_label_alt_spacing=float(
+                config.get("group_label_alt_spacing", 0.05)
+            ),
+        )
 
         # ── Primary Legend ───────────────────────────────────────
         legend_orient = config.get("legend_orientation", "v")
