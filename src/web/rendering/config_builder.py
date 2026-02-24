@@ -423,6 +423,9 @@ class ConfigSpecBuilder:
             tick_dash=config.get("xtick_dash", "solid"),
             tick_font_color=config.get("xaxis_tickfont_color", ""),
             tick_pad=float(config.get("xtick_pad", 5.0)),
+            axis_color=config.get("axis_color", "#444"),
+            axis_line_color=config.get("axis_color", ""),
+            axis_line_width=float(config.get("axis_line_width", 1.0)),
         )
         y_axis = AxisConfig(
             label=y_label,
@@ -435,6 +438,9 @@ class ConfigSpecBuilder:
             show_ticks=config.get("show_ytick_marks", True),
             tick_dash=config.get("ytick_dash", "solid"),
             tick_font_color=config.get("yaxis_tickfont_color", ""),
+            axis_color=config.get("axis_color", "#444"),
+            axis_line_color=config.get("axis_color", ""),
+            axis_line_width=float(config.get("axis_line_width", 1.0)),
         )
 
         axes = AxesConfig(

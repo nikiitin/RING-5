@@ -251,6 +251,15 @@ class BaseStyleUI:
                 saved_config.get("axis_color", "#444444"),
                 key=f"{key_prefix}axis_col_{self.plot_id}",
             )
+            axis_line_width = st.number_input(
+                "Axis Line Width (px)",
+                min_value=0.0,
+                max_value=10.0,
+                value=float(saved_config.get("axis_line_width", 1.0)),
+                step=0.5,
+                key=f"{key_prefix}axis_lw_{self.plot_id}",
+                help="Width of the axis border lines.",
+            )
 
             if "bar" in self.plot_type and "grouped_stacked" not in self.plot_type:
                 enable_stripes = st.checkbox(
@@ -268,6 +277,7 @@ class BaseStyleUI:
             "paper_bgcolor": paper_bgcolor,
             "grid_color": grid_color,
             "axis_color": axis_color,
+            "axis_line_width": axis_line_width,
             "enable_stripes": enable_stripes,
         }
 
