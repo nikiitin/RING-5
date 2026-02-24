@@ -54,7 +54,7 @@ class TestSettingsSections:
     """Validate the predefined section registry."""
 
     def test_total_count(self) -> None:
-        assert len(SETTINGS_SECTIONS) == 8
+        assert len(SETTINGS_SECTIONS) == 7
 
     def test_basic_sections(self) -> None:
         basic: list[SettingsSection] = [s for s in SETTINGS_SECTIONS if not s.advanced]
@@ -63,12 +63,11 @@ class TestSettingsSections:
 
     def test_advanced_sections(self) -> None:
         adv: list[SettingsSection] = [s for s in SETTINGS_SECTIONS if s.advanced]
-        assert len(adv) == 5
+        assert len(adv) == 4
         assert [s.key for s in adv] == [
             "axes",
             "data_labels",
             "colors",
-            "customization",
             "advanced",
         ]
 
@@ -102,7 +101,7 @@ class TestProgressiveDisclosure:
     def test_all_visible(self) -> None:
         """When show_advanced=True, all sections are visible."""
         visible = [s for s in SETTINGS_SECTIONS if not s.advanced or True]
-        assert len(visible) == 8
+        assert len(visible) == 7
 
     def test_basic_ordering_preserved(self) -> None:
         basic = [s for s in SETTINGS_SECTIONS if not s.advanced]
@@ -115,8 +114,7 @@ class TestProgressiveDisclosure:
         assert adv[0].key == "axes"
         assert adv[1].key == "data_labels"
         assert adv[2].key == "colors"
-        assert adv[3].key == "customization"
-        assert adv[4].key == "advanced"
+        assert adv[3].key == "advanced"
 
 
 # ──────────────────────────────────────────────────────────────────
@@ -154,7 +152,7 @@ class TestRenderSettingsPills:
         result = render_settings_pills(show_advanced=True)
 
         assert result == "axes"
-        assert len(captured_kwargs["options"]) == 8
+        assert len(captured_kwargs["options"]) == 7
 
     def test_format_func_produces_material_icons(self, monkeypatch: pytest.MonkeyPatch) -> None:
         captured_kwargs: dict = {}  # type: ignore[type-arg]
