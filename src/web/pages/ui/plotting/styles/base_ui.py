@@ -637,12 +637,14 @@ class BaseStyleUI:
             if saved_config.get("xtick_dash", "solid") in dash_options:
                 xtick_dash_idx = dash_options.index(saved_config.get("xtick_dash", "solid"))
 
-            xtick_dash = st.selectbox(
-                "X-Axis Grid Dash Style",
-                options=dash_options,
-                index=xtick_dash_idx,
-                key=f"{key_prefix}x_tickdash_{self.plot_id}",
-            )
+            xtick_dash: str = "solid"
+            if show_xtick_marks:
+                xtick_dash = st.selectbox(
+                    "X-Axis Grid Dash Style",
+                    options=dash_options,
+                    index=xtick_dash_idx,
+                    key=f"{key_prefix}x_tickdash_{self.plot_id}",
+                )
 
             show_ytick_marks = st.checkbox(
                 "Show Y-Axis Tick Marks",
@@ -653,12 +655,14 @@ class BaseStyleUI:
             if saved_config.get("ytick_dash", "solid") in dash_options:
                 ytick_dash_idx = dash_options.index(saved_config.get("ytick_dash", "solid"))
 
-            ytick_dash = st.selectbox(
-                "Y-Axis Grid Dash Style",
-                options=dash_options,
-                index=ytick_dash_idx,
-                key=f"{key_prefix}y_tickdash_{self.plot_id}",
-            )
+            ytick_dash: str = "solid"
+            if show_ytick_marks:
+                ytick_dash = st.selectbox(
+                    "Y-Axis Grid Dash Style",
+                    options=dash_options,
+                    index=ytick_dash_idx,
+                    key=f"{key_prefix}y_tickdash_{self.plot_id}",
+                )
 
         return {
             "title_font_size": title_font_size,

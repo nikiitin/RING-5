@@ -250,11 +250,15 @@ class PresetSpecBuilder:
             tick_ha=preset.get("xtick_ha", "right"),
             tick_offset=preset.get("xtick_offset", 0.0),
             margin=preset.get("xaxis_margin", 0.02),
+            show_ticks=preset.get("show_xtick_marks", True),
+            tick_dash=preset.get("xtick_dash", "solid"),
         )
         y_axis = AxisConfig(
             label_pad=preset.get("ylabel_pad", 10.0),
             label_position=preset.get("ylabel_y_position", 0.5),
             tick_pad=preset.get("ytick_pad", 5.0),
+            show_ticks=preset.get("show_ytick_marks", True),
+            tick_dash=preset.get("ytick_dash", "solid"),
         )
 
         axes = AxesConfig(
@@ -415,6 +419,8 @@ class ConfigSpecBuilder:
             label_aliases=config.get("xaxis_labels"),
             automargin=config.get("automargin", True),
             grid_color=config.get("grid_color", "#E5E5E5"),
+            show_ticks=config.get("show_xtick_marks", True),
+            tick_dash=config.get("xtick_dash", "solid"),
         )
         y_axis = AxisConfig(
             label=y_label,
@@ -424,6 +430,8 @@ class ConfigSpecBuilder:
             grid_color=config.get("grid_color", "#E5E5E5"),
             label_standoff=config.get("yaxis_title_standoff", -1),
             title_vshift=float(config.get("yaxis_title_vshift", 0.0)),
+            show_ticks=config.get("show_ytick_marks", True),
+            tick_dash=config.get("ytick_dash", "solid"),
         )
 
         axes = AxesConfig(x=x_axis, y=y_axis)
