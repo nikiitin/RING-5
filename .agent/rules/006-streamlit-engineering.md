@@ -50,6 +50,37 @@ As mandated by **"Streamlit for Data Science"** and **"Web App Development Made 
 - **UI Components:** Extract repeated widget groups into functions inside `src/web/components/`. Keep Presenters isolated from actual Business Logic APIs.
 - **The Presenter-Controller Decoupling:** Every complex page (`src/web/pages/*.py`) must behave like a Controller that delegates UI construction to Presenters (`src/web/presenters/`). This follows the architectural advice of **"Clean Architecture with Python"** to keep the framework (Streamlit) from leaking into the domain logic.
 
+### 2.5 Conditional Widget Rendering (Refactoring Lesson)
+
+- **Guard widgets behind feature checks.** Never render configuration widgets
+  for features that don't apply to the current plot type:
+  ```python
+  # ✅ Good — Y-Right axis pill only for dual-axis plots
+  has_dual_axis = (
+      self.plot_type == "dual_axis_bar_dot"
+      or saved_config.get("dual_axis")
+  )
+  if has_dual_axis:
+      tabs["Y-Right"] = "y_right"
+  ```
+- **Build dynamic pill/tab dicts** instead of using static constants:
+  ```python
+  # ✅ Good — conditional legend pills
+  legend_pills: dict[str, str] = {"Primary": "primary"}
+  if has_dual_axis:
+      legend_pills["Secondary"] = "secondary"
+  if has_boxed:
+      legend_pills["Boxed"] = "boxed"
+  ```
+- **Use `render_reorderable_list(enable_rename=True)`** for combined reorder
+  and rename UI instead of calling separate `render_xaxis_labels_ui()` /
+  `render_series_renaming_ui()` methods.
+- **Unified axis config:** Use a single `_render_axis_config()` helper with
+  `prefix` and `label` parameters instead of duplicating code per axis.
+- **Legend multi-level config:** `ConfigSpecBuilder.from_config()` must extract
+  `legend_*` (primary), `legend2_*` (secondary), and `legend3_*` (boxed) keys
+  using a shared `_build_legend_from_config(config, prefix, role)` helper.
+
 ---
 
 **Status:** ✅ Active

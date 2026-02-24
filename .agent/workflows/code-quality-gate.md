@@ -192,6 +192,32 @@ echo "Results: $PASS passed, $FAIL failed" && \
 
 ---
 
+## Gate 8: UI Widget Audit (WARNING — for UI changes)
+
+When modifying UI code in `src/web/pages/`, verify:
+
+```bash
+echo "=== GATE 8: UI Widget Audit ===" && \
+echo "Check 1: Conditional widgets — dual-axis/boxed guards" && \
+grep -rn "has_dual_axis\|has_boxed" src/web/pages/ --include="*.py" | grep -v __pycache__ | head -10 && \
+echo "" && \
+echo "Check 2: No duplicate rename/reorder widgets" && \
+grep -rn "render_xaxis_labels_ui\|render_series_renaming_ui" src/web/pages/ --include="*.py" | grep -v __pycache__ | head -10 && \
+echo "" && \
+echo "Check 3: Settings pills — no dead sections" && \
+grep -rn "SettingsSection" src/web/pages/ --include="*.py" | grep -v __pycache__ && \
+echo "✅ GATE 8 CHECK COMPLETE"
+```
+
+**Criteria**:
+- Conditional widgets (Y-Right axis, secondary/boxed legend) must check
+  `has_dual_axis` or `has_boxed` before rendering
+- No standalone `render_xaxis_labels_ui()` or `render_series_renaming_ui()`
+  calls — inline via `render_reorderable_list(enable_rename=True)` instead
+- Every `SettingsSection` must have a matching handler in the dispatcher
+
+---
+
 ## Escalation
 
 If a gate cannot be resolved:

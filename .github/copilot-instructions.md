@@ -145,10 +145,26 @@ src/
 └── web/                     # Layer C: Presentation
     ├── controllers/         # Request handling
     ├── presenters/          # Data formatting for UI
-    ├── pages/               # Streamlit pages
-    ├── rendering/           # Plot rendering
+    ├── pages/               # Streamlit pages (4 pages: Data Source,
+    │                        #   Data Managers, Manage Plots, Portfolio)
+    ├── rendering/           # Plot rendering (config_builder, connectors)
     └── state/               # UI state
 ```
+
+**Removed features** (do NOT re-add):
+- Performance page (removed Phase 1)
+- View Current Data expander (removed Phase 2, replaced by summary metrics)
+- Pipeline save/load dialogs (removed Phase 4)
+- Workspace management (download all, process all, save workspace — removed Phase 5)
+- Reference Line Normalizer shaper (removed Phase 16)
+- Customization settings pill (removed Phase 18 — was dead/empty)
+
+**UI patterns** (established during refactoring):
+- Settings pills with progressive disclosure (basic → advanced toggle)
+- Conditional widget rendering (Y-Right, secondary/boxed legends)
+- Unified axis config via `_render_axis_config(prefix, label)` helper
+- Combined reorder+rename via `render_reorderable_list(enable_rename=True)`
+- Legend multi-level: `legend_*`, `legend2_*`, `legend3_*` config key prefixes
 
 ## Quick Commands
 
@@ -163,7 +179,7 @@ make test                                          # Run all tests
 
 ## References
 
-- **Rules**: `.agent/rules/` (000-005)
+- **Rules**: `.agent/rules/` (000-008)
 - **Workflows**: `.agent/workflows/`
 - **Skills**: `.agent/skills/`
-- **Tests**: `tests/` (unit, integration, ui, performance)
+- **Tests**: `tests/` (unit, integration, ui, ui_logic, visual)
