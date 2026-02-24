@@ -884,35 +884,58 @@ class BasePlot(ABC):
 
         # X-axis Order
         if saved_config.get("x") and saved_config["x"] in data.columns:
-            with st.expander("Reorder X-axis Labels"):
+            with st.expander("Reorder and Rename X-axis Labels"):
                 unique_x: list[str] = sorted(data[saved_config["x"]].unique().tolist())
-                config["xaxis_order"] = self.render_reorderable_list(
-                    "X-axis Order", unique_x, "xaxis", default_order=saved_config.get("xaxis_order")
+                x_result = self.render_reorderable_list(
+                    "X-axis Order",
+                    unique_x,
+                    "xaxis",
+                    default_order=saved_config.get("xaxis_order"),
+                    enable_rename=True,
+                    rename_map=saved_config.get("xaxis_labels"),
                 )
+                order_x, renames_x = x_result  # type: ignore[misc]
+                config["xaxis_order"] = order_x
+                if renames_x:
+                    config["xaxis_labels"] = renames_x
 
         # Group Order
         if saved_config.get("group") and saved_config["group"] in data.columns:
-            with st.expander("Reorder Groups"):
+            with st.expander("Reorder and Rename Groups"):
                 unique_g: list[str] = sorted(data[saved_config["group"]].unique().tolist())
-                config["group_order"] = self.render_reorderable_list(
+                g_result = self.render_reorderable_list(
                     "Group Order",
                     unique_g,
                     "group",
                     legend_labels=saved_config.get("legend_labels"),
                     default_order=saved_config.get("group_order"),
+                    enable_rename=True,
+                    rename_map=saved_config.get("legend_labels"),
                 )
+                order_g, renames_g = g_result  # type: ignore[misc]
+                config["group_order"] = order_g
+                if renames_g:
+                    config["legend_labels"] = renames_g
 
         # Legend Order (Color)
         if saved_config.get("color") and saved_config["color"] in data.columns:
-            with st.expander("Reorder Legend Items"):
+            with st.expander("Reorder and Rename Legend Items"):
                 unique_c: list[str] = sorted(data[saved_config["color"]].unique().tolist())
-                config["legend_order"] = self.render_reorderable_list(
+                c_result = self.render_reorderable_list(
                     "Legend Order",
                     unique_c,
                     "legend",
                     legend_labels=saved_config.get("legend_labels"),
                     default_order=saved_config.get("legend_order"),
+                    enable_rename=True,
+                    rename_map=saved_config.get("legend_labels"),
                 )
+                order_c, renames_c = c_result  # type: ignore[misc]
+                config["legend_order"] = order_c
+                if renames_c:
+                    if "legend_labels" not in config:
+                        config["legend_labels"] = {}
+                    config["legend_labels"].update(renames_c)
 
     def _render_shapes_ui(self, saved_config: dict[str, Any]) -> list[ShapeConfig]:
         """Helper to render Shapes UI.
@@ -1030,9 +1053,15 @@ class BasePlot(ABC):
         key_prefix: str,
         legend_labels: dict[str, str] | None = None,
         default_order: list[str] | None = None,
-    ) -> list[str]:
+        enable_rename: bool = False,
+        rename_map: dict[str, str] | None = None,
+    ) -> list[str] | tuple[list[str], dict[str, str]]:
         """
         Render a list that can be reordered using up/down buttons.
+
+        When *enable_rename* is ``True`` the item label is rendered as
+        an editable text input and the method returns a tuple
+        ``(order, renames)`` instead of just the order list.
 
         Args:
             label: Display label for the list
@@ -1040,32 +1069,48 @@ class BasePlot(ABC):
             key_prefix: Prefix for session state keys
             legend_labels: Optional mapping of item values to display labels
             default_order: Optional default ordering
+            enable_rename: If True, allow inline renaming
+            rename_map: Existing rename mapping to pre-fill inputs
 
         Returns:
-            Reordered list of items
+            Reordered list of items, or ``(order, renames)`` when
+            *enable_rename* is True.
         """
         st.markdown(f"**{label}**")
 
         # Initialize in session state if needed
         ss_key: str = f"{key_prefix}_order_{self.plot_id}"
         if ss_key not in st.session_state:
-            # Use resolve_item_order from Layer B for initial ordering
             st.session_state[ss_key] = resolve_item_order(items, default_order=default_order)
 
-        # Sync if items changed (e.g. data update) — use service for logic
+        # Sync if items changed (e.g. data update)
         current_items: list[str] = st.session_state[ss_key]
         if set(current_items) != set(items):
             current_items = resolve_item_order(items, current_order=current_items)
             st.session_state[ss_key] = current_items
 
+        renames: dict[str, str] = dict(rename_map) if rename_map else {}
+
         # Display items with reordering controls
         for i, item in enumerate(current_items):
             c1, c2, c3 = st.columns([6, 1, 1])
             with c1:
-                display_text: str = str(item)
-                if legend_labels and str(item) in legend_labels:
-                    display_text = f"{legend_labels[str(item)]} ({item})"
-                st.text(display_text)
+                if enable_rename:
+                    new_name: str = st.text_input(
+                        str(item),
+                        value=renames.get(str(item), str(item)),
+                        key=f"{key_prefix}_rename_{i}_{self.plot_id}",
+                        label_visibility="collapsed",
+                    )
+                    if new_name and new_name != str(item):
+                        renames[str(item)] = new_name
+                    elif str(item) in renames and new_name == str(item):
+                        renames.pop(str(item), None)
+                else:
+                    display_text: str = str(item)
+                    if legend_labels and str(item) in legend_labels:
+                        display_text = f"{legend_labels[str(item)]} ({item})"
+                    st.text(display_text)
             with c2:
                 if i > 0:
                     if st.button("↑", key=f"{key_prefix}_up_{i}_{self.plot_id}"):
@@ -1085,6 +1130,8 @@ class BasePlot(ABC):
                         st.session_state[ss_key] = current_items
                         st.rerun()
 
+        if enable_rename:
+            return current_items, renames
         return current_items
 
     def _render_reference_line_ui(
