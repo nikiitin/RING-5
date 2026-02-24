@@ -32,7 +32,6 @@ def mock_api() -> MagicMock:
 class TestPageInitialization:
     """Verify the page initializes state and creates adapters."""
 
-    @patch(f"{MODULE}.PlotManagerComponents")
     @patch(f"{MODULE}.PlotRenderController")
     @patch(f"{MODULE}.PipelineController")
     @patch(f"{MODULE}.PlotCreationController")
@@ -45,7 +44,6 @@ class TestPageInitialization:
         mock_creation_cls: MagicMock,
         mock_pipeline_cls: MagicMock,
         mock_render_cls: MagicMock,
-        mock_components: MagicMock,
         mock_api: MagicMock,
     ) -> None:
         """Page delegates to controllers without re-initializing state.
@@ -67,7 +65,6 @@ class TestPageInitialization:
         # initialize() is NOT called — ApplicationAPI.__init__ already did it
         mock_api.state_manager.initialize.assert_not_called()
 
-    @patch(f"{MODULE}.PlotManagerComponents")
     @patch(f"{MODULE}.PlotRenderController")
     @patch(f"{MODULE}.PipelineController")
     @patch(f"{MODULE}.PlotCreationController")
@@ -80,7 +77,6 @@ class TestPageInitialization:
         mock_creation_cls: MagicMock,
         mock_pipeline_cls: MagicMock,
         mock_render_cls: MagicMock,
-        mock_components: MagicMock,
         mock_api: MagicMock,
     ) -> None:
         """All three controllers are created."""
@@ -107,7 +103,6 @@ class TestPageInitialization:
 class TestPendingUpdates:
     """Verify pending widget updates are consumed and applied."""
 
-    @patch(f"{MODULE}.PlotManagerComponents")
     @patch(f"{MODULE}.PlotRenderController")
     @patch(f"{MODULE}.PipelineController")
     @patch(f"{MODULE}.PlotCreationController")
@@ -120,7 +115,6 @@ class TestPendingUpdates:
         mock_creation_cls: MagicMock,
         mock_pipeline_cls: MagicMock,
         mock_render_cls: MagicMock,
-        mock_components: MagicMock,
         mock_api: MagicMock,
     ) -> None:
         """Pending updates from interactive events are applied."""
@@ -140,7 +134,6 @@ class TestPendingUpdates:
 
         assert mock_st.session_state["widget_key"] == "new_value"
 
-    @patch(f"{MODULE}.PlotManagerComponents")
     @patch(f"{MODULE}.PlotRenderController")
     @patch(f"{MODULE}.PipelineController")
     @patch(f"{MODULE}.PlotCreationController")
@@ -153,7 +146,6 @@ class TestPendingUpdates:
         mock_creation_cls: MagicMock,
         mock_pipeline_cls: MagicMock,
         mock_render_cls: MagicMock,
-        mock_components: MagicMock,
         mock_api: MagicMock,
     ) -> None:
         """When no pending updates, session_state is untouched."""
@@ -181,7 +173,6 @@ class TestPendingUpdates:
 class TestNoPlotGuard:
     """When no plot is selected, pipeline/render/controls are skipped."""
 
-    @patch(f"{MODULE}.PlotManagerComponents")
     @patch(f"{MODULE}.PlotRenderController")
     @patch(f"{MODULE}.PipelineController")
     @patch(f"{MODULE}.PlotCreationController")
@@ -194,7 +185,6 @@ class TestNoPlotGuard:
         mock_creation_cls: MagicMock,
         mock_pipeline_cls: MagicMock,
         mock_render_cls: MagicMock,
-        mock_components: MagicMock,
         mock_api: MagicMock,
     ) -> None:
         """When render_selector returns None, controls are not rendered."""
@@ -211,34 +201,3 @@ class TestNoPlotGuard:
         show_manage_plots_page(mock_api)
 
         creation.render_controls.assert_not_called()
-
-    @patch(f"{MODULE}.PlotManagerComponents")
-    @patch(f"{MODULE}.PlotRenderController")
-    @patch(f"{MODULE}.PipelineController")
-    @patch(f"{MODULE}.PlotCreationController")
-    @patch(f"{MODULE}.UIStateManager")
-    @patch(f"{MODULE}.st")
-    def test_workspace_management_always_rendered(
-        self,
-        mock_st: MagicMock,
-        mock_ui_cls: MagicMock,
-        mock_creation_cls: MagicMock,
-        mock_pipeline_cls: MagicMock,
-        mock_render_cls: MagicMock,
-        mock_components: MagicMock,
-        mock_api: MagicMock,
-    ) -> None:
-        """Workspace management renders even with no plots."""
-        mock_ui = MagicMock()
-        mock_ui.plot.consume_pending_updates.return_value = None
-        mock_ui_cls.return_value = mock_ui
-
-        creation = MagicMock()
-        creation.render_selector.return_value = None
-        mock_creation_cls.return_value = creation
-
-        from src.web.pages.manage_plots import show_manage_plots_page
-
-        show_manage_plots_page(mock_api)
-
-        mock_components.render_workspace_management.assert_called_once_with(mock_api)

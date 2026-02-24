@@ -29,7 +29,6 @@ from src.web.pages.plot_adapters import (
     PlotLifecycleAdapter,
     PlotTypeRegistryAdapter,
 )
-from src.web.pages.ui.components.plot_manager_components import PlotManagerComponents
 from src.web.state.ui_state_manager import UIStateManager
 
 
@@ -49,8 +48,6 @@ def show_manage_plots_page(api: ApplicationAPI) -> None:
         1. PlotCreationController — plot lifecycle
         2. PipelineController — data transformation pipeline
         3. PlotRenderController — visualization
-
-    Plus workspace management from PlotManagerComponents.
 
     Args:
         api: Application API (dependency-injected).
@@ -100,5 +97,3 @@ def show_manage_plots_page(api: ApplicationAPI) -> None:
         # 5. Visualization (fragmented)
         st.fragment(_render_fragment)(render, current_plot)
 
-    # 6. Workspace Management (export all, etc.)
-    PlotManagerComponents.render_workspace_management(api)

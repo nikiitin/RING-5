@@ -22,7 +22,7 @@ Targets the following files/lines:
     Lines covering render_csv_pool, variable_config_dialog, _show_parse_dialog
 - src/web/pages/ui/components/plot_manager_components.py  (71% → ~85%)
     Lines covering render_create_plot_section, render_plot_selector,
-    render_plot_controls, render_pipeline_editor, render_workspace_management
+    render_plot_controls, render_pipeline_editor
 """
 
 import os
@@ -1283,14 +1283,12 @@ class TestPlotManagerComponents:
         result = PlotManagerComponents.render_plot_selector(api)
         assert result == plot1
 
-    @patch("src.web.pages.ui.components.plot_manager_components.UIStateManager")
     @patch("src.web.pages.ui.components.plot_manager_components.PlotService")
     @patch("src.web.pages.ui.components.plot_manager_components.st")
     def test_render_plot_controls(
         self,
         mock_st: MagicMock,
         mock_plot_svc: MagicMock,
-        mock_ui_state: MagicMock,
     ) -> None:
         from src.web.pages.ui.components.plot_manager_components import (
             PlotManagerComponents,
@@ -1316,10 +1314,6 @@ class TestPlotManagerComponents:
         mock_st.text_input.return_value = "My Plot"  # No rename
         mock_st.button.return_value = False
 
-        mock_ui = MagicMock()
-        mock_ui_state.return_value = mock_ui
-        mock_ui.plot.is_dialog_visible.return_value = False
-
         PlotManagerComponents.render_plot_controls(api, plot)
 
     @patch("src.web.pages.ui.components.plot_manager_components.ShaperFactory")
@@ -1344,73 +1338,6 @@ class TestPlotManagerComponents:
         PlotManagerComponents.render_pipeline_editor(api, plot)
         mock_st.warning.assert_called()
 
-    @patch("src.web.pages.ui.components.plot_manager_components.UIStateManager")
-    @patch("src.web.pages.ui.components.plot_manager_components.st")
-    def test_render_workspace_management(
-        self, mock_st: MagicMock, mock_ui_state: MagicMock
-    ) -> None:
-        from src.web.pages.ui.components.plot_manager_components import (
-            PlotManagerComponents,
-        )
-
-        api = MagicMock()
-
-        def _make_cols(n: Any) -> list[MagicMock]:
-            count = len(n) if isinstance(n, list) else int(n)
-            cols = []
-            for _ in range(count):
-                c = MagicMock()
-                c.__enter__ = MagicMock(return_value=c)
-                c.__exit__ = MagicMock(return_value=False)
-                cols.append(c)
-            return cols
-
-        mock_st.columns.side_effect = _make_cols
-        mock_st.text_input.return_value = ""
-        mock_st.selectbox.return_value = "Keep Individual"
-        mock_st.button.return_value = False
-
-        mock_ui = MagicMock()
-        mock_ui_state.return_value = mock_ui
-        mock_ui.export.get_last_export_path.return_value = ""
-
-        PlotManagerComponents.render_workspace_management(api)
-
-    @patch("src.web.pages.ui.components.plot_manager_components.st")
-    def test_render_load_pipeline_dialog_no_pipelines(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.plot_manager_components import (
-            PlotManagerComponents,
-        )
-
-        api = MagicMock()
-        api.shapers.list_pipelines.return_value = []
-        plot = MagicMock()
-        plot.plot_id = "p1"
-
-        PlotManagerComponents._render_load_pipeline_dialog(api, plot)
-        mock_st.warning.assert_called()
-
-    @patch("src.web.pages.ui.components.plot_manager_components.st")
-    def test_render_save_pipeline_dialog(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.plot_manager_components import (
-            PlotManagerComponents,
-        )
-
-        api = MagicMock()
-        plot = MagicMock()
-        plot.name = "Plot 1"
-        plot.plot_id = "p1"
-        plot.pipeline = [{"type": "rename", "config": {}}]
-
-        col_mock = MagicMock()
-        mock_st.columns.return_value = [col_mock, col_mock]
-        col_mock.__enter__ = MagicMock(return_value=col_mock)
-        col_mock.__exit__ = MagicMock(return_value=False)
-
-        mock_st.text_input.return_value = "my_pipeline"
-        mock_st.button.return_value = False
-
-        PlotManagerComponents._render_save_pipeline_dialog(api, plot)
 
 
 # ===================================================================
