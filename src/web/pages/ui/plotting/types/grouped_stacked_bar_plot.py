@@ -442,81 +442,82 @@ class GroupedStackedBarPlot(StackedBarPlot):
             y_cols_right: list[str] = saved_config.get("y_columns_right", [])
             if y_cols_right:
                 st.markdown("#### Right-Axis Series Configuration")
+                existing_styles: dict[str, Any] = saved_config.get("series_styles", {})
+                right_rename_map: dict[str, str] = {
+                    k: str(existing_styles[k].get("name", k))
+                    for k in y_cols_right
+                    if k in existing_styles and existing_styles[k].get("name")
+                }
                 with st.expander("Reorder & Rename Right-Axis Series"):
-                    st.markdown("**Order**")
                     current_right_order = list(y_cols_right)
-                    new_right_order = self.render_reorderable_list(
-                        "Right-Axis Order", current_right_order, "right_ord"
+                    r_result = self.render_reorderable_list(
+                        "Right-Axis Order",
+                        current_right_order,
+                        "right_ord",
+                        enable_rename=True,
+                        rename_map=right_rename_map or None,
                     )
+                    new_right_order, right_renames = r_result  # type: ignore[misc]
                     if new_right_order != current_right_order:
                         config["y_columns_right"] = new_right_order
-
-                    st.markdown("**Rename**")
-                    right_renaming = self.style_manager.render_series_renaming_ui(
-                        saved_config, data, items=y_cols_right
-                    )
-
-                    if "series_styles" not in config:
-                        config["series_styles"] = {}
-
-                    for k, v in right_renaming.items():
-                        if k not in config["series_styles"]:
-                            config["series_styles"][k] = v
-                        else:
-                            config["series_styles"][k].update(v)
+                    if right_renames:
+                        if "series_styles" not in config:
+                            config["series_styles"] = {}
+                        for k, v in right_renames.items():
+                            if k not in config["series_styles"]:
+                                config["series_styles"][k] = {"name": v}
+                            else:
+                                config["series_styles"][k]["name"] = v
 
         # 3. Stack Configuration
-        # Restore functionality handled by BasePlot's generic "Series Configuration"
-        # We explicitly pass y_columns as items to ensure we rename the stacks/statistics,
-        # not the internal 'group' column.
         y_cols = saved_config.get("y_columns", [])
         if y_cols:
             st.markdown("#### Stack / Legend Configuration")
-
+            stack_styles: dict[str, Any] = saved_config.get("series_styles", {})
+            stack_rename_map: dict[str, str] = {
+                k: str(stack_styles[k].get("name", k))
+                for k in y_cols
+                if k in stack_styles and stack_styles[k].get("name")
+            }
             with st.expander("Reorder & Rename"):
-                # A. Reorder Stacks
-                st.markdown("**Order**")
-                # We allow reordering the y_columns list
                 current_order = list(y_cols)
-                new_order = self.render_reorderable_list("Stack Order", current_order, "stack_ord")
+                s_result = self.render_reorderable_list(
+                    "Stack Order",
+                    current_order,
+                    "stack_ord",
+                    enable_rename=True,
+                    rename_map=stack_rename_map or None,
+                )
+                new_order, stack_renames = s_result  # type: ignore[misc]
                 if new_order != current_order:
                     config["y_columns"] = new_order
-
-                # B. Rename Series
-                st.markdown("**Rename**")
-                renaming_styles = self.style_manager.render_series_renaming_ui(
-                    saved_config, data, items=y_cols  # Explicitly pass stack names
-                )
-
-                if "series_styles" not in config:
-                    config["series_styles"] = {}
-
-                for k, v in renaming_styles.items():
-                    if k not in config["series_styles"]:
-                        config["series_styles"][k] = v
-                    else:
-                        config["series_styles"][k].update(v)
+                if stack_renames:
+                    if "series_styles" not in config:
+                        config["series_styles"] = {}
+                    for k, v in stack_renames.items():
+                        if k not in config["series_styles"]:
+                            config["series_styles"][k] = {"name": v}
+                        else:
+                            config["series_styles"][k]["name"] = v
 
         # 4. Major Group Configuration (Original X)
         x_col = saved_config.get("x")
         if data is not None and x_col and x_col in data.columns:
             st.markdown("#### Major Grouping (Outer) Configuration")
             with st.expander("Reorder & Rename Major Groups"):
-                # Reorder
-                st.markdown("**Order**")
                 unique_x = sorted(data[x_col].unique().tolist())
-                config["xaxis_order"] = self.render_reorderable_list(
+                maj_result = self.render_reorderable_list(
                     "Major Group Order",
                     unique_x,
                     "xaxis",
                     default_order=saved_config.get("xaxis_order"),
+                    enable_rename=True,
+                    rename_map=saved_config.get("xaxis_labels"),
                 )
-
-                # Rename
-                st.markdown("**Rename**")
-                config["xaxis_labels"] = self.style_manager.render_xaxis_labels_ui(
-                    saved_config, data, key_prefix="maj_rename"
-                )
+                order_maj, renames_maj = maj_result  # type: ignore[misc]
+                config["xaxis_order"] = order_maj
+                if renames_maj:
+                    config["xaxis_labels"] = renames_maj
 
         # 5. Minor Group Configuration (Original Group)
         group_col = saved_config.get("group")
@@ -524,22 +525,18 @@ class GroupedStackedBarPlot(StackedBarPlot):
             st.markdown("#### X-Axis / Minor Grouping (Inner) Configuration")
             with st.expander("Reorder & Rename Minor Groups"):
                 unique_g = sorted(data[group_col].unique().tolist())
-                config["group_order"] = self.render_reorderable_list(
+                min_result = self.render_reorderable_list(
                     "Minor Group Order",
                     unique_g,
                     "group",
                     default_order=saved_config.get("group_order"),
+                    enable_rename=True,
+                    rename_map=saved_config.get("group_renames"),
                 )
-
-                st.markdown("**Rename Minor Groups**")
-                # Use style_manager but mock the config to point 'x' to 'group'
-                temp_config = saved_config.copy()
-                temp_config["x"] = group_col
-                temp_config["xaxis_labels"] = saved_config.get("group_renames", {})
-
-                config["group_renames"] = self.style_manager.render_xaxis_labels_ui(
-                    temp_config, data, key_prefix="min_rename"
-                )
+                order_min, renames_min = min_result  # type: ignore[misc]
+                config["group_order"] = order_min
+                if renames_min:
+                    config["group_renames"] = renames_min
 
         # 6. Reference Line (Normalizer)
         self._render_reference_line_ui(saved_config, data, config)

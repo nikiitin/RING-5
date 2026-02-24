@@ -439,7 +439,7 @@ class BasePlot(ABC):
             self._render_x_axis_settings(saved_config, config)
             specific = self.render_specific_advanced_options(saved_config, data)
             config.update(specific)
-            config["xaxis_labels"] = self.style_manager.render_xaxis_labels_ui(saved_config, data)
+            # X-axis label rename is handled inline by _render_ordering_ui
             if data is not None:
                 self._render_ordering_ui(saved_config, data, config)
         elif axis_tab == "y_left":
@@ -613,23 +613,10 @@ class BasePlot(ABC):
             help="Allows you to drag the legend/title and click to edit text directly on the plot.",
         )
 
-        # Series Renaming
-        if st.checkbox(
-            "Show Series Renaming", value=False, key=f"show_series_style_{self.plot_id}"
-        ):
-            st.markdown("#### Rename Series")
-            with st.expander("Rename Items", expanded=True):
-                renaming_styles = self.style_manager.render_series_renaming_ui(saved_config, data)
-                if "series_styles" not in config:
-                    config["series_styles"] = {}
-                for k, v in renaming_styles.items():
-                    if k not in config["series_styles"]:
-                        config["series_styles"][k] = v
-                    else:
-                        config["series_styles"][k].update(v)
-        else:
-            if "series_styles" not in config:
-                config["series_styles"] = saved_config.get("series_styles", {})
+        # Preserve existing series styles (renaming is now handled
+        # inline inside the Axes → reorder/rename lists)
+        if "series_styles" not in config:
+            config["series_styles"] = saved_config.get("series_styles", {})
 
         # Reference Line
         self._render_reference_line_ui(saved_config, data, config)
@@ -710,14 +697,11 @@ class BasePlot(ABC):
         specific_config = self.render_specific_advanced_options(saved_config, data)
         config.update(specific_config)
 
-        # 3. Label Renaming (Generic X-axis renames mostly)
-        config["xaxis_labels"] = self.style_manager.render_xaxis_labels_ui(saved_config, data)
-
-        # 4. Ordering Control
+        # 3. Ordering Control (includes inline X-axis & legend rename)
         if data is not None:
             self._render_ordering_ui(saved_config, data, config)
 
-        # 5. Legend & Interactivity
+        # 4. Legend & Interactivity
         st.markdown("#### Legend & Interactivity")
         config["enable_editable"] = st.checkbox(
             "Enable Interactive Editing",
@@ -726,34 +710,14 @@ class BasePlot(ABC):
             help="Allows you to drag the legend/title and click to edit text directly on the plot.",
         )
 
-        # 6. Series Styling (Color, Shape, Pattern, Name)
-        if st.checkbox(
-            "Show Series Renaming", value=False, key=f"show_series_style_{self.plot_id}"
-        ):
-            st.markdown("#### Rename Series")
-            with st.expander("Rename Items", expanded=True):
-                # Colors are now handled in Style & Theme, so we only do Renaming here.
-                renaming_styles = self.style_manager.render_series_renaming_ui(saved_config, data)
-                # Merge with existing styles (which might have colors from Style Menu)
-                if "series_styles" not in config:
-                    config["series_styles"] = {}
+        # Preserve existing series styles (renaming now inline in ordering)
+        if "series_styles" not in config:
+            config["series_styles"] = saved_config.get("series_styles", {})
 
-                # Deep update of series styles
-                # series_styles is Dict[str, Dict].
-                for k, v in renaming_styles.items():
-                    if k not in config["series_styles"]:
-                        config["series_styles"][k] = v
-                    else:
-                        config["series_styles"][k].update(v)
-        else:
-            # Preserve existing series styles if UI is hidden
-            if "series_styles" not in config:
-                config["series_styles"] = saved_config.get("series_styles", {})
-
-        # 7. Reference Line (Normalizer)
+        # 5. Reference Line
         self._render_reference_line_ui(saved_config, data, config)
 
-        # 8. Annotations
+        # 6. Annotations
         st.markdown("#### Annotations (Shapes)")
         config["shapes"] = self._render_shapes_ui(saved_config)
 
