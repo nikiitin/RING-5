@@ -24,7 +24,7 @@ class TestExtendedSections:
     """Verify new WidgetSections have expected widget counts."""
 
     def test_axis_x_has_widgets(self) -> None:
-        assert len(AXIS_X.widgets) >= 2
+        assert len(AXIS_X.widgets) >= 1
         assert AXIS_X.find("xaxis_tickangle") is not None
 
     def test_axis_y_has_widgets(self) -> None:

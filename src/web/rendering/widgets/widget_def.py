@@ -591,12 +591,6 @@ AXIS_X = WidgetSection(
             spec_path="axes.xaxis.tick_angle",
             help_text="Rotate X-axis labels to prevent overlap",
         ),
-        CheckboxWidgetDef(
-            key="automargin",
-            label="Auto-Margin (Prevents Cutoff)",
-            default=True,
-            spec_path="axes.xaxis.automargin",
-        ),
     ),
 )
 
