@@ -165,7 +165,7 @@ class TestAxesSubPills:
         plot.plot_type = "grouped_bar"
         plot.style_manager = MagicMock()
         plot.style_manager.render_xaxis_labels_ui.return_value = {}
-        plot._render_general_settings = MagicMock()
+        plot._render_x_axis_settings = MagicMock()
         plot.render_specific_advanced_options = MagicMock(return_value={})
         plot._render_ordering_ui = MagicMock()
         plot._render_y_axis_settings = MagicMock()
@@ -174,13 +174,13 @@ class TestAxesSubPills:
         return plot
 
     @patch("src.web.pages.ui.plotting.base_plot.st")
-    def test_x_axis_renders_general_settings(self, mock_st: MagicMock) -> None:
-        """X-axis sub-pill renders general settings + ordering."""
+    def test_x_axis_renders_x_axis_settings(self, mock_st: MagicMock) -> None:
+        """X-axis sub-pill renders X-axis settings + ordering."""
         plot = self._make_plot()
         mock_st.pills.return_value = "x"
         data = pd.DataFrame({"a": [1]})
         plot._section_axes({}, data)
-        plot._render_general_settings.assert_called_once()
+        plot._render_x_axis_settings.assert_called_once()
 
     @patch("src.web.pages.ui.plotting.base_plot.st")
     def test_y_left_renders_y_settings(self, mock_st: MagicMock) -> None:

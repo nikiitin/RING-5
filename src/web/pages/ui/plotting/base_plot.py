@@ -436,7 +436,7 @@ class BasePlot(ABC):
         )
         config: dict[str, Any] = {}
         if axis_tab == "x" or axis_tab is None:
-            self._render_general_settings(saved_config, config)
+            self._render_x_axis_settings(saved_config, config)
             specific = self.render_specific_advanced_options(saved_config, data)
             config.update(specific)
             config["xaxis_labels"] = self.style_manager.render_xaxis_labels_ui(saved_config, data)
@@ -447,6 +447,21 @@ class BasePlot(ABC):
         elif axis_tab == "y_right":
             self._render_y_axis_settings(saved_config, config, prefix="y2")
         return config
+
+    def _render_x_axis_settings(
+        self, saved_config: dict[str, Any], config: dict[str, Any]
+    ) -> None:
+        """Render X-axis specific settings (tick angle)."""
+        st.markdown("#### X-Axis Settings")
+        config["xaxis_tickangle"] = st.slider(
+            "X-axis Label Rotation",
+            min_value=-90,
+            max_value=90,
+            value=saved_config.get("xaxis_tickangle", -45),
+            step=15,
+            key=f"xaxis_angle_{self.plot_id}",
+            help="Rotate X-axis labels to prevent overlap",
+        )
 
     def _render_y_axis_settings(
         self,
@@ -555,7 +570,41 @@ class BasePlot(ABC):
     ) -> dict[str, Any]:
         config: dict[str, Any] = {}
 
-        # Legend & Interactivity
+        # ── Export & Download ────────────────────────────────────
+        st.markdown("#### Export & Download")
+        col_exp1, col_exp2 = st.columns(2)
+        with col_exp1:
+            config["show_error_bars"] = st.checkbox(
+                "Show Error Bars (if .sd columns exist)",
+                value=saved_config.get("show_error_bars", False),
+                key=f"error_bars_{self.plot_id}",
+            )
+        with col_exp2:
+            download_formats: list[str] = ["html", "png", "pdf", "svg"]
+            default_fmt_idx: int = 0
+            if saved_config.get("download_format") in download_formats:
+                default_fmt_idx = download_formats.index(
+                    saved_config["download_format"]
+                )
+            config["download_format"] = st.selectbox(
+                "Default Download Format",
+                options=download_formats,
+                index=default_fmt_idx,
+                key=f"download_fmt_{self.plot_id}",
+            )
+            config["export_scale"] = st.selectbox(
+                "Download Scale (Resolution)",
+                options=[1, 2, 3],
+                index=[1, 2, 3].index(saved_config.get("export_scale", 1)),
+                key=f"exp_scale_{self.plot_id}",
+                help="1x = Screen. 3x = High Res (Publication).",
+            )
+            w: int = saved_config.get("width", 800)
+            h: int = saved_config.get("height", 500)
+            s: int = config["export_scale"]
+            st.caption(f"Download Size: {w * s} x {h * s} px")
+
+        # ── Legend & Interactivity ───────────────────────────────
         st.markdown("#### Legend & Interactivity")
         config["enable_editable"] = st.checkbox(
             "Enable Interactive Editing",
