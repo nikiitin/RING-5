@@ -13,7 +13,7 @@ from unittest.mock import MagicMock, patch
 
 import plotly.graph_objects as go
 
-MODULE = "src.web.pages.ui.components.interactive_plot"
+MODULE = "src.web.components.plotting.interactive_plot"
 
 
 class TestInteractivePlotlyChart:
@@ -24,7 +24,7 @@ class TestInteractivePlotlyChart:
         """Figure is serialized to JSON and passed to the component."""
         mock_func.return_value = None
 
-        from src.web.pages.ui.components.interactive_plot import (
+        from src.web.components.plotting.interactive_plot import (
             interactive_plotly_chart,
         )
 
@@ -46,7 +46,7 @@ class TestInteractivePlotlyChart:
         """Config dict is JSON-serialized when provided."""
         mock_func.return_value = None
 
-        from src.web.pages.ui.components.interactive_plot import (
+        from src.web.components.plotting.interactive_plot import (
             interactive_plotly_chart,
         )
 
@@ -66,7 +66,7 @@ class TestInteractivePlotlyChart:
         """When config is None, empty JSON object '{}' is passed."""
         mock_func.return_value = None
 
-        from src.web.pages.ui.components.interactive_plot import (
+        from src.web.components.plotting.interactive_plot import (
             interactive_plotly_chart,
         )
 
@@ -82,7 +82,7 @@ class TestInteractivePlotlyChart:
         """The key parameter is forwarded to the component."""
         mock_func.return_value = None
 
-        from src.web.pages.ui.components.interactive_plot import (
+        from src.web.components.plotting.interactive_plot import (
             interactive_plotly_chart,
         )
 
@@ -99,7 +99,7 @@ class TestInteractivePlotlyChart:
         expected: Dict[str, Any] = {"relayoutData": {"xaxis.range": [0, 10]}}
         mock_func.return_value = expected
 
-        from src.web.pages.ui.components.interactive_plot import (
+        from src.web.components.plotting.interactive_plot import (
             interactive_plotly_chart,
         )
 
@@ -113,7 +113,7 @@ class TestInteractivePlotlyChart:
         """When no interaction occurred, returns None."""
         mock_func.return_value = None
 
-        from src.web.pages.ui.components.interactive_plot import (
+        from src.web.components.plotting.interactive_plot import (
             interactive_plotly_chart,
         )
 

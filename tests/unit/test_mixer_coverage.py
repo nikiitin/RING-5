@@ -42,22 +42,22 @@ def mock_api() -> MagicMock:
 class TestMixerRender:
     """Test MixerManager.render branch coverage."""
 
-    @patch("src.web.pages.ui.data_managers.impl.mixer.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.mixer.st")
+    @patch("src.web.components.data_managers.mixer.HistoryComponents")
+    @patch("src.web.components.data_managers.mixer.st")
     def test_no_data(self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock) -> None:
-        from src.web.pages.ui.data_managers.impl.mixer import MixerManager
+        from src.web.components.data_managers.mixer import MixerManager
 
         mock_api.state_manager.get_data.return_value = None
         mgr = MixerManager(mock_api)
         mgr.render()
         mock_st.error.assert_called_once()
 
-    @patch("src.web.pages.ui.data_managers.impl.mixer.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.mixer.st")
+    @patch("src.web.components.data_managers.mixer.HistoryComponents")
+    @patch("src.web.components.data_managers.mixer.st")
     def test_numerical_mode(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.mixer import MixerManager
+        from src.web.components.data_managers.mixer import MixerManager
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
@@ -72,12 +72,12 @@ class TestMixerRender:
         mgr.render()
         mock_st.segmented_control.assert_called()
 
-    @patch("src.web.pages.ui.data_managers.impl.mixer.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.mixer.st")
+    @patch("src.web.components.data_managers.mixer.HistoryComponents")
+    @patch("src.web.components.data_managers.mixer.st")
     def test_config_merge_mode(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.mixer import MixerManager
+        from src.web.components.data_managers.mixer import MixerManager
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
@@ -93,12 +93,12 @@ class TestMixerRender:
         # Concatenate mode shows separator text_input
         assert mock_st.text_input.call_count >= 2
 
-    @patch("src.web.pages.ui.data_managers.impl.mixer.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.mixer.st")
+    @patch("src.web.components.data_managers.mixer.HistoryComponents")
+    @patch("src.web.components.data_managers.mixer.st")
     def test_preview_success_with_sd(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.mixer import MixerManager
+        from src.web.components.data_managers.mixer import MixerManager
 
         result_df = sample_df.copy()
         result_df["total"] = [150.0, 300.0, 450.0]
@@ -120,12 +120,12 @@ class TestMixerRender:
         assert mock_st.success.call_count >= 2  # "Created" + "Propagated SD"
         mock_api.set_preview.assert_called_once()
 
-    @patch("src.web.pages.ui.data_managers.impl.mixer.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.mixer.st")
+    @patch("src.web.components.data_managers.mixer.HistoryComponents")
+    @patch("src.web.components.data_managers.mixer.st")
     def test_preview_success_without_sd(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.mixer import MixerManager
+        from src.web.components.data_managers.mixer import MixerManager
 
         result_df = sample_df.copy()
         result_df["total"] = [150.0, 300.0, 450.0]
@@ -145,12 +145,12 @@ class TestMixerRender:
         mgr.render()
         mock_api.set_preview.assert_called_once()
 
-    @patch("src.web.pages.ui.data_managers.impl.mixer.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.mixer.st")
+    @patch("src.web.components.data_managers.mixer.HistoryComponents")
+    @patch("src.web.components.data_managers.mixer.st")
     def test_preview_validation_errors(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.mixer import MixerManager
+        from src.web.components.data_managers.mixer import MixerManager
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_api.managers.validate_merge_inputs.return_value = ["Select at least 2 columns"]
@@ -166,12 +166,12 @@ class TestMixerRender:
         mgr.render()
         mock_st.error.assert_called()
 
-    @patch("src.web.pages.ui.data_managers.impl.mixer.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.mixer.st")
+    @patch("src.web.components.data_managers.mixer.HistoryComponents")
+    @patch("src.web.components.data_managers.mixer.st")
     def test_preview_exception(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.mixer import MixerManager
+        from src.web.components.data_managers.mixer import MixerManager
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_api.managers.validate_merge_inputs.return_value = []
@@ -188,12 +188,12 @@ class TestMixerRender:
         mgr.render()
         mock_st.exception.assert_called()
 
-    @patch("src.web.pages.ui.data_managers.impl.mixer.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.mixer.st")
+    @patch("src.web.components.data_managers.mixer.HistoryComponents")
+    @patch("src.web.components.data_managers.mixer.st")
     def test_confirm_applies_data(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.mixer import MixerManager
+        from src.web.components.data_managers.mixer import MixerManager
 
         merged = sample_df.copy()
         merged["total"] = [150.0, 300.0, 450.0]
@@ -214,12 +214,12 @@ class TestMixerRender:
         mock_api.clear_preview.assert_called_once()
         mock_api.add_manager_history_record.assert_called_once()
 
-    @patch("src.web.pages.ui.data_managers.impl.mixer.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.mixer.st")
+    @patch("src.web.components.data_managers.mixer.HistoryComponents")
+    @patch("src.web.components.data_managers.mixer.st")
     def test_history_load_concatenate(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.mixer import MixerManager
+        from src.web.components.data_managers.mixer import MixerManager
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
@@ -239,12 +239,12 @@ class TestMixerRender:
         mgr = MixerManager(mock_api)
         mgr.render()
 
-    @patch("src.web.pages.ui.data_managers.impl.mixer.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.mixer.st")
+    @patch("src.web.components.data_managers.mixer.HistoryComponents")
+    @patch("src.web.components.data_managers.mixer.st")
     def test_history_load_numerical(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.mixer import MixerManager
+        from src.web.components.data_managers.mixer import MixerManager
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
@@ -264,12 +264,12 @@ class TestMixerRender:
         mgr = MixerManager(mock_api)
         mgr.render()
 
-    @patch("src.web.pages.ui.data_managers.impl.mixer.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.mixer.st")
+    @patch("src.web.components.data_managers.mixer.HistoryComponents")
+    @patch("src.web.components.data_managers.mixer.st")
     def test_history_load_missing_columns(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.mixer import MixerManager
+        from src.web.components.data_managers.mixer import MixerManager
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
@@ -290,12 +290,12 @@ class TestMixerRender:
         mgr.render()
         mock_st.warning.assert_called()
 
-    @patch("src.web.pages.ui.data_managers.impl.mixer.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.mixer.st")
+    @patch("src.web.components.data_managers.mixer.HistoryComponents")
+    @patch("src.web.components.data_managers.mixer.st")
     def test_empty_multiselect_default_name(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.mixer import MixerManager
+        from src.web.components.data_managers.mixer import MixerManager
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect

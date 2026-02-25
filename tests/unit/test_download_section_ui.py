@@ -71,8 +71,8 @@ class TestRenderDownloadSectionPlotly:
 
         mock_st.pills.assert_called_once()
         _, kwargs = mock_st.pills.call_args
-        assert kwargs["options"] == ["png", "svg", "pdf"]
-        assert kwargs["default"] == "pdf"
+        assert kwargs["options"] == ["html", "png", "svg", "pdf"]
+        assert kwargs["default"] == "html"
 
     @patch(
         "src.web.pages.ui.plotting.download_section.plotly_download_bytes",

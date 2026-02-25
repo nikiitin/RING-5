@@ -1,7 +1,7 @@
 """
 Web Layer Controllers (Layer 2).
 
-Controllers orchestrate the flow between UI State, Presenters, and the
+Controllers orchestrate the flow between UI State, Components, and the
 ApplicationAPI. They are the only layer that reads state AND calls presenters.
 
 Sub-packages:
@@ -10,7 +10,7 @@ Sub-packages:
 Architecture:
     Page → Controller  ← YOU ARE HERE
               ↕
-         Presenter  (renders widgets, returns selections)
+         Component  (renders widgets, returns selections)
               ↕
         UIStateManager  (typed state access)
               ↕

@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from typing import Any, cast
 
-from src.core.models.config.config_manager import (
+from src.core.services.config_validation_service import (
     ConfigTemplateGenerator,
     ConfigValidator,
 )

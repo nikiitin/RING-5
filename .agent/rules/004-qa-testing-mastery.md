@@ -189,6 +189,9 @@ You assume the role of a QA Expert. You know the "Quality Shield" (Test Pyramid)
 - **`patch` vs Injection:** Prefer Dependency Injection (passing mocks in constructor) over `patch` decorators. It makes dependencies explicit.
 - **`spec=True`:** ALWAYS use `autospec=True` or `spec=Class` when creating mocks to prevent the "Mocking Non-Existent Method" bug.
 - **Boundaries:** Only mock types you _own_. Wrap external 3rd party libraries (like requests/boto3) in a Facade/Adapter, and mock the Adapter.
+- **Patch WHERE Used, NOT Where Defined:** Always patch where the object is **looked up**, not where it is **defined**. (e.g., patch `cli.cards.CardsDB`, not `api.CardsDB`).
+- **Mock Path After Extraction (CRITICAL):** When extracting a method from a class to a standalone module function, ALL test `@patch` decorators MUST target the NEW module where `st` is actually imported, not the original class module. See `.agent/rules/009-refactoring-patterns.md` for details.
+- **`@patch.object` vs `@patch` for Extracted Functions:** When function A calls function B directly (not via `self.method()`), `@patch.object(Class, "B")` won't intercept. Must use `@patch("module.B")` at the module level.
 
 ### 3.9 Configuration Files (Pytest Ch 8)
 

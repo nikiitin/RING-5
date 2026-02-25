@@ -51,29 +51,21 @@ class TestModuleImports:
 
         assert FigureSpecToPlotly is not None
 
-    def test_import_presenters(self) -> None:
-        """Presenter modules import correctly."""
-        from src.web.presenters.plot import (
-            ChartPresenter,
-            ConfigPresenter,
-            LoadDialogPresenter,
-            PipelinePresenter,
-            PipelineStepPresenter,
-            PlotControlsPresenter,
-            PlotCreationPresenter,
-            PlotSelectorPresenter,
-            SaveDialogPresenter,
-        )
+    def test_import_components(self) -> None:
+        """Component modules import correctly."""
+        from src.web.components.common.chart_display import ChartDisplayComponent
+        from src.web.components.common.pipeline import PipelineComponent
+        from src.web.components.common.pipeline_step import PipelineStepComponent
+        from src.web.components.common.plot_controls import PlotControlsComponent
+        from src.web.components.common.plot_creation import PlotCreationComponent
+        from src.web.components.common.plot_selector import PlotSelectorComponent
 
-        assert PlotSelectorPresenter is not None
-        assert PlotCreationPresenter is not None
-        assert PlotControlsPresenter is not None
-        assert PipelinePresenter is not None
-        assert PipelineStepPresenter is not None
-        assert ChartPresenter is not None
-        assert SaveDialogPresenter is not None
-        assert LoadDialogPresenter is not None
-        assert ConfigPresenter is not None
+        assert PlotSelectorComponent is not None
+        assert PlotCreationComponent is not None
+        assert PlotControlsComponent is not None
+        assert PipelineComponent is not None
+        assert PipelineStepComponent is not None
+        assert ChartDisplayComponent is not None
 
     def test_import_controllers(self) -> None:
         """Controller modules import correctly."""
@@ -238,12 +230,11 @@ class TestModelCompatibility:
 
 class TestControllerBoundaries:
     """
-    Verify controllers delegate rendering to presenters.
+    Verify controllers delegate rendering to components.
 
-    Controllers may only use st.rerun(), st.warning(), st.success(), st.error()
-    for flow control and feedback. All widget rendering (st.columns, st.button,
-    st.text_input, st.expander, st.selectbox, st.dataframe, st.markdown, etc.)
-    must go through presenters.
+    Creation and Pipeline controllers delegate all widget rendering to
+    components. Render controller inlines config gathering (st.selectbox,
+    st.markdown, st.toggle) since ConfigPresenter was eliminated.
     """
 
     # st.* calls allowed in controllers (flow control + feedback, NOT rendering)
@@ -255,7 +246,7 @@ class TestControllerBoundaries:
         "toast",  # Persistent user feedback (survives reruns)
     }
 
-    # st.* calls that indicate rendering (should be in presenters)
+    # st.* calls that indicate rendering (should be in components)
     RENDERING_ST_CALLS: set[str] = {
         "columns",
         "button",
@@ -308,54 +299,53 @@ class TestControllerBoundaries:
         rendering_calls: set[str] = set(st_calls) & self.RENDERING_ST_CALLS
         assert not rendering_calls, (
             f"PipelineController renders widgets directly: "
-            f"{rendering_calls}. Move to a presenter."
+            f"{rendering_calls}. Move to a component."
         )
 
-    def test_render_controller_no_widget_rendering(self) -> None:
-        """PlotRenderController must not render widgets directly."""
+    def test_render_controller_inlines_config_gathering(self) -> None:
+        """PlotRenderController inlines config gathering (selectbox, toggle, markdown)."""
         import src.web.controllers.plot.render_controller as mod
 
         source: str = Path(mod.__file__).read_text()  # type: ignore[arg-type]
         st_calls: list[str] = self._get_st_method_calls(source)
 
-        rendering_calls: set[str] = set(st_calls) & self.RENDERING_ST_CALLS
-        assert not rendering_calls, (
-            f"PlotRenderController renders widgets directly: "
-            f"{rendering_calls}. Move to a presenter."
-        )
+        # render_controller legitimately uses selectbox, toggle, and markdown
+        # since ConfigPresenter was inlined. Verify those are present.
+        assert "selectbox" in st_calls, "render_controller should inline plot type selectbox"
+        assert "toggle" in st_calls, "render_controller should inline advanced settings toggle"
+        assert "markdown" in st_calls, "render_controller should inline section headers"
 
-    def test_controllers_use_presenters(self) -> None:
-        """Controllers must import from the presenters package."""
+    def test_controllers_use_components(self) -> None:
+        """Controllers must import from the components package."""
         import src.web.controllers.plot.creation_controller as cc
         import src.web.controllers.plot.pipeline_controller as pc
         import src.web.controllers.plot.render_controller as rc
 
-        for mod, expected_presenters in [
+        for mod, expected_components in [
             (
                 cc,
                 [
-                    "SaveDialogPresenter",
-                    "LoadDialogPresenter",
-                    "PlotControlsPresenter",
-                    "PlotCreationPresenter",
-                    "PlotSelectorPresenter",
+                    "PlotControlsComponent",
+                    "PlotCreationComponent",
+                    "PlotSelectorComponent",
                 ],
             ),
-            (pc, ["PipelinePresenter", "PipelineStepPresenter"]),
-            (rc, ["ChartPresenter", "ConfigPresenter"]),
+            (pc, ["PipelineComponent", "PipelineStepComponent"]),
+            (rc, ["ChartDisplayComponent"]),
         ]:
             source: str = Path(mod.__file__).read_text()  # type: ignore[arg-type]
-            for presenter in expected_presenters:
-                assert presenter in source, f"{mod.__name__} should import {presenter}"
+            for component in expected_components:
+                assert component in source, f"{mod.__name__} should import {component}"
 
     def test_controllers_no_cross_layer_imports(self) -> None:
-        """Controllers must NOT import from pages.ui.* (Layer 2 → Layer 1)."""
+        """Creation and Pipeline controllers must NOT import from pages.ui.*.
+        Render controller may import render_settings_pills (inlined from ConfigPresenter).
+        """
         import src.web.controllers.plot.creation_controller as cc
         import src.web.controllers.plot.pipeline_controller as pc
-        import src.web.controllers.plot.render_controller as rc
 
         forbidden: str = "from src.web.pages"
-        for mod in [cc, pc, rc]:
+        for mod in [cc, pc]:
             source: str = Path(mod.__file__).read_text()  # type: ignore[arg-type]
             assert forbidden not in source, (
                 f"{mod.__name__} imports from pages.* — "
@@ -444,16 +434,14 @@ class TestProtocolCompliance:
         # But protocols should NOT be in adapters (they import from models)
         assert "from src.web.models.plot_protocols" in source
 
-    def test_config_renderer_shared_between_presenter_and_protocols(
+    def test_render_controller_uses_renderable_plot(
         self,
     ) -> None:
-        """ConfigPresenter uses ConfigRenderer from plot_protocols."""
-        import src.web.presenters.plot.config_presenter as cp_mod
+        """Render controller uses RenderablePlot from plot_protocols."""
+        import src.web.controllers.plot.render_controller as rc_mod
 
-        source: str = Path(cp_mod.__file__).read_text()  # type: ignore[arg-type]
-        assert "from src.web.models.plot_protocols import ConfigRenderer" in source
-        # Private _ConfigRenderer should NOT exist anymore
-        assert "class _ConfigRenderer" not in source
+        source: str = Path(rc_mod.__file__).read_text()  # type: ignore[arg-type]
+        assert "RenderablePlot" in source
 
     def test_renderable_plot_combines_handle_and_renderer(self) -> None:
         """RenderablePlot is a combined protocol of PlotHandle + ConfigRenderer."""
@@ -467,18 +455,16 @@ class TestProtocolCompliance:
 
     def test_sort_config_importable(self) -> None:
         """SortConfig shaper UI component imports correctly."""
-        from src.web.pages.ui.components.shapers.sort_config import SortConfig
+        from src.web.components.shapers.sort_config import SortConfig
 
         assert hasattr(SortConfig, "render")
         assert callable(SortConfig.render)
 
     def test_sort_config_registered_in_dispatch(self) -> None:
         """Sort shaper is registered in shaper_config module constants."""
-        from src.web.pages.ui.shaper_config import (
-            SHAPER_REQUIRED_PARAMS,
-            SHAPER_TYPE_MAP,
-        )
+        from src.core.services.shapers.validation import get_required_params
+        from src.web.pages.ui.shaper_config import SHAPER_TYPE_MAP
 
-        assert "sort" in SHAPER_REQUIRED_PARAMS
+        assert get_required_params("sort") == ["order_dict"]
         assert "Sort" in SHAPER_TYPE_MAP
         assert SHAPER_TYPE_MAP["Sort"] == "sort"

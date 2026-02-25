@@ -17,7 +17,7 @@ import plotly.graph_objects as go
 import pytest
 
 from src.core.models.visualization.figure_config import FigureConfig
-from src.core.models.visualization.resolvers import resolve_config
+from src.core.services.visualization.config_resolver import resolve_config
 from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
 from src.web.rendering.config_builder import ConfigSpecBuilder
 from src.web.rendering.plotly_connector import FigureSpecToPlotly

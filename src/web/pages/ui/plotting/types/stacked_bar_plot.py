@@ -3,11 +3,10 @@
 from typing import Any
 
 import pandas as pd
-import streamlit as st
 
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import BarTraceConfig
-from src.web.pages.ui.components.plot_config_components import PlotConfigComponents
+from src.web.components.plotting.config import stacked_bar_config
 from src.web.pages.ui.plotting.base_plot import BasePlot
 
 
@@ -20,53 +19,7 @@ class StackedBarPlot(BasePlot):
 
     def render_config_ui(self, data: pd.DataFrame, saved_config: dict[str, Any]) -> dict[str, Any]:
         """Render configuration UI for stacked bar plot."""
-        numeric_cols = data.select_dtypes(include=["number"]).columns.tolist()
-        all_cols = data.columns.tolist()
-
-        x_col = st.selectbox(
-            "X-Axis (Categories)",
-            options=all_cols,
-            index=all_cols.index(saved_config["x"]) if saved_config.get("x") in all_cols else 0,
-            key=f"stacked_x_{self.plot_id}",
-        )
-
-        # Use reusable statistics multiselect component
-        y_cols = PlotConfigComponents.render_statistics_multiselect(
-            numeric_cols=numeric_cols,
-            saved_config=saved_config,
-            plot_id=self.plot_id,
-        )
-
-        # Filter Options
-        x_values, _ = PlotConfigComponents.render_filter_multiselects(
-            data=data,
-            x_col=x_col,
-            group_col=None,
-            saved_config=saved_config,
-            plot_id=self.plot_id,
-        )
-
-        # Title & Labels
-        default_title = saved_config.get("title", f"Stacked Statistics by {x_col}")
-        default_xlabel: str = str(saved_config.get("xlabel", x_col) or "")
-        default_ylabel: str = str(saved_config.get("ylabel", "Value") or "")
-
-        label_config = PlotConfigComponents.render_title_labels_section(
-            saved_config=saved_config,
-            plot_id=self.plot_id,
-            default_title=default_title,
-            default_xlabel=default_xlabel,
-            default_ylabel=default_ylabel,
-            include_legend_title=True,
-            default_legend_title=saved_config.get("legend_title", "Statistics"),
-        )
-
-        return {
-            "x": x_col,
-            "y_columns": y_cols,
-            "x_filter": x_values,
-            **label_config,
-        }
+        return stacked_bar_config.render(data, saved_config, self.plot_id)
 
     def create_traces(self, data: pd.DataFrame, config: dict[str, Any]) -> TraceBuildResult:
         """Create stacked bar trace configurations."""
@@ -164,9 +117,17 @@ class StackedBarPlot(BasePlot):
         color = style.get("color", "") if style.get("use_color") else ""
         pattern = style.get("pattern", "")
 
+        # Detect pre-computed numeric coordinates (e.g. __x_coord from
+        # GroupedBarUtils) — store them as x_positions so the matplotlib
+        # renderer uses the actual coordinates instead of integer indices.
+        x_values = data[x_col].tolist()
+        is_numeric_coords = bool(x_values) and isinstance(x_values[0], (int, float))
+        x_positions: list[float] = [float(v) for v in x_values] if is_numeric_coords else []
+
         return BarTraceConfig(
             name=trace_name,
-            x=data[x_col].tolist(),
+            x=x_values,
+            x_positions=x_positions,
             y=data[y_col].tolist(),
             bar_width=bar_width if bar_width is not None else 0.8,
             color=color,

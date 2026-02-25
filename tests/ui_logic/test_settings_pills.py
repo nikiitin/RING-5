@@ -1,8 +1,11 @@
 """Tests for pills-driven settings navigation — Steps 24-26, 29, 31."""
 
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
+
+from tests.conftest import columns_side_effect
 
 
 class TestRenderSettingsPills:
@@ -106,100 +109,136 @@ class TestSectionDispatch:
 
 
 class TestLegendSubPills:
-    """Verify legend sub-pills use correct key prefixes (Step 25)."""
+    """Verify legend sub-pills use correct key prefixes (Step 25).
 
-    def _make_plot(self) -> MagicMock:
-        """Create a mock with real _section_legends bound."""
-        from src.web.pages.ui.plotting.base_plot import BasePlot
+    Now tests ``LegendSettingsComponent`` directly (component-only architecture).
+    """
 
-        plot = MagicMock()
-        plot.plot_id = 1
-        plot.plot_type = "grouped_bar"
-        plot.style_manager = MagicMock()
-        plot.style_manager.ui_manager._render_legend_section.return_value = {}
-        # Bind the real method
-        plot._section_legends = BasePlot._section_legends.__get__(plot, type(plot))
-        return plot
+    def _make_component(self) -> Any:
+        from src.web.components.plotting.settings import (
+            LegendSettingsComponent,
+        )
 
-    @patch("src.web.pages.ui.plotting.base_plot.st")
+        return LegendSettingsComponent(plot_id=1, plot_type="grouped_bar")
+
+    @patch("src.web.components.plotting.settings.legend_settings.st")
     def test_primary_uses_theme_prefix(self, mock_st: MagicMock) -> None:
         """Primary legend pill uses 'theme_' prefix."""
-        plot = self._make_plot()
+        comp = self._make_component()
         mock_st.pills.return_value = "primary"
-        plot._section_legends({}, None)
-        plot.style_manager.ui_manager._render_legend_section.assert_called_once_with(
-            {}, key_prefix="theme_"
-        )
+        mock_st.columns.side_effect = columns_side_effect
+        mock_st.checkbox.return_value = True
+        mock_st.number_input.return_value = 12
+        mock_st.selectbox.return_value = "v"
+        mock_st.slider.return_value = 1.0
+        mock_st.color_picker.return_value = "#000000"
 
-    @patch("src.web.pages.ui.plotting.base_plot.st")
+        with patch.object(comp, "_render_legend_section", wraps=comp._render_legend_section) as spy:
+            comp.render({}, has_secondary=True, has_tertiary=True)
+            spy.assert_called_once_with({}, "theme_")
+
+    @patch("src.web.components.plotting.settings.legend_settings.st")
     def test_secondary_uses_legend2_prefix(self, mock_st: MagicMock) -> None:
         """Secondary legend pill uses 'legend2_' prefix."""
-        plot = self._make_plot()
+        comp = self._make_component()
         mock_st.pills.return_value = "secondary"
-        plot._section_legends({}, None)
-        plot.style_manager.ui_manager._render_legend_section.assert_called_once_with(
-            {}, key_prefix="legend2_"
-        )
+        mock_st.columns.side_effect = columns_side_effect
+        mock_st.checkbox.return_value = True
+        mock_st.number_input.return_value = 12
+        mock_st.selectbox.return_value = "v"
+        mock_st.slider.return_value = 1.0
+        mock_st.color_picker.return_value = "#000000"
 
-    @patch("src.web.pages.ui.plotting.base_plot.st")
-    def test_boxed_uses_legend3_prefix(self, mock_st: MagicMock) -> None:
-        """Boxed legend pill uses 'legend3_' prefix."""
-        plot = self._make_plot()
-        mock_st.pills.return_value = "boxed"
-        plot._section_legends({}, None)
-        plot.style_manager.ui_manager._render_legend_section.assert_called_once_with(
-            {}, key_prefix="legend3_"
-        )
+        with patch.object(comp, "_render_legend_section", wraps=comp._render_legend_section) as spy:
+            comp.render({}, has_secondary=True, has_tertiary=True)
+            spy.assert_called_once_with({}, "legend2_")
+
+    @patch("src.web.components.plotting.settings.legend_settings.st")
+    def test_tertiary_uses_legend3_prefix(self, mock_st: MagicMock) -> None:
+        """Tertiary legend pill uses 'legend3_' prefix."""
+        comp = self._make_component()
+        mock_st.pills.return_value = "tertiary"
+        mock_st.columns.side_effect = columns_side_effect
+        mock_st.checkbox.return_value = True
+        mock_st.number_input.return_value = 12
+        mock_st.selectbox.return_value = "v"
+        mock_st.slider.return_value = 1.0
+        mock_st.color_picker.return_value = "#000000"
+
+        with patch.object(comp, "_render_legend_section", wraps=comp._render_legend_section) as spy:
+            comp.render({}, has_secondary=True, has_tertiary=True)
+            spy.assert_called_once_with({}, "legend3_")
 
 
 class TestAxesSubPills:
-    """Verify axes sub-pills route to correct settings (Step 26)."""
+    """Verify axes sub-pills route to correct settings (Step 26).
 
-    def _make_plot(self) -> MagicMock:
-        """Create a mock with real _section_axes bound."""
-        from src.web.pages.ui.plotting.base_plot import BasePlot
+    Now tests ``AxesSettingsComponent`` directly (component-only architecture).
+    """
 
-        plot = MagicMock()
-        plot.plot_id = 1
-        plot.plot_type = "grouped_bar"
-        plot.style_manager = MagicMock()
-        plot.style_manager.render_xaxis_labels_ui.return_value = {}
-        plot._render_x_axis_settings = MagicMock()
-        plot.render_specific_advanced_options = MagicMock(return_value={})
-        plot._render_ordering_ui = MagicMock()
-        plot._render_y_axis_settings = MagicMock()
-        # Bind real methods
-        plot._section_axes = BasePlot._section_axes.__get__(plot, type(plot))
-        return plot
+    def _make_component(self) -> Any:
+        """Create an AxesSettingsComponent for testing."""
+        from src.web.components.plotting.settings import (
+            AxesSettingsComponent,
+        )
 
-    @patch("src.web.pages.ui.plotting.base_plot.st")
+        return AxesSettingsComponent(plot_id=1, plot_type="grouped_bar")
+
+    @patch("src.web.components.plotting.settings.axes_settings.st")
     def test_x_axis_renders_x_axis_settings(self, mock_st: MagicMock) -> None:
         """X-axis sub-pill renders X-axis settings + ordering."""
-        plot = self._make_plot()
+        comp = self._make_component()
         mock_st.pills.return_value = "x"
+        mock_st.checkbox.return_value = True
+        mock_st.slider.return_value = -45
         data = pd.DataFrame({"a": [1]})
-        plot._section_axes({}, data)
-        plot._render_x_axis_settings.assert_called_once()
 
-    @patch("src.web.pages.ui.plotting.base_plot.st")
+        specific_fn = MagicMock(return_value={})
+        ordering_fn = MagicMock()
+
+        result = comp.render(
+            {},
+            data=data,
+            render_specific_fn=specific_fn,
+            render_ordering_fn=ordering_fn,
+        )
+        # X-axis settings should produce show_x_grid and xaxis_tickangle
+        assert "show_x_grid" in result
+        assert "xaxis_tickangle" in result
+
+    @patch("src.web.components.plotting.settings.axes_settings.st")
     def test_y_left_renders_y_settings(self, mock_st: MagicMock) -> None:
         """Y-Left sub-pill renders Y-axis settings with empty prefix."""
-        plot = self._make_plot()
+        comp = self._make_component()
         mock_st.pills.return_value = "y_left"
-        plot._section_axes({}, None)
-        plot._render_y_axis_settings.assert_called_once()
-        call_kwargs = plot._render_y_axis_settings.call_args[1]
-        assert call_kwargs.get("prefix") == ""
+        mock_st.checkbox.return_value = True
+        mock_st.slider.return_value = 0
+        mock_st.number_input.return_value = 0
 
-    @patch("src.web.pages.ui.plotting.base_plot.st")
+        with patch.object(
+            comp, "_render_y_axis_settings", wraps=comp._render_y_axis_settings
+        ) as spy:
+            comp.render({}, data=None)
+            spy.assert_called_once()
+            call_kwargs = spy.call_args[1]
+            assert call_kwargs.get("prefix") == ""
+
+    @patch("src.web.components.plotting.settings.axes_settings.st")
     def test_y_right_renders_y2_settings(self, mock_st: MagicMock) -> None:
         """Y-Right sub-pill renders Y-axis settings with 'y2' prefix."""
-        plot = self._make_plot()
+        comp = self._make_component()
         mock_st.pills.return_value = "y_right"
-        plot._section_axes({}, None)
-        plot._render_y_axis_settings.assert_called_once()
-        call_kwargs = plot._render_y_axis_settings.call_args[1]
-        assert call_kwargs.get("prefix") == "y2"
+        mock_st.checkbox.return_value = True
+        mock_st.slider.return_value = 0
+        mock_st.number_input.return_value = 0
+
+        with patch.object(
+            comp, "_render_y_axis_settings", wraps=comp._render_y_axis_settings
+        ) as spy:
+            comp.render({}, data=None, has_dual_axis=True)
+            spy.assert_called_once()
+            call_kwargs = spy.call_args[1]
+            assert call_kwargs.get("prefix") == "y2"
 
 
 class TestPresetPills:

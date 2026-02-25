@@ -54,6 +54,7 @@ class ShaperFactory:
         "mean": "Mean Calculator",
         "normalize": "Normalize",
         "conditionSelector": "Filter",
+        "itemSelector": "Item Selector",
         "splitApply": "Split-Apply (Per-Axis)",
         "transformer": "Transformer",
     }

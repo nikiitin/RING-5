@@ -19,6 +19,10 @@ def mock_streamlit() -> Generator[None, None, None]:
         patch("src.web.pages.ui.plotting.base_plot.st", mock_st_plot),
         patch("src.web.pages.ui.plotting.styles.base_ui.st", mock_st_plot),
         patch("src.web.pages.ui.plotting.styles.manager.StyleUIFactory"),
+        patch("src.web.components.common.reorderable_list.st", mock_st_plot),
+        patch("src.web.components.plotting.settings.shapes_settings.st", mock_st_plot),
+        patch("src.web.components.plotting.settings.reference_line_settings.st", mock_st_plot),
+        patch("src.web.components.plotting.settings.ordering_settings.st", mock_st_plot),
     ):  # Mock factory to avoid side effects if needed
 
         # Setup common mock behaviors

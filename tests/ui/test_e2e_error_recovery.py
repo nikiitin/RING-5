@@ -221,4 +221,3 @@ class TestNavigationEdgeCases:
 
         navigate_to(at, "Data Source")
         assert not at.exception
-

@@ -27,7 +27,7 @@ def sample_data() -> DataFrame:
 def mock_streamlit() -> Generator[None, None, None]:
     with (
         patch("src.web.pages.ui.plotting.types.grouped_bar_plot.st") as mock_st,
-        patch("src.web.pages.ui.components.plot_config_components.st", mock_st),
+        patch("src.web.components.plotting.config.plot_config_components.st", mock_st),
     ):
         # Mock columns
         mock_st.columns.side_effect = lambda n: (

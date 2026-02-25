@@ -24,7 +24,7 @@ class TraceBuildResult:
 
     Attributes:
         traces: Engine-agnostic trace specifications.
-        annotations: Text annotations (group labels, boxed legends, etc.).
+        annotations: Text annotations (group labels, tertiary legends, etc.).
         layout_annotations: Raw annotation dicts passed straight to layout.
         shapes: Plotly-format shape dicts (separators, shading rectangles).
         barmode: Bar grouping mode (``"group"``, ``"stack"``, etc.).

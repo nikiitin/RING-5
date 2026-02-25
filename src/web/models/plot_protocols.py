@@ -63,7 +63,7 @@ class ConfigRenderer(Protocol):
     ``render_display_options``, ``render_theme_options``,
     ``render_settings_section``).
 
-    Used by ``ConfigPresenter`` to delegate type-specific widget rendering
+    Used by render_controller to delegate type-specific widget rendering
     without importing the concrete ``BasePlot`` class.
     """
 

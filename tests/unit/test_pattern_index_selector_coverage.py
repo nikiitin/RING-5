@@ -1,6 +1,6 @@
 """Tests for PatternIndexSelector — pure logic methods (no Streamlit)."""
 
-from src.web.pages.ui.components.pattern_index_selector import PatternIndexSelector
+from src.web.components.data_source.pattern_index_selector import PatternIndexSelector
 
 
 class TestIsPatternVariable:

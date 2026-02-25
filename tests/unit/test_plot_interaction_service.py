@@ -5,7 +5,7 @@ Extracted from BasePlot.update_from_relayout (93 line pure computation)
 and render_reorderable_list sync logic to Layer B.
 """
 
-from src.core.services.plot_interaction_service import (
+from src.core.services.visualization.plot_interaction import (
     resolve_item_order,
     try_float,
     try_float_edit,

@@ -68,6 +68,24 @@ Key knowledge:
 
 ---
 
+### `refactoring-large-codebase`
+
+**Activates when**: Decomposing God classes, extracting methods to standalone components, reorganizing directories, or performing multi-phase refactoring
+**Contains**: Complete refactoring methodology with mock path management
+**Format**: [SKILL.md](refactoring-large-codebase/SKILL.md)
+
+Key knowledge:
+
+- Method extraction to standalone component functions
+- Thin delegate pattern (lazy imports for backward compat)
+- Mock path update patterns (`@patch` vs `@patch.object`)
+- Bulk directory reorganization with sed
+- Phase skip ROI assessment
+- Dead code identification and verification
+- Continuous test verification
+
+---
+
 ## Skill Structure
 
 Each skill follows the [Agent Skills standard](https://agentskills.io/) with:

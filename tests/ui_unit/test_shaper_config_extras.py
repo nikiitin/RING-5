@@ -13,9 +13,9 @@ from src.web.pages.ui.shaper_config import configure_shaper
 def mock_streamlit() -> Generator[None, None, None]:
     with (
         patch("src.web.pages.ui.shaper_config.st") as mock_st,
-        patch("src.web.pages.ui.components.shapers.normalize_config.st", mock_st),
-        patch("src.web.pages.ui.components.shapers.mean_config.st", mock_st),
-        patch("src.web.pages.ui.components.shapers.selector_transformer_configs.st", mock_st),
+        patch("src.web.components.shapers.normalize_config.st", mock_st),
+        patch("src.web.components.shapers.mean_config.st", mock_st),
+        patch("src.web.components.shapers.selector_transformer_configs.st", mock_st),
     ):
 
         # Mock columns

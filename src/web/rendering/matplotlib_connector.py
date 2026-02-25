@@ -288,20 +288,28 @@ class FigureSpecToMatplotlib:
         x_axis = spec.axes.x
         y_axis = spec.axes.y
 
-        # X grid
-        ax.xaxis.grid(
-            x_axis.show_grid,
-            color=x_axis.grid_color,
-            linewidth=x_axis.grid_width,
-            linestyle=FigureSpecToMatplotlib._map_dash_style(x_axis.tick_dash),
-        )
+        # X grid — only pass line properties when enabling, otherwise
+        # matplotlib overrides the False flag and shows the grid anyway.
+        if x_axis.show_grid:
+            ax.xaxis.grid(
+                True,
+                color=x_axis.grid_color,
+                linewidth=x_axis.grid_width,
+                linestyle=FigureSpecToMatplotlib._map_dash_style(x_axis.tick_dash),
+            )
+        else:
+            ax.xaxis.grid(False)
+
         # Y grid
-        ax.yaxis.grid(
-            y_axis.show_grid,
-            color=y_axis.grid_color,
-            linewidth=y_axis.grid_width,
-            linestyle=FigureSpecToMatplotlib._map_dash_style(y_axis.tick_dash),
-        )
+        if y_axis.show_grid:
+            ax.yaxis.grid(
+                True,
+                color=y_axis.grid_color,
+                linewidth=y_axis.grid_width,
+                linestyle=FigureSpecToMatplotlib._map_dash_style(y_axis.tick_dash),
+            )
+        else:
+            ax.yaxis.grid(False)
 
     @staticmethod
     def _apply_legends(spec: FigureConfig, ax: Any) -> None:
@@ -325,6 +333,16 @@ class FigureSpecToMatplotlib:
                 "borderpad": spacing.borderpad,
                 "borderaxespad": spacing.borderaxespad,
             }
+
+            # Font family — set via prop dict so each legend can
+            # independently inherit or override the global family.
+            if legend.font_family:
+                from matplotlib.font_manager import FontProperties  # type: ignore[import-untyped]
+
+                kwargs["prop"] = FontProperties(
+                    family=legend.font_family,
+                    size=legend.font_size,
+                )
 
             if legend.custom_position and legend.position_x >= 0:
                 kwargs["loc"] = "upper left"
@@ -356,7 +374,7 @@ class FigureSpecToMatplotlib:
                             for text in leg.get_texts():
                                 text.set_fontweight("bold")
                         break
-            elif legend.role == "boxed":
+            elif legend.role == "tertiary":
                 # Boxed legend — rendered via _apply_annotations from
                 # enriched FigureConfig annotations.  If the annotations
                 # pipeline already placed the content, we skip creating

@@ -31,43 +31,40 @@ def _make_col_mock() -> MagicMock:
 class TestBarPlotRenderConfigUI:
     """Cover BarPlot.render_config_ui branches."""
 
-    @patch("src.web.pages.ui.plotting.types.bar_plot.st")
-    def test_config_no_saved_color(self, mock_st: MagicMock, sample_df: pd.DataFrame) -> None:
+    @patch("src.web.components.plotting.config.bar_config.render_common_with_color")
+    def test_config_no_saved_color(self, mock_render: MagicMock, sample_df: pd.DataFrame) -> None:
         from src.web.pages.ui.plotting.types.bar_plot import BarPlot
 
+        mock_render.return_value = {
+            "categorical_cols": ["benchmark", "config"],
+            "numeric_cols": ["cycles", "ipc", "ipc.sd"],
+            "x": "benchmark",
+            "y": "cycles",
+            "title": "Test",
+            "xlabel": "X",
+            "ylabel": "Y",
+            "color": None,
+        }
         plot = BarPlot(1, "test")
-        plot.render_common_config = MagicMock(
-            return_value={
-                "categorical_cols": ["benchmark", "config"],
-                "x": "benchmark",
-                "y": "cycles",
-                "title": "Test",
-                "xlabel": "X",
-                "ylabel": "Y",
-            }
-        )
-        mock_st.selectbox.return_value = None
-
         result = plot.render_config_ui(sample_df, {})
         assert result["color"] is None
+        mock_render.assert_called_once()
 
-    @patch("src.web.pages.ui.plotting.types.bar_plot.st")
-    def test_config_with_saved_color(self, mock_st: MagicMock, sample_df: pd.DataFrame) -> None:
+    @patch("src.web.components.plotting.config.bar_config.render_common_with_color")
+    def test_config_with_saved_color(self, mock_render: MagicMock, sample_df: pd.DataFrame) -> None:
         from src.web.pages.ui.plotting.types.bar_plot import BarPlot
 
+        mock_render.return_value = {
+            "categorical_cols": ["benchmark", "config"],
+            "numeric_cols": ["cycles", "ipc", "ipc.sd"],
+            "x": "benchmark",
+            "y": "cycles",
+            "title": "Test",
+            "xlabel": "X",
+            "ylabel": "Y",
+            "color": "config",
+        }
         plot = BarPlot(1, "test")
-        plot.render_common_config = MagicMock(
-            return_value={
-                "categorical_cols": ["benchmark", "config"],
-                "x": "benchmark",
-                "y": "cycles",
-                "title": "Test",
-                "xlabel": "X",
-                "ylabel": "Y",
-            }
-        )
-        mock_st.selectbox.return_value = "config"
-
         result = plot.render_config_ui(sample_df, {"color": "config"})
         assert result["color"] == "config"
 
@@ -138,43 +135,40 @@ class TestBarPlotCreateFigure:
 class TestLinePlotRenderConfigUI:
     """Cover LinePlot.render_config_ui branches."""
 
-    @patch("src.web.pages.ui.plotting.types.line_plot.st")
-    def test_config_no_saved_color(self, mock_st: MagicMock, sample_df: pd.DataFrame) -> None:
+    @patch("src.web.components.plotting.config.line_config.render_common_with_color")
+    def test_config_no_saved_color(self, mock_render: MagicMock, sample_df: pd.DataFrame) -> None:
         from src.web.pages.ui.plotting.types.line_plot import LinePlot
 
+        mock_render.return_value = {
+            "categorical_cols": ["benchmark", "config"],
+            "numeric_cols": ["cycles", "ipc", "ipc.sd"],
+            "x": "benchmark",
+            "y": "cycles",
+            "title": "Test",
+            "xlabel": "X",
+            "ylabel": "Y",
+            "color": None,
+        }
         plot = LinePlot(1, "test")
-        plot.render_common_config = MagicMock(
-            return_value={
-                "categorical_cols": ["benchmark", "config"],
-                "x": "benchmark",
-                "y": "cycles",
-                "title": "Test",
-                "xlabel": "X",
-                "ylabel": "Y",
-            }
-        )
-        mock_st.selectbox.return_value = None
-
         result = plot.render_config_ui(sample_df, {})
         assert result["color"] is None
+        mock_render.assert_called_once()
 
-    @patch("src.web.pages.ui.plotting.types.line_plot.st")
-    def test_config_with_saved_color(self, mock_st: MagicMock, sample_df: pd.DataFrame) -> None:
+    @patch("src.web.components.plotting.config.line_config.render_common_with_color")
+    def test_config_with_saved_color(self, mock_render: MagicMock, sample_df: pd.DataFrame) -> None:
         from src.web.pages.ui.plotting.types.line_plot import LinePlot
 
+        mock_render.return_value = {
+            "categorical_cols": ["benchmark", "config"],
+            "numeric_cols": ["cycles", "ipc", "ipc.sd"],
+            "x": "benchmark",
+            "y": "cycles",
+            "title": "Test",
+            "xlabel": "X",
+            "ylabel": "Y",
+            "color": "config",
+        }
         plot = LinePlot(1, "test")
-        plot.render_common_config = MagicMock(
-            return_value={
-                "categorical_cols": ["benchmark", "config"],
-                "x": "benchmark",
-                "y": "cycles",
-                "title": "Test",
-                "xlabel": "X",
-                "ylabel": "Y",
-            }
-        )
-        mock_st.selectbox.return_value = "config"
-
         result = plot.render_config_ui(sample_df, {"color": "config"})
         assert result["color"] == "config"
 
@@ -249,43 +243,40 @@ class TestLinePlotAdvancedOptions:
 class TestScatterPlotRenderConfigUI:
     """Cover ScatterPlot.render_config_ui branches."""
 
-    @patch("src.web.pages.ui.plotting.types.scatter_plot.st")
-    def test_config_no_color(self, mock_st: MagicMock, sample_df: pd.DataFrame) -> None:
+    @patch("src.web.components.plotting.config.scatter_config.render_common_with_color")
+    def test_config_no_color(self, mock_render: MagicMock, sample_df: pd.DataFrame) -> None:
         from src.web.pages.ui.plotting.types.scatter_plot import ScatterPlot
 
+        mock_render.return_value = {
+            "categorical_cols": ["benchmark"],
+            "numeric_cols": ["cycles", "ipc", "ipc.sd"],
+            "x": "benchmark",
+            "y": "cycles",
+            "title": "Test",
+            "xlabel": "X",
+            "ylabel": "Y",
+            "color": None,
+        }
         plot = ScatterPlot(1, "test")
-        plot.render_common_config = MagicMock(
-            return_value={
-                "categorical_cols": ["benchmark"],
-                "x": "benchmark",
-                "y": "cycles",
-                "title": "Test",
-                "xlabel": "X",
-                "ylabel": "Y",
-            }
-        )
-        mock_st.selectbox.return_value = None
-
         result = plot.render_config_ui(sample_df, {})
         assert result["color"] is None
+        mock_render.assert_called_once()
 
-    @patch("src.web.pages.ui.plotting.types.scatter_plot.st")
-    def test_config_with_color(self, mock_st: MagicMock, sample_df: pd.DataFrame) -> None:
+    @patch("src.web.components.plotting.config.scatter_config.render_common_with_color")
+    def test_config_with_color(self, mock_render: MagicMock, sample_df: pd.DataFrame) -> None:
         from src.web.pages.ui.plotting.types.scatter_plot import ScatterPlot
 
+        mock_render.return_value = {
+            "categorical_cols": ["benchmark"],
+            "numeric_cols": ["cycles", "ipc", "ipc.sd"],
+            "x": "benchmark",
+            "y": "cycles",
+            "title": "Test",
+            "xlabel": "X",
+            "ylabel": "Y",
+            "color": "benchmark",
+        }
         plot = ScatterPlot(1, "test")
-        plot.render_common_config = MagicMock(
-            return_value={
-                "categorical_cols": ["benchmark"],
-                "x": "benchmark",
-                "y": "cycles",
-                "title": "Test",
-                "xlabel": "X",
-                "ylabel": "Y",
-            }
-        )
-        mock_st.selectbox.return_value = "benchmark"
-
         result = plot.render_config_ui(sample_df, {"color": "benchmark"})
         assert result["color"] == "benchmark"
 

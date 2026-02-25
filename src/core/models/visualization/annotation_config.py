@@ -1,10 +1,10 @@
 """
-Annotation configurations — text labels, boxed annotations, reference lines.
+Annotation configurations — text labels, tertiary annotations, reference lines.
 
 Covers:
   - Bar value labels (data annotations)
   - Grouping labels (below x-axis)
-  - Boxed/numbered annotations (legend3 items)
+  - Tertiary/numbered annotations (legend3 items)
   - Free-form text annotations
   - Reference lines (horizontal baselines, thresholds)
 """
@@ -23,7 +23,7 @@ class AnnotationConfig:
       - ``"text"``      — free-form text at (x, y)
       - ``"bar_value"`` — data label on a bar (auto-positioned)
       - ``"group_label"``— category grouping label below x-axis
-      - ``"boxed"``     — monospace boxed annotation (legend3 item)
+      - ``"boxed"``     — monospace box-styled annotation (tertiary legend item)
 
     Coordinates:
       - ``xref`` / ``yref`` control the coordinate system:

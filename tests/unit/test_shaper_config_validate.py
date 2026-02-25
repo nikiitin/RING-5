@@ -13,7 +13,8 @@ import pandas as pd
 import pytest
 
 from src.core.models.data_models import ShaperStepConfig
-from src.web.pages.ui.shaper_config import apply_shapers, validate_shaper_config
+from src.core.services.shapers.validation import validate_shaper_config
+from src.web.pages.ui.shaper_config import apply_shapers
 
 
 class TestValidateShaperConfig:

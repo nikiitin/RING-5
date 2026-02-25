@@ -15,7 +15,7 @@ from typing import Any
 
 import pytest
 
-from src.core.benchmark import (
+from tests.helpers.benchmark import (
     BenchmarkResult,
     BenchmarkSuite,
     benchmark_decorator,
@@ -263,7 +263,7 @@ class TestBenchmarkSuitePrintSummary:
         suite = BenchmarkSuite("Empty")
 
         # Act
-        with caplog.at_level(logging.INFO, logger="src.core.benchmark"):
+        with caplog.at_level(logging.INFO, logger="tests.helpers.benchmark"):
             suite.print_summary()
 
         # Assert
@@ -276,7 +276,7 @@ class TestBenchmarkSuitePrintSummary:
         suite = sample_suite
 
         # Act
-        with caplog.at_level(logging.INFO, logger="src.core.benchmark"):
+        with caplog.at_level(logging.INFO, logger="tests.helpers.benchmark"):
             suite.print_summary()
 
         # Assert
@@ -299,7 +299,7 @@ class TestBenchmarkDecorator:
             return x * 2
 
         # Act
-        with caplog.at_level(logging.INFO, logger="src.core.benchmark"):
+        with caplog.at_level(logging.INFO, logger="tests.helpers.benchmark"):
             result = sample_func(5)
 
         # Assert
@@ -315,7 +315,7 @@ class TestBenchmarkDecorator:
             return 42
 
         # Act
-        with caplog.at_level(logging.INFO, logger="src.core.benchmark"):
+        with caplog.at_level(logging.INFO, logger="tests.helpers.benchmark"):
             result = sample_func()
 
         # Assert
@@ -340,7 +340,7 @@ class TestBenchmarkDecorator:
             return a + b + c
 
         # Act
-        with caplog.at_level(logging.INFO, logger="src.core.benchmark"):
+        with caplog.at_level(logging.INFO, logger="tests.helpers.benchmark"):
             result = complex_func(1, 2, c=4)
 
         # Assert
@@ -354,7 +354,7 @@ class TestTimer:
     def test_timer_prints_duration(self, caplog: Any) -> None:
 
         # Arrange & Act
-        with caplog.at_level(logging.INFO, logger="src.core.benchmark"):
+        with caplog.at_level(logging.INFO, logger="tests.helpers.benchmark"):
             with timer("test operation"):
                 time.sleep(0.01)  # 10ms
 
@@ -365,7 +365,7 @@ class TestTimer:
     def test_timer_with_exception_still_prints(self, caplog: Any) -> None:
 
         # Arrange & Act & Assert
-        with caplog.at_level(logging.INFO, logger="src.core.benchmark"):
+        with caplog.at_level(logging.INFO, logger="tests.helpers.benchmark"):
             with pytest.raises(RuntimeError):
                 with timer("failing operation"):
                     raise RuntimeError("Error")

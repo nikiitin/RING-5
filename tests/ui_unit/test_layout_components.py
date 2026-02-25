@@ -4,13 +4,13 @@ from unittest.mock import patch
 
 import pytest
 
-from src.web.pages.ui.components.layout_components import LayoutComponents
+from src.web.components.common.layout_components import LayoutComponents
 from tests.conftest import columns_side_effect
 
 
 @pytest.fixture
 def mock_streamlit() -> Generator[None, None, None]:
-    with patch("src.web.pages.ui.components.layout_components.st") as mock_st:
+    with patch("src.web.components.common.layout_components.st") as mock_st:
         mock_st.columns.side_effect = columns_side_effect
         yield mock_st
 

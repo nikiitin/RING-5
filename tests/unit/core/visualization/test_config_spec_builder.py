@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Any, Dict
 
 from src.core.models.visualization.figure_config import FigureConfig
-from src.core.models.visualization.resolvers import resolve_config
+from src.core.services.visualization.config_resolver import resolve_config
 from src.web.rendering.config_builder import ConfigSpecBuilder
 
 
@@ -180,20 +180,21 @@ class TestConfigSpecBarSpecific:
 
 
 class TestConfigSpecMultiLegend:
-    """Multi-column legend configuration."""
+    """Multi-legend configuration via legend2_/legend3_ prefixes."""
 
-    def test_no_secondary_legends_when_ncols_0(self) -> None:
-        spec = ConfigSpecBuilder.from_config(_sample_config(legend_ncols=0))
+    def test_no_secondary_legends_by_default(self) -> None:
+        spec = ConfigSpecBuilder.from_config(_sample_config())
         assert len(spec.legends) == 1
 
-    def test_secondary_legends_when_ncols_3(self) -> None:
-        spec = ConfigSpecBuilder.from_config(_sample_config(legend_ncols=3))
-        assert len(spec.legends) == 3
+    def test_secondary_legend_from_legend2_keys(self) -> None:
+        spec = ConfigSpecBuilder.from_config(
+            _sample_config(legend2_font_size=12, legend2_x=0.5, legend2_orientation="h")
+        )
+        assert len(spec.legends) == 2
         assert spec.legends[1].role == "secondary"
-        assert spec.legends[2].role == "secondary"
 
     def test_secondary_legend_inherits_font(self) -> None:
-        spec = ConfigSpecBuilder.from_config(_sample_config(legend_ncols=2, legend_font_size=15))
+        spec = ConfigSpecBuilder.from_config(_sample_config(legend2_font_size=15, legend2_x=0.0))
         assert spec.legends[1].font_size == 15
 
 

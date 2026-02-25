@@ -7,7 +7,7 @@ import pytest
 
 from src.core.models.data_models import PipelineStep
 from src.core.models.visualization.trace_build_result import TraceBuildResult
-from src.web.pages.ui.components.plot_manager_components import PlotManagerComponents
+from src.web.components.plotting.plot_manager_components import PlotManagerComponents
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from tests.conftest import columns_side_effect
 
@@ -30,7 +30,7 @@ class MockPlot(BasePlot):
 
 @pytest.fixture
 def mock_streamlit() -> Generator[None, None, None]:
-    with patch("src.web.pages.ui.components.plot_manager_components.st") as mock_st:
+    with patch("src.web.components.plotting.plot_manager_components.st") as mock_st:
         mock_st.session_state = {}
 
         mock_st.columns.side_effect = columns_side_effect
@@ -48,13 +48,13 @@ def mock_api() -> Any:
 
 @pytest.fixture
 def mock_plot_service() -> Generator[None, None, None]:
-    with patch("src.web.pages.ui.components.plot_manager_components.PlotService") as mock_ps:
+    with patch("src.web.components.plotting.plot_manager_components.PlotService") as mock_ps:
         yield mock_ps
 
 
 @pytest.fixture
 def mock_plot_factory() -> Generator[None, None, None]:
-    with patch("src.web.pages.ui.components.plot_manager_components.PlotFactory") as mock_pf:
+    with patch("src.web.components.plotting.plot_manager_components.PlotFactory") as mock_pf:
         yield mock_pf
 
 
@@ -151,7 +151,7 @@ def test_render_pipeline_editor_finalize(mock_streamlit: Any, mock_api: Any) -> 
 
     mock_streamlit.button.side_effect = button_side_effect
 
-    with patch("src.web.pages.ui.components.plot_manager_components.apply_shapers") as mock_apply:
+    with patch("src.web.components.plotting.plot_manager_components.apply_shapers") as mock_apply:
         mock_apply.return_value = pd.DataFrame({"A": [1, 2]})
 
         PlotManagerComponents.render_pipeline_editor(mock_api, plot)

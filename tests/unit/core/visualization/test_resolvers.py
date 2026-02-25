@@ -3,7 +3,7 @@ Tests for the sentinel resolver — resolves -1 values via inheritance.
 
 Covers:
   - Typography inheritance chain (y2label→ylabel, yticks→ticks, legend3→legend)
-  - Legend spacing inheritance (secondary/boxed inherit from primary)
+  - Legend spacing inheritance (secondary/tertiary inherit from primary)
   - Axis inheritance (y2 inherits from y)
   - Immutability (input not modified)
   - Edge cases (empty legends, no y2 axis)
@@ -15,7 +15,7 @@ from src.core.models.visualization.legend_config import (
     LegendConfig,
     LegendSpacingConfig,
 )
-from src.core.models.visualization.resolvers import (
+from src.core.services.visualization.config_resolver import (
     _resolve_float,
     _resolve_int,
     resolve_config,
@@ -192,17 +192,17 @@ class TestLegendResolution:
         assert resolved.legends[1].spacing.columnspacing == 2.0
         assert resolved.legends[1].spacing.borderpad == 1.0
 
-    def test_boxed_legend_inherits(self) -> None:
-        """Boxed (legend3) number_fontsize/text_fontsize inherit font_size."""
+    def test_tertiary_legend_inherits(self) -> None:
+        """Tertiary (legend3) number_fontsize/text_fontsize inherit font_size."""
         primary = LegendConfig(role="primary", font_size=10)
-        boxed = LegendConfig(
-            role="boxed",
+        tertiary = LegendConfig(
+            role="tertiary",
             font_size=-1,  # inherits 10 from primary
             number_fontsize=-1,  # inherits own font_size (resolved to 10)
             text_fontsize=-1,
         )
 
-        spec = FigureConfig(legends=[primary, boxed])
+        spec = FigureConfig(legends=[primary, tertiary])
         resolved = resolve_config(spec)
 
         assert resolved.legends[1].font_size == 10
@@ -235,12 +235,12 @@ class TestLegendResolution:
         assert resolved.legends[0].title_font_size == 9
 
     def test_three_legends(self) -> None:
-        """Three legends: secondary and boxed both inherit from primary."""
+        """Three legends: secondary and tertiary both inherit from primary."""
         primary = LegendConfig(role="primary", font_size=10)
         secondary = LegendConfig(role="secondary", font_size=-1)
-        boxed = LegendConfig(role="boxed", font_size=-1)
+        tertiary = LegendConfig(role="tertiary", font_size=-1)
 
-        spec = FigureConfig(legends=[primary, secondary, boxed])
+        spec = FigureConfig(legends=[primary, secondary, tertiary])
         resolved = resolve_config(spec)
 
         assert resolved.legends[1].font_size == 10

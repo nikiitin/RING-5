@@ -17,6 +17,23 @@ Categories:
 
 from typing import Required, TypedDict
 
+# Re-export shaper models from their canonical module so existing imports
+# like ``from src.core.models.data_models import ShaperStepConfig`` keep
+# working. New code should import directly from ``shaper_models``.
+from src.core.models.shaper_models import (  # noqa: F401
+    BaseShaperConfig,
+    ColumnSelectorConfig,
+    ConditionSelectorConfig,
+    ItemSelectorConfig,
+    MeanShaperConfig,
+    NormalizeShaperConfig,
+    ShaperStepConfig,
+    SortShaperConfig,
+    SplitApplyGroupConfig,
+    SplitApplyShaperConfig,
+    TransformerShaperConfig,
+)
+
 # ──────────────────────────────────────────────────────────────────────
 # CSV Pool
 # ──────────────────────────────────────────────────────────────────────
@@ -91,71 +108,6 @@ class SavedConfigData(TypedDict, total=False):
 # ──────────────────────────────────────────────────────────────────────
 # Pipeline Persistence
 # ──────────────────────────────────────────────────────────────────────
-
-
-class ShaperStepConfig(TypedDict, total=False):
-    """Configuration for a single shaper step in a pipeline.
-
-    The ``type`` field identifies the shaper (factory registry key).
-    All other keys are shaper-specific parameters passed directly
-    to the shaper constructor.
-
-    This is the **flat** form used in pipeline JSON and config files,
-    where ``type`` coexists with the shaper's own parameters at the
-    same dict level.
-    """
-
-    # Shaper identification
-    type: str
-    id: int
-
-    # ── Mean params ──
-    meanVars: list[str]
-    meanAlgorithm: str
-    groupingColumns: list[str]
-    groupingColumn: str
-    replacingColumn: str
-
-    # ── Normalize params ──
-    normalizeVars: list[str]
-    normalizerColumn: str
-    normalizerValue: str
-    groupBy: list[str]
-    normalizerVars: list[str]
-    normalizeSd: bool
-
-    # ── Sort params ──
-    order_dict: dict[str, list[str]]
-
-    # ── SplitApply params ──
-    joinColumns: list[str]
-    groups: list["SplitApplyGroupConfig"]
-
-    # ── Transformer params ──
-    column: str
-    target_type: str
-    order: list[str] | None
-
-    # ── ColumnSelector params ──
-    columns: list[str]
-
-    # ── ConditionSelector params ──
-    mode: str
-    threshold: float
-    range: list[float]
-    values: list[str]
-    condition: str
-    value: str | float | int
-
-    # ── ItemSelector params ──
-    strings: list[str]
-
-
-class SplitApplyGroupConfig(TypedDict, total=False):
-    """Configuration for a single group within a SplitApply shaper."""
-
-    columns: list[str]
-    pipeline: list[ShaperStepConfig]
 
 
 class PipelineData(TypedDict, total=False):

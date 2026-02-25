@@ -1,4 +1,4 @@
-"""Tests for DualAxisBarDotPlot render_config_ui — branch coverage."""
+"""Tests for DualAxisBarDotPlot and GroupedBarPlot render_config_ui — branch coverage."""
 
 from typing import Any, List
 from unittest.mock import MagicMock, patch
@@ -6,10 +6,8 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-_TITLE_LABELS_PATCH = (
-    "src.web.pages.ui.components.plot_config_components"
-    ".PlotConfigComponents.render_title_labels_section"
-)
+_DUAL_CFG = "src.web.components.plotting.config.dual_axis_config"
+_GROUPED_CFG = "src.web.components.plotting.config.grouped_bar_config"
 
 
 def _make_col_mock() -> MagicMock:
@@ -39,28 +37,37 @@ def sample_df() -> pd.DataFrame:
 class TestDualAxisRenderConfigUI:
     """Cover DualAxisBarDotPlot.render_config_ui branches."""
 
-    @patch(_TITLE_LABELS_PATCH)
-    @patch("src.web.pages.ui.plotting.types.dual_axis_bar_dot_plot.st")
+    @patch(f"{_DUAL_CFG}.PlotConfigComponents")
+    @patch(f"{_DUAL_CFG}.render_color_selector")
+    @patch(f"{_DUAL_CFG}.detect_column_types")
+    @patch(f"{_DUAL_CFG}.st")
     def test_no_saved_config(
-        self, mock_st: MagicMock, mock_labels: MagicMock, sample_df: pd.DataFrame
+        self,
+        mock_st: MagicMock,
+        mock_detect: MagicMock,
+        mock_color_sel: MagicMock,
+        mock_pcc: MagicMock,
+        sample_df: pd.DataFrame,
     ) -> None:
         from src.web.pages.ui.plotting.types.dual_axis_bar_dot_plot import (
             DualAxisBarDotPlot,
         )
 
+        mock_detect.return_value = (["cycles", "ipc"], ["benchmark", "config"])
+        mock_color_sel.return_value = None
         mock_st.columns.side_effect = _columns_side_effect
+        # selectbox: x, y_bar, y_dot, dot_symbol
         mock_st.selectbox.side_effect = [
-            "benchmark",  # x
-            None,  # color
-            "cycles",  # y_bar
-            "ipc",  # y_dot
-            "circle",  # dot_symbol
+            "benchmark",
+            "cycles",
+            "ipc",
+            "circle",
         ]
         mock_st.text_input.return_value = "IPC"
         mock_st.checkbox.return_value = True  # show_lines
         mock_st.number_input.side_effect = [10, 2]  # dot_size, line_width
         mock_st.color_picker.return_value = "#EF553B"
-        mock_labels.return_value = {
+        mock_pcc.render_title_labels_section.return_value = {
             "title": "Test",
             "xlabel": "benchmark",
             "ylabel": "cycles",
@@ -74,27 +81,36 @@ class TestDualAxisRenderConfigUI:
         assert result["y_bar"] == "cycles"
         assert result["y_dot"] == "ipc"
 
-    @patch(_TITLE_LABELS_PATCH)
-    @patch("src.web.pages.ui.plotting.types.dual_axis_bar_dot_plot.st")
+    @patch(f"{_DUAL_CFG}.PlotConfigComponents")
+    @patch(f"{_DUAL_CFG}.render_color_selector")
+    @patch(f"{_DUAL_CFG}.detect_column_types")
+    @patch(f"{_DUAL_CFG}.st")
     def test_with_saved_config(
-        self, mock_st: MagicMock, mock_labels: MagicMock, sample_df: pd.DataFrame
+        self,
+        mock_st: MagicMock,
+        mock_detect: MagicMock,
+        mock_color_sel: MagicMock,
+        mock_pcc: MagicMock,
+        sample_df: pd.DataFrame,
     ) -> None:
         from src.web.pages.ui.plotting.types.dual_axis_bar_dot_plot import (
             DualAxisBarDotPlot,
         )
 
+        mock_detect.return_value = (["cycles", "ipc"], ["benchmark", "config"])
+        mock_color_sel.return_value = "config"
         mock_st.columns.side_effect = _columns_side_effect
+        # selectbox: x, y_bar, y_dot, dot_symbol
         mock_st.selectbox.side_effect = [
-            "benchmark",  # x
-            "config",  # color (non-None)
-            "cycles",  # y_bar
-            "ipc",  # y_dot
-            "diamond",  # dot_symbol
+            "benchmark",
+            "cycles",
+            "ipc",
+            "diamond",
         ]
         mock_st.text_input.return_value = "IPC"
         mock_st.checkbox.return_value = False  # show_lines
         mock_st.number_input.side_effect = [12, 3]
-        mock_labels.return_value = {
+        mock_pcc.render_title_labels_section.return_value = {
             "title": "Saved",
             "xlabel": "benchmark",
             "ylabel": "cycles",
@@ -121,19 +137,27 @@ class TestDualAxisRenderConfigUI:
         assert result["color"] == "config"
         assert result["show_lines"] is False
 
-    @patch(_TITLE_LABELS_PATCH)
-    @patch("src.web.pages.ui.plotting.types.dual_axis_bar_dot_plot.st")
+    @patch(f"{_DUAL_CFG}.PlotConfigComponents")
+    @patch(f"{_DUAL_CFG}.render_color_selector")
+    @patch(f"{_DUAL_CFG}.detect_column_types")
+    @patch(f"{_DUAL_CFG}.st")
     def test_no_color_shows_dot_color_picker(
-        self, mock_st: MagicMock, mock_labels: MagicMock, sample_df: pd.DataFrame
+        self,
+        mock_st: MagicMock,
+        mock_detect: MagicMock,
+        mock_color_sel: MagicMock,
+        mock_pcc: MagicMock,
+        sample_df: pd.DataFrame,
     ) -> None:
         from src.web.pages.ui.plotting.types.dual_axis_bar_dot_plot import (
             DualAxisBarDotPlot,
         )
 
+        mock_detect.return_value = (["cycles", "ipc"], ["benchmark", "config"])
+        mock_color_sel.return_value = None
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.selectbox.side_effect = [
             "benchmark",
-            None,
             "cycles",
             "ipc",
             "circle",
@@ -142,7 +166,7 @@ class TestDualAxisRenderConfigUI:
         mock_st.checkbox.return_value = True
         mock_st.number_input.side_effect = [10, 2]
         mock_st.color_picker.return_value = "#FF0000"
-        mock_labels.return_value = {
+        mock_pcc.render_title_labels_section.return_value = {
             "title": "T",
             "xlabel": "X",
             "ylabel": "Y",
@@ -154,19 +178,27 @@ class TestDualAxisRenderConfigUI:
         assert result["dot_color"] == "#FF0000"
         mock_st.color_picker.assert_called()
 
-    @patch(_TITLE_LABELS_PATCH)
-    @patch("src.web.pages.ui.plotting.types.dual_axis_bar_dot_plot.st")
+    @patch(f"{_DUAL_CFG}.PlotConfigComponents")
+    @patch(f"{_DUAL_CFG}.render_color_selector")
+    @patch(f"{_DUAL_CFG}.detect_column_types")
+    @patch(f"{_DUAL_CFG}.st")
     def test_with_color_no_dot_color_picker(
-        self, mock_st: MagicMock, mock_labels: MagicMock, sample_df: pd.DataFrame
+        self,
+        mock_st: MagicMock,
+        mock_detect: MagicMock,
+        mock_color_sel: MagicMock,
+        mock_pcc: MagicMock,
+        sample_df: pd.DataFrame,
     ) -> None:
         from src.web.pages.ui.plotting.types.dual_axis_bar_dot_plot import (
             DualAxisBarDotPlot,
         )
 
+        mock_detect.return_value = (["cycles", "ipc"], ["benchmark", "config"])
+        mock_color_sel.return_value = "config"
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.selectbox.side_effect = [
             "benchmark",
-            "config",
             "cycles",
             "ipc",
             "square",
@@ -174,7 +206,7 @@ class TestDualAxisRenderConfigUI:
         mock_st.text_input.return_value = "IPC"
         mock_st.checkbox.return_value = True
         mock_st.number_input.side_effect = [10, 2]
-        mock_labels.return_value = {
+        mock_pcc.render_title_labels_section.return_value = {
             "title": "T",
             "xlabel": "X",
             "ylabel": "Y",
@@ -189,52 +221,62 @@ class TestDualAxisRenderConfigUI:
 class TestGroupedBarRenderConfigUI:
     """Cover GroupedBarPlot.render_config_ui branches."""
 
-    @patch("src.web.pages.ui.plotting.types.grouped_bar_plot.PlotConfigComponents")
-    @patch("src.web.pages.ui.plotting.types.grouped_bar_plot.st")
+    @patch(f"{_GROUPED_CFG}.PlotConfigComponents")
+    @patch(f"{_GROUPED_CFG}.detect_column_types")
+    @patch(f"{_GROUPED_CFG}.render_common_config")
+    @patch(f"{_GROUPED_CFG}.st")
     def test_no_saved_config(
-        self, mock_st: MagicMock, mock_pcc: MagicMock, sample_df: pd.DataFrame
+        self,
+        mock_st: MagicMock,
+        mock_common: MagicMock,
+        mock_detect: MagicMock,
+        mock_pcc: MagicMock,
+        sample_df: pd.DataFrame,
     ) -> None:
         from src.web.pages.ui.plotting.types.grouped_bar_plot import GroupedBarPlot
 
-        plot = GroupedBarPlot(1, "test")
-        plot.render_common_config = MagicMock(
-            return_value={
-                "categorical_cols": ["benchmark", "config"],
-                "x": "benchmark",
-                "y": "cycles",
-                "title": "Test",
-                "xlabel": "X",
-                "ylabel": "Y",
-            }
-        )
+        mock_common.return_value = {
+            "x": "benchmark",
+            "y": "cycles",
+            "title": "Test",
+            "xlabel": "X",
+            "ylabel": "Y",
+        }
+        mock_detect.return_value = (["cycles", "ipc"], ["benchmark", "config"])
         mock_st.selectbox.return_value = "config"
         mock_pcc.render_filter_multiselects.return_value = (["a", "b"], ["x", "y"])
 
+        plot = GroupedBarPlot(1, "test")
         result = plot.render_config_ui(sample_df, {})
         assert result["group"] == "config"
         assert result["_needs_advanced"] is True
 
-    @patch("src.web.pages.ui.plotting.types.grouped_bar_plot.PlotConfigComponents")
-    @patch("src.web.pages.ui.plotting.types.grouped_bar_plot.st")
+    @patch(f"{_GROUPED_CFG}.PlotConfigComponents")
+    @patch(f"{_GROUPED_CFG}.detect_column_types")
+    @patch(f"{_GROUPED_CFG}.render_common_config")
+    @patch(f"{_GROUPED_CFG}.st")
     def test_with_saved_group(
-        self, mock_st: MagicMock, mock_pcc: MagicMock, sample_df: pd.DataFrame
+        self,
+        mock_st: MagicMock,
+        mock_common: MagicMock,
+        mock_detect: MagicMock,
+        mock_pcc: MagicMock,
+        sample_df: pd.DataFrame,
     ) -> None:
         from src.web.pages.ui.plotting.types.grouped_bar_plot import GroupedBarPlot
 
-        plot = GroupedBarPlot(1, "test")
-        plot.render_common_config = MagicMock(
-            return_value={
-                "categorical_cols": ["benchmark", "config"],
-                "x": "benchmark",
-                "y": "cycles",
-                "title": "Test",
-                "xlabel": "X",
-                "ylabel": "Y",
-            }
-        )
+        mock_common.return_value = {
+            "x": "benchmark",
+            "y": "cycles",
+            "title": "Test",
+            "xlabel": "X",
+            "ylabel": "Y",
+        }
+        mock_detect.return_value = (["cycles", "ipc"], ["benchmark", "config"])
         mock_st.selectbox.return_value = "benchmark"
         mock_pcc.render_filter_multiselects.return_value = (["a"], ["x"])
 
+        plot = GroupedBarPlot(1, "test")
         result = plot.render_config_ui(sample_df, {"group": "benchmark"})
         assert result["group"] == "benchmark"
 

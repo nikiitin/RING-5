@@ -45,7 +45,7 @@ def _sample_data_4cols() -> pd.DataFrame:
 
 # ── Module path for patching ─────────────────────────────────────
 
-_MOD = "src.web.pages.ui.components.shapers.split_apply_config"
+_MOD = "src.web.components.shapers.split_apply_config"
 
 
 # ── TestSplitApplyConfigRender (2 groups, no sub-steps) ──────────
@@ -58,7 +58,7 @@ class TestSplitApplyConfigRender:
     @patch(f"{_MOD}.st")
     def test_render_basic_no_steps(self, mock_st: MagicMock, _mock_init: MagicMock) -> None:
         """render() with 0 steps returns joinColumns + 2 empty groups."""
-        from src.web.pages.ui.components.shapers.split_apply_config import (
+        from src.web.components.shapers.split_apply_config import (
             SplitApplyConfig,
         )
 
@@ -108,7 +108,7 @@ class TestSplitApplyConfigRender:
     @patch(f"{_MOD}.st")
     def test_render_restores_existing_join(self, mock_st: MagicMock, _mock_init: MagicMock) -> None:
         """render() passes existing joinColumns as defaults."""
-        from src.web.pages.ui.components.shapers.split_apply_config import (
+        from src.web.components.shapers.split_apply_config import (
             SplitApplyConfig,
         )
 
@@ -166,7 +166,7 @@ class TestSplitApplyConfigSubStepDelegation:
     @patch(f"{_MOD}.st")
     def test_mean_delegates_to_real_renderer(self, mock_st: MagicMock) -> None:
         """_render_sub_step chooses Mean and delegates to MeanConfig."""
-        from src.web.pages.ui.components.shapers.split_apply_config import (
+        from src.web.components.shapers.split_apply_config import (
             _SUB_SHAPER_DISPATCH,
             SplitApplyConfig,
         )
@@ -216,7 +216,7 @@ class TestSplitApplyConfigSubStepDelegation:
     @patch(f"{_MOD}.st")
     def test_normalize_delegates_to_real_renderer(self, mock_st: MagicMock) -> None:
         """_render_sub_step chooses Normalize and delegates."""
-        from src.web.pages.ui.components.shapers.split_apply_config import (
+        from src.web.components.shapers.split_apply_config import (
             _SUB_SHAPER_DISPATCH,
             SplitApplyConfig,
         )
@@ -260,7 +260,7 @@ class TestSplitApplyConfigSubStepDelegation:
     @patch(f"{_MOD}.st")
     def test_sort_delegates_to_real_renderer(self, mock_st: MagicMock) -> None:
         """_render_sub_step chooses Sort and delegates to SortConfig."""
-        from src.web.pages.ui.components.shapers.split_apply_config import (
+        from src.web.components.shapers.split_apply_config import (
             _SUB_SHAPER_DISPATCH,
             SplitApplyConfig,
         )
@@ -303,7 +303,7 @@ class TestSplitApplyConfigSubStepDelegation:
     @patch(f"{_MOD}.st")
     def test_filter_delegates_to_real_renderer(self, mock_st: MagicMock) -> None:
         """_render_sub_step chooses Filter and delegates."""
-        from src.web.pages.ui.components.shapers.split_apply_config import (
+        from src.web.components.shapers.split_apply_config import (
             _SUB_SHAPER_DISPATCH,
             SplitApplyConfig,
         )
@@ -357,7 +357,7 @@ class TestSplitApplyConfigWithStep:
     @patch(f"{_MOD}.st")
     def test_one_mean_step_in_group_a(self, mock_st: MagicMock, _mock_init: MagicMock) -> None:
         """A group with 1 Mean step returns proper config via delegation."""
-        from src.web.pages.ui.components.shapers.split_apply_config import (
+        from src.web.components.shapers.split_apply_config import (
             SplitApplyConfig,
         )
 
@@ -411,7 +411,7 @@ class TestSplitApplyConfigNGroups:
     @patch(f"{_MOD}.st")
     def test_three_groups_render(self, mock_st: MagicMock, _mock_init: MagicMock) -> None:
         """render() with 3 groups returns 3 group configs."""
-        from src.web.pages.ui.components.shapers.split_apply_config import (
+        from src.web.components.shapers.split_apply_config import (
             SplitApplyConfig,
         )
 
@@ -450,7 +450,7 @@ class TestSplitApplyConfigNGroups:
     @patch(f"{_MOD}.st")
     def test_four_groups_render(self, mock_st: MagicMock, _mock_init: MagicMock) -> None:
         """render() with 4 groups returns 4 group configs."""
-        from src.web.pages.ui.components.shapers.split_apply_config import (
+        from src.web.components.shapers.split_apply_config import (
             SplitApplyConfig,
         )
 
@@ -497,7 +497,7 @@ class TestSplitApplyConfigNGroups:
         self, mock_st: MagicMock, _mock_init: MagicMock
     ) -> None:
         """Existing config with 3 groups defaults the slider to 3."""
-        from src.web.pages.ui.components.shapers.split_apply_config import (
+        from src.web.components.shapers.split_apply_config import (
             SplitApplyConfig,
         )
 
@@ -573,7 +573,7 @@ class TestSplitApplyConfigExistingPipeline:
         self, mock_st: MagicMock, _mock_init: MagicMock
     ) -> None:
         """Existing step config is forwarded to the delegated renderer."""
-        from src.web.pages.ui.components.shapers.split_apply_config import (
+        from src.web.components.shapers.split_apply_config import (
             _SUB_SHAPER_DISPATCH,
             SplitApplyConfig,
         )
@@ -653,7 +653,7 @@ class TestSplitApplyConfigKeyPrefixing:
     @patch(f"{_MOD}.st")
     def test_key_prefix_contains_group_and_step(self, mock_st: MagicMock) -> None:
         """Key prefix passed to delegate includes group/step info."""
-        from src.web.pages.ui.components.shapers.split_apply_config import (
+        from src.web.components.shapers.split_apply_config import (
             _SUB_SHAPER_DISPATCH,
             SplitApplyConfig,
         )
@@ -687,7 +687,7 @@ class TestInitDispatch:
 
     def test_init_dispatch_populates_dict(self) -> None:
         """_init_dispatch fills _SUB_SHAPER_DISPATCH with all 4 types."""
-        import src.web.pages.ui.components.shapers.split_apply_config as mod
+        import src.web.components.shapers.split_apply_config as mod
 
         # Reset state
         mod._SUB_SHAPER_DISPATCH.clear()
@@ -708,7 +708,7 @@ class TestInitDispatch:
 
     def test_init_dispatch_idempotent(self) -> None:
         """Calling _init_dispatch twice doesn't duplicate entries."""
-        import src.web.pages.ui.components.shapers.split_apply_config as mod
+        import src.web.components.shapers.split_apply_config as mod
 
         mod._SUB_SHAPER_DISPATCH.clear()
         mod._STATE["initialized"] = False

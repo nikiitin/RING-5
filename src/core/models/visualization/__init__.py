@@ -26,11 +26,13 @@ from src.core.models.visualization.legend_config import (
 )
 from src.core.models.visualization.palettes import (
     PALETTE_REGISTRY,
+)
+from src.core.services.visualization.config_resolver import resolve_config
+from src.core.services.visualization.palette_service import (
     get_palette_names,
     is_colorblind_safe,
     resolve_palette,
 )
-from src.core.models.visualization.resolvers import resolve_config
 from src.core.models.visualization.series_style_config import SeriesStyleConfig
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import (

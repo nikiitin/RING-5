@@ -53,6 +53,15 @@ dev = [
   "types-PyYAML>=6.0.12",
   "scipy-stubs>=1.5.0",
 ]
+ci = [
+  "bandit[toml]>=1.7.0",
+  "pytest-timeout>=2.2.0",
+  "pip-audit>=2.7.0",
+]
+e2e = [
+  "pytest-playwright>=0.7.0",
+  "pytest-base-url>=2.1.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/your-org/ring5"
@@ -98,10 +107,6 @@ omit = [
   # WIP feature — tests are excluded via -k "not dual_axis and not dual"
   "src/web/pages/ui/plotting/types/dual_axis_bar_dot_plot.py",
 ]
-
-[tool.ruff]
-line-length = 100
-target-version = "py312"
 
 [tool.flake8]
 max-line-length = 100

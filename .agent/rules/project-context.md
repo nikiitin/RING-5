@@ -216,11 +216,14 @@ Here is the button component following your architecture guidelines..."
 - **new-plot-type.md**: Step-by-step guide for adding new visualization types
 - **shaper-pipeline.md**: Creating custom shapers and transformation pipelines
 - **debug-async-parsing.md**: Troubleshooting async parsing and scanning issues
+- **refactoring-large-codebase/SKILL.md**: God class decomposition, method extraction, mock path management, bulk directory reorganization
 
 ## Available Workflows (Process Automation)
 
 - **test-driven-development.md**: TDD workflow (write test → fail → implement → pass)
 - **new-variable-type.md**: Adding support for new gem5 variable types
+- **large-refactor.md**: Multi-phase refactoring with persistent plan tracking, skip assessment, and continuous test verification
+- **code-quality-gate.md**: Mandatory quality gate — architecture, types, lint, format, security
 
 ## How to Use
 

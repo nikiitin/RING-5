@@ -6,7 +6,7 @@ Page for selecting and configuring data sources.
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
-from src.web.pages.ui.components.data_source_components import DataSourceComponents
+from src.web.components.data_source.data_source_components import DataSourceComponents
 
 
 class DataSourcePage:

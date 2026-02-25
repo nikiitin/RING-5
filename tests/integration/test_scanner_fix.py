@@ -8,8 +8,8 @@ import pytest
 
 from src.core.application_api import ApplicationAPI
 from src.core.models.data_models import ParseVariableConfig
-from src.web.pages.ui.components.data_source_components import DataSourceComponents
-from src.web.pages.ui.components.variable_editor import VariableEditor
+from src.web.components.data_source.data_source_components import DataSourceComponents
+from src.web.components.data_source.variable_editor import VariableEditor
 from tests.conftest import columns_side_effect
 
 
@@ -27,8 +27,8 @@ class TestScannerFix:
     def mock_streamlit(self) -> Generator[dict[str, Any], None, None]:
         """Mock streamlit in all relevant modules."""
         with (
-            patch("src.web.pages.ui.components.data_source_components.st") as mock_st_ds,
-            patch("src.web.pages.ui.components.variable_editor.st") as mock_st_ve,
+            patch("src.web.components.data_source.data_source_components.st") as mock_st_ds,
+            patch("src.web.components.data_source.variable_editor.st") as mock_st_ve,
         ):
 
             for m in [mock_st_ds, mock_st_ve]:
@@ -157,7 +157,7 @@ class TestScannerFix:
             import importlib
             import sys
 
-            dsc_module = sys.modules["src.web.pages.ui.components.data_source_components"]
+            dsc_module = sys.modules["src.web.components.data_source.data_source_components"]
 
             importlib.reload(dsc_module)
 
@@ -166,7 +166,7 @@ class TestScannerFix:
             # namespace
             with (
                 patch(
-                    "src.web.pages.ui.components.data_source_components.as_completed",
+                    "src.web.components.data_source.data_source_components.as_completed",
                     return_value=futures,
                 ),
                 patch("pathlib.Path.exists", return_value=True),
@@ -181,19 +181,19 @@ class TestScannerFix:
 
                 with (
                     patch(
-                        "src.web.pages.ui.components.data_source_components.st.progress",
+                        "src.web.components.data_source.data_source_components.st.progress",
                         return_value=mock_progress,
                     ),
                     patch(
-                        "src.web.pages.ui.components.data_source_components.st.empty",
+                        "src.web.components.data_source.data_source_components.st.empty",
                         return_value=mock_status_text,
                     ),
                     patch(
-                        "src.web.pages.ui.components.data_source_components.st.status",
+                        "src.web.components.data_source.data_source_components.st.status",
                         return_value=mock_status_ctx,
                     ),
-                    patch("src.web.pages.ui.components.data_source_components.st.write"),
-                    patch("src.web.pages.ui.components.data_source_components.st.success"),
+                    patch("src.web.components.data_source.data_source_components.st.write"),
+                    patch("src.web.components.data_source.data_source_components.st.success"),
                 ):
 
                     dsc_module.DataSourceComponents._show_parse_dialog(mock_api, batch, output_dir)

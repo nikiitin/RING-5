@@ -35,7 +35,11 @@ def concrete_plot() -> ConcretePlot:
 
 @pytest.fixture
 def mock_streamlit() -> Generator[None, None, None]:
-    with patch("src.web.pages.ui.plotting.base_plot.st") as mock_st:
+    with (
+        patch("src.web.pages.ui.plotting.base_plot.st") as mock_st,
+        patch("src.web.components.common.reorderable_list.st", mock_st),
+        patch("src.web.components.plotting.settings.shapes_settings.st", mock_st),
+    ):
         mock_st.session_state = {}
 
         mock_st.columns.side_effect = columns_side_effect
@@ -85,16 +89,30 @@ def test_serialization(concrete_plot: Any) -> None:
         assert len(loaded_plot.processed_data) == 3
 
 
-def test_render_common_config(concrete_plot: Any, mock_streamlit: Any) -> None:
-    """Test common config UI rendering."""
+@patch("src.web.components.plotting.config.base_plot_config.st")
+@patch("src.web.components.plotting.config.base_plot_config.PlotConfigComponents")
+def test_render_common_config(mock_plc: Any, mock_st: Any, concrete_plot: Any) -> None:
+    """Test common config component rendering."""
+    from src.web.components.plotting.config.base_plot_config import render_common_config
+
     data = pd.DataFrame({"num": [1, 2], "cat": ["a", "b"]})
-    saved_config = {"x": "num", "title": "My Title"}
+    saved_config: dict[str, Any] = {"x": "num", "title": "My Title"}
 
     # Mock widget returns
-    mock_streamlit.selectbox.side_effect = ["num", "num"]  # x, y
-    mock_streamlit.text_input.side_effect = ["My Title", "X Label", "Y Label", "Leg Title"]
+    col_ctx = MagicMock()
+    col_ctx.__enter__ = MagicMock(return_value=col_ctx)
+    col_ctx.__exit__ = MagicMock(return_value=False)
+    mock_st.columns.return_value = [col_ctx, col_ctx]
+    mock_st.selectbox.side_effect = ["num", "num"]
 
-    config = concrete_plot.render_common_config(data, saved_config)
+    mock_plc.render_title_labels_section.return_value = {
+        "title": "My Title",
+        "xlabel": "X Label",
+        "ylabel": "Y Label",
+        "legend_title": "Leg Title",
+    }
+
+    config = render_common_config(data, saved_config, plot_id=1)
 
     assert config["x"] == "num"
     assert config["title"] == "My Title"

@@ -53,14 +53,22 @@ def _sample_histogram_data() -> pd.DataFrame:
 # ===========================================================================
 
 
+_STACKED_CFG = "src.web.components.plotting.config.stacked_bar_config"
+_HIST_CFG = "src.web.components.plotting.config.histogram_config"
+
+
 class TestStackedBarRenderConfigUI:
     """Lines 22-63: render_config_ui (calls PlotConfigComponents)."""
 
-    @patch("src.web.pages.ui.plotting.types.stacked_bar_plot.PlotConfigComponents")
-    @patch("src.web.pages.ui.plotting.types.stacked_bar_plot.st")
-    def test_render_config_ui_basic(self, mock_st: MagicMock, mock_pcc: MagicMock) -> None:
+    @patch(f"{_STACKED_CFG}.PlotConfigComponents")
+    @patch(f"{_STACKED_CFG}.detect_column_types")
+    @patch(f"{_STACKED_CFG}.st")
+    def test_render_config_ui_basic(
+        self, mock_st: MagicMock, mock_detect: MagicMock, mock_pcc: MagicMock
+    ) -> None:
         from src.web.pages.ui.plotting.types.stacked_bar_plot import StackedBarPlot
 
+        mock_detect.return_value = (["ipc", "cpi"], ["bench"])
         mock_st.selectbox.return_value = "bench"
         mock_pcc.render_statistics_multiselect.return_value = ["ipc", "cpi"]
         mock_pcc.render_filter_multiselects.return_value = (["A", "B"], [])
@@ -82,11 +90,15 @@ class TestStackedBarRenderConfigUI:
         call_kwargs = mock_pcc.render_title_labels_section.call_args
         assert call_kwargs[1]["include_legend_title"] is True
 
-    @patch("src.web.pages.ui.plotting.types.stacked_bar_plot.PlotConfigComponents")
-    @patch("src.web.pages.ui.plotting.types.stacked_bar_plot.st")
-    def test_render_config_ui_with_saved(self, mock_st: MagicMock, mock_pcc: MagicMock) -> None:
+    @patch(f"{_STACKED_CFG}.PlotConfigComponents")
+    @patch(f"{_STACKED_CFG}.detect_column_types")
+    @patch(f"{_STACKED_CFG}.st")
+    def test_render_config_ui_with_saved(
+        self, mock_st: MagicMock, mock_detect: MagicMock, mock_pcc: MagicMock
+    ) -> None:
         from src.web.pages.ui.plotting.types.stacked_bar_plot import StackedBarPlot
 
+        mock_detect.return_value = (["ipc", "cpi"], ["bench"])
         mock_st.selectbox.return_value = "bench"
         mock_pcc.render_statistics_multiselect.return_value = ["ipc"]
         mock_pcc.render_filter_multiselects.return_value = (["A"], [])
@@ -253,26 +265,22 @@ class TestStackedBarCreateFigure:
 class TestHistogramRenderConfigUI:
     """Lines 51-55, 145 in histogram_plot.py."""
 
-    @patch("src.web.pages.ui.plotting.types.histogram_plot.st")
-    def test_no_histogram_vars_detected(self, mock_st: MagicMock) -> None:
+    @patch(f"{_HIST_CFG}.render_common_config")
+    @patch(f"{_HIST_CFG}.st")
+    def test_no_histogram_vars_detected(self, mock_st: MagicMock, mock_common: MagicMock) -> None:
         from src.web.pages.ui.plotting.types.histogram_plot import HistogramPlot
 
         plot = HistogramPlot(plot_id=1, name="test")
         # No ".." columns → no histogram variables
         df = pd.DataFrame({"a": [1], "b": [2]})
 
-        # render_common_config needs mocking since BasePlot calls st
-        with patch.object(
-            plot,
-            "render_common_config",
-            return_value={
-                "title": "T",
-                "xlabel": "X",
-                "ylabel": "Y",
-                "categorical_cols": ["a"],
-            },
-        ):
-            result = plot.render_config_ui(df, {})
+        mock_common.return_value = {
+            "title": "T",
+            "xlabel": "X",
+            "ylabel": "Y",
+        }
+
+        result = plot.render_config_ui(df, {})
 
         assert result["histogram_variable"] is None
         mock_st.warning.assert_called()
@@ -392,9 +400,9 @@ class TestHistogramCreateFigure:
 class TestPlotConfigComponentsBranches:
     """Lines 43->59 (no group_col), 97-114 (statistics fallbacks), 165->174 (legend title)."""
 
-    @patch("src.web.pages.ui.components.plot_config_components.st")
+    @patch("src.web.components.plotting.config.plot_config_components.st")
     def test_filter_no_group_col(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.plot_config_components import (
+        from src.web.components.plotting.config.plot_config_components import (
             PlotConfigComponents,
         )
 
@@ -409,9 +417,9 @@ class TestPlotConfigComponentsBranches:
         assert x_vals == ["A"]
         assert g_vals == []
 
-    @patch("src.web.pages.ui.components.plot_config_components.st")
+    @patch("src.web.components.plotting.config.plot_config_components.st")
     def test_filter_x_col_not_in_data(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.plot_config_components import (
+        from src.web.components.plotting.config.plot_config_components import (
             PlotConfigComponents,
         )
 
@@ -425,9 +433,9 @@ class TestPlotConfigComponentsBranches:
         assert x_vals == []
         assert g_vals == []
 
-    @patch("src.web.pages.ui.components.plot_config_components.st")
+    @patch("src.web.components.plotting.config.plot_config_components.st")
     def test_statistics_multiselect_fallback_2_cols(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.plot_config_components import (
+        from src.web.components.plotting.config.plot_config_components import (
             PlotConfigComponents,
         )
 
@@ -441,9 +449,9 @@ class TestPlotConfigComponentsBranches:
 
         assert result == ["a", "b"]
 
-    @patch("src.web.pages.ui.components.plot_config_components.st")
+    @patch("src.web.components.plotting.config.plot_config_components.st")
     def test_statistics_multiselect_fallback_1_col(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.plot_config_components import (
+        from src.web.components.plotting.config.plot_config_components import (
             PlotConfigComponents,
         )
 
@@ -457,9 +465,9 @@ class TestPlotConfigComponentsBranches:
 
         assert result == ["a"]
 
-    @patch("src.web.pages.ui.components.plot_config_components.st")
+    @patch("src.web.components.plotting.config.plot_config_components.st")
     def test_title_labels_with_legend_title(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.plot_config_components import (
+        from src.web.components.plotting.config.plot_config_components import (
             PlotConfigComponents,
         )
 
@@ -474,9 +482,9 @@ class TestPlotConfigComponentsBranches:
 
         assert result["legend_title"] == "Legend"
 
-    @patch("src.web.pages.ui.components.plot_config_components.st")
+    @patch("src.web.components.plotting.config.plot_config_components.st")
     def test_title_labels_without_legend_title(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.plot_config_components import (
+        from src.web.components.plotting.config.plot_config_components import (
             PlotConfigComponents,
         )
 

@@ -54,7 +54,7 @@ class LaTeXPreset(TypedDict, total=False):
     font_size_y2label: int  # Secondary Y-axis label font size (-1 = follow primary)
     font_size_legend: int  # Legend text font size
     font_size_legend2: int  # Legend2 (twin-axis) font size (-1 = follow primary)
-    font_size_legend3: int  # Legend3 (numbered/boxed) font size (-1 = follow primary)
+    font_size_legend3: int  # Legend3 (tertiary / numbered) font size (-1 = follow primary)
     font_size_ticks: int  # Tick labels font size (X-axis)
     font_size_yticks: int  # Y-axis tick labels font size (separate from X)
     font_size_y2ticks: int  # Secondary Y-axis tick labels font size (-1 = follow primary)
@@ -91,7 +91,7 @@ class LaTeXPreset(TypedDict, total=False):
     legend2_borderpad: float
     legend2_borderaxespad: float
     legend2_ncol: int  # Number of columns for legend2 (0 = auto)
-    # Legend3 (boxed annotation / numbered x-axis) spacing overrides
+    # Legend3 (tertiary / numbered x-axis) spacing overrides
     legend3_borderpad: float  # Box inner padding (-1 = follow primary)
     legend3_labelspacing: float  # Vertical item spacing (-1 = follow primary)
     legend3_number_fontsize: int  # Font size for number digits (-1 = follow legend3)

@@ -3,10 +3,10 @@
 from typing import Any
 
 import pandas as pd
-import streamlit as st
 
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import BarTraceConfig
+from src.web.components.plotting.config import histogram_config
 from src.web.pages.ui.plotting.base_plot import BasePlot
 
 
@@ -32,100 +32,8 @@ class HistogramPlot(BasePlot):
         super().__init__(plot_id, name, "histogram")
 
     def render_config_ui(self, data: pd.DataFrame, saved_config: dict[str, Any]) -> dict[str, Any]:
-        """
-        Render configuration UI for histogram plot.
-
-        Args:
-            data: The processed data to plot
-            saved_config: Previously saved configuration
-
-        Returns:
-            Current configuration dictionary
-        """
-        # Common config (title, labels)
-        config = self.render_common_config(data, saved_config)
-
-        # Find histogram variables (columns with ".." pattern indicating buckets)
-        histogram_vars = self._detect_histogram_variables(data)
-
-        if not histogram_vars:
-            st.warning(
-                "No histogram variables detected. "
-                "Histogram variables should have columns like 'var..0-10', 'var..10-20', etc."
-            )
-            return {**config, "histogram_variable": None}
-
-        # Histogram variable selection
-        default_var = (
-            saved_config.get("histogram_variable")
-            if saved_config.get("histogram_variable") in histogram_vars
-            else histogram_vars[0]
-        )
-        default_idx = histogram_vars.index(default_var) if default_var in histogram_vars else 0
-
-        histogram_variable = st.selectbox(
-            "Histogram Variable",
-            options=histogram_vars,
-            index=default_idx,
-            key=f"histogram_var_{self.plot_id}",
-            help="Select the variable with histogram bucket data",
-        )
-
-        # Grouping variable (for multiple histograms)
-        categorical_cols = config["categorical_cols"]
-        group_options: list[str | None] = [None] + categorical_cols
-
-        group_default_idx = 0
-        if saved_config.get("group_by") and saved_config["group_by"] in categorical_cols:
-            group_default_idx = group_options.index(saved_config["group_by"])
-
-        group_by = st.selectbox(
-            "Group By (optional)",
-            options=group_options,
-            index=group_default_idx,
-            key=f"histogram_group_{self.plot_id}",
-            format_func=lambda x: "None" if x is None else x,
-            help="Create multiple histograms grouped by this categorical variable",
-        )
-
-        # Bucket size configuration
-        bucket_size = st.number_input(
-            "Bucket Size",
-            min_value=1,
-            value=int(saved_config.get("bucket_size", 10)),
-            key=f"histogram_bucket_{self.plot_id}",
-            help="Size of histogram buckets (for rebinning)",
-        )
-
-        # Normalization mode
-        norm_options = ["count", "probability", "percent", "density"]
-        norm_default = saved_config.get("normalization", "count")
-        norm_default_idx = norm_options.index(norm_default) if norm_default in norm_options else 0
-
-        normalization = st.selectbox(
-            "Normalization",
-            options=norm_options,
-            index=norm_default_idx,
-            key=f"histogram_norm_{self.plot_id}",
-            help="How to normalize histogram heights",
-        )
-
-        # Cumulative option
-        cumulative = st.checkbox(
-            "Cumulative",
-            value=saved_config.get("cumulative", False),
-            key=f"histogram_cumulative_{self.plot_id}",
-            help="Show cumulative distribution",
-        )
-
-        return {
-            **config,
-            "histogram_variable": histogram_variable,
-            "group_by": group_by,
-            "bucket_size": bucket_size,
-            "normalization": normalization,
-            "cumulative": cumulative,
-        }
+        """Render configuration UI for histogram plot."""
+        return histogram_config.render(data, saved_config, self.plot_id)
 
     def create_traces(self, data: pd.DataFrame, config: dict[str, Any]) -> TraceBuildResult:
         """

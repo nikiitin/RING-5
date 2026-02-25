@@ -208,9 +208,7 @@ class TestBuildBarTrace:
         plot = StackedBarPlot(1, "test")
         df = _sample_df()
         df["__total"] = df["ipc"] + df["cpi"]
-        config: dict[str, Any] = {
-            "series_styles": {"ipc": {"color": "#00FF00", "use_color": True}}
-        }
+        config: dict[str, Any] = {"series_styles": {"ipc": {"color": "#00FF00", "use_color": True}}}
         trace = plot._build_bar_trace(df, "ipc", "benchmark", None, "", config)
         assert trace.color == "#00FF00"
 

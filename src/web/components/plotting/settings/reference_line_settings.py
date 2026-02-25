@@ -1,0 +1,82 @@
+"""Reference line settings component — horizontal reference line controls.
+
+Extracted from ``BasePlot._render_reference_line_ui``.
+"""
+
+from typing import Any
+
+import pandas as pd
+import streamlit as st
+
+
+def render_reference_line_ui(
+    plot_id: int,
+    saved_config: dict[str, Any],
+    data: pd.DataFrame | None,
+    config: dict[str, Any],
+) -> None:
+    """Render UI controls for a horizontal reference line.
+
+    Allows the user to toggle a red horizontal reference line and
+    configure its Y position, color, width, and style.
+
+    Args:
+        plot_id: Plot identifier for unique widget keys.
+        saved_config: Previously saved configuration.
+        data: The data being plotted (needed for conditional display).
+        config: Configuration dictionary to populate.
+    """
+    st.markdown("#### Reference Line")
+    ref_enabled = st.checkbox(
+        "Show reference line",
+        value=saved_config.get("reference_line_enabled", False),
+        key=f"ref_line_enabled_{plot_id}",
+        help=(
+            "Draw a horizontal dashed line at a specific Y value. "
+            "Useful to highlight a baseline (e.g. Y=1 after "
+            "normalization)."
+        ),
+    )
+    config["reference_line_enabled"] = ref_enabled
+
+    if ref_enabled and data is not None:
+        with st.expander("Reference Line Settings", expanded=True):
+            col3, col4, col5 = st.columns(3)
+            with col3:
+                ref_y = st.number_input(
+                    "Y position",
+                    value=float(saved_config.get("reference_line_y", 1.0)),
+                    step=0.1,
+                    format="%.2f",
+                    key=f"ref_line_y_{plot_id}",
+                    help=("Y-axis value where the line is drawn " "(1.0 for normalized data)"),
+                )
+            with col4:
+                ref_color = st.color_picker(
+                    "Line color",
+                    value=saved_config.get("reference_line_color", "#FF0000"),
+                    key=f"ref_line_color_{plot_id}",
+                )
+            with col5:
+                ref_width = st.slider(
+                    "Line width",
+                    min_value=0.5,
+                    max_value=4.0,
+                    value=float(saved_config.get("reference_line_width", 1.5)),
+                    step=0.5,
+                    key=f"ref_line_width_{plot_id}",
+                )
+
+            ref_style = st.selectbox(
+                "Line style",
+                options=["dash", "dot", "dashdot", "solid"],
+                index=["dash", "dot", "dashdot", "solid"].index(
+                    saved_config.get("reference_line_style", "dash")
+                ),
+                key=f"ref_line_style_{plot_id}",
+            )
+
+            config["reference_line_y"] = ref_y
+            config["reference_line_color"] = ref_color
+            config["reference_line_width"] = ref_width
+            config["reference_line_style"] = ref_style

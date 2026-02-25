@@ -6,8 +6,8 @@ import pandas as pd
 import pytest
 
 from src.core.models.data_models import CsvPoolEntry, SavedConfigEntry
-from src.web.pages.ui.components.card_components import CardComponents
-from src.web.pages.ui.components.data_components import DataComponents
+from src.web.components.common.card_components import CardComponents
+from src.web.components.common.data_components import DataComponents
 from tests.conftest import columns_side_effect
 
 
@@ -15,8 +15,8 @@ from tests.conftest import columns_side_effect
 def mock_streamlit() -> Generator[MagicMock, None, None]:
     # We need to patch st in both modules where it is used
     with (
-        patch("src.web.pages.ui.components.data_components.st") as mock_st_data,
-        patch("src.web.pages.ui.components.card_components.st") as mock_st_card,
+        patch("src.web.components.common.data_components.st") as mock_st_data,
+        patch("src.web.components.common.card_components.st") as mock_st_card,
     ):
 
         # Unify mocks for easier assertion

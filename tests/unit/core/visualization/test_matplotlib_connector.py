@@ -308,10 +308,10 @@ class TestMatplotlibCreateFigure:
         assert ax is not None
         plt.close(fig)
 
-    def test_create_figure_constrained_layout(self) -> None:
+    def test_create_figure_no_constrained_layout(self) -> None:
         spec = FigureConfig()
         fig, ax = FigureSpecToMatplotlib.create_figure(spec)
-        assert fig.get_layout_engine() is not None
+        assert fig.get_layout_engine() is None
         plt.close(fig)
 
     def test_create_figure_dimensions(self) -> None:

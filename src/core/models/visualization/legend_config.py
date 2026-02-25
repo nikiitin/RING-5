@@ -8,7 +8,7 @@ A figure holds ``List[LegendConfig]`` — typically 1–3 entries.
 This eliminates:
   - Duplicated sentinel resolution for legend2/legend3
   - Asymmetric field names (``legend_columnspacing`` vs ``legend2_columnspacing``)
-  - The need to special-case boxed annotations as "legend3"
+  - The need to special-case tertiary annotations as "legend3"
 """
 
 from __future__ import annotations
@@ -56,15 +56,15 @@ class LegendSpacingConfig:
 class LegendConfig:
     """Configuration for a single legend instance.
 
-    All legends (primary, secondary, tertiary / boxed-annotation) share
+    All legends (primary, secondary, tertiary) share
     this same dataclass.  Differences are expressed through field values,
     not through different types.
 
     Attributes:
         role: Semantic role identifier.
-            - ``"primary"``  — main trace legend
-            - ``"secondary"``— secondary axis traces
-            - ``"boxed"``    — boxed annotation legend (numbered items)
+            - ``"primary"``   — main trace legend
+            - ``"secondary"`` — secondary axis traces
+            - ``"tertiary"``  — tertiary annotation legend (numbered items)
         visible: Whether this legend is rendered.
         font_size: Text size in points (-1 = inherit from primary).
         bold: Whether legend text is bold.
@@ -79,15 +79,16 @@ class LegendConfig:
         orientation: Layout direction.
         itemsizing: How to size legend markers.
         spacing: Fine-grained spacing parameters.
-        number_fontsize: For boxed legends — size of number digits (-1 = follow font_size).
-        text_fontsize: For boxed legends — size of label text (-1 = follow font_size).
+        number_fontsize: For tertiary legends — size of number digits (-1 = follow font_size).
+        text_fontsize: For tertiary legends — size of label text (-1 = follow font_size).
     """
 
-    role: Literal["primary", "secondary", "boxed"] = "primary"
+    role: Literal["primary", "secondary", "tertiary"] = "primary"
     visible: bool = True
 
     # ── Typography ───────────────────────────────────────────────
     font_size: int = 8  # pts, -1 = inherit from primary
+    font_family: str = ""  # empty = inherit from global font_family
     bold: bool = False
 
     # ── Layout ───────────────────────────────────────────────────
@@ -119,7 +120,7 @@ class LegendConfig:
     # ── Spacing ──────────────────────────────────────────────────
     spacing: LegendSpacingConfig = field(default_factory=LegendSpacingConfig)
 
-    # ── Boxed-annotation extras ──────────────────────────────────
+    # ── Tertiary-annotation extras ──────────────────────────────
     number_fontsize: int = -1  # -1 = follow font_size
     text_fontsize: int = -1  # -1 = follow font_size
 
@@ -129,6 +130,7 @@ class LegendConfig:
             "role": self.role,
             "visible": self.visible,
             "font_size": self.font_size,
+            "font_family": self.font_family,
             "bold": self.bold,
             "ncol": self.ncol,
             "col_width": self.col_width,

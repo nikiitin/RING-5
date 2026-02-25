@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 
 from src.core.models.visualization.trace_build_result import TraceBuildResult
-from src.web.pages.ui.components.plot_manager_components import PlotManagerComponents
+from src.web.components.plotting.plot_manager_components import PlotManagerComponents
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from tests.conftest import columns_side_effect
 
@@ -14,7 +14,7 @@ from tests.conftest import columns_side_effect
 # Mock streamlit
 @pytest.fixture
 def mock_streamlit() -> Generator[None, None, None]:
-    with patch("src.web.pages.ui.components.plot_manager_components.st") as mock_st:
+    with patch("src.web.components.plotting.plot_manager_components.st") as mock_st:
         # Mock session state as a dict
         mock_st.session_state = {}
 
@@ -24,13 +24,13 @@ def mock_streamlit() -> Generator[None, None, None]:
 
 @pytest.fixture
 def mock_plot_service() -> Generator[None, None, None]:
-    with patch("src.web.pages.ui.components.plot_manager_components.PlotService") as mock_ps:
+    with patch("src.web.components.plotting.plot_manager_components.PlotService") as mock_ps:
         yield mock_ps
 
 
 @pytest.fixture
 def mock_plot_factory() -> Generator[None, None, None]:
-    with patch("src.web.pages.ui.components.plot_manager_components.PlotFactory") as mock_pf:
+    with patch("src.web.components.plotting.plot_manager_components.PlotFactory") as mock_pf:
         yield mock_pf
 
 

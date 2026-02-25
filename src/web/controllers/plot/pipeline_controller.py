@@ -15,7 +15,7 @@ Architecture Note — Streamlit usage:
     These are intentional: ``st.rerun()`` is a Streamlit-specific flow control
     mechanism (halts execution), and ``st.exception()`` renders full tracebacks
     for debugging. Presentation-only calls (warnings, toasts) are delegated
-    to the presenter layer.
+    to the component layer.
 """
 
 import logging
@@ -27,9 +27,9 @@ import streamlit as st
 from src.core.application_api import ApplicationAPI
 from src.core.models.data_models import ShaperStepConfig
 from src.web.models.plot_protocols import PipelineExecutor, PlotHandle
-from src.web.presenters.plot.pipeline_presenter import PipelinePresenter
-from src.web.presenters.plot.pipeline_step_presenter import (
-    PipelineStepPresenter,
+from src.web.components.common.pipeline import PipelineComponent
+from src.web.components.common.pipeline_step import (
+    PipelineStepComponent,
     PipelineStepResult,
 )
 from src.web.state.ui_state_manager import UIStateManager
@@ -78,15 +78,15 @@ class PipelineController:
         Args:
             plot: The plot whose pipeline to edit.
         """
-        PipelinePresenter.render_section_header()
+        PipelineComponent.render_section_header()
 
         raw_data: pd.DataFrame | None = self._api.state_manager.get_data()
         if raw_data is None:
-            PipelinePresenter.render_no_data_warning()
+            PipelineComponent.render_no_data_warning()
             return
 
-        # 1. Add shaper (via presenter)
-        add_result: dict[str, Any] = PipelinePresenter.render_add_shaper(plot.plot_id)
+        # 1. Add shaper (via component)
+        add_result: dict[str, Any] = PipelineComponent.render_add_shaper(plot.plot_id)
         if add_result["add_clicked"]:
             plot.pipeline.append(
                 {
@@ -98,19 +98,19 @@ class PipelineController:
             plot.pipeline_counter += 1
             st.rerun()
 
-        # 2. Pipeline steps (via PipelineStepPresenter)
+        # 2. Pipeline steps (via PipelineStepComponent)
         if plot.pipeline:
-            PipelinePresenter.render_pipeline_label()
+            PipelineComponent.render_pipeline_label()
             self._handle_pipeline_steps(plot, raw_data)
 
-        # 3. Finalize (via presenter)
+        # 3. Finalize (via component)
         if plot.pipeline:
-            if PipelinePresenter.render_finalize_button(plot.plot_id):
+            if PipelineComponent.render_finalize_button(plot.plot_id):
                 self._handle_finalize(plot, raw_data)
 
     def _handle_pipeline_steps(self, plot: PlotHandle, raw_data: pd.DataFrame) -> None:
         """
-        Render and handle each pipeline step via PipelineStepPresenter.
+        Render and handle each pipeline step via PipelineStepComponent.
 
         Uses incremental computation: each step's output becomes the next
         step's input, avoiding the O(n²) re-computation of applying all
@@ -123,8 +123,8 @@ class PipelineController:
         step_input: pd.DataFrame = raw_data
         for idx, shaper in enumerate(plot.pipeline):
             try:
-                # Render step via presenter
-                result: PipelineStepResult = PipelineStepPresenter.render_step(
+                # Render step via component
+                result: PipelineStepResult = PipelineStepComponent.render_step(
                     plot_id=plot.plot_id,
                     idx=idx,
                     shaper_type=shaper["type"],
@@ -149,7 +149,7 @@ class PipelineController:
                 # Don't advance step_input — next step gets last good data
                 continue
 
-            # Update config from presenter
+            # Update config from component
             shaper["config"] = result["new_config"]
 
             # Handle actions (orchestration stays in controller)
@@ -195,6 +195,6 @@ class PipelineController:
             confs: list[ShaperStepConfig] = [s["config"] for s in plot.pipeline if s["config"]]
             processed: pd.DataFrame = self._pipeline.apply_shapers(raw_data, confs)
             plot.processed_data = processed
-            PipelineStepPresenter.render_finalize_result(processed)
+            PipelineStepComponent.render_finalize_result(processed)
         except Exception as e:
-            PipelineStepPresenter.render_finalize_error(str(e))
+            PipelineStepComponent.render_finalize_error(str(e))

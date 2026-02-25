@@ -7,7 +7,7 @@ import streamlit as st
 
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import BarTraceConfig
-from src.web.pages.ui.components.plot_config_components import PlotConfigComponents
+from src.web.components.plotting.config import grouped_bar_config
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.utils import GroupedBarUtils
 
@@ -20,38 +20,7 @@ class GroupedBarPlot(BasePlot):
 
     def render_config_ui(self, data: pd.DataFrame, saved_config: dict[str, Any]) -> dict[str, Any]:
         """Render configuration UI for grouped bar plot."""
-        # Common config
-        config = self.render_common_config(data, saved_config)
-
-        # Group by option
-        group_default_idx = 0
-        if saved_config.get("group") and saved_config["group"] in config["categorical_cols"]:
-            group_default_idx = config["categorical_cols"].index(saved_config["group"])
-
-        group_column = st.selectbox(
-            "Group by",
-            options=config["categorical_cols"],
-            index=group_default_idx,
-            key=f"group_{self.plot_id}",
-        )
-
-        # Use reusable filter components
-        x_values, group_values = PlotConfigComponents.render_filter_multiselects(
-            data=data,
-            x_col=config.get("x"),
-            group_col=group_column,
-            saved_config=saved_config,
-            plot_id=self.plot_id,
-        )
-
-        return {
-            **config,
-            "group": group_column,
-            "color": None,
-            "x_filter": x_values,
-            "group_filter": group_values,
-            "_needs_advanced": True,
-        }
+        return grouped_bar_config.render(data, saved_config, self.plot_id)
 
     def render_advanced_options(
         self, saved_config: dict[str, Any], data: pd.DataFrame | None = None

@@ -1,17 +1,17 @@
 """
-Unified palette registry — single source of truth for all color palettes.
+Unified palette registry — single source of truth for all color palette DATA.
 
 All palettes are stored as pre-resolved ``List[str]`` of hex colors.
-This module replaces the three disconnected palette systems that
-previously existed in ``base_plot.BUILTIN_PALETTES``,
-``builders._resolve_palette()``, and ``colors.get_palette_colors()``.
+This module contains palette constants only. Logic functions (resolve_palette,
+get_palette_names, is_colorblind_safe) live in
+``src.core.services.visualization.palette_service``.
 
 Usage::
 
-    from src.core.models.visualization.palettes import resolve_palette, get_palette_names
+    from src.core.models.visualization.palettes import PALETTE_REGISTRY
+    from src.core.services.visualization.palette_service import resolve_palette
 
     colors = resolve_palette("wong")       # List[str] of hex
-    names  = get_palette_names()           # colorblind-safe first
 """
 
 from __future__ import annotations
@@ -309,50 +309,14 @@ PALETTE_REGISTRY: dict[str, list[str]] = {
 _PALETTE_ORDER: list[str] = list(_COLORBLIND_PALETTES.keys()) + sorted(_PLOTLY_PALETTES.keys())
 
 
-def resolve_palette(name: object) -> list[str]:
-    """Resolve a palette name to a list of hex color strings.
+# ────────────────────────────────────────────────────────────────────
+# Backward-compatibility shim — re-exports from canonical location.
+# Import from ``src.core.services.visualization.palette_service`` instead.
+# This shim will be removed in Phase 10 (Dead Code Removal).
+# ────────────────────────────────────────────────────────────────────
 
-    Falls back to the Wong colorblind-safe palette when *name* is
-    ``None``, empty, or not found in the registry.
-
-    Args:
-        name: Palette name (string) or ``None``.
-
-    Returns:
-        A **copy** of the hex color list (safe to mutate).
-    """
-    if not name or not isinstance(name, str):
-        return list(PALETTE_REGISTRY["wong"])
-
-    # Exact match
-    if name in PALETTE_REGISTRY:
-        return list(PALETTE_REGISTRY[name])
-
-    # Case-insensitive match
-    lower = name.lower()
-    for key, colors in PALETTE_REGISTRY.items():
-        if key.lower() == lower:
-            return list(colors)
-
-    return list(PALETTE_REGISTRY["wong"])
-
-
-def get_palette_names() -> list[str]:
-    """Return palette names with colorblind-safe palettes listed first.
-
-    Returns:
-        Ordered list of palette name strings.
-    """
-    return list(_PALETTE_ORDER)
-
-
-def is_colorblind_safe(name: str) -> bool:
-    """Check whether a palette name belongs to the colorblind-safe group.
-
-    Args:
-        name: Palette name string.
-
-    Returns:
-        ``True`` if the palette is in the colorblind-safe set.
-    """
-    return name in _COLORBLIND_PALETTES
+from src.core.services.visualization.palette_service import (  # noqa: E402, F401
+    get_palette_names,
+    is_colorblind_safe,
+    resolve_palette,
+)

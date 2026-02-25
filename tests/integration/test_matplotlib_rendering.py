@@ -14,7 +14,7 @@ from matplotlib.axes import Axes
 from matplotlib.container import BarContainer
 from matplotlib.figure import Figure
 
-from src.core.models.visualization.resolvers import resolve_config
+from src.core.services.visualization.config_resolver import resolve_config
 from src.core.models.visualization.trace_config import (
     BarTraceConfig,
     LineTraceConfig,

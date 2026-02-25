@@ -26,7 +26,7 @@ def _columns_side_effect(n: "int | list[int]") -> "list[MagicMock]":
 class TestRenderStackTotalOptions:
     """Test _render_stack_total_options branches."""
 
-    @patch("src.web.pages.ui.plotting.types.grouped_stacked_bar_plot.st")
+    @patch("src.web.components.plotting.config.grouped_stacked_bar_theme.st")
     def test_totals_disabled(self, mock_st: MagicMock) -> None:
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.checkbox.return_value = False
@@ -39,7 +39,7 @@ class TestRenderStackTotalOptions:
         # When disabled, font size / format etc. should NOT be set
         assert "total_font_size" not in config
 
-    @patch("src.web.pages.ui.plotting.types.grouped_stacked_bar_plot.st")
+    @patch("src.web.components.plotting.config.grouped_stacked_bar_theme.st")
     def test_totals_enabled_outside(self, mock_st: MagicMock) -> None:
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.checkbox.return_value = True
@@ -57,7 +57,7 @@ class TestRenderStackTotalOptions:
         assert config["total_position"] == "Outside"
         assert "total_anchor" not in config  # Only for Inside
 
-    @patch("src.web.pages.ui.plotting.types.grouped_stacked_bar_plot.st")
+    @patch("src.web.components.plotting.config.grouped_stacked_bar_theme.st")
     def test_totals_enabled_inside_with_anchor(self, mock_st: MagicMock) -> None:
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.checkbox.return_value = True
@@ -82,10 +82,9 @@ class TestRenderStackTotalOptions:
 class TestRenderThemeOptions:
     """Test render_theme_options for grouped stacked bar."""
 
-    @patch("src.web.pages.ui.plotting.types.grouped_stacked_bar_plot.st")
-    @patch.object(
-        GroupedStackedBarPlot,
-        "_render_stack_total_options",
+    @patch("src.web.components.plotting.config.grouped_stacked_bar_theme.st")
+    @patch(
+        "src.web.components.plotting.config.grouped_stacked_bar_theme.render_stack_total_options",
     )
     @patch(
         "src.web.pages.ui.plotting.base_plot.BasePlot.render_theme_options",
@@ -98,13 +97,18 @@ class TestRenderThemeOptions:
         mock_st: MagicMock,
     ) -> None:
         mock_st.columns.side_effect = _columns_side_effect
-        mock_st.number_input.side_effect = [16, -0.10]  # major_label_size, major_label_offset
+        mock_st.number_input.side_effect = [
+            16,
+            -0.10,
+            0.05,
+        ]  # major_label_size, major_label_offset, group_label_alt_spacing
         mock_st.color_picker.side_effect = [
             "#111111",  # major_label_color
             "#E0E0E0",  # separator_color
             "#F5F5F5",  # shade_color
         ]
         mock_st.checkbox.side_effect = [
+            True,  # group_label_alternate
             True,  # show_separators
             False,  # shade_alternate
             False,  # isolate_last_group
@@ -119,10 +123,9 @@ class TestRenderThemeOptions:
         assert config["isolate_last_group"] is False
         assert config["numbered_xaxis"] is False
 
-    @patch("src.web.pages.ui.plotting.types.grouped_stacked_bar_plot.st")
-    @patch.object(
-        GroupedStackedBarPlot,
-        "_render_stack_total_options",
+    @patch("src.web.components.plotting.config.grouped_stacked_bar_theme.st")
+    @patch(
+        "src.web.components.plotting.config.grouped_stacked_bar_theme.render_stack_total_options",
     )
     @patch(
         "src.web.pages.ui.plotting.base_plot.BasePlot.render_theme_options",
@@ -138,10 +141,12 @@ class TestRenderThemeOptions:
         mock_st.number_input.side_effect = [
             14,
             -0.15,
+            0.05,
             0.8,
-        ]  # major_label_size, offset, isolation_gap
+        ]  # major_label_size, offset, alt_spacing, isolation_gap
         mock_st.color_picker.side_effect = ["#000", "#E0E0E0", "#F5F5F5"]
         mock_st.checkbox.side_effect = [
+            True,  # group_label_alternate
             True,  # show_separators
             False,  # shade_alternate
             True,  # isolate_last_group

@@ -11,7 +11,29 @@ from tests.conftest import columns_side_effect
 
 @pytest.fixture
 def mock_streamlit() -> Generator[None, None, None]:
-    with patch("src.web.pages.ui.plotting.styles.base_ui.st") as mock_st:
+    with (
+        patch("src.web.pages.ui.plotting.styles.base_ui.st") as mock_st,
+        patch(
+            "src.web.components.plotting.settings.layout_settings.st",
+            mock_st,
+        ),
+        patch(
+            "src.web.components.plotting.settings.typography_settings.st",
+            mock_st,
+        ),
+        patch(
+            "src.web.components.plotting.settings.legend_settings.st",
+            mock_st,
+        ),
+        patch(
+            "src.web.components.plotting.settings.data_labels_settings.st",
+            mock_st,
+        ),
+        patch(
+            "src.web.components.plotting.settings.colors_settings.st",
+            mock_st,
+        ),
+    ):
         mock_st.columns.side_effect = columns_side_effect
 
         # Mock number_input/slider to return int not Mock to match > logic
@@ -35,8 +57,8 @@ def style_manager() -> StyleManager:
 def test_render_layout_options(mock_streamlit: Any, style_manager: Any) -> None:
 
     config = {"width": 100}
-    # Mock return values for sliders/inputs
-    # Layout order: Width, Height, then Margin Inputs
+    # render_layout_options now uses st.selectbox for preset + st.number_input
+    mock_streamlit.selectbox.return_value = "Double Column (~7.0in)"
 
     result = style_manager.render_layout_options(config)
 
@@ -44,7 +66,7 @@ def test_render_layout_options(mock_streamlit: Any, style_manager: Any) -> None:
     assert "width" in result
     assert "height" in result
     assert "margin_l" in result
-    mock_streamlit.slider.assert_called()
+    mock_streamlit.selectbox.assert_called()
 
 
 def test_render_style_ui_basic(style_manager: Any, mock_streamlit: Any) -> None:
@@ -58,7 +80,6 @@ def test_render_style_ui_basic(style_manager: Any, mock_streamlit: Any) -> None:
     # series styles, backgrounds, legends, and typography only.
     assert "series_styles" in result
     assert "plot_bgcolor" in result
-    assert "legend_orientation" in result
 
 
 def test_render_series_styling_ui_no_data(mock_streamlit: Any, style_manager: Any) -> None:

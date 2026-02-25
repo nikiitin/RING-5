@@ -5,7 +5,7 @@ Shared color utilities for consistent palette loading.
 import logging
 import re
 
-from src.core.models.visualization.palettes import resolve_palette
+from src.core.services.visualization.palette_service import resolve_palette
 
 
 def get_palette_colors(palette_name: str) -> list[str]:

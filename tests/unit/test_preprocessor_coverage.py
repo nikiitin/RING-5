@@ -42,34 +42,34 @@ def mock_api() -> MagicMock:
 class TestPreprocessorRender:
     """Test PreprocessorManager.render branch coverage."""
 
-    @patch("src.web.pages.ui.data_managers.impl.preprocessor.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.preprocessor.st")
+    @patch("src.web.components.data_managers.preprocessor.HistoryComponents")
+    @patch("src.web.components.data_managers.preprocessor.st")
     def test_no_data(self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock) -> None:
-        from src.web.pages.ui.data_managers.impl.preprocessor import PreprocessorManager
+        from src.web.components.data_managers.preprocessor import PreprocessorManager
 
         mock_api.state_manager.get_data.return_value = None
         mgr = PreprocessorManager(mock_api)
         mgr.render()
         mock_st.error.assert_called_once()
 
-    @patch("src.web.pages.ui.data_managers.impl.preprocessor.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.preprocessor.st")
+    @patch("src.web.components.data_managers.preprocessor.HistoryComponents")
+    @patch("src.web.components.data_managers.preprocessor.st")
     def test_no_numeric_cols(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.preprocessor import PreprocessorManager
+        from src.web.components.data_managers.preprocessor import PreprocessorManager
 
         mock_api.state_manager.get_data.return_value = pd.DataFrame({"name": ["a", "b"]})
         mgr = PreprocessorManager(mock_api)
         mgr.render()
         mock_st.warning.assert_called()
 
-    @patch("src.web.pages.ui.data_managers.impl.preprocessor.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.preprocessor.st")
+    @patch("src.web.components.data_managers.preprocessor.HistoryComponents")
+    @patch("src.web.components.data_managers.preprocessor.st")
     def test_division_default_name(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.preprocessor import PreprocessorManager
+        from src.web.components.data_managers.preprocessor import PreprocessorManager
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
@@ -84,12 +84,12 @@ class TestPreprocessorRender:
         # Verify text_input was called (default name generation happened)
         mock_st.text_input.assert_called()
 
-    @patch("src.web.pages.ui.data_managers.impl.preprocessor.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.preprocessor.st")
+    @patch("src.web.components.data_managers.preprocessor.HistoryComponents")
+    @patch("src.web.components.data_managers.preprocessor.st")
     def test_sum_default_name(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.preprocessor import PreprocessorManager
+        from src.web.components.data_managers.preprocessor import PreprocessorManager
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
@@ -102,12 +102,12 @@ class TestPreprocessorRender:
         mgr.render()
         mock_st.text_input.assert_called()
 
-    @patch("src.web.pages.ui.data_managers.impl.preprocessor.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.preprocessor.st")
+    @patch("src.web.components.data_managers.preprocessor.HistoryComponents")
+    @patch("src.web.components.data_managers.preprocessor.st")
     def test_subtraction_default_name(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.preprocessor import PreprocessorManager
+        from src.web.components.data_managers.preprocessor import PreprocessorManager
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
@@ -120,12 +120,12 @@ class TestPreprocessorRender:
         mgr.render()
         mock_st.text_input.assert_called()
 
-    @patch("src.web.pages.ui.data_managers.impl.preprocessor.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.preprocessor.st")
+    @patch("src.web.components.data_managers.preprocessor.HistoryComponents")
+    @patch("src.web.components.data_managers.preprocessor.st")
     def test_multiplication_default_name(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.preprocessor import PreprocessorManager
+        from src.web.components.data_managers.preprocessor import PreprocessorManager
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
@@ -138,12 +138,12 @@ class TestPreprocessorRender:
         mgr.render()
         mock_st.text_input.assert_called()
 
-    @patch("src.web.pages.ui.data_managers.impl.preprocessor.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.preprocessor.st")
+    @patch("src.web.components.data_managers.preprocessor.HistoryComponents")
+    @patch("src.web.components.data_managers.preprocessor.st")
     def test_unknown_operation_default_name(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.preprocessor import PreprocessorManager
+        from src.web.components.data_managers.preprocessor import PreprocessorManager
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
@@ -157,12 +157,12 @@ class TestPreprocessorRender:
         # default_name should be "new_column" for unknown operations
         mock_st.text_input.assert_called()
 
-    @patch("src.web.pages.ui.data_managers.impl.preprocessor.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.preprocessor.st")
+    @patch("src.web.components.data_managers.preprocessor.HistoryComponents")
+    @patch("src.web.components.data_managers.preprocessor.st")
     def test_preview_success(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.preprocessor import PreprocessorManager
+        from src.web.components.data_managers.preprocessor import PreprocessorManager
 
         mock_api.state_manager.get_data.return_value = sample_df
         result_df = sample_df.copy()
@@ -179,12 +179,12 @@ class TestPreprocessorRender:
         mock_st.success.assert_called()
         mock_api.set_preview.assert_called_once()
 
-    @patch("src.web.pages.ui.data_managers.impl.preprocessor.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.preprocessor.st")
+    @patch("src.web.components.data_managers.preprocessor.HistoryComponents")
+    @patch("src.web.components.data_managers.preprocessor.st")
     def test_preview_error(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.preprocessor import PreprocessorManager
+        from src.web.components.data_managers.preprocessor import PreprocessorManager
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_api.managers.apply_operation.side_effect = ValueError("Division by zero")
@@ -198,12 +198,12 @@ class TestPreprocessorRender:
         mgr.render()
         mock_st.exception.assert_called()
 
-    @patch("src.web.pages.ui.data_managers.impl.preprocessor.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.preprocessor.st")
+    @patch("src.web.components.data_managers.preprocessor.HistoryComponents")
+    @patch("src.web.components.data_managers.preprocessor.st")
     def test_confirm_applies_data(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.preprocessor import PreprocessorManager
+        from src.web.components.data_managers.preprocessor import PreprocessorManager
 
         preview_df = sample_df.copy()
         preview_df["ipc"] = [0.5, 0.5, 0.5]
@@ -222,12 +222,12 @@ class TestPreprocessorRender:
         mock_api.clear_preview.assert_called_once()
         mock_api.add_manager_history_record.assert_called_once()
 
-    @patch("src.web.pages.ui.data_managers.impl.preprocessor.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.preprocessor.st")
+    @patch("src.web.components.data_managers.preprocessor.HistoryComponents")
+    @patch("src.web.components.data_managers.preprocessor.st")
     def test_confirm_none_preview(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.preprocessor import PreprocessorManager
+        from src.web.components.data_managers.preprocessor import PreprocessorManager
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_api.has_preview.return_value = True
@@ -242,12 +242,12 @@ class TestPreprocessorRender:
         mgr.render()
         mock_api.state_manager.set_data.assert_not_called()
 
-    @patch("src.web.pages.ui.data_managers.impl.preprocessor.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.preprocessor.st")
+    @patch("src.web.components.data_managers.preprocessor.HistoryComponents")
+    @patch("src.web.components.data_managers.preprocessor.st")
     def test_history_load_full(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.preprocessor import PreprocessorManager
+        from src.web.components.data_managers.preprocessor import PreprocessorManager
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
@@ -266,12 +266,12 @@ class TestPreprocessorRender:
         mgr.render()
         # History was consumed: _preproc_load should have been popped
 
-    @patch("src.web.pages.ui.data_managers.impl.preprocessor.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.preprocessor.st")
+    @patch("src.web.components.data_managers.preprocessor.HistoryComponents")
+    @patch("src.web.components.data_managers.preprocessor.st")
     def test_history_load_missing_columns(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.preprocessor import PreprocessorManager
+        from src.web.components.data_managers.preprocessor import PreprocessorManager
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
@@ -290,12 +290,12 @@ class TestPreprocessorRender:
         mgr.render()
         mock_st.warning.assert_called()
 
-    @patch("src.web.pages.ui.data_managers.impl.preprocessor.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.preprocessor.st")
+    @patch("src.web.components.data_managers.preprocessor.HistoryComponents")
+    @patch("src.web.components.data_managers.preprocessor.st")
     def test_history_load_unknown_operator(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.preprocessor import PreprocessorManager
+        from src.web.components.data_managers.preprocessor import PreprocessorManager
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
@@ -314,12 +314,12 @@ class TestPreprocessorRender:
         mgr.render()
         # Unknown operator should not crash, just won't set session_state
 
-    @patch("src.web.pages.ui.data_managers.impl.preprocessor.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.preprocessor.st")
+    @patch("src.web.components.data_managers.preprocessor.HistoryComponents")
+    @patch("src.web.components.data_managers.preprocessor.st")
     def test_history_load_one_source_col(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.preprocessor import PreprocessorManager
+        from src.web.components.data_managers.preprocessor import PreprocessorManager
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect

@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 
 from src.core.models.data_models import ShaperStepConfig
-from src.web.pages.ui.components.shapers.sort_config import SortConfig
+from src.web.components.shapers.sort_config import SortConfig
 
 
 def _columns_side_effect(n: "int | list[int]") -> "list[MagicMock]":
@@ -22,14 +22,14 @@ def _columns_side_effect(n: "int | list[int]") -> "list[MagicMock]":
 class TestSortConfigRender:
     """Test SortConfig.render method."""
 
-    @patch("src.web.pages.ui.components.shapers.sort_config.st")
+    @patch("src.web.components.shapers.sort_config.st")
     def test_no_categorical_columns(self, mock_st: MagicMock) -> None:
         data = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
         result = SortConfig.render(data, {}, "pfx_", 1)
         mock_st.warning.assert_called_once()
         assert result == {"type": "sort", "order_dict": {}}
 
-    @patch("src.web.pages.ui.components.shapers.sort_config.st")
+    @patch("src.web.components.shapers.sort_config.st")
     def test_with_categorical_no_selection(self, mock_st: MagicMock) -> None:
         data = pd.DataFrame({"cat": ["a", "b", "c"], "val": [1, 2, 3]})
         mock_st.multiselect.return_value = []  # no columns selected
@@ -38,7 +38,7 @@ class TestSortConfigRender:
         assert result.get("type") == "sort"
         assert result.get("order_dict") == {}
 
-    @patch("src.web.pages.ui.components.shapers.sort_config.st")
+    @patch("src.web.components.shapers.sort_config.st")
     def test_with_selected_column_small_cardinality(self, mock_st: MagicMock) -> None:
         data = pd.DataFrame({"cat": ["a", "b", "c"], "val": [1, 2, 3]})
         mock_st.multiselect.side_effect = [
@@ -55,7 +55,7 @@ class TestSortConfigRender:
         assert order_dict is not None
         assert order_dict["cat"] == ["c", "b", "a"]
 
-    @patch("src.web.pages.ui.components.shapers.sort_config.st")
+    @patch("src.web.components.shapers.sort_config.st")
     def test_with_high_cardinality(self, mock_st: MagicMock) -> None:
         vals = [f"v{i}" for i in range(25)]  # > 20
         data = pd.DataFrame({"cat": vals, "val": range(25)})
@@ -74,7 +74,7 @@ class TestSortConfigRender:
         assert "cat" in order_dict
         mock_st.info.assert_called()
 
-    @patch("src.web.pages.ui.components.shapers.sort_config.st")
+    @patch("src.web.components.shapers.sort_config.st")
     def test_restore_previous_order(self, mock_st: MagicMock) -> None:
         data = pd.DataFrame({"cat": ["a", "b", "c"], "val": [1, 2, 3]})
         existing: ShaperStepConfig = {"order_dict": {"cat": ["c", "a"]}}
@@ -93,7 +93,7 @@ class TestSortConfigRender:
         assert order_dict is not None
         assert order_dict["cat"] == ["c", "a", "b"]
 
-    @patch("src.web.pages.ui.components.shapers.sort_config.st")
+    @patch("src.web.components.shapers.sort_config.st")
     def test_empty_multiselect_falls_back_to_default(self, mock_st: MagicMock) -> None:
         data = pd.DataFrame({"cat": ["a", "b"], "val": [1, 2]})
         mock_st.multiselect.side_effect = [

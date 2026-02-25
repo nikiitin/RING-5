@@ -14,10 +14,6 @@ Public API:
     - PlotDeserializer: Callable type alias for plot dict → PlotProtocol
 """
 
-from src.core.models.config.config_manager import (
-    ConfigTemplateGenerator,
-    ConfigValidator,
-)
 from src.core.models.data_models import (
     CacheStatsEntry,
     CacheStatsInfo,
@@ -33,17 +29,34 @@ from src.core.models.data_models import (
     ShaperStepConfig,
     SplitApplyGroupConfig,
 )
+from src.core.models.shaper_models import (
+    BaseShaperConfig,
+    ColumnSelectorConfig,
+    ConditionSelectorConfig,
+    ItemSelectorConfig,
+    MeanShaperConfig,
+    NormalizeShaperConfig,
+    SortShaperConfig,
+    SplitApplyShaperConfig,
+    TransformerShaperConfig,
+)
 from src.core.models.history_models import OperationRecord
 from src.core.models.parsing_models import ParseBatchResult, ScannedVariable, StatConfig
 from src.core.models.plot_protocol import PlotDeserializer, PlotProtocol
 from src.core.models.portfolio_models import PortfolioData
 
 __all__ = [
+    "BaseShaperConfig",
     "CacheStatsEntry",
     "CacheStatsInfo",
     "ColumnInfoResult",
+    "ColumnSelectorConfig",
+    "ConditionSelectorConfig",
     "CsvMetadata",
     "CsvPoolEntry",
+    "ItemSelectorConfig",
+    "MeanShaperConfig",
+    "NormalizeShaperConfig",
     "ParseBatchResult",
     "ParseVariableConfig",
     "PipelineData",
@@ -53,12 +66,13 @@ __all__ = [
     "ScannedVariable",
     "ScannedVariableDict",
     "ShaperStepConfig",
+    "SortShaperConfig",
     "SplitApplyGroupConfig",
+    "SplitApplyShaperConfig",
     "StatConfig",
+    "TransformerShaperConfig",
     "PortfolioData",
     "PlotProtocol",
     "PlotDeserializer",
-    "ConfigValidator",
-    "ConfigTemplateGenerator",
     "OperationRecord",
 ]

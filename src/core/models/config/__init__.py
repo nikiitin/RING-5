@@ -1,11 +1,7 @@
 """
 RING-5 Configuration Module
-Handles configuration validation, template generation, and schema management.
+TypedDict models for configuration structure.
+
+For ConfigValidator and ConfigTemplateGenerator, import from:
+    src.core.services.config_validation_service
 """
-
-from src.core.models.config.config_manager import (
-    ConfigTemplateGenerator,
-    ConfigValidator,
-)
-
-__all__ = ["ConfigValidator", "ConfigTemplateGenerator"]

@@ -42,10 +42,10 @@ def mock_api() -> MagicMock:
 class TestOutlierRemoverRender:
     """Test OutlierRemoverManager.render branch coverage."""
 
-    @patch("src.web.pages.ui.data_managers.impl.outlier_remover.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.outlier_remover.st")
+    @patch("src.web.components.data_managers.outlier_remover.HistoryComponents")
+    @patch("src.web.components.data_managers.outlier_remover.st")
     def test_no_data(self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock) -> None:
-        from src.web.pages.ui.data_managers.impl.outlier_remover import (
+        from src.web.components.data_managers.outlier_remover import (
             OutlierRemoverManager,
         )
 
@@ -54,12 +54,12 @@ class TestOutlierRemoverRender:
         mgr.render()
         mock_st.error.assert_called_once()
 
-    @patch("src.web.pages.ui.data_managers.impl.outlier_remover.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.outlier_remover.st")
+    @patch("src.web.components.data_managers.outlier_remover.HistoryComponents")
+    @patch("src.web.components.data_managers.outlier_remover.st")
     def test_no_numeric_cols(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.outlier_remover import (
+        from src.web.components.data_managers.outlier_remover import (
             OutlierRemoverManager,
         )
 
@@ -68,12 +68,12 @@ class TestOutlierRemoverRender:
         mgr.render()
         mock_st.warning.assert_called()
 
-    @patch("src.web.pages.ui.data_managers.impl.outlier_remover.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.outlier_remover.st")
+    @patch("src.web.components.data_managers.outlier_remover.HistoryComponents")
+    @patch("src.web.components.data_managers.outlier_remover.st")
     def test_with_categorical_cols(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.outlier_remover import (
+        from src.web.components.data_managers.outlier_remover import (
             OutlierRemoverManager,
         )
 
@@ -88,12 +88,12 @@ class TestOutlierRemoverRender:
         mgr.render()
         mock_st.multiselect.assert_called()
 
-    @patch("src.web.pages.ui.data_managers.impl.outlier_remover.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.outlier_remover.st")
+    @patch("src.web.components.data_managers.outlier_remover.HistoryComponents")
+    @patch("src.web.components.data_managers.outlier_remover.st")
     def test_no_categorical_cols(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.outlier_remover import (
+        from src.web.components.data_managers.outlier_remover import (
             OutlierRemoverManager,
         )
 
@@ -109,12 +109,12 @@ class TestOutlierRemoverRender:
         mgr.render()
         mock_st.info.assert_called()  # "No categorical columns for grouping"
 
-    @patch("src.web.pages.ui.data_managers.impl.outlier_remover.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.outlier_remover.st")
+    @patch("src.web.components.data_managers.outlier_remover.HistoryComponents")
+    @patch("src.web.components.data_managers.outlier_remover.st")
     def test_seed_cols_filtered_out(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.outlier_remover import (
+        from src.web.components.data_managers.outlier_remover import (
             OutlierRemoverManager,
         )
 
@@ -138,12 +138,12 @@ class TestOutlierRemoverRender:
         # Should have called multiselect with fallback default_cols
         mock_st.multiselect.assert_called()
 
-    @patch("src.web.pages.ui.data_managers.impl.outlier_remover.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.outlier_remover.st")
+    @patch("src.web.components.data_managers.outlier_remover.HistoryComponents")
+    @patch("src.web.components.data_managers.outlier_remover.st")
     def test_apply_success(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.outlier_remover import (
+        from src.web.components.data_managers.outlier_remover import (
             OutlierRemoverManager,
         )
 
@@ -161,12 +161,12 @@ class TestOutlierRemoverRender:
         mock_st.success.assert_called()
         mock_api.set_preview.assert_called_once()
 
-    @patch("src.web.pages.ui.data_managers.impl.outlier_remover.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.outlier_remover.st")
+    @patch("src.web.components.data_managers.outlier_remover.HistoryComponents")
+    @patch("src.web.components.data_managers.outlier_remover.st")
     def test_apply_validation_errors(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.outlier_remover import (
+        from src.web.components.data_managers.outlier_remover import (
             OutlierRemoverManager,
         )
 
@@ -182,12 +182,12 @@ class TestOutlierRemoverRender:
         mgr.render()
         mock_st.error.assert_called()
 
-    @patch("src.web.pages.ui.data_managers.impl.outlier_remover.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.outlier_remover.st")
+    @patch("src.web.components.data_managers.outlier_remover.HistoryComponents")
+    @patch("src.web.components.data_managers.outlier_remover.st")
     def test_apply_exception(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.outlier_remover import (
+        from src.web.components.data_managers.outlier_remover import (
             OutlierRemoverManager,
         )
 
@@ -204,12 +204,12 @@ class TestOutlierRemoverRender:
         mgr.render()
         mock_st.exception.assert_called()
 
-    @patch("src.web.pages.ui.data_managers.impl.outlier_remover.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.outlier_remover.st")
+    @patch("src.web.components.data_managers.outlier_remover.HistoryComponents")
+    @patch("src.web.components.data_managers.outlier_remover.st")
     def test_confirm_applies_data(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.outlier_remover import (
+        from src.web.components.data_managers.outlier_remover import (
             OutlierRemoverManager,
         )
 
@@ -229,12 +229,12 @@ class TestOutlierRemoverRender:
         mock_api.clear_preview.assert_called_once()
         mock_api.add_manager_history_record.assert_called_once()
 
-    @patch("src.web.pages.ui.data_managers.impl.outlier_remover.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.outlier_remover.st")
+    @patch("src.web.components.data_managers.outlier_remover.HistoryComponents")
+    @patch("src.web.components.data_managers.outlier_remover.st")
     def test_history_load_full(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.outlier_remover import (
+        from src.web.components.data_managers.outlier_remover import (
             OutlierRemoverManager,
         )
 
@@ -254,12 +254,12 @@ class TestOutlierRemoverRender:
         mgr = OutlierRemoverManager(mock_api)
         mgr.render()
 
-    @patch("src.web.pages.ui.data_managers.impl.outlier_remover.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.outlier_remover.st")
+    @patch("src.web.components.data_managers.outlier_remover.HistoryComponents")
+    @patch("src.web.components.data_managers.outlier_remover.st")
     def test_history_load_missing_col(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.outlier_remover import (
+        from src.web.components.data_managers.outlier_remover import (
             OutlierRemoverManager,
         )
 

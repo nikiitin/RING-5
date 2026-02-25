@@ -3,10 +3,10 @@ Web Layer Models — Pure Data Definitions (Layer 5).
 
 This module contains TypedDicts and dataclasses used throughout the web layer.
 These models have ZERO Streamlit imports and ZERO side effects.
-They serve as the shared vocabulary between Controllers, Presenters, and State.
+They serve as the shared vocabulary between Controllers, Components, and State.
 
 Architecture:
-    Page → Controller → Presenter
+    Page → Controller → Component
                 ↕
           UIStateManager
                 ↕

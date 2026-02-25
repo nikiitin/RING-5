@@ -311,14 +311,14 @@ class TestUIComponents:
 
     def test_data_components_preview(self) -> None:
         """Test DataComponents.show_data_preview exist."""
-        from src.web.pages.ui.components.data_components import DataComponents
+        from src.web.components.common.data_components import DataComponents
 
         assert hasattr(DataComponents, "show_data_preview")
         assert callable(DataComponents.show_data_preview)
 
     def test_variable_editor_exists(self) -> None:
         """Test VariableEditor.render exists."""
-        from src.web.pages.ui.components.variable_editor import VariableEditor
+        from src.web.components.data_source.variable_editor import VariableEditor
 
         assert hasattr(VariableEditor, "render")
         assert callable(VariableEditor.render)
@@ -328,7 +328,7 @@ class TestUIComponents:
         from unittest.mock import MagicMock
 
         from src.core.application_api import ApplicationAPI
-        from src.web.pages.ui.components.variable_editor import VariableEditor
+        from src.web.components.data_source.variable_editor import VariableEditor
 
         assert hasattr(VariableEditor, "render_histogram_config")
 
@@ -336,7 +336,7 @@ class TestUIComponents:
         mock_api = MagicMock(spec=ApplicationAPI)
 
         # Mock st
-        with patch("src.web.pages.ui.components.variable_editor.st") as mock_st:
+        with patch("src.web.components.data_source.variable_editor.st") as mock_st:
             mock_st.columns.side_effect = [
                 [MagicMock(), MagicMock(), MagicMock(), MagicMock()],
                 [MagicMock(), MagicMock()],

@@ -72,6 +72,32 @@ Covers: Parser implementation, testing, type mapping, and validation.
 
 ---
 
+### `/large-refactor`
+
+**Purpose**: Structured multi-phase architectural refactoring with persistent plan tracking
+**When to use**: Any refactoring spanning more than 3 files or 2 phases
+**Complexity**: Advanced
+**Estimated Time**: Variable (hours to days)
+
+Provides the complete methodology for safe, large-scale refactoring:
+
+1. **Plan file creation** — Persistent log at `.agent/plans/<name>.md`
+2. **Pre-refactor assessment** — Measure baselines, identify dependencies
+3. **Phase-by-phase execution** — One group at a time, tests after every step
+4. **Skip assessment** — Quantitative ROI check before executing each phase
+5. **Final validation** — Full quality gate + coverage check
+
+Key patterns:
+- Method extraction to standalone components
+- Mock path update after extraction
+- Bulk directory reorganization with sed
+- Thin delegate pattern for backward compatibility
+- Test count tracking at every milestone
+
+**Critical**: Plan file is the single source of truth. Update after every phase.
+
+---
+
 ## Using Workflows
 
 ### In Google Antigravity
@@ -137,13 +163,14 @@ Detailed instructions...
 
 ### 📜 Rule System (The Brain)
 
-All workflows must adhere to the rules defined in `.cursor/rules/`:
+All workflows must adhere to the rules defined in `.agent/rules/`:
 
 - **Identity (`000`)**: Zero Hallucination Policy.
 - **Architecture (`001`)**: Layers (A/B/C) and Separation of Concerns.
 - **Data Science (`002`)**: Vectorization Standards.
 - **Engineering (`003`)**: Strong Typing.
 - **QA (`004`)**: Fixtures as Architecture.
+- **Refactoring (`009`)**: Mock paths, extraction patterns, thin delegates.
 
 ### 📚 Skills
 

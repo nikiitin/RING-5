@@ -771,12 +771,12 @@ class TestParseServiceFinalize:
 class TestPatternIndexSelector:
     """Cover render_selector UI logic and static helper methods."""
 
-    @patch("src.web.pages.ui.components.pattern_index_selector.st")
-    @patch("src.web.pages.ui.components.pattern_index_selector.PatternIndexService")
+    @patch("src.web.components.data_source.pattern_index_selector.st")
+    @patch("src.web.components.data_source.pattern_index_selector.PatternIndexService")
     def test_render_selector_not_pattern_variable(
         self, mock_svc: MagicMock, mock_st: MagicMock
     ) -> None:
-        from src.web.pages.ui.components.pattern_index_selector import (
+        from src.web.components.data_source.pattern_index_selector import (
             PatternIndexSelector,
         )
 
@@ -790,10 +790,10 @@ class TestPatternIndexSelector:
         assert use_filter is False
         assert entries == ["0", "1"]
 
-    @patch("src.web.pages.ui.components.pattern_index_selector.st")
-    @patch("src.web.pages.ui.components.pattern_index_selector.PatternIndexService")
+    @patch("src.web.components.data_source.pattern_index_selector.st")
+    @patch("src.web.components.data_source.pattern_index_selector.PatternIndexService")
     def test_render_selector_no_positions(self, mock_svc: MagicMock, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.pattern_index_selector import (
+        from src.web.components.data_source.pattern_index_selector import (
             PatternIndexSelector,
         )
 
@@ -809,10 +809,10 @@ class TestPatternIndexSelector:
         assert use_filter is False
         assert entries == ["0", "1"]
 
-    @patch("src.web.pages.ui.components.pattern_index_selector.st")
-    @patch("src.web.pages.ui.components.pattern_index_selector.PatternIndexService")
+    @patch("src.web.components.data_source.pattern_index_selector.st")
+    @patch("src.web.components.data_source.pattern_index_selector.PatternIndexService")
     def test_render_selector_no_filter(self, mock_svc: MagicMock, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.pattern_index_selector import (
+        from src.web.components.data_source.pattern_index_selector import (
             PatternIndexSelector,
         )
 
@@ -830,12 +830,12 @@ class TestPatternIndexSelector:
         assert use_filter is False
         mock_st.info.assert_called()
 
-    @patch("src.web.pages.ui.components.pattern_index_selector.st")
-    @patch("src.web.pages.ui.components.pattern_index_selector.PatternIndexService")
+    @patch("src.web.components.data_source.pattern_index_selector.st")
+    @patch("src.web.components.data_source.pattern_index_selector.PatternIndexService")
     def test_render_selector_with_filter_and_selection(
         self, mock_svc: MagicMock, mock_st: MagicMock
     ) -> None:
-        from src.web.pages.ui.components.pattern_index_selector import (
+        from src.web.components.data_source.pattern_index_selector import (
             PatternIndexSelector,
         )
 
@@ -870,12 +870,12 @@ class TestPatternIndexSelector:
         assert entries == ["0", "1"]
         mock_st.success.assert_called()
 
-    @patch("src.web.pages.ui.components.pattern_index_selector.st")
-    @patch("src.web.pages.ui.components.pattern_index_selector.PatternIndexService")
+    @patch("src.web.components.data_source.pattern_index_selector.st")
+    @patch("src.web.components.data_source.pattern_index_selector.PatternIndexService")
     def test_render_selector_empty_selection_warns(
         self, mock_svc: MagicMock, mock_st: MagicMock
     ) -> None:
-        from src.web.pages.ui.components.pattern_index_selector import (
+        from src.web.components.data_source.pattern_index_selector import (
             PatternIndexSelector,
         )
 
@@ -903,12 +903,12 @@ class TestPatternIndexSelector:
         mock_st.warning.assert_called()
         mock_st.error.assert_called()
 
-    @patch("src.web.pages.ui.components.pattern_index_selector.st")
-    @patch("src.web.pages.ui.components.pattern_index_selector.PatternIndexService")
+    @patch("src.web.components.data_source.pattern_index_selector.st")
+    @patch("src.web.components.data_source.pattern_index_selector.PatternIndexService")
     def test_render_selector_with_current_selection(
         self, mock_svc: MagicMock, mock_st: MagicMock
     ) -> None:
-        from src.web.pages.ui.components.pattern_index_selector import (
+        from src.web.components.data_source.pattern_index_selector import (
             PatternIndexSelector,
         )
 
@@ -943,9 +943,9 @@ class TestPatternIndexSelector:
 
     def test_static_filter_entries_delegates(self) -> None:
         with patch(
-            "src.web.pages.ui.components.pattern_index_selector.PatternIndexService"
+            "src.web.components.data_source.pattern_index_selector.PatternIndexService"
         ) as mock_svc:
-            from src.web.pages.ui.components.pattern_index_selector import (
+            from src.web.components.data_source.pattern_index_selector import (
                 PatternIndexSelector,
             )
 
@@ -955,9 +955,9 @@ class TestPatternIndexSelector:
 
     def test_static_format_entry_display_delegates(self) -> None:
         with patch(
-            "src.web.pages.ui.components.pattern_index_selector.PatternIndexService"
+            "src.web.components.data_source.pattern_index_selector.PatternIndexService"
         ) as mock_svc:
-            from src.web.pages.ui.components.pattern_index_selector import (
+            from src.web.components.data_source.pattern_index_selector import (
                 PatternIndexSelector,
             )
 
@@ -974,9 +974,9 @@ class TestPatternIndexSelector:
 class TestDataSourceComponents:
     """Cover render_csv_pool branches and parse dialog logic."""
 
-    @patch("src.web.pages.ui.components.data_source_components.st")
+    @patch("src.web.components.data_source.data_source_components.st")
     def test_render_csv_pool_empty(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.data_source_components import (
+        from src.web.components.data_source.data_source_components import (
             DataSourceComponents,
         )
 
@@ -987,9 +987,9 @@ class TestDataSourceComponents:
         DataSourceComponents.render_csv_pool(api)
         mock_st.warning.assert_called()
 
-    @patch("src.web.pages.ui.components.data_source_components.st")
-    @patch("src.web.pages.ui.components.data_source_components.CardComponents")
-    @patch("src.web.pages.ui.components.data_source_components.DataComponents")
+    @patch("src.web.components.data_source.data_source_components.st")
+    @patch("src.web.components.data_source.data_source_components.CardComponents")
+    @patch("src.web.components.data_source.data_source_components.DataComponents")
     def test_render_csv_pool_with_files(
         self,
         mock_data_comp: MagicMock,
@@ -997,7 +997,7 @@ class TestDataSourceComponents:
         mock_st: MagicMock,
         tmp_path: Path,
     ) -> None:
-        from src.web.pages.ui.components.data_source_components import (
+        from src.web.components.data_source.data_source_components import (
             DataSourceComponents,
         )
 
@@ -1011,16 +1011,16 @@ class TestDataSourceComponents:
         DataSourceComponents.render_csv_pool(api)
         mock_st.info.assert_called()
 
-    @patch("src.web.pages.ui.components.data_source_components.st")
-    @patch("src.web.pages.ui.components.data_source_components.CardComponents")
-    @patch("src.web.pages.ui.components.data_source_components.DataComponents")
+    @patch("src.web.components.data_source.data_source_components.st")
+    @patch("src.web.components.data_source.data_source_components.CardComponents")
+    @patch("src.web.components.data_source.data_source_components.DataComponents")
     def test_render_csv_pool_file_not_exists(
         self,
         mock_data_comp: MagicMock,
         mock_card: MagicMock,
         mock_st: MagicMock,
     ) -> None:
-        from src.web.pages.ui.components.data_source_components import (
+        from src.web.components.data_source.data_source_components import (
             DataSourceComponents,
         )
 
@@ -1033,9 +1033,9 @@ class TestDataSourceComponents:
         DataSourceComponents.render_csv_pool(api)
         mock_st.error.assert_called()
 
-    @patch("src.web.pages.ui.components.data_source_components.st")
-    @patch("src.web.pages.ui.components.data_source_components.CardComponents")
-    @patch("src.web.pages.ui.components.data_source_components.DataComponents")
+    @patch("src.web.components.data_source.data_source_components.st")
+    @patch("src.web.components.data_source.data_source_components.CardComponents")
+    @patch("src.web.components.data_source.data_source_components.DataComponents")
     def test_render_csv_pool_load_clicked(
         self,
         mock_data_comp: MagicMock,
@@ -1045,7 +1045,7 @@ class TestDataSourceComponents:
     ) -> None:
         import pandas as pd
 
-        from src.web.pages.ui.components.data_source_components import (
+        from src.web.components.data_source.data_source_components import (
             DataSourceComponents,
         )
 
@@ -1061,9 +1061,9 @@ class TestDataSourceComponents:
         api.load_csv_file.assert_called_once()
         mock_st.success.assert_called()
 
-    @patch("src.web.pages.ui.components.data_source_components.st")
-    @patch("src.web.pages.ui.components.data_source_components.CardComponents")
-    @patch("src.web.pages.ui.components.data_source_components.DataComponents")
+    @patch("src.web.components.data_source.data_source_components.st")
+    @patch("src.web.components.data_source.data_source_components.CardComponents")
+    @patch("src.web.components.data_source.data_source_components.DataComponents")
     def test_render_csv_pool_load_exception(
         self,
         mock_data_comp: MagicMock,
@@ -1071,7 +1071,7 @@ class TestDataSourceComponents:
         mock_st: MagicMock,
         tmp_path: Path,
     ) -> None:
-        from src.web.pages.ui.components.data_source_components import (
+        from src.web.components.data_source.data_source_components import (
             DataSourceComponents,
         )
 
@@ -1086,9 +1086,9 @@ class TestDataSourceComponents:
         DataSourceComponents.render_csv_pool(api)
         mock_st.exception.assert_called()
 
-    @patch("src.web.pages.ui.components.data_source_components.st")
-    @patch("src.web.pages.ui.components.data_source_components.CardComponents")
-    @patch("src.web.pages.ui.components.data_source_components.DataComponents")
+    @patch("src.web.components.data_source.data_source_components.st")
+    @patch("src.web.components.data_source.data_source_components.CardComponents")
+    @patch("src.web.components.data_source.data_source_components.DataComponents")
     def test_render_csv_pool_preview_clicked(
         self,
         mock_data_comp: MagicMock,
@@ -1098,7 +1098,7 @@ class TestDataSourceComponents:
     ) -> None:
         import pandas as pd
 
-        from src.web.pages.ui.components.data_source_components import (
+        from src.web.components.data_source.data_source_components import (
             DataSourceComponents,
         )
 
@@ -1113,9 +1113,9 @@ class TestDataSourceComponents:
         DataSourceComponents.render_csv_pool(api)
         mock_st.dataframe.assert_called()
 
-    @patch("src.web.pages.ui.components.data_source_components.st")
-    @patch("src.web.pages.ui.components.data_source_components.CardComponents")
-    @patch("src.web.pages.ui.components.data_source_components.DataComponents")
+    @patch("src.web.components.data_source.data_source_components.st")
+    @patch("src.web.components.data_source.data_source_components.CardComponents")
+    @patch("src.web.components.data_source.data_source_components.DataComponents")
     def test_render_csv_pool_delete_clicked(
         self,
         mock_data_comp: MagicMock,
@@ -1123,7 +1123,7 @@ class TestDataSourceComponents:
         mock_st: MagicMock,
         tmp_path: Path,
     ) -> None:
-        from src.web.pages.ui.components.data_source_components import (
+        from src.web.components.data_source.data_source_components import (
             DataSourceComponents,
         )
 
@@ -1138,9 +1138,9 @@ class TestDataSourceComponents:
         DataSourceComponents.render_csv_pool(api)
         api.delete_from_csv_pool.assert_called_once()
 
-    @patch("src.web.pages.ui.components.data_source_components.st")
-    @patch("src.web.pages.ui.components.data_source_components.CardComponents")
-    @patch("src.web.pages.ui.components.data_source_components.DataComponents")
+    @patch("src.web.components.data_source.data_source_components.st")
+    @patch("src.web.components.data_source.data_source_components.CardComponents")
+    @patch("src.web.components.data_source.data_source_components.DataComponents")
     def test_render_csv_pool_delete_failed(
         self,
         mock_data_comp: MagicMock,
@@ -1148,7 +1148,7 @@ class TestDataSourceComponents:
         mock_st: MagicMock,
         tmp_path: Path,
     ) -> None:
-        from src.web.pages.ui.components.data_source_components import (
+        from src.web.components.data_source.data_source_components import (
             DataSourceComponents,
         )
 
@@ -1172,16 +1172,16 @@ class TestDataSourceComponents:
 class TestPlotManagerComponents:
     """Cover PlotManagerComponents UI methods."""
 
-    @patch("src.web.pages.ui.components.plot_manager_components.st")
-    @patch("src.web.pages.ui.components.plot_manager_components.PlotFactory")
-    @patch("src.web.pages.ui.components.plot_manager_components.PlotService")
+    @patch("src.web.components.plotting.plot_manager_components.st")
+    @patch("src.web.components.plotting.plot_manager_components.PlotFactory")
+    @patch("src.web.components.plotting.plot_manager_components.PlotService")
     def test_render_create_plot_section(
         self,
         mock_plot_svc: MagicMock,
         mock_factory: MagicMock,
         mock_st: MagicMock,
     ) -> None:
-        from src.web.pages.ui.components.plot_manager_components import (
+        from src.web.components.plotting.plot_manager_components import (
             PlotManagerComponents,
         )
 
@@ -1200,16 +1200,16 @@ class TestPlotManagerComponents:
 
         PlotManagerComponents.render_create_plot_section(api)
 
-    @patch("src.web.pages.ui.components.plot_manager_components.st")
-    @patch("src.web.pages.ui.components.plot_manager_components.PlotFactory")
-    @patch("src.web.pages.ui.components.plot_manager_components.PlotService")
+    @patch("src.web.components.plotting.plot_manager_components.st")
+    @patch("src.web.components.plotting.plot_manager_components.PlotFactory")
+    @patch("src.web.components.plotting.plot_manager_components.PlotService")
     def test_render_create_plot_section_button_clicked(
         self,
         mock_plot_svc: MagicMock,
         mock_factory: MagicMock,
         mock_st: MagicMock,
     ) -> None:
-        from src.web.pages.ui.components.plot_manager_components import (
+        from src.web.components.plotting.plot_manager_components import (
             PlotManagerComponents,
         )
 
@@ -1229,9 +1229,9 @@ class TestPlotManagerComponents:
         PlotManagerComponents.render_create_plot_section(api)
         mock_plot_svc.create_plot.assert_called_once()
 
-    @patch("src.web.pages.ui.components.plot_manager_components.st")
+    @patch("src.web.components.plotting.plot_manager_components.st")
     def test_render_plot_selector_no_plots(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.plot_manager_components import (
+        from src.web.components.plotting.plot_manager_components import (
             PlotManagerComponents,
         )
 
@@ -1242,9 +1242,9 @@ class TestPlotManagerComponents:
         assert result is None
         mock_st.warning.assert_called()
 
-    @patch("src.web.pages.ui.components.plot_manager_components.st")
+    @patch("src.web.components.plotting.plot_manager_components.st")
     def test_render_plot_selector_with_plots(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.plot_manager_components import (
+        from src.web.components.plotting.plot_manager_components import (
             PlotManagerComponents,
         )
 
@@ -1264,9 +1264,9 @@ class TestPlotManagerComponents:
         result = PlotManagerComponents.render_plot_selector(api)
         assert result == plot2
 
-    @patch("src.web.pages.ui.components.plot_manager_components.st")
+    @patch("src.web.components.plotting.plot_manager_components.st")
     def test_render_plot_selector_unknown_current_id(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.components.plot_manager_components import (
+        from src.web.components.plotting.plot_manager_components import (
             PlotManagerComponents,
         )
 
@@ -1283,14 +1283,14 @@ class TestPlotManagerComponents:
         result = PlotManagerComponents.render_plot_selector(api)
         assert result == plot1
 
-    @patch("src.web.pages.ui.components.plot_manager_components.PlotService")
-    @patch("src.web.pages.ui.components.plot_manager_components.st")
+    @patch("src.web.components.plotting.plot_manager_components.PlotService")
+    @patch("src.web.components.plotting.plot_manager_components.st")
     def test_render_plot_controls(
         self,
         mock_st: MagicMock,
         mock_plot_svc: MagicMock,
     ) -> None:
-        from src.web.pages.ui.components.plot_manager_components import (
+        from src.web.components.plotting.plot_manager_components import (
             PlotManagerComponents,
         )
 
@@ -1316,10 +1316,10 @@ class TestPlotManagerComponents:
 
         PlotManagerComponents.render_plot_controls(api, plot)
 
-    @patch("src.web.pages.ui.components.plot_manager_components.ShaperFactory")
-    @patch("src.web.pages.ui.components.plot_manager_components.apply_shapers")
-    @patch("src.web.pages.ui.components.plot_manager_components.configure_shaper")
-    @patch("src.web.pages.ui.components.plot_manager_components.st")
+    @patch("src.web.components.plotting.plot_manager_components.ShaperFactory")
+    @patch("src.web.components.plotting.plot_manager_components.apply_shapers")
+    @patch("src.web.components.plotting.plot_manager_components.configure_shaper")
+    @patch("src.web.components.plotting.plot_manager_components.st")
     def test_render_pipeline_editor_no_data(
         self,
         mock_st: MagicMock,
@@ -1327,7 +1327,7 @@ class TestPlotManagerComponents:
         mock_apply: MagicMock,
         mock_shaper_factory: MagicMock,
     ) -> None:
-        from src.web.pages.ui.components.plot_manager_components import (
+        from src.web.components.plotting.plot_manager_components import (
             PlotManagerComponents,
         )
 
@@ -1337,7 +1337,6 @@ class TestPlotManagerComponents:
 
         PlotManagerComponents.render_pipeline_editor(api, plot)
         mock_st.warning.assert_called()
-
 
 
 # ===================================================================
@@ -1822,7 +1821,7 @@ class TestDataManagerBase:
     def test_get_data_delegates(self) -> None:
         import pandas as pd
 
-        from src.web.pages.ui.data_managers.data_manager import DataManager
+        from src.web.components.data_managers.data_manager import DataManager
 
         class ConcreteManager(DataManager):
             @property
@@ -1844,7 +1843,7 @@ class TestDataManagerBase:
     def test_set_data_delegates(self) -> None:
         import pandas as pd
 
-        from src.web.pages.ui.data_managers.data_manager import DataManager
+        from src.web.components.data_managers.data_manager import DataManager
 
         class ConcreteManager(DataManager):
             @property
@@ -1908,10 +1907,10 @@ class TestStyleManager:
 class TestPlotManagerComponentsExtra:
     """Additional PlotManagerComponents coverage."""
 
-    @patch("src.web.pages.ui.components.plot_manager_components.ShaperFactory")
-    @patch("src.web.pages.ui.components.plot_manager_components.apply_shapers")
-    @patch("src.web.pages.ui.components.plot_manager_components.configure_shaper")
-    @patch("src.web.pages.ui.components.plot_manager_components.st")
+    @patch("src.web.components.plotting.plot_manager_components.ShaperFactory")
+    @patch("src.web.components.plotting.plot_manager_components.apply_shapers")
+    @patch("src.web.components.plotting.plot_manager_components.configure_shaper")
+    @patch("src.web.components.plotting.plot_manager_components.st")
     def test_render_pipeline_editor_with_data_and_pipeline(
         self,
         mock_st: MagicMock,
@@ -1921,7 +1920,7 @@ class TestPlotManagerComponentsExtra:
     ) -> None:
         import pandas as pd
 
-        from src.web.pages.ui.components.plot_manager_components import (
+        from src.web.components.plotting.plot_manager_components import (
             PlotManagerComponents,
         )
 
@@ -1973,9 +1972,9 @@ class TestPlotManagerComponentsExtra:
 class TestDataSourceComponentsExtra:
     """Additional DataSourceComponents coverage."""
 
-    @patch("src.web.pages.ui.components.data_source_components.st")
-    @patch("src.web.pages.ui.components.data_source_components.CardComponents")
-    @patch("src.web.pages.ui.components.data_source_components.DataComponents")
+    @patch("src.web.components.data_source.data_source_components.st")
+    @patch("src.web.components.data_source.data_source_components.CardComponents")
+    @patch("src.web.components.data_source.data_source_components.DataComponents")
     def test_render_csv_pool_preview_exception(
         self,
         mock_data_comp: MagicMock,
@@ -1983,7 +1982,7 @@ class TestDataSourceComponentsExtra:
         mock_st: MagicMock,
         tmp_path: Path,
     ) -> None:
-        from src.web.pages.ui.components.data_source_components import (
+        from src.web.components.data_source.data_source_components import (
             DataSourceComponents,
         )
 
@@ -1998,11 +1997,11 @@ class TestDataSourceComponentsExtra:
         DataSourceComponents.render_csv_pool(api)
         mock_st.exception.assert_called()
 
-    @patch("src.web.pages.ui.components.data_source_components.st")
-    @patch("src.web.pages.ui.components.data_source_components.VariableEditor")
+    @patch("src.web.components.data_source.data_source_components.st")
+    @patch("src.web.components.data_source.data_source_components.VariableEditor")
     def test_render_parser_config(self, mock_editor: MagicMock, mock_st: MagicMock) -> None:
         """Cover render_parser_config fragment (partially)."""
-        from src.web.pages.ui.components.data_source_components import (
+        from src.web.components.data_source.data_source_components import (
             DataSourceComponents,
         )
 

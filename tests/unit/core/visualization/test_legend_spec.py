@@ -1,11 +1,11 @@
 """
-Tests for LegendConfig — uniform legend model for primary/secondary/boxed.
+Tests for LegendConfig — uniform legend model for primary/secondary/tertiary.
 
 Covers:
   - Default construction and role assignment
   - LegendSpacingConfig construction and serialization
   - to_dict/from_dict round-trip
-  - All three roles (primary, secondary, boxed)
+  - All three roles (primary, secondary, tertiary)
 """
 
 from src.core.models.visualization.legend_config import (
@@ -74,14 +74,14 @@ class TestLegendSpec:
         assert legend.role == "secondary"
         assert legend.font_size == -1
 
-    def test_boxed_legend(self) -> None:
+    def test_tertiary_legend(self) -> None:
         legend = LegendConfig(
-            role="boxed",
+            role="tertiary",
             font_size=-1,
             number_fontsize=-1,
             text_fontsize=-1,
         )
-        assert legend.role == "boxed"
+        assert legend.role == "tertiary"
         assert legend.number_fontsize == -1
         assert legend.text_fontsize == -1
 
@@ -131,7 +131,7 @@ class TestLegendSpec:
     def test_round_trip(self) -> None:
         """to_dict then from_dict should preserve all values."""
         original = LegendConfig(
-            role="boxed",
+            role="tertiary",
             font_size=14,
             bold=True,
             ncol=2,
@@ -154,7 +154,7 @@ class TestLegendSpec:
         data = original.to_dict()
         restored = LegendConfig.from_dict(data)
 
-        assert restored.role == "boxed"
+        assert restored.role == "tertiary"
         assert restored.font_size == 14
         assert restored.bold is True
         assert restored.ncol == 2

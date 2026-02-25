@@ -1,7 +1,7 @@
 """Tests for PlotRenderer cache utility methods.
 
 After B6, PlotRenderer only retains cache-key computation utilities.
-Rendering, engine selection, and display are handled by ChartPresenter
+Rendering, engine selection, and display are handled by ChartDisplayComponent
 and PlotRenderController.
 """
 

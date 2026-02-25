@@ -358,6 +358,7 @@ class TestDualAxisDotScenarios:
 # ── Config UI tests ──────────────────────────────────────────────
 
 _MOD = "src.web.pages.ui.plotting.types.grouped_stacked_bar_plot"
+_CFG_MOD = "src.web.components.plotting.config.grouped_stacked_bar_config"
 
 
 def _ctx() -> MagicMock:
@@ -370,10 +371,11 @@ def _ctx() -> MagicMock:
 class TestDualAxisConfigUI:
     """Test render_config_ui dual-axis section."""
 
-    @patch(f"{_MOD}.PlotConfigComponents")
-    @patch(f"{_MOD}.st")
+    @patch(f"{_CFG_MOD}.PlotConfigComponents")
+    @patch(f"{_CFG_MOD}.detect_column_types")
+    @patch(f"{_CFG_MOD}.st")
     def test_checkbox_disabled_produces_default_keys(
-        self, mock_st: MagicMock, mock_pcc: MagicMock
+        self, mock_st: MagicMock, mock_detect: MagicMock, mock_pcc: MagicMock
     ) -> None:
         """When dual_axis checkbox is unchecked, config has default values."""
         plot = GroupedStackedBarPlot(99, "Test")
@@ -386,13 +388,13 @@ class TestDualAxisConfigUI:
             }
         )
 
+        mock_detect.return_value = (["V1", "V2"], ["Bench", "Cfg"])
+
         # Mocks: col1/col2 context managers
         mock_st.columns.return_value = [_ctx(), _ctx()]
         mock_st.selectbox.side_effect = ["Bench", "Cfg"]
         mock_st.multiselect.side_effect = [
             ["V1"],  # y_columns
-            None,  # x_filter
-            None,  # group_filter
         ]
 
         mock_pcc.render_title_labels_section.return_value = {
@@ -413,9 +415,12 @@ class TestDualAxisConfigUI:
         assert result["right_axis_type"] == "bars"
         assert result["ylabel_right"] == ""
 
-    @patch(f"{_MOD}.PlotConfigComponents")
-    @patch(f"{_MOD}.st")
-    def test_checkbox_enabled_with_dots(self, mock_st: MagicMock, mock_pcc: MagicMock) -> None:
+    @patch(f"{_CFG_MOD}.PlotConfigComponents")
+    @patch(f"{_CFG_MOD}.detect_column_types")
+    @patch(f"{_CFG_MOD}.st")
+    def test_checkbox_enabled_with_dots(
+        self, mock_st: MagicMock, mock_detect: MagicMock, mock_pcc: MagicMock
+    ) -> None:
         """When dual_axis is enabled + dots, config has right-axis keys."""
         plot = GroupedStackedBarPlot(99, "Test")
         data = pd.DataFrame(
@@ -426,6 +431,8 @@ class TestDualAxisConfigUI:
                 "V2": [3.0, 4.0],
             }
         )
+
+        mock_detect.return_value = (["V1", "V2"], ["Bench", "Cfg"])
 
         mock_st.columns.return_value = [_ctx(), _ctx()]
         mock_st.selectbox.side_effect = ["Bench", "Cfg"]
@@ -624,8 +631,8 @@ class TestDualAxisGridLines:
             "dual_axis": True,
             "right_axis_type": "bars",
             "title": "Test",
-            "show_left_grid": True,
-            "show_right_grid": True,
+            "show_y_grid": True,
+            "y2show_y_grid": True,
         }
         fig: go.Figure = plot.create_figure(sample_data, config)
         fig = plot.apply_common_layout(fig, config)
@@ -645,8 +652,8 @@ class TestDualAxisGridLines:
             "dual_axis": True,
             "right_axis_type": "bars",
             "title": "Test",
-            "show_left_grid": False,
-            "show_right_grid": True,
+            "show_y_grid": False,
+            "y2show_y_grid": True,
         }
         fig: go.Figure = plot.create_figure(sample_data, config)
         fig = plot.apply_common_layout(fig, config)
@@ -666,8 +673,8 @@ class TestDualAxisGridLines:
             "dual_axis": True,
             "right_axis_type": "bars",
             "title": "Test",
-            "show_left_grid": True,
-            "show_right_grid": False,
+            "show_y_grid": True,
+            "y2show_y_grid": False,
         }
         fig: go.Figure = plot.create_figure(sample_data, config)
         fig = plot.apply_common_layout(fig, config)
@@ -687,8 +694,8 @@ class TestDualAxisGridLines:
             "dual_axis": True,
             "right_axis_type": "bars",
             "title": "Test",
-            "show_left_grid": False,
-            "show_right_grid": False,
+            "show_y_grid": False,
+            "y2show_y_grid": False,
         }
         fig: go.Figure = plot.create_figure(sample_data, config)
         fig = plot.apply_common_layout(fig, config)
@@ -806,8 +813,8 @@ class TestDualAxisDisplaySettingsUI:
 
         plot._render_dual_axis_display_settings({}, config)
 
-        assert "show_left_grid" in config
-        assert "show_right_grid" in config
+        assert "show_y_grid" in config
+        assert "y2show_y_grid" in config
         assert "unified_legend" in config
 
 

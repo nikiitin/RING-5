@@ -10,16 +10,9 @@ enabling users to create custom analysis pipelines.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, TypedDict
+from typing import Any
 
 import pandas as pd
-
-
-class ShaperConfig(TypedDict, total=False):
-    """Type definition for shaper configuration parameters."""
-
-    type: str  # Shaper type identifier
-    params: dict[str, Any]  # Type-specific parameters
 
 
 class Shaper(ABC):

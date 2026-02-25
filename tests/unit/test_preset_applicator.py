@@ -146,7 +146,7 @@ class TestPresetApplicatorApply:
         spec = _make_config_spec()
         result = PresetApplicator.apply(spec, _isca_preset())
 
-        # PresetSpecBuilder generates 3 legends (primary, secondary, boxed)
+        # PresetSpecBuilder generates 3 legends (primary, secondary, tertiary)
         assert len(result.legends) == 3
         primary = result.legends[0]
         assert primary.role == "primary"

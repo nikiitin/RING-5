@@ -107,11 +107,10 @@ def test_render_xaxis_labels_ui(style_manager: Any, mock_streamlit: Any) -> None
 def test_render_layout_options(style_manager: Any, mock_streamlit: Any) -> None:
     """Test layout options rendering."""
     saved_config = {"width": 900}
-    mock_streamlit.slider.return_value = 900
-    mock_streamlit.number_input.return_value = 50
-    mock_streamlit.checkbox.return_value = True
+    mock_streamlit.selectbox.return_value = "Double Column (~7.0in)"
+    mock_streamlit.number_input.return_value = 3.5
 
     result = style_manager.render_layout_options(saved_config)
 
-    assert result["width"] == 900
+    assert result["width"] == 700  # 7.0 inches * 100 px/inch
     assert result["automargin"] is True

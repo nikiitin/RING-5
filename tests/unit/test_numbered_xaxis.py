@@ -340,15 +340,15 @@ class TestGroupingLabelDetection:
 
 
 # ---------------------------------------------------------------------------
-# Pure logic: boxed annotation detection
+# Pure logic: tertiary annotation detection
 # ---------------------------------------------------------------------------
-class TestBoxedAnnotationExport:
-    """Test that boxed annotations are detected via borderwidth."""
+class TestTertiaryAnnotationExport:
+    """Test that tertiary annotations are detected via borderwidth."""
 
-    def test_boxed_annotation_detected(self) -> None:
-        """Annotation with borderwidth > 0 is detected as boxed."""
-        ann_boxed: dict[str, Any] = {"borderwidth": 1, "text": "1. a"}
-        assert ann_boxed.get("borderwidth", 0) > 0
+    def test_tertiary_annotation_detected(self) -> None:
+        """Annotation with borderwidth > 0 is detected as tertiary."""
+        ann_tertiary: dict[str, Any] = {"borderwidth": 1, "text": "1. a"}
+        assert ann_tertiary.get("borderwidth", 0) > 0
 
         ann_plain: dict[str, Any] = {"text": "plain"}
         assert not (ann_plain.get("borderwidth", 0) > 0)

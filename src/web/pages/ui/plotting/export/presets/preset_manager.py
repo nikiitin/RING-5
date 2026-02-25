@@ -130,7 +130,7 @@ class PresetManager:
             "legend2_borderpad": raw_preset.get("legend2_borderpad", -1.0),
             "legend2_borderaxespad": raw_preset.get("legend2_borderaxespad", -1.0),
             "legend2_ncol": raw_preset.get("legend2_ncol", 0),
-            # Legend3 (numbered/boxed) spacing
+            # Legend3 (tertiary / numbered) spacing
             "legend3_borderpad": raw_preset.get("legend3_borderpad", -1.0),
             "legend3_labelspacing": raw_preset.get("legend3_labelspacing", -1.0),
             "legend3_number_fontsize": raw_preset.get("legend3_number_fontsize", -1),

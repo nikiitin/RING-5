@@ -1,6 +1,6 @@
 """
-Coverage tests for shaper_config, PipelinePresenter,
-PipelineStepPresenter, DataManager, and StyleManager.
+Coverage tests for shaper_config, PipelineComponent,
+PipelineStepComponent, DataManager, and StyleManager.
 
 Targets uncovered lines:
 - shaper_config.py: 122-134
@@ -95,41 +95,41 @@ class TestShaperApplyBranches:
 
 
 # ===========================================================================
-# PipelinePresenter
+# PipelineComponent
 # ===========================================================================
 
 
-class TestPipelinePresenterBranches:
+class TestPipelineComponentBranches:
     """Lines 49 (render_add_shaper), 116 (render_finalize_button)."""
 
-    @patch("src.web.presenters.plot.pipeline_presenter.st")
+    @patch("src.web.components.common.pipeline.st")
     def test_render_add_shaper(self, mock_st: MagicMock) -> None:
-        from src.web.presenters.plot.pipeline_presenter import PipelinePresenter
+        from src.web.components.common.pipeline import PipelineComponent
 
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.selectbox.return_value = "Sort"
         mock_st.button.return_value = True
 
-        result = PipelinePresenter.render_add_shaper(plot_id=1)
+        result = PipelineComponent.render_add_shaper(plot_id=1)
 
         assert result["add_clicked"] is True
         assert result["shaper_type"] == "sort"
 
-    @patch("src.web.presenters.plot.pipeline_presenter.st")
+    @patch("src.web.components.common.pipeline.st")
     def test_render_finalize_button(self, mock_st: MagicMock) -> None:
-        from src.web.presenters.plot.pipeline_presenter import PipelinePresenter
+        from src.web.components.common.pipeline import PipelineComponent
 
         mock_st.button.return_value = True
-        assert PipelinePresenter.render_finalize_button(plot_id=1) is True
+        assert PipelineComponent.render_finalize_button(plot_id=1) is True
 
-    @patch("src.web.presenters.plot.pipeline_presenter.st")
+    @patch("src.web.components.common.pipeline.st")
     def test_render_shaper_controls(self, mock_st: MagicMock) -> None:
-        from src.web.presenters.plot.pipeline_presenter import PipelinePresenter
+        from src.web.components.common.pipeline import PipelineComponent
 
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.button.return_value = False
 
-        result = PipelinePresenter.render_shaper_controls(
+        result = PipelineComponent.render_shaper_controls(
             plot_id=1, idx=0, shaper_type="sort", is_first=False, is_last=False
         )
 
@@ -139,32 +139,32 @@ class TestPipelinePresenterBranches:
 
 
 # ===========================================================================
-# PipelineStepPresenter
+# PipelineStepComponent
 # ===========================================================================
 
 
-class TestPipelineStepPresenterBranches:
+class TestPipelineStepComponentBranches:
     """Lines 130-132: render_finalize_result, render_finalize_error."""
 
-    @patch("src.web.presenters.plot.pipeline_step_presenter.st")
+    @patch("src.web.components.common.pipeline_step.st")
     def test_render_finalize_result(self, mock_st: MagicMock) -> None:
-        from src.web.presenters.plot.pipeline_step_presenter import (
-            PipelineStepPresenter,
+        from src.web.components.common.pipeline_step import (
+            PipelineStepComponent,
         )
 
         df = pd.DataFrame({"a": [1, 2, 3]})
-        PipelineStepPresenter.render_finalize_result(df)
+        PipelineStepComponent.render_finalize_result(df)
 
         mock_st.toast.assert_called()
         mock_st.dataframe.assert_called()
 
-    @patch("src.web.presenters.plot.pipeline_step_presenter.st")
+    @patch("src.web.components.common.pipeline_step.st")
     def test_render_finalize_error(self, mock_st: MagicMock) -> None:
-        from src.web.presenters.plot.pipeline_step_presenter import (
-            PipelineStepPresenter,
+        from src.web.components.common.pipeline_step import (
+            PipelineStepComponent,
         )
 
-        PipelineStepPresenter.render_finalize_error("some error")
+        PipelineStepComponent.render_finalize_error("some error")
         mock_st.exception.assert_called_once()
 
 
@@ -177,7 +177,7 @@ class TestDataManagerBase:
     """Cover get_data / set_data methods."""
 
     def test_get_data(self) -> None:
-        from src.web.pages.ui.data_managers.data_manager import DataManager
+        from src.web.components.data_managers.data_manager import DataManager
 
         api = _make_mock_api()
         api.state_manager.get_data.return_value = pd.DataFrame({"x": [1]})
@@ -197,7 +197,7 @@ class TestDataManagerBase:
         assert len(result) == 1
 
     def test_set_data(self) -> None:
-        from src.web.pages.ui.data_managers.data_manager import DataManager
+        from src.web.components.data_managers.data_manager import DataManager
 
         api = _make_mock_api()
 

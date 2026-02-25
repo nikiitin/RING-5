@@ -22,7 +22,7 @@ from src.core.models.visualization.figure_config import (
     SeparatorConfig,
 )
 from src.core.models.visualization.legend_config import LegendConfig
-from src.core.models.visualization.resolvers import resolve_config
+from src.core.services.visualization.config_resolver import resolve_config
 from src.core.models.visualization.series_style_config import SeriesStyleConfig
 from src.core.models.visualization.typography_config import TypographyConfig
 from src.web.rendering.config_builder import PlotlyFigureSpecBuilder, PresetSpecBuilder
@@ -322,7 +322,7 @@ class TestPresetSpecBuilder:
         assert spec.typography.bold_annotations is True
 
     def test_legends(self) -> None:
-        """Preset should produce 3 legends (primary, secondary, boxed)."""
+        """Preset should produce 3 legends (primary, secondary, tertiary)."""
         preset = self._make_preset()
         spec = PresetSpecBuilder.from_preset(preset)
 
@@ -338,9 +338,9 @@ class TestPresetSpecBuilder:
         assert secondary.role == "secondary"
         assert secondary.font_size == -1  # sentinel, needs resolution
 
-        boxed = spec.legends[2]
-        assert boxed.role == "boxed"
-        assert boxed.font_size == -1
+        tertiary = spec.legends[2]
+        assert tertiary.role == "tertiary"
+        assert tertiary.font_size == -1
 
     def test_axes(self) -> None:
         """Preset axis settings should map correctly."""

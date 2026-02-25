@@ -6,7 +6,7 @@ from typing import Any, cast
 
 import pytest
 
-from src.core.models.config.config_manager import (
+from src.core.services.config_validation_service import (
     ConfigTemplateGenerator,
     ConfigValidator,
     create_simple_bar_plot_config,

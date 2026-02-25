@@ -54,12 +54,16 @@ All three MUST return empty.
 
 ## Mandatory Patterns
 
-| Pattern   | Where                | Example                         |
-| :-------- | :------------------- | :------------------------------ |
-| Strategy  | Parsing formats      | `ParserStrategy.parse()`        |
-| Factory   | Plot/Shaper creation | `PlotFactory.create_plot()`     |
-| Facade    | Backend API          | `BackendFacade` as single entry |
-| Singleton | Config/Pool mgmt     | `WorkPool`, `ConfigManager`     |
+| Pattern              | Where                   | Example                                                    |
+| :------------------- | :---------------------- | :--------------------------------------------------------- |
+| Strategy             | Parsing formats         | `ParserStrategy.parse()`                                   |
+| Factory              | Plot/Shaper creation    | `PlotFactory.create()`, `ShaperFactory.create_shaper()`    |
+| Builder              | FigureConfig creation   | `FigureConfigBuilder.with_axes(...).build()`               |
+| Facade               | Backend API             | `ApplicationAPI` as single entry                           |
+| Singleton            | Config/Pool mgmt        | `WorkPool`, `ConfigManager`                                |
+| Discriminated Union  | Typed models            | Per-type shaper configs: `MeanShaperConfig`, etc.          |
+| Template Method      | Data managers           | `BaseManagerComponent`: config → preview → confirm         |
+| Component            | UI rendering            | Self-contained Streamlit widgets returning structured data  |
 
 ## Coding Standards
 
@@ -119,6 +123,7 @@ See `.agent/workflows/code-quality-gate.md` for the full gate. Quick version:
 | :---------------------- | :-------------------------------------------- | :----------------------- |
 | Quality Gate            | `.agent/workflows/code-quality-gate.md`       | After EVERY code change  |
 | Architecture Validation | `.agent/workflows/architecture-validation.md` | After structural changes |
+| Large Refactor          | `.agent/workflows/large-refactor.md`          | Multi-phase refactoring  |
 | TDD                     | `.agent/workflows/test-driven-development.md` | All new features/fixes   |
 | Release Review          | `.agent/workflows/release-branch-review.md`   | Before merge to main     |
 | New Plot Type           | `.agent/workflows/new-plot-type.md`           | Adding visualizations    |
@@ -138,18 +143,52 @@ See `.agent/workflows/code-quality-gate.md` for the full gate. Quick version:
 src/
 ├── core/                    # Layers A+B (NO UI imports)
 │   ├── parsing/             # Layer A: gem5 parsing, scanning
-│   ├── models/              # Domain models, DTOs
-│   ├── services/            # Layer B: business logic
+│   ├── models/              # Domain models, DTOs, discriminated unions
+│   │   ├── shaper_models.py # Per-type shaper configs (discriminated union)
+│   │   └── visualization/   # FigureConfig, LegendConfig, AxisConfig, etc.
+│   ├── services/            # Layer B: business logic, validation
+│   │   └── shapers/         # Factory (single source of display names), validation
 │   ├── common/              # Shared utilities
 │   └── state/               # State management
 └── web/                     # Layer C: Presentation
-    ├── controllers/         # Request handling
-    ├── presenters/          # Data formatting for UI
-    ├── pages/               # Streamlit pages (4 pages: Data Source,
-    │                        #   Data Managers, Manage Plots, Portfolio)
-    ├── rendering/           # Plot rendering (config_builder, connectors)
+    ├── components/          # Component-based UI (NO presenters)
+    │   ├── common/          # card_components, data_components, history_components,
+    │   │                    # layout_components, chart_display, pipeline,
+    │   │                    # plot_controls, plot_creation, plot_selector,
+    │   │                    # reorderable_list
+    │   ├── shapers/         # mean_config, normalize_config, sort_config,
+    │   │                    # selector_transformer_configs, split_apply_config
+    │   ├── data_managers/   # data_manager (base), mixer, outlier_remover,
+    │   │                    # preprocessor, seeds_reducer, data_manager_components
+    │   ├── data_source/     # data_source_components, pattern_index_selector,
+    │   │                    # variable_editor
+    │   └── plotting/
+    │       ├── settings/    # axes, legend, typography, layout, data_labels,
+    │       │                # colors, advanced, engine, ordering, reference_line,
+    │       │                # shapes
+    │       ├── config/      # base_plot_config, bar_config, line_config,
+    │       │                # scatter_config, grouped_bar_config, stacked_bar_config,
+    │       │                # grouped_stacked_bar_config, histogram_config,
+    │       │                # dual_axis_config, dual_axis_settings,
+    │       │                # grouped_stacked_bar_theme, plot_config_components
+    │       ├── styles/      # (reserved for future series style components)
+    │       ├── custom_plotly/ # Custom Plotly chart component
+    │       ├── interactive_plot.py
+    │       └── plot_manager_components.py
+    ├── controllers/         # Orchestrate components → services → state
+    ├── pages/               # Top-level page composition only
+    │   └── ui/plotting/     # Plot type classes (Factory-registered), styles,
+    │                        # utils, plot_factory, plot_renderer, download_section
+    ├── rendering/           # Config builder, connectors, traces
     └── state/               # UI state
 ```
+
+**Architectural principles** (MUST follow):
+- **Component-only**: NO presenters — components are the only UI abstraction
+- **Discriminated unions**: Models with `type` field use per-type sub-configs
+- **Single source of truth**: Display names, registries in ONE place only
+- **Legend hierarchy**: Primary (`legend_*`), Secondary (`legend2_*`), Tertiary (`legend3_*`) — NEVER "boxed"
+- **Refactor plan**: See `.agent/plans/architectural-refactor-v2.md` for the full plan
 
 **Removed features** (do NOT re-add):
 - Performance page (removed Phase 1)
@@ -158,13 +197,14 @@ src/
 - Workspace management (download all, process all, save workspace — removed Phase 5)
 - Reference Line Normalizer shaper (removed Phase 16)
 - Customization settings pill (removed Phase 18 — was dead/empty)
+- **Presenter layer** (removed architectural refactor v2 — replaced by components)
 
 **UI patterns** (established during refactoring):
 - Settings pills with progressive disclosure (basic → advanced toggle)
-- Conditional widget rendering (Y-Right, secondary/boxed legends)
+- Conditional widget rendering (Y-Right, secondary/tertiary legends)
 - Unified axis config via `_render_axis_config(prefix, label)` helper
 - Combined reorder+rename via `render_reorderable_list(enable_rename=True)`
-- Legend multi-level: `legend_*`, `legend2_*`, `legend3_*` config key prefixes
+- Legend multi-level: `legend_*` (primary), `legend2_*` (secondary), `legend3_*` (tertiary)
 
 ## Quick Commands
 
@@ -179,7 +219,8 @@ make test                                          # Run all tests
 
 ## References
 
-- **Rules**: `.agent/rules/` (000-008)
-- **Workflows**: `.agent/workflows/`
-- **Skills**: `.agent/skills/`
-- **Tests**: `tests/` (unit, integration, ui, ui_logic, visual)
+- **Rules**: `.agent/rules/` (000-009)
+- **Workflows**: `.agent/workflows/` (incl. `large-refactor.md`)
+- **Skills**: `.agent/skills/` (incl. `refactoring-large-codebase/`)
+- **Plans**: `.agent/plans/architectural-refactor-v2.md` — canonical refactor log
+- **Tests**: `tests/` (unit, integration, ui, ui_logic, ui_unit)

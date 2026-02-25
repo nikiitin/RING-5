@@ -2,7 +2,7 @@
 
 Provides deterministic cache-key computation for figure caching.
 Chart display, engine selection, and download are handled by
-``ChartPresenter``; figure generation by ``PlotRenderController``.
+``ChartDisplayComponent``; figure generation by ``PlotRenderController``.
 """
 
 import hashlib
@@ -15,7 +15,7 @@ import pandas as pd
 class PlotRenderer:
     """Cache-key utilities for plot figure caching.
 
-    All rendering methods have been moved to ``ChartPresenter``
+    All rendering methods have been moved to ``ChartDisplayComponent``
     (engine selector, chart display, download) and
     ``PlotRenderController`` (figure generation + caching).
 

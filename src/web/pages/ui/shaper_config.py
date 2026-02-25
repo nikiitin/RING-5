@@ -10,81 +10,26 @@ import streamlit as st
 
 from src.core.models.data_models import ShaperStepConfig
 from src.core.services.shapers.factory import ShaperFactory
-from src.web.pages.ui.components.shapers.mean_config import MeanConfig
-from src.web.pages.ui.components.shapers.normalize_config import NormalizeConfig
-from src.web.pages.ui.components.shapers.selector_transformer_configs import (
+from src.core.services.shapers.validation import validate_shaper_config
+from src.web.components.shapers.mean_config import MeanConfig
+from src.web.components.shapers.normalize_config import NormalizeConfig
+from src.web.components.shapers.selector_transformer_configs import (
     ColumnSelectorConfig,
     ConditionSelectorConfig,
     TransformerConfig,
 )
-from src.web.pages.ui.components.shapers.sort_config import SortConfig
-from src.web.pages.ui.components.shapers.split_apply_config import SplitApplyConfig
+from src.web.components.shapers.sort_config import SortConfig
+from src.web.components.shapers.split_apply_config import SplitApplyConfig
 
 logger = logging.getLogger(__name__)
 
-# Constants mapping Human readable names to factory keys
-SHAPER_TYPE_MAP = {
-    "Column Selector": "columnSelector",
-    "Normalize": "normalize",
-    "Mean Calculator": "mean",
-    "Filter": "conditionSelector",
-    "Transformer": "transformer",
-    "Sort": "sort",
-    "Split-Apply (Per-Axis)": "splitApply",
-    # Reverse mapping for compatibility
-    "columnSelector": "Column Selector",
-    "normalize": "Normalize",
-    "mean": "Mean Calculator",
-    "conditionSelector": "Filter",
-    "transformer": "Transformer",
-    "sort": "Sort",
-    "splitApply": "Split-Apply (Per-Axis)",
+# Display name mapping — delegates to the single source of truth
+# in ``ShaperFactory``. This module only provides the reverse
+# (type → display) for compatibility.
+SHAPER_TYPE_MAP: dict[str, str] = {
+    **ShaperFactory.get_display_name_map(),
+    **{v: k for k, v in ShaperFactory.get_display_name_map().items()},
 }
-
-# Required parameters for each shaper type
-# Note: conditionSelector has no universal required params since it supports multiple modes
-# (values, range, threshold, value+mode, condition+value for legacy)
-SHAPER_REQUIRED_PARAMS = {
-    "normalize": ["normalizeVars", "normalizerColumn", "normalizerValue", "groupBy"],
-    "mean": ["groupingColumns", "meanVars"],
-    "columnSelector": ["columns"],
-    "conditionSelector": ["column"],  # Only 'column' is always required
-    "splitApply": ["joinColumns", "groups"],
-    "transformer": ["column"],  # Only 'column' is always required
-    "sort": ["order_dict"],
-}
-
-
-def validate_shaper_config(
-    shaper_type: str, config: ShaperStepConfig
-) -> tuple[bool, list[str] | None]:
-    """
-    Validate if a shaper configuration has all required parameters filled.
-
-    Args:
-        shaper_type: Type of shaper to validate
-        config: Configuration dictionary
-
-    Returns:
-        Tuple of (is_valid, list_of_missing_fields)
-        - is_valid: True if all required params present and non-empty
-        - list_of_missing_fields: List of missing/empty field names, None if valid
-    """
-    required_params = SHAPER_REQUIRED_PARAMS.get(shaper_type, [])
-    missing_fields: list[str] = []
-
-    for param in required_params:
-        value = config.get(param)
-        # Check if param is missing or empty (empty list, empty string, None, etc.)
-        if value is None or (isinstance(value, str) and not value):
-            missing_fields.append(param)
-        elif isinstance(value, list) and not value:
-            missing_fields.append(param)
-
-    if missing_fields:
-        return False, missing_fields
-
-    return True, None
 
 
 def configure_shaper(

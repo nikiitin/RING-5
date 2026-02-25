@@ -1,6 +1,6 @@
 """Tests for SeedsReducerManager — branch coverage."""
 
-from typing import Any, List
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -42,10 +42,10 @@ def mock_api() -> MagicMock:
 class TestSeedsReducerRender:
     """Test SeedsReducerManager.render branch coverage."""
 
-    @patch("src.web.pages.ui.data_managers.impl.seeds_reducer.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.seeds_reducer.st")
+    @patch("src.web.components.data_managers.seeds_reducer.HistoryComponents")
+    @patch("src.web.components.data_managers.seeds_reducer.st")
     def test_no_data(self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock) -> None:
-        from src.web.pages.ui.data_managers.impl.seeds_reducer import (
+        from src.web.components.data_managers.seeds_reducer import (
             SeedsReducerManager,
         )
 
@@ -54,13 +54,13 @@ class TestSeedsReducerRender:
         mgr.render()
         mock_st.error.assert_called_once()
 
-    @patch("src.web.pages.ui.data_managers.impl.seeds_reducer.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.seeds_reducer.st")
+    @patch("src.web.components.data_managers.seeds_reducer.HistoryComponents")
+    @patch("src.web.components.data_managers.seeds_reducer.st")
     def test_no_random_seed_column(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock
     ) -> None:
         """When data has candidate columns, the column selectbox is shown."""
-        from src.web.pages.ui.data_managers.impl.seeds_reducer import (
+        from src.web.components.data_managers.seeds_reducer import (
             SeedsReducerManager,
         )
 
@@ -79,13 +79,13 @@ class TestSeedsReducerRender:
         # Column selectbox should have been rendered
         mock_st.selectbox.assert_called()
 
-    @patch("src.web.pages.ui.data_managers.impl.seeds_reducer.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.seeds_reducer.st")
+    @patch("src.web.components.data_managers.seeds_reducer.HistoryComponents")
+    @patch("src.web.components.data_managers.seeds_reducer.st")
     def test_random_seed_in_numeric(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock
     ) -> None:
         """random_seed as numeric is still a candidate column."""
-        from src.web.pages.ui.data_managers.impl.seeds_reducer import (
+        from src.web.components.data_managers.seeds_reducer import (
             SeedsReducerManager,
         )
 
@@ -111,13 +111,13 @@ class TestSeedsReducerRender:
         # after being selected as reduce target
         mock_st.multiselect.assert_called()
 
-    @patch("src.web.pages.ui.data_managers.impl.seeds_reducer.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.seeds_reducer.st")
+    @patch("src.web.components.data_managers.seeds_reducer.HistoryComponents")
+    @patch("src.web.components.data_managers.seeds_reducer.st")
     def test_no_categorical_after_removing_seed(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock
     ) -> None:
         """When the only categorical col is selected as reduce target, warn."""
-        from src.web.pages.ui.data_managers.impl.seeds_reducer import (
+        from src.web.components.data_managers.seeds_reducer import (
             SeedsReducerManager,
         )
 
@@ -137,12 +137,12 @@ class TestSeedsReducerRender:
         mgr.render()
         mock_st.warning.assert_called()
 
-    @patch("src.web.pages.ui.data_managers.impl.seeds_reducer.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.seeds_reducer.st")
+    @patch("src.web.components.data_managers.seeds_reducer.HistoryComponents")
+    @patch("src.web.components.data_managers.seeds_reducer.st")
     def test_no_numeric_cols(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.seeds_reducer import (
+        from src.web.components.data_managers.seeds_reducer import (
             SeedsReducerManager,
         )
 
@@ -161,12 +161,12 @@ class TestSeedsReducerRender:
         mgr.render()
         mock_st.warning.assert_called()
 
-    @patch("src.web.pages.ui.data_managers.impl.seeds_reducer.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.seeds_reducer.st")
+    @patch("src.web.components.data_managers.seeds_reducer.HistoryComponents")
+    @patch("src.web.components.data_managers.seeds_reducer.st")
     def test_apply_success(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.seeds_reducer import (
+        from src.web.components.data_managers.seeds_reducer import (
             SeedsReducerManager,
         )
 
@@ -191,12 +191,12 @@ class TestSeedsReducerRender:
         mock_st.success.assert_called()
         mock_api.set_preview.assert_called_once()
 
-    @patch("src.web.pages.ui.data_managers.impl.seeds_reducer.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.seeds_reducer.st")
+    @patch("src.web.components.data_managers.seeds_reducer.HistoryComponents")
+    @patch("src.web.components.data_managers.seeds_reducer.st")
     def test_apply_validation_errors(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.seeds_reducer import (
+        from src.web.components.data_managers.seeds_reducer import (
             SeedsReducerManager,
         )
 
@@ -212,12 +212,12 @@ class TestSeedsReducerRender:
         mgr.render()
         mock_st.error.assert_called()
 
-    @patch("src.web.pages.ui.data_managers.impl.seeds_reducer.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.seeds_reducer.st")
+    @patch("src.web.components.data_managers.seeds_reducer.HistoryComponents")
+    @patch("src.web.components.data_managers.seeds_reducer.st")
     def test_apply_exception(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.seeds_reducer import (
+        from src.web.components.data_managers.seeds_reducer import (
             SeedsReducerManager,
         )
 
@@ -234,12 +234,12 @@ class TestSeedsReducerRender:
         mgr.render()
         mock_st.exception.assert_called()
 
-    @patch("src.web.pages.ui.data_managers.impl.seeds_reducer.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.seeds_reducer.st")
+    @patch("src.web.components.data_managers.seeds_reducer.HistoryComponents")
+    @patch("src.web.components.data_managers.seeds_reducer.st")
     def test_confirm_applies_data(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.seeds_reducer import (
+        from src.web.components.data_managers.seeds_reducer import (
             SeedsReducerManager,
         )
 
@@ -259,12 +259,12 @@ class TestSeedsReducerRender:
         mock_api.clear_preview.assert_called_once()
         mock_api.add_manager_history_record.assert_called_once()
 
-    @patch("src.web.pages.ui.data_managers.impl.seeds_reducer.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.seeds_reducer.st")
+    @patch("src.web.components.data_managers.seeds_reducer.HistoryComponents")
+    @patch("src.web.components.data_managers.seeds_reducer.st")
     def test_confirm_none_preview(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.seeds_reducer import (
+        from src.web.components.data_managers.seeds_reducer import (
             SeedsReducerManager,
         )
 
@@ -281,12 +281,12 @@ class TestSeedsReducerRender:
         mgr.render()
         mock_api.state_manager.set_data.assert_not_called()
 
-    @patch("src.web.pages.ui.data_managers.impl.seeds_reducer.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.seeds_reducer.st")
+    @patch("src.web.components.data_managers.seeds_reducer.HistoryComponents")
+    @patch("src.web.components.data_managers.seeds_reducer.st")
     def test_history_load_full(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.seeds_reducer import (
+        from src.web.components.data_managers.seeds_reducer import (
             SeedsReducerManager,
         )
 
@@ -306,12 +306,12 @@ class TestSeedsReducerRender:
         mgr = SeedsReducerManager(mock_api)
         mgr.render()
 
-    @patch("src.web.pages.ui.data_managers.impl.seeds_reducer.HistoryComponents")
-    @patch("src.web.pages.ui.data_managers.impl.seeds_reducer.st")
+    @patch("src.web.components.data_managers.seeds_reducer.HistoryComponents")
+    @patch("src.web.components.data_managers.seeds_reducer.st")
     def test_history_load_missing_columns(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
-        from src.web.pages.ui.data_managers.impl.seeds_reducer import (
+        from src.web.components.data_managers.seeds_reducer import (
             SeedsReducerManager,
         )
 

@@ -75,19 +75,17 @@ class TestRemovedFeatures:
         bp.navigate_to("Manage Plots")
 
         # None of the workspace management buttons should exist
-        expect(
-            shared_page.get_by_role("button", name="Download All")
-        ).not_to_be_visible(timeout=5_000)
+        expect(shared_page.get_by_role("button", name="Download All")).not_to_be_visible(
+            timeout=5_000
+        )
         expect(
             shared_page.get_by_role("button", name="Process All Plots in Parallel")
         ).not_to_be_visible(timeout=5_000)
-        expect(
-            shared_page.get_by_role("button", name="Save Entire Workspace")
-        ).not_to_be_visible(timeout=5_000)
+        expect(shared_page.get_by_role("button", name="Save Entire Workspace")).not_to_be_visible(
+            timeout=5_000
+        )
 
-    def test_only_four_nav_pages(
-        self, shared_page: Page, live_server_url: str
-    ) -> None:
+    def test_only_four_nav_pages(self, shared_page: Page, live_server_url: str) -> None:
         """Sidebar should have exactly 4 pages, none of the removed ones."""
         bp = BasePage(shared_page)
         bp.goto_and_wait(live_server_url)
@@ -102,18 +100,16 @@ class TestRemovedFeatures:
             btn = bp.sidebar.get_by_role("button", name=name)
             expect(btn).not_to_be_visible(timeout=5_000)
 
-    def test_summary_metrics_present_on_home(
-        self, shared_page: Page, live_server_url: str
-    ) -> None:
+    def test_summary_metrics_present_on_home(self, shared_page: Page, live_server_url: str) -> None:
         """Phase 2: Summary metrics (Rows, Columns, Source) should be on
         main page but 'View Current Data' expander should NOT exist."""
         bp = BasePage(shared_page)
         bp.goto_and_wait(live_server_url)
 
         # View Current Data expander should NOT exist
-        view_data = shared_page.locator(
-            "[data-testid='stExpander']"
-        ).filter(has_text="View Current Data")
+        view_data = shared_page.locator("[data-testid='stExpander']").filter(
+            has_text="View Current Data"
+        )
         expect(view_data).not_to_be_visible(timeout=5_000)
 
 
@@ -131,9 +127,7 @@ class TestPlotFeatures:
     """
 
     @pytest.fixture(autouse=True, scope="class")
-    def _parse_and_create_plot(
-        self, shared_page: Page, live_server_url: str
-    ) -> None:
+    def _parse_and_create_plot(self, shared_page: Page, live_server_url: str) -> None:
         """Parse real gem5 data and create a bar plot for testing."""
         ds = DataSourcePage(shared_page)
         ds.goto_and_wait(live_server_url)
@@ -186,9 +180,9 @@ class TestPlotFeatures:
     @pytest.mark.order(1)
     def test_view_current_data_removed(self, shared_page: Page) -> None:
         """View Current Data expander should NOT exist on any page."""
-        view_data = shared_page.locator(
-            "[data-testid='stExpander']"
-        ).filter(has_text="View Current Data")
+        view_data = shared_page.locator("[data-testid='stExpander']").filter(
+            has_text="View Current Data"
+        )
         expect(view_data).not_to_be_visible(timeout=5_000)
 
     @pytest.mark.order(2)
@@ -262,9 +256,9 @@ class TestPlotFeatures:
         mp.wait_for_streamlit()
 
         # Color palette selectbox should be visible
-        palette_widget = shared_page.locator(
-            "[data-testid='stSelectbox']"
-        ).filter(has_text="Color Palette")
+        palette_widget = shared_page.locator("[data-testid='stSelectbox']").filter(
+            has_text="Color Palette"
+        )
         expect(palette_widget).to_be_visible(timeout=_E2E_TIMEOUT)
 
     # -- Phase 8: Height/width manual inputs work --
@@ -285,12 +279,10 @@ class TestPlotFeatures:
         mp.wait_for_streamlit()
 
         # Height and Width number inputs should exist
-        height_input = shared_page.locator(
-            "[data-testid='stNumberInput']"
-        ).filter(has_text="Height")
-        width_input = shared_page.locator(
-            "[data-testid='stNumberInput']"
-        ).filter(has_text="Width")
+        height_input = shared_page.locator("[data-testid='stNumberInput']").filter(
+            has_text="Height"
+        )
+        width_input = shared_page.locator("[data-testid='stNumberInput']").filter(has_text="Width")
         expect(height_input).to_be_visible(timeout=_E2E_TIMEOUT)
         expect(width_input).to_be_visible(timeout=_E2E_TIMEOUT)
 
@@ -390,9 +382,7 @@ class TestPlotFeatures:
     # -- Phase 19: Conditional widgets --
 
     @pytest.mark.order(11)
-    def test_conditional_widgets_dual_axis_hidden(
-        self, shared_page: Page
-    ) -> None:
+    def test_conditional_widgets_dual_axis_hidden(self, shared_page: Page) -> None:
         """For a bar chart (not dual-axis), Y-Right axis pill should NOT appear."""
         mp = ManagePlotsPage(shared_page)
         mp.navigate()
@@ -413,9 +403,7 @@ class TestPlotFeatures:
         expect(y_right).not_to_be_visible(timeout=5_000)
 
     @pytest.mark.order(12)
-    def test_conditional_widgets_secondary_legend_hidden(
-        self, shared_page: Page
-    ) -> None:
+    def test_conditional_widgets_secondary_legend_hidden(self, shared_page: Page) -> None:
         """For non-dual-axis plot, secondary legend pill should NOT appear."""
         mp = ManagePlotsPage(shared_page)
         mp.navigate()
@@ -466,9 +454,9 @@ class TestPlotFeatures:
         shared_page.wait_for_timeout(300)
 
         # Reference Line Normalizer should NOT be listed
-        ref_line = shared_page.locator(
-            "[data-testid='stSelectboxVirtualDropdown'] li"
-        ).get_by_text("Reference Line Normalizer")
+        ref_line = shared_page.locator("[data-testid='stSelectboxVirtualDropdown'] li").get_by_text(
+            "Reference Line Normalizer"
+        )
         expect(ref_line).not_to_be_visible(timeout=5_000)
 
         # Press Escape to close dropdown
@@ -487,9 +475,7 @@ class TestPortfolioLoad:
         not _PORTFOLIO.exists(),
         reason="Plot4_inprogress.json portfolio not found",
     )
-    def test_load_portfolio_successfully(
-        self, shared_page: Page, live_server_url: str
-    ) -> None:
+    def test_load_portfolio_successfully(self, shared_page: Page, live_server_url: str) -> None:
         """Load Plot4_inprogress portfolio and verify plots are restored.
 
         Verifies:
@@ -510,17 +496,17 @@ class TestPortfolioLoad:
         shared_page.wait_for_timeout(300)
 
         # Plot4_inprogress should be in the list
-        option = shared_page.locator(
-            "[data-testid='stSelectboxVirtualDropdown'] li"
-        ).get_by_text("Plot4_inprogress")
+        option = shared_page.locator("[data-testid='stSelectboxVirtualDropdown'] li").get_by_text(
+            "Plot4_inprogress"
+        )
         expect(option).to_be_visible(timeout=_E2E_TIMEOUT)
         option.click()
         pf.wait_for_streamlit()
 
         # Click Load Portfolio
-        load_btn = shared_page.locator(
-            "[data-testid='stMainBlockContainer']"
-        ).get_by_role("button", name="Load Portfolio")
+        load_btn = shared_page.locator("[data-testid='stMainBlockContainer']").get_by_role(
+            "button", name="Load Portfolio"
+        )
         load_btn.click()
         shared_page.wait_for_timeout(3_000)
         pf.wait_for_streamlit()

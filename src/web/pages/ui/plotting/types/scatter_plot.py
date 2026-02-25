@@ -3,10 +3,10 @@
 from typing import Any
 
 import pandas as pd
-import streamlit as st
 
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import ScatterTraceConfig
+from src.web.components.plotting.config import scatter_config
 from src.web.pages.ui.plotting.base_plot import BasePlot
 
 
@@ -18,23 +18,7 @@ class ScatterPlot(BasePlot):
 
     def render_config_ui(self, data: pd.DataFrame, saved_config: dict[str, Any]) -> dict[str, Any]:
         """Render configuration UI for scatter plot."""
-        # Common config
-        config = self.render_common_config(data, saved_config)
-
-        # Color option
-        color_options = [None] + config["categorical_cols"]
-        color_default_idx = 0
-        if saved_config.get("color") and saved_config["color"] in config["categorical_cols"]:
-            color_default_idx = color_options.index(saved_config["color"])
-
-        color_column = st.selectbox(
-            "Color by (optional)",
-            options=color_options,
-            index=color_default_idx,
-            key=f"color_{self.plot_id}",
-        )
-
-        return {**config, "color": color_column}
+        return scatter_config.render(data, saved_config, self.plot_id)
 
     def create_traces(self, data: pd.DataFrame, config: dict[str, Any]) -> TraceBuildResult:
         """Produce scatter traces from data and config."""

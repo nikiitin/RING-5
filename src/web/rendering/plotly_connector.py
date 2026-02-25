@@ -286,11 +286,15 @@ class FigureSpecToPlotly:
     @staticmethod
     def _build_legend_dict(legend: LegendConfig) -> dict[str, Any]:
         """Build a Plotly legend configuration dictionary."""
+        font_dict: dict[str, Any] = {
+            "size": legend.font_size,
+            "color": legend.font_color,
+        }
+        if legend.font_family:
+            font_dict["family"] = legend.font_family
+
         result: dict[str, Any] = {
-            "font": dict(
-                size=legend.font_size,
-                color=legend.font_color,
-            ),
+            "font": font_dict,
             "orientation": "h" if legend.orientation == "horizontal" else "v",
             "itemsizing": legend.itemsizing,
         }

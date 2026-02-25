@@ -142,9 +142,9 @@ class TestEnrichAnnotations:
 
 
 class TestEnrichLegend3:
-    """Boxed legend (legend3) transfer."""
+    """Tertiary legend (legend3) transfer."""
 
-    def test_appends_boxed_legend_spec(self) -> None:
+    def test_appends_tertiary_legend_spec(self) -> None:
         legend3 = MagicMock()
         legend3.x = 0.5
         legend3.y = -0.2
@@ -156,10 +156,10 @@ class TestEnrichLegend3:
         spec = _make_spec()
         PlotlyFigureSpecBuilder.enrich_from_plotly(spec, fig)
 
-        boxed = [lg for lg in spec.legends if lg.role == "boxed"]
-        assert len(boxed) == 1
-        assert boxed[0].position_x == 0.5
-        assert boxed[0].position_y == -0.2
+        tertiary = [lg for lg in spec.legends if lg.role == "tertiary"]
+        assert len(tertiary) == 1
+        assert tertiary[0].position_x == 0.5
+        assert tertiary[0].position_y == -0.2
 
     def test_no_legend3_no_change(self) -> None:
         layout = _make_layout()

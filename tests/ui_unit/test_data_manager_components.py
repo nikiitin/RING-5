@@ -5,13 +5,13 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
-from src.web.pages.ui.components.data_manager_components import DataManagerComponents
+from src.web.components.data_managers.data_manager_components import DataManagerComponents
 from tests.conftest import columns_side_effect
 
 
 @pytest.fixture
 def mock_streamlit() -> Generator[None, None, None]:
-    with patch("src.web.pages.ui.components.data_manager_components.st") as mock_st:
+    with patch("src.web.components.data_managers.data_manager_components.st") as mock_st:
         # Mock session_state to support both attribute (state.x) and item (state['x']) access
         class MockState(dict):
             def __getattr__(self, key: Any) -> Any:

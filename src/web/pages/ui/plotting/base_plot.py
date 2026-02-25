@@ -10,22 +10,21 @@ import streamlit as st
 
 from src.core.models.data_models import PipelineStep
 from src.core.models.plot_config import ShapeConfig
-from src.core.models.visualization.palettes import (
-    PALETTE_REGISTRY,
-    get_palette_names,
-    is_colorblind_safe,
-    resolve_palette,
-)
 from src.core.models.visualization.trace_build_result import TraceBuildResult
-from src.core.services.plot_interaction_service import (
-    resolve_item_order,
-    try_float,
-    try_float_edit,
+from src.core.services.visualization.plot_interaction import (
     update_config_from_relayout,
+)
+from src.web.components.plotting.settings import (
+    AdvancedSettingsComponent,
+    AxesSettingsComponent,
+    ColorsSettingsComponent,
+    DataLabelsSettingsComponent,
+    LayoutSettingsComponent,
+    LegendSettingsComponent,
+    TypographySettingsComponent,
 )
 from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.styles import StyleManager
-from src.web.rendering.engine_manager import EngineManager
 
 
 class BasePlot(ABC):
@@ -247,87 +246,10 @@ class BasePlot(ABC):
 
         return plot
 
-    def render_common_config(
-        self, data: pd.DataFrame, saved_config: dict[str, Any]
-    ) -> dict[str, Any]:
-        """
-        Render common configuration options.
-
-        Args:
-            data: The data to plot
-            saved_config: Previously saved configuration
-
-        Returns:
-            Configuration dictionary with common options
-        """
-        numeric_cols = data.select_dtypes(include=["number"]).columns.tolist()
-        categorical_cols = data.select_dtypes(
-            include=["object", "string", "category"]
-        ).columns.tolist()
-
-        col1, col2 = st.columns(2)
-
-        with col1:
-            # X-axis
-            x_default_idx = 0
-            if saved_config.get("x") and saved_config["x"] in (categorical_cols + numeric_cols):
-                x_default_idx = (categorical_cols + numeric_cols).index(saved_config["x"])
-
-            x_column = st.selectbox(
-                "X-axis",
-                options=categorical_cols + numeric_cols,
-                index=x_default_idx,
-                key=f"x_{self.plot_id}",
-            )
-
-            # Y-axis
-            y_default_idx = 0
-            if saved_config.get("y") and saved_config["y"] in numeric_cols:
-                y_default_idx = numeric_cols.index(saved_config["y"])
-
-            y_column = st.selectbox(
-                "Y-axis", options=numeric_cols, index=y_default_idx, key=f"y_{self.plot_id}"
-            )
-
-        with col2:
-            # Title & Labels
-            default_title = saved_config.get("title", f"{y_column} by {x_column}") or ""
-            default_xlabel: str = str(saved_config.get("xlabel", x_column) or "")
-            default_ylabel: str = str(saved_config.get("ylabel", y_column) or "")
-            default_legend_title: str = str(saved_config.get("legend_title", "") or "")
-
-            from src.web.pages.ui.components.plot_config_components import (
-                PlotConfigComponents,
-            )
-
-            label_config = PlotConfigComponents.render_title_labels_section(
-                saved_config=saved_config,
-                plot_id=self.plot_id,
-                default_title=default_title,
-                default_xlabel=default_xlabel,
-                default_ylabel=default_ylabel,
-                include_legend_title=True,
-                default_legend_title=default_legend_title,
-            )
-            title = label_config["title"]
-            xlabel = label_config["xlabel"]
-            ylabel = label_config["ylabel"]
-            legend_title = label_config["legend_title"]
-
-        return {
-            "x": x_column,
-            "y": y_column,
-            "title": title,
-            "xlabel": xlabel,
-            "ylabel": ylabel,
-            "legend_title": legend_title,
-            "numeric_cols": numeric_cols,
-            "categorical_cols": categorical_cols,
-        }
-
     def render_display_options(self, saved_config: dict[str, Any]) -> dict[str, Any]:
-        """Render sizing and layout options via StyleManager."""
-        return self.style_manager.render_layout_options(saved_config)
+        """Render sizing and layout options via LayoutSettingsComponent."""
+        component = LayoutSettingsComponent(self.plot_id, self.plot_type)
+        return component.render(saved_config)
 
     def render_theme_options(
         self, saved_config: dict[str, Any], items: list[str] | None = None
@@ -382,90 +304,77 @@ class BasePlot(ABC):
 
     # -- individual section helpers ---
 
+    def _supports_secondary_legend(self) -> bool:
+        """Whether this plot type supports a secondary legend pill.
+
+        Override in subclasses that offer secondary legend features
+        independently of dual-axis mode (e.g. numbered X-axis legend).
+        """
+        return False
+
+    def _supports_tertiary_legend(self) -> bool:
+        """Whether this plot type supports a tertiary legend pill.
+
+        Override in subclasses that offer a third level of legend
+        (e.g. numbered X-axis annotations when dual-axis is also active).
+        Only show tertiary when the plot actually has three legend levels.
+        """
+        return False
+
     def _section_layout(
         self, saved_config: dict[str, Any], data: pd.DataFrame | None
     ) -> dict[str, Any]:
-        return self.render_display_options(saved_config)
+        component = LayoutSettingsComponent(self.plot_id, self.plot_type)
+        return component.render(saved_config)
 
     def _section_typography(
         self, saved_config: dict[str, Any], data: pd.DataFrame | None
     ) -> dict[str, Any]:
-        return self.style_manager.ui_manager._render_typography_section(
-            saved_config, key_prefix="theme_"
-        )
+        component = TypographySettingsComponent(self.plot_id, self.plot_type)
+        return component.render(saved_config, key_prefix="theme_")
 
     def _section_legends(
         self, saved_config: dict[str, Any], data: pd.DataFrame | None
     ) -> dict[str, Any]:
-        has_dual_axis: bool = (
-            self.plot_type == "dual_axis_bar_dot"
-            or bool(saved_config.get("dual_axis"))
+        has_dual_axis: bool = self.plot_type == "dual_axis_bar_dot" or bool(
+            saved_config.get("dual_axis")
         )
-        has_boxed: bool = bool(saved_config.get("show_group_labels"))
+        has_secondary: bool = has_dual_axis or self._supports_secondary_legend()
+        has_tertiary: bool = self._supports_tertiary_legend() and bool(
+            saved_config.get("show_group_labels") or saved_config.get("numbered_xaxis")
+        )
 
-        _LEGEND_LABELS: dict[str, str] = {
-            "primary": ":material/legend_toggle: Primary",
-        }
-        if has_dual_axis:
-            _LEGEND_LABELS["secondary"] = ":material/legend_toggle: Secondary"
-        if has_boxed:
-            _LEGEND_LABELS["boxed"] = ":material/legend_toggle: Boxed"
-        legend_tab: str | None = st.pills(
-            "Legend",
-            options=list(_LEGEND_LABELS.keys()),
-            format_func=lambda x: _LEGEND_LABELS.get(x, str(x)),
-            selection_mode="single",
-            key=f"legend_nav_{self.plot_id}",
-            default="primary",
+        component = LegendSettingsComponent(self.plot_id, self.plot_type)
+        return component.render(
+            saved_config,
+            has_secondary=has_secondary,
+            has_tertiary=has_tertiary,
         )
-        prefix_map = {
-            "primary": "theme_",
-            "secondary": "legend2_",
-            "boxed": "legend3_",
-        }
-        prefix = prefix_map.get(legend_tab or "primary", "theme_")
-        return self.style_manager.ui_manager._render_legend_section(saved_config, key_prefix=prefix)
 
     def _section_axes(
         self, saved_config: dict[str, Any], data: pd.DataFrame | None
     ) -> dict[str, Any]:
-        has_dual_axis: bool = (
-            self.plot_type == "dual_axis_bar_dot"
-            or bool(saved_config.get("dual_axis"))
+        has_dual_axis: bool = self.plot_type == "dual_axis_bar_dot" or bool(
+            saved_config.get("dual_axis")
         )
-        _AXIS_LABELS: dict[str, str] = {
-            "x": ":material/straighten: X-Axis",
-            "y_left": ":material/straighten: Y-Left",
-        }
-        if has_dual_axis:
-            _AXIS_LABELS["y_right"] = ":material/straighten: Y-Right"
-        axis_tab: str | None = st.pills(
-            "Axis",
-            options=list(_AXIS_LABELS.keys()),
-            format_func=lambda x: _AXIS_LABELS.get(x, str(x)),
-            selection_mode="single",
-            key=f"axis_nav_{self.plot_id}",
-            default="x",
-        )
-        config: dict[str, Any] = {}
-        if axis_tab == "x" or axis_tab is None:
-            self._render_x_axis_settings(saved_config, config)
-            specific = self.render_specific_advanced_options(saved_config, data)
-            config.update(specific)
-            # X-axis label rename is handled inline by _render_ordering_ui
-            if data is not None:
-                self._render_ordering_ui(saved_config, data, config)
-        elif axis_tab == "y_left":
-            self._render_y_axis_settings(saved_config, config, prefix="")
-        elif axis_tab == "y_right":
-            self._render_y_axis_settings(saved_config, config, prefix="y2")
-        return config
 
-    def _render_x_axis_settings(
-        self, saved_config: dict[str, Any], config: dict[str, Any]
-    ) -> None:
-        """Render X-axis specific settings (tick angle)."""
+        component = AxesSettingsComponent(self.plot_id, self.plot_type)
+        return component.render(
+            saved_config,
+            data=data,
+            has_dual_axis=has_dual_axis,
+            render_specific_fn=self.render_specific_advanced_options,
+            render_ordering_fn=self._render_ordering_ui,
+        )
+
+    def _render_x_axis_settings(self, saved_config: dict[str, Any], config: dict[str, Any]) -> None:
+        """Render X-axis specific settings (tick angle, grid)."""
         st.markdown("#### X-Axis Settings")
+        config["show_x_grid"] = st.checkbox(
+            "Show Grid",
+            value=saved_config.get("show_x_grid", True),
+            key=f"show_x_grid_{self.plot_id}",
+        )
         config["xaxis_tickangle"] = st.slider(
             "X-axis Label Rotation",
             min_value=-90,
@@ -492,6 +401,13 @@ class BasePlot(ABC):
         label = "Y-Left Axis" if not prefix else "Y-Right Axis"
         st.markdown(f"#### {label} Settings")
 
+        grid_key = f"{prefix}show_y_grid" if prefix else "show_y_grid"
+        config[grid_key] = st.checkbox(
+            "Show Grid",
+            value=saved_config.get(grid_key, True if not prefix else False),
+            key=f"{prefix}show_y_grid_{self.plot_id}",
+        )
+
         dtick_key = f"{prefix}yaxis_dtick" if prefix else "yaxis_dtick"
         dtick: float = st.number_input(
             f"{label} Step Size (0 for auto)",
@@ -505,187 +421,39 @@ class BasePlot(ABC):
     def _section_data_labels(
         self, saved_config: dict[str, Any], data: pd.DataFrame | None
     ) -> dict[str, Any]:
-        dl = self.style_manager.render_data_labels_ui(saved_config, key_prefix="theme_")
-        return {
-            "show_values": dl.get("show_values", False),
-            "text_color_mode": dl.get("text_color_mode"),
-            "text_color": dl.get("text_color"),
-            "text_font_size": dl.get("text_font_size"),
-            "text_rotation": dl.get("text_rotation"),
-            "text_position": dl.get("text_position"),
-            "text_anchor": dl.get("text_anchor"),
-            "text_format": dl.get("text_format"),
-            "text_display_logic": dl.get("text_display_logic"),
-            "text_threshold": dl.get("text_threshold"),
-            "text_constraint": dl.get("text_constraint"),
-        }
+        component = DataLabelsSettingsComponent(self.plot_id, self.plot_type)
+        return component.render(saved_config, key_prefix="theme_")
 
     def _section_colors(
         self, saved_config: dict[str, Any], data: pd.DataFrame | None
     ) -> dict[str, Any]:
         """Unified palette selector using core PALETTE_REGISTRY."""
-        st.markdown("#### :material/palette: Color Palette")
-        palette_names = get_palette_names()
-        current_palette = saved_config.get("color_palette", "wong")
-        # Accept either a string name or the list itself
-        if isinstance(current_palette, list):
-            # Reverse-lookup: find matching palette name
-            current_palette = "wong"
-            for name, colors in PALETTE_REGISTRY.items():
-                if colors == saved_config.get("color_palette"):
-                    current_palette = name
-                    break
-        idx = palette_names.index(current_palette) if current_palette in palette_names else 0
-
-        def _fmt_palette(name: str) -> str:
-            label = name.replace("_", " ").title()
-            if is_colorblind_safe(name):
-                label = f"\u2713 {label}"
-            return label
-
-        selected_palette: str = st.selectbox(
-            "Palette",
-            options=palette_names,
-            index=idx,
-            format_func=_fmt_palette,
-            key=f"palette_select_{self.plot_id}",
-            help="Palettes marked \u2713 are colorblind-safe. Wong (default) is recommended.",
-        )
-        palette_colors = resolve_palette(selected_palette)
-        # Preview swatches
-        swatch_html = " ".join(
-            f'<span style="display:inline-block;width:20px;height:20px;'
-            f"background:{c};border:1px solid #ccc;border-radius:3px;"
-            f'margin-right:2px;"></span>'
-            for c in palette_colors
-        )
-        st.markdown(swatch_html, unsafe_allow_html=True)
-        config: dict[str, Any] = {"color_palette": selected_palette}
-
-        st.markdown("---")
-        series = self.style_manager.ui_manager._render_series_section(
-            saved_config,
-            data,
-            items=None,
-            key_prefix="theme_",
-            palette_name=selected_palette,
-        )
-        st.markdown("---")
-        bg = self.style_manager.ui_manager._render_backgrounds_section(
-            saved_config, key_prefix="theme_"
-        )
-        config.update(series)
-        config.update(bg)
-        return config
+        component = ColorsSettingsComponent(self.plot_id, self.plot_type)
+        return component.render(saved_config, data=data)
 
     def _section_advanced(
         self, saved_config: dict[str, Any], data: pd.DataFrame | None
     ) -> dict[str, Any]:
-        config: dict[str, Any] = {}
-
-        # ── Export & Download ────────────────────────────────────
-        st.markdown("#### Export & Download")
-        col_exp1, col_exp2 = st.columns(2)
-        with col_exp1:
-            config["show_error_bars"] = st.checkbox(
-                "Show Error Bars (if .sd columns exist)",
-                value=saved_config.get("show_error_bars", False),
-                key=f"error_bars_{self.plot_id}",
-            )
-        with col_exp2:
-            download_formats: list[str] = ["html", "png", "pdf", "svg"]
-            default_fmt_idx: int = 0
-            if saved_config.get("download_format") in download_formats:
-                default_fmt_idx = download_formats.index(
-                    saved_config["download_format"]
-                )
-            config["download_format"] = st.selectbox(
-                "Default Download Format",
-                options=download_formats,
-                index=default_fmt_idx,
-                key=f"download_fmt_{self.plot_id}",
-            )
-            config["export_scale"] = st.selectbox(
-                "Download Scale (Resolution)",
-                options=[1, 2, 3],
-                index=[1, 2, 3].index(saved_config.get("export_scale", 1)),
-                key=f"exp_scale_{self.plot_id}",
-                help="1x = Screen. 3x = High Res (Publication).",
-            )
-            w: int = saved_config.get("width", 800)
-            h: int = saved_config.get("height", 500)
-            s: int = config["export_scale"]
-            st.caption(f"Download Size: {w * s} x {h * s} px")
-
-        # ── Legend & Interactivity ───────────────────────────────
-        st.markdown("#### Legend & Interactivity")
-        config["enable_editable"] = st.checkbox(
-            "Enable Interactive Editing",
-            value=saved_config.get("enable_editable", False),
-            key=f"editable_{self.plot_id}",
-            help="Allows you to drag the legend/title and click to edit text directly on the plot.",
+        component = AdvancedSettingsComponent(self.plot_id, self.plot_type)
+        return component.render(
+            saved_config,
+            data=data,
+            render_reference_line_fn=self._render_reference_line_ui,
+            render_shapes_fn=self._render_shapes_ui,
+            render_engine_fn=self._render_engine_specific_controls,
         )
-
-        # Preserve existing series styles (renaming is now handled
-        # inline inside the Axes → reorder/rename lists)
-        if "series_styles" not in config:
-            config["series_styles"] = saved_config.get("series_styles", {})
-
-        # Reference Line
-        self._render_reference_line_ui(saved_config, data, config)
-
-        # Annotations (Shapes)
-        st.markdown("#### Annotations (Shapes)")
-        config["shapes"] = self._render_shapes_ui(saved_config)
-
-        # ── Engine-specific controls (Step 30) ──
-        self._render_engine_specific_controls(saved_config, config)
-
-        return config
 
     def _render_engine_specific_controls(
         self,
         saved_config: dict[str, Any],
         config: dict[str, Any],
     ) -> None:
-        """Render controls that depend on the current engine mode.
+        """Render engine-specific controls. Delegates to engine_settings component."""
+        from src.web.components.plotting.settings.engine_settings import (
+            render_engine_controls,
+        )
 
-        **Plotly mode**: hovermode selector.
-        **Matplotlib mode**: LaTeX preamble, TeX system.
-        """
-        st.markdown("---")
-        if EngineManager.is_plotly():
-            st.markdown("#### :material/interactive_space: Interactive Settings")
-            hovermode_options = ["x unified", "closest", "x", "y", "off"]
-            current_hover = saved_config.get("hovermode", "x unified")
-            idx = (
-                hovermode_options.index(current_hover) if current_hover in hovermode_options else 0
-            )
-            config["hovermode"] = st.selectbox(
-                "Hover mode",
-                options=hovermode_options,
-                index=idx,
-                key=f"hovermode_{self.plot_id}",
-                help="Controls how tooltip information is displayed on hover.",
-            )
-        elif EngineManager.is_matplotlib():
-            st.markdown("#### :material/description: LaTeX Settings")
-            config["latex_extra_preamble"] = st.text_area(
-                "Extra LaTeX preamble",
-                value=saved_config.get("latex_extra_preamble", ""),
-                key=f"latex_preamble_{self.plot_id}",
-                help="Additional LaTeX preamble commands (e.g. \\\\usepackage{...}).",
-            )
-            tex_options = ["xelatex", "pdflatex", "lualatex"]
-            current_tex = saved_config.get("tex_system", "xelatex")
-            tex_idx = tex_options.index(current_tex) if current_tex in tex_options else 0
-            config["tex_system"] = st.selectbox(
-                "TeX system",
-                options=tex_options,
-                index=tex_idx,
-                key=f"tex_system_{self.plot_id}",
-                help="TeX compiler to use for LaTeX rendering.",
-            )
+        render_engine_controls(self.plot_id, saved_config, config)
 
     def render_advanced_options(
         self, saved_config: dict[str, Any], data: pd.DataFrame | None = None
@@ -776,7 +544,10 @@ class BasePlot(ABC):
                         value=saved_config.get("bar_border_width", 0.0),
                         step=0.5,
                         key=f"bar_border_{self.plot_id}",
-                        help="Adds a white border around each bar segment to separate stacked items.",
+                        help=(
+                            "Adds a white border around each bar segment"
+                            " to separate stacked items."
+                        ),
                     )
         return config
 
@@ -850,178 +621,20 @@ class BasePlot(ABC):
     def _render_ordering_ui(
         self, saved_config: dict[str, Any], data: pd.DataFrame, config: dict[str, Any]
     ) -> None:
-        """Helper to render ordering UI.
+        """Render ordering UI. Delegates to ordering_settings component."""
+        from src.web.components.plotting.settings.ordering_settings import (
+            render_ordering_ui,
+        )
 
-        Args:
-            saved_config: Previously saved configuration
-            data: Data being plotted
-            config: Current configuration to update
-        """
-        st.markdown("#### Ordering Control")
-
-        # X-axis Order
-        if saved_config.get("x") and saved_config["x"] in data.columns:
-            with st.expander("Reorder and Rename X-axis Labels"):
-                unique_x: list[str] = sorted(data[saved_config["x"]].unique().tolist())
-                x_result = self.render_reorderable_list(
-                    "X-axis Order",
-                    unique_x,
-                    "xaxis",
-                    default_order=saved_config.get("xaxis_order"),
-                    enable_rename=True,
-                    rename_map=saved_config.get("xaxis_labels"),
-                )
-                order_x, renames_x = x_result  # type: ignore[misc]
-                config["xaxis_order"] = order_x
-                if renames_x:
-                    config["xaxis_labels"] = renames_x
-
-        # Group Order
-        if saved_config.get("group") and saved_config["group"] in data.columns:
-            with st.expander("Reorder and Rename Groups"):
-                unique_g: list[str] = sorted(data[saved_config["group"]].unique().tolist())
-                g_result = self.render_reorderable_list(
-                    "Group Order",
-                    unique_g,
-                    "group",
-                    legend_labels=saved_config.get("legend_labels"),
-                    default_order=saved_config.get("group_order"),
-                    enable_rename=True,
-                    rename_map=saved_config.get("legend_labels"),
-                )
-                order_g, renames_g = g_result  # type: ignore[misc]
-                config["group_order"] = order_g
-                if renames_g:
-                    config["legend_labels"] = renames_g
-
-        # Legend Order (Color)
-        if saved_config.get("color") and saved_config["color"] in data.columns:
-            with st.expander("Reorder and Rename Legend Items"):
-                unique_c: list[str] = sorted(data[saved_config["color"]].unique().tolist())
-                c_result = self.render_reorderable_list(
-                    "Legend Order",
-                    unique_c,
-                    "legend",
-                    legend_labels=saved_config.get("legend_labels"),
-                    default_order=saved_config.get("legend_order"),
-                    enable_rename=True,
-                    rename_map=saved_config.get("legend_labels"),
-                )
-                order_c, renames_c = c_result  # type: ignore[misc]
-                config["legend_order"] = order_c
-                if renames_c:
-                    if "legend_labels" not in config:
-                        config["legend_labels"] = {}
-                    config["legend_labels"].update(renames_c)
+        render_ordering_ui(self.plot_id, saved_config, data, config)
 
     def _render_shapes_ui(self, saved_config: dict[str, Any]) -> list[ShapeConfig]:
-        """Helper to render Shapes UI.
+        """Render shapes UI. Delegates to shapes_settings component."""
+        from src.web.components.plotting.settings.shapes_settings import (
+            render_shapes_ui,
+        )
 
-        Args:
-            saved_config: Previously saved configuration
-
-        Returns:
-            List of shape configuration dictionaries
-        """
-        shapes: list[ShapeConfig] = saved_config.get("shapes", [])
-
-        # Add new shape
-        with st.expander("Add New Shape"):
-            new_shape_type: str = st.selectbox(
-                "Type", ["line", "circle", "rect"], key=f"new_shape_type_{self.plot_id}"
-            )
-            c1, c2, c3, c4 = st.columns(4)
-            with c1:
-                x0: str = st.text_input("x0", key=f"s_x0_{self.plot_id}")
-            with c2:
-                y0: str = st.text_input("y0", key=f"s_y0_{self.plot_id}")
-            with c3:
-                x1: str = st.text_input("x1", key=f"s_x1_{self.plot_id}")
-            with c4:
-                y1: str = st.text_input("y1", key=f"s_y1_{self.plot_id}")
-
-            c5, c6 = st.columns(2)
-            with c5:
-                s_color: str = st.color_picker("Color", "#000000", key=f"s_color_{self.plot_id}")
-            with c6:
-                s_width: int = st.number_input("Width", 1, 10, 2, key=f"s_width_{self.plot_id}")
-
-            if st.button("Add Shape", key=f"add_shape_{self.plot_id}"):
-                shapes.append(
-                    {
-                        "type": new_shape_type,
-                        "x0": try_float(x0),
-                        "y0": try_float(y0),
-                        "x1": try_float(x1),
-                        "y1": try_float(y1),
-                        "line": {"color": s_color, "width": s_width},
-                    }
-                )
-                st.rerun()
-
-        # List existing shapes
-        if shapes:
-            st.markdown("**Existing Shapes (Edit to Resize):**")
-
-            h1, h2, h3, h4, h5, h6 = st.columns([1, 1, 1, 1, 1, 0.5])
-            with h1:
-                st.caption("x0")
-            with h2:
-                st.caption("y0")
-            with h3:
-                st.caption("x1")
-            with h4:
-                st.caption("y1")
-            with h5:
-                st.caption("Type")
-
-        # Helper function: uses imported try_float_edit from plot_interaction_service
-
-        if st.session_state.get(f"edit_shapes_{self.plot_id}", False):
-            for i, shape in enumerate(shapes):
-                c1, c2, c3, c4, c5, c6 = st.columns([1, 1, 1, 1, 1, 0.5])
-
-                with c1:
-                    new_x0: str = st.text_input(
-                        "x0",
-                        value=str(shape["x0"]),
-                        key=f"edit_x0_{i}_{self.plot_id}",
-                        label_visibility="collapsed",
-                    )
-                with c2:
-                    new_y0: str = st.text_input(
-                        "y0",
-                        value=str(shape["y0"]),
-                        key=f"edit_y0_{i}_{self.plot_id}",
-                        label_visibility="collapsed",
-                    )
-                with c3:
-                    new_x1: str = st.text_input(
-                        "x1",
-                        value=str(shape["x1"]),
-                        key=f"edit_x1_{i}_{self.plot_id}",
-                        label_visibility="collapsed",
-                    )
-                with c4:
-                    new_y1: str = st.text_input(
-                        "y1",
-                        value=str(shape["y1"]),
-                        key=f"edit_y1_{i}_{self.plot_id}",
-                        label_visibility="collapsed",
-                    )
-                with c5:
-                    st.text(shape["type"])
-                with c6:
-                    if st.button("🗑️", key=f"del_shape_{i}_{self.plot_id}"):
-                        shapes.pop(i)
-                        st.rerun()
-
-                shape["x0"] = try_float_edit(new_x0)
-                shape["y0"] = try_float_edit(new_y0)
-                shape["x1"] = try_float_edit(new_x1)
-                shape["y1"] = try_float_edit(new_y1)
-
-        return shapes
+        return render_shapes_ui(self.plot_id, saved_config)
 
     def render_reorderable_list(
         self,
@@ -1036,80 +649,23 @@ class BasePlot(ABC):
         """
         Render a list that can be reordered using up/down buttons.
 
-        When *enable_rename* is ``True`` the item label is rendered as
-        an editable text input and the method returns a tuple
-        ``(order, renames)`` instead of just the order list.
-
-        Args:
-            label: Display label for the list
-            items: List of items to reorder
-            key_prefix: Prefix for session state keys
-            legend_labels: Optional mapping of item values to display labels
-            default_order: Optional default ordering
-            enable_rename: If True, allow inline renaming
-            rename_map: Existing rename mapping to pre-fill inputs
-
-        Returns:
-            Reordered list of items, or ``(order, renames)`` when
-            *enable_rename* is True.
+        Delegates to the standalone ``render_reorderable_list`` component.
+        Kept as a thin wrapper for backward compatibility with subclasses.
         """
-        st.markdown(f"**{label}**")
+        from src.web.components.common.reorderable_list import (
+            render_reorderable_list,
+        )
 
-        # Initialize in session state if needed
-        ss_key: str = f"{key_prefix}_order_{self.plot_id}"
-        if ss_key not in st.session_state:
-            st.session_state[ss_key] = resolve_item_order(items, default_order=default_order)
-
-        # Sync if items changed (e.g. data update)
-        current_items: list[str] = st.session_state[ss_key]
-        if set(current_items) != set(items):
-            current_items = resolve_item_order(items, current_order=current_items)
-            st.session_state[ss_key] = current_items
-
-        renames: dict[str, str] = dict(rename_map) if rename_map else {}
-
-        # Display items with reordering controls
-        for i, item in enumerate(current_items):
-            c1, c2, c3 = st.columns([6, 1, 1])
-            with c1:
-                if enable_rename:
-                    new_name: str = st.text_input(
-                        str(item),
-                        value=renames.get(str(item), str(item)),
-                        key=f"{key_prefix}_rename_{i}_{self.plot_id}",
-                        label_visibility="collapsed",
-                    )
-                    if new_name and new_name != str(item):
-                        renames[str(item)] = new_name
-                    elif str(item) in renames and new_name == str(item):
-                        renames.pop(str(item), None)
-                else:
-                    display_text: str = str(item)
-                    if legend_labels and str(item) in legend_labels:
-                        display_text = f"{legend_labels[str(item)]} ({item})"
-                    st.text(display_text)
-            with c2:
-                if i > 0:
-                    if st.button("↑", key=f"{key_prefix}_up_{i}_{self.plot_id}"):
-                        current_items[i], current_items[i - 1] = (
-                            current_items[i - 1],
-                            current_items[i],
-                        )
-                        st.session_state[ss_key] = current_items
-                        st.rerun()
-            with c3:
-                if i < len(current_items) - 1:
-                    if st.button("↓", key=f"{key_prefix}_down_{i}_{self.plot_id}"):
-                        current_items[i], current_items[i + 1] = (
-                            current_items[i + 1],
-                            current_items[i],
-                        )
-                        st.session_state[ss_key] = current_items
-                        st.rerun()
-
-        if enable_rename:
-            return current_items, renames
-        return current_items
+        return render_reorderable_list(
+            label=label,
+            items=items,
+            key_prefix=key_prefix,
+            plot_id=self.plot_id,
+            legend_labels=legend_labels,
+            default_order=default_order,
+            enable_rename=enable_rename,
+            rename_map=rename_map,
+        )
 
     def _render_reference_line_ui(
         self,
@@ -1117,69 +673,9 @@ class BasePlot(ABC):
         data: pd.DataFrame | None,
         config: dict[str, Any],
     ) -> None:
-        """
-        Render UI controls for a horizontal reference line (normalizer baseline).
-
-        Allows the user to select a categorical column and value that acts as
-        the normalizer, and draws a red horizontal reference line at the
-        normalizer's Y position (typically 1.0 after normalization).
-
-        Args:
-            saved_config: Previously saved configuration.
-            data: The data being plotted (needed for column/value selection).
-            config: Configuration dictionary to populate.
-        """
-        st.markdown("#### Reference Line")
-        ref_enabled = st.checkbox(
-            "Show reference line",
-            value=saved_config.get("reference_line_enabled", False),
-            key=f"ref_line_enabled_{self.plot_id}",
-            help=(
-                "Draw a horizontal dashed line at a specific Y value. "
-                "Useful to highlight a baseline (e.g. Y=1 after normalization)."
-            ),
+        """Render reference line UI. Delegates to reference_line_settings component."""
+        from src.web.components.plotting.settings.reference_line_settings import (
+            render_reference_line_ui,
         )
-        config["reference_line_enabled"] = ref_enabled
 
-        if ref_enabled and data is not None:
-            with st.expander("Reference Line Settings", expanded=True):
-                col3, col4, col5 = st.columns(3)
-                with col3:
-                    ref_y = st.number_input(
-                        "Y position",
-                        value=float(saved_config.get("reference_line_y", 1.0)),
-                        step=0.1,
-                        format="%.2f",
-                        key=f"ref_line_y_{self.plot_id}",
-                        help="Y-axis value where the line is drawn (1.0 for "
-                        "normalized data)",
-                    )
-                with col4:
-                    ref_color = st.color_picker(
-                        "Line color",
-                        value=saved_config.get("reference_line_color", "#FF0000"),
-                        key=f"ref_line_color_{self.plot_id}",
-                    )
-                with col5:
-                    ref_width = st.slider(
-                        "Line width",
-                        min_value=0.5,
-                        max_value=4.0,
-                        value=float(saved_config.get("reference_line_width", 1.5)),
-                        step=0.5,
-                        key=f"ref_line_width_{self.plot_id}",
-                    )
-
-                ref_style = st.selectbox(
-                    "Line style",
-                    options=["dash", "dot", "dashdot", "solid"],
-                    index=["dash", "dot", "dashdot", "solid"].index(
-                        saved_config.get("reference_line_style", "dash")
-                    ),
-                    key=f"ref_line_style_{self.plot_id}",
-                )
-
-                config["reference_line_y"] = ref_y
-                config["reference_line_color"] = ref_color
-                config["reference_line_width"] = ref_width
-                config["reference_line_style"] = ref_style
+        render_reference_line_ui(self.plot_id, saved_config, data, config)

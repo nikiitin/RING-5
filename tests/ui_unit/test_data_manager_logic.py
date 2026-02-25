@@ -6,8 +6,8 @@ import pandas as pd
 import pytest
 from pandas import DataFrame
 
-from src.web.pages.ui.data_managers.impl.outlier_remover import OutlierRemoverManager
-from src.web.pages.ui.data_managers.impl.seeds_reducer import SeedsReducerManager
+from src.web.components.data_managers.outlier_remover import OutlierRemoverManager
+from src.web.components.data_managers.seeds_reducer import SeedsReducerManager
 from tests.conftest import columns_side_effect
 
 
@@ -15,8 +15,8 @@ from tests.conftest import columns_side_effect
 @pytest.fixture
 def mock_streamlit() -> Generator[tuple[Any, Any], None, None]:
     with (
-        patch("src.web.pages.ui.data_managers.impl.seeds_reducer.st") as mock_st_seeds,
-        patch("src.web.pages.ui.data_managers.impl.outlier_remover.st") as mock_st_outlier,
+        patch("src.web.components.data_managers.seeds_reducer.st") as mock_st_seeds,
+        patch("src.web.components.data_managers.outlier_remover.st") as mock_st_outlier,
     ):
 
         # Configure session state handling for mocks.
@@ -41,20 +41,9 @@ def sample_data() -> DataFrame:
     )
 
 
-def test_seeds_reducer_render_no_random_seed(
-    mock_streamlit: Any, mock_api: Any, sample_data: Any
-) -> None:
-    """Test Seeds Reducer warns if no random_seed column."""
-    mock_st, _ = mock_streamlit
-
-    # Manager Mock
-    manager = SeedsReducerManager(mock_api)
-    manager.get_data = MagicMock(return_value=sample_data.drop(columns=["random_seed"]))
-
-    manager.render()
-
-    mock_st.warning.assert_called()
-    assert "No `random_seed` column" in mock_st.warning.call_args[0][0]
+# NOTE: test_seeds_reducer_render_no_random_seed removed —
+# SeedsReducerManager no longer warns about missing random_seed column.
+# It now uses a generic candidate-column approach.
 
 
 def test_seeds_reducer_apply(mock_streamlit: Any, mock_api: Any, sample_data: Any) -> None:

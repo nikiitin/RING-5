@@ -12,9 +12,9 @@ from tests.conftest import columns_side_effect
 def mock_streamlit() -> Generator[MagicMock, None, None]:
     # Patch st in all 3 modules used
     with (
-        patch("src.web.pages.ui.components.data_components.st") as mock_st_data,
-        patch("src.web.pages.ui.components.card_components.st") as mock_st_card,
-        patch("src.web.pages.ui.components.variable_editor.st") as mock_st_var,
+        patch("src.web.components.common.data_components.st") as mock_st_data,
+        patch("src.web.components.common.card_components.st") as mock_st_card,
+        patch("src.web.components.data_source.variable_editor.st") as mock_st_var,
     ):
 
         mock_st = MagicMock()
@@ -83,7 +83,7 @@ def test_variable_editor_render_existing(mock_streamlit: Any, mock_api: Any) -> 
     mock_streamlit.text_input.side_effect = ["v1", "ali"]  # Name, Alias
     mock_streamlit.selectbox.return_value = "scalar"
 
-    from src.web.pages.ui.components.variable_editor import VariableEditor
+    from src.web.components.data_source.variable_editor import VariableEditor
 
     updated = VariableEditor.render(mock_api, vars_config)
 
@@ -101,7 +101,7 @@ def test_variable_editor_add_manual(mock_streamlit: Any, mock_api: Any) -> None:
     mock_streamlit.button.side_effect = lambda label, **k: label == "+ Add Manual"
 
     # Rerun should be called
-    from src.web.pages.ui.components.variable_editor import VariableEditor
+    from src.web.components.data_source.variable_editor import VariableEditor
 
     VariableEditor.render(mock_api, vars_config)
 
@@ -136,7 +136,7 @@ def test_variable_editor_deep_scan(mock_streamlit: Any, mock_api: Any) -> None:
     mock_future.result.return_value = [{"name": "vec", "type": "vector", "entries": ["e1", "e2"]}]
     mock_api.backend.submit_scan_async.return_value = [mock_future]
 
-    from src.web.pages.ui.components.variable_editor import VariableEditor
+    from src.web.components.data_source.variable_editor import VariableEditor
 
     with patch.object(VariableEditor, "_show_scan_dialog") as mock_dialog:
         VariableEditor.render(mock_api, vars_config, available_variables=[], stats_path="/path")
@@ -167,7 +167,7 @@ def test_variable_editor_vector_stats_checkboxes(mock_streamlit: Any, mock_api: 
 
     mock_streamlit.checkbox.side_effect = checkbox_side_effect
 
-    from src.web.pages.ui.components.variable_editor import VariableEditor
+    from src.web.components.data_source.variable_editor import VariableEditor
 
     updated = VariableEditor.render(mock_api, vars_config)
 

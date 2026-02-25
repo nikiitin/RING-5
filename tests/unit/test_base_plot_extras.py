@@ -27,7 +27,13 @@ class ConcretePlot(BasePlot):
 
 @pytest.fixture
 def mock_streamlit() -> Generator[None, None, None]:
-    with patch("src.web.pages.ui.plotting.base_plot.st") as mock_st:
+    with (
+        patch("src.web.pages.ui.plotting.base_plot.st") as mock_st,
+        patch("src.web.components.common.reorderable_list.st", mock_st),
+        patch("src.web.components.plotting.settings.shapes_settings.st", mock_st),
+        patch("src.web.components.plotting.settings.reference_line_settings.st", mock_st),
+        patch("src.web.components.plotting.settings.ordering_settings.st", mock_st),
+    ):
         # Mock columns
         mock_st.columns.side_effect = lambda n: (
             [MagicMock() for _ in range(n)] if isinstance(n, int) else [MagicMock() for _ in n]

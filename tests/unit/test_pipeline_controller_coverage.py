@@ -40,7 +40,7 @@ def mock_plot() -> MagicMock:
 class TestPipelineControllerRender:
     """Tests for PipelineController.render."""
 
-    @patch("src.web.controllers.plot.pipeline_controller.PipelinePresenter")
+    @patch("src.web.controllers.plot.pipeline_controller.PipelineComponent")
     @patch("src.web.controllers.plot.pipeline_controller.st")
     def test_no_data_shows_warning(self, mock_st: MagicMock, mock_presenter: MagicMock) -> None:
         from src.web.controllers.plot.pipeline_controller import PipelineController
@@ -58,7 +58,7 @@ class TestPipelineControllerRender:
 
         mock_presenter.render_no_data_warning.assert_called_once()
 
-    @patch("src.web.controllers.plot.pipeline_controller.PipelinePresenter")
+    @patch("src.web.controllers.plot.pipeline_controller.PipelineComponent")
     @patch("src.web.controllers.plot.pipeline_controller.st")
     def test_add_shaper_appends_to_pipeline(
         self,
@@ -82,8 +82,8 @@ class TestPipelineControllerRender:
         assert mock_plot.pipeline[0]["type"] == "rename"
         mock_st.rerun.assert_called_once()
 
-    @patch("src.web.controllers.plot.pipeline_controller.PipelineStepPresenter")
-    @patch("src.web.controllers.plot.pipeline_controller.PipelinePresenter")
+    @patch("src.web.controllers.plot.pipeline_controller.PipelineStepComponent")
+    @patch("src.web.controllers.plot.pipeline_controller.PipelineComponent")
     @patch("src.web.controllers.plot.pipeline_controller.st")
     def test_finalize_applies_pipeline(
         self,
@@ -114,8 +114,8 @@ class TestPipelineControllerRender:
 
         mock_step.render_finalize_result.assert_called_once()
 
-    @patch("src.web.controllers.plot.pipeline_controller.PipelineStepPresenter")
-    @patch("src.web.controllers.plot.pipeline_controller.PipelinePresenter")
+    @patch("src.web.controllers.plot.pipeline_controller.PipelineStepComponent")
+    @patch("src.web.controllers.plot.pipeline_controller.PipelineComponent")
     @patch("src.web.controllers.plot.pipeline_controller.st")
     def test_step_error_continues(
         self,
@@ -154,8 +154,8 @@ class TestPipelineControllerRender:
 
         mock_st.exception.assert_called()
 
-    @patch("src.web.controllers.plot.pipeline_controller.PipelineStepPresenter")
-    @patch("src.web.controllers.plot.pipeline_controller.PipelinePresenter")
+    @patch("src.web.controllers.plot.pipeline_controller.PipelineStepComponent")
+    @patch("src.web.controllers.plot.pipeline_controller.PipelineComponent")
     @patch("src.web.controllers.plot.pipeline_controller.st")
     def test_delete_step(
         self,
@@ -187,8 +187,8 @@ class TestPipelineControllerRender:
         assert len(mock_plot.pipeline) == 0
         mock_st.rerun.assert_called()
 
-    @patch("src.web.controllers.plot.pipeline_controller.PipelineStepPresenter")
-    @patch("src.web.controllers.plot.pipeline_controller.PipelinePresenter")
+    @patch("src.web.controllers.plot.pipeline_controller.PipelineStepComponent")
+    @patch("src.web.controllers.plot.pipeline_controller.PipelineComponent")
     @patch("src.web.controllers.plot.pipeline_controller.st")
     def test_finalize_error_renders_error(
         self,
@@ -222,8 +222,8 @@ class TestPipelineControllerRender:
 
         mock_step.render_finalize_error.assert_called_once()
 
-    @patch("src.web.controllers.plot.pipeline_controller.PipelineStepPresenter")
-    @patch("src.web.controllers.plot.pipeline_controller.PipelinePresenter")
+    @patch("src.web.controllers.plot.pipeline_controller.PipelineStepComponent")
+    @patch("src.web.controllers.plot.pipeline_controller.PipelineComponent")
     @patch("src.web.controllers.plot.pipeline_controller.st")
     def test_move_up_swaps(
         self,
@@ -271,8 +271,8 @@ class TestPipelineControllerRender:
         assert mock_plot.pipeline[0]["type"] == "rename"
         mock_st.rerun.assert_called()
 
-    @patch("src.web.controllers.plot.pipeline_controller.PipelineStepPresenter")
-    @patch("src.web.controllers.plot.pipeline_controller.PipelinePresenter")
+    @patch("src.web.controllers.plot.pipeline_controller.PipelineStepComponent")
+    @patch("src.web.controllers.plot.pipeline_controller.PipelineComponent")
     @patch("src.web.controllers.plot.pipeline_controller.st")
     def test_preview_error_logged(
         self,

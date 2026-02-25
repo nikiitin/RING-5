@@ -2,7 +2,7 @@
 Plot Creation Controller — orchestrates plot lifecycle operations.
 
 Handles create, delete, duplicate, and rename by:
-    1. Calling presenters to render UI and get user actions
+    1. Calling components to render UI and get user actions
     2. Performing domain operations via injected PlotLifecycleService
     3. Updating UI state via UIStateManager
     4. Triggering reruns when state changes require it
@@ -16,7 +16,7 @@ Architecture Note — Streamlit usage:
     intentional: ``st.rerun()`` is Streamlit's flow control mechanism,
     ``st.toast()`` is non-blocking feedback, and ``st.exception()`` renders
     full tracebacks. Presentation-only calls (warnings) are delegated to
-    the presenter layer.
+    the component layer.
 """
 
 import logging
@@ -31,9 +31,9 @@ from src.web.models.plot_protocols import (
     PlotTypeRegistry,
     RenderablePlot,
 )
-from src.web.presenters.plot.controls_presenter import PlotControlsPresenter
-from src.web.presenters.plot.creation_presenter import PlotCreationPresenter
-from src.web.presenters.plot.selector_presenter import PlotSelectorPresenter
+from src.web.components.common.plot_controls import PlotControlsComponent
+from src.web.components.common.plot_creation import PlotCreationComponent
+from src.web.components.common.plot_selector import PlotSelectorComponent
 from src.web.state.ui_state_manager import UIStateManager
 
 logger = logging.getLogger(__name__)
@@ -75,13 +75,13 @@ class PlotCreationController:
         """
         Render the "Create New Plot" section.
 
-        Delegates rendering to PlotCreationPresenter, then handles
+        Delegates rendering to PlotCreationComponent, then handles
         the create action if the button was clicked.
         """
         counter: int = self._api.state_manager.get_plot_counter()
         available_types: list[str] = self._registry.get_available_types()
 
-        result = PlotCreationPresenter.render(
+        result = PlotCreationComponent.render(
             default_name=f"Plot {counter + 1}",
             available_types=available_types,
         )
@@ -101,7 +101,7 @@ class PlotCreationController:
         """
         plots = self._api.state_manager.get_plots()
         if not plots:
-            PlotSelectorPresenter.render_no_plots_warning()
+            PlotSelectorComponent.render_no_plots_warning()
             return None
 
         plot_names: list[str] = [p.name for p in plots]
@@ -114,7 +114,7 @@ class PlotCreationController:
                     default_index = i
                     break
 
-        selected_name: str = PlotSelectorPresenter.render(plot_names, default_index=default_index)
+        selected_name: str = PlotSelectorComponent.render(plot_names, default_index=default_index)
 
         # BasePlot satisfies RenderablePlot
         selected_plot: RenderablePlot = cast(
@@ -134,7 +134,7 @@ class PlotCreationController:
         Args:
             plot: The currently selected plot.
         """
-        actions = PlotControlsPresenter.render(
+        actions = PlotControlsComponent.render(
             plot_id=plot.plot_id,
             current_name=plot.name,
         )

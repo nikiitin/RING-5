@@ -32,7 +32,7 @@ from src.core.models.visualization.legend_config import (
     LegendConfig,
     LegendSpacingConfig,
 )
-from src.core.models.visualization.palettes import resolve_palette
+from src.core.services.visualization.palette_service import resolve_palette
 from src.core.models.visualization.series_style_config import SeriesStyleConfig
 from src.core.models.visualization.typography_config import TypographyConfig
 
@@ -162,12 +162,12 @@ class PlotlyFigureSpecBuilder:
             if barmode_str in ("group", "stack", "overlay", "relative"):
                 spec.barmode = barmode_str  # type: ignore[assignment]
 
-        # ── Legend3 (boxed legend items) ─────────────────────────
+        # ── Legend3 (tertiary legend items) ─────────────────────────
         legend3 = getattr(layout, "legend3", None)
         if legend3 is not None:
             from src.core.models.visualization.legend_config import LegendConfig
 
-            box_kwargs: dict[str, Any] = {"role": "boxed"}
+            box_kwargs: dict[str, Any] = {"role": "tertiary"}
             x = getattr(legend3, "x", None)
             y = getattr(legend3, "y", None)
             if x is not None:
@@ -308,13 +308,13 @@ class PresetSpecBuilder:
             spacing=legend2_spacing,
         )
 
-        # Boxed annotation legend (legend3)
+        # Tertiary annotation legend (legend3)
         legend3_spacing = LegendSpacingConfig(
             borderpad=preset.get("legend3_borderpad", -1.0),
             labelspacing=preset.get("legend3_labelspacing", -1.0),
         )
         legend3 = LegendConfig(
-            role="boxed",
+            role="tertiary",
             font_size=preset.get("font_size_legend3", -1),
             bold=preset.get("bold_legend3", False),
             number_fontsize=preset.get("legend3_number_fontsize", -1),
@@ -411,6 +411,14 @@ class ConfigSpecBuilder:
             "undefined", ""
         )
 
+        # Determine X-axis tick label visibility:
+        # When numbered_xaxis is enabled without show_numbered_ticks,
+        # tick labels should be hidden (the numbered legend annotation
+        # serves as the reference instead).
+        _show_x_tick_labels: bool = config.get("show_x_tick_labels", True)
+        if config.get("numbered_xaxis") and not config.get("show_numbered_ticks", False):
+            _show_x_tick_labels = False
+
         x_axis = AxisConfig(
             label=x_label,
             tick_angle=float(config.get("xaxis_tickangle", -45)),
@@ -418,8 +426,10 @@ class ConfigSpecBuilder:
             category_order=config.get("xaxis_order"),
             label_aliases=config.get("xaxis_labels"),
             automargin=config.get("automargin", True),
+            show_grid=config.get("show_x_grid", True),
             grid_color=config.get("grid_color", "#E5E5E5"),
             show_ticks=config.get("show_xtick_marks", True),
+            show_tick_labels=_show_x_tick_labels,
             tick_dash=config.get("xtick_dash", "solid"),
             tick_font_color=config.get("xaxis_tickfont_color", ""),
             tick_pad=float(config.get("xtick_pad", 5.0)),
@@ -432,6 +442,7 @@ class ConfigSpecBuilder:
             range=config.get("range_y"),
             dtick=config.get("yaxis_dtick"),
             automargin=config.get("automargin", True),
+            show_grid=config.get("show_y_grid", True),
             grid_color=config.get("grid_color", "#E5E5E5"),
             label_standoff=config.get("yaxis_title_standoff", -1),
             title_vshift=float(config.get("yaxis_title_vshift", 0.0)),
@@ -447,9 +458,7 @@ class ConfigSpecBuilder:
             x=x_axis,
             y=y_axis,
             group_label_alternate=config.get("group_label_alternate", True),
-            group_label_alt_spacing=float(
-                config.get("group_label_alt_spacing", 0.05)
-            ),
+            group_label_alt_spacing=float(config.get("group_label_alt_spacing", 0.05)),
         )
 
         # ── Primary Legend ───────────────────────────────────────
@@ -462,7 +471,7 @@ class ConfigSpecBuilder:
 
         # ── Boxed legend from UI ─────────────────────────────────
         if any(config.get(f"legend3_{k}") is not None for k in ("font_size", "x", "orientation")):
-            legends.append(_build_legend_from_config(config, "legend3_", "boxed"))
+            legends.append(_build_legend_from_config(config, "legend3_", "tertiary"))
 
         # ── Backgrounds ──────────────────────────────────────────
         paper_bg = config.get("paper_bgcolor", "white")
@@ -615,7 +624,7 @@ def _build_legend_from_config(
     Args:
         config: Flat configuration dictionary from UI widgets.
         prefix: Key prefix, e.g. ``"legend_"``, ``"legend2_"``, ``"legend3_"``.
-        role: Semantic role — ``"primary"``, ``"secondary"``, or ``"boxed"``.
+        role: Semantic role — ``"primary"``, ``"secondary"``, or ``"tertiary"``.
 
     Returns:
         Fully populated LegendConfig.
@@ -625,9 +634,13 @@ def _build_legend_from_config(
         columnspacing=float(config.get(f"{prefix}column_spacing", 0.5)),
         handletextpad=float(config.get(f"{prefix}marker_text_spacing", 0.3)),
     )
+    # All legends inherit the global font_family; primary uses the global
+    # config key, secondary/tertiary fall back to the same value.
+    font_family: str = config.get("font_family", "")
     return LegendConfig(
         role=role,  # type: ignore[arg-type]
         font_size=config.get(f"{prefix}font_size", 12),
+        font_family=font_family,
         font_color=config.get(f"{prefix}font_color", "#444"),
         title=config.get(f"{prefix}title", ""),
         title_font_size=config.get(f"{prefix}title_font_size", 14),

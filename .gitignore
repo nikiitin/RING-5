@@ -5,6 +5,8 @@
 *.tar
 *.tar.gz
 *.pyc
+*.epub
+*.azw3
 __pycache__
 python_venv/
 .pytest_cache/
@@ -15,7 +17,17 @@ build/
 .coverage
 config_files
 .mypy_cache/
-.epub
+
+# Node.js — only needed for Playwright E2E testing, installed on demand
+node_modules/
+package.json
+package-lock.json
+
+# Playwright MCP logs
+.playwright-mcp/
+
+# pytest-benchmark output
+.benchmarks/
 
 # VS Code - keep settings but ignore user-specific files
 .vscode/*
@@ -38,6 +50,7 @@ tests/visual/artifacts/
 
 # Keep these AI config files (explicitly)
 !.github/copilot-instructions.md
+!.agent/
 !.agent/
 !.cursorrules
 !.ai-assistant-guide.md

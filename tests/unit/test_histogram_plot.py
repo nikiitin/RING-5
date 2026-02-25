@@ -21,10 +21,16 @@ class TestHistogramPlotInitialization:
         assert plot.plot_type == "histogram"
 
 
+_HIST_CFG = "src.web.components.plotting.config.histogram_config"
+
+
 class TestHistogramPlotConfiguration:
     """Test histogram plot configuration UI."""
 
-    def test_render_config_ui_basic(self) -> None:
+    @patch(f"{_HIST_CFG}.render_common_config")
+    @patch(f"{_HIST_CFG}.detect_column_types")
+    @patch(f"{_HIST_CFG}.st")
+    def test_render_config_ui_basic(self, mock_st: Any, mock_detect: Any, mock_common: Any) -> None:
         """Test basic configuration rendering."""
         plot = HistogramPlot(plot_id=1, name="Test Histogram")
 
@@ -38,21 +44,35 @@ class TestHistogramPlotConfiguration:
             }
         )
 
-        saved_config: dict[str, Any] = {}
+        mock_common.return_value = {
+            "x": "benchmark",
+            "y": "latency..0-10",
+            "title": "Test Histogram",
+            "xlabel": "X Label",
+            "ylabel": "Y Label",
+        }
+        mock_detect.return_value = (
+            ["latency..0-10", "latency..10-20", "latency..20-30"],
+            ["benchmark"],
+        )
 
-        with patch("src.web.pages.ui.plotting.types.histogram_plot.st") as mock_st:
-            # Mock selectbox returns
-            mock_st.selectbox.side_effect = ["latency", None, 20, "count"]
-            mock_st.number_input.return_value = 10
-            mock_st.checkbox.return_value = False
-            mock_st.text_input.side_effect = ["Test Histogram", "X Label", "Y Label"]
+        # histogram-specific widgets:
+        # selectbox: histogram_variable, group_by, normalization
+        mock_st.selectbox.side_effect = ["latency", None, "count"]
+        mock_st.number_input.return_value = 10
+        mock_st.checkbox.return_value = False
 
-            config = plot.render_config_ui(data, saved_config)
+        config = plot.render_config_ui(data, {})
 
-            assert "histogram_variable" in config
-            assert config["histogram_variable"] == "latency"
+        assert "histogram_variable" in config
+        assert config["histogram_variable"] == "latency"
 
-    def test_render_config_with_grouping(self) -> None:
+    @patch(f"{_HIST_CFG}.render_common_config")
+    @patch(f"{_HIST_CFG}.detect_column_types")
+    @patch(f"{_HIST_CFG}.st")
+    def test_render_config_with_grouping(
+        self, mock_st: Any, mock_detect: Any, mock_common: Any
+    ) -> None:
         """Test configuration with categorical grouping variable."""
         plot = HistogramPlot(plot_id=1, name="Test Histogram")
 
@@ -65,17 +85,26 @@ class TestHistogramPlotConfiguration:
             }
         )
 
-        saved_config: dict[str, Any] = {"group_by": "benchmark"}
+        mock_common.return_value = {
+            "x": "benchmark",
+            "y": "latency..0-10",
+            "title": "Test",
+            "xlabel": "X",
+            "ylabel": "Y",
+        }
+        mock_detect.return_value = (
+            ["latency..0-10", "latency..10-20"],
+            ["benchmark", "config"],
+        )
 
-        with patch("src.web.pages.ui.plotting.types.histogram_plot.st") as mock_st:
-            mock_st.selectbox.side_effect = ["latency", "benchmark", 20, "count"]
-            mock_st.number_input.return_value = 5
-            mock_st.checkbox.return_value = False
-            mock_st.text_input.side_effect = ["Test", "X", "Y"]
+        # selectbox: histogram_variable, group_by, normalization
+        mock_st.selectbox.side_effect = ["latency", "benchmark", "count"]
+        mock_st.number_input.return_value = 5
+        mock_st.checkbox.return_value = False
 
-            config = plot.render_config_ui(data, saved_config)
+        config = plot.render_config_ui(data, {"group_by": "benchmark"})
 
-            assert config.get("group_by") == "benchmark"
+        assert config.get("group_by") == "benchmark"
 
 
 class TestHistogramPlotFigureCreation:

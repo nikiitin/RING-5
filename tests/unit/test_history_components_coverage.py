@@ -4,7 +4,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 from src.core.models.history_models import OperationRecord
-from src.web.pages.ui.components.history_components import HistoryComponents
+from src.web.components.common.history_components import HistoryComponents
 
 
 def _make_record(
@@ -35,19 +35,19 @@ def _columns_side_effect(n: "int | list[int]") -> "list[MagicMock]":
 class TestRenderHistoryTable:
     """Test render_history_table."""
 
-    @patch("src.web.pages.ui.components.history_components.st")
+    @patch("src.web.components.common.history_components.st")
     def test_empty_records_noop(self, mock_st: MagicMock) -> None:
         HistoryComponents.render_history_table([])
         mock_st.dataframe.assert_not_called()
 
-    @patch("src.web.pages.ui.components.history_components.st")
+    @patch("src.web.components.common.history_components.st")
     def test_with_title(self, mock_st: MagicMock) -> None:
         records = [_make_record()]
         HistoryComponents.render_history_table(records, title="My History")
         mock_st.markdown.assert_any_call("#### My History")
         mock_st.dataframe.assert_called_once()
 
-    @patch("src.web.pages.ui.components.history_components.st")
+    @patch("src.web.components.common.history_components.st")
     def test_without_title(self, mock_st: MagicMock) -> None:
         records = [_make_record()]
         HistoryComponents.render_history_table(records)
@@ -56,7 +56,7 @@ class TestRenderHistoryTable:
             assert not c[0][0].startswith("####")
         mock_st.dataframe.assert_called_once()
 
-    @patch("src.web.pages.ui.components.history_components.st")
+    @patch("src.web.components.common.history_components.st")
     def test_multiple_records_reversed(self, mock_st: MagicMock) -> None:
         r1 = _make_record(ts="2024-01-01T00:00:00")
         r2 = _make_record(ts="2024-01-02T00:00:00")
@@ -70,12 +70,12 @@ class TestRenderHistoryTable:
 class TestRenderGlobalHistory:
     """Test render_global_history."""
 
-    @patch("src.web.pages.ui.components.history_components.st")
+    @patch("src.web.components.common.history_components.st")
     def test_empty_records_noop(self, mock_st: MagicMock) -> None:
         HistoryComponents.render_global_history([], MagicMock())
         mock_st.expander.assert_not_called()
 
-    @patch("src.web.pages.ui.components.history_components.st")
+    @patch("src.web.components.common.history_components.st")
     def test_renders_expander_with_records(self, mock_st: MagicMock) -> None:
         records = [_make_record(op="Preprocessor: Division")]
         exp = MagicMock()
@@ -88,7 +88,7 @@ class TestRenderGlobalHistory:
         HistoryComponents.render_global_history(records, MagicMock())
         mock_st.expander.assert_called_once()
 
-    @patch("src.web.pages.ui.components.history_components.st")
+    @patch("src.web.components.common.history_components.st")
     def test_shows_max_10_records(self, mock_st: MagicMock) -> None:
         records = [_make_record(op=f"Op {i}") for i in range(15)]
         exp = MagicMock()
@@ -102,7 +102,7 @@ class TestRenderGlobalHistory:
         # columns should be called 10 times (once per displayed record)
         assert mock_st.columns.call_count == 10
 
-    @patch("src.web.pages.ui.components.history_components.st")
+    @patch("src.web.components.common.history_components.st")
     def test_delete_button_calls_callback(self, mock_st: MagicMock) -> None:
         record = _make_record()
         exp = MagicMock()
@@ -130,13 +130,13 @@ class TestRenderGlobalHistory:
 class TestRenderManagerHistory:
     """Test render_manager_history."""
 
-    @patch("src.web.pages.ui.components.history_components.st")
+    @patch("src.web.components.common.history_components.st")
     def test_no_matching_records(self, mock_st: MagicMock) -> None:
         records = [_make_record(op="Outlier: Q3")]
         HistoryComponents.render_manager_history(records, "Preprocessor", "_load_key", MagicMock())
         mock_st.expander.assert_not_called()
 
-    @patch("src.web.pages.ui.components.history_components.st")
+    @patch("src.web.components.common.history_components.st")
     def test_matching_records_renders_expander(self, mock_st: MagicMock) -> None:
         records = [_make_record(op="Preprocessor: Division")]
         exp = MagicMock()
@@ -149,7 +149,7 @@ class TestRenderManagerHistory:
         HistoryComponents.render_manager_history(records, "Preprocessor", "_load_key", MagicMock())
         mock_st.expander.assert_called_once()
 
-    @patch("src.web.pages.ui.components.history_components.st")
+    @patch("src.web.components.common.history_components.st")
     def test_operation_display_strips_prefix(self, mock_st: MagicMock) -> None:
         records = [_make_record(op="Preprocessor: Division")]
         exp = MagicMock()
@@ -164,7 +164,7 @@ class TestRenderManagerHistory:
         text_calls = [c[0][0] for c in mock_st.text.call_args_list]
         assert "Division" in text_calls
 
-    @patch("src.web.pages.ui.components.history_components.st")
+    @patch("src.web.components.common.history_components.st")
     def test_load_button_sets_session_state(self, mock_st: MagicMock) -> None:
         record = _make_record()
         exp = MagicMock()
@@ -189,7 +189,7 @@ class TestRenderManagerHistory:
         )
         assert mock_st.session_state["_preproc_load"] == record
 
-    @patch("src.web.pages.ui.components.history_components.st")
+    @patch("src.web.components.common.history_components.st")
     def test_delete_button_calls_callback(self, mock_st: MagicMock) -> None:
         record = _make_record()
         exp = MagicMock()
@@ -217,12 +217,12 @@ class TestRenderManagerHistory:
 class TestRenderPortfolioHistory:
     """Test render_portfolio_history."""
 
-    @patch("src.web.pages.ui.components.history_components.st")
+    @patch("src.web.components.common.history_components.st")
     def test_empty_records_warning(self, mock_st: MagicMock) -> None:
         HistoryComponents.render_portfolio_history([])
         mock_st.warning.assert_called_once()
 
-    @patch("src.web.pages.ui.components.history_components.st")
+    @patch("src.web.components.common.history_components.st")
     def test_with_records_shows_metric(self, mock_st: MagicMock) -> None:
         records = [_make_record(), _make_record()]
         HistoryComponents.render_portfolio_history(records)

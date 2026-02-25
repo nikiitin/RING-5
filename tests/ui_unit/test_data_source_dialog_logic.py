@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 # Defer import of DataSourceComponents to fixture to ensure patching works
-import src.web.pages.ui.components.data_source_components as ds_module
+import src.web.components.data_source.data_source_components as ds_module
 from tests.conftest import columns_side_effect
 
 
@@ -17,15 +17,15 @@ def components_bundle() -> Generator[tuple[Any, type[Any]], None, None]:
     # 1. Patch streamlit.dialog globally so the decorator is intercepted during reload
     # Accept both positional and keyword arguments to handle dismissible parameter
     with patch("streamlit.dialog", side_effect=lambda title=None, **kwargs: lambda func: func):
-        import src.web.pages.ui.components.variable_editor as ve_module
+        import src.web.components.data_source.variable_editor as ve_module
 
         importlib.reload(ve_module)
         importlib.reload(ds_module)
 
     # 2. Patch the module's st attribute for runtime widget mocking
     with (
-        patch("src.web.pages.ui.components.data_source_components.st") as mock_st,
-        patch("src.web.pages.ui.components.variable_editor.st", new=mock_st),
+        patch("src.web.components.data_source.data_source_components.st") as mock_st,
+        patch("src.web.components.data_source.variable_editor.st", new=mock_st),
     ):
 
         mock_st.session_state = {}

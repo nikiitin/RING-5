@@ -1,5 +1,5 @@
 """
-Manage Plots Page — Thin composition using Controller/Presenter architecture.
+Manage Plots Page — Thin composition using Controller/Component architecture.
 
 Composes controllers that each handle a single concern:
 
@@ -96,4 +96,3 @@ def show_manage_plots_page(api: ApplicationAPI) -> None:
 
         # 5. Visualization (fragmented)
         st.fragment(_render_fragment)(render, current_plot)
-

@@ -6,16 +6,16 @@ import pandas as pd
 import pytest
 from pandas import DataFrame
 
-from src.web.pages.ui.data_managers.impl.mixer import MixerManager
-from src.web.pages.ui.data_managers.impl.preprocessor import PreprocessorManager
+from src.web.components.data_managers.mixer import MixerManager
+from src.web.components.data_managers.preprocessor import PreprocessorManager
 from tests.conftest import columns_side_effect
 
 
 @pytest.fixture
 def mock_streamlit() -> Generator[tuple[Any, Any], None, None]:
     with (
-        patch("src.web.pages.ui.data_managers.impl.mixer.st") as mock_st_mixer,
-        patch("src.web.pages.ui.data_managers.impl.preprocessor.st") as mock_st_prep,
+        patch("src.web.components.data_managers.mixer.st") as mock_st_mixer,
+        patch("src.web.components.data_managers.preprocessor.st") as mock_st_prep,
     ):
 
         mock_st_mixer.session_state = {}

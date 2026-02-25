@@ -1,10 +1,10 @@
-"""Integration tests for PlotRenderController and ChartPresenter.
+"""Integration tests for PlotRenderController and ChartDisplayComponent.
 
-Covers Scenario #2 (Controller→Presenter behavioral chain) and #4 (UI orchestration).
+Covers Scenario #2 (Controller→Component behavioral chain) and #4 (UI orchestration).
 
 Tests:
     - PlotRenderController.render() with mocked Streamlit widgets
-    - ChartPresenter.render_refresh_controls() logic
+    - ChartDisplayComponent.render_refresh_controls() logic
     - Config change detection → should_generate flow
     - PlotLifecycleService.change_plot_type integration
     - Config error recovery in render pipeline
@@ -23,7 +23,7 @@ from src.web.models.plot_protocols import PlotHandle, RenderablePlot
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 from src.web.pages.ui.plotting.plot_service import PlotService
-from src.web.presenters.plot.chart_presenter import ChartPresenter
+from src.web.components.common.chart_display import ChartDisplayComponent
 
 # ---------------------------------------------------------------------------
 # Helpers — minimal protocol-satisfying adapters
@@ -100,14 +100,15 @@ class TestPlotRenderControllerIntegration:
         controller._render_visualization = tracker  # type: ignore[assignment]
         return controller, tracker
 
-    @patch("src.web.presenters.plot.chart_presenter.st")
-    @patch("src.web.presenters.plot.config_presenter.st")
+    @patch(
+        "src.web.controllers.plot.render_controller.render_settings_pills",
+        return_value=None,
+    )
     @patch("src.web.controllers.plot.render_controller.st")
     def test_render_with_data_calls_chart_display(
         self,
         mock_ctrl_st: MagicMock,
-        mock_config_st: MagicMock,
-        mock_chart_st: MagicMock,
+        mock_pills: MagicMock,
         loaded_facade: ApplicationAPI,
     ) -> None:
         """Controller.render() reaches _render_visualization when data is present."""
@@ -127,37 +128,23 @@ class TestPlotRenderControllerIntegration:
             "ylabel": "Y",
         }
 
-        # Mock Streamlit widgets to return values
-        mock_ctrl_st.rerun = MagicMock()
-        mock_config_st.columns.return_value = [MagicMock(), MagicMock()]
-        mock_config_st.selectbox.return_value = "bar"
+        # Mock inline Streamlit widgets
+        mock_ctrl_st.selectbox.return_value = "bar"
+        mock_ctrl_st.toggle.return_value = False
 
-        # ConfigPresenter.render_plot_type_selector returns dict
-        with (
-            patch(
-                "src.web.presenters.plot.config_presenter.ConfigPresenter.render_plot_type_selector",  # noqa: E501
-                return_value={"type_changed": False, "new_type": "bar"},
-            ),
-            patch(
-                "src.web.presenters.plot.config_presenter.ConfigPresenter.render_type_config",  # noqa: E501
-                return_value=plot.config.copy(),
-            ),
-            patch(
-                "src.web.presenters.plot.config_presenter.ConfigPresenter.render_advanced_and_theme",  # noqa: E501
-                return_value={},
-            ),
-            patch(
-                "src.web.presenters.plot.config_presenter.ConfigPresenter.render_section_headers",
-                return_value=None,
-            ),
-            patch(
-                "src.web.presenters.plot.chart_presenter.ChartPresenter.render_refresh_controls",
-                return_value={
-                    "auto_refresh": True,
-                    "manual_refresh": False,
-                    "should_generate": True,
-                },
-            ),
+        # Mock plot methods to avoid real Streamlit calls inside BasePlot
+        plot.render_config_ui = MagicMock(  # type: ignore[assignment]
+            return_value=plot.config.copy()
+        )
+        plot.render_settings_section = MagicMock(return_value={})  # type: ignore[assignment]
+
+        with patch(
+            "src.web.components.common.chart_display.ChartDisplayComponent.render_refresh_controls",
+            return_value={
+                "auto_refresh": True,
+                "manual_refresh": False,
+                "should_generate": True,
+            },
         ):
             controller.render(cast(RenderablePlot, plot))
 
@@ -165,14 +152,10 @@ class TestPlotRenderControllerIntegration:
         assert len(tracker.calls) == 1
         assert tracker.last_should_gen is True
 
-    @patch("src.web.presenters.plot.chart_presenter.st")
-    @patch("src.web.presenters.plot.config_presenter.st")
     @patch("src.web.controllers.plot.render_controller.st")
     def test_render_no_data_shows_warning(
         self,
         mock_ctrl_st: MagicMock,
-        mock_config_st: MagicMock,
-        mock_chart_st: MagicMock,
         facade: ApplicationAPI,
     ) -> None:
         """Controller.render() shows warning when processed_data is None."""
@@ -181,22 +164,20 @@ class TestPlotRenderControllerIntegration:
         plot: BasePlot = PlotFactory.create_plot("bar", plot_id=1, name="Empty")
         plot.processed_data = None  # No data
 
-        with patch(
-            "src.web.presenters.plot.config_presenter.ConfigPresenter.render_no_data_warning",
-        ) as mock_warning:
-            controller.render(cast(RenderablePlot, plot))
+        controller.render(cast(RenderablePlot, plot))
 
-        mock_warning.assert_called_once()
+        mock_ctrl_st.warning.assert_called_once_with("No processed data available.")
         assert len(tracker.calls) == 0
 
-    @patch("src.web.presenters.plot.chart_presenter.st")
-    @patch("src.web.presenters.plot.config_presenter.st")
+    @patch(
+        "src.web.controllers.plot.render_controller.render_settings_pills",
+        return_value=None,
+    )
     @patch("src.web.controllers.plot.render_controller.st")
     def test_config_error_prevents_generation(
         self,
         mock_ctrl_st: MagicMock,
-        mock_config_st: MagicMock,
-        mock_chart_st: MagicMock,
+        mock_pills: MagicMock,
         loaded_facade: ApplicationAPI,
     ) -> None:
         """When type config raises, should_generate is False."""
@@ -206,31 +187,23 @@ class TestPlotRenderControllerIntegration:
         plot.processed_data = loaded_facade.state_manager.get_data()
         plot.config = {"x": "benchmark_name", "y": "system.cpu.ipc"}
 
-        with (
-            patch(
-                "src.web.presenters.plot.config_presenter.ConfigPresenter.render_plot_type_selector",  # noqa: E501
-                return_value={"type_changed": False, "new_type": "bar"},
-            ),
-            patch(
-                "src.web.presenters.plot.config_presenter.ConfigPresenter.render_type_config",  # noqa: E501
-                side_effect=ValueError("bad config"),
-            ),
-            patch(
-                "src.web.presenters.plot.config_presenter.ConfigPresenter.render_advanced_and_theme",  # noqa: E501
-                return_value={},
-            ),
-            patch(
-                "src.web.presenters.plot.config_presenter.ConfigPresenter.render_section_headers",
-                return_value=None,
-            ),
-            patch(
-                "src.web.presenters.plot.chart_presenter.ChartPresenter.render_refresh_controls",
-                return_value={
-                    "auto_refresh": True,
-                    "manual_refresh": True,  # Even manual refresh clicked
-                    "should_generate": True,
-                },
-            ),
+        # Mock inline Streamlit widgets
+        mock_ctrl_st.selectbox.return_value = "bar"
+        mock_ctrl_st.toggle.return_value = False
+
+        # Make render_config_ui raise to test error recovery
+        plot.render_config_ui = MagicMock(  # type: ignore[assignment]
+            side_effect=ValueError("bad config")
+        )
+        plot.render_settings_section = MagicMock(return_value={})  # type: ignore[assignment]
+
+        with patch(
+            "src.web.components.common.chart_display.ChartDisplayComponent.render_refresh_controls",
+            return_value={
+                "auto_refresh": True,
+                "manual_refresh": True,  # Even manual refresh clicked
+                "should_generate": True,
+            },
         ):
             controller.render(cast(RenderablePlot, plot))
 
@@ -240,63 +213,63 @@ class TestPlotRenderControllerIntegration:
 
 
 # ===========================================================================
-# Test Class 2: ChartPresenter refresh logic integration
+# Test Class 2: ChartDisplayComponent refresh logic integration
 # ===========================================================================
 
 
-class TestChartPresenterIntegration:
-    """Test ChartPresenter.render_refresh_controls() logic."""
+class TestChartDisplayComponentIntegration:
+    """Test ChartDisplayComponent.render_refresh_controls() logic."""
 
-    @patch("src.web.presenters.plot.chart_presenter.st")
+    @patch("src.web.components.common.chart_display.st")
     def test_auto_refresh_with_config_change_triggers_generation(self, mock_st: MagicMock) -> None:
         """Auto-refresh ON + config changed → should_generate is True."""
         mock_st.columns.return_value = [MagicMock(), MagicMock()]
         mock_st.toggle.return_value = True  # auto-refresh ON
         mock_st.button.return_value = False  # no manual click
 
-        result: dict[str, Any] = ChartPresenter.render_refresh_controls(
+        result: dict[str, Any] = ChartDisplayComponent.render_refresh_controls(
             plot_id=1, auto_refresh=True, config_changed=True
         )
 
         assert result["auto_refresh"] is True
         assert result["should_generate"] is True
 
-    @patch("src.web.presenters.plot.chart_presenter.st")
+    @patch("src.web.components.common.chart_display.st")
     def test_auto_refresh_without_config_change_skips(self, mock_st: MagicMock) -> None:
         """Auto-refresh ON + no config change → should_generate is False."""
         mock_st.columns.return_value = [MagicMock(), MagicMock()]
         mock_st.toggle.return_value = True  # auto-refresh ON
         mock_st.button.return_value = False  # no manual click
 
-        result: dict[str, Any] = ChartPresenter.render_refresh_controls(
+        result: dict[str, Any] = ChartDisplayComponent.render_refresh_controls(
             plot_id=2, auto_refresh=True, config_changed=False
         )
 
         assert result["auto_refresh"] is True
         assert result["should_generate"] is False
 
-    @patch("src.web.presenters.plot.chart_presenter.st")
+    @patch("src.web.components.common.chart_display.st")
     def test_manual_refresh_triggers_generation(self, mock_st: MagicMock) -> None:
         """Manual refresh click → should_generate is True regardless of auto."""
         mock_st.columns.return_value = [MagicMock(), MagicMock()]
         mock_st.toggle.return_value = False  # auto-refresh OFF
         mock_st.button.return_value = True  # manual clicked
 
-        result: dict[str, Any] = ChartPresenter.render_refresh_controls(
+        result: dict[str, Any] = ChartDisplayComponent.render_refresh_controls(
             plot_id=3, auto_refresh=False, config_changed=False
         )
 
         assert result["manual_refresh"] is True
         assert result["should_generate"] is True
 
-    @patch("src.web.presenters.plot.chart_presenter.st")
+    @patch("src.web.components.common.chart_display.st")
     def test_no_refresh_no_generation(self, mock_st: MagicMock) -> None:
         """Auto OFF + no manual click + no change → should_generate is False."""
         mock_st.columns.return_value = [MagicMock(), MagicMock()]
         mock_st.toggle.return_value = False
         mock_st.button.return_value = False
 
-        result: dict[str, Any] = ChartPresenter.render_refresh_controls(
+        result: dict[str, Any] = ChartDisplayComponent.render_refresh_controls(
             plot_id=4, auto_refresh=False, config_changed=True  # even though changed
         )
 

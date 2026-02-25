@@ -2,10 +2,10 @@
 Plot Render Controller — orchestrates config gathering, figure generation, display.
 
 Handles:
-    - Gathering config from ConfigPresenter (which wraps BasePlot methods)
+    - Gathering config from plot's render methods (inline)
     - Detecting config changes
     - Figure generation and caching
-    - Delegating chart display to ChartPresenter
+    - Delegating chart display to ChartDisplayComponent
     - Plot type changes via PlotLifecycleService
 
 Dependencies are injected via protocols (no concrete imports from pages.ui).
@@ -14,7 +14,7 @@ Architecture Note — Streamlit usage:
     This controller uses ``st.rerun()`` after plot type changes and relayout
     events (flow control) and ``st.exception()`` for config rendering errors.
     All chart display (engine selector, chart rendering, download) is
-    delegated to ``ChartPresenter``.
+    delegated to ``ChartDisplayComponent``.
 """
 
 import hashlib
@@ -32,8 +32,8 @@ from src.web.models.plot_protocols import (
     PlotTypeRegistry,
     RenderablePlot,
 )
-from src.web.presenters.plot.chart_presenter import ChartPresenter
-from src.web.presenters.plot.config_presenter import ConfigPresenter
+from src.web.components.common.chart_display import ChartDisplayComponent
+from src.web.pages.ui.plotting.settings_pills import render_settings_pills
 from src.web.rendering.engine_manager import EngineManager, EngineMode
 from src.web.state.ui_state_manager import UIStateManager
 
@@ -48,9 +48,9 @@ class PlotRenderController:
     Does NOT handle pipeline editing or plot lifecycle.
 
     Architecture:
-        - ConfigPresenter gathers all config (type-specific + advanced + theme)
+        - Config gathered inline (type-specific + advanced + theme)
         - Controller owns figure generation + caching
-        - ChartPresenter renders engine selector, chart display, and downloads
+        - ChartDisplayComponent renders engine selector, chart display, and downloads
         - PlotLifecycleService handles plot type changes
 
     Dependencies are injected via protocols — no concrete imports from
@@ -84,48 +84,50 @@ class PlotRenderController:
 
         Steps:
             1. Guard: check processed data exists
-            2. Plot type selector (via ConfigPresenter)
-            3. Type-specific config (via ConfigPresenter)
-            4. Advanced + theme config (via ConfigPresenter)
+            2. Plot type selector (inline)
+            3. Type-specific config (via plot.render_config_ui)
+            4. Advanced + theme config (inline)
             5. Detect config changes
-            6. Refresh controls (via ChartPresenter)
+            6. Refresh controls (via ChartDisplayComponent)
             7. Figure generation + caching (direct)
-            8. Engine selector + chart display (via ChartPresenter)
+            8. Engine selector + chart display (via ChartDisplayComponent)
 
         Args:
             plot: The plot to render (must satisfy both PlotHandle
                   and ConfigRenderer protocols).
         """
         if plot.processed_data is None:
-            ConfigPresenter.render_no_data_warning()
+            st.warning("No processed data available.")
             return
 
-        ConfigPresenter.render_section_headers()
+        st.markdown("### Visualization")
+        st.markdown("---")
+        st.markdown("### Plot Configuration")
         saved_config: dict[str, Any] = plot.config
         current_config: dict[str, Any] = saved_config.copy()
         config_error: bool = False
 
-        # 1. Plot type selector (via ConfigPresenter)
+        # 1. Plot type selector (inline)
         available_types: list[str] = self._registry.get_available_types()
-        type_result = ConfigPresenter.render_plot_type_selector(
-            plot_type=plot.plot_type,
-            available_types=available_types,
-            plot_id=plot.plot_id,
+        new_type: str | None = st.selectbox(
+            "Plot Type",
+            options=available_types,
+            index=(
+                available_types.index(plot.plot_type) if plot.plot_type in available_types else 0
+            ),
+            key=f"plot_type_sel_{plot.plot_id}",
         )
+        type_changed: bool = new_type is not None and new_type != plot.plot_type
 
-        if type_result["type_changed"]:
-            self._lifecycle.change_plot_type(plot, type_result["new_type"], self._api.state_manager)
+        if type_changed:
+            self._lifecycle.change_plot_type(plot, new_type, self._api.state_manager)
             st.rerun()
 
-        # 2. Type-specific config (via ConfigPresenter → delegates to plot)
+        # 2. Type-specific config (via plot.render_config_ui)
         data: pd.DataFrame = plot.processed_data
         # plot satisfies RenderablePlot (PlotHandle + ConfigRenderer)
         try:
-            ui_config: dict[str, Any] = ConfigPresenter.render_type_config(
-                renderer=plot,
-                data=data,
-                saved_config=saved_config,
-            )
+            ui_config: dict[str, Any] = plot.render_config_ui(data, saved_config)
             current_config.update(ui_config)
         except Exception as e:
             st.exception(e)
@@ -137,12 +139,16 @@ class PlotRenderController:
             )
             config_error = True
 
-        # 3. Advanced & Theme (via ConfigPresenter)
+        # 3. Advanced & Theme (inline)
         try:
-            extra_config: dict[str, Any] = ConfigPresenter.render_advanced_and_theme(
-                renderer=plot,
-                current_config=current_config,
-                data=data,
+            show_adv: bool = st.toggle(
+                "Show advanced settings",
+                value=False,
+                key=f"show_advanced_{plot.plot_id}",
+            )
+            selected_section: str | None = render_settings_pills(show_advanced=show_adv)
+            extra_config: dict[str, Any] = plot.render_settings_section(
+                selected_section, current_config, data
             )
             current_config.update(extra_config)
         except Exception as e:
@@ -155,11 +161,11 @@ class PlotRenderController:
             )
             config_error = True
 
-        # 4. Refresh logic (via ChartPresenter)
+        # 4. Refresh logic (via ChartDisplayComponent)
         config_changed: bool = current_config != saved_config
         auto_refresh: bool = self._ui.plot.get_auto_refresh(plot.plot_id)
 
-        controls = ChartPresenter.render_refresh_controls(
+        controls = ChartDisplayComponent.render_refresh_controls(
             plot_id=plot.plot_id,
             auto_refresh=auto_refresh,
             config_changed=config_changed,
@@ -178,13 +184,13 @@ class PlotRenderController:
 
     def _render_visualization(self, plot: RenderablePlot, should_generate: bool) -> None:
         """
-        Generate figure (with caching) and delegate display to presenter.
+        Generate figure (with caching) and delegate display to component.
 
         This method owns the figure lifecycle:
             1. Cache check (skip regeneration if config/data unchanged)
             2. Figure generation via ``FigureEngine``
-            3. Engine selector via ``ChartPresenter``
-            4. Chart display via ``ChartPresenter`` (Plotly or Matplotlib)
+            3. Engine selector via ``ChartDisplayComponent``
+            4. Chart display via ``ChartDisplayComponent`` (Plotly or Matplotlib)
             5. Relayout handling for Plotly interactive charts
 
         Args:
@@ -219,7 +225,7 @@ class PlotRenderController:
                 plot.last_generated_fig = fig
                 cache.set(cache_key, fig)
             except Exception as e:
-                ChartPresenter.render_error(e)
+                ChartDisplayComponent.render_error(e)
                 return
 
         # ── Display ──────────────────────────────────────────────
@@ -227,8 +233,8 @@ class PlotRenderController:
         if fig is None:  # type: ignore[redundant-expr]
             return
 
-        # Engine selector (presenter renders st.pills)
-        engine_choice: str | None = ChartPresenter.render_engine_selector(
+        # Engine selector (component renders st.pills)
+        engine_choice: str | None = ChartDisplayComponent.render_engine_selector(
             plot.plot_id, EngineManager.get_engine()
         )
         if engine_choice is not None:
@@ -240,7 +246,7 @@ class PlotRenderController:
                 # Use pre-computed traces when available (B7 forward path)
                 _traces_result = plot.last_traces
                 pre_traces = list(_traces_result.traces) if _traces_result is not None else None
-                ChartPresenter.render_matplotlib_chart(
+                ChartDisplayComponent.render_matplotlib_chart(
                     fig,
                     plot.plot_id,
                     plot.name,
@@ -249,7 +255,7 @@ class PlotRenderController:
                     traces=pre_traces,
                 )
             else:
-                relayout_data = ChartPresenter.render_plotly_chart(
+                relayout_data = ChartDisplayComponent.render_plotly_chart(
                     fig,
                     plot.plot_id,
                     plot.name,
@@ -264,7 +270,7 @@ class PlotRenderController:
                             st.session_state[last_event_key] = relayout_data
                             st.rerun()
         except Exception as e:
-            ChartPresenter.render_error(e)
+            ChartDisplayComponent.render_error(e)
 
     @staticmethod
     def _compute_figure_cache_key(plot_id: int, config: dict[str, Any], data_hash: str) -> str:
