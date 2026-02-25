@@ -1,7 +1,7 @@
 """
 Unit tests for the CSV format contract module.
 
-Tests the validation function and column formatting utilities that
+Tests the validation function and contract constants that
 define the boundary between Layer A (Parsing) and Layer B (Core).
 """
 
@@ -12,9 +12,6 @@ import pytest
 from src.parsing.csv_contract import (
     CSV_ENCODING,
     MISSING_VALUE,
-    VECTOR_ENTRY_SEPARATOR,
-    format_vector_column,
-    parse_vector_column,
     validate_parser_csv,
 )
 
@@ -22,55 +19,11 @@ from src.parsing.csv_contract import (
 class TestConstants:
     """Verify contract constants are defined correctly."""
 
-    def test_vector_entry_separator(self) -> None:
-        assert VECTOR_ENTRY_SEPARATOR == ".."
-
     def test_missing_value(self) -> None:
         assert MISSING_VALUE == ""
 
     def test_csv_encoding(self) -> None:
         assert CSV_ENCODING == "utf-8"
-
-
-class TestFormatVectorColumn:
-    """Test vector column name formatting."""
-
-    def test_basic_vector_column(self) -> None:
-        result = format_vector_column("system.cpu.committedInsts", "0")
-        assert result == "system.cpu.committedInsts..0"
-
-    def test_named_entry(self) -> None:
-        result = format_vector_column("system.cpu.dcache.access", "demand_accesses")
-        assert result == "system.cpu.dcache.access..demand_accesses"
-
-    def test_nested_variable(self) -> None:
-        result = format_vector_column("system.l2.overall_hits", "total")
-        assert result == "system.l2.overall_hits..total"
-
-
-class TestParseVectorColumn:
-    """Test vector column name parsing."""
-
-    def test_parse_valid_vector_column(self) -> None:
-        result = parse_vector_column("system.cpu.committedInsts..0")
-        assert result == ("system.cpu.committedInsts", "0")
-
-    def test_parse_named_entry(self) -> None:
-        result = parse_vector_column("system.cpu.dcache.access..demand_accesses")
-        assert result == ("system.cpu.dcache.access", "demand_accesses")
-
-    def test_parse_scalar_column(self) -> None:
-        result = parse_vector_column("system.cpu.ipc")
-        assert result is None
-
-    def test_parse_single_dot_not_vector(self) -> None:
-        result = parse_vector_column("system.cpu")
-        assert result is None
-
-    def test_roundtrip(self) -> None:
-        col = format_vector_column("system.cpu.stat", "entry1")
-        parsed = parse_vector_column(col)
-        assert parsed == ("system.cpu.stat", "entry1")
 
 
 class TestValidateParserCsv:

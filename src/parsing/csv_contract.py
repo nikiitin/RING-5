@@ -8,11 +8,14 @@ Format Rules:
     1. Header row is mandatory.
     2. Each row represents one dump interval (begin/end simpoint pair).
     3. Column names are variable names (hierarchical, dot-separated).
-    4. Vector entries are expanded as: ``variable_name..entry_name``
-       (double-dot separator).
-    5. Values are numeric (float) or string (for configuration variables).
-    6. Missing values are represented as empty string.
-    7. No simulator-specific metadata in the CSV — only data values.
+    4. Values are numeric (float) or string (for configuration variables).
+    5. Missing values are represented as empty string.
+    6. No simulator-specific metadata in the CSV — only data values.
+
+Note:
+    Simulator-specific column naming conventions (e.g., gem5 vector entries
+    using ``..`` separator) are handled by each simulator's parser, NOT by
+    this contract. This module defines only the generic CSV format.
 
 Usage:
     Parsers should import constants from this module to ensure consistent
@@ -31,10 +34,6 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 # ─── Constants ────────────────────────────────────────────────────────────────
-
-VECTOR_ENTRY_SEPARATOR: str = ".."
-# Separator between variable name and vector entry index in column names.
-# Example: ``system.cpu.committedInsts..0`` for the first entry of a vector stat.
 
 MISSING_VALUE: str = ""
 # Representation for missing/unavailable values in the CSV output.
@@ -108,45 +107,3 @@ def validate_parser_csv(path: Path) -> list[str]:
             warnings.append("CSV file has header but no data rows")
 
     return warnings
-
-
-def format_vector_column(variable_name: str, entry_name: str) -> str:
-    """
-    Format a column name for a vector variable entry.
-
-    Args:
-        variable_name: Base variable name (e.g., ``system.cpu.committedInsts``).
-        entry_name: Entry identifier (e.g., ``0``, ``demand_accesses``).
-
-    Returns:
-        Formatted column name with vector entry separator.
-
-    Example:
-        >>> format_vector_column("system.cpu.committedInsts", "0")
-        'system.cpu.committedInsts..0'
-    """
-    return f"{variable_name}{VECTOR_ENTRY_SEPARATOR}{entry_name}"
-
-
-def parse_vector_column(column_name: str) -> tuple[str, str] | None:
-    """
-    Parse a column name to extract variable name and entry if it's a vector.
-
-    Args:
-        column_name: Column name to parse.
-
-    Returns:
-        Tuple of (variable_name, entry_name) if the column represents a
-        vector entry, or None if it's a scalar column.
-
-    Example:
-        >>> parse_vector_column("system.cpu.committedInsts..0")
-        ('system.cpu.committedInsts', '0')
-        >>> parse_vector_column("system.cpu.ipc")
-        None
-    """
-    if VECTOR_ENTRY_SEPARATOR in column_name:
-        parts = column_name.split(VECTOR_ENTRY_SEPARATOR, 1)
-        if len(parts) == 2 and parts[0] and parts[1]:
-            return (parts[0], parts[1])
-    return None
