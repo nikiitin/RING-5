@@ -6,17 +6,17 @@ Targets the following files/lines:
     Lines 70-167: render_selector branches, _filter_entries, _format_entry_display
 - src/core/models/parsing_models.py  (67% → ~100%)
     Lines 53-64: ScannedVariable.to_dict optional fields (minimum, maximum, pattern_indices)
-- src/core/parsing/gem5/impl/strategies/factory.py  (53% → 100%)
+- src/parsing/gem5/impl/strategies/factory.py  (53% → 100%)
     Lines 37-44: config_aware branch + ValueError for unknown strategy
-- src/core/parsing/gem5/impl/gem5_parser_api.py  (71% → 100%)
+- src/parsing/gem5/impl/gem5_parser_api.py  (71% → 100%)
     Lines 40, 57, 66, 73: all four delegating methods
-- src/core/parsing/gem5/impl/strategies/config_aware.py  (67% → ~100%)
+- src/parsing/gem5/impl/strategies/config_aware.py  (67% → ~100%)
     Lines 42-43, 55, 68-75: post_process + _parse_config branches
-- src/core/parsing/gem5/impl/pool/parse_work.py  (80% → 100%)
+- src/parsing/gem5/impl/pool/parse_work.py  (80% → 100%)
     Lines 44, 53: __call__ raises NotImplementedError, __str__
-- src/core/parsing/gem5/impl/pool/work_pool.py  (85% → ~100%)
+- src/parsing/gem5/impl/pool/work_pool.py  (85% → ~100%)
     Lines 50-51, 67-69: _mp_context ValueError fallback, _get_thread_executor
-- src/core/parsing/parse_service.py  (79% → ~90%)
+- src/parsing/parse_service.py  (79% → ~90%)
     Lines 143-146, 155-198, 210-212, 325: regex expansion, keep_indices, finalize
 - src/web/pages/ui/components/data_source_components.py  (73% → ~85%)
     Lines covering render_csv_pool, variable_config_dialog, _show_parse_dialog
@@ -41,9 +41,9 @@ class TestScannedVariableToDict:
     """Cover to_dict branches for minimum, maximum, pattern_indices."""
 
     def test_to_dict_with_all_optional_fields(self) -> None:
-        from src.core.models.parsing_models import ScannedVariable
+        from src.parsing.gem5.models import Gem5ScannedVariable
 
-        sv = ScannedVariable(
+        sv = Gem5ScannedVariable(
             name="cpu.ipc",
             type="scalar",
             entries=["0", "1"],
@@ -70,22 +70,22 @@ class TestScannedVariableToDict:
         assert "pattern_indices" not in d
 
     def test_to_dict_partial_optional(self) -> None:
-        from src.core.models.parsing_models import ScannedVariable
+        from src.parsing.gem5.models import Gem5ScannedVariable
 
-        sv = ScannedVariable(name="dist.var", type="distribution", minimum=0.0)
+        sv = Gem5ScannedVariable(name="dist.var", type="distribution", minimum=0.0)
         d = sv.to_dict()
         assert d.get("minimum") == 0.0
         assert "maximum" not in d
         assert "pattern_indices" not in d
 
     def test_from_dict_roundtrip(self) -> None:
-        from src.core.models.parsing_models import ScannedVariable
+        from src.parsing.gem5.models import Gem5ScannedVariable
 
-        sv = ScannedVariable(
+        sv = Gem5ScannedVariable(
             name="x", type="vector", entries=["a"], minimum=1.0, maximum=2.0, pattern_indices=["p"]
         )
         d = sv.to_dict()
-        sv2 = ScannedVariable.from_dict(d)
+        sv2 = Gem5ScannedVariable.from_dict(d)
         assert sv2.name == sv.name
         assert sv2.minimum == sv.minimum
         assert sv2.maximum == sv.maximum
@@ -101,21 +101,21 @@ class TestStrategyFactory:
     """Cover config_aware branch and unknown strategy ValueError."""
 
     def test_create_simple(self) -> None:
-        from src.core.parsing.gem5.impl.strategies.factory import StrategyFactory
+        from src.parsing.gem5.impl.strategies.factory import StrategyFactory
 
         strategy = StrategyFactory.create("simple")
         assert strategy is not None
         assert strategy.__class__.__name__ == "SimpleStatsStrategy"
 
     def test_create_config_aware(self) -> None:
-        from src.core.parsing.gem5.impl.strategies.factory import StrategyFactory
+        from src.parsing.gem5.impl.strategies.factory import StrategyFactory
 
         strategy = StrategyFactory.create("config_aware")
         assert strategy is not None
         assert strategy.__class__.__name__ == "ConfigAwareStrategy"
 
     def test_create_unknown_raises(self) -> None:
-        from src.core.parsing.gem5.impl.strategies.factory import StrategyFactory
+        from src.parsing.gem5.impl.strategies.factory import StrategyFactory
 
         with pytest.raises(ValueError, match="Unknown strategy type"):
             StrategyFactory.create("nonexistent")
@@ -129,10 +129,10 @@ class TestStrategyFactory:
 class TestGem5ParserAPI:
     """Cover submit_parse_async, finalize_parsing, submit_scan_async, aggregate_scan_results."""
 
-    @patch("src.core.parsing.gem5.impl.gem5_parser_api.Gem5Parser")
+    @patch("src.parsing.gem5.impl.gem5_parser_api.Gem5Parser")
     def test_submit_parse_async(self, mock_parser: MagicMock) -> None:
         from src.core.models.parsing_models import ParseBatchResult
-        from src.core.parsing.gem5.impl.gem5_parser_api import Gem5ParserAPI
+        from src.parsing.gem5.impl.gem5_parser_api import Gem5ParserAPI
 
         mock_parser.submit_parse_async.return_value = ParseBatchResult(futures=[], var_names=[])
         api = Gem5ParserAPI()
@@ -147,9 +147,9 @@ class TestGem5ParserAPI:
         mock_parser.submit_parse_async.assert_called_once()
         assert isinstance(result, ParseBatchResult)
 
-    @patch("src.core.parsing.gem5.impl.gem5_parser_api.Gem5Parser")
+    @patch("src.parsing.gem5.impl.gem5_parser_api.Gem5Parser")
     def test_finalize_parsing(self, mock_parser: MagicMock) -> None:
-        from src.core.parsing.gem5.impl.gem5_parser_api import Gem5ParserAPI
+        from src.parsing.gem5.impl.gem5_parser_api import Gem5ParserAPI
 
         mock_parser.finalize_parsing.return_value = "/some/path.csv"
         api = Gem5ParserAPI()
@@ -162,9 +162,9 @@ class TestGem5ParserAPI:
         mock_parser.finalize_parsing.assert_called_once()
         assert result == "/some/path.csv"
 
-    @patch("src.core.parsing.gem5.impl.gem5_parser_api.Gem5Scanner")
+    @patch("src.parsing.gem5.impl.gem5_parser_api.Gem5Scanner")
     def test_submit_scan_async(self, mock_scanner: MagicMock) -> None:
-        from src.core.parsing.gem5.impl.gem5_parser_api import Gem5ParserAPI
+        from src.parsing.gem5.impl.gem5_parser_api import Gem5ParserAPI
 
         mock_scanner.submit_scan_async.return_value = []
         api = Gem5ParserAPI()
@@ -176,9 +176,9 @@ class TestGem5ParserAPI:
         mock_scanner.submit_scan_async.assert_called_once()
         assert result == []
 
-    @patch("src.core.parsing.gem5.impl.gem5_parser_api.Gem5Scanner")
+    @patch("src.parsing.gem5.impl.gem5_parser_api.Gem5Scanner")
     def test_aggregate_scan_results(self, mock_scanner: MagicMock) -> None:
-        from src.core.parsing.gem5.impl.gem5_parser_api import Gem5ParserAPI
+        from src.parsing.gem5.impl.gem5_parser_api import Gem5ParserAPI
 
         mock_scanner.aggregate_scan_results.return_value = []
         api = Gem5ParserAPI()
@@ -197,7 +197,7 @@ class TestConfigAwareStrategy:
 
     def test_post_process_no_sim_path(self) -> None:
         """Result without sim_path key — should be appended as-is."""
-        from src.core.parsing.gem5.impl.strategies.config_aware import (
+        from src.parsing.gem5.impl.strategies.config_aware import (
             ConfigAwareStrategy,
         )
 
@@ -209,7 +209,7 @@ class TestConfigAwareStrategy:
 
     def test_post_process_config_found(self, tmp_path: Path) -> None:
         """Result with sim_path pointing to existing config.ini."""
-        from src.core.parsing.gem5.impl.strategies.config_aware import (
+        from src.parsing.gem5.impl.strategies.config_aware import (
             ConfigAwareStrategy,
         )
 
@@ -231,7 +231,7 @@ class TestConfigAwareStrategy:
 
     def test_post_process_config_not_found(self, tmp_path: Path) -> None:
         """Result with sim_path but no config.ini in the directory."""
-        from src.core.parsing.gem5.impl.strategies.config_aware import (
+        from src.parsing.gem5.impl.strategies.config_aware import (
             ConfigAwareStrategy,
         )
 
@@ -247,7 +247,7 @@ class TestConfigAwareStrategy:
 
     def test_parse_config_error_handling(self, tmp_path: Path) -> None:
         """_parse_config handles malformed config gracefully."""
-        from src.core.parsing.gem5.impl.strategies.config_aware import (
+        from src.parsing.gem5.impl.strategies.config_aware import (
             ConfigAwareStrategy,
         )
 
@@ -262,7 +262,7 @@ class TestConfigAwareStrategy:
 
     def test_parse_config_unreadable(self, tmp_path: Path) -> None:
         """_parse_config returns empty dict on read error."""
-        from src.core.parsing.gem5.impl.strategies.config_aware import (
+        from src.parsing.gem5.impl.strategies.config_aware import (
             ConfigAwareStrategy,
         )
 
@@ -285,7 +285,7 @@ class TestParseWork:
     """Cover NotImplementedError from __call__ and __str__."""
 
     def test_call_raises_not_implemented(self) -> None:
-        from src.core.parsing.gem5.impl.pool.parse_work import ParseWork
+        from src.parsing.gem5.impl.pool.parse_work import ParseWork
 
         class ConcreteParseWork(ParseWork):
             """Minimal concrete subclass that does NOT override __call__."""
@@ -295,7 +295,7 @@ class TestParseWork:
             work()
 
     def test_str_returns_class_name(self) -> None:
-        from src.core.parsing.gem5.impl.pool.parse_work import ParseWork
+        from src.parsing.gem5.impl.pool.parse_work import ParseWork
 
         class MyWork(ParseWork):
             def __call__(self) -> dict[str, Any]:
@@ -314,7 +314,7 @@ class TestWorkPool:
     """Cover mp_context ValueError fallback and thread executor lazy init."""
 
     def test_thread_executor_lazy_init(self) -> None:
-        from src.core.parsing.gem5.impl.pool.work_pool import WorkPool
+        from src.parsing.gem5.impl.pool.work_pool import WorkPool
 
         # Reset singleton to force fresh initialization
         WorkPool._instance = None
@@ -333,9 +333,9 @@ class TestWorkPool:
         # Cleanup
         WorkPool._instance = None
 
-    @patch("src.core.parsing.gem5.impl.pool.work_pool.multiprocessing.get_context")
+    @patch("src.parsing.gem5.impl.pool.work_pool.multiprocessing.get_context")
     def test_mp_context_fallback_on_value_error(self, mock_ctx: MagicMock) -> None:
-        from src.core.parsing.gem5.impl.pool.work_pool import WorkPool
+        from src.parsing.gem5.impl.pool.work_pool import WorkPool
 
         mock_ctx.side_effect = ValueError("no spawn")
 
@@ -349,7 +349,7 @@ class TestWorkPool:
         WorkPool._instance = None
 
     def test_submit_with_threads(self) -> None:
-        from src.core.parsing.gem5.impl.pool.work_pool import WorkPool
+        from src.parsing.gem5.impl.pool.work_pool import WorkPool
 
         WorkPool._instance = None
         pool = WorkPool()
@@ -372,8 +372,8 @@ class TestWorkPool:
 class TestParseServiceRegexExpansion:
     """Cover regex expansion branches in submit_parse_async."""
 
-    @patch("src.core.parsing.gem5.impl.gem5_parser.ParseWorkPool")
-    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
+    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_regex_expansion_with_scanned_vars(
         self, mock_factory: MagicMock, mock_pool_cls: MagicMock, tmp_path: Path
     ) -> None:
@@ -382,7 +382,7 @@ class TestParseServiceRegexExpansion:
             ScannedVariable,
             StatConfig,
         )
-        from src.core.parsing.parse_service import ParseService
+        from src.parsing.parse_service import ParseService
 
         # Create the stats directory so FileNotFoundError isn't raised
         stats_dir = tmp_path / "sim"
@@ -412,8 +412,8 @@ class TestParseServiceRegexExpansion:
         )
         assert isinstance(result, ParseBatchResult)
 
-    @patch("src.core.parsing.gem5.impl.gem5_parser.ParseWorkPool")
-    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
+    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_regex_expansion_with_pattern_indices(
         self, mock_factory: MagicMock, mock_pool_cls: MagicMock, tmp_path: Path
     ) -> None:
@@ -422,7 +422,7 @@ class TestParseServiceRegexExpansion:
             ScannedVariable,
             StatConfig,
         )
-        from src.core.parsing.parse_service import ParseService
+        from src.parsing.parse_service import ParseService
 
         stats_dir = tmp_path / "sim"
         stats_dir.mkdir()
@@ -454,9 +454,9 @@ class TestParseServiceRegexExpansion:
         )
         assert isinstance(result, ParseBatchResult)
 
-    @patch("src.core.parsing.gem5.impl.gem5_parser.PatternIndexService")
-    @patch("src.core.parsing.gem5.impl.gem5_parser.ParseWorkPool")
-    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
+    @patch("src.parsing.gem5.impl.gem5_parser.PatternIndexService")
+    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_keep_indices_expansion(
         self,
         mock_factory: MagicMock,
@@ -469,7 +469,7 @@ class TestParseServiceRegexExpansion:
             ScannedVariable,
             StatConfig,
         )
-        from src.core.parsing.parse_service import ParseService
+        from src.parsing.parse_service import ParseService
 
         stats_dir = tmp_path / "sim"
         stats_dir.mkdir()
@@ -510,9 +510,9 @@ class TestParseServiceRegexExpansion:
         )
         assert isinstance(result, ParseBatchResult)
 
-    @patch("src.core.parsing.gem5.impl.gem5_parser.PatternIndexService")
-    @patch("src.core.parsing.gem5.impl.gem5_parser.ParseWorkPool")
-    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
+    @patch("src.parsing.gem5.impl.gem5_parser.PatternIndexService")
+    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_keep_indices_with_numeric_ids(
         self,
         mock_factory: MagicMock,
@@ -526,7 +526,7 @@ class TestParseServiceRegexExpansion:
             ScannedVariable,
             StatConfig,
         )
-        from src.core.parsing.parse_service import ParseService
+        from src.parsing.parse_service import ParseService
 
         stats_dir = tmp_path / "sim"
         stats_dir.mkdir()
@@ -568,8 +568,8 @@ class TestParseServiceRegexExpansion:
         )
         assert isinstance(result, ParseBatchResult)
 
-    @patch("src.core.parsing.gem5.impl.gem5_parser.ParseWorkPool")
-    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
+    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_regex_no_match_warns(
         self, mock_factory: MagicMock, mock_pool_cls: MagicMock, tmp_path: Path
     ) -> None:
@@ -579,7 +579,7 @@ class TestParseServiceRegexExpansion:
             ScannedVariable,
             StatConfig,
         )
-        from src.core.parsing.parse_service import ParseService
+        from src.parsing.parse_service import ParseService
 
         stats_dir = tmp_path / "sim"
         stats_dir.mkdir()
@@ -607,8 +607,8 @@ class TestParseServiceRegexExpansion:
         )
         assert isinstance(result, ParseBatchResult)
 
-    @patch("src.core.parsing.gem5.impl.gem5_parser.ParseWorkPool")
-    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
+    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_invalid_regex_warns(
         self, mock_factory: MagicMock, mock_pool_cls: MagicMock, tmp_path: Path
     ) -> None:
@@ -618,7 +618,7 @@ class TestParseServiceRegexExpansion:
             ScannedVariable,
             StatConfig,
         )
-        from src.core.parsing.parse_service import ParseService
+        from src.parsing.parse_service import ParseService
 
         stats_dir = tmp_path / "sim"
         stats_dir.mkdir()
@@ -651,16 +651,16 @@ class TestParseServiceFinalize:
     """Cover finalize_parsing and construct_final_csv."""
 
     def test_finalize_parsing_no_results(self) -> None:
-        from src.core.parsing.parse_service import ParseService
+        from src.parsing.parse_service import ParseService
 
         result = ParseService.finalize_parsing("/tmp/out", [])
         assert result is None
 
-    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
+    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_finalize_parsing_delegates_to_strategy(
         self, mock_factory: MagicMock, tmp_path: Path
     ) -> None:
-        from src.core.parsing.parse_service import ParseService
+        from src.parsing.parse_service import ParseService
 
         mock_strategy = MagicMock()
         mock_strategy.post_process.return_value = []
@@ -673,14 +673,14 @@ class TestParseServiceFinalize:
         mock_strategy.post_process.assert_called_once()
 
     def test_construct_final_csv_empty(self) -> None:
-        from src.core.parsing.parse_service import ParseService
+        from src.parsing.parse_service import ParseService
 
         result = ParseService.construct_final_csv("/tmp/out", [])
         assert result is None
 
     def test_construct_final_csv_with_data(self, tmp_path: Path) -> None:
         """Cover CSV generation with stat objects."""
-        from src.core.parsing.parse_service import ParseService
+        from src.parsing.parse_service import ParseService
 
         # Create mock stat objects with the expected interface
         mock_var = MagicMock()
@@ -703,7 +703,7 @@ class TestParseServiceFinalize:
 
     def test_construct_final_csv_scalar_no_entries(self, tmp_path: Path) -> None:
         """Cover scalar variable path (no entries)."""
-        from src.core.parsing.parse_service import ParseService
+        from src.parsing.parse_service import ParseService
 
         mock_var = MagicMock()
         mock_var.entries = []
@@ -722,7 +722,7 @@ class TestParseServiceFinalize:
 
     def test_construct_final_csv_missing_var_in_result(self, tmp_path: Path) -> None:
         """Cover NaN path when variable is absent from a result."""
-        from src.core.parsing.parse_service import ParseService
+        from src.parsing.parse_service import ParseService
 
         mock_var = MagicMock()
         mock_var.entries = []
@@ -742,7 +742,7 @@ class TestParseServiceFinalize:
 
     def test_construct_final_csv_raw_data(self, tmp_path: Path) -> None:
         """Cover raw data path (no balance_content attribute)."""
-        from src.core.parsing.parse_service import ParseService
+        from src.parsing.parse_service import ParseService
 
         # Raw data still needs 'entries' for header construction,
         # but lacks 'balance_content' triggering the raw-data row path.
@@ -1347,8 +1347,8 @@ class TestPlotManagerComponents:
 class TestGem5ParserSubmitParseAsync:
     """Cover Gem5Parser.submit_parse_async regex expansion."""
 
-    @patch("src.core.parsing.gem5.impl.gem5_parser.ParseWorkPool")
-    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
+    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_regex_expansion_with_scanned_vars(
         self, mock_factory: MagicMock, mock_pool_cls: MagicMock, tmp_path: Path
     ) -> None:
@@ -1357,7 +1357,7 @@ class TestGem5ParserSubmitParseAsync:
             ScannedVariable,
             StatConfig,
         )
-        from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
         stats_dir = tmp_path / "sim"
         stats_dir.mkdir()
@@ -1386,8 +1386,8 @@ class TestGem5ParserSubmitParseAsync:
         )
         assert isinstance(result, ParseBatchResult)
 
-    @patch("src.core.parsing.gem5.impl.gem5_parser.ParseWorkPool")
-    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
+    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_regex_with_pattern_indices(
         self, mock_factory: MagicMock, mock_pool_cls: MagicMock, tmp_path: Path
     ) -> None:
@@ -1396,7 +1396,7 @@ class TestGem5ParserSubmitParseAsync:
             ScannedVariable,
             StatConfig,
         )
-        from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
         stats_dir = tmp_path / "sim"
         stats_dir.mkdir()
@@ -1428,9 +1428,9 @@ class TestGem5ParserSubmitParseAsync:
         )
         assert isinstance(result, ParseBatchResult)
 
-    @patch("src.core.parsing.gem5.impl.gem5_parser.PatternIndexService")
-    @patch("src.core.parsing.gem5.impl.gem5_parser.ParseWorkPool")
-    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
+    @patch("src.parsing.gem5.impl.gem5_parser.PatternIndexService")
+    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_keep_indices_expansion(
         self,
         mock_factory: MagicMock,
@@ -1443,7 +1443,7 @@ class TestGem5ParserSubmitParseAsync:
             ScannedVariable,
             StatConfig,
         )
-        from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
         stats_dir = tmp_path / "sim"
         stats_dir.mkdir()
@@ -1484,9 +1484,9 @@ class TestGem5ParserSubmitParseAsync:
         )
         assert isinstance(result, ParseBatchResult)
 
-    @patch("src.core.parsing.gem5.impl.gem5_parser.PatternIndexService")
-    @patch("src.core.parsing.gem5.impl.gem5_parser.ParseWorkPool")
-    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
+    @patch("src.parsing.gem5.impl.gem5_parser.PatternIndexService")
+    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_keep_indices_numeric_ids(
         self,
         mock_factory: MagicMock,
@@ -1499,7 +1499,7 @@ class TestGem5ParserSubmitParseAsync:
             ScannedVariable,
             StatConfig,
         )
-        from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
         stats_dir = tmp_path / "sim"
         stats_dir.mkdir()
@@ -1541,8 +1541,8 @@ class TestGem5ParserSubmitParseAsync:
         )
         assert isinstance(result, ParseBatchResult)
 
-    @patch("src.core.parsing.gem5.impl.gem5_parser.ParseWorkPool")
-    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
+    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_regex_no_match(
         self, mock_factory: MagicMock, mock_pool_cls: MagicMock, tmp_path: Path
     ) -> None:
@@ -1551,7 +1551,7 @@ class TestGem5ParserSubmitParseAsync:
             ScannedVariable,
             StatConfig,
         )
-        from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
         stats_dir = tmp_path / "sim"
         stats_dir.mkdir()
@@ -1573,8 +1573,8 @@ class TestGem5ParserSubmitParseAsync:
         )
         assert isinstance(result, ParseBatchResult)
 
-    @patch("src.core.parsing.gem5.impl.gem5_parser.ParseWorkPool")
-    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
+    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_invalid_regex(
         self, mock_factory: MagicMock, mock_pool_cls: MagicMock, tmp_path: Path
     ) -> None:
@@ -1583,7 +1583,7 @@ class TestGem5ParserSubmitParseAsync:
             ScannedVariable,
             StatConfig,
         )
-        from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
         stats_dir = tmp_path / "sim"
         stats_dir.mkdir()
@@ -1606,14 +1606,14 @@ class TestGem5ParserSubmitParseAsync:
         assert isinstance(result, ParseBatchResult)
 
     def test_finalize_no_results(self) -> None:
-        from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
         result = Gem5Parser.finalize_parsing("/tmp/out", [])
         assert result is None
 
-    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
+    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_finalize_with_strategy(self, mock_factory: MagicMock, tmp_path: Path) -> None:
-        from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
         mock_strategy = MagicMock()
         mock_strategy.post_process.return_value = []
@@ -1625,13 +1625,13 @@ class TestGem5ParserSubmitParseAsync:
         mock_factory.create.assert_called_with("config_aware")
 
     def test_construct_final_csv_empty(self) -> None:
-        from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
         result = Gem5Parser.construct_final_csv("/tmp/out", [])
         assert result is None
 
     def test_construct_final_csv_with_data(self, tmp_path: Path) -> None:
-        from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
         mock_var = MagicMock()
         mock_var.entries = ["e0"]
@@ -1646,7 +1646,7 @@ class TestGem5ParserSubmitParseAsync:
 
     def test_submit_parse_async_path_not_found(self) -> None:
         from src.core.models.parsing_models import StatConfig
-        from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
         config = StatConfig(name="x", type="scalar")
         with pytest.raises(FileNotFoundError):
@@ -2048,7 +2048,7 @@ class TestScanWork:
     """Cover ScanWork abstract __call__ and __str__."""
 
     def test_call_raises_not_implemented(self) -> None:
-        from src.core.parsing.gem5.impl.pool.scan_work import ScanWork
+        from src.parsing.gem5.impl.pool.scan_work import ScanWork
 
         class ConcreteScanWork(ScanWork):
             pass
@@ -2058,7 +2058,7 @@ class TestScanWork:
             work()
 
     def test_str_returns_class_name(self) -> None:
-        from src.core.parsing.gem5.impl.pool.scan_work import ScanWork
+        from src.parsing.gem5.impl.pool.scan_work import ScanWork
 
         class MyScanWork(ScanWork):
             def __call__(self) -> Any:
@@ -2072,7 +2072,7 @@ class TestJobBase:
     """Cover Job.__str__ and abstract __call__."""
 
     def test_job_str(self) -> None:
-        from src.core.parsing.gem5.impl.pool.job import Job
+        from src.parsing.gem5.impl.pool.job import Job
 
         class MyJob(Job):
             def __call__(self) -> Any:
@@ -2389,7 +2389,7 @@ class TestConfigAwareParseConfigException:
     """Cover _parse_config exception handler branch."""
 
     def test_parse_config_with_exception(self, tmp_path: Path) -> None:
-        from src.core.parsing.gem5.impl.strategies.config_aware import (
+        from src.parsing.gem5.impl.strategies.config_aware import (
             ConfigAwareStrategy,
         )
 
@@ -2398,7 +2398,7 @@ class TestConfigAwareParseConfigException:
 
         strategy = ConfigAwareStrategy()
         with patch(
-            "src.core.parsing.gem5.impl.strategies.config_aware.configparser.ConfigParser"
+            "src.parsing.gem5.impl.strategies.config_aware.configparser.ConfigParser"
         ) as mock_cp:
             mock_parser = MagicMock()
             mock_parser.read.side_effect = Exception("parse error")

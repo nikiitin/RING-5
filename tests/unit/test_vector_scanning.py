@@ -1,7 +1,7 @@
 import re
 
 from src.core.models.parsing_models import ScannedVariable
-from src.core.parsing.gem5.impl.gem5_scanner import Gem5Scanner as ScannerService
+from src.parsing.gem5.impl.gem5_scanner import Gem5Scanner as ScannerService
 
 
 class TestVectorScanning:

@@ -16,8 +16,8 @@ Tests cover:
 
 import pytest
 
-from src.core.parsing.gem5.types.base import StatTypeRegistry
-from src.core.parsing.gem5.types.distribution import SAFETY_MAX_BUCKETS, Distribution
+from src.parsing.gem5.types.base import StatTypeRegistry
+from src.parsing.gem5.types.distribution import SAFETY_MAX_BUCKETS, Distribution
 
 
 class TestDistributionInitialization:

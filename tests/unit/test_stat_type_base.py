@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.core.parsing.gem5.types.base import StatType, StatTypeRegistry, register_type
+from src.parsing.gem5.types.base import StatType, StatTypeRegistry, register_type
 
 
 class TestStatTypeRegistry:

@@ -20,8 +20,8 @@ from typing import Any
 
 import pytest
 
-from src.core.parsing.gem5.types.base import StatTypeRegistry
-from src.core.parsing.gem5.types.vector import Vector
+from src.parsing.gem5.types.base import StatTypeRegistry
+from src.parsing.gem5.types.vector import Vector
 
 
 class TestVectorInitialization:

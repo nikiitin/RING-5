@@ -21,7 +21,7 @@ graph TD
         Repos --> DataFrame[(Pandas DataFrame)]
     end
 
-    subgraph Parsing [src/core/parsing - Data Ingestion]
+    subgraph Parsing [src/parsing - Data Ingestion]
         API --> ParseService[ParseService]
         ParseService --> Scanner[ScannerService]
         ParseService --> Strategies[Parsing Strategies]
@@ -146,7 +146,7 @@ Saved portfolios auto-migrate between schema versions:
 
 ## 4. Architectural Layers
 
-### Layer A: Data Ingestion (`src/core/parsing/`)
+### Layer A: Data Ingestion (`src/parsing/`)
 
 - **Responsibility:** Adapting the external world (Gem5 files) to the internal Domain.
 - **Key Components:**

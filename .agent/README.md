@@ -21,7 +21,7 @@ The project follows a **Layered Architecture** with a strict separation of conce
 
 - **Responsibility:** Reading `stats.txt` and `config.ini` files.
 - **Pattern:** Strategy Pattern for supporting different Gem5 versions/formats.
-- **Location:** `src/core/parsing/`
+- **Location:** `src/parsing/`
 
 ### Layer B: Domain Logic (Core)
 

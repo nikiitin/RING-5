@@ -5,7 +5,7 @@ nav_order: 27
 
 ## RING-5 Parsing Module — Complete Architecture
 
-Comprehensive architecture documentation for `src/core/parsing/`, covering every class, dependency, protocol relationship, singleton, and the complete scanning/parsing data flows.
+Comprehensive architecture documentation for `src/parsing/`, covering every class, dependency, protocol relationship, singleton, and the complete scanning/parsing data flows.
 
 ---
 
@@ -13,7 +13,7 @@ Comprehensive architecture documentation for `src/core/parsing/`, covering every
 
 ```mermaid
 flowchart TB
-    subgraph INTERFACE["INTERFACE LAYER -- src/core/parsing/"]
+    subgraph INTERFACE["INTERFACE LAYER -- src/parsing/"]
         direction TB
 
         subgraph PROTOCOLS["Protocols"]

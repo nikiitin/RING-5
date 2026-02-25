@@ -223,7 +223,7 @@ When in doubt: Implement the most reasonable solution based on existing patterns
 ## 📚 Key Files
 
 - `.github/copilot-instructions.md` - Full AI brain (870 lines)
-- `src/core/parsing/gem5/impl/scanning/pattern_aggregator.py` - Pattern detection
+- `src/parsing/gem5/impl/scanning/pattern_aggregator.py` - Pattern detection
 - `src/web/facade.py` - Backend entry point
 - `tests/` - Test suite (500+ tests)
 

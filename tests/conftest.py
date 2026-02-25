@@ -160,7 +160,7 @@ def _cleanup_perl_worker_pool() -> Generator[Any, None, None]:
     when pytest tears down.
     """
     yield
-    from src.core.parsing.gem5.impl.strategies.perl_worker_pool import (
+    from src.parsing.gem5.impl.strategies.perl_worker_pool import (
         shutdown_worker_pool,
     )
 

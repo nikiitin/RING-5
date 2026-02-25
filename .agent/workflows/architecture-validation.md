@@ -25,10 +25,10 @@ The `src/core/` directory is the domain + data layer. It MUST NOT depend on any 
 grep -rn "import streamlit\|from streamlit" src/core/ --include="*.py" | grep -v __pycache__
 
 # Plotly imports in core parsing/models (MUST be empty)
-grep -rn "import plotly\|from plotly" src/core/parsing/ src/core/models/ --include="*.py" | grep -v __pycache__
+grep -rn "import plotly\|from plotly" src/parsing/ src/core/models/ --include="*.py" | grep -v __pycache__
 
 # Matplotlib imports in core parsing/models (MUST be empty)
-grep -rn "import matplotlib\|from matplotlib" src/core/parsing/ src/core/models/ --include="*.py" | grep -v __pycache__
+grep -rn "import matplotlib\|from matplotlib" src/parsing/ src/core/models/ --include="*.py" | grep -v __pycache__
 ```
 
 **Verdict**: If any results appear → **BLOCKING VIOLATION**. Refactor imports before proceeding.

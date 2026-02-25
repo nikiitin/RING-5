@@ -34,7 +34,7 @@ class TestAliasing:
         with (
             patch("src.core.application_api.ParseService.submit_parse_async") as mock_submit,
             patch(
-                "src.core.parsing.gem5.impl.gem5_parser.Gem5Parser.construct_final_csv"
+                "src.parsing.gem5.impl.gem5_parser.Gem5Parser.construct_final_csv"
             ) as mock_construct,
         ):
 

@@ -15,7 +15,7 @@ You must enforce a strict separation of concerns. The code must be divided into 
 
 ### Layer A: The Data Layer (Models + Parsing)
 
-- **Location:** `src/core/models/`, `src/core/parsing/`
+- **Location:** `src/core/models/`, `src/parsing/`
 - **Responsibility:** Domain models, DTOs, file I/O, parsing.
 - **Pattern:** **Strategy Pattern** for parsers. **Discriminated Unions** for models with `type` fields.
 - **Output:** Returns strictly typed dataclasses or TypedDicts, NEVER raw dictionaries.

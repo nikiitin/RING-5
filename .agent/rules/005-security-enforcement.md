@@ -121,7 +121,7 @@ The codebase follows a strict 3-layer architecture. These import rules are **mac
 
 | Source Layer                                           | Can Import From                                   | MUST NOT Import From                |
 | :----------------------------------------------------- | :------------------------------------------------ | :---------------------------------- |
-| **Layer A** (`src/core/parsing/`, `src/core/models/`)  | `typing`, `pathlib`, `dataclasses`, `abc`, stdlib | `streamlit`, `plotly`, `matplotlib` |
+| **Layer A** (`src/parsing/`, `src/core/models/`)  | `typing`, `pathlib`, `dataclasses`, `abc`, stdlib | `streamlit`, `plotly`, `matplotlib` |
 | **Layer B** (`src/core/services/`, `src/core/common/`) | Layer A, stdlib                                   | `streamlit`, UI modules             |
 | **Layer C** (`src/web/`)                               | Layer A, Layer B, `streamlit`, `plotly`           | — (can import anything)             |
 
@@ -134,7 +134,7 @@ Run these commands to validate architecture boundaries:
 grep -rn "import streamlit\|from streamlit" src/core/ --include="*.py" | grep -v __pycache__
 
 # Check for Plotly imports in core parsing/models (MUST return empty)
-grep -rn "import plotly\|from plotly" src/core/parsing/ src/core/models/ --include="*.py" | grep -v __pycache__
+grep -rn "import plotly\|from plotly" src/parsing/ src/core/models/ --include="*.py" | grep -v __pycache__
 
 # Check for session_state access outside web layer (MUST return empty)
 grep -rn "session_state" src/core/ --include="*.py" | grep -v __pycache__

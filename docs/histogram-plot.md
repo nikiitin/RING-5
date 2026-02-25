@@ -234,6 +234,6 @@ Uses the **Factory Pattern** for creation and **Strategy Pattern** for different
 ## Related Documentation
 
 - [New Plot Type Guide](.agent/skills/new-plot-type.md)
-- [Variable Types](src/core/parsing/gem5/types/)
+- [Variable Types](src/parsing/gem5/types/)
 - [Plot Factory](src/web/pages/ui/plotting/plot_factory.py)
 - [Base Plot](src/web/pages/ui/plotting/base_plot.py)

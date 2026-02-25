@@ -13,8 +13,9 @@ import pytest
 
 from src.core.models import ScannedVariable, StatConfig
 from src.core.models.parsing_models import StatParamValue
-from src.core.parsing.gem5.types.type_mapper import TypeMapper
 from src.core.services.data_services.path_service import PathService
+from src.parsing.gem5.models import Gem5ScannedVariable
+from src.parsing.gem5.types.type_mapper import TypeMapper
 
 # ===================================================================
 # TypeMapper
@@ -119,25 +120,25 @@ class TestScannerService:
     """Tests for ScannerService — async scan orchestration."""
 
     def test_submit_scan_nonexistent_raises(self) -> None:
-        from src.core.parsing.scanner_service import ScannerService
+        from src.parsing.scanner_service import ScannerService
 
         with pytest.raises(FileNotFoundError):
             ScannerService.submit_scan_async("/nonexistent/path")
 
     def test_submit_scan_no_files_raises(self, tmp_path: Path) -> None:
-        from src.core.parsing.scanner_service import ScannerService
+        from src.parsing.scanner_service import ScannerService
 
         with pytest.raises(FileNotFoundError, match="No stats files"):
             ScannerService.submit_scan_async(str(tmp_path), "stats.txt")
 
     def test_aggregate_empty_results(self) -> None:
-        from src.core.parsing.scanner_service import ScannerService
+        from src.parsing.scanner_service import ScannerService
 
         result = ScannerService.aggregate_scan_results([])
         assert result == []
 
     def test_aggregate_single_file(self) -> None:
-        from src.core.parsing.scanner_service import ScannerService
+        from src.parsing.scanner_service import ScannerService
 
         var = ScannedVariable(name="simTicks", type="scalar", entries=[])
         result = ScannerService.aggregate_scan_results([[var]])
@@ -146,7 +147,7 @@ class TestScannerService:
         assert "simTicks" in names
 
     def test_aggregate_merges_vector_entries(self) -> None:
-        from src.core.parsing.scanner_service import ScannerService
+        from src.parsing.scanner_service import ScannerService
 
         v1 = ScannedVariable(name="cpu.hits", type="vector", entries=["0", "1"])
         v2 = ScannedVariable(name="cpu.hits", type="vector", entries=["1", "2"])
@@ -155,12 +156,12 @@ class TestScannerService:
         assert set(hit_var.entries) == {"0", "1", "2"}
 
     def test_aggregate_merges_distribution_range(self) -> None:
-        from src.core.parsing.scanner_service import ScannerService
+        from src.parsing.scanner_service import ScannerService
 
-        d1 = ScannedVariable(
+        d1 = Gem5ScannedVariable(
             name="latency", type="distribution", entries=[], minimum=10, maximum=100
         )
-        d2 = ScannedVariable(
+        d2 = Gem5ScannedVariable(
             name="latency", type="distribution", entries=[], minimum=5, maximum=200
         )
         result = ScannerService.aggregate_scan_results([[d1], [d2]])
@@ -171,7 +172,7 @@ class TestScannerService:
     def test_merge_variable_model_input(self) -> None:
         """_merge_variable accepts ScannedVariable models."""
         from src.core.models.parsing_models import ScannedVariable
-        from src.core.parsing.scanner_service import ScannerService
+        from src.parsing.scanner_service import ScannerService
 
         registry: dict[str, ScannedVariable] = {}
         var = ScannedVariable(name="ipc", type="scalar", entries=[])

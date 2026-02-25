@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.parsing.gem5.impl.pool.pool import ScanWorkPool
-from src.core.parsing.gem5.impl.scanning.gem5_scan_work import Gem5ScanWork
+from src.parsing.gem5.impl.pool.pool import ScanWorkPool
+from src.parsing.gem5.impl.scanning.gem5_scan_work import Gem5ScanWork
 
 
 def test_stats_scan_work_success() -> None:
@@ -19,7 +19,7 @@ def test_stats_scan_work_success() -> None:
     ]
 
     with patch(
-        "src.core.parsing.gem5.impl.scanning.scanner.Gem5StatsScanner.get_instance"
+        "src.parsing.gem5.impl.scanning.scanner.Gem5StatsScanner.get_instance"
     ) as mock_scanner_cls:
         mock_instance = MagicMock()
         mock_scanner_cls.return_value = mock_instance
@@ -36,7 +36,7 @@ def test_stats_scan_work_failure() -> None:
     work = Gem5ScanWork("test_file.txt")
 
     with patch(
-        "src.core.parsing.gem5.impl.scanning.scanner.Gem5StatsScanner.get_instance"
+        "src.parsing.gem5.impl.scanning.scanner.Gem5StatsScanner.get_instance"
     ) as mock_scanner_cls:
         mock_instance = MagicMock()
         mock_scanner_cls.return_value = mock_instance
@@ -69,7 +69,7 @@ def test_scan_work_pool_async_flow(clean_pool_singleton: Any) -> None:
     """Test the core async flow of the pool."""
     from concurrent.futures import Future
 
-    with patch("src.core.parsing.gem5.impl.pool.work_pool.WorkPool.get_instance"):
+    with patch("src.parsing.gem5.impl.pool.work_pool.WorkPool.get_instance"):
         scan_pool = ScanWorkPool.get_instance()
 
         work1 = MagicMock(spec=Gem5ScanWork)

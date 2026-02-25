@@ -21,9 +21,9 @@ Transform RING-5 from a gem5-only tool into a simulator-agnostic analysis platfo
 ## Current State (Pre-Refactor)
 
 - **Test baseline**: 3229 passed, 2 skipped, 88.59% coverage
-- **Parsing location**: `src/core/parsing/` (4,682 lines, 38 Python files + 8 Perl files)
+- **Parsing location**: `src/parsing/` (4,682 lines, 38 Python files + 8 Perl files)
 - **ScannedVariable**: Concrete dataclass in `src/core/models/parsing_models.py` with gem5-specific type field
-- **SimulationParser protocol**: Exists at `src/core/parsing/parser_protocol.py` but NOT used by ApplicationAPI
+- **SimulationParser protocol**: Exists at `src/parsing/parser_protocol.py` but NOT used by ApplicationAPI
 - **ApplicationAPI**: Hardwires `ParseService` (=Gem5Parser) and `ScannerService` (=Gem5Scanner) via static calls
 - **Data Source UI**: Entirely gem5-specific, no simulator selector
 - **Gem5 leaks in core**: `config_validation_service.py` hardcodes `"parser": "gem5_stats"`, `variable_service.py` has gem5-specific `INTERNAL_STATS` set
@@ -35,10 +35,10 @@ Transform RING-5 from a gem5-only tool into a simulator-agnostic analysis platfo
 
 | Phase | Description | Status | Test Count |
 |-------|-------------|--------|------------|
-| 0 | Deep cleanup (dead files, books, docker, .gitignore) | ⬜ | — |
-| 1 | Move `src/core/parsing/` → `src/parsing/` | ⬜ | — |
-| 2 | Abstract ScannedVariable protocol + Gem5 implementation | ⬜ | — |
-| 3 | Define explicit CSV format contract | ⬜ | — |
+| 0 | Deep cleanup (dead files, books, docker, .gitignore) | ✅ | 3229 |
+| 1 | Move `src/core/parsing/` → `src/parsing/` | ✅ | 3229 |
+| 2 | Abstract ScannedVariable protocol + Gem5 implementation | ✅ | 3229 |
+| 3 | Define explicit CSV format contract | ✅ | 3249 |
 | 4 | Simulator registry & factory-based parser injection | ⬜ | — |
 | 5 | Remove gem5-specific references from `src/core/` | ⬜ | — |
 | 6 | Simulator selector in data source UI | ⬜ | — |
@@ -97,7 +97,7 @@ Add rules for:
 
 ---
 
-## Phase 1: Move `src/core/parsing/` → `src/parsing/`
+## Phase 1: Move `src/parsing/` → `src/parsing/`
 
 ### Rationale
 Parsing is Layer A (Data Ingestion). It should NOT be inside `src/core/` (Layer B: Domain). This restructure makes the architecture physically match the logical layers:
@@ -106,7 +106,7 @@ Parsing is Layer A (Data Ingestion). It should NOT be inside `src/core/` (Layer 
 - `src/web/` — Layer C: Streamlit UI
 
 ### Steps
-1. `git mv src/core/parsing/ src/parsing/`
+1. `git mv src/parsing/ src/parsing/`
 2. Update ALL imports across src/ and tests/
 3. Update `src/__init__.py` if needed
 4. Move `parser_protocol.py` to `src/parsing/` (it's the protocol for ALL simulators)
@@ -114,9 +114,9 @@ Parsing is Layer A (Data Ingestion). It should NOT be inside `src/core/` (Layer 
 6. Run full test suite
 
 ### Import changes needed
-- `from src.core.parsing` → `from src.parsing`
-- `from src.core.parsing.gem5` → `from src.parsing.gem5`
-- `from src.core.parsing.parser_protocol` → `from src.parsing.parser_protocol`
+- `from src.parsing` → `from src.parsing`
+- `from src.parsing.gem5` → `from src.parsing.gem5`
+- `from src.parsing.parser_protocol` → `from src.parsing.parser_protocol`
 - ApplicationAPI imports of ParseService/ScannerService
 - All test patches referencing parsing paths
 

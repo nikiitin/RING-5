@@ -24,7 +24,7 @@ Layer C (Presentation)  →  src/web/         →  Streamlit UI, Plotly renderin
                              ↓ (calls)
 Layer B (Domain)        →  src/core/services/, src/core/common/  →  Business logic, NO UI imports
                              ↓ (calls)
-Layer A (Data)          →  src/core/parsing/, src/core/models/   →  File I/O, parsing, scanning
+Layer A (Data)          →  src/parsing/, src/core/models/   →  File I/O, parsing, scanning
 ```
 
 **Import rules**:
@@ -135,7 +135,7 @@ See `.agent/workflows/code-quality-gate.md` for the full gate. Quick version:
 - **Simpoint-aware**: Multiple dump intervals (begin/end)
 - **Variable types**: scalar, vector, distribution, histogram, configuration
 - **Pattern aggregation**: `system.cpu0..15.numCycles` → `system.cpu\d+.numCycles` (94% reduction)
-- **Implementation**: `src/core/parsing/gem5/impl/scanning/pattern_aggregator.py`
+- **Implementation**: `src/parsing/gem5/impl/scanning/pattern_aggregator.py`
 
 ## File Structure
 

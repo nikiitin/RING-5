@@ -15,9 +15,9 @@ from unittest.mock import patch
 import pytest
 
 from src.core.models import StatConfig
-from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
-from src.core.parsing.gem5.impl.strategies.gem5_parse_work import Gem5ParseWork
-from src.core.parsing.gem5.impl.strategies.perl_worker_pool import (
+from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
+from src.parsing.gem5.impl.strategies.gem5_parse_work import Gem5ParseWork
+from src.parsing.gem5.impl.strategies.perl_worker_pool import (
     get_worker_pool,
     shutdown_worker_pool,
 )
@@ -54,7 +54,7 @@ class TestWorkerPoolIntegration:
 
     def test_gem5_parse_work_uses_worker_pool(self, test_stats_file: str) -> None:
         """Verify Gem5ParseWork uses worker pool instead of subprocess."""
-        from src.core.parsing.gem5.types.type_mapper import TypeMapper
+        from src.parsing.gem5.types.type_mapper import TypeMapper
 
         # Create a minimal variable config
         var_config = StatConfig(name="system.cpu.numCycles", type="scalar")
@@ -115,7 +115,7 @@ class TestWorkerPoolIntegration:
 
     def test_worker_pool_reused_across_multiple_parses(self, test_stats_file: str) -> None:
         """Verify same worker pool is reused across multiple parse operations."""
-        from src.core.parsing.gem5.types.type_mapper import TypeMapper
+        from src.parsing.gem5.types.type_mapper import TypeMapper
 
         var_config = StatConfig(name="system.cpu.numCycles", type="scalar")
 
@@ -142,7 +142,7 @@ class TestWorkerPoolIntegration:
         """Verify worker pool provides significant speedup over theoretical subprocess approach."""
         import time
 
-        from src.core.parsing.gem5.types.type_mapper import TypeMapper
+        from src.parsing.gem5.types.type_mapper import TypeMapper
 
         var_config = StatConfig(name="system.cpu.numCycles", type="scalar")
 
@@ -167,7 +167,7 @@ class TestWorkerPoolErrorHandling:
 
     def test_missing_file_raises_error(self) -> None:
         """Verify proper error handling for missing files."""
-        from src.core.parsing.gem5.types.type_mapper import TypeMapper
+        from src.parsing.gem5.types.type_mapper import TypeMapper
 
         var_config = StatConfig(name="system.cpu.numCycles", type="scalar")
 
@@ -183,7 +183,7 @@ class TestWorkerPoolErrorHandling:
 
     def test_invalid_variable_handled_gracefully(self, test_stats_file: str) -> None:
         """Verify invalid variables don't crash the worker pool."""
-        from src.core.parsing.gem5.types.type_mapper import TypeMapper
+        from src.parsing.gem5.types.type_mapper import TypeMapper
 
         var_config = StatConfig(
             name="invalid.variable.that.does.not.exist",

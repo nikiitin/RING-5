@@ -22,8 +22,8 @@ lint:
       paths:
         - tests/**
         - scripts/verify_installation.py # Installation checker uses subprocess for system validation
-        - src/core/parsing/gem5/impl/scanning/scanner.py # Subprocess used for Perl parser - validated paths only
-        - src/core/parsing/gem5/impl/strategies/perl_worker_pool.py # Subprocess used for Perl parser - validated paths only
+        - src/parsing/gem5/impl/scanning/scanner.py # Subprocess used for Perl parser - validated paths only
+        - src/parsing/gem5/impl/strategies/perl_worker_pool.py # Subprocess used for Perl parser - validated paths only
     - linters: [mypy]
       paths:
         - tests/** # mypy runs on tests via project's own mypy with full module resolution

@@ -14,7 +14,7 @@ from typing import Any
 
 import pytest
 
-from src.core.parsing.gem5.impl.strategies.perl_worker_pool import (
+from src.parsing.gem5.impl.strategies.perl_worker_pool import (
     PerlWorker,
     PerlWorkerPool,
     get_worker_pool,
@@ -61,7 +61,6 @@ def perl_script_path() -> str:
     return str(
         Path(__file__).parent.parent.parent
         / "src"
-        / "core"
         / "parsing"
         / "gem5"
         / "perl"

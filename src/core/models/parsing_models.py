@@ -2,7 +2,7 @@
 Core data models for the Parser ↔ Application ↔ UI boundary.
 
 These frozen dataclasses represent the "common language" shared across all
-layers of RING-5. They were originally in ``src.core.parsing.models`` and
+layers of RING-5. They were originally in ``src.parsing.models`` and
 were externalised so that:
 
     • Layer A (Parsing) can produce them
@@ -42,15 +42,16 @@ class ParseBatchResult:
 @dataclass(frozen=True)
 class ScannedVariable:
     """
-    Metadata for a variable discovered in a gem5 stats file.
-    Output of Layer A (Ingestion).
+    Base metadata for a variable discovered by a simulator parser.
+
+    This is the simulator-agnostic base class.  Simulator-specific
+    subclasses (e.g., ``Gem5ScannedVariable``) may add extra fields
+    such as distribution min/max ranges.
     """
 
     name: str
-    type: str  # "scalar", "vector", "distribution", "histogram", "configuration"
+    type: str  # Simulator-specific type string (e.g. "scalar", "vector")
     entries: list[str] = field(default_factory=lambda: list[str]())
-    minimum: float | None = None
-    maximum: float | None = None
     pattern_indices: list[str] | None = None
 
     def to_dict(self) -> ScannedVariableDict:
@@ -60,10 +61,6 @@ class ScannedVariable:
             type=self.type,
             entries=self.entries,
         )
-        if self.minimum is not None:
-            result["minimum"] = self.minimum
-        if self.maximum is not None:
-            result["maximum"] = self.maximum
         if self.pattern_indices is not None:
             result["pattern_indices"] = self.pattern_indices
         return result
@@ -75,8 +72,6 @@ class ScannedVariable:
             name=data["name"],
             type=data["type"],
             entries=data.get("entries", []),
-            minimum=data.get("minimum"),
-            maximum=data.get("maximum"),
             pattern_indices=data.get("pattern_indices"),
         )
 

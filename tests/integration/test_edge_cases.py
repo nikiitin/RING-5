@@ -21,14 +21,15 @@ from src.core.models.data_models import (
     ShaperStepConfig,
 )
 from src.core.models.parsing_models import ScannedVariable
+from src.core.services.data_services.config_service import ConfigService
 
 # ===========================================================================
 # Helper: Minimal ScannedVariable dataclass
 # ===========================================================================
-from src.core.parsing.gem5.impl.scanning.pattern_aggregator import PatternAggregator
-from src.core.parsing.gem5.types.distribution import Distribution
-from src.core.parsing.gem5.types.histogram import Histogram
-from src.core.services.data_services.config_service import ConfigService
+from src.parsing.gem5.impl.scanning.pattern_aggregator import PatternAggregator
+from src.parsing.gem5.models import Gem5ScannedVariable
+from src.parsing.gem5.types.distribution import Distribution
+from src.parsing.gem5.types.histogram import Histogram
 
 # ===========================================================================
 # Test Class 1: Distribution & Histogram processing edge cases
@@ -320,14 +321,14 @@ class TestPatternAggregatorEdgeCases:
     def test_distribution_aggregation_preserves_minmax(self) -> None:
         """Distribution aggregation takes min of minimums, max of maximums."""
         variables: list[ScannedVariable] = [
-            ScannedVariable(
+            Gem5ScannedVariable(
                 name="system.cpu0.dcache.miss_latency",
                 type="distribution",
                 entries=[],
                 minimum=10.0,
                 maximum=100.0,
             ),
-            ScannedVariable(
+            Gem5ScannedVariable(
                 name="system.cpu1.dcache.miss_latency",
                 type="distribution",
                 entries=[],
@@ -340,7 +341,8 @@ class TestPatternAggregatorEdgeCases:
 
         pattern_vars: list[ScannedVariable] = [v for v in result if r"\d+" in v.name]
         assert len(pattern_vars) == 1
-        pv: ScannedVariable = pattern_vars[0]
+        pv = pattern_vars[0]
+        assert isinstance(pv, Gem5ScannedVariable)
         assert pv.type == "distribution"
         assert pv.minimum == 5.0  # min of (10, 5)
         assert pv.maximum == 200.0  # max of (100, 200)

@@ -8,7 +8,7 @@ Validates that:
 """
 
 from concurrent.futures import Future
-from typing import Any, List
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -47,7 +47,7 @@ class TestNoClassLevelState:
 
     def test_gem5_parser_has_no_active_var_names(self) -> None:
         """Gem5Parser should no longer have _active_var_names class attribute."""
-        from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
         assert not hasattr(Gem5Parser, "_active_var_names"), (
             "Gem5Parser should not have _active_var_names class attribute. "
@@ -56,7 +56,7 @@ class TestNoClassLevelState:
 
     def test_parse_service_has_no_active_var_names(self) -> None:
         """ParseService should no longer have _active_var_names class attribute."""
-        from src.core.parsing.parse_service import ParseService
+        from src.parsing.parse_service import ParseService
 
         assert not hasattr(ParseService, "_active_var_names"), (
             "ParseService should not have _active_var_names class attribute. "
@@ -67,14 +67,14 @@ class TestNoClassLevelState:
 class TestSubmitParseAsyncReturnType:
     """Verify submit_parse_async returns ParseBatchResult."""
 
-    @patch("src.core.parsing.gem5.impl.gem5_parser.ParseWorkPool")
-    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
-    @patch("src.core.parsing.gem5.impl.gem5_parser.normalize_user_path")
+    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
+    @patch("src.parsing.gem5.impl.gem5_parser.normalize_user_path")
     def test_gem5_parser_returns_batch_result(
         self, mock_path: MagicMock, mock_factory: MagicMock, mock_pool: MagicMock
     ) -> None:
         """Gem5Parser.submit_parse_async should return ParseBatchResult."""
-        from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
         # Setup mocks
         mock_path.return_value.exists.return_value = True
@@ -103,14 +103,14 @@ class TestSubmitParseAsyncReturnType:
         assert result.var_names == ["system.cpu.ipc", "system.cpu.numCycles"]
         assert len(result.futures) == 1
 
-    @patch("src.core.parsing.gem5.impl.gem5_parser.ParseWorkPool")
-    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
-    @patch("src.core.parsing.gem5.impl.gem5_parser.normalize_user_path")
+    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
+    @patch("src.parsing.gem5.impl.gem5_parser.normalize_user_path")
     def test_empty_work_returns_empty_batch(
         self, mock_path: MagicMock, mock_factory: MagicMock, mock_pool: MagicMock
     ) -> None:
         """Empty work should return ParseBatchResult with empty lists."""
-        from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
         mock_path.return_value.exists.return_value = True
         mock_strategy = MagicMock()
@@ -134,7 +134,7 @@ class TestConstructFinalCsvVarNames:
 
     def test_var_names_parameter_controls_column_order(self, tmp_path: str) -> None:
         """Explicitly provided var_names should control CSV column ordering."""
-        from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
         # Create mock results with known variables
         mock_stat_a = MagicMock()
@@ -149,7 +149,7 @@ class TestConstructFinalCsvVarNames:
         mock_stat_b.reduce_duplicates = MagicMock()
         mock_stat_b.reduced_content = "200"
 
-        results: List[Any] = [{"var_b": mock_stat_b, "var_a": mock_stat_a}]
+        results: list[Any] = [{"var_b": mock_stat_b, "var_a": mock_stat_a}]
 
         # With var_names=["var_a", "var_b"], columns should be a, b
         csv_path = Gem5Parser.construct_final_csv(
@@ -164,7 +164,7 @@ class TestConstructFinalCsvVarNames:
 
     def test_fallback_when_var_names_is_none(self, tmp_path: str) -> None:
         """When var_names is None, should fall back to dict key order."""
-        from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
         mock_stat = MagicMock()
         mock_stat.entries = []
@@ -172,7 +172,7 @@ class TestConstructFinalCsvVarNames:
         mock_stat.reduce_duplicates = MagicMock()
         mock_stat.reduced_content = "42"
 
-        results: List[Any] = [{"only_var": mock_stat}]
+        results: list[Any] = [{"only_var": mock_stat}]
 
         csv_path = Gem5Parser.construct_final_csv(str(tmp_path), results, var_names=None)
         assert csv_path is not None
@@ -186,14 +186,14 @@ class TestConstructFinalCsvVarNames:
 class TestBatchIsolation:
     """Verify that concurrent batches do not share state."""
 
-    @patch("src.core.parsing.gem5.impl.gem5_parser.ParseWorkPool")
-    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
-    @patch("src.core.parsing.gem5.impl.gem5_parser.normalize_user_path")
+    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
+    @patch("src.parsing.gem5.impl.gem5_parser.normalize_user_path")
     def test_concurrent_batches_have_independent_var_names(
         self, mock_path: MagicMock, mock_factory: MagicMock, mock_pool: MagicMock
     ) -> None:
         """Two consecutive submit_parse_async calls should produce independent var_names."""
-        from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
         mock_path.return_value.exists.return_value = True
         mock_strategy = MagicMock()

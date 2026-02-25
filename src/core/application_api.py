@@ -46,12 +46,12 @@ from src.core.models.history_models import OperationRecord
 from src.core.models.parsing_models import StatParamValue
 from src.core.models.plot_protocol import PlotDeserializer
 from src.core.models.visualization import FigureConfig
-from src.core.parsing import ParseService, ScannerService
 from src.core.services.data_services.data_services_api import DataServicesAPI
 from src.core.services.managers.managers_api import ManagersAPI
 from src.core.services.services_impl import DefaultServicesAPI
 from src.core.services.shapers.shapers_api import ShapersAPI
 from src.core.state.repository_state_manager import RepositoryStateManager
+from src.parsing import ParseService, ScannerService
 
 logger = logging.getLogger(__name__)
 

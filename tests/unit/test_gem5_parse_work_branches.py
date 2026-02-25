@@ -15,7 +15,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.parsing.gem5.impl.strategies.gem5_parse_work import (
+from src.parsing.gem5.impl.strategies.gem5_parse_work import (
     Gem5ParseWork,
     VarsDictType,
 )
@@ -219,7 +219,7 @@ class TestProcessLineEdgeCases:
 class TestRunPerlScriptErrors:
     """Tests for _runPerlScript error handling."""
 
-    @patch("src.core.parsing.gem5.impl.strategies.gem5_parse_work.get_worker_pool")
+    @patch("src.parsing.gem5.impl.strategies.gem5_parse_work.get_worker_pool")
     @patch("src.core.common.utils.checkFileExistsOrException")
     def test_timeout_error(self, mock_check: MagicMock, mock_pool_fn: MagicMock) -> None:
         """TimeoutError should be wrapped in RuntimeError."""
@@ -232,7 +232,7 @@ class TestRunPerlScriptErrors:
         with pytest.raises(RuntimeError, match="Parser timeout"):
             work._runPerlScript()
 
-    @patch("src.core.parsing.gem5.impl.strategies.gem5_parse_work.get_worker_pool")
+    @patch("src.parsing.gem5.impl.strategies.gem5_parse_work.get_worker_pool")
     @patch("src.core.common.utils.checkFileExistsOrException")
     def test_generic_exception(self, mock_check: MagicMock, mock_pool_fn: MagicMock) -> None:
         """Generic exception should be wrapped in RuntimeError."""
@@ -245,7 +245,7 @@ class TestRunPerlScriptErrors:
         with pytest.raises(RuntimeError, match="Worker pool parse failed"):
             work._runPerlScript()
 
-    @patch("src.core.parsing.gem5.impl.strategies.gem5_parse_work.get_worker_pool")
+    @patch("src.parsing.gem5.impl.strategies.gem5_parse_work.get_worker_pool")
     @patch("src.core.common.utils.checkFileExistsOrException")
     def test_unsafe_key_skipped(self, mock_check: MagicMock, mock_pool_fn: MagicMock) -> None:
         """Keys starting with '-' should be skipped for safety."""

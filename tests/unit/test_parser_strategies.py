@@ -1,15 +1,14 @@
-from typing import List
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from src.core.models import StatConfig
-from src.core.parsing.gem5.impl.strategies.config_aware import ConfigAwareStrategy
-from src.core.parsing.gem5.impl.strategies.simple import SimpleStatsStrategy
+from src.parsing.gem5.impl.strategies.config_aware import ConfigAwareStrategy
+from src.parsing.gem5.impl.strategies.simple import SimpleStatsStrategy
 
 
 @pytest.fixture
-def mock_variables() -> List[StatConfig]:
+def mock_variables() -> list[StatConfig]:
     return [
         StatConfig(name="sim_seconds", type="scalar"),
         StatConfig(name="system.cpu.dcache.overall_misses", type="scalar"),
@@ -18,10 +17,10 @@ def mock_variables() -> List[StatConfig]:
 
 class TestSimpleStatsStrategy:
 
-    @patch("src.core.parsing.gem5.impl.strategies.simple.ParseWorkPool")
-    @patch("src.core.parsing.gem5.impl.strategies.simple.normalize_user_path")
+    @patch("src.parsing.gem5.impl.strategies.simple.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.strategies.simple.normalize_user_path")
     def test_execute_flow(
-        self, mock_normalize: MagicMock, mock_pool_cls: MagicMock, mock_variables: List[StatConfig]
+        self, mock_normalize: MagicMock, mock_pool_cls: MagicMock, mock_variables: list[StatConfig]
     ) -> None:
         # Arrange
         mock_path_obj = MagicMock()
@@ -63,17 +62,15 @@ class TestSimpleStatsStrategy:
 
 class TestConfigAwareStrategy:
 
-    @patch("src.core.parsing.gem5.impl.strategies.config_aware.configparser")
-    @patch("src.core.parsing.gem5.impl.strategies.simple.ParseWorkPool")  # Parent class dependency
-    @patch(
-        "src.core.parsing.gem5.impl.strategies.simple.normalize_user_path"
-    )  # Parent class dependency
+    @patch("src.parsing.gem5.impl.strategies.config_aware.configparser")
+    @patch("src.parsing.gem5.impl.strategies.simple.ParseWorkPool")  # Parent class dependency
+    @patch("src.parsing.gem5.impl.strategies.simple.normalize_user_path")  # Parent class dependency
     def test_config_augmentation(
         self,
         mock_normalize: MagicMock,
         mock_pool_cls: MagicMock,
         mock_configparser: MagicMock,
-        mock_variables: List[StatConfig],
+        mock_variables: list[StatConfig],
     ) -> None:
         # Arrange
         # 1. Setup Base Strategy Execution
@@ -114,7 +111,7 @@ class TestConfigAwareStrategy:
 
         # Act
         with patch.object(strategy, "_parse_config") as mock_parse_config:
-            with patch("src.core.parsing.gem5.impl.strategies.config_aware.Path") as mock_path_cls:
+            with patch("src.parsing.gem5.impl.strategies.config_aware.Path") as mock_path_cls:
                 mock_config_path = MagicMock()
                 mock_config_path.exists.return_value = True
                 mock_path_cls.return_value.parent.__truediv__.return_value = mock_config_path

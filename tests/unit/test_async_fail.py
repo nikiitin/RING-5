@@ -7,8 +7,8 @@ from concurrent.futures import as_completed
 from typing import Any
 
 from src.core.models import ScannedVariable
-from src.core.parsing.gem5.impl.pool.pool import ScanWorkPool
-from src.core.parsing.gem5.impl.pool.scan_work import ScanWork
+from src.parsing.gem5.impl.pool.pool import ScanWorkPool
+from src.parsing.gem5.impl.pool.scan_work import ScanWork
 
 
 class MockWork(ScanWork):

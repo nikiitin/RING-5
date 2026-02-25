@@ -17,8 +17,8 @@ Tests cover:
 
 import pytest
 
-from src.core.parsing.gem5.types.base import StatTypeRegistry
-from src.core.parsing.gem5.types.histogram import Histogram
+from src.parsing.gem5.types.base import StatTypeRegistry
+from src.parsing.gem5.types.histogram import Histogram
 
 
 class TestHistogramInitialization:

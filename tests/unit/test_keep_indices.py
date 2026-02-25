@@ -735,7 +735,7 @@ class TestConstructFinalCsvNA:
         the column should still appear in the header and get NaN in the
         first row.
         """
-        from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
         stat_a = self._mock_scalar(1.0)
         stat_b = self._mock_scalar(2.0)
@@ -769,7 +769,7 @@ class TestConstructFinalCsvNA:
         """
         If a later result lacks a variable, NaN is written for that cell.
         """
-        from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
         stat_a = self._mock_scalar(10.0)
         stat_b = self._mock_scalar(20.0)
@@ -795,7 +795,7 @@ class TestConstructFinalCsvNA:
 
     def test_all_vars_present_no_nan(self, tmp_path: Any) -> None:
         """No NaN when all results have all variables."""
-        from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
         stat_a = self._mock_scalar(1.0)
         stat_b = self._mock_scalar(2.0)
@@ -816,7 +816,7 @@ class TestConstructFinalCsvNA:
 
     def test_parse_service_construct_final_csv_na(self, tmp_path: Any) -> None:
         """ParseService.construct_final_csv also handles missing vars."""
-        from src.core.parsing.parse_service import ParseService
+        from src.parsing.parse_service import ParseService
 
         stat_a = self._mock_scalar(5.0)
         stat_b = self._mock_scalar(10.0)

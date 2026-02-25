@@ -18,7 +18,7 @@ from unittest.mock import Mock
 import pytest
 
 from src.core.models import ScannedVariable
-from src.core.parsing.gem5.impl.scanning.scanner import Gem5StatsScanner
+from src.parsing.gem5.impl.scanning.scanner import Gem5StatsScanner
 
 
 @pytest.fixture

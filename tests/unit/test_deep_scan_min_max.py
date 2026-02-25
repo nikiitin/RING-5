@@ -1,12 +1,12 @@
 class TestDeepScanMinMax:
     def test_merging_logic_in_async_pipeline(self) -> None:
         """Test that the async pipeline correctly merges distribution ranges from multiple files."""
-        from src.core.models.parsing_models import ScannedVariable
-        from src.core.parsing.gem5.impl.gem5_scanner import Gem5Scanner as ScannerService
+        from src.parsing.gem5.impl.gem5_scanner import Gem5Scanner as ScannerService
+        from src.parsing.gem5.models import Gem5ScannedVariable
 
         raw_results = [
-            [ScannedVariable(name="dist_var", type="distribution", minimum=-5, maximum=10)],
-            [ScannedVariable(name="dist_var", type="distribution", minimum=-10, maximum=15)],
+            [Gem5ScannedVariable(name="dist_var", type="distribution", minimum=-5, maximum=10)],
+            [Gem5ScannedVariable(name="dist_var", type="distribution", minimum=-10, maximum=15)],
         ]
 
         vars = ScannerService.aggregate_scan_results(raw_results)
@@ -19,12 +19,12 @@ class TestDeepScanMinMax:
 
     def test_grouping_logic_in_facade(self) -> None:
         """Test that grouping logic works via finalize_scan."""
-        from src.core.models.parsing_models import ScannedVariable
-        from src.core.parsing.gem5.impl.gem5_scanner import Gem5Scanner as ScannerService
+        from src.parsing.gem5.impl.gem5_scanner import Gem5Scanner as ScannerService
+        from src.parsing.gem5.models import Gem5ScannedVariable
 
         raw_results = [
             [
-                ScannedVariable(
+                Gem5ScannedVariable(
                     name="system.cpu\\d+.dist", type="distribution", minimum=0, maximum=20
                 )
             ]

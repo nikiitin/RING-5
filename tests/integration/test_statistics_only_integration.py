@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 
 from src.core.models import StatConfig
-from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
+from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
 
 
 class TestStatisticsOnlyIntegration:

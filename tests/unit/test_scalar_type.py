@@ -10,7 +10,7 @@ Following Rule 004 (QA Testing Mastery):
 
 import pytest
 
-from src.core.parsing.gem5.types.scalar import Scalar
+from src.parsing.gem5.types.scalar import Scalar
 
 
 class TestScalarInitialization:
@@ -332,14 +332,14 @@ class TestScalarTypeRegistration:
 
     def test_scalar_registered_with_decorator(self) -> None:
         # Arrange & Act
-        from src.core.parsing.gem5.types.base import StatTypeRegistry
+        from src.parsing.gem5.types.base import StatTypeRegistry
 
         # Assert
         assert "scalar" in StatTypeRegistry.get_types()
 
     def test_create_scalar_via_registry(self) -> None:
         # Arrange
-        from src.core.parsing.gem5.types.base import StatTypeRegistry
+        from src.parsing.gem5.types.base import StatTypeRegistry
 
         # Act
         scalar = StatTypeRegistry.create("scalar", repeat=2)

@@ -4,7 +4,8 @@ Tests the pattern detection and aggregation logic for repeated gem5 variables.
 """
 
 from src.core.models import ScannedVariable
-from src.core.parsing.gem5.impl.scanning.pattern_aggregator import PatternAggregator
+from src.parsing.gem5.impl.scanning.pattern_aggregator import PatternAggregator
+from src.parsing.gem5.models import Gem5ScannedVariable
 
 
 class TestPatternExtraction:
@@ -141,14 +142,14 @@ class TestPatternAggregation:
     def test_aggregate_distribution_variables(self) -> None:
         """Test aggregating distribution variables with min/max."""
         variables = [
-            ScannedVariable(
+            Gem5ScannedVariable(
                 name="system.cpu0.latency",
                 type="distribution",
                 entries=["samples", "mean"],
                 minimum=10.0,
                 maximum=100.0,
             ),
-            ScannedVariable(
+            Gem5ScannedVariable(
                 name="system.cpu1.latency",
                 type="distribution",
                 entries=["samples", "mean"],

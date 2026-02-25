@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.core.models.parsing_models import ScannedVariable
-from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser
+from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
 
 @dataclass
@@ -34,8 +34,8 @@ class FakeStat:
 class TestSubmitParseAsync:
     """Test submit_parse_async branches."""
 
-    @patch("src.core.parsing.gem5.impl.gem5_parser.ParseWorkPool")
-    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
+    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_path_not_found_raises(
         self, mock_factory: MagicMock, mock_pool: MagicMock, tmp_path: Any
     ) -> None:
@@ -47,8 +47,8 @@ class TestSubmitParseAsync:
                 str(tmp_path),
             )
 
-    @patch("src.core.parsing.gem5.impl.gem5_parser.ParseWorkPool")
-    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
+    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_empty_work_items(
         self, mock_factory: MagicMock, mock_pool: MagicMock, tmp_path: Any
     ) -> None:
@@ -67,8 +67,8 @@ class TestSubmitParseAsync:
         )
         assert result.futures == []
 
-    @patch("src.core.parsing.gem5.impl.gem5_parser.ParseWorkPool")
-    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
+    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_regex_expansion_no_match(
         self, mock_factory: MagicMock, mock_pool: MagicMock, tmp_path: Any
     ) -> None:
@@ -95,8 +95,8 @@ class TestSubmitParseAsync:
             scanned_vars=scanned,
         )
 
-    @patch("src.core.parsing.gem5.impl.gem5_parser.ParseWorkPool")
-    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
+    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_regex_expansion_with_pattern_indices(
         self, mock_factory: MagicMock, mock_pool: MagicMock, tmp_path: Any
     ) -> None:
@@ -128,8 +128,8 @@ class TestSubmitParseAsync:
             scanned_vars=scanned,
         )
 
-    @patch("src.core.parsing.gem5.impl.gem5_parser.ParseWorkPool")
-    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
+    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_invalid_regex_logs_warning(
         self, mock_factory: MagicMock, mock_pool: MagicMock, tmp_path: Any
     ) -> None:
@@ -160,7 +160,7 @@ class TestSubmitParseAsync:
 class TestFinalizeAndConstructCSV:
     """Test finalize_parsing and construct_final_csv branches."""
 
-    @patch("src.core.parsing.gem5.impl.gem5_parser.StrategyFactory")
+    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_finalize_empty_results(self, mock_factory: MagicMock, tmp_path: Any) -> None:
         result = Gem5Parser.finalize_parsing(str(tmp_path), [])
         assert result is None
