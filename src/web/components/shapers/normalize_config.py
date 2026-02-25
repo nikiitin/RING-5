@@ -5,6 +5,8 @@ Provides Streamlit components for configuring the Normalize shaper, which
 applies numerical normalization (min-max, z-score, etc.) to data columns.
 """
 
+from typing import cast
+
 import pandas as pd
 import streamlit as st
 
@@ -40,7 +42,11 @@ class NormalizeConfig:
             normalizer_vars = st.multiselect(
                 "Normalizer variables (will be summed)",
                 options=numeric_cols,
-                default=[c for c in existing_config.get("normalizerVars", []) if c in numeric_cols],
+                default=[
+                    c
+                    for c in cast(list[str], existing_config.get("normalizerVars", []))
+                    if c in numeric_cols
+                ],
                 key=f"{key_prefix}normalizer_vars_{shaper_id}",
                 help="These columns will be summed to create the baseline normalizer value",
             )
@@ -48,12 +54,16 @@ class NormalizeConfig:
             normalize_vars = st.multiselect(
                 "Variables to normalize",
                 options=numeric_cols,
-                default=[c for c in existing_config.get("normalizeVars", []) if c in numeric_cols],
+                default=[
+                    c
+                    for c in cast(list[str], existing_config.get("normalizeVars", []))
+                    if c in numeric_cols
+                ],
                 key=f"{key_prefix}norm_vars_{shaper_id}",
                 help="These columns will be divided by the sum of normalizer variables",
             )
 
-            norm_col_default = existing_config.get("normalizerColumn")
+            norm_col_default = cast(str, existing_config.get("normalizerColumn", ""))
             norm_col_index = (
                 categorical_cols.index(norm_col_default)
                 if norm_col_default in categorical_cols
@@ -85,13 +95,17 @@ class NormalizeConfig:
             group_by = st.multiselect(
                 "Group by",
                 options=categorical_cols,
-                default=[c for c in existing_config.get("groupBy", []) if c in categorical_cols],
+                default=[
+                    c
+                    for c in cast(list[str], existing_config.get("groupBy", []))
+                    if c in categorical_cols
+                ],
                 key=f"{key_prefix}norm_group_{shaper_id}",
             )
 
             normalize_sd = st.checkbox(
                 "Automatically normalize standard deviation columns",
-                value=existing_config.get("normalizeSd", True),
+                value=cast(bool, existing_config.get("normalizeSd", True)),
                 key=f"{key_prefix}norm_sd_{shaper_id}",
                 help=(
                     "If enabled, .sd columns will be automatically"
@@ -100,12 +114,15 @@ class NormalizeConfig:
                 ),
             )
 
-        result: ShaperStepConfig = {
-            "normalizerVars": list(normalizer_vars) if normalizer_vars else [],
-            "normalizeVars": list(normalize_vars) if normalize_vars else [],
-            "normalizerColumn": str(normalizer_column or ""),
-            "normalizerValue": str(normalizer_value) if normalizer_value is not None else "",
-            "groupBy": list(group_by) if group_by else [],
-            "normalizeSd": bool(normalize_sd),
-        }
+        result: ShaperStepConfig = cast(
+            ShaperStepConfig,
+            {
+                "normalizerVars": list(normalizer_vars) if normalizer_vars else [],
+                "normalizeVars": list(normalize_vars) if normalize_vars else [],
+                "normalizerColumn": str(normalizer_column or ""),
+                "normalizerValue": str(normalizer_value) if normalizer_value is not None else "",
+                "groupBy": list(group_by) if group_by else [],
+                "normalizeSd": bool(normalize_sd),
+            },
+        )
         return result

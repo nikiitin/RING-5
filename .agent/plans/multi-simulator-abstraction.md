@@ -45,8 +45,8 @@ Transform RING-5 from a gem5-only tool into a simulator-agnostic analysis platfo
 | 7 | Update ApplicationAPI with dependency injection | ✅ | 3262 |
 | 8 | Update documentation & architecture files | ✅ | 3262 |
 | 9 | E2E tests with screenshots for UI documentation | ✅ | 3262 |
-| 10 | Final validation & quality gate | ⬜ | — |
-| 11 | Fix CSV contract (remove gem5-specific vector helpers) | ⬜ | — |
+| 10 | Final validation & quality gate | ✅ | 3253 |
+| 11 | Fix CSV contract (remove gem5-specific vector helpers) | ✅ | 3253 |
 | 12 | Fix all trunk issues (pyright, mypy, markdownlint, ruff, yamllint) | ⬜ | — |
 
 ---

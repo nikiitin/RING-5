@@ -116,7 +116,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
                     new_right_order, right_renames = r_result  # type: ignore[misc]
                     if new_right_order != current_right_order:
                         config["y_columns_right"] = new_right_order
-                    if right_renames:
+                    if right_renames and isinstance(right_renames, dict):
                         if "series_styles" not in config:
                             config["series_styles"] = {}
                         for k, v in right_renames.items():
@@ -147,7 +147,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
                 new_order, stack_renames = s_result  # type: ignore[misc]
                 if new_order != current_order:
                     config["y_columns"] = new_order
-                if stack_renames:
+                if stack_renames and isinstance(stack_renames, dict):
                     if "series_styles" not in config:
                         config["series_styles"] = {}
                     for k, v in stack_renames.items():

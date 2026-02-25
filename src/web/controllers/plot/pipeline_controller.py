@@ -19,7 +19,7 @@ Architecture Note — Streamlit usage:
 """
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 import streamlit as st
@@ -88,11 +88,12 @@ class PipelineController:
         # 1. Add shaper (via component)
         add_result: dict[str, Any] = PipelineComponent.render_add_shaper(plot.plot_id)
         if add_result["add_clicked"]:
+            empty_config: ShaperStepConfig = cast(ShaperStepConfig, {})
             plot.pipeline.append(
                 {
                     "id": plot.pipeline_counter,
                     "type": add_result["shaper_type"],
-                    "config": {},
+                    "config": empty_config,
                 }
             )
             plot.pipeline_counter += 1

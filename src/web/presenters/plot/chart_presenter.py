@@ -21,7 +21,7 @@ import streamlit as st
 
 from src.core.models.visualization.trace_config import TraceConfig
 from src.core.services.visualization.config_resolver import resolve_config
-from src.web.pages.ui.components.interactive_plot import interactive_plotly_chart
+from src.web.components.plotting.interactive_plot import interactive_plotly_chart
 from src.web.pages.ui.plotting.download_section import render_download_section
 from src.web.rendering.config_builder import ConfigSpecBuilder, PlotlyFigureSpecBuilder
 from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib

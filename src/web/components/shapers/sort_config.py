@@ -8,6 +8,8 @@ The Sort shaper requires an ``order_dict``: a mapping from column names
 to the desired value order for each column.
 """
 
+from typing import cast
+
 import pandas as pd
 import streamlit as st
 
@@ -49,7 +51,9 @@ class SortConfig:
             return {"type": "sort", "order_dict": {}}
 
         # Restore previously selected columns
-        existing_order: dict[str, list[str]] = existing_config.get("order_dict", {})
+        existing_order: dict[str, list[str]] = cast(
+            dict[str, list[str]], existing_config.get("order_dict", {})
+        )
         default_cols: list[str] = [c for c in existing_order.keys() if c in categorical_cols]
 
         sort_columns: list[str] = st.multiselect(

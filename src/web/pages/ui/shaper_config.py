@@ -4,6 +4,7 @@ Dispatches configuration requests to specialized shaper UI components.
 """
 
 import logging
+from typing import cast
 
 import pandas as pd
 import streamlit as st
@@ -55,7 +56,7 @@ def configure_shaper(
         Configuration dictionary with 'type' key set
     """
     key_prefix = f"p{owner_id}_" if owner_id is not None else ""
-    existing_config = existing_config or {}
+    safe_config: ShaperStepConfig = cast(ShaperStepConfig, existing_config or {})
 
     config_dispatch = {
         "columnSelector": ColumnSelectorConfig.render,
@@ -69,7 +70,9 @@ def configure_shaper(
 
     if shaper_type in config_dispatch:
         try:
-            config = config_dispatch[shaper_type](data, existing_config, key_prefix, shaper_id)
+            config: ShaperStepConfig = config_dispatch[shaper_type](
+                data, safe_config, key_prefix, shaper_id
+            )
             # Ensure 'type' is ALWAYS present even if component returned empty or partial
             config["type"] = shaper_type
 
@@ -78,10 +81,12 @@ def configure_shaper(
             # UI component itself threw an error (not config validation)
             st.exception(e)
             logger.error(f"UI: Configuration UI failed for {shaper_type}: {e}", exc_info=True)
-            return {"type": shaper_type}  # Return minimal config so UI doesn't break
+            return cast(
+                ShaperStepConfig, {"type": shaper_type}
+            )  # Minimal config so UI doesn't break
 
     logger.warning(f"UI: Unknown shaper type encountered: {shaper_type}")
-    return {"type": shaper_type}
+    return cast(ShaperStepConfig, {"type": shaper_type})
 
 
 def apply_shapers(

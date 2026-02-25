@@ -14,6 +14,8 @@ This is the UI counterpart of
 :class:`src.core.services.shapers.impl.split_apply.SplitApply`.
 """
 
+from typing import cast
+
 from collections.abc import Callable
 
 import pandas as pd
@@ -110,7 +112,9 @@ class SplitApplyConfig:
 
         # ── Join Columns ──────────────────────────────────────────
         join_default: list[str] = [
-            c for c in existing_config.get("joinColumns", categorical_cols) if c in categorical_cols
+            c
+            for c in cast(list[str], existing_config.get("joinColumns", categorical_cols))
+            if c in categorical_cols
         ]
         join_columns: list[str] = st.multiselect(
             "Join columns (shared categorical columns)",
@@ -124,7 +128,9 @@ class SplitApplyConfig:
         )
 
         # ── Number of groups ──────────────────────────────────────
-        existing_groups: list[SplitApplyGroupConfig] = existing_config.get("groups", [])
+        existing_groups: list[SplitApplyGroupConfig] = cast(
+            list[SplitApplyGroupConfig], existing_config.get("groups", [])
+        )
         default_num_groups: int = max(
             _MIN_GROUPS, min(len(existing_groups) or _MIN_GROUPS, _MAX_GROUPS)
         )
@@ -158,10 +164,13 @@ class SplitApplyConfig:
                 )
                 groups.append(grp)
 
-        return {
-            "joinColumns": join_columns,
-            "groups": groups,
-        }
+        return cast(
+            ShaperStepConfig,
+            {
+                "joinColumns": join_columns,
+                "groups": groups,
+            },
+        )
 
     # ── Private helpers ───────────────────────────────────────────
 
@@ -257,7 +266,7 @@ class SplitApplyConfig:
 
         for s_idx in range(num_steps):
             existing_step: ShaperStepConfig = (
-                existing_pipeline[s_idx] if s_idx < existing_count else {}
+                existing_pipeline[s_idx] if s_idx < existing_count else cast(ShaperStepConfig, {})
             )
             step_cfg: ShaperStepConfig | None = SplitApplyConfig._render_sub_step(
                 data=data,

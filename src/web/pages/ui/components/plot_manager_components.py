@@ -11,6 +11,7 @@ from typing import cast
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
+from src.core.models.data_models import ShaperStepConfig
 from src.core.services.shapers.factory import ShaperFactory
 from src.web.pages.ui.plotting import BasePlot, PlotFactory
 from src.web.pages.ui.plotting.plot_service import PlotService
@@ -123,7 +124,11 @@ class PlotManagerComponents:
         with col2:
             if st.button("Add to Pipeline", width="stretch", key=f"add_shaper_btn_{plot.plot_id}"):
                 plot.pipeline.append(
-                    {"id": plot.pipeline_counter, "type": shaper_map[display_type], "config": {}}
+                    {
+                        "id": plot.pipeline_counter,
+                        "type": shaper_map[display_type],
+                        "config": cast(ShaperStepConfig, {}),
+                    }
                 )
                 plot.pipeline_counter += 1
                 st.rerun()
