@@ -51,7 +51,8 @@ from src.core.services.managers.managers_api import ManagersAPI
 from src.core.services.services_impl import DefaultServicesAPI
 from src.core.services.shapers.shapers_api import ShapersAPI
 from src.core.state.repository_state_manager import RepositoryStateManager
-from src.parsing import ParseService, ScannerService
+from src.parsing.parser_protocol import SimulationParser
+from src.parsing.registry import SimulatorRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +72,7 @@ class ApplicationAPI:
     def __init__(
         self,
         plot_deserializer: PlotDeserializer | None = None,
+        parser: SimulationParser | None = None,
     ) -> None:
         """
         Initialize the Application API.
@@ -80,11 +82,16 @@ class ApplicationAPI:
                 a ``PlotProtocol`` instance.  Injected into the repository
                 layer so that portfolio restoration never imports web-layer
                 classes directly.
+            parser: Optional simulator parser backend.  Defaults to the
+                gem5 parser from the ``SimulatorRegistry``.
         """
         self.state_manager = RepositoryStateManager(plot_deserializer=plot_deserializer)
 
         # Initialize services via unified facade
         self._services = DefaultServicesAPI(self.state_manager)
+
+        # Simulator parser backend (lazy default to gem5 via registry)
+        self._parser: SimulationParser = parser or SimulatorRegistry.get_parser("gem5")
 
         logger.info("ApplicationAPI initialized (Singleton Service)")
 
@@ -218,7 +225,7 @@ class ApplicationAPI:
                 ScannedVariable.from_dict(sv) if isinstance(sv, dict) else sv for sv in scanned_vars
             ]
 
-        return ParseService.submit_parse_async(
+        return self._parser.submit_parse_async(
             stats_path, stats_pattern, stat_configs, output_dir, strategy_type, resolved_scanned
         )
 
@@ -230,7 +237,7 @@ class ApplicationAPI:
         var_names: list[str] | None = None,
     ) -> str | None:
         """Finalize parsing results into a CSV."""
-        return ParseService.finalize_parsing(
+        return self._parser.finalize_parsing(
             output_dir, results, strategy_type, var_names=var_names
         )
 
@@ -238,11 +245,11 @@ class ApplicationAPI:
         self, stats_path: str, stats_pattern: str = "stats.txt", limit: int = 5
     ) -> list[Future[list[ScannedVariable]]]:
         """Submit scanning job."""
-        return ScannerService.submit_scan_async(stats_path, stats_pattern, limit)
+        return self._parser.submit_scan_async(stats_path, stats_pattern, limit)
 
     def finalize_scan(self, results: list[list[ScannedVariable]]) -> list[ScannedVariable]:
         """Aggregate scan results."""
-        return ScannerService.aggregate_scan_results(results)
+        return self._parser.aggregate_scan_results(results)
 
     def get_parse_status(self) -> str:
         """Get current parsing status.

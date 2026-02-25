@@ -73,13 +73,14 @@ class TestApplicationAPIIsRegex:
         """Import lazily to avoid heavy module-level loading."""
         from src.core.application_api import ApplicationAPI
 
-        return ApplicationAPI()
+        api = ApplicationAPI()
+        api._parser = MagicMock()
+        return api
 
-    @patch("src.core.application_api.ParseService")
-    def test_dict_with_regex_name(self, mock_svc: MagicMock) -> None:
+    def test_dict_with_regex_name(self) -> None:
         """A dict variable with \\d+ in name should produce is_regex=True."""
-        mock_svc.submit_parse_async.return_value = MagicMock()
         api = self._make_api()
+        api._parser.submit_parse_async.return_value = MagicMock()
 
         variables: List[Dict[str, Any]] = [
             {"name": r"system.cpu\d+.ipc", "type": "scalar"},
@@ -91,16 +92,15 @@ class TestApplicationAPIIsRegex:
             output_dir="/tmp/out",
         )
 
-        call_args = mock_svc.submit_parse_async.call_args
+        call_args = api._parser.submit_parse_async.call_args
         configs: List[StatConfig] = call_args[0][2]  # third positional arg
         assert len(configs) == 1
         assert configs[0].is_regex is True
 
-    @patch("src.core.application_api.ParseService")
-    def test_dict_with_plain_name(self, mock_svc: MagicMock) -> None:
+    def test_dict_with_plain_name(self) -> None:
         """A dict variable without \\d+ should produce is_regex=False."""
-        mock_svc.submit_parse_async.return_value = MagicMock()
         api = self._make_api()
+        api._parser.submit_parse_async.return_value = MagicMock()
 
         variables: List[Dict[str, Any]] = [
             {"name": "system.cpu.ipc", "type": "scalar"},
@@ -112,16 +112,15 @@ class TestApplicationAPIIsRegex:
             output_dir="/tmp/out",
         )
 
-        call_args = mock_svc.submit_parse_async.call_args
+        call_args = api._parser.submit_parse_async.call_args
         configs: List[StatConfig] = call_args[0][2]
         assert len(configs) == 1
         assert configs[0].is_regex is False
 
-    @patch("src.core.application_api.ParseService")
-    def test_scanned_variable_with_regex(self, mock_svc: MagicMock) -> None:
+    def test_scanned_variable_with_regex(self) -> None:
         """A ScannedVariable with \\d+ in name should produce is_regex=True."""
-        mock_svc.submit_parse_async.return_value = MagicMock()
         api = self._make_api()
+        api._parser.submit_parse_async.return_value = MagicMock()
 
         sv = ScannedVariable(
             name=r"system.cpu\d+.numCycles",
@@ -135,7 +134,7 @@ class TestApplicationAPIIsRegex:
             output_dir="/tmp/out",
         )
 
-        call_args = mock_svc.submit_parse_async.call_args
+        call_args = api._parser.submit_parse_async.call_args
         configs: List[StatConfig] = call_args[0][2]
         assert len(configs) == 1
         assert configs[0].is_regex is True

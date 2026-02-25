@@ -95,13 +95,14 @@ class TestApplicationAPIKeepIndices:
     def _make_api(self) -> Any:
         from src.core.application_api import ApplicationAPI
 
-        return ApplicationAPI()
+        api = ApplicationAPI()
+        api._parser = MagicMock()
+        return api
 
-    @patch("src.core.application_api.ParseService")
-    def test_dict_with_keep_indices_true(self, mock_svc: MagicMock) -> None:
+    def test_dict_with_keep_indices_true(self) -> None:
         """A dict variable with keepIndices=True should produce keep_indices=True."""
-        mock_svc.submit_parse_async.return_value = MagicMock()
         api = self._make_api()
+        api._parser.submit_parse_async.return_value = MagicMock()
 
         variables: list[dict[str, Any]] = [
             {"name": r"system.cpu\d+.ipc", "type": "scalar", "keepIndices": True},
@@ -113,16 +114,15 @@ class TestApplicationAPIKeepIndices:
             output_dir="/tmp/out",
         )
 
-        call_args = mock_svc.submit_parse_async.call_args
+        call_args = api._parser.submit_parse_async.call_args
         configs: list[StatConfig] = call_args[0][2]
         assert len(configs) == 1
         assert configs[0].keep_indices is True
 
-    @patch("src.core.application_api.ParseService")
-    def test_dict_with_keep_indices_false(self, mock_svc: MagicMock) -> None:
+    def test_dict_with_keep_indices_false(self) -> None:
         """A dict variable without keepIndices should default to False."""
-        mock_svc.submit_parse_async.return_value = MagicMock()
         api = self._make_api()
+        api._parser.submit_parse_async.return_value = MagicMock()
 
         variables: list[dict[str, Any]] = [
             {"name": r"system.cpu\d+.ipc", "type": "scalar"},
@@ -134,16 +134,15 @@ class TestApplicationAPIKeepIndices:
             output_dir="/tmp/out",
         )
 
-        call_args = mock_svc.submit_parse_async.call_args
+        call_args = api._parser.submit_parse_async.call_args
         configs: list[StatConfig] = call_args[0][2]
         assert len(configs) == 1
         assert configs[0].keep_indices is False
 
-    @patch("src.core.application_api.ParseService")
-    def test_dict_with_snake_case_keep_indices(self, mock_svc: MagicMock) -> None:
+    def test_dict_with_snake_case_keep_indices(self) -> None:
         """``keep_indices`` (snake_case) in dicts is also accepted."""
-        mock_svc.submit_parse_async.return_value = MagicMock()
         api = self._make_api()
+        api._parser.submit_parse_async.return_value = MagicMock()
 
         variables: list[dict[str, Any]] = [
             {"name": r"system.cpu\d+.ipc", "type": "scalar", "keep_indices": True},
@@ -155,7 +154,7 @@ class TestApplicationAPIKeepIndices:
             output_dir="/tmp/out",
         )
 
-        call_args = mock_svc.submit_parse_async.call_args
+        call_args = api._parser.submit_parse_async.call_args
         configs: list[StatConfig] = call_args[0][2]
         assert len(configs) == 1
         assert configs[0].keep_indices is True
