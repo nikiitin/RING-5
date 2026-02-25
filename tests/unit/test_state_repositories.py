@@ -392,7 +392,7 @@ class TestParserStateRepository:
         assert repo.remove_parse_variable("nonexistent-id") is False
 
     def test_stats_path_default(self, repo: ParserStateRepository) -> None:
-        assert repo.get_stats_path() == "/path/to/gem5/stats"
+        assert repo.get_stats_path() == "/path/to/stats"
 
     def test_stats_path_set(self, repo: ParserStateRepository) -> None:
         repo.set_stats_path("/new/path")

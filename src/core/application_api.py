@@ -6,7 +6,7 @@ core domain services. Acts as the orchestrator between UI and business logic,
 enforcing clean architecture boundaries and managing application state.
 
 Key Responsibilities:
-- Parse and load gem5 statistics from various sources
+- Parse and load simulator statistics from various sources
 - Manage data pipelines (scanning, parsing, transformations)
 - Orchestrate portfolio management and plotting
 - Maintain application state and session persistence

@@ -45,8 +45,7 @@ class ScannedVariable:
     Base metadata for a variable discovered by a simulator parser.
 
     This is the simulator-agnostic base class.  Simulator-specific
-    subclasses (e.g., ``Gem5ScannedVariable``) may add extra fields
-    such as distribution min/max ranges.
+    subclasses may add extra fields such as distribution min/max ranges.
     """
 
     name: str

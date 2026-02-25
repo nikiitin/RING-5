@@ -44,7 +44,7 @@ def test_template_generation() -> None:
 
     assert config["outputPath"] == "./output"
     assert config["parseConfig"]["statsPath"] == "/path/to/stats"
-    assert config["parseConfig"]["parser"] == "gem5_stats"
+    assert config["parseConfig"]["parser"] == "stats"
     assert isinstance(config["plots"], list)
 
 

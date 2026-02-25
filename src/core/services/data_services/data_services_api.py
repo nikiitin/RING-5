@@ -32,7 +32,7 @@ class DataServicesAPI(Protocol):
     """Protocol for data storage, retrieval, and domain entity management.
 
     Covers CSV pool management, saved configuration persistence,
-    gem5 variable management, and portfolio workspace snapshots.
+    variable management, and portfolio workspace snapshots.
     """
 
     # -- CSV Pool --
@@ -124,8 +124,12 @@ class DataServicesAPI(Protocol):
         """Ensure all variables have unique IDs."""
         ...
 
-    def filter_internal_stats(self, entries: list[str]) -> list[str]:
-        """Filter out internal gem5 statistics from entry list."""
+    def filter_internal_stats(
+        self,
+        entries: list[str],
+        internal_stats: frozenset[str] | None = None,
+    ) -> list[str]:
+        """Filter out internal simulator statistics from entry list."""
         ...
 
     def find_variable_by_name(

@@ -15,7 +15,7 @@ Responsibilities:
 
 Dependencies:
     - PathService: For portfolio storage directory
-    - ParserStateRepository: For gem5 parser state persistence
+    - ParserStateRepository: For parser state persistence
     - BasePlot: For plot serialization/deserialization
     - json: For portfolio file format
     - pandas: For DataFrame serialization

@@ -21,10 +21,10 @@ class PortfolioData(TypedDict, total=False):
 
     Attributes:
         parse_variables: List of parser variable configurations
-        stats_path: Base path to gem5 stats files
+        stats_path: Base path to simulator stats files
         stats_pattern: Pattern for stats file naming
         csv_path: Path to processed CSV data
-        use_parser: Whether gem5 parser mode is enabled
+        use_parser: Whether parser mode is enabled
         scanned_variables: List of variables discovered by scanner
         data_csv: CSV string representation of data
         plots: List of plot configurations

@@ -13,7 +13,7 @@ from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
 # Maximum allowed regex pattern length to prevent ReDoS abuse
 _MAX_REGEX_LEN: int = 500
 
-# Allowlist: only characters expected in gem5 stat patterns (letters, digits,
+# Allowlist: only characters expected in simulator stat patterns (letters, digits,
 # dots, underscores, backslashes for \d+, and regex anchors/quantifiers).
 _SAFE_PATTERN_RE: re.Pattern[str] = re.compile(r"^[a-zA-Z0-9_.\\+\[\]{}()|^$*?]+$")
 
@@ -44,8 +44,11 @@ def _compile_safe_pattern(pattern: str) -> re.Pattern[str] | None:
 class VariableService:
     """Service for managing parser variables with CRUD operations."""
 
-    # Scientific filter: Internal gem5 statistics that should not appear as regular entries
-    INTERNAL_STATS: set[str] = {
+    # Scientific filter: Internal statistics that should not appear as
+    # regular entries.  The default set covers common simulator
+    # meta-statistics.  Callers can override via the
+    # ``internal_stats`` parameter of ``filter_internal_stats``.
+    DEFAULT_INTERNAL_STATS: frozenset[str] = frozenset({
         "total",
         "mean",
         "gmean",
@@ -53,7 +56,7 @@ class VariableService:
         "samples",
         "overflows",
         "underflows",
-    }
+    })
 
     @staticmethod
     def generate_variable_id() -> str:
@@ -192,12 +195,20 @@ class VariableService:
         return updated_vars
 
     @classmethod
-    def filter_internal_stats(cls, entries: list[str]) -> list[str]:
+    def filter_internal_stats(
+        cls,
+        entries: list[str],
+        internal_stats: frozenset[str] | None = None,
+    ) -> list[str]:
         """
-        Filter out internal gem5 statistics from entry list.
+        Filter out internal simulator statistics from entry list.
 
         Args:
             entries: List of entry names to filter
+            internal_stats: Set of stat names to exclude.  Defaults to
+                ``DEFAULT_INTERNAL_STATS`` if not provided.  Callers
+                can pass ``SimulatorInfo.internal_stats`` from the
+                active simulator registry entry for accurate filtering.
 
         Returns:
             Filtered list with internal stats removed, sorted alphabetically
@@ -209,7 +220,8 @@ class VariableService:
             >>> filtered
             ['cpu0', 'cpu1']
         """
-        filtered = [e for e in entries if e.lower() not in cls.INTERNAL_STATS]
+        exclude = internal_stats if internal_stats is not None else cls.DEFAULT_INTERNAL_STATS
+        filtered = [e for e in entries if e.lower() not in exclude]
         return sorted(filtered)
 
     @classmethod

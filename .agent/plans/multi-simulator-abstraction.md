@@ -39,13 +39,15 @@ Transform RING-5 from a gem5-only tool into a simulator-agnostic analysis platfo
 | 1 | Move `src/core/parsing/` → `src/parsing/` | ✅ | 3229 |
 | 2 | Abstract ScannedVariable protocol + Gem5 implementation | ✅ | 3229 |
 | 3 | Define explicit CSV format contract | ✅ | 3249 |
-| 4 | Simulator registry & factory-based parser injection | ⬜ | — |
+| 4 | Simulator registry & factory-based parser injection | ✅ | 3260 |
 | 5 | Remove gem5-specific references from `src/core/` | ⬜ | — |
 | 6 | Simulator selector in data source UI | ⬜ | — |
 | 7 | Update ApplicationAPI with dependency injection | ⬜ | — |
 | 8 | Update documentation & architecture files | ⬜ | — |
 | 9 | E2E tests with screenshots for UI documentation | ⬜ | — |
 | 10 | Final validation & quality gate | ⬜ | — |
+| 11 | Fix CSV contract (remove gem5-specific vector helpers) | ⬜ | — |
+| 12 | Fix all trunk issues (pyright, mypy, markdownlint, ruff, yamllint) | ⬜ | — |
 
 ---
 
@@ -339,6 +341,65 @@ The parser instance is injected, with gem5 as the default.
 
 ---
 
+## Phase 11: Fix CSV Contract (Remove gem5-Specific Vector Helpers)
+
+### Rationale
+The CSV contract was created with gem5-specific "vector" helpers (`VECTOR_ENTRY_SEPARATOR`,
+`format_vector_column`, `parse_vector_column`). Vectors are a gem5-specific concept — the `..`
+separator is how gem5 names its multi-entry columns, but other simulators may have entirely
+different column naming conventions. The contract should define the generic CSV format, not
+gem5-specific column naming.
+
+### Research Findings
+- `VECTOR_ENTRY_SEPARATOR`, `format_vector_column()`, `parse_vector_column()` are **dead code** — never imported outside csv_contract.py and its test
+- `validate_parser_csv()`, `MISSING_VALUE`, `CSV_ENCODING`, `CSV_DIALECT` are also never imported
+- The gem5 parser hardcodes `..` directly in `gem5_parser.py:278`
+- Histogram plot code hardcodes `.split("..")` in `histogram_config.py:30` and `histogram_plot.py:114,139`
+- The **entire csv_contract.py module** is dead code in production
+
+### Plan
+1. Remove `VECTOR_ENTRY_SEPARATOR`, `format_vector_column()`, `parse_vector_column()` from csv_contract.py
+2. Move `..` separator constant to gem5-specific code (where it's actually used)
+3. Keep `validate_parser_csv()` but actually integrate it (or remove if not needed)
+4. Evaluate: keep minimal contract (encoding, missing value, validation) or remove entirely
+5. Update tests to match
+
+---
+
+## Phase 12: Fix All Trunk Issues
+
+### Issue Inventory (393 lint issues + 48 formatting + 5 non-blocking)
+
+| Category | Count | Rule | Action |
+|----------|-------|------|--------|
+| pyright/reportArgumentType | ~105 | Mostly in `src/web/` shaper configs, conftest.py | Fix type annotations, add casts or proper types |
+| markdownlint/MD060 | ~78 | Table pipe spacing in .md files | Fix table formatting |
+| markdownlint/MD040 | ~40 | Fenced code blocks without language | Add language specifiers (python, bash, text) |
+| markdownlint/MD024 | ~28 | Multiple headings with same content | Differentiate heading text |
+| pyright/reportAttributeAccessIssue | ~18 | Type narrowing needed | Add isinstance checks or Union handling |
+| markdownlint/MD025 | ~9 | Multiple top-level headings | Use single H1 per document |
+| pyright/reportAssignmentType | ~12 | Type mismatches in assignments | Fix types |
+| pyright/reportReturnType | ~9 | Return type mismatches | Fix return annotations |
+| mypy (various) | ~50 | attr-defined, arg-type, return-value, etc. | Fix type issues |
+| markdownlint/MD058 | ~5 | Tables should be surrounded by blank lines | Add blank lines |
+| markdownlint/MD041 | ~2 | First line should be top-level heading | Add H1 |
+| yamllint/quoted-strings | ~6 | Inconsistent quoting in YAML | Fix quoting |
+| ruff/B010 | ~4 | Use of `setattr` with constant attribute | Use direct attribute access |
+| ruff/D301 | ~4 | Use `r"""` for raw docstrings | Fix docstring prefix |
+| ruff/B904 | ~1 | Missing `from` in `raise ... from` | Add exception chaining |
+| formatting | ~48 | Auto-fixable formatting | Run trunk fmt |
+
+### Approach
+1. **Markdown files first** — mechanical fixes (MD040, MD060, MD024, MD025, MD058, MD041)
+2. **Python type fixes** — fix pyright/mypy issues in `src/web/` shaper configs
+3. **Ruff fixes** — B010, D301, B904
+4. **YAML fixes** — quoted-strings in trunk.yaml
+5. **Formatting** — run `trunk fmt` for auto-fixable issues
+6. Do NOT suppress warnings — fix the root cause
+7. Remove backward compatibility code where found
+
+---
+
 ## Decisions Log
 
 | Date | Decision | Rationale |
@@ -349,12 +410,29 @@ The parser instance is injected, with gem5 as the default.
 | 2026-02-25 | ScannedVariable as base dataclass, not Protocol | Dataclasses compose better for frozen data |
 | 2026-02-25 | CSV contract as explicit module | Makes the parser↔core boundary formal |
 | 2026-02-25 | SimulatorRegistry as class registry | Factory pattern, consistent with PlotFactory/ShaperFactory |
+| 2026-02-25 | Remove vector helpers from CSV contract | Vectors are gem5-specific; contract should be generic |
+| 2026-02-25 | Fix trunk issues properly, not suppress | User prefers robustness over speed |
 
 ---
 
 ## Lessons Learned
 
-(To be updated as phases are executed)
+### Phase 4: SimulatorRegistry
+- Pre-commit hooks revealed pre-existing mypy errors in `src/web/` shaper configs (43 errors)
+- These are all pyright/mypy type issues from the architectural refactor v2 where `st.session_state`
+  values are typed as `object` but used without type narrowing
+- The `dataclasses.replace()` function is type-checked against the base class, not subclasses —
+  constructing `Gem5ScannedVariable` directly is safer than using `replace()` on a base `ScannedVariable`
+- `csv_contract.py` "multiple docstrings" issue: Python treats module-level string literals after
+  the module docstring as extra docstrings; use comments instead
+
+### Phase 11: CSV Contract Research
+- The entire `csv_contract.py` module is dead code — nothing in `src/` imports from it
+- The `..` vector separator is used in exactly 3 places: `gem5_parser.py` (write), `histogram_config.py` (read), `histogram_plot.py` (read)
+- All 3 places hardcode the `..` string; none import from csv_contract.py
+- Vectors are gem5-specific: each entry becomes a flat column in the CSV
+- The core/web layers treat column names as opaque strings (via `pd.read_csv`)
+- Only the histogram plot type splits columns on `..` to reconstitute distribution buckets
 
 ---
 

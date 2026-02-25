@@ -1,6 +1,6 @@
 """
 Parser State Repository
-Single Responsibility: Manage gem5 parser configuration and state.
+Single Responsibility: Manage simulator parser configuration and state.
 """
 
 import logging
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class ParserStateRepository:
     """
-    Repository for managing gem5 parser state and configuration.
+    Repository for managing simulator parser state and configuration.
 
     Responsibilities:
     - Manage parse variable configurations
@@ -35,7 +35,7 @@ class ParserStateRepository:
         """Initialize in-memory storage."""
         # Initialize default state
         self._parse_variables: list[ParseVariableConfig] = self.DEFAULT_PARSE_VARIABLES.copy()
-        self._stats_path: str = "/path/to/gem5/stats"
+        self._stats_path: str = "/path/to/stats"
         self._stats_pattern: str = "stats.txt"
         self._scanned_variables: list[ScannedVariableDict] = []
         self._use_parser: bool = False
@@ -43,7 +43,7 @@ class ParserStateRepository:
 
     def get_parse_variables(self) -> list[ParseVariableConfig]:
         """
-        Get the list of variables to parse from gem5 stats.
+        Get the list of variables to parse from simulator stats.
 
         Returns:
             List of parse variable configurations
@@ -98,16 +98,16 @@ class ParserStateRepository:
 
     def get_stats_path(self) -> str:
         """
-        Get the gem5 stats file path pattern.
+        Get the stats file path pattern.
 
         Returns:
-            Path pattern (e.g., "/path/to/gem5/stats")
+            Path pattern (e.g., "/path/to/stats")
         """
         return self._stats_path
 
     def set_stats_path(self, path: str) -> None:
         """
-        Set the gem5 stats file path pattern.
+        Set the stats file path pattern.
 
         Args:
             path: Path pattern for stats files

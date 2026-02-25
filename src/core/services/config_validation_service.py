@@ -143,7 +143,7 @@ class ConfigTemplateGenerator:
 
         Args:
             output_path: Where to save output files
-            stats_path: Path to gem5 stats files
+            stats_path: Path to simulator stats files
 
         Returns:
             Minimal configuration dictionary
@@ -151,7 +151,7 @@ class ConfigTemplateGenerator:
         return {
             "outputPath": output_path,
             "parseConfig": {
-                "parser": "gem5_stats",
+                "parser": "stats",
                 "statsPath": stats_path,
                 "statsPattern": "**/stats.txt",
                 "variables": [],
@@ -335,7 +335,7 @@ def create_simple_bar_plot_config(
 
     Args:
         output_path: Output directory
-        stats_path: Path to gem5 stats
+        stats_path: Path to stats files
         x_var: X-axis variable
         y_var: Y-axis variable
         hue_var: Optional grouping variable

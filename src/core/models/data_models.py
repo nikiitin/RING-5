@@ -129,11 +129,11 @@ class PipelineData(TypedDict, total=False):
 
 
 class ParseVariableConfig(TypedDict, total=False):
-    """Configuration for a gem5 variable to parse.
+    """Configuration for a simulator variable to parse.
 
     Created by the variable editor UI and stored in
     ``StateManager.get_parse_variables()``.  Consumed by the parser
-    layer (``Gem5Parser``) and by portfolio serialization.
+    layer and by portfolio serialization.
 
     ``name``, ``type``, and ``_id`` are always set when created through
     the UI.

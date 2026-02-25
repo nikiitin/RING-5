@@ -127,9 +127,13 @@ class DefaultDataServicesAPI:
         """Ensure all variables have unique IDs."""
         return VariableService.ensure_variable_ids(variables)
 
-    def filter_internal_stats(self, entries: list[str]) -> list[str]:
-        """Filter out internal gem5 statistics from entry list."""
-        return VariableService.filter_internal_stats(entries)
+    def filter_internal_stats(
+        self,
+        entries: list[str],
+        internal_stats: frozenset[str] | None = None,
+    ) -> list[str]:
+        """Filter out internal simulator statistics from entry list."""
+        return VariableService.filter_internal_stats(entries, internal_stats)
 
     def find_variable_by_name(
         self,
