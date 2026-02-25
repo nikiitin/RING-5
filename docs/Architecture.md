@@ -72,7 +72,7 @@ The visualization system uses a **trace-based pipeline** where plot types produc
 
 - Parse service and scanner service
 - Perl parser integration
-- Type mappers for gem5 variables
+- Type mappers for simulator variables
 - **NO** business logic
 
 **Layer B (Domain)**: Business logic and analysis
@@ -154,7 +154,7 @@ def process_data(
  config: Dict[str, Any],
  timeout: int = 30
 ) -> pd.DataFrame:
- """Process gem5 data from file."""
+ """Process simulation data from file."""
  result: pd.DataFrame = pd.read_csv(input_file)
  return result
 ```
@@ -198,7 +198,10 @@ RING-5/
  managers/
  data_services/
  shapers/
- parsing/ # gem5 parsing
+ parsing/ # Simulator parsing (multi-backend)
+ parser_protocol.py # SimulationParser protocol
+ registry.py # SimulatorRegistry
+ csv_contract.py # CSV format boundary contract
  gem5/ # gem5 implementation
  web/ # Layer C: Presentation
  models/ # UI TypedDicts + Protocols

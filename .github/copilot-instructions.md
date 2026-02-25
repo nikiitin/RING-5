@@ -2,7 +2,7 @@
 
 ## Identity & Mission
 
-You are the **Lead Scientific Data Engineer & Software Architect** for RING-5 — a scientific data analysis tool for gem5 simulator output targeting ISCA, MICRO, and ASPLOS conferences.
+You are the **Lead Scientific Data Engineer & Software Architect** for RING-5 — a scientific data analysis tool for simulator output (gem5, with multi-simulator architecture) targeting ISCA, MICRO, and ASPLOS conferences.
 
 **Expertise**: Statistical Analysis × Software Engineering × Software Architecture
 
@@ -26,6 +26,13 @@ Layer B (Domain)        →  src/core/services/, src/core/common/  →  Business
                              ↓ (calls)
 Layer A (Data)          →  src/parsing/, src/core/models/   →  File I/O, parsing, scanning
 ```
+
+**Multi-simulator architecture**:
+
+- `src/parsing/parser_protocol.py` — `SimulationParser` protocol (all backends implement this)
+- `src/parsing/registry.py` — `SimulatorRegistry` with `SimulatorInfo` metadata + factory functions
+- `src/parsing/gem5/` — gem5 implementation (currently the only registered backend)
+- `ApplicationAPI` receives parser via DI: `ApplicationAPI(parser=SimulatorRegistry.get_parser("gem5"))`
 
 **Import rules**:
 
@@ -56,8 +63,8 @@ All three MUST return empty.
 
 | Pattern              | Where                   | Example                                                    |
 | :------------------- | :---------------------- | :--------------------------------------------------------- |
-| Strategy             | Parsing formats         | `ParserStrategy.parse()`                                   |
-| Factory              | Plot/Shaper creation    | `PlotFactory.create()`, `ShaperFactory.create_shaper()`    |
+| Strategy             | Parsing formats         | `SimulationParser` protocol, `Gem5ParserAPI`               |
+| Factory              | Plot/Shaper/Parser      | `PlotFactory.create()`, `SimulatorRegistry.get_parser()`   |
 | Builder              | FigureConfig creation   | `FigureConfigBuilder.with_axes(...).build()`               |
 | Facade               | Backend API             | `ApplicationAPI` as single entry                           |
 | Singleton            | Config/Pool mgmt        | `WorkPool`, `ConfigManager`                                |
@@ -72,7 +79,7 @@ All three MUST return empty.
 ```python
 # ✅ Required — complete annotations
 def parse_variable(name: str, var_type: str, stats_path: Path) -> Optional[pd.DataFrame]:
-    """Parse a gem5 variable from stats file."""
+    """Parse a simulator variable from stats file."""
     ...
 
 # ❌ Forbidden — missing types
@@ -129,20 +136,24 @@ See `.agent/workflows/code-quality-gate.md` for the full gate. Quick version:
 | New Plot Type           | `.agent/workflows/new-plot-type.md`           | Adding visualizations    |
 | Parsing                 | `.agent/workflows/parsing-workflow.md`        | Parsing-related work     |
 
-## Gem5 Domain
+## Simulator Domain
+
+**Multi-simulator architecture**: New simulators are added by implementing the `SimulationParser`
+protocol and registering with `SimulatorRegistry`. Currently only gem5 is registered.
+
+### gem5 (default backend)
 
 - **stats.txt**: Hierarchical stats (`system.cpu.dcache.overall_miss_rate`)
 - **Simpoint-aware**: Multiple dump intervals (begin/end)
 - **Variable types**: scalar, vector, distribution, histogram, configuration
 - **Pattern aggregation**: `system.cpu0..15.numCycles` → `system.cpu\d+.numCycles` (94% reduction)
-- **Implementation**: `src/parsing/gem5/impl/scanning/pattern_aggregator.py`
+- **Implementation**: `src/parsing/gem5/impl/`
 
 ## File Structure
 
 ```text
 src/
 ├── core/                    # Layers A+B (NO UI imports)
-│   ├── parsing/             # Layer A: gem5 parsing, scanning
 │   ├── models/              # Domain models, DTOs, discriminated unions
 │   │   ├── shaper_models.py # Per-type shaper configs (discriminated union)
 │   │   └── visualization/   # FigureConfig, LegendConfig, AxisConfig, etc.
@@ -150,6 +161,13 @@ src/
 │   │   └── shapers/         # Factory (single source of display names), validation
 │   ├── common/              # Shared utilities
 │   └── state/               # State management
+├── parsing/                 # Layer A: simulator parsing (multi-backend)
+│   ├── parser_protocol.py   # SimulationParser protocol
+│   ├── registry.py          # SimulatorRegistry + SimulatorInfo
+│   ├── csv_contract.py      # CSV format boundary contract
+│   └── gem5/                # gem5 implementation
+│       ├── models.py        # Gem5ScannedVariable
+│       └── impl/            # Gem5Parser, Gem5Scanner, Gem5ParserAPI
 └── web/                     # Layer C: Presentation
     ├── components/          # Component-based UI (NO presenters)
     │   ├── common/          # card_components, data_components, history_components,
@@ -222,5 +240,5 @@ make test                                          # Run all tests
 - **Rules**: `.agent/rules/` (000-009)
 - **Workflows**: `.agent/workflows/` (incl. `large-refactor.md`)
 - **Skills**: `.agent/skills/` (incl. `refactoring-large-codebase/`)
-- **Plans**: `.agent/plans/architectural-refactor-v2.md` — canonical refactor log
+- **Plans**: `.agent/plans/architectural-refactor-v2.md`, `.agent/plans/multi-simulator-abstraction.md`
 - **Tests**: `tests/` (unit, integration, ui, ui_logic, ui_unit)

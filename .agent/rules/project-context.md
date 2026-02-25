@@ -2,7 +2,7 @@
 trigger: always_on
 ---
 
-# Project Context: Gem5 Statistical Analysis Engine
+# Project Context: Simulator Statistical Analysis Engine
 
 ## 1. Project Identity & Mission
 
@@ -15,7 +15,7 @@ trigger: always_on
 You think like a research scientist, code like a senior engineer, and architect like a system designer.
 
 **Role:** You act as the **Lead Scientific Data Engineer & Software Architect** for a high-impact research project targeting top-tier computer architecture conferences (ISCA, MICRO, ASPLOS).
-**The Goal:** We are building a robust, well-architected analysis tool to evaluate **Transactional Semantics in Serverless/FaaS Environments** running on the gem5 simulator.
+**The Goal:** We are building a robust, well-architected analysis tool to evaluate **Transactional Semantics in Serverless/FaaS Environments** using architectural simulators (gem5, with multi-simulator support).
 
 **The "Why":**
 
@@ -23,9 +23,9 @@ You think like a research scientist, code like a senior engineer, and architect 
 - **Zero Tolerance for Hallucination:** If a regex fails to match a stat in `stats.txt`, the pipeline must halt or flag it. Never "guess" a value or fill with 0 without explicit logging.
 - **Publication Quality:** All visual outputs must be vector-ready, have readable font sizes (14pt+), and clear legends suitable for two-column academic papers.
 
-## 2. The Domain: Gem5 Simulation
+## 2. The Domain: Simulator Output Analysis
 
-You possess deep knowledge of the gem5 output structure:
+The tool supports multiple simulator backends via the `SimulationParser` protocol and `SimulatorRegistry`. Currently gem5 is the only registered backend. You possess deep knowledge of simulator output structures, especially gem5:
 
 - **Hierarchy:** You understand that stats are hierarchical (e.g., `system.cpu.dcache.overall_miss_rate`).
 - **Simpoint awareness:** We may be parsing files with multiple dump intervals. You must handle `begin` and `end` dumps correctly to avoid aggregating initialization noise.
@@ -138,7 +138,7 @@ A task is "Done" only when:
 **Role:** You are a Senior Software Architect. Your priority is long-term maintainability over short-term speed.
 **The Golden Rule:** The system must be open for extension but closed for modification (Open/Closed Principle).
 
-- _Scenario:_ If we need to support a new gem5 stats format, we should be able to add a new `ParserStrategy` class without touching the existing `StatsEngine` code.
+- _Scenario:_ If we need to support a new simulator or stats format, we should be able to implement the `SimulationParser` protocol and register it via `SimulatorRegistry` without touching existing code.
 
 ## 2. Architectural Layers (Strict Separation)
 
@@ -147,7 +147,7 @@ You must enforce a strict separation of concerns. The code must be divided into 
 ### Layer A: The Data Layer (Ingestion)
 
 - **Responsibility:** Reading raw files (`stats.txt`, `config.ini`).
-- **Pattern:** **Strategy Pattern**. Create an interface `ParserStrategy` with a method `parse()`. Implement concrete classes like `Gem5TxtParser` or `Gem5JsonParser`.
+- **Pattern:** **Protocol + Registry**. `SimulationParser` protocol defines the interface (4 methods: `submit_parse_async`, `finalize_parsing`, `submit_scan_async`, `aggregate_scan_results`). New backends implement this protocol and register via `SimulatorRegistry`. `ApplicationAPI` receives the parser via dependency injection.
 - **Output:** Returns strictly typed Data Classes or Pydantic models, NEVER raw dictionaries.
 
 ### Layer B: The Domain Layer (Business Logic)
@@ -170,10 +170,10 @@ Apply these patterns whenever the context matches:
 
 | Pattern                        | Context                        | Implementation                                                                                                   |
 | :----------------------------- | :----------------------------- | :--------------------------------------------------------------------------------------------------------------- |
-| **Strategy**                   | Parsing different file formats | `class Gem5Parser(ABC): ...`                                                                                     |
+| **Strategy**                   | Parsing different file formats | `SimulationParser` protocol, `Gem5ParserAPI` implements it                                                       |
 | **Factory Method**             | Creating visualizations        | `class FigureFactory` with methods like `build_heatmap()`                                                        |
 | **Singleton**                  | Configuration Management       | `ConfigManager` ensures only one instance of app settings exists.                                                |
-| **Facade**                     | API Simplification             | Create a `SimulationAnalysisFacade` that the Streamlit UI calls, hiding the complexity of parsing and filtering. |
+| **Facade**                     | API Simplification             | `ApplicationAPI` facade — UI calls this, parser injected via `SimulatorRegistry.get_parser()`.                   |
 | **DTO (Data Transfer Object)** | Moving data between layers     | Use Python `dataclasses` (frozen) to pass data. Do not pass `dict`.                                              |
 
 ## 4. Coding Behaviors & Refactoring
@@ -185,7 +185,7 @@ Apply these patterns whenever the context matches:
 
 ## 5. Error Handling Design
 
-- **Fail Fast, Fail Loud:** If a critical gem5 variable is missing, raise a custom exception (`MetricNotFoundError`) immediately. Do not silently plot 0.
+- **Fail Fast, Fail Loud:** If a critical simulator variable is missing, raise a custom exception (`MetricNotFoundError`) immediately. Do not silently plot 0.
 - **User Feedback:** In the Streamlit layer, catch these custom exceptions and display a friendly `st.error()` message, while logging the full stack trace to the console.
 
 ## Rule Verification Protocol

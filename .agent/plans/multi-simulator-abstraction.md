@@ -40,10 +40,10 @@ Transform RING-5 from a gem5-only tool into a simulator-agnostic analysis platfo
 | 2 | Abstract ScannedVariable protocol + Gem5 implementation | ✅ | 3229 |
 | 3 | Define explicit CSV format contract | ✅ | 3249 |
 | 4 | Simulator registry & factory-based parser injection | ✅ | 3260 |
-| 5 | Remove gem5-specific references from `src/core/` | ⬜ | — |
-| 6 | Simulator selector in data source UI | ⬜ | — |
-| 7 | Update ApplicationAPI with dependency injection | ⬜ | — |
-| 8 | Update documentation & architecture files | ⬜ | — |
+| 5 | Remove gem5-specific references from `src/core/` | ✅ | 3262 |
+| 6 | Simulator selector in data source UI | ✅ | 3260 |
+| 7 | Update ApplicationAPI with dependency injection | ✅ | 3262 |
+| 8 | Update documentation & architecture files | ✅ | 3262 |
 | 9 | E2E tests with screenshots for UI documentation | ⬜ | — |
 | 10 | Final validation & quality gate | ⬜ | — |
 | 11 | Fix CSV contract (remove gem5-specific vector helpers) | ⬜ | — |
@@ -290,20 +290,17 @@ The parser instance is injected, with gem5 as the default.
 
 ---
 
-## Phase 8: Update Documentation & Architecture Files
+## Phase 8: Update Documentation & Architecture Files ✅
 
-### Files to Update
-- `.agent/rules/001-architecture-standards.md` — new 3-module structure (parsing/core/web)
-- `.agent/rules/project-context.md` — updated architecture description
-- `.github/copilot-instructions.md` — updated file structure, CSV contract
-- `docs/Architecture.md` — new architecture diagram
-- `docs/parsing-architecture.md` — updated for multi-simulator
-- `docs/Web-Interface.md` — add UI screenshots section
-- `README.md` — update project description
+### Status: COMPLETED
 
-### New Documentation
-- `docs/Multi-Simulator-Support.md` — how to add a new simulator parser
-- `docs/CSV-Format-Contract.md` — the CSV contract specification
+### Changes Made
+1. **`.github/copilot-instructions.md`** — 8 replacements: identity, architecture section (multi-simulator info with protocol/registry/DI), patterns table (Strategy → SimulationParser protocol, Factory → SimulatorRegistry), code example docstring, Gem5 Domain → Simulator Domain section, file structure (added parsing/ protocol/registry/gem5), plans reference
+2. **`README.md`** — 2 replacements: description (multi-simulator mention), pain point generalization
+3. **`.agent/rules/001-architecture-standards.md`** — 2 replacements: Strategy pattern description (→ Protocol + Registry), patterns table example (→ SimulationParser protocol, Gem5ParserAPI)
+4. **`.agent/rules/project-context.md`** — 8 replacements: title, goal (multi-simulator), domain section heading, domain description (SimulationParser + SimulatorRegistry), scenario (→ implement protocol), Layer A pattern (→ Protocol + Registry with 4 methods), patterns table, facade pattern, error handling
+5. **`docs/Architecture.md`** — 3 replacements: type mappers (→ simulator variables), docstring (→ simulation data), file structure (parsing/ expanded with protocol/registry/contract)
+6. **`docs/parsing-architecture.md`** — Added multi-simulator preamble explaining protocol/registry architecture and that doc focuses on gem5 implementation
 
 ---
 

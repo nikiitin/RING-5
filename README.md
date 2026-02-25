@@ -2,7 +2,7 @@
 
 **R**eproducible **I**nstrumentation for **N**umerical **G**raphics for gem5
 
-RING-5 turns raw gem5 simulator output into publication-ready figures. Point it at your stats files, pick your variables, and get clean, reproducible plots for your next ISCA, MICRO, or ASPLOS paper -- no scripting required.
+RING-5 turns raw simulator output into publication-ready figures. Point it at your stats files, pick your variables, and get clean, reproducible plots for your next ISCA, MICRO, or ASPLOS paper -- no scripting required. Currently supports **gem5**, with a multi-simulator architecture for future backends.
 
 [![Python](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/)
 [![Tests](https://img.shields.io/badge/tests-1110%20passing-success)](tests/)
@@ -12,9 +12,9 @@ RING-5 turns raw gem5 simulator output into publication-ready figures. Point it 
 
 ## Why RING-5?
 
-If you work with gem5, you know the drill: parse `stats.txt`, wrangle the data in pandas, fight with matplotlib, and pray the numbers are right. RING-5 handles all of that behind a web interface.
+If you work with gem5 (or plan to add other simulator backends), you know the drill: parse `stats.txt`, wrangle the data in pandas, fight with matplotlib, and pray the numbers are right. RING-5 handles all of that behind a web interface.
 
-- **Parse once, plot many times.** Scan and parse gem5 stats files into structured CSVs with automatic variable discovery.
+- **Parse once, plot many times.** Scan and parse simulator stats files into structured CSVs with automatic variable discovery.
 - **Transform without code.** Normalize against baselines, aggregate across seeds, remove outliers, compute geometric means -- all through a visual pipeline builder.
 - **Publication quality out of the box.** Bar charts, grouped bars, stacked bars, line plots, scatter plots, and histograms with full style control. Export to PDF, SVG, PGF, or PNG.
 - **Reproducible by design.** Save your entire analysis as a portfolio -- data, transformations, and plots -- and reload it months later for camera-ready revisions.

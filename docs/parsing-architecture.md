@@ -7,6 +7,8 @@ nav_order: 27
 
 Comprehensive architecture documentation for `src/parsing/`, covering every class, dependency, protocol relationship, singleton, and the complete scanning/parsing data flows.
 
+> **Multi-simulator architecture**: RING-5 uses a `SimulationParser` protocol and `SimulatorRegistry` to support multiple simulator backends. `ApplicationAPI` receives the parser via dependency injection. Currently only gem5 is registered. New simulators are added by implementing the `SimulationParser` protocol and registering with `SimulatorRegistry`. This document focuses on the gem5 implementation.
+
 ---
 
 ## Module Structure Diagram

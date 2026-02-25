@@ -17,7 +17,7 @@ You must enforce a strict separation of concerns. The code must be divided into 
 
 - **Location:** `src/core/models/`, `src/parsing/`
 - **Responsibility:** Domain models, DTOs, file I/O, parsing.
-- **Pattern:** **Strategy Pattern** for parsers. **Discriminated Unions** for models with `type` fields.
+- **Pattern:** **Protocol + Registry** for parsers (`SimulationParser` protocol, `SimulatorRegistry`). **Discriminated Unions** for models with `type` fields.
 - **Output:** Returns strictly typed dataclasses or TypedDicts, NEVER raw dictionaries.
 - **Rule:** Models with a `type` discriminator MUST use per-type sub-configs (e.g., `MeanShaperConfig`, `NormalizeShaperConfig`), NEVER flat mega-unions.
 
@@ -102,7 +102,7 @@ src/web/pages/ui/plotting/
 
 | Pattern                        | Context                        | Implementation                                                              |
 | :----------------------------- | :----------------------------- | :-------------------------------------------------------------------------- |
-| **Strategy**                   | Parsing different file formats | `class Gem5Parser(ABC): ...`                                                |
+| **Strategy**                   | Parsing different file formats | `SimulationParser` protocol, `Gem5ParserAPI` implements it                  |
 | **Factory**                    | Creating plots/shapers         | `PlotFactory.create()`, `ShaperFactory.create_shaper()`                     |
 | **Builder**                    | Constructing FigureConfig      | `FigureConfigBuilder.with_axes(...).with_legend(...).build()`               |
 | **Facade**                     | Backend API                    | `ApplicationAPI` as single entry point for web→core                         |
