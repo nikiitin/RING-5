@@ -271,9 +271,7 @@ class DataSourceComponents:
         # a full rerun (other page sections can react). Read widget values
         # from session_state because locals from the fragment are not in scope.
         st.markdown("---")
-        if st.button(
-            f"Parse {sim_label} Stats Files", type="primary", use_container_width=True
-        ):
+        if st.button(f"Parse {sim_label} Stats Files", type="primary", use_container_width=True):
             _stats_path = st.session_state.get(
                 "stats_path_input", api.state_manager.get_stats_path()
             )

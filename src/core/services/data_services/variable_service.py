@@ -48,15 +48,17 @@ class VariableService:
     # regular entries.  The default set covers common simulator
     # meta-statistics.  Callers can override via the
     # ``internal_stats`` parameter of ``filter_internal_stats``.
-    DEFAULT_INTERNAL_STATS: frozenset[str] = frozenset({
-        "total",
-        "mean",
-        "gmean",
-        "stdev",
-        "samples",
-        "overflows",
-        "underflows",
-    })
+    DEFAULT_INTERNAL_STATS: frozenset[str] = frozenset(
+        {
+            "total",
+            "mean",
+            "gmean",
+            "stdev",
+            "samples",
+            "overflows",
+            "underflows",
+        }
+    )
 
     @staticmethod
     def generate_variable_id() -> str:
