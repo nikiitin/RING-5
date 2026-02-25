@@ -2006,6 +2006,7 @@ class TestDataSourceComponentsExtra:
         )
 
         api = MagicMock()
+        api.state_manager.get_simulator.return_value = "gem5"
         api.state_manager.get_stats_path.return_value = "/tmp/stats"
         api.state_manager.get_stats_pattern.return_value = "stats.txt"
         api.state_manager.get_parser_strategy.return_value = "simple"

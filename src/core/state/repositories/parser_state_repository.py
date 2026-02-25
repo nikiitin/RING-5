@@ -40,6 +40,7 @@ class ParserStateRepository:
         self._scanned_variables: list[ScannedVariableDict] = []
         self._use_parser: bool = False
         self._parser_strategy: str = "simple"
+        self._simulator: str = "gem5"
 
     def get_parse_variables(self) -> list[ParseVariableConfig]:
         """
@@ -199,6 +200,27 @@ class ParserStateRepository:
             return
         self._parser_strategy = normalized
         logger.info("PARSER_REPO: Parsing strategy set to '%s'", strategy)
+
+    def get_simulator(self) -> str:
+        """
+        Get the currently selected simulator backend.
+
+        Returns:
+            Simulator identifier (e.g., "gem5")
+        """
+        return self._simulator
+
+    def set_simulator(self, simulator: str) -> None:
+        """
+        Set the simulator backend to use for parsing.
+
+        Args:
+            simulator: Simulator identifier (must be registered)
+        """
+        if self._simulator == simulator:
+            return
+        self._simulator = simulator
+        logger.info("PARSER_REPO: Simulator set to '%s'", simulator)
 
     def clear_parser_state(self) -> None:
         """Clear all parser-related state (except parse variables)."""

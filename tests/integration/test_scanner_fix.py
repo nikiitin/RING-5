@@ -61,6 +61,7 @@ class TestScannerFix:
     ) -> None:
         """Test that scanner calls api.submit_scan_async, not api.backend..."""
         # Setup
+        mock_api.state_manager.get_simulator.return_value = "gem5"
         mock_api.state_manager.get_stats_path.return_value = "/tmp"
         mock_api.state_manager.get_stats_pattern.return_value = "stats.txt"
         mock_api.state_manager.get_parser_strategy.return_value = "simple"

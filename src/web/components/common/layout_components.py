@@ -14,9 +14,9 @@ class LayoutComponents:
         """Display sidebar information about RING-5."""
         st.markdown("### About RING-5")
         st.info("""
-        **Pure Python** implementation for gem5 data analysis.
+        **Pure Python** implementation for simulator data analysis.
 
-        - Parse gem5 stats OR upload CSV
+        - Parse simulator stats OR upload CSV
         - No R dependencies
         - Interactive configuration
         - Real-time visualization

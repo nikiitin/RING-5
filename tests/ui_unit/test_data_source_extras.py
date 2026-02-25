@@ -103,7 +103,8 @@ def test_render_parser_config(mock_streamlit: Any, mock_api: Any) -> None:
     # Simulate clicking "Quick Scan" button
     mock_streamlit.button.side_effect = lambda label, **k: "Quick Scan" in label
 
-    # Mock strategy and scanned variables to avoid selectbox errors
+    # Mock simulator and strategy to avoid selectbox errors
+    mock_api.state_manager.get_simulator.return_value = "gem5"
     mock_api.state_manager.get_parser_strategy.return_value = "simple"
     mock_api.state_manager.get_scanned_variables.return_value = []
 

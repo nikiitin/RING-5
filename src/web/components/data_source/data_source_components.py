@@ -1,7 +1,7 @@
 """
 Data Source Components - UI for Data Ingestion and Parsing.
 
-Provides Streamlit components for gem5 statistics parsing: CSV pool management,
+Provides Streamlit components for simulator statistics parsing: CSV pool management,
 parser configuration, variable selection, and data preview.
 """
 
@@ -17,6 +17,7 @@ import streamlit as st
 from src.core.application_api import ApplicationAPI
 from src.core.models import ParseBatchResult, ScannedVariable
 from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
+from src.parsing.registry import SimulatorRegistry
 from src.web.components.common.card_components import CardComponents
 from src.web.components.common.data_components import DataComponents
 from src.web.components.data_source.variable_editor import VariableEditor
@@ -40,7 +41,7 @@ class DataSourceComponents:
             api.state_manager.set_csv_pool(csv_pool)
 
         if not csv_pool:
-            st.warning("No CSV files in the pool yet. Parse some gem5 stats to populate this list.")
+            st.warning("No CSV files in the pool yet. Parse some stats to populate this list.")
             return
 
         st.info(f"Found {len(csv_pool)} CSV file(s) in the pool")
@@ -93,8 +94,30 @@ class DataSourceComponents:
     @staticmethod
     def render_parser_config(api: ApplicationAPI) -> None:
         """Display parser configuration interface."""
+        # Get simulator info for dynamic labels
+        selected_sim = api.state_manager.get_simulator()
+        sim_info = SimulatorRegistry.get_info(selected_sim)
+        sim_label = sim_info.display_name
+
         st.markdown("---")
-        st.markdown("### gem5 Stats Parser Configuration")
+
+        # Show simulator selector when multiple backends are available
+        simulators = SimulatorRegistry.available_simulator_info()
+        if len(simulators) > 1:
+            sim_names = [s.name for s in simulators]
+            sim_display = {s.name: s.display_name for s in simulators}
+            chosen = st.selectbox(
+                "Simulator",
+                options=sim_names,
+                format_func=lambda x: sim_display[x],
+                index=sim_names.index(selected_sim) if selected_sim in sim_names else 0,
+                key="simulator_selector",
+            )
+            if chosen and chosen != selected_sim:
+                api.state_manager.set_simulator(chosen)
+                st.rerun()
+
+        st.markdown(f"### {sim_label} Stats Parser Configuration")
 
         # The entire parser config section (file inputs, strategy radio,
         # variable editor, scan button, config preview) is wrapped in a
@@ -109,7 +132,10 @@ class DataSourceComponents:
                 stats_path = st.text_input(
                     "Stats directory path",
                     value=current_path,
-                    help="Directory containing gem5 stats files (can include subdirectories)",
+                    help=(
+                        f"Directory containing {sim_label} stats files "
+                        "(can include subdirectories)"
+                    ),
                     key="stats_path_input",
                 )
                 if stats_path != current_path:
@@ -150,8 +176,8 @@ class DataSourceComponents:
 
             # Variables configuration
             st.markdown("#### Variables to Extract")
-            st.markdown("""
-            Define which variables to extract from gem5 stats files:
+            st.markdown(f"""
+            Define which variables to extract from {sim_label} stats files:
             - **Scalar**: Single numeric values (e.g., simTicks, IPC)
             - **Vector**: Arrays of values with specified entries
             - **Distribution**: Statistical distributions with min/max range
@@ -231,7 +257,7 @@ class DataSourceComponents:
             # Preview configuration
             st.markdown("#### Configuration Preview")
             parse_config: dict[str, Any] = {
-                "parser": "gem5_stats",
+                "parser": selected_sim,
                 "statsPath": stats_path,
                 "statsPattern": stats_pattern,
                 "strategy": api.state_manager.get_parser_strategy(),
@@ -245,7 +271,9 @@ class DataSourceComponents:
         # a full rerun (other page sections can react). Read widget values
         # from session_state because locals from the fragment are not in scope.
         st.markdown("---")
-        if st.button("Parse gem5 Stats Files", type="primary", use_container_width=True):
+        if st.button(
+            f"Parse {sim_label} Stats Files", type="primary", use_container_width=True
+        ):
             _stats_path = st.session_state.get(
                 "stats_path_input", api.state_manager.get_stats_path()
             )
@@ -410,7 +438,7 @@ class DataSourceComponents:
                         st.rerun()
 
     @staticmethod
-    @st.dialog("Parsing gem5 Stats", dismissible=True)
+    @st.dialog("Parsing Stats", dismissible=True)
     def _show_parse_dialog(api: ApplicationAPI, batch: ParseBatchResult, output_dir: str) -> None:
         """Render the parsing progress dialog using blocking futures."""
         futures = batch.futures

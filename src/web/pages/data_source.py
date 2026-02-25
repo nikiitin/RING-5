@@ -6,6 +6,7 @@ Page for selecting and configuring data sources.
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
+from src.parsing.registry import SimulatorRegistry
 from src.web.components.data_source.data_source_components import DataSourceComponents
 
 
@@ -20,16 +21,26 @@ class DataSourcePage:
         """Render the data source page."""
         st.markdown("## Step 1: Choose Data Source")
 
-        st.info("""
+        # Determine selected simulator for dynamic labels
+        simulators = SimulatorRegistry.available_simulators()
+        selected_sim = self.api.state_manager.get_simulator()
+        if selected_sim not in simulators:
+            selected_sim = simulators[0] if simulators else "gem5"
+        sim_info = SimulatorRegistry.get_info(selected_sim)
+        sim_label = sim_info.display_name
+
+        parse_label = f"Parse {sim_label} Stats Files"
+
+        st.info(f"""
         **RING-5 supports two data input methods:**
 
-        - **Parse gem5 Stats Files**: For raw gem5 output (stats.txt files)
+        - **{parse_label}**: For raw simulator output ({sim_info.file_pattern} files)
         - **Upload CSV Directly**: If you already have parsed CSV data
         - **Load from Recent**: Quick access to previously parsed CSV files
         """)
 
         data_source_options = [
-            "Parse gem5 Stats Files",
+            parse_label,
             "I already have CSV data",
             "Load from Recent",
         ]
@@ -40,7 +51,7 @@ class DataSourcePage:
             key="data_source_choice",
         )
 
-        if choice == "Parse gem5 Stats Files":
+        if choice == parse_label:
             if not self.api.state_manager.is_using_parser():
                 self.api.state_manager.set_use_parser(True)
             DataSourceComponents.render_parser_config(self.api)

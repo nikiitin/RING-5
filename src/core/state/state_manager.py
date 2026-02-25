@@ -157,6 +157,14 @@ class StateManager(Protocol):
         """Set the parser strategy type."""
         ...
 
+    def get_simulator(self) -> str:
+        """Get the currently selected simulator backend."""
+        ...
+
+    def set_simulator(self, simulator: str) -> None:
+        """Set the simulator backend to use for parsing."""
+        ...
+
     # Plots
     def get_plots(self) -> list[PlotProtocol]:
         """Get the list of plot objects."""

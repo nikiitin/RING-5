@@ -181,6 +181,12 @@ class RepositoryStateManager:
     def set_parser_strategy(self, strategy: str) -> None:
         self._session_repo.parser_repo.set_parser_strategy(strategy)
 
+    def get_simulator(self) -> str:
+        return self._session_repo.parser_repo.get_simulator()
+
+    def set_simulator(self, simulator: str) -> None:
+        self._session_repo.parser_repo.set_simulator(simulator)
+
     # ==================== Plots ====================
 
     def get_plots(self) -> list[PlotProtocol]:

@@ -18,7 +18,7 @@ class HistogramPlot(BasePlot):
     - Single or multiple histograms (grouped by categorical variable)
     - Configurable bucket sizes (rebinning)
     - Multiple normalization modes (count, probability, percent)
-    - Histogram variables from gem5 with bucket ranges
+    - Histogram variables with bucket ranges
     """
 
     def __init__(self, plot_id: int, name: str):

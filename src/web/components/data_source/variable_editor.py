@@ -544,7 +544,7 @@ class VariableEditor:
         discovered_entries: list[str],
     ) -> None:
         """Render multiselect for discovered vector entries."""
-        # Filter internal gem5 statistics using variable services
+        # Filter internal statistics using variable services
         filtered_entries = api.data_services.filter_internal_stats(discovered_entries)
 
         # Continue with normal entry selection

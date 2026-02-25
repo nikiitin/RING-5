@@ -14,7 +14,7 @@ from src.web.components.plotting.config.base_plot_config import (
 def _detect_histogram_variables(data: pd.DataFrame) -> list[str]:
     """Detect histogram variables from DataFrame columns.
 
-    Looks for columns with ``..`` patterns indicating gem5 bucket ranges
+    Looks for columns with ``..`` patterns indicating bucket ranges
     (e.g. ``var..0-10``, ``var..10-20``).
 
     Args:
