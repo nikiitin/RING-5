@@ -70,6 +70,7 @@ class DataSourcePage:
 ```
 
 **Checklist**:
+
 - [ ] Locators use `get_by_role()` / `get_by_text()` priority (§3.3)
 - [ ] No assertions in Page Object (§3.2)
 - [ ] Constructor accepts `page: Page`
@@ -118,6 +119,7 @@ def test_data_source_initial_state(
 ### 5. Handle Complex Elements (Rule 008, §4 + Ch. 4)
 
 For file uploads:
+
 ```python
 def test_csv_upload(page: Page, live_server_url: str) -> None:
     page.goto(live_server_url)
@@ -134,6 +136,7 @@ def test_csv_upload(page: Page, live_server_url: str) -> None:
 ```
 
 For file downloads:
+
 ```python
 def test_csv_download(page: Page, live_server_url: str, tmp_path: Path) -> None:
     # ... load data first ...
@@ -179,11 +182,13 @@ def test_workflow_gif(
 If a test fails:
 
 1. **Check trace** (if enabled):
+
    ```bash
    python -m playwright show-trace tests/visual/artifacts/trace-*.zip
    ```
 
 2. **Run with inspector**:
+
    ```bash
    PWDEBUG=1 ./python_venv/bin/pytest tests/visual/test_data_source.py -x --no-cov -p no:xdist
    ```

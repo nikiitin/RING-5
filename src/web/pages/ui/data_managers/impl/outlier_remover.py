@@ -8,8 +8,8 @@ import pandas as pd
 import streamlit as st
 
 from src.core.models.history_models import OperationRecord
-from src.web.components.data_managers.data_manager import DataManager
 from src.web.components.common.history_components import HistoryComponents
+from src.web.components.data_managers.data_manager import DataManager
 
 
 class OutlierRemoverManager(DataManager):

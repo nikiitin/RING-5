@@ -12,8 +12,8 @@ Validates that:
 
 import re
 from dataclasses import replace
-from typing import Any, Dict, List
-from unittest.mock import MagicMock, patch
+from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -82,7 +82,7 @@ class TestApplicationAPIIsRegex:
         api = self._make_api()
         api._parser.submit_parse_async.return_value = MagicMock()
 
-        variables: List[Dict[str, Any]] = [
+        variables: list[dict[str, Any]] = [
             {"name": r"system.cpu\d+.ipc", "type": "scalar"},
         ]
         api.submit_parse_async(
@@ -93,7 +93,7 @@ class TestApplicationAPIIsRegex:
         )
 
         call_args = api._parser.submit_parse_async.call_args
-        configs: List[StatConfig] = call_args[0][2]  # third positional arg
+        configs: list[StatConfig] = call_args[0][2]  # third positional arg
         assert len(configs) == 1
         assert configs[0].is_regex is True
 
@@ -102,7 +102,7 @@ class TestApplicationAPIIsRegex:
         api = self._make_api()
         api._parser.submit_parse_async.return_value = MagicMock()
 
-        variables: List[Dict[str, Any]] = [
+        variables: list[dict[str, Any]] = [
             {"name": "system.cpu.ipc", "type": "scalar"},
         ]
         api.submit_parse_async(
@@ -113,7 +113,7 @@ class TestApplicationAPIIsRegex:
         )
 
         call_args = api._parser.submit_parse_async.call_args
-        configs: List[StatConfig] = call_args[0][2]
+        configs: list[StatConfig] = call_args[0][2]
         assert len(configs) == 1
         assert configs[0].is_regex is False
 
@@ -135,7 +135,7 @@ class TestApplicationAPIIsRegex:
         )
 
         call_args = api._parser.submit_parse_async.call_args
-        configs: List[StatConfig] = call_args[0][2]
+        configs: list[StatConfig] = call_args[0][2]
         assert len(configs) == 1
         assert configs[0].is_regex is True
 
@@ -169,7 +169,7 @@ class TestRegexExpansionUsesFlag:
         expanded = config
         if config.is_regex:
             pattern = re.compile(config.name)
-            matched: List[str] = []
+            matched: list[str] = []
             for sv in scanned:
                 if config.name == sv.name or pattern.fullmatch(sv.name):
                     if sv.pattern_indices:

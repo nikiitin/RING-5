@@ -15,6 +15,7 @@ The Service Layer (or "Analysis Pipeline") orchestrates use cases. It fetches va
 ## Steps
 
 ### Step 1: Define Abstract Repository
+
 **Goal**: Decouple file system / database access.
 
 1.  Create `adapters/repository.py`.
@@ -28,6 +29,7 @@ class AbstractRunRepository(Protocol):
 ```
 
 ### Step 2: Define Unit of Work (UoW)
+
 **Goal**: Manage atomic analysis sessions (e.g., "Batch Processing").
 
 1.  Create `service_layer/unit_of_work.py`.
@@ -35,11 +37,13 @@ class AbstractRunRepository(Protocol):
 3.  **Role**: In a read-heavy app, `commit()` might mean "save processed results to cache" or "export to CSV".
 
 ### Step 3: Implement Analysis Function
+
 **Goal**: Orchestrate a single scientific use case.
 
 1.  Create `service_layer/services.py`.
 2.  Define a function (e.g., `compare_runs`) that takes primitives as input.
 3.  **Pattern**:
+
     ```python
     def compare_runs(baseline_id: str, target_ids: List[str], uow: AbstractUnitOfWork) -> ComparisonResult:
         with uow:
@@ -54,10 +58,11 @@ class AbstractRunRepository(Protocol):
     ```
 
 ### Step 4: Test in "High Gear"
+
 **Goal**: Test analysis pipelines with fast fakes.
 
 1.  Create `FakeRunRepository` (loads from a dict of `SimulationRun` objects).
-2.  Write tests against the *Service Function*.
+2.  Write tests against the _Service Function_.
 
 ```python
 def test_compare_runs_logic():
@@ -71,4 +76,5 @@ def test_compare_runs_logic():
 ```
 
 ## Next Steps
--   Wire up to **Streamlit** (Presentation Layer). The UI should *only* call these service functions, never the domain objects directly.
+
+- Wire up to **Streamlit** (Presentation Layer). The UI should _only_ call these service functions, never the domain objects directly.

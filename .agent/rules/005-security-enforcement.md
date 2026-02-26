@@ -121,7 +121,7 @@ The codebase follows a strict 3-layer architecture. These import rules are **mac
 
 | Source Layer                                           | Can Import From                                   | MUST NOT Import From                |
 | :----------------------------------------------------- | :------------------------------------------------ | :---------------------------------- |
-| **Layer A** (`src/parsing/`, `src/core/models/`)  | `typing`, `pathlib`, `dataclasses`, `abc`, stdlib | `streamlit`, `plotly`, `matplotlib` |
+| **Layer A** (`src/parsing/`, `src/core/models/`)       | `typing`, `pathlib`, `dataclasses`, `abc`, stdlib | `streamlit`, `plotly`, `matplotlib` |
 | **Layer B** (`src/core/services/`, `src/core/common/`) | Layer A, stdlib                                   | `streamlit`, UI modules             |
 | **Layer C** (`src/web/`)                               | Layer A, Layer B, `streamlit`, `plotly`           | — (can import anything)             |
 

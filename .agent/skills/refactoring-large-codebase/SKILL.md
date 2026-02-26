@@ -8,6 +8,7 @@
 ## Overview
 
 This skill encodes the complete methodology for performing large-scale refactoring on the RING-5 codebase, distilled from the Architectural Refactor v2 which:
+
 - Reduced `GroupedStackedBarPlot` from 1335 → 506 lines
 - Reduced `BasePlot` from 992 → 685 lines
 - Reduced `BaseStyleUI` from 1077 → 504 lines
@@ -20,6 +21,7 @@ This skill encodes the complete methodology for performing large-scale refactori
 ## Step 1: Identify Extraction Candidates
 
 Look for methods that:
+
 - Are > 50 lines and primarily render UI widgets
 - Accept a config dict and return a modified config dict
 - Don't rely on `self` beyond forwarding to other methods
@@ -74,6 +76,7 @@ def _render_axes_settings(self, config: dict[str, Any]) -> dict[str, Any]:
 ### 2.3 Handle `self` Dependencies
 
 If the method uses `self.some_property`:
+
 1. **Pass as parameter**: Add `some_property` as a function argument
 2. **Extract from config**: If it's in the config dict, access it there
 3. **Lazy import**: Use `from module import constant` for class-level constants
@@ -96,9 +99,9 @@ grep -rn "_render_axes_settings" tests/ --include="*.py"
 
 ### 3.2 Update Patches
 
-| Old Pattern | New Pattern |
-|-------------|-------------|
-| `@patch("src.web.pages.ui.plotting.base_plot.st")` | `@patch("src.web.components.plotting.settings.axes_settings.st")` |
+| Old Pattern                                        | New Pattern                                                                         |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `@patch("src.web.pages.ui.plotting.base_plot.st")` | `@patch("src.web.components.plotting.settings.axes_settings.st")`                   |
 | `@patch.object(BasePlot, "_render_axes_settings")` | `@patch("src.web.components.plotting.settings.axes_settings.render_axes_settings")` |
 
 ### 3.3 Verify Immediately
@@ -116,10 +119,10 @@ When moving many files to new locations:
 ### 4.1 Plan the Mapping
 
 ```markdown
-| Source | Destination |
-|--------|-------------|
-| src/web/pages/ui/components/shapers/ | src/web/components/shapers/ |
-| src/web/pages/ui/data_managers/ | src/web/components/data_managers/ |
+| Source                               | Destination                       |
+| ------------------------------------ | --------------------------------- |
+| src/web/pages/ui/components/shapers/ | src/web/components/shapers/       |
+| src/web/pages/ui/data_managers/      | src/web/components/data_managers/ |
 ```
 
 ### 4.2 Execute Per Group
@@ -181,7 +184,7 @@ find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null
 ## Common Pitfalls
 
 1. **Mock path mismatch**: `@patch("old.module.st")` still mocks `st` in the old module, but the logic now runs in the new module where `st` is NOT mocked → tests pass but assertions fail silently
-2. **`@patch.object` on extracted functions**: When function A calls function B directly (not via `self`), `@patch.object(Class, "B")` won't intercept it — must use `@patch("module.B")` 
+2. **`@patch.object` on extracted functions**: When function A calls function B directly (not via `self`), `@patch.object(Class, "B")` won't intercept it — must use `@patch("module.B")`
 3. **Circular imports**: Use lazy imports in thin delegates to break cycles
 4. **Forgetting `__init__.py`**: New directories need proper `__init__.py` with re-exports
 5. **Deleting "dead" code prematurely**: Always `grep` first — tests may use it
@@ -190,13 +193,13 @@ find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null
 
 ## Success Metrics
 
-| Metric | Target |
-|--------|--------|
-| Test count | Same or higher than baseline |
-| Quality gate | All gates pass |
-| God class lines | Reduced by ≥ 40% |
-| New component files | Each < 200 lines |
-| Old import references | Zero remaining |
+| Metric                | Target                       |
+| --------------------- | ---------------------------- |
+| Test count            | Same or higher than baseline |
+| Quality gate          | All gates pass               |
+| God class lines       | Reduced by ≥ 40%             |
+| New component files   | Each < 200 lines             |
+| Old import references | Zero remaining               |
 
 ---
 

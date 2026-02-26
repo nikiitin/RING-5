@@ -15,12 +15,14 @@ This workflow guides you through creating a Domain Model that encapsulates busin
 ## Steps
 
 ### Step 1: Identify the Domain Language
+
 **Goal**: Define the core "nouns" and "verbs" from the business requirements.
 
 1.  List the key concepts (e.g., `Batch`, `OrderLine`, `Experiment`).
 2.  Identify the invariants (rules that must always be true, e.g., "Cannot allocate more than available quantity").
 
 ### Step 2: Create Value Objects
+
 **Goal**: Model immutable concepts defined by their data.
 
 1.  Identify concepts with no identity (e.g., `Money`, `Address`, `Dimension`).
@@ -36,10 +38,11 @@ class OrderLine:
 ```
 
 ### Step 3: Create Entities
+
 **Goal**: Model objects with identity that changes state over time.
 
 1.  Identify concepts with identity (e.g., `Batch`, `User`).
-2.  Implement `__eq__` and `__hash__` based *only* on the unique ID.
+2.  Implement `__eq__` and `__hash__` based _only_ on the unique ID.
 3.  Add methods for business logic (the "verbs").
 
 ```python
@@ -62,6 +65,7 @@ class Batch:
 ```
 
 ### Step 4: Define Aggregates
+
 **Goal**: Group related objects into consistency boundaries.
 
 1.  Choose a "Root Entity" for each cluster of objects.
@@ -69,6 +73,7 @@ class Batch:
 3.  **Rule**: All changes to the internals must go through the Root Entity's methods to ensure invariants are checked.
 
 ### Step 5: Test in "Low Gear"
+
 **Goal**: Verify domain logic with fast, in-memory unit tests.
 
 1.  Write tests that instantiate domain objects directly.
@@ -86,4 +91,5 @@ def test_allocating_reduces_available_quantity():
 ```
 
 ## Next Steps
--   Once the model is solid, create a **Service Layer** to orchestrate these operations (see `/service-layer-flow`).
+
+- Once the model is solid, create a **Service Layer** to orchestrate these operations (see `/service-layer-flow`).

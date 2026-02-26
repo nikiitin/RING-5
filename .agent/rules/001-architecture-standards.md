@@ -42,6 +42,7 @@ You must enforce a strict separation of concerns. The code must be divided into 
 ### 3.1 NO Presenters
 
 Presenters are ELIMINATED. The web layer uses only:
+
 - **Components**: Render Streamlit widgets, return structured data. Composable.
 - **Controllers**: Orchestrate components → services → state. Handle side effects (`st.rerun()`).
 - **Pages**: Top-level composition only. Create controllers, inject dependencies.
@@ -100,16 +101,16 @@ src/web/pages/ui/plotting/
 
 ## 4. Mandatory Design Patterns
 
-| Pattern                        | Context                        | Implementation                                                              |
-| :----------------------------- | :----------------------------- | :-------------------------------------------------------------------------- |
-| **Strategy**                   | Parsing different file formats | `SimulationParser` protocol, `Gem5ParserAPI` implements it                  |
-| **Factory**                    | Creating plots/shapers         | `PlotFactory.create()`, `ShaperFactory.create_shaper()`                     |
-| **Builder**                    | Constructing FigureConfig      | `FigureConfigBuilder.with_axes(...).with_legend(...).build()`               |
-| **Facade**                     | Backend API                    | `ApplicationAPI` as single entry point for web→core                         |
-| **Singleton**                  | Config/Pool management         | `WorkPool`, `ConfigManager`                                                 |
-| **Discriminated Union**        | Models with `type` field       | Per-type TypedDicts: `MeanShaperConfig`, `NormalizeShaperConfig`, etc.      |
-| **Template Method**            | Data managers                  | `BaseManagerComponent`: config → preview → confirm → history                |
-| **DTO (Data Transfer Object)** | Moving data between layers     | Python `dataclasses` (frozen). Do not pass raw `dict`.                      |
+| Pattern                        | Context                        | Implementation                                                         |
+| :----------------------------- | :----------------------------- | :--------------------------------------------------------------------- |
+| **Strategy**                   | Parsing different file formats | `SimulationParser` protocol, `Gem5ParserAPI` implements it             |
+| **Factory**                    | Creating plots/shapers         | `PlotFactory.create()`, `ShaperFactory.create_shaper()`                |
+| **Builder**                    | Constructing FigureConfig      | `FigureConfigBuilder.with_axes(...).with_legend(...).build()`          |
+| **Facade**                     | Backend API                    | `ApplicationAPI` as single entry point for web→core                    |
+| **Singleton**                  | Config/Pool management         | `WorkPool`, `ConfigManager`                                            |
+| **Discriminated Union**        | Models with `type` field       | Per-type TypedDicts: `MeanShaperConfig`, `NormalizeShaperConfig`, etc. |
+| **Template Method**            | Data managers                  | `BaseManagerComponent`: config → preview → confirm → history           |
+| **DTO (Data Transfer Object)** | Moving data between layers     | Python `dataclasses` (frozen). Do not pass raw `dict`.                 |
 
 ## 5. Discriminated Union Pattern (MANDATORY for typed models)
 
@@ -141,11 +142,11 @@ class ShaperStepConfig(TypedDict, total=False):
 
 Legends are named by semantic role, NOT visual appearance:
 
-| Name | Config Keys | When Visible |
-|------|-------------|-------------|
-| **Primary** | `legend_*` | Always (when legend enabled) |
-| **Secondary** | `legend2_*` | Dual-axis or grouped plots |
-| **Tertiary** | `legend3_*` | Numbered X-axis with category annotations |
+| Name          | Config Keys | When Visible                              |
+| ------------- | ----------- | ----------------------------------------- |
+| **Primary**   | `legend_*`  | Always (when legend enabled)              |
+| **Secondary** | `legend2_*` | Dual-axis or grouped plots                |
+| **Tertiary**  | `legend3_*` | Numbered X-axis with category annotations |
 
 **NEVER** use "boxed" to refer to the tertiary legend.
 
@@ -210,6 +211,7 @@ Every piece of information exists in exactly ONE place:
 
 The comprehensive architectural refactor plan is at `.agent/plans/architectural-refactor-v2.md`.
 Read this plan before performing any refactoring work.
+
 - It captures `relayoutData` for legend position persistence.
 
 ### 9.5 Memory Discipline

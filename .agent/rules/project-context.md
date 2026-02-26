@@ -168,13 +168,13 @@ You must enforce a strict separation of concerns. The code must be divided into 
 
 Apply these patterns whenever the context matches:
 
-| Pattern                        | Context                        | Implementation                                                                                                   |
-| :----------------------------- | :----------------------------- | :--------------------------------------------------------------------------------------------------------------- |
-| **Strategy**                   | Parsing different file formats | `SimulationParser` protocol, `Gem5ParserAPI` implements it                                                       |
-| **Factory Method**             | Creating visualizations        | `class FigureFactory` with methods like `build_heatmap()`                                                        |
-| **Singleton**                  | Configuration Management       | `ConfigManager` ensures only one instance of app settings exists.                                                |
-| **Facade**                     | API Simplification             | `ApplicationAPI` facade — UI calls this, parser injected via `SimulatorRegistry.get_parser()`.                   |
-| **DTO (Data Transfer Object)** | Moving data between layers     | Use Python `dataclasses` (frozen) to pass data. Do not pass `dict`.                                              |
+| Pattern                        | Context                        | Implementation                                                                                 |
+| :----------------------------- | :----------------------------- | :--------------------------------------------------------------------------------------------- |
+| **Strategy**                   | Parsing different file formats | `SimulationParser` protocol, `Gem5ParserAPI` implements it                                     |
+| **Factory Method**             | Creating visualizations        | `class FigureFactory` with methods like `build_heatmap()`                                      |
+| **Singleton**                  | Configuration Management       | `ConfigManager` ensures only one instance of app settings exists.                              |
+| **Facade**                     | API Simplification             | `ApplicationAPI` facade — UI calls this, parser injected via `SimulatorRegistry.get_parser()`. |
+| **DTO (Data Transfer Object)** | Moving data between layers     | Use Python `dataclasses` (frozen) to pass data. Do not pass `dict`.                            |
 
 ## 4. Coding Behaviors & Refactoring
 

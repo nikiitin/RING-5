@@ -19,24 +19,24 @@ data transformations per-plot, and configure every visual detail.
 
 <details><summary>📷 Empty state and plot creation</summary>
 
-| Empty state | After creating |
-|:---:|:---:|
+|                Empty state                 |               After creating               |
+| :----------------------------------------: | :----------------------------------------: |
 | ![Empty](../images/manage_plots_empty.png) | ![Chart](../images/manage_plots_chart.png) |
 
 </details>
 
 ### Available Plot Types
 
-| Plot Type | Best For | Key Config |
-|-----------|----------|------------|
-| **Bar** | Comparing categories | X-axis, Y-axis |
-| **Grouped Bar** | Multi-group comparison | X, Y, Group-by column |
-| **Stacked Bar** | Composition of totals | X, Y, Stack-by column |
-| **Grouped Stacked Bar** | Combined grouping + stacking | X, Y, Group, Stack |
-| **Histogram** | Value distributions | Value column, bin count |
-| **Line** | Trends over ordered data | X (continuous), Y |
-| **Scatter** | Correlation between variables | X, Y, optional Color-by |
-| **Dual Axis (Bar + Dot)** | Two metrics with different scales | Left-Y and Right-Y |
+| Plot Type                 | Best For                          | Key Config              |
+| ------------------------- | --------------------------------- | ----------------------- |
+| **Bar**                   | Comparing categories              | X-axis, Y-axis          |
+| **Grouped Bar**           | Multi-group comparison            | X, Y, Group-by column   |
+| **Stacked Bar**           | Composition of totals             | X, Y, Stack-by column   |
+| **Grouped Stacked Bar**   | Combined grouping + stacking      | X, Y, Group, Stack      |
+| **Histogram**             | Value distributions               | Value column, bin count |
+| **Line**                  | Trends over ordered data          | X (continuous), Y       |
+| **Scatter**               | Correlation between variables     | X, Y, optional Color-by |
+| **Dual Axis (Bar + Dot)** | Two metrics with different scales | Left-Y and Right-Y      |
 
 ---
 
@@ -46,15 +46,15 @@ Each plot has its own **shaper pipeline** — a sequence of data
 transformations applied before rendering. Shapers are executed
 top-to-bottom.
 
-| Shaper | What It Does |
-|--------|-------------|
-| **Column Selector** | Pick which columns to include in the plot |
-| **Sort** | Reorder rows by custom column values |
+| Shaper              | What It Does                                               |
+| ------------------- | ---------------------------------------------------------- |
+| **Column Selector** | Pick which columns to include in the plot                  |
+| **Sort**            | Reorder rows by custom column values                       |
 | **Mean Calculator** | Add aggregated mean rows (arithmetic, geometric, harmonic) |
-| **Normalize** | Scale values relative to a baseline configuration |
-| **Filter** | Remove rows by condition |
-| **Split-Apply** | Apply a transformation within each sub-group |
-| **Transformer** | Compute derived columns (ratios, differences, etc.) |
+| **Normalize**       | Scale values relative to a baseline configuration          |
+| **Filter**          | Remove rows by condition                                   |
+| **Split-Apply**     | Apply a transformation within each sub-group               |
+| **Transformer**     | Compute derived columns (ratios, differences, etc.)        |
 
 ### Adding a Shaper
 
@@ -85,10 +85,10 @@ After building your pipeline, map your processed data to chart axes:
 
 Switch between two engines at any time — both use the same configuration:
 
-| Engine | Strengths | Best For |
-|--------|-----------|----------|
-| **Plotly** | Hover tooltips, zoom, pan, interactive exploration | Exploratory analysis |
-| **Matplotlib** | LaTeX-rendered text, PGF/PDF output | Publication figures (ISCA, MICRO, ASPLOS) |
+| Engine         | Strengths                                          | Best For                                  |
+| -------------- | -------------------------------------------------- | ----------------------------------------- |
+| **Plotly**     | Hover tooltips, zoom, pan, interactive exploration | Exploratory analysis                      |
+| **Matplotlib** | LaTeX-rendered text, PGF/PDF output                | Publication figures (ISCA, MICRO, ASPLOS) |
 
 ---
 
@@ -97,10 +97,10 @@ Switch between two engines at any time — both use the same configuration:
 On the left, a plot selector lets you switch between multiple plots. Each
 plot has independent controls:
 
-| Action | Description |
-|--------|-------------|
-| **Rename** | Change the plot's display name |
-| **Delete** | Remove the plot |
+| Action        | Description                            |
+| ------------- | -------------------------------------- |
+| **Rename**    | Change the plot's display name         |
+| **Delete**    | Remove the plot                        |
 | **Duplicate** | Create an identical copy to iterate on |
 
 ---

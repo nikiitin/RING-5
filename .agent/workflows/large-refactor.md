@@ -27,25 +27,30 @@ Before writing any code, create a plan file at `.agent/plans/<refactor-name>.md`
 # Refactor Plan: [Name]
 
 ## Objective
+
 [What we're trying to achieve and why]
 
 ## Success Criteria
+
 - [ ] Criterion 1
 - [ ] Criterion 2
 - [ ] All tests pass
 - [ ] Quality gate clean
 
 ## Phase Inventory
-| Phase | Description | Status | Test Count |
-|-------|-------------|--------|------------|
-| 0 | Setup & prerequisites | ⬜ | — |
-| 1 | [First transformation] | ⬜ | — |
-| ... | | | |
+
+| Phase | Description            | Status | Test Count |
+| ----- | ---------------------- | ------ | ---------- |
+| 0     | Setup & prerequisites  | ⬜     | —          |
+| 1     | [First transformation] | ⬜     | —          |
+| ...   |                        |        |            |
 
 ## Decisions Log
+
 [Record every non-trivial decision, especially skips]
 
 ## Lessons Learned
+
 [Capture patterns and gotchas as they arise]
 ```
 
@@ -86,6 +91,7 @@ grep -rn "patch.*BasePlot\|patch.object.*BasePlot" tests/ --include="*.py"
 ### 1.3 Record Baseline
 
 Update the plan file with:
+
 - Starting line counts for target files
 - Starting test count
 - List of all files that will need import updates
@@ -113,6 +119,7 @@ For each phase:
 ### 2.2 Phase Ordering Strategy
 
 Execute phases in dependency order:
+
 1. **Leaf extractions first** — Settings tabs, config panels (no external deps)
 2. **Shared utilities next** — Common functions used by multiple components
 3. **Core class decomposition** — God class reduction
@@ -144,6 +151,7 @@ grep -rn "old\.path" src/ tests/ --include="*.py" | grep -v __pycache__
 Not every planned phase needs execution. Run this assessment:
 
 **Quantitative check:**
+
 - Lines of code that would be shared/reduced: < 30 → likely skip
 - Test patches that would break: > 100 with marginal benefit → skip
 - Existing code already clean and readable → skip
@@ -202,6 +210,7 @@ grep -rn "inplace=True" src/ --include="*.py" | grep -v __pycache__
 ### 4.3 Final Plan Update
 
 Update the plan file with:
+
 - All phases marked with final status (✅, ⏭️ SKIPPED)
 - Final test count and coverage
 - Summary of total lines reduced
@@ -211,14 +220,14 @@ Update the plan file with:
 
 ## Anti-Patterns
 
-| Don't | Do Instead |
-|-------|-----------|
-| Refactor multiple groups simultaneously | Complete one group, test, then start next |
-| Skip test verification "because it's just a move" | ALWAYS run tests after every file operation |
-| Delete files before verifying all references updated | `grep` first, delete second |
-| Assume a function is dead code | Verify with `grep -rn` across src/ AND tests/ |
-| Mix refactoring with feature development | One concern per phase |
-| Start phase N+1 before N is green | Fix all test failures first |
+| Don't                                                | Do Instead                                    |
+| ---------------------------------------------------- | --------------------------------------------- |
+| Refactor multiple groups simultaneously              | Complete one group, test, then start next     |
+| Skip test verification "because it's just a move"    | ALWAYS run tests after every file operation   |
+| Delete files before verifying all references updated | `grep` first, delete second                   |
+| Assume a function is dead code                       | Verify with `grep -rn` across src/ AND tests/ |
+| Mix refactoring with feature development             | One concern per phase                         |
+| Start phase N+1 before N is green                    | Fix all test failures first                   |
 
 ---
 

@@ -21,7 +21,7 @@ def application_api() -> Generator[ApplicationAPI, None, None]:
             api = ApplicationAPI()
             api.state_manager = mock_sm_cls.return_value
             # Expose mock services for assertions
-            setattr(api, "_mock_services", mock_svc_cls.return_value)
+            api._mock_services = mock_svc_cls.return_value
             yield api
 
 

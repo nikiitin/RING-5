@@ -5,7 +5,9 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
-from src.web.components.data_managers.data_manager_components import DataManagerComponents
+from src.web.components.data_managers.data_manager_components import (
+    DataManagerComponents,
+)
 from tests.conftest import columns_side_effect
 
 

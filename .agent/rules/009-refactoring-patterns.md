@@ -45,6 +45,7 @@ class BasePlot:
 ### 2.2 Thin Delegate Pattern
 
 The thin delegate is a 3-line method that:
+
 1. Lazy-imports the standalone function
 2. Calls it with the same parameters
 3. Returns the result
@@ -60,6 +61,7 @@ def _render_some_settings(self, config: dict[str, Any]) -> dict[str, Any]:
 ### 2.3 When to Remove Thin Delegates
 
 Remove delegates when:
+
 - All callers have been updated to call the standalone function directly
 - No test patches target the class method anymore
 - The class itself is being removed or simplified
@@ -168,13 +170,13 @@ __all__ = [
 
 Before executing a phase, run a quantitative ROI assessment:
 
-| Factor | Skip If |
-|--------|---------|
-| Lines saved per class | < 30 lines |
-| Shared code across targets | < 20 lines |
-| Test mock paths to update | > 100 and benefit is marginal |
-| Existing structure | Already clean and readable |
-| Pattern adds indirection | Without reducing complexity |
+| Factor                     | Skip If                       |
+| -------------------------- | ----------------------------- |
+| Lines saved per class      | < 30 lines                    |
+| Shared code across targets | < 20 lines                    |
+| Test mock paths to update  | > 100 and benefit is marginal |
+| Existing structure         | Already clean and readable    |
+| Pattern adds indirection   | Without reducing complexity   |
 
 ### 5.2 Assessment Template
 
@@ -186,6 +188,7 @@ Before executing a phase, run a quantitative ROI assessment:
 **Proposed action**: [What the refactoring would do]
 
 **ROI Analysis**:
+
 - Lines of shared code: X
 - Lines that would be extracted: Y
 - Test patches to update: Z
@@ -228,6 +231,7 @@ grep -rn "function_name\|ClassName" src/ tests/ --include="*.py" | grep -v __pyc
 ### 6.3 What We Learned is NOT Dead Code
 
 During Phase 10, several planned deletions turned out to still be active:
+
 - `ShaperStepConfig` — used in 20+ files (it's the runtime config, not the model discriminated union)
 - `render_advanced_options()` — actively called by multiple plot types
 - `src/web/pages/ui/plotting/` — still the active location for plot type classes

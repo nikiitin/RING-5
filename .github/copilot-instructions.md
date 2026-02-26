@@ -61,16 +61,16 @@ All three MUST return empty.
 
 ## Mandatory Patterns
 
-| Pattern              | Where                   | Example                                                    |
-| :------------------- | :---------------------- | :--------------------------------------------------------- |
-| Strategy             | Parsing formats         | `SimulationParser` protocol, `Gem5ParserAPI`               |
-| Factory              | Plot/Shaper/Parser      | `PlotFactory.create()`, `SimulatorRegistry.get_parser()`   |
-| Builder              | FigureConfig creation   | `FigureConfigBuilder.with_axes(...).build()`               |
-| Facade               | Backend API             | `ApplicationAPI` as single entry                           |
-| Singleton            | Config/Pool mgmt        | `WorkPool`, `ConfigManager`                                |
-| Discriminated Union  | Typed models            | Per-type shaper configs: `MeanShaperConfig`, etc.          |
-| Template Method      | Data managers           | `BaseManagerComponent`: config → preview → confirm         |
-| Component            | UI rendering            | Self-contained Streamlit widgets returning structured data  |
+| Pattern             | Where                 | Example                                                    |
+| :------------------ | :-------------------- | :--------------------------------------------------------- |
+| Strategy            | Parsing formats       | `SimulationParser` protocol, `Gem5ParserAPI`               |
+| Factory             | Plot/Shaper/Parser    | `PlotFactory.create()`, `SimulatorRegistry.get_parser()`   |
+| Builder             | FigureConfig creation | `FigureConfigBuilder.with_axes(...).build()`               |
+| Facade              | Backend API           | `ApplicationAPI` as single entry                           |
+| Singleton           | Config/Pool mgmt      | `WorkPool`, `ConfigManager`                                |
+| Discriminated Union | Typed models          | Per-type shaper configs: `MeanShaperConfig`, etc.          |
+| Template Method     | Data managers         | `BaseManagerComponent`: config → preview → confirm         |
+| Component           | UI rendering          | Self-contained Streamlit widgets returning structured data |
 
 ## Coding Standards
 
@@ -203,6 +203,7 @@ src/
 ```
 
 **Architectural principles** (MUST follow):
+
 - **Component-only**: NO presenters — components are the only UI abstraction
 - **Discriminated unions**: Models with `type` field use per-type sub-configs
 - **Single source of truth**: Display names, registries in ONE place only
@@ -210,6 +211,7 @@ src/
 - **Refactor plan**: See `.agent/plans/architectural-refactor-v2.md` for the full plan
 
 **Removed features** (do NOT re-add):
+
 - Performance page (removed Phase 1)
 - View Current Data expander (removed Phase 2, replaced by summary metrics)
 - Pipeline save/load dialogs (removed Phase 4)
@@ -219,6 +221,7 @@ src/
 - **Presenter layer** (removed architectural refactor v2 — replaced by components)
 
 **UI patterns** (established during refactoring):
+
 - Settings pills with progressive disclosure (basic → advanced toggle)
 - Conditional widget rendering (Y-Right, secondary/tertiary legends)
 - Unified axis config via `_render_axis_config(prefix, label)` helper

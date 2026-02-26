@@ -15,11 +15,11 @@ using one of three methods, then proceed to analysis.
 
 At the top of the page, a **segmented control** lets you choose how to load data:
 
-| Mode | When to Use |
-|------|-------------|
-| **Parse Stats** | You have raw gem5 `stats.txt` output files |
-| **I Have CSV** | You have a pre-processed CSV (from a previous session or external tool) |
-| **Recent** | Quickly reload a previously parsed dataset |
+| Mode            | When to Use                                                             |
+| --------------- | ----------------------------------------------------------------------- |
+| **Parse Stats** | You have raw gem5 `stats.txt` output files                              |
+| **I Have CSV**  | You have a pre-processed CSV (from a previous session or external tool) |
+| **Recent**      | Quickly reload a previously parsed dataset                              |
 
 <details><summary>📷 Segmented control screenshot</summary>
 
@@ -45,8 +45,8 @@ Fill in two fields:
 
 <details><summary>📷 Path configuration</summary>
 
-| Initial view | After filling paths |
-|:---:|:---:|
+|                 Initial view                  |                After filling paths                |
+| :-------------------------------------------: | :-----------------------------------------------: |
 | ![Initial](../images/data_source_initial.png) | ![Filled](../images/data_source_paths_filled.png) |
 
 </details>
@@ -55,9 +55,9 @@ Fill in two fields:
 
 Two strategies are available:
 
-| Strategy | What It Reads | Speed | Use Case |
-|----------|---------------|-------|----------|
-| **Simple** | `stats.txt` only | Fast | Most analyses |
+| Strategy         | What It Reads              | Speed  | Use Case                                          |
+| ---------------- | -------------------------- | ------ | ------------------------------------------------- |
+| **Simple**       | `stats.txt` only           | Fast   | Most analyses                                     |
 | **Config-Aware** | `stats.txt` + `config.ini` | Slower | When you need configuration parameters as columns |
 
 **Config-Aware** adds columns like cache sizes, CPU type, and pipeline
@@ -92,8 +92,8 @@ Browse the discovered variables and add the ones you need. Two methods:
 
 <details><summary>📷 Variable selection</summary>
 
-| Search mode | Manual mode |
-|:---:|:---:|
+|                     Search mode                     |                     Manual mode                     |
+| :-------------------------------------------------: | :-------------------------------------------------: |
 | ![Search](../images/add_variable_dialog_search.png) | ![Manual](../images/add_variable_dialog_manual.png) |
 
 </details>
@@ -109,12 +109,12 @@ produces a CSV file with the selected statistics structured for analysis.
 
 Already have a CSV? Upload it directly. The CSV must contain these columns:
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `simulation_name` | string | Unique run identifier |
-| `benchmark_name` | string | Benchmark being simulated |
-| `stat_name` | string | Metric name |
-| `stat_value` | numeric | Metric value |
+| Column            | Type    | Description               |
+| ----------------- | ------- | ------------------------- |
+| `simulation_name` | string  | Unique run identifier     |
+| `benchmark_name`  | string  | Benchmark being simulated |
+| `stat_name`       | string  | Metric name               |
+| `stat_value`      | numeric | Metric value              |
 
 Additional columns (from config-aware parsing or manual enrichment)
 are preserved and available for grouping/filtering.
@@ -133,6 +133,7 @@ Previously parsed CSV files are cached locally. Select any recent entry
 to reload instantly — no re-parsing needed.
 
 Each entry shows:
+
 - File path
 - Parse date
 - Data dimensions (rows × columns)

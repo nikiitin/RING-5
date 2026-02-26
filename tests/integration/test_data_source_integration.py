@@ -47,9 +47,9 @@ def facade(tmp_path: Any) -> Generator[ApplicationAPI, None, None]:
                 # Initialize facade (will use patched paths)
                 f = ApplicationAPI()
                 # Override paths on facade too for backward compatibility
-                setattr(f, "ring5_data_dir", ring5_dir)
-                setattr(f, "csv_pool_dir", csv_pool)
-                setattr(f, "config_pool_dir", config_pool)
+                f.ring5_data_dir = ring5_dir
+                f.csv_pool_dir = csv_pool
+                f.config_pool_dir = config_pool
                 yield f
 
 

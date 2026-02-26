@@ -10,13 +10,13 @@
 
 This plan covers 5 phases of work:
 
-| Phase | Description | Estimated Effort | Priority |
-|-------|-------------|-----------------|----------|
-| **A** | Test Consolidation | 3-4 hours | HIGH |
-| **B** | Seeds Reducer → Generic Reducer | 2-3 hours | MEDIUM |
-| **C** | Manage Plots POM Expansion | 2-3 hours | HIGH |
-| **D** | Manage Plots E2E Tests (Tier 1) | 4-6 hours | HIGH |
-| **E** | Manage Plots E2E Tests (Tier 2: Advanced) | 4-6 hours | MEDIUM |
+| Phase | Description                               | Estimated Effort | Priority |
+| ----- | ----------------------------------------- | ---------------- | -------- |
+| **A** | Test Consolidation                        | 3-4 hours        | HIGH     |
+| **B** | Seeds Reducer → Generic Reducer           | 2-3 hours        | MEDIUM   |
+| **C** | Manage Plots POM Expansion                | 2-3 hours        | HIGH     |
+| **D** | Manage Plots E2E Tests (Tier 1)           | 4-6 hours        | HIGH     |
+| **E** | Manage Plots E2E Tests (Tier 2: Advanced) | 4-6 hours        | MEDIUM   |
 
 **Total**: ~15-22 hours of implementation
 
@@ -42,6 +42,7 @@ def shared_page(browser, browser_context_args):
 ### A.2 — Consolidate `test_ds_rendering.py` (20 → 3 tests)
 
 Merge three classes into workflow-style tests:
+
 1. `test_initial_rendering` — All 8 rendering assertions in one test
 2. `test_segmented_control_cycling` — All 5 mode cycling assertions
 3. `test_mode_content_switching` — All 7 mode content assertions
@@ -49,6 +50,7 @@ Merge three classes into workflow-style tests:
 ### A.3 — Consolidate `test_ds_parser_config.py` (33 → 6 tests)
 
 Merge five sections:
+
 1. `test_file_location_inputs` — 8 assertions
 2. `test_parsing_strategy` — 5 assertions
 3. `test_variables_section` — 10 assertions
@@ -84,6 +86,7 @@ Merge five sections:
 ### A.8 — Consolidate `test_e2e_parse_workflow.py` (31 → 10 tests)
 
 This is the biggest file. Keep scan tests separate (different data paths):
+
 1. `test_scan_single_stats` (keep)
 2. `test_scan_histogram` (keep)
 3. `test_scan_multi_cpu` (keep)
@@ -406,6 +409,7 @@ class TestEngineSwitching:
 ### D.9 — Screenshots
 
 Capture key screenshots for documentation:
+
 - Empty state
 - Plot creation form
 - Pipeline editor with steps
@@ -507,6 +511,7 @@ Phase A (consolidation) ──prerequisite──▶ Phase B (seeds reducer)
 ```
 
 **Recommended execution order**:
+
 1. **A** first (consolidation) — improves test speed, establishes patterns
 2. **C** next (POM) — infrastructure for all Manage Plots tests
 3. **B** in parallel or after A (seeds reducer) — independent work
@@ -536,15 +541,15 @@ grep -rn "inplace=True" src/ --include="*.py" | grep -v __pycache__
 
 ## Risk Register
 
-| Risk | Phase | Likelihood | Impact | Mitigation |
-|------|-------|------------|--------|------------|
-| Consolidated tests cascade-fail | A | Medium | Low | Use `@pytest.mark.dependency` |
-| Class-scoped page leaks state | A | Low | Medium | Test cleanup in fixture teardown |
-| Seeds Reducer rename breaks imports | B | Medium | Low | Global search-replace + tests |
-| Manage Plots POM locators fragile | C | Medium | Medium | Use `_by_label()` pattern |
-| Plot rendering timeout in CI | D | Medium | High | Generous timeouts, retry decorator |
-| Matplotlib needs LaTeX for PGF | E | High | Low | Skip PGF tests without LaTeX |
-| Singleton state between test classes | D,E | Medium | Medium | Document state requirements |
+| Risk                                 | Phase | Likelihood | Impact | Mitigation                         |
+| ------------------------------------ | ----- | ---------- | ------ | ---------------------------------- |
+| Consolidated tests cascade-fail      | A     | Medium     | Low    | Use `@pytest.mark.dependency`      |
+| Class-scoped page leaks state        | A     | Low        | Medium | Test cleanup in fixture teardown   |
+| Seeds Reducer rename breaks imports  | B     | Medium     | Low    | Global search-replace + tests      |
+| Manage Plots POM locators fragile    | C     | Medium     | Medium | Use `_by_label()` pattern          |
+| Plot rendering timeout in CI         | D     | Medium     | High   | Generous timeouts, retry decorator |
+| Matplotlib needs LaTeX for PGF       | E     | High       | Low    | Skip PGF tests without LaTeX       |
+| Singleton state between test classes | D,E   | Medium     | Medium | Document state requirements        |
 
 ---
 

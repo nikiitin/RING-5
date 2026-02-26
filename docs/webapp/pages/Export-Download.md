@@ -13,13 +13,13 @@ cases — from quick sharing to camera-ready publication figures.
 
 ## Download Formats
 
-| Format | Engine | Best For |
-|--------|--------|----------|
-| **PNG** | Plotly | Quick sharing, slides, web |
-| **SVG** | Plotly | Scalable vector graphics, editing in Inkscape |
-| **HTML** | Plotly | Interactive figures for supplementary material |
-| **PDF** | Matplotlib | Camera-ready publication figures |
-| **PGF** | Matplotlib | Direct LaTeX inclusion (`\input{figure.pgf}`) |
+| Format   | Engine     | Best For                                       |
+| -------- | ---------- | ---------------------------------------------- |
+| **PNG**  | Plotly     | Quick sharing, slides, web                     |
+| **SVG**  | Plotly     | Scalable vector graphics, editing in Inkscape  |
+| **HTML** | Plotly     | Interactive figures for supplementary material |
+| **PDF**  | Matplotlib | Camera-ready publication figures               |
+| **PGF**  | Matplotlib | Direct LaTeX inclusion (`\input{figure.pgf}`)  |
 
 ### Plotly Exports (PNG, SVG, HTML)
 
@@ -45,12 +45,12 @@ typography that matches your paper's font.
 
 ## Rendering Engine Comparison
 
-| Feature | Plotly | Matplotlib |
-|---------|--------|------------|
-| Interactive preview | ✅ Hover, zoom, pan | ❌ Static image |
-| LaTeX text rendering | ❌ | ✅ Full LaTeX support |
-| Export formats | PNG, SVG, HTML | PDF, PGF |
-| Best workflow stage | Exploration & configuration | Final publication export |
+| Feature              | Plotly                      | Matplotlib               |
+| -------------------- | --------------------------- | ------------------------ |
+| Interactive preview  | ✅ Hover, zoom, pan         | ❌ Static image          |
+| LaTeX text rendering | ❌                          | ✅ Full LaTeX support    |
+| Export formats       | PNG, SVG, HTML              | PDF, PGF                 |
+| Best workflow stage  | Exploration & configuration | Final publication export |
 
 **Recommended workflow**:
 
@@ -79,10 +79,10 @@ Most top-tier architecture venues (ISCA, MICRO, ASPLOS) require:
 
 ### Common Sizes
 
-| Venue Column Type | Typical Width | Layout Width Setting |
-|-------------------|---------------|---------------------|
-| Single column | 3.3 in (252 pt) | ~504 px at 2× |
-| Double column | 7.0 in (504 pt) | ~1008 px at 2× |
+| Venue Column Type | Typical Width   | Layout Width Setting |
+| ----------------- | --------------- | -------------------- |
+| Single column     | 3.3 in (252 pt) | ~504 px at 2×        |
+| Double column     | 7.0 in (504 pt) | ~1008 px at 2×       |
 
 ---
 

@@ -27,12 +27,12 @@ import streamlit as st
 
 from src.core.application_api import ApplicationAPI
 from src.core.performance import get_plot_cache
+from src.web.components.common.chart_display import ChartDisplayComponent
 from src.web.models.plot_protocols import (
     PlotLifecycleService,
     PlotTypeRegistry,
     RenderablePlot,
 )
-from src.web.components.common.chart_display import ChartDisplayComponent
 from src.web.pages.ui.plotting.settings_pills import render_settings_pills
 from src.web.rendering.engine_manager import EngineManager, EngineMode
 from src.web.state.ui_state_manager import UIStateManager

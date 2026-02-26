@@ -11,12 +11,12 @@ Playwright-based browser tests form **Layer 4** of our testing pyramid — real 
 interaction tests that verify the **visual rendering** and **end-to-end UI behavior** of
 the Streamlit application. They complement (never replace) our existing 3-layer approach:
 
-| Layer | Directory       | Tool                  | Speed   | Purpose                       |
-| ----- | --------------- | --------------------- | ------- | ----------------------------- |
-| 1     | `tests/ui_logic/` | `@patch("...st")`    | ~ms     | Controller delegation logic   |
-| 2     | `tests/ui_unit/`  | Mock `st.columns()`  | ~ms     | Widget rendering logic        |
-| 3     | `tests/ui/`       | `AppTest`            | ~1-3s   | Widget presence & navigation  |
-| **4** | **`tests/visual/`** | **Playwright**     | **~5-15s** | **Visual rendering & screenshots** |
+| Layer | Directory           | Tool                | Speed      | Purpose                            |
+| ----- | ------------------- | ------------------- | ---------- | ---------------------------------- |
+| 1     | `tests/ui_logic/`   | `@patch("...st")`   | ~ms        | Controller delegation logic        |
+| 2     | `tests/ui_unit/`    | Mock `st.columns()` | ~ms        | Widget rendering logic             |
+| 3     | `tests/ui/`         | `AppTest`           | ~1-3s      | Widget presence & navigation       |
+| **4** | **`tests/visual/`** | **Playwright**      | **~5-15s** | **Visual rendering & screenshots** |
 
 ## 2. Absolute Prohibitions
 
@@ -87,6 +87,7 @@ Use locators in this priority order (most resilient → least):
 5. **`locator("[data-stale]")`** — CSS selectors (last resort for Streamlit internals)
 
 **Streamlit-specific tips:**
+
 - Streamlit renders inside iframes — use `frame_locator("iframe")` when needed.
 - Sidebar uses `[data-testid="stSidebar"]` container.
 - Tabs use role `tab` — `page.get_by_role("tab", name="Summary")`.
@@ -250,6 +251,7 @@ PWDEBUG=1 pytest tests/visual/test_data_source.py::test_data_source_renders -x
 ```
 
 The inspector provides:
+
 - Step-through execution
 - Live locator editing
 - Actionability logs (visible, enabled, stable)
@@ -284,14 +286,14 @@ assert page.get_by_text("Data Source").is_visible()
 
 ### 6.2 Key Assertions
 
-| Assertion                     | Use Case                        |
-| ----------------------------- | ------------------------------- |
-| `expect(loc).to_be_visible()` | Element rendered on screen      |
-| `expect(loc).to_have_text()`  | Text content matches            |
-| `expect(loc).to_have_count()` | Number of matching elements     |
-| `expect(loc).to_be_enabled()` | Button/input is interactive     |
-| `expect(loc).to_be_hidden()`  | Element not shown               |
-| `expect(page).to_have_title()`| Page title check                |
+| Assertion                      | Use Case                    |
+| ------------------------------ | --------------------------- |
+| `expect(loc).to_be_visible()`  | Element rendered on screen  |
+| `expect(loc).to_have_text()`   | Text content matches        |
+| `expect(loc).to_have_count()`  | Number of matching elements |
+| `expect(loc).to_be_enabled()`  | Button/input is interactive |
+| `expect(loc).to_be_hidden()`   | Element not shown           |
+| `expect(page).to_have_title()` | Page title check            |
 
 ### 6.3 Soft Assertions
 
@@ -393,12 +395,14 @@ pytestmark = pytest.mark.requires_browser
 ### 9.3 Test Scope
 
 Playwright tests should verify:
+
 - **Page renders correctly** (no crash, key elements visible)
 - **Navigation works** (sidebar buttons switch pages)
 - **Visual state** (screenshots for documentation)
 - **Multi-step workflows** (GIF capture)
 
 Playwright tests should **NOT** verify:
+
 - Business logic correctness (use unit tests)
 - Data transformations (use integration tests)
 - Widget callback behavior (use AppTest)
@@ -450,26 +454,27 @@ HEADED=1 pytest tests/visual/ -m requires_browser -x
 
 ## 12. Anti-Patterns
 
-| Anti-Pattern                    | Correct Approach                        |
-| ------------------------------ | --------------------------------------- |
-| `page.wait_for_timeout(5000)`  | `expect(locator).to_be_visible()`       |
-| `page.$(".class")`             | `page.locator(".class")`                |
-| Assertions in Page Objects     | Assertions in test functions only       |
-| `time.sleep()` in tests        | Playwright auto-waiting                 |
-| Testing logic via browser      | Use unit/integration tests              |
-| Raw CSS selectors everywhere   | POM with `get_by_role()` / `get_by_text()` |
-| Checking pixel-perfect layout  | Check element presence + text content   |
-| Committing screenshots to git  | Generate locally, gitignore             |
-| `.first` / `.nth()` without label context | Use `_by_label(test_id, label)` pattern |
-| Clicking active segmented option | Use `ensure_*_mode()` to avoid toggle-off |
-| Function-scoped page for sequential workflow tests | Class-scoped `shared_page` fixture |
-| Ignoring singleton state | Handle "already exists" warnings gracefully |
+| Anti-Pattern                                       | Correct Approach                            |
+| -------------------------------------------------- | ------------------------------------------- |
+| `page.wait_for_timeout(5000)`                      | `expect(locator).to_be_visible()`           |
+| `page.$(".class")`                                 | `page.locator(".class")`                    |
+| Assertions in Page Objects                         | Assertions in test functions only           |
+| `time.sleep()` in tests                            | Playwright auto-waiting                     |
+| Testing logic via browser                          | Use unit/integration tests                  |
+| Raw CSS selectors everywhere                       | POM with `get_by_role()` / `get_by_text()`  |
+| Checking pixel-perfect layout                      | Check element presence + text content       |
+| Committing screenshots to git                      | Generate locally, gitignore                 |
+| `.first` / `.nth()` without label context          | Use `_by_label(test_id, label)` pattern     |
+| Clicking active segmented option                   | Use `ensure_*_mode()` to avoid toggle-off   |
+| Function-scoped page for sequential workflow tests | Class-scoped `shared_page` fixture          |
+| Ignoring singleton state                           | Handle "already exists" warnings gracefully |
 
 ## 13. Test Consolidation Guidelines
 
 ### 13.1 When to Consolidate
 
 Consolidate when multiple tests share the same setup:
+
 - Navigate to page + verify N elements → 1 test with N assertions
 - Setup + mode1 check, Setup + mode2 check → 1 test cycling modes
 - Parse + check DM tab1, Parse + check DM tab2 → 1 test visiting tabs

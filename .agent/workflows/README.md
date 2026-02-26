@@ -88,6 +88,7 @@ Provides the complete methodology for safe, large-scale refactoring:
 5. **Final validation** — Full quality gate + coverage check
 
 Key patterns:
+
 - Method extraction to standalone components
 - Mock path update after extraction
 - Bulk directory reorganization with sed

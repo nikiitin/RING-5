@@ -15,12 +15,12 @@ from src.core.models.visualization.legend_config import (
     LegendConfig,
     LegendSpacingConfig,
 )
+from src.core.models.visualization.typography_config import TypographyConfig
 from src.core.services.visualization.config_resolver import (
     _resolve_float,
     _resolve_int,
     resolve_config,
 )
-from src.core.models.visualization.typography_config import TypographyConfig
 
 
 class TestResolveInt:

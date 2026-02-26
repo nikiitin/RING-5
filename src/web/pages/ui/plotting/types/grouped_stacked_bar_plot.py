@@ -363,7 +363,9 @@ class GroupedStackedBarPlot(StackedBarPlot):
         config: dict[str, Any],
     ) -> tuple[pd.DataFrame, list[str], list[str]]:
         """Apply renames to data and ordered lists."""
-        from src.web.pages.ui.plotting.utils.grouped_stacked_bar_helpers import apply_renames
+        from src.web.pages.ui.plotting.utils.grouped_stacked_bar_helpers import (
+            apply_renames,
+        )
 
         return apply_renames(data, x_col, group_col, categories, groups, config)
 

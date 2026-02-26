@@ -24,6 +24,7 @@ or any other categorical dimension **cannot use this feature at all**.
 ### What's Already Generic
 
 The backend `ReductionService` (62 lines) is **fully generic**:
+
 - `reduce_seeds(df, categorical_cols, statistic_cols)` — no `random_seed` knowledge
 - `validate_seeds_reducer_inputs(df, categorical_cols, statistic_cols)` — validates any columns
 - The `.sd` suffix convention is the only seeds-specific thing (but applies generically)
@@ -39,6 +40,7 @@ The backend `ReductionService` (62 lines) is **fully generic**:
 #### Change 1: Replace Hard Gate with Column Selector (L43-63)
 
 **Before**:
+
 ```python
 if "random_seed" not in data.columns:
     st.warning("No `random_seed` column...")
@@ -51,6 +53,7 @@ numeric_cols = [c for c in numeric_cols if c != "random_seed"]
 ```
 
 **After**:
+
 ```python
 # Identify candidate reduction columns (any column with ≤20 unique values)
 all_columns = list(data.columns)
@@ -105,6 +108,7 @@ numeric_cols = [c for c in data.columns
 ### File 4: `tests/visual/pages/data_managers_page.py` (POM UPDATE)
 
 Update locators and methods:
+
 - `seeds_no_random_seed_warning` → replace with `reducer_no_columns_warning`
 - `seeds_apply_button` → `reducer_apply_button`
 - `seeds_confirm_button` → `reducer_confirm_button`
@@ -127,14 +131,14 @@ Update locators and methods:
 
 ## 3. Files That Need NO Changes
 
-| File | Reason |
-|------|--------|
-| `src/core/services/managers/reduction_service.py` | Already fully generic |
-| `src/core/services/managers/managers_api.py` | Generic protocol |
-| `src/core/services/managers/managers_impl.py` | Pass-through |
-| `src/core/application_api.py` | Facade — no reduction logic |
-| `src/core/models/history_models.py` | Generic operation records |
-| `src/web/pages/ui/data_managers/data_manager.py` | Base class — unchanged |
+| File                                              | Reason                      |
+| ------------------------------------------------- | --------------------------- |
+| `src/core/services/managers/reduction_service.py` | Already fully generic       |
+| `src/core/services/managers/managers_api.py`      | Generic protocol            |
+| `src/core/services/managers/managers_impl.py`     | Pass-through                |
+| `src/core/application_api.py`                     | Facade — no reduction logic |
+| `src/core/models/history_models.py`               | Generic operation records   |
+| `src/web/pages/ui/data_managers/data_manager.py`  | Base class — unchanged      |
 
 ---
 
@@ -142,19 +146,19 @@ Update locators and methods:
 
 ### Existing Tests to Update
 
-| Test File | Test Name | Change |
-|-----------|-----------|--------|
+| Test File                                 | Test Name                      | Change                        |
+| ----------------------------------------- | ------------------------------ | ----------------------------- |
 | `tests/visual/test_e2e_parse_workflow.py` | `TestSeedsReducerNoSeedColumn` | Update warning text assertion |
-| `tests/unit/test_data_managers_ui/` | Any seeds reducer unit tests | Update widget keys/labels |
-| `tests/ui/` | AppTest seeds reducer tests | Update widget matching |
+| `tests/unit/test_data_managers_ui/`       | Any seeds reducer unit tests   | Update widget keys/labels     |
+| `tests/ui/`                               | AppTest seeds reducer tests    | Update widget matching        |
 
 ### New Tests to Write
 
-| Test | Description |
-|------|-------------|
-| `test_reducer_shows_column_selector` | Verify the new column selectbox appears |
-| `test_reducer_with_custom_column` | Reduce by non-random_seed column |
-| `test_reducer_no_candidate_columns` | All-numeric data shows warning |
+| Test                                      | Description                                  |
+| ----------------------------------------- | -------------------------------------------- |
+| `test_reducer_shows_column_selector`      | Verify the new column selectbox appears      |
+| `test_reducer_with_custom_column`         | Reduce by non-random_seed column             |
+| `test_reducer_no_candidate_columns`       | All-numeric data shows warning               |
 | `test_reducer_preserves_column_exclusion` | Selected column excluded from group-by/stats |
 
 ---
@@ -197,10 +201,10 @@ This preserves the original workflow while enabling generic use.
 
 ## 7. Risk Assessment
 
-| Risk | Likelihood | Mitigation |
-|------|------------|------------|
-| Naming confusion (Seeds → Reducer) | Medium | Keep familiar name in tab, add tooltip |
-| Users lose auto-detection | Low | Pre-select `random_seed` when present |
-| UI tests break | Certain | Update POM + test assertions together |
-| Backend breaks | None | Backend is already generic |
-| Performance impact | None | No new computation |
+| Risk                               | Likelihood | Mitigation                             |
+| ---------------------------------- | ---------- | -------------------------------------- |
+| Naming confusion (Seeds → Reducer) | Medium     | Keep familiar name in tab, add tooltip |
+| Users lose auto-detection          | Low        | Pre-select `random_seed` when present  |
+| UI tests break                     | Certain    | Update POM + test assertions together  |
+| Backend breaks                     | None       | Backend is already generic             |
+| Performance impact                 | None       | No new computation                     |

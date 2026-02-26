@@ -25,15 +25,15 @@ from typing import cast
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
+from src.web.components.common.plot_controls import PlotControlsComponent
+from src.web.components.common.plot_creation import PlotCreationComponent
+from src.web.components.common.plot_selector import PlotSelectorComponent
 from src.web.models.plot_protocols import (
     PlotHandle,
     PlotLifecycleService,
     PlotTypeRegistry,
     RenderablePlot,
 )
-from src.web.components.common.plot_controls import PlotControlsComponent
-from src.web.components.common.plot_creation import PlotCreationComponent
-from src.web.components.common.plot_selector import PlotSelectorComponent
 from src.web.state.ui_state_manager import UIStateManager
 
 logger = logging.getLogger(__name__)

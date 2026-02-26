@@ -20,16 +20,16 @@ from matplotlib.axes import Axes as MplAxes
 
 from src.core.models.visualization.annotation_config import AnnotationConfig
 from src.core.models.visualization.figure_config import FigureConfig
+from src.core.models.visualization.trace_config import (
+    BarTraceConfig,
+    LineTraceConfig,
+    ScatterTraceConfig,
+)
 from src.core.services.visualization.config_resolver import resolve_config
 from src.core.services.visualization.palette_service import (
     get_palette_names,
     is_colorblind_safe,
     resolve_palette,
-)
-from src.core.models.visualization.trace_config import (
-    BarTraceConfig,
-    LineTraceConfig,
-    ScatterTraceConfig,
 )
 from src.web.rendering.config_builder import ConfigSpecBuilder, PlotlyFigureSpecBuilder
 from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
@@ -244,7 +244,7 @@ class TestEnrichAndApply:
 
         FigureSpecToMatplotlib.apply(spec, self.ax)
 
-        get_labels_fn = getattr(self.ax, "get_xticklabels")
+        get_labels_fn = self.ax.get_xticklabels
         labels = [t.get_text() for t in get_labels_fn()]
         assert "A" in labels
 

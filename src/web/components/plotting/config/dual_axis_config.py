@@ -9,7 +9,9 @@ from src.web.components.plotting.config.base_plot_config import (
     detect_column_types,
     render_color_selector,
 )
-from src.web.components.plotting.config.plot_config_components import PlotConfigComponents
+from src.web.components.plotting.config.plot_config_components import (
+    PlotConfigComponents,
+)
 
 
 def render(

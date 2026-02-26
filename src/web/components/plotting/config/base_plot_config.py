@@ -9,7 +9,9 @@ from typing import Any
 import pandas as pd
 import streamlit as st
 
-from src.web.components.plotting.config.plot_config_components import PlotConfigComponents
+from src.web.components.plotting.config.plot_config_components import (
+    PlotConfigComponents,
+)
 
 
 def detect_column_types(

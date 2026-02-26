@@ -8,8 +8,10 @@ Handles loading, filtering, and transforming data from various sources.
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
-from src.web.components.data_managers.data_manager_components import DataManagerComponents
 from src.web.components.common.history_components import HistoryComponents
+from src.web.components.data_managers.data_manager_components import (
+    DataManagerComponents,
+)
 from src.web.components.data_managers.mixer import MixerManager
 from src.web.components.data_managers.outlier_remover import OutlierRemoverManager
 from src.web.components.data_managers.preprocessor import PreprocessorManager

@@ -210,6 +210,7 @@ echo "✅ GATE 8 CHECK COMPLETE"
 ```
 
 **Criteria**:
+
 - Conditional widgets (Y-Right axis, secondary/boxed legend) must check
   `has_dual_axis` or `has_boxed` before rendering
 - No standalone `render_xaxis_labels_ui()` or `render_series_renaming_ui()`

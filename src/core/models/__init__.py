@@ -29,6 +29,10 @@ from src.core.models.data_models import (
     ShaperStepConfig,
     SplitApplyGroupConfig,
 )
+from src.core.models.history_models import OperationRecord
+from src.core.models.parsing_models import ParseBatchResult, ScannedVariable, StatConfig
+from src.core.models.plot_protocol import PlotDeserializer, PlotProtocol
+from src.core.models.portfolio_models import PortfolioData
 from src.core.models.shaper_models import (
     BaseShaperConfig,
     ColumnSelectorConfig,
@@ -40,10 +44,6 @@ from src.core.models.shaper_models import (
     SplitApplyShaperConfig,
     TransformerShaperConfig,
 )
-from src.core.models.history_models import OperationRecord
-from src.core.models.parsing_models import ParseBatchResult, ScannedVariable, StatConfig
-from src.core.models.plot_protocol import PlotDeserializer, PlotProtocol
-from src.core.models.portfolio_models import PortfolioData
 
 __all__ = [
     "BaseShaperConfig",

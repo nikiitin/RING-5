@@ -26,12 +26,12 @@ import streamlit as st
 
 from src.core.application_api import ApplicationAPI
 from src.core.models.data_models import ShaperStepConfig
-from src.web.models.plot_protocols import PipelineExecutor, PlotHandle
 from src.web.components.common.pipeline import PipelineComponent
 from src.web.components.common.pipeline_step import (
     PipelineStepComponent,
     PipelineStepResult,
 )
+from src.web.models.plot_protocols import PipelineExecutor, PlotHandle
 from src.web.state.ui_state_manager import UIStateManager
 
 logger = logging.getLogger(__name__)

@@ -38,6 +38,7 @@ lint:
             --show-column-numbers ${target}
           success_codes: [0, 1]
   enabled:
+    - oxipng@10.1.0
     - pyright@1.1.408
     - flake8@7.3.0
     - mypy@1.19.1
@@ -46,17 +47,17 @@ lint:
     - hadolint@2.14.0
     - actionlint@1.7.11
     - isort@8.0.0
-    - bandit@1.9.3:
+    - bandit@1.9.4:
         extra_args: [-c, pyproject.toml]
-    - checkov@3.2.505
+    - checkov@3.2.506
     - git-diff-check
     - markdownlint@0.47.0
     - prettier@3.8.1
-    - ruff@0.15.2
+    - ruff@0.15.3
     - shellcheck@0.11.0
     - shfmt@3.6.0
     - taplo@0.10.0
-    - trufflehog@3.93.4
+    - trufflehog@3.93.5
     - yamllint@1.38.0
 actions:
   disabled:

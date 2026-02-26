@@ -12,9 +12,9 @@ import pandas as pd
 import pytest
 from pandas import DataFrame
 
-from tests.helpers.benchmark import BenchmarkSuite
 from src.core.services.shapers.impl.normalize import Normalize
 from src.web.pages.ui.plotting import PlotFactory
+from tests.helpers.benchmark import BenchmarkSuite
 
 
 class TestPlotPerformance:

@@ -10,7 +10,10 @@ from typing import cast
 
 import pandas as pd
 
-from src.core.models.shaper_models import PivotLongerShaperConfig, PivotWiderShaperConfig
+from src.core.models.shaper_models import (
+    PivotLongerShaperConfig,
+    PivotWiderShaperConfig,
+)
 from src.core.services.shapers.shaper import Shaper
 
 

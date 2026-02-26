@@ -14,12 +14,12 @@ from matplotlib.axes import Axes
 from matplotlib.container import BarContainer
 from matplotlib.figure import Figure
 
-from src.core.services.visualization.config_resolver import resolve_config
 from src.core.models.visualization.trace_config import (
     BarTraceConfig,
     LineTraceConfig,
     ScatterTraceConfig,
 )
+from src.core.services.visualization.config_resolver import resolve_config
 from src.web.rendering.config_builder import ConfigSpecBuilder
 from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
 from src.web.rendering.matplotlib_trace_renderer import MatplotlibTraceRenderer

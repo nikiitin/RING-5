@@ -9,30 +9,30 @@
 
 ### 1.1 Key `data-testid` Selectors
 
-| Widget | Selector |
-|--------|----------|
-| Sidebar | `[data-testid='stSidebar']` |
-| Main content | `[data-testid='stMainBlockContainer']` |
-| Selectbox | `[data-testid='stSelectbox']` |
-| Multiselect | `[data-testid='stMultiSelect']` |
-| Text input | `[data-testid='stTextInput']` |
-| Button | `[data-testid='stBaseButton-primary']` / `stBaseButton-secondary` |
-| Alert (success) | `[data-testid='stAlertContentSuccess']` |
-| Alert (error) | `[data-testid='stAlertContentError']` |
-| Alert (warning) | `[data-testid='stAlertContentWarning']` |
-| Alert (info) | `[data-testid='stAlertContentInfo']` |
-| Dialog/modal | `[data-testid='stDialog']` |
-| Expander | `[data-testid='stExpander']` |
-| Metric | `[data-testid='stMetric']` |
-| JSON viewer | `[data-testid='stJson']` |
-| Dataframe | `[data-testid='stDataFrame']` |
-| File uploader | `[data-testid='stFileUploader']` |
-| Progress bar | `[role='progressbar']` |
-| Tabs (bar) | `[role='tablist']` |
-| Tab (individual) | `[role='tab']` |
-| Button group | `[data-testid='stButtonGroup']` |
-| Plotly chart | `[data-testid='stPlotlyChart']` |
-| Status widget | `[data-testid='stStatusWidget']` |
+| Widget           | Selector                                                          |
+| ---------------- | ----------------------------------------------------------------- |
+| Sidebar          | `[data-testid='stSidebar']`                                       |
+| Main content     | `[data-testid='stMainBlockContainer']`                            |
+| Selectbox        | `[data-testid='stSelectbox']`                                     |
+| Multiselect      | `[data-testid='stMultiSelect']`                                   |
+| Text input       | `[data-testid='stTextInput']`                                     |
+| Button           | `[data-testid='stBaseButton-primary']` / `stBaseButton-secondary` |
+| Alert (success)  | `[data-testid='stAlertContentSuccess']`                           |
+| Alert (error)    | `[data-testid='stAlertContentError']`                             |
+| Alert (warning)  | `[data-testid='stAlertContentWarning']`                           |
+| Alert (info)     | `[data-testid='stAlertContentInfo']`                              |
+| Dialog/modal     | `[data-testid='stDialog']`                                        |
+| Expander         | `[data-testid='stExpander']`                                      |
+| Metric           | `[data-testid='stMetric']`                                        |
+| JSON viewer      | `[data-testid='stJson']`                                          |
+| Dataframe        | `[data-testid='stDataFrame']`                                     |
+| File uploader    | `[data-testid='stFileUploader']`                                  |
+| Progress bar     | `[role='progressbar']`                                            |
+| Tabs (bar)       | `[role='tablist']`                                                |
+| Tab (individual) | `[role='tab']`                                                    |
+| Button group     | `[data-testid='stButtonGroup']`                                   |
+| Plotly chart     | `[data-testid='stPlotlyChart']`                                   |
+| Status widget    | `[data-testid='stStatusWidget']`                                  |
 
 ### 1.2 Segmented Controls (st.segmented_control / st.pills)
 
@@ -98,12 +98,14 @@ def _by_label(self, test_id: str, label_text: str) -> Locator:
 ### 2.1 Script Rerun Cycle
 
 Every widget interaction triggers a **full script rerun**. After rerun:
+
 1. Streamlit shows `[data-testid='stStatusWidget']` ("Running...")
 2. Script executes top-to-bottom
 3. Status widget disappears
 4. DOM is updated
 
 **Wait strategy**:
+
 ```python
 def wait_for_streamlit(self, *, timeout: int | None = None) -> None:
     effective_timeout = timeout or self.RENDER_TIMEOUT
@@ -115,6 +117,7 @@ def wait_for_streamlit(self, *, timeout: int | None = None) -> None:
 ### 2.2 Fragment Rendering (`@st.fragment`)
 
 Fragments re-run independently without full page rerun:
+
 - Only the fragment's content updates
 - Other parts of the page remain unchanged
 - Need extra stabilization after fragment rerender:
@@ -125,6 +128,7 @@ Fragments re-run independently without full page rerun:
 ### 2.3 Singleton State (`@st.cache_resource`)
 
 `ApplicationAPI` is a singleton via `@st.cache_resource`. This means:
+
 - ALL browser sessions share the same backend state
 - Variables added in one test persist in subsequent tests
 - Data loaded in one test is visible in all sessions
@@ -133,12 +137,14 @@ Fragments re-run independently without full page rerun:
 ### 2.4 `st.rerun()` After Operations
 
 Many operations call `st.rerun()` which:
+
 - Closes any open dialogs
 - Rebuilds the page
 - May change which elements are visible
 
-**Pattern**: After triggering a rerun, wait for the expected *result* element,
+**Pattern**: After triggering a rerun, wait for the expected _result_ element,
 not the intermediate state:
+
 ```python
 self.click_quick_scan()
 # Don't wait for the status widget — wait for the final result
@@ -156,6 +162,7 @@ expect(self.scan_result_message).to_be_visible(timeout=timeout)
 5. **CSS selectors** — Last resort for Streamlit internals
 
 **Anti-patterns to avoid**:
+
 - `.first` / `.nth(n)` without label context (fragile to DOM order)
 - `page.wait_for_timeout()` for synchronization (use `expect()` instead)
 - Bare `is_visible()` checks (use `expect().to_be_visible()`)
@@ -228,6 +235,7 @@ download.save_as(tmp_path / download.suggested_filename)
 ### 5.1 Session-Scoped Server, Function-Scoped Page
 
 Current architecture:
+
 - **Session scope**: Streamlit server (one subprocess for all tests)
 - **Function scope**: Browser page (new tab per test)
 
@@ -312,13 +320,13 @@ PWDEBUG=1 pytest tests/visual/test_file.py::test_name -x
 
 ## 7. Known Streamlit Quirks
 
-| Quirk | Impact | Workaround |
-|-------|--------|------------|
-| Toggle deselection | Active segmented option deselects on click | Use `ensure_*_mode()` pattern |
-| Tab DOM persistence | All tab panels always in DOM | Use `_by_label()` for scoped locators |
-| Singleton state | `@st.cache_resource` shares across sessions | Handle "already exists" gracefully |
-| Fragment isolation | `@st.fragment` reruns independently | Extra `wait_for_timeout(500)` after fragment ops |
-| Dialog auto-close | `st.rerun()` closes open dialogs | Wait for dialog disappearance, not rerun |
-| Close button inside st.status | Button is inside collapsed status widget | Wait for status to complete first |
-| Virtual dropdown | Selectbox options use virtual scrolling | Filter with `.filter(has_text=...)` |
-| Form batching | `st.form` batches changes, no per-widget rerun | Submit button triggers batch commit |
+| Quirk                         | Impact                                         | Workaround                                       |
+| ----------------------------- | ---------------------------------------------- | ------------------------------------------------ |
+| Toggle deselection            | Active segmented option deselects on click     | Use `ensure_*_mode()` pattern                    |
+| Tab DOM persistence           | All tab panels always in DOM                   | Use `_by_label()` for scoped locators            |
+| Singleton state               | `@st.cache_resource` shares across sessions    | Handle "already exists" gracefully               |
+| Fragment isolation            | `@st.fragment` reruns independently            | Extra `wait_for_timeout(500)` after fragment ops |
+| Dialog auto-close             | `st.rerun()` closes open dialogs               | Wait for dialog disappearance, not rerun         |
+| Close button inside st.status | Button is inside collapsed status widget       | Wait for status to complete first                |
+| Virtual dropdown              | Selectbox options use virtual scrolling        | Filter with `.filter(has_text=...)`              |
+| Form batching                 | `st.form` batches changes, no per-widget rerun | Submit button triggers batch commit              |

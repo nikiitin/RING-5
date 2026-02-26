@@ -18,12 +18,12 @@ import plotly.graph_objects as go
 
 from src.core.application_api import ApplicationAPI
 from src.core.state.repository_state_manager import RepositoryStateManager
+from src.web.components.common.chart_display import ChartDisplayComponent
 from src.web.controllers.plot.render_controller import PlotRenderController
 from src.web.models.plot_protocols import PlotHandle, RenderablePlot
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 from src.web.pages.ui.plotting.plot_service import PlotService
-from src.web.components.common.chart_display import ChartDisplayComponent
 
 # ---------------------------------------------------------------------------
 # Helpers — minimal protocol-satisfying adapters
