@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from src.parsing.csv_contract import (
+from src.core.models.csv_contract import (
     CSV_ENCODING,
     MISSING_VALUE,
     validate_parser_csv,

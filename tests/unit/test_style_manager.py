@@ -38,10 +38,10 @@ def test_apply_styles_basic(style_manager: Any) -> None:
 
 
 def test_apply_styles_legend(style_manager: Any) -> None:
-    """Test applying legend styles."""
+    """Test applying legend styles — orientation removed from UI."""
     fig = go.Figure()
     config = {
-        "legend_orientation": "h",
+        "legend_orientation": "h",  # dead field — no longer applied
         "legend_x": 0.5,
         "legend_y": -0.2,
         "legend_font_size": 14,
@@ -50,7 +50,8 @@ def test_apply_styles_legend(style_manager: Any) -> None:
 
     fig = style_manager.apply_styles(fig, config)
 
-    assert fig.layout.legend.orientation == "h"
+    # Orientation no longer applied (removed from UI)
+    assert fig.layout.legend.orientation in (None, "v")
     assert fig.layout.legend.x == 0.5
     assert fig.layout.legend.font.size == 14
 

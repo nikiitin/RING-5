@@ -10,6 +10,7 @@ import pytest
 from src.parsing.parser_protocol import SimulationParser
 from src.parsing.registry import (
     GEM5_INFO,
+    ParsingStrategy,
     SimulatorInfo,
     SimulatorRegistry,
 )
@@ -41,9 +42,28 @@ class TestSimulatorInfo:
             description="A test simulator",
             file_pattern="*.log",
             variable_types=["counter", "gauge"],
+            parsing_strategies=[
+                ParsingStrategy(name="default", display_name="Default"),
+            ],
         )
         assert info.name == "test_sim"
         assert info.file_pattern == "*.log"
+
+    def test_gem5_parsing_strategies(self) -> None:
+        """gem5 must declare at least one parsing strategy."""
+        assert len(GEM5_INFO.parsing_strategies) >= 1
+        strategy_names = [s.name for s in GEM5_INFO.parsing_strategies]
+        assert "simple" in strategy_names
+        assert "config_aware" in strategy_names
+
+    def test_no_strategies_raises(self) -> None:
+        """SimulatorInfo without strategies should raise ValueError."""
+        with pytest.raises(ValueError, match="at least one parsing strategy"):
+            SimulatorInfo(
+                name="bad_sim",
+                display_name="Bad Simulator",
+                parsing_strategies=[],
+            )
 
 
 class TestSimulatorRegistry:
@@ -87,7 +107,13 @@ class TestSimulatorRegistry:
 
     def test_duplicate_registration_raises(self) -> None:
         """Registering same name twice should raise."""
-        info = SimulatorInfo(name="gem5", display_name="gem5 duplicate")
+        info = SimulatorInfo(
+            name="gem5",
+            display_name="gem5 duplicate",
+            parsing_strategies=[
+                ParsingStrategy(name="simple", display_name="Simple"),
+            ],
+        )
         with pytest.raises(ValueError, match="already registered"):
             SimulatorRegistry.register(info, lambda: None)  # type: ignore[return-value]
 

@@ -161,6 +161,10 @@ class FigureSpecToPlotly:
         update["ticks"] = "outside" if x_axis.show_ticks else ""
         update["automargin"] = x_axis.automargin
 
+        # Tick label standoff (distance from axis)
+        if x_axis.tick_pad != 5.0:  # skip default to avoid noise
+            update["ticklabelstandoff"] = int(x_axis.tick_pad)
+
         if x_axis.category_order is not None:
             update["categoryorder"] = "array"
             update["categoryarray"] = x_axis.category_order
@@ -194,12 +198,9 @@ class FigureSpecToPlotly:
             )
             if y_axis.label_standoff >= 0:
                 update["title"]["standoff"] = y_axis.label_standoff
-            if y_axis.title_vshift != 0.0:
-                # Plotly title.y is 0..1 (fraction of plot height);
-                # shift slider is in pixels → approximate conversion.
-                plot_h = spec.dimensions.height if spec.dimensions else 600
-                frac = y_axis.title_vshift / plot_h
-                update["title"]["y"] = 0.5 + frac
+            # Note: vshift (title_vshift) is Matplotlib-only — Plotly's
+            # yaxis.Title only supports text, font, standoff.  Vertical
+            # repositioning is handled via Matplotlib's set_label_coords.
 
         update["tickfont"] = dict(size=typo.font_size_yticks)
 
@@ -300,9 +301,31 @@ class FigureSpecToPlotly:
         }
 
         if legend.itemwidth > 0:
-            result["itemwidth"] = legend.itemwidth
+            # Plotly requires itemwidth >= 30
+            result["itemwidth"] = max(30, legend.itemwidth)
         if legend.tracegroupgap > 0:
             result["tracegroupgap"] = legend.tracegroupgap
+
+        # Multi-column layout via entrywidth.
+        # When ncol > 1 and the user hasn't set a manual entrywidth,
+        # auto-compute: divide the available space equally across columns.
+        # When ncol == 1, force single-column so Plotly doesn't auto-wrap.
+        effective_entrywidth = legend.entrywidth
+        if legend.ncol > 1 and effective_entrywidth <= 0:
+            # Use fraction mode: each entry gets 1/ncol of the plot width.
+            result["entrywidth"] = round(1.0 / legend.ncol, 4)
+            result["entrywidthmode"] = "fraction"
+        elif legend.ncol == 1 and effective_entrywidth <= 0:
+            # Force single column — each entry takes full width.
+            result["entrywidth"] = 1.0
+            result["entrywidthmode"] = "fraction"
+        elif effective_entrywidth > 0:
+            result["entrywidth"] = effective_entrywidth
+            result["entrywidthmode"] = "pixels"
+
+        # Indentation for grouped items
+        if legend.indentation != 0:
+            result["indentation"] = legend.indentation
 
         if legend.title:
             result["title"] = dict(
@@ -329,6 +352,9 @@ class FigureSpecToPlotly:
             result["borderwidth"] = legend.border_width
             result["bordercolor"] = legend.border_color
 
+        if legend.valign != "middle":
+            result["valign"] = legend.valign
+
         if legend.order == "reversed":
             result["traceorder"] = "reversed"
 
@@ -353,6 +379,13 @@ class FigureSpecToPlotly:
         fig.update_layout(colorway=spec.color_palette)
 
         for i, trace in enumerate(_fig_traces(fig)):
+            trace_type = str(getattr(trace, "type", ""))
+
+            # Heatmaps do not support marker-based coloring.
+            # Their color is controlled by z-values and colorscale.
+            if trace_type == "heatmap":
+                continue
+
             # Skip traces that already have an explicit marker color
             # (set by the factory when use_color=True).
             existing_color = (
@@ -363,7 +396,7 @@ class FigureSpecToPlotly:
 
             col = spec.color_palette[i % len(spec.color_palette)]
             trace.update(marker=dict(color=col))
-            if hasattr(trace, "line") and getattr(trace, "type", "") in (
+            if hasattr(trace, "line") and trace_type in (
                 "scatter",
                 "scattergl",
             ):
@@ -548,34 +581,116 @@ class FigureSpecToPlotly:
 
     @staticmethod
     def _apply_axis_colors(spec: FigureConfig, fig: go.Figure) -> None:
-        """Apply tick/label/line colors per axis from new AxisConfig fields."""
+        """Apply tick/label/line colors and widths for all axis lines.
+
+        Handles bottom (X), left (Y), top, and right axis lines.
+        Width of 0 hides the line.
+        """
         if spec.axes is None:
             raise ValueError("FigureConfig requires axes")
 
         x = spec.axes.x
         y = spec.axes.y
 
+        # ── Bottom (X) axis line ─────────────────────────────────
         x_update: dict[str, Any] = {}
         if x.tick_font_color:
             x_update["tickfont"] = dict(color=x.tick_font_color)
-        if x.axis_line_color:
-            x_update["linecolor"] = x.axis_line_color
-            x_update["showline"] = True
-        if x.axis_line_width != 1.0:
+
+        show_x_line = x.axis_line_width > 0
+        x_update["showline"] = show_x_line
+        if show_x_line:
             x_update["linewidth"] = x.axis_line_width
+            x_update["linecolor"] = x.axis_line_color or x.axis_color
+
+        # Top axis line via mirror
+        top_w = spec.axes.top_axis_line_width
+        if top_w > 0 and show_x_line:
+            # Plotly mirror copies the bottom line to the top
+            x_update["mirror"] = True
+        elif top_w > 0 and not show_x_line:
+            # Show only the top line: use mirror + showline, but this
+            # also shows the bottom.  Plotly cannot show only the top
+            # via native mirror, so we add a shape instead.
+            FigureSpecToPlotly._add_axis_line_shape(
+                fig,
+                axis="top",
+                color=spec.axes.top_axis_line_color,
+                width=top_w,
+            )
+
         if x_update:
             fig.update_xaxes(**x_update)
 
+        # ── Left (Y) axis line ───────────────────────────────────
         y_update: dict[str, Any] = {}
         if y.tick_font_color:
             y_update["tickfont"] = dict(color=y.tick_font_color)
-        if y.axis_line_color:
-            y_update["linecolor"] = y.axis_line_color
-            y_update["showline"] = True
-        if y.axis_line_width != 1.0:
+
+        show_y_line = y.axis_line_width > 0
+        y_update["showline"] = show_y_line
+        if show_y_line:
             y_update["linewidth"] = y.axis_line_width
+            y_update["linecolor"] = y.axis_line_color or y.axis_color
+
+        # Right axis line via mirror (when no Y2 axis)
+        right_w = spec.axes.right_axis_line_width
+        if spec.axes.y2 is None:
+            if right_w > 0 and show_y_line:
+                y_update["mirror"] = True
+            elif right_w > 0 and not show_y_line:
+                FigureSpecToPlotly._add_axis_line_shape(
+                    fig,
+                    axis="right",
+                    color=spec.axes.right_axis_line_color,
+                    width=right_w,
+                )
+
         if y_update:
-            fig.update_yaxes(**y_update)
+            fig.update_yaxes(**y_update, selector=dict(overlaying=None))
+
+        # ── Y2 axis line (when dual axis) ────────────────────────
+        if spec.axes.y2 is not None:
+            y2 = spec.axes.y2
+            y2_update: dict[str, Any] = {}
+            show_y2_line = y2.axis_line_width > 0
+            y2_update["showline"] = show_y2_line
+            if show_y2_line:
+                y2_update["linewidth"] = y2.axis_line_width
+                y2_update["linecolor"] = y2.axis_line_color or y2.axis_color
+            if y2_update:
+                fig.update_layout(yaxis2={**y2_update})
+
+    @staticmethod
+    def _add_axis_line_shape(
+        fig: go.Figure,
+        axis: str,
+        color: str,
+        width: float,
+    ) -> None:
+        """Add a shape acting as an axis line for top or right edges."""
+        if axis == "top":
+            fig.add_shape(
+                type="line",
+                x0=0,
+                x1=1,
+                y0=1,
+                y1=1,
+                xref="paper",
+                yref="paper",
+                line=dict(color=color, width=width),
+            )
+        elif axis == "right":
+            fig.add_shape(
+                type="line",
+                x0=1,
+                x1=1,
+                y0=0,
+                y1=1,
+                xref="paper",
+                yref="paper",
+                line=dict(color=color, width=width),
+            )
 
     # ────────────────────────────────────────────────────────────
     # Step 13 — Per-trace overrides + axis label aliases
@@ -593,6 +708,7 @@ class FigureSpecToPlotly:
             return
 
         for trace in _fig_traces(fig):
+            trace_type = str(getattr(trace, "type", ""))
             t_name = str(getattr(trace, "name", ""))
             if t_name not in spec.trace_overrides:
                 continue
@@ -601,24 +717,24 @@ class FigureSpecToPlotly:
             if style.display_name:
                 trace.name = style.display_name
 
-            if style.color:
+            if style.color and trace_type != "heatmap":
                 trace.update(marker=dict(color=style.color))
-                if hasattr(trace, "line") and getattr(trace, "type", "") in (
+                if hasattr(trace, "line") and trace_type in (
                     "scatter",
                     "scattergl",
                 ):
                     trace.update(line=dict(color=style.color))
 
-            if style.symbol:
+            if style.symbol and trace_type != "heatmap":
                 trace.update(marker=dict(symbol=style.symbol))
 
-            if style.marker_size > 0:
+            if style.marker_size > 0 and trace_type != "heatmap":
                 trace.update(marker=dict(size=style.marker_size))
 
-            if style.line_width > 0:
+            if style.line_width > 0 and trace_type in ("scatter", "scattergl"):
                 trace.update(line=dict(width=style.line_width))
 
-            if style.hatching_pattern:
+            if style.hatching_pattern and trace_type != "heatmap":
                 trace.update(
                     marker=dict(
                         pattern=dict(

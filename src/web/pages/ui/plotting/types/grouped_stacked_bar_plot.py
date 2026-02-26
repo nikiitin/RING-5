@@ -306,8 +306,14 @@ class GroupedStackedBarPlot(StackedBarPlot):
         # Build custom_x_ticks
         custom_x_ticks: dict[str, list[Any]] = {"vals": tick_vals, "text": tick_text}
 
-        # Handle numbered xaxis: hide ticks only when numbered ticks are off
-        if numbered_legend is not None and not config.get("show_numbered_ticks", False):
+        # Handle numbered xaxis: hide ticks when neither Numbers nor Labels
+        _n_modes: list[str] = config.get("numbered_xaxis_modes", [])
+        if _n_modes:
+            _has_visible = "Numbers" in _n_modes or "Labels" in _n_modes
+            if not _has_visible:
+                custom_x_ticks["hide_ticks"] = [True]
+        elif numbered_legend is not None and not config.get("show_numbered_ticks", False):
+            # Backward compat for old boolean flag
             custom_x_ticks["hide_ticks"] = [True]
 
         # Combine shapes

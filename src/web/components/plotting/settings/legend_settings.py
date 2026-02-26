@@ -84,7 +84,33 @@ class LegendSettingsComponent:
         }
         key_prefix = prefix_map.get(legend_tab or "primary", "theme_")
 
-        return self._render_legend_section(saved_config, key_prefix)
+        # Render the active pill's widgets
+        active_config = self._render_legend_section(saved_config, key_prefix)
+
+        # Preserve inactive pills' config from saved_config so that
+        # switching pills doesn't lose previously-set values.
+        config_prefix_map: dict[str, str] = {
+            "primary": "legend_",
+            "secondary": "legend2_",
+            "tertiary": "legend3_",
+        }
+        active_tab = legend_tab or "primary"
+
+        preserved: dict[str, Any] = {}
+        for level, cfg_prefix in config_prefix_map.items():
+            if level == active_tab:
+                continue
+            # Only preserve if the level is available
+            if level == "secondary" and not has_secondary:
+                continue
+            if level == "tertiary" and not has_tertiary:
+                continue
+            # Copy all keys with this prefix from saved_config
+            for key, value in saved_config.items():
+                if key.startswith(cfg_prefix):
+                    preserved[key] = value
+
+        return {**preserved, **active_config}
 
     # ------------------------------------------------------------------
     # Legend section rendering
@@ -109,32 +135,11 @@ class LegendSettingsComponent:
         key_prefix: str,
         config_prefix: str,
     ) -> dict[str, Any]:
-        """Render legend position and orientation controls."""
-        st.markdown("**Position & Orientation**")
+        """Render legend position controls."""
+        st.markdown("**Position**")
         pos_c1, pos_c2 = st.columns(2)
 
         with pos_c1:
-            legend_orientation = st.selectbox(
-                "Orientation",
-                options=["v", "h"],
-                format_func=lambda x: ("Vertical" if x == "v" else "Horizontal"),
-                index=(0 if saved_config.get(f"{config_prefix}orientation", "v") == "v" else 1),
-                key=f"{key_prefix}leg_orient_{self.plot_id}",
-            )
-
-            legend_ncols = st.number_input(
-                "Columns",
-                min_value=0,
-                max_value=10,
-                value=int(saved_config.get(f"{config_prefix}ncols", 0)),
-                key=f"{key_prefix}leg_cols_{self.plot_id}",
-                help=(
-                    "Number of legend columns. Uses multiple"
-                    " legend objects positioned side-by-side."
-                    " 0 = Auto (single column)."
-                ),
-            )
-
             legend_x = st.number_input(
                 "X Position",
                 value=float(
@@ -146,63 +151,18 @@ class LegendSettingsComponent:
                 step=0.05,
                 key=f"{key_prefix}leg_x_{self.plot_id}",
             )
-            legend_xanchor = st.selectbox(
-                "X Anchor",
-                options=["auto", "left", "center", "right"],
-                index=["auto", "left", "center", "right"].index(
-                    saved_config.get(f"{config_prefix}xanchor", "auto")
-                ),
-                key=f"{key_prefix}leg_xanc_{self.plot_id}",
-            )
 
         with pos_c2:
-            legend_col_width = st.number_input(
-                "Column Width (px)",
-                min_value=0,
-                max_value=500,
-                value=int(saved_config.get(f"{config_prefix}col_width", 150)),
-                key=f"{key_prefix}leg_col_width_{self.plot_id}",
-                help="Width of each legend column in pixels.",
-            )
-
-            legend_valign = st.selectbox(
-                "Vertical Align",
-                options=["middle", "top", "bottom"],
-                index=(
-                    ["middle", "top", "bottom"].index(
-                        saved_config.get(f"{config_prefix}valign", "middle")
-                    )
-                    if saved_config.get(f"{config_prefix}valign", "middle")
-                    in ["middle", "top", "bottom"]
-                    else 0
-                ),
-                key=f"{key_prefix}leg_valign_{self.plot_id}",
-            )
-
             legend_y = st.number_input(
                 "Y Position",
                 value=float(saved_config.get(f"{config_prefix}y", 1.0)),
                 step=0.05,
                 key=f"{key_prefix}leg_y_{self.plot_id}",
             )
-            legend_yanchor = st.selectbox(
-                "Y Anchor",
-                options=["auto", "top", "middle", "bottom"],
-                index=["auto", "top", "middle", "bottom"].index(
-                    saved_config.get(f"{config_prefix}yanchor", "auto")
-                ),
-                key=f"{key_prefix}leg_yanc_{self.plot_id}",
-            )
 
         return {
-            f"{config_prefix}orientation": legend_orientation,
-            f"{config_prefix}ncols": legend_ncols,
-            f"{config_prefix}col_width": legend_col_width,
-            f"{config_prefix}valign": legend_valign,
             f"{config_prefix}x": legend_x,
             f"{config_prefix}y": legend_y,
-            f"{config_prefix}xanchor": legend_xanchor,
-            f"{config_prefix}yanchor": legend_yanchor,
         }
 
     def _render_legend_appearance(
@@ -303,38 +263,27 @@ class LegendSettingsComponent:
     ) -> dict[str, Any]:
         """Render legend sizing and spacing controls."""
         st.markdown("**Sizing & Spacing**")
+
+        ncols = st.number_input(
+            "Columns",
+            min_value=0,
+            max_value=20,
+            value=int(saved_config.get(f"{config_prefix}ncols", 0)),
+            key=f"{key_prefix}leg_ncols_{self.plot_id}",
+            help=(
+                "Number of legend columns. "
+                "0 = single column (default). "
+                "When > 1, entry width is auto-computed unless "
+                "you set it manually below."
+            ),
+        )
+
         sz_c1, sz_c2 = st.columns(2)
         with sz_c1:
-            itemsizing = st.selectbox(
-                "Marker Scale",
-                options=["constant", "trace"],
-                index=["constant", "trace"].index(
-                    saved_config.get(f"{config_prefix}itemsizing", "constant")
-                ),
-                key=f"{key_prefix}leg_itemsz_{self.plot_id}",
-            )
-            itemwidth = st.number_input(
-                "Marker Width (px) [Min: 30]",
-                min_value=30,
-                max_value=120,
-                value=int(saved_config.get(f"{config_prefix}itemwidth", 30)),
-                key=f"{key_prefix}leg_itemw_{self.plot_id}",
-                help="Width of legend items. Plotly requires minimum 30px.",
-            )
-            marker_text_spacing = st.number_input(
-                "Marker-Text Space",
-                min_value=0.0,
-                max_value=10.0,
-                value=float(saved_config.get(f"{config_prefix}marker_text_spacing", 0.5)),
-                step=0.1,
-                key=f"{key_prefix}leg_mtspace_{self.plot_id}",
-                help=("Space between color marker and text" " (Matplotlib handletextpad)."),
-            )
-        with sz_c2:
             tracegroupgap = st.number_input(
                 "Item Spacing (px)",
-                min_value=0,
-                max_value=100,
+                min_value=-20,
+                max_value=200,
                 value=int(saved_config.get(f"{config_prefix}tracegroupgap", 10)),
                 key=f"{key_prefix}leg_tracegap_{self.plot_id}",
                 help="Vertical spacing between legend items.",
@@ -342,17 +291,48 @@ class LegendSettingsComponent:
             column_spacing = st.number_input(
                 "Column Spacing",
                 min_value=0.0,
-                max_value=10.0,
-                value=float(saved_config.get(f"{config_prefix}column_spacing", 1.0)),
-                step=0.5,
+                max_value=20.0,
+                value=float(saved_config.get(f"{config_prefix}column_spacing", 0.5)),
+                step=0.1,
+                format="%.1f",
                 key=f"{key_prefix}leg_colspace_{self.plot_id}",
-                help=("Space between columns in the legend" " (Matplotlib columnspacing)."),
+                help=(
+                    "Space between legend columns "
+                    "(in font-size multiples for Matplotlib). "
+                    "0 = no extra spacing."
+                ),
+            )
+        with sz_c2:
+            item_width = st.number_input(
+                "Stripe Length (px)",
+                min_value=0,
+                max_value=200,
+                value=int(saved_config.get(f"{config_prefix}itemwidth", 30)),
+                key=f"{key_prefix}leg_itemwidth_{self.plot_id}",
+                help=(
+                    "Width of the legend marker/stripe. "
+                    "Plotly clamps to 30 minimum; Matplotlib converts "
+                    "to font-size multiples. 0 = auto."
+                ),
+            )
+            handletextpad = st.number_input(
+                "Stripe-Text Gap",
+                min_value=0.0,
+                max_value=20.0,
+                value=float(saved_config.get(f"{config_prefix}handletextpad", 0.3)),
+                step=0.1,
+                format="%.1f",
+                key=f"{key_prefix}leg_htpad_{self.plot_id}",
+                help=(
+                    "Gap between the legend stripe/marker and its label "
+                    "(in font-size multiples for Matplotlib)."
+                ),
             )
 
         return {
-            f"{config_prefix}itemsizing": itemsizing,
-            f"{config_prefix}itemwidth": itemwidth,
+            f"{config_prefix}ncols": ncols,
             f"{config_prefix}tracegroupgap": tracegroupgap,
             f"{config_prefix}column_spacing": column_spacing,
-            f"{config_prefix}marker_text_spacing": marker_text_spacing,
+            f"{config_prefix}itemwidth": item_width,
+            f"{config_prefix}handletextpad": handletextpad,
         }

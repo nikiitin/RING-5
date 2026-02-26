@@ -37,24 +37,25 @@ class TestLegendStyling:
         assert fig.layout.legend.x == 0.5
         assert fig.layout.legend.y == 1.05
 
-    def test_legend_orientation_horizontal(self, applicator: Any) -> None:
+    def test_legend_orientation_not_applied_from_config(self, applicator: Any) -> None:
         """
-        Verify horizontal legend orientation is applied.
+        Orientation field was removed from UI — verify it's not applied.
         """
         fig = go.Figure()
         fig.add_trace(go.Bar(y=[1, 2], name="Test"))
 
         config = {
-            "legend_orientation": "h",
+            "legend_orientation": "h",  # present but dead field
         }
 
         fig = applicator.apply_styles(fig, config)
 
-        assert fig.layout.legend.orientation == "h"
+        # Orientation should remain at Plotly default (vertical)
+        assert fig.layout.legend.orientation in (None, "v")
 
-    def test_legend_anchor_settings(self, applicator: Any) -> None:
+    def test_legend_anchor_not_applied_from_config(self, applicator: Any) -> None:
         """
-        Verify legend anchor settings for proper alignment.
+        Anchor fields were removed from UI — verify they're not applied.
         """
         fig = go.Figure()
         fig.add_trace(go.Bar(y=[1, 2], name="Test"))
@@ -66,8 +67,9 @@ class TestLegendStyling:
 
         fig = applicator.apply_styles(fig, config)
 
-        assert fig.layout.legend.xanchor == "center"
-        assert fig.layout.legend.yanchor == "bottom"
+        # Anchor fields should remain at Plotly defaults (None)
+        assert fig.layout.legend.xanchor is None
+        assert fig.layout.legend.yanchor is None
 
     def test_legend_no_columns_default_behavior(self, applicator: Any) -> None:
         """

@@ -27,6 +27,8 @@ from src.core.models.shaper_models import (  # noqa: F401
     ItemSelectorConfig,
     MeanShaperConfig,
     NormalizeShaperConfig,
+    PivotLongerShaperConfig,
+    PivotWiderShaperConfig,
     ShaperStepConfig,
     SortShaperConfig,
     SplitApplyGroupConfig,

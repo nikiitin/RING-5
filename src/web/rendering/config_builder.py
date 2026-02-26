@@ -32,9 +32,9 @@ from src.core.models.visualization.legend_config import (
     LegendConfig,
     LegendSpacingConfig,
 )
-from src.core.services.visualization.palette_service import resolve_palette
 from src.core.models.visualization.series_style_config import SeriesStyleConfig
 from src.core.models.visualization.typography_config import TypographyConfig
+from src.core.services.visualization.palette_service import resolve_palette
 
 
 class PlotlyFigureSpecBuilder:
@@ -412,11 +412,16 @@ class ConfigSpecBuilder:
         )
 
         # Determine X-axis tick label visibility:
-        # When numbered_xaxis is enabled without show_numbered_ticks,
-        # tick labels should be hidden (the numbered legend annotation
-        # serves as the reference instead).
+        # With numbered_xaxis_modes multiselect, ticks are hidden only
+        # when "Number legend" is the sole selection (no Numbers/Labels).
         _show_x_tick_labels: bool = config.get("show_x_tick_labels", True)
-        if config.get("numbered_xaxis") and not config.get("show_numbered_ticks", False):
+        _numbered_modes: list[str] = config.get("numbered_xaxis_modes", [])
+        if _numbered_modes:
+            _has_nums = "Numbers" in _numbered_modes
+            _has_labels = "Labels" in _numbered_modes
+            _show_x_tick_labels = _has_nums or _has_labels
+        elif config.get("numbered_xaxis") and not config.get("show_numbered_ticks", False):
+            # Backward compat for old boolean flag
             _show_x_tick_labels = False
 
         x_axis = AxisConfig(
@@ -434,8 +439,8 @@ class ConfigSpecBuilder:
             tick_font_color=config.get("xaxis_tickfont_color", ""),
             tick_pad=float(config.get("xtick_pad", 5.0)),
             axis_color=config.get("axis_color", "#444"),
-            axis_line_color=config.get("axis_color", ""),
-            axis_line_width=float(config.get("axis_line_width", 1.0)),
+            axis_line_color=config.get("x_axis_line_color", ""),
+            axis_line_width=float(config.get("x_axis_line_width", 1.0)),
         )
         y_axis = AxisConfig(
             label=y_label,
@@ -450,8 +455,8 @@ class ConfigSpecBuilder:
             tick_dash=config.get("ytick_dash", "solid"),
             tick_font_color=config.get("yaxis_tickfont_color", ""),
             axis_color=config.get("axis_color", "#444"),
-            axis_line_color=config.get("axis_color", ""),
-            axis_line_width=float(config.get("axis_line_width", 1.0)),
+            axis_line_color=config.get("y_axis_line_color", ""),
+            axis_line_width=float(config.get("y_axis_line_width", 1.0)),
         )
 
         axes = AxesConfig(
@@ -459,6 +464,11 @@ class ConfigSpecBuilder:
             y=y_axis,
             group_label_alternate=config.get("group_label_alternate", True),
             group_label_alt_spacing=float(config.get("group_label_alt_spacing", 0.05)),
+            group_label_offset=float(config.get("group_label_offset", -0.12)),
+            top_axis_line_width=float(config.get("top_axis_line_width", 0.0)),
+            top_axis_line_color=config.get("top_axis_line_color", "#444"),
+            right_axis_line_width=float(config.get("right_axis_line_width", 0.0)),
+            right_axis_line_color=config.get("right_axis_line_color", "#444"),
         )
 
         # ── Primary Legend ───────────────────────────────────────
@@ -466,11 +476,11 @@ class ConfigSpecBuilder:
         legends: list[LegendConfig] = [primary_legend]
 
         # ── Secondary legend from UI (dual-axis) ────────────────
-        if any(config.get(f"legend2_{k}") is not None for k in ("font_size", "x", "orientation")):
+        if any(config.get(f"legend2_{k}") is not None for k in ("font_size", "x", "ncols")):
             legends.append(_build_legend_from_config(config, "legend2_", "secondary"))
 
         # ── Boxed legend from UI ─────────────────────────────────
-        if any(config.get(f"legend3_{k}") is not None for k in ("font_size", "x", "orientation")):
+        if any(config.get(f"legend3_{k}") is not None for k in ("font_size", "x", "ncols")):
             legends.append(_build_legend_from_config(config, "legend3_", "tertiary"))
 
         # ── Backgrounds ──────────────────────────────────────────
@@ -629,35 +639,47 @@ def _build_legend_from_config(
     Returns:
         Fully populated LegendConfig.
     """
-    orient = config.get(f"{prefix}orientation", "v")
+    tracegroupgap_px = int(config.get(f"{prefix}tracegroupgap", 10))
+    font_size = int(config.get(f"{prefix}font_size", 12))
+    # Convert tracegroupgap (Plotly px) → labelspacing (Matplotlib, in
+    # multiples of font size).  Clamp to sensible range.
+    label_spacing = max(0.0, tracegroupgap_px / max(font_size, 1))
+
+    # Convert itemwidth (px) → handlelength (font-size multiples) for
+    # Matplotlib.  When 0, fall back to default handlelength.
+    itemwidth_px = int(config.get(f"{prefix}itemwidth", 30))
+    handlelength = float(itemwidth_px) / max(font_size, 1) if itemwidth_px > 0 else 1.0
+
     spacing = LegendSpacingConfig(
         columnspacing=float(config.get(f"{prefix}column_spacing", 0.5)),
-        handletextpad=float(config.get(f"{prefix}marker_text_spacing", 0.3)),
+        handletextpad=float(config.get(f"{prefix}handletextpad", 0.3)),
+        labelspacing=label_spacing,
+        handlelength=handlelength,
     )
     # All legends inherit the global font_family; primary uses the global
     # config key, secondary/tertiary fall back to the same value.
     font_family: str = config.get("font_family", "")
     return LegendConfig(
         role=role,  # type: ignore[arg-type]
-        font_size=config.get(f"{prefix}font_size", 12),
+        font_size=font_size,
         font_family=font_family,
         font_color=config.get(f"{prefix}font_color", "#444"),
         title=config.get(f"{prefix}title", ""),
         title_font_size=config.get(f"{prefix}title_font_size", 14),
         title_font_color=config.get(f"{prefix}title_font_color", "#000000"),
-        orientation="horizontal" if orient == "h" else "vertical",
+        ncol=int(config.get(f"{prefix}ncols", 0)),
         position_x=float(config.get(f"{prefix}x", 1.02 if role == "primary" else -1.0)),
         position_y=float(config.get(f"{prefix}y", 1.0 if role == "primary" else -1.0)),
-        anchor_x=config.get(f"{prefix}xanchor", "auto"),
-        anchor_y=config.get(f"{prefix}yanchor", "auto"),
+        col_width=float(config.get(f"{prefix}col_width", -1.0)),
+        entrywidth=int(config.get(f"{prefix}entrywidth", 0)),
+        itemwidth=int(config.get(f"{prefix}itemwidth", 30)),
+        indentation=int(config.get(f"{prefix}indentation", 0)),
         custom_position=True,
         visible=True,
         bgcolor=config.get(f"{prefix}bgcolor", ""),
         border_width=config.get(f"{prefix}border_width", 0),
         border_color=config.get(f"{prefix}border_color", "#000000"),
-        itemsizing=config.get(f"{prefix}itemsizing", "constant"),
-        itemwidth=int(config.get(f"{prefix}itemwidth", 30)),
-        tracegroupgap=int(config.get(f"{prefix}tracegroupgap", 10)),
+        tracegroupgap=tracegroupgap_px,
         spacing=spacing,
     )
 

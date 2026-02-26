@@ -24,6 +24,22 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
+class ParsingStrategy:
+    """
+    Metadata for a parsing strategy supported by a simulator backend.
+
+    Attributes:
+        name: Unique strategy identifier (e.g., ``"simple"``).
+        display_name: Human-readable label for UI display.
+        description: Brief explanation shown as tooltip/help text.
+    """
+
+    name: str
+    display_name: str
+    description: str = ""
+
+
+@dataclass(frozen=True)
 class SimulatorInfo:
     """
     Metadata for a registered simulator backend.
@@ -36,6 +52,8 @@ class SimulatorInfo:
         variable_types: List of variable type strings this simulator supports.
         internal_stats: Set of internal/meta-stats to exclude from variable
             selection (e.g., gem5's ``total``, ``mean``, ``stdev``).
+        parsing_strategies: Ordered list of parsing strategies this simulator
+            supports. Every simulator MUST specify at least one strategy.
     """
 
     name: str
@@ -44,6 +62,12 @@ class SimulatorInfo:
     file_pattern: str = "stats.txt"
     variable_types: list[str] = field(default_factory=list)
     internal_stats: frozenset[str] = field(default_factory=frozenset)
+    parsing_strategies: list[ParsingStrategy] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        """Validate that at least one parsing strategy is defined."""
+        if not self.parsing_strategies:
+            raise ValueError(f"Simulator '{self.name}' must define at least one parsing strategy.")
 
 
 class SimulatorRegistry:
@@ -181,6 +205,20 @@ GEM5_INFO = SimulatorInfo(
             "overflows",
         }
     ),
+    parsing_strategies=[
+        ParsingStrategy(
+            name="simple",
+            display_name="Simple (stats.txt only)",
+            description="Parse stats.txt files without config metadata.",
+        ),
+        ParsingStrategy(
+            name="config_aware",
+            display_name="Config-Aware (Integrates config.ini)",
+            description=(
+                "Config-Aware strategy allows extracting metadata " "from simulation config files."
+            ),
+        ),
+    ],
 )
 
 

@@ -11,6 +11,7 @@ Enables runtime shaper selection and dynamic pipeline construction.
 from src.core.models.data_models import ShaperStepConfig
 from src.core.services.shapers.impl.mean import Mean
 from src.core.services.shapers.impl.normalize import Normalize
+from src.core.services.shapers.impl.pivot import PivotLonger, PivotWider
 from src.core.services.shapers.impl.selector_algorithms.column_selector import (
     ColumnSelector,
 )
@@ -42,6 +43,8 @@ class ShaperFactory:
         "conditionSelector": ConditionSelector,
         "itemSelector": ItemSelector,
         "normalize": Normalize,
+        "pivotLonger": PivotLonger,
+        "pivotWider": PivotWider,
         "sort": Sort,
         "splitApply": SplitApply,
         "transformer": Transformer,
@@ -53,6 +56,8 @@ class ShaperFactory:
         "sort": "Sort",
         "mean": "Mean Calculator",
         "normalize": "Normalize",
+        "pivotLonger": "Pivot Longer (Melt)",
+        "pivotWider": "Pivot Wider",
         "conditionSelector": "Filter",
         "itemSelector": "Item Selector",
         "splitApply": "Split-Apply (Per-Axis)",

@@ -93,6 +93,12 @@ class AxesConfig:
     group_label_alt_spacing: float = 0.05  # distance between levels
     group_order: list[str] | None = None  # explicit group ordering
 
+    # ── Opposite axis lines (top / right) ────────────────────
+    top_axis_line_width: float = 0.0  # 0 = hidden
+    top_axis_line_color: str = "#444"
+    right_axis_line_width: float = 0.0  # 0 = hidden
+    right_axis_line_color: str = "#444"
+
     def to_dict(self) -> dict[str, Any]:
         """Serialize to a plain dictionary."""
         result: dict[str, Any] = {
@@ -102,6 +108,10 @@ class AxesConfig:
             "group_label_alternate": self.group_label_alternate,
             "group_label_alt_spacing": self.group_label_alt_spacing,
             "group_order": self.group_order,
+            "top_axis_line_width": self.top_axis_line_width,
+            "top_axis_line_color": self.top_axis_line_color,
+            "right_axis_line_width": self.right_axis_line_width,
+            "right_axis_line_color": self.right_axis_line_color,
         }
         if self.y2 is not None:
             result["y2"] = self.y2.to_dict()
@@ -122,4 +132,8 @@ class AxesConfig:
             group_label_alternate=data.get("group_label_alternate", True),
             group_label_alt_spacing=data.get("group_label_alt_spacing", 0.05),
             group_order=data.get("group_order"),
+            top_axis_line_width=float(data.get("top_axis_line_width", 0.0)),
+            top_axis_line_color=data.get("top_axis_line_color", "#444"),
+            right_axis_line_width=float(data.get("right_axis_line_width", 0.0)),
+            right_axis_line_color=data.get("right_axis_line_color", "#444"),
         )

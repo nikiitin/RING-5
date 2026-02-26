@@ -18,6 +18,7 @@ from src.core.models.visualization.annotation_config import AnnotationConfig
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import (
     BarTraceConfig,
+    HeatmapTraceConfig,
     HistogramTraceConfig,
     LineTraceConfig,
     ScatterTraceConfig,
@@ -39,14 +40,31 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
     Returns:
         A fully populated (but unstyled) ``go.Figure``.
     """
-    if result.secondary_y:
+    traces_list = list(result.traces)
+    heatmap_only = (
+        len(traces_list) > 1
+        and all(isinstance(trace, HeatmapTraceConfig) for trace in traces_list)
+        and not result.secondary_y
+    )
+
+    if heatmap_only:
+        subplot_titles = [trace.name for trace in traces_list]
+        fig = make_subplots(
+            rows=len(traces_list),
+            cols=1,
+            subplot_titles=subplot_titles,
+            vertical_spacing=0.08,
+        )
+    elif result.secondary_y:
         fig = make_subplots(specs=[[{"secondary_y": True}]])
     else:
         fig = go.Figure()
 
-    for trace in result.traces:
+    for index, trace in enumerate(traces_list, start=1):
         plotly_trace = _convert_trace(trace)
-        if result.secondary_y:
+        if heatmap_only:
+            fig.add_trace(plotly_trace, row=index, col=1)
+        elif result.secondary_y:
             secondary = trace.yaxis == "y2"
             fig.add_trace(plotly_trace, secondary_y=secondary)
         else:
@@ -96,6 +114,8 @@ def _convert_trace(trace: TraceConfig) -> go.BaseTraceType:  # type: ignore[name
         return _scatter_trace(trace)
     elif isinstance(trace, HistogramTraceConfig):
         return _histogram_trace(trace)
+    elif isinstance(trace, HeatmapTraceConfig):
+        return _heatmap_trace(trace)
     else:
         # Fallback for base TraceConfig — render as bar
         return _bar_trace_from_base(trace)
@@ -287,6 +307,25 @@ def _bar_trace_from_base(trace: TraceConfig) -> go.Bar:
     if trace.color:
         kwargs["marker"] = {"color": trace.color}
     return go.Bar(**{k: v for k, v in kwargs.items() if v is not None})
+
+
+def _heatmap_trace(trace: HeatmapTraceConfig) -> go.Heatmap:
+    """Convert a ``HeatmapTraceConfig`` to ``go.Heatmap``."""
+    kwargs: dict[str, Any] = {
+        "x": trace.col_labels,
+        "y": trace.row_labels,
+        "z": trace.z,
+        "colorscale": trace.colorscale,
+        "name": trace.name,
+        "showlegend": False,
+    }
+    if trace.show_values and trace.text:
+        kwargs["text"] = trace.text
+        kwargs["texttemplate"] = "%{text}"
+        kwargs["textfont"] = {"size": 10}
+    kwargs["hoverongaps"] = False
+    kwargs["colorbar"] = {"title": trace.name}
+    return go.Heatmap(**{k: v for k, v in kwargs.items() if v is not None})
 
 
 def _convert_annotations(

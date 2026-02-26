@@ -7,16 +7,16 @@ instances with the expected field values.
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 from src.core.models.visualization.figure_config import FigureConfig
 from src.core.services.visualization.config_resolver import resolve_config
 from src.web.rendering.config_builder import ConfigSpecBuilder
 
 
-def _sample_config(**overrides: Any) -> Dict[str, Any]:
+def _sample_config(**overrides: Any) -> dict[str, Any]:
     """Build a minimal config dict with optional overrides."""
-    base: Dict[str, Any] = {
+    base: dict[str, Any] = {
         "width": 800,
         "height": 500,
         "margin_t": 80,
@@ -140,9 +140,10 @@ class TestConfigSpecLegend:
         assert leg.position_x == 0.5
         assert leg.position_y == 0.9
 
-    def test_legend_orientation_horizontal(self) -> None:
+    def test_legend_orientation_always_default(self) -> None:
+        """Orientation removed from UI — always model default ('vertical')."""
         spec = ConfigSpecBuilder.from_config(_sample_config(legend_orientation="h"))
-        assert spec.legends[0].orientation == "horizontal"
+        assert spec.legends[0].orientation == "vertical"
 
     def test_legend_orientation_vertical(self) -> None:
         spec = ConfigSpecBuilder.from_config(_sample_config(legend_orientation="v"))
@@ -187,9 +188,7 @@ class TestConfigSpecMultiLegend:
         assert len(spec.legends) == 1
 
     def test_secondary_legend_from_legend2_keys(self) -> None:
-        spec = ConfigSpecBuilder.from_config(
-            _sample_config(legend2_font_size=12, legend2_x=0.5, legend2_orientation="h")
-        )
+        spec = ConfigSpecBuilder.from_config(_sample_config(legend2_font_size=12, legend2_x=0.5))
         assert len(spec.legends) == 2
         assert spec.legends[1].role == "secondary"
 

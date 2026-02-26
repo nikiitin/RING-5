@@ -77,9 +77,19 @@ def apply_numbered_xaxis(
 ) -> tuple[list[str], dict[str, Any] | None]:
     """Replace tick labels with numbered indices and build legend annotation.
 
-    When enabled via config["numbered_xaxis"], replaces verbose X-axis labels
-    with numbered indices (1, 2, 3, ...) and produces a secondary legend
-    annotation mapping numbers back to the original labels.
+    Supports multiselect modes via ``config["numbered_xaxis_modes"]``:
+
+    - **Numbers** — show numbered ticks (1, 2, 3…)
+    - **Number legend** — show annotation box mapping numbers → labels
+    - **Labels** — show original X-axis labels
+
+    Combinations:
+
+    - Numbers + Labels → ``"1. genome"``, ``"2. intruder"``
+    - Numbers + Legend → numbered ticks + annotation box
+    - All three → ``"1. genome"`` ticks + annotation box
+
+    Falls back to old boolean ``config["numbered_xaxis"]`` for compat.
 
     Args:
         tick_text: Original tick label strings (may repeat across categories).
@@ -88,25 +98,57 @@ def apply_numbered_xaxis(
     Returns:
         Tuple of (possibly-replaced tick_text, legend annotation dict or None).
     """
-    if not config.get("numbered_xaxis"):
-        return tick_text, None
+    # Determine active modes (new multiselect or old boolean)
+    modes: list[str] = config.get("numbered_xaxis_modes", [])
+    if not modes:
+        # Backward compat: old boolean → legend-only (ticks hidden)
+        if not config.get("numbered_xaxis"):
+            return tick_text, None
+        modes = ["Number legend"]
+        if config.get("show_numbered_ticks", False):
+            modes.append("Numbers")
+
+    has_numbers: bool = "Numbers" in modes
+    has_labels: bool = "Labels" in modes
+    has_legend: bool = "Number legend" in modes
 
     # Unique groups preserving insertion order
     unique_groups: list[str] = list(dict.fromkeys(tick_text))
 
     # Build numbered tick labels — one per original tick position.
-    # Map each original label to its numbered index.
     label_to_num: dict[str, int] = {g: i + 1 for i, g in enumerate(unique_groups)}
-    if config.get("show_numbered_ticks", False):
-        # Show the number below each bar
+
+    if has_numbers and has_labels:
+        # Combined format: "1. genome"
+        numbered_text = [f"{label_to_num.get(t, '')}. {t}" for t in tick_text]
+    elif has_numbers:
+        # Numbers only
         numbered_text = [str(label_to_num.get(t, "")) for t in tick_text]
+    elif has_labels:
+        # Original labels unchanged
+        numbered_text = list(tick_text)
     else:
-        # Hide ticks entirely — legend annotation is the only reference
+        # Only "Number legend" — hide tick text
         numbered_text = [""] * len(tick_text)
+
+    # Build legend annotation only when "Number legend" is selected
+    if not has_legend:
+        return numbered_text, None
 
     # Build legend text — vertical list inside a bordered box
     legend_parts: list[str] = [f"{i + 1}. {g}" for i, g in enumerate(unique_groups)]
-    max_cols: int = int(config.get("numbered_legend_columns", 1))
+
+    # Determine prefix for numbered legend controls (secondary or tertiary pill)
+    if config.get("dual_axis") and not config.get("unified_legend", True):
+        _prefix = "legend3_"
+    else:
+        _prefix = "legend2_"
+
+    # Column count: prefer legend pill's ncols, fall back to old config key
+    max_cols: int = int(config.get(f"{_prefix}ncols", config.get("numbered_legend_columns", 1)))
+    # Treat 0 (auto) as 1 for annotation text layout
+    if max_cols <= 0:
+        max_cols = 1
     if max_cols > 1:
         # Lay out items **column-wise** (top-to-bottom, then next column)
         n_items: int = len(legend_parts)
@@ -132,12 +174,6 @@ def apply_numbered_xaxis(
     else:
         # One entry per line (vertical, like a standard legend)
         legend_text = "<br>".join(legend_parts)
-
-    # Determine prefix for numbered legend position keys
-    if config.get("dual_axis") and not config.get("unified_legend", True):
-        _prefix = "legend3_"
-    else:
-        _prefix = "legend2_"
 
     legend_x: float = float(config.get(f"{_prefix}x", config.get("numbered_legend_x", 1.02)))
     legend_y: float = float(config.get(f"{_prefix}y", config.get("numbered_legend_y", 0.5)))
@@ -313,6 +349,11 @@ def apply_separate_legends(fig: go.Figure, config: dict[str, Any]) -> None:
         "orientation": config.get("legend2_orientation", "v"),
     }
 
+    # Item spacing (tracegroupgap)
+    _tracegroupgap = config.get("legend2_tracegroupgap", 10)
+    if _tracegroupgap and int(_tracegroupgap) > 0:
+        legend2_cfg["tracegroupgap"] = int(_tracegroupgap)
+
     # Font
     legend2_font: dict[str, Any] = {}
     if config.get("legend2_font_color"):
@@ -343,6 +384,29 @@ def apply_separate_legends(fig: go.Figure, config: dict[str, Any]) -> None:
     if config.get("legend2_border_width", 0) > 0:
         legend2_cfg["bordercolor"] = config.get("legend2_border_color", "#000000")
         legend2_cfg["borderwidth"] = config["legend2_border_width"]
+
+    # Sizing — multi-column layout via entrywidth
+    _ncols = int(config.get("legend2_ncols", 0))
+    _entrywidth = int(config.get("legend2_entrywidth", 0))
+    if _ncols > 1 and _entrywidth <= 0:
+        # Auto-compute: each entry takes 1/ncols of the plot width
+        legend2_cfg["entrywidth"] = round(1.0 / _ncols, 4)
+        legend2_cfg["entrywidthmode"] = "fraction"
+    elif _ncols == 1 and _entrywidth <= 0:
+        # Force single column — each entry takes full width
+        legend2_cfg["entrywidth"] = 1.0
+        legend2_cfg["entrywidthmode"] = "fraction"
+    elif _entrywidth > 0:
+        legend2_cfg["entrywidth"] = _entrywidth
+        legend2_cfg["entrywidthmode"] = "pixels"
+
+    _itemwidth = int(config.get("legend2_itemwidth", 0))
+    if _itemwidth > 0:
+        legend2_cfg["itemwidth"] = max(30, _itemwidth)  # Plotly minimum is 30
+
+    _indentation = int(config.get("legend2_indentation", 0))
+    if _indentation != 0:
+        legend2_cfg["indentation"] = _indentation
 
     # Title
     legend2_title = config.get("legend2_title")

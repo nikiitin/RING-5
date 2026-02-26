@@ -210,27 +210,13 @@ def render_grouped_theme_extras(
                 key=f"iso_gap_{plot_id}",
             )
 
-    # Numbered X-axis Labels
-    st.markdown("**Numbered X-axis Labels**")
-    e1, e2 = st.columns(2)
-    with e1:
-        config["numbered_xaxis"] = st.checkbox(
-            "Use Numbered Labels",
-            value=saved_config.get("numbered_xaxis", False),
-            key=f"num_xaxis_{plot_id}",
-            help=(
-                "Replace X-axis tick labels with numbered indices and "
-                "show a secondary legend box mapping numbers to original labels."
-            ),
-        )
-    if config["numbered_xaxis"]:
-        with e2:
-            config["show_numbered_ticks"] = st.checkbox(
-                "Show Numbers as X-axis Ticks",
-                value=saved_config.get("show_numbered_ticks", False),
-                key=f"show_num_ticks_{plot_id}",
-                help="Show the configuration number below each bar as an X-axis tick label.",
-            )
+    # Numbered X-axis annotation legend formatting
+    # (Enable/disable is controlled by the multiselect pills
+    #  in Axes → X-Axis → Numbered X-Axis Labels.)
+    _modes: list[str] = saved_config.get("numbered_xaxis_modes", [])
+    _has_legend_mode: bool = "Number legend" in _modes or saved_config.get("numbered_xaxis", False)
+    if _has_legend_mode:
+        st.markdown("**Number Legend Formatting**")
         f1, f2 = st.columns(2)
         with f1:
             config["numbered_legend_size"] = st.number_input(

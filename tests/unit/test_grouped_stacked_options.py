@@ -3,7 +3,7 @@
 Covers _render_stack_total_options and render_theme_options.
 """
 
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from src.web.pages.ui.plotting.types.grouped_stacked_bar_plot import (
@@ -32,7 +32,7 @@ class TestRenderStackTotalOptions:
         mock_st.checkbox.return_value = False
 
         plot = GroupedStackedBarPlot(1, "test")
-        config: Dict[str, Any] = {}
+        config: dict[str, Any] = {}
         plot._render_stack_total_options({}, config)
 
         assert config["show_totals"] is False
@@ -49,7 +49,7 @@ class TestRenderStackTotalOptions:
         mock_st.selectbox.return_value = "Outside"
 
         plot = GroupedStackedBarPlot(1, "test")
-        config: Dict[str, Any] = {}
+        config: dict[str, Any] = {}
         plot._render_stack_total_options({}, config)
 
         assert config["show_totals"] is True
@@ -72,7 +72,7 @@ class TestRenderStackTotalOptions:
         mock_st.selectbox.side_effect = ["Inside", "Middle"]
 
         plot = GroupedStackedBarPlot(1, "test")
-        config: Dict[str, Any] = {}
+        config: dict[str, Any] = {}
         plot._render_stack_total_options({}, config)
 
         assert config["total_position"] == "Inside"
@@ -112,7 +112,6 @@ class TestRenderThemeOptions:
             True,  # show_separators
             False,  # shade_alternate
             False,  # isolate_last_group
-            False,  # numbered_xaxis
         ]
 
         plot = GroupedStackedBarPlot(1, "test")
@@ -121,7 +120,6 @@ class TestRenderThemeOptions:
         assert config["major_label_size"] == 16
         assert config["show_separators"] is True
         assert config["isolate_last_group"] is False
-        assert config["numbered_xaxis"] is False
 
     @patch("src.web.components.plotting.config.grouped_stacked_bar_theme.st")
     @patch(
@@ -150,7 +148,6 @@ class TestRenderThemeOptions:
             True,  # show_separators
             False,  # shade_alternate
             True,  # isolate_last_group
-            False,  # numbered_xaxis
         ]
 
         plot = GroupedStackedBarPlot(1, "test")
@@ -158,4 +155,3 @@ class TestRenderThemeOptions:
 
         assert config["isolate_last_group"] is True
         assert config["isolation_gap"] == 0.8
-        assert config["numbered_xaxis"] is False

@@ -14,9 +14,8 @@ This is the UI counterpart of
 :class:`src.core.services.shapers.impl.split_apply.SplitApply`.
 """
 
-from typing import cast
-
 from collections.abc import Callable
+from typing import cast
 
 import pandas as pd
 import streamlit as st

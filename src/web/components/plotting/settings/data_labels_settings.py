@@ -56,6 +56,23 @@ class DataLabelsSettingsComponent:
             key=f"{key_prefix}show_val_{self.plot_id}",
         )
 
+        # Progressive disclosure: only show formatting controls
+        # when "Show Values" is enabled.
+        if not show_values:
+            return {
+                "show_values": False,
+                "text_color_mode": saved_config.get("text_color_mode", "auto"),
+                "text_color": saved_config.get("text_color", "#000000"),
+                "text_font_size": saved_config.get("text_font_size", 10),
+                "text_rotation": saved_config.get("text_rotation", 0),
+                "text_position": saved_config.get("text_position", "auto"),
+                "text_anchor": saved_config.get("text_anchor", "auto"),
+                "text_format": saved_config.get("text_format", ".2f"),
+                "text_display_logic": saved_config.get("text_display_logic", "all"),
+                "text_threshold": float(saved_config.get("text_threshold", 0.0)),
+                "text_constraint": saved_config.get("text_constraint", "none"),
+            }
+
         text_color_mode = st.selectbox(
             "Value Color Mode",
             options=["auto", "contrast", "custom"],

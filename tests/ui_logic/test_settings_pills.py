@@ -191,6 +191,9 @@ class TestAxesSubPills:
         mock_st.pills.return_value = "x"
         mock_st.checkbox.return_value = True
         mock_st.slider.return_value = -45
+        mock_st.columns.side_effect = columns_side_effect
+        mock_st.color_picker.return_value = "#444444"
+        mock_st.number_input.return_value = 0
         data = pd.DataFrame({"a": [1]})
 
         specific_fn = MagicMock(return_value={})
@@ -214,6 +217,9 @@ class TestAxesSubPills:
         mock_st.checkbox.return_value = True
         mock_st.slider.return_value = 0
         mock_st.number_input.return_value = 0
+        mock_st.columns.side_effect = columns_side_effect
+        mock_st.color_picker.return_value = "#444444"
+        mock_st.selectbox.return_value = "solid"
 
         with patch.object(
             comp, "_render_y_axis_settings", wraps=comp._render_y_axis_settings
@@ -231,6 +237,9 @@ class TestAxesSubPills:
         mock_st.checkbox.return_value = True
         mock_st.slider.return_value = 0
         mock_st.number_input.return_value = 0
+        mock_st.columns.side_effect = columns_side_effect
+        mock_st.color_picker.return_value = "#444444"
+        mock_st.selectbox.return_value = "solid"
 
         with patch.object(
             comp, "_render_y_axis_settings", wraps=comp._render_y_axis_settings

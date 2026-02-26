@@ -340,8 +340,14 @@ class BasePlot(ABC):
             saved_config.get("dual_axis")
         )
         has_secondary: bool = has_dual_axis or self._supports_secondary_legend()
-        has_tertiary: bool = self._supports_tertiary_legend() and bool(
-            saved_config.get("show_group_labels") or saved_config.get("numbered_xaxis")
+        has_tertiary: bool = (
+            self._supports_tertiary_legend()
+            and has_dual_axis
+            and bool(
+                saved_config.get("show_group_labels")
+                or "Number legend" in saved_config.get("numbered_xaxis_modes", [])
+                or saved_config.get("numbered_xaxis")
+            )
         )
 
         component = LegendSettingsComponent(self.plot_id, self.plot_type)
@@ -357,12 +363,14 @@ class BasePlot(ABC):
         has_dual_axis: bool = self.plot_type == "dual_axis_bar_dot" or bool(
             saved_config.get("dual_axis")
         )
+        show_group_labels: bool = self.plot_type == "grouped_stacked_bar"
 
         component = AxesSettingsComponent(self.plot_id, self.plot_type)
         return component.render(
             saved_config,
             data=data,
             has_dual_axis=has_dual_axis,
+            show_group_labels=show_group_labels,
             render_specific_fn=self.render_specific_advanced_options,
             render_ordering_fn=self._render_ordering_ui,
         )

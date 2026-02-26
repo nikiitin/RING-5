@@ -101,21 +101,21 @@ class DataSourceComponents:
 
         st.markdown("---")
 
-        # Show simulator selector when multiple backends are available
+        # Simulator backend selector (pills navigation)
         simulators = SimulatorRegistry.available_simulator_info()
-        if len(simulators) > 1:
-            sim_names = [s.name for s in simulators]
-            sim_display = {s.name: s.display_name for s in simulators}
-            chosen = st.selectbox(
-                "Simulator",
-                options=sim_names,
-                format_func=lambda x: sim_display[x],
-                index=sim_names.index(selected_sim) if selected_sim in sim_names else 0,
-                key="simulator_selector",
-            )
-            if chosen and chosen != selected_sim:
-                api.state_manager.set_simulator(chosen)
-                st.rerun()
+        sim_names = [s.name for s in simulators]
+        sim_display = {s.name: f":material/memory: {s.display_name}" for s in simulators}
+        chosen: str | None = st.pills(
+            "Simulator",
+            options=sim_names,
+            format_func=lambda x: sim_display.get(x, str(x)),
+            selection_mode="single",
+            default=selected_sim if selected_sim in sim_names else sim_names[0],
+            key="simulator_selector",
+        )
+        if chosen and chosen != selected_sim:
+            api.state_manager.set_simulator(chosen)
+            st.rerun()
 
         st.markdown(f"### {sim_label} Stats Parser Configuration")
 
@@ -154,20 +154,21 @@ class DataSourceComponents:
 
             st.markdown("#### Parsing Strategy")
             current_strategy = api.state_manager.get_parser_strategy()
-            strategy_options = {
-                "simple": "Simple (stats.txt only)",
-                "config_aware": "Config-Aware (Integrates config.ini)",
-            }
+            # Strategies come from the simulator's registry contract
+            strategies = sim_info.parsing_strategies
+            strategy_options = {s.name: s.display_name for s in strategies}
+            strategy_help = {s.name: s.description for s in strategies}
+
+            # Fall back to first strategy if current is not in options
+            if current_strategy not in strategy_options:
+                current_strategy = strategies[0].name
 
             selected_strategy = st.segmented_control(
                 "Select ingestion strategy:",
                 options=list(strategy_options.keys()),
                 format_func=lambda x: strategy_options[x],
                 default=current_strategy,
-                help=(
-                    "Config-Aware strategy allows extracting metadata "
-                    "from simulation config files."
-                ),
+                help=strategy_help.get(current_strategy, ""),
                 key="parser_strategy_selector",
             )
 

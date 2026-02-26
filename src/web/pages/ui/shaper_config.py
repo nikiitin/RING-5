@@ -14,6 +14,7 @@ from src.core.services.shapers.factory import ShaperFactory
 from src.core.services.shapers.validation import validate_shaper_config
 from src.web.components.shapers.mean_config import MeanConfig
 from src.web.components.shapers.normalize_config import NormalizeConfig
+from src.web.components.shapers.pivot_config import PivotLongerConfig, PivotWiderConfig
 from src.web.components.shapers.selector_transformer_configs import (
     ColumnSelectorConfig,
     ConditionSelectorConfig,
@@ -66,6 +67,8 @@ def configure_shaper(
         "splitApply": SplitApplyConfig.render,
         "transformer": TransformerConfig.render,
         "sort": SortConfig.render,
+        "pivotLonger": PivotLongerConfig.render,
+        "pivotWider": PivotWiderConfig.render,
     }
 
     if shaper_type in config_dispatch:

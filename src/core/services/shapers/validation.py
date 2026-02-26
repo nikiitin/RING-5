@@ -20,6 +20,8 @@ from src.core.models.shaper_models import ShaperStepConfig
 _REQUIRED_PARAMS: dict[str, list[str]] = {
     "mean": ["groupingColumns", "meanVars"],
     "normalize": ["normalizeVars", "normalizerColumn", "normalizerValue", "groupBy"],
+    "pivotLonger": ["id_vars", "value_vars", "var_name", "value_name"],
+    "pivotWider": ["index", "columns", "values"],
     "sort": ["order_dict"],
     "splitApply": ["joinColumns", "groups"],
     "columnSelector": ["columns"],

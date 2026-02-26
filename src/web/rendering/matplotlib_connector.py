@@ -356,6 +356,11 @@ class FigureSpecToMatplotlib:
             if legend.border_width > 0:
                 kwargs["edgecolor"] = legend.border_color
 
+            if legend.title:
+                kwargs["title"] = legend.title
+                if legend.title_font_size > 0:
+                    kwargs["title_fontsize"] = legend.title_font_size
+
             # Primary legend on the main axes
             if legend.role == "primary":
                 handles, labels = ax.get_legend_handles_labels()
@@ -365,6 +370,10 @@ class FigureSpecToMatplotlib:
                 if leg and legend.bold:
                     for text in leg.get_texts():
                         text.set_fontweight("bold")
+                if leg and legend.title_font_color:
+                    title_text = leg.get_title()
+                    if title_text:
+                        title_text.set_color(legend.title_font_color)
             elif legend.role == "secondary":
                 # Secondary legend on the twin axis
                 for child_ax in ax.figure.get_axes():
@@ -373,6 +382,10 @@ class FigureSpecToMatplotlib:
                         if leg and legend.bold:
                             for text in leg.get_texts():
                                 text.set_fontweight("bold")
+                        if leg and legend.title_font_color:
+                            title_text = leg.get_title()
+                            if title_text:
+                                title_text.set_color(legend.title_font_color)
                         break
             elif legend.role == "tertiary":
                 # Boxed legend — rendered via _apply_annotations from
@@ -602,21 +615,59 @@ class FigureSpecToMatplotlib:
 
     @staticmethod
     def _apply_axis_colors(spec: FigureConfig, ax: Any) -> None:
-        """Apply tick_font_color, axis_line_color, axis_line_width."""
+        """Apply tick_font_color, axis_line_color, axis_line_width.
+
+        Also handles top/right axis line visibility via spines.
+        """
         if spec.axes is None:
             return
 
-        for axis_spec, mpl_axis_name in [
-            (spec.axes.x, "x"),
-            (spec.axes.y, "y"),
-        ]:
-            if axis_spec.tick_font_color:
-                ax.tick_params(axis=mpl_axis_name, colors=axis_spec.tick_font_color)
-            if axis_spec.axis_line_color:
-                spine_names = ["bottom", "top"] if mpl_axis_name == "x" else ["left", "right"]
-                for sp in spine_names:
-                    ax.spines[sp].set_color(axis_spec.axis_line_color)
-                    ax.spines[sp].set_linewidth(axis_spec.axis_line_width)
+        # ── Bottom (X) axis line ─────────────────────────────────
+        x = spec.axes.x
+        if x.tick_font_color:
+            ax.tick_params(axis="x", colors=x.tick_font_color)
+
+        # Bottom spine
+        if x.axis_line_width > 0:
+            color = x.axis_line_color or x.axis_color
+            ax.spines["bottom"].set_color(color)
+            ax.spines["bottom"].set_linewidth(x.axis_line_width)
+            ax.spines["bottom"].set_visible(True)
+        else:
+            ax.spines["bottom"].set_visible(False)
+
+        # Top spine
+        top_w = spec.axes.top_axis_line_width
+        if top_w > 0:
+            ax.spines["top"].set_color(spec.axes.top_axis_line_color)
+            ax.spines["top"].set_linewidth(top_w)
+            ax.spines["top"].set_visible(True)
+        else:
+            ax.spines["top"].set_visible(False)
+
+        # ── Left (Y) axis line ───────────────────────────────────
+        y = spec.axes.y
+        if y.tick_font_color:
+            ax.tick_params(axis="y", colors=y.tick_font_color)
+
+        # Left spine
+        if y.axis_line_width > 0:
+            color = y.axis_line_color or y.axis_color
+            ax.spines["left"].set_color(color)
+            ax.spines["left"].set_linewidth(y.axis_line_width)
+            ax.spines["left"].set_visible(True)
+        else:
+            ax.spines["left"].set_visible(False)
+
+        # Right spine (when no Y2)
+        right_w = spec.axes.right_axis_line_width
+        if spec.axes.y2 is None:
+            if right_w > 0:
+                ax.spines["right"].set_color(spec.axes.right_axis_line_color)
+                ax.spines["right"].set_linewidth(right_w)
+                ax.spines["right"].set_visible(True)
+            else:
+                ax.spines["right"].set_visible(False)
 
     @staticmethod
     def create_figure(

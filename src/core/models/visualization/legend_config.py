@@ -94,6 +94,8 @@ class LegendConfig:
     # ── Layout ───────────────────────────────────────────────────
     ncol: int = 1  # number of columns, -1 = auto
     col_width: float = -1.0  # sentinel: -1 = auto column width
+    entrywidth: int = 0  # Plotly entrywidth in pixels, 0 = auto
+    indentation: int = 0  # horizontal indentation of grouped items in px
     orientation: Literal["horizontal", "vertical"] = "vertical"
     itemsizing: Literal["constant", "trace"] = "constant"
     itemwidth: int = 30
@@ -106,6 +108,7 @@ class LegendConfig:
     position_y: float = INHERIT_F  # -1 = auto
     anchor_x: Literal["left", "center", "right", "auto"] = "auto"
     anchor_y: Literal["top", "middle", "bottom", "auto"] = "auto"
+    valign: Literal["top", "middle", "bottom"] = "middle"  # vertical text alignment
     custom_position: bool = False  # whether to use position_x/y
 
     # ── Styling ──────────────────────────────────────────────────
@@ -134,6 +137,8 @@ class LegendConfig:
             "bold": self.bold,
             "ncol": self.ncol,
             "col_width": self.col_width,
+            "entrywidth": self.entrywidth,
+            "indentation": self.indentation,
             "orientation": self.orientation,
             "itemsizing": self.itemsizing,
             "itemwidth": self.itemwidth,
@@ -144,6 +149,7 @@ class LegendConfig:
             "position_y": self.position_y,
             "anchor_x": self.anchor_x,
             "anchor_y": self.anchor_y,
+            "valign": self.valign,
             "custom_position": self.custom_position,
             "bgcolor": self.bgcolor,
             "border_width": self.border_width,

@@ -22,9 +22,9 @@ from src.core.models.visualization.figure_config import (
     SeparatorConfig,
 )
 from src.core.models.visualization.legend_config import LegendConfig
-from src.core.services.visualization.config_resolver import resolve_config
 from src.core.models.visualization.series_style_config import SeriesStyleConfig
 from src.core.models.visualization.typography_config import TypographyConfig
+from src.core.services.visualization.config_resolver import resolve_config
 from src.web.rendering.config_builder import PlotlyFigureSpecBuilder, PresetSpecBuilder
 from src.web.rendering.plotly_connector import FigureSpecToPlotly
 
@@ -179,6 +179,53 @@ class TestFigureSpecToPlotly:
 
         FigureSpecToPlotly.apply(resolved, fig)
         # Should not crash, title remains whatever Plotly default is
+
+    def test_apply_color_palette_with_heatmap_does_not_set_marker(self) -> None:
+        """Palette application should not try marker updates on heatmap traces."""
+        fig = go.Figure(
+            data=[
+                go.Heatmap(
+                    x=[0, 1],
+                    y=[0, 1],
+                    z=cast(Any, [[1, 2], [3, 4]]),
+                    name="hm",
+                )
+            ]
+        )
+        spec = FigureConfig(color_palette=["#111111", "#222222"])
+        resolved = resolve_config(spec)
+
+        FigureSpecToPlotly.apply(resolved, fig)
+
+        assert cast(Any, fig.data[0]).type == "heatmap"
+        assert fig.layout.colorway is not None
+
+    def test_trace_overrides_with_heatmap_color_does_not_set_marker(self) -> None:
+        """Trace override color should not try marker updates on heatmap traces."""
+        fig = go.Figure(
+            data=[
+                go.Heatmap(
+                    x=[0, 1],
+                    y=[0, 1],
+                    z=cast(Any, [[1, 2], [3, 4]]),
+                    name="hm",
+                )
+            ]
+        )
+        spec = FigureConfig(
+            trace_overrides={
+                "hm": SeriesStyleConfig(
+                    color="#ff0000",
+                    symbol="diamond",
+                    marker_size=12,
+                )
+            }
+        )
+        resolved = resolve_config(spec)
+
+        FigureSpecToPlotly.apply(resolved, fig)
+
+        assert cast(Any, fig.data[0]).type == "heatmap"
 
 
 class TestPlotlyFigureSpecBuilder:

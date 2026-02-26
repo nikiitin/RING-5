@@ -1,10 +1,11 @@
-"""Axes settings component — X-axis, Y-left, Y-right configuration.
+"""Axes settings component — X-axis, Y-left, Y-right, Group Labels.
 
 Extracted from ``BasePlot._section_axes()`` and related methods as a
 standalone component following the component-only architecture (P1, P9).
 
 The component renders a nested pills navigation for X / Y-Left / Y-Right
-axes. Plot-type-specific widgets (e.g. bar gap) and ordering controls are
+axes, plus a conditional Group Labels pill for grouped stacked bar plots.
+Plot-type-specific widgets (e.g. bar gap) and ordering controls are
 injected via optional callables so the component stays decoupled from the
 ``BasePlot`` class hierarchy.
 
@@ -15,6 +16,7 @@ Usage::
         saved_config,
         data=df,
         has_dual_axis=False,
+        show_group_labels=False,
         render_specific_fn=plot.render_specific_advanced_options,
         render_ordering_fn=plot._render_ordering_ui,
     )
@@ -69,6 +71,7 @@ class AxesSettingsComponent:
         saved_config: dict[str, Any],
         data: pd.DataFrame | None = None,
         has_dual_axis: bool = False,
+        show_group_labels: bool = False,
         render_specific_fn: SpecificOptionsRenderer | None = None,
         render_ordering_fn: OrderingRenderer | None = None,
     ) -> dict[str, Any]:
@@ -82,6 +85,8 @@ class AxesSettingsComponent:
             Processed DataFrame (needed for ordering controls).
         has_dual_axis : bool
             Whether to show a Y-Right pill.
+        show_group_labels : bool
+            Whether to show a Group Labels pill (grouped stacked bar).
         render_specific_fn : callable | None
             Optional callback for plot-type-specific widgets
             (e.g. bar gap, bar group gap). Signature:
@@ -101,6 +106,8 @@ class AxesSettingsComponent:
         }
         if has_dual_axis:
             _axis_labels["y_right"] = ":material/straighten: Y-Right"
+        if show_group_labels:
+            _axis_labels["group"] = ":material/label: Group Labels"
 
         axis_tab: str | None = st.pills(
             "Axis",
@@ -126,6 +133,8 @@ class AxesSettingsComponent:
             self._render_y_axis_settings(saved_config, config, prefix="")
         elif axis_tab == "y_right":
             self._render_y_axis_settings(saved_config, config, prefix="y2")
+        elif axis_tab == "group":
+            self._render_group_labels_settings(saved_config, config)
 
         return config
 
@@ -134,7 +143,7 @@ class AxesSettingsComponent:
     # ------------------------------------------------------------------
 
     def _render_x_axis_settings(self, saved_config: dict[str, Any], config: dict[str, Any]) -> None:
-        """Render X-axis specific settings (tick angle, grid)."""
+        """Render X-axis specific settings (tick angle, grid, tick marks)."""
         st.markdown("#### X-Axis Settings")
         config["show_x_grid"] = st.checkbox(
             "Show Grid",
@@ -149,6 +158,50 @@ class AxesSettingsComponent:
             step=15,
             key=f"xaxis_angle_{self.plot_id}",
             help="Rotate X-axis labels to prevent overlap",
+        )
+
+        # ── Tick marks ──────────────────────────────────────────
+        st.markdown("**Tick Marks & Grid**")
+        show_xtick_marks = st.checkbox(
+            "Show X-Axis Tick Marks",
+            value=saved_config.get("show_xtick_marks", True),
+            key=f"x_show_ticks_{self.plot_id}",
+        )
+        config["show_xtick_marks"] = show_xtick_marks
+
+        dash_options = [
+            "solid",
+            "dot",
+            "dash",
+            "longdash",
+            "dashdot",
+            "longdashdot",
+        ]
+        xtick_dash_idx = 0
+        if saved_config.get("xtick_dash", "solid") in dash_options:
+            xtick_dash_idx = dash_options.index(saved_config.get("xtick_dash", "solid"))
+
+        xtick_dash: str = "solid"
+        if show_xtick_marks:
+            xtick_dash = (
+                st.selectbox(
+                    "X-Axis Grid Dash Style",
+                    options=dash_options,
+                    index=xtick_dash_idx,
+                    key=f"x_tickdash_{self.plot_id}",
+                )
+                or "solid"
+            )
+        config["xtick_dash"] = xtick_dash
+
+        config["xtick_pad"] = st.number_input(
+            "X-Axis Tick Label Distance (px)",
+            min_value=0.0,
+            max_value=100.0,
+            value=float(saved_config.get("xtick_pad", 5.0)),
+            step=1.0,
+            key=f"xtick_pad_{self.plot_id}",
+            help="Distance between X-axis tick marks and their labels.",
         )
 
     # ------------------------------------------------------------------
@@ -191,3 +244,100 @@ class AxesSettingsComponent:
         )
         if dtick > 0:
             config[dtick_key] = dtick
+
+        # ── Tick marks ──────────────────────────────────────────
+        st.markdown("**Tick Marks & Grid**")
+        show_ytick_marks = st.checkbox(
+            "Show Y-Axis Tick Marks",
+            value=saved_config.get("show_ytick_marks", True),
+            key=f"{prefix}y_show_ticks_{self.plot_id}",
+        )
+        config["show_ytick_marks"] = show_ytick_marks
+
+        dash_options = [
+            "solid",
+            "dot",
+            "dash",
+            "longdash",
+            "dashdot",
+            "longdashdot",
+        ]
+        ytick_dash_idx = 0
+        if saved_config.get("ytick_dash", "solid") in dash_options:
+            ytick_dash_idx = dash_options.index(saved_config.get("ytick_dash", "solid"))
+
+        ytick_dash: str = "solid"
+        if show_ytick_marks:
+            ytick_dash = (
+                st.selectbox(
+                    "Y-Axis Grid Dash Style",
+                    options=dash_options,
+                    index=ytick_dash_idx,
+                    key=f"{prefix}y_tickdash_{self.plot_id}",
+                )
+                or "solid"
+            )
+        config["ytick_dash"] = ytick_dash
+
+        # ── Y-axis title position ───────────────────────────────
+        st.markdown("**Title Position**")
+        config["yaxis_title_standoff"] = st.slider(
+            "Y-Axis Title Standoff (Spacing)",
+            min_value=-1,
+            max_value=200,
+            value=saved_config.get("yaxis_title_standoff", -1),
+            key=f"{prefix}yaxis_title_standoff_{self.plot_id}",
+            help=("Distance between Y-axis ticks and the title. " "-1 = auto (engine default)."),
+        )
+
+        config["yaxis_title_vshift"] = st.slider(
+            "Y-Axis Title Vertical Shift",
+            min_value=-500,
+            max_value=500,
+            value=saved_config.get("yaxis_title_vshift", 0),
+            key=f"{prefix}yaxis_title_vshift_{self.plot_id}",
+            help=(
+                "Move title up (+) or down (-) along"
+                " the axis. Matplotlib only — Plotly uses"
+                " standoff. Note: Disables native"
+                " auto-margins for title."
+            ),
+        )
+
+    # ------------------------------------------------------------------
+    # Group labels settings (separate pill for grouped stacked bar)
+    # ------------------------------------------------------------------
+
+    def _render_group_labels_settings(
+        self, saved_config: dict[str, Any], config: dict[str, Any]
+    ) -> None:
+        """Render group label controls (for grouped stacked bar)."""
+        st.markdown("#### Group Labels")
+        config["major_label_offset"] = st.number_input(
+            "Label-to-Axis Distance",
+            min_value=-1.0,
+            max_value=0.0,
+            value=float(saved_config.get("major_label_offset", -0.15)),
+            step=0.01,
+            format="%.2f",
+            key=f"grp_lbl_dist_{self.plot_id}",
+            help=(
+                "Vertical distance between major group labels "
+                "and the X-axis. More negative = farther below."
+            ),
+        )
+        config["group_label_alternate"] = st.checkbox(
+            "Alternate Group Labels (up/down)",
+            value=saved_config.get("group_label_alternate", True),
+            key=f"grp_alt_{self.plot_id}",
+            help="Stagger group labels to avoid overlap.",
+        )
+        config["group_label_alt_spacing"] = st.number_input(
+            "Alt. Label Row Spacing",
+            min_value=0.0,
+            max_value=0.5,
+            value=float(saved_config.get("group_label_alt_spacing", 0.05)),
+            step=0.01,
+            key=f"grp_alt_sp_{self.plot_id}",
+            help="Vertical distance between alternating label rows.",
+        )

@@ -35,7 +35,7 @@ class TraceConfig:
     """
 
     name: str = ""
-    trace_type: Literal["bar", "line", "scatter", "histogram"] = "bar"
+    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap"] = "bar"
     x: list[str | int | float] = field(default_factory=list)
     y: list[int | float] = field(default_factory=list)
     yaxis: Literal["y", "y2"] = "y"
@@ -55,7 +55,7 @@ class BarTraceConfig(TraceConfig):
     place bars directly without reimplementing grouping logic.
     """
 
-    trace_type: Literal["bar", "line", "scatter", "histogram"] = "bar"
+    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap"] = "bar"
 
     # ── Bar positioning (pre-computed) ───────────────────────────
     x_positions: list[float] = field(default_factory=list)  # center of each bar
@@ -79,7 +79,7 @@ class BarTraceConfig(TraceConfig):
 class LineTraceConfig(TraceConfig):
     """Line-specific trace parameters."""
 
-    trace_type: Literal["bar", "line", "scatter", "histogram"] = "line"
+    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap"] = "line"
 
     line_width: float = 2.0
     line_dash: Literal["solid", "dash", "dot", "dashdot", "longdash"] = "solid"
@@ -96,7 +96,7 @@ class LineTraceConfig(TraceConfig):
 class ScatterTraceConfig(TraceConfig):
     """Scatter-specific trace parameters."""
 
-    trace_type: Literal["bar", "line", "scatter", "histogram"] = "scatter"
+    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap"] = "scatter"
 
     marker_symbol: str = "circle"
     marker_size: int = 8
@@ -119,8 +119,27 @@ class HistogramTraceConfig(TraceConfig):
     the binning should be done by the rendering engine.
     """
 
-    trace_type: Literal["bar", "line", "scatter", "histogram"] = "histogram"
+    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap"] = "histogram"
 
     nbins: int = 20
     normalization: Literal["", "percent", "probability", "density"] = ""
     cumulative: bool = False
+
+
+@dataclass
+class HeatmapTraceConfig(TraceConfig):
+    """Heatmap-specific trace parameters.
+
+    The ``z`` matrix holds cell values; ``x`` and ``y`` hold
+    column and row labels respectively.
+    """
+
+    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap"] = "heatmap"
+
+    # Heatmap-specific label fields (base x/y are unused)
+    col_labels: list[str] = field(default_factory=list)  # column (x-axis) labels
+    row_labels: list[str] = field(default_factory=list)  # row (y-axis) labels
+    z: list[list[float | None]] = field(default_factory=list)
+    colorscale: str = "Viridis"
+    show_values: bool = True
+    text: list[list[str]] | None = None

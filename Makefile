@@ -6,7 +6,10 @@ help:
 	@echo "Common Targets:"
 	@echo "  install                      - Install project dependencies"
 	@echo "  run                          - Start the Streamlit application"
-	@echo "  test                         - Run full test suite"
+	@echo "  test                         - Run unit + integration tests (no coverage gate)"
+	@echo "  test-ci                      - Run tests with 90% coverage gate (main branch CI)"
+	@echo "  test-visual                  - Run visual/UI browser tests (Playwright)"
+	@echo "  test-unit                    - Run only unit tests (fast)"
 	@echo "  dev                          - Install dev dependencies (pytest, black, etc.)"
 	@echo "  clean                        - Remove caches and build artifacts"
 	@echo "  quality-gate                 - Run ALL quality checks (architecture + type + format + lint + security)"
@@ -164,7 +167,29 @@ test-data:
 	fi
 
 test: test-data
-	$(pytest)
+	$(pytest) --no-cov
+
+# Run unit + integration tests WITH 90% coverage gate (for main branch CI/CD)
+test-ci: test-data
+	$(pytest) --cov=src --cov-report=term-missing --cov-branch --cov-fail-under=90
+
+# Run only unit tests (fast feedback during development)
+test-unit:
+	$(pytest) tests/unit/ -q --no-cov
+
+# Run visual/UI browser tests (Playwright — separate from CI coverage)
+# These need a running Streamlit server; they are NOT gated on feature branches.
+test-visual:
+	@echo "=== Visual / UI Browser Tests (Playwright) ==="
+	@echo ""
+	@echo "Starting Streamlit server in background..."
+	@$(VENV_BIN)/streamlit run app.py --server.port 8502 --server.headless true &
+	@sleep 5
+	@echo "Running visual tests..."
+	@$(pytest) tests/ui/ tests/visual/ --no-cov -v --timeout=60 || EXIT_CODE=$$?; \
+	echo "Stopping Streamlit server..."; \
+	kill %1 2>/dev/null || true; \
+	exit $${EXIT_CODE:-0}
 
 # Run the application
 run:

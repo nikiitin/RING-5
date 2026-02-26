@@ -93,7 +93,22 @@ class DataSourcePage(BasePage):
     # SECTION 3: Parser config (Parse mode)
     # ==================================================================
 
-    # 3a — File Location
+    # 3a — Simulator selector (pills)
+    # ------------------------------------------------------------------
+
+    @property
+    def simulator_pills(self) -> Locator:
+        """The simulator backend pills selector (key=simulator_selector)."""
+        return self.page.locator(
+            "[data-testid='stMainBlockContainer'] " "[data-testid='stButtonGroup']"
+        ).filter(has_text="gem5")
+
+    @property
+    def gem5_pill(self) -> Locator:
+        """The gem5 simulator pill button."""
+        return self.simulator_pills.get_by_role("button", name="gem5")
+
+    # 3b — File Location
     # ------------------------------------------------------------------
 
     @property

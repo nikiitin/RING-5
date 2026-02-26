@@ -5,6 +5,7 @@ Centralizes logic for mapping external (Perl/Scanner) type strings to internal P
 Ensures consistency between Scanner and Parser.
 """
 
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 from src.core.models import StatConfig
@@ -57,7 +58,7 @@ class TypeMapper:
         return norm in ("vector", "distribution", "histogram")
 
     @classmethod
-    def create_stat(cls, var_config: StatConfig | dict[str, StatParamValue]) -> "StatType":
+    def create_stat(cls, var_config: StatConfig | Mapping[str, StatParamValue] | Any) -> "StatType":
         """
         Create a strongly-typed Stat object from a configuration.
 
@@ -72,12 +73,7 @@ class TypeMapper:
         statistics_only: bool = False
         params: dict[str, StatParamValue] = {}
 
-        if isinstance(var_config, StatConfig):
-            var_type = var_config.type
-            repeat = var_config.repeat
-            statistics_only = var_config.statistics_only
-            params = var_config.params
-        else:
+        if isinstance(var_config, Mapping):
             var_type_raw = var_config.get("type")
             var_type = str(var_type_raw) if var_type_raw else ""
             repeat_raw = var_config.get("repeat", 1)
@@ -85,7 +81,24 @@ class TypeMapper:
             statistics_only = bool(
                 var_config.get("statistics_only", var_config.get("statisticsOnly", False))
             )
-            params = var_config
+            params = dict(var_config)
+        elif (
+            hasattr(var_config, "type")
+            and hasattr(var_config, "repeat")
+            and hasattr(var_config, "statistics_only")
+            and hasattr(var_config, "params")
+        ):
+            var_type_raw = getattr(var_config, "type", "")
+            var_type = str(var_type_raw) if var_type_raw else ""
+            repeat_raw = getattr(var_config, "repeat", 1)
+            repeat = int(repeat_raw) if isinstance(repeat_raw, (int, float, str)) else 1
+            statistics_only = bool(getattr(var_config, "statistics_only", False))
+            params_raw = getattr(var_config, "params", {})
+            params = params_raw if isinstance(params_raw, dict) else {}
+        else:
+            raise TypeError(
+                "Unsupported var_config type. Expected mapping or StatConfig-like object."
+            )
 
         if not var_type:
             raise ValueError("Configuration missing 'type' field")

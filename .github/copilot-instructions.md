@@ -156,6 +156,7 @@ src/
 ├── core/                    # Layers A+B (NO UI imports)
 │   ├── models/              # Domain models, DTOs, discriminated unions
 │   │   ├── shaper_models.py # Per-type shaper configs (discriminated union)
+│   │   ├── csv_contract.py  # CSV format boundary contract (canonical location)
 │   │   └── visualization/   # FigureConfig, LegendConfig, AxisConfig, etc.
 │   ├── services/            # Layer B: business logic, validation
 │   │   └── shapers/         # Factory (single source of display names), validation
@@ -164,7 +165,7 @@ src/
 ├── parsing/                 # Layer A: simulator parsing (multi-backend)
 │   ├── parser_protocol.py   # SimulationParser protocol
 │   ├── registry.py          # SimulatorRegistry + SimulatorInfo
-│   ├── csv_contract.py      # CSV format boundary contract
+│   ├── csv_contract.py      # Re-export shim (canonical: core/models/csv_contract.py)
 │   └── gem5/                # gem5 implementation
 │       ├── models.py        # Gem5ScannedVariable
 │       └── impl/            # Gem5Parser, Gem5Scanner, Gem5ParserAPI
@@ -223,6 +224,9 @@ src/
 - Unified axis config via `_render_axis_config(prefix, label)` helper
 - Combined reorder+rename via `render_reorderable_list(enable_rename=True)`
 - Legend multi-level: `legend_*` (primary), `legend2_*` (secondary), `legend3_*` (tertiary)
+- **Settings ownership**: Tick marks, tick pad, grid dash → Axes pill (not Typography). Typography = font sizes/colors only.
+- **Y-axis title position**: standoff & vshift sliders → Axes Y-Left pill (not Typography)
+- **Group labels**: alternate & spacing → Axes X-Axis pill
 
 ## Quick Commands
 
@@ -240,5 +244,5 @@ make test                                          # Run all tests
 - **Rules**: `.agent/rules/` (000-009)
 - **Workflows**: `.agent/workflows/` (incl. `large-refactor.md`)
 - **Skills**: `.agent/skills/` (incl. `refactoring-large-codebase/`)
-- **Plans**: `.agent/plans/architectural-refactor-v2.md`, `.agent/plans/multi-simulator-abstraction.md`
+- **Plans**: `.agent/plans/architectural-refactor-v2.md`, `.agent/plans/multi-simulator-abstraction.md`, `.agent/plans/ui-settings-verification.md`
 - **Tests**: `tests/` (unit, integration, ui, ui_logic, ui_unit)

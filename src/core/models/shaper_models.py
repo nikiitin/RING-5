@@ -129,7 +129,7 @@ class SplitApplyGroupConfig(TypedDict, total=False):
     """
 
     columns: list[str]
-    pipeline: list["ShaperStepConfig"]
+    pipeline: list[ShaperStepConfig]
 
 
 class SplitApplyShaperConfig(BaseShaperConfig, total=False):
@@ -234,19 +234,49 @@ class ItemSelectorConfig(BaseShaperConfig, total=False):
 
 
 # ──────────────────────────────────────────────────────────────────────
-# Discriminated Union Type Alias
+# Pivot
 # ──────────────────────────────────────────────────────────────────────
 
-ShaperStepConfig = Union[
-    MeanShaperConfig,
-    NormalizeShaperConfig,
-    SortShaperConfig,
-    SplitApplyShaperConfig,
-    TransformerShaperConfig,
-    ColumnSelectorConfig,
-    ConditionSelectorConfig,
-    ItemSelectorConfig,
-]
+
+class PivotLongerShaperConfig(BaseShaperConfig, total=False):
+    """Configuration for the Pivot Longer (Melt) shaper.
+
+    Pivots data from wide to long format.
+
+    Attributes:
+        id_vars: Columns to use as identifier variables.
+        value_vars: Columns to unpivot.
+        var_name: Name to use for the 'variable' column.
+        value_name: Name to use for the 'value' column.
+        extract_pattern: Regex pattern with a capture group to extract the variable part.
+    """
+
+    id_vars: list[str]
+    value_vars: list[str]
+    var_name: str
+    value_name: str
+    extract_pattern: str
+
+
+class PivotWiderShaperConfig(BaseShaperConfig, total=False):
+    """Configuration for the Pivot Wider shaper.
+
+    Pivots data from long to wide format.
+
+    Attributes:
+        index: Columns to use to make new frame's index.
+        columns: Column to use to make new frame's columns.
+        values: Column(s) to use for populating new frame's values.
+    """
+
+    index: list[str]
+    columns: str
+    values: str
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Discriminated Union Type Alias
+# ──────────────────────────────────────────────────────────────────────
 """Discriminated union of all shaper configurations.
 
 The ``type`` field in ``BaseShaperConfig`` acts as the discriminator.
@@ -256,3 +286,15 @@ to expect.
 This replaces the old flat ``ShaperStepConfig`` mega-union from
 ``data_models.py``.
 """
+ShaperStepConfig = Union[
+    MeanShaperConfig,
+    NormalizeShaperConfig,
+    SortShaperConfig,
+    SplitApplyShaperConfig,
+    TransformerShaperConfig,
+    ColumnSelectorConfig,
+    ConditionSelectorConfig,
+    ItemSelectorConfig,
+    PivotLongerShaperConfig,
+    PivotWiderShaperConfig,
+]
