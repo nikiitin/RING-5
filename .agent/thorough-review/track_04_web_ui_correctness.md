@@ -101,16 +101,33 @@ These indicate control flow paths where variables are used without guaranteed in
 
 ## Outcome
 
-**Status**: PENDING
+**Status**: INVESTIGATION COMPLETE
 
-| Item | Result | Fix Applied | Notes |
+| Item | Finding | Severity | Action for Implementation |
 | --- | --- | --- | --- |
-| 4.1 Direct session_state | PENDING | | |
-| 4.2 None checks (mixer) | PENDING | | |
-| 4.3 None checks (data_source) | PENDING | | |
-| 4.4 Widget pre-init | PENDING | | |
-| 4.5 Key collision (filter) | PENDING | | |
-| 4.6 Key collision (editor) | PENDING | | |
-| 4.7 Chart signatures | PENDING | | |
-| 4.8 Pyright unbound vars | PENDING | | |
-| 4.9 Rerun scope | PENDING | | |
+| 4.1 Direct session_state | **CONFIRMED** — 13 instances across 4 files (seeds_reducer:2, mixer:5, preprocessor:4, outlier_remover:2). All bypass UIStateManager which provides `set_form_value()`, `consume_load_trigger()`. | MEDIUM | Migrate all 13 to UIStateManager.manager API. |
+| 4.2 None checks (mixer) | **CONFIRMED HIGH** — `st.segmented_control()` returns `str | None` at line 69; `st.selectbox()` at line 95 also nullable. Both used without None guards. Line 105 calls `.lower()` on potentially None `operation` → AttributeError crash. | HIGH | Add `if mode is None: return` and `if operation is None: return` guards after widget calls. |
+| 4.3 None checks (data_source) | **NOT A BUG** — All widget return values either have defaults preventing None, or are properly guarded with `if value:` checks. | N/A | No action needed. |
+| 4.4 Widget pre-init | **NOT A BUG** — Pre-initialization at line 160 is intentional Streamlit workaround. Computes intersection of persistent selection with currently visible options to prevent "value not in options" error. Comment documents intent. | N/A | No action needed. |
+| 4.5 Key collision (filter) | **PARTIALLY CONFIRMED** — Keys are user-provided strings. No collision protection in the component. Current callers all use unique keys, but component doesn't prevent misuse. | LOW | Document key uniqueness requirement. Consider adding collision detection. |
+| 4.6 Key collision (editor) | **NOT A BUG** — All keys include `var_id` which is UUID-based, guaranteed unique per variable. Keys like `"var_name_<uuid>"` cannot collide. | N/A | No action needed. |
+| 4.7 Chart signatures | **CONFIRMED** — `ChartDisplayComponent` and `ChartPresenter` have identical signatures AND identical implementations. Pure code duplication across two classes. | MEDIUM | Delete one (likely ChartDisplayComponent), update all imports to canonical class. Cross-ref Track 07. |
+| 4.8 Pyright unbound vars | **CONFIRMED** — `selection_filters`, `strategy`, `merge_label` only defined inside `if extract_pattern:` block. Used unconditionally at lines 256-258. Current workaround uses `"X" in locals()` which pyright cannot track. | MEDIUM | Initialize defaults before the if-block: `selection_filters = {}`, `strategy = "discard"`, `merge_label = "other"`. |
+| 4.9 Rerun scope | **CONFIRMED** — `st.rerun(scope="app")` at portfolio.py:80 inside a `@st.fragment`. Breaks out of fragment scope and reruns entire app. Clears transient state in other pages/fragments. | MEDIUM | Change to `st.rerun()` (fragment-scoped) unless full app reset is specifically required. |
+
+### NEW Issues Discovered During Investigation
+
+| Item | Finding | Severity | Action for Implementation |
+| --- | --- | --- | --- |
+| 4.10 Unused list comprehension in mixer.py | **CONFIRMED** — Line 43: `[c for c in numeric_cols if not c.endswith((".sd", "_stdev"))]` result not assigned to any variable. Dead code from refactoring. | LOW | Either assign to variable or remove the line. |
+| 4.11 Implicit session_state/widget default coupling in mixer.py | **CONFIRMED** — Direct `st.session_state["mixer_mode"] = "Configuration Merge"` conflicts with widget `default="Numerical Operations"`. Works via session_state override, but coupling is implicit and fragile. | MEDIUM | Use UIStateManager consistently. Remove direct session_state assignments. |
+
+### Corrections from Initial Hypotheses
+- **4.3 was NOT a bug** — all None returns properly guarded
+- **4.4 was NOT a bug** — intentional Streamlit workaround, well-documented
+- **4.6 was NOT a bug** — UUID-based keys guarantee uniqueness
+
+### Critical Findings Summary (items requiring fix)
+1. **mixer.py: Missing None checks on widget returns** — HIGH: AttributeError crash on `.lower()` with None operation
+2. **13 direct session_state bypasses** — MEDIUM: Architecture violation across 4 data manager components
+3. **ChartDisplayComponent/ChartPresenter duplication** — MEDIUM: Identical code in two classes
