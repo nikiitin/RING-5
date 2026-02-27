@@ -6,7 +6,8 @@ Provides capabilities for:
 2. Pivot Wider: Pivot a DataFrame from long to wide format.
 """
 
-from typing import cast
+import re
+from typing import Any, cast
 
 import pandas as pd
 
@@ -15,6 +16,38 @@ from src.core.models.shaper_models import (
     PivotWiderShaperConfig,
 )
 from src.core.services.shapers.shaper import Shaper
+
+
+def extract_with_pattern(
+    value: str, pattern: str, group_indices: list[int], separator: str = "_"
+) -> str:
+    """
+    Extract specific capture groups from a string using a regex pattern.
+
+    Args:
+        value: The string to extract from.
+        pattern: Regex pattern with capture groups.
+        group_indices: List of group indices to keep and join.
+        separator: Separator to use when joining multiple groups.
+
+    Returns:
+        Joined capture groups or the original value if no match.
+    """
+    try:
+        match = re.search(pattern, value)
+        if not match:
+            return value
+
+        parts = []
+        for idx in group_indices:
+            try:
+                parts.append(str(match.group(idx)))
+            except IndexError:
+                continue
+
+        return separator.join(parts) if parts else value
+    except Exception:
+        return value
 
 
 class PivotLonger(Shaper):
@@ -26,12 +59,10 @@ class PivotLonger(Shaper):
     a variable part from the column names.
     """
 
-    config: PivotLongerShaperConfig
-
     def __init__(self, params: dict[str, str | list[str]]) -> None:
         """Initialize with PivotLongerShaperConfig."""
+        self.config = cast(PivotLongerShaperConfig, params)
         super().__init__(params)
-        self.config = cast(PivotLongerShaperConfig, self.params)
 
     def _verify_params(self) -> bool:
         """Verify required parameters are present."""
@@ -69,15 +100,88 @@ class PivotLonger(Shaper):
             value_name=self.config["value_name"],
         )
 
-        # Apply extraction pattern if provided
+        # Apply extraction pattern and filtering if provided
         pattern = self.config.get("extract_pattern")
         if pattern:
             try:
-                # Use pandas str.extract which expects a capture group
                 var_name = self.config["var_name"]
-                extracted = result[var_name].str.extract(pattern, expand=False)
-                # If extraction fails (NaNs), fallback to original string or fillna
-                result[var_name] = extracted.fillna(result[var_name])
+                pattern = str(self.config.get("extract_pattern", ""))
+                group_indices = list(self.config.get("extract_group_indices", [1]))
+                separator = str(self.config.get("extract_separator", "_"))
+
+                # Selective unpivoting logic
+                filters = self.config.get("selection_filters", {})
+                strategy = self.config.get("selection_strategy", "discard")
+                merge_label = self.config.get("merge_label", "other")
+
+                if filters:
+                    compiled = re.compile(pattern)
+                    # Convert filter keys to integers once
+                    int_filters = {int(k): v for k, v in filters.items()}
+
+                    def process_row(val: Any) -> str | None:
+                        orig_str = str(val)
+                        match = compiled.search(orig_str)
+                        if not match:
+                            return None
+
+                        # Check if matches filters
+                        for group_idx, allowed_vals in int_filters.items():
+                            try:
+                                if str(match.group(group_idx)) not in allowed_vals:
+                                    if strategy == "discard":
+                                        return None
+                                    return merge_label
+                            except IndexError:
+                                if strategy == "discard":
+                                    return None
+                                return merge_label
+
+                        # Extract using already found match groups if possible,
+                        # or fall back to extract_with_pattern
+                        parts = []
+                        for idx in group_indices:
+                            try:
+                                parts.append(str(match.group(idx)))
+                            except IndexError:
+                                continue
+                        return separator.join(parts) if parts else orig_str
+
+                    # Apply filter/merge logic in a single pass where possible
+                    result[var_name] = result[var_name].apply(process_row)
+
+                    # Drop rows that returned None (discard strategy)
+                    result = result.dropna(subset=[var_name])
+
+                    # If merge strategy, we might have multiple rows with the same merge_label
+                    if strategy == "merge":
+                        # We need to aggregate the value column for the merged rows
+                        id_vars = self.config["id_vars"]
+                        val_name = self.config["value_name"]
+
+                        # Group by everything EXCEPT the value column and sum
+                        result = result.groupby(id_vars + [var_name], as_index=False).agg(
+                            {val_name: "sum"}
+                        )
+                else:
+                    # Vectorized extraction: regex matching in C via pandas
+                    original_values = result[var_name].astype(str)
+                    extracted_df = original_values.str.extract(pattern, expand=True)
+                    n_groups = len(extracted_df.columns)
+                    # group_indices are 1-based (re convention); DataFrame cols are 0-based
+                    col_indices = [idx - 1 for idx in group_indices if 0 < idx <= n_groups]
+                    if col_indices:
+                        if len(col_indices) == 1:
+                            joined = extracted_df.iloc[:, col_indices[0]]
+                        else:
+                            selected = extracted_df.iloc[:, col_indices]
+                            joined = selected.apply(
+                                lambda row: separator.join(s for s in row if pd.notna(s)),
+                                axis=1,
+                            )
+                        # Keep original value where regex didn't match
+                        no_match = extracted_df.isna().all(axis=1)
+                        result[var_name] = joined.where(~no_match, original_values)
             except Exception as e:
                 raise ValueError(f"Failed to apply extraction pattern '{pattern}': {e}") from e
 
@@ -91,12 +195,10 @@ class PivotWider(Shaper):
     Transforms data from a long format to a wide format using pivot().
     """
 
-    config: PivotWiderShaperConfig
-
     def __init__(self, params: dict[str, str | list[str]]) -> None:
         """Initialize with PivotWiderShaperConfig."""
+        self.config = cast(PivotWiderShaperConfig, params)
         super().__init__(params)
-        self.config = cast(PivotWiderShaperConfig, self.params)
 
     def _verify_params(self) -> bool:
         """Verify required parameters are present."""
@@ -112,7 +214,8 @@ class PivotWider(Shaper):
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
         """Execute the pivot_wider operation on the data."""
         super().__call__(data_frame)
-        result = data_frame.copy()
+        # No copy needed: pivot_table() creates a new DataFrame.
+        result = data_frame
 
         index_cols = self.config["index"]
         columns_col = self.config["columns"]
@@ -126,12 +229,14 @@ class PivotWider(Shaper):
         if values_col not in result.columns:
             raise KeyError(f"values target not found in dataframe: '{values_col}'")
 
-        # Perform pivot
+        # Perform pivot using pivot_table with aggfunc to handle duplicate
+        # (index, columns) combinations gracefully instead of raising ValueError.
         try:
-            result = result.pivot(
+            result = result.pivot_table(
                 index=index_cols,
                 columns=columns_col,
                 values=values_col,
+                aggfunc="first",
             )
             # Reset index to flatten the resulting DataFrame
             result = result.reset_index()

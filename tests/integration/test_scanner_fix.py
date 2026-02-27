@@ -80,7 +80,11 @@ class TestScannerFix:
 
         # Execute
         try:
-            DataSourceComponents.render_parser_config(mock_api)
+            with patch(
+                "src.web.components.data_source.data_source_components.as_completed",
+                side_effect=lambda fs: fs,
+            ):
+                DataSourceComponents.render_parser_config(mock_api)
         except AttributeError as e:
             if "'ApplicationAPI' object has no attribute 'backend'" in str(e):
                 pytest.fail(f"Regression detected: {e}")

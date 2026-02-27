@@ -11,6 +11,7 @@ import streamlit as st
 from src.core.application_api import ApplicationAPI
 from src.core.models import ScannedVariable
 from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
+from src.web.components.common.filtered_selector import filtered_multiselect, filtered_selectbox
 from src.web.components.data_source.pattern_index_selector import PatternIndexSelector
 
 
@@ -531,6 +532,11 @@ class VariableEditor:
                     status.update(label="No entries found", state="error")
                     st.warning(f"No valid entries found matching '{var_name}'.")
 
+        # Release completed futures to free memory (~70MB for 252 files).
+        from src.parsing.gem5.impl.pool.pool import ScanWorkPool
+
+        ScanWorkPool.get_instance().cancel_all()
+
         if st.button("Close", key=f"finish_{var_id}"):
             st.rerun()
 
@@ -555,7 +561,7 @@ class VariableEditor:
         # Filter defaults to ensure they exist in discovered list
         valid_defaults = [e for e in current_entries if e in filtered_entries]
 
-        selected_entries = st.multiselect(
+        selected_entries = filtered_multiselect(
             "Select entries to extract:",
             options=filtered_entries,
             default=valid_defaults,
@@ -821,9 +827,9 @@ class VariableEditor:
         with col_add1:
             if available_variables:
                 options = [f"{v['name']} ({v['type']})" for v in available_variables]
-                selected_option = st.selectbox(
+                selected_option = filtered_selectbox(
                     "Search available variables",
-                    options=[""] + options,
+                    options=options,
                     key="var_search_box",
                     help="Type to search for variables found in your stats files",
                 )

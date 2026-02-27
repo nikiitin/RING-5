@@ -227,13 +227,11 @@ class Distribution(StatType):
         object.__setattr__(self, "_reduced", True)
         reduced = {}
 
-        for bucket in self._content:
-            values = self._content.get(bucket, [])
+        for bucket, values in self._content.items():
             if not values:
                 reduced[bucket] = 0.0
             else:
-                total = sum(float(v) for v in values[: self._repeat])
-                reduced[bucket] = total / self._repeat
+                reduced[bucket] = sum(values[: self._repeat]) / self._repeat
 
         object.__setattr__(self, "_reduced_content", reduced)
 

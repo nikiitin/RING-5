@@ -256,6 +256,11 @@ class PivotLongerShaperConfig(BaseShaperConfig, total=False):
     var_name: Required[str]
     value_name: Required[str]
     extract_pattern: str
+    extract_group_indices: list[int]
+    extract_separator: str
+    selection_filters: dict[int, list[str]]
+    selection_strategy: str  # "discard" or "merge"
+    merge_label: str  # e.g. "other" or "9+"
 
 
 class PivotWiderShaperConfig(BaseShaperConfig, total=False):
@@ -277,15 +282,14 @@ class PivotWiderShaperConfig(BaseShaperConfig, total=False):
 # ──────────────────────────────────────────────────────────────────────
 # Discriminated Union Type Alias
 # ──────────────────────────────────────────────────────────────────────
-"""Discriminated union of all shaper configurations.
-
-The ``type`` field in ``BaseShaperConfig`` acts as the discriminator.
-Use ``config["type"]`` to determine which specific config shape
-to expect.
-
-This replaces the old flat ``ShaperStepConfig`` mega-union from
-``data_models.py``.
-"""
+# Discriminated union of all shaper configurations.
+#
+# The ``type`` field in ``BaseShaperConfig`` acts as the discriminator.
+# Use ``config["type"]`` to determine which specific config shape
+# to expect.
+#
+# This replaces the old flat ``ShaperStepConfig`` mega-union from
+# ``data_models.py``.
 ShaperStepConfig = Union[
     MeanShaperConfig,
     NormalizeShaperConfig,

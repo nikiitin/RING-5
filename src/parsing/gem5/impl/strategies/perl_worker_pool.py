@@ -61,6 +61,7 @@ class PerlWorker:
         self.errors_encountered = 0
         self.restarts = 0
         self.last_used = 0.0
+        self.is_busy = False
         self._lock = threading.Lock()
 
         # Start the worker
@@ -415,10 +416,28 @@ class PerlWorkerPool:
 
         with self._lock:
             for worker in self.workers:
+                # Don't check busy workers to avoid blocking or interfering with active parsing
+                if worker.is_busy:
+                    continue
+
+                # Capture health state BEFORE health_check() mutates is_healthy.
+                # If was_healthy=True, the worker is currently in the queue (alive but about
+                # to fail the check). If was_healthy=False, it's already out of the queue.
+                was_healthy = worker.is_healthy
+
                 if not worker.health_check():
                     logger.warning(f"Worker-{worker.worker_id} is unhealthy, restarting...")
+
                     if worker.restart():
                         logger.info(f"Worker-{worker.worker_id} restarted successfully")
+                        if not was_healthy:
+                            # Worker was already out of the queue; add it back.
+                            logger.info(
+                                f"Returning Worker-{worker.worker_id} to queue after repair"
+                            )
+                            self.worker_queue.put(worker)
+                        # If was_healthy, the worker object is still referenced in the
+                        # queue; the in-place restart updated it so no re-add needed.
                     else:
                         logger.error(f"Worker-{worker.worker_id} restart failed!")
 
@@ -445,7 +464,13 @@ class PerlWorkerPool:
                 worker = self.worker_queue.get(timeout=timeout)
 
                 try:
+                    # Note: is_busy is a simple boolean attribute. Python's GIL
+                    # guarantees atomic reads/writes. The health monitor reads
+                    # this flag to skip busy workers (best-effort), so no
+                    # additional synchronization is required.
+                    worker.is_busy = True
                     output_lines, success = worker.parse_file(file_path, variables, timeout)
+                    worker.is_busy = False
 
                     if success:
                         return output_lines
@@ -458,6 +483,8 @@ class PerlWorkerPool:
                 except Exception as e:
                     logger.error(f"Parse error with worker-{worker.worker_id}: {e}")
                 finally:
+                    # Ensure busy flag is cleared even on exception
+                    worker.is_busy = False
                     # Return worker to queue if still healthy
                     if worker.is_healthy:
                         self.worker_queue.put(worker)

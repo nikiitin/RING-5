@@ -204,6 +204,70 @@ class AxesSettingsComponent:
             help="Distance between X-axis tick marks and their labels.",
         )
 
+        # ── Axis Lines ──────────────────────────────────────────
+        st.markdown("**Axis Lines**")
+        al_col1, al_col2 = st.columns(2)
+        with al_col1:
+            config["x_axis_line_width"] = st.number_input(
+                "Bottom Axis Line Width (px)",
+                min_value=0.0,
+                max_value=10.0,
+                value=float(saved_config.get("x_axis_line_width", 1.0)),
+                step=0.5,
+                key=f"x_axis_line_width_{self.plot_id}",
+                help="Width of the bottom X-axis border line. 0 = hidden.",
+            )
+        with al_col2:
+            config["x_axis_line_color"] = st.color_picker(
+                "Bottom Axis Line Color",
+                saved_config.get("x_axis_line_color", "#444444"),
+                key=f"x_axis_line_color_{self.plot_id}",
+            )
+
+        al_col3, al_col4 = st.columns(2)
+        with al_col3:
+            config["top_axis_line_width"] = st.number_input(
+                "Top Axis Line Width (px)",
+                min_value=0.0,
+                max_value=10.0,
+                value=float(saved_config.get("top_axis_line_width", 0.0)),
+                step=0.5,
+                key=f"top_axis_line_width_{self.plot_id}",
+                help="Width of the top axis border line. 0 = hidden.",
+            )
+        with al_col4:
+            config["top_axis_line_color"] = st.color_picker(
+                "Top Axis Line Color",
+                saved_config.get("top_axis_line_color", "#444444"),
+                key=f"top_axis_line_color_{self.plot_id}",
+            )
+
+        # ── Numbered X-Axis ───────────────────────────────────────
+        config["numbered_xaxis"] = st.checkbox(
+            "Use Numbered X-Axis",
+            value=saved_config.get("numbered_xaxis", False),
+            key=f"numbered_xaxis_{self.plot_id}",
+        )
+
+        numbered_options = ["Numbers", "Number legend"]
+        old_numbered = saved_config.get("numbered_xaxis", False)
+        default_modes = saved_config.get(
+            "numbered_xaxis_modes",
+            numbered_options if old_numbered else [],
+        )
+        modes = st.pills(
+            "Numbered X-Axis",
+            options=numbered_options,
+            default=default_modes,
+            selection_mode="multi",
+            key=f"numbered_modes_{self.plot_id}",
+        )
+        if isinstance(modes, list):
+            config["numbered_xaxis_modes"] = modes
+            config["numbered_xaxis"] = len(modes) > 0
+            config["show_numbered_ticks"] = "Numbers" in modes
+            config["show_numbered_legend"] = "Number legend" in modes
+
     # ------------------------------------------------------------------
     # Y-axis settings
     # ------------------------------------------------------------------
@@ -304,6 +368,49 @@ class AxesSettingsComponent:
             ),
         )
 
+        # ── Axis Lines ──────────────────────────────────────────
+        st.markdown("**Axis Lines**")
+        width_key = f"{prefix}y_axis_line_width" if prefix else "y_axis_line_width"
+        color_key = f"{prefix}y_axis_line_color" if prefix else "y_axis_line_color"
+
+        al_col1, al_col2 = st.columns(2)
+        with al_col1:
+            config[width_key] = st.number_input(
+                f"{label} Line Width (px)",
+                min_value=0.0,
+                max_value=10.0,
+                value=float(saved_config.get(width_key, 1.0)),
+                step=0.5,
+                key=f"{prefix}y_axis_line_width_{self.plot_id}",
+                help=f"Width of the {label.lower()} border line. 0 = hidden.",
+            )
+        with al_col2:
+            config[color_key] = st.color_picker(
+                f"{label} Line Color",
+                saved_config.get(color_key, "#444444"),
+                key=f"{prefix}y_axis_line_color_{self.plot_id}",
+            )
+
+        # Opposite (right) axis line — only for primary Y-axis
+        if not prefix:
+            al_col3, al_col4 = st.columns(2)
+            with al_col3:
+                config["right_axis_line_width"] = st.number_input(
+                    "Right Axis Line Width (px)",
+                    min_value=0.0,
+                    max_value=10.0,
+                    value=float(saved_config.get("right_axis_line_width", 0.0)),
+                    step=0.5,
+                    key=f"right_axis_line_width_{self.plot_id}",
+                    help="Width of the right axis border line. 0 = hidden.",
+                )
+            with al_col4:
+                config["right_axis_line_color"] = st.color_picker(
+                    "Right Axis Line Color",
+                    saved_config.get("right_axis_line_color", "#444444"),
+                    key=f"right_axis_line_color_{self.plot_id}",
+                )
+
     # ------------------------------------------------------------------
     # Group labels settings (separate pill for grouped stacked bar)
     # ------------------------------------------------------------------
@@ -326,6 +433,7 @@ class AxesSettingsComponent:
                 "and the X-axis. More negative = farther below."
             ),
         )
+        config["group_label_offset"] = config["major_label_offset"]
         config["group_label_alternate"] = st.checkbox(
             "Alternate Group Labels (up/down)",
             value=saved_config.get("group_label_alternate", True),

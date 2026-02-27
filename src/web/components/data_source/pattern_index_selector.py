@@ -8,6 +8,7 @@ UI-only thin wrapper around PatternIndexService (Layer B).
 import streamlit as st
 
 from src.core.services.data_services.pattern_index_service import PatternIndexService
+from src.web.components.common.filtered_selector import filtered_multiselect
 
 
 class PatternIndexSelector:
@@ -112,12 +113,11 @@ class PatternIndexSelector:
                 st.markdown(f"**`{pos_label}{{...}}`**")
 
             with col2:
-                selected = st.multiselect(
+                selected = filtered_multiselect(
                     f"Indices for {pos_label}",
                     options=available,
                     default=defaults,
                     key=f"pattern_pos_{pos_idx}_{var_id}",
-                    label_visibility="collapsed",
                     help=f"Select which {pos_label} indices to parse",
                 )
 

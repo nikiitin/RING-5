@@ -63,6 +63,7 @@ Last Modified: 2026-01-27
 
 import copy
 import json
+import logging
 from pathlib import Path
 from typing import cast
 
@@ -71,6 +72,8 @@ import pandas as pd
 from src.core.common.utils import sanitize_filename, validate_path_within
 from src.core.models.data_models import PipelineData, PipelineStep, ShaperStepConfig
 from src.core.services.shapers.factory import ShaperFactory
+
+logger = logging.getLogger(__name__)
 
 
 class PipelineService:
@@ -140,30 +143,31 @@ class PipelineService:
     ) -> pd.DataFrame:
         """
         Apply a sequence of shapers to a DataFrame.
-
-        Args:
-            data: Input DataFrame
-            pipeline_config: List of shaper configurations
-
-        Returns:
-            Transformed DataFrame
         """
-        current_data = data.copy()
+        import time
 
-        for shaper_config in pipeline_config:
+        t_start = time.perf_counter()
+        # No initial copy needed: each shaper creates its own copy internally.
+        current_data = data
+
+        for i, shaper_config in enumerate(pipeline_config):
             shaper_type = shaper_config.get("type")
             if not shaper_type:
                 continue
 
             try:
+                t_shaper_start = time.perf_counter()
                 shaper = ShaperFactory.create_shaper(shaper_type, shaper_config)
                 current_data = shaper(current_data)
+                t_shaper_end = time.perf_counter()
+                logger.info(
+                    f"PERF: Shaper {i} ({shaper_type}) took {t_shaper_end - t_shaper_start:.4f}s"
+                )
             except Exception as e:
-                # Log error but maybe re-raise or continue?
-                # Facade usually re-raised or handled it.
-                # For now let's re-raise to be safe conform to tests
                 raise ValueError(f"Failed to apply shaper {shaper_type}: {e}") from e
 
+        t_total = time.perf_counter() - t_start
+        logger.info(f"PERF: process_pipeline total took {t_total:.4f}s for {len(data)} rows")
         return current_data
 
     @staticmethod

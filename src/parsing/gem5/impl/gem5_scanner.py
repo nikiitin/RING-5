@@ -49,16 +49,24 @@ class Gem5Scanner:
             raise FileNotFoundError(f"Stats path does not exist: {stats_path}")
 
         safe_pattern: str = sanitize_glob_pattern(stats_pattern)
-        files: list[Path] = sorted(search_path.rglob(safe_pattern))
+
+        # Early-stop iteration: when limit > 0, stop collecting files from the
+        # generator as soon as we have enough, avoiding a full tree traversal.
+        if limit > 0:
+            files_unsorted: list[Path] = []
+            for f in search_path.rglob(safe_pattern):
+                files_unsorted.append(f)
+                if len(files_unsorted) >= limit:
+                    break
+            files: list[Path] = sorted(files_unsorted)
+        else:
+            files = sorted(search_path.rglob(safe_pattern))
+
         if not files:
             raise FileNotFoundError("No stats files found.")
 
-        files_to_sample: list[Path] = files[:limit] if limit > 0 else files
-
         pool: ScanWorkPool = ScanWorkPool.get_instance()
-        batch_work: list[Gem5ScanWork] = [
-            Gem5ScanWork(str(file_path)) for file_path in files_to_sample
-        ]
+        batch_work: list[Gem5ScanWork] = [Gem5ScanWork(str(file_path)) for file_path in files]
         return pool.submit_batch_async(batch_work)
 
     @staticmethod

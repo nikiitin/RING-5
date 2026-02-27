@@ -114,7 +114,12 @@ def test_render_parser_config(mock_streamlit: Any, mock_api: Any) -> None:
     mock_api.submit_scan_async.return_value = [mock_future]
     mock_api.finalize_scan.return_value = []
 
-    DataSourceComponents.render_parser_config(mock_api)
+    # Patch as_completed so mock futures don't hang
+    with patch(
+        "src.web.components.data_source.data_source_components.as_completed",
+        side_effect=lambda fs: fs,
+    ):
+        DataSourceComponents.render_parser_config(mock_api)
 
     mock_api.submit_scan_async.assert_called()
     # Check that rerun was called

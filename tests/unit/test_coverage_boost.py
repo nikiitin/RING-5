@@ -870,10 +870,14 @@ class TestPatternIndexSelector:
         assert entries == ["0", "1"]
         mock_st.success.assert_called()
 
+    @patch(
+        "src.web.components.data_source.pattern_index_selector.filtered_multiselect",
+        return_value=[],
+    )
     @patch("src.web.components.data_source.pattern_index_selector.st")
     @patch("src.web.components.data_source.pattern_index_selector.PatternIndexService")
     def test_render_selector_empty_selection_warns(
-        self, mock_svc: MagicMock, mock_st: MagicMock
+        self, mock_svc: MagicMock, mock_st: MagicMock, mock_filtered: MagicMock
     ) -> None:
         from src.web.components.data_source.pattern_index_selector import (
             PatternIndexSelector,

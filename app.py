@@ -16,8 +16,11 @@ def run_app() -> None:
     """Main application entry point."""
     # LATE IMPORTS: Avoid loading UI/Plotting modules when this file is imported by workers.
     # This prevents the "missing ScriptRunContext" warnings.
+    import time
+
     import streamlit as st
 
+    _t0 = time.perf_counter()
     # Page configuration
     st.set_page_config(
         page_title="RING-5 Interactive Analyzer",
@@ -152,6 +155,13 @@ def run_app() -> None:
         from src.web.pages.documentation import show_documentation_page
 
         show_documentation_page()
+
+    # Rerun timing diagnostic — remove once perf issue is confirmed resolved.
+    _elapsed = time.perf_counter() - _t0
+    if _elapsed > 0.5:
+        import logging
+
+        logging.getLogger("ring5.perf").warning("Slow rerun: %.2fs (page=%s)", _elapsed, page)
 
 
 if __name__ == "__main__":

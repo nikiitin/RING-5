@@ -4,12 +4,43 @@ Configuration Components for Pivot Shapers.
 Provides Streamlit UI implementations for configuring PivotLonger and PivotWider shapers.
 """
 
+import re
 from typing import Any, cast
 
 import pandas as pd
 import streamlit as st
 
 from src.core.models.data_models import ShaperStepConfig
+from src.core.services.data_services.pattern_index_service import PatternIndexService
+
+
+def detect_common_pattern(strings: list[str]) -> tuple[str, str]:
+    r"""
+    Detect a common numeric pattern among a list of strings.
+
+    Example: ["cpu0.ipc", "cpu1.ipc", "cpu2.ipc"] -> (r"cpu(\d+).ipc", "cpu{}.ipc")
+    """
+    if not strings:
+        return "", ""
+
+    # Simplified version for the UI proof of concept.
+    return "", ""
+
+
+def extract_with_pattern(
+    value: str, pattern: str, group_indices: list[int], separator: str = "_"
+) -> str:
+    """Extract capture groups localized for UI preview."""
+    try:
+        match = re.search(pattern, value)
+        if not match:
+            return value
+        parts = [
+            str(match.group(idx)) for idx in group_indices if 0 <= idx <= (match.lastindex or 0)
+        ]
+        return separator.join(parts) if parts else value
+    except Exception:
+        return value
 
 
 class PivotLongerConfig:
@@ -76,16 +107,144 @@ class PivotLongerConfig:
             )
 
         st.markdown("##### Advanced Extraction (Regex)")
+
+        # Auto-detect logic
+        detected_pattern = ""
+        if value_vars:
+            if st.button(
+                "Auto-detect pattern from Value Columns", key=f"{key_prefix}pl_auto_{shaper_id}"
+            ):
+                detected_pattern, _ = detect_common_pattern([str(v) for v in value_vars])
+                if detected_pattern:
+                    st.success(f"Detected: {detected_pattern}")
+                else:
+                    st.warning("No common numeric pattern detected.")
+
         extract_pattern = st.text_input(
             "Extract Pattern (Optional)",
-            value=str(cfg.get("extract_pattern", "")),
+            value=detected_pattern if detected_pattern else str(cfg.get("extract_pattern", "")),
             key=f"{key_prefix}plonger_pattern_{shaper_id}",
-            help=(
-                "Provide a regex pattern with a capture group "
-                "(e.g., r'.+l(\\\\d+)_cntrl.*') to extract a variable part "
-                "from the old column names. Leave empty to keep the whole string."
-            ),
+            help=("Regex pattern with capture groups (e.g., r'.+l(\\\\d+)_cntrl(\\\\d+).*')."),
         )
+
+        group_indices = list(cfg.get("extract_group_indices", [1]))
+        separator = str(cfg.get("extract_separator", "_"))
+
+        if extract_pattern:
+            try:
+                import re
+
+                compiled = re.compile(extract_pattern)
+                num_groups = compiled.groups
+
+                if num_groups > 0:
+                    st.markdown("###### Selection Options")
+                    labels = PatternIndexService.extract_index_positions(
+                        extract_pattern.replace(r"(\d+)", r"\d+")
+                    )
+
+                    options = {}
+                    for i in range(1, num_groups + 1):
+                        label = labels[i - 1] if i - 1 < len(labels) else f"Group {i}"
+                        options[i] = f"{label} (Group {i})"
+
+                    options[0] = "Whole Match (Group 0)"
+
+                    selected_opt_ids = st.multiselect(
+                        "Sections to Keep",
+                        options=sorted(list(options.keys())),
+                        default=[i for i in group_indices if i in options],
+                        format_func=lambda x: options[x],
+                        key=f"{key_prefix}pl_groups_{shaper_id}",
+                        help="Select one or more capture groups to keep and join.",
+                    )
+                    group_indices = [int(i) for i in selected_opt_ids]
+
+                    if len(group_indices) > 1:
+                        separator = st.text_input(
+                            "Separator",
+                            value=separator,
+                            key=f"{key_prefix}pl_sep_{shaper_id}",
+                            help="Separator to join multiple selected groups.",
+                        )
+
+                    # --- Selective Value Filtering ---
+                    st.markdown("###### Value Filtering")
+                    selection_filters = cast(dict[int, list[str]], cfg.get("selection_filters", {}))
+
+                    # We need to know which values are available for each group
+                    # to show a selector.
+                    group_values: dict[int, set[str]] = {i: set() for i in range(num_groups + 1)}
+                    if value_vars:
+                        for v in value_vars:
+                            m = compiled.search(str(v))
+                            if m:
+                                for i in range(num_groups + 1):
+                                    group_values[i].add(m.group(i))
+
+                    new_selection_filters = {}
+                    for i in group_indices:
+                        if i == 0:
+                            continue  # Skip whole match for per-group filtering usually
+                        label = labels[i - 1] if i - 1 < len(labels) else f"Group {i}"
+
+                        available = sorted(list(group_values.get(i, set())))
+                        selected_vals = selection_filters.get(i, [])
+                        selected_vals = [v for v in selected_vals if v in available]
+
+                        new_vals = st.multiselect(
+                            f"Keep values for {label}",
+                            options=available,
+                            default=selected_vals,
+                            key=f"{key_prefix}pl_filter_{i}_{shaper_id}",
+                            help=(
+                                f"Select specific values to keep for {label}. "
+                                "Leave empty to keep all."
+                            ),
+                        )
+                        if new_vals:
+                            new_selection_filters[i] = new_vals
+
+                    selection_filters = new_selection_filters
+
+                    strategy = str(cfg.get("selection_strategy", "discard"))
+                    strategy_idx = 0 if strategy == "discard" else 1
+
+                    strategy = st.radio(
+                        "Missing values strategy",
+                        options=["discard", "merge"],
+                        index=strategy_idx,
+                        horizontal=True,
+                        key=f"{key_prefix}pl_strategy_{shaper_id}",
+                        help="How to handle rows that don't match the selected values.",
+                    )
+
+                    merge_label = str(cfg.get("merge_label", "other"))
+                    if strategy == "merge":
+                        merge_label = st.text_input(
+                            "Merge Label",
+                            value=merge_label,
+                            key=f"{key_prefix}pl_merge_label_{shaper_id}",
+                            help="Label for the merged 'other' row (e.g., '9+').",
+                        )
+
+                    # Preview
+                    if value_vars:
+                        sample = str(value_vars[0])
+                        is_filtered = bool(selection_filters)
+                        preview = extract_with_pattern(
+                            sample, extract_pattern, group_indices, separator
+                        )
+                        msg = f"Preview: `{sample}` → `{preview}`"
+                        if is_filtered:
+                            msg += " (Filtered)"
+                        st.info(msg)
+                else:
+                    st.warning(
+                        "Pattern has no capture groups (parentheses). " "Defaults to whole match."
+                    )
+            except Exception:
+                st.error("Invalid Regex Pattern")
 
         # Convert to strict types
         result: dict[str, Any] = {
@@ -94,9 +253,14 @@ class PivotLongerConfig:
             "value_vars": [str(c) for c in value_vars],
             "var_name": str(var_name),
             "value_name": str(val_name),
+            "selection_filters": selection_filters if "selection_filters" in locals() else {},
+            "selection_strategy": strategy if "strategy" in locals() else "discard",
+            "merge_label": merge_label if "merge_label" in locals() else "other",
         }
         if extract_pattern.strip():
             result["extract_pattern"] = extract_pattern.strip()
+            result["extract_group_indices"] = group_indices
+            result["extract_separator"] = separator
 
         return cast(ShaperStepConfig, result)
 

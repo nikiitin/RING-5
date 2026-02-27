@@ -17,9 +17,11 @@ import streamlit as st
 from src.core.application_api import ApplicationAPI
 from src.core.models import ParseBatchResult, ScannedVariable
 from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
+from src.parsing.gem5.impl.pool.pool import ScanWorkPool
 from src.parsing.registry import SimulatorRegistry
 from src.web.components.common.card_components import CardComponents
 from src.web.components.common.data_components import DataComponents
+from src.web.components.common.filtered_selector import filtered_selectbox
 from src.web.components.data_source.variable_editor import VariableEditor
 
 logger = logging.getLogger(__name__)
@@ -201,7 +203,11 @@ class DataSourceComponents:
                                 stats_path, stats_pattern, limit=scan_limit
                             )
                             st.write(f"Scanning {len(scan_futures)} files...")
-                            scan_results = [f.result() for f in scan_futures]
+                            scan_results: list[list[ScannedVariable]] = []
+                            total_futures = len(scan_futures)
+                            for i, future in enumerate(as_completed(scan_futures)):
+                                scan_results.append(future.result())
+                                st.write(f"Scanned {i + 1}/{total_futures} files...")
                             st.write("Aggregating patterns...")
                             scanned_vars_result: list[ScannedVariable] = api.finalize_scan(
                                 scan_results
@@ -218,6 +224,8 @@ class DataSourceComponents:
                             f"✅ Scan complete! Found {len(scanned_vars_result)} variables.",
                             icon="🔍",
                         )
+                        # Release completed futures to free memory (~70MB for 252 files).
+                        ScanWorkPool.get_instance().cancel_all()
                         st.rerun()
                     except Exception as e:
                         st.exception(e)
@@ -334,16 +342,15 @@ class DataSourceComponents:
                         label += f" (Grouped {count}x)"
                     return label
 
-                options = range(len(scanned_vars))
+                str_options = [format_func(scanned_vars[i]) for i in range(len(scanned_vars))]
                 st.markdown("##### Search Variable")
-                idx = st.selectbox(
+                selected_label = filtered_selectbox(
                     "Search by name...",
-                    options,
-                    format_func=lambda i: format_func(scanned_vars[i]),
+                    str_options,
                     key="dialog_select_var_idx",
                     placeholder="Type to search...",
-                    index=None,
                 )
+                idx = str_options.index(selected_label) if selected_label else None
 
                 if idx is not None:
                     selected_scanned_var = scanned_vars[idx]

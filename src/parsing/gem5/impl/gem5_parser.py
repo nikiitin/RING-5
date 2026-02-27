@@ -78,6 +78,7 @@ import csv
 import logging
 import os
 import re
+import time
 from dataclasses import replace
 from typing import Any
 
@@ -103,16 +104,17 @@ class Gem5Parser:
         scanned_vars: list[ScannedVariable] | None = None,
     ) -> ParseBatchResult:
         """Submit async parsing job and return a ParseBatchResult."""
+        t_start = time.perf_counter()
         safe_path: str = os.path.normpath(stats_path) if stats_path else "."
         search_path = normalize_user_path(safe_path)
         if not search_path.exists():
             raise FileNotFoundError(f"Stats path does not exist: {stats_path}")
 
         # 1. Regex Expansion (Centralized Logic)
-        # If scanned_vars are provided, we expand patterns (e.g., cpu\d+)
-        # before passing to the strategies.
+        t_regex_start = time.perf_counter()
         processed_configs: list[StatConfig] = []
         for config in variables:
+            # ... (rest of logic unchanged, just wrapping)
             expanded_config = config
             if scanned_vars and config.is_regex:
                 try:
@@ -133,22 +135,12 @@ class Gem5Parser:
 
                     if matched_ids:
                         if config.keep_indices:
-                            # keep_indices: Expand each concrete variable
-                            # as a separate config to avoid spatial reduction.
-                            # Respect user-filtered parsed_ids from the UI
-                            # (PatternIndexSelector), falling back to all
-                            # matched_ids when no filter was applied.
                             user_ids_raw = config.params.get("parsed_ids", [])
                             user_ids: list[str] = (
                                 user_ids_raw if isinstance(user_ids_raw, list) else []
                             )
                             ids_to_expand = user_ids if user_ids else matched_ids
-
-                            # Determine if IDs are full variable names
-                            # (scalar patterns) or numeric IDs (vector/etc.).
-                            # Full names contain '.' — numeric IDs don't.
                             ids_are_full_names = any("." in pid for pid in ids_to_expand)
-
                             concrete_names: list[str] = []
                             if ids_are_full_names:
                                 concrete_names = list(ids_to_expand)
@@ -167,12 +159,13 @@ class Gem5Parser:
                                             config.name,
                                         )
 
-                            logger.info(
-                                "PARSER: keep_indices — expanding '%s' "
-                                "into %d individual variables",
-                                config.name,
-                                len(concrete_names),
-                            )
+                            if len(concrete_names) > 50:
+                                logger.warning(
+                                    "PARSER: Regex '%s' expanded to %d concrete variables — "
+                                    "this may increase memory usage and processing time.",
+                                    config.name,
+                                    len(concrete_names),
+                                )
                             for cname in concrete_names:
                                 individual = replace(
                                     config,
@@ -184,17 +177,11 @@ class Gem5Parser:
                                     },
                                 )
                                 processed_configs.append(individual)
-                            continue  # skip appending the original config
+                            continue
                         else:
-                            # Default: Inject identified leaf variables for
-                            # spatial aggregation (mean across instances).
                             params = config.params.copy()
                             params["parsed_ids"] = matched_ids
                             expanded_config = replace(config, params=params)
-                            logger.info(
-                                f"PARSER: Expanded '{config.name}' to "
-                                f"{len(matched_ids)} instances: {matched_ids}"
-                            )
                     else:
                         logger.warning(f"PARSER: No matches found for regex '{config.name}'")
                 except re.error:
@@ -202,11 +189,18 @@ class Gem5Parser:
 
             processed_configs.append(expanded_config)
 
+        t_regex_end = time.perf_counter()
+        logger.info(f"PERF: Regex expansion took {t_regex_end - t_regex_start:.4f}s")
+
         # 2. Resolve strategy via factory
         strategy = StrategyFactory.create(strategy_type)
 
         # 3. Get work items from strategy
+        t_work_start = time.perf_counter()
         batch_work = strategy.get_work_items(stats_path, stats_pattern, processed_configs)
+        t_work_end = time.perf_counter()
+        logger.info(f"PERF: Work item generation took {t_work_end - t_work_start:.4f}s")
+
         if not batch_work:
             return ParseBatchResult(futures=[], var_names=[])
 
@@ -214,6 +208,9 @@ class Gem5Parser:
 
         pool = ParseWorkPool.get_instance()
         futures = pool.submit_batch_async(batch_work)
+
+        t_total = time.perf_counter() - t_start
+        logger.info(f"PERF: submit_parse_async total (pre-pool) took {t_total:.4f}s")
         return ParseBatchResult(futures=futures, var_names=var_names)
 
     @staticmethod
@@ -226,6 +223,7 @@ class Gem5Parser:
         """
         Post-process and aggregate provided results into final CSV.
         """
+        t_start = time.perf_counter()
         if not results:
             logger.warning("PARSER: No results to persist.")
             return None
@@ -233,8 +231,18 @@ class Gem5Parser:
         # Resolve strategy via factory for post-processing
         strategy = StrategyFactory.create(strategy_type)
 
+        t_post_start = time.perf_counter()
         processed_results = strategy.post_process(results)
-        return Gem5Parser.construct_final_csv(output_dir, processed_results, var_names=var_names)
+        t_post_end = time.perf_counter()
+        logger.info(f"PERF: Strategy post-processing took {t_post_end - t_post_start:.4f}s")
+
+        csv_path = Gem5Parser.construct_final_csv(
+            output_dir, processed_results, var_names=var_names
+        )
+
+        t_total = time.perf_counter() - t_start
+        logger.info(f"PERF: finalize_parsing total took {t_total:.4f}s")
+        return csv_path
 
     @staticmethod
     def construct_final_csv(
@@ -244,15 +252,11 @@ class Gem5Parser:
     ) -> str | None:
         """
         Aggregate provided results and save to CSV.
-
-        Args:
-            output_dir: Directory for output CSV file.
-            results: Parsed results to aggregate.
-            var_names: Ordered variable names for column consistency.
-                       If None, falls back to keys from the first result.
         """
+        t_start = time.perf_counter()
         if not results:
             return None
+        logger.info(f"PERF: Starting construct_final_csv for {len(results)} files")
 
         # Logic adapted from Gem5StatsParser._persist_results
         header_parts: list[str] = []
@@ -264,9 +268,6 @@ class Gem5Parser:
 
         for var_name in ordered_names:
             if var_name not in sample:
-                # Variable absent from first result (e.g., a file with
-                # fewer CPUs).  Include as scalar column; rows for files
-                # that lack this variable will get "NaN".
                 column_map[var_name] = None
                 header_parts.append(var_name)
                 continue
@@ -283,6 +284,7 @@ class Gem5Parser:
         os.makedirs(str(normalize_user_path(output_dir)), exist_ok=True)
         output_path = os.path.join(str(normalize_user_path(output_dir)), "results.csv")
 
+        t_write_start = time.perf_counter()
         with open(output_path, "w", encoding="utf-8", newline="") as f:
             writer = csv.writer(f, quoting=csv.QUOTE_MINIMAL)
             writer.writerow(header_parts)
@@ -314,5 +316,9 @@ class Gem5Parser:
                         row_parts.append(str(var))
 
                 writer.writerow(row_parts)
+        t_write_end = time.perf_counter()
+        logger.info(f"PERF: CSV writing loop took {t_write_end - t_write_start:.4f}s")
 
+        t_total = time.perf_counter() - t_start
+        logger.info(f"PERF: construct_final_csv total took {t_total:.4f}s")
         return output_path

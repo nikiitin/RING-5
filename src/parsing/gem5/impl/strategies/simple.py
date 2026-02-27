@@ -14,8 +14,10 @@ Workflow:
 
 from __future__ import annotations
 
+import copy
 import logging
 import os
+import time
 from collections.abc import Sequence
 from dataclasses import replace
 from typing import TYPE_CHECKING, Any
@@ -51,6 +53,7 @@ class SimpleStatsStrategy:
         """
         Execute the simple parsing workflow.
         """
+        t_start = time.perf_counter()
         batch_work = self.get_work_items(stats_path, stats_pattern, variables)
         if not batch_work:
             return []
@@ -58,19 +61,41 @@ class SimpleStatsStrategy:
         # We process using the global ParseWorkPool
         pool = ParseWorkPool.get_instance()
 
+        t_submit_start = time.perf_counter()
         logger.info("PARSER: Queueing simulation data for digestion...")
         futures = pool.submit_batch_async(list(batch_work))
+        t_submit_end = time.perf_counter()
+        logger.info(f"PERF: Pool submission took {t_submit_end - t_submit_start:.4f}s")
 
         logger.info("PARSER: Waiting for parallel worker completion...")
+        t_wait_start = time.perf_counter()
         results = [f.result() for f in futures]
+        t_wait_end = time.perf_counter()
+        logger.info(f"PERF: result collection took {t_wait_end - t_wait_start:.4f}s")
 
-        return self.post_process(results)
+        t_post_start = time.perf_counter()
+        processed = self.post_process(results)
+        t_post_end = time.perf_counter()
+        logger.info(f"PERF: Strategy local post-process took {t_post_end - t_post_start:.4f}s")
+
+        t_total = time.perf_counter() - t_start
+        logger.info(f"PERF: SimpleStatsStrategy.execute total took {t_total:.4f}s")
+        return processed
 
     def get_work_items(
         self, stats_path: str, stats_pattern: str, variables: Sequence[StatConfig]
     ) -> Sequence[Gem5ParseWork]:
-        """Return a list of work items for parallel execution."""
+        """Return a list of work items for parallel execution.
+
+        Each work item receives its own independent copy of the variable
+        map so that concurrent threads cannot corrupt shared mutable
+        ``StatType`` objects.
+        """
+        t_start = time.perf_counter()
         files = self._get_files(stats_path, stats_pattern)
+        t_files = time.perf_counter()
+        logger.info(f"PERF: File discovery (glob) took {t_files - t_start:.4f}s")
+
         if not files:
             logger.warning(
                 "PARSER: No files found matching '%s' in %s",
@@ -79,9 +104,21 @@ class SimpleStatsStrategy:
             )
             return []
 
-        variable_map = self._map_variables(variables)
+        # Build one template map, then deep-copy per file so that each
+        # thread-based worker operates on its own mutable StatType set.
+        t_map_start = time.perf_counter()
+        template_map: dict[str, StatType] = self._map_variables(variables)
+        t_map_end = time.perf_counter()
+        logger.info(f"PERF: Variable map creation took {t_map_end - t_map_start:.4f}s")
 
-        return [Gem5ParseWork(str(file_path), variable_map) for file_path in files]
+        t_copy_start = time.perf_counter()
+        works = [Gem5ParseWork(str(file_path), copy.deepcopy(template_map)) for file_path in files]
+        t_copy_end = time.perf_counter()
+        logger.info(
+            f"PERF: Total deepcopy cost for {len(files)} files: {t_copy_end - t_copy_start:.4f}s"
+        )
+
+        return works
 
     def post_process(self, results: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Perform any post-processing on aggregated results."""
@@ -126,13 +163,24 @@ class SimpleStatsStrategy:
             if parsed_ids:
                 # Update repeat count for the logical variable (Spatial aggregation)
                 stat_obj = TypeMapper.create_stat(replace(var, repeat=len(parsed_ids)))
+                if len(parsed_ids) > 50:
+                    logger.warning(
+                        "PARSER: Variable '%s' has repeat=%d (from %d parsed_ids) — "
+                        "this may increase memory usage significantly.",
+                        name,
+                        len(parsed_ids),
+                        len(parsed_ids),
+                    )
             else:
                 stat_obj = TypeMapper.create_stat(var)
 
             var_map[name] = stat_obj
 
+            # Each alias gets its own copy to prevent shared mutable state.
+            # Without this, mutating one alias (e.g. balance_content()) would
+            # silently affect all others since they reference the same object.
             for pid in parsed_ids:
                 if pid != name:
-                    var_map[pid] = stat_obj
+                    var_map[pid] = copy.copy(stat_obj)
 
         return var_map

@@ -26,6 +26,10 @@ def components_bundle() -> Generator[tuple[Any, type[Any]], None, None]:
     with (
         patch("src.web.components.data_source.data_source_components.st") as mock_st,
         patch("src.web.components.data_source.variable_editor.st", new=mock_st),
+        patch(
+            "src.web.components.data_source.data_source_components.filtered_selectbox",
+            side_effect=lambda label, options, **kw: options[0] if options else None,
+        ),
     ):
 
         mock_st.session_state = {}

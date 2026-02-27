@@ -191,13 +191,11 @@ class Histogram(StatType):
             return
 
         reduced = {}
-        for bucket in self._content:
-            values = self._content.get(bucket, [])
+        for bucket, values in self._content.items():
             if not values:
                 reduced[bucket] = 0.0
             else:
-                total = sum(float(v) for v in values[: self._repeat])
-                reduced[bucket] = total / self._repeat
+                reduced[bucket] = sum(values[: self._repeat]) / self._repeat
 
         object.__setattr__(self, "_reduced_content", reduced)
 
@@ -206,23 +204,30 @@ class Histogram(StatType):
         num_bins = self._bins
         max_val = self._max_range
 
+        # Pre-compute bin mapping once (same for all simulations)
+        bin_mapping = self._compute_bin_mapping(num_bins, max_val)
+
         # Initialize target result set from expected entries
         target_reduced = {key: 0.0 for key in self.entries}
 
-        # Process each simulation independently
+        # Process each simulation using pre-computed mapping
         for i in range(self._repeat):
-            sim_data = {}
-            for bucket, values in self._content.items():
-                sim_data[bucket] = float(values[i]) if i < len(values) else 0.0
+            for raw_key, values in self._content.items():
+                value = float(values[i]) if i < len(values) else 0.0
+                if value == 0:
+                    continue
 
-            # Rebin this simulation's data (deterministic transformation)
-            rebinned = self._rebin_simulation_data(sim_data, num_bins, max_val)
-
-            # Accumulate (includes rebinned buckets and preserved summary stats)
-            for key, val in rebinned.items():
-                if key not in target_reduced:
-                    target_reduced[key] = 0.0
-                target_reduced[key] += val
+                mappings = bin_mapping.get(raw_key)
+                if mappings is None:
+                    # Summary stat (mean, total, etc.) — accumulate as-is
+                    if raw_key not in target_reduced:
+                        target_reduced[raw_key] = 0.0
+                    target_reduced[raw_key] += value
+                else:
+                    for target_key, proportion in mappings:
+                        if target_key not in target_reduced:
+                            target_reduced[target_key] = 0.0
+                        target_reduced[target_key] += value * proportion
 
         # Calculate population mean across simulations
         for key in target_reduced:
@@ -230,13 +235,14 @@ class Histogram(StatType):
 
         object.__setattr__(self, "_reduced_content", target_reduced)
 
-    def _rebin_simulation_data(
-        self, data: dict[str, float], num_bins: int, max_val: float
-    ) -> dict[str, float]:
-        """
-        Proportionally redistribute raw histogram data into uniform target bins.
+    def _compute_bin_mapping(
+        self, num_bins: int, max_val: float
+    ) -> dict[str, list[tuple[str, float]] | None]:
+        """Pre-compute the mapping from raw buckets to target bins.
 
-        Uses linear interpolation to map raw mass to target bins.
+        Returns a dict mapping each raw_key to a list of (target_key, proportion)
+        tuples, or None for non-range keys (summary stats preserved as-is).
+        Computed once and reused across all repeat iterations.
         """
         if num_bins > 1:
             num_std_bins = num_bins - 1
@@ -247,63 +253,51 @@ class Histogram(StatType):
             bin_width = max_val / num_bins
             overflow_key = None
 
-        rebinned = {
-            f"{int(b * bin_width)}-{int((b + 1) * bin_width)}": 0.0 for b in range(num_std_bins)
-        }
-        if overflow_key:
-            rebinned[overflow_key] = 0.0
+        mapping: dict[str, list[tuple[str, float]] | None] = {}
 
-        for raw_key, value in data.items():
-            if value == 0:
-                continue
-
+        for raw_key in self._content:
             bounds = self._parse_range_key(raw_key)
             if not bounds:
-                # Preserve summary stats (mean, total, etc.) as-is
-                rebinned[raw_key] = value
+                mapping[raw_key] = None
                 continue
 
             raw_start, raw_end = bounds
             raw_span = raw_end - raw_start
             if raw_span <= 0:
+                mapping[raw_key] = []
                 continue
 
-            # Determine effective range to process for distribution
-            # We treat max_val as a soft limit: anything above it goes to the overflow buckets.
+            targets: list[tuple[str, float]] = []
 
-            # 1. Calculate and distribute the portion strictly within the [0, max_val] range
+            # Standard bins portion
             effective_end = min(raw_end, max_val)
             if effective_end > raw_start:
-                # Redistribute 'value' across target bins based on overlap
                 for b in range(num_std_bins):
                     b_start = b * bin_width
                     b_end = (b + 1) * bin_width
-
                     overlap_start = max(raw_start, b_start)
                     overlap_end = min(effective_end, b_end)
-
                     if overlap_end > overlap_start:
-                        overlap_width = overlap_end - overlap_start
-                        proportion = overlap_width / raw_span
+                        proportion = (overlap_end - overlap_start) / raw_span
                         target_key = f"{int(b_start)}-{int(b_end)}"
-                        rebinned[target_key] += value * proportion
+                        targets.append((target_key, proportion))
 
-            # 2. Handle Overflow: Add any mass above max_val to the overflow bucket (or last bin)
+            # Overflow portion
             overflow_length = max(0.0, raw_end - max(raw_start, max_val))
             if overflow_length > 0:
                 proportion = overflow_length / raw_span
-
                 if overflow_key:
-                    rebinned[overflow_key] += value * proportion
+                    targets.append((overflow_key, proportion))
                 else:
-                    # Fallback to last regular bin if no dedicated overflow
                     last_b_idx = num_std_bins - 1
                     last_start = last_b_idx * bin_width
                     last_end = (last_b_idx + 1) * bin_width
                     last_key = f"{int(last_start)}-{int(last_end)}"
-                    rebinned[last_key] += value * proportion
+                    targets.append((last_key, proportion))
 
-        return rebinned
+            mapping[raw_key] = targets
+
+        return mapping
 
     def _parse_range_key(self, key: str) -> list[float]:
         """Extract numeric bounds from a range string (e.g., '0-1023')."""

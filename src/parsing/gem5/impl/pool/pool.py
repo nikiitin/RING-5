@@ -69,6 +69,10 @@ class ScanWorkPool:
         if not works:
             return []
 
+        # Release references to completed futures from previous batches
+        # to prevent unbounded memory growth in this singleton.
+        self._futures.clear()
+
         # Auto-calculate optimal chunk size
         # Use default of 4 workers if we can't determine pool size
         if chunk_size is None:
@@ -81,7 +85,9 @@ class ScanWorkPool:
             chunk = works[i : i + chunk_size]
             for work in chunk:
                 if work is not None:
-                    future: Future[list[ScannedVariable]] = self._workPool.submit(work)
+                    future: Future[list[ScannedVariable]] = self._workPool.submit(
+                        work, use_threads=True
+                    )
                     self._futures.append(future)
                     current_batch_futures.append(future)
 
@@ -89,12 +95,14 @@ class ScanWorkPool:
 
     def cancel_all(self) -> None:
         """
-        Cancel all pending futures in the pool.
+        Cancel all pending futures and release references.
 
-        This attempts to cancel all submitted work that hasn't started yet.
+        This attempts to cancel all submitted work that hasn't started yet,
+        then clears the internal list to free memory.
         """
         for f in self._futures:
             f.cancel()
+        self._futures.clear()
 
 
 class ParseWorkPool:
@@ -151,6 +159,10 @@ class ParseWorkPool:
         if not works:
             return []
 
+        # Release references to completed futures from previous batches
+        # to prevent unbounded memory growth in this singleton.
+        self._futures.clear()
+
         # Auto-calculate optimal chunk size
         # Use conservative default to avoid overhead
         chunk_size = max(1, len(works) // 8)
@@ -162,7 +174,7 @@ class ParseWorkPool:
             chunk = works[i : i + chunk_size]
             for work in chunk:
                 if work is not None:
-                    future: Future[ParsedVarsDict] = self._work_pool.submit(work)
+                    future: Future[ParsedVarsDict] = self._work_pool.submit(work, use_threads=True)
                     self._futures.append(future)
                     current_batch_futures.append(future)
 
@@ -170,9 +182,11 @@ class ParseWorkPool:
 
     def cancel_all(self) -> None:
         """
-        Cancel all pending futures in the pool.
+        Cancel all pending futures and release references.
 
-        This attempts to cancel all submitted work that hasn't started yet.
+        This attempts to cancel all submitted work that hasn't started yet,
+        then clears the internal list to free memory.
         """
         for f in self._futures:
             f.cancel()
+        self._futures.clear()
