@@ -231,6 +231,71 @@ src/
 - **Y-axis title position**: standoff & vshift sliders → Axes Y-Left pill (not Typography)
 - **Group labels**: alternate & spacing → Axes X-Axis pill
 
+## Known Issues & Codebase Knowledge
+
+> From comprehensive 16-track investigation (`.agent/thorough-review/`). See individual track files for full details.
+
+### Critical Bugs (must fix)
+
+| Issue | Location | Severity | Track |
+| :---- | :------- | :------- | :---- |
+| Outlier detection removes top 25% (Q3 threshold) instead of IQR outliers | `src/core/services/managers/outlier_service.py:23-24` | CRITICAL | 14.3 |
+| SimpleCache has NO thread locks despite "Thread-safe" docstring | `src/core/performance.py` (SimpleCache class) | CRITICAL | 5.1 |
+| CsvPoolService `_pool_index` dict has no lock, false thread-safety docs | `src/core/services/pools/csv_pool_service.py` | CRITICAL | 5.2 |
+| WorkPool has no `shutdown()` — N hot-reloads = N orphaned process pools | `src/parsing/gem5/impl/strategies/perl_worker_pool.py` | CRITICAL | 5.4 |
+| Zero `plt.close()` in entire codebase — matplotlib Figure memory leak | `src/web/rendering/matplotlib_connector.py` | HIGH | 10.2 |
+| matplotlib Figure stored in `st.session_state` (not serializable) | `src/web/rendering/matplotlib_connector.py` | HIGH | 10.3 |
+| mixer.py missing None checks on operation — AttributeError crash | `src/web/components/data_managers/mixer.py` | HIGH | 4.2 |
+| Mean NaN handling inconsistent: geomean/hmean propagate NaN, arithmean skips | `src/core/services/shapers/impl/mean.py:218-226` | HIGH | 14.2 |
+
+### Dead Code (safe to remove, ~950 lines)
+
+- `src/core/common/utils.py`: 12 of 13 functions dead (only `checkFileExistsOrException` alive)
+- `src/web/presenters/plot/chart_presenter.py`: Entire file (~240 lines) — duplicate of `chart_display.py`
+- `src/web/pages/ui/components/shapers/split_apply_config.py`: Byte-for-byte duplicate (~361 lines)
+- `tests/unit/test_utils.py`: Tests only dead utility functions
+
+### Architecture Violations
+
+- **3 web-to-parsing direct imports** (should go through Core/ApplicationAPI):
+  - `src/web/components/data_source/data_source_components.py:20-21` imports ScanWorkPool + SimulatorRegistry
+  - `src/web/components/data_source/variable_editor.py:536` imports ScanWorkPool dynamically
+  - `src/web/components/data_source/data_source.py:9` imports SimulatorRegistry
+- **13 direct `st.session_state[]` accesses** bypass UIStateManager (Track 7.4)
+
+### Pandas Patterns
+
+- **26 redundant `pd.DataFrame()` wrappers** across 12 files — boolean indexing already returns DataFrame
+- **All 10 shapers** have `__call__(self, df: pd.DataFrame) -> pd.DataFrame` — compatible with `.pipe()`
+- CategoricalDtype correctly used (`pd.Categorical(ordered=True)` in transformer.py)
+- **No `inplace=True`** violations found (pre-commit hook enforces this)
+
+### Python 3.12+ Modernization Opportunities
+
+- **0 `@override` decorators** for 30+ method overrides across BasePlot, Shaper, StatType subclasses
+- **2-3 if/elif chains** convertible to `match`/`case` (condition_selector, factory)
+- **12 plain string registry keys** suitable for `StrEnum` (shaper factory: 10, strategy factory: 2)
+
+### Streamlit Patterns
+
+- `@st.cache_resource` IS used for `ApplicationAPI` singleton (app.py:54-56)
+- Figure generation uses a **manual hash-based cache** (not `@st.cache_data`)
+- **3-4 `st.rerun()` calls** missing `scope="app"` for navigation/global state changes
+- Widget pre-initialization in filtered_selector.py:160 is **intentional** Streamlit workaround (not anti-pattern)
+
+### Test Coverage Gaps
+
+- `src/core/performance.py` (SimpleCache, @cached): **0 unit tests**
+- 370+ private attribute accesses (`_internal`) in tests — fragile to refactoring
+- 13 `time.sleep()` calls in tests risk CI flakiness
+- ~58 new tests needed for adequate coverage
+
+### Trunk Lint Baseline
+
+- **3 pyright "possibly unbound"** in pivot_config.py:256-258 (selection_filters, strategy, merge_label)
+- **4 isort violations** (2 source, 2 test files)
+- ~111 markdown formatting issues (auto-fixable with `trunk fmt`)
+
 ## Quick Commands
 
 ```bash
@@ -244,6 +309,7 @@ make test                                          # Run all tests
 
 ## References
 
+- **Investigation**: `.agent/thorough-review/` (16-track investigation: PLAN.md + track_01 through track_16)
 - **Rules**: `.agent/rules/` (000-009)
 - **Workflows**: `.agent/workflows/` (incl. `large-refactor.md`)
 - **Skills**: `.agent/skills/` (incl. `refactoring-large-codebase/`)
