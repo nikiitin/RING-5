@@ -30,126 +30,114 @@
 - **Tests**: Updated `tests/unit/test_outlier_service_coverage.py` for IQR behavior. Added `test_custom_multiplier`, `test_iqr_keeps_values_within_bounds`.
 - **Commit**: `da2bf11`
 
-### P1.2 [WIP] SimpleCache has NO thread locks (Track 5.1)
+### P1.2 [DONE] SimpleCache has NO thread locks (Track 5.1)
 
 - **Severity**: CRITICAL
 - **File**: `src/core/performance.py` (199 lines)
-- **Bug**: SimpleCache uses plain `dict` for storage with no synchronization. Docstring falsely claims "Thread-safe". Concurrent access from CSV pool and plot cache causes race conditions: lost writes, corrupted dict during resize, stale reads during eviction. Stats counters `_hits`/`_misses` also unprotected.
 - **Fix**: Added `self._lock = threading.Lock()` in `__init__`. Wrapped `get()`, `set()`, `clear()`, `stats()` with `with self._lock:`.
-- **Status**: Code modified, NOT yet committed.
+- **Commit**: `9b60a95`
 
-### P1.3 [TODO] CsvPoolService `_pool_index` has no lock (Track 5.2)
+### P1.3 [DONE] CsvPoolService `_pool_index` has no lock (Track 5.2)
 
 - **Severity**: CRITICAL
-- **File**: `src/core/services/data_services/csv_pool_service.py` (314 lines), line 91
-- **Bug**: `_pool_index` dict has no lock. `_metadata_cache` and `_dataframe_cache` inherit SimpleCache's lack of locks (will be fixed by P1.2). File header comment falsely claims "Thread-safe (SimpleCache uses locks)".
-- **Fix**: Add `_pool_lock = threading.Lock()` class attribute. Wrap all `_pool_index` reads/writes with `with cls._pool_lock:`. Fix false documentation.
+- **File**: `src/core/services/data_services/csv_pool_service.py`
+- **Fix**: Added `_pool_lock = threading.Lock()` class attribute. Wrapped all `_pool_index` reads/writes.
+- **Commit**: `6aff643`
 
-### P1.4 [TODO] Scalar `int()` truncation silently corrupts data (Track 2.10)
+### P1.4 [DONE] Scalar `int()` truncation silently corrupts data (Track 2.10)
 
 - **Severity**: HIGH
 - **File**: `src/parsing/gem5/types/scalar.py`, line 60
-- **Bug**: `int(self._content[i])` truncates decimal values during reduce. Example: [1.5, 2.7, 3.1] -> sum=6 instead of 7.3. Silent data corruption.
-- **Fix**: Replace `int()` with `float()` in the summation loop.
+- **Fix**: Replaced `int()` with `float()` in the summation loop.
+- **Commit**: `6aff643`
 
-### P1.5 [TODO] Shallow copy shares mutable state between aliased variables (Track 2.6)
+### P1.5 [SKIP] Shallow copy in simple.py is intentional (Track 2.6)
 
-- **Severity**: HIGH
+- **Severity**: N/A (investigation hypothesis disproved)
 - **File**: `src/parsing/gem5/impl/strategies/simple.py`, line 184
-- **Bug**: `copy.copy(stat_obj)` shares nested mutable state (`_content` is list or dict[str,list]) between aliased variables. Mutation via `balance_content()` corrupts aliased variables.
-- **Fix**: Replace `copy.copy(stat_obj)` with `copy.deepcopy(stat_obj)`.
+- **Finding**: The shallow copy at line 184 is INTENTIONAL — aliases share `_content` with the parent variable so parsed values flow to the parent for regex-based aggregation. Per-file isolation is already handled by `copy.deepcopy(template_map)` at line 115. Changing to deepcopy breaks the aggregation pipeline (test `test_reduction_end_to_end` fails with [0.0, 0.0] instead of [15.0, 20.0]). Added clarifying comment.
+- **Commit**: `6aff643`
 
-### P1.6 [TODO] Unchecked array index crashes worker on malformed Perl output (Track 2.1)
+### P1.6 [DONE] Unchecked array index crashes worker on malformed Perl output (Track 2.1)
 
 - **Severity**: HIGH
 - **File**: `src/parsing/gem5/impl/strategies/gem5_parse_work.py`, line 103
-- **Bug**: `parts = line.split("/")` then `parts[0], parts[1], parts[2]` accessed without bounds check. Malformed Perl output causes IndexError, killing the worker and failing the entire parse batch.
-- **Fix**: Add `if len(parts) < 3: logger.warning(...); continue`.
+- **Fix**: Added bounds check `if len(parts) < 3` with warning log and early return. Also added guard in `_processLine` to skip empty rawType.
+- **Commit**: `6aff643`
 
-### P1.7 [TODO] Mean NaN handling inconsistent across algorithms (Track 14.2)
-
-- **Severity**: HIGH
-- **File**: `src/core/services/shapers/impl/mean.py`, lines 218-226
-- **Bug**: `arithmean` uses `grouped.mean()` (skipna=True — correct). `geomean` uses `scipy.stats.gmean` which does NOT skip NaN (propagates NaN). `hmean` uses `scipy.stats.hmean` which does NOT skip NaN. A single NaN in a group causes geomean/hmean to return NaN for entire group while arithmean skips it.
-- **Fix**: Filter NaN before scipy calls:
-  ```python
-  def _safe_gmean(series):
-      clean = series.dropna()
-      if clean.empty or (clean <= 0).any():
-          return np.nan
-      return gmean(clean)
-  ```
-
-### P1.8 [TODO] Mixer None checks crash on widget None returns (Track 4.2)
+### P1.7 [DONE] Mean NaN handling inconsistent across algorithms (Track 14.2)
 
 - **Severity**: HIGH
-- **File**: `src/web/components/data_managers/mixer.py` (173 lines)
-- **Bug**: Line 69 `st.segmented_control()` returns `str | None`; line 95 `st.selectbox()` also nullable. Line 105 calls `.lower()` on potentially None `operation` -> AttributeError crash.
-- **Fix**: Add early returns: `if mode is None: return cfg` after line 69; `if operation is None: return cfg` after line 95.
+- **File**: `src/core/services/shapers/impl/mean.py`
+- **Fix**: Created `_safe_gmean()` and `_safe_hmean()` wrappers that filter NaN before scipy calls and handle non-positive values. Replaced direct `gmean`/`hmean` usage in `agg()`.
+- **Commit**: `6aff643`
 
-### P1.9 [TODO] Normalize NaN denominator not checked (Track 14.1)
-
-- **Severity**: MEDIUM (but data-correctness impact)
-- **File**: `src/core/services/shapers/impl/normalize.py`, line 230
-- **Bug**: Zero check exists but NaN check missing. If baseline values contain NaN, `sum()` returns NaN, the zero-check fails (NaN != 0), and division produces NaN throughout all normalized columns. No warning emitted.
-- **Fix**: Add `pd.isna(denominator)` check alongside zero check:
-  ```python
-  if pd.isna(denominator) or denominator == 0:
-      # ... zero/NaN handling
-  ```
-
-### P1.10 [TODO] DataFrame stored by reference when no type casting needed (Track 3.9)
+### P1.8 [DONE] Mixer None checks crash on widget None returns (Track 4.2)
 
 - **Severity**: HIGH
-- **File**: `src/core/state/repository_state_manager.py`, line 68
-- **Bug**: DataFrame only `.copy()`-ed if type casting is needed (cols_to_cast non-empty). When no casting needed, stored as reference. External mutations propagate to stored data.
-- **Fix**: Always copy DataFrame before storing: `data = data.copy()` before try block.
+- **File**: `src/web/components/data_managers/mixer.py`
+- **Fix**: Added `if mode is None: return` after segmented_control and `if operation is None: return` after selectbox.
+- **Commit**: `6aff643`
+
+### P1.9 [DONE] Normalize NaN denominator not checked (Track 14.1)
+
+- **Severity**: MEDIUM
+- **File**: `src/core/services/shapers/impl/normalize.py`, line 232
+- **Fix**: Added `pd.isna(denominator)` check alongside zero check.
+- **Commit**: `6aff643`
+
+### P1.10 [DONE] DataFrame stored by reference when no type casting needed (Track 3.9)
+
+- **Severity**: HIGH
+- **File**: `src/core/state/repository_state_manager.py`
+- **Fix**: Always copy DataFrame before storing with `data = data.copy()` before the try block.
+- **Commit**: `6aff643`
 
 ---
 
 ## Phase 2: Thread Safety & Lifecycle
 
-### P2.1 [TODO] WorkPool has NO shutdown mechanism (Track 5.4, 5.10)
+### P2.1 [DONE] WorkPool has NO shutdown mechanism (Track 5.4, 5.10)
 
 - **Severity**: HIGH
 - **File**: `src/parsing/gem5/impl/pool/work_pool.py`
-- **Bug**: No `shutdown()` method. No `__del__`, no `atexit` handler. On Streamlit hot-reload, `_instance` reset to None, new executors created, old ones orphaned. N hot-reloads = N orphaned process pools. Executor shutdown cascade: ScanWorkPool -> WorkPool -> Executors reference chain breaks.
-- **Fix**: Add `shutdown()` method to WorkPool. Register `atexit.register(shutdown_worker_pool)` inside `get_worker_pool()`. Add `__del__` to PerlWorkerPool that calls `self.shutdown()`.
+- **Fix**: Added `shutdown()` method to WorkPool (shuts down process/thread executors). Added `_new_lock` for thread-safe singleton `__new__`. Registered `atexit.register(_shutdown_workpool)` at module level. Added `__del__` to PerlWorkerPool that calls `self.shutdown()`. Registered `atexit.register(shutdown_worker_pool)` in `get_worker_pool()` on first creation.
+- **Commit**: Phase 2 commit
 
-### P2.2 [TODO] Health monitor shutdown uses plain bool instead of Event (Track 5.8, 2.4)
-
-- **Severity**: MEDIUM
-- **File**: `src/parsing/gem5/impl/strategies/perl_worker_pool.py`, lines 353, 404-411
-- **Bug**: Plain `bool` `_shutdown` with 30s `time.sleep()` poll. On `shutdown()`, monitor may sleep up to 30s before checking flag. No `thread.join()` in shutdown.
-- **Fix**: Replace `bool` with `threading.Event()`. Use `event.wait(timeout=interval)` for interruptible sleep. Add `thread.join(timeout=interval+1)` in `shutdown()`.
-
-### P2.3 [TODO] Three unprotected singleton patterns (Track 5.5, 5.7, 5.9)
+### P2.2 [DONE] Health monitor shutdown uses plain bool instead of Event (Track 5.8, 2.4)
 
 - **Severity**: MEDIUM
-- **File**: `src/parsing/gem5/impl/pool/work_pool.py`
-- **Bug**: `__new__` check-then-act on `_instance` is not atomic. No lock. GIL mostly prevents races but pattern is fragile. Affects WorkPool, ScanWorkPool, ParseWorkPool.
-- **Fix**: Add `threading.Lock` to all three `get_instance()` / `__new__` methods.
+- **File**: `src/parsing/gem5/impl/strategies/perl_worker_pool.py`
+- **Fix**: Replaced `self._shutdown = False` with `self._shutdown_event = threading.Event()`. Monitor loop uses `event.wait(timeout=interval)` for interruptible sleep (wakes instantly on shutdown). Added `thread.join(timeout=interval+1)` in `shutdown()`.
+- **Commit**: Phase 2 commit
 
-### P2.4 [TODO] Thread accumulation on timeout (Track 2.3)
-
-- **Severity**: MEDIUM
-- **File**: `src/parsing/gem5/impl/strategies/perl_worker_pool.py`, line 134
-- **Bug**: Spawns daemon thread per `_read_line_with_timeout()` call. On timeout, thread stays alive. No max limit. Rapid timeouts accumulate leaked threads.
-- **Fix**: Replace with `selectors` module or `select.select()` for non-blocking reads.
-
-### P2.5 [TODO] is_busy TOCTOU and health monitor I/O collision (Track 5.3, 5.11)
+### P2.3 [DONE] Three unprotected singleton patterns (Track 5.5, 5.7, 5.9)
 
 - **Severity**: MEDIUM
-- **File**: `src/parsing/gem5/impl/strategies/perl_worker_pool.py`, lines 417-442, 467-487
-- **Bug**: Health monitor checks `is_busy=False` without lock, then calls `health_check()`. Between check and ping, parse can start. Health monitor ping interferes with active parse I/O causing spurious timeouts and protocol desync. Not data corruption, but triggers unnecessary restarts.
-- **Fix**: Acquire worker lock before checking is_busy. Or skip health_check entirely if worker was recently active (preferred).
+- **File**: `src/parsing/gem5/impl/pool/work_pool.py`, `src/parsing/gem5/impl/pool/pool.py`
+- **Fix**: Added `_new_lock = threading.Lock()` to WorkPool `__new__`. Added `_singleton_lock` to ScanWorkPool and `_instance_lock` to ParseWorkPool. All `get_instance()` and `reset()` methods now use `with cls._lock:`.
+- **Commit**: Phase 2 commit
 
-### P2.6 [TODO] Queue starvation on all-worker fail (Track 5.6)
+### P2.4 [DONE] Thread accumulation on timeout (Track 2.3)
 
 - **Severity**: MEDIUM
-- **File**: `src/parsing/gem5/impl/strategies/perl_worker_pool.py`, lines 460-485
-- **Bug**: `worker_queue.get(timeout=120)` blocks full timeout per attempt. Worst case: 4 workers x 120s = 480s wait. No circuit-breaker.
-- **Fix**: Implement circuit-breaker: shorter queue timeout, count failures, fail fast when >50% workers unhealthy.
+- **File**: `src/parsing/gem5/impl/strategies/perl_worker_pool.py`
+- **Fix**: Replaced per-read thread spawn with a persistent reader thread per worker. `_start_reader_thread()` creates ONE daemon thread that reads stdout into a `queue.Queue`. `_read_line_with_timeout()` simply pulls from the queue with timeout. 4 workers = 4 reader threads (constant), instead of N threads per parse.
+- **Commit**: Phase 2 commit
+
+### P2.5 [DONE] is_busy TOCTOU and health monitor I/O collision (Track 5.3, 5.11)
+
+- **Severity**: MEDIUM
+- **File**: `src/parsing/gem5/impl/strategies/perl_worker_pool.py`
+- **Fix**: Added `time.time() - worker.last_used < 60.0` skip in `_check_worker_health()`. Workers used within the last 60s are skipped, eliminating the TOCTOU window where health check PING/PONG could interfere with an imminent parse.
+- **Commit**: Phase 2 commit
+
+### P2.6 [DONE] Queue starvation on all-worker fail (Track 5.6)
+
+- **Severity**: MEDIUM
+- **File**: `src/parsing/gem5/impl/strategies/perl_worker_pool.py`
+- **Fix**: Implemented circuit-breaker pattern: total timeout split across retries (`per_attempt_timeout = max(5s, timeout / max_retries)`). Added `failures` counter and healthy-worker check before each attempt. If `healthy_count == 0 and failures > 0`, raises immediately instead of blocking for N × timeout.
+- **Commit**: Phase 2 commit
 
 ---
 

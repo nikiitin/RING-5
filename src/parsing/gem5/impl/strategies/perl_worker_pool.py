@@ -10,6 +10,7 @@ Features:
 - Statistics and monitoring
 """
 
+import atexit
 import logging
 import queue
 import shutil
@@ -63,6 +64,10 @@ class PerlWorker:
         self.last_used = 0.0
         self.is_busy = False
         self._lock = threading.Lock()
+        # Queue-based stdout reader: ONE persistent thread per worker
+        # instead of spawning a thread per readline call.
+        self._line_queue: queue.Queue[str | None] = queue.Queue()
+        self._reader_thread: threading.Thread | None = None
 
         # Start the worker
         self._start_worker()
@@ -71,6 +76,13 @@ class PerlWorker:
         """Start or restart the Perl worker process."""
         try:
             logger.info(f"[Worker-{self.worker_id}] Starting Perl worker process...")
+
+            # Drain any leftover data from a previous reader thread
+            while not self._line_queue.empty():
+                try:
+                    self._line_queue.get_nowait()
+                except queue.Empty:
+                    break
 
             # Start Perl server with full executable path
             self.process = subprocess.Popen(
@@ -81,6 +93,9 @@ class PerlWorker:
                 text=True,
                 bufsize=0,  # Unbuffered for immediate I/O
             )
+
+            # Start ONE persistent reader thread for this worker's stdout
+            self._start_reader_thread()
 
             # Wait for READY signal (with timeout)
             # Increased from 5s to 30s to handle slow container/host process start
@@ -102,9 +117,37 @@ class PerlWorker:
             self.is_healthy = False
             raise
 
+    def _start_reader_thread(self) -> None:
+        """Start a persistent background thread that reads stdout into a queue.
+
+        One thread per worker lifetime (not per read call). The thread exits
+        when the process closes stdout (EOF) or the process dies.
+        """
+
+        def _reader() -> None:
+            try:
+                while self.process and self.process.stdout:
+                    line = self.process.stdout.readline()
+                    if not line:
+                        # EOF — process closed stdout
+                        self._line_queue.put(None)
+                        break
+                    self._line_queue.put(line.strip())
+            except Exception:
+                self._line_queue.put(None)
+
+        self._reader_thread = threading.Thread(
+            target=_reader, daemon=True, name=f"perl-reader-{self.worker_id}"
+        )
+        self._reader_thread.start()
+
     def _read_line_with_timeout(self, timeout: float = 30.0) -> str:
         """
-        Read a line from worker with timeout.
+        Read a line from the worker's stdout queue with timeout.
+
+        The actual I/O is performed by the persistent reader thread started
+        in ``_start_reader_thread``. This method simply pulls from the queue,
+        avoiding thread-per-read accumulation.
 
         Args:
             timeout: Maximum seconds to wait
@@ -113,36 +156,19 @@ class PerlWorker:
             Line read from worker stdout
 
         Raises:
-            TimeoutError: If read takes longer than timeout
+            TimeoutError: If no line arrives within timeout
+            RuntimeError: If the reader thread signals EOF
         """
-        if not self.process or not self.process.stdout:
-            raise RuntimeError("Worker process not available")
-
-        # Use threading for timeout
-        result = []
-        error = []
-
-        def read_line() -> None:
-            if self.process is None or self.process.stdout is None:
-                return
-            try:
-                line = self.process.stdout.readline()
-                result.append(line.strip() if line else "")
-            except Exception as e:
-                error.append(e)
-
-        thread = threading.Thread(target=read_line, daemon=True)
-        thread.start()
-        thread.join(timeout=timeout)
-
-        if thread.is_alive():
+        try:
+            line = self._line_queue.get(timeout=timeout)
+        except queue.Empty:
             logger.error(f"[Worker-{self.worker_id}] Read timeout after {timeout}s")
             raise TimeoutError(f"Read timeout after {timeout}s")
 
-        if error:
-            raise error[0]
+        if line is None:
+            raise RuntimeError(f"Worker-{self.worker_id} stdout closed (EOF)")
 
-        return result[0] if result else ""
+        return line
 
     def parse_file(
         self, file_path: str, variables: list[str], timeout: float = 120.0
@@ -350,7 +376,7 @@ class PerlWorkerPool:
         self.workers: list[PerlWorker] = []
         self.worker_queue: queue.Queue[PerlWorker] = queue.Queue()
         self._lock = threading.Lock()
-        self._shutdown = False
+        self._shutdown_event = threading.Event()
         self._health_check_interval = 30.0  # seconds
         self._health_monitor_thread: threading.Thread | None = None
 
@@ -403,9 +429,11 @@ class PerlWorkerPool:
 
         def monitor() -> None:
             logger.info("Health monitor started")
-            while not self._shutdown:
-                time.sleep(self._health_check_interval)
-                self._check_worker_health()
+            while not self._shutdown_event.is_set():
+                # Interruptible sleep: returns immediately when event is set
+                self._shutdown_event.wait(timeout=self._health_check_interval)
+                if not self._shutdown_event.is_set():
+                    self._check_worker_health()
 
         self._health_monitor_thread = threading.Thread(target=monitor, daemon=True)
         self._health_monitor_thread.start()
@@ -418,6 +446,12 @@ class PerlWorkerPool:
             for worker in self.workers:
                 # Don't check busy workers to avoid blocking or interfering with active parsing
                 if worker.is_busy:
+                    continue
+
+                # Skip workers used recently — health check PING/PONG adds latency
+                # and could collide with a parse that starts between is_busy check
+                # and health_check() call (TOCTOU window)
+                if time.time() - worker.last_used < 60.0:
                     continue
 
                 # Capture health state BEFORE health_check() mutates is_healthy.
@@ -445,23 +479,37 @@ class PerlWorkerPool:
         """
         Parse a file using the worker pool.
 
+        Uses a circuit-breaker pattern: splits the total timeout across retries
+        so that a series of failures doesn't block for N × timeout seconds.
+
         Args:
             file_path: Path to stats file
             variables: List of variable patterns
-            timeout: Maximum parse time
+            timeout: Maximum total parse time across all retries
 
         Returns:
             List of output lines from Perl parser
 
         Raises:
             RuntimeError: If all workers fail
+            TimeoutError: If no workers available within timeout
         """
         max_retries = len(self.workers)  # Try each worker once
+        # Split total timeout across retries to avoid queue starvation
+        per_attempt_timeout = max(5.0, timeout / max_retries)
+        failures = 0
 
         for _attempt in range(max_retries):
+            # Circuit breaker: fail fast if majority of workers are unhealthy
+            with self._lock:
+                healthy_count = sum(1 for w in self.workers if w.is_healthy)
+            if healthy_count == 0 and failures > 0:
+                logger.error("Circuit breaker: no healthy workers remaining")
+                raise RuntimeError("All workers unhealthy — circuit breaker tripped")
+
             try:
-                # Get available worker (blocks if all busy)
-                worker = self.worker_queue.get(timeout=timeout)
+                # Get available worker with per-attempt timeout
+                worker = self.worker_queue.get(timeout=per_attempt_timeout)
 
                 try:
                     # Note: is_busy is a simple boolean attribute. Python's GIL
@@ -475,12 +523,14 @@ class PerlWorkerPool:
                     if success:
                         return output_lines
                     else:
+                        failures += 1
                         logger.warning(
                             f"Worker-{worker.worker_id} failed, retrying with different worker"
                         )
                         # Don't return worker to queue yet, health monitor will handle it
 
                 except Exception as e:
+                    failures += 1
                     logger.error(f"Parse error with worker-{worker.worker_id}: {e}")
                 finally:
                     # Ensure busy flag is cleared even on exception
@@ -516,7 +566,13 @@ class PerlWorkerPool:
         """Shutdown the worker pool."""
         logger.info("Shutting down worker pool...")
 
-        self._shutdown = True
+        # Signal health monitor to stop (wakes it from sleep immediately)
+        self._shutdown_event.set()
+
+        # Wait for health monitor thread to finish
+        if self._health_monitor_thread is not None:
+            self._health_monitor_thread.join(timeout=self._health_check_interval + 1)
+            self._health_monitor_thread = None
 
         # Shutdown all workers
         with self._lock:
@@ -524,6 +580,14 @@ class PerlWorkerPool:
                 worker.shutdown()
 
         logger.info("Worker pool shutdown complete")
+
+    def __del__(self) -> None:
+        """Ensure workers are cleaned up on garbage collection."""
+        try:
+            if hasattr(self, "_shutdown_event") and not self._shutdown_event.is_set():
+                self.shutdown()
+        except Exception:  # nosec B110 — __del__ must not raise
+            pass
 
 
 # Singleton instance
@@ -546,6 +610,7 @@ def get_worker_pool(pool_size: int = 4) -> PerlWorkerPool:
     with _pool_lock:
         if _worker_pool_instance is None:
             _worker_pool_instance = PerlWorkerPool(pool_size=pool_size)
+            atexit.register(shutdown_worker_pool)
         return _worker_pool_instance
 
 

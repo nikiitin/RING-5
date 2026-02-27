@@ -7,6 +7,7 @@ Follows the Facade Pattern to simplify async job submission and tracking.
 
 from __future__ import annotations
 
+import threading
 from collections.abc import Sequence
 from concurrent.futures import Future
 
@@ -30,6 +31,7 @@ class ScanWorkPool:
     """
 
     _singleton: ScanWorkPool | None = None
+    _singleton_lock: threading.Lock = threading.Lock()
 
     @classmethod
     def get_instance(cls) -> ScanWorkPool:
@@ -39,14 +41,16 @@ class ScanWorkPool:
         Returns:
             The singleton ScanWorkPool instance
         """
-        if cls._singleton is None:
-            cls._singleton = ScanWorkPool()
-        return cls._singleton
+        with cls._singleton_lock:
+            if cls._singleton is None:
+                cls._singleton = ScanWorkPool()
+            return cls._singleton
 
     @classmethod
     def reset(cls) -> None:
         """Reset the singleton instance (primarily for testing)."""
-        cls._singleton = None
+        with cls._singleton_lock:
+            cls._singleton = None
 
     def __init__(self) -> None:
         """Initialize the scan work pool with WorkPool backend."""
@@ -119,6 +123,7 @@ class ParseWorkPool:
     """
 
     _instance: ParseWorkPool | None = None
+    _instance_lock: threading.Lock = threading.Lock()
 
     @classmethod
     def get_instance(cls) -> ParseWorkPool:
@@ -128,9 +133,10 @@ class ParseWorkPool:
         Returns:
             The singleton ParseWorkPool instance
         """
-        if cls._instance is None:
-            cls._instance = ParseWorkPool()
-        return cls._instance
+        with cls._instance_lock:
+            if cls._instance is None:
+                cls._instance = ParseWorkPool()
+            return cls._instance
 
     @classmethod
     def reset(cls) -> None:
@@ -139,7 +145,8 @@ class ParseWorkPool:
 
         Used primarily for testing to clear the singleton state.
         """
-        cls._instance = None
+        with cls._instance_lock:
+            cls._instance = None
 
     def __init__(self) -> None:
         """Initialize the parse work pool with WorkPool backend."""

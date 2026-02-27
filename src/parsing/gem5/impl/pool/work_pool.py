@@ -14,14 +14,19 @@ Features:
 
 from __future__ import annotations
 
+import atexit
+import logging
 import multiprocessing
 import os
+import threading
 from collections.abc import Callable
 from concurrent.futures import Future, ProcessPoolExecutor, ThreadPoolExecutor
 from multiprocessing.context import SpawnContext
 from typing import Any
 
 from src.parsing.gem5.impl.pool.job import Job
+
+logger = logging.getLogger(__name__)
 
 
 class WorkPool:
@@ -32,12 +37,14 @@ class WorkPool:
 
     _instance: WorkPool | None = None
     _initialized: bool
+    _new_lock: threading.Lock = threading.Lock()
 
     def __new__(cls) -> WorkPool:
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            cls._instance._initialized = False
-        return cls._instance
+        with cls._new_lock:
+            if cls._instance is None:
+                cls._instance = super().__new__(cls)
+                cls._instance._initialized = False
+            return cls._instance
 
     def __init__(self) -> None:
         if self._initialized:
@@ -75,3 +82,23 @@ class WorkPool:
         """Submit a single task to the pool."""
         executor = self._get_thread_executor() if use_threads else self._get_process_executor()
         return executor.submit(task)
+
+    def shutdown(self, wait: bool = False) -> None:
+        """Shutdown all executors and release resources."""
+        if self._process_executor is not None:
+            self._process_executor.shutdown(wait=wait)
+            self._process_executor = None
+        if self._thread_executor is not None:
+            self._thread_executor.shutdown(wait=wait)
+            self._thread_executor = None
+        logger.info("WorkPool executors shut down")
+
+
+def _shutdown_workpool() -> None:
+    """Shutdown the global WorkPool singleton at interpreter exit."""
+    if WorkPool._instance is not None:
+        WorkPool._instance.shutdown(wait=False)
+        WorkPool._instance = None
+
+
+atexit.register(_shutdown_workpool)
