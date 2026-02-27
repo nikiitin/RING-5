@@ -83,13 +83,24 @@
 
 ## Outcome
 
-**Status**: PENDING
+**Status**: INVESTIGATION COMPLETE
 
-| Item | Result | Fix Applied | Notes |
+| Item | Finding | Severity | Action for Implementation |
 | --- | --- | --- | --- |
-| 6.1 dict[str,Any] → TypedDict | PENDING | | |
-| 6.2 Any annotations | PENDING | | |
-| 6.3 @runtime_checkable | PENDING | | |
-| 6.4 @override decorators | PENDING | | |
-| 6.5 Return type annotations | PENDING | | |
-| 6.6 PlotConfig TypedDict | PENDING | | |
+| 6.1 dict[str,Any] → TypedDict | **NOT A BUG** — 497 occurrences across 111 files. `PlotDisplayConfig` TypedDict (89 lines, 70+ fields) already exists at `src/web/models/plot_models.py` as the documented schema. `PlotConfig = dict[str, Any]` is a progressive typing alias with intentional migration path. 10+ other TypedDicts exist (ParseVariableConfig, SavedConfigData, PortfolioData, etc.) | MEDIUM | Document migration path. Gradually replace `dict[str, Any]` with specific TypedDicts where callers are clear. |
+| 6.2 Any annotations | **NOT A BUG** — 53 occurrences in 15 files. Most are justified: matplotlib lazy imports (17 in matplotlib_connector.py), plotly heterogeneous data, external API compat. Using full types would create hard deps blocking unit tests. | LOW | Add type comments `ax: Any  # matplotlib.axes.Axes` or use `TYPE_CHECKING` imports. |
+| 6.3 @runtime_checkable | **NOT A BUG** — 10 of 19 protocols missing @runtime_checkable. No `isinstance()` calls found that would require it. Missing on: ConfigRenderer, PlotLifecycleService, PlotTypeRegistry, PipelineExecutor, ReferenceLineRenderer, ShapesRenderer, EngineControlsRenderer, SpecificOptionsRenderer, OrderingRenderer, FileParserStrategy. | LOW | Add @runtime_checkable to all for consistency and future-proofing. |
+| 6.4 @override decorators | **NOT A BUG** — 0 @override usage in entire codebase. 30+ methods across BasePlot subclasses (8 plot types), Shaper subclasses (10 shapers), StatType subclasses (5 types) override parent methods without @override. | MEDIUM | Add `from typing import override` and decorate all overridden methods. Catches future refactoring errors. |
+| 6.5 Return type annotations | **NOT A BUG** — No violations found. All `-> None` functions correctly return nothing or bare `return`. data_source_components.py line 96 nested function has correct `-> str` annotation. | N/A | No action needed. |
+| 6.6 PlotConfig TypedDict | **NOT A BUG** — `PlotConfig = dict[str, Any]` at line 297 is intentional progressive typing. `PlotDisplayConfig` TypedDict (70+ typed fields) already documents the full schema. Settings components return dicts matching PlotDisplayConfig schema. | MEDIUM | Document the schema contract in PlotConfig alias comment. |
+
+### Corrections from Initial Hypotheses
+- **6.1 was not as bad as expected** — TypedDicts already exist; the issue is migration from alias to concrete types
+- **6.2 was mostly justified** — Lazy imports for testing isolation
+- **6.3 didn't cause runtime errors** — No isinstance() calls require runtime_checkable
+- **6.5 was NOT a bug** — No violations found on inspection
+
+### Critical Findings Summary (items for improvement)
+1. **0 @override decorators in codebase** — MEDIUM: Python 3.12+ project should use @override for 30+ method overrides
+2. **497 dict[str, Any] with existing schemas** — MEDIUM: TypedDicts exist but aren't used as type annotations
+3. **10 protocols missing @runtime_checkable** — LOW: Good hygiene, no current runtime impact
