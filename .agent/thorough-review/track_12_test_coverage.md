@@ -114,17 +114,28 @@ def test_concurrent_parse_requests():
 
 ## Outcome
 
-**Status**: PENDING
+**Status**: INVESTIGATION COMPLETE
 
-| Item | Result | Tests Added | Notes |
+| Item | Finding | Severity | Action for Implementation |
 | --- | --- | --- | --- |
-| 12.1 Zero-coverage files | PENDING | | |
-| 12.2 Indirect-only coverage | PENDING | | |
-| 12.3 Private attribute tests | PENDING | | |
-| 12.4 Flaky timing tests | PENDING | | |
-| 12.5 Shaper edge cases | PENDING | | |
-| 12.6 Stat type edge cases | PENDING | | |
-| 12.7 Concurrency tests | PENDING | | |
-| 12.8 E2E integration | PENDING | | |
-| 12.9 Fixture consolidation | PENDING | | |
-| 12.10 Binary file test | PENDING | | |
+| 12.1 Zero-coverage files | **PARTIALLY CONFIRMED** — performance.py has ZERO dedicated unit tests (only indirect clear_all_caches call). config_builder.py has integration tests but no unit suite. interactive_plot.py and matplotlib_connector.py DO have test files (hypothesis wrong). | HIGH | Add SimpleCache unit test suite (10+ tests). Add config builder unit tests (15+ tests). |
+| 12.2 Indirect-only coverage | **CONFIRMED** — reorderable_list and filtered_selector tested only through E2E/UI-logic tests. pipeline.py has strong coverage (70 methods). plotly_connector has integration tests only. | MEDIUM | Add dedicated unit tests for reorderable_list and filtered_selector (8+ tests). |
+| 12.3 Private attribute tests | **CONFIRMED CRITICAL** — 370+ private attribute accesses across test suite. test_configuration_type.py: 30+ accesses (._repeat, ._content, ._on_empty, ._balanced, ._reduced). test_matplotlib_trace_renderer.py:86 uses `cast(Any, ax)._ring5_twin`. | HIGH | Refactor 10-15 test files to use public APIs. Add public accessors where needed. Target <50 private accesses. |
+| 12.4 Flaky timing tests | **CONFIRMED** — 13 `time.sleep()` calls across tests. 2 use 1.1s for file timestamp granularity. 5 benchmark tests rely on sleep-based timing. Risk of CI flakiness on slow machines. | MEDIUM-HIGH | Replace sleep-based waits with threading.Event or unittest.mock.patch for deterministic behavior. |
+| 12.5 Shaper edge cases | **PARTIALLY COVERED** — 66 shaper test methods exist. Empty pipeline, None/null fields, NaN/inf, type mismatches ARE tested. Missing: binary/malformed CSV, unicode column names, large datasets, numeric precision loss. | MEDIUM | Add 5+ tests for data format robustness and encoding edge cases. |
+| 12.6 Stat type edge cases | **NEEDS INVESTIGATION** — Skipped due to scope overlap with 12.3. Primary gap is testing through public API rather than private attributes. | MEDIUM | Combine with 12.3 refactoring — test stat types through public reduce/balance_content. |
+| 12.7 Concurrency tests | **CONFIRMED GAP** — No concurrent access tests for PerlWorkerPool. test_perl_worker_pool.py exists but tests sequential access only. | MEDIUM | Add mock-based concurrent parse tests with ThreadPoolExecutor. |
+| 12.8 E2E integration | **CONFIRMED GAP** — No parse→load→transform→plot integration test. integration/ tests exist for individual components but not the full pipeline. | MEDIUM | Create test_full_pipeline_e2e.py with small fixture data. |
+| 12.9 Fixture consolidation | **PARTIALLY CONFIRMED** — No true duplicates, but naming inconsistency: root `mock_state_manager` vs integration `state_manager` (mock vs real). `sample_data` (6 rows) vs `rich_sample_data` (9 rows) with different schemas. | LOW | Document fixtures. Create shared data fixture library. Standardize naming. |
+| 12.10 Binary file test | **CONFIRMED GAP** — Zero tests for binary (.bin, .pkl, .dat) file rejection. No encoding error tests. No permission denied tests. No corrupted file handling tests. | MEDIUM | Add 6+ parser robustness tests for malformed/binary input. |
+
+### Quantified Coverage Summary
+- **~58 new tests needed** across all gaps
+- **370→<50 private attribute accesses** to refactor (10-15 files)
+- **13 time.sleep() calls** to replace with deterministic synchronization
+- **2 modules** (performance.py, config_builder.py) need dedicated test suites
+
+### Critical Findings Summary (items requiring fix)
+1. **370+ private attribute accesses in tests** — HIGH: Massive refactoring fragility
+2. **SimpleCache has 0 unit tests** — HIGH: Thread-unsafe code (Track 05) completely untested
+3. **13 flaky timing tests** — MEDIUM-HIGH: CI reliability risk
