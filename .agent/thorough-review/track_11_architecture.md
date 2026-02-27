@@ -98,13 +98,18 @@ class ParserBackend(Protocol):
 
 ## Outcome
 
-**Status**: PENDING
+**Status**: INVESTIGATION COMPLETE
 
-| Item | Result | Fix Applied | Notes |
+| Item | Finding | Severity | Action for Implementation |
 | --- | --- | --- | --- |
-| 11.1 Upward imports | PENDING | | |
-| 11.2 ColumnBasedSelector | PENDING | | |
-| 11.3 ParserBackend protocol | PENDING | | |
-| 11.4 BasePlot split | PENDING | | |
-| 11.5 Settings consistency | PENDING | | |
-| 11.6 Widget key builder | PENDING | | |
+| 11.1 Upward imports | **CONFIRMED** — 3 files in `src/web/` import directly from `src.parsing`: data_source_components.py:20-21 (ScanWorkPool + SimulatorRegistry), variable_editor.py:536 (ScanWorkPool dynamic), data_source.py:9 (SimulatorRegistry). No Core facade for parser access. | MEDIUM-HIGH | Create `ParsingFacade` Protocol in core. Expose parser APIs through ApplicationAPI. Remove direct web→parsing imports. |
+| 11.2 ColumnBasedSelector | **CONFIRMED** — All 3 selectors duplicate `super()._verify_params()` + cast pattern. ~30 lines of duplicated Template Method calls across column_selector.py, item_selector.py, condition_selector.py. | LOW | Create `ColumnValidationMixin` or centralize in Selector base class. |
+| 11.3 ParserBackend protocol | **CONFIRMED** — PerlWorkerPool (560 lines) has no protocol/abstraction. Hardcoded to subprocess-based Perl execution. `SimulationParser` protocol exists at parsing layer but doesn't cover worker-level interface. | MEDIUM | Create `ParserBackend(Protocol)` with parse/health_check/shutdown methods. Make PerlWorkerPool implement it. |
+| 11.4 BasePlot split | **CONFIRMED** — 690 lines, 26 methods mixing config-gathering (18 methods: render_config_ui, _section_*, _render_*) with rendering (8 methods: create_traces, create_figure, apply_common_layout). Tight coupling to Streamlit everywhere. | MEDIUM-HIGH | Split into PlotConfigUI (all Streamlit methods) and PlotRenderer (figure creation + styling). Pass config dict between them. |
+| 11.5 Settings consistency | **CONFIRMED** — 7 class-based, 4 function-based across 11 settings files. No clear rationale for split. Function-based: reference_line, shapes, engine, ordering. Class-based: layout, colors, advanced, legend, typography, data_labels, axes. | LOW | Standardize all to class-based pattern with `__init__(plot_id, plot_type)` + `render()`. |
+| 11.6 Widget key builder | **CONFIRMED** — 94+ unique key patterns, 120+ total `key=` statements across 12 settings files. Inconsistent prefix/naming: some use `key_prefix`, some hardcode, some use `self.plot_id`, others `plot_id` parameter. | LOW-MEDIUM | Create `WidgetKeyBuilder` utility. Migrate all key construction to centralized builder. |
+
+### Critical Findings Summary (items requiring fix)
+1. **Web→Parsing direct imports** — MEDIUM-HIGH: 3 files violate layer architecture, tight coupling to gem5/Perl
+2. **BasePlot 690-line god class** — MEDIUM-HIGH: Config + rendering mixed, 26 methods, hard to test
+3. **PerlWorkerPool no abstraction** — MEDIUM: Cannot swap parser backends without code changes
