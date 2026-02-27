@@ -68,7 +68,7 @@ Aggregate scan results from multiple futures.
 
 **Structure of VariableInfo**:
 
-```python
+```json
 {
     "name": str,          # Variable name
     "type": str,          # "scalar", "vector", "distribution", "histogram"

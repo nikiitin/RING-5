@@ -62,8 +62,7 @@ class TestStateManager:
         from src.core.state.repository_state_manager import RepositoryStateManager as StateManager
 
         mgr = StateManager()
-
-        test_config = {"shapers": [{"type": "test"}]}
+        test_config = {"shapers": cast(Any, [{"type": "test"}])}
         mgr.set_config(test_config)
 
         retrieved = mgr.get_config()
@@ -211,7 +210,7 @@ class TestApplicationAPI:
             config_path = api.save_configuration(
                 name="test_config",
                 description="Test description",
-                shapers_config=[{"type": "test"}],
+                shapers_config=cast(Any, [{"type": "test"}]),
                 csv_path="/path/to/csv",
             )
 

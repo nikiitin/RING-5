@@ -13,7 +13,7 @@ Uses a hybrid approach: UI widget verification combined with
 API-based operations for flows that involve st.rerun() or dialogs.
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 import pandas as pd
 
@@ -36,10 +36,10 @@ def _create_plot_via_api(api: Any, name: str, plot_type: str = "bar") -> Any:
     return PlotService.create_plot(name, plot_type, api.state_manager)
 
 
-def _inject_multiple_plots(api: Any, count: int = 3) -> List[Any]:
+def _inject_multiple_plots(api: Any, count: int = 3) -> list[Any]:
     """Inject multiple plots with different types."""
-    types: List[str] = ["bar", "grouped_bar", "line", "scatter", "stacked_bar"]
-    plots: List[Any] = []
+    types: list[str] = ["bar", "grouped_bar", "line", "scatter", "stacked_bar"]
+    plots: list[Any] = []
     for i in range(count):
         plot_type: str = types[i % len(types)]
         plot = _create_plot_via_api(api, f"Plot {i + 1}", plot_type)
@@ -72,7 +72,7 @@ class TestPlotCreation:
         at = create_app_with_data()
         api: Any = get_api(at)
 
-        plots: List[Any] = _inject_multiple_plots(api, 3)
+        plots: list[Any] = _inject_multiple_plots(api, 3)
         ids = [p.plot_id for p in plots]
 
         assert len(set(ids)) == 3, "All plot IDs should be unique"
@@ -94,7 +94,7 @@ class TestPlotCreation:
         at = create_app_with_data()
         api: Any = get_api(at)
 
-        available: List[str] = PlotFactory.get_available_plot_types()
+        available: list[str] = PlotFactory.get_available_plot_types()
         assert len(available) >= 5, "Expected at least 5 plot types"
 
         for plot_type in available:
@@ -145,7 +145,7 @@ class TestPlotDeletion:
         at = create_app_with_data()
         api: Any = get_api(at)
 
-        plots: List[Any] = _inject_multiple_plots(api, 3)
+        plots: list[Any] = _inject_multiple_plots(api, 3)
         count_before: int = len(api.state_manager.get_plots())
 
         PlotService.delete_plot(plots[1].plot_id, api.state_manager)
@@ -325,8 +325,8 @@ class TestPipelineOperations:
         api: Any = get_api(at)
 
         plot = _create_plot_via_api(api, "Reorder Test", "bar")
-        step_a: Dict[str, Any] = {"id": 0, "type": "columnSelector", "config": {}}
-        step_b: Dict[str, Any] = {"id": 1, "type": "sort", "config": {}}
+        step_a: dict[str, Any] = {"id": 0, "type": "columnSelector", "config": {}}
+        step_b: dict[str, Any] = {"id": 1, "type": "sort", "config": {}}
         plot.pipeline = [step_a, step_b]
 
         # Swap: move_down on index 0
@@ -347,7 +347,7 @@ class TestPipelineOperations:
         raw_data: pd.DataFrame = api.state_manager.get_data()
 
         shaper = ShaperFactory.create_shaper(
-            "columnSelector", {"columns": ["benchmark_name", "system.cpu.ipc"]}
+            "columnSelector", {"columns": ["benchmark_name", "system.cpu.ipc"]}  # type: ignore
         )
         processed: pd.DataFrame = shaper(raw_data)
         plot.processed_data = processed
@@ -398,8 +398,8 @@ class TestPlotTypeChange:
         """PlotFactory reports all expected plot types."""
         from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
-        types: List[str] = PlotFactory.get_available_plot_types()
-        expected: List[str] = [
+        types: list[str] = PlotFactory.get_available_plot_types()
+        expected: list[str] = [
             "bar",
             "grouped_bar",
             "stacked_bar",
@@ -426,7 +426,7 @@ class TestShaperExecution:
         raw: pd.DataFrame = api.state_manager.get_data()
 
         shaper = ShaperFactory.create_shaper(
-            "columnSelector", {"columns": ["benchmark_name", "system.cpu.ipc"]}
+            "columnSelector", {"columns": ["benchmark_name", "system.cpu.ipc"]}  # type: ignore
         )
         result: pd.DataFrame = shaper(raw)
 
@@ -444,7 +444,7 @@ class TestShaperExecution:
         # Sort benchmarks in specified order
         shaper = ShaperFactory.create_shaper(
             "sort",
-            {"order_dict": {"benchmark_name": ["mcf", "omnetpp", "xalancbmk"]}},
+            {"order_dict": {"benchmark_name": ["mcf", "omnetpp", "xalancbmk"]}},  # type: ignore
         )
         result: pd.DataFrame = shaper(raw)
 
@@ -463,7 +463,7 @@ class TestShaperExecution:
 
         shaper = ShaperFactory.create_shaper(
             "mean",
-            {
+            {  # type: ignore
                 "meanVars": ["system.cpu.ipc"],
                 "meanAlgorithm": "arithmean",
                 "groupingColumns": ["config_description"],
@@ -487,14 +487,14 @@ class TestShaperExecution:
         # Step 1: Column selector
         step1 = ShaperFactory.create_shaper(
             "columnSelector",
-            {"columns": ["benchmark_name", "config_description", "system.cpu.ipc"]},
+            {"columns": ["benchmark_name", "config_description", "system.cpu.ipc"]},  # type: ignore
         )
         intermediate: pd.DataFrame = step1(raw)
 
         # Step 2: Filter to baseline only
         step2 = ShaperFactory.create_shaper(
             "conditionSelector",
-            {"column": "config_description", "values": ["baseline"]},
+            {"column": "config_description", "values": ["baseline"]},  # type: ignore
         )
         final: pd.DataFrame = step2(intermediate)
 

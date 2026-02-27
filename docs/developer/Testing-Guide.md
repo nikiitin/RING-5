@@ -71,9 +71,8 @@ tests/
 ### All Tests
 
 ```bash
-make test
-# or
-pytest
+# Run all tests
+./python_venv/bin/python3 -m pytest -n 3
 ```
 
 ### Specific Test Directory

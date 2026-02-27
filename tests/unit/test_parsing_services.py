@@ -166,8 +166,8 @@ class TestScannerService:
         )
         result = ScannerService.aggregate_scan_results([[d1], [d2]])
         lat_var = next(v for v in result if v.name == "latency")
-        assert lat_var.minimum == 5
-        assert lat_var.maximum == 200
+        assert lat_var.minimum == 5  # type: ignore
+        assert lat_var.maximum == 200  # type: ignore
 
     def test_merge_variable_model_input(self) -> None:
         """_merge_variable accepts ScannedVariable models."""

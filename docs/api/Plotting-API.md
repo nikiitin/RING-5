@@ -258,7 +258,8 @@ Scatter plot for correlation analysis.
 
 **Configuration**:
 
-```python
+````python
+```json
 {
     "x_column": str,
     "y_column": str,
@@ -267,7 +268,7 @@ Scatter plot for correlation analysis.
     "shape_by": str,      # Optional: marker shape
     "title": str,
 }
-```
+````
 
 **Example**:
 
@@ -288,7 +289,7 @@ Histogram for distribution visualization.
 
 **Configuration**:
 
-```python
+```json
 {
     "column": str,        # Data column
     "bins": int,          # Number of bins

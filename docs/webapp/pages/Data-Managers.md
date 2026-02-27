@@ -4,6 +4,8 @@ parent: "WebApp Guide"
 nav_order: 2
 ---
 
+<!-- trunk-ignore-all(markdownlint/MD025) -->
+
 # Data Managers Page
 
 After loading data, use **Data Managers** to clean, filter, and prepare your
@@ -100,13 +102,11 @@ or combining baseline data with new experimental data.
 
 ## Before and After
 
-<details><summary>📷 Data Managers state</summary>
+### User Interface State
 
 |                     No data loaded                      |                     Data loaded                     |
 | :-----------------------------------------------------: | :-------------------------------------------------: |
 | ![No data](../images/data_managers_no_data_warning.png) | ![With data](../images/data_managers_with_data.png) |
-
-</details>
 
 ---
 

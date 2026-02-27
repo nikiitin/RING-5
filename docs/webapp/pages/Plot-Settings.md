@@ -4,6 +4,8 @@ parent: "WebApp Guide"
 nav_order: 4
 ---
 
+<!-- trunk-ignore-all(markdownlint/MD025) -->
+
 # Plot Settings Reference
 
 Every plot's visual appearance is controlled through **settings pills** —

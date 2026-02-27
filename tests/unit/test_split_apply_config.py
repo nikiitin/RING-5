@@ -1,5 +1,6 @@
 """Tests for SplitApplyConfig shaper UI component — N-group delegation."""
 
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -91,7 +92,7 @@ class TestSplitApplyConfigRender:
 
         result = SplitApplyConfig.render(
             data=data,
-            existing_config={},
+            existing_config=cast(Any, {}),
             key_prefix="p_",
             shaper_id=0,
         )
@@ -130,7 +131,7 @@ class TestSplitApplyConfigRender:
 
         result = SplitApplyConfig.render(
             data=data,
-            existing_config={"joinColumns": ["benchmark"]},
+            existing_config=cast(Any, {"joinColumns": ["benchmark"]}),
             key_prefix="p_",
             shaper_id=0,
         )
@@ -180,7 +181,7 @@ class TestSplitApplyConfigSubStepDelegation:
             columns=["ipc"],
             join_columns=["benchmark", "config"],
             categorical_cols=["benchmark", "config"],
-            existing_step={},
+            existing_step=cast(Any, {}),
             key_base="k",
             step_index=0,
         )
@@ -229,7 +230,7 @@ class TestSplitApplyConfigSubStepDelegation:
             columns=["ipc"],
             join_columns=["benchmark", "config"],
             categorical_cols=["benchmark", "config"],
-            existing_step={},
+            existing_step=cast(Any, {}),
             key_base="k",
             step_index=0,
         )
@@ -273,7 +274,7 @@ class TestSplitApplyConfigSubStepDelegation:
             columns=["ipc"],
             join_columns=["benchmark", "config"],
             categorical_cols=["benchmark", "config"],
-            existing_step={},
+            existing_step=cast(Any, {}),
             key_base="k",
             step_index=0,
         )
@@ -316,7 +317,7 @@ class TestSplitApplyConfigSubStepDelegation:
             columns=["ipc"],
             join_columns=["benchmark", "config"],
             categorical_cols=["benchmark", "config"],
-            existing_step={},
+            existing_step=cast(Any, {}),
             key_base="k",
             step_index=0,
         )
@@ -387,7 +388,7 @@ class TestSplitApplyConfigWithStep:
 
         result = SplitApplyConfig.render(
             data=data,
-            existing_config={},
+            existing_config=cast(Any, {}),
             key_prefix="p_",
             shaper_id=0,
         )
@@ -435,7 +436,7 @@ class TestSplitApplyConfigNGroups:
 
         result = SplitApplyConfig.render(
             data=data,
-            existing_config={},
+            existing_config=cast(Any, {}),
             key_prefix="p_",
             shaper_id=0,
         )
@@ -481,7 +482,7 @@ class TestSplitApplyConfigNGroups:
 
         result = SplitApplyConfig.render(
             data=data,
-            existing_config={},
+            existing_config=cast(Any, {}),
             key_prefix="p_",
             shaper_id=0,
         )
@@ -503,7 +504,7 @@ class TestSplitApplyConfigNGroups:
 
         data: pd.DataFrame = _sample_data_4cols()
 
-        existing: ShaperStepConfig = {
+        existing: ShaperStepConfig = {  # type: ignore
             "joinColumns": ["benchmark", "config"],
             "groups": [
                 {"columns": ["v1"], "pipeline": []},
@@ -530,7 +531,7 @@ class TestSplitApplyConfigNGroups:
 
         result = SplitApplyConfig.render(
             data=data,
-            existing_config=existing,
+            existing_config=cast(Any, existing),
             key_prefix="p_",
             shaper_id=0,
         )
@@ -580,7 +581,7 @@ class TestSplitApplyConfigExistingPipeline:
 
         data: pd.DataFrame = _sample_data()
 
-        existing: ShaperStepConfig = {
+        existing: ShaperStepConfig = {  # type: ignore
             "joinColumns": ["benchmark", "config"],
             "groups": [
                 {
@@ -616,7 +617,7 @@ class TestSplitApplyConfigExistingPipeline:
 
         result = SplitApplyConfig.render(
             data=data,
-            existing_config=existing,
+            existing_config=cast(Any, existing),
             key_prefix="p_",
             shaper_id=0,
         )
@@ -666,7 +667,7 @@ class TestSplitApplyConfigKeyPrefixing:
             columns=["ipc"],
             join_columns=["benchmark", "config"],
             categorical_cols=["benchmark", "config"],
-            existing_step={},
+            existing_step=cast(Any, {}),
             key_base="p_sa_g1_0_s0",
             step_index=0,
         )

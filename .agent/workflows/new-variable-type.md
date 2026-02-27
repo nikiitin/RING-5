@@ -67,7 +67,7 @@ system.cpu.bandwidth_formula             2.456789   # bytes / time
 - Has formula expression in comment
 - May have special naming convention (`_formula` suffix)
 
-### Step 2: Create Perl Parser
+### Step 2: Create Perl Parser (Formula)
 
 **File**: `src/parsing/gem5/perl/fileParser.pl`
 
@@ -130,7 +130,7 @@ close($csv_fh);
 print "Formula parsing complete: $output_csv\n";
 ```
 
-### Step 3: Add to TypeMapper
+### Step 3: Add to TypeMapper (Formula)
 
 **File**: `src/parsing/gem5/types/type_mapper.py`
 
@@ -190,7 +190,7 @@ class TypeMapper:
         return parse_config
 ```
 
-### Step 4: Update Scanner
+### Step 4: Update Scanner (Formula)
 
 The scanner needs to detect formula variables:
 
@@ -226,7 +226,7 @@ def scan_gem5_stats(
     return results
 ```
 
-### Step 5: Create Unit Tests
+### Step 5: Create Unit Tests (Formula)
 
 **File**: `tests/unit/test_formula_parser.py`
 
@@ -297,7 +297,7 @@ system.cpu.bandwidth_formula             2.456789   # bytes / time
         assert parse_config["extract_formula"] is True
 ```
 
-### Step 6: Create Integration Test
+### Step 6: Create Integration Test (Formula)
 
 **File**: `tests/integration/test_formula_parsing.py`
 
@@ -374,7 +374,7 @@ system.cpu.bandwidth_formula                 2.456789   # bytes / time
         assert ipc_row["formula"].iloc[0] == "cycles / instructions"
 ```
 
-### Step 7: Update Documentation
+### Step 7: Update Documentation (Formula)
 
 **File**: `docs/variable-types.md` (create if doesn't exist)
 
@@ -418,7 +418,7 @@ system.cpu.ipc_formula 1.745234 # cycles / instructions
 
 ````
 
-### Step 8: Update UI
+### Step 8: Update UI (Formula)
 
 Add formula type to variable editor:
 

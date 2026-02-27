@@ -4,7 +4,6 @@
 import ast
 import sys
 from pathlib import Path
-from typing import Set
 
 # Mapping from import name to package name
 IMPORT_TO_PACKAGE = {
@@ -39,11 +38,11 @@ DEV_PACKAGES = {
 }
 
 
-def extract_imports_from_file(file_path: Path) -> Set[str]:
+def extract_imports_from_file(file_path: Path) -> set[str]:
     """Extract all import statements from a Python file."""
     imports = set()
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             tree = ast.parse(f.read(), filename=str(file_path))
 
         for node in ast.walk(tree):
@@ -70,7 +69,7 @@ def find_all_python_files(root: Path) -> list[Path]:
     return list(root.glob("src/**/*.py"))
 
 
-def map_imports_to_packages(imports: Set[str]) -> Set[str]:
+def map_imports_to_packages(imports: set[str]) -> set[str]:
     """Map import names to package names."""
     packages = set()
     for imp in imports:
@@ -106,7 +105,7 @@ def map_imports_to_packages(imports: Set[str]) -> Set[str]:
     return packages
 
 
-def main():
+def main() -> None:
     root = Path(__file__).parent.parent
 
     # Find all Python files

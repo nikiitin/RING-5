@@ -4,6 +4,9 @@ parent: "WebApp Guide"
 nav_order: 1
 ---
 
+<!-- trunk-ignore-all(markdownlint/MD033) -->
+<!-- trunk-ignore-all(markdownlint/MD025) -->
+
 # Data Source Page
 
 The **Data Source** page is your entry point into RING-5. Load simulation data

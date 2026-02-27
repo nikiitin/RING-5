@@ -10,7 +10,7 @@ Targets uncovered lines:
 - manager.py: 90, 100
 """
 
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -74,12 +74,21 @@ class TestShaperApplyBranches:
         with pytest.raises(ValueError, match="Cannot apply shapers to None"):
             apply_shapers(None, [])  # type: ignore[arg-type]
 
+    @patch("src.web.pages.ui.shaper_config.apply_shapers")
+    def test_apply_transformer_branch(self, mock_apply: MagicMock) -> None:
+        from src.web.pages.ui.shaper_config import apply_shapers
+
+        df = pd.DataFrame({"a": [1]})
+        apply_shapers(df, cast(Any, [{"type": "transformer"}]))
+        mock_apply.assert_called()
+
     @patch("src.web.pages.ui.shaper_config.st")
     def test_apply_skip_no_type(self, mock_st: MagicMock) -> None:
         from src.web.pages.ui.shaper_config import apply_shapers
 
         df = pd.DataFrame({"a": [1]})
-        result = apply_shapers(df, [{}])  # no type key
+        # Cast to Any then to list[ShaperStepConfig] to satisfy Pyright
+        result = apply_shapers(df, cast(Any, [{}]))  # no type key
         pd.testing.assert_frame_equal(result, df)
 
     @patch("src.web.pages.ui.shaper_config.st")
@@ -88,7 +97,8 @@ class TestShaperApplyBranches:
 
         df = pd.DataFrame({"a": [1]})
         # normalize requires normalizeVars, normalizerColumn, etc.
-        result = apply_shapers(df, [{"type": "normalize"}])
+        # Cast to Any then to list[ShaperStepConfig] to satisfy Pyright
+        result = apply_shapers(df, cast(Any, [{"type": "normalize"}]))
 
         mock_st.warning.assert_called()
         pd.testing.assert_frame_equal(result, df)
@@ -181,6 +191,12 @@ class TestDataManagerBase:
 
         api = _make_mock_api()
         api.state_manager.get_data.return_value = pd.DataFrame({"x": [1]})
+
+        from src.web.pages.ui.shaper_config import apply_shapers
+
+        # Missing group_by
+        # Use a dummy dataframe and config
+        result = apply_shapers(pd.DataFrame({"a": [1]}), cast(Any, [{"type": "mean"}]))
 
         # Create a concrete subclass
         class Concrete(DataManager):

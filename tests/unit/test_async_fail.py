@@ -4,7 +4,6 @@ Tests for async scanning behavior with Futures-based API.
 
 import time
 from concurrent.futures import as_completed
-from typing import Any
 
 from src.core.models import ScannedVariable
 from src.parsing.gem5.impl.pool.pool import ScanWorkPool
@@ -12,7 +11,7 @@ from src.parsing.gem5.impl.pool.scan_work import ScanWork
 
 
 class MockWork(ScanWork):
-    def __init__(self, val: Any, duration: Any = 0.1) -> None:
+    def __init__(self, val: int, duration: float = 0.1) -> None:
 
         self.val = val
         self.duration = duration

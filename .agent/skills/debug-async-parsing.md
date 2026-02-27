@@ -16,7 +16,7 @@ Common issues with async parsing/scanning and how to resolve them.
 concurrent.futures._base.TimeoutError: Future did not complete within 30 seconds
 ```
 
-### Diagnosis
+### Diagnosis (Timeout Issues)
 
 ```python
 # Add logging to see what's happening
@@ -35,7 +35,7 @@ for i, future in enumerate(futures):
         raise
 ```
 
-### Solutions
+### Solutions (Timeout Resolution)
 
 1. **Increase timeout**:
 
@@ -90,7 +90,7 @@ data = facade.load_csv(csv_path)
 print(len(data))  # 0 rows!
 ```
 
-### Diagnosis
+### Diagnosis (Empty Results)
 
 ```python
 # Check parse results
@@ -107,7 +107,7 @@ for i, result in enumerate(parse_results):
             print(f"  CSV not found: {csv_path}")
 ```
 
-### Solutions
+### Solutions (Empty Results Resolution)
 
 1. **Check regex pattern matches**:
 
@@ -173,7 +173,7 @@ parse_futures = facade.submit_parse_async(
 # Error: Variable 'system.cpu.ipc' not found in scanned variables
 ```
 
-### Diagnosis
+### Diagnosis: Variable Not Found
 
 ```python
 # Check if pattern resolves to actual variables
@@ -186,7 +186,7 @@ if re.search(r'[.*+?^${}()|[\]\\]', pattern):
     print("Pattern is a regex - must resolve against scanned vars")
 ```
 
-### Solutions
+### Solutions: Variable Not Found
 
 1. **Use regex resolution**:
 
@@ -237,7 +237,7 @@ csv_path = facade.finalize_parsing(output_dir, parse_results)
 # Error: Cannot concatenate DataFrames - column mismatch
 ```
 
-### Diagnosis
+### Diagnosis: Futures Timing Out
 
 ```python
 # Check individual CSV files
@@ -248,7 +248,7 @@ for result in parse_results:
         print(f"{csv_path}: {df.columns.tolist()}")
 ```
 
-### Solutions
+### Solutions: CSV Merge Failures
 
 1. **Ensure consistent variable types**:
 
@@ -300,7 +300,7 @@ MemoryError: Unable to allocate array
 Process killed (OOM)
 ```
 
-### Solutions
+### Solutions: Futures Timing Out
 
 1. **Limit scan results**:
 

@@ -123,7 +123,7 @@ class TestBarPlot:
         plot = BarPlot(1, "Test")
         plot.processed_data = sample_data
         plot.config = {"x": "category", "y": "value"}
-        plot.pipeline = [{"id": 0, "type": "columnSelector", "config": {}}]
+        plot.pipeline = cast(Any, [{"id": 0, "type": "columnSelector", "config": {}}])
 
         data_dict = plot.to_dict()
         assert data_dict["id"] == 1
@@ -234,7 +234,7 @@ class TestPlotSerialization:
         plot.processed_data = sample_data
         plot.config = {"x": "category", "y": "value"}
         plot.pipeline = [
-            {"id": 0, "type": "columnSelector", "config": {"columns": ["category", "value"]}}
+            {"id": 0, "type": "columnSelector", "config": {"columns": ["category", "value"]}}  # type: ignore  # noqa: E501
         ]
         plot.legend_mappings = {"A": "Label A", "B": "Label B"}
 

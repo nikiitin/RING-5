@@ -1,6 +1,8 @@
----
+## <!-- trunk-ignore-all(markdownlint/MD040) -->
+
 title: "Adding Plot Types"
 nav_order: 19
+
 ---
 
 # Adding Plot Types

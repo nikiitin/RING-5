@@ -1,6 +1,8 @@
----
+## <!-- trunk-ignore-all(markdownlint/MD040) -->
+
 description: Refactoring patterns, extraction techniques, and mock path management learned from the Architectural Refactor v2.
-globs: src/**/*.py, tests/**/*.py
+globs: src/**/\*.py, tests/**/\*.py
+
 ---
 
 # 009-refactoring-patterns.md

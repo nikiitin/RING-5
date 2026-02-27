@@ -7,10 +7,11 @@ Part of the selector algorithm family for value-based filtering.
 """
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 
+from src.core.models.shaper_models import ItemSelectorConfig
 from src.core.services.shapers.impl.selector import Selector
 
 
@@ -28,16 +29,19 @@ class ItemSelector(Selector):
             params: Must contain 'column' and 'strings'.
                 - mode (str): 'exact' (default) or 'contains'.
         """
-        self.strings: list[str] = [str(s) for s in params.get("strings", [])]
-        self.mode: str = params.get("mode", "exact")
+        config = cast(ItemSelectorConfig, params)
+        self.strings: list[str] = [str(s) for s in config.get("strings", [])]
+        self.mode: str = config.get("mode", "exact")
         super().__init__(params)
 
     def _verify_params(self) -> bool:
         """Verify that 'strings' parameter is a valid list."""
         super()._verify_params()
-        if "strings" not in self.params:
+        config = cast(ItemSelectorConfig, self.params)
+
+        if "strings" not in config:
             raise ValueError("ItemSelector requires 'strings' parameter.")
-        if not isinstance(self.params["strings"], list):
+        if not isinstance(config["strings"], list):
             raise TypeError("ItemSelector 'strings' parameter must be a list.")
         return True
 

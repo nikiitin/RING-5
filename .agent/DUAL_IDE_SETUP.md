@@ -16,7 +16,7 @@ RING-5 supports **both Google Antigravity IDE and GitHub Copilot (VSCode)** with
 
 ### Google Antigravity IDE
 
-```
+```bash
 .agent/
 ├── rules/
 │   └── project-context.md          # Main project rules (Always On)
@@ -38,7 +38,7 @@ RING-5 supports **both Google Antigravity IDE and GitHub Copilot (VSCode)** with
 
 ### GitHub Copilot (VSCode)
 
-```
+```bash
 .github/
 └── copilot-instructions.md         # All instructions in one file
 
@@ -60,7 +60,7 @@ RING-5 supports **both Google Antigravity IDE and GitHub Copilot (VSCode)** with
 
 2. **Workflows**: Invoke by name
 
-   ```
+   ```text
    /test-driven-development
    ```
 

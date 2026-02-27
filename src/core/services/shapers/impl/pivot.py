@@ -26,6 +26,8 @@ class PivotLonger(Shaper):
     a variable part from the column names.
     """
 
+    config: PivotLongerShaperConfig
+
     def __init__(self, params: dict[str, str | list[str]]) -> None:
         """Initialize with PivotLongerShaperConfig."""
         super().__init__(params)
@@ -72,9 +74,10 @@ class PivotLonger(Shaper):
         if pattern:
             try:
                 # Use pandas str.extract which expects a capture group
-                extracted = result[self.config["var_name"]].str.extract(pattern, expand=False)
+                var_name = self.config["var_name"]
+                extracted = result[var_name].str.extract(pattern, expand=False)
                 # If extraction fails (NaNs), fallback to original string or fillna
-                result[self.config["var_name"]] = extracted.fillna(result[self.config["var_name"]])
+                result[var_name] = extracted.fillna(result[var_name])
             except Exception as e:
                 raise ValueError(f"Failed to apply extraction pattern '{pattern}': {e}") from e
 
@@ -87,6 +90,8 @@ class PivotWider(Shaper):
 
     Transforms data from a long format to a wide format using pivot().
     """
+
+    config: PivotWiderShaperConfig
 
     def __init__(self, params: dict[str, str | list[str]]) -> None:
         """Initialize with PivotWiderShaperConfig."""

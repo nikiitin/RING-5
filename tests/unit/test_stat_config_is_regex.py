@@ -1,4 +1,4 @@
-"""
+r"""
 Tests for the ``is_regex`` flag on :class:`StatConfig`.
 
 Validates that:
@@ -78,7 +78,7 @@ class TestApplicationAPIIsRegex:
         return api
 
     def test_dict_with_regex_name(self) -> None:
-        """A dict variable with \\d+ in name should produce is_regex=True."""
+        r"""A dict variable with \\d+ in name should produce is_regex=True."""
         api = self._make_api()
         api._parser.submit_parse_async.return_value = MagicMock()
 
@@ -98,7 +98,7 @@ class TestApplicationAPIIsRegex:
         assert configs[0].is_regex is True
 
     def test_dict_with_plain_name(self) -> None:
-        """A dict variable without \\d+ should produce is_regex=False."""
+        r"""A dict variable without \\d+ should produce is_regex=False."""
         api = self._make_api()
         api._parser.submit_parse_async.return_value = MagicMock()
 
@@ -118,7 +118,7 @@ class TestApplicationAPIIsRegex:
         assert configs[0].is_regex is False
 
     def test_scanned_variable_with_regex(self) -> None:
-        """A ScannedVariable with \\d+ in name should produce is_regex=True."""
+        r"""A ScannedVariable with \\d+ in name should produce is_regex=True."""
         api = self._make_api()
         api._parser.submit_parse_async.return_value = MagicMock()
 

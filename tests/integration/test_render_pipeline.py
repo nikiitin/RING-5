@@ -286,7 +286,7 @@ class TestFullDataToRenderE2E:
         # 1. Column select
         col_shaper = ShaperFactory.create_shaper(
             "columnSelector",
-            {
+            {  # type: ignore
                 "columns": [
                     "benchmark_name",
                     "config_description",
@@ -299,7 +299,7 @@ class TestFullDataToRenderE2E:
         # 2. Normalize IPC against baseline
         norm_shaper = ShaperFactory.create_shaper(
             "normalize",
-            {
+            {  # type: ignore
                 "normalizeVars": ["system.cpu.ipc"],
                 "normalizerColumn": "config_description",
                 "normalizerValue": "baseline",
@@ -344,7 +344,7 @@ class TestFullDataToRenderE2E:
         # 1. Column select
         col_shaper = ShaperFactory.create_shaper(
             "columnSelector",
-            {
+            {  # type: ignore
                 "columns": [
                     "benchmark_name",
                     "config_description",
@@ -357,7 +357,7 @@ class TestFullDataToRenderE2E:
         # 2. Compute mean per config
         mean_shaper = ShaperFactory.create_shaper(
             "mean",
-            {
+            {  # type: ignore
                 "meanVars": ["system.cpu.ipc"],
                 "meanAlgorithm": "arithmean",
                 "groupingColumns": ["config_description"],

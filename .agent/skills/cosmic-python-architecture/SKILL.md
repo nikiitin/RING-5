@@ -13,7 +13,7 @@ This skill encapsulates the "Brain" of the project's architecture. It merges rig
 
 The Domain Layer is the sanctuary of business logic. It has **zero dependencies** on infrastructure (Streamlit, Plotly, Filesystem).
 
-### Key Patterns & Application
+### Architectural Patterns
 
 #### 1.1 Entities (Identity Matters)
 
@@ -29,6 +29,10 @@ The Domain Layer is the sanctuary of business logic. It has **zero dependencies*
   - `StatMetric`: `(name="system.cpu.ipc", value=1.4, unit="IPC")`.
   - `ConfigParam`: `(key="l1_size", value="64kB")`.
   - **Rule**: Use `@dataclass(frozen=True)`. Operations (math) return _new_ objects.
+
+```python
+# example
+```
 
 #### 1.3 Aggregates (Consistency Boundaries)
 

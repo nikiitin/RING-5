@@ -73,8 +73,8 @@ def validate_parser_csv(path: Path) -> list[str]:
         # 1. Header row is mandatory
         try:
             header = next(reader)
-        except StopIteration:
-            raise ValueError(f"CSV file is empty: {path}")
+        except StopIteration as e:
+            raise ValueError(f"CSV file is empty: {path}") from e
 
         if not header:
             raise ValueError(f"CSV file has empty header row: {path}")

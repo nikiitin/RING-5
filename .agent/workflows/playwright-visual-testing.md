@@ -1,3 +1,5 @@
+<!-- trunk-ignore-all(markdownlint/MD040) -->
+
 # Playwright Visual Testing Workflow
 
 > **Invoke with**: `/playwright-visual-testing`

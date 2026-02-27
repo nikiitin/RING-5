@@ -7,7 +7,7 @@ Since components call Streamlit widgets, we mock st.* to verify:
     3. No state mutations or API calls happen
 """
 
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 # ─── PlotCreationComponent Tests ─────────────────────────────────────────────
@@ -338,7 +338,7 @@ class TestPipelineStepComponent:
             shaper_type="sort",
             shaper_id=100,
             step_input=df,
-            current_config={"type": "sort"},
+            current_config=cast(Any, {"type": "sort"}),
             is_first=True,
             is_last=False,
             configure_fn=configure_fn,
@@ -386,7 +386,7 @@ class TestPipelineStepComponent:
             shaper_type="sort",
             shaper_id=42,
             step_input=df,
-            current_config={},
+            current_config=cast(Any, {}),
             is_first=False,
             is_last=True,
             configure_fn=configure_fn,
@@ -426,7 +426,7 @@ class TestPipelineStepComponent:
             shaper_type="sort",
             shaper_id=1,
             step_input=df,
-            current_config={},
+            current_config=cast(Any, {}),
             is_first=True,
             is_last=True,
             configure_fn=configure_fn,

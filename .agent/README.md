@@ -60,7 +60,7 @@ The project follows a **Layered Architecture** with a strict separation of conce
 
 ## 6. Directory Structure
 
-```
+```text
 RING-5/
 ├── src/
 │   ├── core/           # Domain logic and data processing

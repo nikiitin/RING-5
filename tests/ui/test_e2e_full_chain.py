@@ -211,7 +211,7 @@ class TestPipelineModificationCycle:
         # First pipeline: just column select
         shaper1 = ShaperFactory.create_shaper(
             "columnSelector",
-            {"columns": ["benchmark_name", "config_description", "system.cpu.ipc"]},
+            {"columns": ["benchmark_name", "config_description", "system.cpu.ipc"]},  # type: ignore
         )
         after_select: pd.DataFrame = shaper1(raw)
         assert len(after_select) == initial_rows
@@ -219,7 +219,7 @@ class TestPipelineModificationCycle:
         # Second pipeline: column select + filter
         shaper2 = ShaperFactory.create_shaper(
             "conditionSelector",
-            {"column": "config_description", "values": ["baseline"]},
+            {"column": "config_description", "values": ["baseline"]},  # type: ignore
         )
         after_filter: pd.DataFrame = shaper2(after_select)
 
@@ -237,11 +237,11 @@ class TestPipelineModificationCycle:
         def run_pipeline(data: pd.DataFrame) -> pd.DataFrame:
             s1 = ShaperFactory.create_shaper(
                 "columnSelector",
-                {"columns": ["benchmark_name", "system.cpu.ipc"]},
+                {"columns": ["benchmark_name", "system.cpu.ipc"]},  # type: ignore
             )
             s2 = ShaperFactory.create_shaper(
                 "sort",
-                {"order_dict": {"benchmark_name": ["mcf", "omnetpp", "xalancbmk"]}},
+                {"order_dict": {"benchmark_name": ["mcf", "omnetpp", "xalancbmk"]}},  # type: ignore
             )
             return s2(s1(data))
 
@@ -335,7 +335,7 @@ class TestPortfolioRoundTripWithPlots:
             {
                 "id": 0,
                 "type": "columnSelector",
-                "config": {"columns": ["benchmark_name", "system.cpu.ipc"]},
+                "config": {"columns": ["benchmark_name", "system.cpu.ipc"]},  # type: ignore
             },
         ]
 

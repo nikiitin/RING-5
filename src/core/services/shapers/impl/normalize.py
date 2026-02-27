@@ -75,11 +75,12 @@ Last Modified: 2026-01-27
 import hashlib
 import logging
 import warnings
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 from pandas import DataFrame
 
+from src.core.models.shaper_models import NormalizeShaperConfig
 from src.core.performance import cached
 from src.core.services.shapers.uni_df_shaper import UniDfShaper
 
@@ -107,13 +108,16 @@ class Normalize(UniDfShaper):
                 - groupBy (List[str]): Columns used to define groups.
                 - normalizeSd (Optional[bool]): Whether to normalize .sd columns. Defaults to True.
         """
+        # Use cast for type-safe access
+        config = cast(NormalizeShaperConfig, params)
+
         # Assign properties before super().__init__ as _verify_params needs them
-        self._normalize_vars: list[str] = params.get("normalizeVars", [])
-        self._normalizer_column: str = params.get("normalizerColumn", "")
-        self._normalizer_value: str = params.get("normalizerValue", "")
-        self._group_by: list[str] = params.get("groupBy", [])
-        self._normalizer_vars: list[str] = params.get("normalizerVars", self._normalize_vars)
-        self._normalize_sd: bool = params.get("normalizeSd", True)
+        self._normalize_vars: list[str] = config.get("normalizeVars", [])
+        self._normalizer_column: str = config.get("normalizerColumn", "")
+        self._normalizer_value: str = config.get("normalizerValue", "")
+        self._group_by: list[str] = config.get("groupBy", [])
+        self._normalizer_vars: list[str] = config.get("normalizerVars", self._normalize_vars)
+        self._normalize_sd: bool = config.get("normalizeSd", True)
 
         # Store params for caching fingerprint
         self._params = params
@@ -137,9 +141,10 @@ class Normalize(UniDfShaper):
     def _verify_params(self) -> bool:
         """Verify that mandatory parameters exist in the params dict."""
         super()._verify_params()
+        config = cast(NormalizeShaperConfig, self.params)
         required = ["normalizeVars", "normalizerColumn", "normalizerValue", "groupBy"]
         for r in required:
-            if r not in self.params:
+            if r not in config:
                 raise ValueError(f"Normalize: Missing required parameter '{r}'")
         return True
 

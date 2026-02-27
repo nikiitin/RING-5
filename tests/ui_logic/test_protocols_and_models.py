@@ -1,6 +1,6 @@
 """Tests for plot protocols -- runtime_checkable conformance and structural typing."""
 
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 
@@ -37,7 +37,7 @@ class TestPlotHandleProtocol:
             plot_type="bar",
             config={"x": 1},
             processed_data=pd.DataFrame({"a": [1]}),
-            pipeline=[{"id": 1, "type": "sort", "config": {}}],
+            pipeline=cast(Any, [{"id": 1, "type": "sort", "config": {}}]),
             pipeline_counter=1,
         )
         assert isinstance(plot.plot_id, int)
@@ -85,7 +85,7 @@ class TestPlotModels:
         """ShaperStep can be constructed with required fields."""
         from src.web.models.plot_models import ShaperStep
 
-        step: ShaperStep = {"id": 1, "type": "sort", "config": {"column": "a"}}
+        step: ShaperStep = cast(Any, {"id": 1, "type": "sort", "config": {"column": "a"}})
         assert step["id"] == 1
         assert step["type"] == "sort"
         assert step["config"].get("column") == "a"

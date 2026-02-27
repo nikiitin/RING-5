@@ -1,6 +1,8 @@
----
+## <!-- trunk-ignore-all(markdownlint/MD040) -->
+
 description: Playwright visual/browser testing rules and best practices.
-globs: tests/visual/**/*.py
+globs: tests/visual/\*_/_.py
+
 ---
 
 # 008-playwright-visual-testing.md

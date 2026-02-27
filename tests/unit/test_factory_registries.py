@@ -1,6 +1,6 @@
 """Extended tests for ShaperFactory and DataParserFactory registries."""
 
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 import pytest
@@ -23,7 +23,7 @@ class TestShaperFactoryRegistry:
     def test_create_unknown_shaper_raises(self) -> None:
         """Test creating unknown shaper type raises ValueError with helpful message."""
         with pytest.raises(ValueError) as exc_info:
-            ShaperFactory.create_shaper("nonexistent", {})
+            ShaperFactory.create_shaper("nonexistent", cast(Any, {}))
 
         assert "nonexistent" in str(exc_info.value)
         # Message format might vary slightly after transformation
@@ -48,7 +48,7 @@ class TestShaperFactoryRegistry:
         assert "customTest" in ShaperFactory.get_available_types()
 
         # Create instance
-        shaper = ShaperFactory.create_shaper("customTest", {})
+        shaper = ShaperFactory.create_shaper("customTest", cast(Any, {}))
         assert isinstance(shaper, CustomShaper)
 
         # Cleanup - remove from registry

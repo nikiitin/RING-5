@@ -11,7 +11,7 @@ This validates the shaper system and pipeline persistence.
 """
 
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 import pandas as pd
 import pytest
@@ -198,14 +198,14 @@ class TestTransformationPipeline:
         facade = ApplicationAPI()
 
         # Test with invalid shaper type
-        invalid_pipeline: list[ShaperStepConfig] = [{"type": "invalid_shaper"}]
+        invalid_pipeline: list[ShaperStepConfig] = cast(Any, [{"type": "invalid_shaper"}])
 
         with pytest.raises(ValueError):
             facade.apply_shapers(sample_benchmark_data, invalid_pipeline)
 
         # Test with missing required parameters
         invalid_normalize: list[ShaperStepConfig] = [
-            {
+            {  # type: ignore
                 "type": "normalize",
                 # Missing required normalizeVars parameter
                 "normalizerColumn": "config",

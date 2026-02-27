@@ -10,7 +10,7 @@ Verifies that the controller correctly orchestrates:
     - Error resilience (config errors don't crash the flow)
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -24,10 +24,10 @@ _CTRL = "src.web.controllers.plot.render_controller"
 # Helpers
 # ---------------------------------------------------------------------------
 def _make_render_controller(
-    api: Optional[MagicMock] = None,
-    ui_state: Optional[MagicMock] = None,
-    lifecycle: Optional[MagicMock] = None,
-    registry: Optional[MagicMock] = None,
+    api: MagicMock | None = None,
+    ui_state: MagicMock | None = None,
+    lifecycle: MagicMock | None = None,
+    registry: MagicMock | None = None,
 ) -> Any:
     """Build a PlotRenderController with sane mock defaults."""
     from src.web.controllers.plot.render_controller import PlotRenderController
@@ -46,7 +46,7 @@ def _make_render_controller(
 def _default_refresh_controls(
     should_generate: bool = True,
     auto_refresh: bool = True,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Default refresh controls result."""
     return {
         "auto_refresh": auto_refresh,
@@ -166,8 +166,11 @@ class TestConfigGathering:
         data = pd.DataFrame({"time": [1], "value": [2]})
         plot = StubPlotHandle(processed_data=data, config={})
         # Override render_config_ui to return specific config
-        plot.render_config_ui = lambda d, c: {"x_col": "time", "y_col": "value"}
-        plot.render_settings_section = lambda s, c, d=None: {"title": "My Chart", "legend": True}
+        plot.render_config_ui = lambda data, config: {"x_col": "time", "y_col": "value"}
+        plot.render_settings_section = lambda section, saved_config, data=None: {
+            "title": "My Chart",
+            "legend": True,
+        }
         ctrl = _make_render_controller()
         ctrl.render(plot)
 

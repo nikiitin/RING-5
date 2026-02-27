@@ -1,6 +1,6 @@
 from collections.abc import Generator
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from unittest.mock import patch
 
 import pandas as pd
@@ -47,9 +47,9 @@ def facade(tmp_path: Any) -> Generator[ApplicationAPI, None, None]:
                 # Initialize facade (will use patched paths)
                 f = ApplicationAPI()
                 # Override paths on facade too for backward compatibility
-                f.ring5_data_dir = ring5_dir
-                f.csv_pool_dir = csv_pool
-                f.config_pool_dir = config_pool
+                cast(Any, f).ring5_data_dir = ring5_dir
+                cast(Any, f).csv_pool_dir = csv_pool
+                cast(Any, f).config_pool_dir = config_pool
                 yield f
 
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import plotly.graph_objects as go
 
@@ -36,29 +36,30 @@ class TestTracesToPlotly:
         result = TraceBuildResult()
         fig = traces_to_plotly(result)
         assert isinstance(fig, go.Figure)
-        assert len(fig.data) == 0
+        assert len(cast(tuple[Any, ...], fig.data)) == 0
 
     def test_single_bar_trace(self) -> None:
         trace = BarTraceConfig(name="series1", x=["a", "b"], y=[1, 2], color="#ff0000")
         result = TraceBuildResult(traces=[trace], barmode="group")
         fig = traces_to_plotly(result)
-        assert len(fig.data) == 1
+        assert len(cast(tuple[Any, ...], fig.data)) == 1
         assert isinstance(fig.data[0], go.Bar)
-        assert fig.layout.barmode == "group"
+        assert cast(Any, fig.layout).barmode == "group"
 
     def test_secondary_y_creates_subplots(self) -> None:
         t1 = BarTraceConfig(name="left", x=["a"], y=[1], yaxis="y")
         t2 = BarTraceConfig(name="right", x=["a"], y=[2], yaxis="y2")
         result = TraceBuildResult(traces=[t1, t2], secondary_y=True)
         fig = traces_to_plotly(result)
-        assert len(fig.data) == 2
+        assert len(cast(tuple[Any, ...], fig.data)) == 2
 
     def test_custom_x_ticks_applied(self) -> None:
         result = TraceBuildResult(custom_x_ticks={"vals": [0.0, 1.0], "text": ["A", "B"]})
         fig = traces_to_plotly(result)
-        assert fig.layout.xaxis.tickmode == "array"
-        assert list(fig.layout.xaxis.tickvals) == [0.0, 1.0]
-        assert list(fig.layout.xaxis.ticktext) == ["A", "B"]
+        layout = cast(Any, fig.layout)
+        assert layout.xaxis.tickmode == "array"
+        assert list(layout.xaxis.tickvals) == [0.0, 1.0]
+        assert list(layout.xaxis.ticktext) == ["A", "B"]
 
     def test_custom_x_ticks_hide_ticks(self) -> None:
         result = TraceBuildResult(
@@ -69,37 +70,42 @@ class TestTracesToPlotly:
             }
         )
         fig = traces_to_plotly(result)
-        assert fig.layout.xaxis.showticklabels is False
-        assert fig.layout.xaxis.ticks == ""
+        layout = cast(Any, fig.layout)
+        assert layout.xaxis.showticklabels is False
+        assert layout.xaxis.ticks == ""
 
     def test_shapes_passed_through(self) -> None:
         shapes: list[Any] = [{"type": "rect", "x0": 0, "x1": 1}]
         result = TraceBuildResult(shapes=shapes)
         fig = traces_to_plotly(result)
-        assert fig.layout.shapes is not None
-        assert len(fig.layout.shapes) == 1
+        layout = cast(Any, fig.layout)
+        assert layout.shapes is not None
+        assert len(layout.shapes) == 1
 
     def test_annotations_converted(self) -> None:
         ann = AnnotationConfig(text="Hello", x=0.5, y=0.5, xref="paper", yref="paper")
         result = TraceBuildResult(annotations=[ann])
         fig = traces_to_plotly(result)
-        assert fig.layout.annotations is not None
-        assert len(fig.layout.annotations) == 1
-        assert fig.layout.annotations[0].text == "Hello"
+        annotations = cast(Any, fig.layout).annotations
+        assert annotations is not None
+        assert len(annotations) == 1
+        assert annotations[0].text == "Hello"
 
     def test_layout_annotations_appended(self) -> None:
         layout_ann: list[dict[str, Any]] = [{"text": "raw", "x": 0, "y": 0}]
         result = TraceBuildResult(layout_annotations=layout_ann)
         fig = traces_to_plotly(result)
-        assert fig.layout.annotations is not None
-        assert len(fig.layout.annotations) == 1
+        annotations = cast(Any, fig.layout).annotations
+        assert annotations is not None
+        assert len(annotations) == 1
 
     def test_both_annotation_types_combined(self) -> None:
         ann = AnnotationConfig(text="typed", x=0, y=0, xref="paper", yref="paper")
         layout_ann: list[dict[str, Any]] = [{"text": "raw", "x": 1, "y": 1}]
         result = TraceBuildResult(annotations=[ann], layout_annotations=layout_ann)
         fig = traces_to_plotly(result)
-        assert len(fig.layout.annotations) == 2
+        annotations = cast(Any, fig.layout).annotations
+        assert len(annotations) == 2
 
 
 # ── _convert_trace dispatch ──────────────────────────────────────────
@@ -144,29 +150,30 @@ class TestBarTrace:
         trace = BarTraceConfig(name="s1", x=["a", "b"], y=[1, 2])
         bar = _bar_trace(trace)
         assert bar.name == "s1"
-        assert list(bar.x) == ["a", "b"]
-        assert list(bar.y) == [1, 2]
+        assert list(cast(Any, bar.x)) == ["a", "b"]
+        assert list(cast(Any, bar.y)) == [1, 2]
 
     def test_x_positions_override_x(self) -> None:
         trace = BarTraceConfig(x=["a", "b"], y=[1, 2], x_positions=[0.5, 1.5])
         bar = _bar_trace(trace)
-        assert list(bar.x) == [0.5, 1.5]
+        assert list(cast(Any, bar.x)) == [0.5, 1.5]
 
     def test_bar_color(self) -> None:
         trace = BarTraceConfig(x=["a"], y=[1], color="#ff0000")
         bar = _bar_trace(trace)
-        assert bar.marker.color == "#ff0000"
+        assert cast(Any, bar.marker).color == "#ff0000"
 
     def test_bar_pattern(self) -> None:
         trace = BarTraceConfig(x=["a"], y=[1], pattern="/")
         bar = _bar_trace(trace)
-        assert bar.marker.pattern.shape == "/"
+        assert cast(Any, bar.marker).pattern.shape == "/"
 
     def test_bar_border(self) -> None:
         trace = BarTraceConfig(x=["a"], y=[1], border_width=2.0, border_color="black")
         bar = _bar_trace(trace)
-        assert bar.marker.line.width == 2.0
-        assert bar.marker.line.color == "black"
+        marker = cast(Any, bar.marker)
+        assert marker.line.width == 2.0
+        assert marker.line.color == "black"
 
     def test_bar_offset(self) -> None:
         trace = BarTraceConfig(x=["a"], y=[1], offset=0.3)
@@ -189,8 +196,9 @@ class TestBarTrace:
     def test_bar_error_y(self) -> None:
         trace = BarTraceConfig(x=["a"], y=[1], error_y=[0.1])
         bar = _bar_trace(trace)
-        assert bar.error_y.array == (0.1,)
-        assert bar.error_y.visible is True
+        error_y = cast(Any, bar.error_y)
+        assert error_y.array == (0.1,)
+        assert error_y.visible is True
 
     def test_bar_custom_data(self) -> None:
         trace = BarTraceConfig(
@@ -236,12 +244,12 @@ class TestLineTrace:
     def test_line_color(self) -> None:
         trace = LineTraceConfig(x=["a"], y=[1], color="#00ff00")
         scatter = _line_trace(trace)
-        assert scatter.line.color == "#00ff00"
+        assert cast(Any, scatter.line).color == "#00ff00"
 
     def test_line_markers_with_color(self) -> None:
         trace = LineTraceConfig(x=["a"], y=[1], color="#00ff00", show_markers=True)
         scatter = _line_trace(trace)
-        assert scatter.marker.color == "#00ff00"
+        assert cast(Any, scatter.marker).color == "#00ff00"
 
     def test_line_yaxis_y2(self) -> None:
         trace = LineTraceConfig(x=["a"], y=[1], yaxis="y2")
@@ -256,7 +264,7 @@ class TestLineTrace:
     def test_line_error_y(self) -> None:
         trace = LineTraceConfig(x=["a"], y=[1], error_y=[0.2])
         scatter = _line_trace(trace)
-        assert scatter.error_y.array == (0.2,)
+        assert cast(Any, scatter.error_y).array == (0.2,)
 
 
 # ── _scatter_trace ───────────────────────────────────────────────────
@@ -274,20 +282,22 @@ class TestScatterTrace:
     def test_scatter_color(self) -> None:
         trace = ScatterTraceConfig(x=["a"], y=[1], color="#0000ff")
         scatter = _scatter_trace(trace)
-        assert scatter.marker.color == "#0000ff"
+        assert cast(Any, scatter.marker).color == "#0000ff"
 
     def test_scatter_marker_line(self) -> None:
         trace = ScatterTraceConfig(x=["a"], y=[1], marker_line_width=1.5, marker_line_color="red")
         scatter = _scatter_trace(trace)
-        assert scatter.marker.line.width == 1.5
-        assert scatter.marker.line.color == "red"
+        marker = cast(Any, scatter.marker)
+        assert marker.line.width == 1.5
+        assert marker.line.color == "red"
 
     def test_scatter_colorscale(self) -> None:
         trace = ScatterTraceConfig(x=["a"], y=[1], colorscale="Viridis")
         scatter = _scatter_trace(trace)
         # Plotly expands named colorscales into tuples
-        assert scatter.marker.colorscale is not None
-        assert len(scatter.marker.colorscale) > 0
+        marker = cast(Any, scatter.marker)
+        assert marker.colorscale is not None
+        assert len(marker.colorscale) > 0
 
     def test_scatter_yaxis_y2(self) -> None:
         trace = ScatterTraceConfig(x=["a"], y=[1], yaxis="y2")
@@ -297,12 +307,12 @@ class TestScatterTrace:
     def test_scatter_error_y(self) -> None:
         trace = ScatterTraceConfig(x=["a"], y=[1], error_y=[0.3])
         scatter = _scatter_trace(trace)
-        assert scatter.error_y.array == (0.3,)
+        assert cast(Any, scatter.error_y).array == (0.3,)
 
     def test_scatter_size_values(self) -> None:
         trace = ScatterTraceConfig(x=["a", "b"], y=[1, 2], size_values=[10.0, 20.0])
         scatter = _scatter_trace(trace)
-        assert list(scatter.marker.size) == [10.0, 20.0]
+        assert list(cast(Any, scatter.marker).size) == [10.0, 20.0]
 
 
 # ── _histogram_trace ─────────────────────────────────────────────────
@@ -320,7 +330,7 @@ class TestHistogramTrace:
     def test_histogram_color(self) -> None:
         trace = HistogramTraceConfig(x=[1, 2], color="#aabbcc")
         hist = _histogram_trace(trace)
-        assert hist.marker.color == "#aabbcc"
+        assert cast(Any, hist.marker).color == "#aabbcc"
 
     def test_histogram_normalization(self) -> None:
         trace = HistogramTraceConfig(x=[1, 2], normalization="percent")
@@ -330,7 +340,7 @@ class TestHistogramTrace:
     def test_histogram_cumulative(self) -> None:
         trace = HistogramTraceConfig(x=[1, 2], cumulative=True)
         hist = _histogram_trace(trace)
-        assert hist.cumulative.enabled is True
+        assert cast(Any, hist.cumulative).enabled is True
 
 
 # ── _bar_trace_from_base ─────────────────────────────────────────────
@@ -348,7 +358,7 @@ class TestBarTraceFromBase:
     def test_fallback_with_color(self) -> None:
         trace = TraceConfig(name="c", x=["a"], y=[1], color="#123456")
         bar = _bar_trace_from_base(trace)
-        assert bar.marker.color == "#123456"
+        assert cast(Any, bar.marker).color == "#123456"
 
 
 # ── _convert_annotations ────────────────────────────────────────────

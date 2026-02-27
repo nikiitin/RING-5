@@ -70,10 +70,11 @@ Version: 2.0.0
 Last Modified: 2026-01-27
 """
 
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 
+from src.core.models.shaper_models import SortShaperConfig
 from src.core.services.shapers.uni_df_shaper import UniDfShaper
 
 
@@ -90,16 +91,19 @@ class Sort(UniDfShaper):
             params: Must contain 'order_dict' which maps column names to
                     a list of values defining the preferred sort order.
         """
-        self.order_dict: dict[str, list[str]] = params.get("order_dict", {})
+        config = cast(SortShaperConfig, params)
+        self.order_dict: dict[str, list[str]] = config.get("order_dict", {})
         super().__init__(params)
 
     def _verify_params(self) -> bool:
         """Verify that 'order_dict' is correctly structured."""
         super()._verify_params()
-        if "order_dict" not in self.params:
+        config = cast(SortShaperConfig, self.params)
+
+        if "order_dict" not in config:
             raise ValueError("Sort requires 'order_dict' parameter.")
 
-        order_dict = self.params["order_dict"]
+        order_dict = config["order_dict"]
         if not isinstance(order_dict, dict):
             raise TypeError("Sort 'order_dict' parameter must be a dictionary.")
 

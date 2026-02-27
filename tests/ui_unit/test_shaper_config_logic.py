@@ -44,7 +44,7 @@ def test_configure_column_selector(mock_streamlit: Any, sample_data: Any) -> Non
     # Setup mock return values
     mock_streamlit.multiselect.return_value = ["metric"]
 
-    config = configure_shaper("columnSelector", sample_data, 1, {})
+    config = configure_shaper("columnSelector", sample_data, 1, {})  # type: ignore
 
     assert config.get("type") == "columnSelector"
     assert config.get("columns") == ["metric"]
@@ -63,7 +63,7 @@ def test_configure_filter_numeric(mock_streamlit: Any, sample_data: Any) -> None
     mock_streamlit.selectbox.side_effect = ["metric", "greater_than"]
     mock_streamlit.number_input.return_value = 15.0
 
-    config = configure_shaper("conditionSelector", sample_data, 1, {})
+    config = configure_shaper("conditionSelector", sample_data, 1, {})  # type: ignore
 
     assert config.get("type") == "conditionSelector"
     assert config.get("column") == "metric"
@@ -79,7 +79,7 @@ def test_configure_filter_categorical(mock_streamlit: Any, sample_data: Any) -> 
 
     mock_streamlit.multiselect.return_value = ["A"]
 
-    config = configure_shaper("conditionSelector", sample_data, 1, {})
+    config = configure_shaper("conditionSelector", sample_data, 1, {})  # type: ignore
 
     assert config.get("type") == "conditionSelector"
     assert config.get("column") == "dataset"
@@ -97,7 +97,7 @@ def test_configure_mean(mock_streamlit: Any, sample_data: Any) -> None:
     ]
     mock_streamlit.multiselect.side_effect = [["metric"], ["dataset"]]  # Variables  # Group by
 
-    config = configure_shaper("mean", sample_data, 1, {})
+    config = configure_shaper("mean", sample_data, 1, {})  # type: ignore
 
     assert config.get("type") == "mean"
     assert config.get("meanAlgorithm") == "arithmean"

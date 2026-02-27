@@ -4,7 +4,7 @@ Tests DefaultDataServicesAPI and DefaultManagersAPI to verify they
 correctly delegate every method to the appropriate sub-service.
 """
 
-from typing import cast
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -72,9 +72,9 @@ class TestDefaultDataServicesAPI:
     @patch("src.core.services.data_services.data_services_impl.ConfigService")
     def test_save_configuration(self, mock_svc: MagicMock, api: DefaultDataServicesAPI) -> None:
         mock_svc.save_configuration.return_value = "/configs/test.json"
-        result = api.save_configuration("test", "desc", [{"type": "sort"}], "/data.csv")
+        result = api.save_configuration("test", "desc", cast(Any, [{"type": "sort"}]), "/data.csv")
         mock_svc.save_configuration.assert_called_once_with(
-            "test", "desc", [{"type": "sort"}], "/data.csv"
+            "test", "desc", cast(Any, [{"type": "sort"}]), "/data.csv"
         )
         assert result == "/configs/test.json"
 

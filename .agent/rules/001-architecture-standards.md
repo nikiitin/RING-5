@@ -1,6 +1,8 @@
----
+## <!-- trunk-ignore-all(markdownlint/MD040) -->
+
 description: Architecture standards, layering, and design patterns.
-globs: src/**/*.py
+globs: src/\*_/_.py
+
 ---
 
 # 001-architecture-standards.md

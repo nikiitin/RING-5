@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any, cast
+
 import pandas as pd
 
 from src.core.models.visualization.trace_build_result import TraceBuildResult
@@ -91,6 +93,6 @@ def test_multiple_heatmap_traces_render_as_subplots() -> None:
 
     fig = traces_to_plotly(result)
 
-    assert len(fig.data) == 2
+    assert len(cast(tuple[Any, ...], fig.data)) == 2
     assert fig.layout.xaxis2 is not None
     assert fig.layout.yaxis2 is not None

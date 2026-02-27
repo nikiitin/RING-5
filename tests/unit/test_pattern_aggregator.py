@@ -3,6 +3,8 @@ Unit Tests for Pattern Aggregator
 Tests the pattern detection and aggregation logic for repeated gem5 variables.
 """
 
+from typing import cast
+
 from src.core.models import ScannedVariable
 from src.parsing.gem5.impl.scanning.pattern_aggregator import PatternAggregator
 from src.parsing.gem5.models import Gem5ScannedVariable
@@ -158,13 +160,14 @@ class TestPatternAggregation:
             ),
         ]
 
-        result = PatternAggregator.aggregate_patterns(variables)
+        result = PatternAggregator.aggregate_patterns(cast(list[ScannedVariable], variables))
 
         assert len(result) == 1
-        assert result[0].name == r"system.cpu\d+.latency"
-        assert result[0].type == "distribution"
-        assert result[0].minimum == 5.0  # Min of all minimums
-        assert result[0].maximum == 120.0  # Max of all maximums
+        res0 = cast(Gem5ScannedVariable, result[0])
+        assert res0.name == r"system.cpu\d+.latency"
+        assert res0.type == "distribution"
+        assert res0.minimum == 5.0  # Min of all minimums
+        assert res0.maximum == 120.0  # Max of all maximums
 
     def test_aggregate_histogram_variables(self) -> None:
         """Test aggregating histogram variables."""

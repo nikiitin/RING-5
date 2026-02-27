@@ -313,7 +313,7 @@ class TestShaperIntegration:
         """ItemSelector filters rows by column value."""
         shaper = ShaperFactory.create_shaper(
             "itemSelector",
-            {
+            {  # type: ignore
                 "column": "config_description",
                 "strings": ["baseline", "optimized"],
             },
@@ -328,7 +328,7 @@ class TestShaperIntegration:
         """ConditionSelector filters rows by numeric condition."""
         shaper = ShaperFactory.create_shaper(
             "conditionSelector",
-            {
+            {  # type: ignore
                 "column": "system.cpu.ipc",
                 "condition": ">=",
                 "value": 2.0,
@@ -344,7 +344,7 @@ class TestShaperIntegration:
         """Transformer converts column type to categorical factor."""
         shaper = ShaperFactory.create_shaper(
             "transformer",
-            {
+            {  # type: ignore
                 "column": "benchmark_name",
                 "target_type": "factor",
                 "order": ["mcf", "omnetpp", "xalancbmk"],
@@ -360,7 +360,7 @@ class TestShaperIntegration:
         # Step 1: Select columns
         s1 = ShaperFactory.create_shaper(
             "columnSelector",
-            {"columns": ["benchmark_name", "config_description", "system.cpu.ipc"]},
+            {"columns": ["benchmark_name", "config_description", "system.cpu.ipc"]},  # type: ignore
         )
         data1: pd.DataFrame = s1(rich_sample_data)
         assert len(data1.columns) == 3
@@ -368,7 +368,7 @@ class TestShaperIntegration:
         # Step 2: Filter to baseline only
         s2 = ShaperFactory.create_shaper(
             "itemSelector",
-            {"column": "config_description", "strings": ["baseline"]},
+            {"column": "config_description", "strings": ["baseline"]},  # type: ignore
         )
         data2: pd.DataFrame = s2(data1)
         assert all(data2["config_description"] == "baseline")
@@ -377,7 +377,7 @@ class TestShaperIntegration:
         # Step 3: Sort
         s3 = ShaperFactory.create_shaper(
             "sort",
-            {"order_dict": {"benchmark_name": ["xalancbmk", "omnetpp", "mcf"]}},
+            {"order_dict": {"benchmark_name": ["xalancbmk", "omnetpp", "mcf"]}},  # type: ignore
         )
         data3: pd.DataFrame = s3(data2)
         assert data3["benchmark_name"].tolist() == ["xalancbmk", "omnetpp", "mcf"]

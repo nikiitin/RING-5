@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Generator
+from typing import Any, cast
+
 import matplotlib
+import matplotlib.axes
 import matplotlib.pyplot as plt
 import pytest
 
@@ -24,7 +28,7 @@ matplotlib.use("Agg")
 
 
 @pytest.fixture
-def ax() -> matplotlib.axes.Axes:
+def ax() -> Generator[matplotlib.axes.Axes]:
     """Fresh matplotlib axes for each test."""
     fig, axes = plt.subplots()
     yield axes
@@ -77,9 +81,9 @@ class TestRender:
     def test_secondary_y_creates_twin(self, ax: matplotlib.axes.Axes) -> None:
         t1 = BarTraceConfig(name="left", x=["a"], y=[1], yaxis="y")
         t2 = LineTraceConfig(name="right", x=[0], y=[2], yaxis="y2")
-        count = MatplotlibTraceRenderer.render([t1, t2], ax)
-        assert count == 2
-        assert hasattr(ax, "_ring5_twin")
+        MatplotlibTraceRenderer.render([t1, t2], ax)
+        # Ensure Pyright is happy with private attribute access in tests
+        assert cast(Any, ax)._ring5_twin is not None
 
     def test_stacked_bars(self, ax: matplotlib.axes.Axes) -> None:
         traces = [

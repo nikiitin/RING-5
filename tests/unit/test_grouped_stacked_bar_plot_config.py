@@ -50,7 +50,7 @@ def test_render_config_ui_basic(mock_streamlit: Any, sample_data: Any) -> None:
     mock_streamlit.multiselect.return_value = ["Value"]
     mock_streamlit.text_input.side_effect = ["Title", "X Label", "Y Label", "Value", "A", "B"]
 
-    config = plot.render_config_ui(sample_data, saved_config)
+    config = plot.render_config_ui(sample_data, cast(Any, saved_config))
 
     assert config["x"] == "Benchmark"
     assert config["y_columns"] == ["Value"]
@@ -75,7 +75,7 @@ def test_render_config_ui_grouped(mock_streamlit: Any, sample_data: Any) -> None
     # Side effects for widget simulation.
     mock_streamlit.text_input.return_value = "Test Input"
 
-    config = plot.render_config_ui(sample_data, saved_config)
+    config = plot.render_config_ui(sample_data, cast(Any, saved_config))
 
     assert config["x"] == "Benchmark"
     assert config["group"] == "Config"
@@ -109,7 +109,7 @@ def test_render_config_filter_options(mock_streamlit: Any, sample_data: Any) -> 
 
     mock_streamlit.multiselect.side_effect = multiselect_side_effect
 
-    config = plot.render_config_ui(sample_data, saved_config)
+    config = plot.render_config_ui(sample_data, cast(Any, saved_config))
 
     assert config["x_filter"] == ["A"]
     assert config["group_filter"] == ["Low"]

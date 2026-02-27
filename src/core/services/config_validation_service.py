@@ -20,6 +20,7 @@ from src.core.common.utils import validate_path_within
 from src.core.models.config.config_manager import (
     PlotConfig,
     RingConfig,
+    VariableConfig,
 )
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -53,7 +54,7 @@ class ConfigValidator:
 
         self.validator: Draft7Validator = Draft7Validator(self.schema)
 
-    def validate(self, config: dict[str, Any]) -> bool:
+    def validate(self, config: RingConfig | dict[str, Any]) -> bool:
         """
         Validate a configuration dictionary.
 
@@ -225,8 +226,8 @@ class ConfigTemplateGenerator:
 
     @staticmethod
     def add_variable(
-        config: dict[str, Any], name: str, var_type: str, rename: str | None = None
-    ) -> dict[str, Any]:
+        config: RingConfig | dict[str, Any], name: str, var_type: str, rename: str | None = None
+    ) -> RingConfig | dict[str, Any]:
         """
         Add a variable to parse configuration.
 
@@ -239,7 +240,7 @@ class ConfigTemplateGenerator:
         Returns:
             Updated configuration
         """
-        var_config = {"name": name, "type": var_type}
+        var_config: VariableConfig = {"name": name, "type": var_type}
 
         if rename:
             var_config["rename"] = rename
@@ -248,7 +249,7 @@ class ConfigTemplateGenerator:
         return config
 
     @staticmethod
-    def enable_seeds_reducer(config: dict[str, Any]) -> dict[str, Any]:
+    def enable_seeds_reducer(config: RingConfig | dict[str, Any]) -> RingConfig | dict[str, Any]:
         """Enable automatic reduction of random seeds."""
         config["dataManagers"]["seedsReducer"] = True
         return config

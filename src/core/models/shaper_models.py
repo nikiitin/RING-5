@@ -59,10 +59,10 @@ class MeanShaperConfig(BaseShaperConfig, total=False):
             (e.g., ``"benchmark"`` → ``"geomean"``).
     """
 
-    meanVars: list[str]
-    meanAlgorithm: str
-    groupingColumns: list[str]
-    replacingColumn: str
+    meanVars: Required[list[str]]
+    meanAlgorithm: Required[str]
+    groupingColumns: Required[list[str]]
+    replacingColumn: Required[str]
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -89,10 +89,10 @@ class NormalizeShaperConfig(BaseShaperConfig, total=False):
             as well.
     """
 
-    normalizeVars: list[str]
-    normalizerColumn: str
-    normalizerValue: str
-    groupBy: list[str]
+    normalizeVars: Required[list[str]]
+    normalizerColumn: Required[str]
+    normalizerValue: Required[str]
+    groupBy: Required[list[str]]
     normalizerVars: list[str]
     normalizeSd: bool
 
@@ -112,7 +112,7 @@ class SortShaperConfig(BaseShaperConfig, total=False):
             E.g., ``{"benchmark": ["mcf", "omnetpp", "xalancbmk"]}``.
     """
 
-    order_dict: dict[str, list[str]]
+    order_dict: Required[dict[str, list[str]]]
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -143,8 +143,8 @@ class SplitApplyShaperConfig(BaseShaperConfig, total=False):
         groups: List of group definitions, each with its own pipeline.
     """
 
-    joinColumns: list[str]
-    groups: list[SplitApplyGroupConfig]
+    joinColumns: Required[list[str]]
+    groups: Required[list[SplitApplyGroupConfig]]
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -164,8 +164,8 @@ class TransformerShaperConfig(BaseShaperConfig, total=False):
         order: Explicit category ordering (None = infer from data).
     """
 
-    column: str
-    target_type: str
+    column: Required[str]
+    target_type: Required[str]
     order: list[str] | None
 
 
@@ -183,7 +183,7 @@ class ColumnSelectorConfig(BaseShaperConfig, total=False):
         columns: List of column names to retain.
     """
 
-    columns: list[str]
+    columns: Required[list[str]]
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -205,8 +205,8 @@ class ConditionSelectorConfig(BaseShaperConfig, total=False):
         values: Allowed values for ``"values"`` mode.
     """
 
-    column: str
-    mode: str
+    column: Required[str]
+    mode: Required[str]
     threshold: float
     range: list[float]
     values: list[str]
@@ -228,8 +228,8 @@ class ItemSelectorConfig(BaseShaperConfig, total=False):
         mode: ``"include"`` or ``"exclude"``.
     """
 
-    column: str
-    strings: list[str]
+    column: Required[str]
+    strings: Required[list[str]]
     mode: str
 
 
@@ -251,10 +251,10 @@ class PivotLongerShaperConfig(BaseShaperConfig, total=False):
         extract_pattern: Regex pattern with a capture group to extract the variable part.
     """
 
-    id_vars: list[str]
-    value_vars: list[str]
-    var_name: str
-    value_name: str
+    id_vars: Required[list[str]]
+    value_vars: Required[list[str]]
+    var_name: Required[str]
+    value_name: Required[str]
     extract_pattern: str
 
 
@@ -269,9 +269,9 @@ class PivotWiderShaperConfig(BaseShaperConfig, total=False):
         values: Column(s) to use for populating new frame's values.
     """
 
-    index: list[str]
-    columns: str
-    values: str
+    index: Required[list[str]]
+    columns: Required[str]
+    values: Required[str]
 
 
 # ──────────────────────────────────────────────────────────────────────

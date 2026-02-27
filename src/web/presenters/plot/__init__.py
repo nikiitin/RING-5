@@ -17,17 +17,11 @@ Public API:
 from src.web.presenters.plot.chart_presenter import ChartPresenter
 from src.web.presenters.plot.config_presenter import ConfigPresenter
 from src.web.presenters.plot.controls_presenter import PlotControlsPresenter
-from src.web.presenters.plot.creation_presenter import PlotCreationPresenter
 from src.web.presenters.plot.pipeline_presenter import PipelinePresenter
-from src.web.presenters.plot.pipeline_step_presenter import PipelineStepPresenter
-from src.web.presenters.plot.selector_presenter import PlotSelectorPresenter
 
 __all__: list[str] = [
-    "PlotSelectorPresenter",
-    "PlotCreationPresenter",
     "PlotControlsPresenter",
     "PipelinePresenter",
-    "PipelineStepPresenter",
     "ChartPresenter",
     "ConfigPresenter",
 ]

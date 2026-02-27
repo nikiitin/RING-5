@@ -78,10 +78,11 @@ Version: 2.0.0
 Last Modified: 2026-01-27
 """
 
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 
+from src.core.models.shaper_models import TransformerShaperConfig
 from src.core.services.shapers.uni_df_shaper import UniDfShaper
 
 
@@ -102,19 +103,21 @@ class Transformer(UniDfShaper):
                 - target_type (str): 'scalar' or 'factor'.
                 - order (list[str] | None): Specific categorical order for factors.
         """
-        self.column: str = params.get("column", "")
-        self.target_type: str = params.get("target_type", "")
-        self.order: list[str] | None = params.get("order")
+        config = cast(TransformerShaperConfig, params)
+        self.column: str = config.get("column", "")
+        self.target_type: str = config.get("target_type", "")
+        self.order: list[str] | None = config.get("order")
         super().__init__(params)
 
     def _verify_params(self) -> bool:
         """Verify parameter presence and value validity."""
         super()._verify_params()
+        config = cast(TransformerShaperConfig, self.params)
 
-        if not isinstance(self.params.get("column"), str) or not self.params["column"]:
+        if not isinstance(config.get("column"), str) or not config["column"]:
             raise ValueError("Transformer requires non-empty string 'column' parameter.")
 
-        target_type = self.params.get("target_type")
+        target_type = config.get("target_type")
         if target_type not in ["scalar", "factor"]:
             raise ValueError("Transformer 'target_type' must be 'scalar' or 'factor'.")
 

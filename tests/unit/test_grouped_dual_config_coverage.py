@@ -1,6 +1,6 @@
 """Tests for DualAxisBarDotPlot and GroupedBarPlot render_config_ui — branch coverage."""
 
-from typing import Any, List
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -17,7 +17,7 @@ def _make_col_mock() -> MagicMock:
     return ctx
 
 
-def _columns_side_effect(n: Any) -> List[MagicMock]:
+def _columns_side_effect(n: Any) -> list[MagicMock]:
     count = len(n) if isinstance(n, list) else n
     return [_make_col_mock() for _ in range(count)]
 
@@ -75,7 +75,7 @@ class TestDualAxisRenderConfigUI:
         }
 
         plot = DualAxisBarDotPlot(1, "test")
-        result = plot.render_config_ui(sample_df, {})
+        result = plot.render_config_ui(sample_df, cast(Any, {}))
 
         assert result["x"] == "benchmark"
         assert result["y_bar"] == "cycles"
@@ -132,7 +132,7 @@ class TestDualAxisRenderConfigUI:
         }
 
         plot = DualAxisBarDotPlot(1, "test")
-        result = plot.render_config_ui(sample_df, saved)
+        result = plot.render_config_ui(sample_df, cast(Any, saved))
 
         assert result["color"] == "config"
         assert result["show_lines"] is False
@@ -174,7 +174,7 @@ class TestDualAxisRenderConfigUI:
         }
 
         plot = DualAxisBarDotPlot(1, "test")
-        result = plot.render_config_ui(sample_df, {})
+        result = plot.render_config_ui(sample_df, cast(Any, {}))
         assert result["dot_color"] == "#FF0000"
         mock_st.color_picker.assert_called()
 
@@ -214,7 +214,7 @@ class TestDualAxisRenderConfigUI:
         }
 
         plot = DualAxisBarDotPlot(1, "test")
-        result = plot.render_config_ui(sample_df, {"color": "config"})
+        result = plot.render_config_ui(sample_df, cast(Any, {"color": "config"}))
         assert result["dot_color"] is None
 
 
@@ -247,7 +247,7 @@ class TestGroupedBarRenderConfigUI:
         mock_pcc.render_filter_multiselects.return_value = (["a", "b"], ["x", "y"])
 
         plot = GroupedBarPlot(1, "test")
-        result = plot.render_config_ui(sample_df, {})
+        result = plot.render_config_ui(sample_df, cast(Any, {}))
         assert result["group"] == "config"
         assert result["_needs_advanced"] is True
 
@@ -277,7 +277,7 @@ class TestGroupedBarRenderConfigUI:
         mock_pcc.render_filter_multiselects.return_value = (["a"], ["x"])
 
         plot = GroupedBarPlot(1, "test")
-        result = plot.render_config_ui(sample_df, {"group": "benchmark"})
+        result = plot.render_config_ui(sample_df, cast(Any, {"group": "benchmark"}))
         assert result["group"] == "benchmark"
 
 
@@ -295,7 +295,7 @@ class TestGroupedBarThemeOptions:
         mock_st.color_picker.side_effect = ["#E0E0E0", "#F5F5F5"]
 
         with patch.object(type(plot).__bases__[0], "render_theme_options", return_value={}):
-            result = plot.render_theme_options({})
+            result = plot.render_theme_options(cast(Any, {}))
         assert result.get("isolate_last_group") is False
 
     @patch("src.web.pages.ui.plotting.types.grouped_bar_plot.st")
@@ -310,7 +310,7 @@ class TestGroupedBarThemeOptions:
         mock_st.number_input.return_value = 0.5
 
         with patch.object(type(plot).__bases__[0], "render_theme_options", return_value={}):
-            result = plot.render_theme_options({})
+            result = plot.render_theme_options(cast(Any, {}))
         assert result["isolate_last_group"] is True
         assert result["isolation_gap"] == 0.5
 
@@ -331,7 +331,7 @@ class TestGroupedBarAdvancedOptions:
         }
         # Mock the parent's render_advanced_options
         with patch.object(type(plot).__bases__[0], "render_advanced_options", return_value={}):
-            result = plot.render_advanced_options(saved, sample_df)
+            result = plot.render_advanced_options(cast(Any, saved), sample_df)
         assert isinstance(result, dict)
 
     @patch("src.web.pages.ui.plotting.types.grouped_bar_plot.st")
@@ -342,5 +342,5 @@ class TestGroupedBarAdvancedOptions:
         saved = {"x": "benchmark", "group": "config"}
 
         with patch.object(type(plot).__bases__[0], "render_advanced_options", return_value={}):
-            result = plot.render_advanced_options(saved, sample_df)
+            result = plot.render_advanced_options(cast(Any, saved), sample_df)
         assert isinstance(result, dict)

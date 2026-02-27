@@ -77,11 +77,12 @@ Last Modified: 2026-01-27
 """
 
 import hashlib
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 from scipy.stats import gmean, hmean
 
+from src.core.models.shaper_models import MeanShaperConfig
 from src.core.performance import cached
 from src.core.services.shapers.uni_df_shaper import UniDfShaper
 
@@ -104,16 +105,20 @@ class Mean(UniDfShaper):
                 - replacingColumn (str): Column where the algorithm name
                   will be stored in the new rows.
         """
+        # Use cast for type-safe access to params
+        config = cast(MeanShaperConfig, params)
+
         # Assigning attributes before super().__init__
-        self.mean_vars: list[str] = params.get("meanVars", [])
-        self.mean_algorithm: str = params.get("meanAlgorithm", "")
-        self.replacing_column: str = params.get("replacingColumn", "")
+        self.mean_vars: list[str] = config.get("meanVars", [])
+        self.mean_algorithm: str = config.get("meanAlgorithm", "")
+        self.replacing_column: str = config.get("replacingColumn", "")
 
         # Support both new 'groupingColumns' and legacy 'groupingColumn'
-        if "groupingColumns" in params:
-            self.grouping_columns: list[str] = params["groupingColumns"]
-        elif "groupingColumn" in params:
-            self.grouping_columns = [params["groupingColumn"]]
+        if "groupingColumns" in config:
+            self.grouping_columns: list[str] = config["groupingColumns"]
+        elif "groupingColumn" in config:
+            # type ignore because we know groupingColumn might be in old configs
+            self.grouping_columns = [config["groupingColumn"]]  # type: ignore[typeddict-item]
         else:
             self.grouping_columns = []
 
@@ -125,13 +130,18 @@ class Mean(UniDfShaper):
     def _verify_params(self) -> bool:
         """Validate parameter structure and algorithm choice."""
         super()._verify_params()
+        config = cast(MeanShaperConfig, self.params)
 
-        if self.params["meanAlgorithm"] not in ["arithmean", "geomean", "hmean"]:
+        if "meanAlgorithm" not in config or config["meanAlgorithm"] not in [
+            "arithmean",
+            "geomean",
+            "hmean",
+        ]:
             raise ValueError(
                 "Mean: 'meanAlgorithm' must be one of 'arithmean', 'geomean', or 'hmean'."
             )
 
-        if not isinstance(self.params.get("meanVars"), list):
+        if not isinstance(config.get("meanVars"), list):
             raise TypeError("Mean: 'meanVars' must be a list.")
 
         return True

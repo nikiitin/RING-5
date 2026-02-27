@@ -4,7 +4,7 @@ Verifies that the API correctly orchestrates the internal StateManager and Servi
 """
 
 from collections.abc import Generator
-from typing import Any
+from typing import Any, cast
 from unittest.mock import patch
 
 import pandas as pd
@@ -21,7 +21,7 @@ def application_api() -> Generator[ApplicationAPI, None, None]:
             api = ApplicationAPI()
             api.state_manager = mock_sm_cls.return_value
             # Expose mock services for assertions
-            api._mock_services = mock_svc_cls.return_value
+            cast(Any, api)._mock_services = mock_svc_cls.return_value
             yield api
 
 
@@ -45,7 +45,7 @@ class TestApplicationAPI:
         # Arrange
         path = "/test/data.csv"
         df = pd.DataFrame({"col": [1, 2]})
-        mock_data = application_api._mock_services.data_services
+        mock_data = cast(Any, application_api)._mock_services.data_services
         mock_data.load_csv_file.return_value = df
 
         # Act
@@ -62,7 +62,7 @@ class TestApplicationAPI:
         # Arrange
         path = "/pool/data.csv"
         df = pd.DataFrame({"pool": [1]})
-        mock_data = application_api._mock_services.data_services
+        mock_data = cast(Any, application_api)._mock_services.data_services
         mock_data.load_csv_file.return_value = df
 
         # Act

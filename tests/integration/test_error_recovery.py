@@ -34,18 +34,18 @@ class TestShaperPipelineErrors:
     def test_invalid_shaper_type_raises(self) -> None:
         """ShaperFactory raises ValueError for unknown shaper type."""
         with pytest.raises(ValueError, match="Unknown shaper type"):
-            ShaperFactory.create_shaper("nonexistent", {})
+            ShaperFactory.create_shaper("nonexistent", cast(Any, {}))
 
     def test_column_selector_missing_params_raises(self) -> None:
         """ColumnSelector without 'columns' param raises ValueError."""
         with pytest.raises(ValueError, match="requires 'columns'"):
-            ShaperFactory.create_shaper("columnSelector", {})
+            ShaperFactory.create_shaper("columnSelector", cast(Any, {}))
 
     def test_column_selector_missing_column_raises(self, rich_sample_data: pd.DataFrame) -> None:
         """ColumnSelector with non-existent column raises ValueError."""
         shaper = ShaperFactory.create_shaper(
             "columnSelector",
-            {"columns": ["benchmark_name", "nonexistent_col"]},
+            {"columns": ["benchmark_name", "nonexistent_col"]},  # type: ignore
         )
         with pytest.raises(ValueError, match="not found"):
             shaper(rich_sample_data)
@@ -55,7 +55,7 @@ class TestShaperPipelineErrors:
         with pytest.raises(ValueError, match="Missing required parameter"):
             ShaperFactory.create_shaper(
                 "normalize",
-                {"normalizeVars": ["x"]},  # Missing normalizerColumn, etc.
+                {"normalizeVars": ["x"]},  # Missing normalizerColumn, etc.  # type: ignore
             )
 
     def test_mean_invalid_algorithm_raises(self) -> None:
@@ -63,7 +63,7 @@ class TestShaperPipelineErrors:
         with pytest.raises(ValueError, match="meanAlgorithm"):
             ShaperFactory.create_shaper(
                 "mean",
-                {
+                {  # type: ignore
                     "meanVars": ["x"],
                     "meanAlgorithm": "invalid_algo",
                     "groupingColumns": ["g"],
@@ -74,7 +74,7 @@ class TestShaperPipelineErrors:
     def test_sort_missing_order_dict_raises(self) -> None:
         """Sort without order_dict raises ValueError."""
         with pytest.raises(ValueError, match="order_dict"):
-            ShaperFactory.create_shaper("sort", {})
+            ShaperFactory.create_shaper("sort", cast(Any, {}))
 
     def test_pipeline_error_does_not_corrupt_source_data(
         self,
@@ -123,7 +123,7 @@ class TestEmptyDataEdgeCases:
     def test_empty_dataframe_through_column_selector(self) -> None:
         """ColumnSelector with empty DataFrame raises ValueError."""
         empty_df = pd.DataFrame(columns=["a", "b", "c"])
-        shaper = ShaperFactory.create_shaper("columnSelector", {"columns": ["a", "b"]})
+        shaper = ShaperFactory.create_shaper("columnSelector", cast(Any, {"columns": ["a", "b"]}))
         with pytest.raises(ValueError, match="empty dataframe"):
             shaper(empty_df)
 

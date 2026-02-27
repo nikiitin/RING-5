@@ -4,6 +4,8 @@ parent: "WebApp Guide"
 nav_order: 5
 ---
 
+<!-- trunk-ignore-all(markdownlint/MD025) -->
+
 # Export & Download
 
 RING-5 supports multiple export formats optimized for different use

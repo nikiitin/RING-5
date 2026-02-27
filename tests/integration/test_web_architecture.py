@@ -190,7 +190,9 @@ class TestModelCompatibility:
 
     def test_shaper_step_creation(self) -> None:
         """ShaperStep can be created with required fields."""
-        step: ShaperStep = {"id": 0, "type": "sort", "config": {"order_dict": {"x": ["a"]}}}
+        step: ShaperStep = cast(
+            Any, {"id": 0, "type": "sort", "config": {"order_dict": {"x": ["a"]}}}
+        )
         assert step["type"] == "sort"
 
     def test_margins_config(self) -> None:

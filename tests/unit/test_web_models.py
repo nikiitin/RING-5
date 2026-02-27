@@ -127,21 +127,21 @@ class TestShaperStep:
         step: ShaperStep = {
             "id": 1,
             "type": "sort",
-            "config": cast(ShaperStepConfig, {"by": "value", "ascending": True}),
+            "config": cast(Any, {"by": "value", "ascending": True}),
         }
         assert step["type"] == "sort"
         config_dict = cast(dict[str, Any], step["config"])
         assert config_dict["ascending"] is True
 
     def test_create_empty_config(self) -> None:
-        step: ShaperStep = {"id": 2, "type": "mean", "config": {}}
+        step: ShaperStep = {"id": 2, "type": "mean", "config": cast(Any, {})}
         assert step["config"] == {}
 
     def test_json_serializable(self) -> None:
         step: ShaperStep = {
             "id": 5,
             "type": "normalize",
-            "config": cast(ShaperStepConfig, {"baseline": "config_a", "column": "ipc"}),
+            "config": cast(Any, {"baseline": "config_a", "column": "ipc"}),
         }
         json_str: str = json.dumps(step)
         restored: dict[str, Any] = json.loads(json_str)
@@ -325,10 +325,10 @@ class TestPipeline:
             {
                 "id": 0,
                 "type": "columnSelector",
-                "config": cast(ShaperStepConfig, {"columns": ["a", "b"]}),
+                "config": cast(Any, {"columns": ["a", "b"]}),
             },
-            {"id": 1, "type": "sort", "config": cast(ShaperStepConfig, {"by": "a"})},
-            {"id": 2, "type": "mean", "config": cast(ShaperStepConfig, {"group_by": "a"})},
+            {"id": 1, "type": "sort", "config": cast(Any, {"by": "a"})},
+            {"id": 2, "type": "mean", "config": cast(Any, {"group_by": "a"})},
         ]
         assert len(pipeline) == 3
         assert pipeline[0]["type"] == "columnSelector"
@@ -339,12 +339,12 @@ class TestPipeline:
             {
                 "id": 0,
                 "type": "normalize",
-                "config": cast(ShaperStepConfig, {"baseline": "x", "column": "y"}),
+                "config": cast(Any, {"baseline": "x", "column": "y"}),
             },
             {
                 "id": 1,
                 "type": "conditionSelector",
-                "config": cast(ShaperStepConfig, {"condition": "a > 5"}),
+                "config": cast(Any, {"condition": "a > 5"}),
             },
         ]
         json_str: str = json.dumps(pipeline)

@@ -4,6 +4,9 @@ parent: "WebApp Guide"
 nav_order: 3
 ---
 
+<!-- trunk-ignore-all(markdownlint/MD033) -->
+<!-- trunk-ignore-all(markdownlint/MD025) -->
+
 # Manage Plots Page
 
 This is the core analysis page. Create publication-quality plots, apply

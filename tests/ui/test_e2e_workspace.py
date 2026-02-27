@@ -123,10 +123,10 @@ class TestMultiPlotWorkspace:
         p2 = PlotService.create_plot("Plot B", "bar", api.state_manager)
 
         p1.pipeline = [
-            {"id": 0, "type": "columnSelector", "config": {"columns": ["benchmark_name"]}},
+            {"id": 0, "type": "columnSelector", "config": {"columns": ["benchmark_name"]}},  # type: ignore  # noqa: E501
         ]
         p2.pipeline = [
-            {"id": 0, "type": "sort", "config": {"order_dict": {"benchmark_name": ["mcf"]}}},
+            {"id": 0, "type": "sort", "config": {"order_dict": {"benchmark_name": ["mcf"]}}},  # type: ignore  # noqa: E501
         ]
 
         assert p1.pipeline[0]["type"] == "columnSelector"

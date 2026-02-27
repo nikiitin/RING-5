@@ -82,11 +82,15 @@ Version: 1.0.0
 """
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 
-from src.core.models.data_models import ShaperStepConfig, SplitApplyGroupConfig
+from src.core.models.shaper_models import (
+    ShaperStepConfig,
+    SplitApplyGroupConfig,
+    SplitApplyShaperConfig,
+)
 from src.core.services.shapers.uni_df_shaper import UniDfShaper
 
 logger = logging.getLogger(__name__)
@@ -112,8 +116,9 @@ class SplitApply(UniDfShaper):
                     - columns (List[str]): Numeric columns for this group.
                     - pipeline (List[Dict]): Shaper configs to apply.
         """
-        self._join_columns: list[str] = params.get("joinColumns", [])
-        self._groups: list[SplitApplyGroupConfig] = params.get("groups", [])
+        config = cast(SplitApplyShaperConfig, params)
+        self._join_columns: list[str] = config.get("joinColumns", [])
+        self._groups: list[SplitApplyGroupConfig] = config.get("groups", [])
         self._params = params
 
         super().__init__(params)

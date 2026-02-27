@@ -109,13 +109,17 @@ class TestPrepareLoadedPipeline:
     def test_deep_copy_independence(self) -> None:
         """Steps should be deep-copied, not sharing references."""
         original_pipeline: list[PipelineStep] = [
-            {"id": 0, "type": "sort", "config": cast(ShaperStepConfig, {"key": "value"})}
+            {
+                "id": 0,
+                "type": "sort",
+                "config": cast(ShaperStepConfig, {"key": "value"}),
+            }
         ]
         data = cast(PipelineData, {"pipeline": original_pipeline})
         steps, counter = PipelineService.prepare_loaded_pipeline(data)
 
         # Mutating returned steps should not affect original
-        steps[0]["config"]["column"] = "modified"
+        steps[0]["config"] = cast(ShaperStepConfig, {"column": "modified"})
         assert "column" not in original_pipeline[0]["config"]
 
     def test_steps_without_id_field(self) -> None:

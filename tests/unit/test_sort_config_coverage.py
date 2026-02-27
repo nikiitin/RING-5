@@ -1,5 +1,6 @@
 """Tests for SortConfig shaper UI component — branch coverage."""
 
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -25,7 +26,7 @@ class TestSortConfigRender:
     @patch("src.web.components.shapers.sort_config.st")
     def test_no_categorical_columns(self, mock_st: MagicMock) -> None:
         data = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
-        result = SortConfig.render(data, {}, "pfx_", 1)
+        result = SortConfig.render(data, cast(Any, {}), "pfx_", 1)
         mock_st.warning.assert_called_once()
         assert result == {"type": "sort", "order_dict": {}}
 
@@ -34,7 +35,7 @@ class TestSortConfigRender:
         data = pd.DataFrame({"cat": ["a", "b", "c"], "val": [1, 2, 3]})
         mock_st.multiselect.return_value = []  # no columns selected
 
-        result = SortConfig.render(data, {}, "pfx_", 1)
+        result = SortConfig.render(data, cast(Any, {}), "pfx_", 1)
         assert result.get("type") == "sort"
         assert result.get("order_dict") == {}
 
@@ -50,7 +51,7 @@ class TestSortConfigRender:
         exp.__exit__ = MagicMock(return_value=False)
         mock_st.expander.return_value = exp
 
-        result = SortConfig.render(data, {}, "pfx_", 1)
+        result = SortConfig.render(data, cast(Any, {}), "pfx_", 1)
         order_dict = result.get("order_dict")
         assert order_dict is not None
         assert order_dict["cat"] == ["c", "b", "a"]
@@ -68,7 +69,7 @@ class TestSortConfigRender:
         exp.__exit__ = MagicMock(return_value=False)
         mock_st.expander.return_value = exp
 
-        result = SortConfig.render(data, {}, "pfx_", 1)
+        result = SortConfig.render(data, cast(Any, {}), "pfx_", 1)
         order_dict = result.get("order_dict")
         assert order_dict is not None
         assert "cat" in order_dict
@@ -77,7 +78,7 @@ class TestSortConfigRender:
     @patch("src.web.components.shapers.sort_config.st")
     def test_restore_previous_order(self, mock_st: MagicMock) -> None:
         data = pd.DataFrame({"cat": ["a", "b", "c"], "val": [1, 2, 3]})
-        existing: ShaperStepConfig = {"order_dict": {"cat": ["c", "a"]}}
+        existing: ShaperStepConfig = cast(Any, {"order_dict": {"cat": ["c", "a"]}})
 
         mock_st.multiselect.side_effect = [
             ["cat"],  # should default to ["cat"] since it's in existing
@@ -88,7 +89,7 @@ class TestSortConfigRender:
         exp.__exit__ = MagicMock(return_value=False)
         mock_st.expander.return_value = exp
 
-        result = SortConfig.render(data, existing, "pfx_", 1)
+        result = SortConfig.render(data, cast(Any, existing), "pfx_", 1)
         order_dict = result.get("order_dict")
         assert order_dict is not None
         assert order_dict["cat"] == ["c", "a", "b"]
@@ -105,7 +106,7 @@ class TestSortConfigRender:
         exp.__exit__ = MagicMock(return_value=False)
         mock_st.expander.return_value = exp
 
-        result = SortConfig.render(data, {}, "pfx_", 1)
+        result = SortConfig.render(data, cast(Any, {}), "pfx_", 1)
         # Should use default_order = sorted unique values
         order_dict = result.get("order_dict")
         assert order_dict is not None

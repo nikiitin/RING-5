@@ -11,6 +11,7 @@ from typing import Any, cast
 
 import pandas as pd
 
+from src.core.models.shaper_models import ConditionSelectorConfig
 from src.core.services.shapers.impl.selector import Selector
 
 
@@ -39,36 +40,39 @@ class ConditionSelector(Selector):
                 - condition (str): operator for legacy mode
                 - value (str | float | int): comparison value for legacy/equals/contains mode
         """
+        config = cast(ConditionSelectorConfig, params)
         # Load parameters with defaults BEFORE super().__init__
         # because super().__init__ calls _verify_params which uses these.
-        self.mode: str = params.get("mode", "legacy")
-        self.condition: str | None = params.get("condition")
-        self.value: str | float | int | None = params.get("value")
-        self.threshold: float | None = params.get("threshold")
-        self.range: list[float] | None = params.get("range")
-        self.values: list[str] | None = params.get("values")
+        self.mode: str = config.get("mode", "legacy")
+        self.condition: str | None = params.get("condition")  # Legacy
+        self.value: str | float | int | None = params.get("value")  # Legacy
+        self.threshold: float | None = config.get("threshold")
+        self.range: list[float] | None = config.get("range")
+        self.values: list[str] | None = config.get("values")
 
         super().__init__(params)
 
     def _verify_params(self) -> bool:
         """Validate that the parameter combination is sufficient for filtering."""
         super()._verify_params()
+        config = cast(ConditionSelectorConfig, self.params)
 
-        if self.params.get("values") is not None:
-            if not isinstance(self.params["values"], list):
+        if config.get("values") is not None:
+            if not isinstance(config.get("values"), list):
                 raise TypeError("ConditionSelector: 'values' must be a list.")
 
-        elif self.params.get("range") is not None:
-            r = self.params["range"]
+        elif config.get("range") is not None:
+            r = config.get("range")
             if not isinstance(r, list) or len(r) != 2:
                 raise ValueError("ConditionSelector: 'range' must be a list of 2 values.")
 
         elif self.mode == "greater_than" or self.mode == "less_than":
-            if self.params.get("threshold") is None:
+            if config.get("threshold") is None:
                 raise ValueError(f"ConditionSelector: '{self.mode}' mode requires 'threshold'.")
 
         elif self.mode == "equals" or self.mode == "contains":
-            if self.params.get("value") is None:
+            # value is required for these modes
+            if config.get("value") is None:
                 raise ValueError(f"ConditionSelector: '{self.mode}' mode requires 'value'.")
 
         elif self.condition is not None and self.value is not None:

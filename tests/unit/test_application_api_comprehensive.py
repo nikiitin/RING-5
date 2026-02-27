@@ -1,7 +1,7 @@
 """Tests for ApplicationAPI edge cases and uncovered methods."""
 
 from collections.abc import Generator
-from typing import cast
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -80,22 +80,22 @@ class TestSubmitParseAsync:
 
     def test_dict_variable_basic(self, api: ApplicationAPI) -> None:
         """Dict variable is converted to StatConfig."""
-        api._parser.submit_parse_async.return_value = MagicMock()
+        cast(Any, api._parser.submit_parse_async).return_value = MagicMock()
         api.submit_parse_async(
             "/path",
             "stats.txt",
             [cast(ParseVariableConfig, {"name": "simTicks", "type": "scalar"})],
             "/out",
         )
-        args = api._parser.submit_parse_async.call_args[0]
-        configs = args[2]
+        args_tuple = cast(MagicMock, api._parser.submit_parse_async).call_args
+        configs = args_tuple[0][2]
         assert len(configs) == 1
         assert configs[0].name == "simTicks"
         assert configs[0].type == "scalar"
 
     def test_dict_variable_with_alias(self, api: ApplicationAPI) -> None:
         """Dict variable with alias uses alias as name."""
-        api._parser.submit_parse_async.return_value = MagicMock()
+        cast(Any, api._parser.submit_parse_async).return_value = MagicMock()
         api.submit_parse_async(
             "/path",
             "stats.txt",
@@ -107,25 +107,27 @@ class TestSubmitParseAsync:
             ],
             "/out",
         )
-        configs = api._parser.submit_parse_async.call_args[0][2]
+        args_tuple = cast(MagicMock, api._parser.submit_parse_async).call_args
+        configs = args_tuple[0][2]
         assert configs[0].name == "IPC"
         assert configs[0].params["parsed_ids"] == ["system.cpu.ipc"]
 
     def test_dict_variable_with_regex(self, api: ApplicationAPI) -> None:
         r"""Variable with \\d+ in name is marked as regex."""
-        api._parser.submit_parse_async.return_value = MagicMock()
+        cast(Any, api._parser.submit_parse_async).return_value = MagicMock()
         api.submit_parse_async(
             "/path",
             "stats.txt",
             [cast(ParseVariableConfig, {"name": r"system.cpu\d+.ipc", "type": "vector"})],
             "/out",
         )
-        configs = api._parser.submit_parse_async.call_args[0][2]
+        args_tuple = cast(MagicMock, api._parser.submit_parse_async).call_args
+        configs = args_tuple[0][2]
         assert configs[0].is_regex is True
 
     def test_dict_variable_statistics_only(self, api: ApplicationAPI) -> None:
         """statistics_only flag is passed through."""
-        api._parser.submit_parse_async.return_value = MagicMock()
+        cast(Any, api._parser.submit_parse_async).return_value = MagicMock()
         api.submit_parse_async(
             "/path",
             "stats.txt",
@@ -137,7 +139,8 @@ class TestSubmitParseAsync:
             ],
             "/out",
         )
-        configs = api._parser.submit_parse_async.call_args[0][2]
+        args_tuple = cast(MagicMock, api._parser.submit_parse_async).call_args
+        configs = args_tuple[0][2]
         assert configs[0].statistics_only is True
 
     def test_scanned_variable_object(self, api: ApplicationAPI) -> None:
@@ -149,9 +152,10 @@ class TestSubmitParseAsync:
         # Remove params attr so it triggers the elif branch
         del scanned.params
 
-        api._parser.submit_parse_async.return_value = MagicMock()
+        cast(Any, api._parser.submit_parse_async).return_value = MagicMock()
         api.submit_parse_async("/path", "stats.txt", [scanned], "/out")
-        configs = api._parser.submit_parse_async.call_args[0][2]
+        args_tuple = cast(MagicMock, api._parser.submit_parse_async).call_args
+        configs = args_tuple[0][2]
         assert configs[0].name == "system.cpu.ipc"
         assert configs[0].params["entries"] == ["0", "1"]
 
@@ -160,21 +164,22 @@ class TestSubmitParseAsync:
         from src.core.models import StatConfig
 
         sc = StatConfig(name="test", type="scalar")
-        api._parser.submit_parse_async.return_value = MagicMock()
+        cast(Any, api._parser.submit_parse_async).return_value = MagicMock()
         api.submit_parse_async("/path", "stats.txt", [sc], "/out")
-        configs = api._parser.submit_parse_async.call_args[0][2]
+        args_tuple = cast(MagicMock, api._parser.submit_parse_async).call_args
+        configs = args_tuple[0][2]
         assert configs[0] is sc
 
     def test_scanned_vars_kwarg_forwarded(self, api: ApplicationAPI) -> None:
         """scanned_vars kwarg is forwarded to the parser."""
         from src.core.models.parsing_models import ScannedVariable
 
-        api._parser.submit_parse_async.return_value = MagicMock()
+        cast(Any, api._parser.submit_parse_async).return_value = MagicMock()
         sv = ScannedVariable(name="test_var", type="scalar", entries=[])
         scanned = [sv]
         api.submit_parse_async("/path", "stats.txt", [], "/out", scanned_vars=scanned)
-        kwargs_passed = api._parser.submit_parse_async.call_args
-        forwarded = kwargs_passed[0][5]
+        args_tuple = cast(MagicMock, api._parser.submit_parse_async).call_args
+        forwarded = args_tuple[0][5]
         assert forwarded is not None
         assert len(forwarded) == 1
         assert forwarded[0].name == "test_var"
@@ -184,14 +189,15 @@ class TestFinalizeParsing:
     """Test finalize_parsing delegation."""
 
     def test_delegates_to_parser(self, api: ApplicationAPI) -> None:
-        api._parser.finalize_parsing.return_value = "/out/result.csv"
+        cast(Any, api._parser.finalize_parsing).return_value = "/out/result.csv"
         result = api.finalize_parsing("/out", [MagicMock()])
         assert result == "/out/result.csv"
 
     def test_with_var_names(self, api: ApplicationAPI) -> None:
-        api._parser.finalize_parsing.return_value = "/out/r.csv"
+        cast(Any, api._parser.finalize_parsing).return_value = "/out/r.csv"
         api.finalize_parsing("/out", [], var_names=["a", "b"])
-        call_kwargs = api._parser.finalize_parsing.call_args[1]
+        args_tuple = cast(MagicMock, api._parser.finalize_parsing).call_args
+        call_kwargs = args_tuple[1]
         assert call_kwargs["var_names"] == ["a", "b"]
 
 
@@ -199,12 +205,12 @@ class TestScanMethods:
     """Test scan delegation."""
 
     def test_submit_scan_async(self, api: ApplicationAPI) -> None:
-        api._parser.submit_scan_async.return_value = [MagicMock()]
+        cast(Any, api._parser.submit_scan_async).return_value = [MagicMock()]
         result = api.submit_scan_async("/path")
         assert len(result) == 1
 
     def test_finalize_scan(self, api: ApplicationAPI) -> None:
-        api._parser.aggregate_scan_results.return_value = [MagicMock()]
+        cast(Any, api._parser.aggregate_scan_results).return_value = [MagicMock()]
         result = api.finalize_scan([[MagicMock()]])
         assert len(result) == 1
 

@@ -139,7 +139,7 @@ class FigureSpecToPlotly:
                 font=dict(size=typo.font_size_xlabel),
             )
             if x_axis.label_standoff >= 0:
-                update["title"]["standoff"] = x_axis.label_standoff
+                update["title"]["standoff"] = int(x_axis.label_standoff)  # type: ignore[index]
 
         update["tickfont"] = dict(size=typo.font_size_ticks)
         update["tickangle"] = x_axis.tick_angle
@@ -197,7 +197,7 @@ class FigureSpecToPlotly:
                 font=dict(size=typo.font_size_ylabel),
             )
             if y_axis.label_standoff >= 0:
-                update["title"]["standoff"] = y_axis.label_standoff
+                update["title"]["standoff"] = int(y_axis.label_standoff)  # type: ignore[index]
             # Note: vshift (title_vshift) is Matplotlib-only — Plotly's
             # yaxis.Title only supports text, font, standoff.  Vertical
             # repositioning is handled via Matplotlib's set_label_coords.
@@ -247,7 +247,7 @@ class FigureSpecToPlotly:
                 font=dict(size=typo.font_size_y2label),
             )
             if y2.label_standoff >= 0:
-                update["title"]["standoff"] = y2.label_standoff
+                update["title"]["standoff"] = int(y2.label_standoff)  # type: ignore[index]
 
         update["tickfont"] = dict(size=typo.font_size_y2ticks)
 

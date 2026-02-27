@@ -25,6 +25,7 @@ import subprocess
 import time
 from collections.abc import Generator
 from pathlib import Path
+from typing import Any, cast
 
 import pytest
 from playwright.sync_api import Browser, BrowserContext, Page
@@ -127,12 +128,13 @@ def browser_context_args(browser_context_args: dict[str, object]) -> dict[str, o
     - Locale: en-US (deterministic date/number formatting)
     - Color scheme: dark (matches RING-5 theme)
     """
-    return {
+    args: dict[str, object] = {
         **browser_context_args,
         "viewport": {"width": 1280, "height": 720},
         "locale": "en-US",
         "color_scheme": "dark",
     }
+    return args
 
 
 @pytest.fixture(scope="class")
@@ -146,7 +148,8 @@ def shared_page(
     single test within a consolidated test class, yielding significant
     speedups for visual/E2E tests where setup dominates execution time.
     """
-    context = browser.new_context(**browser_context_args)
+    # Use cast to satisfy Pyright regarding BrowserContext options
+    context = browser.new_context(**cast(Any, browser_context_args))
     page = context.new_page()
     yield page
     context.close()
