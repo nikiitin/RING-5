@@ -116,33 +116,45 @@
 
 ## What We Expect to Find
 
-- **2.1**: Confirmed crash on malformed lines. Fix: bounds check + skip with warning.
-- **2.2**: Confirmed pipe leak. Fix: unconditional close in `finally` block.
-- **2.3**: Confirmed thread accumulation. Fix: replace with `select.select()` or `selectors` module.
-- **2.6**: StatType subclasses likely have nested mutables (`_content` dict with list values). `copy.copy()` may be insufficient for some types. Need `copy.deepcopy()` or a custom `__copy__` method.
-- **2.7**: Confirmed potential KeyError. Fix: `.get()` with error handling.
-- **2.8**: Header is indeed built from first result. Fix: build from config variable list.
+- **2.1**: CONFIRMED crash on malformed lines — `parts[2]` at line 103, no bounds check. Fix: bounds check + skip with warning.
+- **2.2**: NOT A BUG — pipes ARE closed unconditionally at lines 306-315. Hypothesis was wrong.
+- **2.3**: CONFIRMED thread accumulation — daemon thread per `_read_line_with_timeout()` call, never joined on timeout.
+- **2.6**: CONFIRMED — ALL StatType subclasses have `_content` as nested list/dict. `copy.copy()` shares nested mutable state. `copy.deepcopy()` needed.
+- **2.7**: NOT A BUG — `column_map` populated for all `ordered_names` before access. Key guaranteed present.
+- **2.8**: CONFIRMED by design — header built from `results[0]` only. Later files with extra entries lose data.
+- **2.10**: CONFIRMED HIGH — `int()` conversion at scalar.py:60 silently truncates decimal values during reduce.
 
 ---
 
 ## Outcome
 
-**Status**: PENDING
+**Status**: INVESTIGATION COMPLETE
 
-| Item | Result | Fix Applied | Notes |
+| Item | Finding | Severity | Action for Implementation |
 | --- | --- | --- | --- |
-| 2.1 Unchecked index | PENDING | | |
-| 2.2 Pipe leak | PENDING | | |
-| 2.3 Thread accumulation | PENDING | | |
-| 2.4 Health monitor stop | PENDING | | |
-| 2.5 Silent exception | PENDING | | |
-| 2.6 Shallow copy depth | PENDING | | |
-| 2.7 Dict access safety | PENDING | | |
-| 2.8 CSV header completeness | PENDING | | |
-| 2.9 Vector init | PENDING | | |
-| 2.10 Scalar truncation | PENDING | | |
-| 2.11 Mixed return types | PENDING | | |
-| 2.12 Broad exception | PENDING | | |
-| 2.13 Silent scan error | PENDING | | |
-| 2.14 Histogram range | PENDING | | |
-| 2.15 Health check sync | PENDING | | |
+| 2.1 Unchecked index | **CONFIRMED** — `_parseLine()` at line 103: `parts[0], parts[1], parts[2]` with no bounds check. Malformed Perl output → IndexError → worker crash. | HIGH | Add `if len(parts) < 3: log warning + skip line`. |
+| 2.2 Pipe leak | **NOT A BUG** — Lines 306-315 close pipes unconditionally regardless of process state. Code is correct. | N/A | No action needed. |
+| 2.3 Thread accumulation | **CONFIRMED** — Line 134 spawns daemon thread per call. On timeout (line 136), thread stays alive. No max limit. | MEDIUM | Replace with `selectors` module or `select.select()` for non-blocking reads. |
+| 2.4 Health monitor stop | **CONFIRMED** — No `thread.join()` on `_health_monitor_thread` in `shutdown()`. Thread may outlive pool. | MEDIUM | Add `self._health_monitor_thread.join(timeout=health_check_interval+1)` in shutdown(). |
+| 2.5 Silent exception | **NOT A BUG** — Lines 215-225 properly raise RuntimeError for unknown types. No broad except block. | N/A | No action needed. |
+| 2.6 Shallow copy depth | **CONFIRMED HIGH** — ALL StatType subclasses have mutable nested state (`_content` is list or dict[str,list]). `copy.copy()` at simple.py:184 shares nested references. Mutation via `balance_content()` corrupts aliased variables. | HIGH | Replace `copy.copy(stat_obj)` with `copy.deepcopy(stat_obj)`. |
+| 2.7 Dict access safety | **NOT A BUG** — `column_map` is populated for all `ordered_names` before access loop. Key is guaranteed present. | N/A | No action needed. |
+| 2.8 CSV header completeness | **CONFIRMED** — Header built from `results[0]` only (line 263). Later files with different entries lose columns. Fix complex — union of all results changes header size. | MEDIUM | Build header as union of all results' entries, with consistent column ordering. |
+| 2.9 Vector init | **NOT A BUG** — `_content` initialized for all entries in `__init__`. `balance_content()` uses defensive `.get()`. | N/A | No action needed. |
+| 2.10 Scalar truncation | **CONFIRMED HIGH** — scalar.py:60 `int(self._content[i])` truncates decimals. e.g., [1.5, 2.7, 3.1] → sum=6 instead of 7.3. Silent data corruption. | HIGH | Replace `int()` with `float()` in the summation loop. |
+| 2.11 Mixed return types | **CONFIRMED** — `_reduced_content` is either "NA" (str) or float. Downstream expecting float gets str. | MEDIUM | Use `float('nan')` instead of "NA" for missing values, or use `None` with explicit type. |
+| 2.12 Broad exception | **CONFIRMED** — config_aware.py:73 catches `except Exception`. Should be `except (configparser.Error, OSError)`. | LOW | Narrow exception type. |
+| 2.13 Silent scan error | **CONFIRMED** — gem5_scan_work.py:40 returns `[]` on any exception. Callers can't distinguish empty vs failed. | MEDIUM | Return a result object with error field, or re-raise with context. |
+| 2.14 Histogram range | **CONFIRMED** — `_parse_range_key()` returns `[]` silently on non-numeric keys. Intentional for summary stats (mean, stdev) but no warning for failed real ranges. | LOW | Add logger.debug for failed range parses on keys that look numeric. |
+| 2.15 Health check sync | **PARTIALLY CONFIRMED** — `is_busy` read without lock. GIL provides atomicity for simple bool in CPython. But not portable to other Python impls. | LOW | Already documented. Consider `threading.Event` for portability. |
+
+### Corrections from Initial Hypotheses
+- **2.2 was NOT a bug** — hypothesis about pipe leak was wrong, code properly closes pipes
+- **2.5 was NOT a bug** — hypothesis about silent exception suppression was wrong
+- **2.7 was NOT a bug** — hypothesis about dict KeyError was wrong, key always present
+- **2.9 was NOT a bug** — hypothesis about missing init was wrong, entries initialized in __init__
+
+### Critical Findings Summary (items requiring fix)
+1. **scalar.py:60 `int()` truncation** — Silent data corruption in reducing scalar stats
+2. **simple.py:184 shallow copy** — Mutable state shared between aliased variables
+3. **gem5_parse_work.py:103 unchecked index** — Crash on malformed Perl output

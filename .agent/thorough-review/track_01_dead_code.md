@@ -106,18 +106,23 @@
 
 ## Outcome
 
-**Status**: COMPLETE
+**Status**: INVESTIGATION COMPLETE
 
-| Item | Result | Lines Removed | Notes |
+| Item | Finding | Severity | Action for Implementation |
 | --- | --- | --- | --- |
-| 1.1 Dead utils | DONE | ~200 | 12 of 13 functions removed. `checkFileExistsOrException` kept (used by gem5_parse_work.py:285). `JsonValue` type alias also removed. Tests for dead functions removed from test_utils.py. |
-| 1.2 plot_manager_components | DONE | ~200 | Removed `pages/ui/components/plot_manager_components.py` (dead duplicate). The `components/plotting/` version exists but is only used in tests — kept as it's actively tested. |
-| 1.3 split_apply_config dup | DONE | ~150 | Removed `pages/ui/components/shapers/split_apply_config.py`. Canonical: `components/shapers/split_apply_config.py` (imported by shaper_config.py and tests). |
-| 1.4 data_manager dups | DONE | ~300 | Removed `pages/ui/data_managers/impl/seeds_reducer.py` and `pages/ui/data_managers/impl/outlier_remover.py`. Canonical: `components/data_managers/` versions. |
-| 1.5 backward compat shims | PARTIAL | ~15 | Removed `parsing/csv_contract.py` (unused shim). Kept `parse_service.py` and `scanner_service.py` — actively used by 15+ test files as import targets. |
-| 1.6 widget framework | NOT DEAD | 0 | **Hypothesis wrong**: `WidgetRenderer` IS used in production by `base_ui.py:23`. Not dead code. |
-| 1.7 upward imports | RECORDED | 0 | Found 2 real upward imports in production: `colors_settings.py:185` (to_hex) and `chart_display.py:24` (download_section). Deferred to Track 11 (Architecture). |
-| 1.8 __all__ exports | N/A | 0 | utils.py has no `__all__` — not needed for this module. |
+| 1.1 Dead utils | **12 of 13 CONFIRMED DEAD**. Only `checkFileExistsOrException` is alive (gem5_parse_work.py:285). Dead: getElementValue, checkElementExists, checkElementExistNoException, checkEnumExistsNoException, getEnumValue, checkFilesExistOrException, checkFileExists, checkDirExistsOrException, checkDirExists, createDir, createTmpFile, checkVarType. `JsonValue` type alias also only used by dead functions. | HIGH | Remove 12 functions + JsonValue + unused imports (enum, tempfile). Update test_utils.py to only test checkFileExistsOrException. ~200 lines removed. |
+| 1.2 plot_manager_components | **pages/ui copy CONFIRMED DEAD** (MD5 identical, zero imports). components/plotting copy is ALIVE (imported by src/web/pages/data_managers.py). | MEDIUM | Delete `src/web/pages/ui/components/plot_manager_components.py`. ~200 lines. |
+| 1.3 split_apply_config dup | **pages/ui copy CONFIRMED DEAD** (MD5 identical, zero imports). Canonical: components/shapers/ (imported by shaper_config.py:11). | MEDIUM | Delete `src/web/pages/ui/components/shapers/split_apply_config.py`. ~360 lines. |
+| 1.4 data_manager dups | **Both pages/ui copies CONFIRMED DEAD** (MD5 identical, zero imports). Canonical: components/data_managers/ (re-exported in __init__.py). | MEDIUM | Delete `pages/ui/data_managers/impl/seeds_reducer.py` (~200 lines) and `pages/ui/data_managers/impl/outlier_remover.py` (~190 lines). |
+| 1.5 backward compat shims | **ALL 3 ALIVE**. csv_contract.py is a re-export shim. parse_service.py used by 15+ tests. scanner_service.py used by 8+ tests. | N/A | Keep all 3. They serve as stable import targets for test suites. |
+| 1.6 widget framework | **ALIVE**. `WidgetRenderer` used in production by `base_ui.py:23`. Hypothesis was wrong. | N/A | Keep. Not dead code. |
+| 1.7 upward imports | **5 VIOLATIONS in 3 files**: plot_manager_components.py:16-18 (3 imports), colors_settings.py:185 (to_hex), chart_display.py:24 (download_section). 42 total upward imports across codebase. | HIGH | Deferred to Track 11 (Architecture). These need extraction to shared locations. |
+| 1.8 Other dead files | **4 dead directories found**: `pages/ui/components/` and `pages/ui/data_managers/impl/` have no `__init__.py` — not importable packages. They only contain the 4 duplicate files above. | LOW | Delete dead directories after removing their contents (items 1.2-1.4). |
 
-**Total lines removed**: ~865 (12 dead functions + 4 dead files + 1 dead shim + associated tests)
-**Tests**: 3415 passed, 2 skipped, 0 failed after changes.
+### NEW FINDING: csv_contract.py re-evaluation
+The initial agent scan predicted csv_contract.py was dead. Investigation confirms it IS imported in test paths and serves as a backward-compat re-export. **Keep it.**
+
+### Estimated Implementation Impact
+- **~950 lines removable** (12 functions + 4 duplicate files + associated dead test code)
+- **0 production behavior change** — all removed items are unused
+- **Test count will drop** by ~30 (tests for dead utility functions)
