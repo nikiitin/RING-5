@@ -90,13 +90,23 @@ fig.update_layout(
 
 ## Outcome
 
-**Status**: PENDING
+**Status**: INVESTIGATION COMPLETE
 
-| Item | Result | Fix Applied | Notes |
+| Item | Finding | Severity | Action for Implementation |
 | --- | --- | --- | --- |
-| 10.1 Batch update_layout | PENDING | | |
-| 10.2 plt.close() cleanup | PENDING | | |
-| 10.3 Figure in session_state | PENDING | | |
-| 10.4 st.pyplot cleanup | PENDING | | |
-| 10.5 Grouped stacked bar | PENDING | | |
-| 10.6 Export standardization | PENDING | | |
+| 10.1 Batch update_layout | **CONFIRMED** — 11 scattered `fig.update_layout()` calls across 10+ `_apply_*()` methods (lines 86, 103, 115, 266, 277, 285, 379, 408, 414, 494, 662). Each triggers Plotly's internal validation. | MEDIUM | Collect all layout kwargs in a single dict, call `fig.update_layout(**all)` once at end of `apply()`. |
+| 10.2 plt.close() cleanup | **CONFIRMED** — Zero `plt.close()` or `plt.clf()` calls anywhere in codebase. Figure created at matplotlib_connector.py:706 via `plt.subplots()` but never closed. Memory leak in long-running Streamlit sessions. | HIGH | Add `plt.close(fig)` after every matplotlib figure use. Use try/finally blocks. |
+| 10.3 Figure in session_state | **CONFIRMED** — chart_display.py:172 stores matplotlib Figure object in `st.session_state[f"plot.{plot_id}.mpl_fig"]`. Non-serializable, heavy, never garbage collected. Each rerender adds new Figure while old persists. | HIGH | Remove Figure from session_state. Store only metadata or rendered image bytes. Regenerate on-demand for downloads. |
+| 10.4 st.pyplot cleanup | **CONFIRMED** — `st.pyplot(mpl_fig)` at chart_display.py:168 and chart_presenter.py:243 with no subsequent `plt.close()`. Figures accumulate in matplotlib's global registry. | HIGH | Add `plt.close(mpl_fig)` after every `st.pyplot()` call. |
+| 10.5 Grouped stacked bar | **NOT A BUG** — Inherits from StackedBarPlot, returns TraceBuildResult (engine-agnostic). Uses standard pipeline: trace_to_plotly.py → FigureSpecToPlotly.apply(). No pipeline bypass. | N/A | No action needed. |
+| 10.6 Export standardization | **NOT A BUG** — Consistent approach: plotly uses `fig.to_image()`/`fig.to_html()` with Kaleido; matplotlib uses `fig.savefig()` with proper DPI and bbox_inches. Minor issue: no `plt.close()` after savefig in export paths. | LOW | Add `plt.close(fig)` in finally block of export functions. |
+
+### Corrections from Initial Hypotheses
+- **10.5 was NOT a bug** — Grouped stacked bar uses standard FigureSpec pipeline, doesn't bypass it
+- **10.6 was mostly consistent** — Minor missing cleanup after export
+
+### Critical Findings Summary (items requiring fix)
+1. **matplotlib memory leak** — HIGH: Zero plt.close() calls in entire codebase, figures accumulate
+2. **Figure objects in session_state** — HIGH: Non-serializable matplotlib objects stored persistently
+3. **st.pyplot without cleanup** — HIGH: Figures pile up in matplotlib's global registry
+4. **Scattered update_layout calls** — MEDIUM: 11 calls instead of 1 batched call
