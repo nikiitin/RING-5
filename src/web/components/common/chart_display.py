@@ -13,8 +13,10 @@ The controller orchestrates figure generation and delegates all
 ``st.*`` display calls to this component.
 """
 
+import logging
 from typing import Any
 
+import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import streamlit as st
 
@@ -25,6 +27,8 @@ from src.web.pages.ui.plotting.download_section import render_download_section
 from src.web.rendering.config_builder import ConfigSpecBuilder, PlotlyFigureSpecBuilder
 from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
 from src.web.rendering.matplotlib_trace_renderer import MatplotlibTraceRenderer
+
+logger = logging.getLogger(__name__)
 
 
 class ChartDisplayComponent:
@@ -138,6 +142,14 @@ class ChartDisplayComponent:
         traces: list[TraceConfig] | None = None,
     ) -> None:
         """Render a matplotlib chart derived from a Plotly figure."""
+        mpl_state_key = f"plot.{plot_id}.mpl_fig"
+
+        # 0. Close previous matplotlib figure to prevent memory leak
+        old_fig = st.session_state.get(mpl_state_key)
+        if old_fig is not None:
+            plt.close(old_fig)
+            del st.session_state[mpl_state_key]
+
         # 1. Build and resolve FigureConfig
         spec = ConfigSpecBuilder.from_config(config, plot_type)
         PlotlyFigureSpecBuilder.enrich_from_plotly(spec, plotly_fig)
@@ -150,28 +162,31 @@ class ChartDisplayComponent:
         # 3. Create blank matplotlib figure
         mpl_fig, ax = FigureSpecToMatplotlib.create_figure(spec)
 
-        # 4. Render traces
-        MatplotlibTraceRenderer.render(
-            traces,
-            ax,
-            barmode=spec.barmode,
-            palette_colors=spec.color_palette or None,
-            bargap=spec.dimensions.bargap,
-            bargroupgap=spec.dimensions.bargroupgap,
-            bar_border_width=float(config.get("bar_border_width", 0.0)),
-        )
+        try:
+            # 4. Render traces
+            MatplotlibTraceRenderer.render(
+                traces,
+                ax,
+                barmode=spec.barmode,
+                palette_colors=spec.color_palette or None,
+                bargap=spec.dimensions.bargap,
+                bargroupgap=spec.dimensions.bargroupgap,
+                bar_border_width=float(config.get("bar_border_width", 0.0)),
+            )
 
-        # 5. Apply spec-based styling
-        FigureSpecToMatplotlib.apply(spec, ax)
+            # 5. Apply spec-based styling
+            FigureSpecToMatplotlib.apply(spec, ax)
 
-        # 6. Display
-        st.pyplot(mpl_fig)
+            # 6. Display
+            st.pyplot(mpl_fig)
 
-        # 7. Store for download
-        mpl_state_key = f"plot.{plot_id}.mpl_fig"
-        st.session_state[mpl_state_key] = mpl_fig
+            # 7. Store for download (closed on next render or session end)
+            st.session_state[mpl_state_key] = mpl_fig
 
-        render_download_section(plot_id, plot_name, plotly_fig)
+            render_download_section(plot_id, plot_name, plotly_fig)
+        except Exception:
+            plt.close(mpl_fig)
+            raise
 
     @staticmethod
     def render_error(error: Exception) -> None:

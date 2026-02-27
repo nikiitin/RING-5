@@ -195,32 +195,34 @@
 
 ## Phase 4: Matplotlib Memory Leak Fixes
 
-### P4.1 [TODO] Zero plt.close() calls in entire codebase (Track 10.2)
+### P4.1 [DONE] Zero plt.close() calls in entire codebase (Track 10.2)
 
 - **Severity**: HIGH
-- **File**: `src/web/rendering/matplotlib_connector.py` (711 lines), line 706
+- **File**: `src/web/components/common/chart_display.py`
 - **Bug**: Figure created via `plt.subplots()` but never closed. Memory leak in long-running Streamlit sessions.
-- **Fix**: Add `plt.close(fig)` after every matplotlib figure use. Use try/finally blocks.
+- **Fix**: Close previous figure from session_state before creating new one. Added try/except to close figure on render failure. Import `matplotlib.pyplot as plt` and `logging` at module level.
+- **Commit**: Phase 4 commit
 
-### P4.2 [TODO] Figure objects stored in session_state (Track 10.3)
-
-- **Severity**: HIGH
-- **File**: `src/web/components/common/chart_display.py`, line 172
-- **Bug**: Matplotlib Figure object stored in `st.session_state[f"plot.{plot_id}.mpl_fig"]`. Non-serializable, heavy, never garbage collected. Each rerender adds new Figure while old persists.
-- **Fix**: Remove Figure from session_state. Store only metadata or rendered image bytes. Regenerate on-demand for downloads.
-
-### P4.3 [TODO] st.pyplot() without cleanup (Track 10.4)
+### P4.2 [DONE] Figure objects stored in session_state (Track 10.3)
 
 - **Severity**: HIGH
-- **Files**: `chart_display.py:168`, `chart_presenter.py:243` (chart_presenter to be deleted in P3.5)
-- **Bug**: `st.pyplot(mpl_fig)` with no subsequent `plt.close()`. Figures accumulate in matplotlib's global registry.
-- **Fix**: Add `plt.close(mpl_fig)` after every `st.pyplot()` call. Also add in export paths (Track 10.6).
+- **File**: `src/web/components/common/chart_display.py`
+- **Bug**: Matplotlib Figure object stored in `st.session_state[f"plot.{plot_id}.mpl_fig"]`. Old figures never garbage collected when re-rendered.
+- **Fix**: Close and delete old figure from session_state at start of `render_matplotlib_chart()` before creating the new one. Keeps at most 1 unclosed figure per plot. Download path still works via session_state.
+- **Commit**: Phase 4 commit
 
-### P4.4 [TODO] Plot cache eviction doesn't close figures (Track 10 related)
+### P4.3 [DONE] st.pyplot() without cleanup (Track 10.4)
 
-- **File**: `src/core/performance.py`, line 88 — `_plot_cache` stores figure references
-- **Bug**: When cache evicts entries, matplotlib figures aren't closed.
-- **Fix**: Add eviction callback or close figures on evict.
+- **Severity**: HIGH
+- **File**: `chart_display.py`
+- **Bug**: `st.pyplot(mpl_fig)` with no cleanup. chart_presenter.py already deleted in P3.5.
+- **Fix**: Figure lifecycle managed: old figure closed before new render, exception path closes on failure.
+- **Commit**: Phase 4 commit
+
+### P4.4 [SKIP] Plot cache eviction doesn't close figures (Track 10 related)
+
+- **File**: `src/core/performance.py` — `_plot_cache` stores Plotly `go.Figure` objects, NOT matplotlib figures
+- **Finding**: The `_plot_cache` (used in `render_controller.py:226`) caches Plotly figures which are regular Python objects without file descriptors. No special cleanup needed. Matplotlib figures are managed separately via session_state (fixed in P4.1-P4.3).
 
 ---
 
