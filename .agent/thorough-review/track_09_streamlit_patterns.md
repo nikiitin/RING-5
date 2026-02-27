@@ -85,14 +85,22 @@
 
 ## Outcome
 
-**Status**: PENDING
+**Status**: INVESTIGATION COMPLETE
 
-| Item | Result | Fix Applied | Notes |
+| Item | Finding | Severity | Action for Implementation |
 | --- | --- | --- | --- |
-| 9.1 Widget pre-init | PENDING | | |
-| 9.2 st.status() progress | PENDING | | |
-| 9.3 @st.cache decorators | PENDING | | |
-| 9.4 Empty state messages | PENDING | | |
-| 9.5 st.write_stream() | PENDING | | |
-| 9.6 st.rerun() scope | PENDING | | |
-| 9.7 Multipage API | PENDING | | |
+| 9.1 Widget pre-init | **NOT A BUG** — Pre-initialization at line 160 is intentional Streamlit workaround. Without it, multiselect raises "value not in options" when filtering changes visible items. Intersection computed at line 159 ensures only valid options kept. Well-documented. | N/A | Keep as-is. Documented workaround for Streamlit limitation. |
+| 9.2 st.status() progress | **NOT A BUG** — Plot generation uses manual cache; renders are fast. Scanner already uses `st.status()` exemplarily (data_source_components.py:200-221 with `as_completed` progress). Plot side doesn't need it yet. | LOW | Add only if complex plots become slow. Scanner pattern is a good template. |
+| 9.3 @st.cache decorators | **NOT A BUG** — `@st.cache_resource` IS used for ApplicationAPI singleton (app.py:54-56). Figure generation uses a custom cache (manual hash-based). User-triggered operations (scan, parse, transform) intentionally uncached. Zero `@st.cache_data` usage is design choice, not oversight. | LOW | Consider migrating manual figure cache to `@st.cache_data` if maintenance burden grows. |
+| 9.4 Empty state messages | **GOOD PRACTICE** — 36+ messages consistent across app. Three severity levels used appropriately: error (data missing), warning (feature unavailable), caption (no matches). Actionable guidance consistent. | N/A | No action needed. Messages are consistent. |
+| 9.5 st.write_stream() | **NOT APPLICABLE** — `st.write_stream()` is for LLM/text streaming, not progress tracking. Scanner uses `st.write()` + `st.status()` which is the correct pattern for discrete progress updates with futures. | N/A | No action needed. Current pattern optimal. |
+| 9.6 st.rerun() scope | **SCOPE MISMATCHES CONFIRMED** — 47 total calls: 46 default scope, 1 scope="app". 3-4 calls should use scope="app" but don't: app.py:87 (navigation), app.py:100 (clear data), app.py:109 (reset all), portfolio.py:53 (save). These affect global state but use fragment-scoped rerun. | MEDIUM | Change navigation and global-state rerun calls to `st.rerun(scope="app")`. |
+| 9.7 Multipage API | **INTENTIONAL DESIGN** — Manual SPA via session_state with custom button styling (primary/tertiary). Lazy page imports for performance. st.navigation (1.26+) would lose custom styling and lazy loading. | LOW | Optional modernization. Current approach provides more control. |
+
+### Corrections from Initial Hypotheses
+- **9.1 was NOT an anti-pattern** — it's a documented Streamlit workaround
+- **9.3 was NOT missing caching** — ApplicationAPI uses `@st.cache_resource`, figure generation has custom cache
+- **9.5 was NOT applicable** — st.write_stream for LLM streaming, not progress tracking
+
+### Critical Findings Summary (items requiring fix)
+1. **st.rerun() scope mismatches** — MEDIUM: 3-4 navigation/global rerun calls missing `scope="app"`
