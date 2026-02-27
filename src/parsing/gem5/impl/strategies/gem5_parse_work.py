@@ -100,6 +100,9 @@ class Gem5ParseWork(ParseWork):
             Tuple of (varType, varID, varValue)
         """
         parts: list[str] = line.split("/")
+        if len(parts) < 3:
+            logger.warning("PARSER: Malformed Perl output line (expected 3+ parts): %s", line[:200])
+            return "", "", ""
         return parts[0], parts[1], parts[2]
 
     def _getExpectedType(self, var: StatType) -> str:
@@ -197,6 +200,8 @@ class Gem5ParseWork(ParseWork):
         varID: str
         varValue: str
         rawType, varID, varValue = self._parseLine(line)
+        if not rawType:
+            return  # Malformed line, skip
         normalizedType: str = TypeMapper.normalize_type(rawType)
 
         if TypeMapper.is_entry_type(normalizedType):

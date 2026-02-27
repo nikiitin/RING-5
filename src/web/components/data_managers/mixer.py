@@ -73,6 +73,10 @@ class MixerManager(DataManager):
             key="mixer_mode",
         )
 
+        if mode is None:
+            st.info("Select a mode to continue.")
+            return
+
         if mode == "Numerical Operations":
             available_cols = [c for c in numeric_cols if not c.endswith((".sd", "_stdev"))]
             operations = ["Sum", "Mean (Average)"]
@@ -93,6 +97,9 @@ class MixerManager(DataManager):
 
         with col_select_2:
             operation = st.selectbox("Operation", operations, key="mixer_op")
+
+        if operation is None:
+            return
 
         separator = "_"
         if operation == "Concatenate":

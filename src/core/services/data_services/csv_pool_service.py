@@ -64,6 +64,7 @@ import datetime
 import hashlib
 import logging
 import shutil
+import threading
 from pathlib import Path
 from typing import cast
 
@@ -89,6 +90,7 @@ class CsvPoolService:
 
     # Index for fast filename lookups
     _pool_index: dict[str, CsvPoolEntry] = {}
+    _pool_lock: threading.Lock = threading.Lock()
 
     _pool_dir: Path | None = None
 
@@ -133,7 +135,8 @@ class CsvPoolService:
             new_index[csv_file.name] = file_info
 
         # Update index
-        CsvPoolService._pool_index = new_index
+        with CsvPoolService._pool_lock:
+            CsvPoolService._pool_index = new_index
 
         return pool
 
@@ -297,17 +300,20 @@ class CsvPoolService:
         """Clear all CSV pool caches."""
         CsvPoolService._metadata_cache.clear()
         CsvPoolService._dataframe_cache.clear()
-        CsvPoolService._pool_index.clear()
+        with CsvPoolService._pool_lock:
+            CsvPoolService._pool_index.clear()
         CsvPoolService._pool_dir = None
 
     @staticmethod
     def get_cache_stats() -> CacheStatsInfo:
         """Get cache statistics for monitoring."""
+        with CsvPoolService._pool_lock:
+            index_size = len(CsvPoolService._pool_index)
         return cast(
             CacheStatsInfo,
             {
                 "metadata_cache": CsvPoolService._metadata_cache.stats(),
                 "dataframe_cache": CsvPoolService._dataframe_cache.stats(),
-                "index_size": len(CsvPoolService._pool_index),
+                "index_size": index_size,
             },
         )

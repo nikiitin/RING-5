@@ -79,12 +79,29 @@ Last Modified: 2026-01-27
 import hashlib
 from typing import Any, cast
 
+import numpy as np
 import pandas as pd
 from scipy.stats import gmean, hmean
 
 from src.core.models.shaper_models import MeanShaperConfig
 from src.core.performance import cached
 from src.core.services.shapers.uni_df_shaper import UniDfShaper
+
+
+def _safe_gmean(series: pd.Series) -> float:
+    """Geometric mean that skips NaN and handles non-positive values."""
+    clean = series.dropna()
+    if clean.empty or (clean <= 0).any():
+        return np.nan
+    return float(gmean(clean))
+
+
+def _safe_hmean(series: pd.Series) -> float:
+    """Harmonic mean that skips NaN and handles non-positive values."""
+    clean = series.dropna()
+    if clean.empty or (clean <= 0).any():
+        return np.nan
+    return float(hmean(clean))
 
 
 class Mean(UniDfShaper):
@@ -218,10 +235,9 @@ class Mean(UniDfShaper):
         if self.mean_algorithm == "arithmean":
             mean_df = grouped[self.mean_vars].mean().reset_index()
         elif self.mean_algorithm == "geomean":
-            # Handle potential non-positive values for geometric mean via agg
-            mean_df = grouped[self.mean_vars].agg(gmean).reset_index()
+            mean_df = grouped[self.mean_vars].agg(_safe_gmean).reset_index()
         elif self.mean_algorithm == "hmean":
-            mean_df = grouped[self.mean_vars].agg(hmean).reset_index()
+            mean_df = grouped[self.mean_vars].agg(_safe_hmean).reset_index()
         else:
             raise ValueError(f"Unknown algorithm: {self.mean_algorithm}")
 

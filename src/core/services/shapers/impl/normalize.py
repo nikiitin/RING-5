@@ -229,7 +229,7 @@ class Normalize(UniDfShaper):
         baseline_vars = pd.DataFrame(baseline[self._normalizer_vars])
         denominator = baseline_vars.iloc[0].sum()
 
-        if denominator == 0:
+        if pd.isna(denominator) or denominator == 0:
             # Prevent division by zero: zero out normalized columns
             for var in self._normalize_vars:
                 result[var] = 0.0

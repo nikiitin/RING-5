@@ -176,9 +176,10 @@ class SimpleStatsStrategy:
 
             var_map[name] = stat_obj
 
-            # Each alias gets its own copy to prevent shared mutable state.
-            # Without this, mutating one alias (e.g. balance_content()) would
-            # silently affect all others since they reference the same object.
+            # Each alias gets a shallow copy to share _content with the parent
+            # variable — this is intentional so that parsed values from aliases
+            # flow to the parent for reduction. Deep copy happens at line 115
+            # (per-file isolation), not here (intra-template sharing).
             for pid in parsed_ids:
                 if pid != name:
                     var_map[pid] = copy.copy(stat_obj)

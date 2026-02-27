@@ -70,6 +70,8 @@ class RepositoryStateManager:
 
         # Enforce type constraints logic moved here from old static StateManager
         if data is not None:
+            # Always copy to prevent external mutations from propagating to stored data
+            data = data.copy()
             try:
                 variables = self._session_repo.parser_repo.get_parse_variables()
                 config_vars: list[str] = [
@@ -77,7 +79,6 @@ class RepositoryStateManager:
                 ]
                 cols_to_cast = [col for col in config_vars if col in data.columns]
                 if cols_to_cast:
-                    data = data.copy()
                     for col in cols_to_cast:
                         data[col] = data[col].astype(str)
             except (KeyError, TypeError, ValueError) as e:

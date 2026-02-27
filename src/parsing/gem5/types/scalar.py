@@ -54,8 +54,8 @@ class Scalar(StatType):
             object.__setattr__(self, "_reduced_content", "NA")
             return
 
-        # Sum and divide - matching original implementation
-        total = 0
+        # Sum and divide using float to preserve decimal precision
+        total = 0.0
         for i in range(self._repeat):
-            total += int(self._content[i])
+            total += float(self._content[i])
         object.__setattr__(self, "_reduced_content", total / self._repeat)
