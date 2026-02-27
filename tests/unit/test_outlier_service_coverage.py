@@ -1,4 +1,4 @@
-"""Tests for OutlierService — target branches at 60% coverage."""
+"""Tests for OutlierService — IQR-based outlier removal."""
 
 import pandas as pd
 
@@ -18,14 +18,17 @@ class TestRemoveOutliers:
         result = OutlierService.remove_outliers(df, "missing", [])
         assert len(result) == 3
 
-    def test_no_group_by_uses_global_q3(self) -> None:
-        # Q3 of [1,2,3,4,5,6,7,8] = 6.25
+    def test_no_group_by_removes_iqr_outliers(self) -> None:
+        # Data: [1, 2, 3, 4, 5, 6, 7, 100]
+        # Q1=2.25, Q3=6.25, IQR=4.0, lower=-3.75, upper=12.25
+        # Only 100 is above upper bound
         df = pd.DataFrame({"val": [1, 2, 3, 4, 5, 6, 7, 100]})
         result = OutlierService.remove_outliers(df, "val", [])
-        # 100 > Q3, should be removed
         assert 100 not in result["val"].values
+        # Values 1-7 should all be kept (within IQR bounds)
+        assert len(result) == 7
 
-    def test_with_group_by_uses_group_q3(self) -> None:
+    def test_with_group_by_uses_group_iqr(self) -> None:
         df = pd.DataFrame(
             {
                 "group": ["A", "A", "A", "A", "B", "B", "B", "B"],
@@ -33,14 +36,29 @@ class TestRemoveOutliers:
             }
         )
         result = OutlierService.remove_outliers(df, "val", ["group"])
-        # 100 and 200 exceed their respective group Q3
         assert 100 not in result["val"].values
         assert 200 not in result["val"].values
 
-    def test_all_values_below_q3(self) -> None:
+    def test_all_values_equal_keeps_all(self) -> None:
         df = pd.DataFrame({"val": [1, 1, 1, 1]})
         result = OutlierService.remove_outliers(df, "val", [])
         assert len(result) == 4
+
+    def test_iqr_keeps_values_within_bounds(self) -> None:
+        """Normal distribution: IQR should keep ~95% of values."""
+        # Values well within IQR 1.5x bounds
+        df = pd.DataFrame({"val": list(range(1, 21))})  # 1..20
+        result = OutlierService.remove_outliers(df, "val", [])
+        # All values should be kept (no outliers in evenly spaced data)
+        assert len(result) == 20
+
+    def test_custom_multiplier(self) -> None:
+        # With multiplier=0, only values exactly at Q1..Q3 are kept
+        # With multiplier=3 (extreme), more values are kept
+        df = pd.DataFrame({"val": [1, 2, 3, 4, 5, 6, 7, 100]})
+        result_strict = OutlierService.remove_outliers(df, "val", [], multiplier=1.5)
+        result_extreme = OutlierService.remove_outliers(df, "val", [], multiplier=3.0)
+        assert len(result_strict) <= len(result_extreme)
 
 
 class TestValidateOutlierInputs:
