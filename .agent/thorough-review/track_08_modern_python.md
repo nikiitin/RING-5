@@ -127,15 +127,26 @@ raise ExceptionGroup("Multiple parse failures", [e1, e2, e3])
 
 ## Outcome
 
-**Status**: PENDING
+**Status**: INVESTIGATION COMPLETE
 
-| Item | Result | Fix Applied | Notes |
+| Item | Finding | Severity | Action for Implementation |
 | --- | --- | --- | --- |
-| 8.1 StrEnum | PENDING | | |
-| 8.2 match statements | PENDING | | |
-| 8.3 PEP 695 type | PENDING | | |
-| 8.4 @override | PENDING | | |
-| 8.5 PEP 695 generics | PENDING | | |
-| 8.6 Never/assert_never | PENDING | | |
-| 8.7 f-string cleanup | PENDING | | |
-| 8.8 ExceptionGroup | PENDING | | |
+| 8.1 StrEnum | **WARRANTS MODERNIZATION** — 12 registry keys as plain strings across 2 factories (shaper factory: 10 keys, strategy factory: 2 keys). StrEnum provides type safety, IDE autocomplete, prevents string typos. | MEDIUM | Create `ShaperType(StrEnum)` and `StrategyType(StrEnum)`. Non-breaking. |
+| 8.2 match statements | **WARRANTS MODERNIZATION** — 2-3 if/elif chains suitable for match/case: condition_selector.py (4-branch mode dispatch), gem5_parse_work.py (type normalization), factory.py (strategy selection). | MEDIUM-HIGH | Convert each if/elif chain to match/case with exhaustive `case _`. |
+| 8.3 PEP 695 type | **OPTIONAL** — 0 TypeAlias imports; 3-5 manual type aliases exist (JsonValue, EntryBufferType, VarsDictType). Already using modern union syntax (`\|`). PEP 695 adds formal semantics. | LOW | Convert manual aliases to `type X = ...` syntax. Cosmetic improvement. |
+| 8.4 @override | **WARRANTS MODERNIZATION** — 0 @override usage in codebase. ~25-30 methods across shaper subclasses, stat type subclasses, and plot type subclasses override parent methods without @override. Project requires Python >=3.12.  | MEDIUM | Add `from typing import override` and `@override` to all overridden methods. |
+| 8.5 PEP 695 generics | **MINIMAL** — Only 1 TypeVar in entire codebase (`T = TypeVar("T")` in performance.py). Very limited scope. | LOW | Convert to `def cached[T](...)` syntax. Single change. |
+| 8.6 Never/assert_never | **OPTIONAL** — Not used anywhere. Only useful after match/case adoption (8.2). Secondary implementation. | LOW | Add `case _: assert_never(x)` to match statements after 8.2 is done. |
+| 8.7 f-string cleanup | **MINOR** — ~15-20 redundant `str()` conversions in f-strings. f-strings auto-call `str()`. Also `f"{value=}"` debug syntax available. | LOW | Remove redundant `str()` calls. Mechanical substitution. |
+| 8.8 ExceptionGroup | **NOT WARRANTED** — Current pattern is fail-fast (single error stops pipeline). ExceptionGroup would require architectural change to error collection pattern. High effort, low current benefit. | N/A | No action. Only implement if batch error reporting becomes a requirement. |
+
+### Key Finding
+The codebase is **already well-modernized** (PEP 585 types, union syntax, f-strings). The highest-ROI opportunities are:
+1. **match/case** for dispatch clarity (8.2)
+2. **@override** for inheritance safety (8.4)
+3. **StrEnum** for registry type safety (8.1)
+
+### Recommended Modernization Roadmap
+- **Phase 1** (High ROI): @override decorators + match/case + StrEnum registries
+- **Phase 2** (Polish): PEP 695 type aliases, f-string cleanup
+- **Phase 3** (Event-driven): Never/assert_never after match/case, ExceptionGroup if needed
