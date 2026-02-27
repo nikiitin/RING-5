@@ -39,9 +39,6 @@ class MixerManager(DataManager):
 
         numeric_cols = data.select_dtypes(include=["number"]).columns.tolist()
 
-        # Filter out likely SD columns to reduce clutter, but allow selecting them just in case
-        [c for c in numeric_cols if not c.endswith((".sd", "_stdev"))]
-
         # Handle loaded operation from history
         loaded = st.session_state.pop("_mixer_load", None)
         if loaded is not None:

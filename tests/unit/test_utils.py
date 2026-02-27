@@ -1,138 +1,26 @@
 """
-Comprehensive tests for utility functions.
+Tests for utility functions in src.core.common.utils.
+
+Only tests the alive (non-dead) functions:
+- checkFileExistsOrException
+- sanitize_log_value, sanitize_filename, validate_path_within
+- sanitize_glob_pattern, normalize_user_path
 """
 
-import enum
 import os
 import tempfile
-from typing import Any
+from pathlib import Path
 
 import pytest
 
 import src.core.common.utils as utils
-from src.core.common.utils import JsonValue
 
 
-class TestGetElementValue:
-    """Tests for getElementValue function."""
+class TestCheckFileExistsOrException:
+    """Tests for checkFileExistsOrException function."""
 
-    def test_get_existing_key(self) -> None:
-        """Test getting an existing key."""
-        data = {"name": "test", "value": 42}
-        assert utils.getElementValue(data, "name") == "test"
-        assert utils.getElementValue(data, "value") == 42
-
-    def test_get_missing_key_raises(self) -> None:
-        """Test that missing key raises exception."""
-        data: dict[str, JsonValue] = {"name": "test"}
-        with pytest.raises(Exception, match="Key not found"):
-            utils.getElementValue(data, "missing")
-
-    def test_get_none_value_optional(self) -> None:
-        """Test getting None value with optional=True."""
-        data: dict[str, JsonValue] = {"name": None}
-        result = utils.getElementValue(data, "name", optional=True)
-        assert result is None
-
-    def test_get_none_value_not_optional(self) -> None:
-        """Test getting None value with optional=False raises."""
-        data: dict[str, JsonValue] = {"name": None}
-        with pytest.raises(Exception, match="not optional"):
-            utils.getElementValue(data, "name", optional=False)
-
-    def test_get_list_value(self) -> None:
-        """Test getting a list value."""
-        data: dict[str, JsonValue] = {"items": [1, 2, 3]}
-        result = utils.getElementValue(data, "items")
-        assert result == [1, 2, 3]
-
-    def test_get_dict_value(self) -> None:
-        """Test getting a dict value."""
-        data: dict[str, JsonValue] = {"nested": {"a": 1, "b": 2}}
-        result = utils.getElementValue(data, "nested")
-        assert result == {"a": 1, "b": 2}
-
-
-class TestCheckElementExists:
-    """Tests for checkElementExists function."""
-
-    def test_existing_key_passes(self) -> None:
-        """Test that existing key doesn't raise."""
-        data: dict[str, JsonValue] = {"key": "value"}
-        utils.checkElementExists(data, "key")  # Should not raise
-
-    def test_missing_key_raises(self) -> None:
-        """Test that missing key raises."""
-        data: dict[str, JsonValue] = {"key": "value"}
-        with pytest.raises(Exception, match="Key not found"):
-            utils.checkElementExists(data, "missing")
-
-
-class TestCheckElementExistNoException:
-    """Tests for checkElementExistNoException function."""
-
-    def test_existing_key_returns_true(self) -> None:
-        """Test existing key returns True."""
-        data: dict[str, JsonValue] = {"key": "value"}
-        assert utils.checkElementExistNoException(data, "key") is True
-
-    def test_missing_key_returns_false(self) -> None:
-        """Test missing key returns False."""
-        data: dict[str, JsonValue] = {"key": "value"}
-        assert utils.checkElementExistNoException(data, "missing") is False
-
-
-class TestEnumFunctions:
-    """Tests for enum-related functions."""
-
-    class SampleEnum(enum.Enum):
-        """Sample enum for testing (not a test class)."""
-
-        OPTION_A = "option_a"
-        OPTION_B = "option_b"
-        OPTION_C = "option_c"
-
-    def test_check_enum_exists_true(self) -> None:
-        """Test finding existing enum member."""
-        data: dict[str, JsonValue] = {"OPTION_A": "value"}
-        assert utils.checkEnumExistsNoException(data, self.SampleEnum) is True
-
-    def test_check_enum_exists_false(self) -> None:
-        """Test not finding enum member."""
-        data: dict[str, JsonValue] = {"OTHER": "value"}
-        assert utils.checkEnumExistsNoException(data, self.SampleEnum) is False
-
-    def test_get_enum_value_found(self) -> None:
-        """Test getting enum value when found."""
-        data: dict[str, JsonValue] = {"option_a": "value"}
-        result = utils.getEnumValue(data, self.SampleEnum)
-        assert result == "option_a"
-
-    def test_get_enum_value_not_found(self) -> None:
-        """Test getting enum value when not found."""
-        data: dict[str, JsonValue] = {"other": "value"}
-        result = utils.getEnumValue(data, self.SampleEnum)
-        assert result is None
-
-
-class TestFileOperations:
-    """Tests for file operation functions."""
-
-    def test_check_file_exists_true(self) -> None:
-        """Test checkFileExists with existing file."""
-        with tempfile.NamedTemporaryFile(delete=False) as f:
-            temp_path = f.name
-        try:
-            assert utils.checkFileExists(temp_path) is True
-        finally:
-            os.unlink(temp_path)
-
-    def test_check_file_exists_false(self) -> None:
-        """Test checkFileExists with non-existing file."""
-        assert utils.checkFileExists("/nonexistent/path/file.txt") is False
-
-    def test_check_file_exists_or_exception_existing(self) -> None:
-        """Test checkFileExistsOrException with existing file."""
+    def test_existing_file_passes(self) -> None:
+        """Test that existing file doesn't raise."""
         with tempfile.NamedTemporaryFile(delete=False) as f:
             temp_path = f.name
         try:
@@ -140,112 +28,120 @@ class TestFileOperations:
         finally:
             os.unlink(temp_path)
 
-    def test_check_file_exists_or_exception_missing(self) -> None:
-        """Test checkFileExistsOrException with missing file."""
-        with pytest.raises(Exception, match="File does not exist"):
+    def test_missing_file_raises(self) -> None:
+        """Test that missing file raises FileNotFoundError."""
+        with pytest.raises(FileNotFoundError, match="File does not exist"):
             utils.checkFileExistsOrException("/nonexistent/path/file.txt")
 
-    def test_check_files_exist_all_present(self) -> None:
-        """Test checkFilesExistOrException with all files present."""
-        files = []
-        try:
-            for _ in range(3):
-                f = tempfile.NamedTemporaryFile(delete=False)
-                files.append(f.name)
-                f.close()
-            utils.checkFilesExistOrException(files)  # Should not raise
-        finally:
-            for f in files:
-                os.unlink(f)
-
-    def test_check_files_exist_one_missing(self) -> None:
-        """Test checkFilesExistOrException with one missing file."""
-        with tempfile.NamedTemporaryFile(delete=False) as f:
-            temp_path = f.name
-        try:
-            with pytest.raises(Exception, match="File does not exist"):
-                utils.checkFilesExistOrException([temp_path, "/nonexistent"])
-        finally:
-            os.unlink(temp_path)
-
-
-class TestDirectoryOperations:
-    """Tests for directory operation functions."""
-
-    def test_check_dir_exists_true(self) -> None:
-        """Test checkDirExists with existing directory."""
+    def test_directory_raises(self) -> None:
+        """Test that a directory path raises FileNotFoundError."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            assert utils.checkDirExists(temp_dir) is True
-
-    def test_check_dir_exists_false(self) -> None:
-        """Test checkDirExists with non-existing directory."""
-        assert utils.checkDirExists("/nonexistent/directory") is False
-
-    def test_check_dir_exists_or_exception_existing(self) -> None:
-        """Test checkDirExistsOrException with existing directory."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            utils.checkDirExistsOrException(temp_dir)  # Should not raise
-
-    def test_check_dir_exists_or_exception_missing(self) -> None:
-        """Test checkDirExistsOrException with missing directory."""
-        with pytest.raises(Exception, match="Directory does not exist"):
-            utils.checkDirExistsOrException("/nonexistent/directory")
-
-    def test_create_dir_new(self) -> None:
-        """Test creating a new directory."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            new_dir = os.path.join(temp_dir, "new_subdir")
-            utils.createDir(new_dir)
-            assert os.path.isdir(new_dir)
-
-    def test_create_dir_existing(self, caplog: Any) -> None:
-        """Test creating an existing directory logs message."""
-        import logging
-
-        with caplog.at_level(logging.DEBUG):
-            with tempfile.TemporaryDirectory() as temp_dir:
-                utils.createDir(temp_dir)  # Already exists
-                assert "Directory already exists" in caplog.text
+            with pytest.raises(FileNotFoundError):
+                utils.checkFileExistsOrException(temp_dir)
 
 
-class TestTempFile:
-    """Tests for temporary file functions."""
+class TestSanitizeLogValue:
+    """Tests for sanitize_log_value function."""
 
-    def test_create_tmp_file(self) -> None:
-        """Test creating a temporary file."""
-        temp_path = utils.createTmpFile()
-        try:
-            assert os.path.exists(temp_path)
-            assert os.path.isfile(temp_path)
-        finally:
-            os.unlink(temp_path)
+    def test_normal_string(self) -> None:
+        assert utils.sanitize_log_value("hello world") == "hello world"
+
+    def test_newlines_escaped(self) -> None:
+        assert utils.sanitize_log_value("line1\nline2") == "line1\\nline2"
+
+    def test_carriage_return_escaped(self) -> None:
+        assert utils.sanitize_log_value("line1\rline2") == "line1\\rline2"
+
+    def test_control_chars_removed(self) -> None:
+        result = utils.sanitize_log_value("hello\x00world")
+        assert "\x00" not in result
+
+    def test_tab_preserved(self) -> None:
+        assert utils.sanitize_log_value("col1\tcol2") == "col1\tcol2"
+
+    def test_non_string_converted(self) -> None:
+        assert utils.sanitize_log_value(42) == "42"
 
 
-class TestVarTypeCheck:
-    """Tests for checkVarType function."""
+class TestSanitizeFilename:
+    """Tests for sanitize_filename function."""
 
-    def test_correct_type_string(self) -> None:
-        """Test correct string type."""
-        utils.checkVarType("hello", str)  # Should not raise
+    def test_normal_filename(self) -> None:
+        assert utils.sanitize_filename("data.csv") == "data.csv"
 
-    def test_correct_type_int(self) -> None:
-        """Test correct int type."""
-        utils.checkVarType(42, int)  # Should not raise
+    def test_path_separators_replaced(self) -> None:
+        assert "/" not in utils.sanitize_filename("path/to/file.csv")
+        assert "\\" not in utils.sanitize_filename("path\\to\\file.csv")
 
-    def test_correct_type_list(self) -> None:
-        """Test correct list type."""
-        utils.checkVarType([1, 2, 3], list)  # Should not raise
+    def test_traversal_replaced(self) -> None:
+        assert ".." not in utils.sanitize_filename("../../etc/passwd")
 
-    def test_correct_type_dict(self) -> None:
-        """Test correct dict type."""
-        utils.checkVarType({"a": 1}, dict)  # Should not raise
+    def test_leading_dots_stripped(self) -> None:
+        assert not utils.sanitize_filename(".hidden").startswith(".")
 
-    def test_wrong_type_raises(self) -> None:
-        """Test wrong type raises exception."""
-        with pytest.raises(Exception, match="not of type"):
-            utils.checkVarType("hello", int)
+    def test_empty_returns_unnamed(self) -> None:
+        assert utils.sanitize_filename("") == "unnamed"
 
-    def test_none_vs_any_type(self) -> None:
-        """Test None value check."""
-        with pytest.raises(Exception, match="not of type"):
-            utils.checkVarType(None, str)
+
+class TestValidatePathWithin:
+    """Tests for validate_path_within function."""
+
+    def test_valid_path(self) -> None:
+        with tempfile.TemporaryDirectory() as base:
+            child = Path(base) / "subdir" / "file.txt"
+            result = utils.validate_path_within(child, Path(base))
+            assert str(result).startswith(str(Path(base).resolve()))
+
+    def test_traversal_raises(self) -> None:
+        with tempfile.TemporaryDirectory() as base:
+            evil = Path(base) / ".." / ".." / "etc" / "passwd"
+            with pytest.raises(ValueError, match="Path traversal"):
+                utils.validate_path_within(evil, Path(base))
+
+    def test_sibling_raises(self) -> None:
+        with tempfile.TemporaryDirectory() as base:
+            sibling = Path(str(base) + "_evil") / "file.txt"
+            with pytest.raises(ValueError, match="Path traversal"):
+                utils.validate_path_within(sibling, Path(base))
+
+
+class TestSanitizeGlobPattern:
+    """Tests for sanitize_glob_pattern function."""
+
+    def test_valid_pattern(self) -> None:
+        assert utils.sanitize_glob_pattern("stats.txt") == "stats.txt"
+
+    def test_wildcard_pattern(self) -> None:
+        assert utils.sanitize_glob_pattern("*.txt") == "*.txt"
+
+    def test_empty_returns_default(self) -> None:
+        assert utils.sanitize_glob_pattern("") == "stats.txt"
+
+    def test_traversal_returns_default(self) -> None:
+        assert utils.sanitize_glob_pattern("../etc/passwd") == "stats.txt"
+
+    def test_path_separator_returns_default(self) -> None:
+        assert utils.sanitize_glob_pattern("path/pattern") == "stats.txt"
+
+    def test_unsafe_chars_returns_default(self) -> None:
+        assert utils.sanitize_glob_pattern("$(cmd)") == "stats.txt"
+
+
+class TestNormalizeUserPath:
+    """Tests for normalize_user_path function."""
+
+    def test_normal_path(self) -> None:
+        result = utils.normalize_user_path("/tmp/data")
+        assert isinstance(result, Path)
+
+    def test_empty_returns_default(self) -> None:
+        result = utils.normalize_user_path("")
+        assert isinstance(result, Path)
+
+    def test_traversal_raises(self) -> None:
+        with pytest.raises(ValueError, match="Path traversal"):
+            utils.normalize_user_path("../../etc/passwd")
+
+    def test_redundant_separators_collapsed(self) -> None:
+        result = utils.normalize_user_path("/tmp//data///file")
+        assert "//" not in str(result)

@@ -143,56 +143,53 @@
 
 ## Phase 3: Dead Code Removal
 
-### P3.1 [TODO] Remove 12 dead utility functions (Track 1.1)
+### P3.1 [DONE] Remove 12 dead utility functions (Track 1.1)
 
 - **Severity**: HIGH
-- **File**: `src/core/common/utils.py`, lines 21-224
-- **Dead functions**: `getElementValue`, `checkElementExists`, `checkElementExistNoException`, `checkEnumExistsNoException`, `getEnumValue`, `checkFilesExistOrException`, `checkFileExists`, `checkDirExistsOrException`, `checkDirExists`, `createDir`, `createTmpFile`, `checkVarType`
-- **Keep alive**: `checkFileExistsOrException` (used by gem5_parse_work.py:285), `sanitize_log_value`, `sanitize_filename`, `validate_path_within`, `sanitize_glob_pattern`, `normalize_user_path`
-- **Also remove**: `JsonValue` type alias (only used by dead functions), unused imports (enum, tempfile)
-- **Impact**: ~200 lines removed
+- **File**: `src/core/common/utils.py`
+- **Fix**: Removed 12 dead functions, `JsonValue` type alias, and unused `enum`/`tempfile` imports. Kept alive: `checkFileExistsOrException`, `sanitize_log_value`, `sanitize_filename`, `validate_path_within`, `sanitize_glob_pattern`, `normalize_user_path`. File reduced from 368 to 171 lines (~200 lines removed).
+- **Commit**: Phase 3 commit
 
-### P3.2 [TODO] Delete dead test file or update to only test alive functions (Track 1.1)
+### P3.2 [DONE] Rewrite test_utils.py for alive functions only (Track 1.1)
 
-- **File**: `tests/unit/test_utils.py` (252 lines)
-- **Action**: Remove tests for dead functions. Keep tests for `checkFileExistsOrException` and other alive functions.
-- **Impact**: ~200 lines of dead test code removed
+- **File**: `tests/unit/test_utils.py`
+- **Fix**: Rewrote to only test alive functions: `checkFileExistsOrException`, `sanitize_log_value`, `sanitize_filename`, `validate_path_within`, `sanitize_glob_pattern`, `normalize_user_path`. File reduced from 252 to 148 lines.
+- **Commit**: Phase 3 commit
 
-### P3.3 [TODO] Delete dead duplicate: plot_manager_components.py (Track 1.2)
+### P3.3 [DONE] Delete dead duplicate: plot_manager_components.py (Track 1.2)
 
-- **File**: `src/web/pages/ui/components/plot_manager_components.py` (~200 lines)
-- **Finding**: pages/ui copy CONFIRMED DEAD (MD5 identical, zero imports). components/plotting copy is ALIVE.
-- **Impact**: ~200 lines removed
+- **File deleted**: `src/web/pages/ui/components/plot_manager_components.py`
+- **Verified**: Byte-identical to canonical `src/web/components/plotting/plot_manager_components.py`. Zero production imports. Test files reference the canonical path.
+- **Commit**: Phase 3 commit
 
-### P3.4 [TODO] Delete dead duplicate: split_apply_config.py (Track 1.3, 7.2)
+### P3.4 [DONE] Delete dead duplicate: split_apply_config.py (Track 1.3, 7.2)
 
-- **File**: `src/web/pages/ui/components/shapers/split_apply_config.py` (~361 lines)
-- **Finding**: pages/ui copy CONFIRMED DEAD (byte-for-byte identical). Canonical: `src/web/components/shapers/split_apply_config.py` (imported by shaper_config.py).
-- **Impact**: ~361 lines removed
+- **File deleted**: `src/web/pages/ui/components/shapers/split_apply_config.py`
+- **Verified**: Byte-identical to canonical `src/web/components/shapers/split_apply_config.py`. Zero production imports. Also removed empty parent directories.
+- **Commit**: Phase 3 commit
 
-### P3.5 [TODO] Delete dead duplicate: ChartPresenter (Track 7.1, 4.7)
+### P3.5 [DONE] Delete dead duplicate: ChartPresenter (Track 7.1, 4.7)
 
-- **Files to delete**: `src/web/presenters/plot/chart_presenter.py` (~240 lines)
-- **Also update**: `src/web/presenters/plot/__init__.py` — remove ChartPresenter export
-- **Finding**: ChartDisplayComponent is canonical (imported by render_controller.py:30). ChartPresenter is unused but exported from presenters/__init__.py.
-- **Impact**: ~240 lines removed
+- **File deleted**: `src/web/presenters/plot/chart_presenter.py`
+- **Also updated**: `src/web/presenters/plot/__init__.py` — removed ChartPresenter import and export.
+- **Verified**: Zero imports anywhere in codebase or tests.
+- **Commit**: Phase 3 commit
 
-### P3.6 [TODO] Delete dead duplicate data_manager directories (Track 1.4, 1.8)
+### P3.6 [SKIP] Dead data_manager directories (Track 1.4, 1.8)
 
-- **Directories**: `src/web/pages/ui/components/data_managers/` and parent dirs with no `__init__.py`
-- **Note**: Track 7.3 found these are NOT duplicates (different classes/responsibilities in different directories).
-- **Action**: Re-verify before deleting. Only delete if truly dead (no imports).
+- **Finding**: Directory `src/web/pages/ui/components/data_managers/` does not exist. No action needed.
 
-### P3.7 [TODO] Remove unused list comprehension in mixer.py (Track 4.10)
+### P3.7 [DONE] Remove unused list comprehension in mixer.py (Track 4.10)
 
 - **File**: `src/web/components/data_managers/mixer.py`, line 43
-- **Bug**: `[c for c in numeric_cols if not c.endswith((".sd", "_stdev"))]` result not assigned to any variable. Dead code from refactoring.
-- **Fix**: Either assign to variable or remove the line.
+- **Fix**: Removed orphaned list comprehension whose result was never assigned.
+- **Commit**: Phase 3 commit
 
-### P3.8 [TODO] Remove extract_with_pattern duplication (Track 7.6)
+### P3.8 [DONE] Remove extract_with_pattern duplication (Track 7.6)
 
-- **Files**: Defined in BOTH `src/core/services/shapers/impl/pivot.py` (core) and `src/web/components/shapers/pivot_config.py` (UI)
-- **Fix**: UI version should import from core. Remove duplicate. ~30 lines removed.
+- **File**: `src/web/components/shapers/pivot_config.py`
+- **Fix**: Replaced local `extract_with_pattern` definition with import from `src.core.services.shapers.impl.pivot`. ~14 lines removed.
+- **Commit**: Phase 3 commit
 
 ---
 

@@ -1,131 +1,16 @@
 """
 Utility Functions for RING-5
 
-Provides common utility functions for file operations, JSON validation,
-and path management used throughout the application.
+Provides common utility functions for file operations, path validation,
+and security-related sanitization used throughout the application.
 """
 
-import enum
 import logging
 import os
 import re
-import tempfile
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
-
-# Type alias for JSON-compatible values
-JsonValue = bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"] | None
-
-
-def getElementValue(
-    jsonElement: dict[str, JsonValue], key: str, optional: bool = True
-) -> JsonValue:
-    """
-    Get the value of a key in a JSON element.
-
-    Args:
-        jsonElement: Dictionary representing JSON data
-        key: Key to retrieve from the dictionary
-        optional: If False, raises ValueError when value is None
-
-    Returns:
-        Value associated with the key, or None if optional and missing
-
-    Raises:
-        KeyError: If key is not found in jsonElement
-        ValueError: If value is None and optional is False
-    """
-    if key in jsonElement:
-        if jsonElement[key] is None:
-            if optional:
-                return None
-            else:
-                raise ValueError(f"Value is None for key: {key} and is not optional")
-        else:
-            value: JsonValue = jsonElement[key]
-            return value
-    else:
-        raise KeyError(f"Key not found: {key}")
-
-
-def checkElementExists(jsonElement: dict[str, JsonValue], key: str) -> None:
-    """
-    Check if a key exists in a JSON element, raise exception if not.
-
-    Args:
-        jsonElement: Dictionary to check
-        key: Key to verify
-
-    Raises:
-        KeyError: If key is not found
-    """
-    if key not in jsonElement:
-        raise KeyError(f"Key not found: {key}")
-
-
-def checkElementExistNoException(jsonElement: dict[str, JsonValue], key: str) -> bool:
-    """
-    Check if a key exists in a JSON element without raising exception.
-
-    Args:
-        jsonElement: Dictionary to check
-        key: Key to verify
-
-    Returns:
-        True if key exists, False otherwise
-    """
-    return key in jsonElement
-
-
-def checkEnumExistsNoException(jsonElement: dict[str, JsonValue], enum: type[enum.Enum]) -> bool:
-    """
-    Check if any key in jsonElement matches an enum member.
-
-    Args:
-        jsonElement: Dictionary to check
-        enum: Enum type to match against
-
-    Returns:
-        True if any key matches an enum member, False otherwise
-    """
-    for key in jsonElement:
-        if key in enum.__members__:
-            return True
-    return False
-
-
-def getEnumValue(jsonElement: dict[str, JsonValue], enumType: type[enum.Enum]) -> str | None:
-    """
-    Get the first enum value that matches a key in jsonElement.
-
-    Args:
-        jsonElement: Dictionary to search
-        enumType: Enum type to match against
-
-    Returns:
-        Matched enum value as string, or None if no match
-    """
-    for key in jsonElement:
-        enum_member: enum.Enum
-        for enum_member in enumType:
-            if key == enum_member.value:
-                return key
-    return None
-
-
-def checkFilesExistOrException(filePaths: list[str | Path]) -> None:
-    """
-    Check if all files exist, raise exception for first missing file.
-
-    Args:
-        filePaths: List of file paths to check
-
-    Raises:
-        FileNotFoundError: If any file does not exist
-    """
-    for filePath in filePaths:
-        checkFileExistsOrException(filePath)
 
 
 def checkFileExistsOrException(filePath: str | Path) -> None:
@@ -140,88 +25,6 @@ def checkFileExistsOrException(filePath: str | Path) -> None:
     """
     if not os.path.isfile(filePath):
         raise FileNotFoundError(f"File does not exist: {filePath}")
-
-
-def checkFileExists(filePath: str | Path) -> bool:
-    """
-    Check if a file exists.
-
-    Args:
-        filePath: Path to file
-
-    Returns:
-        True if file exists, False otherwise
-    """
-    return os.path.isfile(filePath)
-
-
-def checkDirExistsOrException(dirPath: str | Path) -> None:
-    """
-    Check if a directory exists, raise exception if not.
-
-    Args:
-        dirPath: Path to directory
-
-    Raises:
-        FileNotFoundError: If directory does not exist
-    """
-    if not os.path.isdir(dirPath):
-        raise FileNotFoundError(f"Directory does not exist: {dirPath}")
-
-
-def checkDirExists(dirPath: str | Path) -> bool:
-    """
-    Check if a directory exists.
-
-    Args:
-        dirPath: Path to directory
-
-    Returns:
-        True if directory exists, False otherwise
-    """
-    return os.path.isdir(dirPath)
-
-
-def createDir(dirPath: str | Path) -> None:
-    """
-    Create a directory if it doesn't exist.
-
-    Args:
-        dirPath: Path to directory to create
-    """
-    if not checkDirExists(dirPath):
-        os.mkdir(dirPath)
-    else:
-        logger.debug("Directory already exists: %s", dirPath)
-
-
-def createTmpFile() -> str:
-    """
-    Create a temporary file and return its path.
-
-    Returns:
-        Path to the created temporary file
-    """
-    # Create a temporary file
-    fd, path = tempfile.mkstemp()
-    # Close the file descriptor and return the path
-    os.close(fd)
-    return path
-
-
-def checkVarType(var: object, varType: type) -> None:
-    """
-    Check if a variable is of the expected type, raise exception if not.
-
-    Args:
-        var: Variable to check
-        varType: Expected type
-
-    Raises:
-        TypeError: If variable is not of expected type
-    """
-    if not isinstance(var, varType):
-        raise TypeError(f"Variable is not of type {varType.__name__}, got {type(var).__name__}")
 
 
 def sanitize_log_value(value: object) -> str:

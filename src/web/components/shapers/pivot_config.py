@@ -12,6 +12,7 @@ import streamlit as st
 
 from src.core.models.data_models import ShaperStepConfig
 from src.core.services.data_services.pattern_index_service import PatternIndexService
+from src.core.services.shapers.impl.pivot import extract_with_pattern
 
 
 def detect_common_pattern(strings: list[str]) -> tuple[str, str]:
@@ -25,22 +26,6 @@ def detect_common_pattern(strings: list[str]) -> tuple[str, str]:
 
     # Simplified version for the UI proof of concept.
     return "", ""
-
-
-def extract_with_pattern(
-    value: str, pattern: str, group_indices: list[int], separator: str = "_"
-) -> str:
-    """Extract capture groups localized for UI preview."""
-    try:
-        match = re.search(pattern, value)
-        if not match:
-            return value
-        parts = [
-            str(match.group(idx)) for idx in group_indices if 0 <= idx <= (match.lastindex or 0)
-        ]
-        return separator.join(parts) if parts else value
-    except Exception:
-        return value
 
 
 class PivotLongerConfig:
@@ -132,8 +117,6 @@ class PivotLongerConfig:
 
         if extract_pattern:
             try:
-                import re
-
                 compiled = re.compile(extract_pattern)
                 num_groups = compiled.groups
 
