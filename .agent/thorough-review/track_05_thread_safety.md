@@ -89,15 +89,33 @@
 
 ## Outcome
 
-**Status**: PENDING
+**Status**: INVESTIGATION COMPLETE
 
-| Item | Result | Fix Applied | Notes |
+| Item | Finding | Severity | Action for Implementation |
 | --- | --- | --- | --- |
-| 5.1 SimpleCache thread safety | PENDING | | |
-| 5.2 CsvPoolService caches | PENDING | | |
-| 5.3 is_busy TOCTOU | PENDING | | |
-| 5.4 Executor hot-reload | PENDING | | |
-| 5.5 Singleton re-init | PENDING | | |
-| 5.6 Circuit breaker | PENDING | | |
-| 5.7 Non-atomic singleton | PENDING | | |
-| 5.8 Shutdown flag | PENDING | | |
+| 5.1 SimpleCache thread safety | **CONFIRMED CRITICAL** — No locks at all despite claiming "Thread-safe" in docstring. Plain dict used for storage. TOCTOU on expiration, dict corruption during resize, LRU eviction race. Stats counters `_hits`/`_misses` also unprotected. Used by CsvPoolService and plot cache from concurrent contexts. | HIGH | Add `threading.Lock()`. Wrap `get()`, `set()`, and `_evict()` with `with self._lock:`. |
+| 5.2 CsvPoolService caches | **CONFIRMED CRITICAL** — `_pool_index` dict (line 91) has no lock. `_metadata_cache` and `_dataframe_cache` inherit SimpleCache's lack of locks. File header comment falsely claims "Thread-safe (SimpleCache uses locks)". | HIGH | Add `threading.Lock` to CsvPoolService. Fix false documentation. |
+| 5.3 is_busy TOCTOU | **CONFIRMED** — Health monitor checks `is_busy=False` (line 420) without lock, then calls `health_check()`. Between check and ping, parse can start. Health monitor ping interferes with active parse I/O causing spurious timeouts and protocol desync. Not data corruption, but triggers unnecessary restarts. | MEDIUM | Acquire worker lock before checking is_busy. Or skip health_check when worker was recently active. |
+| 5.4 Executor hot-reload | **CONFIRMED CRITICAL** — No `shutdown()` method on WorkPool. No `__del__`, no `atexit` handler. On Streamlit hot-reload, `_instance` reset to None, new executors created, old ones orphaned. N hot-reloads = N orphaned process pools. | HIGH | Add `shutdown()` method to WorkPool. Register `atexit` handler. Call shutdown in `__del__`. |
+| 5.5 Singleton re-init | **CONFIRMED** — `__new__` check-then-act on `_instance` is not atomic. No lock. GIL mostly prevents races but pattern is fragile. Also: after hot-reload, old instance lost but executors continue running. | MEDIUM | Add `threading.Lock` to `__new__`. Check executor liveness in `get_instance()`. |
+| 5.6 Queue starvation | **CONFIRMED** — `worker_queue.get(timeout=120)` blocks full timeout per attempt. Worst case: 4 workers × 120s = 480s wait before RuntimeError. No circuit-breaker. No fast-fail when multiple workers fail rapidly. | MEDIUM | Implement circuit-breaker: shorter queue timeout, count failures, fail fast when >50% workers unhealthy. |
+| 5.7 Non-atomic singleton | **CONFIRMED** — Same pattern as 5.5 for WorkPool, ScanWorkPool, and ParseWorkPool. Three unprotected singleton implementations. | LOW | Add `threading.Lock` to all three singleton `get_instance()` methods. |
+| 5.8 Shutdown flag | **CONFIRMED** — Plain `bool` `_shutdown` (line 353) with 30s `time.sleep()` poll. On `shutdown()`, monitor may sleep up to 30s before checking flag. No `thread.join()` in shutdown. | MEDIUM | Replace `bool` with `threading.Event()`. Use `event.wait(timeout=interval)` for interruptible sleep. Add `thread.join(timeout=interval+1)` in shutdown. |
+
+### NEW Issues Discovered During Investigation
+
+| Item | Finding | Severity | Action for Implementation |
+| --- | --- | --- | --- |
+| 5.9 ScanWorkPool/ParseWorkPool singleton race | **CONFIRMED** — Both facade singletons in pool.py (lines 32-44, 121-134) use same unprotected check-then-create pattern as WorkPool. | MEDIUM | Add `threading.Lock` to both classes' `get_instance()`. |
+| 5.10 Executor shutdown cascade | **CONFIRMED** — ScanWorkPool → WorkPool → Executors reference chain. On hot-reload, all singletons reset but executor processes continue. Exponential resource leak with repeated hot-reloads. | HIGH | Implement shutdown chain: ScanWorkPool/ParseWorkPool.shutdown() → WorkPool.shutdown() → executor.shutdown(). |
+| 5.11 Health monitor vs active parse I/O collision | **CONFIRMED** — `PerlWorker.health_check()` writes PING to stdin while `parse_file()` may be using stdin/stdout concurrently. Worker's `_lock` only protects individual operations, not the logical sequence. | MEDIUM | Enforce strict mutual exclusion: skip health_check entirely if worker was recently active. |
+
+### Corrections from Initial Hypotheses
+- All 8 items confirmed. No false positives in this track.
+- 5.3 confirmed as MEDIUM (not HIGH) — causes operational issues but no data corruption.
+
+### Critical Findings Summary (items requiring fix)
+1. **SimpleCache has NO locks** — CRITICAL: Concurrent access from CSV pool and plot cache
+2. **CsvPoolService false documentation** — Claims thread-safety that doesn't exist
+3. **WorkPool has NO shutdown mechanism** — N hot-reloads = N orphaned process pools
+4. **Three unprotected singletons** — WorkPool, ScanWorkPool, ParseWorkPool
