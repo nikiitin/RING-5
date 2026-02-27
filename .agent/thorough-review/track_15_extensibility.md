@@ -70,10 +70,16 @@ def apply(self, df):
 
 ## Outcome
 
-**Status**: PENDING
+**Status**: INVESTIGATION COMPLETE
 
-| Item | Result | Fix Applied | Notes |
+| Item | Finding | Severity | Action for Implementation |
 | --- | --- | --- | --- |
-| 15.1 cached_shaper decorator | PENDING | | |
-| 15.2 Legend split | PENDING | | |
-| 15.3 Plugin architecture | PENDING | | |
+| 15.1 cached_shaper decorator | **WARRANTED** — mean.py and normalize.py both implement identical `_compute_data_fingerprint()` static methods (~30 lines each, 95% identical). Both already use shared `@cached` decorator from `src/core/performance.py` but duplicate the fingerprint logic. Difference: cache sizes (16 vs 32). | MEDIUM | Create `@cached_shaper_fingerprint()` in `src/core/services/shapers/cached_shaper.py` that combines fingerprint computation with caching. ~60 lines of duplication removed. |
+| 15.2 Legend split | **NOT WARRANTED** — legend_settings.py is 338 lines with well-decomposed private methods: `render()` (72 lines), `_render_legend_section()` (11 lines), `_render_legend_position()` (34 lines), `_render_legend_appearance()` (88 lines), `_render_legend_sizing()` (80 lines). Splitting would add boilerplate and reduce code locality. | LOW | No action needed. Current design is well-decomposed and manageable. |
+| 15.3 Plugin architecture | **NOT WARRANTED** — 9 plot types registered via manual import + static dict in plot_factory.py:33-43. `register_plot_type()` class method already exists (line 80-98). Adding a new plot type requires 4 steps (create file, __init__.py, import, register). At 9 types, manual registration is optimal. `__init_subclass__` would add hidden magic with minimal benefit. | LOW | No action needed. Revisit only if plot count exceeds 15-20. |
+
+### Key Finding
+The codebase already has a shared caching utility (`@cached` in performance.py). The duplication is in fingerprint computation, not the caching mechanism itself. Extraction would consolidate the fingerprint logic while leveraging existing infrastructure.
+
+### Critical Findings Summary (items for improvement)
+1. **Fingerprint duplication in cached shapers** — MEDIUM: 60 lines of identical fingerprint logic across 2 files

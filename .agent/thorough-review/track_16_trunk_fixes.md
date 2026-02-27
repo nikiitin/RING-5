@@ -102,15 +102,20 @@ Checked 733 files
 
 ## Outcome
 
-**Status**: PENDING
+**Status**: INVESTIGATION COMPLETE
 
-| Item | Result | Fix Applied | Notes |
+| Item | Finding | Severity | Action for Implementation |
 | --- | --- | --- | --- |
-| 16.1 Pyright unbound | PENDING | | |
-| 16.2 Source isort | PENDING | | |
-| 16.3 Test isort | PENDING | | |
-| 16.4 Markdown tables | PENDING | | |
-| 16.5 Code block langs | PENDING | | |
-| 16.6 Heading issues | PENDING | | |
-| 16.7 trunk fmt --all | PENDING | | |
-| 16.8 Zero issues verify | PENDING | | |
+| 16.1 Pyright unbound | **CONFIRMED** — pivot_config.py:256-258 uses `selection_filters`, `strategy`, `merge_label` with `if "x" in locals()` workaround. Variables only assigned inside `if extract_pattern: ... if num_groups > 0:` nested block. Unbound on 3 paths: no extract_pattern, num_groups <= 0, exception. Pyright correctly flags. | MEDIUM | Initialize all 3 variables with defaults BEFORE the conditional block at line 132. Remove `locals()` check. |
+| 16.2 Source isort | **CONFIRMED** — variable_editor.py: missing blank lines between import groups (stdlib → third-party → local). matplotlib_connector.py: `from typing import Any` not properly grouped with other stdlib imports. | LOW | Run `isort --profile=black --line-length=100` on both files. Auto-fixable. |
+| 16.3 Test isort | **PARTIALLY CONFIRMED** — test_mixer.py: `from typing import Any` comes after blank line, should be with stdlib. test_web_modules.py: minor stdlib grouping inconsistency. test_state_management_new.py and test_state_manager_logic.py: correctly ordered. | LOW | Run `isort --profile=black --line-length=100` on test_mixer.py and test_web_modules.py. |
+| 16.4 Markdown tables | **SAMPLING OK** — Sampled tables in DEEP_DIVE_PLAN.md and PROGRESS.md appear well-formatted with consistent alignment. | N/A | Auto-fix with `trunk fmt --all`. |
+| 16.5 Code block langs | **LIKELY ISSUE** — `trunk-ignore-all(markdownlint/MD040)` comment in 001-architecture-standards.md suggests fenced code blocks without language specifiers. | LOW | Add language specifiers (`python`, `bash`, `text`) to all fenced code blocks. |
+| 16.6 Heading issues | **LIKELY ISSUE** — Some `.agent/` files may not start with H1 heading or may have emphasis used as heading. Most main files (DEEP_DIVE_PLAN.md, PROGRESS.md) are correct. | LOW | Fix heading structure in affected files. Auto-fixable with `trunk fmt --all`. |
+| 16.7 trunk fmt --all | **INFORMATIONAL** — 20+ linters configured in .trunk/trunk.yaml: pyright, flake8, mypy, black, ruff, isort, bandit (source); markdownlint, prettier (docs); hadolint, actionlint, yamllint, shellcheck, checkov, trufflehog (infrastructure). | N/A | Run `trunk fmt --all` AFTER all code refactors. |
+| 16.8 Zero issues verify | **PENDING** — Can only be verified after all fixes applied. Baseline: 20 unformatted files, 119 lint issues (8 source, ~111 markdown). | N/A | Run `trunk check --all --no-fix` as final verification step. |
+
+### Critical Findings Summary (items requiring fix)
+1. **pivot_config.py unbound variables** — MEDIUM: Real bug risk, pyright correctly flags 3 variables
+2. **isort formatting in 4 files** — LOW: Auto-fixable with isort
+3. **Markdown formatting** — LOW: Auto-fixable with trunk fmt
