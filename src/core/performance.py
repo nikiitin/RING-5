@@ -7,6 +7,7 @@ application performance.
 
 import functools
 import logging
+import threading
 import time
 from collections.abc import Callable
 from typing import Any, TypeVar, cast
@@ -38,50 +39,55 @@ class SimpleCache:
         self._ttl = ttl
         self._hits = 0
         self._misses = 0
+        self._lock = threading.Lock()
 
     def get(self, key: str) -> Any | None:
         """Get value from cache if not expired."""
-        if key not in self._cache:
-            self._misses += 1
-            return None
+        with self._lock:
+            if key not in self._cache:
+                self._misses += 1
+                return None
 
-        value, timestamp = self._cache[key]
+            value, timestamp = self._cache[key]
 
-        # Check TTL expiration
-        if self._ttl and (time.time() - timestamp) > self._ttl:
-            del self._cache[key]
-            self._misses += 1
-            return None
+            # Check TTL expiration
+            if self._ttl and (time.time() - timestamp) > self._ttl:
+                del self._cache[key]
+                self._misses += 1
+                return None
 
-        self._hits += 1
-        return value
+            self._hits += 1
+            return value
 
     def set(self, key: str, value: Any) -> None:
         """Set value in cache with LRU eviction."""
-        # Evict oldest if at capacity
-        if len(self._cache) >= self._maxsize:
-            oldest_key = min(self._cache.keys(), key=lambda k: self._cache[k][1])
-            del self._cache[oldest_key]
+        with self._lock:
+            # Evict oldest if at capacity
+            if len(self._cache) >= self._maxsize:
+                oldest_key = min(self._cache.keys(), key=lambda k: self._cache[k][1])
+                del self._cache[oldest_key]
 
-        self._cache[key] = (value, time.time())
+            self._cache[key] = (value, time.time())
 
     def clear(self) -> None:
         """Clear all cached entries."""
-        self._cache.clear()
-        self._hits = 0
-        self._misses = 0
+        with self._lock:
+            self._cache.clear()
+            self._hits = 0
+            self._misses = 0
 
     def stats(self) -> dict[str, int | float]:
         """Get cache statistics."""
-        total = self._hits + self._misses
-        hit_rate = (self._hits / total * 100) if total > 0 else 0
-        stats: dict[str, int | float] = {
-            "hits": self._hits,
-            "misses": self._misses,
-            "size": len(self._cache),
-            "hit_rate": round(hit_rate, 2),
-        }
-        return stats
+        with self._lock:
+            total = self._hits + self._misses
+            hit_rate = (self._hits / total * 100) if total > 0 else 0
+            stats: dict[str, int | float] = {
+                "hits": self._hits,
+                "misses": self._misses,
+                "size": len(self._cache),
+                "hit_rate": round(hit_rate, 2),
+            }
+            return stats
 
 
 # Global cache instance for plot figure generation
