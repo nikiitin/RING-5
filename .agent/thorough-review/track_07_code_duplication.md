@@ -115,15 +115,30 @@
 
 ## Outcome
 
-**Status**: PENDING
+**Status**: INVESTIGATION COMPLETE
 
-| Item | Result | Lines Removed | Notes |
+| Item | Finding | Severity | Action for Implementation |
 | --- | --- | --- | --- |
-| 7.1 Chart duplication | PENDING | | |
-| 7.2 split_apply_config dup | PENDING | | |
-| 7.3 data_manager dups | PENDING | | |
-| 7.4 UIStateManager | PENDING | | |
-| 7.5 SettingsComponentBase | PENDING | | |
-| 7.6 Shaper UI utils | PENDING | | |
-| 7.7 Caching duplication | PENDING | | |
-| 7.8 Connector duplication | PENDING | | |
+| 7.1 Chart duplication | **CONFIRMED** — ~240 lines of identical code. ChartDisplayComponent is canonical (imported by render_controller.py:30). ChartPresenter is unused (exported from presenters/__init__.py but never imported). Identical methods: render_refresh_controls, render_engine_selector, render_plotly_chart, render_matplotlib_chart, render_error. | HIGH | Delete ChartPresenter. ~240 lines removed. |
+| 7.2 split_apply_config dup | **CONFIRMED** — Byte-for-byte identical (361 lines). pages/ui version imported by shaper_config.py:1. components version is canonical location. | HIGH | Delete pages/ui copy. Update shaper_config.py import to use components version. ~361 lines removed. |
+| 7.3 data_manager dups | **NOT A BUG** — Files in `pages/ui/data_managers/impl/` are different classes (SeedsReducerManager, OutlierRemoverManager extending DataManager). Different from component versions in responsibility and structure. No duplication. | N/A | No action needed. |
+| 7.4 UIStateManager | **CONFIRMED** — 10 direct `st.session_state[` bypasses in: render_controller.py:270, split_apply_config.py:262/264, seeds_reducer.py:118/120, outlier_remover.py:59/66, base_ui.py:242/244, manage_plots.py. UIStateManager internally handles 50+ accesses properly. | LOW | Create _WidgetUIState namespace for widget-level transient state. |
+| 7.5 SettingsComponentBase | **NOT NEEDED** — All settings components follow identical pattern (constructor, render, widget keys, config assembly) but this is intentional clean architecture. Pattern is consistent, not repetitive. No base class needed. | N/A | No action needed. |
+| 7.6 Shaper UI utils | **CONFIRMED** — `extract_with_pattern()` defined in BOTH pivot.py (core) and pivot_config.py (UI). ~30 lines of near-identical code. UI version should import from core. `detect_common_pattern()` is UI-only, stays in pivot_config.py. | MEDIUM | Import `extract_with_pattern` from core in pivot_config.py. Remove duplicate. ~30 lines removed. |
+| 7.7 Caching duplication | **NOT A BUG** — Both mean.py and normalize.py use `@cached` decorator (properly factored in performance.py). Fingerprint logic similar but intentionally different (different cache sizes: 16 vs 32, different params). Acceptable pattern reuse. | N/A | No action needed. Pattern reuse is acceptable. |
+| 7.8 Connector duplication | **NOT A BUG** — Plotly and Matplotlib connectors implement same config spec (LegendConfig, DataLabelConfig) but with engine-specific APIs (fig.update_layout vs ax.set_*). Proper separation of concerns, not duplication. | N/A | No action needed. Correct architecture. |
+
+### Corrections from Initial Hypotheses
+- **7.3 was NOT duplication** — Files in different directories have different classes/responsibilities
+- **7.5 was consistent architecture** — Settings components follow clean pattern, no base class needed
+- **7.7 was intentional pattern reuse** — Caching decorator properly factored
+- **7.8 was proper architecture** — Engine-specific rendering is not duplication
+
+### Critical Findings Summary (items requiring fix)
+1. **ChartPresenter is dead duplicate** — HIGH: ~240 lines of unused identical code
+2. **split_apply_config.py duplicate** — HIGH: ~361 lines byte-for-byte identical
+3. **extract_with_pattern in two places** — MEDIUM: Core/UI duplication of utility function
+
+### Estimated Implementation Impact
+- **~631 lines removable** from confirmed duplications (7.1 + 7.2 + 7.6)
+- **0 production behavior change** — all removed items are unused duplicates
