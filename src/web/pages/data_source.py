@@ -6,7 +6,6 @@ Page for selecting and configuring data sources.
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
-from src.parsing.registry import SimulatorRegistry
 from src.web.components.data_source.data_source_components import DataSourceComponents
 
 
@@ -22,11 +21,11 @@ class DataSourcePage:
         st.markdown("## Step 1: Choose Data Source")
 
         # Determine selected simulator for dynamic labels
-        simulators = SimulatorRegistry.available_simulators()
+        simulators = ApplicationAPI.available_simulators()
         selected_sim = self.api.state_manager.get_simulator()
         if selected_sim not in simulators:
             selected_sim = simulators[0] if simulators else "gem5"
-        sim_info = SimulatorRegistry.get_info(selected_sim)
+        sim_info = ApplicationAPI.get_simulator_info(selected_sim)
         sim_label = sim_info.display_name
 
         parse_label = f"Parse {sim_label} Stats Files"

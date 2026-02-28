@@ -52,7 +52,7 @@ from src.core.services.services_impl import DefaultServicesAPI
 from src.core.services.shapers.shapers_api import ShapersAPI
 from src.core.state.repository_state_manager import RepositoryStateManager
 from src.parsing.parser_protocol import SimulationParser
-from src.parsing.registry import SimulatorRegistry
+from src.parsing.registry import SimulatorInfo, SimulatorRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -400,3 +400,29 @@ class ApplicationAPI:
         """Remove a specific record from both manager and portfolio history."""
         self.state_manager.remove_manager_history_record(record)
         self.state_manager.remove_portfolio_history_record(record)
+
+    # =========================================================================
+    # Simulator Registry Facades (so web layer avoids parsing imports)
+    # =========================================================================
+
+    @staticmethod
+    def available_simulators() -> list[str]:
+        """Return the list of registered simulator names."""
+        return SimulatorRegistry.available_simulators()
+
+    @staticmethod
+    def available_simulator_info() -> list[SimulatorInfo]:
+        """Return metadata for all registered simulators."""
+        return SimulatorRegistry.available_simulator_info()
+
+    @staticmethod
+    def get_simulator_info(name: str) -> SimulatorInfo:
+        """Return metadata for a specific simulator."""
+        return SimulatorRegistry.get_info(name)
+
+    @staticmethod
+    def cancel_pending_scans() -> None:
+        """Cancel all pending scan futures to release memory."""
+        from src.parsing.gem5.impl.pool.pool import ScanWorkPool
+
+        ScanWorkPool.get_instance().cancel_all()

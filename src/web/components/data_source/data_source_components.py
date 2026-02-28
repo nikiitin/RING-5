@@ -17,8 +17,6 @@ import streamlit as st
 from src.core.application_api import ApplicationAPI
 from src.core.models import ParseBatchResult, ScannedVariable
 from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
-from src.parsing.gem5.impl.pool.pool import ScanWorkPool
-from src.parsing.registry import SimulatorRegistry
 from src.web.components.common.card_components import CardComponents
 from src.web.components.common.data_components import DataComponents
 from src.web.components.common.filtered_selector import filtered_selectbox
@@ -98,13 +96,13 @@ class DataSourceComponents:
         """Display parser configuration interface."""
         # Get simulator info for dynamic labels
         selected_sim = api.state_manager.get_simulator()
-        sim_info = SimulatorRegistry.get_info(selected_sim)
+        sim_info = ApplicationAPI.get_simulator_info(selected_sim)
         sim_label = sim_info.display_name
 
         st.markdown("---")
 
         # Simulator backend selector (pills navigation)
-        simulators = SimulatorRegistry.available_simulator_info()
+        simulators = ApplicationAPI.available_simulator_info()
         sim_names = [s.name for s in simulators]
         sim_display = {s.name: f":material/memory: {s.display_name}" for s in simulators}
         chosen: str | None = st.pills(
@@ -225,7 +223,7 @@ class DataSourceComponents:
                             icon="🔍",
                         )
                         # Release completed futures to free memory (~70MB for 252 files).
-                        ScanWorkPool.get_instance().cancel_all()
+                        ApplicationAPI.cancel_pending_scans()
                         st.rerun()
                     except Exception as e:
                         st.exception(e)

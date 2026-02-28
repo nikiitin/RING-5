@@ -115,6 +115,11 @@ class PivotLongerConfig:
         group_indices = list(cfg.get("extract_group_indices", [1]))
         separator = str(cfg.get("extract_separator", "_"))
 
+        # Defaults for variables assigned inside nested conditionals
+        selection_filters: dict[int, list[str]] = {}
+        strategy: str = str(cfg.get("selection_strategy", "discard"))
+        merge_label: str = str(cfg.get("merge_label", "other"))
+
         if extract_pattern:
             try:
                 compiled = re.compile(extract_pattern)
@@ -236,9 +241,9 @@ class PivotLongerConfig:
             "value_vars": [str(c) for c in value_vars],
             "var_name": str(var_name),
             "value_name": str(val_name),
-            "selection_filters": selection_filters if "selection_filters" in locals() else {},
-            "selection_strategy": strategy if "strategy" in locals() else "discard",
-            "merge_label": merge_label if "merge_label" in locals() else "other",
+            "selection_filters": selection_filters,
+            "selection_strategy": strategy,
+            "merge_label": merge_label,
         }
         if extract_pattern.strip():
             result["extract_pattern"] = extract_pattern.strip()
