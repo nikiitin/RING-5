@@ -158,7 +158,7 @@ class PipelineService:
             try:
                 t_shaper_start = time.perf_counter()
                 shaper = ShaperFactory.create_shaper(shaper_type, shaper_config)
-                current_data = shaper(current_data)
+                current_data = current_data.pipe(shaper)
                 t_shaper_end = time.perf_counter()
                 logger.info(
                     f"PERF: Shaper {i} ({shaper_type}) took {t_shaper_end - t_shaper_start:.4f}s"
