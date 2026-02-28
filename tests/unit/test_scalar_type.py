@@ -24,9 +24,9 @@ class TestScalarInitialization:
 
         # Assert
         assert scalar.repeat == 1
-        assert scalar._content == []
-        assert scalar._balanced is False
-        assert scalar._reduced is False
+        assert scalar.content == []
+        assert scalar.is_balanced is False
+        assert scalar.is_reduced is False
 
     def test_init_with_custom_repeat(self) -> None:
         # Arrange & Act
@@ -101,8 +101,8 @@ class TestScalarSetContent:
         scalar._set_content(100)
 
         # Assert - integers are stored as floats
-        assert len(scalar._content) == 1
-        assert scalar._content[0] == 100.0
+        assert len(scalar.content) == 1
+        assert scalar.content[0] == 100.0
 
     def test_set_content_float(self) -> None:
         # Arrange
@@ -112,8 +112,8 @@ class TestScalarSetContent:
         scalar._set_content(3.14159)
 
         # Assert - floats are truncated via int() then back to float
-        assert len(scalar._content) == 1
-        assert scalar._content[0] == 3.0
+        assert len(scalar.content) == 1
+        assert scalar.content[0] == 3.0
 
     def test_set_content_numeric_string(self) -> None:
         # Arrange
@@ -123,7 +123,7 @@ class TestScalarSetContent:
         scalar._set_content("42")
 
         # Assert
-        assert scalar._content[0] == 42.0
+        assert scalar.content[0] == 42.0
 
     def test_set_content_float_string(self) -> None:
         # Arrange
@@ -133,7 +133,7 @@ class TestScalarSetContent:
         scalar._set_content("2.718")
 
         # Assert
-        assert scalar._content[0] == 2.718
+        assert scalar.content[0] == 2.718
 
     def test_set_content_multiple_values(self) -> None:
         # Arrange
@@ -145,7 +145,7 @@ class TestScalarSetContent:
         scalar._set_content(30)
 
         # Assert
-        assert scalar._content == [10.0, 20.0, 30.0]
+        assert scalar.content == [10.0, 20.0, 30.0]
 
 
 class TestScalarContentProperty:
@@ -159,7 +159,7 @@ class TestScalarContentProperty:
         scalar.content = 42
 
         # Assert
-        assert scalar._content[0] == 42.0
+        assert scalar.content[0] == 42.0
 
     def test_content_setter_invalid_value_raises(self) -> None:
         # Arrange
@@ -194,8 +194,8 @@ class TestScalarReduceDuplicates:
         scalar.reduce_duplicates()
 
         # Assert
-        assert scalar._reduced is True
-        assert scalar._reduced_content == 42.0
+        assert scalar.is_reduced is True
+        assert scalar.reduced_content == 42.0
 
     def test_reduce_multiple_values_mean(self) -> None:
         # Arrange
@@ -210,7 +210,7 @@ class TestScalarReduceDuplicates:
 
         # Assert
         # Mean: (10 + 20 + 30) / 3 = 20.0
-        assert scalar._reduced_content == 20.0
+        assert scalar.reduced_content == 20.0
 
     def test_reduce_empty_content(self) -> None:
         # Arrange
@@ -221,7 +221,7 @@ class TestScalarReduceDuplicates:
         scalar.reduce_duplicates()
 
         # Assert - truly empty content returns NaN (float)
-        assert math.isnan(scalar._reduced_content)
+        assert math.isnan(object.__getattribute__(scalar, "_reduced_content"))
 
     def test_reduce_with_integer_division(self) -> None:
         # Arrange
@@ -234,7 +234,7 @@ class TestScalarReduceDuplicates:
         scalar.reduce_duplicates()
 
         # Assert
-        assert scalar._reduced_content == 150.0
+        assert scalar.reduced_content == 150.0
 
     def test_reduce_uses_int_conversion(self) -> None:
         # Arrange - Test that reduce uses int() before summing
@@ -248,7 +248,7 @@ class TestScalarReduceDuplicates:
 
         # Assert
         # Implementation: int(10.9) + int(20.1) = 10 + 20 = 30, / 2 = 15.0
-        assert scalar._reduced_content == 15.0
+        assert scalar.reduced_content == 15.0
 
 
 class TestScalarBalanceContent:
@@ -264,9 +264,9 @@ class TestScalarBalanceContent:
         scalar.balance_content()
 
         # Assert
-        assert scalar._balanced is True
-        assert len(scalar._content) == 5
-        assert scalar._content == [10.0, 20.0, 0, 0, 0]
+        assert scalar.is_balanced is True
+        assert len(scalar.content) == 5
+        assert scalar.content == [10.0, 20.0, 0, 0, 0]
 
     def test_balance_exact_count_no_change(self) -> None:
         # Arrange
@@ -279,7 +279,7 @@ class TestScalarBalanceContent:
         scalar.balance_content()
 
         # Assert
-        assert scalar._content == [1.0, 2.0, 3.0]
+        assert scalar.content == [1.0, 2.0, 3.0]
 
     def test_balance_too_many_values_raises(self) -> None:
         # Arrange
@@ -364,7 +364,7 @@ class TestScalarEdgeCases:
         scalar.reduce_duplicates()
 
         # Assert
-        assert scalar._reduced_content == 0.0
+        assert scalar.reduced_content == 0.0
 
     def test_negative_value(self) -> None:
         # Arrange
@@ -376,7 +376,7 @@ class TestScalarEdgeCases:
         scalar.reduce_duplicates()
 
         # Assert
-        assert scalar._reduced_content == -42.0
+        assert scalar.reduced_content == -42.0
 
     def test_very_large_value(self) -> None:
         # Arrange
@@ -388,7 +388,7 @@ class TestScalarEdgeCases:
         scalar.reduce_duplicates()
 
         # Assert
-        assert scalar._reduced_content == 1e100
+        assert scalar.reduced_content == 1e100
 
     def test_scientific_notation_string(self) -> None:
         # Arrange
@@ -398,7 +398,7 @@ class TestScalarEdgeCases:
         scalar._set_content("1.5e10")
 
         # Assert
-        assert scalar._content[0] == 1.5e10
+        assert scalar.content[0] == 1.5e10
 
     def test_entries_property_returns_none(self) -> None:
         # Arrange

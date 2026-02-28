@@ -33,19 +33,19 @@ class TestVectorInitialization:
 
         # Assert
         assert vector._repeat == 1
-        assert vector._entries == ["entry0", "entry1", "entry2"]
-        assert vector._content == {"entry0": [], "entry1": [], "entry2": []}
-        assert vector._balanced is False
-        assert vector._reduced is False
+        assert vector.entries == ["entry0", "entry1", "entry2"]
+        assert vector.content == {"entry0": [], "entry1": [], "entry2": []}
+        assert vector.is_balanced is False
+        assert vector.is_reduced is False
 
     def test_init_with_comma_separated_string(self) -> None:
         # Arrange & Act
         vector = Vector(entries="entry0, entry1, entry2")
 
         # Assert - string is parsed and trimmed
-        assert vector._entries == ["entry0", "entry1", "entry2"]
-        assert "entry0" in vector._content
-        assert "entry1" in vector._content
+        assert vector.entries == ["entry0", "entry1", "entry2"]
+        assert "entry0" in vector.content
+        assert "entry1" in vector.content
 
     def test_init_with_custom_repeat(self) -> None:
         # Arrange & Act
@@ -53,7 +53,7 @@ class TestVectorInitialization:
 
         # Assert
         assert vector._repeat == 5
-        assert vector._entries == ["a", "b"]
+        assert vector.entries == ["a", "b"]
 
     def test_init_without_entries_raises(self) -> None:
         # Act & Assert
@@ -114,8 +114,8 @@ class TestVectorContentProperty:
         vector.content = {"e1": 40}
 
         # Assert
-        assert vector._content["e0"] == [10, 20]
-        assert vector._content["e1"] == [30, 40]
+        assert vector.content["e0"] == [10, 20]
+        assert vector.content["e1"] == [30, 40]
 
     def test_content_setter_non_dict_raises(self) -> None:
         # Arrange
@@ -154,8 +154,8 @@ class TestVectorContentProperty:
         vector.content = {"e0": [10, 20, 30], "e1": [5, 15]}
 
         # Assert - values are summed: [10+20+30=60], [5+15=20]
-        assert vector._content["e0"] == [60.0]
-        assert vector._content["e1"] == [20.0]
+        assert vector.content["e0"] == [60.0]
+        assert vector.content["e1"] == [20.0]
 
     def test_content_setter_with_single_value(self) -> None:
         # Arrange
@@ -165,7 +165,7 @@ class TestVectorContentProperty:
         vector.content = {"e0": 42}
 
         # Assert
-        assert vector._content["e0"] == [42]
+        assert vector.content["e0"] == [42]
 
     def test_content_setter_skips_unknown_entries(self, caplog: Any) -> None:
 
@@ -177,9 +177,9 @@ class TestVectorContentProperty:
             vector.content = {"e0": [10], "e1": [20], "e2": [30]}
 
         # Assert - e2 is skipped, warning logged
-        assert "e0" in vector._content
-        assert "e1" in vector._content
-        assert "e2" not in vector._content
+        assert "e0" in vector.content
+        assert "e1" in vector.content
+        assert "e2" not in vector.content
         assert "not the same as configured entries" in caplog.text
         assert "e2" in caplog.text
 
@@ -209,9 +209,9 @@ class TestVectorBalanceContent:
         vector.balance_content()
 
         # Assert - each entry padded to repeat count
-        assert vector._balanced is True
-        assert vector._content["e0"] == [0, 0, 0]
-        assert vector._content["e1"] == [0, 0, 0]
+        assert vector.is_balanced is True
+        assert vector.content["e0"] == [0, 0, 0]
+        assert vector.content["e1"] == [0, 0, 0]
 
     def test_balance_partial_entries_pads_remainder(self) -> None:
         # Arrange
@@ -225,8 +225,8 @@ class TestVectorBalanceContent:
         vector.balance_content()
 
         # Assert - pad to repeat=4
-        assert vector._content["e0"] == [10, 20, 0, 0]
-        assert vector._content["e1"] == [30, 0, 0, 0]
+        assert vector.content["e0"] == [10, 20, 0, 0]
+        assert vector.content["e1"] == [30, 0, 0, 0]
 
     def test_balance_exact_count_no_change(self) -> None:
         # Arrange
@@ -239,7 +239,7 @@ class TestVectorBalanceContent:
         vector.balance_content()
 
         # Assert - no padding needed
-        assert vector._content["e0"] == [10, 20]
+        assert vector.content["e0"] == [10, 20]
 
     def test_balance_too_many_values_raises(self) -> None:
         # Arrange
@@ -267,8 +267,8 @@ class TestVectorReduceDuplicates:
         vector.reduce_duplicates()
 
         # Assert - single value -> mean = value
-        assert vector._reduced is True
-        assert vector._reduced_content == {"e0": 100.0, "e1": 200.0}
+        assert vector.is_reduced is True
+        assert vector.reduced_content == {"e0": 100.0, "e1": 200.0}
 
     def test_reduce_multiple_values_calculates_mean(self) -> None:
         # Arrange
@@ -280,8 +280,8 @@ class TestVectorReduceDuplicates:
         vector.reduce_duplicates()
 
         # Assert - mean: e0=(10+20+30)/3=20.0, e1=(100+200+300)/3=200.0
-        assert vector._reduced_content["e0"] == 20.0
-        assert vector._reduced_content["e1"] == 200.0
+        assert vector.reduced_content["e0"] == 20.0
+        assert vector.reduced_content["e1"] == 200.0
 
     def test_reduce_empty_entry_returns_zero(self) -> None:
         # Arrange
@@ -292,8 +292,8 @@ class TestVectorReduceDuplicates:
         vector.reduce_duplicates()
 
         # Assert - empty (all zeros) -> mean = 0
-        assert vector._reduced_content["e0"] == 0.0
-        assert vector._reduced_content["e1"] == 0.0
+        assert vector.reduced_content["e0"] == 0.0
+        assert vector.reduced_content["e1"] == 0.0
 
     def test_reduce_uses_int_conversion(self) -> None:
         # Arrange
@@ -305,7 +305,7 @@ class TestVectorReduceDuplicates:
         vector.reduce_duplicates()
 
         # Assert - int() then division: (10+20)/2=15.0
-        assert vector._reduced_content["e0"] == 15.0
+        assert vector.reduced_content["e0"] == 15.0
 
     def test_reduce_with_truly_empty_entry(self) -> None:
         # Arrange
@@ -395,7 +395,7 @@ class TestVectorTypeRegistration:
 
         # Assert
         assert isinstance(vector, Vector)
-        assert vector._entries == ["e0", "e1"]
+        assert vector.entries == ["e0", "e1"]
 
 
 class TestVectorStrMethod:
@@ -440,7 +440,7 @@ class TestVectorEdgeCases:
         vector.reduce_duplicates()
 
         # Assert
-        assert vector._reduced_content["e0"] == 0.0
+        assert vector.reduced_content["e0"] == 0.0
 
     def test_negative_values(self) -> None:
         # Arrange
@@ -452,7 +452,7 @@ class TestVectorEdgeCases:
         vector.reduce_duplicates()
 
         # Assert - aggregated then reduced: -60.0 / 1 = -60.0
-        assert vector._reduced_content["e0"] == -60.0
+        assert vector.reduced_content["e0"] == -60.0
 
     def test_float_values(self) -> None:
         # Arrange
@@ -464,7 +464,7 @@ class TestVectorEdgeCases:
         vector.reduce_duplicates()
 
         # Assert - int(6.0) / 1 = 6.0
-        assert vector._reduced_content["e0"] == 6.0
+        assert vector.reduced_content["e0"] == 6.0
 
     def test_mixed_numeric_types(self) -> None:
         # Arrange
@@ -474,15 +474,15 @@ class TestVectorEdgeCases:
         vector.content = {"e0": [10, 20.5, "30"]}
 
         # Assert - all aggregated as floats: 10+20.5+30=60.5
-        assert vector._content["e0"] == [60.5]
+        assert vector.content["e0"] == [60.5]
 
     def test_empty_entries_list(self) -> None:
         # Arrange & Act
         vector = Vector(entries=[])
 
         # Assert
-        assert vector._entries == []
-        assert vector._content == {}
+        assert vector.entries == []
+        assert vector.content == {}
 
     def test_multiple_content_assignments_extend(self) -> None:
         # Arrange
@@ -494,4 +494,4 @@ class TestVectorEdgeCases:
         vector.content = {"e0": [30]}
 
         # Assert - each assignment aggregated and appended
-        assert vector._content["e0"] == [10, 20, 30]
+        assert vector.content["e0"] == [10, 20, 30]

@@ -71,7 +71,7 @@ class TestStatisticsOnlyMode:
         vec = TypeMapper.create_stat(config)
 
         # When statistics_only, entries should be just the statistics
-        assert vec._entries == ["mean", "sum"]
+        assert vec.entries == ["mean", "sum"]
 
     def test_histogram_statistics_only(self) -> None:
         """Histogram with statisticsOnly=True should skip bins."""
@@ -89,7 +89,7 @@ class TestStatisticsOnlyMode:
         # Verify bins are disabled
         assert hist._bins == 0
         assert hist._max_range == 0.0
-        assert hist._entries is None
+        assert object.__getattribute__(hist, "_entries") is None
 
         # Statistics should be preserved
         assert hist._statistics == ["mean", "samples"]

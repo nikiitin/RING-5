@@ -117,6 +117,16 @@ class StatType:
         return int(object.__getattribute__(self, "_repeat"))
 
     @property
+    def is_balanced(self) -> bool:
+        """Whether balance_content() has been called."""
+        return bool(object.__getattribute__(self, "_balanced"))
+
+    @property
+    def is_reduced(self) -> bool:
+        """Whether reduce_duplicates() has been called."""
+        return bool(object.__getattribute__(self, "_reduced"))
+
+    @property
     def content(self) -> Any:
         content = object.__getattribute__(self, "_content")
         if content is None:

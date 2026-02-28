@@ -32,9 +32,9 @@ class TestHistogramInitialization:
         assert hist._repeat == 1
         assert hist._bins == 0
         assert hist._max_range == 0.0
-        assert hist._entries is None
+        assert object.__getattribute__(hist, "_entries") is None
         assert hist._statistics == []
-        assert hist._content == {}
+        assert hist.content == {}
 
     def test_init_with_custom_repeat(self) -> None:
         # Arrange & Act
@@ -48,7 +48,7 @@ class TestHistogramInitialization:
         hist = Histogram(entries=["0-10", "10-20", "20-30"])
 
         # Assert
-        assert hist._entries == ["0-10", "10-20", "20-30"]
+        assert hist.entries == ["0-10", "10-20", "20-30"]
 
     def test_init_with_rebinning_params(self) -> None:
         # Arrange & Act
@@ -65,8 +65,8 @@ class TestHistogramInitialization:
         # Assert
         assert hist._statistics == ["mean", "total"]
         # Statistics pre-initialized in content
-        assert "mean" in hist._content
-        assert "total" in hist._content
+        assert "mean" in hist.content
+        assert "total" in hist.content
 
     def test_init_with_comma_separated_statistics(self) -> None:
         # Arrange & Act
@@ -192,8 +192,8 @@ class TestHistogramContentSetting:
         hist.content = {"0-10": 5, "10-20": 10}
 
         # Assert - single values wrapped
-        assert hist._content["0-10"] == [5.0]
-        assert hist._content["10-20"] == [10.0]
+        assert hist.content["0-10"] == [5.0]
+        assert hist.content["10-20"] == [10.0]
 
     def test_content_setter_aggregates_list_values(self) -> None:
         # Arrange
@@ -203,7 +203,7 @@ class TestHistogramContentSetting:
         hist.content = {"0-10": [5, 10, 15]}
 
         # Assert - aggregated: 5+10+15=30
-        assert hist._content["0-10"] == [30.0]
+        assert hist.content["0-10"] == [30.0]
 
     def test_content_setter_multiple_assignments_extend(self) -> None:
         # Arrange
@@ -214,7 +214,7 @@ class TestHistogramContentSetting:
         hist.content = {"0-10": 10}
 
         # Assert - values extended
-        assert hist._content["0-10"] == [5.0, 10.0]
+        assert hist.content["0-10"] == [5.0, 10.0]
 
     def test_content_setter_dynamic_bucket_discovery(self) -> None:
         # Arrange
@@ -225,8 +225,8 @@ class TestHistogramContentSetting:
         hist.content = {"100-200": 20}
 
         # Assert
-        assert "0-100" in hist._content
-        assert "100-200" in hist._content
+        assert "0-100" in hist.content
+        assert "100-200" in hist.content
 
     def test_content_setter_with_statistics(self) -> None:
         # Arrange
@@ -236,7 +236,7 @@ class TestHistogramContentSetting:
         hist.content = {"0-10": 5, "mean": 7.5}
 
         # Assert
-        assert hist._content["mean"] == [7.5]
+        assert hist.content["mean"] == [7.5]
 
 
 class TestHistogramBalanceContent:
@@ -252,8 +252,8 @@ class TestHistogramBalanceContent:
         hist.balance_content()
 
         # Assert
-        assert hist._balanced is True
-        assert hist._content["0-10"] == [5.0, 0.0, 0.0]
+        assert hist.is_balanced is True
+        assert hist.content["0-10"] == [5.0, 0.0, 0.0]
 
     def test_balance_partial_buckets_pads_remainder(self) -> None:
         # Arrange
@@ -265,7 +265,7 @@ class TestHistogramBalanceContent:
         hist.balance_content()
 
         # Assert
-        assert hist._content["0-10"] == [10.0, 20.0, 0.0, 0.0]
+        assert hist.content["0-10"] == [10.0, 20.0, 0.0, 0.0]
 
     def test_balance_exact_count_no_change(self) -> None:
         # Arrange
@@ -277,7 +277,7 @@ class TestHistogramBalanceContent:
         hist.balance_content()
 
         # Assert - no padding needed
-        assert hist._content["0-10"] == [5.0, 10.0]
+        assert hist.content["0-10"] == [5.0, 10.0]
 
     def test_balance_too_many_values_raises(self) -> None:
         # Arrange
@@ -299,7 +299,7 @@ class TestHistogramBalanceContent:
         hist.balance_content()
 
         # Assert - mean initialized with zeros
-        assert hist._content["mean"] == [0.0, 0.0]
+        assert hist.content["mean"] == [0.0, 0.0]
 
 
 class TestHistogramReduceDuplicates:
@@ -315,9 +315,9 @@ class TestHistogramReduceDuplicates:
         hist.reduce_duplicates()
 
         # Assert - single value -> mean = value
-        assert hist._reduced is True
-        assert hist._reduced_content["0-10"] == 100.0
-        assert hist._reduced_content["10-20"] == 200.0
+        assert hist.is_reduced is True
+        assert hist.reduced_content["0-10"] == 100.0
+        assert hist.reduced_content["10-20"] == 200.0
 
     def test_reduce_multiple_values_calculates_mean(self) -> None:
         # Arrange
@@ -329,8 +329,8 @@ class TestHistogramReduceDuplicates:
         hist.reduce_duplicates()
 
         # Assert - mean: (10+20+30)/3=20, (100+200+300)/3=200
-        assert hist._reduced_content["0-10"] == 20.0
-        assert hist._reduced_content["10-20"] == 200.0
+        assert hist.reduced_content["0-10"] == 20.0
+        assert hist.reduced_content["10-20"] == 200.0
 
     def test_reduce_empty_bucket_returns_zero(self) -> None:
         # Arrange
@@ -341,7 +341,7 @@ class TestHistogramReduceDuplicates:
         hist.reduce_duplicates()
 
         # Assert - empty -> 0.0
-        assert len(hist._reduced_content) == 0  # No buckets
+        assert len(hist.reduced_content) == 0  # No buckets
 
 
 class TestHistogramRebinning:
@@ -359,8 +359,8 @@ class TestHistogramRebinning:
 
         # Assert - rebinned buckets created
         # bins=2 means 1 standard bin + 1 overflow: bin_width=20/(2-1)=20
-        assert "0-20" in hist._reduced_content
-        assert "20+" in hist._reduced_content
+        assert "0-20" in hist.reduced_content
+        assert "20+" in hist.reduced_content
 
     def test_rebinning_proportional_distribution(self) -> None:
         # Arrange - raw bucket overlaps multiple target bins
@@ -377,8 +377,8 @@ class TestHistogramRebinning:
         # Assert - 30 distributed across 0-15 and 15-30
         # 0-15 gets 15/30 * 30 = 15
         # 15-30 gets 15/30 * 30 = 15
-        assert hist._reduced_content["0-15"] == 15.0
-        assert hist._reduced_content["15-30"] == 15.0
+        assert hist.reduced_content["0-15"] == 15.0
+        assert hist.reduced_content["15-30"] == 15.0
 
     def test_rebinning_overflow_bucket(self) -> None:
         # Arrange
@@ -393,8 +393,8 @@ class TestHistogramRebinning:
         hist.reduce_duplicates()
 
         # Assert - half goes to 0-10, half to 10+
-        assert hist._reduced_content["0-10"] == 10.0
-        assert hist._reduced_content["10+"] == 10.0
+        assert hist.reduced_content["0-10"] == 10.0
+        assert hist.reduced_content["10+"] == 10.0
 
     def test_rebinning_preserves_summary_stats(self) -> None:
         # Arrange
@@ -406,7 +406,7 @@ class TestHistogramRebinning:
         hist.reduce_duplicates()
 
         # Assert - mean preserved as-is
-        assert hist._reduced_content["mean"] == 7.5
+        assert hist.reduced_content["mean"] == 7.5
 
     def test_rebinning_single_bin_no_overflow(self) -> None:
         # Arrange - bins=1, no overflow bucket
@@ -418,7 +418,7 @@ class TestHistogramRebinning:
         hist.reduce_duplicates()
 
         # Assert - all goes to single bucket plus overflow fallback
-        assert "0-10" in hist._reduced_content
+        assert "0-10" in hist.reduced_content
 
 
 class TestHistogramRangeParser:
@@ -565,7 +565,7 @@ class TestHistogramEdgeCases:
         hist.reduce_duplicates()
 
         # Assert
-        assert hist._reduced_content["0-10"] == 0.0
+        assert hist.reduced_content["0-10"] == 0.0
 
     def test_float_bucket_values(self) -> None:
         # Arrange
@@ -575,8 +575,8 @@ class TestHistogramEdgeCases:
         hist.content = {"0-10": 5.5, "10-20": 10.7}
 
         # Assert - floats accepted
-        assert hist._content["0-10"] == [5.5]
-        assert hist._content["10-20"] == [10.7]
+        assert hist.content["0-10"] == [5.5]
+        assert hist.content["10-20"] == [10.7]
 
     def test_large_bucket_values(self) -> None:
         # Arrange
@@ -588,13 +588,13 @@ class TestHistogramEdgeCases:
         hist.reduce_duplicates()
 
         # Assert
-        assert hist._reduced_content["0-1000000"] == 999999.0
+        assert hist.reduced_content["0-1000000"] == 999999.0
 
     def test_rebinning_with_zero_span_bucket(self) -> None:
         # Arrange - raw bucket with start == end (zero span)
         hist = Histogram(repeat=1, bins=2, max_range=10.0)
         # Zero span buckets are skipped during rebinning (raw_span <= 0 check)
-        hist._content = {"10-10": [5.0]}  # Zero span - will be skipped
+        hist.content = {"10-10": [5.0]}  # Zero span - will be skipped
         hist.balance_content()
 
         # Act
@@ -602,12 +602,12 @@ class TestHistogramEdgeCases:
 
         # Assert - zero span bucket skipped, only target bins present
         # bins=2, max_range=10 → num_std_bins=1, bin_width=10 → "0-10" + "10+"
-        assert "10-10" not in hist._reduced_content
-        assert "0-10" in hist._reduced_content
-        assert "10+" in hist._reduced_content
+        assert "10-10" not in hist.reduced_content
+        assert "0-10" in hist.reduced_content
+        assert "10+" in hist.reduced_content
         # All values are 0.0 since the zero-span bucket was skipped
-        assert hist._reduced_content["0-10"] == 0.0
-        assert hist._reduced_content["10+"] == 0.0
+        assert hist.reduced_content["0-10"] == 0.0
+        assert hist.reduced_content["10+"] == 0.0
 
     def test_entries_property_sorted_order(self) -> None:
         # Arrange

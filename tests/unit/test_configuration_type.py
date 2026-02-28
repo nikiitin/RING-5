@@ -29,9 +29,9 @@ class TestConfigurationInitialization:
         # Assert
         assert config._repeat == 1
         assert config._on_empty == "default_value"
-        assert config._content == []
-        assert config._balanced is False
-        assert config._reduced is False
+        assert config.content == []
+        assert config.is_balanced is False
+        assert config.is_reduced is False
 
     def test_init_with_custom_repeat_and_on_empty(self) -> None:
         # Arrange & Act
@@ -156,8 +156,8 @@ class TestConfigurationSetContent:
         config._set_content("benchmark_name")
 
         # Assert
-        assert len(config._content) == 1
-        assert config._content[0] == "benchmark_name"
+        assert len(config.content) == 1
+        assert config.content[0] == "benchmark_name"
 
     def test_set_content_integer_converts_to_string(self) -> None:
         # Arrange
@@ -167,8 +167,8 @@ class TestConfigurationSetContent:
         config._set_content(12345)
 
         # Assert
-        assert config._content[0] == "12345"
-        assert isinstance(config._content[0], str)
+        assert config.content[0] == "12345"
+        assert isinstance(config.content[0], str)
 
     def test_set_content_float_converts_to_string(self) -> None:
         # Arrange
@@ -178,8 +178,8 @@ class TestConfigurationSetContent:
         config._set_content(3.14159)
 
         # Assert
-        assert config._content[0] == "3.14159"
-        assert isinstance(config._content[0], str)
+        assert config.content[0] == "3.14159"
+        assert isinstance(config.content[0], str)
 
     def test_set_content_none_converts_to_string(self) -> None:
         # Arrange
@@ -189,7 +189,7 @@ class TestConfigurationSetContent:
         config._set_content(None)
 
         # Assert
-        assert config._content[0] == "None"
+        assert config.content[0] == "None"
 
     def test_set_content_multiple_values(self) -> None:
         # Arrange
@@ -201,8 +201,8 @@ class TestConfigurationSetContent:
         config._set_content("value3")
 
         # Assert
-        assert len(config._content) == 3
-        assert config._content == ["value1", "value2", "value3"]
+        assert len(config.content) == 3
+        assert config.content == ["value1", "value2", "value3"]
 
 
 class TestConfigurationBalanceContent:
@@ -216,8 +216,8 @@ class TestConfigurationBalanceContent:
         config.balance_content()
 
         # Assert - Configuration doesn't pad, just marks balanced
-        assert config._balanced is True
-        assert config._content == []
+        assert config.is_balanced is True
+        assert config.content == []
 
     def test_balance_with_content_no_change(self) -> None:
         # Arrange
@@ -229,8 +229,8 @@ class TestConfigurationBalanceContent:
         config.balance_content()
 
         # Assert - Configuration doesn't modify content
-        assert config._balanced is True
-        assert len(config._content) == 2
+        assert config.is_balanced is True
+        assert len(config.content) == 2
 
     def test_balance_more_values_than_repeat_no_error(self) -> None:
         # Arrange
@@ -241,8 +241,8 @@ class TestConfigurationBalanceContent:
 
         # Act & Assert - Configuration doesn't enforce repeat count
         config.balance_content()
-        assert config._balanced is True
-        assert len(config._content) == 3
+        assert config.is_balanced is True
+        assert len(config.content) == 3
 
 
 class TestConfigurationReduceDuplicates:
@@ -257,8 +257,8 @@ class TestConfigurationReduceDuplicates:
         config.reduce_duplicates()
 
         # Assert
-        assert config._reduced is True
-        assert config._reduced_content == "default_value"
+        assert config.is_reduced is True
+        assert config.reduced_content == "default_value"
 
     def test_reduce_with_single_value_returns_that_value(self) -> None:
         # Arrange
@@ -270,8 +270,8 @@ class TestConfigurationReduceDuplicates:
         config.reduce_duplicates()
 
         # Assert
-        assert config._reduced is True
-        assert config._reduced_content == "only_value"
+        assert config.is_reduced is True
+        assert config.reduced_content == "only_value"
 
     def test_reduce_with_multiple_values_returns_first(self) -> None:
         # Arrange
@@ -285,8 +285,8 @@ class TestConfigurationReduceDuplicates:
         config.reduce_duplicates()
 
         # Assert - Only first value is used
-        assert config._reduced is True
-        assert config._reduced_content == "first"
+        assert config.is_reduced is True
+        assert config.reduced_content == "first"
 
     def test_reduce_marks_reduced_flag(self) -> None:
         # Arrange
@@ -298,7 +298,7 @@ class TestConfigurationReduceDuplicates:
         config.reduce_duplicates()
 
         # Assert
-        assert config._reduced is True
+        assert config.is_reduced is True
 
 
 class TestConfigurationReducedContentAccess:
@@ -400,7 +400,7 @@ class TestConfigurationEdgeCases:
         config._set_content("")
 
         # Assert
-        assert config._content[0] == ""
+        assert config.content[0] == ""
 
     def test_whitespace_only_value(self) -> None:
         # Arrange
@@ -410,7 +410,7 @@ class TestConfigurationEdgeCases:
         config._set_content("   ")
 
         # Assert
-        assert config._content[0] == "   "
+        assert config.content[0] == "   "
 
     def test_unicode_value(self) -> None:
         # Arrange
@@ -420,7 +420,7 @@ class TestConfigurationEdgeCases:
         config._set_content("测试值")
 
         # Assert
-        assert config._content[0] == "测试值"
+        assert config.content[0] == "测试值"
 
     def test_on_empty_empty_string(self) -> None:
         # Arrange - empty string is falsy, so defaults to "None"
@@ -431,7 +431,7 @@ class TestConfigurationEdgeCases:
         config.reduce_duplicates()
 
         # Assert - empty string onEmpty becomes "None" (falsy → default)
-        assert config._reduced_content == "None"
+        assert config.reduced_content == "None"
 
     def test_entries_property_returns_none(self) -> None:
         # Arrange

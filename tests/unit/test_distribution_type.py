@@ -34,11 +34,11 @@ class TestDistributionInitialization:
         assert dist._statistics == []
         assert dist._statistics_only is False
         # Check bucket initialization
-        assert "underflows" in dist._content
-        assert "overflows" in dist._content
-        assert "0" in dist._content
-        assert "10" in dist._content
-        assert len(dist._content) == 13  # underflows + 0-10 + overflows
+        assert "underflows" in dist.content
+        assert "overflows" in dist.content
+        assert "0" in dist.content
+        assert "10" in dist.content
+        assert len(dist.content) == 13  # underflows + 0-10 + overflows
 
     def test_init_with_custom_repeat(self) -> None:
         # Arrange & Act
@@ -53,8 +53,8 @@ class TestDistributionInitialization:
 
         # Assert
         assert dist._statistics == ["mean", "stdev"]
-        assert "mean" in dist._content
-        assert "stdev" in dist._content
+        assert "mean" in dist.content
+        assert "stdev" in dist.content
 
     def test_init_statistics_only_mode(self) -> None:
         # Arrange & Act
@@ -65,10 +65,10 @@ class TestDistributionInitialization:
         assert dist._minimum == 0
         assert dist._maximum == 0
         # Only statistics keys, no buckets
-        assert "mean" in dist._content
-        assert "samples" in dist._content
-        assert "underflows" not in dist._content
-        assert "overflows" not in dist._content
+        assert "mean" in dist.content
+        assert "samples" in dist.content
+        assert "underflows" not in dist.content
+        assert "overflows" not in dist.content
 
     def test_init_exceeds_safety_limit_raises(self) -> None:
         # Arrange & Act & Assert
@@ -80,7 +80,7 @@ class TestDistributionInitialization:
         dist = Distribution(minimum=0, maximum=1000)
 
         # Assert
-        assert len(dist._content) == 1003  # underflows + 0-1000 + overflows
+        assert len(dist.content) == 1003  # underflows + 0-1000 + overflows
 
     def test_required_params_contains_min_max(self) -> None:
         # Arrange & Act
@@ -226,9 +226,9 @@ class TestDistributionContentSetting:
         dist.content = {"underflows": 5, "0": 10, "1": 20, "2": 30, "overflows": 2}
 
         # Assert - single values wrapped and stored
-        assert dist._content["underflows"] == [5]
-        assert dist._content["0"] == [10]
-        assert dist._content["2"] == [30]
+        assert dist.content["underflows"] == [5]
+        assert dist.content["0"] == [10]
+        assert dist.content["2"] == [30]
 
     def test_content_setter_aggregates_list_values(self) -> None:
         # Arrange
@@ -243,9 +243,9 @@ class TestDistributionContentSetting:
         }
 
         # Assert - aggregated values
-        assert dist._content["underflows"] == [6.0]
-        assert dist._content["0"] == [30.0]
-        assert dist._content["1"] == [45.0]
+        assert dist.content["underflows"] == [6.0]
+        assert dist.content["0"] == [30.0]
+        assert dist.content["1"] == [45.0]
 
     def test_content_setter_with_statistics(self) -> None:
         # Arrange
@@ -255,7 +255,7 @@ class TestDistributionContentSetting:
         dist.content = {"underflows": [0], "0": [10], "1": [20], "overflows": [0], "mean": [15.5]}
 
         # Assert
-        assert dist._content["mean"] == [15.5]
+        assert dist.content["mean"] == [15.5]
 
     def test_content_setter_statistics_only_mode(self) -> None:
         # Arrange
@@ -265,8 +265,8 @@ class TestDistributionContentSetting:
         dist.content = {"mean": [42.5], "samples": [1000]}
 
         # Assert
-        assert dist._content["mean"] == [42.5]
-        assert dist._content["samples"] == [1000]
+        assert dist.content["mean"] == [42.5]
+        assert dist.content["samples"] == [1000]
 
     def test_content_setter_statistics_only_skips_bucket_data(self) -> None:
         # Arrange
@@ -276,9 +276,9 @@ class TestDistributionContentSetting:
         dist.content = {"mean": [10], "0": [100], "underflows": [5]}  # Ignored  # Ignored
 
         # Assert - only mean was captured
-        assert "mean" in dist._content
-        assert "0" not in dist._content
-        assert "underflows" not in dist._content
+        assert "mean" in dist.content
+        assert "0" not in dist.content
+        assert "underflows" not in dist.content
 
     def test_content_setter_skips_unknown_non_numeric_keys(self) -> None:
         # Arrange
@@ -294,7 +294,7 @@ class TestDistributionContentSetting:
         }
 
         # Assert - unknown_stat not added
-        assert "unknown_stat" not in dist._content
+        assert "unknown_stat" not in dist.content
 
     def test_content_setter_multiple_assignments_extend(self) -> None:
         # Arrange
@@ -305,8 +305,8 @@ class TestDistributionContentSetting:
         dist.content = {"underflows": [2], "0": [30], "1": [40], "overflows": [1]}
 
         # Assert - values extended
-        assert dist._content["underflows"] == [1, 2]
-        assert dist._content["0"] == [10, 30]
+        assert dist.content["underflows"] == [1, 2]
+        assert dist.content["0"] == [10, 30]
 
 
 class TestDistributionBalanceContent:
@@ -321,10 +321,10 @@ class TestDistributionBalanceContent:
         dist.balance_content()
 
         # Assert - all buckets padded to repeat=3
-        assert dist._balanced is True
-        assert dist._content["underflows"] == [0.0, 0.0, 0.0]
-        assert dist._content["0"] == [0.0, 0.0, 0.0]
-        assert dist._content["overflows"] == [0.0, 0.0, 0.0]
+        assert dist.is_balanced is True
+        assert dist.content["underflows"] == [0.0, 0.0, 0.0]
+        assert dist.content["0"] == [0.0, 0.0, 0.0]
+        assert dist.content["overflows"] == [0.0, 0.0, 0.0]
 
     def test_balance_partial_buckets_pads_remainder(self) -> None:
         # Arrange
@@ -337,9 +337,9 @@ class TestDistributionBalanceContent:
         dist.balance_content()
 
         # Assert - pad to repeat=4
-        assert dist._content["underflows"] == [1, 0, 0.0, 0.0]
-        assert dist._content["0"] == [10, 20, 0.0, 0.0]
-        assert dist._content["1"] == [30, 0, 0.0, 0.0]
+        assert dist.content["underflows"] == [1, 0, 0.0, 0.0]
+        assert dist.content["0"] == [10, 20, 0.0, 0.0]
+        assert dist.content["1"] == [30, 0, 0.0, 0.0]
 
     def test_balance_exact_count_no_change(self) -> None:
         # Arrange
@@ -351,8 +351,8 @@ class TestDistributionBalanceContent:
         dist.balance_content()
 
         # Assert - no padding needed
-        assert dist._content["0"] == [10, 30]
-        assert dist._content["1"] == [20, 40]
+        assert dist.content["0"] == [10, 30]
+        assert dist.content["1"] == [20, 40]
 
     def test_balance_too_many_values_raises(self) -> None:
         # Arrange
@@ -379,10 +379,10 @@ class TestDistributionReduceDuplicates:
         dist.reduce_duplicates()
 
         # Assert - single value -> mean = value
-        assert dist._reduced is True
-        assert dist._reduced_content["underflows"] == 5.0
-        assert dist._reduced_content["0"] == 100.0
-        assert dist._reduced_content["1"] == 200.0
+        assert dist.is_reduced is True
+        assert dist.reduced_content["underflows"] == 5.0
+        assert dist.reduced_content["0"] == 100.0
+        assert dist.reduced_content["1"] == 200.0
 
     def test_reduce_multiple_values_calculates_mean(self) -> None:
         # Arrange
@@ -399,9 +399,9 @@ class TestDistributionReduceDuplicates:
         dist.reduce_duplicates()
 
         # Assert - mean: (1+2+3)/3=2.0, (10+20+30)/3=20.0, etc.
-        assert dist._reduced_content["underflows"] == 2.0
-        assert dist._reduced_content["0"] == 20.0
-        assert dist._reduced_content["1"] == 200.0
+        assert dist.reduced_content["underflows"] == 2.0
+        assert dist.reduced_content["0"] == 20.0
+        assert dist.reduced_content["1"] == 200.0
 
     def test_reduce_empty_bucket_returns_zero(self) -> None:
         # Arrange
@@ -412,8 +412,8 @@ class TestDistributionReduceDuplicates:
         dist.reduce_duplicates()
 
         # Assert - empty -> 0.0
-        assert dist._reduced_content["underflows"] == 0.0
-        assert dist._reduced_content["0"] == 0.0
+        assert dist.reduced_content["underflows"] == 0.0
+        assert dist.reduced_content["0"] == 0.0
 
     def test_reduce_with_statistics(self) -> None:
         # Arrange
@@ -425,7 +425,7 @@ class TestDistributionReduceDuplicates:
         dist.reduce_duplicates()
 
         # Assert - statistics also reduced
-        assert dist._reduced_content["mean"] == 15.5
+        assert dist.reduced_content["mean"] == 15.5
 
 
 class TestDistributionReducedContentAccess:
@@ -511,8 +511,8 @@ class TestDistributionEdgeCases:
         dist = Distribution(minimum=0, maximum=0)
 
         # Assert - single bucket "0"
-        assert "0" in dist._content
-        assert len(dist._content) == 3  # underflows, 0, overflows
+        assert "0" in dist.content
+        assert len(dist.content) == 3  # underflows, 0, overflows
 
     def test_negative_range(self) -> None:
         # Arrange & Act
@@ -521,8 +521,8 @@ class TestDistributionEdgeCases:
         # Assert
         assert dist._minimum == -10
         assert dist._maximum == -5
-        assert "-10" in dist._content
-        assert "-5" in dist._content
+        assert "-10" in dist.content
+        assert "-5" in dist.content
 
     def test_float_values_in_content(self) -> None:
         # Arrange
@@ -532,7 +532,7 @@ class TestDistributionEdgeCases:
         dist.content = {"underflows": [0.5], "0": [10.7], "1": [20.3], "overflows": [1.1]}
 
         # Assert - floats accepted
-        assert dist._content["0"] == [10.7]
+        assert dist.content["0"] == [10.7]
 
     def test_large_bucket_values(self) -> None:
         # Arrange
@@ -544,8 +544,8 @@ class TestDistributionEdgeCases:
         dist.reduce_duplicates()
 
         # Assert
-        assert dist._reduced_content["0"] == 1_000_000.0
-        assert dist._reduced_content["1"] == 9_999_999.0
+        assert dist.reduced_content["0"] == 1_000_000.0
+        assert dist.reduced_content["1"] == 9_999_999.0
 
     def test_statistics_only_no_validation_errors(self) -> None:
         # Arrange
@@ -557,7 +557,7 @@ class TestDistributionEdgeCases:
         dist.reduce_duplicates()
 
         # Assert
-        assert dist._reduced_content["mean"] == 42.0
+        assert dist.reduced_content["mean"] == 42.0
 
     def test_reduce_with_truly_empty_bucket(self) -> None:
         # Arrange
@@ -570,11 +570,11 @@ class TestDistributionEdgeCases:
             "overflows": [0],
         }
         # Manually clear bucket "2" to test empty path
-        dist._content["2"] = []
+        dist.content["2"] = []
 
         # Act - reduce with empty bucket
         object.__setattr__(dist, "_balanced", True)  # Hack to bypass guard
         dist.reduce_duplicates()
 
         # Assert - empty bucket defaults to 0.0 (line 233)
-        assert dist._reduced_content["2"] == 0.0
+        assert object.__getattribute__(dist, "_reduced_content")["2"] == 0.0
