@@ -458,10 +458,10 @@ class BasePlot(ABC):
     ) -> None:
         """Render engine-specific controls. Delegates to engine_settings component."""
         from src.web.components.plotting.settings.engine_settings import (
-            render_engine_controls,
+            EngineSettingsComponent,
         )
 
-        render_engine_controls(self.plot_id, saved_config, config)
+        EngineSettingsComponent(self.plot_id, self.plot_type).render(saved_config, config)
 
     def render_advanced_options(
         self, saved_config: dict[str, Any], data: pd.DataFrame | None = None
@@ -631,18 +631,18 @@ class BasePlot(ABC):
     ) -> None:
         """Render ordering UI. Delegates to ordering_settings component."""
         from src.web.components.plotting.settings.ordering_settings import (
-            render_ordering_ui,
+            OrderingSettingsComponent,
         )
 
-        render_ordering_ui(self.plot_id, saved_config, data, config)
+        OrderingSettingsComponent(self.plot_id, self.plot_type).render(saved_config, data, config)
 
     def _render_shapes_ui(self, saved_config: dict[str, Any]) -> list[ShapeConfig]:
         """Render shapes UI. Delegates to shapes_settings component."""
         from src.web.components.plotting.settings.shapes_settings import (
-            render_shapes_ui,
+            ShapesSettingsComponent,
         )
 
-        return render_shapes_ui(self.plot_id, saved_config)
+        return ShapesSettingsComponent(self.plot_id, self.plot_type).render(saved_config)
 
     def render_reorderable_list(
         self,
@@ -683,7 +683,9 @@ class BasePlot(ABC):
     ) -> None:
         """Render reference line UI. Delegates to reference_line_settings component."""
         from src.web.components.plotting.settings.reference_line_settings import (
-            render_reference_line_ui,
+            ReferenceLineSettingsComponent,
         )
 
-        render_reference_line_ui(self.plot_id, saved_config, data, config)
+        ReferenceLineSettingsComponent(self.plot_id, self.plot_type).render(
+            saved_config, data, config
+        )

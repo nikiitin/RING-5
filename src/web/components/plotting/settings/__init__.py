@@ -17,6 +17,7 @@ from src.web.components.plotting.settings.data_labels_settings import (  # noqa:
     DataLabelsSettingsComponent,
 )
 from src.web.components.plotting.settings.engine_settings import (  # noqa: F401
+    EngineSettingsComponent,
     render_engine_controls,
 )
 from src.web.components.plotting.settings.layout_settings import (  # noqa: F401
@@ -26,12 +27,15 @@ from src.web.components.plotting.settings.legend_settings import (  # noqa: F401
     LegendSettingsComponent,
 )
 from src.web.components.plotting.settings.ordering_settings import (  # noqa: F401
+    OrderingSettingsComponent,
     render_ordering_ui,
 )
 from src.web.components.plotting.settings.reference_line_settings import (  # noqa: F401
+    ReferenceLineSettingsComponent,
     render_reference_line_ui,
 )
 from src.web.components.plotting.settings.shapes_settings import (  # noqa: F401
+    ShapesSettingsComponent,
     render_shapes_ui,
 )
 from src.web.components.plotting.settings.typography_settings import (  # noqa: F401
