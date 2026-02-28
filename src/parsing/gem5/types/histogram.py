@@ -2,6 +2,7 @@
 
 import logging
 import re
+from typing import override
 
 from src.core.models.parsing_models import StatParamValue
 from src.parsing.gem5.types.base import StatType, register_type
@@ -155,6 +156,7 @@ class Histogram(StatType):
 
             self._content[str_key].append(aggregated_val)
 
+    @override
     def balance_content(self) -> None:
         """
         Ensure each bucket has exactly `repeat` values by padding with 0.
@@ -184,6 +186,7 @@ class Histogram(StatType):
                     f"Length: {current_len}, Repeat: {self._repeat}"
                 )
 
+    @override
     def reduce_duplicates(self) -> None:
         """Reduce collected data via mean, applying rebinning if requested."""
         object.__setattr__(self, "_reduced", True)

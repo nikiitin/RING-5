@@ -1,6 +1,6 @@
 """Grouped bar plot implementation."""
 
-from typing import Any
+from typing import Any, override
 
 import pandas as pd
 import streamlit as st
@@ -18,10 +18,12 @@ class GroupedBarPlot(BasePlot):
     def __init__(self, plot_id: int, name: str):
         super().__init__(plot_id, name, "grouped_bar")
 
+    @override
     def render_config_ui(self, data: pd.DataFrame, saved_config: dict[str, Any]) -> dict[str, Any]:
         """Render configuration UI for grouped bar plot."""
         return grouped_bar_config.render(data, saved_config, self.plot_id)
 
+    @override
     def render_advanced_options(
         self, saved_config: dict[str, Any], data: pd.DataFrame | None = None
     ) -> dict[str, Any]:
@@ -37,6 +39,7 @@ class GroupedBarPlot(BasePlot):
 
         return super().render_advanced_options(saved_config, data)
 
+    @override
     def render_theme_options(
         self, saved_config: dict[str, Any], items: list[str] | None = None
     ) -> dict[str, Any]:
@@ -93,6 +96,7 @@ class GroupedBarPlot(BasePlot):
 
         return config
 
+    @override
     def create_traces(self, data: pd.DataFrame, config: dict[str, Any]) -> TraceBuildResult:
         """Create grouped bar trace configurations using manual coordinates."""
 
@@ -199,6 +203,7 @@ class GroupedBarPlot(BasePlot):
             custom_x_ticks={"vals": tick_vals, "text": tick_text},
         )
 
+    @override
     def get_legend_column(self, config: dict[str, Any]) -> str | None:
         """Get legend column for grouped bar plot."""
         result = config.get("group")

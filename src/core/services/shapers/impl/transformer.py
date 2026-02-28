@@ -78,7 +78,7 @@ Version: 2.0.0
 Last Modified: 2026-01-27
 """
 
-from typing import Any, cast
+from typing import Any, cast, override
 
 import pandas as pd
 
@@ -109,6 +109,7 @@ class Transformer(UniDfShaper):
         self.order: list[str] | None = config.get("order")
         super().__init__(params)
 
+    @override
     def _verify_params(self) -> bool:
         """Verify parameter presence and value validity."""
         super()._verify_params()
@@ -123,6 +124,7 @@ class Transformer(UniDfShaper):
 
         return True
 
+    @override
     def _verify_preconditions(self, data_frame: pd.DataFrame) -> bool:
         """Verify that the target column exists."""
         super()._verify_preconditions(data_frame)
@@ -130,6 +132,7 @@ class Transformer(UniDfShaper):
             raise ValueError(f"Transformer: Column '{self.column}' not found in dataframe.")
         return True
 
+    @override
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
         """Executes the data type conversion."""
         self._verify_preconditions(data_frame)

@@ -8,7 +8,7 @@ Provides capabilities for:
 
 import logging
 import re
-from typing import Any, cast
+from typing import Any, cast, override
 
 import pandas as pd
 
@@ -68,6 +68,7 @@ class PivotLonger(Shaper):
         self.config = cast(PivotLongerShaperConfig, params)
         super().__init__(params)
 
+    @override
     def _verify_params(self) -> bool:
         """Verify required parameters are present."""
         super()._verify_params()
@@ -81,6 +82,7 @@ class PivotLonger(Shaper):
             raise ValueError("PivotLonger requires 'value_name'.")
         return True
 
+    @override
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
         """Execute the pivot_longer operation on the data."""
         super().__call__(data_frame)
@@ -204,6 +206,7 @@ class PivotWider(Shaper):
         self.config = cast(PivotWiderShaperConfig, params)
         super().__init__(params)
 
+    @override
     def _verify_params(self) -> bool:
         """Verify required parameters are present."""
         super()._verify_params()
@@ -215,6 +218,7 @@ class PivotWider(Shaper):
             raise ValueError("PivotWider requires a 'values' target.")
         return True
 
+    @override
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
         """Execute the pivot_wider operation on the data."""
         super().__call__(data_frame)

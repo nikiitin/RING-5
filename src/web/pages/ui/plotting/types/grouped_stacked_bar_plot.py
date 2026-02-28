@@ -1,6 +1,6 @@
 """Grouped stacked bar plot implementation."""
 
-from typing import Any
+from typing import Any, override
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -22,6 +22,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         # Override plot_type set by parent chain ("stacked_bar" → "grouped_stacked_bar")
         self.plot_type: str = "grouped_stacked_bar"
 
+    @override
     def _supports_secondary_legend(self) -> bool:
         """Grouped stacked bar always supports a secondary legend.
 
@@ -30,6 +31,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         """
         return True
 
+    @override
     def _supports_tertiary_legend(self) -> bool:
         """Tertiary legend is available when dual-axis splits legends.
 
@@ -41,6 +43,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         """
         return True
 
+    @override
     def render_config_ui(self, data: pd.DataFrame, saved_config: dict[str, Any]) -> dict[str, Any]:
         """Render configuration UI for grouped stacked bar plot."""
         return grouped_stacked_bar_config.render(data, saved_config, self.plot_id)
@@ -55,6 +58,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
 
         render_stack_total_options(saved_config, config, self.plot_id)
 
+    @override
     def render_theme_options(
         self, saved_config: dict[str, Any], items: list[str] | None = None
     ) -> dict[str, Any]:
@@ -72,6 +76,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
 
         return config
 
+    @override
     def render_advanced_options(
         self, saved_config: dict[str, Any], data: pd.DataFrame | None = None
     ) -> dict[str, Any]:
@@ -211,6 +216,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
 
         return config
 
+    @override
     def create_traces(self, data: pd.DataFrame, config: dict[str, Any]) -> TraceBuildResult:
         """Create grouped stacked bar trace configurations."""
         x_col = config.get("x")
@@ -405,6 +411,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
 
         return build_category_annotations(cat_centers, config)
 
+    @override
     def apply_common_layout(self, fig: go.Figure, config: dict[str, Any]) -> go.Figure:
         """Apply common layout and enforce hover template."""
         fig = super().apply_common_layout(fig, config)
@@ -508,6 +515,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
 
         return build_right_axis_traces(data, x_coord_col, y_cols, trace_type, bar_width, config)
 
+    @override
     def get_legend_column(self, config: dict[str, Any]) -> str | None:
         """Get legend column for grouped stacked bar plot."""
         return None

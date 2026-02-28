@@ -5,7 +5,7 @@ A composite plot that overlays bars (primary Y-axis) with a dot/line series
 are optional. Dot color, symbol, size, and line width are all configurable.
 """
 
-from typing import Any
+from typing import Any, override
 
 import pandas as pd
 import streamlit as st
@@ -36,6 +36,7 @@ class DualAxisBarDotPlot(BasePlot):
     # Configuration UI
     # ------------------------------------------------------------------
 
+    @override
     def render_config_ui(self, data: pd.DataFrame, saved_config: dict[str, Any]) -> dict[str, Any]:
         """Render configuration UI for dual-axis bar+dot plot."""
         return dual_axis_config.render(data, saved_config, self.plot_id)
@@ -44,6 +45,7 @@ class DualAxisBarDotPlot(BasePlot):
     # Figure creation
     # ------------------------------------------------------------------
 
+    @override
     def create_traces(self, data: pd.DataFrame, config: dict[str, Any]) -> TraceBuildResult:
         """Create dual-axis bar + dot/line trace configurations.
 
@@ -297,6 +299,7 @@ class DualAxisBarDotPlot(BasePlot):
     # Plot-specific advanced options
     # ------------------------------------------------------------------
 
+    @override
     def render_specific_advanced_options(
         self, saved_config: dict[str, Any], data: pd.DataFrame | None = None
     ) -> dict[str, Any]:
@@ -390,6 +393,7 @@ class DualAxisBarDotPlot(BasePlot):
     # Legend column
     # ------------------------------------------------------------------
 
+    @override
     def get_legend_column(self, config: dict[str, Any]) -> str | None:
         """Get the column used for legend grouping."""
         result: str | None = config.get("color")

@@ -142,9 +142,7 @@ def apply_shapers(
             result = shaper(result)
         except ValueError as e:
             # Configuration validation error from shaper itself
-            error_msg = (
-                f"❌ Pipeline step {idx + 1} ({shaper_type}): " f"Configuration error - {str(e)}"
-            )
+            error_msg = f"❌ Pipeline step {idx + 1} ({shaper_type}): " f"Configuration error - {e}"
             st.error(error_msg)
             logger.error(f"PIPELINE: Config validation failed for {shaper_type}: {e}")
             raise ValueError(error_msg) from e
@@ -152,7 +150,7 @@ def apply_shapers(
             # Missing column or data issue
             error_msg = (
                 f"❌ Pipeline step {idx + 1} ({shaper_type}): "
-                f"Data error - Missing required column or field: {str(e)}"
+                f"Data error - Missing required column or field: {e}"
             )
             st.error(error_msg)
             logger.error(f"PIPELINE: Data validation failed for {shaper_type}: {e}")
@@ -160,7 +158,7 @@ def apply_shapers(
         except Exception as e:
             # Unexpected error during transformation
             error_msg = (
-                f"❌ Pipeline step {idx + 1} ({shaper_type}): " f"Transformation failed - {str(e)}"
+                f"❌ Pipeline step {idx + 1} ({shaper_type}): " f"Transformation failed - {e}"
             )
             st.exception(e)
             logger.error(f"PIPELINE: Transformation failed for {shaper_type}: {e}", exc_info=True)

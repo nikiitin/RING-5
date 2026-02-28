@@ -1,6 +1,7 @@
 """Distribution stat type for fixed-bucket frequency distributions."""
 
 import math
+from typing import override
 
 from src.core.models.parsing_models import StatParamValue
 from src.parsing.gem5.types.base import StatType, register_type
@@ -208,6 +209,7 @@ class Distribution(StatType):
 
             self._content[str_key].append(aggregated_val)
 
+    @override
     def balance_content(self) -> None:
         """Ensure all buckets have consistent length across repeats."""
         object.__setattr__(self, "_balanced", True)
@@ -224,6 +226,7 @@ class Distribution(StatType):
                     f" Repeat count: {self._repeat}"
                 )
 
+    @override
     def reduce_duplicates(self) -> None:
         """Flatten repeats into a single distribution via population mean."""
         object.__setattr__(self, "_reduced", True)

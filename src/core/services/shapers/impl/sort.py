@@ -70,7 +70,7 @@ Version: 2.0.0
 Last Modified: 2026-01-27
 """
 
-from typing import Any, cast
+from typing import Any, cast, override
 
 import pandas as pd
 
@@ -95,6 +95,7 @@ class Sort(UniDfShaper):
         self.order_dict: dict[str, list[str]] = config.get("order_dict", {})
         super().__init__(params)
 
+    @override
     def _verify_params(self) -> bool:
         """Verify that 'order_dict' is correctly structured."""
         super()._verify_params()
@@ -115,6 +116,7 @@ class Sort(UniDfShaper):
 
         return True
 
+    @override
     def _verify_preconditions(self, data_frame: pd.DataFrame) -> bool:
         """Verify that all columns in 'order_dict' exist in the dataframe."""
         super()._verify_preconditions(data_frame)
@@ -125,6 +127,7 @@ class Sort(UniDfShaper):
 
         return True
 
+    @override
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
         """
         Applies categorical sorting to the dataframe.

@@ -1,6 +1,6 @@
 """Scatter plot implementation."""
 
-from typing import Any
+from typing import Any, override
 
 import pandas as pd
 
@@ -16,10 +16,12 @@ class ScatterPlot(BasePlot):
     def __init__(self, plot_id: int, name: str):
         super().__init__(plot_id, name, "scatter")
 
+    @override
     def render_config_ui(self, data: pd.DataFrame, saved_config: dict[str, Any]) -> dict[str, Any]:
         """Render configuration UI for scatter plot."""
         return scatter_config.render(data, saved_config, self.plot_id)
 
+    @override
     def create_traces(self, data: pd.DataFrame, config: dict[str, Any]) -> TraceBuildResult:
         """Produce scatter traces from data and config."""
         x_col: str = config["x"]
@@ -63,6 +65,7 @@ class ScatterPlot(BasePlot):
 
         return TraceBuildResult(traces=traces)
 
+    @override
     def get_legend_column(self, config: dict[str, Any]) -> str | None:
         """Get legend column for scatter plot."""
         result = config.get("color")

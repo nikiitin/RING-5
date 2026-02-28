@@ -1,6 +1,6 @@
 """Configuration stat type for metadata values."""
 
-from typing import Any
+from typing import Any, override
 
 from src.core.models.parsing_models import StatParamValue
 from src.parsing.gem5.types.base import StatType, register_type
@@ -45,6 +45,7 @@ class Configuration(StatType):
     def onEmpty(self) -> str:
         return str(object.__getattribute__(self, "_on_empty"))
 
+    @override
     def _validate_content(self, value: Any) -> None:
         """Ensure value can be converted to string."""
         try:
@@ -55,15 +56,18 @@ class Configuration(StatType):
                 f"Value: {value}, Type: {type(value).__name__}"
             ) from e
 
+    @override
     def _set_content(self, value: Any) -> None:
         """Store as string."""
         self._content.append(str(value))
 
+    @override
     def balance_content(self) -> None:
         """Configuration is always balanced (no padding needed)."""
         object.__setattr__(self, "_balanced", True)
         # Always balanced - no action needed
 
+    @override
     def reduce_duplicates(self) -> None:
         """For configuration, return first value or onEmpty default."""
         object.__setattr__(self, "_reduced", True)

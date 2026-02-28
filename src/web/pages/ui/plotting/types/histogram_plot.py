@@ -1,6 +1,6 @@
 """Histogram plot implementation."""
 
-from typing import Any
+from typing import Any, override
 
 import pandas as pd
 
@@ -31,10 +31,12 @@ class HistogramPlot(BasePlot):
         """
         super().__init__(plot_id, name, "histogram")
 
+    @override
     def render_config_ui(self, data: pd.DataFrame, saved_config: dict[str, Any]) -> dict[str, Any]:
         """Render configuration UI for histogram plot."""
         return histogram_config.render(data, saved_config, self.plot_id)
 
+    @override
     def create_traces(self, data: pd.DataFrame, config: dict[str, Any]) -> TraceBuildResult:
         """
         Create histogram trace configurations.
@@ -81,6 +83,7 @@ class HistogramPlot(BasePlot):
             barmode=barmode,
         )
 
+    @override
     def get_legend_column(self, config: dict[str, Any]) -> str | None:
         """
         Get legend column for histogram plot.

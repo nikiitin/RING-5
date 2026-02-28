@@ -75,7 +75,7 @@ Last Modified: 2026-01-27
 import hashlib
 import logging
 import warnings
-from typing import Any, cast
+from typing import Any, cast, override
 
 import pandas as pd
 from pandas import DataFrame
@@ -138,6 +138,7 @@ class Normalize(UniDfShaper):
         # Type validation
         self._validate_init_types()
 
+    @override
     def _verify_params(self) -> bool:
         """Verify that mandatory parameters exist in the params dict."""
         super()._verify_params()
@@ -159,6 +160,7 @@ class Normalize(UniDfShaper):
         if not isinstance(self._normalize_sd, bool):
             raise TypeError("normalizeSd must be a boolean")
 
+    @override
     def _verify_preconditions(self, data_frame: pd.DataFrame) -> bool:
         """
         Check that the dataframe contains all required columns and valid baseline values.
@@ -319,6 +321,7 @@ class Normalize(UniDfShaper):
 
         return result
 
+    @override
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
         """
         Execute the normalization pipeline with caching.

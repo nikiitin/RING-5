@@ -1,6 +1,6 @@
 """Stacked bar plot implementation."""
 
-from typing import Any
+from typing import Any, override
 
 import pandas as pd
 
@@ -17,10 +17,12 @@ class StackedBarPlot(BasePlot):
         """Initialize stacked bar plot."""
         super().__init__(plot_id, name, "stacked_bar")
 
+    @override
     def render_config_ui(self, data: pd.DataFrame, saved_config: dict[str, Any]) -> dict[str, Any]:
         """Render configuration UI for stacked bar plot."""
         return stacked_bar_config.render(data, saved_config, self.plot_id)
 
+    @override
     def create_traces(self, data: pd.DataFrame, config: dict[str, Any]) -> TraceBuildResult:
         """Create stacked bar trace configurations."""
         x_col = config.get("x")
@@ -198,6 +200,7 @@ class StackedBarPlot(BasePlot):
                 return 0, "bottom"
         return val, "bottom"
 
+    @override
     def get_legend_column(self, config: dict[str, Any]) -> str | None:
         """Get legend column for stacked bar plot."""
         return None

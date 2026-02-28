@@ -1,7 +1,7 @@
 """Scalar stat type for single numeric values."""
 
 import math
-from typing import Any
+from typing import Any, override
 
 from src.parsing.gem5.types.base import StatType, register_type
 
@@ -22,6 +22,7 @@ class Scalar(StatType):
 
     required_params = []
 
+    @override
     def _validate_content(self, value: Any) -> None:
         """Ensure value can be converted to numeric (int or float)."""
         try:
@@ -39,6 +40,7 @@ class Scalar(StatType):
                 f"Value: {value}, Type: {type(value).__name__}"
             ) from e
 
+    @override
     def _set_content(self, value: Any) -> None:
         """Convert to numeric and append to content list."""
         try:
@@ -47,6 +49,7 @@ class Scalar(StatType):
             numeric_value = float(value)
         self._content.append(numeric_value)
 
+    @override
     def reduce_duplicates(self) -> None:
         """Reduce content via arithmetic mean (sum / repeat)."""
         object.__setattr__(self, "_reduced", True)

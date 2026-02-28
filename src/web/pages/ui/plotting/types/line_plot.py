@@ -1,6 +1,6 @@
 """Line plot implementation."""
 
-from typing import Any
+from typing import Any, override
 
 import pandas as pd
 import streamlit as st
@@ -17,10 +17,12 @@ class LinePlot(BasePlot):
     def __init__(self, plot_id: int, name: str):
         super().__init__(plot_id, name, "line")
 
+    @override
     def render_config_ui(self, data: pd.DataFrame, saved_config: dict[str, Any]) -> dict[str, Any]:
         """Render configuration UI for line plot."""
         return line_config.render(data, saved_config, self.plot_id)
 
+    @override
     def render_specific_advanced_options(
         self, saved_config: dict[str, Any], data: pd.DataFrame | None = None
     ) -> dict[str, Any]:
@@ -37,6 +39,7 @@ class LinePlot(BasePlot):
         )
         return config
 
+    @override
     def create_traces(self, data: pd.DataFrame, config: dict[str, Any]) -> TraceBuildResult:
         """Produce line traces from data and config."""
         x_col: str = config["x"]
@@ -86,6 +89,7 @@ class LinePlot(BasePlot):
 
         return TraceBuildResult(traces=traces)
 
+    @override
     def get_legend_column(self, config: dict[str, Any]) -> str | None:
         """Get legend column for line plot."""
         result = config.get("color")

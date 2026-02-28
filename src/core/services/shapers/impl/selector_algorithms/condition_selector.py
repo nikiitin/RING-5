@@ -98,15 +98,16 @@ class ConditionSelector(Selector):
             return data_frame[mask]
 
         # 3. Explicit UI Modes
-        if self.mode == "greater_than":
-            return data_frame[data_frame[col] > self.threshold]
-        elif self.mode == "less_than":
-            return data_frame[data_frame[col] < self.threshold]
-        elif self.mode == "equals":
-            return data_frame[data_frame[col] == self.value]
-        elif self.mode == "contains":
-            mask = data_frame[col].astype(str).str.contains(str(self.value), na=False)
-            return data_frame[mask]
+        match self.mode:
+            case "greater_than":
+                return data_frame[data_frame[col] > self.threshold]
+            case "less_than":
+                return data_frame[data_frame[col] < self.threshold]
+            case "equals":
+                return data_frame[data_frame[col] == self.value]
+            case "contains":
+                mask = data_frame[col].astype(str).str.contains(str(self.value), na=False)
+                return data_frame[mask]
 
         # 4. Legacy Operator/Value pair
         if self.condition is not None and self.value is not None:

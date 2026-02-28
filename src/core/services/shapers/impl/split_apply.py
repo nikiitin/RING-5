@@ -82,7 +82,7 @@ Version: 1.0.0
 """
 
 import logging
-from typing import Any, cast
+from typing import Any, cast, override
 
 import pandas as pd
 
@@ -123,6 +123,7 @@ class SplitApply(UniDfShaper):
 
         super().__init__(params)
 
+    @override
     def _verify_params(self) -> bool:
         """Validate parameter structure."""
         super()._verify_params()
@@ -165,6 +166,7 @@ class SplitApply(UniDfShaper):
 
         return True
 
+    @override
     def _verify_preconditions(self, data_frame: pd.DataFrame) -> bool:
         """Verify all referenced columns exist in the DataFrame."""
         super()._verify_preconditions(data_frame)
@@ -215,6 +217,7 @@ class SplitApply(UniDfShaper):
             result = shaper(result)
         return result
 
+    @override
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
         """Split data by groups, apply sub-pipelines, merge results.
 

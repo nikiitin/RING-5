@@ -9,7 +9,7 @@ Optionally generates one heatmap per facet value (e.g. benchmark_name).
 """
 
 from collections.abc import Callable
-from typing import Any, Literal, cast
+from typing import Any, Literal, cast, override
 
 import pandas as pd
 
@@ -44,10 +44,12 @@ class HeatmapPlot(BasePlot):
     def __init__(self, plot_id: int, name: str) -> None:
         super().__init__(plot_id, name, "heatmap")
 
+    @override
     def render_config_ui(self, data: pd.DataFrame, saved_config: dict[str, Any]) -> dict[str, Any]:
         """Render configuration UI for heatmap plot."""
         return heatmap_config.render(data, saved_config, self.plot_id)
 
+    @override
     def create_traces(self, data: pd.DataFrame, config: dict[str, Any]) -> TraceBuildResult:
         """Produce one or more heatmap traces from data and config."""
         x_col: str = config["x"]
@@ -147,6 +149,7 @@ class HeatmapPlot(BasePlot):
 
         return TraceBuildResult(traces=traces)
 
+    @override
     def get_legend_column(self, config: dict[str, Any]) -> str | None:
         """Heatmap has no legend column — color is the z-value."""
         return None

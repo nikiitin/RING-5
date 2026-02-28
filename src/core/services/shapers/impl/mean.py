@@ -77,7 +77,7 @@ Last Modified: 2026-01-27
 """
 
 import hashlib
-from typing import Any, cast
+from typing import Any, cast, override
 
 import numpy as np
 import pandas as pd
@@ -144,6 +144,7 @@ class Mean(UniDfShaper):
 
         super().__init__(params)
 
+    @override
     def _verify_params(self) -> bool:
         """Validate parameter structure and algorithm choice."""
         super()._verify_params()
@@ -163,6 +164,7 @@ class Mean(UniDfShaper):
 
         return True
 
+    @override
     def _verify_preconditions(self, data_frame: pd.DataFrame) -> bool:
         """Verify columns exist and numeric requirements are met."""
         super()._verify_preconditions(data_frame)
@@ -261,6 +263,7 @@ class Mean(UniDfShaper):
         # Append to the original data
         return pd.concat([result, mean_df], ignore_index=True)
 
+    @override
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
         """
         Calculates group means and appends them as new rows with caching.
