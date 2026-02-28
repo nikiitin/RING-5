@@ -37,8 +37,8 @@ class Gem5ScanWork(ScanWork):
         try:
             scanner = Gem5StatsScanner.get_instance()
             return scanner.scan_file(Path(self.file_path))
-        except Exception as e:
-            logger.error(f"SCANNER: Failed to scan {self.file_path}: {e}")
+        except Exception:
+            logger.warning("SCANNER: Failed to scan %s", self.file_path, exc_info=True)
             return []
 
     def __str__(self) -> str:

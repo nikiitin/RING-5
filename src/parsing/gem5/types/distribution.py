@@ -1,5 +1,7 @@
 """Distribution stat type for fixed-bucket frequency distributions."""
 
+import math
+
 from src.core.models.parsing_models import StatParamValue
 from src.parsing.gem5.types.base import StatType, register_type
 
@@ -198,7 +200,7 @@ class Distribution(StatType):
             try:
                 # Scientific Integrity: Ensure all items are numeric before summing
                 float_vals = [float(v) for v in val_list]
-                aggregated_val = sum(float_vals)
+                aggregated_val = math.fsum(float_vals)
             except (TypeError, ValueError) as e:
                 raise TypeError(
                     f"DISTRIBUTION: Value error at key {str_key}. Expected numbers, got: {val_list}"
@@ -231,7 +233,7 @@ class Distribution(StatType):
             if not values:
                 reduced[bucket] = 0.0
             else:
-                reduced[bucket] = sum(values[: self._repeat]) / self._repeat
+                reduced[bucket] = math.fsum(values[: self._repeat]) / self._repeat
 
         object.__setattr__(self, "_reduced_content", reduced)
 

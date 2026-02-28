@@ -259,21 +259,30 @@ class Gem5Parser:
         logger.info(f"PERF: Starting construct_final_csv for {len(results)} files")
 
         # Logic adapted from Gem5StatsParser._persist_results
+        # Build header as UNION of all results' entries so that variables
+        # missing from the first file but present in later files are still
+        # included in the CSV header.
         header_parts: list[str] = []
-        sample = results[0]
         column_map: dict[str, list[str] | None] = {}
 
         # Use provided var_names to ensure consistent order
-        ordered_names: list[str] = var_names if var_names else list(sample.keys())
+        ordered_names: list[str] = var_names if var_names else list(results[0].keys())
 
         for var_name in ordered_names:
-            if var_name not in sample:
+            # Search all results for the first occurrence of this variable
+            # to determine its entries (union approach for header completeness)
+            found_var = None
+            for res in results:
+                if var_name in res:
+                    found_var = res[var_name]
+                    break
+
+            if found_var is None:
                 column_map[var_name] = None
                 header_parts.append(var_name)
                 continue
 
-            var = sample[var_name]
-            entries = getattr(var, "entries", None)
+            entries = getattr(found_var, "entries", None)
             if entries:
                 column_map[var_name] = entries
                 header_parts.extend(f"{var_name}..{e}" for e in entries)

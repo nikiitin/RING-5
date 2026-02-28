@@ -8,6 +8,8 @@ Following Rule 004 (QA Testing Mastery):
 - Testing all edge cases and error paths
 """
 
+import math
+
 import pytest
 
 from src.parsing.gem5.types.scalar import Scalar
@@ -218,8 +220,8 @@ class TestScalarReduceDuplicates:
         # Act
         scalar.reduce_duplicates()
 
-        # Assert - truly empty content returns "NA"
-        assert scalar._reduced_content == "NA"
+        # Assert - truly empty content returns NaN (float)
+        assert math.isnan(scalar._reduced_content)
 
     def test_reduce_with_integer_division(self) -> None:
         # Arrange

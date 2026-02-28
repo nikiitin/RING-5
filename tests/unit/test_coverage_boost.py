@@ -25,6 +25,7 @@ Targets the following files/lines:
     render_plot_controls, render_pipeline_editor
 """
 
+import configparser
 import os
 from pathlib import Path
 from typing import Any, cast
@@ -2406,7 +2407,7 @@ class TestConfigAwareParseConfigException:
             "src.parsing.gem5.impl.strategies.config_aware.configparser.ConfigParser"
         ) as mock_cp:
             mock_parser = MagicMock()
-            mock_parser.read.side_effect = Exception("parse error")
+            mock_parser.read.side_effect = configparser.Error("parse error")
             mock_cp.return_value = mock_parser
 
             result = strategy._parse_config(config_path)

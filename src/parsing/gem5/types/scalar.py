@@ -1,5 +1,6 @@
 """Scalar stat type for single numeric values."""
 
+import math
 from typing import Any
 
 from src.parsing.gem5.types.base import StatType, register_type
@@ -51,7 +52,7 @@ class Scalar(StatType):
         object.__setattr__(self, "_reduced", True)
 
         if not self._content:
-            object.__setattr__(self, "_reduced_content", "NA")
+            object.__setattr__(self, "_reduced_content", math.nan)
             return
 
         # Sum and divide using float to preserve decimal precision

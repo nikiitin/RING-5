@@ -70,6 +70,6 @@ class ConfigAwareStrategy(SimpleStatsStrategy):
             parser.read(str(config_path))
             # Convert ConfigParser to dict for easier handling
             return {section: dict(parser.items(section)) for section in parser.sections()}
-        except Exception as e:
-            logger.error(f"PARSER: Failed to parse {config_path}: {e}")
+        except (configparser.Error, OSError) as e:
+            logger.error("PARSER: Failed to parse %s: %s", config_path, e)
             return {}

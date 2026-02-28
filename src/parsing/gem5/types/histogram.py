@@ -1,9 +1,12 @@
 """Histogram stat type for range-based frequency distributions."""
 
+import logging
 import re
 
 from src.core.models.parsing_models import StatParamValue
 from src.parsing.gem5.types.base import StatType, register_type
+
+logger = logging.getLogger(__name__)
 
 
 @register_type("histogram")
@@ -304,6 +307,8 @@ class Histogram(StatType):
         match = re.search(r"(\d+)-(\d+)", key)
         if match:
             return [float(match.group(1)), float(match.group(2))]
+        if any(c.isdigit() for c in key):
+            logger.debug("HISTOGRAM: Could not parse range from key '%s'", key)
         return []
 
     @property
