@@ -12,6 +12,6 @@ Architecture:
              Models
 """
 
-from src.web.state.ui_state_manager import UIStateManager
+from src.web.state.ui_state_manager import UIStateManager, WidgetKeyBuilder
 
-__all__ = ["UIStateManager"]
+__all__ = ["UIStateManager", "WidgetKeyBuilder"]

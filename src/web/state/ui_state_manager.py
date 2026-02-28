@@ -32,6 +32,35 @@ from typing import Any
 import streamlit as st
 
 
+class WidgetKeyBuilder:
+    """Build consistent, namespaced session_state keys.
+
+    Centralizes key construction so that all parts of the web layer
+    produce collision-free, predictable key strings.
+
+    Examples::
+
+        WidgetKeyBuilder.plot_key(1, "auto_refresh")  # "plot.1.auto_refresh"
+        WidgetKeyBuilder.manager_key("mixer", "mode")  # "manager.mixer.mode"
+        WidgetKeyBuilder.global_key("theme")            # "g.theme"
+    """
+
+    @staticmethod
+    def plot_key(plot_id: int, *parts: str) -> str:
+        """Build a namespaced key for plot-level state."""
+        return f"plot.{plot_id}.{'_'.join(parts)}"
+
+    @staticmethod
+    def manager_key(manager: str, *parts: str) -> str:
+        """Build a namespaced key for a data manager."""
+        return f"manager.{manager}.{'_'.join(parts)}"
+
+    @staticmethod
+    def global_key(*parts: str) -> str:
+        """Build a namespaced key for global UI state."""
+        return f"g.{'_'.join(parts)}"
+
+
 class _PlotUIState:
     """
     Typed accessors for plot-related UI state.
@@ -44,7 +73,7 @@ class _PlotUIState:
     @staticmethod
     def _key(plot_id: int, suffix: str) -> str:
         """Build a namespaced session_state key for a plot."""
-        return f"plot.{plot_id}.{suffix}"
+        return WidgetKeyBuilder.plot_key(plot_id, suffix)
 
     # ─── Auto Refresh ────────────────────────────────────────────────────
 
@@ -146,7 +175,7 @@ class _ManagerUIState:
     @staticmethod
     def _key(manager_name: str, suffix: str) -> str:
         """Build a namespaced key for a data manager."""
-        return f"manager.{manager_name}.{suffix}"
+        return WidgetKeyBuilder.manager_key(manager_name, suffix)
 
     # ─── Load Triggers ───────────────────────────────────────────────────
 
