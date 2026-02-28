@@ -5,6 +5,7 @@ import pandas as pd
 import pytest
 from pandas import DataFrame
 
+from src.core.performance import compute_data_fingerprint
 from src.core.services.shapers.impl.normalize import Normalize
 
 
@@ -285,7 +286,15 @@ class TestNormalizeSdDisabled:
 
 
 class TestComputeDataFingerprint:
-    """Tests for _compute_data_fingerprint."""
+    """Tests for compute_data_fingerprint."""
+
+    @staticmethod
+    def _relevant_cols(params: dict) -> list[str]:
+        return (
+            params.get("normalizeVars", [])
+            + params.get("groupBy", [])
+            + [params.get("normalizerColumn", "")]
+        )
 
     def test_returns_string(self) -> None:
         df = pd.DataFrame({"config": ["a"], "bench": ["b"], "metric": [1.0]})
@@ -294,23 +303,26 @@ class TestComputeDataFingerprint:
             "normalizerColumn": "config",
             "groupBy": ["bench"],
         }
-        fp = Normalize._compute_data_fingerprint(df, params)
+        cols = self._relevant_cols(params)
+        fp = compute_data_fingerprint(df, params, cols)
         assert isinstance(fp, str)
         assert len(fp) == 16  # md5 hex[:16]
 
     def test_same_data_same_fingerprint(self) -> None:
         df = pd.DataFrame({"config": ["a", "b"], "bench": ["b1", "b1"], "m": [1.0, 2.0]})
         params = {"normalizeVars": ["m"], "normalizerColumn": "config", "groupBy": ["bench"]}
-        fp1 = Normalize._compute_data_fingerprint(df, params)
-        fp2 = Normalize._compute_data_fingerprint(df, params)
+        cols = self._relevant_cols(params)
+        fp1 = compute_data_fingerprint(df, params, cols)
+        fp2 = compute_data_fingerprint(df, params, cols)
         assert fp1 == fp2
 
     def test_different_data_different_fingerprint(self) -> None:
         df1 = pd.DataFrame({"config": ["a"], "bench": ["b"], "m": [1.0]})
         df2 = pd.DataFrame({"config": ["a"], "bench": ["b"], "m": [2.0]})
         params = {"normalizeVars": ["m"], "normalizerColumn": "config", "groupBy": ["bench"]}
-        fp1 = Normalize._compute_data_fingerprint(df1, params)
-        fp2 = Normalize._compute_data_fingerprint(df2, params)
+        cols = self._relevant_cols(params)
+        fp1 = compute_data_fingerprint(df1, params, cols)
+        fp2 = compute_data_fingerprint(df2, params, cols)
         assert fp1 != fp2
 
 

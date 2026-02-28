@@ -4,15 +4,16 @@ Focus: zero denominator, sd column normalization, fingerprint caching,
 precondition checks (ambiguous baseline, non-numeric).
 """
 
-from typing import Any, Dict
+from typing import Any
 
 import pandas as pd
 import pytest
 
+from src.core.performance import compute_data_fingerprint
 from src.core.services.shapers.impl.normalize import Normalize
 
 
-def _make_params(**kwargs: Any) -> Dict[str, Any]:
+def _make_params(**kwargs: Any) -> dict[str, Any]:
     base = {
         "normalizeVars": ["cycles"],
         "normalizerColumn": "config",
@@ -168,27 +169,38 @@ class TestNormalizeTypeValidation:
 
 
 class TestComputeDataFingerprint:
-    """Test _compute_data_fingerprint."""
+    """Test compute_data_fingerprint."""
+
+    @staticmethod
+    def _relevant_cols(params: dict) -> list[str]:
+        return (
+            params.get("normalizeVars", [])
+            + params.get("groupBy", [])
+            + [params.get("normalizerColumn", "")]
+        )
 
     def test_same_data_same_fingerprint(self) -> None:
         df = pd.DataFrame({"config": ["baseline"], "bench": ["B1"], "cycles": [1]})
         params = _make_params()
-        fp1 = Normalize._compute_data_fingerprint(df, params)
-        fp2 = Normalize._compute_data_fingerprint(df, params)
+        cols = self._relevant_cols(params)
+        fp1 = compute_data_fingerprint(df, params, cols)
+        fp2 = compute_data_fingerprint(df, params, cols)
         assert fp1 == fp2
 
     def test_different_data_different_fingerprint(self) -> None:
         df1 = pd.DataFrame({"config": ["baseline"], "bench": ["B1"], "cycles": [1]})
         df2 = pd.DataFrame({"config": ["baseline"], "bench": ["B1"], "cycles": [999]})
         params = _make_params()
-        fp1 = Normalize._compute_data_fingerprint(df1, params)
-        fp2 = Normalize._compute_data_fingerprint(df2, params)
+        cols = self._relevant_cols(params)
+        fp1 = compute_data_fingerprint(df1, params, cols)
+        fp2 = compute_data_fingerprint(df2, params, cols)
         assert fp1 != fp2
 
     def test_empty_dataframe(self) -> None:
         df = pd.DataFrame()
         params = _make_params()
-        fp = Normalize._compute_data_fingerprint(df, params)
+        cols = self._relevant_cols(params)
+        fp = compute_data_fingerprint(df, params, cols)
         assert isinstance(fp, str)
         assert len(fp) == 16
 

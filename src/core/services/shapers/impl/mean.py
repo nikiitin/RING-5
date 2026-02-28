@@ -76,7 +76,6 @@ Version: 2.1.0
 Last Modified: 2026-01-27
 """
 
-import hashlib
 from typing import Any, cast, override
 
 import numpy as np
@@ -84,7 +83,7 @@ import pandas as pd
 from scipy.stats import gmean, hmean
 
 from src.core.models.shaper_models import MeanShaperConfig
-from src.core.performance import cached
+from src.core.performance import cached, compute_data_fingerprint
 from src.core.services.shapers.uni_df_shaper import UniDfShaper
 
 
@@ -180,39 +179,6 @@ class Mean(UniDfShaper):
 
         return True
 
-    @staticmethod
-    def _compute_data_fingerprint(data: pd.DataFrame, params: dict[str, Any]) -> str:
-        """
-        Compute fingerprint for caching mean calculation results.
-
-        Args:
-            data: Input DataFrame
-            params: Mean calculation parameters
-
-        Returns:
-            Hash string representing data+params combination
-        """
-        relevant_cols = (
-            params.get("meanVars", [])
-            + params.get("groupingColumns", [])
-            + [params.get("replacingColumn", "")]
-        )
-
-        fingerprint_parts = [
-            f"shape:{data.shape}",
-            f"cols:{sorted(relevant_cols)}",
-            f"algo:{params.get('meanAlgorithm', '')}",
-            f"params:{sorted(params.items())}",
-        ]
-
-        # Add sample for change detection
-        if len(data) > 0 and relevant_cols:
-            sample_rows = data[relevant_cols].head(2).to_json()
-            fingerprint_parts.append(f"sample:{sample_rows}")
-
-        fingerprint = "|".join(fingerprint_parts)
-        return hashlib.md5(fingerprint.encode(), usedforsecurity=False).hexdigest()[:16]
-
     @cached(ttl=300, maxsize=16, key_func=lambda self, df, fp: fp)
     def _calculate_mean_with_cache(
         self, data_frame: pd.DataFrame, fingerprint: str
@@ -277,7 +243,8 @@ class Mean(UniDfShaper):
         self._verify_preconditions(data_frame)
 
         # Compute fingerprint for caching
-        fingerprint = self._compute_data_fingerprint(data_frame, self._params)
+        relevant_cols = self.mean_vars + self.grouping_columns + [self.replacing_column]
+        fingerprint = compute_data_fingerprint(data_frame, self._params, relevant_cols)
 
         # Use cached calculation
         return self._calculate_mean_with_cache(data_frame, fingerprint)

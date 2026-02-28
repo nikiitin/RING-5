@@ -6,11 +6,14 @@ application performance.
 """
 
 import functools
+import hashlib
 import logging
 import threading
 import time
 from collections.abc import Callable
 from typing import Any, TypeVar, cast
+
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -202,3 +205,39 @@ def get_cache_stats() -> dict[str, Any]:
     return {
         "plot_cache": _plot_cache.stats(),
     }
+
+
+def compute_data_fingerprint(
+    data: pd.DataFrame,
+    params: dict[str, Any],
+    relevant_cols: list[str],
+) -> str:
+    """Compute an MD5 fingerprint for DataFrame+params cache keying.
+
+    Used by cached shapers (mean, normalize) to detect whether the
+    input data and configuration have changed since the last run,
+    avoiding expensive recalculation when the fingerprint matches.
+
+    Args:
+        data: Input DataFrame.
+        params: Shaper configuration parameters.
+        relevant_cols: Column names relevant to the computation.
+
+    Returns:
+        16-char hex digest suitable as a cache key.
+    """
+
+    fingerprint_parts = [
+        f"shape:{data.shape}",
+        f"cols:{sorted(relevant_cols)}",
+        f"params:{sorted(params.items())}",
+    ]
+
+    if len(data) > 0 and relevant_cols:
+        existing = list(dict.fromkeys(c for c in relevant_cols if c in data.columns))
+        if existing:
+            sample_rows = data[existing].head(2).to_json()
+            fingerprint_parts.append(f"sample:{sample_rows}")
+
+    fingerprint = "|".join(fingerprint_parts)
+    return hashlib.md5(fingerprint.encode(), usedforsecurity=False).hexdigest()[:16]

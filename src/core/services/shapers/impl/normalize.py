@@ -72,7 +72,6 @@ Version: 2.0.0
 Last Modified: 2026-01-27
 """
 
-import hashlib
 import logging
 import warnings
 from typing import Any, cast, override
@@ -81,7 +80,7 @@ import pandas as pd
 from pandas import DataFrame
 
 from src.core.models.shaper_models import NormalizeShaperConfig
-from src.core.performance import cached
+from src.core.performance import cached, compute_data_fingerprint
 from src.core.services.shapers.uni_df_shaper import UniDfShaper
 
 logger = logging.getLogger(__name__)
@@ -251,39 +250,6 @@ class Normalize(UniDfShaper):
 
         return result
 
-    @staticmethod
-    def _compute_data_fingerprint(data: pd.DataFrame, params: dict[str, Any]) -> str:
-        """
-        Compute fingerprint for caching normalization results.
-
-        Args:
-            data: Input DataFrame
-            params: Normalization parameters
-
-        Returns:
-            Hash string representing data+params combination
-        """
-        # Combine data shape, relevant columns, and params
-        relevant_cols = (
-            params.get("normalizeVars", [])
-            + params.get("groupBy", [])
-            + [params.get("normalizerColumn", "")]
-        )
-
-        fingerprint_parts = [
-            f"shape:{data.shape}",
-            f"cols:{sorted(relevant_cols)}",
-            f"params:{sorted(params.items())}",
-        ]
-
-        # Add sample of actual data for change detection
-        if len(data) > 0:
-            sample_rows = data[relevant_cols].head(2).to_json() if relevant_cols else ""
-            fingerprint_parts.append(f"sample:{sample_rows}")
-
-        fingerprint = "|".join(fingerprint_parts)
-        return hashlib.md5(fingerprint.encode(), usedforsecurity=False).hexdigest()[:16]
-
     @cached(ttl=300, maxsize=32, key_func=lambda self, df, fp: fp)
     def _normalize_with_cache(self, data_frame: pd.DataFrame, fingerprint: str) -> pd.DataFrame:
         """
@@ -335,7 +301,8 @@ class Normalize(UniDfShaper):
         self._verify_preconditions(data_frame)
 
         # Compute fingerprint for caching (only hash metadata, not entire DataFrame)
-        fingerprint = self._compute_data_fingerprint(data_frame, self._params)
+        relevant_cols = self._normalize_vars + self._group_by + [self._normalizer_column]
+        fingerprint = compute_data_fingerprint(data_frame, self._params, relevant_cols)
 
         # Use cache with fingerprint as key (NOT the DataFrame itself)
         result: DataFrame = self._normalize_with_cache(data_frame, fingerprint)
