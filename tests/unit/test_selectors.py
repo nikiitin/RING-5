@@ -184,8 +184,9 @@ class TestItemSelector:
     def test_no_match_warning(self, sample_dataframe: Any, caplog: Any) -> None:
         """Test warning log when no items match."""
         selector = ItemSelector({"column": "system_id", "strings": ["nonexistent"]})
-        selector._verify_preconditions(sample_dataframe)
+        result = selector(sample_dataframe)
 
+        assert result.empty
         assert "None of the strings" in caplog.text
 
     def test_missing_column_parameter(self) -> None:

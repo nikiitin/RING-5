@@ -45,32 +45,20 @@ class ItemSelector(Selector):
             raise TypeError("ItemSelector 'strings' parameter must be a list.")
         return True
 
-    def _verify_preconditions(self, data_frame: pd.DataFrame) -> bool:
-        """Verify that items exist to be selected (optional warning)."""
-        super()._verify_preconditions(data_frame)
-
-        if self.mode == "exact":
-            mask = data_frame[self.column].astype(str).isin(self.strings)
-        else:
-            pattern = "|".join(self.strings)
-            mask = data_frame[self.column].astype(str).str.contains(pattern, na=False)
-
-        if not bool(mask.any()):
-            logging.getLogger(__name__).warning(
-                f"ItemSelector: None of the strings {self.strings} found in column '{self.column}'."
-            )
-
-        return True
-
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
-        """
-        Filters the dataframe to only include rows with matching strings.
-        """
+        """Filter the dataframe to only include rows with matching strings."""
         self._verify_preconditions(data_frame)
 
         if self.mode == "exact":
-            return data_frame[data_frame[self.column].astype(str).isin(self.strings)]
+            result = data_frame[data_frame[self.column].astype(str).isin(self.strings)]
         else:
-            # Regex mode (previous behavior)
             pattern = "|".join(self.strings)
-            return data_frame[data_frame[self.column].astype(str).str.contains(pattern, na=False)]
+            result = data_frame[data_frame[self.column].astype(str).str.contains(pattern, na=False)]
+
+        if result.empty:
+            logging.getLogger(__name__).warning(
+                f"ItemSelector: None of the strings {self.strings} "
+                f"found in column '{self.column}'."
+            )
+
+        return result
