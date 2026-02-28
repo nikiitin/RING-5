@@ -443,8 +443,6 @@ class BaseStyleUI:
         x_col = saved_config.get("x")
 
         if data is not None and x_col and x_col in data.columns:
-            # Removed markdown title
-
             with st.expander("Rename X-Axis Labels"):
                 unique_x_raw = data[x_col].unique()
                 unique_x = sorted(unique_x_raw, key=str)
