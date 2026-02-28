@@ -226,7 +226,7 @@ class Normalize(UniDfShaper):
             return result
 
         # Calculate denominator (sum of specified normalizer variables)
-        baseline_vars = pd.DataFrame(baseline[self._normalizer_vars])
+        baseline_vars = baseline[self._normalizer_vars]
         denominator = baseline_vars.iloc[0].sum()
 
         if pd.isna(denominator) or denominator == 0:

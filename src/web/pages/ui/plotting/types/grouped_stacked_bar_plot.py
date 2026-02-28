@@ -257,7 +257,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
 
         # Apply Group Filter
         if config.get("group_filter") is not None:
-            data = pd.DataFrame(data[data[group_col].isin(config["group_filter"])])
+            data = data[data[group_col].isin(config["group_filter"])]
 
         # Get ordered categories and groups
         categories, groups = self._get_ordered_categories_and_groups(data, x_col, group_col, config)

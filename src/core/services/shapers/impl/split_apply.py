@@ -249,7 +249,7 @@ class SplitApply(UniDfShaper):
             select_cols: list[str] = self._join_columns + group_cols + sd_cols
 
             # Slice the DataFrame to only this group's columns
-            slice_df: pd.DataFrame = pd.DataFrame(data_frame[select_cols]).copy()
+            slice_df: pd.DataFrame = data_frame[select_cols].copy()
 
             # Apply sub-pipeline if any
             if pipeline:

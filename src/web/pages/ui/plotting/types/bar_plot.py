@@ -54,14 +54,12 @@ class BarPlot(BasePlot):
                 groups = sorted(data[color_col].unique())
 
             for grp in groups:
-                grp_data = pd.DataFrame(data[data[color_col] == grp])
+                grp_data = data[data[color_col] == grp]
                 # Sort to match x_order without reindex (avoids duplicate label errors)
                 order_map = {v: i for i, v in enumerate(x_order)}
                 grp_data = grp_data.copy()
                 grp_data["__sort_key"] = pd.Series(grp_data[x_col]).map(order_map)
-                grp_data = pd.DataFrame(
-                    grp_data.sort_values(by="__sort_key").drop(columns=["__sort_key"])
-                )
+                grp_data = grp_data.sort_values(by="__sort_key").drop(columns=["__sort_key"])
                 error_y = grp_data[sd_col].tolist() if sd_col else None
                 traces.append(
                     BarTraceConfig(
@@ -76,7 +74,7 @@ class BarPlot(BasePlot):
             order_map = {v: i for i, v in enumerate(x_order)}
             data = data.copy()
             data["__sort_key"] = pd.Series(data[x_col]).map(order_map)
-            data = pd.DataFrame(data.sort_values(by="__sort_key").drop(columns=["__sort_key"]))
+            data = data.sort_values(by="__sort_key").drop(columns=["__sort_key"])
             error_y = data[sd_col].tolist() if sd_col else None
             traces.append(
                 BarTraceConfig(

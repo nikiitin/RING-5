@@ -21,14 +21,14 @@ class ReductionService:
             return df
 
         grouped = df.groupby(categorical_cols)[statistic_cols]
-        mean_df = pd.DataFrame(grouped.mean()).reset_index()
-        std_df = pd.DataFrame(grouped.std()).reset_index()
+        mean_df = grouped.mean().reset_index()
+        std_df = grouped.std().reset_index()
 
         std_df = std_df.rename(columns=lambda x: f"{x}.sd" if x in statistic_cols else x)
         result_df = pd.merge(mean_df, std_df, on=categorical_cols)
 
         cols = categorical_cols + [c for c in result_df.columns if c not in categorical_cols]
-        return pd.DataFrame(result_df[cols])
+        return result_df[cols]
 
     @staticmethod
     def validate_seeds_reducer_inputs(

@@ -58,7 +58,7 @@ class StackedBarPlot(BasePlot):
 
         # Apply X Filter
         if config.get("x_filter") is not None:
-            data = pd.DataFrame(data[data[x_col].isin(config["x_filter"])])
+            data = data[data[x_col].isin(config["x_filter"])]
 
         # Calculate Total for each row
         data["__total"] = data[y_cols].sum(axis=1)
@@ -159,13 +159,11 @@ class StackedBarPlot(BasePlot):
                 return str(val)
 
         annotations = []
-        for _, row in data.iterrows():
-            val = float(row["__total"])
+        for total_val, x_pos in zip(data["__total"], data[x_col]):
+            val = float(total_val)
 
             if val <= threshold:
                 continue
-
-            x_pos = row[x_col]
             y_pos, yanchor = self._get_total_position(val, position_option, anchor_option)
 
             annotations.append(

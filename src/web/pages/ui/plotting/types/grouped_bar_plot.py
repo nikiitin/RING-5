@@ -29,13 +29,11 @@ class GroupedBarPlot(BasePlot):
         if data is not None:
             # Apply X filter
             if saved_config.get("x_filter") is not None:
-                data = pd.DataFrame(data[data[saved_config["x"]].isin(saved_config["x_filter"])])
+                data = data[data[saved_config["x"]].isin(saved_config["x_filter"])]
 
             # Apply Group filter
             if saved_config.get("group_filter") is not None and saved_config.get("group"):
-                data = pd.DataFrame(
-                    data[data[saved_config["group"]].isin(saved_config["group_filter"])]
-                )
+                data = data[data[saved_config["group"]].isin(saved_config["group_filter"])]
 
         return super().render_advanced_options(saved_config, data)
 
@@ -109,9 +107,9 @@ class GroupedBarPlot(BasePlot):
 
         # Apply Filters
         if config.get("x_filter") is not None:
-            data = pd.DataFrame(data[data[x_col].isin(config["x_filter"])])
+            data = data[data[x_col].isin(config["x_filter"])]
         if config.get("group_filter") is not None and group_col:
-            data = pd.DataFrame(data[data[group_col].isin(config["group_filter"])])
+            data = data[data[group_col].isin(config["group_filter"])]
 
         # Determine Orders
         if config.get("xaxis_order"):
@@ -154,7 +152,7 @@ class GroupedBarPlot(BasePlot):
         # If grouped by color
         if group_col:
             for grp in ordered_groups:
-                grp_data = pd.DataFrame(data[data[group_col] == grp])
+                grp_data = data[data[group_col] == grp]
                 x_coords = pd.Series(grp_data[x_col]).map(x_map).tolist()
 
                 error_y_vals: list[float] | None = None

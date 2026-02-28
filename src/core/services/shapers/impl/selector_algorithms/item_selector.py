@@ -69,10 +69,8 @@ class ItemSelector(Selector):
         self._verify_preconditions(data_frame)
 
         if self.mode == "exact":
-            return pd.DataFrame(data_frame[data_frame[self.column].astype(str).isin(self.strings)])
+            return data_frame[data_frame[self.column].astype(str).isin(self.strings)]
         else:
             # Regex mode (previous behavior)
             pattern = "|".join(self.strings)
-            return pd.DataFrame(
-                data_frame[data_frame[self.column].astype(str).str.contains(pattern, na=False)]
-            )
+            return data_frame[data_frame[self.column].astype(str).str.contains(pattern, na=False)]

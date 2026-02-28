@@ -228,38 +228,25 @@
 
 ## Phase 5: Pandas Cleanup
 
-### P5.1 [TODO] Remove 26 redundant pd.DataFrame() wrappers (Track 13.5, 3.3)
+### P5.1 [DONE] Remove 26 redundant pd.DataFrame() wrappers (Track 13.5, 3.3)
 
 - **Severity**: HIGH (unnecessary copies across 12 files)
-- **Files and lines**:
-  - `outlier_service.py`: lines 24, 27 (already fixed in Phase 1)
-  - `condition_selector.py`: lines 92, 98, 102, 104, 106, 109
-  - `item_selector.py`: line 72
-  - `column_selector.py`: line 62
-  - `split_apply.py`: line 252
-  - `normalize.py`: line 229
-  - `reduction_service.py`: line 31
-  - `data_manager_components.py`: lines 89, 96, 116
-  - `bar_plot.py`: lines 57, 79
-  - `stacked_bar_plot.py`: line 61
-  - `dual_axis_bar_dot_plot.py`: line 108
-  - `grouped_stacked_bar_plot.py`: line 260
-  - `grouped_bar_plot.py`: lines 32, 112, 114, 157
-- **Fix**: Change `pd.DataFrame(data_frame[mask])` to `data_frame[mask]` everywhere. Zero behavior change.
+- **Fix**: Removed redundant `pd.DataFrame()` wrappers from boolean indexing results across 12 files: condition_selector.py (6), item_selector.py (2), column_selector.py (1), split_apply.py (1), normalize.py (1), reduction_service.py (3), data_manager_components.py (3), bar_plot.py (3), stacked_bar_plot.py (1), dual_axis_bar_dot_plot.py (1), grouped_stacked_bar_plot.py (1), grouped_bar_plot.py (5). ~28 wrappers removed total.
+- **Commit**: Phase 5 commit
 
-### P5.2 [TODO] Replace iterrows() with itertuples() (Track 13.3)
+### P5.2 [DONE] Replace iterrows() with vectorized zip() (Track 13.3)
 
 - **Severity**: MEDIUM
 - **File**: `src/web/pages/ui/plotting/types/stacked_bar_plot.py`, line 162
-- **Bug**: `for _, row in data.iterrows()` in `_build_totals_annotations()`. iterrows() is slowest DataFrame iteration method.
-- **Fix**: Replace with `.itertuples()` for 10-50x speedup on large datasets.
+- **Bug**: `for _, row in data.iterrows()` in `_build_totals_annotations()`.
+- **Fix**: Replaced with `zip(data["__total"], data[x_col])` — avoids iterrows overhead and handles dunder column names (which `itertuples` can't).
+- **Commit**: Phase 5 commit
 
-### P5.3 [TODO] Use .pipe() for shaper pipeline (Track 13.1)
+### P5.3 [SKIP] Use .pipe() for shaper pipeline (Track 13.1)
 
 - **Severity**: MEDIUM
-- **File**: `src/core/services/shapers/pipeline_service.py`, lines 153-167
-- **Bug**: Manual for-loop instead of pandas `.pipe()`.
-- **Fix**: Refactor to use `.pipe()` for each shaper application. All 10 shapers have compatible `__call__(self, data_frame: pd.DataFrame) -> pd.DataFrame` signatures.
+- **File**: `src/core/services/shapers/pipeline_service.py`
+- **Finding**: The existing loop pattern is cleaner for this use case — it needs per-shaper timing, error handling with shaper-type context in the error message, and index tracking. Converting to `.pipe()` would lose the per-step timing and error context. The current pattern is idiomatic and readable.
 
 ---
 

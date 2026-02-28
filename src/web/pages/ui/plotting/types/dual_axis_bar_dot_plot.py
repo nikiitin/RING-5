@@ -105,7 +105,7 @@ class DualAxisBarDotPlot(BasePlot):
                 groups = ordered + missing
 
             for grp in groups:
-                grp_data: pd.DataFrame = pd.DataFrame(data[data[color_col] == grp])
+                grp_data: pd.DataFrame = data[data[color_col] == grp]
 
                 # Bar trace (primary Y)
                 bar_error: list[float] | None = None
