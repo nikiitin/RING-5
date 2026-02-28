@@ -186,7 +186,7 @@ class Normalize(UniDfShaper):
             raise ValueError(f"Grouping column '{self._normalizer_column}' not found.")
 
         # Ensure baseline value exists
-        if self._normalizer_value not in data_frame[self._normalizer_column].values:
+        if self._normalizer_value not in data_frame[self._normalizer_column].unique():
             raise ValueError(
                 f"Baseline value '{self._normalizer_value}' not found "
                 f"in column '{self._normalizer_column}'."
@@ -315,7 +315,7 @@ class Normalize(UniDfShaper):
                 # Merge with original group columns
                 for col in self._group_by:
                     if col not in result.columns:
-                        result[col] = data_frame[col].values
+                        result[col] = data_frame[col].copy()
 
         return result
 

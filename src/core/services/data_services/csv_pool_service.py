@@ -277,7 +277,7 @@ class CsvPoolService:
 
             # Fast row count without loading entire file
             with open(resolved_path) as f:
-                row_count = sum(1 for _ in f) - 1  # Subtract header
+                row_count = max(0, sum(1 for _ in f) - 1)  # Subtract header
 
             # Read just first row to get columns and types
             sample_df = pd.read_csv(resolved_path, sep=None, engine="python", nrows=100)

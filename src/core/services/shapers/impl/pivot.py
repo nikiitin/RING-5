@@ -6,6 +6,7 @@ Provides capabilities for:
 2. Pivot Wider: Pivot a DataFrame from long to wide format.
 """
 
+import logging
 import re
 from typing import Any, cast
 
@@ -16,6 +17,8 @@ from src.core.models.shaper_models import (
     PivotWiderShaperConfig,
 )
 from src.core.services.shapers.shaper import Shaper
+
+logger = logging.getLogger(__name__)
 
 
 def extract_with_pattern(
@@ -46,7 +49,8 @@ def extract_with_pattern(
                 continue
 
         return separator.join(parts) if parts else value
-    except Exception:
+    except (re.error, TypeError, IndexError) as exc:
+        logger.warning("extract_with_pattern failed for %r: %s", value, exc)
         return value
 
 

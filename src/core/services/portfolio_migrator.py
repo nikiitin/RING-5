@@ -54,7 +54,13 @@ class PortfolioMigrator:
             - Removes all ``export_*`` keys from each plot config (they
               are superseded by the download section in V2).
             - Preserves unknown keys for forward compatibility.
+
+        Note:
+            Works on a shallow copy to avoid mutating the caller's dict.
         """
+        import copy
+
+        data = copy.deepcopy(data)
         plots: list[dict[str, Any]] = data.get("plots", [])
         for plot in plots:
             config: dict[str, Any] = plot.get("config", {})
