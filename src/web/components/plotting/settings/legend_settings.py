@@ -22,6 +22,20 @@ from typing import Any
 
 import streamlit as st
 
+# Canonical mapping of legend tier to config-key prefix.
+_LEGEND_PREFIXES: dict[str, str] = {
+    "primary": "legend_",
+    "secondary": "legend2_",
+    "tertiary": "legend3_",
+}
+
+# Mapping of legend tier to Streamlit widget-key prefix.
+_LEGEND_KEY_PREFIXES: dict[str, str] = {
+    "primary": "theme_",
+    "secondary": "legend2_",
+    "tertiary": "legend3_",
+}
+
 
 class LegendSettingsComponent:
     """Render legend configuration with multi-level pills navigation.
@@ -77,27 +91,17 @@ class LegendSettingsComponent:
             default="primary",
         )
 
-        prefix_map = {
-            "primary": "theme_",
-            "secondary": "legend2_",
-            "tertiary": "legend3_",
-        }
-        key_prefix = prefix_map.get(legend_tab or "primary", "theme_")
+        key_prefix = _LEGEND_KEY_PREFIXES.get(legend_tab or "primary", "theme_")
 
         # Render the active pill's widgets
         active_config = self._render_legend_section(saved_config, key_prefix)
 
         # Preserve inactive pills' config from saved_config so that
         # switching pills doesn't lose previously-set values.
-        config_prefix_map: dict[str, str] = {
-            "primary": "legend_",
-            "secondary": "legend2_",
-            "tertiary": "legend3_",
-        }
         active_tab = legend_tab or "primary"
 
         preserved: dict[str, Any] = {}
-        for level, cfg_prefix in config_prefix_map.items():
+        for level, cfg_prefix in _LEGEND_PREFIXES.items():
             if level == active_tab:
                 continue
             # Only preserve if the level is available
