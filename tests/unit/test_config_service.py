@@ -231,12 +231,11 @@ class TestConfigurationLoading:
 
     def test_load_saved_configs_sorts_by_modified_time(self, populated_config_dir: Path) -> None:
         """Verify configs sorted by modification time (newest first)."""
-        import time
+        import os
 
-        # Arrange - Touch one file to make it newer
+        # Arrange - Set explicit mtime to make one file clearly newest
         newest_file = populated_config_dir / "config_0_20260101_120000.json"
-        time.sleep(0.1)  # Small delay to ensure distinct mtime
-        newest_file.touch()
+        os.utime(newest_file, (9999999999, 9999999999))
 
         # Act
         configs = ConfigService.load_saved_configs()
@@ -365,12 +364,20 @@ class TestConfigurationRoundTrip:
 
     def test_multiple_saves_create_unique_files(self, empty_config_dir: Path) -> None:
         """Verify multiple saves of same config create unique files."""
-        import time
+        import datetime
+        from unittest.mock import patch
 
-        # Act
-        path1 = ConfigService.save_configuration("test", "desc1", [])
-        time.sleep(1.1)  # Ensure timestamp differs
-        path2 = ConfigService.save_configuration("test", "desc2", [])
+        # Act - Mock datetime.now to return distinct timestamps
+        fake_time1 = datetime.datetime(2026, 1, 1, 12, 0, 0)
+        fake_time2 = datetime.datetime(2026, 1, 1, 12, 0, 5)
+
+        with patch("src.core.services.data_services.config_service.datetime.datetime") as mock_dt:
+            mock_dt.now.return_value = fake_time1
+            mock_dt.strftime = datetime.datetime.strftime
+            path1 = ConfigService.save_configuration("test", "desc1", [])
+
+            mock_dt.now.return_value = fake_time2
+            path2 = ConfigService.save_configuration("test", "desc2", [])
 
         # Assert
         assert path1 != path2

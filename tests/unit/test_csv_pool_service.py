@@ -313,12 +313,20 @@ class TestPoolManagement:
         self, sample_csv: Path, empty_pool_dir: Path
     ) -> None:
         """Verify consecutive adds create unique filenames."""
-        import time
+        import datetime
+        from unittest.mock import patch
 
-        # Act
-        path1 = CsvPoolService.add_to_pool(str(sample_csv))
-        time.sleep(1.1)  # Ensure timestamp differs (granularity is 1 second)
-        path2 = CsvPoolService.add_to_pool(str(sample_csv))
+        # Act - Mock datetime.now to return distinct timestamps
+        fake_time1 = datetime.datetime(2026, 1, 1, 12, 0, 0)
+        fake_time2 = datetime.datetime(2026, 1, 1, 12, 0, 5)
+
+        with patch("src.core.services.data_services.csv_pool_service.datetime.datetime") as mock_dt:
+            mock_dt.now.return_value = fake_time1
+            mock_dt.strftime = datetime.datetime.strftime
+            path1 = CsvPoolService.add_to_pool(str(sample_csv))
+
+            mock_dt.now.return_value = fake_time2
+            path2 = CsvPoolService.add_to_pool(str(sample_csv))
 
         # Assert
         assert path1 != path2

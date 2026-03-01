@@ -48,26 +48,35 @@ class TestBasicOperations:
 
     def test_ttl_expiration(self):
         """Values should expire after the TTL elapses."""
+        from unittest.mock import patch
+
         cache = SimpleCache(maxsize=10, ttl=0.05)
 
-        cache.set("ephemeral", "data")
-        assert cache.get("ephemeral") == "data"
+        with patch("src.core.performance.time") as mock_time:
+            mock_time.time.return_value = 1000.0
+            cache.set("ephemeral", "data")
 
-        # Wait for the TTL to expire
-        time.sleep(0.08)
+            # Still within TTL
+            mock_time.time.return_value = 1000.01
+            assert cache.get("ephemeral") == "data"
 
-        assert cache.get("ephemeral") is None
+            # Past TTL (0.05 seconds later)
+            mock_time.time.return_value = 1000.1
+            assert cache.get("ephemeral") is None
 
     def test_ttl_not_yet_expired(self):
         """Values should remain available before the TTL elapses."""
+        from unittest.mock import patch
+
         cache = SimpleCache(maxsize=10, ttl=1.0)
 
-        cache.set("persistent", "data")
-        assert cache.get("persistent") == "data"
+        with patch("src.core.performance.time") as mock_time:
+            mock_time.time.return_value = 1000.0
+            cache.set("persistent", "data")
 
-        # Still well within the TTL window
-        time.sleep(0.01)
-        assert cache.get("persistent") == "data"
+            # Well within TTL window
+            mock_time.time.return_value = 1000.005
+            assert cache.get("persistent") == "data"
 
     def test_lru_eviction(self):
         """When cache is full, the entry with the oldest timestamp should be evicted."""
@@ -87,14 +96,20 @@ class TestBasicOperations:
 
     def test_lru_eviction_respects_insertion_order(self):
         """Eviction should remove the entry with the earliest timestamp."""
+        from unittest.mock import patch
+
         cache = SimpleCache(maxsize=2)
 
-        cache.set("first", 1)
-        time.sleep(0.01)  # Ensure distinct timestamps
-        cache.set("second", 2)
+        with patch("src.core.performance.time") as mock_time:
+            mock_time.time.return_value = 1000.0
+            cache.set("first", 1)
 
-        # This triggers eviction of "first" (oldest timestamp)
-        cache.set("third", 3)
+            mock_time.time.return_value = 1001.0
+            cache.set("second", 2)
+
+            # This triggers eviction of "first" (oldest timestamp)
+            mock_time.time.return_value = 1002.0
+            cache.set("third", 3)
 
         assert cache.get("first") is None
         assert cache.get("second") == 2
