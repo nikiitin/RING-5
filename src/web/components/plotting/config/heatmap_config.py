@@ -9,8 +9,6 @@ Optionally splits the chart into one heatmap per facet value
 (e.g. benchmark_name).
 """
 
-from typing import Any
-
 import pandas as pd
 import streamlit as st
 
@@ -20,13 +18,14 @@ from src.web.components.plotting.config.base_plot_config import (
 from src.web.components.plotting.config.plot_config_components import (
     PlotConfigComponents,
 )
+from src.web.models.plot_models import PlotConfig
 
 
 def render(
     data: pd.DataFrame,
-    saved_config: dict[str, Any],
+    saved_config: PlotConfig,
     plot_id: int,
-) -> dict[str, Any]:
+) -> PlotConfig:
     """Render configuration UI for a heatmap plot.
 
     The heatmap expects wide-format data:

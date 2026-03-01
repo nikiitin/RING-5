@@ -9,9 +9,9 @@ Usage::
     config = component.render(saved_config)
 """
 
-from typing import Any
-
 import streamlit as st
+
+from src.web.models.plot_models import PlotConfig
 
 
 class LayoutSettingsComponent:
@@ -29,17 +29,17 @@ class LayoutSettingsComponent:
         self.plot_id = plot_id
         self.plot_type = plot_type
 
-    def render(self, saved_config: dict[str, Any]) -> dict[str, Any]:
+    def render(self, saved_config: PlotConfig) -> PlotConfig:
         """Render layout dimension widgets.
 
         Parameters
         ----------
-        saved_config : dict[str, Any]
+        saved_config : PlotConfig
             Current saved configuration.
 
         Returns
         -------
-        dict[str, Any]
+        PlotConfig
             Configuration dict with dimension and margin keys.
         """
         st.markdown("**Dimensions**")

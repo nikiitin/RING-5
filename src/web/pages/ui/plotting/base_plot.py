@@ -55,7 +55,7 @@ class BasePlot(ABC):
         self.style_manager: StyleManager = StyleManager(self.plot_id, self.plot_type)
 
     @abstractmethod
-    def render_config_ui(self, data: pd.DataFrame, saved_config: dict[str, Any]) -> dict[str, Any]:
+    def render_config_ui(self, data: pd.DataFrame, saved_config: PlotConfig) -> PlotConfig:
         """
         Render the configuration UI for this plot type.
 
@@ -68,7 +68,7 @@ class BasePlot(ABC):
         """
 
     @abstractmethod
-    def create_traces(self, data: pd.DataFrame, config: dict[str, Any]) -> TraceBuildResult:
+    def create_traces(self, data: pd.DataFrame, config: PlotConfig) -> TraceBuildResult:
         """
         Produce engine-agnostic trace data from *data* and *config*.
 
@@ -84,7 +84,7 @@ class BasePlot(ABC):
             ``TraceBuildResult`` with traces and metadata.
         """
 
-    def create_figure(self, data: pd.DataFrame, config: dict[str, Any]) -> go.Figure:
+    def create_figure(self, data: pd.DataFrame, config: PlotConfig) -> go.Figure:
         """
         Create the Plotly figure from data and configuration.
 
@@ -132,7 +132,7 @@ class BasePlot(ABC):
         return changed
 
     @abstractmethod
-    def get_legend_column(self, config: dict[str, Any]) -> str | None:
+    def get_legend_column(self, config: PlotConfig) -> str | None:
         """
         Get the column name used for legend/color coding.
 
@@ -164,7 +164,7 @@ class BasePlot(ABC):
             )
         return fig
 
-    def apply_common_layout(self, fig: go.Figure, config: dict[str, Any]) -> go.Figure:
+    def apply_common_layout(self, fig: go.Figure, config: PlotConfig) -> go.Figure:
         """
         Apply common layout settings.
         Delegates to StyleManager.
@@ -246,14 +246,14 @@ class BasePlot(ABC):
 
         return plot
 
-    def render_display_options(self, saved_config: dict[str, Any]) -> dict[str, Any]:
+    def render_display_options(self, saved_config: PlotConfig) -> PlotConfig:
         """Render sizing and layout options via LayoutSettingsComponent."""
         component = LayoutSettingsComponent(self.plot_id, self.plot_type)
         return component.render(saved_config)
 
     def render_theme_options(
-        self, saved_config: dict[str, Any], items: list[str] | None = None
-    ) -> dict[str, Any]:
+        self, saved_config: PlotConfig, items: list[str] | None = None
+    ) -> PlotConfig:
         """Render theme options via StyleManager."""
         # Pass data for potential data-dependent theming (e.g. series colors)
         # Use a prefix to distinguish from advanced options
@@ -268,9 +268,9 @@ class BasePlot(ABC):
     def render_settings_section(
         self,
         section: str | None,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         data: pd.DataFrame | None = None,
-    ) -> dict[str, Any]:
+    ) -> PlotConfig:
         """Render UI for a single settings section selected via pills.
 
         Each pill maps to one or more existing rendering methods so that
@@ -321,21 +321,17 @@ class BasePlot(ABC):
         """
         return False
 
-    def _section_layout(
-        self, saved_config: dict[str, Any], data: pd.DataFrame | None
-    ) -> dict[str, Any]:
+    def _section_layout(self, saved_config: PlotConfig, data: pd.DataFrame | None) -> PlotConfig:
         component = LayoutSettingsComponent(self.plot_id, self.plot_type)
         return component.render(saved_config)
 
     def _section_typography(
-        self, saved_config: dict[str, Any], data: pd.DataFrame | None
-    ) -> dict[str, Any]:
+        self, saved_config: PlotConfig, data: pd.DataFrame | None
+    ) -> PlotConfig:
         component = TypographySettingsComponent(self.plot_id, self.plot_type)
         return component.render(saved_config, key_prefix="theme_")
 
-    def _section_legends(
-        self, saved_config: dict[str, Any], data: pd.DataFrame | None
-    ) -> dict[str, Any]:
+    def _section_legends(self, saved_config: PlotConfig, data: pd.DataFrame | None) -> PlotConfig:
         has_dual_axis: bool = self.plot_type == "dual_axis_bar_dot" or bool(
             saved_config.get("dual_axis")
         )
@@ -357,9 +353,7 @@ class BasePlot(ABC):
             has_tertiary=has_tertiary,
         )
 
-    def _section_axes(
-        self, saved_config: dict[str, Any], data: pd.DataFrame | None
-    ) -> dict[str, Any]:
+    def _section_axes(self, saved_config: PlotConfig, data: pd.DataFrame | None) -> PlotConfig:
         has_dual_axis: bool = self.plot_type == "dual_axis_bar_dot" or bool(
             saved_config.get("dual_axis")
         )
@@ -375,7 +369,7 @@ class BasePlot(ABC):
             render_ordering_fn=self._render_ordering_ui,
         )
 
-    def _render_x_axis_settings(self, saved_config: dict[str, Any], config: dict[str, Any]) -> None:
+    def _render_x_axis_settings(self, saved_config: PlotConfig, config: PlotConfig) -> None:
         """Render X-axis specific settings (tick angle, grid)."""
         st.markdown("#### X-Axis Settings")
         config["show_x_grid"] = st.checkbox(
@@ -395,8 +389,8 @@ class BasePlot(ABC):
 
     def _render_y_axis_settings(
         self,
-        saved_config: dict[str, Any],
-        config: dict[str, Any],
+        saved_config: PlotConfig,
+        config: PlotConfig,
         prefix: str,
     ) -> None:
         """Render Y-axis settings for left or right axis.
@@ -427,21 +421,17 @@ class BasePlot(ABC):
             config[dtick_key] = dtick
 
     def _section_data_labels(
-        self, saved_config: dict[str, Any], data: pd.DataFrame | None
-    ) -> dict[str, Any]:
+        self, saved_config: PlotConfig, data: pd.DataFrame | None
+    ) -> PlotConfig:
         component = DataLabelsSettingsComponent(self.plot_id, self.plot_type)
         return component.render(saved_config, key_prefix="theme_")
 
-    def _section_colors(
-        self, saved_config: dict[str, Any], data: pd.DataFrame | None
-    ) -> dict[str, Any]:
+    def _section_colors(self, saved_config: PlotConfig, data: pd.DataFrame | None) -> PlotConfig:
         """Unified palette selector using core PALETTE_REGISTRY."""
         component = ColorsSettingsComponent(self.plot_id, self.plot_type)
         return component.render(saved_config, data=data)
 
-    def _section_advanced(
-        self, saved_config: dict[str, Any], data: pd.DataFrame | None
-    ) -> dict[str, Any]:
+    def _section_advanced(self, saved_config: PlotConfig, data: pd.DataFrame | None) -> PlotConfig:
         component = AdvancedSettingsComponent(self.plot_id, self.plot_type)
         return component.render(
             saved_config,
@@ -453,8 +443,8 @@ class BasePlot(ABC):
 
     def _render_engine_specific_controls(
         self,
-        saved_config: dict[str, Any],
-        config: dict[str, Any],
+        saved_config: PlotConfig,
+        config: PlotConfig,
     ) -> None:
         """Render engine-specific controls. Delegates to engine_settings component."""
         from src.web.components.plotting.settings.engine_settings import (
@@ -464,8 +454,8 @@ class BasePlot(ABC):
         EngineSettingsComponent(self.plot_id, self.plot_type).render(saved_config, config)
 
     def render_advanced_options(
-        self, saved_config: dict[str, Any], data: pd.DataFrame | None = None
-    ) -> dict[str, Any]:
+        self, saved_config: PlotConfig, data: pd.DataFrame | None = None
+    ) -> PlotConfig:
         """
         Render advanced options (legend, error bars, download format, axis settings).
         Should be called within an expander.
@@ -477,7 +467,7 @@ class BasePlot(ABC):
         Returns:
             Configuration dictionary with advanced options
         """
-        config: dict[str, Any] = {}
+        config: PlotConfig = {}
 
         # 1. General & Axis Settings
         self._render_general_settings(saved_config, config)
@@ -513,8 +503,8 @@ class BasePlot(ABC):
         return config
 
     def render_specific_advanced_options(
-        self, saved_config: dict[str, Any], data: pd.DataFrame | None = None
-    ) -> dict[str, Any]:
+        self, saved_config: PlotConfig, data: pd.DataFrame | None = None
+    ) -> PlotConfig:
         """
         Hook for subclasses to render plot-specific advanced options.
         Default implementation renders Bar settings if plot_type contains 'bar'.
@@ -559,9 +549,7 @@ class BasePlot(ABC):
                     )
         return config
 
-    def _render_general_settings(
-        self, saved_config: dict[str, Any], config: dict[str, Any]
-    ) -> None:
+    def _render_general_settings(self, saved_config: PlotConfig, config: PlotConfig) -> None:
         """Helper to render general settings.
 
         Args:
@@ -627,7 +615,7 @@ class BasePlot(ABC):
             )
 
     def _render_ordering_ui(
-        self, saved_config: dict[str, Any], data: pd.DataFrame, config: dict[str, Any]
+        self, saved_config: PlotConfig, data: pd.DataFrame, config: PlotConfig
     ) -> None:
         """Render ordering UI. Delegates to ordering_settings component."""
         from src.web.components.plotting.settings.ordering_settings import (
@@ -636,7 +624,7 @@ class BasePlot(ABC):
 
         OrderingSettingsComponent(self.plot_id, self.plot_type).render(saved_config, data, config)
 
-    def _render_shapes_ui(self, saved_config: dict[str, Any]) -> list[ShapeConfig]:
+    def _render_shapes_ui(self, saved_config: PlotConfig) -> list[ShapeConfig]:
         """Render shapes UI. Delegates to shapes_settings component."""
         from src.web.components.plotting.settings.shapes_settings import (
             ShapesSettingsComponent,
@@ -677,9 +665,9 @@ class BasePlot(ABC):
 
     def _render_reference_line_ui(
         self,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         data: pd.DataFrame | None,
-        config: dict[str, Any],
+        config: PlotConfig,
     ) -> None:
         """Render reference line UI. Delegates to reference_line_settings component."""
         from src.web.components.plotting.settings.reference_line_settings import (

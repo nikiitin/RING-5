@@ -1,12 +1,13 @@
 """Bar plot implementation."""
 
-from typing import Any, override
+from typing import override
 
 import pandas as pd
 
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import BarTraceConfig
 from src.web.components.plotting.config import bar_config
+from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
 
 
@@ -17,12 +18,12 @@ class BarPlot(BasePlot):
         super().__init__(plot_id, name, "bar")
 
     @override
-    def render_config_ui(self, data: pd.DataFrame, saved_config: dict[str, Any]) -> dict[str, Any]:
+    def render_config_ui(self, data: pd.DataFrame, saved_config: PlotConfig) -> PlotConfig:
         """Render configuration UI for bar plot."""
         return bar_config.render(data, saved_config, self.plot_id)
 
     @override
-    def create_traces(self, data: pd.DataFrame, config: dict[str, Any]) -> TraceBuildResult:
+    def create_traces(self, data: pd.DataFrame, config: PlotConfig) -> TraceBuildResult:
         """Produce bar traces from data and config."""
         x_col: str = config["x"]
         y_col: str = config["y"]
@@ -90,7 +91,7 @@ class BarPlot(BasePlot):
         return TraceBuildResult(traces=traces)
 
     @override
-    def get_legend_column(self, config: dict[str, Any]) -> str | None:
+    def get_legend_column(self, config: PlotConfig) -> str | None:
         """Get legend column for bar plot."""
         result = config.get("color")
         return str(result) if result is not None else None

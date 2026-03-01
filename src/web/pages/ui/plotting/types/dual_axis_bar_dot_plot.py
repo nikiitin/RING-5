@@ -18,6 +18,7 @@ from src.core.models.visualization.trace_config import (
     TraceConfig,
 )
 from src.web.components.plotting.config import dual_axis_config
+from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
 
 
@@ -37,7 +38,7 @@ class DualAxisBarDotPlot(BasePlot):
     # ------------------------------------------------------------------
 
     @override
-    def render_config_ui(self, data: pd.DataFrame, saved_config: dict[str, Any]) -> dict[str, Any]:
+    def render_config_ui(self, data: pd.DataFrame, saved_config: PlotConfig) -> PlotConfig:
         """Render configuration UI for dual-axis bar+dot plot."""
         return dual_axis_config.render(data, saved_config, self.plot_id)
 
@@ -46,7 +47,7 @@ class DualAxisBarDotPlot(BasePlot):
     # ------------------------------------------------------------------
 
     @override
-    def create_traces(self, data: pd.DataFrame, config: dict[str, Any]) -> TraceBuildResult:
+    def create_traces(self, data: pd.DataFrame, config: PlotConfig) -> TraceBuildResult:
         """Create dual-axis bar + dot/line trace configurations.
 
         Args:
@@ -301,8 +302,8 @@ class DualAxisBarDotPlot(BasePlot):
 
     @override
     def render_specific_advanced_options(
-        self, saved_config: dict[str, Any], data: pd.DataFrame | None = None
-    ) -> dict[str, Any]:
+        self, saved_config: PlotConfig, data: pd.DataFrame | None = None
+    ) -> PlotConfig:
         """Render advanced options specific to dual-axis bar+dot plot."""
         config: dict[str, Any] = {}
 
@@ -394,7 +395,7 @@ class DualAxisBarDotPlot(BasePlot):
     # ------------------------------------------------------------------
 
     @override
-    def get_legend_column(self, config: dict[str, Any]) -> str | None:
+    def get_legend_column(self, config: PlotConfig) -> str | None:
         """Get the column used for legend grouping."""
         result: str | None = config.get("color")
         return str(result) if result is not None else None

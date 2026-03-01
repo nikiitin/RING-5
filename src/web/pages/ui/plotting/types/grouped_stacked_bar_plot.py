@@ -9,6 +9,7 @@ import streamlit as st
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import TraceConfig
 from src.web.components.plotting.config import grouped_stacked_bar_config
+from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.types.stacked_bar_plot import StackedBarPlot
 from src.web.pages.ui.plotting.utils import GroupedBarUtils
 
@@ -44,13 +45,11 @@ class GroupedStackedBarPlot(StackedBarPlot):
         return True
 
     @override
-    def render_config_ui(self, data: pd.DataFrame, saved_config: dict[str, Any]) -> dict[str, Any]:
+    def render_config_ui(self, data: pd.DataFrame, saved_config: PlotConfig) -> PlotConfig:
         """Render configuration UI for grouped stacked bar plot."""
         return grouped_stacked_bar_config.render(data, saved_config, self.plot_id)
 
-    def _render_stack_total_options(
-        self, saved_config: dict[str, Any], config: dict[str, Any]
-    ) -> None:
+    def _render_stack_total_options(self, saved_config: PlotConfig, config: PlotConfig) -> None:
         """Render options for Stack Totals."""
         from src.web.components.plotting.config.grouped_stacked_bar_theme import (
             render_stack_total_options,
@@ -60,8 +59,8 @@ class GroupedStackedBarPlot(StackedBarPlot):
 
     @override
     def render_theme_options(
-        self, saved_config: dict[str, Any], items: list[str] | None = None
-    ) -> dict[str, Any]:
+        self, saved_config: PlotConfig, items: list[str] | None = None
+    ) -> PlotConfig:
         """Override to add specific styling options."""
         # Get base theme options
         stacks = saved_config.get("y_columns", [])
@@ -78,8 +77,8 @@ class GroupedStackedBarPlot(StackedBarPlot):
 
     @override
     def render_advanced_options(
-        self, saved_config: dict[str, Any], data: pd.DataFrame | None = None
-    ) -> dict[str, Any]:
+        self, saved_config: PlotConfig, data: pd.DataFrame | None = None
+    ) -> PlotConfig:
         """Custom Advanced Options for Grouped Stacked Bar."""
         config: dict[str, Any] = {}
 
@@ -217,7 +216,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         return config
 
     @override
-    def create_traces(self, data: pd.DataFrame, config: dict[str, Any]) -> TraceBuildResult:
+    def create_traces(self, data: pd.DataFrame, config: PlotConfig) -> TraceBuildResult:
         """Create grouped stacked bar trace configurations."""
         x_col = config.get("x")
         group_col = config.get("group")
@@ -250,7 +249,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         x_col: str,
         group_col: str,
         y_cols: list[str],
-        config: dict[str, Any],
+        config: PlotConfig,
         hover_template: str,
         dual_axis: bool = False,
     ) -> TraceBuildResult:
@@ -350,7 +349,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         )
 
     def _get_ordered_categories_and_groups(
-        self, data: pd.DataFrame, x_col: str, group_col: str, config: dict[str, Any]
+        self, data: pd.DataFrame, x_col: str, group_col: str, config: PlotConfig
     ) -> tuple[list[str], list[str]]:
         """Get ordered lists of categories and groups."""
         from src.web.pages.ui.plotting.utils.grouped_stacked_bar_helpers import (
@@ -366,7 +365,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         group_col: str,
         categories: list[str],
         groups: list[str],
-        config: dict[str, Any],
+        config: PlotConfig,
     ) -> tuple[pd.DataFrame, list[str], list[str]]:
         """Apply renames to data and ordered lists."""
         from src.web.pages.ui.plotting.utils.grouped_stacked_bar_helpers import (
@@ -382,7 +381,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         data: pd.DataFrame,
         x_col: str,
         group_col: str,
-        config: dict[str, Any],
+        config: PlotConfig,
     ) -> dict[str, Any]:
         """Build coordinate mapping for grouped bars using centralized utility."""
         return GroupedBarUtils.calculate_grouped_coordinates(
@@ -392,7 +391,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
     def _apply_numbered_xaxis(
         self,
         tick_text: list[str],
-        config: dict[str, Any],
+        config: PlotConfig,
     ) -> tuple[list[str], dict[str, Any] | None]:
         """Replace tick labels with numbered indices and build legend annotation."""
         from src.web.pages.ui.plotting.utils.grouped_stacked_bar_helpers import (
@@ -402,7 +401,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         return apply_numbered_xaxis(tick_text, config)
 
     def _build_category_annotations(
-        self, cat_centers: list[tuple[float, str]], config: dict[str, Any]
+        self, cat_centers: list[tuple[float, str]], config: PlotConfig
     ) -> list[dict[str, Any]]:
         """Build annotations for category labels (grouped bars only)."""
         from src.web.pages.ui.plotting.utils.grouped_stacked_bar_helpers import (
@@ -412,7 +411,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         return build_category_annotations(cat_centers, config)
 
     @override
-    def apply_common_layout(self, fig: go.Figure, config: dict[str, Any]) -> go.Figure:
+    def apply_common_layout(self, fig: go.Figure, config: PlotConfig) -> go.Figure:
         """Apply common layout and enforce hover template."""
         fig = super().apply_common_layout(fig, config)
 
@@ -453,7 +452,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
     # Dual-axis helpers
     # ------------------------------------------------------------------
 
-    def _apply_dual_axis_titles(self, fig: go.Figure, config: dict[str, Any]) -> None:
+    def _apply_dual_axis_titles(self, fig: go.Figure, config: PlotConfig) -> None:
         """Apply Y-axis titles as symmetrical annotations for dual-axis mode."""
         from src.web.pages.ui.plotting.utils.grouped_stacked_bar_helpers import (
             apply_dual_axis_titles,
@@ -461,7 +460,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
 
         apply_dual_axis_titles(fig, config)
 
-    def _apply_separate_legends(self, fig: go.Figure, config: dict[str, Any]) -> None:
+    def _apply_separate_legends(self, fig: go.Figure, config: PlotConfig) -> None:
         """Split traces into separate legends for left and right axis groups."""
         from src.web.pages.ui.plotting.utils.grouped_stacked_bar_helpers import (
             apply_separate_legends,
@@ -470,7 +469,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         apply_separate_legends(fig, config)
 
     def _render_dual_axis_display_settings(
-        self, saved_config: dict[str, Any], config: dict[str, Any]
+        self, saved_config: PlotConfig, config: PlotConfig
     ) -> None:
         """Render dual-axis display settings: grid, typography, legend."""
         from src.web.components.plotting.config.dual_axis_settings import (
@@ -480,7 +479,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         render_dual_axis_display_settings(saved_config, config, self.plot_id)
 
     def _render_secondary_legend_controls(
-        self, saved_config: dict[str, Any], config: dict[str, Any]
+        self, saved_config: PlotConfig, config: PlotConfig
     ) -> None:
         """Render full legend controls for the secondary (right-axis) legend."""
         from src.web.components.plotting.config.dual_axis_settings import (
@@ -489,9 +488,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
 
         render_secondary_legend_controls(saved_config, config, self.plot_id)
 
-    def _render_right_axis_dot_settings(
-        self, saved_config: dict[str, Any], config: dict[str, Any]
-    ) -> None:
+    def _render_right_axis_dot_settings(self, saved_config: PlotConfig, config: PlotConfig) -> None:
         """Render dot & line settings for the right (secondary) Y-axis."""
         from src.web.components.plotting.config.dual_axis_settings import (
             render_right_axis_dot_settings,
@@ -506,7 +503,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         y_cols: list[str],
         trace_type: str,
         bar_width: float | None,
-        config: dict[str, Any],
+        config: PlotConfig,
     ) -> list[TraceConfig]:
         """Build traces for the secondary (right) Y-axis."""
         from src.web.pages.ui.plotting.utils.grouped_stacked_bar_helpers import (
@@ -516,6 +513,6 @@ class GroupedStackedBarPlot(StackedBarPlot):
         return build_right_axis_traces(data, x_coord_col, y_cols, trace_type, bar_width, config)
 
     @override
-    def get_legend_column(self, config: dict[str, Any]) -> str | None:
+    def get_legend_column(self, config: PlotConfig) -> str | None:
         """Get legend column for grouped stacked bar plot."""
         return None

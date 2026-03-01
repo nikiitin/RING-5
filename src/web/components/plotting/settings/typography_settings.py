@@ -13,9 +13,9 @@ Usage::
     config = component.render(saved_config)
 """
 
-from typing import Any
-
 import streamlit as st
+
+from src.web.models.plot_models import PlotConfig
 
 
 class TypographySettingsComponent:
@@ -33,7 +33,7 @@ class TypographySettingsComponent:
         self.plot_id = plot_id
         self.plot_type = plot_type
 
-    def render(self, saved_config: dict[str, Any], key_prefix: str = "theme_") -> dict[str, Any]:
+    def render(self, saved_config: PlotConfig, key_prefix: str = "theme_") -> PlotConfig:
         """Render typography section widgets.
 
         Note: Title text inputs (Main Title, X-label, Y-label) are in
@@ -42,14 +42,14 @@ class TypographySettingsComponent:
 
         Parameters
         ----------
-        saved_config : dict[str, Any]
+        saved_config : PlotConfig
             Current saved configuration.
         key_prefix : str
             Streamlit widget key prefix (default ``"theme_"``).
 
         Returns
         -------
-        dict[str, Any]
+        PlotConfig
             Configuration dict with typography keys.
         """
         st.markdown("#### Typography (Font Sizes & Colors)")

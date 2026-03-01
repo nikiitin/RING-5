@@ -3,10 +3,10 @@
 Extracted from ``BasePlot._render_reference_line_ui``.
 """
 
-from typing import Any
-
 import pandas as pd
 import streamlit as st
+
+from src.web.models.plot_models import PlotConfig
 
 
 class ReferenceLineSettingsComponent:
@@ -29,9 +29,9 @@ class ReferenceLineSettingsComponent:
 
     def render(
         self,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         data: pd.DataFrame | None,
-        config: dict[str, Any],
+        config: PlotConfig,
     ) -> None:
         """Render reference line controls.
 
@@ -98,9 +98,9 @@ class ReferenceLineSettingsComponent:
 
 def render_reference_line_ui(
     plot_id: int,
-    saved_config: dict[str, Any],
+    saved_config: PlotConfig,
     data: pd.DataFrame | None,
-    config: dict[str, Any],
+    config: PlotConfig,
 ) -> None:
     """Deprecated: use ReferenceLineSettingsComponent."""
     ReferenceLineSettingsComponent(plot_id, "").render(saved_config, data, config)

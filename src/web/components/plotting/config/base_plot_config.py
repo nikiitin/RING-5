@@ -4,14 +4,13 @@ Provides reusable column selection, title/label rendering, and common
 config assembly used by all per-plot-type config components.
 """
 
-from typing import Any
-
 import pandas as pd
 import streamlit as st
 
 from src.web.components.plotting.config.plot_config_components import (
     PlotConfigComponents,
 )
+from src.web.models.plot_models import PlotConfig
 
 
 def detect_column_types(
@@ -33,7 +32,7 @@ def detect_column_types(
 
 
 def render_xy_selectors(
-    saved_config: dict[str, Any],
+    saved_config: PlotConfig,
     plot_id: int,
     numeric_cols: list[str],
     categorical_cols: list[str],
@@ -81,7 +80,7 @@ def render_xy_selectors(
 
 
 def render_color_selector(
-    saved_config: dict[str, Any],
+    saved_config: PlotConfig,
     plot_id: int,
     categorical_cols: list[str],
     label: str = "Color by (optional)",
@@ -114,9 +113,9 @@ def render_color_selector(
 
 def render_common_config(
     data: pd.DataFrame,
-    saved_config: dict[str, Any],
+    saved_config: PlotConfig,
     plot_id: int,
-) -> dict[str, Any]:
+) -> PlotConfig:
     """Render the standard X/Y selectors + title/labels in a two-column layout.
 
     This is the component-based replacement for ``BasePlot.render_common_config``.
@@ -166,9 +165,9 @@ def render_common_config(
 
 def render_common_with_color(
     data: pd.DataFrame,
-    saved_config: dict[str, Any],
+    saved_config: PlotConfig,
     plot_id: int,
-) -> dict[str, Any]:
+) -> PlotConfig:
     """Render standard X/Y + title/labels + colour-by selector.
 
     Combines :func:`render_common_config` with :func:`render_color_selector`

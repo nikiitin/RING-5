@@ -4,14 +4,12 @@ Extracted from GroupedStackedBarPlot to reduce class size.
 Renders stack total options and grouped-stacked-bar-specific theme controls.
 """
 
-from typing import Any
-
 import streamlit as st
 
+from src.web.models.plot_models import PlotConfig
 
-def render_stack_total_options(
-    saved_config: dict[str, Any], config: dict[str, Any], plot_id: int
-) -> None:
+
+def render_stack_total_options(saved_config: PlotConfig, config: PlotConfig, plot_id: int) -> None:
     """Render options for Stack Totals.
 
     Args:
@@ -99,9 +97,7 @@ def render_stack_total_options(
         )
 
 
-def render_grouped_theme_extras(
-    saved_config: dict[str, Any], config: dict[str, Any], plot_id: int
-) -> None:
+def render_grouped_theme_extras(saved_config: PlotConfig, config: PlotConfig, plot_id: int) -> None:
     """Render grouped-stacked-bar-specific theme options.
 
     This covers major group styling, visual distinction, summary group

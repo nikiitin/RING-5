@@ -7,9 +7,10 @@ Chart display, engine selection, and download are handled by
 
 import hashlib
 import json
-from typing import Any
 
 import pandas as pd
+
+from src.web.models.plot_models import PlotConfig
 
 
 class PlotRenderer:
@@ -25,7 +26,7 @@ class PlotRenderer:
     """
 
     @staticmethod
-    def _compute_figure_cache_key(plot_id: int, config: dict[str, Any], data_hash: str) -> str:
+    def _compute_figure_cache_key(plot_id: int, config: PlotConfig, data_hash: str) -> str:
         """
         Compute stable cache key for plot figure.
 

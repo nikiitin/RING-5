@@ -7,6 +7,7 @@ import pandas as pd
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import BarTraceConfig
 from src.web.components.plotting.config import stacked_bar_config
+from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
 
 
@@ -18,12 +19,12 @@ class StackedBarPlot(BasePlot):
         super().__init__(plot_id, name, "stacked_bar")
 
     @override
-    def render_config_ui(self, data: pd.DataFrame, saved_config: dict[str, Any]) -> dict[str, Any]:
+    def render_config_ui(self, data: pd.DataFrame, saved_config: PlotConfig) -> PlotConfig:
         """Render configuration UI for stacked bar plot."""
         return stacked_bar_config.render(data, saved_config, self.plot_id)
 
     @override
-    def create_traces(self, data: pd.DataFrame, config: dict[str, Any]) -> TraceBuildResult:
+    def create_traces(self, data: pd.DataFrame, config: PlotConfig) -> TraceBuildResult:
         """Create stacked bar trace configurations."""
         x_col = config.get("x")
         y_cols = config.get("y_columns", [])
@@ -52,7 +53,7 @@ class StackedBarPlot(BasePlot):
         )
 
     def _prepare_data(
-        self, data: pd.DataFrame, x_col: str, y_cols: list[str], config: dict[str, Any]
+        self, data: pd.DataFrame, x_col: str, y_cols: list[str], config: PlotConfig
     ) -> pd.DataFrame:
         """Prepare data: apply filters, calculate totals, convert types."""
         data = data.copy()
@@ -81,7 +82,7 @@ class StackedBarPlot(BasePlot):
         data: pd.DataFrame,
         x_col: str,
         y_cols: list[str],
-        config: dict[str, Any],
+        config: PlotConfig,
         hover_template: str,
     ) -> list[BarTraceConfig]:
         """Build list of bar traces for stacked bars."""
@@ -98,7 +99,7 @@ class StackedBarPlot(BasePlot):
         x_col: str,
         bar_width: float | None,
         hover_template: str,
-        config: dict[str, Any],
+        config: PlotConfig,
     ) -> BarTraceConfig:
         """Build a single BarTraceConfig for a stacked series."""
         error_y_vals: list[float] | None = None
@@ -142,7 +143,7 @@ class StackedBarPlot(BasePlot):
         )
 
     def _build_totals_annotations(
-        self, data: pd.DataFrame, x_col: str, config: dict[str, Any]
+        self, data: pd.DataFrame, x_col: str, config: PlotConfig
     ) -> list[dict[str, Any]]:
         """Build annotations for stack totals."""
         total_fmt = config.get("net_total_format", ".2f")
@@ -201,6 +202,6 @@ class StackedBarPlot(BasePlot):
         return val, "bottom"
 
     @override
-    def get_legend_column(self, config: dict[str, Any]) -> str | None:
+    def get_legend_column(self, config: PlotConfig) -> str | None:
         """Get legend column for stacked bar plot."""
         return None

@@ -1,7 +1,7 @@
 """Settings components — one component per settings pill tab.
 
 Each component renders Streamlit widgets for a single settings section
-and returns a flat ``dict[str, Any]`` of configuration key-value pairs.
+and returns a ``PlotConfig`` of configuration key-value pairs.
 """
 
 from src.web.components.plotting.settings.advanced_settings import (  # noqa: F401

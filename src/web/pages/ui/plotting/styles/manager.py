@@ -11,6 +11,8 @@ from typing import Any
 import pandas as pd
 import plotly.graph_objects as go
 
+from src.web.models.plot_models import PlotConfig
+
 from .applicator import StyleApplicator
 from .factory import StyleUIFactory
 
@@ -30,17 +32,17 @@ class StyleManager:
         self.ui_manager = StyleUIFactory.get_strategy(plot_id, plot_type)
         self.applicator = StyleApplicator(plot_type)
 
-    def render_layout_options(self, saved_config: dict[str, Any]) -> dict[str, Any]:
+    def render_layout_options(self, saved_config: PlotConfig) -> PlotConfig:
         """Render layout options UI."""
         return self.ui_manager.render_layout_options(saved_config)
 
     def render_style_ui(
         self,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         data: pd.DataFrame | None = None,
         items: list[str] | None = None,
         key_prefix: str = "",
-    ) -> dict[str, Any]:
+    ) -> PlotConfig:
         """Render generic style UI."""
         return self.ui_manager.render_style_ui(
             saved_config, data, items=items, key_prefix=key_prefix
@@ -48,17 +50,17 @@ class StyleManager:
 
     def render_theme_options(
         self,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         data: pd.DataFrame | None = None,
         items: list[str] | None = None,
         key_prefix: str = "",
-    ) -> dict[str, Any]:
+    ) -> PlotConfig:
         """Alias for render_style_ui to maintain compatibility with BasePlot."""
         return self.render_style_ui(saved_config, data, items=items, key_prefix=key_prefix)
 
     def render_series_colors_ui(
         self,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         data: pd.DataFrame | None = None,
         key_prefix: str = "",
     ) -> dict[str, Any]:
@@ -67,7 +69,7 @@ class StyleManager:
 
     def render_series_renaming_ui(
         self,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         data: pd.DataFrame | None = None,
         items: list[str] | None = None,
     ) -> dict[str, Any]:
@@ -79,7 +81,7 @@ class StyleManager:
 
     def render_xaxis_labels_ui(
         self,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         data: pd.DataFrame | None = None,
         key_prefix: str = "xlabel",
     ) -> dict[str, str]:
@@ -88,18 +90,18 @@ class StyleManager:
 
     def render_data_labels_ui(
         self,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         key_prefix: str = "",
-    ) -> dict[str, Any]:
+    ) -> PlotConfig:
         """Render data labels UI."""
         return self.ui_manager.render_data_labels_ui(saved_config, key_prefix)
 
-    def apply_styles(self, fig: go.Figure, config: dict[str, Any]) -> go.Figure:
+    def apply_styles(self, fig: go.Figure, config: PlotConfig) -> go.Figure:
         """Apply styles to figure."""
         return self.applicator.apply_styles(fig, config)
 
     # Helper proxy if needed directly
     def _get_unique_values(
-        self, saved_config: dict[str, Any], data: pd.DataFrame | None, items: list[str] | None
+        self, saved_config: PlotConfig, data: pd.DataFrame | None, items: list[str] | None
     ) -> list[str]:
         return self.ui_manager._get_unique_values(saved_config, data, items)

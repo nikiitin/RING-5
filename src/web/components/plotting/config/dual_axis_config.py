@@ -12,13 +12,14 @@ from src.web.components.plotting.config.base_plot_config import (
 from src.web.components.plotting.config.plot_config_components import (
     PlotConfigComponents,
 )
+from src.web.models.plot_models import PlotConfig
 
 
 def render(
     data: pd.DataFrame,
-    saved_config: dict[str, Any],
+    saved_config: PlotConfig,
     plot_id: int,
-) -> dict[str, Any]:
+) -> PlotConfig:
     """Render configuration UI for a dual-axis bar + dot/line plot.
 
     Fully custom layout: X-axis, colour-by, separate Y-bar and Y-dot

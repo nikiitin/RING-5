@@ -3,8 +3,6 @@
 Extracted from ``BasePlot._render_shapes_ui``.
 """
 
-from typing import Any
-
 import streamlit as st
 
 from src.core.models.plot_config import ShapeConfig
@@ -12,6 +10,7 @@ from src.core.services.visualization.plot_interaction import (
     try_float,
     try_float_edit,
 )
+from src.web.models.plot_models import PlotConfig
 
 
 class ShapesSettingsComponent:
@@ -29,7 +28,7 @@ class ShapesSettingsComponent:
         self.plot_id = plot_id
         self.plot_type = plot_type
 
-    def render(self, saved_config: dict[str, Any]) -> list[ShapeConfig]:
+    def render(self, saved_config: PlotConfig) -> list[ShapeConfig]:
         """Render shapes UI for adding/editing plot shapes.
 
         Args:
@@ -139,6 +138,6 @@ class ShapesSettingsComponent:
         return shapes
 
 
-def render_shapes_ui(plot_id: int, saved_config: dict[str, Any]) -> list[ShapeConfig]:
+def render_shapes_ui(plot_id: int, saved_config: PlotConfig) -> list[ShapeConfig]:
     """Deprecated: use ShapesSettingsComponent."""
     return ShapesSettingsComponent(plot_id, "").render(saved_config)

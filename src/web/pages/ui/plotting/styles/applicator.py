@@ -8,12 +8,11 @@ and delegates all Plotly-specific layout mutations to
 ``FigureSpecToPlotly.apply``.
 """
 
-from typing import Any
-
 import plotly.graph_objects as go
 
 from src.core.models.visualization.figure_config import FigureConfig
 from src.core.services.visualization.config_resolver import resolve_config
+from src.web.models.plot_models import PlotConfig
 from src.web.rendering.config_builder import ConfigSpecBuilder
 from src.web.rendering.plotly_connector import FigureSpecToPlotly
 
@@ -32,7 +31,7 @@ class StyleApplicator:
         self.plot_type: str = plot_type
         self.last_spec: FigureConfig | None = None
 
-    def apply_styles(self, fig: go.Figure, config: dict[str, Any]) -> go.Figure:
+    def apply_styles(self, fig: go.Figure, config: PlotConfig) -> go.Figure:
         """
         Apply common layout, theme, and styling settings to the figure.
 

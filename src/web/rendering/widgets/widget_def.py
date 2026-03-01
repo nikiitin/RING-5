@@ -22,6 +22,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from src.web.models.plot_models import PlotConfig
+
 
 @dataclass(frozen=True)
 class WidgetDef:
@@ -108,7 +110,7 @@ class WidgetSection:
         """Return all config keys defined in this section."""
         return [w.key for w in self.widgets]
 
-    def defaults(self) -> dict[str, Any]:
+    def defaults(self) -> PlotConfig:
         """Return a dict of {key: default_value} for all widgets."""
         return {w.key: w.default for w in self.widgets}
 

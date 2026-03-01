@@ -1,6 +1,6 @@
 """Grouped bar plot implementation."""
 
-from typing import Any, override
+from typing import override
 
 import pandas as pd
 import streamlit as st
@@ -8,6 +8,7 @@ import streamlit as st
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import BarTraceConfig
 from src.web.components.plotting.config import grouped_bar_config
+from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.utils import GroupedBarUtils
 
@@ -19,14 +20,14 @@ class GroupedBarPlot(BasePlot):
         super().__init__(plot_id, name, "grouped_bar")
 
     @override
-    def render_config_ui(self, data: pd.DataFrame, saved_config: dict[str, Any]) -> dict[str, Any]:
+    def render_config_ui(self, data: pd.DataFrame, saved_config: PlotConfig) -> PlotConfig:
         """Render configuration UI for grouped bar plot."""
         return grouped_bar_config.render(data, saved_config, self.plot_id)
 
     @override
     def render_advanced_options(
-        self, saved_config: dict[str, Any], data: pd.DataFrame | None = None
-    ) -> dict[str, Any]:
+        self, saved_config: PlotConfig, data: pd.DataFrame | None = None
+    ) -> PlotConfig:
         """Override to apply filters before rendering advanced options."""
         if data is not None:
             # Apply X filter
@@ -41,8 +42,8 @@ class GroupedBarPlot(BasePlot):
 
     @override
     def render_theme_options(
-        self, saved_config: dict[str, Any], items: list[str] | None = None
-    ) -> dict[str, Any]:
+        self, saved_config: PlotConfig, items: list[str] | None = None
+    ) -> PlotConfig:
         """Add specific styling options for Grouped Bar."""
         config = super().render_theme_options(saved_config, items)
 
@@ -97,7 +98,7 @@ class GroupedBarPlot(BasePlot):
         return config
 
     @override
-    def create_traces(self, data: pd.DataFrame, config: dict[str, Any]) -> TraceBuildResult:
+    def create_traces(self, data: pd.DataFrame, config: PlotConfig) -> TraceBuildResult:
         """Create grouped bar trace configurations using manual coordinates."""
 
         # 1. Data Preparation
@@ -204,7 +205,7 @@ class GroupedBarPlot(BasePlot):
         )
 
     @override
-    def get_legend_column(self, config: dict[str, Any]) -> str | None:
+    def get_legend_column(self, config: PlotConfig) -> str | None:
         """Get legend column for grouped bar plot."""
         result = config.get("group")
         return str(result) if result is not None else None

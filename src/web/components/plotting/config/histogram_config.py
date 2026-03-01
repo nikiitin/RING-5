@@ -1,7 +1,5 @@
 """Histogram plot configuration component."""
 
-from typing import Any
-
 import pandas as pd
 import streamlit as st
 
@@ -9,6 +7,7 @@ from src.web.components.plotting.config.base_plot_config import (
     detect_column_types,
     render_common_config,
 )
+from src.web.models.plot_models import PlotConfig
 
 
 def _detect_histogram_variables(data: pd.DataFrame) -> list[str]:
@@ -34,9 +33,9 @@ def _detect_histogram_variables(data: pd.DataFrame) -> list[str]:
 
 def render(
     data: pd.DataFrame,
-    saved_config: dict[str, Any],
+    saved_config: PlotConfig,
     plot_id: int,
-) -> dict[str, Any]:
+) -> PlotConfig:
     """Render configuration UI for a histogram plot.
 
     Extends the common config with histogram-specific selectors:

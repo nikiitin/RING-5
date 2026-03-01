@@ -7,6 +7,7 @@ import pandas as pd
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import BarTraceConfig
 from src.web.components.plotting.config import histogram_config
+from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
 
 
@@ -32,12 +33,12 @@ class HistogramPlot(BasePlot):
         super().__init__(plot_id, name, "histogram")
 
     @override
-    def render_config_ui(self, data: pd.DataFrame, saved_config: dict[str, Any]) -> dict[str, Any]:
+    def render_config_ui(self, data: pd.DataFrame, saved_config: PlotConfig) -> PlotConfig:
         """Render configuration UI for histogram plot."""
         return histogram_config.render(data, saved_config, self.plot_id)
 
     @override
-    def create_traces(self, data: pd.DataFrame, config: dict[str, Any]) -> TraceBuildResult:
+    def create_traces(self, data: pd.DataFrame, config: PlotConfig) -> TraceBuildResult:
         """
         Create histogram trace configurations.
 
@@ -84,7 +85,7 @@ class HistogramPlot(BasePlot):
         )
 
     @override
-    def get_legend_column(self, config: dict[str, Any]) -> str | None:
+    def get_legend_column(self, config: PlotConfig) -> str | None:
         """
         Get legend column for histogram plot.
 
@@ -123,7 +124,7 @@ class HistogramPlot(BasePlot):
         self,
         data: pd.DataFrame,
         bucket_cols: list[str],
-        config: dict[str, Any],
+        config: PlotConfig,
     ) -> dict[str, Any]:
         """
         Extract and process bucket data from DataFrame.
@@ -162,7 +163,7 @@ class HistogramPlot(BasePlot):
         if group_by and group_by in data.columns:
             # Group data
             groups = data[group_by].unique()
-            result = {
+            result: dict[str, Any] = {
                 "buckets": buckets,
                 "groups": groups,
                 "data": {},
@@ -184,7 +185,7 @@ class HistogramPlot(BasePlot):
     def _add_single_histogram(
         self,
         bucket_data: dict[str, Any],
-        config: dict[str, Any],
+        config: PlotConfig,
     ) -> list[BarTraceConfig]:
         """
         Build a single histogram trace.
@@ -218,7 +219,7 @@ class HistogramPlot(BasePlot):
     def _add_grouped_histograms(
         self,
         bucket_data: dict[str, Any],
-        config: dict[str, Any],
+        config: PlotConfig,
     ) -> list[BarTraceConfig]:
         """
         Build multiple grouped histogram traces.
@@ -253,7 +254,7 @@ class HistogramPlot(BasePlot):
 
         return traces
 
-    def _normalize_values(self, values: list[float], config: dict[str, Any]) -> list[float]:
+    def _normalize_values(self, values: list[float], config: PlotConfig) -> list[float]:
         """
         Normalize histogram values according to config.
 

@@ -20,7 +20,7 @@ Architecture Note — Streamlit usage:
 import hashlib
 import json
 import logging
-from typing import Any, cast
+from typing import cast
 
 import pandas as pd
 import streamlit as st
@@ -28,6 +28,7 @@ import streamlit as st
 from src.core.application_api import ApplicationAPI
 from src.core.performance import get_plot_cache
 from src.web.components.common.chart_display import ChartDisplayComponent
+from src.web.models.plot_models import PlotConfig
 from src.web.models.plot_protocols import (
     PlotLifecycleService,
     PlotTypeRegistry,
@@ -103,8 +104,8 @@ class PlotRenderController:
         st.markdown("### Visualization")
         st.markdown("---")
         st.markdown("### Plot Configuration")
-        saved_config: dict[str, Any] = plot.config
-        current_config: dict[str, Any] = saved_config.copy()
+        saved_config: PlotConfig = plot.config
+        current_config: PlotConfig = saved_config.copy()
         config_error: bool = False
 
         # 1. Plot type selector (inline)
@@ -127,7 +128,7 @@ class PlotRenderController:
         data: pd.DataFrame = plot.processed_data
         # plot satisfies RenderablePlot (PlotHandle + ConfigRenderer)
         try:
-            ui_config: dict[str, Any] = plot.render_config_ui(data, saved_config)
+            ui_config: PlotConfig = plot.render_config_ui(data, saved_config)
             current_config.update(ui_config)
         except Exception as e:
             st.exception(e)
@@ -147,7 +148,7 @@ class PlotRenderController:
                 key=f"show_advanced_{plot.plot_id}",
             )
             selected_section: str | None = render_settings_pills(show_advanced=show_adv)
-            extra_config: dict[str, Any] = plot.render_settings_section(
+            extra_config: PlotConfig = plot.render_settings_section(
                 selected_section, current_config, data
             )
             current_config.update(extra_config)
@@ -273,7 +274,7 @@ class PlotRenderController:
             ChartDisplayComponent.render_error(e)
 
     @staticmethod
-    def _compute_figure_cache_key(plot_id: int, config: dict[str, Any], data_hash: str) -> str:
+    def _compute_figure_cache_key(plot_id: int, config: PlotConfig, data_hash: str) -> str:
         """
         Compute stable cache key for plot figure.
 

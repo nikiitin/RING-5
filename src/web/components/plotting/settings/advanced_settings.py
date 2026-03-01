@@ -21,12 +21,13 @@ Usage::
 
 from __future__ import annotations
 
-from typing import Any, Protocol
+from typing import Protocol
 
 import pandas as pd
 import streamlit as st
 
 from src.core.models.plot_config import ShapeConfig
+from src.web.models.plot_models import PlotConfig
 
 
 class ReferenceLineRenderer(Protocol):
@@ -34,9 +35,9 @@ class ReferenceLineRenderer(Protocol):
 
     def __call__(
         self,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         data: pd.DataFrame | None,
-        config: dict[str, Any],
+        config: PlotConfig,
     ) -> None: ...
 
 
@@ -45,7 +46,7 @@ class ShapesRenderer(Protocol):
 
     def __call__(
         self,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
     ) -> list[ShapeConfig]: ...
 
 
@@ -54,8 +55,8 @@ class EngineControlsRenderer(Protocol):
 
     def __call__(
         self,
-        saved_config: dict[str, Any],
-        config: dict[str, Any],
+        saved_config: PlotConfig,
+        config: PlotConfig,
     ) -> None: ...
 
 
@@ -76,17 +77,17 @@ class AdvancedSettingsComponent:
 
     def render(
         self,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         data: pd.DataFrame | None = None,
         render_reference_line_fn: ReferenceLineRenderer | None = None,
         render_shapes_fn: ShapesRenderer | None = None,
         render_engine_fn: EngineControlsRenderer | None = None,
-    ) -> dict[str, Any]:
+    ) -> PlotConfig:
         """Render all advanced settings sections.
 
         Parameters
         ----------
-        saved_config : dict[str, Any]
+        saved_config : PlotConfig
             Current saved configuration.
         data : pd.DataFrame | None
             Processed DataFrame (needed for reference line).
@@ -99,10 +100,10 @@ class AdvancedSettingsComponent:
 
         Returns
         -------
-        dict[str, Any]
+        PlotConfig
             Advanced configuration keys.
         """
-        config: dict[str, Any] = {}
+        config: PlotConfig = {}
 
         # ── Export & Download ────────────────────────────────────
         st.markdown("#### Export & Download")

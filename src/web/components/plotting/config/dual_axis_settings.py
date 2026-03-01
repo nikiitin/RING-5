@@ -4,13 +4,13 @@ Extracted from GroupedStackedBarPlot to reduce class size.
 Renders dual-axis display, secondary legend, and right-axis dot settings.
 """
 
-from typing import Any
-
 import streamlit as st
+
+from src.web.models.plot_models import PlotConfig
 
 
 def render_dual_axis_display_settings(
-    saved_config: dict[str, Any], config: dict[str, Any], plot_id: int
+    saved_config: PlotConfig, config: PlotConfig, plot_id: int
 ) -> None:
     """Render dual-axis display settings: grid, typography, legend.
 
@@ -96,7 +96,7 @@ def render_dual_axis_display_settings(
 
 
 def render_secondary_legend_controls(
-    saved_config: dict[str, Any], config: dict[str, Any], plot_id: int
+    saved_config: PlotConfig, config: PlotConfig, plot_id: int
 ) -> None:
     """Render full legend controls for the secondary (right-axis) legend.
 
@@ -202,7 +202,7 @@ def render_secondary_legend_controls(
 
 
 def render_right_axis_dot_settings(
-    saved_config: dict[str, Any], config: dict[str, Any], plot_id: int
+    saved_config: PlotConfig, config: PlotConfig, plot_id: int
 ) -> None:
     """Render dot & line settings for the right (secondary) Y-axis.
 

@@ -19,6 +19,7 @@ from src.web.components.plotting.settings import (
     LegendSettingsComponent,
     TypographySettingsComponent,
 )
+from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.styles.colors import to_hex
 from src.web.rendering.widgets import WidgetRenderer
 
@@ -37,7 +38,7 @@ class BaseStyleUI:
         self.plot_type = plot_type
         self._renderer = WidgetRenderer(key_prefix=f"p{plot_id}_")
 
-    def render_layout_options(self, saved_config: dict[str, Any]) -> dict[str, Any]:
+    def render_layout_options(self, saved_config: PlotConfig) -> PlotConfig:
         """Render layout sizing options.
 
         Delegates to :class:`LayoutSettingsComponent`.
@@ -47,11 +48,11 @@ class BaseStyleUI:
 
     def render_style_ui(
         self,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         data: pd.DataFrame | None = None,
         items: list[str] | None = None,
         key_prefix: str = "",
-    ) -> dict[str, Any]:
+    ) -> PlotConfig:
         """
         Render style configurator UI (Theme, Colors, Fonts).
         Delegates to specific render methods for each section.
@@ -104,12 +105,12 @@ class BaseStyleUI:
 
     def _render_series_section(
         self,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         data: pd.DataFrame | None,
         items: list[str] | None,
         key_prefix: str,
         palette_name: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> PlotConfig:
         """Render per-series color overrides.
 
         The palette dropdown has been consolidated into
@@ -142,9 +143,7 @@ class BaseStyleUI:
 
         return {"series_styles": series_styles}
 
-    def _render_backgrounds_section(
-        self, saved_config: dict[str, Any], key_prefix: str
-    ) -> dict[str, Any]:
+    def _render_backgrounds_section(self, saved_config: PlotConfig, key_prefix: str) -> PlotConfig:
         """Render backgrounds and grid section."""
         st.markdown("#### Backgrounds & Grid")
 
@@ -222,9 +221,7 @@ class BaseStyleUI:
             "enable_stripes": enable_stripes,
         }
 
-    def _render_legend_section(
-        self, saved_config: dict[str, Any], key_prefix: str
-    ) -> dict[str, Any]:
+    def _render_legend_section(self, saved_config: PlotConfig, key_prefix: str) -> PlotConfig:
         """Render legend styling section.
 
         Delegates to :class:`LegendSettingsComponent`.
@@ -233,8 +230,8 @@ class BaseStyleUI:
         return component._render_legend_section(saved_config, key_prefix)
 
     def _render_legend_position(
-        self, saved_config: dict[str, Any], key_prefix: str, config_prefix: str
-    ) -> dict[str, Any]:
+        self, saved_config: PlotConfig, key_prefix: str, config_prefix: str
+    ) -> PlotConfig:
         """Render legend position and orientation controls.
 
         Delegates to :class:`LegendSettingsComponent`.
@@ -243,8 +240,8 @@ class BaseStyleUI:
         return component._render_legend_position(saved_config, key_prefix, config_prefix)
 
     def _render_legend_appearance(
-        self, saved_config: dict[str, Any], key_prefix: str, config_prefix: str
-    ) -> dict[str, Any]:
+        self, saved_config: PlotConfig, key_prefix: str, config_prefix: str
+    ) -> PlotConfig:
         """Render legend appearance controls (colors, border, fonts).
 
         Delegates to :class:`LegendSettingsComponent`.
@@ -253,8 +250,8 @@ class BaseStyleUI:
         return component._render_legend_appearance(saved_config, key_prefix, config_prefix)
 
     def _render_legend_sizing(
-        self, saved_config: dict[str, Any], key_prefix: str, config_prefix: str
-    ) -> dict[str, Any]:
+        self, saved_config: PlotConfig, key_prefix: str, config_prefix: str
+    ) -> PlotConfig:
         """Render legend sizing and spacing controls.
 
         Delegates to :class:`LegendSettingsComponent`.
@@ -262,9 +259,7 @@ class BaseStyleUI:
         component = LegendSettingsComponent(self.plot_id, self.plot_type)
         return component._render_legend_sizing(saved_config, key_prefix, config_prefix)
 
-    def _render_typography_section(
-        self, saved_config: dict[str, Any], key_prefix: str
-    ) -> dict[str, Any]:
+    def _render_typography_section(self, saved_config: PlotConfig, key_prefix: str) -> PlotConfig:
         """Render typography section (font sizes and colors).
 
         Delegates to :class:`TypographySettingsComponent`.
@@ -274,7 +269,7 @@ class BaseStyleUI:
 
     def render_series_colors_ui(
         self,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         data: pd.DataFrame | None = None,
         items: list[str] | None = None,
         key_prefix: str = "",
@@ -389,7 +384,7 @@ class BaseStyleUI:
 
     def render_series_renaming_ui(
         self,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         data: pd.DataFrame | None = None,
         items: list[str] | None = None,
     ) -> dict[str, Any]:
@@ -429,7 +424,7 @@ class BaseStyleUI:
 
     def render_xaxis_labels_ui(
         self,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         data: pd.DataFrame | None = None,
         key_prefix: str = "xlabel",
     ) -> dict[str, str]:
@@ -475,7 +470,7 @@ class BaseStyleUI:
         return xaxis_labels
 
     def _get_unique_values(
-        self, saved_config: dict[str, Any], data: pd.DataFrame | None, items: list[str] | None
+        self, saved_config: PlotConfig, data: pd.DataFrame | None, items: list[str] | None
     ) -> list[str]:
         """Helper to determine series items."""
         unique_vals: list[str] = []
@@ -491,9 +486,7 @@ class BaseStyleUI:
                 unique_vals = sorted([str(c) for c in y_cols])
         return unique_vals
 
-    def render_data_labels_ui(
-        self, saved_config: dict[str, Any], key_prefix: str = ""
-    ) -> dict[str, Any]:
+    def render_data_labels_ui(self, saved_config: PlotConfig, key_prefix: str = "") -> PlotConfig:
         """Render UI for Data Values/Labels.
 
         Delegates to :class:`DataLabelsSettingsComponent`.

@@ -9,13 +9,14 @@ Optionally generates one heatmap per facet value (e.g. benchmark_name).
 """
 
 from collections.abc import Callable
-from typing import Any, Literal, cast, override
+from typing import Literal, cast, override
 
 import pandas as pd
 
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import HeatmapTraceConfig
 from src.web.components.plotting.config import heatmap_config
+from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
 
 _AGG_FUNCS = Literal["mean", "sum", "min", "max", "median", "first"]
@@ -45,12 +46,12 @@ class HeatmapPlot(BasePlot):
         super().__init__(plot_id, name, "heatmap")
 
     @override
-    def render_config_ui(self, data: pd.DataFrame, saved_config: dict[str, Any]) -> dict[str, Any]:
+    def render_config_ui(self, data: pd.DataFrame, saved_config: PlotConfig) -> PlotConfig:
         """Render configuration UI for heatmap plot."""
         return heatmap_config.render(data, saved_config, self.plot_id)
 
     @override
-    def create_traces(self, data: pd.DataFrame, config: dict[str, Any]) -> TraceBuildResult:
+    def create_traces(self, data: pd.DataFrame, config: PlotConfig) -> TraceBuildResult:
         """Produce one or more heatmap traces from data and config."""
         x_col: str = config["x"]
         metric_columns: list[str] = [
@@ -150,6 +151,6 @@ class HeatmapPlot(BasePlot):
         return TraceBuildResult(traces=traces)
 
     @override
-    def get_legend_column(self, config: dict[str, Any]) -> str | None:
+    def get_legend_column(self, config: PlotConfig) -> str | None:
         """Heatmap has no legend column — color is the z-value."""
         return None

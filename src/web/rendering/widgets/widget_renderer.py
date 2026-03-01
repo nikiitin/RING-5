@@ -19,6 +19,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
+from src.web.models.plot_models import PlotConfig
 from src.web.rendering.widgets.widget_def import (
     CheckboxWidgetDef,
     ColorWidgetDef,
@@ -52,7 +53,7 @@ class WidgetRenderer:
     def render_section(
         self,
         section: WidgetSection,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         use_expander: bool = True,
     ) -> dict[str, Any]:
         """Render all widgets in a section and return collected config.
@@ -85,7 +86,7 @@ class WidgetRenderer:
     def render_sections(
         self,
         sections: Sequence[WidgetSection],
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
     ) -> dict[str, Any]:
         """Render multiple sections and merge results.
 
@@ -104,7 +105,7 @@ class WidgetRenderer:
     def _render_widget(
         self,
         widget_def: WidgetDef,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
     ) -> Any:
         """Render a single widget and return its value.
 

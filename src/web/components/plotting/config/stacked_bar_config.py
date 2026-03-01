@@ -1,7 +1,5 @@
 """Stacked bar plot configuration component."""
 
-from typing import Any
-
 import pandas as pd
 import streamlit as st
 
@@ -9,13 +7,14 @@ from src.web.components.plotting.config.base_plot_config import detect_column_ty
 from src.web.components.plotting.config.plot_config_components import (
     PlotConfigComponents,
 )
+from src.web.models.plot_models import PlotConfig
 
 
 def render(
     data: pd.DataFrame,
-    saved_config: dict[str, Any],
+    saved_config: PlotConfig,
     plot_id: int,
-) -> dict[str, Any]:
+) -> PlotConfig:
     """Render configuration UI for a stacked bar plot.
 
     Fully custom layout: X-axis selector, multi-select Y columns

@@ -22,6 +22,7 @@ from src.core.models.visualization.palettes import (
     is_colorblind_safe,
     resolve_palette,
 )
+from src.web.models.plot_models import PlotConfig
 
 
 class ColorsSettingsComponent:
@@ -41,15 +42,15 @@ class ColorsSettingsComponent:
 
     def render(
         self,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         data: pd.DataFrame | None = None,
         items: list[str] | None = None,
-    ) -> dict[str, Any]:
+    ) -> PlotConfig:
         """Render palette selector, series colors, and backgrounds.
 
         Parameters
         ----------
-        saved_config : dict[str, Any]
+        saved_config : PlotConfig
             Current saved configuration.
         data : pd.DataFrame | None
             Processed DataFrame for column discovery.
@@ -58,7 +59,7 @@ class ColorsSettingsComponent:
 
         Returns
         -------
-        dict[str, Any]
+        PlotConfig
             Configuration dict with palette, series_styles, and background
             keys.
         """
@@ -107,7 +108,7 @@ class ColorsSettingsComponent:
         )
         st.markdown(swatch_html, unsafe_allow_html=True)
 
-        config: dict[str, Any] = {"color_palette": selected_palette}
+        config: PlotConfig = {"color_palette": selected_palette}
 
         st.markdown("---")
 
@@ -135,12 +136,12 @@ class ColorsSettingsComponent:
 
     def _render_series_section(
         self,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         data: pd.DataFrame | None,
         items: list[str] | None,
         key_prefix: str,
         palette_name: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> PlotConfig:
         """Render per-series colour pickers."""
         st.markdown("#### Series Colors")
 
@@ -159,7 +160,7 @@ class ColorsSettingsComponent:
 
     def _render_series_colors(
         self,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         data: pd.DataFrame | None = None,
         items: list[str] | None = None,
         key_prefix: str = "",
@@ -272,9 +273,7 @@ class ColorsSettingsComponent:
     # Backgrounds & Grid
     # ------------------------------------------------------------------
 
-    def _render_backgrounds_section(
-        self, saved_config: dict[str, Any], key_prefix: str
-    ) -> dict[str, Any]:
+    def _render_backgrounds_section(self, saved_config: PlotConfig, key_prefix: str) -> PlotConfig:
         """Render backgrounds and grid section."""
         st.markdown("#### Backgrounds & Grid")
 
@@ -358,7 +357,7 @@ class ColorsSettingsComponent:
 
     def _get_unique_values(
         self,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         data: pd.DataFrame | None,
         items: list[str] | None,
     ) -> list[str]:

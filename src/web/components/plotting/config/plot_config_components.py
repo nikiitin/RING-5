@@ -1,9 +1,9 @@
 """Reusable UI components for plot configuration."""
 
-from typing import Any
-
 import pandas as pd
 import streamlit as st
+
+from src.web.models.plot_models import PlotConfig
 
 
 class PlotConfigComponents:
@@ -14,7 +14,7 @@ class PlotConfigComponents:
         data: pd.DataFrame,
         x_col: str | None,
         group_col: str | None,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         plot_id: int,
         x_label: str = "Filter X values",
         group_label: str = "Filter Groups",
@@ -76,7 +76,7 @@ class PlotConfigComponents:
     @staticmethod
     def render_statistics_multiselect(
         numeric_cols: list[str],
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         plot_id: int,
         label: str = "Statistics to Stack",
         help_text: str = "Select multiple statistics to stack on top of each other",
@@ -115,7 +115,7 @@ class PlotConfigComponents:
 
     @staticmethod
     def render_title_labels_section(
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         plot_id: int,
         default_title: str = "",
         default_xlabel: str = "",

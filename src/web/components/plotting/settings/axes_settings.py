@@ -24,10 +24,12 @@ Usage::
 
 from __future__ import annotations
 
-from typing import Any, Protocol
+from typing import Protocol
 
 import pandas as pd
 import streamlit as st
+
+from src.web.models.plot_models import PlotConfig
 
 
 class SpecificOptionsRenderer(Protocol):
@@ -35,9 +37,9 @@ class SpecificOptionsRenderer(Protocol):
 
     def __call__(
         self,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         data: pd.DataFrame | None,
-    ) -> dict[str, Any]: ...
+    ) -> PlotConfig: ...
 
 
 class OrderingRenderer(Protocol):
@@ -45,9 +47,9 @@ class OrderingRenderer(Protocol):
 
     def __call__(
         self,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         data: pd.DataFrame,
-        config: dict[str, Any],
+        config: PlotConfig,
     ) -> None: ...
 
 
@@ -68,18 +70,18 @@ class AxesSettingsComponent:
 
     def render(
         self,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         data: pd.DataFrame | None = None,
         has_dual_axis: bool = False,
         show_group_labels: bool = False,
         render_specific_fn: SpecificOptionsRenderer | None = None,
         render_ordering_fn: OrderingRenderer | None = None,
-    ) -> dict[str, Any]:
+    ) -> PlotConfig:
         """Render axis pills navigation and settings.
 
         Parameters
         ----------
-        saved_config : dict[str, Any]
+        saved_config : PlotConfig
             Current saved configuration.
         data : pd.DataFrame | None
             Processed DataFrame (needed for ordering controls).
@@ -90,14 +92,14 @@ class AxesSettingsComponent:
         render_specific_fn : callable | None
             Optional callback for plot-type-specific widgets
             (e.g. bar gap, bar group gap). Signature:
-            ``(saved_config, data) -> dict[str, Any]``.
+            ``(saved_config, data) -> PlotConfig``.
         render_ordering_fn : callable | None
             Optional callback for ordering/rename controls.
             Signature: ``(saved_config, data, config) -> None``.
 
         Returns
         -------
-        dict[str, Any]
+        PlotConfig
             Axis configuration keys.
         """
         _axis_labels: dict[str, str] = {
@@ -118,7 +120,7 @@ class AxesSettingsComponent:
             default="x",
         )
 
-        config: dict[str, Any] = {}
+        config: PlotConfig = {}
 
         if axis_tab == "x" or axis_tab is None:
             self._render_x_axis_settings(saved_config, config)
@@ -142,7 +144,7 @@ class AxesSettingsComponent:
     # X-axis settings
     # ------------------------------------------------------------------
 
-    def _render_x_axis_settings(self, saved_config: dict[str, Any], config: dict[str, Any]) -> None:
+    def _render_x_axis_settings(self, saved_config: PlotConfig, config: PlotConfig) -> None:
         """Render X-axis specific settings (tick angle, grid, tick marks)."""
         st.markdown("#### X-Axis Settings")
         config["show_x_grid"] = st.checkbox(
@@ -274,17 +276,17 @@ class AxesSettingsComponent:
 
     def _render_y_axis_settings(
         self,
-        saved_config: dict[str, Any],
-        config: dict[str, Any],
+        saved_config: PlotConfig,
+        config: PlotConfig,
         prefix: str,
     ) -> None:
         """Render Y-axis settings for left or right axis.
 
         Parameters
         ----------
-        saved_config : dict[str, Any]
+        saved_config : PlotConfig
             Previously saved configuration.
-        config : dict[str, Any]
+        config : PlotConfig
             Current configuration to update.
         prefix : str
             Empty string for left axis, ``"y2"`` for right axis.
@@ -415,9 +417,7 @@ class AxesSettingsComponent:
     # Group labels settings (separate pill for grouped stacked bar)
     # ------------------------------------------------------------------
 
-    def _render_group_labels_settings(
-        self, saved_config: dict[str, Any], config: dict[str, Any]
-    ) -> None:
+    def _render_group_labels_settings(self, saved_config: PlotConfig, config: PlotConfig) -> None:
         """Render group label controls (for grouped stacked bar)."""
         st.markdown("#### Group Labels")
         config["major_label_offset"] = st.number_input(

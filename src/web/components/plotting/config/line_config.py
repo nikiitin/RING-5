@@ -1,17 +1,16 @@
 """Line plot configuration component."""
 
-from typing import Any
-
 import pandas as pd
 
 from src.web.components.plotting.config.base_plot_config import render_common_with_color
+from src.web.models.plot_models import PlotConfig
 
 
 def render(
     data: pd.DataFrame,
-    saved_config: dict[str, Any],
+    saved_config: PlotConfig,
     plot_id: int,
-) -> dict[str, Any]:
+) -> PlotConfig:
     """Render configuration UI for a line plot.
 
     Uses the shared X / Y / title / colour-by layout.

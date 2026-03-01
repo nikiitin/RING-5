@@ -3,10 +3,9 @@
 Extracted from ``BasePlot._render_engine_specific_controls``.
 """
 
-from typing import Any
-
 import streamlit as st
 
+from src.web.models.plot_models import PlotConfig
 from src.web.rendering.engine_manager import EngineManager
 
 
@@ -30,8 +29,8 @@ class EngineSettingsComponent:
 
     def render(
         self,
-        saved_config: dict[str, Any],
-        config: dict[str, Any],
+        saved_config: PlotConfig,
+        config: PlotConfig,
     ) -> None:
         """Render engine-specific controls.
 
@@ -82,8 +81,8 @@ class EngineSettingsComponent:
 
 def render_engine_controls(
     plot_id: int,
-    saved_config: dict[str, Any],
-    config: dict[str, Any],
+    saved_config: PlotConfig,
+    config: PlotConfig,
 ) -> None:
     """Deprecated: use EngineSettingsComponent."""
     EngineSettingsComponent(plot_id, "").render(saved_config, config)

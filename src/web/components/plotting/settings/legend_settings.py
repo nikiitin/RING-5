@@ -18,9 +18,9 @@ Usage::
     )
 """
 
-from typing import Any
-
 import streamlit as st
+
+from src.web.models.plot_models import PlotConfig
 
 # Canonical mapping of legend tier to config-key prefix.
 _LEGEND_PREFIXES: dict[str, str] = {
@@ -54,15 +54,15 @@ class LegendSettingsComponent:
 
     def render(
         self,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         has_secondary: bool = False,
         has_tertiary: bool = False,
-    ) -> dict[str, Any]:
+    ) -> PlotConfig:
         """Render legend pills navigation and settings.
 
         Parameters
         ----------
-        saved_config : dict[str, Any]
+        saved_config : PlotConfig
             Current saved configuration.
         has_secondary : bool
             Whether to show a secondary legend pill.
@@ -71,7 +71,7 @@ class LegendSettingsComponent:
 
         Returns
         -------
-        dict[str, Any]
+        PlotConfig
             Legend configuration keys (prefixed per legend level).
         """
         _labels: dict[str, str] = {
@@ -100,7 +100,7 @@ class LegendSettingsComponent:
         # switching pills doesn't lose previously-set values.
         active_tab = legend_tab or "primary"
 
-        preserved: dict[str, Any] = {}
+        preserved: PlotConfig = {}
         for level, cfg_prefix in _LEGEND_PREFIXES.items():
             if level == active_tab:
                 continue
@@ -120,9 +120,7 @@ class LegendSettingsComponent:
     # Legend section rendering
     # ------------------------------------------------------------------
 
-    def _render_legend_section(
-        self, saved_config: dict[str, Any], key_prefix: str
-    ) -> dict[str, Any]:
+    def _render_legend_section(self, saved_config: PlotConfig, key_prefix: str) -> PlotConfig:
         """Render legend styling section for the selected prefix."""
         config_prefix = "legend_" if key_prefix == "theme_" else key_prefix
         st.markdown("#### Legend Styling")
@@ -135,10 +133,10 @@ class LegendSettingsComponent:
 
     def _render_legend_position(
         self,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         key_prefix: str,
         config_prefix: str,
-    ) -> dict[str, Any]:
+    ) -> PlotConfig:
         """Render legend position controls."""
         st.markdown("**Position**")
         pos_c1, pos_c2 = st.columns(2)
@@ -171,10 +169,10 @@ class LegendSettingsComponent:
 
     def _render_legend_appearance(
         self,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         key_prefix: str,
         config_prefix: str,
-    ) -> dict[str, Any]:
+    ) -> PlotConfig:
         """Render legend appearance controls (colors, border, fonts)."""
         st.markdown("**Appearance**")
         app_c1, app_c2 = st.columns(2)
@@ -261,10 +259,10 @@ class LegendSettingsComponent:
 
     def _render_legend_sizing(
         self,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         key_prefix: str,
         config_prefix: str,
-    ) -> dict[str, Any]:
+    ) -> PlotConfig:
         """Render legend sizing and spacing controls."""
         st.markdown("**Sizing & Spacing**")
 

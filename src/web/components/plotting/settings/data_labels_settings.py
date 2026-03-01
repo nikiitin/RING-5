@@ -9,9 +9,9 @@ Usage::
     config = component.render(saved_config)
 """
 
-from typing import Any
-
 import streamlit as st
+
+from src.web.models.plot_models import PlotConfig
 
 
 class DataLabelsSettingsComponent:
@@ -31,21 +31,21 @@ class DataLabelsSettingsComponent:
 
     def render(
         self,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         key_prefix: str = "theme_",
-    ) -> dict[str, Any]:
+    ) -> PlotConfig:
         """Render data labels section.
 
         Parameters
         ----------
-        saved_config : dict[str, Any]
+        saved_config : PlotConfig
             Current saved configuration.
         key_prefix : str
             Streamlit widget key prefix (default ``"theme_"``).
 
         Returns
         -------
-        dict[str, Any]
+        PlotConfig
             Configuration dict with data label keys.
         """
         st.markdown("#### Data Labels")

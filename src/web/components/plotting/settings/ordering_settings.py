@@ -11,6 +11,7 @@ import streamlit as st
 from src.web.components.common.reorderable_list import (
     render_reorderable_list,
 )
+from src.web.models.plot_models import PlotConfig
 
 
 class OrderingSettingsComponent:
@@ -30,9 +31,9 @@ class OrderingSettingsComponent:
 
     def render(
         self,
-        saved_config: dict[str, Any],
+        saved_config: PlotConfig,
         data: pd.DataFrame,
-        config: dict[str, Any],
+        config: PlotConfig,
     ) -> None:
         """Render ordering controls for X-axis, groups, and legend items.
 
@@ -157,9 +158,9 @@ class OrderingSettingsComponent:
 
 def render_ordering_ui(
     plot_id: int,
-    saved_config: dict[str, Any],
+    saved_config: PlotConfig,
     data: pd.DataFrame,
-    config: dict[str, Any],
+    config: PlotConfig,
 ) -> None:
     """Deprecated: use OrderingSettingsComponent."""
     OrderingSettingsComponent(plot_id, "").render(saved_config, data, config)
