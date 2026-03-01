@@ -16,10 +16,14 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from src.core.models.visualization.data_label_config import DataLabelConfig
 from src.core.models.visualization.figure_config import FigureConfig
+
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
+    from matplotlib.figure import Figure
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +54,7 @@ class FigureSpecToMatplotlib:
     """
 
     @staticmethod
-    def apply(spec: FigureConfig, ax: Any) -> None:
+    def apply(spec: FigureConfig, ax: Axes) -> None:
         """Apply the full FigureConfig to a matplotlib Axes.
 
         Args:
@@ -75,7 +79,7 @@ class FigureSpecToMatplotlib:
         FigureSpecToMatplotlib._apply_margins(spec, ax)
 
     @staticmethod
-    def _apply_margins(spec: FigureConfig, ax: Any) -> None:
+    def _apply_margins(spec: FigureConfig, ax: Axes) -> None:
         """Apply manual margins from FigureConfig to the current figure."""
         if spec.dimensions is None or spec.dimensions.margins is None:
             return
@@ -103,7 +107,7 @@ class FigureSpecToMatplotlib:
                 logger.warning(f"Could not apply margins ({left}, {right}, {top}, {bottom}): {e}")
 
     @staticmethod
-    def _apply_title(spec: FigureConfig, ax: Any) -> None:
+    def _apply_title(spec: FigureConfig, ax: Axes) -> None:
         """Set figure title with proper font properties."""
         if not spec.title:
             return
@@ -119,7 +123,7 @@ class FigureSpecToMatplotlib:
         )
 
     @staticmethod
-    def _apply_axis_labels(spec: FigureConfig, ax: Any) -> None:
+    def _apply_axis_labels(spec: FigureConfig, ax: Axes) -> None:
         """Set X and Y axis labels with proper typography."""
         typo = spec.typography
         if typo is None:
@@ -184,7 +188,7 @@ class FigureSpecToMatplotlib:
                     break
 
     @staticmethod
-    def _apply_axis_ticks(spec: FigureConfig, ax: Any) -> None:
+    def _apply_axis_ticks(spec: FigureConfig, ax: Axes) -> None:
         """Configure tick labels, rotation, padding."""
         import matplotlib.transforms as transforms
 
@@ -246,7 +250,7 @@ class FigureSpecToMatplotlib:
             )
 
     @staticmethod
-    def _apply_axis_ranges(spec: FigureConfig, ax: Any) -> None:
+    def _apply_axis_ranges(spec: FigureConfig, ax: Axes) -> None:
         """Set axis range limits and scale."""
         if spec.axes is None:
             raise ValueError("FigureConfig requires axes")
@@ -281,7 +285,7 @@ class FigureSpecToMatplotlib:
         return mapping.get(dash_str.lower(), "-")
 
     @staticmethod
-    def _apply_grids(spec: FigureConfig, ax: Any) -> None:
+    def _apply_grids(spec: FigureConfig, ax: Axes) -> None:
         """Configure grid visibility and styling."""
         if spec.axes is None:
             raise ValueError("FigureConfig requires axes")
@@ -312,7 +316,7 @@ class FigureSpecToMatplotlib:
             ax.yaxis.grid(False)
 
     @staticmethod
-    def _apply_legends(spec: FigureConfig, ax: Any) -> None:
+    def _apply_legends(spec: FigureConfig, ax: Axes) -> None:
         """Render legends with full spacing control."""
         if not spec.legends:
             return
@@ -430,7 +434,7 @@ class FigureSpecToMatplotlib:
     }
 
     @staticmethod
-    def _apply_backgrounds(spec: FigureConfig, ax: Any) -> None:
+    def _apply_backgrounds(spec: FigureConfig, ax: Axes) -> None:
         """Set figure and axes background colours."""
         fig = ax.figure
         if spec.paper_bgcolor:
@@ -439,7 +443,7 @@ class FigureSpecToMatplotlib:
             ax.set_facecolor(spec.plot_bgcolor)
 
     @staticmethod
-    def _apply_font_family(spec: FigureConfig, ax: Any) -> None:
+    def _apply_font_family(spec: FigureConfig, ax: Axes) -> None:
         """Set global font family via rcParams for this figure."""
         import matplotlib as mpl
 
@@ -447,7 +451,7 @@ class FigureSpecToMatplotlib:
             mpl.rcParams["font.family"] = spec.font_family
 
     @staticmethod
-    def _apply_color_palette(spec: FigureConfig, ax: Any) -> None:
+    def _apply_color_palette(spec: FigureConfig, ax: Axes) -> None:
         """Set colour cycle on the axes from spec.color_palette.
 
         Plotly qualitative palettes return CSS ``rgb(r,g,b)`` strings which
@@ -459,7 +463,7 @@ class FigureSpecToMatplotlib:
             ax.set_prop_cycle(color=hex_colors)
 
     @staticmethod
-    def _apply_reference_lines(spec: FigureConfig, ax: Any) -> None:
+    def _apply_reference_lines(spec: FigureConfig, ax: Axes) -> None:
         """Draw horizontal / vertical reference lines.
 
         Uses the ReferenceLineConfig list on FigureConfig.
@@ -482,7 +486,7 @@ class FigureSpecToMatplotlib:
                 ax.axvline(x=rl.value, **kwargs)
 
     @staticmethod
-    def _apply_data_labels(spec: FigureConfig, ax: Any) -> None:
+    def _apply_data_labels(spec: FigureConfig, ax: Axes) -> None:
         """Annotate bar containers with value labels.
 
         Falls back to ``ax.bar_label()`` when available (mpl 3.4+),
@@ -511,7 +515,7 @@ class FigureSpecToMatplotlib:
                 pass
 
     @staticmethod
-    def _apply_annotations(spec: FigureConfig, ax: Any) -> None:
+    def _apply_annotations(spec: FigureConfig, ax: Axes) -> None:
         """Render text annotations from spec onto the matplotlib axes.
 
         Handles ``xref``/``yref`` coordinate systems: ``"data"`` maps to
@@ -574,7 +578,7 @@ class FigureSpecToMatplotlib:
             )
 
     @staticmethod
-    def _apply_separators(spec: FigureConfig, ax: Any) -> None:
+    def _apply_separators(spec: FigureConfig, ax: Axes) -> None:
         """Draw vertical separator lines between bar groups."""
         import matplotlib.transforms as transforms
 
@@ -603,7 +607,7 @@ class FigureSpecToMatplotlib:
             )
 
     @staticmethod
-    def _apply_hatching(spec: FigureConfig, ax: Any) -> None:
+    def _apply_hatching(spec: FigureConfig, ax: Axes) -> None:
         """Apply hatching patterns from hatching_sequence to bar patches."""
         if not spec.enable_stripes or not spec.hatching_sequence:
             return
@@ -614,7 +618,7 @@ class FigureSpecToMatplotlib:
                 patch.set_hatch(pattern)
 
     @staticmethod
-    def _apply_axis_colors(spec: FigureConfig, ax: Any) -> None:
+    def _apply_axis_colors(spec: FigureConfig, ax: Axes) -> None:
         """Apply tick_font_color, axis_line_color, axis_line_width.
 
         Also handles top/right axis line visibility via spines.
@@ -672,7 +676,7 @@ class FigureSpecToMatplotlib:
     @staticmethod
     def create_figure(
         spec: FigureConfig,
-    ) -> tuple[Any, Any]:
+    ) -> tuple[Figure, Axes]:
         """Create a new matplotlib figure + axes from spec dimensions.
 
         When the spec uses ``dpi=1`` (the pixel-passthrough convention from
