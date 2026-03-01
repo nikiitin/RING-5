@@ -281,52 +281,62 @@ class TestSeedsReducerRender:
         mgr.render()
         mock_api.state_manager.set_data.assert_not_called()
 
+    @patch("src.web.components.data_managers.seeds_reducer.UIStateManager")
     @patch("src.web.components.data_managers.seeds_reducer.HistoryComponents")
     @patch("src.web.components.data_managers.seeds_reducer.st")
     def test_history_load_full(
-        self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
+        self,
+        mock_st: MagicMock,
+        mock_hist: MagicMock,
+        mock_ui_state: MagicMock,
+        mock_api: MagicMock,
+        sample_df: pd.DataFrame,
     ) -> None:
         from src.web.components.data_managers.seeds_reducer import (
             SeedsReducerManager,
         )
 
+        mock_ui_state.return_value.manager.consume_load_trigger.return_value = {
+            "source_columns": ["benchmark", "cycles", "ipc"],
+            "dest_columns": ["cycles", "ipc"],
+            "operation": "Seeds Reduction (mean + stdev)",
+        }
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.selectbox.return_value = "random_seed"
         mock_st.multiselect.side_effect = [["benchmark"], ["cycles", "ipc"]]
         mock_st.button.return_value = False
-        mock_st.session_state = {
-            "_seeds_load": {
-                "source_columns": ["benchmark", "cycles", "ipc"],
-                "dest_columns": ["cycles", "ipc"],
-                "operation": "Seeds Reduction (mean + stdev)",
-            }
-        }
+        mock_st.session_state = {}
 
         mgr = SeedsReducerManager(mock_api)
         mgr.render()
 
+    @patch("src.web.components.data_managers.seeds_reducer.UIStateManager")
     @patch("src.web.components.data_managers.seeds_reducer.HistoryComponents")
     @patch("src.web.components.data_managers.seeds_reducer.st")
     def test_history_load_missing_columns(
-        self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
+        self,
+        mock_st: MagicMock,
+        mock_hist: MagicMock,
+        mock_ui_state: MagicMock,
+        mock_api: MagicMock,
+        sample_df: pd.DataFrame,
     ) -> None:
         from src.web.components.data_managers.seeds_reducer import (
             SeedsReducerManager,
         )
 
+        mock_ui_state.return_value.manager.consume_load_trigger.return_value = {
+            "source_columns": ["benchmark", "missing_cat", "cycles"],
+            "dest_columns": ["cycles", "missing_num"],
+            "operation": "Seeds Reduction (mean + stdev)",
+        }
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.selectbox.return_value = "random_seed"
         mock_st.multiselect.side_effect = [["benchmark"], ["cycles"]]
         mock_st.button.return_value = False
-        mock_st.session_state = {
-            "_seeds_load": {
-                "source_columns": ["benchmark", "missing_cat", "cycles"],
-                "dest_columns": ["cycles", "missing_num"],
-                "operation": "Seeds Reduction (mean + stdev)",
-            }
-        }
+        mock_st.session_state = {}
 
         mgr = SeedsReducerManager(mock_api)
         mgr.render()

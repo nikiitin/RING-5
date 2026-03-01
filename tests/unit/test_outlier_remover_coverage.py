@@ -1,6 +1,6 @@
 """Tests for OutlierRemoverManager — branch coverage."""
 
-from typing import Any, List
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -14,7 +14,7 @@ def _make_col_mock() -> MagicMock:
     return ctx
 
 
-def _columns_side_effect(n: Any) -> List[MagicMock]:
+def _columns_side_effect(n: Any) -> list[MagicMock]:
     count = len(n) if isinstance(n, list) else n
     return [_make_col_mock() for _ in range(count)]
 
@@ -229,52 +229,62 @@ class TestOutlierRemoverRender:
         mock_api.clear_preview.assert_called_once()
         mock_api.add_manager_history_record.assert_called_once()
 
+    @patch("src.web.components.data_managers.outlier_remover.UIStateManager")
     @patch("src.web.components.data_managers.outlier_remover.HistoryComponents")
     @patch("src.web.components.data_managers.outlier_remover.st")
     def test_history_load_full(
-        self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
+        self,
+        mock_st: MagicMock,
+        mock_hist: MagicMock,
+        mock_ui_state: MagicMock,
+        mock_api: MagicMock,
+        sample_df: pd.DataFrame,
     ) -> None:
         from src.web.components.data_managers.outlier_remover import (
             OutlierRemoverManager,
         )
 
+        mock_ui_state.return_value.manager.consume_load_trigger.return_value = {
+            "source_columns": ["benchmark", "cycles"],
+            "dest_columns": ["cycles"],
+            "operation": "Outlier Removal (Q3)",
+        }
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.selectbox.return_value = "cycles"
         mock_st.multiselect.return_value = ["benchmark"]
         mock_st.button.return_value = False
-        mock_st.session_state = {
-            "_outlier_load": {
-                "source_columns": ["benchmark", "cycles"],
-                "dest_columns": ["cycles"],
-                "operation": "Outlier Removal (Q3)",
-            }
-        }
+        mock_st.session_state = {}
 
         mgr = OutlierRemoverManager(mock_api)
         mgr.render()
 
+    @patch("src.web.components.data_managers.outlier_remover.UIStateManager")
     @patch("src.web.components.data_managers.outlier_remover.HistoryComponents")
     @patch("src.web.components.data_managers.outlier_remover.st")
     def test_history_load_missing_col(
-        self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
+        self,
+        mock_st: MagicMock,
+        mock_hist: MagicMock,
+        mock_ui_state: MagicMock,
+        mock_api: MagicMock,
+        sample_df: pd.DataFrame,
     ) -> None:
         from src.web.components.data_managers.outlier_remover import (
             OutlierRemoverManager,
         )
 
+        mock_ui_state.return_value.manager.consume_load_trigger.return_value = {
+            "source_columns": ["nonexistent_group", "missing_outlier_col"],
+            "dest_columns": ["missing_outlier_col"],
+            "operation": "Outlier Removal (Q3)",
+        }
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.selectbox.return_value = "cycles"
         mock_st.multiselect.return_value = []
         mock_st.button.return_value = False
-        mock_st.session_state = {
-            "_outlier_load": {
-                "source_columns": ["nonexistent_group", "missing_outlier_col"],
-                "dest_columns": ["missing_outlier_col"],
-                "operation": "Outlier Removal (Q3)",
-            }
-        }
+        mock_st.session_state = {}
 
         mgr = OutlierRemoverManager(mock_api)
         mgr.render()

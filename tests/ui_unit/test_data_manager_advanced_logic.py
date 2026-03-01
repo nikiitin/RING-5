@@ -8,6 +8,7 @@ from pandas import DataFrame
 
 from src.web.components.data_managers.mixer import MixerManager
 from src.web.components.data_managers.preprocessor import PreprocessorManager
+from src.web.state.ui_state_manager import WidgetKeyBuilder
 from tests.conftest import columns_side_effect
 
 
@@ -16,6 +17,8 @@ def mock_streamlit() -> Generator[tuple[Any, Any], None, None]:
     with (
         patch("src.web.components.data_managers.mixer.st") as mock_st_mixer,
         patch("src.web.components.data_managers.preprocessor.st") as mock_st_prep,
+        patch("src.web.components.data_managers.mixer.UIStateManager") as mock_ui_mixer,
+        patch("src.web.components.data_managers.preprocessor.UIStateManager") as mock_ui_prep,
     ):
 
         mock_st_mixer.session_state = {}
@@ -23,6 +26,10 @@ def mock_streamlit() -> Generator[tuple[Any, Any], None, None]:
 
         mock_st_mixer.columns.side_effect = columns_side_effect
         mock_st_prep.columns.side_effect = columns_side_effect
+
+        # consume_load_trigger returns None by default (no loaded operation)
+        mock_ui_mixer.return_value.manager.consume_load_trigger.return_value = None
+        mock_ui_prep.return_value.manager.consume_load_trigger.return_value = None
 
         yield (mock_st_mixer, mock_st_prep)
 
@@ -69,7 +76,8 @@ def test_mixer_render_numeric_op(mock_streamlit: Any, mock_api: Any, sample_data
     mock_st.multiselect.return_value = ["A", "B"]
     mock_st.selectbox.return_value = "Sum"
     mock_st.text_input.return_value = "merged"
-    mock_st.button.side_effect = lambda label, key=None, **kwargs: key == "mixer_preview"
+    preview_key = WidgetKeyBuilder.manager_key("mixer", "preview")
+    mock_st.button.side_effect = lambda label, key=None, **kwargs: key == preview_key
 
     result_df = pd.DataFrame({"A": [1], "B": [4], "merged": [5]})
     mock_api.managers.validate_merge_inputs.return_value = []
@@ -94,7 +102,8 @@ def test_mixer_confirm(mock_streamlit: Any, mock_api: Any, sample_data: Any) -> 
     result_df = pd.DataFrame({"merged": [1]})
 
     # Simulation: Confirm clicked
-    mock_st.button.side_effect = lambda label, key=None, **kwargs: key == "confirm_mixer"
+    confirm_key = WidgetKeyBuilder.manager_key("mixer", "confirm")
+    mock_st.button.side_effect = lambda label, key=None, **kwargs: key == confirm_key
 
     # Configure mock_api
     mock_api.has_preview.return_value = True
@@ -117,7 +126,8 @@ def test_preprocessor_render_op(mock_streamlit: Any, mock_api: Any, sample_data:
     # Interaction parameters.
     mock_st.selectbox.side_effect = ["A", "Divide", "B"]
     mock_st.text_input.return_value = "new_col"
-    mock_st.button.side_effect = lambda label, key=None, **kwargs: key == "preview_preproc"
+    preview_key = WidgetKeyBuilder.manager_key("preprocessor", "preview")
+    mock_st.button.side_effect = lambda label, key=None, **kwargs: key == preview_key
 
     mock_api.managers.list_operators.return_value = ["Divide"]
     result_df = pd.DataFrame({"A": [1], "B": [4], "new_col": [0.25]})

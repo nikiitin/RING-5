@@ -1,6 +1,6 @@
 """Tests for MixerManager — branch coverage."""
 
-from typing import Any, List
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -14,7 +14,7 @@ def _make_col_mock() -> MagicMock:
     return ctx
 
 
-def _columns_side_effect(n: Any) -> List[MagicMock]:
+def _columns_side_effect(n: Any) -> list[MagicMock]:
     count = len(n) if isinstance(n, list) else n
     return [_make_col_mock() for _ in range(count)]
 
@@ -214,13 +214,24 @@ class TestMixerRender:
         mock_api.clear_preview.assert_called_once()
         mock_api.add_manager_history_record.assert_called_once()
 
+    @patch("src.web.components.data_managers.mixer.UIStateManager")
     @patch("src.web.components.data_managers.mixer.HistoryComponents")
     @patch("src.web.components.data_managers.mixer.st")
     def test_history_load_concatenate(
-        self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
+        self,
+        mock_st: MagicMock,
+        mock_hist: MagicMock,
+        mock_ui_state: MagicMock,
+        mock_api: MagicMock,
+        sample_df: pd.DataFrame,
     ) -> None:
         from src.web.components.data_managers.mixer import MixerManager
 
+        mock_ui_state.return_value.manager.consume_load_trigger.return_value = {
+            "operation": "Mixer: Concatenate",
+            "source_columns": ["benchmark"],
+            "dest_columns": ["concat_col"],
+        }
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.segmented_control.return_value = "Configuration Merge"
@@ -228,24 +239,29 @@ class TestMixerRender:
         mock_st.selectbox.return_value = "Concatenate"
         mock_st.text_input.side_effect = ["_", "concat_col"]
         mock_st.button.return_value = False
-        mock_st.session_state = {
-            "_mixer_load": {
-                "operation": "Mixer: Concatenate",
-                "source_columns": ["benchmark"],
-                "dest_columns": ["concat_col"],
-            }
-        }
+        mock_st.session_state = {}
 
         mgr = MixerManager(mock_api)
         mgr.render()
 
+    @patch("src.web.components.data_managers.mixer.UIStateManager")
     @patch("src.web.components.data_managers.mixer.HistoryComponents")
     @patch("src.web.components.data_managers.mixer.st")
     def test_history_load_numerical(
-        self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
+        self,
+        mock_st: MagicMock,
+        mock_hist: MagicMock,
+        mock_ui_state: MagicMock,
+        mock_api: MagicMock,
+        sample_df: pd.DataFrame,
     ) -> None:
         from src.web.components.data_managers.mixer import MixerManager
 
+        mock_ui_state.return_value.manager.consume_load_trigger.return_value = {
+            "operation": "Mixer: Sum",
+            "source_columns": ["cycles", "instructions"],
+            "dest_columns": ["total"],
+        }
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.segmented_control.return_value = "Numerical Operations"
@@ -253,24 +269,29 @@ class TestMixerRender:
         mock_st.selectbox.return_value = "Sum"
         mock_st.text_input.return_value = "total"
         mock_st.button.return_value = False
-        mock_st.session_state = {
-            "_mixer_load": {
-                "operation": "Mixer: Sum",
-                "source_columns": ["cycles", "instructions"],
-                "dest_columns": ["total"],
-            }
-        }
+        mock_st.session_state = {}
 
         mgr = MixerManager(mock_api)
         mgr.render()
 
+    @patch("src.web.components.data_managers.mixer.UIStateManager")
     @patch("src.web.components.data_managers.mixer.HistoryComponents")
     @patch("src.web.components.data_managers.mixer.st")
     def test_history_load_missing_columns(
-        self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
+        self,
+        mock_st: MagicMock,
+        mock_hist: MagicMock,
+        mock_ui_state: MagicMock,
+        mock_api: MagicMock,
+        sample_df: pd.DataFrame,
     ) -> None:
         from src.web.components.data_managers.mixer import MixerManager
 
+        mock_ui_state.return_value.manager.consume_load_trigger.return_value = {
+            "operation": "Mixer: Sum",
+            "source_columns": ["nonexistent1", "nonexistent2"],
+            "dest_columns": ["total"],
+        }
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.segmented_control.return_value = "Numerical Operations"
@@ -278,13 +299,7 @@ class TestMixerRender:
         mock_st.selectbox.return_value = "Sum"
         mock_st.text_input.return_value = "total"
         mock_st.button.return_value = False
-        mock_st.session_state = {
-            "_mixer_load": {
-                "operation": "Mixer: Sum",
-                "source_columns": ["nonexistent1", "nonexistent2"],
-                "dest_columns": ["total"],
-            }
-        }
+        mock_st.session_state = {}
 
         mgr = MixerManager(mock_api)
         mgr.render()

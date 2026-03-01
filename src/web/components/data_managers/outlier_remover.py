@@ -10,6 +10,7 @@ import streamlit as st
 from src.core.models.history_models import OperationRecord
 from src.web.components.common.history_components import HistoryComponents
 from src.web.components.data_managers.data_manager import DataManager
+from src.web.state.ui_state_manager import UIStateManager, WidgetKeyBuilder
 
 
 class OutlierRemoverManager(DataManager):
@@ -48,7 +49,7 @@ class OutlierRemoverManager(DataManager):
             return
 
         # Handle loaded operation from history
-        loaded = st.session_state.pop("_outlier_load", None)
+        loaded = UIStateManager().manager.consume_load_trigger("outlier_remover")
         if loaded is not None:
             src_cols = loaded["source_columns"]
             dest_cols = loaded["dest_columns"]
@@ -56,14 +57,18 @@ class OutlierRemoverManager(DataManager):
             group_by = [c for c in src_cols if c not in set(dest_cols)]
             all_missing = []
             if outlier_col and outlier_col in numeric_cols:
-                st.session_state["outlier_col"] = outlier_col
+                st.session_state[WidgetKeyBuilder.manager_key("outlier_remover", "col")] = (
+                    outlier_col
+                )
             elif outlier_col:
                 all_missing.append(outlier_col)
             valid_groups = [c for c in group_by if c in categorical_cols]
             missing_groups = [c for c in group_by if c not in categorical_cols]
             all_missing.extend(missing_groups)
             if valid_groups:
-                st.session_state["outlier_groupby"] = valid_groups
+                st.session_state[WidgetKeyBuilder.manager_key("outlier_remover", "groupby")] = (
+                    valid_groups
+                )
             if all_missing:
                 st.warning(f"Columns removed (not in current data): {', '.join(all_missing)}")
 
@@ -72,7 +77,9 @@ class OutlierRemoverManager(DataManager):
         col1, col2 = st.columns(2)
         with col1:
             outlier_column_raw = st.selectbox(
-                "Column to check for outliers", options=numeric_cols, key="outlier_col"
+                "Column to check for outliers",
+                options=numeric_cols,
+                key=WidgetKeyBuilder.manager_key("outlier_remover", "col"),
             )
             outlier_column: str = str(outlier_column_raw) if outlier_column_raw is not None else ""
 
@@ -98,7 +105,7 @@ class OutlierRemoverManager(DataManager):
                         "Group by columns (optional)",
                         options=categorical_cols,
                         default=default_cols,
-                        key="outlier_groupby",
+                        key=WidgetKeyBuilder.manager_key("outlier_remover", "groupby"),
                         help=(
                             "Columns to group data by before"
                             " calculating Q3. Avoid including"
@@ -122,7 +129,10 @@ class OutlierRemoverManager(DataManager):
         with col4:
             st.metric("Mean", f"{data[outlier_column].mean():.4f}")
 
-        if st.button("Apply Outlier Remover", key="apply_outlier"):
+        if st.button(
+            "Apply Outlier Remover",
+            key=WidgetKeyBuilder.manager_key("outlier_remover", "apply"),
+        ):
             # Validate inputs first
             validation_errors = self.api.managers.validate_outlier_inputs(
                 df=data,
@@ -165,7 +175,9 @@ class OutlierRemoverManager(DataManager):
         # Separate confirmation button outside the first button's scope
         if self.api.has_preview("outlier_removal"):
             if st.button(
-                "Confirm and Apply Outlier Remover", key="confirm_outlier", type="primary"
+                "Confirm and Apply Outlier Remover",
+                key=WidgetKeyBuilder.manager_key("outlier_remover", "confirm"),
+                type="primary",
             ):
                 confirmed_df: pd.DataFrame | None = self.api.get_preview("outlier_removal")
                 if confirmed_df is not None:
@@ -185,6 +197,6 @@ class OutlierRemoverManager(DataManager):
         HistoryComponents.render_manager_history(
             self.api.get_manager_history(),
             "Outlier",
-            "_outlier_load",
+            WidgetKeyBuilder.manager_key("outlier_remover", "load_trigger"),
             self.api.remove_manager_history_record,
         )

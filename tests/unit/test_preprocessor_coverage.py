@@ -1,6 +1,6 @@
 """Tests for PreprocessorManager — branch coverage."""
 
-from typing import Any, List
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -14,7 +14,7 @@ def _make_col_mock() -> MagicMock:
     return ctx
 
 
-def _columns_side_effect(n: Any) -> List[MagicMock]:
+def _columns_side_effect(n: Any) -> list[MagicMock]:
     count = len(n) if isinstance(n, list) else n
     return [_make_col_mock() for _ in range(count)]
 
@@ -242,97 +242,116 @@ class TestPreprocessorRender:
         mgr.render()
         mock_api.state_manager.set_data.assert_not_called()
 
+    @patch("src.web.components.data_managers.preprocessor.UIStateManager")
     @patch("src.web.components.data_managers.preprocessor.HistoryComponents")
     @patch("src.web.components.data_managers.preprocessor.st")
     def test_history_load_full(
-        self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
+        self,
+        mock_st: MagicMock,
+        mock_hist: MagicMock,
+        mock_ui_state: MagicMock,
+        mock_api: MagicMock,
+        sample_df: pd.DataFrame,
     ) -> None:
         from src.web.components.data_managers.preprocessor import PreprocessorManager
 
+        mock_ui_state.return_value.manager.consume_load_trigger.return_value = {
+            "operation": "Preprocessor: Division",
+            "source_columns": ["cycles", "instructions"],
+            "dest_columns": ["ipc"],
+        }
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.selectbox.side_effect = ["cycles", "Division", "instructions"]
         mock_st.text_input.return_value = "ipc"
         mock_st.button.return_value = False
-        mock_st.session_state = {
-            "_preproc_load": {
-                "operation": "Preprocessor: Division",
-                "source_columns": ["cycles", "instructions"],
-                "dest_columns": ["ipc"],
-            }
-        }
+        mock_st.session_state = {}
 
         mgr = PreprocessorManager(mock_api)
         mgr.render()
-        # History was consumed: _preproc_load should have been popped
 
+    @patch("src.web.components.data_managers.preprocessor.UIStateManager")
     @patch("src.web.components.data_managers.preprocessor.HistoryComponents")
     @patch("src.web.components.data_managers.preprocessor.st")
     def test_history_load_missing_columns(
-        self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
+        self,
+        mock_st: MagicMock,
+        mock_hist: MagicMock,
+        mock_ui_state: MagicMock,
+        mock_api: MagicMock,
+        sample_df: pd.DataFrame,
     ) -> None:
         from src.web.components.data_managers.preprocessor import PreprocessorManager
 
+        mock_ui_state.return_value.manager.consume_load_trigger.return_value = {
+            "operation": "Preprocessor: Division",
+            "source_columns": ["cycles", "nonexistent_col"],
+            "dest_columns": ["ratio"],
+        }
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.selectbox.side_effect = ["cycles", "Division", "instructions"]
         mock_st.text_input.return_value = "ratio"
         mock_st.button.return_value = False
-        mock_st.session_state = {
-            "_preproc_load": {
-                "operation": "Preprocessor: Division",
-                "source_columns": ["cycles", "nonexistent_col"],
-                "dest_columns": ["ratio"],
-            }
-        }
+        mock_st.session_state = {}
 
         mgr = PreprocessorManager(mock_api)
         mgr.render()
         mock_st.warning.assert_called()
 
+    @patch("src.web.components.data_managers.preprocessor.UIStateManager")
     @patch("src.web.components.data_managers.preprocessor.HistoryComponents")
     @patch("src.web.components.data_managers.preprocessor.st")
     def test_history_load_unknown_operator(
-        self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
+        self,
+        mock_st: MagicMock,
+        mock_hist: MagicMock,
+        mock_ui_state: MagicMock,
+        mock_api: MagicMock,
+        sample_df: pd.DataFrame,
     ) -> None:
         from src.web.components.data_managers.preprocessor import PreprocessorManager
 
+        mock_ui_state.return_value.manager.consume_load_trigger.return_value = {
+            "operation": "Preprocessor: UnknownOp",
+            "source_columns": ["cycles"],
+            "dest_columns": [],
+        }
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.selectbox.side_effect = ["cycles", "Division", "instructions"]
         mock_st.text_input.return_value = "result"
         mock_st.button.return_value = False
-        mock_st.session_state = {
-            "_preproc_load": {
-                "operation": "Preprocessor: UnknownOp",
-                "source_columns": ["cycles"],
-                "dest_columns": [],
-            }
-        }
+        mock_st.session_state = {}
 
         mgr = PreprocessorManager(mock_api)
         mgr.render()
         # Unknown operator should not crash, just won't set session_state
 
+    @patch("src.web.components.data_managers.preprocessor.UIStateManager")
     @patch("src.web.components.data_managers.preprocessor.HistoryComponents")
     @patch("src.web.components.data_managers.preprocessor.st")
     def test_history_load_one_source_col(
-        self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
+        self,
+        mock_st: MagicMock,
+        mock_hist: MagicMock,
+        mock_ui_state: MagicMock,
+        mock_api: MagicMock,
+        sample_df: pd.DataFrame,
     ) -> None:
         from src.web.components.data_managers.preprocessor import PreprocessorManager
 
+        mock_ui_state.return_value.manager.consume_load_trigger.return_value = {
+            "operation": "Preprocessor: Division",
+            "source_columns": ["cycles"],  # only 1 source col
+            "dest_columns": ["result"],
+        }
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.selectbox.side_effect = ["cycles", "Division", "instructions"]
         mock_st.text_input.return_value = "result"
         mock_st.button.return_value = False
-        mock_st.session_state = {
-            "_preproc_load": {
-                "operation": "Preprocessor: Division",
-                "source_columns": ["cycles"],  # only 1 source col
-                "dest_columns": ["result"],
-            }
-        }
+        mock_st.session_state = {}
 
         mgr = PreprocessorManager(mock_api)
         mgr.render()

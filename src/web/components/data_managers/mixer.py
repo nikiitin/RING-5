@@ -10,6 +10,7 @@ import streamlit as st
 from src.core.models.history_models import OperationRecord
 from src.web.components.common.history_components import HistoryComponents
 from src.web.components.data_managers.data_manager import DataManager
+from src.web.state.ui_state_manager import UIStateManager, WidgetKeyBuilder
 
 
 class MixerManager(DataManager):
@@ -40,14 +41,18 @@ class MixerManager(DataManager):
         numeric_cols = data.select_dtypes(include=["number"]).columns.tolist()
 
         # Handle loaded operation from history
-        loaded = st.session_state.pop("_mixer_load", None)
+        loaded = UIStateManager().manager.consume_load_trigger("mixer")
         if loaded is not None:
             op_raw = loaded["operation"].replace("Mixer: ", "")
             if op_raw == "Concatenate":
-                st.session_state["mixer_mode"] = "Configuration Merge"
+                st.session_state[WidgetKeyBuilder.manager_key("mixer", "mode")] = (
+                    "Configuration Merge"
+                )
                 available = data.columns.tolist()
             else:
-                st.session_state["mixer_mode"] = "Numerical Operations"
+                st.session_state[WidgetKeyBuilder.manager_key("mixer", "mode")] = (
+                    "Numerical Operations"
+                )
                 available = [c for c in numeric_cols if not c.endswith((".sd", "_stdev"))]
             src_cols = loaded["source_columns"]
             valid_src = [c for c in src_cols if c in available]
@@ -55,11 +60,13 @@ class MixerManager(DataManager):
             if missing:
                 st.warning(f"Columns removed (not in current data): {', '.join(missing)}")
             if valid_src:
-                st.session_state["mixer_select_cols"] = valid_src
+                st.session_state[WidgetKeyBuilder.manager_key("mixer", "select_cols")] = valid_src
             if loaded["dest_columns"]:
-                st.session_state["mixer_new_name"] = loaded["dest_columns"][0]
+                st.session_state[WidgetKeyBuilder.manager_key("mixer", "new_name")] = loaded[
+                    "dest_columns"
+                ][0]
             if op_raw in ["Sum", "Mean (Average)", "Concatenate"]:
-                st.session_state["mixer_op"] = op_raw
+                st.session_state[WidgetKeyBuilder.manager_key("mixer", "op")] = op_raw
 
         st.markdown("#### Configuration")
 
@@ -67,7 +74,7 @@ class MixerManager(DataManager):
             "Mixer Mode",
             ["Numerical Operations", "Configuration Merge"],
             default="Numerical Operations",
-            key="mixer_mode",
+            key=WidgetKeyBuilder.manager_key("mixer", "mode"),
         )
 
         if mode is None:
@@ -89,18 +96,24 @@ class MixerManager(DataManager):
 
         with col_select_1:
             selected_cols = st.multiselect(
-                "Select columns to merge", options=available_cols, key="mixer_select_cols"
+                "Select columns to merge",
+                options=available_cols,
+                key=WidgetKeyBuilder.manager_key("mixer", "select_cols"),
             )
 
         with col_select_2:
-            operation = st.selectbox("Operation", operations, key="mixer_op")
+            operation = st.selectbox(
+                "Operation", operations, key=WidgetKeyBuilder.manager_key("mixer", "op")
+            )
 
         if operation is None:
             return
 
         separator = "_"
         if operation == "Concatenate":
-            separator = st.text_input("Separator", value="_", key="mixer_sep")
+            separator = st.text_input(
+                "Separator", value="_", key=WidgetKeyBuilder.manager_key("mixer", "sep")
+            )
 
         default_name_parts = selected_cols[:2] if selected_cols else ["merged"]
         if operation == "Concatenate":
@@ -108,9 +121,13 @@ class MixerManager(DataManager):
         else:
             default_name = f"{operation.lower()}_{'_'.join(default_name_parts)}"
 
-        new_col_name = st.text_input("New Column Name", value=default_name, key="mixer_new_name")
+        new_col_name = st.text_input(
+            "New Column Name",
+            value=default_name,
+            key=WidgetKeyBuilder.manager_key("mixer", "new_name"),
+        )
 
-        if st.button("Preview Merge", key="mixer_preview"):
+        if st.button("Preview Merge", key=WidgetKeyBuilder.manager_key("mixer", "preview")):
             # Validate inputs first
             validation_errors = self.api.managers.validate_merge_inputs(
                 df=data,
@@ -152,7 +169,11 @@ class MixerManager(DataManager):
 
         # Separate confirmation
         if self.api.has_preview("mixer"):
-            if st.button("Confirm and Merge", key="confirm_mixer", type="primary"):
+            if st.button(
+                "Confirm and Merge",
+                key=WidgetKeyBuilder.manager_key("mixer", "confirm"),
+                type="primary",
+            ):
                 confirmed_df: pd.DataFrame | None = self.api.get_preview("mixer")
                 if confirmed_df is not None:
                     self.set_data(confirmed_df)
@@ -171,6 +192,6 @@ class MixerManager(DataManager):
         HistoryComponents.render_manager_history(
             self.api.get_manager_history(),
             "Mixer",
-            "_mixer_load",
+            WidgetKeyBuilder.manager_key("mixer", "load_trigger"),
             self.api.remove_manager_history_record,
         )

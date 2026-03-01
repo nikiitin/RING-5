@@ -10,6 +10,7 @@ import streamlit as st
 from src.core.models.history_models import OperationRecord
 from src.web.components.common.history_components import HistoryComponents
 from src.web.components.data_managers.data_manager import DataManager
+from src.web.state.ui_state_manager import UIStateManager, WidgetKeyBuilder
 
 
 class SeedsReducerManager(DataManager):
@@ -70,7 +71,7 @@ class SeedsReducerManager(DataManager):
                     "Select the column whose values will be aggregated "
                     "(e.g. random_seed, iteration, run_id)"
                 ),
-                key="reducer_target_column",
+                key=WidgetKeyBuilder.manager_key("seeds_reducer", "target_column"),
             )
         )
 
@@ -94,7 +95,7 @@ class SeedsReducerManager(DataManager):
             return
 
         # Handle loaded operation from history
-        loaded = st.session_state.pop("_seeds_load", None)
+        loaded = UIStateManager().manager.consume_load_trigger("seeds_reducer")
         if loaded is not None:
             loaded_numeric = loaded["dest_columns"]
             loaded_categorical = [
@@ -107,9 +108,13 @@ class SeedsReducerManager(DataManager):
             if missing:
                 st.warning(f"Columns removed (not in current data): {', '.join(missing)}")
             if valid_cat:
-                st.session_state["seeds_categorical"] = valid_cat
+                st.session_state[WidgetKeyBuilder.manager_key("seeds_reducer", "categorical")] = (
+                    valid_cat
+                )
             if valid_num:
-                st.session_state["seeds_numeric"] = valid_num
+                st.session_state[WidgetKeyBuilder.manager_key("seeds_reducer", "numeric")] = (
+                    valid_num
+                )
 
         st.markdown("**Configuration:**")
 
@@ -120,7 +125,7 @@ class SeedsReducerManager(DataManager):
                 "Group by columns",
                 options=categorical_cols,
                 default=categorical_cols,
-                key="seeds_categorical",
+                key=WidgetKeyBuilder.manager_key("seeds_reducer", "categorical"),
             )
 
         with col2:
@@ -129,7 +134,7 @@ class SeedsReducerManager(DataManager):
                 "Calculate stats for",
                 options=numeric_cols,
                 default=numeric_cols,
-                key="seeds_numeric",
+                key=WidgetKeyBuilder.manager_key("seeds_reducer", "numeric"),
             )
 
         st.info("""
@@ -140,7 +145,10 @@ class SeedsReducerManager(DataManager):
         - This ensures error bars are correctly scaled in normalized plots
         """)
 
-        if st.button("Apply Seeds Reducer", key="apply_seeds"):
+        if st.button(
+            "Apply Seeds Reducer",
+            key=WidgetKeyBuilder.manager_key("seeds_reducer", "apply"),
+        ):
             # Validate inputs first
             validation_errors = self.api.managers.validate_seeds_reducer_inputs(
                 df=data,
@@ -179,7 +187,11 @@ class SeedsReducerManager(DataManager):
 
         # Separate confirmation button outside the first button's scope
         if self.api.has_preview("seeds_reduction"):
-            if st.button("Confirm and Apply Seeds Reducer", key="confirm_seeds", type="primary"):
+            if st.button(
+                "Confirm and Apply Seeds Reducer",
+                key=WidgetKeyBuilder.manager_key("seeds_reducer", "confirm"),
+                type="primary",
+            ):
                 confirmed_df: pd.DataFrame | None = self.api.get_preview("seeds_reduction")
                 if confirmed_df is not None:
                     self.set_data(confirmed_df)
@@ -198,6 +210,6 @@ class SeedsReducerManager(DataManager):
         HistoryComponents.render_manager_history(
             self.api.get_manager_history(),
             "Seeds",
-            "_seeds_load",
+            WidgetKeyBuilder.manager_key("seeds_reducer", "load_trigger"),
             self.api.remove_manager_history_record,
         )

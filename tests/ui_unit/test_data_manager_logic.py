@@ -8,6 +8,7 @@ from pandas import DataFrame
 
 from src.web.components.data_managers.outlier_remover import OutlierRemoverManager
 from src.web.components.data_managers.seeds_reducer import SeedsReducerManager
+from src.web.state.ui_state_manager import WidgetKeyBuilder
 from tests.conftest import columns_side_effect
 
 
@@ -17,6 +18,8 @@ def mock_streamlit() -> Generator[tuple[Any, Any], None, None]:
     with (
         patch("src.web.components.data_managers.seeds_reducer.st") as mock_st_seeds,
         patch("src.web.components.data_managers.outlier_remover.st") as mock_st_outlier,
+        patch("src.web.components.data_managers.seeds_reducer.UIStateManager") as mock_ui_seeds,
+        patch("src.web.components.data_managers.outlier_remover.UIStateManager") as mock_ui_outlier,
     ):
 
         # Configure session state handling for mocks.
@@ -25,6 +28,10 @@ def mock_streamlit() -> Generator[tuple[Any, Any], None, None]:
 
         mock_st_seeds.columns.side_effect = columns_side_effect
         mock_st_outlier.columns.side_effect = columns_side_effect
+
+        # consume_load_trigger returns None by default (no loaded operation)
+        mock_ui_seeds.return_value.manager.consume_load_trigger.return_value = None
+        mock_ui_outlier.return_value.manager.consume_load_trigger.return_value = None
 
         yield (mock_st_seeds, mock_st_outlier)
 
@@ -61,7 +68,8 @@ def test_seeds_reducer_apply(mock_streamlit: Any, mock_api: Any, sample_data: An
 
     # Apply Button -> True
     # Confirm Button -> False (for this pass)
-    mock_st.button.side_effect = lambda label, key=None, **kwargs: key == "apply_seeds"
+    apply_key = WidgetKeyBuilder.manager_key("seeds_reducer", "apply")
+    mock_st.button.side_effect = lambda label, key=None, **kwargs: key == apply_key
 
     # Mock Computing Service via api facade
     result_df = pd.DataFrame({"benchmark": ["b1"], "value": [11], "value.sd": [1.4]})
@@ -90,7 +98,8 @@ def test_seeds_reducer_confirm(mock_streamlit: Any, mock_api: Any, sample_data: 
 
     # Mock Interactions
     # Confirm Button -> True
-    mock_st.button.side_effect = lambda label, key=None, **kwargs: key == "confirm_seeds"
+    confirm_key = WidgetKeyBuilder.manager_key("seeds_reducer", "confirm")
+    mock_st.button.side_effect = lambda label, key=None, **kwargs: key == confirm_key
 
     # Configure mock_api
     mock_api.has_preview.return_value = True
@@ -118,7 +127,8 @@ def test_outlier_remover_run(mock_streamlit: Any, mock_api: Any, sample_data: An
     mock_st.multiselect.return_value = ["benchmark"]
 
     # Button: Apply -> True
-    mock_st.button.side_effect = lambda label, key=None, **kwargs: key == "apply_outlier"
+    apply_key = WidgetKeyBuilder.manager_key("outlier_remover", "apply")
+    mock_st.button.side_effect = lambda label, key=None, **kwargs: key == apply_key
 
     mock_api.managers.validate_outlier_inputs.return_value = []
     mock_api.managers.remove_outliers.return_value = sample_data
