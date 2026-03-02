@@ -211,7 +211,13 @@ class FigureSpecToMatplotlib:
         )
 
         if x_axis.tick_values is not None and x_axis.tick_text is not None:
-            ax.set_xticks(x_axis.tick_values)
+            # tick_values may be strings (e.g. heatmap col labels from Plotly tickvals).
+            # set_xticks requires numeric positions; fall back to integer indices.
+            try:
+                x_tick_positions: list[float] = [float(v) for v in x_axis.tick_values]
+            except (TypeError, ValueError):
+                x_tick_positions = list(range(len(x_axis.tick_values)))
+            ax.set_xticks(x_tick_positions)
             escaped = [FigureSpecToMatplotlib._escape_latex(str(t)) for t in x_axis.tick_text]
             ax.set_xticklabels(
                 escaped,
@@ -242,7 +248,12 @@ class FigureSpecToMatplotlib:
         )
 
         if y_axis.tick_values is not None and y_axis.tick_text is not None:
-            ax.set_yticks(y_axis.tick_values)
+            # Same guard as x-axis: Plotly may supply string tickvals for heatmaps.
+            try:
+                y_tick_positions: list[float] = [float(v) for v in y_axis.tick_values]
+            except (TypeError, ValueError):
+                y_tick_positions = list(range(len(y_axis.tick_values)))
+            ax.set_yticks(y_tick_positions)
             escaped = [FigureSpecToMatplotlib._escape_latex(str(t)) for t in y_axis.tick_text]
             ax.set_yticklabels(
                 escaped,
@@ -258,9 +269,9 @@ class FigureSpecToMatplotlib:
         y_axis = spec.axes.y
 
         if x_axis.range is not None:
-            ax.set_xlim(x_axis.range)
+            ax.set_xlim(*x_axis.range)
         if y_axis.range is not None:
-            ax.set_ylim(y_axis.range)
+            ax.set_ylim(*y_axis.range)
 
         if x_axis.scale == "log":
             ax.set_xscale("log")
@@ -501,6 +512,10 @@ class FigureSpecToMatplotlib:
         color = dl.custom_color if dl.color_mode == "custom" else "#000000"
 
         for container in ax.containers:
+            from matplotlib.container import BarContainer  # local: needs runtime class
+
+            if not isinstance(container, BarContainer):
+                continue
             try:
                 ax.bar_label(
                     container,

@@ -159,7 +159,7 @@ class TestScalarContentProperty:
         scalar.content = 42
 
         # Assert
-        assert scalar.content[0] == 42.0
+        assert scalar.content[0] == 42.0  # type: ignore[index]  # __setattr__ masks property type
 
     def test_content_setter_invalid_value_raises(self) -> None:
         # Arrange

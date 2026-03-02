@@ -33,10 +33,12 @@ class GroupedBarPlot(BasePlot):
             # Apply X filter
             if saved_config.get("x_filter") is not None:
                 data = data[data[saved_config["x"]].isin(saved_config["x_filter"])]
+                assert isinstance(data, pd.DataFrame)  # nosec B101  # pandas stubs lose narrowing
 
             # Apply Group filter
             if saved_config.get("group_filter") is not None and saved_config.get("group"):
                 data = data[data[saved_config["group"]].isin(saved_config["group_filter"])]
+                assert isinstance(data, pd.DataFrame)  # nosec B101  # pandas stubs lose narrowing
 
         return super().render_advanced_options(saved_config, data)
 

@@ -5,9 +5,13 @@ transformation chain. Verifies that shapers compose correctly and
 produce expected output when chained together.
 """
 
+from typing import cast
+
 import pandas as pd
 import pytest
 
+from src.core.models.data_models import PipelineStep
+from src.core.models.shaper_models import ShaperStepConfig
 from src.core.services.shapers.pipeline_service import PipelineService
 
 
@@ -95,7 +99,9 @@ class TestPipelineEndToEnd:
                 },
             },
         ]
-        result = PipelineService.process_pipeline(pipeline_data, pipeline_config)
+        result = PipelineService.process_pipeline(
+            pipeline_data, cast(list[ShaperStepConfig], pipeline_config)
+        )
 
         # Should have only 3 columns
         assert list(result.columns) == [
@@ -127,7 +133,9 @@ class TestPipelineEndToEnd:
                 "groupBy": ["benchmark_name"],
             },
         ]
-        result = PipelineService.process_pipeline(pipeline_data, pipeline_config)
+        result = PipelineService.process_pipeline(
+            pipeline_data, cast(list[ShaperStepConfig], pipeline_config)
+        )
 
         # Filtered to 2 configs × 3 benchmarks = 6 rows
         assert len(result) == 6
@@ -163,7 +171,9 @@ class TestPipelineEndToEnd:
                 "replacingColumn": "benchmark_name",
             },
         ]
-        result = PipelineService.process_pipeline(pipeline_data, pipeline_config)
+        result = PipelineService.process_pipeline(
+            pipeline_data, cast(list[ShaperStepConfig], pipeline_config)
+        )
 
         # Original 6 rows + 2 mean rows (one per config)
         assert len(result) == 8
@@ -190,7 +200,9 @@ class TestPipelineEndToEnd:
                 "columns": ["benchmark_name", "system.cpu.ipc"],
             },
         ]
-        result = PipelineService.process_pipeline(pipeline_data, pipeline_config)
+        result = PipelineService.process_pipeline(
+            pipeline_data, cast(list[ShaperStepConfig], pipeline_config)
+        )
 
         assert list(result.columns) == ["benchmark_name", "system.cpu.ipc"]
         assert len(result) == 6
@@ -219,7 +231,9 @@ class TestPipelineEndToEnd:
             {"type": "nonexistent_shaper"},
         ]
         with pytest.raises(ValueError, match="nonexistent_shaper"):
-            PipelineService.process_pipeline(pipeline_data, pipeline_config)
+            PipelineService.process_pipeline(
+                pipeline_data, cast(list[ShaperStepConfig], pipeline_config)
+            )
 
 
 class TestPipelinePersistence:
@@ -233,7 +247,9 @@ class TestPipelinePersistence:
             {"id": 0, "type": "sort", "order_dict": {"benchmark": ["a", "b"]}},
             {"id": 1, "type": "columnSelector", "columns": ["benchmark", "ipc"]},
         ]
-        svc.save_pipeline("test_pipeline", config, description="Test pipeline")
+        svc.save_pipeline(
+            "test_pipeline", cast(list[PipelineStep], config), description="Test pipeline"
+        )
 
         # List
         pipelines = svc.list_pipelines()
@@ -242,7 +258,7 @@ class TestPipelinePersistence:
         # Load
         loaded = svc.load_pipeline("test_pipeline")
         assert loaded["name"] == "test_pipeline"
-        assert loaded["description"] == "Test pipeline"
+        assert loaded.get("description") == "Test pipeline"
         assert len(loaded["pipeline"]) == 2
         assert loaded["pipeline"][0]["type"] == "sort"
 

@@ -4,6 +4,7 @@ Verifies that the CSV contract validator and CsvPoolService correctly handle
 non-text files, files with encoding issues, and edge case inputs.
 """
 
+from collections.abc import Generator
 from pathlib import Path
 
 import pandas as pd
@@ -73,7 +74,7 @@ class TestCsvPoolServiceBinaryRejection:
     """Verify that CsvPoolService handles binary files gracefully."""
 
     @pytest.fixture(autouse=True)
-    def _clear_caches(self) -> None:
+    def _clear_caches(self) -> Generator[None, None, None]:
         CsvPoolService.clear_caches()
         yield
         CsvPoolService.clear_caches()
