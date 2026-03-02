@@ -18,11 +18,12 @@ def mock_streamlit() -> Generator[None, None, None]:
         patch("src.web.pages.ui.plotting.types.grouped_stacked_bar_plot.st") as mock_st_plot,
         patch("src.web.pages.ui.plotting.plot_config_ui.st", mock_st_plot),
         patch("src.web.pages.ui.plotting.styles.base_ui.st", mock_st_plot),
-        patch("src.web.pages.ui.plotting.styles.manager.StyleUIFactory"),
+        patch("src.web.pages.ui.plotting.styles.factory.StyleUIFactory"),
         patch("src.web.components.common.reorderable_list.st", mock_st_plot),
         patch("src.web.components.plotting.settings.shapes_settings.st", mock_st_plot),
         patch("src.web.components.plotting.settings.reference_line_settings.st", mock_st_plot),
         patch("src.web.components.plotting.settings.ordering_settings.st", mock_st_plot),
+        patch("src.web.components.plotting.settings.widget_factory.st", mock_st_plot),
     ):  # Mock factory to avoid side effects if needed
 
         # Setup common mock behaviors
@@ -84,7 +85,7 @@ def test_specific_advanced_options_overrides(sample_data: Any, mock_streamlit: A
     mock_streamlit.number_input.return_value = 5.0
     # Selectbox needs to match specific keys or order.
     # General section has 2 (fmt, scale). Reorderable list uses none.
-    # But StyleManager.render_series_renaming_ui is called, it doesn't use selectbox.
+    # render_series_renaming_ui is called but doesn't use selectbox.
     # BasePlot._render_shapes_ui uses 1 selectbox.
     mock_streamlit.selectbox.side_effect = ["pdf", 2, "line"]
     mock_streamlit.slider.side_effect = [15, 0.3, 0.1, 1.5]
@@ -108,7 +109,7 @@ def test_create_figure_renaming(sample_data: Any, mock_streamlit: Any) -> None:
 
     plot = GroupedStackedBarPlot(1, "Test Plot")
 
-    # Config with renaming via StyleManager (Stacks)
+    # Config with series renaming (Stacks)
     # The plot now explicitly renders generic series styling for y_columns
     config = {
         "x": "Benchmark",
@@ -121,7 +122,7 @@ def test_create_figure_renaming(sample_data: Any, mock_streamlit: Any) -> None:
     }
 
     fig = plot.create_figure(sample_data, config)
-    plot.style_manager.apply_styles(fig, config)
+    plot._applicator.apply_styles(fig, config)
 
     # Check traces - Ticks and Energy
     # Ticks -> Total Cycles

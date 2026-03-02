@@ -46,6 +46,16 @@ class PlotConfigComponents:
             # Ensure defaults are valid
             default_x = [x for x in default_x if x in unique_x]
 
+            # Sanitize session state — Streamlit >= 1.53 raises when keys hold
+            # values that are no longer valid options (e.g. after a data update).
+            _xf_key = f"x_filter_{plot_id}"
+            if _xf_key in st.session_state:
+                _xf_state = st.session_state[_xf_key]
+                if isinstance(_xf_state, list):
+                    _xf_valid = [v for v in _xf_state if v in unique_x]
+                    if len(_xf_valid) != len(_xf_state):
+                        st.session_state[_xf_key] = _xf_valid
+
             with col_filter1:
                 x_values = st.multiselect(
                     x_label,
@@ -61,6 +71,15 @@ class PlotConfigComponents:
             default_g = saved_config.get("group_filter", unique_g)
             # Ensure defaults are valid
             default_g = [g for g in default_g if g in unique_g]
+
+            # Sanitize session state for group filter (same reason as above).
+            _gf_key = f"group_filter_{plot_id}"
+            if _gf_key in st.session_state:
+                _gf_state = st.session_state[_gf_key]
+                if isinstance(_gf_state, list):
+                    _gf_valid = [v for v in _gf_state if v in unique_g]
+                    if len(_gf_valid) != len(_gf_state):
+                        st.session_state[_gf_key] = _gf_valid
 
             with col_filter2:
                 group_values = st.multiselect(
@@ -103,6 +122,16 @@ class PlotConfigComponents:
             valid_ys = numeric_cols[:2]
         elif not valid_ys and numeric_cols:
             valid_ys = numeric_cols[:1]
+
+        # Sanitize session state to prevent StreamlitInvalidOptionError when
+        # previously selected columns are no longer available after a data change.
+        _ys_key = f"y_multiselect_{plot_id}"
+        if _ys_key in st.session_state:
+            _ys_state = st.session_state[_ys_key]
+            if isinstance(_ys_state, list):
+                _ys_valid = [v for v in _ys_state if v in numeric_cols]
+                if len(_ys_valid) != len(_ys_state):
+                    st.session_state[_ys_key] = _ys_valid
 
         result = st.multiselect(
             label,

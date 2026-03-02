@@ -55,7 +55,8 @@ class TestLegendStyling:
 
     def test_legend_anchor_not_applied_from_config(self, applicator: Any) -> None:
         """
-        Anchor fields were removed from UI — verify they're not applied.
+        Legacy xanchor/yanchor keys don't override auto-derived anchors.
+        The default position (1.02, 1.0) auto-derives left/bottom.
         """
         fig = go.Figure()
         fig.add_trace(go.Bar(y=[1, 2], name="Test"))
@@ -67,9 +68,9 @@ class TestLegendStyling:
 
         fig = applicator.apply_styles(fig, config)
 
-        # Anchor fields should remain at Plotly defaults (None)
-        assert fig.layout.legend.xanchor is None
-        assert fig.layout.legend.yanchor is None
+        # Anchors are now auto-derived from default position (1.02, 1.0)
+        assert fig.layout.legend.xanchor == "left"
+        assert fig.layout.legend.yanchor == "bottom"
 
     def test_legend_no_columns_default_behavior(self, applicator: Any) -> None:
         """

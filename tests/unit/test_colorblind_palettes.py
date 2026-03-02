@@ -73,7 +73,8 @@ class TestPaletteSelector:
         mock_st.columns.side_effect = columns_side_effect
         mock_st.color_picker.return_value = "#000000"
         comp = self._make_component()
-        result = comp.render({}, data=None)
+        with patch("src.web.components.plotting.settings.widget_factory.st", mock_st):
+            result = comp.render({}, data=None)
         assert result["color_palette"] == "viridis_8"
 
     @patch("src.web.components.plotting.settings.colors_settings.st")

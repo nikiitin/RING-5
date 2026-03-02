@@ -155,6 +155,25 @@ class OrderingSettingsComponent:
                 if renames_hm:
                     config["metric_labels"] = renames_hm
 
+        # Heatmap Facet Order (split-by column)
+        facet_col: str | None = saved_config.get("facet_col")
+        if facet_col and facet_col in data.columns:
+            with st.expander("Reorder and Rename Facets"):
+                unique_facets: list[str] = sorted(data[facet_col].astype(str).unique().tolist())
+                f_result = render_reorderable_list(
+                    "Facet Order",
+                    unique_facets,
+                    "facet",
+                    plot_id=self.plot_id,
+                    default_order=saved_config.get("facet_order"),
+                    enable_rename=True,
+                    rename_map=saved_config.get("facet_labels"),
+                )
+                order_f, renames_f = f_result  # type: ignore[misc]
+                config["facet_order"] = order_f
+                if renames_f:
+                    config["facet_labels"] = renames_f
+
 
 def render_ordering_ui(
     plot_id: int,

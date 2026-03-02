@@ -6,9 +6,10 @@ import pandas as pd
 
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import BarTraceConfig
-from src.web.components.plotting.config import bar_config
+from src.web.components.plotting.config.base_plot_config import render_common_with_color
 from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
+from src.web.pages.ui.plotting.types._trace_helpers import build_color_grouped_traces
 
 
 class BarPlot(BasePlot):
@@ -20,27 +21,17 @@ class BarPlot(BasePlot):
     @override
     def render_config_ui(self, data: pd.DataFrame, saved_config: PlotConfig) -> PlotConfig:
         """Render configuration UI for bar plot."""
-        return bar_config.render(data, saved_config, self.plot_id)
+        return render_common_with_color(data, saved_config, self.plot_id)
 
     @override
     def create_traces(self, data: pd.DataFrame, config: PlotConfig) -> TraceBuildResult:
         """Produce bar traces from data and config."""
         x_col: str = config["x"]
         y_col: str = config["y"]
-        color_col: str | None = config.get("color")
 
-        # Error bar column
-        sd_col: str | None = None
-        if config.get("show_error_bars"):
-            candidate = f"{y_col}.sd"
-            if candidate in data.columns:
-                sd_col = candidate
-
-        # Cast to string for categorical plotting
+        # Cast x to string for categorical plotting
         data = data.copy()
         data[x_col] = data[x_col].astype(str)
-        if color_col:
-            data[color_col] = data[color_col].astype(str)
 
         # Determine ordering
         if config.get("xaxis_order"):
@@ -48,46 +39,26 @@ class BarPlot(BasePlot):
         else:
             x_order = sorted(data[x_col].unique())
 
-        traces: list[BarTraceConfig] = []
-
-        if color_col:
-            if config.get("legend_order"):
-                groups: list[str] = [str(g) for g in config["legend_order"]]
-            else:
-                groups = sorted(data[color_col].unique())
-
-            for grp in groups:
-                grp_data = data[data[color_col] == grp]
-                # Sort to match x_order without reindex (avoids duplicate label errors)
-                order_map = {v: i for i, v in enumerate(x_order)}
-                grp_data = grp_data.copy()
-                grp_data["__sort_key"] = pd.Series(grp_data[x_col]).map(order_map)
-                grp_data = grp_data.sort_values(by="__sort_key").drop(columns=["__sort_key"])
-                error_y = grp_data[sd_col].tolist() if sd_col else None
-                traces.append(
-                    BarTraceConfig(
-                        name=str(grp),
-                        x=grp_data[x_col].tolist(),
-                        y=grp_data[y_col].tolist(),
-                        error_y=error_y,
-                    )
-                )
-        else:
-            # Sort to match x_order without reindex
+        def _sort_by_x(df: pd.DataFrame) -> pd.DataFrame:
             order_map = {v: i for i, v in enumerate(x_order)}
-            data = data.copy()
-            data["__sort_key"] = pd.Series(data[x_col]).map(order_map)
-            data = data.sort_values(by="__sort_key").drop(columns=["__sort_key"])
-            error_y = data[sd_col].tolist() if sd_col else None
-            traces.append(
-                BarTraceConfig(
-                    name=y_col,
-                    x=data[x_col].tolist(),
-                    y=data[y_col].tolist(),
-                    error_y=error_y,
-                )
+            df = df.copy()
+            df["__sort_key"] = pd.Series(df[x_col]).map(order_map)
+            return df.sort_values(by="__sort_key").drop(columns=["__sort_key"])
+
+        def _make_trace(
+            grp_data: pd.DataFrame,
+            group_name: str | None,
+            sd_col: str | None,
+        ) -> BarTraceConfig:
+            grp_data = _sort_by_x(grp_data)
+            return BarTraceConfig(
+                name=str(group_name) if group_name is not None else y_col,
+                x=grp_data[x_col].tolist(),
+                y=grp_data[y_col].tolist(),
+                error_y=grp_data[sd_col].tolist() if sd_col else None,
             )
 
+        traces = build_color_grouped_traces(data, config, _make_trace)
         return TraceBuildResult(traces=traces)
 
     @override

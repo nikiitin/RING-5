@@ -140,6 +140,11 @@ class HeatmapTraceConfig(TraceConfig):
     col_labels: list[str] = field(default_factory=list)  # column (x-axis) labels
     row_labels: list[str] = field(default_factory=list)  # row (y-axis) labels
     z: list[list[float | None]] = field(default_factory=list)
-    colorscale: str = "Viridis"
+    colorscale: str | list[list[str | float]] = "Viridis"
     show_values: bool = True
     text: list[list[str]] | None = None
+    text_font_size: int = 10
+    text_color_mode: str = "contrast"  # "auto", "contrast", "custom"
+    text_color: str = "#000000"
+    totals_position: str = ""  # "", "right", or "top"
+    totals_count: int = 0  # number of totals rows/columns (0 or 1)

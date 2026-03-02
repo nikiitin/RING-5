@@ -97,7 +97,7 @@ class TestApplyNumberedXaxis:
         assert legend["showarrow"] is False
         # Box-style legend properties
         assert legend["xanchor"] == "left"
-        assert legend["yanchor"] == "middle"
+        assert legend["yanchor"] == "bottom"
         assert legend["align"] == "left"
         assert legend["bordercolor"] == "#333333"
         assert legend["borderwidth"] == 1
@@ -159,16 +159,20 @@ class TestApplyNumberedXaxis:
         assert legend is not None
 
         rows = legend["text"].split("<br>")
+
         # Column-wise layout: col-0=["1. short", "2. very_long_name"],
         #                     col-1=["3. medium", "4. x"]
         # Col-0 width: max(8, 17) = 17
         # Col-1 width: max(9, 4) = 9
-        # All columns padded → all rows same width
-        assert len(rows[0]) == len(rows[1])
-        # Row 0: "1. short         " (17) + "  " + "3. medium" (9)
-        assert rows[0] == "1. short           3. medium"
-        # Row 1: "2. very_long_name" (17) + "  " + "4. x     " (9)
-        assert rows[1] == "2. very_long_name  4. x     "
+        # With &nbsp; for padding, compare visual width (rendered characters).
+        def _visual_len(s: str) -> int:
+            return len(s.replace("&nbsp;", " "))
+
+        assert _visual_len(rows[0]) == _visual_len(rows[1])
+        # Row 0: "1. short" + 9×&nbsp; + 2×&nbsp; (sep) + "3. medium"
+        assert _visual_len(rows[0]) == len("1. short           3. medium")
+        # Row 1: "2. very_long_name" + 2×&nbsp; (sep) + "4. x" + 5×&nbsp;
+        assert _visual_len(rows[1]) == len("2. very_long_name  4. x     ")
 
     def test_single_column_means_vertical_list(self, plot: GroupedStackedBarPlot) -> None:
         """numbered_legend_columns=1 means one entry per line (vertical list)."""

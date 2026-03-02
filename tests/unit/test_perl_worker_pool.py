@@ -244,6 +244,13 @@ class TestPerlWorkerPool:
 class TestWorkerPoolIntegration:
     """Integration tests for worker pool."""
 
+    @pytest.fixture(autouse=True)
+    def _reset_singleton(self) -> Generator[None, None, None]:
+        """Ensure no stale singleton leaks between tests."""
+        shutdown_worker_pool()
+        yield
+        shutdown_worker_pool()
+
     def test_worker_pool_vs_subprocess_mode(self, test_stats_file: Path) -> None:
         """Test worker pool performance."""
         # Test with worker pool (the ONLY mechanism now!)

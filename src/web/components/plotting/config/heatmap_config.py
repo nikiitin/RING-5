@@ -88,6 +88,21 @@ def render(
                 auto_metrics if auto_metrics else numeric_cols[: min(8, len(numeric_cols))]
             )
 
+        # Sanitize multiselect session state before rendering.
+        # Streamlit >= 1.53 raises StreamlitInvalidOptionError when session state
+        # holds values that are no longer present in options (e.g. after a pipeline
+        # update removes columns that were previously selected as Y-axis metrics).
+        # Filtering invalid entries here preserves the valid subset and prevents the
+        # exception from propagating — which would otherwise hide the "Show Totals"
+        # checkbox rendered below and block all figure regeneration.
+        _mc_key = f"hm_metrics_{plot_id}"
+        if _mc_key in st.session_state:
+            _mc_state = st.session_state[_mc_key]
+            if isinstance(_mc_state, list):
+                _mc_valid = [v for v in _mc_state if v in numeric_cols]
+                if len(_mc_valid) != len(_mc_state):
+                    st.session_state[_mc_key] = _mc_valid
+
         metric_columns: list[str] = st.multiselect(
             "Y-axis Metrics (rows)",
             options=numeric_cols,
@@ -111,76 +126,30 @@ def render(
 
     # ── Heatmap options ─────────────────────────────────────────
     st.markdown("**Heatmap Options**")
-    opt_c1, opt_c2 = st.columns(2)
 
-    with opt_c1:
-        colorscale_options = [
-            "Viridis",
-            "Plasma",
-            "Inferno",
-            "Magma",
-            "Cividis",
-            "Blues",
-            "Reds",
-            "Greens",
-            "YlOrRd",
-            "RdBu",
-            "Spectral",
-            "Hot",
-            "Greys",
-        ]
-        cs_default_idx: int = 0
-        if saved_config.get("colorscale") in colorscale_options:
-            cs_default_idx = colorscale_options.index(saved_config["colorscale"])
+    agg_options = ["mean", "sum", "min", "max", "median", "first"]
+    agg_default_idx: int = 0
+    if saved_config.get("aggregation") in agg_options:
+        agg_default_idx = agg_options.index(saved_config["aggregation"])
 
-        colorscale: str = (
-            st.selectbox(
-                "Color Scale",
-                options=colorscale_options,
-                index=cs_default_idx,
-                key=f"hm_colorscale_{plot_id}",
-                help="Color palette for the heatmap.",
-            )
-            or "Viridis"
+    aggregation: str = (
+        st.selectbox(
+            "Aggregation",
+            options=agg_options,
+            index=agg_default_idx,
+            key=f"hm_agg_{plot_id}",
+            help=("How to aggregate when multiple rows share " "the same (X, Y) combination."),
         )
-
-        show_values = st.checkbox(
-            "Show Cell Values",
-            value=saved_config.get("show_cell_values", True),
-            key=f"hm_show_vals_{plot_id}",
-            help="Display numeric values inside each cell.",
-        )
-
-    with opt_c2:
-        reverse_colorscale = st.checkbox(
-            "Reverse Color Scale",
-            value=saved_config.get("reverse_colorscale", False),
-            key=f"hm_rev_cs_{plot_id}",
-            help="Reverse the direction of the color scale.",
-        )
-
-        agg_options = ["mean", "sum", "min", "max", "median", "first"]
-        agg_default_idx: int = 0
-        if saved_config.get("aggregation") in agg_options:
-            agg_default_idx = agg_options.index(saved_config["aggregation"])
-
-        aggregation: str = (
-            st.selectbox(
-                "Aggregation",
-                options=agg_options,
-                index=agg_default_idx,
-                key=f"hm_agg_{plot_id}",
-                help=("How to aggregate when multiple rows share " "the same (X, Y) combination."),
-            )
-            or "mean"
-        )
+        or "mean"
+    )
 
     # ── Filters ─────────────────────────────────────────────────
-    facet_for_filter = facet_col if facet_col else x_column
+    # Pass facet_col directly (None when no facet selected) so only
+    # the X filter renders — avoids a confusing duplicate filter widget.
     x_filter, facet_filter = PlotConfigComponents.render_filter_multiselects(
         data=data,
         x_col=x_column,
-        group_col=facet_for_filter,
+        group_col=facet_col,
         saved_config=saved_config,
         plot_id=plot_id,
         x_label="Filter X values",
@@ -194,10 +163,7 @@ def render(
         **label_config,
         "numeric_cols": numeric_cols,
         "categorical_cols": categorical_cols,
-        "colorscale": colorscale,
-        "reverse_colorscale": reverse_colorscale,
-        "show_cell_values": show_values,
         "aggregation": aggregation,
         "x_filter": x_filter,
-        "facet_filter": facet_filter,
+        "group_filter": facet_filter,
     }

@@ -5,6 +5,7 @@ Extracted from ``BasePlot._render_engine_specific_controls``.
 
 import streamlit as st
 
+from src.web.components.plotting.settings.widget_factory import select_option
 from src.web.models.plot_models import PlotConfig
 from src.web.rendering.engine_manager import EngineManager
 
@@ -41,23 +42,15 @@ class EngineSettingsComponent:
         st.markdown("---")
         if EngineManager.is_plotly():
             st.markdown("#### :material/interactive_space: Interactive Settings")
-            hovermode_options = [
-                "x unified",
-                "closest",
-                "x",
-                "y",
-                "off",
-            ]
-            current_hover = saved_config.get("hovermode", "x unified")
-            idx = (
-                hovermode_options.index(current_hover) if current_hover in hovermode_options else 0
-            )
-            config["hovermode"] = st.selectbox(
+            config["hovermode"] = select_option(
                 "Hover mode",
-                options=hovermode_options,
-                index=idx,
-                key=f"hovermode_{self.plot_id}",
-                help=("Controls how tooltip information is displayed " "on hover."),
+                ["x unified", "closest", "x", "y", "off"],
+                saved_config,
+                "hovermode",
+                self.plot_id,
+                widget_key=f"hovermode_{self.plot_id}",
+                default="x unified",
+                help="Controls how tooltip information is displayed on hover.",
             )
         elif EngineManager.is_matplotlib():
             st.markdown("#### :material/description: LaTeX Settings")
@@ -67,14 +60,14 @@ class EngineSettingsComponent:
                 key=f"latex_preamble_{self.plot_id}",
                 help=("Additional LaTeX preamble commands " "(e.g. \\\\usepackage{...})."),
             )
-            tex_options = ["xelatex", "pdflatex", "lualatex"]
-            current_tex = saved_config.get("tex_system", "xelatex")
-            tex_idx = tex_options.index(current_tex) if current_tex in tex_options else 0
-            config["tex_system"] = st.selectbox(
+            config["tex_system"] = select_option(
                 "TeX system",
-                options=tex_options,
-                index=tex_idx,
-                key=f"tex_system_{self.plot_id}",
+                ["xelatex", "pdflatex", "lualatex"],
+                saved_config,
+                "tex_system",
+                self.plot_id,
+                widget_key=f"tex_system_{self.plot_id}",
+                default="xelatex",
                 help="TeX compiler to use for LaTeX rendering.",
             )
 

@@ -19,10 +19,10 @@ from src.core.models.visualization.trace_config import (
     ScatterTraceConfig,
     TraceConfig,
 )
+from src.web.rendering._heatmap_utils import is_dark_cell
 from src.web.rendering.matplotlib_trace_renderer import (
     MatplotlibTraceRenderer,
     _compute_categorical_positions,
-    _is_dark_cell,
     _stack_bottom,
     _stack_bottom_numeric,
 )
@@ -46,27 +46,27 @@ class TestRender:
 
     def test_empty_traces(self, ax: matplotlib.axes.Axes) -> None:
         count = MatplotlibTraceRenderer.render([], ax)
-        assert count == 0
+        assert count.trace_count == 0
 
     def test_single_bar(self, ax: matplotlib.axes.Axes) -> None:
         trace = BarTraceConfig(name="s1", x=["a", "b"], y=[1, 2])
         count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count == 1
+        assert count.trace_count == 1
 
     def test_single_line(self, ax: matplotlib.axes.Axes) -> None:
         trace = LineTraceConfig(name="l1", x=[0, 1], y=[1, 2])
         count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count == 1
+        assert count.trace_count == 1
 
     def test_single_scatter(self, ax: matplotlib.axes.Axes) -> None:
         trace = ScatterTraceConfig(name="sc", x=[0, 1], y=[1, 2])
         count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count == 1
+        assert count.trace_count == 1
 
     def test_single_histogram(self, ax: matplotlib.axes.Axes) -> None:
         trace = HistogramTraceConfig(name="h1", x=[1, 2, 3, 4, 5])
         count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count == 1
+        assert count.trace_count == 1
 
     def test_mixed_traces(self, ax: matplotlib.axes.Axes) -> None:
         traces = [
@@ -74,12 +74,12 @@ class TestRender:
             LineTraceConfig(name="line", x=[0, 1], y=[3, 4]),
         ]
         count = MatplotlibTraceRenderer.render(traces, ax)
-        assert count == 2
+        assert count.trace_count == 2
 
     def test_palette_colors_applied(self, ax: matplotlib.axes.Axes) -> None:
         trace = BarTraceConfig(name="b", x=["a"], y=[1])
         count = MatplotlibTraceRenderer.render([trace], ax, palette_colors=["#ff0000"])
-        assert count == 1
+        assert count.trace_count == 1
 
     def test_secondary_y_creates_twin(self, ax: matplotlib.axes.Axes) -> None:
         t1 = BarTraceConfig(name="left", x=["a"], y=[1], yaxis="y")
@@ -94,12 +94,12 @@ class TestRender:
             BarTraceConfig(name="b2", x=["a", "b"], y=[3, 4]),
         ]
         count = MatplotlibTraceRenderer.render(traces, ax, barmode="stack")
-        assert count == 2
+        assert count.trace_count == 2
 
     def test_bar_with_border_width(self, ax: matplotlib.axes.Axes) -> None:
         trace = BarTraceConfig(name="b", x=["a"], y=[1])
         count = MatplotlibTraceRenderer.render([trace], ax, bar_border_width=1.5)
-        assert count == 1
+        assert count.trace_count == 1
 
     def test_bar_with_x_positions(self, ax: matplotlib.axes.Axes) -> None:
         """Pre-computed x_positions bypass categorical positioning."""
@@ -111,34 +111,34 @@ class TestRender:
             bar_width=0.3,
         )
         count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count == 1
+        assert count.trace_count == 1
 
     def test_line_with_dash(self, ax: matplotlib.axes.Axes) -> None:
         trace = LineTraceConfig(name="dashed", x=[0, 1], y=[1, 2], line_dash="dash")
         count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count == 1
+        assert count.trace_count == 1
 
     def test_scatter_with_color(self, ax: matplotlib.axes.Axes) -> None:
         trace = ScatterTraceConfig(name="colored", x=[0, 1], y=[1, 2], color="#00ff00")
         count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count == 1
+        assert count.trace_count == 1
 
     def test_histogram_with_color(self, ax: matplotlib.axes.Axes) -> None:
         trace = HistogramTraceConfig(name="colored", x=[1, 2, 3], color="#0000ff", nbins=5)
         count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count == 1
+        assert count.trace_count == 1
 
     def test_none_y_values_handled(self, ax: matplotlib.axes.Axes) -> None:
         """None values in y should be converted to NaN gracefully."""
         trace = BarTraceConfig(name="nans", x=["a", "b"], y=[1, None])  # type: ignore[list-item]
         count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count == 1
+        assert count.trace_count == 1
 
     def test_unknown_trace_type_logged(self, ax: matplotlib.axes.Axes) -> None:
         """Unknown TraceConfig subtype should log warning, not crash."""
         trace = TraceConfig(name="unknown", x=["a"], y=[1])
         count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count == 0  # fallback doesn't match specific types
+        assert count.trace_count == 0  # fallback doesn't match specific types
 
 
 # ── _compute_categorical_positions ──────────────────────────────────
@@ -244,7 +244,7 @@ class TestHeatmapRendering:
             z=[[1.0, 2.0], [3.0, 4.0]],
         )
         count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count == 1
+        assert count.trace_count == 1
 
     def test_heatmap_with_text_annotations(self, ax: matplotlib.axes.Axes) -> None:
         trace = HeatmapTraceConfig(
@@ -256,7 +256,7 @@ class TestHeatmapRendering:
             text=[["10", "20"], ["30", "40"]],
         )
         count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count == 1
+        assert count.trace_count == 1
         # Check that text annotations were added
         texts = ax.texts
         assert len(texts) == 4
@@ -270,7 +270,7 @@ class TestHeatmapRendering:
             show_values=False,
         )
         count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count == 1
+        assert count.trace_count == 1
         assert len(ax.texts) == 0
 
     def test_heatmap_with_none_values(self, ax: matplotlib.axes.Axes) -> None:
@@ -284,7 +284,7 @@ class TestHeatmapRendering:
             text=[["1", ""]],
         )
         count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count == 1
+        assert count.trace_count == 1
 
     def test_heatmap_empty_z(self, ax: matplotlib.axes.Axes) -> None:
         """Empty z matrix should render without error."""
@@ -295,7 +295,7 @@ class TestHeatmapRendering:
             z=[],
         )
         count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count == 1
+        assert count.trace_count == 1
 
     def test_heatmap_custom_colorscale(self, ax: matplotlib.axes.Axes) -> None:
         trace = HeatmapTraceConfig(
@@ -306,7 +306,7 @@ class TestHeatmapRendering:
             colorscale="Blues",
         )
         count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count == 1
+        assert count.trace_count == 1
 
     def test_heatmap_reversed_colorscale(self, ax: matplotlib.axes.Axes) -> None:
         trace = HeatmapTraceConfig(
@@ -317,10 +317,67 @@ class TestHeatmapRendering:
             colorscale="Viridis_r",
         )
         count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count == 1
+        assert count.trace_count == 1
+
+    def test_heatmap_list_colorscale(self, ax: matplotlib.axes.Axes) -> None:
+        """List-format colorscale (palette-derived) renders correctly."""
+        trace = HeatmapTraceConfig(
+            name="palette_cs",
+            col_labels=["a", "b"],
+            row_labels=["x", "y"],
+            z=[[1.0, 2.0], [3.0, 4.0]],
+            colorscale=[[0.0, "#000000"], [0.5, "#ff0000"], [1.0, "#ffffff"]],
+        )
+        count = MatplotlibTraceRenderer.render([trace], ax)
+        assert count.trace_count == 1
+        assert count.heatmap_image is not None
+
+    def test_heatmap_separator_right(self, ax: matplotlib.axes.Axes) -> None:
+        """Totals position='right' draws a vertical separator line."""
+        trace = HeatmapTraceConfig(
+            name="sep_right",
+            col_labels=["A", "B", "Total"],
+            row_labels=["m1"],
+            z=[[1.0, 2.0, 1.5]],
+            totals_position="right",
+            totals_count=1,
+        )
+        count = MatplotlibTraceRenderer.render([trace], ax)
+        assert count.trace_count == 1
+        # Check that a vertical line was drawn (axvline adds a Line2D)
+        lines = ax.get_lines()
+        assert len(lines) >= 1
+
+    def test_heatmap_separator_top(self, ax: matplotlib.axes.Axes) -> None:
+        """Totals position='top' draws a horizontal separator line."""
+        trace = HeatmapTraceConfig(
+            name="sep_top",
+            col_labels=["A", "B"],
+            row_labels=["Total", "m1", "m2"],
+            z=[[2.0, 3.0], [1.0, 2.0], [3.0, 4.0]],
+            totals_position="top",
+            totals_count=1,
+        )
+        count = MatplotlibTraceRenderer.render([trace], ax)
+        assert count.trace_count == 1
+        lines = ax.get_lines()
+        assert len(lines) >= 1
+
+    def test_heatmap_no_separator_without_totals(self, ax: matplotlib.axes.Axes) -> None:
+        """No separator lines when totals are not configured."""
+        trace = HeatmapTraceConfig(
+            name="no_sep",
+            col_labels=["A", "B"],
+            row_labels=["m1"],
+            z=[[1.0, 2.0]],
+        )
+        count = MatplotlibTraceRenderer.render([trace], ax)
+        assert count.trace_count == 1
+        # No separator lines expected
+        assert len(ax.get_lines()) == 0
 
 
-# ── _is_dark_cell ──────────────────────────────────────────────────
+# ── is_dark_cell ──────────────────────────────────────────────────
 
 
 class TestIsDarkCell:
@@ -328,16 +385,86 @@ class TestIsDarkCell:
 
     def test_high_value_is_dark(self) -> None:
         z = np.array([[0.0, 1.0], [0.5, 0.9]])
-        assert _is_dark_cell(z, 0, 1) is True  # 1.0 is max
+        assert is_dark_cell(z, 0, 1) is True  # 1.0 is max
 
     def test_low_value_is_not_dark(self) -> None:
         z = np.array([[0.0, 1.0], [0.5, 0.9]])
-        assert _is_dark_cell(z, 0, 0) is False  # 0.0 is min
+        assert is_dark_cell(z, 0, 0) is False  # 0.0 is min
 
     def test_nan_returns_false(self) -> None:
         z = np.array([[np.nan, 1.0]])
-        assert _is_dark_cell(z, 0, 0) is False
+        assert is_dark_cell(z, 0, 0) is False
 
     def test_uniform_values_returns_false(self) -> None:
         z = np.array([[5.0, 5.0]])
-        assert _is_dark_cell(z, 0, 0) is False  # vmax == vmin
+        assert is_dark_cell(z, 0, 0) is False  # vmax == vmin
+
+
+# ── heatmap vmin/vmax ─────────────────────────────────────────────
+
+
+class TestHeatmapVminVmax:
+    """Tests for heatmap rendering with explicit vmin/vmax colour limits."""
+
+    def test_heatmap_vmin_vmax_clim(self, ax: matplotlib.axes.Axes) -> None:
+        """When vmin/vmax are provided, pcolormesh clim matches them."""
+        trace = HeatmapTraceConfig(
+            name="hm_clim",
+            col_labels=["a", "b"],
+            row_labels=["r1"],
+            z=[[1.0, 5.0]],
+        )
+        result = MatplotlibTraceRenderer.render(
+            [trace],
+            ax,
+            heatmap_vmin=-2.0,
+            heatmap_vmax=10.0,
+        )
+        assert result.trace_count == 1
+        assert result.heatmap_image is not None
+        clim = result.heatmap_image.get_clim()
+        assert clim[0] == -2.0
+        assert clim[1] == 10.0
+
+    def test_heatmap_without_vmin_vmax_uses_data_range(self, ax: matplotlib.axes.Axes) -> None:
+        """Without explicit vmin/vmax, clim defaults to the data range."""
+        trace = HeatmapTraceConfig(
+            name="hm_auto",
+            col_labels=["a", "b"],
+            row_labels=["r1"],
+            z=[[3.0, 7.0]],
+        )
+        result = MatplotlibTraceRenderer.render([trace], ax)
+        assert result.trace_count == 1
+        assert result.heatmap_image is not None
+        clim = result.heatmap_image.get_clim()
+        assert clim[0] == 3.0
+        assert clim[1] == 7.0
+
+
+# ── create_multi_figure ────────────────────────────────────────────
+
+
+class TestCreateMultiFigure:
+    """Tests for FigureSpecToMatplotlib.create_multi_figure."""
+
+    def test_returns_correct_number_of_axes(self) -> None:
+        """create_multi_figure(nrows=3) returns exactly 3 axes."""
+        from src.core.models.visualization.figure_config import FigureConfig
+        from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
+
+        spec = FigureConfig()
+        fig, axes_list = FigureSpecToMatplotlib.create_multi_figure(spec, nrows=3)
+        assert len(axes_list) == 3
+        plt.close(fig)
+
+    def test_single_row_returns_list(self) -> None:
+        """create_multi_figure(nrows=1) wraps the single axes in a list."""
+        from src.core.models.visualization.figure_config import FigureConfig
+        from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
+
+        spec = FigureConfig()
+        fig, axes_list = FigureSpecToMatplotlib.create_multi_figure(spec, nrows=1)
+        assert isinstance(axes_list, list)
+        assert len(axes_list) == 1
+        plt.close(fig)

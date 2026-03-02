@@ -60,15 +60,22 @@ def render_reorderable_list(
         c1, c2, c3 = st.columns([6, 1, 1])
         with c1:
             if enable_rename:
+                rename_value = renames.get(str(item), "")
+                if rename_value == str(item):
+                    rename_value = ""  # treat identity rename as "no rename"
+                # Key is item-name-based (not position-based) so that rename
+                # values persist correctly when items are reordered.
+                _safe_item_key = str(item).replace(" ", "_")
                 new_name: str = st.text_input(
                     str(item),
-                    value=renames.get(str(item), str(item)),
-                    key=f"{key_prefix}_rename_{i}_{plot_id}",
+                    value=rename_value,
+                    key=f"{key_prefix}_rename_{_safe_item_key}_{plot_id}",
                     label_visibility="collapsed",
+                    placeholder=str(item),
                 )
                 if new_name and new_name != str(item):
                     renames[str(item)] = new_name
-                elif str(item) in renames and new_name == str(item):
+                elif str(item) in renames:
                     renames.pop(str(item), None)
             else:
                 display_text: str = str(item)

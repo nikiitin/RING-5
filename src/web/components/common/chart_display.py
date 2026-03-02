@@ -20,10 +20,12 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.core.models.visualization.trace_config import TraceConfig
+from src.core.models.visualization.trace_config import HeatmapTraceConfig, TraceConfig
 from src.core.services.visualization.config_resolver import resolve_config
 from src.web.components.plotting.interactive_plot import interactive_plotly_chart
 from src.web.pages.ui.plotting.download_section import render_download_section
+from src.web.rendering._heatmap_utils import compute_nice_range, compute_z_extent
+from src.web.rendering._render_result import MatplotlibRenderResult
 from src.web.rendering.config_builder import ConfigSpecBuilder, PlotlyFigureSpecBuilder
 from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
 from src.web.rendering.matplotlib_trace_renderer import MatplotlibTraceRenderer
@@ -159,12 +161,27 @@ class ChartDisplayComponent:
         if traces is None:
             traces = []
 
+        # 2a. Detect multi-heatmap and delegate to specialised renderer
+        heatmap_traces = [t for t in traces if isinstance(t, HeatmapTraceConfig)]
+        if len(heatmap_traces) > 1:
+            ChartDisplayComponent._render_multi_heatmap(
+                plotly_fig,
+                plot_id,
+                plot_name,
+                config,
+                plot_type,
+                traces,
+                heatmap_traces,
+                spec,
+            )
+            return
+
         # 3. Create blank matplotlib figure
         mpl_fig, ax = FigureSpecToMatplotlib.create_figure(spec)
 
         try:
             # 4. Render traces
-            MatplotlibTraceRenderer.render(
+            render_result = MatplotlibTraceRenderer.render(
                 traces,
                 ax,
                 barmode=spec.barmode,
@@ -175,7 +192,7 @@ class ChartDisplayComponent:
             )
 
             # 5. Apply spec-based styling
-            FigureSpecToMatplotlib.apply(spec, ax)
+            FigureSpecToMatplotlib.apply(spec, ax, render_result)
 
             # 6. Display
             st.pyplot(mpl_fig)
@@ -192,3 +209,84 @@ class ChartDisplayComponent:
     def render_error(error: Exception) -> None:
         """Display an exception in the chart area."""
         st.exception(error)
+
+    @staticmethod
+    def _render_multi_heatmap(
+        plotly_fig: go.Figure,
+        plot_id: int,
+        plot_name: str,
+        config: dict[str, Any],
+        plot_type: str,
+        all_traces: list[TraceConfig],
+        heatmap_traces: list[HeatmapTraceConfig],
+        spec: Any,
+    ) -> None:
+        """Render multiple heatmap traces as separate matplotlib subplots.
+
+        Each heatmap gets its own axes row.  Colorbars are handled by
+        ``FigureSpecToMatplotlib.apply_multi_heatmap_colorbars()``.
+        """
+        mpl_state_key = f"plot.{plot_id}.mpl_fig"
+
+        old_fig = st.session_state.get(mpl_state_key)
+        if old_fig is not None:
+            plt.close(old_fig)
+            del st.session_state[mpl_state_key]
+
+        n = len(heatmap_traces)
+        mpl_fig, axes_list = FigureSpecToMatplotlib.create_multi_figure(spec, n)
+
+        # Compute shared vmin/vmax from ColorbarConfig
+        cbar_cfg = spec.legends[0].colorbar if spec.legends else None
+        if (
+            cbar_cfg
+            and cbar_cfg.range_mode == "manual"
+            and cbar_cfg.zmin is not None
+            and cbar_cfg.zmax is not None
+        ):
+            vmin, vmax = float(cbar_cfg.zmin), float(cbar_cfg.zmax)
+        else:
+            raw_min, raw_max = compute_z_extent(heatmap_traces)
+            nticks = cbar_cfg.nticks if cbar_cfg else 5
+            vmin, vmax, _ = compute_nice_range(raw_min, raw_max, nticks)
+
+        shared = cbar_cfg.shared if cbar_cfg else True
+
+        try:
+            render_results: list[MatplotlibRenderResult] = []
+            for i, trace in enumerate(heatmap_traces):
+                ax = axes_list[i]
+                # Per-trace range when not shared
+                if shared:
+                    t_vmin, t_vmax = vmin, vmax
+                else:
+                    t_min, t_max = compute_z_extent([trace])
+                    nticks = cbar_cfg.nticks if cbar_cfg else 5
+                    t_vmin, t_vmax, _ = compute_nice_range(t_min, t_max, nticks)
+
+                rr = MatplotlibTraceRenderer.render(
+                    [trace],
+                    ax,
+                    heatmap_vmin=t_vmin,
+                    heatmap_vmax=t_vmax,
+                )
+                render_results.append(rr)
+
+                # Apply styling per-axes (skip colorbar — handled below)
+                FigureSpecToMatplotlib.apply(spec, ax, render_result=None)
+                ax.set_title(trace.name)
+
+            # Apply colorbars
+            FigureSpecToMatplotlib.apply_multi_heatmap_colorbars(
+                spec,
+                mpl_fig,
+                axes_list,
+                render_results,
+            )
+
+            st.pyplot(mpl_fig)
+            st.session_state[mpl_state_key] = mpl_fig
+            render_download_section(plot_id, plot_name, plotly_fig)
+        except Exception:
+            plt.close(mpl_fig)
+            raise

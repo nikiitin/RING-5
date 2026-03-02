@@ -29,6 +29,7 @@ from src.core.models.visualization.figure_config import (
     SeparatorConfig,
 )
 from src.core.models.visualization.legend_config import (
+    ColorbarConfig,
     LegendConfig,
     LegendSpacingConfig,
 )
@@ -424,9 +425,15 @@ class ConfigSpecBuilder:
             # Backward compat for old boolean flag
             _show_x_tick_labels = False
 
+        # When numbered x-axis "Numbers" mode is active, short numeric labels
+        # don't need rotation — override angle to 0 for readability.
+        _x_tick_angle = float(config.get("xaxis_tickangle", -45))
+        if _numbered_modes and "Numbers" in _numbered_modes:
+            _x_tick_angle = 0.0
+
         x_axis = AxisConfig(
             label=x_label,
-            tick_angle=float(config.get("xaxis_tickangle", -45)),
+            tick_angle=_x_tick_angle,
             range=config.get("range_x"),
             category_order=config.get("xaxis_order"),
             label_aliases=config.get("xaxis_labels"),
@@ -438,12 +445,14 @@ class ConfigSpecBuilder:
             tick_dash=config.get("xtick_dash", "solid"),
             tick_font_color=config.get("xaxis_tickfont_color", ""),
             tick_pad=float(config.get("xtick_pad", 5.0)),
+            tick_side=config.get("xaxis_tick_side", ""),
             axis_color=config.get("axis_color", "#444"),
             axis_line_color=config.get("x_axis_line_color", ""),
             axis_line_width=float(config.get("x_axis_line_width", 1.0)),
         )
         y_axis = AxisConfig(
             label=y_label,
+            tick_angle=float(config.get("yaxis_tickangle", 0)),
             range=config.get("range_y"),
             dtick=config.get("yaxis_dtick"),
             automargin=config.get("automargin", True),
@@ -454,6 +463,7 @@ class ConfigSpecBuilder:
             show_ticks=config.get("show_ytick_marks", True),
             tick_dash=config.get("ytick_dash", "solid"),
             tick_font_color=config.get("yaxis_tickfont_color", ""),
+            tick_side=config.get("yaxis_tick_side", ""),
             axis_color=config.get("axis_color", "#444"),
             axis_line_color=config.get("y_axis_line_color", ""),
             axis_line_width=float(config.get("y_axis_line_width", 1.0)),
@@ -659,6 +669,39 @@ def _build_legend_from_config(
     # All legends inherit the global font_family; primary uses the global
     # config key, secondary/tertiary fall back to the same value.
     font_family: str = config.get("font_family", "")
+
+    # Colorbar settings (heatmap-specific, stored on legend for config flow)
+    range_mode_raw = str(config.get(f"{prefix}colorbar_range_mode", "auto")).lower()
+    if range_mode_raw not in ("auto", "manual"):
+        range_mode_raw = "auto"
+    colorbar = ColorbarConfig(
+        range_mode=range_mode_raw,  # type: ignore[arg-type]
+        zmin=config.get(f"{prefix}colorbar_zmin"),
+        zmax=config.get(f"{prefix}colorbar_zmax"),
+        nticks=int(config.get(f"{prefix}colorbar_nticks", 5)),
+        tick_decimals=int(config.get(f"{prefix}colorbar_tick_decimals", 2)),
+        shared=bool(config.get(f"{prefix}colorbar_shared", True)),
+        tick_angle=float(config.get(f"{prefix}colorbar_tick_angle", 0.0)),
+        tick_side=config.get(f"{prefix}colorbar_tick_side", "right"),
+    )
+
+    # Orientation (horizontal / vertical)
+    _orient_raw = str(config.get(f"{prefix}orientation", "vertical")).lower()
+    if _orient_raw not in ("horizontal", "vertical"):
+        _orient_raw = "vertical"
+
+    # Position and anchor derivation
+    pos_x = float(config.get(f"{prefix}x", 1.02 if role == "primary" else -1.0))
+    pos_y = float(config.get(f"{prefix}y", 1.0 if role == "primary" else -1.0))
+
+    raw_anchor_x = config.get(f"{prefix}anchor_x", "auto")
+    raw_anchor_y = config.get(f"{prefix}anchor_y", "auto")
+
+    if raw_anchor_x == "auto" and raw_anchor_y == "auto" and pos_x >= 0 and pos_y >= 0:
+        anchor_x, anchor_y = LegendConfig.derive_anchors(pos_x, pos_y)
+    else:
+        anchor_x, anchor_y = raw_anchor_x, raw_anchor_y
+
     return LegendConfig(
         role=role,  # type: ignore[arg-type]
         font_size=font_size,
@@ -668,8 +711,8 @@ def _build_legend_from_config(
         title_font_size=config.get(f"{prefix}title_font_size", 14),
         title_font_color=config.get(f"{prefix}title_font_color", "#000000"),
         ncol=int(config.get(f"{prefix}ncols", 0)),
-        position_x=float(config.get(f"{prefix}x", 1.02 if role == "primary" else -1.0)),
-        position_y=float(config.get(f"{prefix}y", 1.0 if role == "primary" else -1.0)),
+        position_x=pos_x,
+        position_y=pos_y,
         col_width=float(config.get(f"{prefix}col_width", -1.0)),
         entrywidth=int(config.get(f"{prefix}entrywidth", 0)),
         itemwidth=int(config.get(f"{prefix}itemwidth", 30)),
@@ -681,6 +724,10 @@ def _build_legend_from_config(
         border_color=config.get(f"{prefix}border_color", "#000000"),
         tracegroupgap=tracegroupgap_px,
         spacing=spacing,
+        colorbar=colorbar,
+        anchor_x=anchor_x,  # type: ignore[arg-type]
+        anchor_y=anchor_y,  # type: ignore[arg-type]
+        orientation=_orient_raw,  # type: ignore[arg-type]
     )
 
 
@@ -817,10 +864,20 @@ def _extract_annotations(layout: Any) -> list[AnnotationConfig]:
 
     for ann in layout_anns:
         font = getattr(ann, "font", None)
+        raw_x = getattr(ann, "x", 0)
+        raw_y = getattr(ann, "y", 0)
+        try:
+            x_val: float | str = float(raw_x)
+        except (ValueError, TypeError):
+            x_val = str(raw_x) if raw_x is not None else 0.0
+        try:
+            y_val: float | str = float(raw_y)
+        except (ValueError, TypeError):
+            y_val = str(raw_y) if raw_y is not None else 0.0
         spec = AnnotationConfig(
             text=getattr(ann, "text", ""),
-            x=float(getattr(ann, "x", 0)),
-            y=float(getattr(ann, "y", 0)),
+            x=x_val,
+            y=y_val,
             xref="paper" if getattr(ann, "xref", "") == "paper" else "data",
             yref="paper" if getattr(ann, "yref", "") == "paper" else "data",
             show_arrow=bool(getattr(ann, "showarrow", False)),

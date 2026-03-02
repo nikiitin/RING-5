@@ -251,7 +251,18 @@ def _render_mpl_download(plot_id: int, plot_name: str) -> None:
         return
 
     fmt_typed = cast(MatplotlibFormat, fmt)
-    data = matplotlib_download_bytes(mpl_fig, fmt_typed)
+    try:
+        data = matplotlib_download_bytes(mpl_fig, fmt_typed)
+    except ValueError as exc:
+        if "raster" in str(exc).lower() and fmt_typed == "pgf":
+            st.warning(
+                "PGF format does not support raster graphics (e.g. heatmaps). "
+                "Falling back to PDF with LaTeX rendering."
+            )
+            fmt_typed = "pdf"
+            data = matplotlib_download_bytes(mpl_fig, fmt_typed)
+        else:
+            raise
     st.download_button(
         label=f"Download {fmt.upper()}",
         data=data,

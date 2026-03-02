@@ -24,6 +24,14 @@ from src.core.models.visualization.trace_config import (
     ScatterTraceConfig,
     TraceConfig,
 )
+from src.web.rendering._heatmap_utils import is_dark_cell
+
+
+def _error_y_dict(error_y: list[float] | None) -> dict[str, Any] | None:
+    """Build the Plotly error_y dict if error data is present."""
+    if not error_y:
+        return None
+    return {"type": "data", "array": error_y, "visible": True}
 
 
 def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
@@ -98,6 +106,12 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
 
     fig.update_layout(**layout_updates)
 
+    # Heatmap cell-value annotations (rendered on top of all traces)
+    _add_heatmap_annotations(fig, traces_list, heatmap_only)
+
+    # Heatmap totals separator lines
+    _add_heatmap_separator_lines(fig, traces_list, heatmap_only)
+
     return fig
 
 
@@ -166,12 +180,8 @@ def _bar_trace(trace: BarTraceConfig) -> go.Bar:
         kwargs["textfont"] = {"size": trace.text_font_size}
 
     # Error bars
-    if trace.error_y:
-        kwargs["error_y"] = {
-            "type": "data",
-            "array": trace.error_y,
-            "visible": True,
-        }
+    if error_y := _error_y_dict(trace.error_y):
+        kwargs["error_y"] = error_y
 
     # Custom data
     if trace.custom_data:
@@ -219,12 +229,8 @@ def _line_trace(trace: LineTraceConfig) -> go.Scatter:
     if trace.fill != "none":
         kwargs["fill"] = trace.fill
 
-    if trace.error_y:
-        kwargs["error_y"] = {
-            "type": "data",
-            "array": trace.error_y,
-            "visible": True,
-        }
+    if error_y := _error_y_dict(trace.error_y):
+        kwargs["error_y"] = error_y
 
     return go.Scatter(**{k: v for k, v in kwargs.items() if v is not None})
 
@@ -260,12 +266,8 @@ def _scatter_trace(trace: ScatterTraceConfig) -> go.Scatter:
     if trace.yaxis == "y2":
         kwargs["yaxis"] = "y2"
 
-    if trace.error_y:
-        kwargs["error_y"] = {
-            "type": "data",
-            "array": trace.error_y,
-            "visible": True,
-        }
+    if error_y := _error_y_dict(trace.error_y):
+        kwargs["error_y"] = error_y
 
     return go.Scatter(**{k: v for k, v in kwargs.items() if v is not None})
 
@@ -310,7 +312,12 @@ def _bar_trace_from_base(trace: TraceConfig) -> go.Bar:
 
 
 def _heatmap_trace(trace: HeatmapTraceConfig) -> go.Heatmap:
-    """Convert a ``HeatmapTraceConfig`` to ``go.Heatmap``."""
+    """Convert a ``HeatmapTraceConfig`` to ``go.Heatmap``.
+
+    Cell-value text is rendered as layout annotations (not texttemplate)
+    by :func:`_build_heatmap_annotations` so that text always appears
+    on top of the cells with proper auto-contrast colouring.
+    """
     kwargs: dict[str, Any] = {
         "x": trace.col_labels,
         "y": trace.row_labels,
@@ -319,13 +326,127 @@ def _heatmap_trace(trace: HeatmapTraceConfig) -> go.Heatmap:
         "name": trace.name,
         "showlegend": False,
     }
-    if trace.show_values and trace.text:
-        kwargs["text"] = trace.text
-        kwargs["texttemplate"] = "%{text}"
-        kwargs["textfont"] = {"size": 10}
     kwargs["hoverongaps"] = False
-    kwargs["colorbar"] = {"title": trace.name}
     return go.Heatmap(**{k: v for k, v in kwargs.items() if v is not None})
+
+
+def _add_heatmap_annotations(
+    fig: go.Figure,
+    traces_list: list[TraceConfig],
+    heatmap_only: bool,
+) -> None:
+    """Append per-cell annotations for every heatmap trace that has text.
+
+    Using layout annotations (instead of ``texttemplate``) guarantees that
+    text renders **above** the coloured cells and supports per-cell
+    auto-contrast colouring (white text on dark cells, black on light).
+    """
+    annotations: list[dict[str, Any]] = []
+    for idx, trace in enumerate(traces_list):
+        if not isinstance(trace, HeatmapTraceConfig):
+            continue
+        if not (trace.show_values and trace.text):
+            continue
+
+        # Subplot axis references: row 1 → "x"/"y", row N → "xN"/"yN"
+        if heatmap_only:
+            xref = "x" if idx == 0 else f"x{idx + 1}"
+            yref = "y" if idx == 0 else f"y{idx + 1}"
+        else:
+            xref, yref = "x", "y"
+
+        font_size = getattr(trace, "text_font_size", 10)
+
+        for i, text_row in enumerate(trace.text):
+            for j, cell_text in enumerate(text_row):
+                if not cell_text:
+                    continue
+                is_dark = is_dark_cell(trace.z, i, j)
+
+                # Determine text colour
+                color_mode = getattr(trace, "text_color_mode", "contrast")
+                if color_mode == "custom":
+                    text_color = getattr(trace, "text_color", "#000000")
+                else:
+                    text_color = "white" if is_dark else "black"
+
+                annotations.append(
+                    {
+                        "text": str(cell_text),
+                        "x": trace.col_labels[j],
+                        "y": trace.row_labels[i],
+                        "xref": xref,
+                        "yref": yref,
+                        "showarrow": False,
+                        "font": {"size": font_size, "color": text_color},
+                    }
+                )
+
+    if annotations:
+        existing = list(fig.layout.annotations or [])
+        fig.update_layout(annotations=existing + annotations)
+
+
+def _add_heatmap_separator_lines(
+    fig: go.Figure,
+    traces_list: list[TraceConfig],
+    heatmap_only: bool,
+) -> None:
+    """Draw separator lines between main data cells and totals."""
+    shapes: list[dict[str, Any]] = []
+    for idx, trace in enumerate(traces_list):
+        if not isinstance(trace, HeatmapTraceConfig):
+            continue
+        if not trace.totals_position or trace.totals_count == 0:
+            continue
+
+        # Subplot axis references: row 1 → "x"/"y", row N → "xN"/"yN"
+        if heatmap_only:
+            xref = "x" if idx == 0 else f"x{idx + 1}"
+            yref = "y" if idx == 0 else f"y{idx + 1}"
+        else:
+            xref, yref = "x", "y"
+
+        n_cols = len(trace.col_labels)
+        n_rows = len(trace.row_labels)
+
+        if trace.totals_position == "right" and n_cols > 1:
+            # Vertical separator before the totals column.
+            # Plotly maps categorical labels to integer positions 0, 1, ...
+            # A line at x = n_cols - 1.5 sits between the last data column
+            # and the totals column.
+            x_pos = n_cols - 1.5
+            shapes.append(
+                {
+                    "type": "line",
+                    "x0": x_pos,
+                    "x1": x_pos,
+                    "y0": -0.5,
+                    "y1": n_rows - 0.5,
+                    "xref": xref,
+                    "yref": yref,
+                    "line": {"color": "black", "width": 2},
+                }
+            )
+        elif trace.totals_position == "top" and n_rows > 1:
+            # Horizontal separator below the totals row (first row).
+            y_pos = 0.5
+            shapes.append(
+                {
+                    "type": "line",
+                    "x0": -0.5,
+                    "x1": n_cols - 0.5,
+                    "y0": y_pos,
+                    "y1": y_pos,
+                    "xref": xref,
+                    "yref": yref,
+                    "line": {"color": "black", "width": 2},
+                }
+            )
+
+    if shapes:
+        existing = list(fig.layout.shapes or [])
+        fig.update_layout(shapes=existing + shapes)
 
 
 def _convert_annotations(

@@ -20,6 +20,8 @@ from typing import TYPE_CHECKING, Any
 
 from src.core.models.visualization.data_label_config import DataLabelConfig
 from src.core.models.visualization.figure_config import FigureConfig
+from src.core.models.visualization.legend_config import ColorbarConfig
+from src.web.rendering._render_result import MatplotlibRenderResult
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -54,19 +56,22 @@ class FigureSpecToMatplotlib:
     """
 
     @staticmethod
-    def apply(spec: FigureConfig, ax: Axes) -> None:
+    def apply(
+        spec: FigureConfig, ax: Axes, render_result: MatplotlibRenderResult | None = None
+    ) -> None:
         """Apply the full FigureConfig to a matplotlib Axes.
 
         Args:
             spec: A resolved FigureConfig (no sentinel values).
             ax: A ``matplotlib.axes.Axes`` instance.
         """
+        # Pipeline order: see _connector_protocol.STYLING_PIPELINE_ORDER
         FigureSpecToMatplotlib._apply_backgrounds(spec, ax)
         FigureSpecToMatplotlib._apply_font_family(spec, ax)
         FigureSpecToMatplotlib._apply_color_palette(spec, ax)
         FigureSpecToMatplotlib._apply_title(spec, ax)
         FigureSpecToMatplotlib._apply_axis_labels(spec, ax)
-        FigureSpecToMatplotlib._apply_axis_ticks(spec, ax)
+        FigureSpecToMatplotlib._apply_axis_ticks(spec, ax, render_result)
         FigureSpecToMatplotlib._apply_axis_ranges(spec, ax)
         FigureSpecToMatplotlib._apply_axis_colors(spec, ax)
         FigureSpecToMatplotlib._apply_grids(spec, ax)
@@ -77,6 +82,9 @@ class FigureSpecToMatplotlib:
         FigureSpecToMatplotlib._apply_separators(spec, ax)
         FigureSpecToMatplotlib._apply_hatching(spec, ax)
         FigureSpecToMatplotlib._apply_margins(spec, ax)
+
+        if render_result and render_result.heatmap_image is not None:
+            FigureSpecToMatplotlib._apply_colorbar(spec, ax, render_result.heatmap_image)
 
     @staticmethod
     def _apply_margins(spec: FigureConfig, ax: Axes) -> None:
@@ -188,7 +196,9 @@ class FigureSpecToMatplotlib:
                     break
 
     @staticmethod
-    def _apply_axis_ticks(spec: FigureConfig, ax: Axes) -> None:
+    def _apply_axis_ticks(
+        spec: FigureConfig, ax: Axes, render_result: MatplotlibRenderResult | None = None
+    ) -> None:
         """Configure tick labels, rotation, padding."""
         import matplotlib.transforms as transforms
 
@@ -200,14 +210,31 @@ class FigureSpecToMatplotlib:
         x_axis = spec.axes.x
         y_axis = spec.axes.y
 
+        # Heatmap tick population — labels from the render result.
+        # pcolormesh cells span [i, i+1), so centres are at i + 0.5.
+        # Always override any pre-set tick_values (e.g. from
+        # enrich_from_plotly) because pcolormesh requires cell-centre
+        # positions; Plotly-extracted string tickvals are not valid here.
+        hm_cols: list[str] | None = render_result.heatmap_col_labels if render_result else None
+        hm_rows: list[str] | None = render_result.heatmap_row_labels if render_result else None
+        if hm_cols:
+            x_axis.tick_values = [i + 0.5 for i in range(len(hm_cols))]
+            x_axis.tick_text = list(hm_cols)
+        if hm_rows:
+            y_axis.tick_values = [i + 0.5 for i in range(len(hm_rows))]
+            y_axis.tick_text = list(hm_rows)
+
         # X-ticks
         weight = "bold" if typo.bold_ticks else "normal"
+        x_on_top = x_axis.tick_side == "top"
         ax.tick_params(
             axis="x",
             labelsize=typo.font_size_ticks,
             pad=x_axis.tick_pad,
-            bottom=x_axis.show_ticks,
-            labelbottom=x_axis.show_tick_labels,
+            bottom=x_axis.show_ticks and not x_on_top,
+            top=x_axis.show_ticks and x_on_top,
+            labelbottom=x_axis.show_tick_labels and not x_on_top,
+            labeltop=x_axis.show_tick_labels and x_on_top,
         )
 
         if x_axis.tick_values is not None and x_axis.tick_text is not None:
@@ -239,12 +266,15 @@ class FigureSpecToMatplotlib:
             ax.set_xticklabels([])
 
         # Y-ticks
+        y_on_right = y_axis.tick_side == "right"
         ax.tick_params(
             axis="y",
             labelsize=typo.font_size_yticks,
             pad=y_axis.tick_pad,
-            left=y_axis.show_ticks,
-            labelleft=y_axis.show_tick_labels,
+            left=y_axis.show_ticks and not y_on_right,
+            right=y_axis.show_ticks and y_on_right,
+            labelleft=y_axis.show_tick_labels and not y_on_right,
+            labelright=y_axis.show_tick_labels and y_on_right,
         )
 
         if y_axis.tick_values is not None and y_axis.tick_text is not None:
@@ -258,7 +288,13 @@ class FigureSpecToMatplotlib:
             ax.set_yticklabels(
                 escaped,
                 fontsize=typo.font_size_yticks,
+                rotation=y_axis.tick_angle,
             )
+
+        # Y-axis tick rotation for auto-ticks (no explicit tick_values)
+        if y_axis.tick_angle != 0 and y_axis.tick_values is None:
+            for label in ax.get_yticklabels():
+                label.set_rotation(y_axis.tick_angle)
 
     @staticmethod
     def _apply_axis_ranges(spec: FigureConfig, ax: Axes) -> None:
@@ -327,6 +363,21 @@ class FigureSpecToMatplotlib:
             ax.yaxis.grid(False)
 
     @staticmethod
+    def _anchor_to_mpl_loc(anchor_x: str, anchor_y: str) -> str:
+        """Map legend anchor values to a matplotlib ``loc`` string.
+
+        Combines vertical (``anchor_y``) and horizontal (``anchor_x``)
+        anchors into one of matplotlib's canonical legend location names.
+        """
+        v_map = {"top": "upper", "bottom": "lower", "middle": "center", "auto": "upper"}
+        h_map = {"left": "left", "right": "right", "center": "center", "auto": "left"}
+        v = v_map.get(anchor_y, "upper")
+        h = h_map.get(anchor_x, "left")
+        if v == "center" and h == "center":
+            return "center"
+        return f"{v} {h}"
+
+    @staticmethod
     def _apply_legends(spec: FigureConfig, ax: Axes) -> None:
         """Render legends with full spacing control."""
         if not spec.legends:
@@ -359,8 +410,15 @@ class FigureSpecToMatplotlib:
                     size=legend.font_size,
                 )
 
+            # Horizontal orientation: force many columns so items wrap in a row
+            if legend.orientation == "horizontal" and kwargs["ncol"] <= 1:
+                kwargs["ncol"] = 999  # matplotlib clamps to actual item count
+
             if legend.custom_position and legend.position_x >= 0:
-                kwargs["loc"] = "upper left"
+                kwargs["loc"] = FigureSpecToMatplotlib._anchor_to_mpl_loc(
+                    legend.anchor_x,
+                    legend.anchor_y,
+                )
                 kwargs["bbox_to_anchor"] = (
                     legend.position_x,
                     legend.position_y if legend.position_y >= 0 else 1.0,
@@ -535,15 +593,44 @@ class FigureSpecToMatplotlib:
 
         Handles ``xref``/``yref`` coordinate systems: ``"data"`` maps to
         data coordinates, ``"paper"`` maps to axes-fraction coordinates.
+
+        Annotations with string data-coordinates (categorical x/y values)
+        are resolved via the axis unit converter.  If the axis is numeric
+        and the coordinate is a category name that can't be converted, the
+        annotation is silently skipped.
         """
         if not spec.annotations:
             return
 
         import matplotlib.transforms as transforms
+        import matplotlib.units as munits
 
         for ann in spec.annotations:
             if not ann.text:
                 continue
+
+            # ── Resolve coordinates ────────────────────────────────
+            x_coord: float | str = ann.x
+            y_coord: float | str = ann.y
+
+            # String coordinates with data-ref need conversion to the
+            # axis's numeric scale.  E.g. 'Highway' on a numeric axis
+            # for grouped stacked bar plots cannot be placed.
+            if isinstance(x_coord, str) and ann.xref == "data":
+                try:
+                    x_coord = ax.xaxis.convert_units(x_coord)
+                    if x_coord is None:
+                        continue
+                except (munits.ConversionError, ValueError, TypeError):
+                    continue
+
+            if isinstance(y_coord, str) and ann.yref == "data":
+                try:
+                    y_coord = ax.yaxis.convert_units(y_coord)
+                    if y_coord is None:
+                        continue
+                except (munits.ConversionError, ValueError, TypeError):
+                    continue
 
             # Convert HTML line breaks to newlines for matplotlib
             raw_text = ann.text.replace("<br>", "\n").replace("<br/>", "\n")
@@ -580,7 +667,7 @@ class FigureSpecToMatplotlib:
 
             ax.annotate(
                 text,
-                xy=(ann.x, ann.y),
+                xy=(x_coord, y_coord),
                 xycoords=transform,
                 fontsize=fontsize,
                 fontweight=fontweight,
@@ -687,6 +774,267 @@ class FigureSpecToMatplotlib:
                 ax.spines["right"].set_visible(True)
             else:
                 ax.spines["right"].set_visible(False)
+
+    @staticmethod
+    def _reposition_colorbar(cbar: Any, primary: Any, is_horizontal: bool) -> None:
+        """Reposition a matplotlib colorbar using legend position_x/position_y.
+
+        After ``fig.colorbar()`` creates the colorbar, its axes occupy an
+        auto-computed rectangle.  This helper moves that rectangle so the
+        colorbar's anchor point lands at (position_x, position_y) in
+        figure-fraction coordinates — matching the Plotly behaviour.
+        """
+        if not (primary.custom_position and primary.position_x >= 0 and primary.position_y >= 0):
+            return
+
+        pos = cbar.ax.get_position()
+        w, h = pos.width, pos.height
+
+        # Use same anchor logic as Plotly: x,y is the anchor corner.
+        # For vertical colorbar the default anchor is top-left at (x, y).
+        # For horizontal colorbar the default anchor is bottom-left.
+        left = primary.position_x - w / 2
+        bottom = primary.position_y - h / 2
+
+        cbar.ax.set_position([left, bottom, w, h])
+
+    @staticmethod
+    def _style_colorbar_ticks(
+        cbar: Any, cbar_cfg: ColorbarConfig, horizontal: bool = False
+    ) -> None:
+        """Apply tick rotation and tick side to a matplotlib colorbar."""
+        tick_axis = cbar.ax.xaxis if horizontal else cbar.ax.yaxis
+        labels = cbar.ax.get_xticklabels() if horizontal else cbar.ax.get_yticklabels()
+        if cbar_cfg.tick_angle != 0.0:
+            for label in labels:
+                label.set_rotation(cbar_cfg.tick_angle)
+        if cbar_cfg.tick_side == "left":
+            if horizontal:
+                tick_axis.tick_bottom()
+            else:
+                tick_axis.tick_left()
+                tick_axis.set_label_position("left")
+
+    @staticmethod
+    def _apply_colorbar(
+        spec: FigureConfig,
+        ax: Axes,
+        mappable: Any,
+        title_override: str | None = None,
+    ) -> None:
+        """Create a colorbar from a mappable and apply styling from spec.
+
+        Places the title on top and applies tick count + tick formatting
+        from ``ColorbarConfig``.
+        """
+        from matplotlib.ticker import FormatStrFormatter, MaxNLocator
+
+        # Determine orientation from legend config
+        is_horizontal = False
+        if spec.legends and spec.legends[0].orientation == "horizontal":
+            is_horizontal = True
+
+        cbar = ax.figure.colorbar(
+            mappable,
+            ax=ax,
+            orientation="horizontal" if is_horizontal else "vertical",
+        )
+
+        # Read colorbar config from primary legend
+        nticks = 5
+        tick_decimals = 2
+        title_text = title_override or ""
+        title_kwargs: dict[str, Any] = {}
+
+        if spec.legends:
+            primary = spec.legends[0]
+            cbar_cfg = primary.colorbar
+            nticks = cbar_cfg.nticks
+            tick_decimals = cbar_cfg.tick_decimals
+            if not title_text:
+                title_text = primary.title or ""
+            if primary.title_font_size > 0:
+                title_kwargs["fontsize"] = primary.title_font_size
+            if primary.title_font_color:
+                title_kwargs["color"] = primary.title_font_color
+
+        # Title on top (set_title instead of set_label)
+        if title_text:
+            cbar.ax.set_title(title_text, **title_kwargs)
+
+        # Tick count
+        cbar.locator = MaxNLocator(nbins=nticks)
+        cbar.update_ticks()
+
+        # Tick format — use xaxis for horizontal, yaxis for vertical
+        fmt = FormatStrFormatter(f"%.{tick_decimals}f")
+        if is_horizontal:
+            cbar.ax.xaxis.set_major_formatter(fmt)
+        else:
+            cbar.ax.yaxis.set_major_formatter(fmt)
+
+        # Colorbar tick rotation and side
+        if spec.legends:
+            FigureSpecToMatplotlib._style_colorbar_ticks(
+                cbar,
+                spec.legends[0].colorbar,
+                horizontal=is_horizontal,
+            )
+            FigureSpecToMatplotlib._reposition_colorbar(
+                cbar,
+                spec.legends[0],
+                is_horizontal,
+            )
+
+    @staticmethod
+    def apply_multi_heatmap_colorbars(
+        spec: FigureConfig,
+        fig: Figure,
+        axes_list: list[Axes],
+        render_results: list[MatplotlibRenderResult],
+    ) -> None:
+        """Apply colorbars to a multi-heatmap figure.
+
+        In **shared** mode, one colorbar is created for the entire figure
+        using the last heatmap's mappable.  In **individual** mode, each
+        axes gets its own colorbar.
+
+        Args:
+            spec: Resolved FigureConfig.
+            fig: The matplotlib Figure.
+            axes_list: List of Axes, one per heatmap subplot.
+            render_results: Corresponding render results (one per axes).
+        """
+        from matplotlib.ticker import FormatStrFormatter, MaxNLocator
+
+        nticks = 5
+        tick_decimals = 2
+        shared = True
+        title_text = ""
+        title_kwargs: dict[str, Any] = {}
+        is_horizontal = False
+
+        if spec.legends:
+            primary = spec.legends[0]
+            cbar_cfg = primary.colorbar
+            nticks = cbar_cfg.nticks
+            tick_decimals = cbar_cfg.tick_decimals
+            shared = cbar_cfg.shared
+            title_text = primary.title or ""
+            is_horizontal = primary.orientation == "horizontal"
+            if primary.title_font_size > 0:
+                title_kwargs["fontsize"] = primary.title_font_size
+            if primary.title_font_color:
+                title_kwargs["color"] = primary.title_font_color
+
+        orient_str = "horizontal" if is_horizontal else "vertical"
+        fmt = FormatStrFormatter(f"%.{tick_decimals}f")
+
+        if shared:
+            # Find the last valid heatmap image
+            last_image = None
+            for rr in reversed(render_results):
+                if rr.heatmap_image is not None:
+                    last_image = rr.heatmap_image
+                    break
+            if last_image is not None:
+                cbar = fig.colorbar(
+                    last_image,
+                    ax=axes_list,
+                    shrink=0.8,
+                    orientation=orient_str,
+                )
+                if title_text:
+                    cbar.ax.set_title(title_text, **title_kwargs)
+                cbar.locator = MaxNLocator(nbins=nticks)
+                cbar.update_ticks()
+                if is_horizontal:
+                    cbar.ax.xaxis.set_major_formatter(fmt)
+                else:
+                    cbar.ax.yaxis.set_major_formatter(fmt)
+                if spec.legends:
+                    FigureSpecToMatplotlib._style_colorbar_ticks(
+                        cbar,
+                        spec.legends[0].colorbar,
+                        horizontal=is_horizontal,
+                    )
+                    FigureSpecToMatplotlib._reposition_colorbar(
+                        cbar,
+                        spec.legends[0],
+                        is_horizontal,
+                    )
+        else:
+            # Individual colorbars per subplot
+            for ax_item, rr in zip(axes_list, render_results):
+                if rr.heatmap_image is not None:
+                    cbar = fig.colorbar(
+                        rr.heatmap_image,
+                        ax=ax_item,
+                        orientation=orient_str,
+                    )
+                    if title_text:
+                        cbar.ax.set_title(title_text, **title_kwargs)
+                    cbar.locator = MaxNLocator(nbins=nticks)
+                    cbar.update_ticks()
+                    if is_horizontal:
+                        cbar.ax.xaxis.set_major_formatter(fmt)
+                    else:
+                        cbar.ax.yaxis.set_major_formatter(fmt)
+                    if spec.legends:
+                        FigureSpecToMatplotlib._style_colorbar_ticks(
+                            cbar,
+                            spec.legends[0].colorbar,
+                            horizontal=is_horizontal,
+                        )
+                        FigureSpecToMatplotlib._reposition_colorbar(
+                            cbar,
+                            spec.legends[0],
+                            is_horizontal,
+                        )
+
+    @staticmethod
+    def create_multi_figure(
+        spec: FigureConfig,
+        nrows: int,
+    ) -> tuple[Figure, list[Axes]]:
+        """Create a multi-row figure for heatmap subplots.
+
+        Args:
+            spec: Resolved FigureConfig.
+            nrows: Number of subplot rows.
+
+        Returns:
+            Tuple of (Figure, list of Axes).
+        """
+        import matplotlib.pyplot as plt
+
+        dims = spec.dimensions
+        if dims.dpi <= 1:
+            render_dpi = 96
+            width_in = dims.width / render_dpi
+            height_in = dims.height / render_dpi
+        else:
+            render_dpi = dims.dpi
+            width_in = dims.width
+            height_in = dims.height
+
+        # Scale height by number of rows
+        total_height = height_in * nrows
+
+        fig, axes = plt.subplots(
+            nrows=nrows,
+            ncols=1,
+            figsize=(width_in, total_height),
+            dpi=render_dpi,
+        )
+        # Ensure axes is always a list
+        if nrows == 1:
+            axes_list: list[Axes] = [axes]
+        else:
+            axes_list = list(axes)
+
+        fig.subplots_adjust(hspace=0.4)
+        return fig, axes_list
 
     @staticmethod
     def create_figure(

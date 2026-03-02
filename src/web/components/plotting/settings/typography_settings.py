@@ -15,6 +15,10 @@ Usage::
 
 import streamlit as st
 
+from src.web.components.plotting.settings.widget_factory import (
+    color_picker,
+    numeric_input,
+)
 from src.web.models.plot_models import PlotConfig
 
 
@@ -57,57 +61,78 @@ class TypographySettingsComponent:
 
         with typo_c1:
             st.markdown("**Title Font Sizes**")
-            title_font_size = st.number_input(
+            title_font_size = numeric_input(
                 "Plot Title Font Size",
+                saved_config,
+                "title_font_size",
+                self.plot_id,
+                widget_key=f"{key_prefix}title_sz_{self.plot_id}",
+                default=18,
                 min_value=8,
                 max_value=100,
-                value=saved_config.get("title_font_size", 18),
-                key=f"{key_prefix}title_sz_{self.plot_id}",
             )
 
-            xaxis_title_font_size = st.number_input(
+            xaxis_title_font_size = numeric_input(
                 "X-Axis Title Font Size",
+                saved_config,
+                "xaxis_title_font_size",
+                self.plot_id,
+                widget_key=f"{key_prefix}xaxis_title_sz_{self.plot_id}",
+                default=14,
                 min_value=8,
                 max_value=100,
-                value=saved_config.get("xaxis_title_font_size", 14),
-                key=f"{key_prefix}xaxis_title_sz_{self.plot_id}",
             )
 
-            yaxis_title_font_size = st.number_input(
+            yaxis_title_font_size = numeric_input(
                 "Y-Axis Title Font Size",
+                saved_config,
+                "yaxis_title_font_size",
+                self.plot_id,
+                widget_key=f"{key_prefix}yaxis_title_sz_{self.plot_id}",
+                default=14,
                 min_value=8,
                 max_value=100,
-                value=saved_config.get("yaxis_title_font_size", 14),
-                key=f"{key_prefix}yaxis_title_sz_{self.plot_id}",
             )
 
         with typo_c2:
             st.markdown("**Tick Label Sizes & Colors**")
-            xaxis_tickfont_size = st.number_input(
+            xaxis_tickfont_size = numeric_input(
                 "X-Axis Label (Tick) Size",
+                saved_config,
+                "xaxis_tickfont_size",
+                self.plot_id,
+                widget_key=f"{key_prefix}xaxis_tick_sz_{self.plot_id}",
+                default=12,
                 min_value=8,
                 max_value=100,
-                value=saved_config.get("xaxis_tickfont_size", 12),
-                key=f"{key_prefix}xaxis_tick_sz_{self.plot_id}",
                 help="Overwrites the basic X-axis font size in Advanced Options",
             )
-            xaxis_tickfont_color = st.color_picker(
+            xaxis_tickfont_color = color_picker(
                 "X-Axis Label Color",
-                saved_config.get("xaxis_tickfont_color", "#444444"),
-                key=f"{key_prefix}xaxis_tick_col_{self.plot_id}",
+                saved_config,
+                "xaxis_tickfont_color",
+                self.plot_id,
+                widget_key=f"{key_prefix}xaxis_tick_col_{self.plot_id}",
+                default="#444444",
             )
 
-            yaxis_tickfont_size = st.number_input(
+            yaxis_tickfont_size = numeric_input(
                 "Y-Axis Label (Tick) Size",
+                saved_config,
+                "yaxis_tickfont_size",
+                self.plot_id,
+                widget_key=f"{key_prefix}yaxis_tick_sz_{self.plot_id}",
+                default=12,
                 min_value=8,
                 max_value=100,
-                value=saved_config.get("yaxis_tickfont_size", 12),
-                key=f"{key_prefix}yaxis_tick_sz_{self.plot_id}",
             )
-            yaxis_tickfont_color = st.color_picker(
+            yaxis_tickfont_color = color_picker(
                 "Y-Axis Label Color",
-                saved_config.get("yaxis_tickfont_color", "#444444"),
-                key=f"{key_prefix}yaxis_tick_col_{self.plot_id}",
+                saved_config,
+                "yaxis_tickfont_color",
+                self.plot_id,
+                widget_key=f"{key_prefix}yaxis_tick_col_{self.plot_id}",
+                default="#444444",
             )
 
         return {

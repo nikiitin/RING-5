@@ -31,7 +31,7 @@ def _make_col_mock() -> MagicMock:
 class TestBarPlotRenderConfigUI:
     """Cover BarPlot.render_config_ui branches."""
 
-    @patch("src.web.components.plotting.config.bar_config.render_common_with_color")
+    @patch("src.web.pages.ui.plotting.types.bar_plot.render_common_with_color")
     def test_config_no_saved_color(self, mock_render: MagicMock, sample_df: pd.DataFrame) -> None:
         from src.web.pages.ui.plotting.types.bar_plot import BarPlot
 
@@ -50,7 +50,7 @@ class TestBarPlotRenderConfigUI:
         assert result["color"] is None
         mock_render.assert_called_once()
 
-    @patch("src.web.components.plotting.config.bar_config.render_common_with_color")
+    @patch("src.web.pages.ui.plotting.types.bar_plot.render_common_with_color")
     def test_config_with_saved_color(self, mock_render: MagicMock, sample_df: pd.DataFrame) -> None:
         from src.web.pages.ui.plotting.types.bar_plot import BarPlot
 
@@ -135,7 +135,7 @@ class TestBarPlotCreateFigure:
 class TestLinePlotRenderConfigUI:
     """Cover LinePlot.render_config_ui branches."""
 
-    @patch("src.web.components.plotting.config.line_config.render_common_with_color")
+    @patch("src.web.pages.ui.plotting.types.line_plot.render_common_with_color")
     def test_config_no_saved_color(self, mock_render: MagicMock, sample_df: pd.DataFrame) -> None:
         from src.web.pages.ui.plotting.types.line_plot import LinePlot
 
@@ -154,7 +154,7 @@ class TestLinePlotRenderConfigUI:
         assert result["color"] is None
         mock_render.assert_called_once()
 
-    @patch("src.web.components.plotting.config.line_config.render_common_with_color")
+    @patch("src.web.pages.ui.plotting.types.line_plot.render_common_with_color")
     def test_config_with_saved_color(self, mock_render: MagicMock, sample_df: pd.DataFrame) -> None:
         from src.web.pages.ui.plotting.types.line_plot import LinePlot
 
@@ -243,7 +243,7 @@ class TestLinePlotAdvancedOptions:
 class TestScatterPlotRenderConfigUI:
     """Cover ScatterPlot.render_config_ui branches."""
 
-    @patch("src.web.components.plotting.config.scatter_config.render_common_with_color")
+    @patch("src.web.pages.ui.plotting.types.scatter_plot.render_common_with_color")
     def test_config_no_color(self, mock_render: MagicMock, sample_df: pd.DataFrame) -> None:
         from src.web.pages.ui.plotting.types.scatter_plot import ScatterPlot
 
@@ -262,7 +262,7 @@ class TestScatterPlotRenderConfigUI:
         assert result["color"] is None
         mock_render.assert_called_once()
 
-    @patch("src.web.components.plotting.config.scatter_config.render_common_with_color")
+    @patch("src.web.pages.ui.plotting.types.scatter_plot.render_common_with_color")
     def test_config_with_color(self, mock_render: MagicMock, sample_df: pd.DataFrame) -> None:
         from src.web.pages.ui.plotting.types.scatter_plot import ScatterPlot
 

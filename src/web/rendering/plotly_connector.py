@@ -19,6 +19,7 @@ import plotly.graph_objects as go
 
 from src.core.models.visualization.figure_config import FigureConfig
 from src.core.models.visualization.legend_config import LegendConfig
+from src.web.rendering._heatmap_utils import compute_nice_range, compute_z_extent
 
 if TYPE_CHECKING:
     from src.core.models.visualization.axis_config import AxisConfig
@@ -54,6 +55,7 @@ class FigureSpecToPlotly:
         Returns:
             The same figure, updated.
         """
+        # Pipeline order: see _connector_protocol.STYLING_PIPELINE_ORDER
         FigureSpecToPlotly._apply_dimensions(spec, fig)
         FigureSpecToPlotly._apply_backgrounds(spec, fig)
         FigureSpecToPlotly._apply_title(spec, fig)
@@ -61,6 +63,7 @@ class FigureSpecToPlotly:
         FigureSpecToPlotly._apply_yaxis(spec, fig)
         FigureSpecToPlotly._apply_y2axis(spec, fig)
         FigureSpecToPlotly._apply_legends(spec, fig)
+        FigureSpecToPlotly._apply_heatmap_colorbars(spec, fig)
         FigureSpecToPlotly._apply_color_palette(spec, fig)
         FigureSpecToPlotly._apply_hovermode(spec, fig)
         FigureSpecToPlotly._apply_font_family(spec, fig)
@@ -161,6 +164,9 @@ class FigureSpecToPlotly:
         update["ticks"] = "outside" if x_axis.show_ticks else ""
         update["automargin"] = x_axis.automargin
 
+        if x_axis.tick_side and x_axis.tick_side != "bottom":
+            update["side"] = x_axis.tick_side
+
         # Tick label standoff (distance from axis)
         if x_axis.tick_pad != 5.0:  # skip default to avoid noise
             update["ticklabelstandoff"] = int(x_axis.tick_pad)
@@ -204,6 +210,9 @@ class FigureSpecToPlotly:
 
         update["tickfont"] = dict(size=typo.font_size_yticks)
 
+        if y_axis.tick_angle != 0:
+            update["tickangle"] = y_axis.tick_angle
+
         if y_axis.range is not None:
             update["range"] = y_axis.range
         if y_axis.scale != "linear":
@@ -220,6 +229,9 @@ class FigureSpecToPlotly:
         update["showticklabels"] = y_axis.show_tick_labels
         update["ticks"] = "outside" if y_axis.show_ticks else ""
         update["automargin"] = y_axis.automargin
+
+        if y_axis.tick_side and y_axis.tick_side != "left":
+            update["side"] = y_axis.tick_side
 
         fig.update_yaxes(**update, selector=dict(overlaying=None))
 
@@ -283,6 +295,88 @@ class FigureSpecToPlotly:
             legend_key = f"legend{i}"
             legend_dict = FigureSpecToPlotly._build_legend_dict(legend)
             fig.update_layout(**{legend_key: legend_dict})  # type: ignore[arg-type]
+
+    @staticmethod
+    def _apply_heatmap_colorbars(spec: FigureConfig, fig: go.Figure) -> None:
+        """Configure colorbar(s) on heatmap traces.
+
+        Reads ``ColorbarConfig`` from the primary legend and applies:
+        - title on top with ``<br>`` line breaks
+        - shared vs individual colorbar mode
+        - zmin/zmax (manual or auto with nice rounding)
+        - tick count and tick formatting
+        """
+        if not spec.legends:
+            return
+
+        primary = spec.legends[0]
+        cbar = primary.colorbar
+
+        heatmap_traces = [t for t in _fig_traces(fig) if isinstance(t, go.Heatmap)]
+        if not heatmap_traces:
+            return
+
+        # ── Determine z-range ─────────────────────────────────────
+        if cbar.range_mode == "manual" and cbar.zmin is not None and cbar.zmax is not None:
+            zmin, zmax = float(cbar.zmin), float(cbar.zmax)
+        else:
+            # Auto mode: scan all heatmap z-values, apply nice rounding
+            raw_min, raw_max = compute_z_extent(heatmap_traces)
+            zmin, zmax, _ = compute_nice_range(raw_min, raw_max, cbar.nticks)
+
+        # ── Build colorbar dict ───────────────────────────────────
+        title_text = primary.title.replace("\n", "<br>") if primary.title else ""
+        title_font: dict[str, Any] = {}
+        if primary.title_font_size > 0:
+            title_font["size"] = primary.title_font_size
+        if primary.title_font_color:
+            title_font["color"] = primary.title_font_color
+
+        tick_format = f".{cbar.tick_decimals}f"
+
+        colorbar_dict: dict[str, Any] = {
+            "title": {
+                "text": title_text,
+                "side": cbar.title_side,
+                "font": title_font,
+            },
+            "nticks": cbar.nticks,
+            "tickformat": tick_format,
+        }
+
+        if cbar.tick_angle != 0.0:
+            colorbar_dict["tickangle"] = cbar.tick_angle
+        if cbar.tick_side != "right":
+            colorbar_dict["ticklabelposition"] = f"outside {cbar.tick_side}"
+
+        # Colorbar position and orientation from legend config
+        if primary.custom_position and primary.position_x >= 0:
+            colorbar_dict["x"] = primary.position_x
+        if primary.custom_position and primary.position_y >= 0:
+            colorbar_dict["y"] = primary.position_y
+        if primary.orientation == "horizontal":
+            colorbar_dict["orientation"] = "h"
+
+        # ── Apply to traces ───────────────────────────────────────
+        if cbar.shared:
+            # Shared mode: all traces get same zmin/zmax, only last shows colorbar
+            for i, trace in enumerate(heatmap_traces):
+                trace.update(zmin=zmin, zmax=zmax)
+                if i < len(heatmap_traces) - 1:
+                    trace.update(showscale=False)
+                else:
+                    trace.update(showscale=True, colorbar=colorbar_dict)
+        else:
+            # Individual mode: each trace gets its own nice range + colorbar
+            for trace in heatmap_traces:
+                t_min, t_max = compute_z_extent([trace])
+                t_zmin, t_zmax, _ = compute_nice_range(t_min, t_max, cbar.nticks)
+                trace.update(
+                    zmin=t_zmin,
+                    zmax=t_zmax,
+                    showscale=True,
+                    colorbar=colorbar_dict,
+                )
 
     @staticmethod
     def _build_legend_dict(legend: LegendConfig) -> dict[str, Any]:
@@ -463,6 +557,11 @@ class FigureSpecToPlotly:
             texttemplate = f"%{{y:{fmt}}}"
 
         for trace in _fig_traces(fig):
+            # Heatmap traces don't support textposition/texttemplate —
+            # their cell labels are handled separately via annotations.
+            if isinstance(trace, go.Heatmap):
+                continue
+
             update: dict[str, Any] = {
                 "texttemplate": texttemplate,
                 "textposition": text_position,

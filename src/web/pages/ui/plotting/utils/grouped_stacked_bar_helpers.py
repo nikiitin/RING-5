@@ -161,14 +161,18 @@ def apply_numbered_xaxis(
             ]
             col_widths.append(max(len(p) for p in col_items) if col_items else 0)
 
-        sep = "  "
+        # Use &nbsp; for padding — Plotly renders annotation text as HTML,
+        # so regular spaces are collapsed.
+        sep = "&nbsp;&nbsp;"
         rows: list[str] = []
         for row_idx in range(n_rows):
             parts: list[str] = []
             for col_idx in range(max_cols):
                 item_idx = col_idx * n_rows + row_idx
                 if item_idx < n_items:
-                    parts.append(legend_parts[item_idx].ljust(col_widths[col_idx]))
+                    raw = legend_parts[item_idx]
+                    pad = col_widths[col_idx] - len(raw)
+                    parts.append(raw + "&nbsp;" * pad)
             rows.append(sep.join(parts))
         legend_text: str = "<br>".join(rows)
     else:
@@ -176,7 +180,7 @@ def apply_numbered_xaxis(
         legend_text = "<br>".join(legend_parts)
 
     legend_x: float = float(config.get(f"{_prefix}x", config.get("numbered_legend_x", 1.02)))
-    legend_y: float = float(config.get(f"{_prefix}y", config.get("numbered_legend_y", 0.5)))
+    legend_y: float = float(config.get(f"{_prefix}y", config.get("numbered_legend_y", 0.0)))
     bgcolor: str = str(
         config.get(f"{_prefix}bgcolor", config.get("numbered_legend_bgcolor", "#FFFFFF"))
     )
@@ -185,7 +189,10 @@ def apply_numbered_xaxis(
     border_color: str = str(config.get(f"{_prefix}border_color", "#333333"))
     border_width: int = int(config.get(f"{_prefix}border_width", 1))
     xanchor: str = str(config.get(f"{_prefix}xanchor", "left"))
-    yanchor: str = str(config.get(f"{_prefix}yanchor", "middle"))
+    yanchor: str = str(config.get(f"{_prefix}yanchor", "bottom"))
+
+    # Use monospace font family so that column padding aligns correctly.
+    font_family: str = str(config.get(f"{_prefix}font_family", "monospace"))
 
     legend_annotation: dict[str, Any] = dict(
         x=legend_x,
@@ -194,7 +201,7 @@ def apply_numbered_xaxis(
         yref="paper",
         text=legend_text,
         showarrow=False,
-        font=dict(size=font_size, color=font_color),
+        font=dict(size=font_size, color=font_color, family=font_family),
         align="left",
         xanchor=xanchor,
         yanchor=yanchor,

@@ -1,9 +1,10 @@
 """Tests for engine-specific controls in Advanced section (Step 30)."""
 
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 _MODULE = "src.web.components.plotting.settings.engine_settings"
+_WF = "src.web.components.plotting.settings.widget_factory.st"
 
 
 class TestEngineSpecificControls:
@@ -21,12 +22,13 @@ class TestEngineSpecificControls:
         mock_em.is_matplotlib.return_value = False
         mock_st.selectbox.return_value = "x unified"
 
-        config: Dict[str, Any] = {}
-        render_engine_controls(1, {}, config)
+        config: dict[str, Any] = {}
+        with patch(_WF, mock_st):
+            render_engine_controls(1, {}, config)
 
         mock_st.selectbox.assert_called_once()
-        args, kwargs = mock_st.selectbox.call_args
-        assert args[0] == "Hover mode"
+        _, kwargs = mock_st.selectbox.call_args
+        assert kwargs["label"] == "Hover mode"
         assert config["hovermode"] == "x unified"
 
     @patch(f"{_MODULE}.EngineManager")
@@ -42,8 +44,9 @@ class TestEngineSpecificControls:
         mock_st.text_area.return_value = "\\usepackage{amsmath}"
         mock_st.selectbox.return_value = "xelatex"
 
-        config: Dict[str, Any] = {}
-        render_engine_controls(1, {}, config)
+        config: dict[str, Any] = {}
+        with patch(_WF, mock_st):
+            render_engine_controls(1, {}, config)
 
         # text_area for preamble
         mock_st.text_area.assert_called_once()
@@ -65,8 +68,9 @@ class TestEngineSpecificControls:
         mock_em.is_matplotlib.return_value = False
         mock_st.selectbox.return_value = "closest"
 
-        config: Dict[str, Any] = {}
-        render_engine_controls(1, {}, config)
+        config: dict[str, Any] = {}
+        with patch(_WF, mock_st):
+            render_engine_controls(1, {}, config)
 
         mock_st.text_area.assert_not_called()
         assert "latex_extra_preamble" not in config
@@ -85,8 +89,9 @@ class TestEngineSpecificControls:
         mock_st.text_area.return_value = ""
         mock_st.selectbox.return_value = "pdflatex"
 
-        config: Dict[str, Any] = {}
-        render_engine_controls(1, {}, config)
+        config: dict[str, Any] = {}
+        with patch(_WF, mock_st):
+            render_engine_controls(1, {}, config)
 
         assert "hovermode" not in config
 
@@ -102,8 +107,9 @@ class TestEngineSpecificControls:
         mock_em.is_matplotlib.return_value = False
         mock_st.selectbox.return_value = "closest"
 
-        config: Dict[str, Any] = {}
-        render_engine_controls(1, {"hovermode": "closest"}, config)
+        config: dict[str, Any] = {}
+        with patch(_WF, mock_st):
+            render_engine_controls(1, {"hovermode": "closest"}, config)
 
         args, kwargs = mock_st.selectbox.call_args
         assert kwargs["index"] == 1  # "closest" is at index 1

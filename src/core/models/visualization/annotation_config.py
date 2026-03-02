@@ -35,8 +35,8 @@ class AnnotationConfig:
     annotation_type: Literal["text", "bar_value", "group_label", "boxed"] = "text"
 
     # ── Position ─────────────────────────────────────────────────
-    x: float = 0.0
-    y: float = 0.0
+    x: float | str = 0.0
+    y: float | str = 0.0
     xref: Literal["data", "paper"] = "data"
     yref: Literal["data", "paper"] = "data"
     xanchor: Literal["left", "center", "right", "auto"] = "auto"

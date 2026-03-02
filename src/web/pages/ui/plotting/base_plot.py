@@ -14,7 +14,7 @@ from src.core.services.visualization.plot_interaction import (
 )
 from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.plot_config_ui import PlotConfigUIMixin
-from src.web.pages.ui.plotting.styles import StyleManager
+from src.web.pages.ui.plotting.styles import StyleApplicator, StyleUIFactory
 
 
 class BasePlot(PlotConfigUIMixin, ABC):
@@ -42,7 +42,8 @@ class BasePlot(PlotConfigUIMixin, ABC):
         self.legend_mappings: dict[str, str] = {}
 
         # Initialize Style Manager
-        self.style_manager: StyleManager = StyleManager(self.plot_id, self.plot_type)
+        self._style_ui = StyleUIFactory.get_strategy(self.plot_id, self.plot_type)
+        self._applicator = StyleApplicator(self.plot_type)
 
     @abstractmethod
     def create_traces(self, data: pd.DataFrame, config: PlotConfig) -> TraceBuildResult:
@@ -142,11 +143,8 @@ class BasePlot(PlotConfigUIMixin, ABC):
         return fig
 
     def apply_common_layout(self, fig: go.Figure, config: PlotConfig) -> go.Figure:
-        """
-        Apply common layout settings.
-        Delegates to StyleManager.
-        """
-        return self.style_manager.apply_styles(fig, config)
+        """Apply common layout settings via StyleApplicator."""
+        return self._applicator.apply_styles(fig, config)
 
     def generate_figure(self) -> go.Figure:
         """

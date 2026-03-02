@@ -1,7 +1,7 @@
 """
 Tests for ShaperFactory display name methods and PipelineService.prepare_loaded_pipeline.
 
-Tests the business logic extracted from plot_manager_components.py to Layer B.
+Tests the business logic in Layer B shaper factory.
 """
 
 from typing import cast

@@ -105,7 +105,7 @@ class TestMatplotlibTraceRenderer:
 
         count = MatplotlibTraceRenderer.render(traces, ax, barmode=barmode)
 
-        assert count == 2
+        assert count.trace_count == 2
         assert len(ax.containers) >= 2
         plt.close(fig)
 
@@ -120,7 +120,7 @@ class TestMatplotlibTraceRenderer:
 
         count = MatplotlibTraceRenderer.render(traces, ax)
 
-        assert count == 2
+        assert count.trace_count == 2
         assert len(ax.lines) >= 2
         plt.close(fig)
 
@@ -134,7 +134,7 @@ class TestMatplotlibTraceRenderer:
 
         count = MatplotlibTraceRenderer.render(traces, ax)
 
-        assert count == 1
+        assert count.trace_count == 1
         assert len(ax.collections) >= 1
         plt.close(fig)
 
@@ -162,7 +162,7 @@ class TestMatplotlibTraceRenderer:
 
         count = MatplotlibTraceRenderer.render(traces, ax, barmode=barmode)
 
-        assert count == 2
+        assert count.trace_count == 2
         assert len(ax.containers) == 2
         plt.close(fig)
 
@@ -173,7 +173,7 @@ class TestMatplotlibTraceRenderer:
 
         count = MatplotlibTraceRenderer.render([], ax)
 
-        assert count == 0
+        assert count.trace_count == 0
         plt.close(fig)
 
     def test_secondary_yaxis(self) -> None:
@@ -193,7 +193,7 @@ class TestMatplotlibTraceRenderer:
         assert isinstance(ax, Axes)
         count = MatplotlibTraceRenderer.render(traces, ax)
 
-        assert count == 2
+        assert count.trace_count == 2
         assert hasattr(ax, "_ring5_twin")
         plt.close(fig)
 
@@ -207,7 +207,7 @@ class TestMatplotlibTraceRenderer:
 
         count = MatplotlibTraceRenderer.render(traces, ax)
 
-        assert count == 1
+        assert count.trace_count == 1
         line = ax.lines[0]
         assert line.get_linestyle() == "--"
         plt.close(fig)

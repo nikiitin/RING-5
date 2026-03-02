@@ -1,5 +1,6 @@
 """Tests for pills-driven settings navigation — Steps 24-26, 29, 31."""
 
+from contextlib import ExitStack
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -85,27 +86,37 @@ class TestSectionDispatch:
         result = plot.render_settings_section("nonexistent", {}, None)
         assert result == {}
 
-    def test_layout_dispatches_to_render_display(self) -> None:
-        """'layout' calls render_display_options."""
+    def test_layout_dispatches_to_component(self) -> None:
+        """'layout' creates LayoutSettingsComponent and calls render."""
         plot = self._make_plot()
-        plot.render_display_options = MagicMock(return_value={"width": 800})
-        plot._section_layout = MagicMock(return_value={"width": 800})
-        result = plot.render_settings_section("layout", {"x": "a"}, None)
-        assert result == {"width": 800}
+        with patch("src.web.pages.ui.plotting.plot_config_ui.LayoutSettingsComponent") as MockComp:
+            MockComp.return_value.render.return_value = {"width": 800}
+            result = plot.render_settings_section("layout", {"x": "a"}, None)
+            assert result == {"width": 800}
+            MockComp.assert_called_once_with(1, "grouped_bar")
 
     def test_all_sections_are_handled(self) -> None:
         """Every defined section key has a handler."""
         from src.web.pages.ui.plotting.settings_pills import SETTINGS_SECTIONS
 
         plot = self._make_plot()
-        # Set up mock handlers for ALL sections
-        for section in SETTINGS_SECTIONS:
-            handler_name = f"_section_{section.key}"
-            setattr(plot, handler_name, MagicMock(return_value={}))
-
-        for section in SETTINGS_SECTIONS:
-            result = plot.render_settings_section(section.key, {}, None)
-            assert isinstance(result, dict), f"Section {section.key} didn't return dict"
+        # Mock all component classes used by render_settings_section
+        comp_patches = [
+            "src.web.pages.ui.plotting.plot_config_ui.LayoutSettingsComponent",
+            "src.web.pages.ui.plotting.plot_config_ui.TypographySettingsComponent",
+            "src.web.pages.ui.plotting.plot_config_ui.LegendSettingsComponent",
+            "src.web.pages.ui.plotting.plot_config_ui.AxesSettingsComponent",
+            "src.web.pages.ui.plotting.plot_config_ui.DataLabelsSettingsComponent",
+            "src.web.pages.ui.plotting.plot_config_ui.ColorsSettingsComponent",
+            "src.web.pages.ui.plotting.plot_config_ui.AdvancedSettingsComponent",
+        ]
+        with ExitStack() as stack:
+            for p in comp_patches:
+                m = stack.enter_context(patch(p))
+                m.return_value.render.return_value = {}
+            for section in SETTINGS_SECTIONS:
+                result = plot.render_settings_section(section.key, {}, None)
+                assert isinstance(result, dict), f"Section {section.key} didn't return dict"
 
 
 class TestLegendSubPills:

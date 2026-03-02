@@ -208,7 +208,8 @@ class TestAxesAxisLineControls:
         mock_st.color_picker.return_value = "#444444"
         mock_st.selectbox.return_value = "solid"
 
-        result = comp.render({}, data=pd.DataFrame({"a": [1]}))
+        with patch("src.web.components.plotting.settings.widget_factory.st", mock_st):
+            result = comp.render({}, data=pd.DataFrame({"a": [1]}))
 
         assert result["x_axis_line_width"] == 0.0
         assert result["top_axis_line_width"] == 0.0
@@ -257,7 +258,8 @@ class TestNumberedXAxis:
         mock_st.color_picker.return_value = "#444444"
         mock_st.selectbox.return_value = "solid"
 
-        result = comp.render({}, data=pd.DataFrame({"a": [1]}))
+        with patch("src.web.components.plotting.settings.widget_factory.st", mock_st):
+            result = comp.render({}, data=pd.DataFrame({"a": [1]}))
 
         assert result["numbered_xaxis"] is True
 
@@ -298,7 +300,8 @@ class TestGroupLabelYOffset:
         mock_st.checkbox.return_value = True
         mock_st.number_input.return_value = -0.20
 
-        result = comp.render({}, show_group_labels=True)
+        with patch("src.web.components.plotting.settings.widget_factory.st", mock_st):
+            result = comp.render({}, show_group_labels=True)
 
         assert result["major_label_offset"] == result["group_label_offset"]
         assert result["major_label_offset"] == -0.20
@@ -858,7 +861,8 @@ class TestDataLabelsProgressiveDisclosure:
         mock_st.color_picker.return_value = "#000000"
         mock_st.text_input.return_value = ".2f"
 
-        result = comp.render({})
+        with patch("src.web.components.plotting.settings.widget_factory.st", mock_st):
+            result = comp.render({})
 
         assert result["show_values"] is True
         # Formatting widgets were called

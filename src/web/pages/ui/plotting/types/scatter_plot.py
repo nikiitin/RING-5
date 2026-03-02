@@ -6,9 +6,10 @@ import pandas as pd
 
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import ScatterTraceConfig
-from src.web.components.plotting.config import scatter_config
+from src.web.components.plotting.config.base_plot_config import render_common_with_color
 from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
+from src.web.pages.ui.plotting.types._trace_helpers import build_color_grouped_traces
 
 
 class ScatterPlot(BasePlot):
@@ -20,50 +21,27 @@ class ScatterPlot(BasePlot):
     @override
     def render_config_ui(self, data: pd.DataFrame, saved_config: PlotConfig) -> PlotConfig:
         """Render configuration UI for scatter plot."""
-        return scatter_config.render(data, saved_config, self.plot_id)
+        return render_common_with_color(data, saved_config, self.plot_id)
 
     @override
     def create_traces(self, data: pd.DataFrame, config: PlotConfig) -> TraceBuildResult:
         """Produce scatter traces from data and config."""
         x_col: str = config["x"]
         y_col: str = config["y"]
-        color_col: str | None = config.get("color")
 
-        # Error bar column
-        sd_col: str | None = None
-        if config.get("show_error_bars"):
-            candidate = f"{y_col}.sd"
-            if candidate in data.columns:
-                sd_col = candidate
-
-        traces: list[ScatterTraceConfig] = []
-
-        if color_col:
-            groups: list[str] = sorted(data[color_col].unique().astype(str))
-            data = data.copy()
-            data[color_col] = data[color_col].astype(str)
-            for grp in groups:
-                grp_data = data[data[color_col] == grp]
-                error_y = grp_data[sd_col].tolist() if sd_col else None
-                traces.append(
-                    ScatterTraceConfig(
-                        name=str(grp),
-                        x=grp_data[x_col].tolist(),
-                        y=grp_data[y_col].tolist(),
-                        error_y=error_y,
-                    )
-                )
-        else:
-            error_y = data[sd_col].tolist() if sd_col else None
-            traces.append(
-                ScatterTraceConfig(
-                    name=y_col,
-                    x=data[x_col].tolist(),
-                    y=data[y_col].tolist(),
-                    error_y=error_y,
-                )
+        def _make_trace(
+            grp_data: pd.DataFrame,
+            group_name: str | None,
+            sd_col: str | None,
+        ) -> ScatterTraceConfig:
+            return ScatterTraceConfig(
+                name=str(group_name) if group_name is not None else y_col,
+                x=grp_data[x_col].tolist(),
+                y=grp_data[y_col].tolist(),
+                error_y=grp_data[sd_col].tolist() if sd_col else None,
             )
 
+        traces = build_color_grouped_traces(data, config, _make_trace)
         return TraceBuildResult(traces=traces)
 
     @override

@@ -38,7 +38,8 @@ class StubPlotHandle:
         self.pipeline_counter = pipeline_counter
         self.last_generated_fig: Any = None
         self.last_traces: Any = None
-        self.style_manager = MagicMock()
+        self._style_ui = MagicMock()
+        self._applicator = MagicMock()
 
     # ConfigRenderer stubs (needed for RenderablePlot)
     def render_config_ui(self, data: pd.DataFrame, config: dict[str, Any]) -> dict[str, Any]:

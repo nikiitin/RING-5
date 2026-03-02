@@ -22,6 +22,12 @@ from src.core.models.visualization.palettes import (
     is_colorblind_safe,
     resolve_palette,
 )
+from src.web.components.plotting.settings.widget_factory import (
+    color_picker,
+    numeric_input,
+    select_option,
+    toggle,
+)
 from src.web.models.plot_models import PlotConfig
 
 
@@ -75,26 +81,22 @@ class ColorsSettingsComponent:
                     current_palette = name
                     break
 
-        idx = palette_names.index(current_palette) if current_palette in palette_names else 0
-
         def _fmt_palette(name: str) -> str:
             label = name.replace("_", " ").title()
             if is_colorblind_safe(name):
                 label = f"\u2713 {label}"
             return label
 
-        selected_palette: str = (
-            st.selectbox(
-                "Palette",
-                options=palette_names,
-                index=idx,
-                format_func=_fmt_palette,
-                key=f"palette_select_{self.plot_id}",
-                help=(
-                    "Palettes marked \u2713 are colorblind-safe." " Wong (default) is recommended."
-                ),
-            )
-            or "wong"
+        selected_palette: str = select_option(
+            "Palette",
+            palette_names,
+            saved_config,
+            "color_palette",
+            self.plot_id,
+            widget_key=f"palette_select_{self.plot_id}",
+            default="wong",
+            format_func=_fmt_palette,
+            help=("Palettes marked \u2713 are colorblind-safe." " Wong (default) is recommended."),
         )
 
         palette_colors = resolve_palette(selected_palette)
@@ -111,6 +113,12 @@ class ColorsSettingsComponent:
         config: PlotConfig = {"color_palette": selected_palette}
 
         st.markdown("---")
+
+        # ── Heatmap colorscale (only for heatmap plots) ─────────
+        if self.plot_type == "heatmap":
+            hm_config = self._render_heatmap_colorscale(saved_config)
+            config.update(hm_config)
+            st.markdown("---")
 
         # ── Series color overrides ──────────────────────────────
         series_config = self._render_series_section(
@@ -129,6 +137,27 @@ class ColorsSettingsComponent:
         config.update(bg_config)
 
         return config
+
+    # ------------------------------------------------------------------
+    # Heatmap colorscale
+    # ------------------------------------------------------------------
+
+    def _render_heatmap_colorscale(self, saved_config: PlotConfig) -> PlotConfig:
+        """Render heatmap-specific reverse colorscale toggle.
+
+        The colorscale is derived from the selected palette (above).
+        """
+        st.markdown("#### Heatmap Color Scale")
+        st.caption("The heatmap color scale is derived from the selected palette above.")
+
+        reverse_colorscale: bool = st.checkbox(
+            "Reverse Color Scale",
+            value=saved_config.get("reverse_colorscale", False),
+            key=f"hm_rev_cs_{self.plot_id}",
+            help="Reverse the direction of the color scale.",
+        )
+
+        return {"reverse_colorscale": reverse_colorscale}
 
     # ------------------------------------------------------------------
     # Series colors
@@ -215,7 +244,13 @@ class ColorsSettingsComponent:
         key_prefix: str = "",
         palette_name: str = "",
     ) -> dict[str, Any]:
-        """Render colour picker + override for one series item."""
+        """Render colour picker + override for one series item.
+
+        Note: This method uses raw ``st.color_picker`` / ``st.checkbox``
+        calls because each series item has dynamically computed widget keys
+        that include content hashes — not suitable for the widget_factory
+        which expects static config keys.
+        """
         c2, c3 = st.columns([1, 2])
 
         picker_key = f"{key_prefix}color_{self.plot_id}_{val_hash}_{palette_name}"
@@ -277,10 +312,12 @@ class ColorsSettingsComponent:
         """Render backgrounds and grid section."""
         st.markdown("#### Backgrounds & Grid")
 
-        transparent_bg = st.checkbox(
+        transparent_bg = toggle(
             "Transparent Background",
-            value=saved_config.get("transparent_bg", False),
-            key=f"{key_prefix}trans_bg_{self.plot_id}",
+            saved_config,
+            "transparent_bg",
+            self.plot_id,
+            widget_key=f"{key_prefix}trans_bg_{self.plot_id}",
             help="Make the plot background fully transparent.",
         )
 
@@ -309,34 +346,45 @@ class ColorsSettingsComponent:
                 plot_bgcolor = "rgba(0,0,0,0)"
                 paper_bgcolor = "rgba(0,0,0,0)"
 
-            grid_color = st.color_picker(
+            grid_color = color_picker(
                 "Grid Color",
-                saved_config.get("grid_color", "#e5e5e5"),
-                key=f"{key_prefix}grid_col_{self.plot_id}",
+                saved_config,
+                "grid_color",
+                self.plot_id,
+                widget_key=f"{key_prefix}grid_col_{self.plot_id}",
+                default="#e5e5e5",
             )
 
         with theme_cols2:
-            axis_color = st.color_picker(
+            axis_color = color_picker(
                 "Axis Line/Tick Color",
-                saved_config.get("axis_color", "#444444"),
-                key=f"{key_prefix}axis_col_{self.plot_id}",
+                saved_config,
+                "axis_color",
+                self.plot_id,
+                widget_key=f"{key_prefix}axis_col_{self.plot_id}",
+                default="#444444",
             )
-            axis_line_width = st.number_input(
+            axis_line_width = numeric_input(
                 "Axis Line Width (px)",
+                saved_config,
+                "axis_line_width",
+                self.plot_id,
+                widget_key=f"{key_prefix}axis_lw_{self.plot_id}",
+                default=1.0,
                 min_value=0.0,
                 max_value=10.0,
-                value=float(saved_config.get("axis_line_width", 1.0)),
                 step=0.5,
-                key=f"{key_prefix}axis_lw_{self.plot_id}",
                 help="Width of the axis border lines.",
             )
 
             if "bar" in self.plot_type and "grouped_stacked" not in self.plot_type:
-                enable_stripes = st.checkbox(
+                enable_stripes = toggle(
                     "Enable Bar Stripes",
-                    value=saved_config.get("enable_stripes", False),
-                    key=f"{key_prefix}stripes_{self.plot_id}",
-                    help=("Adds a diagonal pattern to bars for" " better differentiation."),
+                    saved_config,
+                    "enable_stripes",
+                    self.plot_id,
+                    widget_key=f"{key_prefix}stripes_{self.plot_id}",
+                    help="Adds a diagonal pattern to bars for better differentiation.",
                 )
             else:
                 enable_stripes = False

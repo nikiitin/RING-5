@@ -34,6 +34,8 @@ from src.core.models.visualization.trace_config import (
     ScatterTraceConfig,
     TraceConfig,
 )
+from src.web.rendering._heatmap_utils import is_dark_cell
+from src.web.rendering._render_result import MatplotlibRenderResult
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +59,9 @@ class MatplotlibTraceRenderer:
         bargap: float = 0.2,
         bargroupgap: float = 0.0,
         bar_border_width: float = 0.0,
-    ) -> int:
+        heatmap_vmin: float | None = None,
+        heatmap_vmax: float | None = None,
+    ) -> MatplotlibRenderResult:
         """Render all traces onto *ax*.
 
         Args:
@@ -76,7 +80,7 @@ class MatplotlibTraceRenderer:
         created via ``ax.twinx()``, stored as ``ax._ring5_twin``.
 
         Returns:
-            Number of traces successfully rendered.
+            A ``MatplotlibRenderResult`` with trace count and heatmap metadata.
         """
         # Collect bar traces for stacking computation
         bar_specs: list[BarTraceConfig] = [t for t in traces if isinstance(t, BarTraceConfig)]
@@ -88,7 +92,7 @@ class MatplotlibTraceRenderer:
             ax2 = ax.twinx()
             cast(Any, ax)._ring5_twin = ax2
 
-        count = 0
+        result = MatplotlibRenderResult()
         categorical_labels: list[str] = []
 
         for idx, trace in enumerate(traces):
@@ -115,31 +119,37 @@ class MatplotlibTraceRenderer:
                         bargroupgap=bargroupgap,
                         bar_border_width=bar_border_width,
                     )
-                    count += 1
+                    result.trace_count += 1
                 elif isinstance(trace, LineTraceConfig):
                     MatplotlibTraceRenderer._draw_line(
                         trace,
                         target,
                         override_color=override_color,
                     )
-                    count += 1
+                    result.trace_count += 1
                 elif isinstance(trace, ScatterTraceConfig):
                     MatplotlibTraceRenderer._draw_scatter(
                         trace,
                         target,
                         override_color=override_color,
                     )
-                    count += 1
+                    result.trace_count += 1
                 elif isinstance(trace, HistogramTraceConfig):
                     MatplotlibTraceRenderer._draw_histogram(
                         trace,
                         target,
                         override_color=override_color,
                     )
-                    count += 1
+                    result.trace_count += 1
                 elif isinstance(trace, HeatmapTraceConfig):
-                    MatplotlibTraceRenderer._draw_heatmap(trace, target)
-                    count += 1
+                    MatplotlibTraceRenderer._draw_heatmap(
+                        trace,
+                        target,
+                        result,
+                        vmin=heatmap_vmin,
+                        vmax=heatmap_vmax,
+                    )
+                    result.trace_count += 1
                 else:
                     logger.warning(
                         "Unknown TraceConfig type: %s",
@@ -148,7 +158,7 @@ class MatplotlibTraceRenderer:
             except Exception:
                 logger.exception("Failed to render trace %s", trace.name)
 
-        return count
+        return result
 
     # ── bar ────────────────────────────────────────────────────────────────
 
@@ -279,11 +289,17 @@ class MatplotlibTraceRenderer:
     # ── heatmap ─────────────────────────────────────────────────────────────
 
     @staticmethod
-    def _draw_heatmap(spec: HeatmapTraceConfig, ax: Axes) -> None:
+    def _draw_heatmap(
+        spec: HeatmapTraceConfig,
+        ax: Axes,
+        result: MatplotlibRenderResult,
+        vmin: float | None = None,
+        vmax: float | None = None,
+    ) -> None:
         """Draw a heatmap from its ``HeatmapTraceConfig``.
 
-        Uses ``ax.imshow()`` to render the z-matrix with labelled axes
-        and optional cell-value annotations.
+        Uses ``ax.pcolormesh()`` so the output is pure vector graphics,
+        enabling PGF/TikZ export without raster-image errors.
         """
         if not spec.z:
             return
@@ -294,34 +310,76 @@ class MatplotlibTraceRenderer:
             dtype=float,
         )
 
-        # Map Plotly colorscale names to matplotlib equivalents
-        cmap_name = _COLORSCALE_MAP.get(spec.colorscale.lower(), spec.colorscale)
+        # Map Plotly colorscale names to matplotlib equivalents.
+        # Palette-derived colorscales arrive as [[pos, hex], ...] lists;
+        # string names use the static lookup table.
+        cmap: Any
+        if isinstance(spec.colorscale, list):
+            from matplotlib.colors import LinearSegmentedColormap
 
-        im = ax.imshow(z_array, aspect="auto", cmap=cmap_name)
-        ax.figure.colorbar(im, ax=ax)
+            hex_colors = [str(pair[1]) for pair in spec.colorscale]
+            cmap = LinearSegmentedColormap.from_list("custom_palette", hex_colors)
+        else:
+            cmap = _COLORSCALE_MAP.get(spec.colorscale.lower(), spec.colorscale)
 
-        # Axis labels
+        # pcolormesh draws vector quadrilaterals (PGF-safe) instead of a
+        # raster bitmap (imshow).  Explicit edge arrays make each cell span
+        # one unit so that cell centres sit at (col + 0.5, row + 0.5).
+        n_rows, n_cols = z_array.shape
+        mesh_kwargs: dict[str, Any] = {
+            "cmap": cmap,
+            "shading": "flat",
+        }
+        if vmin is not None:
+            mesh_kwargs["vmin"] = vmin
+        if vmax is not None:
+            mesh_kwargs["vmax"] = vmax
+        im = ax.pcolormesh(
+            np.arange(n_cols + 1),
+            np.arange(n_rows + 1),
+            z_array,
+            **mesh_kwargs,
+        )
+        ax.invert_yaxis()  # row 0 at top, matching matrix convention
+        ax.set_aspect("auto")
+        result.heatmap_image = im
+
         if spec.col_labels:
-            ax.set_xticks(range(len(spec.col_labels)))
-            ax.set_xticklabels(spec.col_labels)
+            result.heatmap_col_labels = spec.col_labels
         if spec.row_labels:
-            ax.set_yticks(range(len(spec.row_labels)))
-            ax.set_yticklabels(spec.row_labels)
+            result.heatmap_row_labels = spec.row_labels
 
-        # Cell annotations
+        # Cell annotations — placed at cell centres (col+0.5, row+0.5)
         if spec.show_values and spec.text:
+            font_size = spec.text_font_size or 8
             for i, text_row in enumerate(spec.text):
                 for j, cell_text in enumerate(text_row):
                     if cell_text:
+                        if spec.text_color_mode == "custom":
+                            color = spec.text_color
+                        else:
+                            dark = is_dark_cell(z_array, i, j)  # type: ignore[arg-type]
+                            color = "white" if dark else "black"
                         ax.text(
-                            j,
-                            i,
+                            j + 0.5,
+                            i + 0.5,
                             cell_text,
                             ha="center",
                             va="center",
-                            fontsize=8,
-                            color="white" if _is_dark_cell(z_array, i, j) else "black",
+                            fontsize=font_size,
+                            color=color,
                         )
+
+        # Totals separator lines
+        if spec.totals_position and spec.totals_count > 0:
+            if spec.totals_position == "right" and n_cols > 1:
+                # Vertical line before the totals column
+                x_pos = n_cols - spec.totals_count
+                ax.axvline(x=x_pos, color="black", linewidth=2, zorder=5)
+            elif spec.totals_position == "top" and n_rows > 1:
+                # Horizontal line below the totals row (first row)
+                y_pos = spec.totals_count
+                ax.axhline(y=y_pos, color="black", linewidth=2, zorder=5)
 
 
 # ── module-level helpers ──────────────────────────────────────────────────────
@@ -354,24 +412,6 @@ _COLORSCALE_MAP: dict[str, str] = {
     "rdylgn": "RdYlGn",
     "rdylgn_r": "RdYlGn_r",
 }
-
-
-def _is_dark_cell(z_array: np.ndarray, row: int, col: int) -> bool:
-    """Return True if the cell value is in the upper half of the z range.
-
-    Used to pick white vs black text colour for cell annotations so that
-    text remains readable against both light and dark cells.
-    """
-    val = z_array[row, col]
-    if np.isnan(val):
-        return False
-    finite = z_array[np.isfinite(z_array)]
-    if finite.size == 0:
-        return False
-    vmin, vmax = float(finite.min()), float(finite.max())
-    if vmax == vmin:
-        return False
-    return bool((val - vmin) / (vmax - vmin) > 0.5)
 
 
 _DASH_MAP: dict[str, str] = {

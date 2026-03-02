@@ -5,7 +5,7 @@ core plot lifecycle (figure generation, serialization, etc.).
 
 All methods that render Streamlit widgets for plot configuration
 live here. The mixin expects ``self.plot_id``, ``self.plot_type``,
-``self.config``, ``self.processed_data``, and ``self.style_manager``
+``self.config``, ``self.processed_data``, and ``self._style_ui``
 to be provided by the host class (BasePlot).
 """
 
@@ -30,7 +30,7 @@ from src.web.components.plotting.settings import (
 from src.web.models.plot_models import PlotConfig
 
 if TYPE_CHECKING:
-    from src.web.pages.ui.plotting.styles import StyleManager
+    from src.web.pages.ui.plotting.styles import BaseStyleUI
 
 
 class PlotConfigUIMixin:
@@ -43,7 +43,7 @@ class PlotConfigUIMixin:
     - ``self.plot_type: str``
     - ``self.config: PlotConfig``
     - ``self.processed_data: pd.DataFrame | None``
-    - ``self.style_manager: StyleManager``
+    - ``self._style_ui: BaseStyleUI``
     """
 
     # Declare expected attributes for type checking
@@ -51,7 +51,7 @@ class PlotConfigUIMixin:
     plot_type: str
     config: PlotConfig
     processed_data: pd.DataFrame | None
-    style_manager: StyleManager
+    _style_ui: BaseStyleUI
 
     @abstractmethod
     def render_config_ui(self, data: pd.DataFrame, saved_config: PlotConfig) -> PlotConfig:
@@ -73,53 +73,10 @@ class PlotConfigUIMixin:
     def render_theme_options(
         self, saved_config: PlotConfig, items: list[str] | None = None
     ) -> PlotConfig:
-        """Render theme options via StyleManager."""
-        return self.style_manager.render_theme_options(
+        """Render theme/style options via the style UI strategy."""
+        return self._style_ui.render_style_ui(
             saved_config, self.processed_data, items=items, key_prefix="theme_"
         )
-
-    # ------------------------------------------------------------------
-    # Pills-driven section dispatcher
-    # ------------------------------------------------------------------
-
-    def render_settings_section(
-        self,
-        section: str | None,
-        saved_config: PlotConfig,
-        data: pd.DataFrame | None = None,
-    ) -> PlotConfig:
-        """Render UI for a single settings section selected via pills.
-
-        Each pill maps to one or more existing rendering methods so that
-        all widget ``key`` values are preserved exactly.
-
-        Args:
-            section: The key returned by ``render_settings_pills``
-                (``None`` when nothing is selected).
-            saved_config: Current configuration dictionary.
-            data: Processed data for data-dependent widgets.
-
-        Returns:
-            Configuration dictionary produced by the selected section.
-        """
-        if section is None:
-            return {}
-
-        dispatch = {
-            "layout": self._section_layout,
-            "typography": self._section_typography,
-            "legends": self._section_legends,
-            "axes": self._section_axes,
-            "data_labels": self._section_data_labels,
-            "colors": self._section_colors,
-            "advanced": self._section_advanced,
-        }
-        handler = dispatch.get(section)
-        if handler is None:
-            return {}
-        return handler(saved_config, data)
-
-    # -- individual section helpers ---
 
     def _supports_secondary_legend(self) -> bool:
         """Whether this plot type supports a secondary legend pill.
@@ -138,125 +95,92 @@ class PlotConfigUIMixin:
         """
         return False
 
-    def _section_layout(self, saved_config: PlotConfig, data: pd.DataFrame | None) -> PlotConfig:
-        component = LayoutSettingsComponent(self.plot_id, self.plot_type)
-        return component.render(saved_config)
+    # ------------------------------------------------------------------
+    # Pills-driven section dispatcher
+    # ------------------------------------------------------------------
 
-    def _section_typography(
-        self, saved_config: PlotConfig, data: pd.DataFrame | None
-    ) -> PlotConfig:
-        component = TypographySettingsComponent(self.plot_id, self.plot_type)
-        return component.render(saved_config, key_prefix="theme_")
-
-    def _section_legends(self, saved_config: PlotConfig, data: pd.DataFrame | None) -> PlotConfig:
-        has_dual_axis: bool = self.plot_type == "dual_axis_bar_dot" or bool(
-            saved_config.get("dual_axis")
-        )
-        has_secondary: bool = has_dual_axis or self._supports_secondary_legend()
-        has_tertiary: bool = (
-            self._supports_tertiary_legend()
-            and has_dual_axis
-            and bool(
-                saved_config.get("show_group_labels")
-                or "Number legend" in saved_config.get("numbered_xaxis_modes", [])
-                or saved_config.get("numbered_xaxis")
-            )
-        )
-
-        component = LegendSettingsComponent(self.plot_id, self.plot_type)
-        return component.render(
-            saved_config,
-            has_secondary=has_secondary,
-            has_tertiary=has_tertiary,
-        )
-
-    def _section_axes(self, saved_config: PlotConfig, data: pd.DataFrame | None) -> PlotConfig:
-        has_dual_axis: bool = self.plot_type == "dual_axis_bar_dot" or bool(
-            saved_config.get("dual_axis")
-        )
-        show_group_labels: bool = self.plot_type == "grouped_stacked_bar"
-
-        component = AxesSettingsComponent(self.plot_id, self.plot_type)
-        return component.render(
-            saved_config,
-            data=data,
-            has_dual_axis=has_dual_axis,
-            show_group_labels=show_group_labels,
-            render_specific_fn=self.render_specific_advanced_options,
-            render_ordering_fn=self._render_ordering_ui,
-        )
-
-    def _render_x_axis_settings(self, saved_config: PlotConfig, config: PlotConfig) -> None:
-        """Render X-axis specific settings (tick angle, grid)."""
-        st.markdown("#### X-Axis Settings")
-        config["show_x_grid"] = st.checkbox(
-            "Show Grid",
-            value=saved_config.get("show_x_grid", True),
-            key=f"show_x_grid_{self.plot_id}",
-        )
-        config["xaxis_tickangle"] = st.slider(
-            "X-axis Label Rotation",
-            min_value=-90,
-            max_value=90,
-            value=saved_config.get("xaxis_tickangle", -45),
-            step=15,
-            key=f"xaxis_angle_{self.plot_id}",
-            help="Rotate X-axis labels to prevent overlap",
-        )
-
-    def _render_y_axis_settings(
+    def render_settings_section(
         self,
+        section: str | None,
         saved_config: PlotConfig,
-        config: PlotConfig,
-        prefix: str,
-    ) -> None:
-        """Render Y-axis settings for left or right axis.
+        data: pd.DataFrame | None = None,
+    ) -> PlotConfig:
+        """Render UI for a single settings section selected via pills.
 
         Args:
-            saved_config: Previously saved configuration.
-            config: Current configuration to update.
-            prefix: Empty string for left axis, ``"y2"`` for right axis.
+            section: The key returned by ``render_settings_pills``
+                (``None`` when nothing is selected).
+            saved_config: Current configuration dictionary.
+            data: Processed data for data-dependent widgets.
+
+        Returns:
+            Configuration dictionary produced by the selected section.
         """
-        label = "Y-Left Axis" if not prefix else "Y-Right Axis"
-        st.markdown(f"#### {label} Settings")
+        if section is None:
+            return {}
 
-        grid_key = f"{prefix}show_y_grid" if prefix else "show_y_grid"
-        config[grid_key] = st.checkbox(
-            "Show Grid",
-            value=saved_config.get(grid_key, True if not prefix else False),
-            key=f"{prefix}show_y_grid_{self.plot_id}",
-        )
+        if section == "layout":
+            return LayoutSettingsComponent(self.plot_id, self.plot_type).render(saved_config)
 
-        dtick_key = f"{prefix}yaxis_dtick" if prefix else "yaxis_dtick"
-        dtick: float = st.number_input(
-            f"{label} Step Size (0 for auto)",
-            min_value=0.0,
-            value=float(saved_config.get(dtick_key) or 0.0),
-            key=f"{prefix}ydtick_{self.plot_id}",
-        )
-        if dtick > 0:
-            config[dtick_key] = dtick
+        if section == "typography":
+            return TypographySettingsComponent(self.plot_id, self.plot_type).render(
+                saved_config, key_prefix="theme_"
+            )
 
-    def _section_data_labels(
-        self, saved_config: PlotConfig, data: pd.DataFrame | None
-    ) -> PlotConfig:
-        component = DataLabelsSettingsComponent(self.plot_id, self.plot_type)
-        return component.render(saved_config, key_prefix="theme_")
+        if section == "legends":
+            has_dual_axis: bool = self.plot_type == "dual_axis_bar_dot" or bool(
+                saved_config.get("dual_axis")
+            )
+            has_secondary: bool = has_dual_axis or self._supports_secondary_legend()
+            has_tertiary: bool = (
+                self._supports_tertiary_legend()
+                and has_dual_axis
+                and bool(
+                    saved_config.get("show_group_labels")
+                    or "Number legend" in saved_config.get("numbered_xaxis_modes", [])
+                    or saved_config.get("numbered_xaxis")
+                )
+            )
+            return LegendSettingsComponent(self.plot_id, self.plot_type).render(
+                saved_config,
+                has_secondary=has_secondary,
+                has_tertiary=has_tertiary,
+            )
 
-    def _section_colors(self, saved_config: PlotConfig, data: pd.DataFrame | None) -> PlotConfig:
-        """Unified palette selector using core PALETTE_REGISTRY."""
-        component = ColorsSettingsComponent(self.plot_id, self.plot_type)
-        return component.render(saved_config, data=data)
+        if section == "axes":
+            has_dual_axis = self.plot_type == "dual_axis_bar_dot" or bool(
+                saved_config.get("dual_axis")
+            )
+            show_group_labels: bool = self.plot_type == "grouped_stacked_bar"
+            return AxesSettingsComponent(self.plot_id, self.plot_type).render(
+                saved_config,
+                data=data,
+                has_dual_axis=has_dual_axis,
+                show_group_labels=show_group_labels,
+                render_specific_fn=self.render_specific_advanced_options,
+                render_ordering_fn=self._render_ordering_ui,
+            )
 
-    def _section_advanced(self, saved_config: PlotConfig, data: pd.DataFrame | None) -> PlotConfig:
-        component = AdvancedSettingsComponent(self.plot_id, self.plot_type)
-        return component.render(
-            saved_config,
-            data=data,
-            render_reference_line_fn=self._render_reference_line_ui,
-            render_shapes_fn=self._render_shapes_ui,
-            render_engine_fn=self._render_engine_specific_controls,
-        )
+        if section == "data_labels":
+            return DataLabelsSettingsComponent(self.plot_id, self.plot_type).render(
+                saved_config, key_prefix="theme_"
+            )
+
+        if section == "colors":
+            return ColorsSettingsComponent(self.plot_id, self.plot_type).render(
+                saved_config, data=data
+            )
+
+        if section == "advanced":
+            return AdvancedSettingsComponent(self.plot_id, self.plot_type).render(
+                saved_config,
+                data=data,
+                render_reference_line_fn=self._render_reference_line_ui,
+                render_shapes_fn=self._render_shapes_ui,
+                render_engine_fn=self._render_engine_specific_controls,
+            )
+
+        return {}
 
     def _render_engine_specific_controls(
         self,

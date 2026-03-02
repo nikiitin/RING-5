@@ -6,6 +6,13 @@ Extracted from ``BasePlot._render_reference_line_ui``.
 import pandas as pd
 import streamlit as st
 
+from src.web.components.plotting.settings.widget_factory import (
+    color_picker,
+    numeric_input,
+    select_option,
+    slider,
+    toggle,
+)
 from src.web.models.plot_models import PlotConfig
 
 
@@ -41,10 +48,12 @@ class ReferenceLineSettingsComponent:
             config: Configuration dictionary to populate.
         """
         st.markdown("#### Reference Line")
-        ref_enabled = st.checkbox(
+        ref_enabled = toggle(
             "Show reference line",
-            value=saved_config.get("reference_line_enabled", False),
-            key=f"ref_line_enabled_{self.plot_id}",
+            saved_config,
+            "reference_line_enabled",
+            self.plot_id,
+            widget_key=f"ref_line_enabled_{self.plot_id}",
             help=(
                 "Draw a horizontal dashed line at a specific Y value. "
                 "Useful to highlight a baseline (e.g. Y=1 after "
@@ -57,37 +66,47 @@ class ReferenceLineSettingsComponent:
             with st.expander("Reference Line Settings", expanded=True):
                 col3, col4, col5 = st.columns(3)
                 with col3:
-                    ref_y = st.number_input(
+                    ref_y = numeric_input(
                         "Y position",
-                        value=float(saved_config.get("reference_line_y", 1.0)),
+                        saved_config,
+                        "reference_line_y",
+                        self.plot_id,
+                        widget_key=f"ref_line_y_{self.plot_id}",
+                        default=1.0,
                         step=0.1,
                         format="%.2f",
-                        key=f"ref_line_y_{self.plot_id}",
-                        help=("Y-axis value where the line is drawn " "(1.0 for normalized data)"),
+                        help="Y-axis value where the line is drawn (1.0 for normalized data)",
                     )
                 with col4:
-                    ref_color = st.color_picker(
+                    ref_color = color_picker(
                         "Line color",
-                        value=saved_config.get("reference_line_color", "#FF0000"),
-                        key=f"ref_line_color_{self.plot_id}",
+                        saved_config,
+                        "reference_line_color",
+                        self.plot_id,
+                        widget_key=f"ref_line_color_{self.plot_id}",
+                        default="#FF0000",
                     )
                 with col5:
-                    ref_width = st.slider(
+                    ref_width = slider(
                         "Line width",
+                        saved_config,
+                        "reference_line_width",
+                        self.plot_id,
+                        widget_key=f"ref_line_width_{self.plot_id}",
+                        default=1.5,
                         min_value=0.5,
                         max_value=4.0,
-                        value=float(saved_config.get("reference_line_width", 1.5)),
                         step=0.5,
-                        key=f"ref_line_width_{self.plot_id}",
                     )
 
-                ref_style = st.selectbox(
+                ref_style = select_option(
                     "Line style",
-                    options=["dash", "dot", "dashdot", "solid"],
-                    index=["dash", "dot", "dashdot", "solid"].index(
-                        saved_config.get("reference_line_style", "dash")
-                    ),
-                    key=f"ref_line_style_{self.plot_id}",
+                    ["dash", "dot", "dashdot", "solid"],
+                    saved_config,
+                    "reference_line_style",
+                    self.plot_id,
+                    widget_key=f"ref_line_style_{self.plot_id}",
+                    default="dash",
                 )
 
                 config["reference_line_y"] = ref_y

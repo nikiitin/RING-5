@@ -20,6 +20,44 @@ INHERIT_F: float = -1.0
 
 
 @dataclass
+class ColorbarConfig:
+    """Colorbar-specific settings for heatmap plots.
+
+    These settings only apply when the figure contains heatmap traces.
+    For non-heatmap plots, connectors ignore this config.
+    """
+
+    title_side: Literal["top", "right", "bottom", "left"] = "top"
+    range_mode: Literal["auto", "manual"] = "auto"
+    zmin: float | None = None
+    zmax: float | None = None
+    nticks: int = 5
+    tick_decimals: int = 2
+    shared: bool = True
+    tick_angle: float = 0.0  # rotation for colorbar tick labels (degrees)
+    tick_side: str = "right"  # "right" (default) or "left"
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize to a plain dictionary."""
+        return {
+            "title_side": self.title_side,
+            "range_mode": self.range_mode,
+            "zmin": self.zmin,
+            "zmax": self.zmax,
+            "nticks": self.nticks,
+            "tick_decimals": self.tick_decimals,
+            "shared": self.shared,
+            "tick_angle": self.tick_angle,
+            "tick_side": self.tick_side,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> ColorbarConfig:
+        """Reconstruct from serialized dictionary."""
+        return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
+
+
+@dataclass
 class LegendSpacingConfig:
     """Fine-grained spacing parameters for a legend box.
 
@@ -123,9 +161,27 @@ class LegendConfig:
     # ── Spacing ──────────────────────────────────────────────────
     spacing: LegendSpacingConfig = field(default_factory=LegendSpacingConfig)
 
+    # ── Colorbar (heatmap-specific) ──────────────────────────────
+    colorbar: ColorbarConfig = field(default_factory=ColorbarConfig)
+
     # ── Tertiary-annotation extras ──────────────────────────────
     number_fontsize: int = -1  # -1 = follow font_size
     text_fontsize: int = -1  # -1 = follow font_size
+
+    @staticmethod
+    def derive_anchors(
+        position_x: float,
+        position_y: float,
+    ) -> tuple[str, str]:
+        """Auto-derive anchor from position for intuitive placement.
+
+        When x > 0.8, the legend box anchors on the left so it extends inward.
+        When x < 0.2, it anchors on the right.  Middle zone uses center.
+        Same logic applies vertically.
+        """
+        ax = "left" if position_x > 0.8 else ("right" if position_x < 0.2 else "center")
+        ay = "bottom" if position_y > 0.8 else ("top" if position_y < 0.2 else "middle")
+        return ax, ay
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize to a plain dictionary."""
@@ -159,6 +215,7 @@ class LegendConfig:
             "title_font_size": self.title_font_size,
             "title": self.title,
             "spacing": self.spacing.to_dict(),
+            "colorbar": self.colorbar.to_dict(),
             "number_fontsize": self.number_fontsize,
             "text_fontsize": self.text_fontsize,
         }
@@ -171,7 +228,11 @@ class LegendConfig:
         spacing = (
             LegendSpacingConfig.from_dict(spacing_data) if spacing_data else LegendSpacingConfig()
         )
+        colorbar_data = data.pop("colorbar", {}) if isinstance(data.get("colorbar"), dict) else {}
+        colorbar = ColorbarConfig.from_dict(colorbar_data) if colorbar_data else ColorbarConfig()
         filtered = {
-            k: v for k, v in data.items() if k in cls.__dataclass_fields__ and k != "spacing"
+            k: v
+            for k, v in data.items()
+            if k in cls.__dataclass_fields__ and k not in ("spacing", "colorbar")
         }
-        return cls(spacing=spacing, **filtered)
+        return cls(spacing=spacing, colorbar=colorbar, **filtered)

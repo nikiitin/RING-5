@@ -29,7 +29,23 @@ from typing import Protocol
 import pandas as pd
 import streamlit as st
 
+from src.web.components.plotting.settings.widget_factory import (
+    color_picker,
+    numeric_input,
+    select_option,
+    slider,
+    toggle,
+)
 from src.web.models.plot_models import PlotConfig
+
+_DASH_OPTIONS: list[str] = [
+    "solid",
+    "dot",
+    "dash",
+    "longdash",
+    "dashdot",
+    "longdashdot",
+]
 
 
 class SpecificOptionsRenderer(Protocol):
@@ -147,62 +163,68 @@ class AxesSettingsComponent:
     def _render_x_axis_settings(self, saved_config: PlotConfig, config: PlotConfig) -> None:
         """Render X-axis specific settings (tick angle, grid, tick marks)."""
         st.markdown("#### X-Axis Settings")
-        config["show_x_grid"] = st.checkbox(
+        config["show_x_grid"] = toggle(
             "Show Grid",
-            value=saved_config.get("show_x_grid", True),
-            key=f"show_x_grid_{self.plot_id}",
+            saved_config,
+            "show_x_grid",
+            self.plot_id,
         )
-        config["xaxis_tickangle"] = st.slider(
+        config["xaxis_tickangle"] = slider(
             "X-axis Label Rotation",
+            saved_config,
+            "xaxis_tickangle",
+            self.plot_id,
+            widget_key=f"xaxis_angle_{self.plot_id}",
+            default=-45,
             min_value=-90,
             max_value=90,
-            value=saved_config.get("xaxis_tickangle", -45),
             step=15,
-            key=f"xaxis_angle_{self.plot_id}",
             help="Rotate X-axis labels to prevent overlap",
         )
 
         # ── Tick marks ──────────────────────────────────────────
         st.markdown("**Tick Marks & Grid**")
-        show_xtick_marks = st.checkbox(
+        show_xtick_marks = toggle(
             "Show X-Axis Tick Marks",
-            value=saved_config.get("show_xtick_marks", True),
-            key=f"x_show_ticks_{self.plot_id}",
+            saved_config,
+            "show_xtick_marks",
+            self.plot_id,
+            widget_key=f"x_show_ticks_{self.plot_id}",
         )
         config["show_xtick_marks"] = show_xtick_marks
 
-        dash_options = [
-            "solid",
-            "dot",
-            "dash",
-            "longdash",
-            "dashdot",
-            "longdashdot",
-        ]
-        xtick_dash_idx = 0
-        if saved_config.get("xtick_dash", "solid") in dash_options:
-            xtick_dash_idx = dash_options.index(saved_config.get("xtick_dash", "solid"))
+        config["xaxis_tick_side"] = select_option(
+            "X-Axis Tick Side",
+            ["bottom", "top"],
+            saved_config,
+            "xaxis_tick_side",
+            self.plot_id,
+            widget_key=f"x_tick_side_{self.plot_id}",
+            default="bottom",
+        )
 
         xtick_dash: str = "solid"
         if show_xtick_marks:
-            xtick_dash = (
-                st.selectbox(
-                    "X-Axis Grid Dash Style",
-                    options=dash_options,
-                    index=xtick_dash_idx,
-                    key=f"x_tickdash_{self.plot_id}",
-                )
-                or "solid"
+            xtick_dash = select_option(
+                "X-Axis Grid Dash Style",
+                _DASH_OPTIONS,
+                saved_config,
+                "xtick_dash",
+                self.plot_id,
+                widget_key=f"x_tickdash_{self.plot_id}",
+                default="solid",
             )
         config["xtick_dash"] = xtick_dash
 
-        config["xtick_pad"] = st.number_input(
+        config["xtick_pad"] = numeric_input(
             "X-Axis Tick Label Distance (px)",
+            saved_config,
+            "xtick_pad",
+            self.plot_id,
+            default=5.0,
             min_value=0.0,
             max_value=100.0,
-            value=float(saved_config.get("xtick_pad", 5.0)),
             step=1.0,
-            key=f"xtick_pad_{self.plot_id}",
             help="Distance between X-axis tick marks and their labels.",
         )
 
@@ -210,45 +232,54 @@ class AxesSettingsComponent:
         st.markdown("**Axis Lines**")
         al_col1, al_col2 = st.columns(2)
         with al_col1:
-            config["x_axis_line_width"] = st.number_input(
+            config["x_axis_line_width"] = numeric_input(
                 "Bottom Axis Line Width (px)",
+                saved_config,
+                "x_axis_line_width",
+                self.plot_id,
+                default=1.0,
                 min_value=0.0,
                 max_value=10.0,
-                value=float(saved_config.get("x_axis_line_width", 1.0)),
                 step=0.5,
-                key=f"x_axis_line_width_{self.plot_id}",
                 help="Width of the bottom X-axis border line. 0 = hidden.",
             )
         with al_col2:
-            config["x_axis_line_color"] = st.color_picker(
+            config["x_axis_line_color"] = color_picker(
                 "Bottom Axis Line Color",
-                saved_config.get("x_axis_line_color", "#444444"),
-                key=f"x_axis_line_color_{self.plot_id}",
+                saved_config,
+                "x_axis_line_color",
+                self.plot_id,
+                default="#444444",
             )
 
         al_col3, al_col4 = st.columns(2)
         with al_col3:
-            config["top_axis_line_width"] = st.number_input(
+            config["top_axis_line_width"] = numeric_input(
                 "Top Axis Line Width (px)",
+                saved_config,
+                "top_axis_line_width",
+                self.plot_id,
+                default=0.0,
                 min_value=0.0,
                 max_value=10.0,
-                value=float(saved_config.get("top_axis_line_width", 0.0)),
                 step=0.5,
-                key=f"top_axis_line_width_{self.plot_id}",
                 help="Width of the top axis border line. 0 = hidden.",
             )
         with al_col4:
-            config["top_axis_line_color"] = st.color_picker(
+            config["top_axis_line_color"] = color_picker(
                 "Top Axis Line Color",
-                saved_config.get("top_axis_line_color", "#444444"),
-                key=f"top_axis_line_color_{self.plot_id}",
+                saved_config,
+                "top_axis_line_color",
+                self.plot_id,
+                default="#444444",
             )
 
         # ── Numbered X-Axis ───────────────────────────────────────
-        config["numbered_xaxis"] = st.checkbox(
+        config["numbered_xaxis"] = toggle(
             "Use Numbered X-Axis",
-            value=saved_config.get("numbered_xaxis", False),
-            key=f"numbered_xaxis_{self.plot_id}",
+            saved_config,
+            "numbered_xaxis",
+            self.plot_id,
         )
 
         numbered_options = ["Numbers", "Number legend"]
@@ -295,10 +326,26 @@ class AxesSettingsComponent:
         st.markdown(f"#### {label} Settings")
 
         grid_key = f"{prefix}show_y_grid" if prefix else "show_y_grid"
-        config[grid_key] = st.checkbox(
+        config[grid_key] = toggle(
             "Show Grid",
-            value=saved_config.get(grid_key, True if not prefix else False),
-            key=f"{prefix}show_y_grid_{self.plot_id}",
+            saved_config,
+            grid_key,
+            self.plot_id,
+            widget_key=f"{prefix}show_y_grid_{self.plot_id}",
+            default=True if not prefix else False,
+        )
+
+        config["yaxis_tickangle"] = slider(
+            "Y-axis Label Rotation",
+            saved_config,
+            "yaxis_tickangle",
+            self.plot_id,
+            widget_key=f"{prefix}yaxis_angle_{self.plot_id}",
+            default=0,
+            min_value=-90,
+            max_value=90,
+            step=15,
+            help="Rotate Y-axis labels",
         )
 
         dtick_key = f"{prefix}yaxis_dtick" if prefix else "yaxis_dtick"
@@ -313,55 +360,61 @@ class AxesSettingsComponent:
 
         # ── Tick marks ──────────────────────────────────────────
         st.markdown("**Tick Marks & Grid**")
-        show_ytick_marks = st.checkbox(
+        show_ytick_marks = toggle(
             "Show Y-Axis Tick Marks",
-            value=saved_config.get("show_ytick_marks", True),
-            key=f"{prefix}y_show_ticks_{self.plot_id}",
+            saved_config,
+            "show_ytick_marks",
+            self.plot_id,
+            widget_key=f"{prefix}y_show_ticks_{self.plot_id}",
         )
         config["show_ytick_marks"] = show_ytick_marks
 
-        dash_options = [
-            "solid",
-            "dot",
-            "dash",
-            "longdash",
-            "dashdot",
-            "longdashdot",
-        ]
-        ytick_dash_idx = 0
-        if saved_config.get("ytick_dash", "solid") in dash_options:
-            ytick_dash_idx = dash_options.index(saved_config.get("ytick_dash", "solid"))
+        config["yaxis_tick_side"] = select_option(
+            "Y-Axis Tick Side",
+            ["left", "right"],
+            saved_config,
+            "yaxis_tick_side",
+            self.plot_id,
+            widget_key=f"{prefix}y_tick_side_{self.plot_id}",
+            default="left",
+        )
 
         ytick_dash: str = "solid"
         if show_ytick_marks:
-            ytick_dash = (
-                st.selectbox(
-                    "Y-Axis Grid Dash Style",
-                    options=dash_options,
-                    index=ytick_dash_idx,
-                    key=f"{prefix}y_tickdash_{self.plot_id}",
-                )
-                or "solid"
+            ytick_dash = select_option(
+                "Y-Axis Grid Dash Style",
+                _DASH_OPTIONS,
+                saved_config,
+                "ytick_dash",
+                self.plot_id,
+                widget_key=f"{prefix}y_tickdash_{self.plot_id}",
+                default="solid",
             )
         config["ytick_dash"] = ytick_dash
 
         # ── Y-axis title position ───────────────────────────────
         st.markdown("**Title Position**")
-        config["yaxis_title_standoff"] = st.slider(
+        config["yaxis_title_standoff"] = slider(
             "Y-Axis Title Standoff (Spacing)",
+            saved_config,
+            "yaxis_title_standoff",
+            self.plot_id,
+            widget_key=f"{prefix}yaxis_title_standoff_{self.plot_id}",
+            default=-1,
             min_value=-1,
             max_value=200,
-            value=saved_config.get("yaxis_title_standoff", -1),
-            key=f"{prefix}yaxis_title_standoff_{self.plot_id}",
-            help=("Distance between Y-axis ticks and the title. " "-1 = auto (engine default)."),
+            help="Distance between Y-axis ticks and the title. -1 = auto (engine default).",
         )
 
-        config["yaxis_title_vshift"] = st.slider(
+        config["yaxis_title_vshift"] = slider(
             "Y-Axis Title Vertical Shift",
+            saved_config,
+            "yaxis_title_vshift",
+            self.plot_id,
+            widget_key=f"{prefix}yaxis_title_vshift_{self.plot_id}",
+            default=0,
             min_value=-500,
             max_value=500,
-            value=saved_config.get("yaxis_title_vshift", 0),
-            key=f"{prefix}yaxis_title_vshift_{self.plot_id}",
             help=(
                 "Move title up (+) or down (-) along"
                 " the axis. Matplotlib only — Plotly uses"
@@ -377,40 +430,50 @@ class AxesSettingsComponent:
 
         al_col1, al_col2 = st.columns(2)
         with al_col1:
-            config[width_key] = st.number_input(
+            config[width_key] = numeric_input(
                 f"{label} Line Width (px)",
+                saved_config,
+                width_key,
+                self.plot_id,
+                widget_key=f"{prefix}y_axis_line_width_{self.plot_id}",
+                default=1.0,
                 min_value=0.0,
                 max_value=10.0,
-                value=float(saved_config.get(width_key, 1.0)),
                 step=0.5,
-                key=f"{prefix}y_axis_line_width_{self.plot_id}",
                 help=f"Width of the {label.lower()} border line. 0 = hidden.",
             )
         with al_col2:
-            config[color_key] = st.color_picker(
+            config[color_key] = color_picker(
                 f"{label} Line Color",
-                saved_config.get(color_key, "#444444"),
-                key=f"{prefix}y_axis_line_color_{self.plot_id}",
+                saved_config,
+                color_key,
+                self.plot_id,
+                widget_key=f"{prefix}y_axis_line_color_{self.plot_id}",
+                default="#444444",
             )
 
         # Opposite (right) axis line — only for primary Y-axis
         if not prefix:
             al_col3, al_col4 = st.columns(2)
             with al_col3:
-                config["right_axis_line_width"] = st.number_input(
+                config["right_axis_line_width"] = numeric_input(
                     "Right Axis Line Width (px)",
+                    saved_config,
+                    "right_axis_line_width",
+                    self.plot_id,
+                    default=0.0,
                     min_value=0.0,
                     max_value=10.0,
-                    value=float(saved_config.get("right_axis_line_width", 0.0)),
                     step=0.5,
-                    key=f"right_axis_line_width_{self.plot_id}",
                     help="Width of the right axis border line. 0 = hidden.",
                 )
             with al_col4:
-                config["right_axis_line_color"] = st.color_picker(
+                config["right_axis_line_color"] = color_picker(
                     "Right Axis Line Color",
-                    saved_config.get("right_axis_line_color", "#444444"),
-                    key=f"right_axis_line_color_{self.plot_id}",
+                    saved_config,
+                    "right_axis_line_color",
+                    self.plot_id,
+                    default="#444444",
                 )
 
     # ------------------------------------------------------------------
@@ -420,32 +483,41 @@ class AxesSettingsComponent:
     def _render_group_labels_settings(self, saved_config: PlotConfig, config: PlotConfig) -> None:
         """Render group label controls (for grouped stacked bar)."""
         st.markdown("#### Group Labels")
-        config["major_label_offset"] = st.number_input(
+        config["major_label_offset"] = numeric_input(
             "Label-to-Axis Distance",
+            saved_config,
+            "major_label_offset",
+            self.plot_id,
+            widget_key=f"grp_lbl_dist_{self.plot_id}",
+            default=-0.15,
             min_value=-1.0,
             max_value=0.0,
-            value=float(saved_config.get("major_label_offset", -0.15)),
             step=0.01,
             format="%.2f",
-            key=f"grp_lbl_dist_{self.plot_id}",
             help=(
                 "Vertical distance between major group labels "
                 "and the X-axis. More negative = farther below."
             ),
         )
         config["group_label_offset"] = config["major_label_offset"]
-        config["group_label_alternate"] = st.checkbox(
+        config["group_label_alternate"] = toggle(
             "Alternate Group Labels (up/down)",
-            value=saved_config.get("group_label_alternate", True),
-            key=f"grp_alt_{self.plot_id}",
+            saved_config,
+            "group_label_alternate",
+            self.plot_id,
+            widget_key=f"grp_alt_{self.plot_id}",
+            default=True,
             help="Stagger group labels to avoid overlap.",
         )
-        config["group_label_alt_spacing"] = st.number_input(
+        config["group_label_alt_spacing"] = numeric_input(
             "Alt. Label Row Spacing",
+            saved_config,
+            "group_label_alt_spacing",
+            self.plot_id,
+            widget_key=f"grp_alt_sp_{self.plot_id}",
+            default=0.05,
             min_value=0.0,
             max_value=0.5,
-            value=float(saved_config.get("group_label_alt_spacing", 0.05)),
             step=0.01,
-            key=f"grp_alt_sp_{self.plot_id}",
             help="Vertical distance between alternating label rows.",
         )

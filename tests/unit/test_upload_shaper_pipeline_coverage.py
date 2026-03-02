@@ -1,6 +1,6 @@
 """
 Coverage tests for shaper_config, PipelineComponent,
-PipelineStepComponent, DataManager, and StyleManager.
+PipelineStepComponent and DataManager.
 
 Targets uncovered lines:
 - shaper_config.py: 122-134
@@ -229,39 +229,3 @@ class TestDataManagerBase:
         df = pd.DataFrame({"x": [1]})
         mgr.set_data(df)
         api.state_manager.set_data.assert_called_once_with(df)
-
-
-# ===========================================================================
-# StyleManager (lines 90, 100)
-# ===========================================================================
-
-
-class TestStyleManagerBranches:
-    """Cover render_series_renaming_ui and render_xaxis_labels_ui."""
-
-    @patch("src.web.pages.ui.plotting.styles.manager.StyleUIFactory")
-    def test_render_series_renaming_ui(self, mock_factory: MagicMock) -> None:
-        from src.web.pages.ui.plotting.styles.manager import StyleManager
-
-        mock_ui = MagicMock()
-        mock_ui.render_series_renaming_ui.return_value = {"name": "val"}
-        mock_factory.get_strategy.return_value = mock_ui
-
-        mgr = StyleManager(plot_id=1, plot_type="bar")
-        result = mgr.render_series_renaming_ui(saved_config={}, data=None, items=["a"])
-
-        assert result == {"name": "val"}
-        mock_ui.render_series_renaming_ui.assert_called_once()
-
-    @patch("src.web.pages.ui.plotting.styles.manager.StyleUIFactory")
-    def test_render_xaxis_labels_ui(self, mock_factory: MagicMock) -> None:
-        from src.web.pages.ui.plotting.styles.manager import StyleManager
-
-        mock_ui = MagicMock()
-        mock_ui.render_xaxis_labels_ui.return_value = {"x": "label"}
-        mock_factory.get_strategy.return_value = mock_ui
-
-        mgr = StyleManager(plot_id=1, plot_type="bar")
-        result = mgr.render_xaxis_labels_ui(saved_config={})
-
-        assert result == {"x": "label"}
