@@ -1,13 +1,12 @@
 """
 Preset manager for LaTeX export configurations.
 
-Loads and validates journal-specific export presets from YAML configuration.
+Loads and validates journal-specific export presets from JSON configuration.
 """
 
+import json
 from pathlib import Path
 from typing import Any
-
-import yaml
 
 from src.web.pages.ui.plotting.export.presets.preset_schema import LaTeXPreset
 
@@ -16,7 +15,7 @@ class PresetManager:
     """
     Manages LaTeX export presets.
 
-    Loads preset configurations from YAML, validates them, and provides
+    Loads preset configurations from JSON, validates them, and provides
     caching for performance.
 
     Example:
@@ -32,18 +31,18 @@ class PresetManager:
 
     @classmethod
     def _initialize(cls) -> None:
-        """Load presets YAML file once."""
+        """Load presets JSON file once."""
         if cls._initialized:
             return
 
         # Path is in the same directory as preset_manager.py
-        config_path = Path(__file__).parent / "latex_presets.yaml"
+        config_path = Path(__file__).parent / "latex_presets.json"
 
         if not config_path.exists():
             raise FileNotFoundError(f"Presets file not found: {config_path}")
 
         with open(config_path) as f:
-            data = yaml.safe_load(f)
+            data = json.load(f)
             cls._presets_data = data.get("presets", {})
 
         cls._initialized = True
@@ -61,7 +60,7 @@ class PresetManager:
 
         Raises:
             ValueError: If preset name is unknown
-            FileNotFoundError: If presets YAML file not found
+            FileNotFoundError: If presets JSON file not found
         """
         # Check cache first
         if preset_name in cls._cache:
@@ -70,7 +69,7 @@ class PresetManager:
         # Initialize if needed
         cls._initialize()
 
-        # Load from YAML
+        # Load from presets data
         if preset_name not in cls._presets_data:
             available = ", ".join(cls._presets_data.keys())
             raise ValueError(f"Unknown preset: {preset_name}. " f"Available presets: {available}")
