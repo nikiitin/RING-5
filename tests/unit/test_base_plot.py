@@ -36,7 +36,7 @@ def concrete_plot() -> ConcretePlot:
 @pytest.fixture
 def mock_streamlit() -> Generator[None, None, None]:
     with (
-        patch("src.web.pages.ui.plotting.base_plot.st") as mock_st,
+        patch("src.web.pages.ui.plotting.plot_config_ui.st") as mock_st,
         patch("src.web.components.common.reorderable_list.st", mock_st),
         patch("src.web.components.plotting.settings.shapes_settings.st", mock_st),
     ):

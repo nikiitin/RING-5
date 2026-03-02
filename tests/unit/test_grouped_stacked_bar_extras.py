@@ -16,7 +16,7 @@ from src.web.pages.ui.plotting.types.grouped_stacked_bar_plot import (
 def mock_streamlit() -> Generator[None, None, None]:
     with (
         patch("src.web.pages.ui.plotting.types.grouped_stacked_bar_plot.st") as mock_st_plot,
-        patch("src.web.pages.ui.plotting.base_plot.st", mock_st_plot),
+        patch("src.web.pages.ui.plotting.plot_config_ui.st", mock_st_plot),
         patch("src.web.pages.ui.plotting.styles.base_ui.st", mock_st_plot),
         patch("src.web.pages.ui.plotting.styles.manager.StyleUIFactory"),
         patch("src.web.components.common.reorderable_list.st", mock_st_plot),
