@@ -18,6 +18,9 @@ runtimes:
 # This is the section where you manage your linters. (https://docs.trunk.io/check/configuration)
 lint:
   ignore:
+    - linters: [markdownlint, prettier]
+      paths:
+        - "**/*.md" # Markdown linting available via --filter but excluded from default checks
     - linters: [bandit]
       paths:
         - tests/**
@@ -46,18 +49,18 @@ lint:
         extra_args: [--config=pyproject.toml]
     - hadolint@2.14.0
     - actionlint@1.7.11
-    - isort@8.0.0
+    - isort@8.0.1
     - bandit@1.9.4:
         extra_args: [-c, pyproject.toml]
     - checkov@3.2.506
     - git-diff-check
     - markdownlint@0.47.0
     - prettier@3.8.1
-    - ruff@0.15.3
+    - ruff@0.15.4
     - shellcheck@0.11.0
     - shfmt@3.6.0
     - taplo@0.10.0
-    - trufflehog@3.93.5
+    - trufflehog@3.93.6
     - yamllint@1.38.0
 actions:
   disabled:

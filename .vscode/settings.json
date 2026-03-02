@@ -73,6 +73,11 @@
     "default": false
   },
 
+  // Trunk extension configuration
+  "trunk.pathToTrunk": "${workspaceFolder}/.trunk",
+  "trunk.enableFormatOnSave": false,
+  "trunk.enableDebugLogs": false,
+
   // Copilot Chat instructions reference
   "github.copilot.chat.codeGeneration.instructions": [
     {
