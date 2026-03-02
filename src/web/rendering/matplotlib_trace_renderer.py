@@ -3,8 +3,8 @@ Matplotlib trace renderer — draws ``TraceConfig`` instances on matplotlib axes
 
 This module is the **engine-agnostic** trace renderer for the matplotlib
 connector.  It reads from ``TraceConfig`` sub-classes (``BarTraceConfig``,
-``LineTraceConfig``, ``ScatterTraceConfig``, ``HistogramTraceConfig``) and
-draws the equivalent matplotlib artists.
+``LineTraceConfig``, ``ScatterTraceConfig``, ``HistogramTraceConfig``,
+``HeatmapTraceConfig``) and draws the equivalent matplotlib artists.
 
 **No Plotly dependency** — this module does not import or reference
 ``plotly.graph_objects`` or any Plotly types.
@@ -28,6 +28,7 @@ from matplotlib.axes import Axes
 
 from src.core.models.visualization.trace_config import (
     BarTraceConfig,
+    HeatmapTraceConfig,
     HistogramTraceConfig,
     LineTraceConfig,
     ScatterTraceConfig,
@@ -135,6 +136,9 @@ class MatplotlibTraceRenderer:
                         target,
                         override_color=override_color,
                     )
+                    count += 1
+                elif isinstance(trace, HeatmapTraceConfig):
+                    MatplotlibTraceRenderer._draw_heatmap(trace, target)
                     count += 1
                 else:
                     logger.warning(
@@ -272,8 +276,103 @@ class MatplotlibTraceRenderer:
         x_clean = [float(v) if v is not None else np.nan for v in spec.x]
         ax.hist(x_clean, bins=spec.nbins, label=spec.name, **props)
 
+    # ── heatmap ─────────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _draw_heatmap(spec: HeatmapTraceConfig, ax: Axes) -> None:
+        """Draw a heatmap from its ``HeatmapTraceConfig``.
+
+        Uses ``ax.imshow()`` to render the z-matrix with labelled axes
+        and optional cell-value annotations.
+        """
+        if not spec.z:
+            return
+
+        # Build z-matrix replacing None with NaN
+        z_array = np.array(
+            [[float(v) if v is not None else np.nan for v in row] for row in spec.z],
+            dtype=float,
+        )
+
+        # Map Plotly colorscale names to matplotlib equivalents
+        cmap_name = _COLORSCALE_MAP.get(spec.colorscale.lower(), spec.colorscale)
+
+        im = ax.imshow(z_array, aspect="auto", cmap=cmap_name)
+        ax.figure.colorbar(im, ax=ax)
+
+        # Axis labels
+        if spec.col_labels:
+            ax.set_xticks(range(len(spec.col_labels)))
+            ax.set_xticklabels(spec.col_labels)
+        if spec.row_labels:
+            ax.set_yticks(range(len(spec.row_labels)))
+            ax.set_yticklabels(spec.row_labels)
+
+        # Cell annotations
+        if spec.show_values and spec.text:
+            for i, text_row in enumerate(spec.text):
+                for j, cell_text in enumerate(text_row):
+                    if cell_text:
+                        ax.text(
+                            j,
+                            i,
+                            cell_text,
+                            ha="center",
+                            va="center",
+                            fontsize=8,
+                            color="white" if _is_dark_cell(z_array, i, j) else "black",
+                        )
+
 
 # ── module-level helpers ──────────────────────────────────────────────────────
+
+_COLORSCALE_MAP: dict[str, str] = {
+    "viridis": "viridis",
+    "viridis_r": "viridis_r",
+    "plasma": "plasma",
+    "plasma_r": "plasma_r",
+    "inferno": "inferno",
+    "inferno_r": "inferno_r",
+    "magma": "magma",
+    "magma_r": "magma_r",
+    "cividis": "cividis",
+    "cividis_r": "cividis_r",
+    "blues": "Blues",
+    "blues_r": "Blues_r",
+    "reds": "Reds",
+    "reds_r": "Reds_r",
+    "greens": "Greens",
+    "greens_r": "Greens_r",
+    "ylgnbu": "YlGnBu",
+    "ylgnbu_r": "YlGnBu_r",
+    "rdbu": "RdBu",
+    "rdbu_r": "RdBu_r",
+    "hot": "hot",
+    "hot_r": "hot_r",
+    "ylorrd": "YlOrRd",
+    "ylorrd_r": "YlOrRd_r",
+    "rdylgn": "RdYlGn",
+    "rdylgn_r": "RdYlGn_r",
+}
+
+
+def _is_dark_cell(z_array: np.ndarray, row: int, col: int) -> bool:
+    """Return True if the cell value is in the upper half of the z range.
+
+    Used to pick white vs black text colour for cell annotations so that
+    text remains readable against both light and dark cells.
+    """
+    val = z_array[row, col]
+    if np.isnan(val):
+        return False
+    finite = z_array[np.isfinite(z_array)]
+    if finite.size == 0:
+        return False
+    vmin, vmax = float(finite.min()), float(finite.max())
+    if vmax == vmin:
+        return False
+    return bool((val - vmin) / (vmax - vmin) > 0.5)
+
 
 _DASH_MAP: dict[str, str] = {
     "dash": "--",

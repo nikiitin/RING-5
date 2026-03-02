@@ -8,10 +8,12 @@ from typing import Any, cast
 import matplotlib
 import matplotlib.axes
 import matplotlib.pyplot as plt
+import numpy as np
 import pytest
 
 from src.core.models.visualization.trace_config import (
     BarTraceConfig,
+    HeatmapTraceConfig,
     HistogramTraceConfig,
     LineTraceConfig,
     ScatterTraceConfig,
@@ -20,6 +22,7 @@ from src.core.models.visualization.trace_config import (
 from src.web.rendering.matplotlib_trace_renderer import (
     MatplotlibTraceRenderer,
     _compute_categorical_positions,
+    _is_dark_cell,
     _stack_bottom,
     _stack_bottom_numeric,
 )
@@ -225,3 +228,116 @@ class TestStackBottomNumeric:
         # Positions don't match, so bottom remains 0
         bottom = _stack_bottom_numeric(1, [s1, s2], [5.0])
         assert bottom == [0.0]
+
+
+# ── heatmap rendering ──────────────────────────────────────────────
+
+
+class TestHeatmapRendering:
+    """Tests for heatmap trace rendering."""
+
+    def test_single_heatmap(self, ax: matplotlib.axes.Axes) -> None:
+        trace = HeatmapTraceConfig(
+            name="hm",
+            col_labels=["c1", "c2"],
+            row_labels=["r1", "r2"],
+            z=[[1.0, 2.0], [3.0, 4.0]],
+        )
+        count = MatplotlibTraceRenderer.render([trace], ax)
+        assert count == 1
+
+    def test_heatmap_with_text_annotations(self, ax: matplotlib.axes.Axes) -> None:
+        trace = HeatmapTraceConfig(
+            name="annotated",
+            col_labels=["a", "b"],
+            row_labels=["x", "y"],
+            z=[[10.0, 20.0], [30.0, 40.0]],
+            show_values=True,
+            text=[["10", "20"], ["30", "40"]],
+        )
+        count = MatplotlibTraceRenderer.render([trace], ax)
+        assert count == 1
+        # Check that text annotations were added
+        texts = ax.texts
+        assert len(texts) == 4
+
+    def test_heatmap_without_text(self, ax: matplotlib.axes.Axes) -> None:
+        trace = HeatmapTraceConfig(
+            name="no_text",
+            col_labels=["a", "b"],
+            row_labels=["x"],
+            z=[[1.0, 2.0]],
+            show_values=False,
+        )
+        count = MatplotlibTraceRenderer.render([trace], ax)
+        assert count == 1
+        assert len(ax.texts) == 0
+
+    def test_heatmap_with_none_values(self, ax: matplotlib.axes.Axes) -> None:
+        """None values in z should be converted to NaN."""
+        trace = HeatmapTraceConfig(
+            name="nans",
+            col_labels=["a", "b"],
+            row_labels=["r1"],
+            z=[[1.0, None]],
+            show_values=True,
+            text=[["1", ""]],
+        )
+        count = MatplotlibTraceRenderer.render([trace], ax)
+        assert count == 1
+
+    def test_heatmap_empty_z(self, ax: matplotlib.axes.Axes) -> None:
+        """Empty z matrix should render without error."""
+        trace = HeatmapTraceConfig(
+            name="empty",
+            col_labels=[],
+            row_labels=[],
+            z=[],
+        )
+        count = MatplotlibTraceRenderer.render([trace], ax)
+        assert count == 1
+
+    def test_heatmap_custom_colorscale(self, ax: matplotlib.axes.Axes) -> None:
+        trace = HeatmapTraceConfig(
+            name="blues",
+            col_labels=["a"],
+            row_labels=["b"],
+            z=[[5.0]],
+            colorscale="Blues",
+        )
+        count = MatplotlibTraceRenderer.render([trace], ax)
+        assert count == 1
+
+    def test_heatmap_reversed_colorscale(self, ax: matplotlib.axes.Axes) -> None:
+        trace = HeatmapTraceConfig(
+            name="reversed",
+            col_labels=["a"],
+            row_labels=["b"],
+            z=[[5.0]],
+            colorscale="Viridis_r",
+        )
+        count = MatplotlibTraceRenderer.render([trace], ax)
+        assert count == 1
+
+
+# ── _is_dark_cell ──────────────────────────────────────────────────
+
+
+class TestIsDarkCell:
+    """Tests for contrast-aware text colour helper."""
+
+    def test_high_value_is_dark(self) -> None:
+        z = np.array([[0.0, 1.0], [0.5, 0.9]])
+        assert _is_dark_cell(z, 0, 1) is True  # 1.0 is max
+
+    def test_low_value_is_not_dark(self) -> None:
+        z = np.array([[0.0, 1.0], [0.5, 0.9]])
+        assert _is_dark_cell(z, 0, 0) is False  # 0.0 is min
+
+    def test_nan_returns_false(self) -> None:
+        z = np.array([[np.nan, 1.0]])
+        assert _is_dark_cell(z, 0, 0) is False
+
+    def test_uniform_values_returns_false(self) -> None:
+        z = np.array([[5.0, 5.0]])
+        assert _is_dark_cell(z, 0, 0) is False  # vmax == vmin
