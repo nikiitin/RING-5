@@ -6,9 +6,15 @@ Verify DataFrame return types after pd.DataFrame() wrapper removal.
 import pandas as pd
 import pytest
 
-from src.core.services.shapers.impl.selector_algorithms.column_selector import ColumnSelector
-from src.core.services.shapers.impl.selector_algorithms.condition_selector import ConditionSelector
-from src.core.services.shapers.impl.selector_algorithms.item_selector import ItemSelector
+from src.core.services.shapers.impl.selector_algorithms.column_selector import (
+    ColumnSelector,
+)
+from src.core.services.shapers.impl.selector_algorithms.condition_selector import (
+    ConditionSelector,
+)
+from src.core.services.shapers.impl.selector_algorithms.item_selector import (
+    ItemSelector,
+)
 
 
 @pytest.fixture

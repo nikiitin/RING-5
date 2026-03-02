@@ -162,7 +162,7 @@ class StackedBarPlot(BasePlot):
                 return str(val)
 
         annotations = []
-        for total_val, x_pos in zip(data["__total"], data[x_col]):
+        for total_val, x_pos in zip(data["__total"], data[x_col], strict=False):
             val = float(total_val)
 
             if val <= threshold:

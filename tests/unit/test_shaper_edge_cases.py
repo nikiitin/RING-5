@@ -12,9 +12,15 @@ import pytest
 
 from src.core.services.shapers.impl.mean import Mean
 from src.core.services.shapers.impl.normalize import Normalize
-from src.core.services.shapers.impl.selector_algorithms.column_selector import ColumnSelector
-from src.core.services.shapers.impl.selector_algorithms.condition_selector import ConditionSelector
-from src.core.services.shapers.impl.selector_algorithms.item_selector import ItemSelector
+from src.core.services.shapers.impl.selector_algorithms.column_selector import (
+    ColumnSelector,
+)
+from src.core.services.shapers.impl.selector_algorithms.condition_selector import (
+    ConditionSelector,
+)
+from src.core.services.shapers.impl.selector_algorithms.item_selector import (
+    ItemSelector,
+)
 
 # ---------------------------------------------------------------------------
 # 1. Unicode column names

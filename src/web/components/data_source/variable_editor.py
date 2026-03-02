@@ -11,7 +11,10 @@ import streamlit as st
 from src.core.application_api import ApplicationAPI
 from src.core.models import ScannedVariable
 from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
-from src.web.components.common.filtered_selector import filtered_multiselect, filtered_selectbox
+from src.web.components.common.filtered_selector import (
+    filtered_multiselect,
+    filtered_selectbox,
+)
 from src.web.components.data_source.pattern_index_selector import PatternIndexSelector
 
 
