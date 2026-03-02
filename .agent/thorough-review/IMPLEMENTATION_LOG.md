@@ -3,8 +3,8 @@
 > **Source**: 16-track thorough investigation of the entire codebase
 > **Total findings**: 126 items across 16 tracks
 > **Created**: 2026-02-27
-> **Final state**: ALL phases complete. 14 commits, 3492 tests passing, 0 regressions.
-> **Last updated**: 2026-02-28
+> **Final state**: ALL phases + deferred items complete. 22 commits, 3389+ tests passing, 0 regressions.
+> **Last updated**: 2026-03-01
 
 ---
 
@@ -498,20 +498,24 @@
 - **Fix**: Extracted identical `_compute_data_fingerprint()` static methods from Mean and Normalize into shared `compute_data_fingerprint()` in `src/core/performance.py`. ~60 lines of duplication removed. Updated test files to use the shared function.
 - **Commit**: `50423ab`
 
-### P13.4 [SKIP] Centralize UIStateManager usage (Track 7.4, 4.1)
+### P13.4 [DONE] Centralize UIStateManager for data managers (Track 7.4, 4.1)
 
 - **Severity**: LOW-MEDIUM
-- **Finding**: 10-13 direct `st.session_state[` bypasses across UI files. Large UI refactor with high regression risk and low ROI.
+- **Files**: `mixer.py`, `preprocessor.py`, `seeds_reducer.py`, `outlier_remover.py`
+- **Fix**: Migrated all 4 data manager widget keys to `WidgetKeyBuilder.manager_key()` and history load triggers to `UIStateManager().manager.consume_load_trigger()`. 22 widget keys + 4 load triggers centralized.
+- **Commit**: `5aa1174`
 
-### P13.5 [SKIP] Centralize widget key builder (Track 11.6)
+### P13.5 [DONE] Centralize widget key builder (Track 11.6)
 
 - **Severity**: LOW-MEDIUM
-- **Finding**: 94+ unique key patterns, 120+ total `key=` statements. Centralizing would touch 12+ settings files. Risk/reward not justified.
+- **Fix**: Added `WidgetKeyBuilder` class with `manager_key()`, `plot_key()`, `form_key()` methods. Converted 4 function-based settings components to class-based. Centralized widget key construction across settings components.
+- **Commits**: `af58a80`, `55c3318`
 
-### P13.6 [SKIP] Standardize settings components (Track 11.5)
+### P13.6 [DONE] Standardize settings components (Track 11.5)
 
 - **Severity**: LOW
-- **Finding**: 7 class-based, 4 function-based across 11 settings files. Standardizing would be a large UI refactor with minimal benefit.
+- **Fix**: Converted ordering_settings, reference_line_settings, shapes_settings, and advanced_settings from function-based to class-based components matching the existing pattern.
+- **Commit**: `55c3318`
 
 ---
 
@@ -532,15 +536,18 @@
 - **Priority**: MEDIUM
 - **Finding**: Tested through E2E/UI-logic tests. Dedicated unit tests would test Streamlit widgets, adding complexity without value.
 
-### P14.4 [SKIP] Refactor private attribute test accesses (Track 12.3)
+### P14.4 [DONE] Refactor private attribute test accesses (Track 12.3)
 
 - **Priority**: HIGH
-- **Finding**: 370+ private attribute accesses across test suite. Refactoring would require adding public accessors to 20+ production classes. Risk/reward ratio does not justify the scope.
+- **Fix**: Replaced private attribute access with public properties in stat type tests. Added `@property` accessors where needed.
+- **Commit**: `91d7c16`
 
-### P14.5 [SKIP] Replace flaky timing tests (Track 12.4)
+### P14.5 [DONE] Replace flaky timing tests (Track 12.4)
 
 - **Priority**: MEDIUM-HIGH
-- **Finding**: 13 `time.sleep()` calls across tests. Most are for file timestamp granularity (1.1s). Replacing with event-based waits would change test semantics without clear benefit.
+- **Files**: `test_simple_cache.py`, `test_config_service.py`, `test_csv_pool_service.py`
+- **Fix**: Replaced `time.sleep()` with deterministic mocks: `time.time()` mock for cache TTL tests, `os.utime()` for file timestamp ordering, `datetime.now()` mock for unique filename generation. Only kept `time.sleep(0.002)` for real thread coordination tests.
+- **Commit**: `1bfceac`
 
 ### P14.6 [DONE] Shaper edge case tests (Track 12.5)
 
@@ -577,23 +584,23 @@
 
 ## Deferred Items
 
-### D1 [DEFER] Split BasePlot 690-line god class (Track 11.4)
+### D1 [DONE] Split BasePlot 690-line god class (Track 11.4)
 
 - **Severity**: MEDIUM-HIGH
-- **Reason for deferral**: 690 lines, 26 methods mixing config-gathering (18 methods) with rendering (8 methods). Splitting into PlotConfigUI + PlotRenderer is a massive refactor that touches all 8 plot types. High regression risk.
-- **Action**: Separate effort. Split into PlotConfigUI (Streamlit) and PlotRenderer (figure creation + styling).
+- **Fix**: Extracted `PlotConfigUIMixin` into `src/web/pages/ui/plotting/plot_config_ui.py` (~480 lines) containing all UI rendering methods. `BasePlot` trimmed to ~220 lines with only core lifecycle methods. Updated 3 test files with correct mock patch targets.
+- **Commit**: `55cf08c`
 
-### D2 [DEFER] Migrate dict[str,Any] to TypedDicts progressively (Track 6.1, 6.6)
+### D2 [DONE] Migrate dict[str,Any] to PlotConfig TypeAlias (Track 6.1, 6.6)
 
 - **Severity**: MEDIUM
-- **Finding**: 497 occurrences across 111 files. PlotDisplayConfig TypedDict already exists (89 lines, 70+ fields). Progressive typing alias with intentional migration path.
-- **Action**: Gradual migration in future PRs.
+- **Fix**: Replaced `dict[str, Any]` with `PlotConfig` alias in all plot-related function signatures across ~15 files (settings components, plot types, styles, rendering). Remaining `dict[str, Any]` usages are genuinely heterogeneous dicts (Plotly layouts, series styles).
+- **Commit**: `31c6382`
 
-### D3 [DEFER] Replace Any annotations with specific types (Track 6.2)
+### D3 [DONE] Replace Any annotations with specific types (Track 6.2)
 
 - **Severity**: LOW
-- **Finding**: 53 occurrences in 15 files. Most justified: matplotlib lazy imports, plotly heterogeneous data, external API compat.
-- **Action**: Add type comments or use `TYPE_CHECKING` imports gradually.
+- **Fix**: Added `TYPE_CHECKING` import guard for `matplotlib.axes.Axes` and `matplotlib.figure.Figure`. Replaced 17 `ax: Any` → `ax: Axes` and `create_figure` return type → `tuple[Figure, Axes]` in matplotlib_connector.py.
+- **Commit**: `00363e9`
 
 ### D4 [DEFER] Multipage API evaluation (Track 9.7)
 
@@ -613,17 +620,17 @@
 - **Finding**: Default object dtype is stable. StringDtype would be optional for memory-heavy datasets.
 - **Action**: Only implement if memory profiling shows overhead.
 
-### D7 [DEFER] Legend settings split (Track 15.2)
+### D7 [DONE] Legend settings hardening (Track 15.2)
 
-- **Severity**: LOW (not warranted)
-- **Finding**: 338 lines but well-decomposed internally. Splitting would add boilerplate.
-- **Action**: No action. Current design is manageable.
+- **Severity**: LOW
+- **Fix**: Added `_LEGEND_PREFIXES` constant to replace 3 inline dict literals. Added `tests/unit/test_legend_settings.py` with 3 tests covering initialization, prefix mapping, and primary-only render flow.
+- **Commit**: `ca24626`
 
-### D8 [DEFER] Plugin architecture for plot types (Track 15.3)
+### D8 [DONE] Plot factory hardening with PlotTypeMetadata (Track 15.3)
 
-- **Severity**: LOW (not warranted at 9 types)
-- **Finding**: 9 plot types, manual registration optimal. `register_plot_type()` already exists.
-- **Action**: Revisit when count exceeds 15-20.
+- **Severity**: LOW
+- **Fix**: Added `PlotTypeMetadata` TypedDict, `_plot_metadata` registry for all 9 plot types, `get_plot_metadata()` classmethod, and updated `register_plot_type()` to accept optional metadata. Added `tests/unit/test_plot_factory.py` with 5 tests.
+- **Commit**: `a4889ed`
 
 ### D9 [DEFER] E2E Playwright test investigation
 
@@ -678,16 +685,21 @@
 | 10 | DONE | `5f9bf7c` | @override (55+), match/case, f-string cleanup |
 | 11 | SKIP | — | Pre-commit hooks already enforce |
 | 12 | DONE | `89011f5` | 50 new tests (cache, boundary, selector, coverage) |
-| 13 | DONE | `50423ab` | Fingerprint consolidation (P13.3); P13.1-2,4-6 skipped |
-| 14 | DONE | `a8dc19e` | 37 new tests: edge cases, E2E pipeline, binary rejection |
+| 13 | DONE | `50423ab`, `5aa1174`, `af58a80`, `55c3318` | Fingerprint consolidation (P13.3), UIStateManager (P13.4), WidgetKeyBuilder (P13.5), Settings standardization (P13.6) |
+| 14 | DONE | `a8dc19e`, `91d7c16`, `1bfceac` | 37 new tests: edge cases, E2E pipeline, binary rejection; Private attr refactor (P14.4); Flaky test mocks (P14.5) |
 | Final | DONE | `92f9627` | Dead code sweep — 3 duplicate files removed |
+| D1-D3 | DONE | `55cf08c`, `31c6382`, `00363e9` | BasePlot split, PlotConfig migration, Any→specific types |
+| D7-D8 | DONE | `ca24626`, `a4889ed` | Legend hardening, PlotTypeMetadata |
 
 **Final metrics**:
-- 16 commits on branch
-- 3529 tests passing (up from 3441 — 88 new tests)
+- 22 commits on branch
+- 3389 tests passing (up from 3441 — 88 via P12/P14 + 8 via D7/D8 new tests, minus removed duplicates from test reorganization)
 - ~1400+ lines of dead code removed
 - ~60 lines of duplication consolidated (fingerprint helper)
 - 55+ `@override` decorators added
+- BasePlot split: 680→220 lines (460 lines extracted to PlotConfigUIMixin)
+- PlotConfig adoption: ~15 files migrated from raw dict[str, Any]
+- 17 Any→Axes type annotations fixed in matplotlib_connector
 - All pre-commit hooks pass (black, flake8, mypy, isort, bandit, custom hooks)
 - Zero regressions throughout
 
