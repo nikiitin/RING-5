@@ -201,3 +201,23 @@ Each document should include:
 | `core/state-management.md` | 560 | Written |
 | `core/visualization-configs.md` | 631 | Written |
 | **Phase 3 total** | **3,668** | **Complete** |
+
+### Phase 4: Visualization -- COMPLETE (2026-03-03)
+
+| File | Lines | Status |
+|------|-------|--------|
+| `visualization/plotting-system.md` | 490 | Written |
+| `visualization/rendering-engines.md` | 589 | Written |
+| `visualization/shaper-pipeline.md` | 505 | Written |
+| `visualization/settings-system.md` | 517 | Written |
+| `visualization/export-presets.md` | 357 | Written |
+| **Phase 4 total** | **2,458** | **Complete** |
+
+### Phase 5: Parsing -- COMPLETE (2026-03-03)
+
+| File | Lines | Status |
+|------|-------|--------|
+| `parsing/parsing-architecture.md` | 379 | Written |
+| `parsing/gem5-deep-dive.md` | 559 | Written |
+| `parsing/adding-a-new-parser.md` | 437 | Written |
+| **Phase 5 total** | **1,375** | **Complete** |
