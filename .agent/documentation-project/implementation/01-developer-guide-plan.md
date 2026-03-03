@@ -182,3 +182,22 @@ Each document should include:
 | `architecture/design-patterns.md` | 792 | Written |
 | `architecture/dependency-injection.md` | 196 | Written |
 | **Phase 1 total** | **1,766** | **Complete** |
+
+### Phase 2: API Reference -- COMPLETE (2026-03-03)
+
+| File | Lines | Status |
+|------|-------|--------|
+| `api-reference/application-api.md` | 915 | Written |
+| `api-reference/services-api.md` | 286 | Written |
+| `api-reference/state-manager.md` | 336 | Written |
+| **Phase 2 total** | **1,537** | **Complete** |
+
+### Phase 3: Core -- COMPLETE (2026-03-03)
+
+| File | Lines | Status |
+|------|-------|--------|
+| `core/models-reference.md` | 1,250 | Written |
+| `core/services-reference.md` | 1,227 | Written |
+| `core/state-management.md` | 560 | Written |
+| `core/visualization-configs.md` | 631 | Written |
+| **Phase 3 total** | **3,668** | **Complete** |
