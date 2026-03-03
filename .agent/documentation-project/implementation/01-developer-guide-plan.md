@@ -221,3 +221,50 @@ Each document should include:
 | `parsing/gem5-deep-dive.md` | 559 | Written |
 | `parsing/adding-a-new-parser.md` | 437 | Written |
 | **Phase 5 total** | **1,375** | **Complete** |
+
+### Phase 6: Web -- COMPLETE (2026-03-03)
+
+| File | Lines | Status |
+|------|-------|--------|
+| `web/pages-navigation.md` | 359 | Written |
+| `web/components-catalog.md` | 428 | Written |
+| `web/controllers.md` | 290 | Written |
+| `web/portfolio-system.md` | 343 | Written |
+| **Phase 6 total** | **1,420** | **Complete** |
+
+### Phase 7: Extension Guides -- COMPLETE (2026-03-03)
+
+| File | Lines | Status |
+|------|-------|--------|
+| `extension-guides/adding-a-plot-type.md` | 462 | Written |
+| `extension-guides/adding-a-shaper.md` | 424 | Written |
+| `extension-guides/adding-a-renderer.md` | 289 | Written |
+| `extension-guides/adding-a-data-manager.md` | 317 | Written |
+| `extension-guides/adding-a-settings-panel.md` | 283 | Written |
+| **Phase 7 total** | **1,775** | **Complete** |
+
+### Phase 8: Development -- COMPLETE (2026-03-03)
+
+| File | Lines | Status |
+|------|-------|--------|
+| `development/setup.md` | 223 | Written |
+| `development/testing.md` | 501 | Written |
+| `development/ci-cd.md` | 240 | Written |
+| `development/code-quality.md` | 243 | Written |
+| **Phase 8 total** | **1,207** | **Complete** |
+
+---
+
+## 7. Final Summary
+
+| Phase | Files | Lines | Status |
+|-------|-------|-------|--------|
+| 1. Architecture | 5 | 1,766 | Complete |
+| 2. API Reference | 3 | 1,537 | Complete |
+| 3. Core | 4 | 3,668 | Complete |
+| 4. Visualization | 5 | 2,458 | Complete |
+| 5. Parsing | 3 | 1,375 | Complete |
+| 6. Web | 4 | 1,420 | Complete |
+| 7. Extension Guides | 5 | 1,775 | Complete |
+| 8. Development | 4 | 1,207 | Complete |
+| **Total** | **33** | **15,206** | **ALL COMPLETE** |
