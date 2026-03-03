@@ -25,6 +25,28 @@ if TYPE_CHECKING:
     from src.core.models.visualization.axis_config import AxisConfig
 
 
+def _apply_grid_alpha(hex_color: str, alpha: float) -> str:
+    """Convert a hex color + alpha to an ``rgba()`` string for Plotly.
+
+    Plotly does not support a separate grid alpha property; transparency
+    must be baked into the color value using CSS ``rgba()`` notation.
+
+    When *alpha* is 1.0, the original hex color is returned unchanged.
+    """
+    if alpha >= 1.0:
+        return hex_color
+    hex_clean = hex_color.lstrip("#")
+    if len(hex_clean) == 3:
+        hex_clean = "".join(c * 2 for c in hex_clean)
+    try:
+        r = int(hex_clean[0:2], 16)
+        g = int(hex_clean[2:4], 16)
+        b = int(hex_clean[4:6], 16)
+    except (ValueError, IndexError):
+        return hex_color
+    return f"rgba({r},{g},{b},{alpha:.2f})"
+
+
 def _fig_traces(fig: go.Figure) -> tuple[Any, ...]:
     """Return figure traces with correct typing.
 
@@ -156,9 +178,9 @@ class FigureSpecToPlotly:
 
         update["showgrid"] = x_axis.show_grid
         if x_axis.show_grid:
-            update["gridcolor"] = x_axis.grid_color
+            update["gridcolor"] = _apply_grid_alpha(x_axis.grid_color, x_axis.grid_alpha)
             update["gridwidth"] = x_axis.grid_width
-            update["griddash"] = x_axis.tick_dash
+            update["griddash"] = x_axis.grid_dash
 
         update["showticklabels"] = x_axis.show_tick_labels
         update["ticks"] = "outside" if x_axis.show_ticks else ""
@@ -222,9 +244,9 @@ class FigureSpecToPlotly:
 
         update["showgrid"] = y_axis.show_grid
         if y_axis.show_grid:
-            update["gridcolor"] = y_axis.grid_color
+            update["gridcolor"] = _apply_grid_alpha(y_axis.grid_color, y_axis.grid_alpha)
             update["gridwidth"] = y_axis.grid_width
-            update["griddash"] = y_axis.tick_dash
+            update["griddash"] = y_axis.grid_dash
 
         update["showticklabels"] = y_axis.show_tick_labels
         update["ticks"] = "outside" if y_axis.show_ticks else ""
@@ -270,7 +292,9 @@ class FigureSpecToPlotly:
 
         update["showgrid"] = y2.show_grid
         if y2.show_grid:
-            update["griddash"] = y2.tick_dash
+            update["gridcolor"] = _apply_grid_alpha(y2.grid_color, y2.grid_alpha)
+            update["gridwidth"] = y2.grid_width
+            update["griddash"] = y2.grid_dash
 
         update["showticklabels"] = y2.show_tick_labels
         update["ticks"] = "outside" if y2.show_ticks else ""

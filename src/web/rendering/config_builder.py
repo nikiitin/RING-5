@@ -253,6 +253,8 @@ class PresetSpecBuilder:
             margin=preset.get("xaxis_margin", 0.02),
             show_ticks=preset.get("show_xtick_marks", True),
             tick_dash=preset.get("xtick_dash", "solid"),
+            grid_dash=preset.get("x_grid_dash", "solid"),
+            grid_alpha=float(preset.get("x_grid_alpha", 1.0)),
         )
         y_axis = AxisConfig(
             label_pad=preset.get("ylabel_pad", 10.0),
@@ -260,6 +262,8 @@ class PresetSpecBuilder:
             tick_pad=preset.get("ytick_pad", 5.0),
             show_ticks=preset.get("show_ytick_marks", True),
             tick_dash=preset.get("ytick_dash", "solid"),
+            grid_dash=preset.get("y_grid_dash", "solid"),
+            grid_alpha=float(preset.get("y_grid_alpha", 1.0)),
         )
 
         axes = AxesConfig(
@@ -439,7 +443,10 @@ class ConfigSpecBuilder:
             label_aliases=config.get("xaxis_labels"),
             automargin=config.get("automargin", True),
             show_grid=config.get("show_x_grid", True),
-            grid_color=config.get("grid_color", "#E5E5E5"),
+            grid_color=config.get("x_grid_color", config.get("grid_color", "#E5E5E5")),
+            grid_width=float(config.get("x_grid_width", 1.0)),
+            grid_dash=config.get("x_grid_dash", "solid"),
+            grid_alpha=float(config.get("x_grid_alpha", 1.0)),
             show_ticks=config.get("show_xtick_marks", True),
             show_tick_labels=_show_x_tick_labels,
             tick_dash=config.get("xtick_dash", "solid"),
@@ -457,7 +464,10 @@ class ConfigSpecBuilder:
             dtick=config.get("yaxis_dtick"),
             automargin=config.get("automargin", True),
             show_grid=config.get("show_y_grid", True),
-            grid_color=config.get("grid_color", "#E5E5E5"),
+            grid_color=config.get("y_grid_color", config.get("grid_color", "#E5E5E5")),
+            grid_width=float(config.get("y_grid_width", 1.0)),
+            grid_dash=config.get("y_grid_dash", "solid"),
+            grid_alpha=float(config.get("y_grid_alpha", 1.0)),
             label_standoff=config.get("yaxis_title_standoff", -1),
             title_vshift=float(config.get("yaxis_title_vshift", 0.0)),
             show_ticks=config.get("show_ytick_marks", True),

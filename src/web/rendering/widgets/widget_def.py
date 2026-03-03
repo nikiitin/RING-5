@@ -463,13 +463,25 @@ BACKGROUNDS = WidgetSection(
 
 AXIS_COLORS = WidgetSection(
     id="axis_colors",
-    label="Axis Colors",
+    label="Axis & Grid Colors",
     widgets=(
         ColorWidgetDef(
             key="grid_color",
-            label="Grid Color",
+            label="Grid Color (Shared Fallback)",
+            default="#e5e5e5",
+            help_text="Default grid color when per-axis colors are not set.",
+        ),
+        ColorWidgetDef(
+            key="x_grid_color",
+            label="X Grid Color",
             default="#e5e5e5",
             spec_path="axes.xaxis.grid_color",
+        ),
+        ColorWidgetDef(
+            key="y_grid_color",
+            label="Y Grid Color",
+            default="#e5e5e5",
+            spec_path="axes.yaxis.grid_color",
         ),
         ColorWidgetDef(
             key="axis_color",

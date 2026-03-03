@@ -56,6 +56,8 @@ class AxisConfig:
     show_grid: bool = True
     grid_color: str = "#E5E5E5"
     grid_width: float = 1.0
+    grid_dash: str = "solid"  # solid, dot, dash, longdash, dashdot, longdashdot
+    grid_alpha: float = 1.0  # 0.0 = fully transparent, 1.0 = fully opaque
     axis_color: str = "#444"
     axis_line_color: str = ""  # empty = inherit from axis_color
     axis_line_width: float = 1.0

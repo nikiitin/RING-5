@@ -346,7 +346,8 @@ class FigureSpecToMatplotlib:
                 True,
                 color=x_axis.grid_color,
                 linewidth=x_axis.grid_width,
-                linestyle=FigureSpecToMatplotlib._map_dash_style(x_axis.tick_dash),
+                linestyle=FigureSpecToMatplotlib._map_dash_style(x_axis.grid_dash),
+                alpha=x_axis.grid_alpha,
             )
         else:
             ax.xaxis.grid(False)
@@ -357,7 +358,8 @@ class FigureSpecToMatplotlib:
                 True,
                 color=y_axis.grid_color,
                 linewidth=y_axis.grid_width,
-                linestyle=FigureSpecToMatplotlib._map_dash_style(y_axis.tick_dash),
+                linestyle=FigureSpecToMatplotlib._map_dash_style(y_axis.grid_dash),
+                alpha=y_axis.grid_alpha,
             )
         else:
             ax.yaxis.grid(False)
@@ -434,6 +436,10 @@ class FigureSpecToMatplotlib:
                 if legend.title_font_size > 0:
                     kwargs["title_fontsize"] = legend.title_font_size
 
+            # Apply font color to all legend types
+            if legend.font_color:
+                kwargs["labelcolor"] = legend.font_color
+
             # Primary legend on the main axes
             if legend.role == "primary":
                 handles, labels = ax.get_legend_handles_labels()
@@ -448,18 +454,27 @@ class FigureSpecToMatplotlib:
                     if title_text:
                         title_text.set_color(legend.title_font_color)
             elif legend.role == "secondary":
-                # Secondary legend on the twin axis
-                for child_ax in ax.figure.get_axes():
-                    if child_ax is not ax:
-                        leg = child_ax.legend(**kwargs)
-                        if leg and legend.bold:
-                            for text in leg.get_texts():
-                                text.set_fontweight("bold")
-                        if leg and legend.title_font_color:
-                            title_text = leg.get_title()
-                            if title_text:
-                                title_text.set_color(legend.title_font_color)
-                        break
+                # Secondary legend on the twin axis — use the stored
+                # reference first, fall back to _twinned_axes detection.
+                twin_ax: Axes | None = getattr(ax, "_ring5_twin", None)
+                if twin_ax is None:
+                    for child_ax in ax.figure.get_axes():
+                        if child_ax is not ax and hasattr(child_ax, "_twinned_axes"):
+                            twin_ax = child_ax
+                            break
+                if twin_ax is None:
+                    continue
+                handles, labels = twin_ax.get_legend_handles_labels()
+                if not labels:
+                    continue
+                leg = twin_ax.legend(**kwargs)
+                if leg and legend.bold:
+                    for text in leg.get_texts():
+                        text.set_fontweight("bold")
+                if leg and legend.title_font_color:
+                    title_text = leg.get_title()
+                    if title_text:
+                        title_text.set_color(legend.title_font_color)
             elif legend.role == "tertiary":
                 # Boxed legend — rendered via _apply_annotations from
                 # enriched FigureConfig annotations.  If the annotations
@@ -636,6 +651,8 @@ class FigureSpecToMatplotlib:
             raw_text = ann.text.replace("<br>", "\n").replace("<br/>", "\n")
             # Strip any remaining HTML tags
             raw_text = re.sub(r"<[^>]+>", "", raw_text)
+            # Convert HTML entities to plain characters
+            raw_text = raw_text.replace("&nbsp;", " ").replace("&amp;", "&")
             text = FigureSpecToMatplotlib._escape_latex(raw_text)
 
             # Determine coordinate transform

@@ -169,6 +169,54 @@ class AxesSettingsComponent:
             "show_x_grid",
             self.plot_id,
         )
+        if config["show_x_grid"]:
+            st.markdown("**Grid Styling**")
+            _xgc1, _xgc2 = st.columns(2)
+            with _xgc1:
+                config["x_grid_color"] = color_picker(
+                    "X Grid Color",
+                    saved_config,
+                    "x_grid_color",
+                    self.plot_id,
+                    widget_key=f"x_grid_color_{self.plot_id}",
+                    default="#e5e5e5",
+                )
+            with _xgc2:
+                config["x_grid_width"] = numeric_input(
+                    "X Grid Width (px)",
+                    saved_config,
+                    "x_grid_width",
+                    self.plot_id,
+                    widget_key=f"x_grid_width_{self.plot_id}",
+                    default=1.0,
+                    min_value=0.1,
+                    max_value=10.0,
+                    step=0.5,
+                )
+            _xgc3, _xgc4 = st.columns(2)
+            with _xgc3:
+                config["x_grid_dash"] = select_option(
+                    "X Grid Dash Style",
+                    _DASH_OPTIONS,
+                    saved_config,
+                    "x_grid_dash",
+                    self.plot_id,
+                    widget_key=f"x_grid_dash_{self.plot_id}",
+                    default="solid",
+                )
+            with _xgc4:
+                config["x_grid_alpha"] = slider(
+                    "X Grid Opacity",
+                    saved_config,
+                    "x_grid_alpha",
+                    self.plot_id,
+                    widget_key=f"x_grid_alpha_{self.plot_id}",
+                    default=1.0,
+                    min_value=0.0,
+                    max_value=1.0,
+                    step=0.05,
+                    help="0 = fully transparent, 1 = fully opaque",
+                )
         config["xaxis_tickangle"] = slider(
             "X-axis Label Rotation",
             saved_config,
@@ -206,7 +254,7 @@ class AxesSettingsComponent:
         xtick_dash: str = "solid"
         if show_xtick_marks:
             xtick_dash = select_option(
-                "X-Axis Grid Dash Style",
+                "X-Axis Tick Dash Style",
                 _DASH_OPTIONS,
                 saved_config,
                 "xtick_dash",
@@ -334,6 +382,58 @@ class AxesSettingsComponent:
             widget_key=f"{prefix}show_y_grid_{self.plot_id}",
             default=True if not prefix else False,
         )
+        if config[grid_key]:
+            st.markdown("**Grid Styling**")
+            _ygrid_color_key = f"{prefix}y_grid_color" if prefix else "y_grid_color"
+            _ygrid_width_key = f"{prefix}y_grid_width" if prefix else "y_grid_width"
+            _ygrid_dash_key = f"{prefix}y_grid_dash" if prefix else "y_grid_dash"
+            _ygrid_alpha_key = f"{prefix}y_grid_alpha" if prefix else "y_grid_alpha"
+            _ygc1, _ygc2 = st.columns(2)
+            with _ygc1:
+                config[_ygrid_color_key] = color_picker(
+                    f"{label} Grid Color",
+                    saved_config,
+                    _ygrid_color_key,
+                    self.plot_id,
+                    widget_key=f"{prefix}y_grid_color_{self.plot_id}",
+                    default="#e5e5e5",
+                )
+            with _ygc2:
+                config[_ygrid_width_key] = numeric_input(
+                    f"{label} Grid Width (px)",
+                    saved_config,
+                    _ygrid_width_key,
+                    self.plot_id,
+                    widget_key=f"{prefix}y_grid_width_{self.plot_id}",
+                    default=1.0,
+                    min_value=0.1,
+                    max_value=10.0,
+                    step=0.5,
+                )
+            _ygc3, _ygc4 = st.columns(2)
+            with _ygc3:
+                config[_ygrid_dash_key] = select_option(
+                    f"{label} Grid Dash Style",
+                    _DASH_OPTIONS,
+                    saved_config,
+                    _ygrid_dash_key,
+                    self.plot_id,
+                    widget_key=f"{prefix}y_grid_dash_{self.plot_id}",
+                    default="solid",
+                )
+            with _ygc4:
+                config[_ygrid_alpha_key] = slider(
+                    f"{label} Grid Opacity",
+                    saved_config,
+                    _ygrid_alpha_key,
+                    self.plot_id,
+                    widget_key=f"{prefix}y_grid_alpha_{self.plot_id}",
+                    default=1.0,
+                    min_value=0.0,
+                    max_value=1.0,
+                    step=0.05,
+                    help="0 = fully transparent, 1 = fully opaque",
+                )
 
         config["yaxis_tickangle"] = slider(
             "Y-axis Label Rotation",
@@ -382,7 +482,7 @@ class AxesSettingsComponent:
         ytick_dash: str = "solid"
         if show_ytick_marks:
             ytick_dash = select_option(
-                "Y-Axis Grid Dash Style",
+                "Y-Axis Tick Dash Style",
                 _DASH_OPTIONS,
                 saved_config,
                 "ytick_dash",
