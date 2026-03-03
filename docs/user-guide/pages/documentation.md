@@ -13,20 +13,26 @@ navigation.
 
 ## What Is Available
 
-The Documentation page is organized into three sections.
+The Documentation page is organized into six sections.
 
-**WebApp Guide** -- Step-by-step instructions for each page in the RING-5 web
-application. This includes a Quick Start guide, pages for Data Source, Manage
-Plots, Data Managers, Plot Settings, Export and Download, and Portfolios, as
-well as a First Analysis walkthrough.
+**Getting Started** -- Installation instructions, key concepts, a first-steps
+walkthrough, and the FAQ.
 
-**API Reference** -- Documentation for programmatic access to RING-5
-capabilities. This covers the Backend Facade (ApplicationAPI), the Plotting
-API, the Parsing API, and the Shaper API.
+**Page Guides** -- Detailed walkthroughs for every page in the application:
+Data Source, Data Managers, Manage Plots, and Portfolio.
 
-**Developer Guides** -- Resources for contributors and advanced users. This
-includes the system architecture overview, a testing guide, development setup
-instructions, and a guide for adding new plot types.
+**Features Reference** -- In-depth reference for plot types, shapers, settings
+pills, export presets, the dual rendering engine, and the portfolio system.
+
+**Tutorials** -- Hands-on guides for common workflows: loading data, creating
+bar charts, normalizing metrics, publication-ready export, multi-seed
+comparison, and custom styling.
+
+**Developer Guide** -- Architecture, API reference, extension guides, and
+development workflow for contributors.
+
+**Quick Reference** -- Supported input and export formats, and keyboard
+shortcuts.
 
 Each entry on the page shows a title, a brief description, and the path to the
 corresponding documentation file. Entries for documentation that has not yet
@@ -36,7 +42,7 @@ been written are marked with "(coming soon)."
 ## Accessing Documentation
 
 1. Click **Documentation** in the sidebar navigation.
-2. You should see the Documentation hub with three sections displayed as
+2. You should see the Documentation hub with six sections displayed as
    two-column grids of link cards.
 3. Find the topic you are interested in and note the file path shown on the
    card.

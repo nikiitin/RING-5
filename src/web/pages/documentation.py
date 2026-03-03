@@ -41,136 +41,258 @@ def show_documentation_page() -> None:
     st.markdown("## 📚 Documentation")
     st.markdown(
         "Welcome to the RING-5 documentation. Browse the sections below "
-        "to find guides for the web application, the programmatic API, "
-        "and developer resources."
+        "to find guides for the web application, tutorials, feature "
+        "references, and developer resources."
     )
 
     st.markdown("---")
 
-    # ── WebApp Guide ─────────────────────────────────────────────
-    st.markdown("### 🌐 WebApp Guide")
-    st.markdown("Step-by-step guides for every page in the RING-5 web application.")
+    # ── User Guide — Getting Started ─────────────────────────────
+    st.markdown("### 🚀 Getting Started")
+    st.markdown(
+        "New to RING-5? Start here to install, learn key concepts, "
+        "and create your first analysis."
+    )
 
     col1, col2 = st.columns(2)
     with col1:
         _link_card(
-            "🚀",
-            "Quick Start",
-            "Get up and running in under 5 minutes.",
-            "webapp/Quick-Start.md",
+            "📦",
+            "Installation",
+            "Python prerequisites, virtual environment setup, " "and launching the app.",
+            "user-guide/getting-started/installation.md",
         )
         _link_card(
-            "📂",
-            "Data Source",
-            "Load simulation data — parse gem5 stats, upload CSV, " "or reload recent files.",
-            "webapp/pages/Data-Source.md",
-        )
-        _link_card(
-            "📊",
-            "Manage Plots",
-            "Create plots, build shaper pipelines, and configure " "rendering engines.",
-            "webapp/pages/Manage-Plots.md",
+            "💡",
+            "Key Concepts",
+            "Variables, entries, data managers, shapers, settings " "pills, and export presets.",
+            "user-guide/getting-started/concepts.md",
         )
     with col2:
         _link_card(
             "🎯",
-            "First Analysis",
-            "End-to-end walkthrough from raw stats to a published figure.",
-            "webapp/First-Analysis.md",
+            "First Steps",
+            "Load data, create a bar chart, customize it, and " "export — in 7 steps.",
+            "user-guide/getting-started/first-steps.md",
         )
+        _link_card(
+            "❓",
+            "FAQ",
+            "Answers to common questions about data loading, " "plotting, and exports.",
+            "user-guide/reference/faq.md",
+        )
+
+    st.markdown("---")
+
+    # ── User Guide — Page Guides ─────────────────────────────────
+    st.markdown("### 🌐 Page Guides")
+    st.markdown("Detailed walkthrough of every page in the RING-5 web application.")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        _link_card(
+            "📂",
+            "Data Source",
+            "Load simulation data — parse gem5 stats, upload CSV, " "or reload recent files.",
+            "user-guide/pages/data-source.md",
+        )
+        _link_card(
+            "📊",
+            "Manage Plots",
+            "Create plots, build shaper pipelines, configure " "settings, and export figures.",
+            "user-guide/pages/manage-plots.md",
+        )
+    with col2:
         _link_card(
             "🔧",
             "Data Managers",
-            "Clean and transform data — preprocessing, outlier removal, " "seed reduction, mixing.",
-            "webapp/pages/Data-Managers.md",
+            "Clean and transform data — preprocessing, outlier " "removal, seed reduction, mixing.",
+            "user-guide/pages/data-managers.md",
+        )
+        _link_card(
+            "💾",
+            "Portfolio",
+            "Save and reload entire analysis sessions as " "portable JSON snapshots.",
+            "user-guide/pages/portfolio.md",
+        )
+
+    st.markdown("---")
+
+    # ── User Guide — Features ────────────────────────────────────
+    st.markdown("### 🔍 Features Reference")
+    st.markdown(
+        "In-depth reference for every feature — plot types, shapers, "
+        "settings, export presets, and rendering engines."
+    )
+
+    col1, col2 = st.columns(2)
+    with col1:
+        _link_card(
+            "📈",
+            "Plot Types",
+            "All 9 plot types with column requirements, use cases, " "and configuration options.",
+            "user-guide/features/plot-types.md",
         )
         _link_card(
             "🎨",
-            "Plot Settings",
-            "Reference for every settings pill — layout, typography, "
-            "legends, axes, colors, and more.",
-            "webapp/pages/Plot-Settings.md",
+            "Settings Pills",
+            "11 settings pills — layout, typography, axes, legend, "
+            "colors, data labels, and more.",
+            "user-guide/features/settings.md",
         )
-
-    col1, col2 = st.columns(2)
-    with col1:
         _link_card(
-            "📥",
-            "Export & Download",
-            "Export figures as PNG, SVG, PDF, HTML, or PGF for LaTeX.",
-            "webapp/pages/Export-Download.md",
+            "⚡",
+            "Dual Engine",
+            "When to use Plotly (interactive) vs Matplotlib " "(publication-quality).",
+            "user-guide/features/dual-engine.md",
         )
     with col2:
-        _link_card(
-            "💾",
-            "Portfolios",
-            "Save and reload entire analysis sessions.",
-            "webapp/Portfolios.md",
-        )
-
-    st.markdown("---")
-
-    # ── API Reference ────────────────────────────────────────────
-    st.markdown("### 🔌 API Reference")
-    st.markdown("Programmatic access to scanning, parsing, shaping, and plotting.")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        _link_card(
-            "🏗️",
-            "Backend Facade",
-            "ApplicationAPI — the single entry point to all operations.",
-            "api/Backend-Facade.md",
-        )
-        _link_card(
-            "📈",
-            "Plotting API",
-            "FigureConfig, rendering connectors, and engine-agnostic " "visualization.",
-            "api/Plotting-API.md",
-        )
-    with col2:
-        _link_card(
-            "⚙️",
-            "Parsing API",
-            "SimulationParser protocol, SimulatorRegistry, and gem5 " "backend.",
-            "api/Parsing-API.md",
-        )
         _link_card(
             "🔀",
-            "Shaper API",
-            "Data transformation pipeline — ShaperFactory and available " "shapers.",
-            "api/Shaper-API.md",
+            "Shapers",
+            "10 shaper types for filtering, sorting, normalizing, "
+            "pivoting, and transforming data.",
+            "user-guide/features/shapers.md",
+        )
+        _link_card(
+            "📥",
+            "Export Presets",
+            "13 venue-specific presets (ISCA, MICRO, ASPLOS, …) "
+            "with dimensions and format details.",
+            "user-guide/features/export-presets.md",
+        )
+        _link_card(
+            "🗂️",
+            "Portfolios",
+            "How portfolios capture and restore complete workspace " "state across sessions.",
+            "user-guide/features/portfolios.md",
         )
 
     st.markdown("---")
 
-    # ── Developer Guides ─────────────────────────────────────────
-    st.markdown("### 🛠️ Developer Guides")
+    # ── User Guide — Tutorials ───────────────────────────────────
+    st.markdown("### 📝 Tutorials")
+    st.markdown("Hands-on, step-by-step guides that walk you through " "common analysis workflows.")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        _link_card(
+            "📂",
+            "Load & Explore Data",
+            "Import CSV or parse gem5 stats, then inspect and " "clean your dataset.",
+            "user-guide/tutorials/load-and-explore.md",
+        )
+        _link_card(
+            "📐",
+            "Normalize Data",
+            "Use the shaper pipeline to normalize metrics against " "a baseline configuration.",
+            "user-guide/tutorials/normalize-data.md",
+        )
+        _link_card(
+            "🔬",
+            "Compare Simulations",
+            "Multi-seed analysis with grouped bars and error bars.",
+            "user-guide/tutorials/compare-simulations.md",
+        )
+    with col2:
+        _link_card(
+            "📊",
+            "Create a Bar Chart",
+            "Build a grouped bar chart comparing performance " "across benchmarks.",
+            "user-guide/tutorials/create-bar-chart.md",
+        )
+        _link_card(
+            "📄",
+            "Publication-Ready Export",
+            "Apply an ISCA preset and export PDF/PGF figures " "for LaTeX papers.",
+            "user-guide/tutorials/publication-ready.md",
+        )
+        _link_card(
+            "🎨",
+            "Custom Styling",
+            "Fine-tune typography, colors, legends, axes, " "and reference lines.",
+            "user-guide/tutorials/custom-styling.md",
+        )
+
+    st.markdown("---")
+
+    # ── Developer Guide ──────────────────────────────────────────
+    st.markdown("### 🛠️ Developer Guide")
+    st.markdown(
+        "Architecture, API reference, extension guides, and "
+        "development workflow for contributors."
+    )
 
     col1, col2 = st.columns(2)
     with col1:
         _link_card(
             "🏛️",
-            "Architecture",
+            "Architecture Overview",
             "3-layer architecture, design patterns, and module " "boundaries.",
-            "developer/Architecture.md",
+            "developer-guide/architecture/overview.md",
+        )
+        _link_card(
+            "🏗️",
+            "Application API",
+            "ApplicationAPI — the single entry point to all " "backend operations.",
+            "developer-guide/api-reference/application-api.md",
+        )
+        _link_card(
+            "🔌",
+            "Extension Guides",
+            "How to add new plot types, shapers, data managers, " "renderers, and settings panels.",
+            "developer-guide/extension-guides/adding-a-plot-type.md",
+        )
+        _link_card(
+            "📈",
+            "Plotting System",
+            "FigureConfig, PlotFactory, rendering connectors, "
+            "and engine-agnostic visualization.",
+            "developer-guide/visualization/plotting-system.md",
+        )
+    with col2:
+        _link_card(
+            "🧱",
+            "Layer Boundaries",
+            "Import rules, dependency flow, and the " "Core ← Parsing / Web → Core contract.",
+            "developer-guide/architecture/layer-boundaries.md",
+        )
+        _link_card(
+            "⚙️",
+            "Parsing System",
+            "SimulationParser protocol, SimulatorRegistry, " "and the gem5 backend.",
+            "developer-guide/parsing/parsing-architecture.md",
         )
         _link_card(
             "🧪",
             "Testing Guide",
-            "Test organization, coverage requirements, and how to " "write tests.",
-            "developer/Testing-Guide.md",
+            "Test organization, coverage requirements, and " "how to write tests.",
+            "developer-guide/development/testing.md",
         )
-    with col2:
         _link_card(
             "💻",
             "Development Setup",
-            "Environment setup, dependencies, and development workflow.",
-            "developer/Development-Setup.md",
+            "Environment setup, dependencies, and development " "workflow.",
+            "developer-guide/development/setup.md",
         )
+
+    st.markdown("---")
+
+    # ── Quick Reference ──────────────────────────────────────────
+    st.markdown("### 📋 Quick Reference")
+
+    col1, col2 = st.columns(2)
+    with col1:
         _link_card(
-            "📊",
-            "Adding Plot Types",
-            "How to register new plot types with the PlotFactory.",
-            "developer/Adding-Plot-Types.md",
+            "📁",
+            "Supported Formats",
+            "Input formats (CSV, gem5 stats) and export formats " "(PNG, SVG, PDF, HTML, PGF).",
+            "user-guide/reference/supported-formats.md",
+        )
+    with col2:
+        _link_card(
+            "⌨️",
+            "Keyboard Shortcuts",
+            "Streamlit and Plotly keyboard shortcuts for " "faster navigation.",
+            "user-guide/reference/keyboard-shortcuts.md",
         )
