@@ -25,34 +25,33 @@ Key design decisions:
 
 **File:** `src/core/models/visualization/figure_config.py`
 
-`FigureConfig` is a mutable `@dataclass` that owns every rendering parameter. Its `__post_init__` lazily initializes `typography` and `axes` to avoid circular imports. It contains approximately 160+ individual settings across 12 nested dataclass types.
+`FigureConfig` is a mutable `@dataclass` that owns every rendering parameter. Its `__post_init__` lazily initializes `typography` and `axes` to avoid circular imports. The full tree contains approximately 160+ individual settings across 12 nested dataclass types.
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `dimensions` | `DimensionConfig` | factory | Physical size, margins, bar gaps |
-| `typography` | `TypographyConfig` | `None` (post-init) | Font sizes and bold flags |
-| `axes` | `AxesConfig` | `None` (post-init) | X, Y, Y2 axis settings |
-| `legends` | `list[LegendConfig]` | `[]` | 1--3 legend instances |
-| `traces` | `list[TraceConfig]` | `[]` | Data trace descriptions |
-| `annotations` | `list[AnnotationConfig]` | `[]` | Text annotations |
-| `separator` | `SeparatorConfig` | factory | Group separator lines |
-| `data_labels` | `DataLabelConfig or None` | `None` | Value annotations on traces |
-| `series_styles` | `list[SeriesStyleConfig]` | `[]` | Global per-trace styling |
-| `trace_overrides` | `dict[str, SeriesStyleConfig]` | `{}` | Named per-trace overrides |
-| `color_palette` | `list[str]` | Wong 8 hex | Active color palette |
-| `barmode` | `Literal` | `"group"` | `"group"`, `"stack"`, `"overlay"`, `"relative"` |
-| `hatching_sequence` | `list[str]` | 8 patterns | B/W bar differentiation |
-| `reference_lines` | `list[ReferenceLineConfig]` | `[]` | Horizontal/vertical baselines |
-| `hovermode` | `str` | `"x unified"` | Plotly hover behavior |
-| `enable_stripes` | `bool` | `False` | Alternating background bands |
-| `show_error_bars` | `bool` | `False` | Error bar visibility |
-| `title` | `str` | `""` | Figure title text |
-| `paper_bgcolor` / `plot_bgcolor` | `str` | `"white"` | Background colors |
-| `font_family` | `str` | `"serif"` | Global font family |
-| `latex_extra_preamble` | `str` | `""` | Extra LaTeX preamble for export |
-| `metadata` | `dict[str, str]` | `{}` | Arbitrary key-value metadata |
+| Field | Type | Default |
+|-------|------|---------|
+| `dimensions` | `DimensionConfig` | factory |
+| `typography` | `TypographyConfig` | None (post-init) |
+| `axes` | `AxesConfig` | None (post-init) |
+| `legends` | `list[LegendConfig]` | `[]` (1--3 entries) |
+| `traces` | `list[TraceConfig]` | `[]` |
+| `annotations` | `list[AnnotationConfig]` | `[]` |
+| `separator` | `SeparatorConfig` | factory |
+| `data_labels` | `DataLabelConfig or None` | `None` |
+| `series_styles` | `list[SeriesStyleConfig]` | `[]` |
+| `trace_overrides` | `dict[str, SeriesStyleConfig]` | `{}` |
+| `color_palette` | `list[str]` | Wong 8 hex |
+| `barmode` | `Literal[...]` | `"group"` |
+| `hatching_sequence` | `list[str]` | 8 patterns |
+| `reference_lines` | `list[ReferenceLineConfig]` | `[]` |
+| `hovermode` | `str` | `"x unified"` |
+| `enable_stripes` / `show_error_bars` | `bool` | `False` |
+| `title` | `str` | `""` |
+| `paper_bgcolor` / `plot_bgcolor` | `str` | `"white"` |
+| `font_family` | `str` | `"serif"` |
+| `latex_extra_preamble` | `str` | `""` |
+| `metadata` | `dict[str, str]` | `{}` |
 
-**MarginsConfig** holds `top` (40), `bottom` (80), `left` (60), `right` (30), `pad` (0) in points. **DimensionConfig** holds `width` (7.0 in), `height` (4.0 in), `dpi` (300), `margins`, `bar_width_scale` (1.0), `bargap` (0.15), `bargroupgap` (0.1). **SeparatorConfig** holds `enabled` (False), `style` ("dash"), `color` ("gray").
+**MarginsConfig** -- `top` (40), `bottom` (80), `left` (60), `right` (30), `pad` (0), all in points. **DimensionConfig** -- `width` (7.0 in), `height` (4.0 in), `dpi` (300), `margins`, `bar_width_scale` (1.0), `bargap` (0.15), `bargroupgap` (0.1). **SeparatorConfig** -- `enabled` (False), `style` ("dash"), `color` ("gray").
 
 ---
 
@@ -60,7 +59,7 @@ Key design decisions:
 
 **File:** `src/core/models/visualization/typography_config.py`
 
-Controls font sizes (in points) and bold flags for every text element. Fields set to `-1` (the `INHERIT` sentinel) resolve to their parent value during sentinel resolution. Bold flags are always explicit booleans and do not participate in sentinel resolution.
+Controls font sizes (in points) and bold flags for every text element. Fields set to `-1` (the `INHERIT` sentinel) resolve to their parent value during sentinel resolution. Bold flags are always explicit booleans and do not participate in resolution.
 
 | Field | Default | Inherits From |
 |-------|---------|---------------|
@@ -76,7 +75,7 @@ Controls font sizes (in points) and bold flags for every text element. Fields se
 | `font_size_legend2` / `legend3` | -1 | `font_size_legend` |
 | `legend3_number_fontsize` / `text_fontsize` | -1 | `font_size_legend3` |
 
-Bold flags: `bold_title`, `bold_xlabel`, `bold_ylabel`, `bold_y2label`, `bold_ticks`, `bold_annotations` (True), `bold_group_labels` (True), `bold_legend`, `bold_legend2`, `bold_legend3`.
+Bold flags: `bold_title`, `bold_xlabel`, `bold_ylabel`, `bold_y2label`, `bold_ticks` (all False), `bold_annotations` (True), `bold_group_labels` (True), `bold_legend`, `bold_legend2`, `bold_legend3` (all False).
 
 ---
 
@@ -84,11 +83,11 @@ Bold flags: `bold_title`, `bold_xlabel`, `bold_ylabel`, `bold_y2label`, `bold_ti
 
 **File:** `src/core/models/visualization/axis_config.py`
 
-`AxisConfig` describes a single axis: **Label** (`label`, `label_pad` 10pt, `label_position` 0.5, `label_standoff` -1, `title_vshift` 0.0), **Ticks** (`tick_angle`, `tick_pad` 5pt, `tick_ha`, `tick_offset`, `tick_values`, `tick_text`, `tick_font_color`, `show_ticks`, `tick_side`, `tick_dash`, `show_tick_labels`, `dtick`), **Range** (`range`, `scale` linear/log, `margin` 0.02, `automargin`), **Grid** (`show_grid`, `grid_color` #E5E5E5, `grid_width`, `axis_color` #444, `axis_line_color`, `axis_line_width`), **Order** (`category_order`, `label_aliases`).
+`AxisConfig` describes a single axis with field groups: **Label** (`label`, `label_pad` 10pt, `label_position` 0.5, `label_standoff` -1, `title_vshift`), **Ticks** (`tick_angle`, `tick_pad` 5pt, `tick_ha`, `tick_offset`, `tick_values`, `tick_text`, `tick_font_color`, `show_ticks`, `tick_side`, `tick_dash`, `show_tick_labels`, `dtick`), **Range** (`range`, `scale` linear/log, `margin` 0.02, `automargin`), **Grid** (`show_grid`, `grid_color` #E5E5E5, `grid_width`, `axis_color` #444, `axis_line_color`, `axis_line_width`), **Order** (`category_order`, `label_aliases`).
 
-`AxesConfig` wraps `x: AxisConfig`, `y: AxisConfig`, and `y2: AxisConfig | None`. When `y2` is `None`, the figure has no secondary Y-axis. Additional fields: `group_label_offset` (-0.12), `group_label_alternate` (True), `group_label_alt_spacing` (0.05), `group_order`, `top_axis_line_width` (0.0), `top_axis_line_color`, `right_axis_line_width` (0.0), `right_axis_line_color`.
+`AxesConfig` wraps `x: AxisConfig`, `y: AxisConfig`, `y2: AxisConfig | None` (None = no secondary Y-axis), plus `group_label_offset` (-0.12), `group_label_alternate` (True), `group_label_alt_spacing` (0.05), `group_order`, and opposite axis line settings (`top_axis_line_width`, `right_axis_line_width`, both 0.0 by default).
 
-Y2 inheritance: `y2.label_pad` and `y2.tick_pad` inherit from their `y` counterparts when set to `-1.0`.
+Y2 inheritance: `y2.label_pad` and `y2.tick_pad` inherit from `y` when set to `-1.0`.
 
 ---
 
@@ -96,15 +95,17 @@ Y2 inheritance: `y2.label_pad` and `y2.tick_pad` inherit from their `y` counterp
 
 **File:** `src/core/models/visualization/legend_config.py`
 
-All legends use the same `LegendConfig` dataclass distinguished by `role`: `"primary"`, `"secondary"`, or `"tertiary"`. A figure stores `list[LegendConfig]` with 1--3 entries.
+All legends use the same `LegendConfig` dataclass distinguished by `role` (`"primary"`, `"secondary"`, `"tertiary"`). A figure stores `list[LegendConfig]` with 1--3 entries.
 
-Key fields: `visible`, `font_size` (8pt), `font_family`, `bold`, `ncol` (1), `col_width` (-1.0), `orientation` ("vertical"), `itemsizing` ("constant"), `position_x`/`position_y` (-1.0 = auto), `anchor_x`/`anchor_y` ("auto"), `bgcolor`, `border_width`, `border_color`, `title_font_size` (-1), `number_fontsize` (-1), `text_fontsize` (-1).
+Key fields by group -- **Typography:** `font_size` (8), `font_family`, `bold`. **Layout:** `ncol`, `col_width` (-1.0), `orientation` ("vertical"), `itemsizing`, `itemwidth`, `tracegroupgap`, `order`, `trace_distribution`. **Position:** `position_x`/`position_y` (-1.0 = auto), `anchor_x`/`anchor_y` ("auto"), `custom_position`. **Styling:** `bgcolor`, `border_width`, `border_color`, `font_color`, `title_font_size` (-1), `title`. **Tertiary:** `number_fontsize` (-1), `text_fontsize` (-1).
 
-**LegendSpacingConfig** -- `columnspacing` (0.5), `handletextpad` (0.3), `labelspacing` (0.2), `handlelength` (1.0), `handleheight` (0.7), `borderpad` (0.2), `borderaxespad` (0.5). Secondary/tertiary legends use -1.0 to inherit from primary.
+**LegendSpacingConfig** -- `columnspacing` (0.5), `handletextpad` (0.3), `labelspacing` (0.2), `handlelength` (1.0), `handleheight` (0.7), `borderpad` (0.2), `borderaxespad` (0.5). Secondary/tertiary use -1.0 to inherit from primary.
 
 **ColorbarConfig** -- heatmap-specific: `title_side`, `range_mode`, `zmin`/`zmax`, `nticks` (5), `tick_decimals` (2), `shared`, `tick_angle`, `tick_side`.
 
-**Anchor auto-derivation:** `LegendConfig.derive_anchors(x, y)` uses thresholds -- when `x > 0.8`, anchor is `"left"` (box extends inward); when `x < 0.2`, anchor is `"right"`.
+**Multi-level inheritance:** secondary/tertiary `font_size` (-1) resolves to primary's; `title_font_size` (-1) resolves to own resolved `font_size`; `number_fontsize`/`text_fontsize` (-1) likewise. Every spacing field at -1.0 resolves to the primary's corresponding value.
+
+**Anchor auto-derivation:** `LegendConfig.derive_anchors(x, y)` -- when `x > 0.8`, anchor is `"left"` (extends inward); when `x < 0.2`, anchor is `"right"`. Same vertically.
 
 ---
 
@@ -112,17 +113,17 @@ Key fields: `visible`, `font_size` (8pt), `font_family`, `bold`, `ncol` (1), `co
 
 **File:** `src/core/models/visualization/trace_config.py`
 
-Trace configs use dataclass inheritance. The `trace_type` field acts as a discriminator. Base `TraceConfig` has: `name`, `trace_type`, `x`, `y`, `yaxis` (y/y2), `color`, `opacity`, `visible`, `show_in_legend`, `legendgroup`, `custom_data`.
+Trace configs use dataclass inheritance with `trace_type` as discriminator. Base `TraceConfig` has: `name`, `trace_type`, `x`, `y`, `yaxis` (y/y2), `color`, `opacity`, `visible`, `show_in_legend`, `legendgroup`, `custom_data`.
 
 | Subclass | trace_type | Key Extra Fields |
 |----------|------------|-----------------|
-| `BarTraceConfig` | `"bar"` | `x_positions`, `bar_width`, `offset`, `pattern`, `border_width`, `text_values`, `error_y` |
+| `BarTraceConfig` | `"bar"` | `x_positions`, `bar_width`, `offset`, `pattern`, `border_width`, `text_values`, `text_position`, `error_y` |
 | `LineTraceConfig` | `"line"` | `line_width`, `line_dash`, `marker_symbol`, `marker_size`, `show_markers`, `fill`, `error_y` |
 | `ScatterTraceConfig` | `"scatter"` | `marker_symbol`, `marker_size`, `colorscale`, `size_values`, `error_y` |
 | `HistogramTraceConfig` | `"histogram"` | `nbins`, `normalization`, `cumulative` |
 | `HeatmapTraceConfig` | `"heatmap"` | `col_labels`, `row_labels`, `z`, `colorscale`, `text_color_mode` |
 
-The key design in `BarTraceConfig` is that plot types pre-compute `x_positions`, `bar_width`, and `offset`, so neither connector needs to reimplement bar grouping math.
+`BarTraceConfig` carries pre-computed `x_positions`, `bar_width`, and `offset` so neither connector reimplements bar grouping math. `HistogramTraceConfig` exists for the rare case of raw unbinned data; most histograms are pre-binned as `BarTraceConfig`.
 
 ---
 
@@ -130,9 +131,9 @@ The key design in `BarTraceConfig` is that plot types pre-compute `x_positions`,
 
 **File:** `src/core/models/visualization/annotation_config.py`
 
-`AnnotationConfig` describes a text annotation with a discriminator `annotation_type`: `"text"` (free-form), `"bar_value"` (auto-positioned), `"group_label"` (below x-axis), `"boxed"` (tertiary legend item). Key fields: `text`, `x`/`y`, `xref`/`yref` ("data"/"paper"), anchors, `text_angle`, `show_arrow`, `font_size` (-1 = use typography default), `font_color`, `font_bold`, border and background styling.
+`AnnotationConfig` describes a text annotation with discriminator `annotation_type`: `"text"` (free-form), `"bar_value"` (auto-positioned), `"group_label"` (below x-axis), `"boxed"` (tertiary legend item). Key fields: `text`, `x`/`y`, `xref`/`yref`, anchors, `text_angle`, `show_arrow`, `font_size` (-1 = use typography default), `font_color`, `font_bold`, border and background styling.
 
-`ReferenceLineConfig` describes a baseline or threshold line: `enabled`, `axis` ("x"/"y"), `value`, `color` ("red"), `width` (1.5), `style` ("dash"), `label`.
+`ReferenceLineConfig` -- a horizontal or vertical line: `enabled`, `axis` ("x"/"y"), `value`, `color` ("red"), `width` (1.5), `style` ("dash"), `label`.
 
 ---
 
@@ -140,7 +141,22 @@ The key design in `BarTraceConfig` is that plot types pre-compute `x_positions`,
 
 **File:** `src/core/models/visualization/data_label_config.py`
 
-A frozen (`frozen=True`) dataclass for value annotations on traces. Not subject to sentinel resolution. Fields: `enabled` (False), `color_mode` ("auto"/"contrast"/"custom"), `custom_color`, `font_size` (10), `rotation`, `position` ("auto"/"inside"/"outside"), `anchor`, `format_string` (".2f"), `display_logic` ("all"/"above_threshold"/"below_threshold"), `threshold`, `size_constraint` ("none"/"inside"), `auto_contrast` (True).
+A frozen (`frozen=True`) dataclass for value annotations on traces. Because it is frozen, it cannot be mutated after creation and is not subject to sentinel resolution.
+
+| Field | Default | Description |
+|-------|---------|-------------|
+| `enabled` | `False` | Master toggle |
+| `color_mode` | `"auto"` | `"auto"`, `"contrast"`, `"custom"` |
+| `custom_color` | `"#000000"` | Color when mode is `"custom"` |
+| `font_size` | 10 | Size in points |
+| `rotation` | 0 | Degrees (-90 to 90) |
+| `position` | `"auto"` | `"auto"`, `"inside"`, `"outside"` |
+| `anchor` | `"auto"` | `"auto"`, `"top"`, `"middle"`, `"bottom"` |
+| `format_string` | `".2f"` | d3-format string |
+| `display_logic` | `"all"` | `"all"`, `"above_threshold"`, `"below_threshold"` |
+| `threshold` | 0.0 | Numeric threshold for conditional display |
+| `size_constraint` | `"none"` | `"none"` or `"inside"` (resize to fit bars) |
+| `auto_contrast` | `True` | Flip text color based on background luminance |
 
 ---
 
@@ -148,7 +164,19 @@ A frozen (`frozen=True`) dataclass for value annotations on traces. Not subject 
 
 **File:** `src/core/models/visualization/series_style_config.py`
 
-A frozen dataclass for per-trace styling. Stored as a positional list in `series_styles` (matched by index) and as a name-keyed dict in `trace_overrides`. Fields: `line_width` (2.0), `marker_size` (6), `opacity` (1.0), `bar_border_width` (0.0), `bar_border_color`, `hatching_pattern`, `color`, `symbol`, `display_name`.
+A frozen dataclass for per-trace styling overrides. Stored in two places on `FigureConfig`: as a positional list in `series_styles` (matched by index to traces) and as a name-keyed dict in `trace_overrides`.
+
+| Field | Default | Purpose |
+|-------|---------|---------|
+| `line_width` | 2.0 | Line width in points |
+| `marker_size` | 6 | Marker diameter in points |
+| `opacity` | 1.0 | Fill/marker opacity |
+| `bar_border_width` | 0.0 | Bar border width |
+| `bar_border_color` | `""` | Bar border color |
+| `hatching_pattern` | `""` | Hatch pattern for bars |
+| `color` | `""` | Explicit trace color override |
+| `symbol` | `""` | Marker symbol override |
+| `display_name` | `""` | Legend entry rename |
 
 ---
 
@@ -156,9 +184,40 @@ A frozen dataclass for per-trace styling. Stored as a positional list in `series
 
 **Files:** `src/core/models/visualization/palettes.py` (data), `src/core/services/visualization/palette_service.py` (logic)
 
-`PALETTE_REGISTRY` combines 5 colorblind-safe palettes (`wong`, `okabe_ito`, `tol_bright`, `viridis_8`, `seaborn_cb`) with 13 Plotly qualitative palettes (`Plotly`, `D3`, `G10`, `T10`, `Alphabet`, `Dark24`, `Light24`, `Set1`--`Set3`, `Pastel`, `Safe`, `Vivid`, `Bold`). All stored as pre-resolved hex lists.
+`PALETTE_REGISTRY` combines two internal dictionaries at module load time: `{**_COLORBLIND_PALETTES, **_PLOTLY_PALETTES}`. All palettes are stored as pre-resolved hex lists with no runtime Plotly dependency.
 
-Resolution: `resolve_palette(name)` tries exact match, then case-insensitive match, falling back to Wong. Always returns a copy. `get_palette_names()` returns colorblind-safe first, then Plotly alphabetical. `is_colorblind_safe(name)` checks membership in the colorblind set.
+### Colorblind-safe palettes (5)
+
+| Name | Colors | Source |
+|------|--------|--------|
+| `wong` | 8 | Wong (2011) -- **the default for all new figures** |
+| `okabe_ito` | 8 | Okabe and Ito (same colors as Wong, different order) |
+| `tol_bright` | 7 | Paul Tol bright scheme |
+| `viridis_8` | 8 | Discrete 8-color sampling of the Viridis colormap |
+| `seaborn_cb` | 8 | Seaborn colorblind palette |
+
+### Plotly qualitative palettes (13)
+
+| Name | Colors | | Name | Colors |
+|------|--------|-|------|--------|
+| `Plotly` | 10 | | `Set1` | 9 |
+| `D3` | 10 | | `Set2` | 8 |
+| `G10` | 10 | | `Set3` | 12 |
+| `T10` | 10 | | `Pastel` | 11 |
+| `Alphabet` | 26 | | `Safe` | 11 |
+| `Dark24` | 24 | | `Vivid` | 11 |
+| `Light24` | 24 | | `Bold` | 11 |
+
+### Resolution logic
+
+`resolve_palette(name)` follows a four-step resolution order:
+
+1. If `name` is `None`, empty, or not a string, return the Wong palette (copy).
+2. Exact match in `PALETTE_REGISTRY` -- return copy.
+3. Case-insensitive match -- return copy.
+4. No match -- return Wong palette (copy).
+
+Always returns a copy (safe to mutate). `get_palette_names()` returns an ordered list with colorblind-safe palettes first, then Plotly palettes alphabetically. `is_colorblind_safe(name)` checks membership in the colorblind-safe set.
 
 ---
 
@@ -166,7 +225,18 @@ Resolution: `resolve_palette(name)` tries exact match, then case-insensitive mat
 
 **File:** `src/core/services/visualization/config_resolver.py`
 
-The sentinel value `-1` (int) or `-1.0` (float) means "inherit from parent." This is safe because all config fields are non-negative in valid configurations.
+### The sentinel pattern
+
+The sentinel value `-1` (int) or `-1.0` (float) means "inherit from the nearest parent in the resolution chain." This is safe because all config fields are non-negative in valid configurations.
+
+```python
+SENTINEL_INT: int = -1       # for integer fields (font sizes, ncol)
+SENTINEL_FLOAT: float = -1.0 # for float fields (positions, spacing)
+```
+
+Module-level aliases: `INHERIT = -1` in `typography_config.py`, `INHERIT_F = -1.0` in `typography_config.py`, `axis_config.py`, and `legend_config.py`.
+
+### resolve_config()
 
 ```python
 def resolve_config(spec: FigureConfig) -> FigureConfig:
@@ -177,11 +247,11 @@ def resolve_config(spec: FigureConfig) -> FigureConfig:
     return resolved
 ```
 
-The function is **pure** (returns a deep copy), **single-pass**, and **idempotent**.
+The function is **pure** (deep copy), **single-pass**, **idempotent**, and **fail-safe** (skips chains on type-check failure).
 
 ### Typography chain
 
-Resolution order is top-down; dependent fields are resolved after their parents:
+Resolution processes top-down so dependent fields see already-resolved parents:
 
 ```
 font_size_ylabel  ----------->  font_size_y2label
@@ -191,13 +261,45 @@ font_size_legend  +->  font_size_legend2
                                           \->  legend3_text_fontsize
 ```
 
+Example: `font_size_legend = 8`, `font_size_legend3 = -1` resolves to 8; then `legend3_number_fontsize = -1` also resolves to 8.
+
 ### Legend chain
 
-Secondary/tertiary inherit from primary (index 0): `font_size` (-1 to primary's), `title_font_size` (-1 to own resolved font_size), `number_fontsize`/`text_fontsize` (-1 to own font_size). Spacing fields use a generic field-iteration loop -- any `-1.0` in `LegendSpacingConfig` resolves to the primary's corresponding value.
+Secondary/tertiary (indices 1, 2) inherit from primary (index 0):
+
+- `font_size`: -1 resolves to `primary.font_size`.
+- `title_font_size`: -1 resolves to own resolved `font_size`.
+- `number_fontsize` / `text_fontsize`: -1 resolves to own `font_size`.
+- Spacing: generic field-iteration replaces any -1.0 with primary's value:
+
+```python
+for f in fields(spacing):
+    val = getattr(spacing, f.name)
+    if isinstance(val, float) and val == SENTINEL_FLOAT:
+        setattr(spacing, f.name, getattr(parent, f.name))
+```
+
+The primary legend also resolves its own `title_font_size`, `number_fontsize`, and `text_fontsize` relative to its own `font_size`.
 
 ### Axes chain
 
 Only `y2.label_pad` and `y2.tick_pad` inherit from `y` when set to `-1.0`. If `y2 is None`, resolution is a no-op.
+
+### Atomic helpers
+
+The two building-block functions used throughout resolution:
+
+```python
+def _resolve_int(value: int, parent: int) -> int:
+    return parent if value == SENTINEL_INT else value
+
+def _resolve_float(value: float, parent: float) -> float:
+    return parent if value == SENTINEL_FLOAT else value
+```
+
+### Immutability notes
+
+`DataLabelConfig` and `SeriesStyleConfig` are frozen dataclasses (`frozen=True`). They cannot be mutated after creation and have no sentinel fields, so they are never subject to resolution. All other config dataclasses are mutable, which allows the resolver to modify the deep-copied config tree in-place during its single pass.
 
 ---
 
@@ -236,9 +338,25 @@ FigureConfig
 +-- separator: SeparatorConfig
 +-- reference_lines: list[ReferenceLineConfig]
 +-- color_palette, barmode, hatching_sequence, hovermode
-+-- enable_stripes, show_error_bars, title
-+-- paper_bgcolor, plot_bgcolor, font_family
-\-- latex_extra_preamble, metadata
+\-- enable_stripes, show_error_bars, title, font_family, metadata
+```
+
+### Sentinel inheritance arrows
+
+```
+Typography:
+  font_size_ylabel --------> font_size_y2label
+  font_size_ticks ---------> font_size_yticks -------> font_size_y2ticks
+  font_size_legend --------> font_size_legend2
+  font_size_legend --------> font_size_legend3 ------> legend3_number_fontsize
+                                                \----> legend3_text_fontsize
+Legends (list):
+  legends[0].font_size ----> legends[1].font_size, legends[2].font_size
+  legends[0].spacing.* ----> legends[1].spacing.*, legends[2].spacing.*
+  each legend.font_size ---> own title_font_size, number_fontsize, text_fontsize
+Axes:
+  axes.y.label_pad --------> axes.y2.label_pad
+  axes.y.tick_pad ---------> axes.y2.tick_pad
 ```
 
 ---
