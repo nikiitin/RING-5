@@ -7,7 +7,7 @@ use Scanning::RegexUtils qw(:all);
 
 our @EXPORT_OK = qw($summaryRegex);
 
-# | name::summVar  value  # Comment |
-our $summaryRegex = qr/^$varNameRegex$summariesEntryRegex\s+$scalarValueRegex$commentRegex$/;
+# | name::summVar  value  # Comment (unit) |
+our $summaryRegex = qr/^$varNameRegex$summariesEntryRegex\s+$scalarValueRegex\s*$commentRegex?\s*$unitRegex?$/;
 
 1;

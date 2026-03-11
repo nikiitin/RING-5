@@ -11,7 +11,7 @@ our @EXPORT_OK = qw($histogramRegex $histogramEntryRangeRegex);
 our $histogramEntryRangeRegex = qr/::\d+-\d+/;
 # | ::1-5 |
 
-# | name::range1-range2  value  perc  cumm.percent  # Comment |
-our $histogramRegex = qr/^$varNameRegex$histogramEntryRangeRegex\s+$complexValueRegex$commentRegex$/;
+# | name::range1-range2  value  perc  cumm.percent  # Comment (unit) |
+our $histogramRegex = qr/^$varNameRegex$histogramEntryRangeRegex\s+$complexValueRegex\s*$commentRegex?\s*$unitRegex?$/;
 
 1;

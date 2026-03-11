@@ -12,9 +12,9 @@ our @EXPORT_OK = qw($vectorRegex $vectorEntryRegex);
 # | ::Name | ::Total
 our $vectorEntryRegex = qr/::[\w\.]+/;
 
-# | name::vectorEntryName  value  perc  cumm.percent  # Comment
+# | name::vectorEntryName  value  perc  cumm.percent  # Comment (unit)
 # OR
-# | name::vectorEntryName  value  # Comment
-our $vectorRegex = qr/^$varNameRegex$vectorEntryRegex\s+(?:$complexValueRegex|$scalarValueRegex)$commentRegex$/;
+# | name::vectorEntryName  value  # Comment (unit)
+our $vectorRegex = qr/^$varNameRegex$vectorEntryRegex\s+(?:$complexValueRegex|$scalarValueRegex)\s*$commentRegex?\s*$unitRegex?$/;
 
 1;

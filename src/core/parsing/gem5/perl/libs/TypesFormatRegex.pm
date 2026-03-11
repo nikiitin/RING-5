@@ -11,7 +11,7 @@ our @EXPORT  = qw(parseAndPrintLineWithFormat setFilterRegexes classifyLine);
 use Scanning::RegexUtils qw(:all);
 use Scanning::Type::Configuration qw($confRegex);
 use Scanning::Type::Scalar qw($scalarRegex);
-use Scanning::Type::Distribution qw($distRegex $distEntry);
+use Scanning::Type::Distribution qw($distRegex $distEntryRegex);
 use Scanning::Type::Histogram qw($histogramRegex $histogramEntryRangeRegex);
 use Scanning::Type::Vector qw($vectorRegex $vectorEntryRegex);
 use Scanning::Type::Summary qw($summaryRegex);
@@ -71,8 +71,8 @@ sub getEntryNameFromLine {
     }
     # If is distribution it is an integer or an
     # overflow/underflow
-    if ($line =~ $distEntry) {
-        $line =~ /($distEntry)/;
+    if ($line =~ $distEntryRegex) {
+        $line =~ /($distEntryRegex)/;
         return $1;
     }
     if ($line =~ $vectorEntryRegex &&
@@ -185,41 +185,32 @@ sub parseAndPrintLineWithFormat {
 sub classifyLine {
     my ($line) = @_;
 
-    # Check types in order with explicit captures
+    my ($name) = $line =~ /^($varNameRegex)/;
 
-    # Configuration: name=value
-    if ($line =~ /^($varNameRegex)=$confValueRegex$/) {
-        return { type => 'configuration', name => $1, entry => undef };
+    # Check types in order with explicit captures
+    if ($line =~ $confRegex) {
+        return { type => 'configuration', name => $name, entry => undef };
     }
-    # Scalar: name value # comment
-    elsif ($line =~ /^($varNameRegex)\s+$scalarValueRegex$commentRegex?$/) {
-        return { type => 'scalar', name => $1, entry => undef };
+    elsif ($line =~ $scalarRegex) {
+        return { type => 'scalar', name => $name, entry => undef };
     }
-    # Histogram: name::range ...
-    elsif ($line =~ /^($varNameRegex)($histogramEntryRangeRegex)\s+$complexValueRegex$commentRegex?$/) {
-        my $name = $1;
-        my $entry = $2;
+    elsif ($line =~ $histogramRegex) {
+        my ($entry) = $line =~ /($histogramEntryRangeRegex)/;
         $entry =~ s/^:://;
         return { type => 'histogram', name => $name, entry => $entry };
     }
-    # Distribution: name::val ...
-    elsif ($line =~ /^($varNameRegex)($distEntry)\s+$complexValueRegex$commentRegex?$/) {
-        my $name = $1;
-        my $entry = $2;
+    elsif ($line =~ $distRegex) {
+        my ($entry) = $line =~ /($distEntryRegex)/;
         $entry =~ s/^:://;
         return { type => 'distribution', name => $name, entry => $entry };
     }
-    # Summary: name::total ...
-    elsif ($line =~ /^($varNameRegex)($summariesEntryRegex)\s+$scalarValueRegex$commentRegex?$/) {
-        my $name = $1;
-        my $entry = $2;
+    elsif ($line =~ $summaryRegex) {
+        my ($entry) = $line =~ /($summariesEntryRegex)/;
         $entry =~ s/^:://;
         return { type => 'summary', name => $name, entry => $entry };
     }
-    # Vector: name::entry ...
-    elsif ($line =~ /^($varNameRegex)($vectorEntryRegex)\s+(?:$complexValueRegex|$scalarValueRegex)$commentRegex?$/) {
-        my $name = $1;
-        my $entry = $2;
+    elsif ($line =~ $vectorRegex) {
+        my ($entry) = $line =~ /($vectorEntryRegex)/;
         $entry =~ s/^:://;
         return { type => 'vector', name => $name, entry => $entry };
     }
@@ -227,4 +218,4 @@ sub classifyLine {
     return undef;
 }
 
-1; # A module must end with a true value or "use" will report an error
+1;

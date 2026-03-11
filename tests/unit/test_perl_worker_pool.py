@@ -44,6 +44,23 @@ system.mem.readReqs                            500                       # Total
 
 
 @pytest.fixture
+def test_stats_file_unit_without_comment():
+    """Create a stats file where scalar has unit but no comment."""
+    content = """
+---------- Begin Simulation Statistics ----------
+system.cpu.ipc                                   1.500000                       (Tick)
+---------- End Simulation Statistics   ----------
+"""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
+        f.write(content)
+        temp_path = f.name
+
+    yield temp_path
+
+    Path(temp_path).unlink(missing_ok=True)
+
+
+@pytest.fixture
 def perl_exe():
     """Provide perl executable path, ensuring it exists."""
     perl_path = shutil.which("perl")
@@ -143,6 +160,27 @@ class TestPerlWorker:
             assert worker.process.pid != original_pid
             assert worker.is_healthy
             assert worker.restarts == 1
+        finally:
+            worker.shutdown()
+
+    def test_worker_parse_unit_without_comment(
+        self,
+        test_stats_file_unit_without_comment,
+        perl_exe,
+        perl_script_path,
+    ):
+        """Worker should parse scalar lines with unit specifier and no comment."""
+        worker = PerlWorker(worker_id=0, script_path=perl_script_path, perl_exe=perl_exe)
+
+        try:
+            output, success = worker.parse_file(
+                test_stats_file_unit_without_comment,
+                ["system.cpu.ipc"],
+                timeout=10.0,
+            )
+
+            assert success
+            assert "scalar/system.cpu.ipc/1.500000" in output
         finally:
             worker.shutdown()
 

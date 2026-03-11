@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use Exporter 'import';
 
-our @EXPORT_OK = qw($floatRegex $varNameRegex $confValueRegex $scalarValueRegex $commentRegex $complexValueRegex $summariesEntryRegex);
+our @EXPORT_OK = qw($floatRegex $varNameRegex $confValueRegex $scalarValueRegex $commentRegex $unitRegex $complexValueRegex $summariesEntryRegex);
 our %EXPORT_TAGS = (all => \@EXPORT_OK);
 
 # Scientific Quality: Support for negative numbers, scientific notation, and standard floats.
@@ -19,9 +19,10 @@ our $confValueRegex = qr/[\d\.\w\-\/\(\)\,]+/;
 # Scalars are either integers or the scientific-compliant float.
 our $scalarValueRegex = qr/-?\d+|$floatRegex/;
 
-# Comments are whitespace-prefixed and can be # hashes or (Unspecified) tags.
-# Robust against trailing spaces and anchored to end-of-line to prevent backtracking.
-our $commentRegex = qr/\s*(?:#.*|\(Unspecified\)\s*)?$/;
+# Comments start with #
+our $commentRegex = qr/#.*/;
+
+our $unitRegex = qr/\(\w+\)/;
 
 # Complex components (Distributions/Histograms):
 # e.g., "10  5.23%  95.0%"
