@@ -54,24 +54,33 @@ class ScannedVariable:
     pattern_indices: list[str] | None = None
 
     def to_dict(self) -> ScannedVariableDict:
-        """Serialize to dictionary for JSON-compatible output."""
+        """Serialize to dictionary for JSON-compatible output.
+
+        Copies the mutable list members so the returned dict cannot mutate this
+        (frozen, reproducibility-guaranteeing) model's internal lists by reference.
+        """
         result: ScannedVariableDict = ScannedVariableDict(
             name=self.name,
             type=self.type,
-            entries=self.entries,
+            entries=list(self.entries),
         )
         if self.pattern_indices is not None:
-            result["pattern_indices"] = self.pattern_indices
+            result["pattern_indices"] = list(self.pattern_indices)
         return result
 
     @classmethod
     def from_dict(cls, data: ScannedVariableDict) -> "ScannedVariable":
-        """Reconstruct model from dictionary."""
+        """Reconstruct model from dictionary.
+
+        Copies the incoming lists so the model and the caller's dict don't share
+        mutable references.
+        """
+        pattern_indices = data.get("pattern_indices")
         return cls(
             name=data["name"],
             type=data["type"],
-            entries=data.get("entries", []),
-            pattern_indices=data.get("pattern_indices"),
+            entries=list(data.get("entries", [])),
+            pattern_indices=list(pattern_indices) if pattern_indices is not None else None,
         )
 
 

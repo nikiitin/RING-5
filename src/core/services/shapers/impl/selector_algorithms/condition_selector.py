@@ -83,7 +83,11 @@ class ConditionSelector(Selector):
         return True
 
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
-        """Execute the filtering logic."""
+        """Filter the dataframe, always returning an independent copy (not a view)."""
+        return self._apply(data_frame).copy()
+
+    def _apply(self, data_frame: pd.DataFrame) -> pd.DataFrame:
+        """Execute the filtering logic (the result may be a view of *data_frame*)."""
         self._verify_preconditions(data_frame)
 
         col = self.column

@@ -61,4 +61,5 @@ class ItemSelector(Selector):
                 f"found in column '{self.column}'."
             )
 
-        return result
+        # .copy() so the shaper returns an independent frame, not a view.
+        return result.copy()

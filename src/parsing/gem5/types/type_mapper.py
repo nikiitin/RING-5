@@ -32,23 +32,24 @@ class TypeMapper:
     @classmethod
     def map_scan_result(cls, scan_result: dict[str, Any]) -> ScannedVariableDict:
         """
-        Normalize a dictionary result from the scanner.
-        Ensures 'type' field is consistent.
+        Normalize a scanner result dict into a ScannedVariableDict.
+
+        Pure projection: the caller's dict is never mutated, and mutable members
+        (entries, pattern_indices) are copied into the new dict.
         """
-        if "type" in scan_result:
-            scan_result["type"] = cls.normalize_type(scan_result["type"])
+        raw_type = scan_result.get("type", "")
         # The scan_result dict has the same shape as ScannedVariableDict
         result: ScannedVariableDict = ScannedVariableDict(
             name=scan_result.get("name", ""),
-            type=scan_result.get("type", ""),
-            entries=scan_result.get("entries", []),
+            type=cls.normalize_type(raw_type) if raw_type else "",
+            entries=list(scan_result.get("entries", [])),
         )
         if "minimum" in scan_result:
             result["minimum"] = scan_result["minimum"]
         if "maximum" in scan_result:
             result["maximum"] = scan_result["maximum"]
         if "pattern_indices" in scan_result:
-            result["pattern_indices"] = scan_result["pattern_indices"]
+            result["pattern_indices"] = list(scan_result["pattern_indices"])
         return result
 
     @staticmethod

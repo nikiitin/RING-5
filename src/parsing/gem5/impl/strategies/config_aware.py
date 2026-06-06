@@ -48,13 +48,12 @@ class ConfigAwareStrategy(SimpleStatsStrategy):
             if config_path.exists():
                 logger.debug(f"PARSER: Found config at {config_path}")
                 config_data = self._parse_config(config_path)
-                # Merge config data into result
-                # Here we assume we add a 'config' dictionary.
-                sim_result["config"] = config_data
+                # Build a NEW dict with the config merged in, rather than mutating
+                # the caller's result dict in place.
+                augmented_results.append({**sim_result, "config": config_data})
             else:
                 logger.warning(f"PARSER: config.ini not found for {sim_result['sim_path']}")
-
-            augmented_results.append(sim_result)
+                augmented_results.append(sim_result)
 
         return augmented_results
 
