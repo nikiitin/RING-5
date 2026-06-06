@@ -3,7 +3,6 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
-import plotly.graph_objects as go
 import pytest
 
 from src.core.models.visualization.trace_build_result import TraceBuildResult
@@ -118,18 +117,19 @@ def test_render_common_config(mock_plc: Any, mock_st: Any, concrete_plot: Any) -
     assert config["title"] == "My Title"
 
 
-def test_apply_legend_labels(concrete_plot: Any) -> None:
-    """Test legend label application."""
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(name="trace1", x=[1], y=[1]))
-    fig.add_trace(go.Scatter(name="trace2", x=[2], y=[2]))
+def test_relabel_traces_renames_engine_agnostic_names() -> None:
+    """Legend relabeling renames the engine-agnostic TraceConfig.name once
+    (single source of truth) so both Plotly and Matplotlib honor it."""
+    from src.core.models.visualization.trace_build_result import TraceBuildResult
+    from src.core.models.visualization.trace_config import TraceConfig
+    from src.web.pages.ui.plotting.base_plot import _relabel_traces
 
-    labels = {"trace1": "Renamed 1"}
+    result = TraceBuildResult(traces=[TraceConfig(name="trace1"), TraceConfig(name="trace2")])
+    relabeled = _relabel_traces(result, {"trace1": "Renamed 1"})
 
-    fig = concrete_plot.apply_legend_labels(fig, labels)
-
-    assert fig.data[0].name == "Renamed 1"
-    assert fig.data[1].name == "trace2"
+    assert [t.name for t in relabeled.traces] == ["Renamed 1", "trace2"]
+    # Input is not mutated (relabel returns new objects).
+    assert [t.name for t in result.traces] == ["trace1", "trace2"]
 
 
 def test_render_reorderable_list(concrete_plot: Any, mock_streamlit: Any) -> None:

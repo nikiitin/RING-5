@@ -285,8 +285,9 @@ class TestPlotCommonLayout:
 class TestPlotLegendLabels:
     """Test legend label customization."""
 
-    def test_apply_legend_labels(self, sample_data: Any) -> None:
-        """Test applying custom legend labels."""
+    def test_legend_labels_applied_to_both_engines(self, sample_data: Any) -> None:
+        """Custom legend labels (in config) rename trace names once, so the Plotly
+        figure AND the engine-agnostic last_traces (matplotlib source) both show them."""
         plot = BarPlot(1, "Test")
         config = {
             "x": "category",
@@ -296,14 +297,15 @@ class TestPlotLegendLabels:
             "xlabel": "X",
             "ylabel": "Y",
             "show_error_bars": False,
+            "legend_labels": {"G1": "Group One", "G2": "Group Two"},
         }
 
         fig = plot.create_figure(sample_data, config)
 
-        # Apply custom labels
-        legend_labels = {"G1": "Group One", "G2": "Group Two"}
-        fig = plot.apply_legend_labels(fig, legend_labels)
-
-        # Check that labels were applied
-        trace_names = [cast(go.Bar, trace).name for trace in fig.data]
+        # Plotly figure trace names are renamed.
+        fig_names = [cast(go.Bar, trace).name for trace in fig.data]
+        assert "Group One" in fig_names or "Group Two" in fig_names
+        # The engine-agnostic traces (consumed by the matplotlib connector) too.
+        assert plot.last_traces is not None
+        trace_names = [t.name for t in plot.last_traces.traces]
         assert "Group One" in trace_names or "Group Two" in trace_names

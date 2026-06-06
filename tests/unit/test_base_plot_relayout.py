@@ -190,7 +190,7 @@ class TestGenerateFigure:
         assert plot.last_generated_fig is fig
 
     def test_generate_with_legend_labels(self, plot: ConcretePlot) -> None:
-        """When legend_labels in config, apply_legend_labels should be called."""
+        """When legend_labels in config, the trace legend names are relabeled."""
         plot.processed_data = pd.DataFrame({"x": [1], "y": [2]})
         plot.config["legend_labels"] = {"trace1": "Renamed"}
         fig = plot.generate_figure()
@@ -248,25 +248,30 @@ class TestToDictFromDict:
             assert loaded.legend_mappings == {"x": "X"}
 
 
-class TestApplyLegendLabels:
-    """Tests for apply_legend_labels edge cases."""
+class TestRelabelTraces:
+    """Tests for engine-agnostic legend relabeling (_relabel_traces)."""
 
-    def test_none_labels_no_change(self, plot: ConcretePlot) -> None:
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(name="original"))
-        result = plot.apply_legend_labels(fig, None)
-        assert cast(go.Scatter, result.data[0]).name == "original"
+    @staticmethod
+    def _result(*names: str) -> Any:
+        from src.core.models.visualization.trace_build_result import TraceBuildResult
+        from src.core.models.visualization.trace_config import TraceConfig
 
-    def test_empty_labels_no_change(self, plot: ConcretePlot) -> None:
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(name="original"))
-        result = plot.apply_legend_labels(fig, {})
-        assert cast(go.Scatter, result.data[0]).name == "original"
+        return TraceBuildResult(traces=[TraceConfig(name=n) for n in names])
 
-    def test_partial_labels(self, plot: ConcretePlot) -> None:
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(name="a"))
-        fig.add_trace(go.Scatter(name="b"))
-        result = plot.apply_legend_labels(fig, {"a": "Alpha"})
-        assert cast(go.Scatter, result.data[0]).name == "Alpha"
-        assert cast(go.Scatter, result.data[1]).name == "b"
+    def test_none_labels_no_change(self) -> None:
+        from src.web.pages.ui.plotting.base_plot import _relabel_traces
+
+        result = _relabel_traces(self._result("original"), None)
+        assert [t.name for t in result.traces] == ["original"]
+
+    def test_empty_labels_no_change(self) -> None:
+        from src.web.pages.ui.plotting.base_plot import _relabel_traces
+
+        result = _relabel_traces(self._result("original"), {})
+        assert [t.name for t in result.traces] == ["original"]
+
+    def test_partial_labels(self) -> None:
+        from src.web.pages.ui.plotting.base_plot import _relabel_traces
+
+        result = _relabel_traces(self._result("a", "b"), {"a": "Alpha"})
+        assert [t.name for t in result.traces] == ["Alpha", "b"]

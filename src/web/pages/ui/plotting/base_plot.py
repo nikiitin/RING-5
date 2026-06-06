@@ -1,6 +1,7 @@
 """Base plot class with common functionality."""
 
 from abc import ABC, abstractmethod
+from dataclasses import replace
 from io import StringIO
 from typing import Any
 
@@ -15,6 +16,21 @@ from src.core.services.visualization.plot_interaction import (
 from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.plot_config_ui import PlotConfigUIMixin
 from src.web.pages.ui.plotting.styles import StyleApplicator, StyleUIFactory
+
+
+def _relabel_traces(
+    result: TraceBuildResult, legend_labels: dict[str, str] | None
+) -> TraceBuildResult:
+    """Apply custom legend labels to the engine-agnostic trace names.
+
+    Renaming ``TraceConfig.name`` here — before any connector runs — is the
+    single source of truth for legend relabeling, so BOTH the Plotly and
+    Matplotlib engines honor it (each reads ``trace.name`` for the legend entry).
+    """
+    if not legend_labels:
+        return result
+    new_traces = [replace(t, name=legend_labels.get(t.name, t.name)) for t in result.traces]
+    return replace(result, traces=new_traces)
 
 
 class BasePlot(PlotConfigUIMixin, ABC):
@@ -79,6 +95,9 @@ class BasePlot(PlotConfigUIMixin, ABC):
         from src.web.rendering.trace_to_plotly import traces_to_plotly
 
         result = self.create_traces(data, config)
+        # Apply legend relabeling once, engine-agnostically, so both Plotly and
+        # Matplotlib (which renders from ``last_traces``) show the custom names.
+        result = _relabel_traces(result, config.get("legend_labels"))
         self.last_traces = result
         fig = traces_to_plotly(result)
 
@@ -121,27 +140,6 @@ class BasePlot(PlotConfigUIMixin, ABC):
             Column name or None
         """
 
-    def apply_legend_labels(
-        self, fig: go.Figure, legend_labels: dict[str, str] | None
-    ) -> go.Figure:
-        """
-        Apply custom legend labels to the figure.
-
-        Args:
-            fig: Plotly figure
-            legend_labels: Mapping of original labels to custom labels
-
-        Returns:
-            Updated figure
-        """
-        if legend_labels:
-            fig.for_each_trace(
-                lambda t: t.update(  # type: ignore[attr-defined]
-                    name=legend_labels.get(t.name, t.name)  # type: ignore[attr-defined]
-                )
-            )
-        return fig
-
     def apply_common_layout(self, fig: go.Figure, config: PlotConfig) -> go.Figure:
         """Apply common layout settings via StyleApplicator."""
         return self._applicator.apply_styles(fig, config)
@@ -150,21 +148,14 @@ class BasePlot(PlotConfigUIMixin, ABC):
         """
         Generate and cache the final Plotly figure.
 
-        Calls create_figure -> apply_common_layout -> legend labels.
+        Calls create_figure (which relabels legend names engine-agnostically)
+        then apply_common_layout.
         """
         if self.processed_data is None:
             raise ValueError(f"Plot '{self.name}' has no processed data.")
 
         fig = self.create_figure(self.processed_data, self.config)
         fig = self.apply_common_layout(fig, self.config)
-        legend_labels: dict[str, str] | None = self.config.get("legend_labels")
-        if legend_labels:
-            fig.for_each_trace(
-                lambda t: t.update(  # type: ignore[attr-defined]
-                    name=legend_labels.get(t.name, t.name)  # type: ignore[attr-defined]
-                )
-            )
-
         self.last_generated_fig = fig
         return fig
 

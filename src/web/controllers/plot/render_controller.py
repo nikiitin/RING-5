@@ -218,15 +218,11 @@ class PlotRenderController:
         # ── Generate figure if needed ────────────────────────────
         if should_generate or plot.last_generated_fig is None:
             try:
+                # create_figure relabels legend names engine-agnostically
+                # (on TraceConfig.name), so both engines stay consistent — no
+                # Plotly-only for_each_trace pass here.
                 fig = plot.create_figure(plot.processed_data, plot.config)
                 fig = plot.apply_common_layout(fig, plot.config)
-                legend_labels: dict[str, str] | None = plot.config.get("legend_labels")
-                if legend_labels:
-                    fig.for_each_trace(
-                        lambda t: t.update(  # type: ignore[attr-defined]
-                            name=legend_labels.get(t.name, t.name)  # type: ignore[attr-defined]
-                        )
-                    )
                 plot.last_generated_fig = fig
                 cache.set(cache_key, fig)
             except Exception as e:
