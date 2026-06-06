@@ -203,6 +203,15 @@ class ChartDisplayComponent:
                 ax, separator_lines or [], shaded_regions or []
             )
 
+            # 5c. Dual-axis parity: matplotlib already renders right-axis traces
+            # on a twin axis (ax._ring5_twin); give it the secondary Y-title and a
+            # legend for the right-axis series, mirroring what Plotly does via
+            # apply_dual_axis_titles / apply_separate_legends. (Plotly rendering is
+            # left unchanged — this only fills the matplotlib gap.)
+            twin = getattr(ax, "_ring5_twin", None)
+            if twin is not None:
+                ChartDisplayComponent._apply_matplotlib_dual_axis(twin, config, spec)
+
             # 6. Display
             st.pyplot(mpl_fig)
 
@@ -213,6 +222,34 @@ class ChartDisplayComponent:
         except Exception:
             plt.close(mpl_fig)
             raise
+
+    @staticmethod
+    def _apply_matplotlib_dual_axis(twin: Any, config: dict[str, Any], spec: Any) -> None:
+        """Give the matplotlib twin (right) axis its Y-title and a legend.
+
+        matplotlib already renders right-axis traces on the twin; this fills the
+        remaining gap so dual-axis charts match Plotly (secondary title +
+        right-axis series in a legend). Plotly rendering is unchanged.
+        """
+        typo = spec.typography
+
+        ylabel_right = config.get("ylabel_right")
+        if ylabel_right:
+            label_kwargs: dict[str, Any] = {}
+            if typo is not None and typo.font_size_y2label > 0:
+                label_kwargs["fontsize"] = typo.font_size_y2label
+            if typo is not None and typo.bold_y2label:
+                label_kwargs["fontweight"] = "bold"
+            twin.set_ylabel(str(ylabel_right), **label_kwargs)
+
+        # A legend for the right-axis (twin) series — matplotlib's primary
+        # legend on the base axes only sees the left-axis handles.
+        handles, labels = twin.get_legend_handles_labels()
+        if handles:
+            legend_kwargs: dict[str, Any] = {"loc": "upper right", "framealpha": 0.85}
+            if typo is not None and typo.font_size_legend2 > 0:
+                legend_kwargs["fontsize"] = typo.font_size_legend2
+            twin.legend(handles, labels, **legend_kwargs)
 
     @staticmethod
     def render_error(error: Exception) -> None:
