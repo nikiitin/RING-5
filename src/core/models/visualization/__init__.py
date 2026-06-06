@@ -37,12 +37,10 @@ from src.core.models.visualization.trace_config import (
     TraceConfig,
 )
 from src.core.models.visualization.typography_config import TypographyConfig
-from src.core.services.visualization.config_resolver import resolve_config
-from src.core.services.visualization.palette_service import (
-    get_palette_names,
-    is_colorblind_safe,
-    resolve_palette,
-)
+
+# NOTE: palette/config-resolution *logic* lives in src.core.services.visualization
+# (palette_service, config_resolver) and must be imported from there. The models
+# layer depends on nobody and intentionally does NOT re-export service functions.
 
 __all__ = [
     # Annotations
@@ -63,11 +61,6 @@ __all__ = [
     "LegendSpacingConfig",
     # Palettes
     "PALETTE_REGISTRY",
-    "resolve_palette",
-    "get_palette_names",
-    "is_colorblind_safe",
-    # Resolvers
-    "resolve_config",
     # Series style
     "SeriesStyleConfig",
     # Traces

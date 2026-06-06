@@ -11,8 +11,6 @@ New code should import from the canonical location or from
 ``__init__.py``).
 """
 
-from src.core.services.data_services.pattern_index_service import PatternIndexService
-
 # Canonical implementation
 from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
 
@@ -20,4 +18,4 @@ from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
 from src.parsing.gem5.impl.pool.pool import ParseWorkPool
 from src.parsing.gem5.impl.strategies.factory import StrategyFactory
 
-__all__ = ["ParseService", "ParseWorkPool", "StrategyFactory", "PatternIndexService"]
+__all__ = ["ParseService", "ParseWorkPool", "StrategyFactory"]

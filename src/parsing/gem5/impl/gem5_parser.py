@@ -84,7 +84,7 @@ from typing import Any
 
 from src.core.common.utils import normalize_user_path
 from src.core.models import ParseBatchResult, ScannedVariable, StatConfig
-from src.core.services.data_services.pattern_index_service import PatternIndexService
+from src.core.models.pattern_index_service import PatternIndexService
 from src.parsing.gem5.impl.pool.pool import ParseWorkPool
 from src.parsing.gem5.impl.strategies.factory import StrategyFactory
 

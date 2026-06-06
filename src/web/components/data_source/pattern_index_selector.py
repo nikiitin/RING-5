@@ -7,7 +7,7 @@ UI-only thin wrapper around PatternIndexService (Layer B).
 
 import streamlit as st
 
-from src.core.services.data_services.pattern_index_service import PatternIndexService
+from src.core.models.pattern_index_service import PatternIndexService
 from src.web.components.common.filtered_selector import filtered_multiselect
 
 

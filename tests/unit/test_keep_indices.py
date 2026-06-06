@@ -29,7 +29,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from src.core.models import ScannedVariable, StatConfig
-from src.core.services.data_services.pattern_index_service import PatternIndexService
+from src.core.models.pattern_index_service import PatternIndexService
 
 # ---------------------------------------------------------------------------
 # Unit: StatConfig.keep_indices field

@@ -11,7 +11,7 @@ import pandas as pd
 import streamlit as st
 
 from src.core.models.data_models import ShaperStepConfig
-from src.core.services.data_services.pattern_index_service import PatternIndexService
+from src.core.models.pattern_index_service import PatternIndexService
 from src.core.services.shapers.impl.pivot import extract_with_pattern
 
 

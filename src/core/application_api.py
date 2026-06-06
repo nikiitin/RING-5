@@ -39,6 +39,7 @@ from src.core.models import (
     ScanResult,
     StatConfig,
 )
+from src.core.models.pattern_index_service import PatternIndexService
 from src.core.models.data_models import (
     ColumnInfoResult,
     CsvPoolEntry,
@@ -208,7 +209,7 @@ class ApplicationAPI:
                         var.get("statistics_only", var.get("statisticsOnly", False))
                     ),
                     params=params,
-                    is_regex=r"\d+" in name,
+                    is_regex=PatternIndexService.is_pattern_variable(name),
                     keep_indices=bool(var.get("keep_indices", var.get("keepIndices", False))),
                 )
             elif hasattr(var, "name") and hasattr(var, "type") and not hasattr(var, "params"):
@@ -217,7 +218,7 @@ class ApplicationAPI:
                     name=var.name,
                     type=var.type,
                     params={"entries": getattr(var, "entries", [])},
-                    is_regex=r"\d+" in var.name,
+                    is_regex=PatternIndexService.is_pattern_variable(var.name),
                 )
             else:
                 config = var

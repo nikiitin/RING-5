@@ -12,8 +12,12 @@ placeholders that match multiple hardware components. This service handles:
 
 All functions are pure (no UI dependencies, no side effects).
 
+Lives in the models layer (Layer A, the shared "common language") because it
+is a pure, stateless algorithm with no domain/service collaborators — so both
+parsing (Layer A) and the web layer use it without an upward dependency.
+
 Usage Example:
-    >>> from src.core.services.data_services.pattern_index_service import (
+    >>> from src.core.models.pattern_index_service import (
     ...     PatternIndexService,
     ... )
     >>> PatternIndexService.is_pattern_variable(r"system.ruby.l\\d+_cntrl\\d+.stat")
