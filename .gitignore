@@ -55,3 +55,4 @@ tests/visual/artifacts/
 !.cursorrules
 !.ai-assistant-guide.md
 !AI-SETUP.md
+tests/e2e/artifacts/
