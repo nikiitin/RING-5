@@ -2,16 +2,16 @@
 Unified palette registry — single source of truth for all color palette DATA.
 
 All palettes are stored as pre-resolved ``List[str]`` of hex colors.
-This module contains palette constants only. Logic functions (resolve_palette,
-get_palette_names, is_colorblind_safe) live in
-``src.core.services.visualization.palette_service``.
+This module contains palette constants only. The logic functions
+(``resolve_palette``, ``get_palette_names``, ``is_colorblind_safe``) live in
+the services layer's ``palette_service`` module — this models module never
+imports them (the models layer depends on nobody).
 
 Usage::
 
     from src.core.models.visualization.palettes import PALETTE_REGISTRY
-    from src.core.services.visualization.palette_service import resolve_palette
 
-    colors = resolve_palette("wong")       # List[str] of hex
+    # then, in a services/web caller, resolve via palette_service.resolve_palette(...)
 """
 
 from __future__ import annotations
@@ -307,16 +307,3 @@ PALETTE_REGISTRY: dict[str, list[str]] = {
 
 # Ordered list: colorblind-safe first, then Plotly alphabetical
 _PALETTE_ORDER: list[str] = list(_COLORBLIND_PALETTES.keys()) + sorted(_PLOTLY_PALETTES.keys())
-
-
-# ────────────────────────────────────────────────────────────────────
-# Backward-compatibility shim — re-exports from canonical location.
-# Import from ``src.core.services.visualization.palette_service`` instead.
-# This shim will be removed in Phase 10 (Dead Code Removal).
-# ────────────────────────────────────────────────────────────────────
-
-from src.core.services.visualization.palette_service import (  # noqa: E402, F401
-    get_palette_names,
-    is_colorblind_safe,
-    resolve_palette,
-)

@@ -377,5 +377,14 @@ arch-check:
 	echo "--- eval/exec ---"; \
 	RESULT=$$(grep -rn "eval(\|exec(" src/ --include="*.py" 2>/dev/null | grep -v __pycache__ | grep -v test); \
 	if [ -n "$$RESULT" ]; then echo "❌ $$RESULT"; VIOLATIONS=$$((VIOLATIONS+1)); fi; \
+	echo "--- models -> services (models depend on nobody) ---"; \
+	RESULT=$$(grep -rn "from src.core.services\|import src.core.services" src/core/models/ --include="*.py" 2>/dev/null | grep -v __pycache__); \
+	if [ -n "$$RESULT" ]; then echo "❌ $$RESULT"; VIOLATIONS=$$((VIOLATIONS+1)); fi; \
+	echo "--- parsing -> core.services (Layer A must not import Layer B) ---"; \
+	RESULT=$$(grep -rn "from src.core.services\|import src.core.services" src/parsing/ --include="*.py" 2>/dev/null | grep -v __pycache__); \
+	if [ -n "$$RESULT" ]; then echo "❌ $$RESULT"; VIOLATIONS=$$((VIOLATIONS+1)); fi; \
+	echo "--- web -> RepositoryStateManager (use the StateManager protocol via the facade) ---"; \
+	RESULT=$$(grep -rn "repository_state_manager" src/web/ --include="*.py" 2>/dev/null | grep -v __pycache__); \
+	if [ -n "$$RESULT" ]; then echo "❌ $$RESULT"; VIOLATIONS=$$((VIOLATIONS+1)); fi; \
 	echo ""; \
 	if [ $$VIOLATIONS -eq 0 ]; then echo "✅ All architecture checks passed"; else echo "❌ $$VIOLATIONS violations found"; exit 1; fi

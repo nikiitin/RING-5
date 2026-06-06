@@ -113,3 +113,24 @@ repos:
         language: system
         files: ^src/.*\.py$
         pass_filenames: false
+
+      - id: no-models-to-services
+        name: No services imports in models layer (models depend on nobody)
+        entry: bash -c 'RESULT=$(grep -rn "from src.core.services\|import src.core.services" src/core/models/ --include="*.py" 2>/dev/null | grep -v __pycache__); if [ -n "$RESULT" ]; then echo "Architecture violation - models importing services:"; echo "$RESULT"; exit 1; fi'
+        language: system
+        files: ^src/core/models/.*\.py$
+        pass_filenames: false
+
+      - id: no-parsing-to-services
+        name: No core.services imports in parsing layer (Layer A must not import Layer B)
+        entry: bash -c 'RESULT=$(grep -rn "from src.core.services\|import src.core.services" src/parsing/ --include="*.py" 2>/dev/null | grep -v __pycache__); if [ -n "$RESULT" ]; then echo "Architecture violation - parsing importing core.services:"; echo "$RESULT"; exit 1; fi'
+        language: system
+        files: ^src/parsing/.*\.py$
+        pass_filenames: false
+
+      - id: no-web-to-state-manager
+        name: No RepositoryStateManager imports in web (use the StateManager protocol via the facade)
+        entry: bash -c 'RESULT=$(grep -rn "repository_state_manager" src/web/ --include="*.py" 2>/dev/null | grep -v __pycache__); if [ -n "$RESULT" ]; then echo "Architecture violation - web importing the concrete RepositoryStateManager:"; echo "$RESULT"; exit 1; fi'
+        language: system
+        files: ^src/web/.*\.py$
+        pass_filenames: false

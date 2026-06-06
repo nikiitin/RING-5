@@ -16,7 +16,7 @@ from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
 if TYPE_CHECKING:
-    from src.core.state.repository_state_manager import RepositoryStateManager
+    from src.core.state.state_manager import StateManager
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ class PlotService:
     """Service to handle plot lifecycle and management."""
 
     @staticmethod
-    def create_plot(name: str, plot_type: str, state_manager: "RepositoryStateManager") -> BasePlot:
+    def create_plot(name: str, plot_type: str, state_manager: "StateManager") -> BasePlot:
         """Create a new plot and add it to the session state."""
         plot_id = state_manager.start_next_plot_id()
         plot = PlotFactory.create_plot(plot_type=plot_type, plot_id=plot_id, name=name)
@@ -36,7 +36,7 @@ class PlotService:
         return plot
 
     @staticmethod
-    def delete_plot(plot_id: int, state_manager: "RepositoryStateManager") -> None:
+    def delete_plot(plot_id: int, state_manager: "StateManager") -> None:
         """Delete a plot by ID."""
         plots = state_manager.get_plots()
         plots = [p for p in plots if p.plot_id != plot_id]
@@ -47,7 +47,7 @@ class PlotService:
             state_manager.set_current_plot_id(None if not plots else plots[0].plot_id)
 
     @staticmethod
-    def duplicate_plot(plot: BasePlot, state_manager: "RepositoryStateManager") -> BasePlot:
+    def duplicate_plot(plot: BasePlot, state_manager: "StateManager") -> BasePlot:
         """Duplicate an existing plot."""
         new_plot = copy.deepcopy(plot)
         new_plot.plot_id = state_manager.start_next_plot_id()
@@ -60,9 +60,7 @@ class PlotService:
         return new_plot
 
     @staticmethod
-    def change_plot_type(
-        plot: BasePlot, new_type: str, state_manager: "RepositoryStateManager"
-    ) -> BasePlot:
+    def change_plot_type(plot: BasePlot, new_type: str, state_manager: "StateManager") -> BasePlot:
         """Change the type of an existing plot, preserving configuration where possible."""
         if plot.plot_type == new_type:
             return plot
@@ -79,9 +77,15 @@ class PlotService:
             # Find index by object identity or ID
             idx = next(i for i, p in enumerate(plots) if p.plot_id == plot.plot_id)
             plots[idx] = new_plot
-            state_manager.set_plots(plots)
         except StopIteration:
-            logger.warning("Plot ID %d not found in plots list during type change", plot.plot_id)
+            # Old plot not in the list (unexpected): still persist the new plot so
+            # the returned object isn't orphaned outside session state.
+            logger.warning(
+                "Plot ID %d not found during type change; appending the new plot",
+                plot.plot_id,
+            )
+            plots.append(new_plot)
+        state_manager.set_plots(plots)
 
         return new_plot
 
@@ -116,7 +120,11 @@ class PlotService:
         try:
             fig = plot.generate_figure()
         except Exception:
-            logger.warning("Figure generation failed for plot '%s', skipping export", plot.name)
+            logger.warning(
+                "Figure generation failed for plot '%s', skipping export",
+                plot.name,
+                exc_info=True,
+            )
             return None
 
         fmt = format or plot.config.get("download_format", "pdf")

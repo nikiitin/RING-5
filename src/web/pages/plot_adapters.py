@@ -38,7 +38,7 @@ from src.web.pages.ui.plotting.plot_service import PlotService
 from src.web.pages.ui.shaper_config import apply_shapers, configure_shaper
 
 if TYPE_CHECKING:
-    from src.core.state.repository_state_manager import RepositoryStateManager
+    from src.core.state.state_manager import StateManager
 
 
 class PlotLifecycleAdapter:
@@ -48,24 +48,20 @@ class PlotLifecycleAdapter:
     Wraps create, delete, duplicate, and change_plot_type operations.
     """
 
-    def create_plot(
-        self, name: str, plot_type: str, state_manager: "RepositoryStateManager"
-    ) -> PlotHandle:
+    def create_plot(self, name: str, plot_type: str, state_manager: "StateManager") -> PlotHandle:
         """Create a new plot via PlotService."""
         return PlotService.create_plot(name, plot_type, state_manager)
 
-    def delete_plot(self, plot_id: int, state_manager: "RepositoryStateManager") -> None:
+    def delete_plot(self, plot_id: int, state_manager: "StateManager") -> None:
         """Delete a plot via PlotService."""
         PlotService.delete_plot(plot_id, state_manager)
 
-    def duplicate_plot(
-        self, plot: PlotHandle, state_manager: "RepositoryStateManager"
-    ) -> PlotHandle:
+    def duplicate_plot(self, plot: PlotHandle, state_manager: "StateManager") -> PlotHandle:
         """Duplicate a plot via PlotService."""
         return PlotService.duplicate_plot(cast(BasePlot, plot), state_manager)
 
     def change_plot_type(
-        self, plot: PlotHandle, new_type: str, state_manager: "RepositoryStateManager"
+        self, plot: PlotHandle, new_type: str, state_manager: "StateManager"
     ) -> PlotHandle:
         """Change a plot's type via PlotService."""
         return PlotService.change_plot_type(cast(BasePlot, plot), new_type, state_manager)

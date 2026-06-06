@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     import plotly.graph_objects as go
 
     from src.core.models.visualization.trace_build_result import TraceBuildResult
-    from src.core.state.repository_state_manager import RepositoryStateManager
+    from src.core.state.state_manager import StateManager
 
 # ─── Plot Object Protocols ──────────────────────────────────────────────────
 
@@ -116,18 +116,14 @@ class PlotLifecycleService(Protocol):
     that satisfies this protocol.
     """
 
-    def create_plot(
-        self, name: str, plot_type: str, state_manager: RepositoryStateManager
-    ) -> PlotHandle: ...
+    def create_plot(self, name: str, plot_type: str, state_manager: StateManager) -> PlotHandle: ...
 
-    def delete_plot(self, plot_id: int, state_manager: RepositoryStateManager) -> None: ...
+    def delete_plot(self, plot_id: int, state_manager: StateManager) -> None: ...
 
-    def duplicate_plot(
-        self, plot: PlotHandle, state_manager: RepositoryStateManager
-    ) -> PlotHandle: ...
+    def duplicate_plot(self, plot: PlotHandle, state_manager: StateManager) -> PlotHandle: ...
 
     def change_plot_type(
-        self, plot: PlotHandle, new_type: str, state_manager: RepositoryStateManager
+        self, plot: PlotHandle, new_type: str, state_manager: StateManager
     ) -> PlotHandle: ...
 
 
