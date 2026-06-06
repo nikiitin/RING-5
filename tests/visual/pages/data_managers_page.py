@@ -42,13 +42,14 @@ class DataManagersPage(BasePage):
     def _by_label(self, test_id: str, label_text: str) -> Locator:
         """Return a locator for a widget with ``data-testid`` filtered by label.
 
-        Streamlit renders all tab panels in the DOM simultaneously and
-        hides inactive ones via CSS.  Generic selectors like
-        ``[data-testid='stSelectbox']`` match elements across all tabs.
-        Filtering by the widget label text ensures we target the correct
-        widget regardless of DOM order or tab visibility.
+        Streamlit renders all tab panels in the DOM simultaneously and hides
+        inactive ones via CSS, so a label can appear in several panels at once
+        (e.g. "Group by columns" / "New Column Name" exist in more than one tab).
+        Scoping to ``:visible`` restricts the match to the **active** tab panel,
+        preventing strict-mode "resolved to N elements" failures. Callers must
+        ``select_tab(...)`` the relevant tab first (the tests do).
         """
-        return self.page.locator(f"[data-testid='{test_id}']").filter(has_text=label_text)
+        return self.page.locator(f"[data-testid='{test_id}']:visible").filter(has_text=label_text)
 
     # ------------------------------------------------------------------
     # Navigation
@@ -193,8 +194,13 @@ class DataManagersPage(BasePage):
             expect(rows_metric.first).to_contain_text(str(expected), timeout=self.RENDER_TIMEOUT)
 
     def assert_summary_has_columns(self) -> None:
-        """Assert Summary tab shows column count metric."""
-        expect(self.page.get_by_text("Columns")).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        """Assert Summary tab shows a column-count metric.
+
+        Scopes to the ``st.metric`` card; a bare ``get_by_text("Columns")``
+        matched ~23 elements on the page (strict-mode violation).
+        """
+        cols_metric = self.page.locator("[data-testid='stMetric']").filter(has_text="Columns")
+        expect(cols_metric.first).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
     # ------------------------------------------------------------------
     # E2E: Seeds Reducer

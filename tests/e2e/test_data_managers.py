@@ -36,12 +36,20 @@ def _select_dropdown_option(page: Page, selectbox: Locator, text: str) -> None:
 
 
 def _add_multiselect_option(page: Page, multiselect: Locator, text: str) -> None:
-    """Click a Streamlit multiselect and add *text* to the selection."""
+    """Add *text* to a Streamlit multiselect via type-to-filter + click.
+
+    Robust across repeated calls: a prior selection can leave the dropdown open,
+    so a blind re-click would toggle it shut and the option click would time out.
+    Instead we focus the box, type to filter the options to the wanted one, and
+    wait for that option before clicking.
+    """
     multiselect.click()
-    page.wait_for_timeout(300)
-    page.locator("[data-testid='stSelectboxVirtualDropdown'] li").get_by_text(
+    multiselect.locator("input").fill(text)
+    option = page.locator("[data-testid='stSelectboxVirtualDropdown'] li").get_by_text(
         text, exact=True
-    ).click()
+    )
+    expect(option.first).to_be_visible(timeout=_E2E_TIMEOUT)
+    option.first.click()
     page.wait_for_timeout(200)
 
 
