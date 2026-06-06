@@ -327,6 +327,20 @@ class ManagePlotsPage(BasePage):
         return self._by_label("stSelectbox", "Y-axis")
 
     @property
+    def viz_y_bar_selectbox(self) -> Locator:
+        """'Y-axis (Bars – left)' selectbox (dual-axis bar+dot plot).
+
+        Filtered on the distinctive plural 'Bars' to avoid the en-dash and
+        to not collide with the singular 'Dot Symbol'/'Dot Size' widgets.
+        """
+        return self._by_label("stSelectbox", "Bars")
+
+    @property
+    def viz_y_dot_selectbox(self) -> Locator:
+        """'Y-axis (Dots – right)' selectbox (dual-axis bar+dot plot)."""
+        return self._by_label("stSelectbox", "Dots")
+
+    @property
     def viz_color_by_selectbox(self) -> Locator:
         """'Color by' selectbox (optional — may not be rendered)."""
         return self._by_label("stSelectbox", "Color by")
@@ -348,8 +362,12 @@ class ManagePlotsPage(BasePage):
 
     @property
     def viz_title_input(self) -> Locator:
-        """'Title' text input for the chart."""
-        return self._by_label("stTextInput", "Title").locator("input")
+        """'Title' text input for the chart.
+
+        Uses an exact-name role locator: a ``has_text='Title'`` filter also
+        matches the dual-axis plot's 'Legend Title' field (strict-mode clash).
+        """
+        return self.page.get_by_role("textbox", name="Title", exact=True)
 
     @property
     def viz_x_label_input(self) -> Locator:
@@ -638,6 +656,24 @@ class ManagePlotsPage(BasePage):
             column: Exact column name.
         """
         self.viz_y_axis_selectbox.click()
+        self._select_dropdown_option(column)
+
+    def select_y_bar(self, column: str) -> None:
+        """Select the bars (left Y-axis) column for a dual-axis bar+dot plot.
+
+        Args:
+            column: Exact column name.
+        """
+        self.viz_y_bar_selectbox.click()
+        self._select_dropdown_option(column)
+
+    def select_y_dot(self, column: str) -> None:
+        """Select the dots (right Y-axis) column for a dual-axis bar+dot plot.
+
+        Args:
+            column: Exact column name.
+        """
+        self.viz_y_dot_selectbox.click()
         self._select_dropdown_option(column)
 
     def select_color_by(self, column: str) -> None:

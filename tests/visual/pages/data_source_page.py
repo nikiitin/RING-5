@@ -11,6 +11,7 @@ Playwright tests can exercise it.
 
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
 from playwright.sync_api import Locator, Page, expect
@@ -551,16 +552,39 @@ class DataSourcePage(BasePage):
         self.dialog_add_button.click()
         self.wait_for_streamlit()
 
-    def upload_csv(self, csv_path: str | Path) -> None:
-        """Upload a CSV file via the file uploader.
+    def load_recent_csv(self, index: int = 0) -> None:
+        """Load a CSV from the Recent-CSV pool by card index (0 = most recent).
+
+        The most-recent card is auto-expanded, so its 'Load This File' button
+        is immediately actionable.
 
         Args:
-            csv_path: Absolute path to the CSV file.
+            index: Zero-based pool-card index (sorted newest first).
         """
-        self.select_csv_mode()
-        file_input = self.page.locator("input[type='file']")
-        file_input.set_input_files(str(csv_path))
+        self.select_recent_mode()
+        self.pool_card_load_button(index).click()
         self.wait_for_streamlit()
+
+    def upload_csv(self, csv_path: str | Path) -> None:
+        """Load a CSV into the app from a local path.
+
+        The legacy ``st.file_uploader`` was removed; the canonical "bring your
+        own CSV" path is now the Recent-CSV pool. We stage the file into the
+        pool directory (shared on disk with the server process) with a fresh
+        mtime so it becomes the newest entry, then load it via the
+        'Load from Recent' UI.
+
+        Args:
+            csv_path: Absolute path to the CSV file to load.
+        """
+        from src.core.services.data_services.csv_pool_service import CsvPoolService
+
+        pool_dir = CsvPoolService.get_pool_dir()
+        pool_dir.mkdir(parents=True, exist_ok=True)
+        # Stable staged name (overwritten each run → refreshed mtime = newest).
+        staged = pool_dir / f"e2e_staged_{Path(csv_path).stem}.csv"
+        shutil.copy(str(csv_path), str(staged))
+        self.load_recent_csv(0)
 
     # ==================================================================
     # Assertions
