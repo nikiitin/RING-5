@@ -10,10 +10,8 @@ import plotly.graph_objects as go
 
 from src.core.models.data_models import PipelineStep
 from src.core.models.visualization.trace_build_result import TraceBuildResult
-from src.core.services.visualization.plot_interaction import (
-    update_config_from_relayout,
-)
 from src.web.models.plot_models import PlotConfig
+from src.web.rendering.relayout import update_config_from_relayout
 from src.web.pages.ui.plotting.plot_config_ui import PlotConfigUIMixin
 from src.web.pages.ui.plotting.styles import StyleApplicator, StyleUIFactory
 
@@ -112,7 +110,8 @@ class BasePlot(PlotConfigUIMixin, ABC):
         """
         Update config from client-side relayout data (zoom/pan, legend drag).
 
-        Delegates pure computation to update_config_from_relayout (Layer B).
+        Delegates Plotly-event decoding to the web rendering layer
+        (``src.web.rendering.relayout.update_config_from_relayout``).
 
         Args:
             relayout_data: Dictionary of relayout events from Plotly

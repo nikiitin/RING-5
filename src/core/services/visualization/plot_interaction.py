@@ -1,20 +1,17 @@
-"""Plot interaction service — relayout handling and item ordering.
+"""Plot interaction service — value conversion and item ordering.
 
-Pure business logic for handling interactive plot state changes.
-Extracts computation from UI layer to maintain architectural compliance.
-
-Moved from ``src.core.services.plot_interaction_service`` into the
-``visualization`` sub-package (Phase 3.5) for better organization.
+Pure, engine-agnostic business logic for interactive plot state.
 
 Handles:
-    - Relayout event processing (zoom, pan, legend drag)
-    - Reorderable list synchronization
+    - Reorderable list / item-order synchronization
     - Value conversion utilities
+
+Engine-specific event decoding (e.g. Plotly relayout payloads) lives in the
+web rendering layer (``src.web.rendering.relayout``), not here.
 
 All functions are pure (no UI dependencies, no side effects beyond returned data).
 """
 
-import math
 from typing import Any
 
 
@@ -66,149 +63,6 @@ def try_float_edit(value: Any) -> float | str:
         return float(value)
     except (ValueError, TypeError):
         return str(value)
-
-
-def _is_close(a: Any, b: Any) -> bool:
-    """Check if two values are approximately equal.
-
-    Uses math.isclose for numeric comparison, falls back to equality.
-
-    Args:
-        a: First value
-        b: Second value
-
-    Returns:
-        True if values are close/equal.
-    """
-    try:
-        return math.isclose(float(a), float(b), rel_tol=1e-9)
-    except (ValueError, TypeError):
-        return bool(a == b)
-
-
-def update_config_from_relayout(
-    config: dict[str, Any], relayout_data: dict[str, Any]
-) -> tuple[dict[str, Any], bool]:
-    """Update plot config from Plotly client-side relayout data (zoom/pan, legend drag).
-
-    This is a pure function that computes a new config dict from relayout events.
-    It handles:
-    - Zoom/pan: xaxis.range, yaxis.range -> range_x, range_y
-    - Reset zoom: xaxis.autorange -> range_x = None
-    - Legend drag: legend.x, legend.y -> legend_x, legend_y + anchors
-    - Legend title edit: legend.title.text -> legend_title
-
-    Args:
-        config: Current plot configuration dictionary.
-        relayout_data: Dictionary of relayout events from Plotly.
-
-    Returns:
-        Tuple of (updated_config, changed).
-        updated_config is a new dict (config is not mutated).
-        changed is True if any config value was modified.
-
-    Examples:
-        >>> config = {"range_x": None}
-        >>> relayout = {"xaxis.range[0]": 0, "xaxis.range[1]": 10}
-        >>> new_config, changed = update_config_from_relayout(config, relayout)
-        >>> changed
-        True
-        >>> new_config["range_x"]
-        [0, 10]
-    """
-    if not relayout_data:
-        return config, False
-
-    updated = config.copy()
-    changed: bool = False
-
-    def update_if_new(key: str, val: Any) -> bool:
-        """Update config key if value is meaningfully different."""
-        nonlocal changed
-        current: Any = updated.get(key)
-
-        # Check for float equality if both are lists of numbers (ranges)
-        if isinstance(current, list) and isinstance(val, list) and len(current) == len(val):
-            if all(_is_close(c, v) for c, v in zip(current, val, strict=True)):
-                return False
-
-        # Simple equality check for non-lists or different lengths
-        if current != val:
-            if _is_close(current, val):
-                return False
-            updated[key] = val
-            changed = True
-            return True
-        return False
-
-    # 1. Custom Range (Zoom)
-    # x-axis
-    if "xaxis.range[0]" in relayout_data and "xaxis.range[1]" in relayout_data:
-        new_range: list[float] = [
-            relayout_data["xaxis.range[0]"],
-            relayout_data["xaxis.range[1]"],
-        ]
-        update_if_new("range_x", new_range)
-    elif "xaxis.range" in relayout_data:
-        update_if_new("range_x", relayout_data["xaxis.range"])
-
-    # y-axis
-    if "yaxis.range[0]" in relayout_data and "yaxis.range[1]" in relayout_data:
-        new_range_y: list[float] = [
-            relayout_data["yaxis.range[0]"],
-            relayout_data["yaxis.range[1]"],
-        ]
-        update_if_new("range_y", new_range_y)
-    elif "yaxis.range" in relayout_data:
-        update_if_new("range_y", relayout_data["yaxis.range"])
-
-    # Autosize / Reset Zoom
-    if "xaxis.autorange" in relayout_data and relayout_data["xaxis.autorange"]:
-        if updated.get("range_x") is not None:
-            updated["range_x"] = None
-            changed = True
-
-    if "yaxis.autorange" in relayout_data and relayout_data["yaxis.autorange"]:
-        if updated.get("range_y") is not None:
-            updated["range_y"] = None
-            changed = True
-
-    # 2. Legend Position (Drag)
-    for key, val in relayout_data.items():
-        if not key.startswith("legend"):
-            continue
-
-        parts: list[str] = key.split(".")
-        if len(parts) != 2:
-            continue
-
-        legend_name: str = parts[0]  # "legend" or "legend2", etc.
-        prop: str = parts[1]  # "x", "y", "xanchor", etc.
-
-        # Build config key: legend.x -> legend_x, legend2.x -> legend2_x
-        config_key: str
-        if legend_name == "legend":
-            config_key = f"legend_{prop}"
-        else:
-            config_key = f"{legend_name}_{prop}"
-
-        if prop in ("x", "y"):
-            if update_if_new(config_key, val):
-                # Also set anchor when position changes
-                if prop == "x":
-                    anchor_key = config_key.replace("_x", "_xanchor")
-                    updated[anchor_key] = "left"
-                elif prop == "y":
-                    anchor_key = config_key.replace("_y", "_yanchor")
-                    updated[anchor_key] = "top"
-        elif prop in ("xanchor", "yanchor"):
-            update_if_new(config_key, val)
-
-    # 3. Legend Title (Edit)
-    if "legend.title.text" in relayout_data:
-        update_if_new("legend_title", relayout_data["legend.title.text"])
-
-    return updated, changed
 
 
 def resolve_item_order(

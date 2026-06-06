@@ -6,7 +6,7 @@ previously scattered across the models layer (violating P2).
 Modules:
     config_resolver — Sentinel resolution for ``FigureConfig`` trees.
     palette_service — Palette lookup, ordering, colorblind-safe filtering.
-    plot_interaction — Relayout event processing, item ordering.
+    plot_interaction — Item ordering and value-conversion utilities.
 """
 
 from src.core.services.visualization.config_resolver import (  # noqa: F401
@@ -21,5 +21,4 @@ from src.core.services.visualization.plot_interaction import (  # noqa: F401
     resolve_item_order,
     try_float,
     try_float_edit,
-    update_config_from_relayout,
 )
