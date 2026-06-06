@@ -5,6 +5,7 @@ All functions are stateless — no UI or Streamlit imports.
 """
 
 import math
+from collections.abc import Iterable
 from typing import Any
 
 import pandas as pd
@@ -20,29 +21,31 @@ from src.core.models.visualization.trace_config import (
 from src.web.pages.ui.plotting.utils import GroupedBarUtils
 
 
+def order_with_overrides(present: Iterable[Any], explicit_order: list[Any] | None) -> list[str]:
+    """Order category-like values: explicit order first, then the rest sorted.
+
+    The single home for the "honour the user's explicit order (stringified),
+    then append any remaining present values in sorted order" rule shared by
+    x-axis categories (``xaxis_order``) and group/legend order. Membership is
+    checked as ``str(v) in present`` to match how callers stringify their
+    override values while leaving the present values in their native form.
+    """
+    present_list = list(present)
+    if not explicit_order:
+        return sorted(present_list)
+    ordered: list[str] = [str(v) for v in explicit_order if str(v) in present_list]
+    ordered.extend(v for v in sorted(present_list) if v not in ordered)
+    return ordered
+
+
 def get_ordered_categories_and_groups(
     data: pd.DataFrame, x_col: str, group_col: str, config: dict[str, Any]
 ) -> tuple[list[str], list[str]]:
     """Get ordered lists of categories and groups."""
-    # Categories
-    if config.get("xaxis_order"):
-        xaxis_order_str = [str(x) for x in config["xaxis_order"]]
-        ordered_cats = [c for c in xaxis_order_str if c in data[x_col].unique()]
-        missing = [c for c in sorted(data[x_col].unique()) if c not in ordered_cats]
-        ordered_cats.extend(missing)
-    else:
-        ordered_cats = sorted(data[x_col].unique())
-
-    # Groups
-    if config.get("group_order"):
-        group_order_str = [str(g) for g in config["group_order"]]
-        ordered_groups = [g for g in group_order_str if g in data[group_col].unique()]
-        missing = [g for g in sorted(data[group_col].unique()) if g not in ordered_groups]
-        ordered_groups.extend(missing)
-    else:
-        ordered_groups = sorted(data[group_col].unique())
-
-    return ordered_cats, ordered_groups
+    return (
+        order_with_overrides(data[x_col].unique(), config.get("xaxis_order")),
+        order_with_overrides(data[group_col].unique(), config.get("group_order")),
+    )
 
 
 def apply_renames(

@@ -9,7 +9,10 @@ from src.core.models.visualization.trace_config import BarTraceConfig
 from src.web.components.plotting.config.base_plot_config import render_common_with_color
 from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
-from src.web.pages.ui.plotting.types._trace_helpers import build_color_grouped_traces
+from src.web.pages.ui.plotting.types._trace_helpers import (
+    build_color_grouped_traces,
+    prepare_categorical_data,
+)
 
 
 class BarPlot(BasePlot):
@@ -30,8 +33,7 @@ class BarPlot(BasePlot):
         y_col: str = config["y"]
 
         # Cast x to string for categorical plotting
-        data = data.copy()
-        data[x_col] = data[x_col].astype(str)
+        data = prepare_categorical_data(data, [x_col])
 
         # Determine ordering
         if config.get("xaxis_order"):

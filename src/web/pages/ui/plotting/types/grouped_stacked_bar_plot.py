@@ -10,6 +10,7 @@ from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import TraceConfig
 from src.web.components.plotting.config import grouped_stacked_bar_config
 from src.web.models.plot_models import PlotConfig
+from src.web.pages.ui.plotting.types._trace_helpers import prepare_categorical_data
 from src.web.pages.ui.plotting.types.stacked_bar_plot import StackedBarPlot
 from src.web.pages.ui.plotting.utils import GroupedBarUtils
 
@@ -254,11 +255,8 @@ class GroupedStackedBarPlot(StackedBarPlot):
         dual_axis: bool = False,
     ) -> TraceBuildResult:
         """Build TraceBuildResult for grouped stacked bars."""
-        # Make a copy to avoid SettingWithCopyWarning
-        data = data.copy()
-
-        # Ensure group column is string
-        data[group_col] = data[group_col].astype(str)
+        # Copy + cast the group column to string (categorical axis)
+        data = prepare_categorical_data(data, [group_col])
 
         # Apply Group Filter
         if config.get("group_filter") is not None:

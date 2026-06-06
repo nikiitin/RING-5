@@ -6,12 +6,32 @@ BarPlot, LinePlot, and ScatterPlot.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 
 import pandas as pd
 
 from src.core.models.visualization.trace_config import TraceConfig
 from src.web.models.plot_models import PlotConfig
+
+
+def prepare_categorical_data(
+    data: pd.DataFrame,
+    columns: Sequence[str | None],
+    *,
+    copy: bool = True,
+) -> pd.DataFrame:
+    """Cast the given columns to ``str`` for categorical (x / group / color) axes.
+
+    Copies the frame by default so the caller's data is never mutated in place
+    (the no-``inplace`` rule). ``None`` and absent columns are skipped, so a
+    caller can pass an optional group/color column without guarding it itself.
+    """
+    if copy:
+        data = data.copy()
+    for col in columns:
+        if col and col in data.columns:
+            data[col] = data[col].astype(str)
+    return data
 
 
 def extract_error_bars(
@@ -57,8 +77,7 @@ def build_color_grouped_traces(
     traces: list[TraceConfig] = []
 
     if color_col:
-        data = data.copy()
-        data[color_col] = data[color_col].astype(str)
+        data = prepare_categorical_data(data, [color_col])
 
         if config.get("legend_order"):
             groups: list[str] = [str(g) for g in config["legend_order"]]

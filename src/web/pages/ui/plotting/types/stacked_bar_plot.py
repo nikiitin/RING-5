@@ -9,6 +9,10 @@ from src.core.models.visualization.trace_config import BarTraceConfig
 from src.web.components.plotting.config import stacked_bar_config
 from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
+from src.web.pages.ui.plotting.types._trace_helpers import (
+    extract_error_bars,
+    prepare_categorical_data,
+)
 
 
 class StackedBarPlot(BasePlot):
@@ -56,8 +60,7 @@ class StackedBarPlot(BasePlot):
         self, data: pd.DataFrame, x_col: str, y_cols: list[str], config: PlotConfig
     ) -> pd.DataFrame:
         """Prepare data: apply filters, calculate totals, convert types."""
-        data = data.copy()
-        data[x_col] = data[x_col].astype(str)
+        data = prepare_categorical_data(data, [x_col])
 
         # Apply X Filter
         if config.get("x_filter") is not None:
@@ -102,11 +105,8 @@ class StackedBarPlot(BasePlot):
         config: PlotConfig,
     ) -> BarTraceConfig:
         """Build a single BarTraceConfig for a stacked series."""
-        error_y_vals: list[float] | None = None
-        if config.get("show_error_bars"):
-            sd_col = f"{y_col}.sd"
-            if sd_col in data.columns:
-                error_y_vals = data[sd_col].tolist()
+        sd_col = extract_error_bars(data, y_col, config)
+        error_y_vals: list[float] | None = data[sd_col].tolist() if sd_col else None
 
         # Get series styling configuration
         series_styles = config.get("series_styles", {})

@@ -14,12 +14,13 @@ from typing import Literal, cast, override
 import pandas as pd
 import plotly.graph_objects as go
 
-from src.core.models.visualization.palettes import resolve_palette
+from src.core.services.visualization.palette_service import resolve_palette
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import HeatmapTraceConfig
 from src.web.components.plotting.config import heatmap_config
 from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
+from src.web.pages.ui.plotting.types._trace_helpers import prepare_categorical_data
 
 _AGG_FUNCS = Literal["mean", "sum", "min", "max", "median", "first"]
 
@@ -157,16 +158,12 @@ class HeatmapPlot(BasePlot):
         if not metric_columns:
             return TraceBuildResult(traces=[])
 
-        # Work on a copy
-        df = data.copy()
+        # Work on a copy with categorical x / facet columns cast to string
+        df = prepare_categorical_data(data, [x_col, facet_col])
 
         # Apply filters
         x_filter: list[str] | None = config.get("x_filter")
         facet_filter: list[str] | None = config.get("group_filter")
-
-        df[x_col] = df[x_col].astype(str)
-        if facet_col and facet_col in df.columns:
-            df[facet_col] = df[facet_col].astype(str)
 
         if x_filter:
             df = df[df[x_col].isin(x_filter)]

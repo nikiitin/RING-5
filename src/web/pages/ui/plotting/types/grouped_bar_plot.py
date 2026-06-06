@@ -10,7 +10,11 @@ from src.core.models.visualization.trace_config import BarTraceConfig
 from src.web.components.plotting.config import grouped_bar_config
 from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
-from src.web.pages.ui.plotting.utils import GroupedBarUtils
+from src.web.pages.ui.plotting.types._trace_helpers import (
+    extract_error_bars,
+    prepare_categorical_data,
+)
+from src.web.pages.ui.plotting.utils import GroupedBarUtils, order_with_overrides
 
 
 class GroupedBarPlot(BasePlot):
@@ -104,13 +108,9 @@ class GroupedBarPlot(BasePlot):
         """Create grouped bar trace configurations using manual coordinates."""
 
         # 1. Data Preparation
-        data = data.copy()
         x_col = config["x"]
         group_col = config["group"] if config.get("group") else None
-
-        data[x_col] = data[x_col].astype(str)
-        if group_col:
-            data[group_col] = data[group_col].astype(str)
+        data = prepare_categorical_data(data, [x_col, group_col])
 
         # Apply Filters
         if config.get("x_filter") is not None:
@@ -118,25 +118,12 @@ class GroupedBarPlot(BasePlot):
         if config.get("group_filter") is not None and group_col:
             data = data[data[group_col].isin(config["group_filter"])]
 
-        # Determine Orders
-        if config.get("xaxis_order"):
-            ordered_x = [str(x) for x in config["xaxis_order"] if str(x) in data[x_col].unique()]
-            # Add missing
-            missing = [x for x in sorted(data[x_col].unique()) if x not in ordered_x]
-            ordered_x.extend(missing)
-        else:
-            ordered_x = sorted(data[x_col].unique())
-
-        # Determine Group Order (for Legend/Color)
+        # Determine Orders (explicit order first, then remaining sorted)
+        ordered_x = order_with_overrides(data[x_col].unique(), config.get("xaxis_order"))
         if group_col:
-            if config.get("group_order"):
-                ordered_groups = [
-                    str(g) for g in config["group_order"] if str(g) in data[group_col].unique()
-                ]
-                missing_g = [g for g in sorted(data[group_col].unique()) if g not in ordered_groups]
-                ordered_groups.extend(missing_g)
-            else:
-                ordered_groups = sorted(data[group_col].unique())
+            ordered_groups = order_with_overrides(
+                data[group_col].unique(), config.get("group_order")
+            )
         else:
             ordered_groups = []  # Empty list instead of [None]
 
@@ -161,11 +148,8 @@ class GroupedBarPlot(BasePlot):
                 grp_data = data[data[group_col] == grp]
                 x_coords = pd.Series(grp_data[x_col]).map(x_map).tolist()
 
-                error_y_vals: list[float] | None = None
-                if config.get("show_error_bars"):
-                    sd_col = f"{config['y']}.sd"
-                    if sd_col in data.columns:
-                        error_y_vals = grp_data[sd_col].tolist()
+                sd_col = extract_error_bars(data, config["y"], config)
+                error_y_vals: list[float] | None = grp_data[sd_col].tolist() if sd_col else None
 
                 traces.append(
                     BarTraceConfig(
@@ -179,11 +163,8 @@ class GroupedBarPlot(BasePlot):
             # No grouping (Single series)
             x_coords = pd.Series(data[x_col]).map(x_map).tolist()
 
-            error_y_vals = None
-            if config.get("show_error_bars"):
-                sd_col = f"{config['y']}.sd"
-                if sd_col in data.columns:
-                    error_y_vals = data[sd_col].tolist()
+            sd_col = extract_error_bars(data, config["y"], config)
+            error_y_vals = data[sd_col].tolist() if sd_col else None
 
             traces.append(
                 BarTraceConfig(
