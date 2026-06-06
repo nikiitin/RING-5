@@ -172,6 +172,31 @@ def shared_page(
 
 
 # ---------------------------------------------------------------------------
+# State isolation — clean slate per test class
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="class", autouse=True)
+def _reset_app_state(shared_page: Page, live_server_url: str) -> Generator[None]:
+    """Reset the app to a clean slate at the start of each test class.
+
+    ``ApplicationAPI`` is a process-wide ``@st.cache_resource`` singleton whose
+    ``PlotRepository`` stores plots in plain instance attributes (not
+    ``st.session_state``), so plots/data persist across browser sessions on the
+    same server. This autouse class fixture clicks 'Reset All' before each
+    class's tier/setup fixtures run, giving cross-class isolation under both
+    ``-n 0`` and ``-n 3 --dist loadgroup`` (one xdist worker may run several
+    groups against a single server). Autouse class fixtures instantiate before
+    the explicitly-requested ``tier*_page`` fixtures, so the slate is clean
+    before any data is loaded.
+    """
+    bp = BasePage(shared_page)
+    bp.goto_and_wait(live_server_url)
+    bp.reset_all()
+    yield
+
+
+# ---------------------------------------------------------------------------
 # Failure artifact capture
 # ---------------------------------------------------------------------------
 

@@ -59,4 +59,6 @@ class DataSourcePage:
         else:
             if self.api.state_manager.is_using_parser():
                 self.api.state_manager.set_use_parser(False)
-            st.success("CSV mode selected. You can upload CSV files in the Data Source page.")
+            st.success(
+                "CSV mode selected — choose 'Load from Recent' to load a parsed CSV from the pool."
+            )

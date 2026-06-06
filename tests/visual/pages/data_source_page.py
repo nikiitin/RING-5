@@ -248,11 +248,6 @@ class DataSourcePage(BasePage):
             "[data-testid='stMainBlockContainer'] " "[data-testid='stAlertContentSuccess']"
         ).filter(has_text="CSV mode selected")
 
-    @property
-    def file_uploader(self) -> Locator:
-        """The CSV file uploader (visible in CSV mode)."""
-        return self.page.locator("[data-testid='stFileUploader']")
-
     # ==================================================================
     # SECTION 5: Recent CSV pool (Load from Recent mode)
     # ==================================================================
@@ -577,12 +572,18 @@ class DataSourcePage(BasePage):
         Args:
             csv_path: Absolute path to the CSV file to load.
         """
+        import os
+
         from src.core.services.data_services.csv_pool_service import CsvPoolService
 
         pool_dir = CsvPoolService.get_pool_dir()
         pool_dir.mkdir(parents=True, exist_ok=True)
-        # Stable staged name (overwritten each run → refreshed mtime = newest).
-        staged = pool_dir / f"e2e_staged_{Path(csv_path).stem}.csv"
+        # Per-worker staged name: under `pytest -n N` every worker shares this
+        # on-disk pool dir, so a fixed name would race (concurrent overwrite /
+        # torn reads → "No data loaded"). Namespacing by xdist worker keeps each
+        # worker's staged file private; the freshest copy is the newest card.
+        worker = os.environ.get("PYTEST_XDIST_WORKER", "main")
+        staged = pool_dir / f"e2e_staged_{worker}_{Path(csv_path).stem}.csv"
         shutil.copy(str(csv_path), str(staged))
         self.load_recent_csv(0)
 
@@ -710,20 +711,20 @@ class DataSourcePage(BasePage):
             timeout=self.RENDER_TIMEOUT,
         )
 
-    def assert_csv_uploader_visible(self) -> None:
-        """Assert the file uploader is shown (CSV mode)."""
-        expect(self.file_uploader).to_be_visible(timeout=self.RENDER_TIMEOUT)
-
     def assert_data_loaded(self, *, row_count: int | None = None) -> None:
-        """Assert that data has been loaded (metrics row visible).
+        """Assert that data has been loaded (the data-summary metrics are shown).
+
+        Scopes to the ``st.metric("Rows", …)`` card to avoid the strict-mode
+        clash a bare ``get_by_text("Rows")`` hits (multiple matches on the page).
 
         Args:
-            row_count: If provided, verify the Rows metric matches.
+            row_count: If provided, verify the 'Rows' metric value matches.
         """
-        rows_metric = self.page.get_by_text("Rows")
+        rows_metric = self.page.locator("[data-testid='stMetric']").filter(has_text="Rows").first
         expect(rows_metric).to_be_visible(timeout=self.RENDER_TIMEOUT)
         if row_count is not None:
-            expect(self.page.get_by_text(str(row_count))).to_be_visible(timeout=self.RENDER_TIMEOUT)
+            value = rows_metric.locator("[data-testid='stMetricValue']")
+            expect(value).to_contain_text(str(row_count), timeout=self.RENDER_TIMEOUT)
 
     # ==================================================================
     # E2E: Scan workflow

@@ -53,6 +53,18 @@ class BasePage:
         btn.click()
         self.wait_for_streamlit()
 
+    def reset_all(self) -> None:
+        """Click the sidebar 'Reset All' button to clear all app state.
+
+        Drives ``api.reset_session()`` (clears plots + data + config). Used to
+        give each browser-test class a clean slate, since ``ApplicationAPI`` is
+        a process-wide ``@st.cache_resource`` singleton whose ``PlotRepository``
+        keeps plots in plain instance attributes (not ``st.session_state``), so
+        state otherwise persists across browser sessions on the same server.
+        """
+        self.sidebar.get_by_role("button", name="Reset All").click()
+        self.wait_for_streamlit()
+
     # ------------------------------------------------------------------
     # Streamlit sync helpers
     # ------------------------------------------------------------------

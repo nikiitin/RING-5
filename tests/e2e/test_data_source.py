@@ -72,13 +72,6 @@ class TestDataSourcePageStructure:
         ds.assert_config_preview_visible()
         ds.assert_parse_button_visible()
 
-    def test_csv_mode_shows_uploader(self, tier0_page: Page) -> None:
-        """Switching to CSV mode shows file uploader and hides parser config."""
-        ds = DataSourcePage(tier0_page)
-        ds.select_csv_mode()
-        ds.assert_csv_uploader_visible()
-        ds.assert_parser_config_hidden()
-
     def test_recent_mode_shows_pool(self, tier0_page: Page) -> None:
         """Switching to Recent mode shows pool content and hides parser config."""
         ds = DataSourcePage(tier0_page)
@@ -96,7 +89,7 @@ class TestDataSourcePageStructure:
         # CSV
         ds.select_csv_mode()
         ds.assert_csv_mode_active()
-        ds.assert_csv_uploader_visible()
+        ds.assert_csv_mode_message_visible()
         # Recent
         ds.select_recent_mode()
         ds.assert_recent_mode_active()
@@ -210,13 +203,19 @@ class TestDataSourceVariableDialog:
 
 
 # ---------------------------------------------------------------------------
-# Tier 0: CSV upload workflow
+# Tier 0: CSV load-from-pool workflow
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.xdist_group("e2e_data_source")
-class TestDataSourceCsvUpload:
-    """Tier 0: CSV upload workflow."""
+class TestDataSourceCsvLoad:
+    """Tier 0: CSV load-from-pool workflow.
+
+    The legacy st.file_uploader was removed; CSVs are loaded via the
+    'Load from Recent' pool (``DataSourcePage.upload_csv`` stages the file into
+    the pool, then loads it). These tests cover the mode message + the real
+    load path.
+    """
 
     def test_csv_mode_shows_success_message(self, tier0_page: Page) -> None:
         """CSV mode displays the mode selection success message."""
@@ -230,20 +229,15 @@ class TestDataSourceCsvUpload:
         ds = DataSourcePage(tier0_page)
         ds.assert_parser_config_hidden()
 
-    def test_csv_uploader_visible(self, tier0_page: Page) -> None:
-        """File uploader widget is visible in CSV mode."""
-        ds = DataSourcePage(tier0_page)
-        ds.assert_csv_uploader_visible()
-
-    def test_csv_upload_loads_data(self, tier0_page: Page, e2e_csv_path: Path) -> None:
-        """Upload fixture CSV and verify data is loaded."""
+    def test_csv_load_loads_data(self, tier0_page: Page, e2e_csv_path: Path) -> None:
+        """Load the fixture CSV via the Recent pool and verify data is loaded."""
         ds = DataSourcePage(tier0_page)
         ds.navigate()
         ds.upload_csv(e2e_csv_path)
         tier0_page.wait_for_timeout(1000)
         ds.assert_data_loaded()
 
-    def test_csv_upload_shows_row_count(self, tier0_page: Page) -> None:
-        """Uploaded CSV shows the correct row count (18 rows)."""
+    def test_csv_load_shows_row_count(self, tier0_page: Page) -> None:
+        """The loaded CSV shows the correct row count (18 rows)."""
         ds = DataSourcePage(tier0_page)
         ds.assert_data_loaded(row_count=18)
