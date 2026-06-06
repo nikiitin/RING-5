@@ -124,22 +124,26 @@ class TestShaperTypes:
     """
 
     def test_column_selector(self, tier1_page: Page) -> None:
-        """Column Selector shows multiselect and Select All button."""
+        """Column Selector shows the 'Columns to keep' multiselect.
+
+        (The Column Selector has no Select All / Clear All quick-action buttons;
+        it is just this multiselect, which defaults to the first column.)
+        """
         mp = ManagePlotsPage(tier1_page)
         _create_bar_plot(mp, "CS Type Test")
         mp.add_shaper("Column Selector")
         mp.assert_pipeline_step_count(1)
         expect(mp.column_selector_multiselect).to_be_visible(timeout=E2E_TIMEOUT)
-        mp.click_select_all_columns()
-        expect(mp.column_clear_all_button).to_be_visible(timeout=E2E_TIMEOUT)
+        mp.select_all_columns()
+        expect(mp.column_selector_multiselect).to_be_visible(timeout=E2E_TIMEOUT)
 
     def test_sort(self, tier1_page: Page) -> None:
-        """Sort shaper shows the sort-by column selectbox."""
+        """Sort shaper shows the 'Sort by columns' multiselect."""
         mp = ManagePlotsPage(tier1_page)
         _create_bar_plot(mp, "Sort Type Test")
         mp.add_shaper("Sort")
         mp.assert_pipeline_step_count(1)
-        expect(mp.sort_column_selectbox).to_be_visible(timeout=E2E_TIMEOUT)
+        expect(mp.sort_columns_multiselect).to_be_visible(timeout=E2E_TIMEOUT)
 
     def test_filter(self, tier1_page: Page) -> None:
         """Filter shaper shows column, operator, and value widgets."""
@@ -150,12 +154,12 @@ class TestShaperTypes:
         expect(mp.filter_column_selectbox).to_be_visible(timeout=E2E_TIMEOUT)
 
     def test_normalize(self, tier1_page: Page) -> None:
-        """Normalize shaper shows the column-to-normalize selectbox."""
+        """Normalize shaper shows the 'Variables to normalize' multiselect."""
         mp = ManagePlotsPage(tier1_page)
         _create_bar_plot(mp, "Norm Type Test")
         mp.add_shaper("Normalize")
         mp.assert_pipeline_step_count(1)
-        expect(mp.normalize_column_selectbox).to_be_visible(timeout=E2E_TIMEOUT)
+        expect(mp.normalize_variables_multiselect).to_be_visible(timeout=E2E_TIMEOUT)
 
     def test_mean_calculator(self, tier1_page: Page) -> None:
         """Mean Calculator shows the group-by multiselect."""
@@ -174,11 +178,15 @@ class TestShaperTypes:
         expect(mp.transformer_source_selectbox).to_be_visible(timeout=E2E_TIMEOUT)
 
     def test_split_apply(self, tier1_page: Page) -> None:
-        """Split-Apply (Per-Axis) can be added as a pipeline step."""
+        """Split-Apply (Per-Axis) can be added as a pipeline step.
+
+        Note: Split-Apply renders a *nested* ``st.expander`` per column group,
+        so the step-count helper (which counts expanders) would report >1 — we
+        instead just assert the step itself shows the Split-Apply label.
+        """
         mp = ManagePlotsPage(tier1_page)
         _create_bar_plot(mp, "Split Type Test")
         mp.add_shaper("Split-Apply (Per-Axis)")
-        mp.assert_pipeline_step_count(1)
         step = mp.get_pipeline_step(0)
         expect(step).to_contain_text("Split-Apply", timeout=E2E_TIMEOUT)
 

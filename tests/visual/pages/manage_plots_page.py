@@ -214,96 +214,69 @@ class ManagePlotsPage(BasePage):
         return step.get_by_role("button", name="Del")
 
     # -- Column Selector shaper widgets -------
+    # NOTE: the Column Selector has NO Select All / Clear All / Numeric Only
+    # quick-action buttons — it's just a "Columns to keep" multiselect that
+    # defaults to the first column.
 
     @property
     def column_selector_multiselect(self) -> Locator:
-        """'Select columns' multiselect inside Column Selector step."""
-        return self._by_label("stMultiSelect", "Select columns")
-
-    @property
-    def column_select_all_button(self) -> Locator:
-        """'Select All' quick-action button (Column Selector)."""
-        return self.page.get_by_role("button", name="Select All")
-
-    @property
-    def column_clear_all_button(self) -> Locator:
-        """'Clear All' quick-action button (Column Selector)."""
-        return self.page.get_by_role("button", name="Clear All")
-
-    @property
-    def column_numeric_only_button(self) -> Locator:
-        """'Numeric Only' quick-action button (Column Selector)."""
-        return self.page.get_by_role("button", name="Numeric Only")
+        """'Columns to keep' multiselect inside the Column Selector step."""
+        return self._by_label("stMultiSelect", "Columns to keep")
 
     # -- Sort shaper widgets -------
 
     @property
-    def sort_column_selectbox(self) -> Locator:
-        """'Sort by column' selectbox."""
-        return self._by_label("stSelectbox", "Sort by column")
-
-    @property
-    def sort_order_selectbox(self) -> Locator:
-        """Sort order selectbox (Ascending/Descending)."""
-        return self._by_label("stSelectbox", "Order")
+    def sort_columns_multiselect(self) -> Locator:
+        """'Sort by columns' multiselect (Sort shaper)."""
+        return self._by_label("stMultiSelect", "Sort by columns")
 
     # -- Filter (conditionSelector) shaper widgets -------
 
     @property
     def filter_column_selectbox(self) -> Locator:
-        """'Column' selectbox in Filter step."""
-        return self._by_label("stSelectbox", "Column")
+        """'Column to filter' selectbox in the Filter step."""
+        return self._by_label("stSelectbox", "Column to filter")
 
     @property
-    def filter_operator_selectbox(self) -> Locator:
-        """'Operator' selectbox in Filter step."""
-        return self._by_label("stSelectbox", "Operator")
-
-    @property
-    def filter_value_input(self) -> Locator:
-        """'Value' text input in Filter step."""
-        return self._by_label("stTextInput", "Value").locator("input")
+    def filter_mode_selectbox(self) -> Locator:
+        """'Filter mode' selectbox in the Filter step."""
+        return self._by_label("stSelectbox", "Filter mode")
 
     # -- Normalize shaper widgets -------
 
     @property
     def normalize_column_selectbox(self) -> Locator:
-        """'Column to normalize' selectbox."""
-        return self._by_label("stSelectbox", "Column to normalize")
+        """'Normalizer column (baseline identifier)' selectbox (Normalize shaper)."""
+        return self._by_label("stSelectbox", "Normalizer column")
 
     @property
-    def normalize_method_selectbox(self) -> Locator:
-        """'Normalization method' selectbox."""
-        return self._by_label("stSelectbox", "Normalization method")
+    def normalize_variables_multiselect(self) -> Locator:
+        """'Variables to normalize' multiselect (Normalize shaper)."""
+        return self._by_label("stMultiSelect", "Variables to normalize")
 
     # -- Mean Calculator shaper widgets -------
 
     @property
     def mean_group_by_multiselect(self) -> Locator:
-        """'Group by columns' multiselect in Mean Calculator."""
-        return self._by_label("stMultiSelect", "Group by columns")
+        """'Group by' multiselect in Mean Calculator."""
+        return self._by_label("stMultiSelect", "Group by")
 
     @property
-    def mean_calculate_for_multiselect(self) -> Locator:
-        """'Calculate mean for' multiselect in Mean Calculator."""
-        return self._by_label("stMultiSelect", "Calculate mean for")
+    def mean_variables_multiselect(self) -> Locator:
+        """'Variables' multiselect in Mean Calculator."""
+        return self._by_label("stMultiSelect", "Variables")
 
     # -- Transformer shaper widgets -------
 
     @property
     def transformer_source_selectbox(self) -> Locator:
-        """'Source column' selectbox in Transformer."""
-        return self._by_label("stSelectbox", "Source column")
+        """'Select Variable to Transform' selectbox in Transformer."""
+        return self._by_label("stSelectbox", "Select Variable to Transform")
 
     @property
-    def transformer_transformation_selectbox(self) -> Locator:
-        """'Transformation' selectbox in Transformer."""
-        return self._by_label("stSelectbox", "Transformation")
-
-    @property
-    def transformer_new_name_input(self) -> Locator:
-        """'New column name' text input in Transformer."""
-        return self._by_label("stTextInput", "New column name").locator("input")
+    def transformer_convert_selectbox(self) -> Locator:
+        """'Convert to:' selectbox in Transformer."""
+        return self._by_label("stSelectbox", "Convert to")
 
     # ==================================================================
     #  6. Visualization section (st.fragment)
@@ -351,9 +324,13 @@ class ManagePlotsPage(BasePage):
         return self._by_label("stSelectbox", "Group by")
 
     @property
-    def viz_stack_by_selectbox(self) -> Locator:
-        """'Stack by' selectbox (for Stacked Bar)."""
-        return self._by_label("stSelectbox", "Stack by")
+    def stacked_statistics_multiselect(self) -> Locator:
+        """'Statistics to Stack' multiselect (for Stacked Bar).
+
+        Stacked bar has no 'Stack by'/Y-axis selectbox — it stacks multiple
+        numeric statistics chosen here (defaults to the first numeric columns).
+        """
+        return self._by_label("stMultiSelect", "Statistics to Stack")
 
     @property
     def viz_size_by_selectbox(self) -> Locator:
@@ -371,13 +348,13 @@ class ManagePlotsPage(BasePage):
 
     @property
     def viz_x_label_input(self) -> Locator:
-        """'X-axis label' text input."""
-        return self._by_label("stTextInput", "X-axis label").locator("input")
+        """'X-label' text input (the plot-config axis-label field)."""
+        return self._by_label("stTextInput", "X-label").locator("input")
 
     @property
     def viz_y_label_input(self) -> Locator:
-        """'Y-axis label' text input."""
-        return self._by_label("stTextInput", "Y-axis label").locator("input")
+        """'Y-label' text input (the plot-config axis-label field)."""
+        return self._by_label("stTextInput", "Y-label").locator("input")
 
     @property
     def viz_auto_refresh_toggle(self) -> Locator:
@@ -396,10 +373,25 @@ class ManagePlotsPage(BasePage):
 
     @property
     def viz_settings_pills(self) -> Locator:
-        """Settings navigation pills (key=settings_nav)."""
+        """Settings navigation pills (key=settings_nav).
+
+        The basic sections (Layout / Typography / Legends) are ALWAYS rendered
+        whenever a plot's visualization section is shown — they are not gated by
+        the 'Show advanced settings' toggle (only the advanced sections are).
+        """
         return self.page.locator(
             "[data-testid='stMainBlockContainer'] " "[data-testid='stButtonGroup']"
         ).filter(has_text="layout")
+
+    @property
+    def viz_advanced_section_pill(self) -> Locator:
+        """An advanced-only settings-section pill ('Colors').
+
+        Advanced sections (Axes / Data Labels / Colors / Advanced) are shown
+        only when 'Show advanced settings' is enabled — so this pill is the
+        reliable signal of the toggle's effect (the basic pills never disappear).
+        """
+        return self.viz_settings_pills.get_by_role("button", name="Colors")
 
     @property
     def viz_engine_pills(self) -> Locator:
@@ -408,12 +400,8 @@ class ManagePlotsPage(BasePage):
             "[data-testid='stMainBlockContainer'] " "[data-testid='stButtonGroup']"
         ).filter(has_text="plotly")
 
-    @property
-    def viz_preset_pills(self) -> Locator:
-        """Preset selector pills."""
-        return self.page.locator(
-            "[data-testid='stMainBlockContainer'] " "[data-testid='stButtonGroup']"
-        ).filter(has_text="Preset")
+    # NOTE: no ``viz_preset_pills`` — the preset pills (render_preset_pills) are
+    # defined but not wired into the render flow, so they never appear in the UI.
 
     # -- Chart output -------
 
@@ -506,9 +494,16 @@ class ManagePlotsPage(BasePage):
         if plot_type is not None:
             self.select_plot_type(plot_type)
         self.create_plot_button.click()
-        self.wait_for_streamlit()
+        self.wait_for_streamlit(expect_rerun=True)
         # Confirm creation registered (the pill appears) before callers proceed.
         expect(self.get_plot_pill(name).first).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        # Creating a plot does NOT auto-select it when another plot is already
+        # selected: the st.pills 'plot_selector' session state retains the old
+        # selection and render_selector resets current_plot_id back to it,
+        # overriding create_plot's set_current_plot_id. Explicitly select the new
+        # plot so the pipeline/config edits that follow act on THIS plot.
+        # (Surfaced as a suspected app bug — see the e2e-revive notes.)
+        self.select_plot(name)
 
     def _select_dropdown_option(self, option_text: str) -> None:
         """Click an option in the currently-open Streamlit selectbox dropdown.
@@ -554,13 +549,26 @@ class ManagePlotsPage(BasePage):
     # ==================================================================
 
     def select_plot(self, plot_name: str) -> None:
-        """Select a plot by clicking its pill.
+        """Select a plot by clicking its pill (idempotent + verify-then-act).
+
+        Clicking an already-active pill DESELECTS it (the segmented-control
+        toggle gotcha), so we skip the click when the pill is already active.
+        After clicking we assert the pill became active, so a missed click
+        fails loudly rather than silently leaving the wrong plot selected
+        (which previously caused the wrong plot to be deleted).
 
         Args:
             plot_name: Display name of the plot.
         """
-        self.get_plot_pill(plot_name).click()
-        self.wait_for_streamlit()
+        pill = self.get_plot_pill(plot_name)
+        expect(pill).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        if (pill.get_attribute("data-testid") or "").endswith("pillsActive"):
+            return
+        pill.click()
+        self.wait_for_streamlit(expect_rerun=True)
+        expect(pill).to_have_attribute(
+            "data-testid", "stBaseButton-pillsActive", timeout=self.RENDER_TIMEOUT
+        )
 
     # ==================================================================
     #  ACTIONS — Controls row
@@ -569,22 +577,31 @@ class ManagePlotsPage(BasePage):
     def rename_plot(self, new_name: str) -> None:
         """Rename the currently selected plot.
 
+        Pressing Enter triggers a rerun in which the controller commits the new
+        name to the plot (``render_controls``). That rerun can start a beat
+        *after* the keypress, so we let it begin before waiting for completion:
+        otherwise a too-fast follow-up navigation aborts it BEFORE the commit,
+        and Streamlit then discards the now-unrendered rename-widget state — the
+        rename is silently lost. The selector pills are rendered earlier in the
+        same run (and there is no ``st.rerun`` after rename), so the pill label
+        only refreshes on the NEXT rerun — callers force one before asserting.
+
         Args:
             new_name: New plot name.
         """
         self.rename_input.fill(new_name)
         self.rename_input.press("Enter")
-        self.wait_for_streamlit()
+        self.wait_for_streamlit(expect_rerun=True)
 
     def delete_plot(self) -> None:
         """Delete the currently selected plot."""
         self.delete_button.click()
-        self.wait_for_streamlit()
+        self.wait_for_streamlit(expect_rerun=True)
 
     def duplicate_plot(self) -> None:
         """Duplicate the currently selected plot."""
         self.duplicate_button.click()
-        self.wait_for_streamlit()
+        self.wait_for_streamlit(expect_rerun=True)
 
     # ==================================================================
     #  ACTIONS — Pipeline editor
@@ -598,12 +615,12 @@ class ManagePlotsPage(BasePage):
         """
         self._open_and_select(self.add_transformation_selectbox, shaper_name)
         self.add_to_pipeline_button.click()
-        self.wait_for_streamlit()
+        self.wait_for_streamlit(expect_rerun=True)
 
     def finalize_pipeline(self) -> None:
         """Click 'Finalize Pipeline for Plotting' and wait."""
         self.finalize_button.click()
-        self.wait_for_streamlit()
+        self.wait_for_streamlit(expect_rerun=True)
 
     def delete_step(self, index: int) -> None:
         """Delete a pipeline step by index.
@@ -636,19 +653,26 @@ class ManagePlotsPage(BasePage):
     #  ACTIONS — Column Selector shaper
     # ==================================================================
 
-    def click_select_all_columns(self) -> None:
-        """Click 'Select All' quick-action in Column Selector."""
-        self.column_select_all_button.click()
-        self.wait_for_streamlit()
+    def select_all_columns(self) -> None:
+        """Add every available column to the 'Columns to keep' multiselect.
 
-    def click_clear_all_columns(self) -> None:
-        """Click 'Clear All' quick-action in Column Selector."""
-        self.column_clear_all_button.click()
-        self.wait_for_streamlit()
-
-    def click_numeric_only_columns(self) -> None:
-        """Click 'Numeric Only' quick-action in Column Selector."""
-        self.column_numeric_only_button.click()
+        The Column Selector has no Select All button (it just defaults to the
+        first column), so we open the multiselect and click each remaining
+        option until only the empty "No options" state is left.
+        """
+        ms = self.column_selector_multiselect
+        expect(ms).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        options = self.page.locator("[data-testid='stSelectboxVirtualDropdown'] li").filter(
+            has_not_text="No options"
+        )
+        for _ in range(30):  # safety bound, >> number of columns
+            ms.click()
+            self.page.wait_for_timeout(250)  # let the option list render
+            if options.count() == 0:
+                break
+            options.first.click()
+            self.page.wait_for_timeout(250)  # let the multiselect commit
+        self.page.keyboard.press("Escape")
         self.wait_for_streamlit()
 
     # ==================================================================
@@ -679,10 +703,6 @@ class ManagePlotsPage(BasePage):
         """Select a column for 'Group by' (Grouped Bar)."""
         self._open_and_select(self.viz_group_by_selectbox, column)
 
-    def select_stack_by(self, column: str) -> None:
-        """Select a column for 'Stack by' (Stacked Bar)."""
-        self._open_and_select(self.viz_stack_by_selectbox, column)
-
     def refresh_plot(self) -> None:
         """Click 'Refresh Plot' and wait."""
         self.viz_refresh_button.click()
@@ -694,9 +714,23 @@ class ManagePlotsPage(BasePage):
         self.wait_for_streamlit()
 
     def toggle_advanced_settings(self) -> None:
-        """Toggle the 'Show advanced settings' switch."""
+        """Toggle 'Show advanced settings', verifying the switch actually flipped.
+
+        The toggle renders as a ``role=checkbox``; we read its state, click the
+        label, then assert the checked state inverted so a missed click fails
+        loudly. This toggle gates only the *advanced* settings-section pills
+        (Axes / Data Labels / Colors / Advanced); the basic Layout / Typography
+        / Legends pills are always visible.
+        """
+        checkbox = self.page.get_by_role("checkbox", name="Show advanced settings")
+        expect(checkbox).to_be_attached(timeout=self.RENDER_TIMEOUT)
+        was_checked = checkbox.is_checked()
         self.viz_show_advanced_toggle.click()
         self.wait_for_streamlit()
+        if was_checked:
+            expect(checkbox).not_to_be_checked(timeout=self.RENDER_TIMEOUT)
+        else:
+            expect(checkbox).to_be_checked(timeout=self.RENDER_TIMEOUT)
 
     def select_engine(self, engine: str) -> None:
         """Select a rendering engine via pills (idempotent).

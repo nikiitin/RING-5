@@ -42,8 +42,33 @@ def _by_label(page, test_id, label):   # scope a widget duplicated across tabs
 ## Critical Streamlit × Playwright gotchas (these cause most flakes)
 - **Page-ready wait:** `wait_for_load_state("networkidle")` **then** wait for
   `[data-testid='stStatusWidget']` to disappear. (networkidle alone races the script start.)
+- **Wait for the rerun to *start*, not just end** (the subtle one that silently loses state):
+  the status widget appears a beat *after* the triggering click (client→server round-trip). If you
+  only wait for it to be *hidden*, you can observe the **pre-rerun** idle state and return too early —
+  then a fast follow-up action (navigate / another click) **aborts the rerun before it commits**, and
+  Streamlit discards the now-unrendered widget's session state. Symptoms: a rename/delete that
+  "doesn't take", the wrong plot deleted. Fix: for actions guaranteed to rerun, first wait for
+  `stStatusWidget` to become **visible** (bounded ~3s) *then* hidden — `BasePage.wait_for_streamlit(expect_rerun=True)`.
+  Used by rename/delete/duplicate/create/finalize/add_shaper/select_plot.
 - **Segmented control toggle:** clicking the *already-active* option **deselects** it. Use an
-  `ensure_*_mode` pattern: check active state first, click only if needed.
+  `ensure_*`/idempotent pattern: check the active state (`data-testid='stBaseButton-pillsActive'`)
+  first, click only if needed, then assert it became active (`select_plot`, `select_engine`).
+- **Creating a plot does NOT auto-select it.** `st.pills(key="plot_selector")`'s persisted session
+  value (the old plot) wins over `set_current_plot_id(new)`, and the selector then resets current
+  back to it — so config/pipeline edits hit the *previously-selected* plot. `create_plot` must
+  explicitly `select_plot(name)` after creating. (Likewise: rename has no `st.rerun()`, so the pill
+  label is stale until the next rerun — navigate away+back to refresh.)
+- **Expanders are `<details><summary>`** — click the **`summary`** (there is no
+  `stExpanderToggleDetails` testid). Opening is a *client-side* toggle (no rerun) so verify-then-act
+  by waiting for the body to be visible; the open state *survives* later reruns.
+- **Per-plot-type config UIs differ — don't assume X/Y axes:** `stacked_bar` has **no Y-axis / "Stack
+  by"** (it stacks numeric *statistics* via a "Statistics to Stack" multiselect, defaulting to the
+  first numeric cols); `histogram` needs gem5 bucket columns (`var..0-10`) or it warns "No histogram
+  variables detected"; the plot-config axis-label fields are **"X-label"/"Y-label"** (not "X-axis label").
+- **Settings pills:** the basic sections (Layout/Typography/Legends) **always** render; "Show advanced
+  settings" only *adds* the advanced sections (Axes/Data Labels/Colors/Advanced). To test the toggle,
+  key off an advanced-only pill (e.g. "Colors"), not the whole pills group. (Preset pills
+  `render_preset_pills` exist but are **not wired** into the render flow — no preset UI appears.)
 - **Fragment reruns** (`@st.fragment`) need an extra `wait_for_timeout(500)` after interaction.
 - **`st.rerun()` closes dialogs** — don't expect a `stDialog` to survive a rerun.
 - **Forms batch** their widget changes (no per-widget rerun) — submit, then assert.

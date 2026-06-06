@@ -25,10 +25,15 @@ class TestSettingsPills:
     """Tier 2: Advanced settings pills and config inputs (ordered)."""
 
     def test_01_advanced_settings_toggle(self, tier2_page: Page) -> None:
-        """Toggle advanced settings on and verify settings pills appear."""
+        """Toggle advanced settings on; the advanced-section pills appear.
+
+        The basic Layout/Typography/Legends pills are always visible, so we
+        assert on an advanced-only section pill ('Colors') to verify the
+        toggle's effect.
+        """
         mp = ManagePlotsPage(tier2_page)
         mp.toggle_advanced_settings()
-        expect(mp.viz_settings_pills).to_be_visible(timeout=E2E_TIMEOUT)
+        expect(mp.viz_advanced_section_pill).to_be_visible(timeout=E2E_TIMEOUT)
 
     def test_02_layout_settings_visible(self, tier2_page: Page) -> None:
         """Layout pill is the default; title and axis-label inputs are visible."""
@@ -107,10 +112,15 @@ class TestSettingsPills:
         expect(mp.matplotlib_chart.first).not_to_be_visible(timeout=E2E_TIMEOUT)
 
     def test_13_toggle_advanced_off(self, tier2_page: Page) -> None:
-        """Toggle advanced settings off; settings pills disappear."""
+        """Toggle advanced settings off; the advanced-section pills disappear.
+
+        The basic Layout/Typography/Legends pills remain visible (they are not
+        gated by the toggle), so we assert the advanced-only 'Colors' pill is
+        gone rather than the whole pills group.
+        """
         mp = ManagePlotsPage(tier2_page)
         mp.toggle_advanced_settings()
-        expect(mp.viz_settings_pills).not_to_be_visible(timeout=E2E_TIMEOUT)
+        expect(mp.viz_advanced_section_pill).not_to_be_visible(timeout=E2E_TIMEOUT)
 
     def test_14_chart_visible_without_advanced(self, tier2_page: Page) -> None:
         """Chart remains visible after disabling advanced settings."""
@@ -118,34 +128,16 @@ class TestSettingsPills:
         mp.assert_chart_visible(timeout=CHART_TIMEOUT)
 
     def test_15_toggle_advanced_back_on(self, tier2_page: Page) -> None:
-        """Re-enable advanced settings; pills reappear."""
+        """Re-enable advanced settings; the advanced-section pills reappear."""
         mp = ManagePlotsPage(tier2_page)
         mp.toggle_advanced_settings()
-        expect(mp.viz_settings_pills).to_be_visible(timeout=E2E_TIMEOUT)
+        expect(mp.viz_advanced_section_pill).to_be_visible(timeout=E2E_TIMEOUT)
 
 
-# ---------------------------------------------------------------------------
-# Preset application
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.xdist_group("e2e_settings_presets")
-class TestPresetApplication:
-    """Tier 2: Preset selection and application."""
-
-    def test_01_enable_advanced_settings(self, tier2_page: Page) -> None:
-        """Enable advanced settings so presets become visible."""
-        mp = ManagePlotsPage(tier2_page)
-        mp.toggle_advanced_settings()
-        expect(mp.viz_settings_pills).to_be_visible(timeout=E2E_TIMEOUT)
-
-    def test_02_preset_pills_visible(self, tier2_page: Page) -> None:
-        """Preset pills widget is present on the page."""
-        mp = ManagePlotsPage(tier2_page)
-        expect(mp.viz_preset_pills).to_be_visible(timeout=E2E_TIMEOUT)
-
-    def test_03_chart_renders_after_preset(self, tier2_page: Page) -> None:
-        """Chart renders correctly after interacting with preset pills."""
-        mp = ManagePlotsPage(tier2_page)
-        mp.refresh_plot()
-        mp.assert_chart_visible(timeout=CHART_TIMEOUT)
+# NOTE: The former ``TestPresetApplication`` class was removed. It asserted a
+# "Preset" pills widget (``render_preset_pills`` in settings_pills.py), but that
+# function is NOT wired into the render flow (no call site in src/web — only
+# ui_logic unit tests reference it), so no preset pills are shown in the UI for
+# any plot, advanced settings on or off. The class therefore tested a
+# non-existent UI feature. Surfaced as a suspected app gap (preset pills defined
+# + unit-tested but never rendered) rather than silently wiring it up.

@@ -55,22 +55,27 @@ class TestExportDownload:
     def _open_download_expander(mp: ManagePlotsPage) -> None:
         """Click the download expander to reveal its contents.
 
-        The expander summary element is the clickable header. Clicking it
-        toggles the body open, making the format pills and download
-        button visible.
+        Streamlit renders the expander as ``<details><summary>…`` — the
+        ``summary`` element is the clickable header (there is no
+        ``stExpanderToggleDetails`` testid). Clicking it opens the body so the
+        format pills and download button become visible. Opening a ``<details>``
+        is a client-side toggle (no Streamlit rerun), so we verify-then-act by
+        waiting for the format pills to become visible.
         """
-        expander_header = mp.download_expander.locator("[data-testid='stExpanderToggleDetails']")
-        # Only click if the expander body is not already visible
         if not mp.download_format_pills.is_visible():
-            expander_header.click()
-            mp.wait_for_streamlit()
+            mp.download_expander.locator("summary").first.click()
+            expect(mp.download_format_pills).to_be_visible(timeout=E2E_TIMEOUT)
 
     @staticmethod
     def _select_format_pill(mp: ManagePlotsPage, format_name: str) -> None:
-        """Click a format pill inside the download expander by name."""
+        """Click a format pill inside the download expander by name.
+
+        Selecting a format reruns the script (to rebuild the download for that
+        format), so we wait for the rerun to actually start before its end.
+        """
         pill = mp.download_format_pills.get_by_role("button", name=format_name)
         pill.click()
-        mp.wait_for_streamlit()
+        mp.wait_for_streamlit(expect_rerun=True)
 
     # -- tests -------------------------------------------------------------
 
@@ -181,20 +186,28 @@ class TestExportDownload:
         expect(pgf_pill).to_be_visible(timeout=E2E_TIMEOUT)
 
     def test_07_download_button_label(self, tier2_page: Page) -> None:
-        """The download button inside the expander has the correct role.
+        """The download button inside the expander has the correct role + is enabled.
 
-        This verifies the download button is an accessible button element
-        with the "Download" name, matching the POM locator contract.
+        Uses the **html** format deliberately: it is plotly's native, kaleido-free
+        export, so the download button renders immediately. The raster formats
+        (png/svg/pdf) require a kaleido render whose data must be ready before
+        ``st.download_button`` appears — under ``-n 3`` three concurrent kaleido
+        exports starve and the button can lag past the timeout (raster coverage
+        lives in test_03/04/05). This test only checks the button role/enabled,
+        for which html is sufficient and deterministic.
         """
         mp = self._ensure_on_manage_plots(tier2_page)
         mp.select_plot("E2E Bar")
+        # The preceding test switches to Matplotlib; restore Plotly so the
+        # plotly-chart precondition below holds (select_engine is idempotent).
+        mp.select_engine("plotly")
         mp.assert_chart_visible(timeout=CHART_TIMEOUT)
 
         self._open_download_expander(mp)
 
-        # Select any format to ensure the button appears
-        self._select_format_pill(mp, "png")
+        # Select a kaleido-free format so the button appears deterministically.
+        self._select_format_pill(mp, "html")
 
-        # Verify the button has the expected accessible name
+        # Verify the button has the expected accessible name + is enabled.
         expect(mp.download_button).to_be_visible(timeout=E2E_TIMEOUT)
         expect(mp.download_button).to_be_enabled(timeout=E2E_TIMEOUT)

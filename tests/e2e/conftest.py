@@ -392,7 +392,7 @@ def tier3_page(
 
     # Add Column Selector → Sort → Finalize
     mp.add_shaper("Column Selector")
-    mp.click_select_all_columns()
+    mp.select_all_columns()
     mp.add_shaper("Sort")
     mp.finalize_pipeline()
 

@@ -164,7 +164,7 @@ class TestPlotFeatures:
 
         # Add column selector → select all → finalize
         mp.add_shaper("Column Selector")
-        mp.click_select_all_columns()
+        mp.select_all_columns()
         mp.finalize_pipeline()
 
         # Configure X/Y axis
