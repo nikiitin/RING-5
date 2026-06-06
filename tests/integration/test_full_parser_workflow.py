@@ -73,7 +73,7 @@ class TestFullParserWorkflow:
         )
 
         scan_results = [f.result() for f in scan_futures]
-        scanned_vars = ScannerService.aggregate_scan_results(scan_results)
+        scanned_vars = ScannerService.aggregate_scan_results(scan_results).variables
 
         # Verify scanning found expected variables
         assert len(scanned_vars) > 0
@@ -137,7 +137,7 @@ class TestFullParserWorkflow:
         )
 
         scan_results = [f.result() for f in scan_futures]
-        scanned_vars = facade.finalize_scan(scan_results)
+        scanned_vars = facade.finalize_scan(scan_results).variables
 
         assert len(scanned_vars) > 0
 

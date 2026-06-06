@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.core.models import ScannedVariable, StatConfig
+from src.core.models import ScanFileResult, ScannedVariable, StatConfig
 from src.core.models.parsing_models import StatParamValue
 from src.core.services.data_services.path_service import PathService
 from src.parsing.gem5.models import Gem5ScannedVariable
@@ -135,15 +135,16 @@ class TestScannerService:
         from src.parsing.scanner_service import ScannerService
 
         result = ScannerService.aggregate_scan_results([])
-        assert result == []
+        assert result.variables == []
+        assert result.failures == []
 
     def test_aggregate_single_file(self) -> None:
         from src.parsing.scanner_service import ScannerService
 
         var = ScannedVariable(name="simTicks", type="scalar", entries=[])
-        result = ScannerService.aggregate_scan_results([[var]])
-        assert len(result) >= 1
-        names = [v.name for v in result]
+        result = ScannerService.aggregate_scan_results([ScanFileResult("f0", [var])])
+        assert len(result.variables) >= 1
+        names = [v.name for v in result.variables]
         assert "simTicks" in names
 
     def test_aggregate_merges_vector_entries(self) -> None:
@@ -151,8 +152,10 @@ class TestScannerService:
 
         v1 = ScannedVariable(name="cpu.hits", type="vector", entries=["0", "1"])
         v2 = ScannedVariable(name="cpu.hits", type="vector", entries=["1", "2"])
-        result = ScannerService.aggregate_scan_results([[v1], [v2]])
-        hit_var = next(v for v in result if v.name == "cpu.hits")
+        result = ScannerService.aggregate_scan_results(
+            [ScanFileResult("f0", [v1]), ScanFileResult("f1", [v2])]
+        )
+        hit_var = next(v for v in result.variables if v.name == "cpu.hits")
         assert set(hit_var.entries) == {"0", "1", "2"}
 
     def test_aggregate_merges_distribution_range(self) -> None:
@@ -164,8 +167,10 @@ class TestScannerService:
         d2 = Gem5ScannedVariable(
             name="latency", type="distribution", entries=[], minimum=5, maximum=200
         )
-        result = ScannerService.aggregate_scan_results([[d1], [d2]])
-        lat_var = next(v for v in result if v.name == "latency")
+        result = ScannerService.aggregate_scan_results(
+            [ScanFileResult("f0", [d1]), ScanFileResult("f1", [d2])]
+        )
+        lat_var = next(v for v in result.variables if v.name == "latency")
         assert lat_var.minimum == 5  # type: ignore
         assert lat_var.maximum == 200  # type: ignore
 

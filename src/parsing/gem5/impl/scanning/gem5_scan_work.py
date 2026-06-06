@@ -12,7 +12,7 @@ import logging
 import os
 from pathlib import Path
 
-from src.core.models import ScannedVariable
+from src.core.models import ScanFileResult
 from src.parsing.gem5.impl.pool.scan_work import ScanWork
 from src.parsing.gem5.impl.scanning.scanner import Gem5StatsScanner
 
@@ -29,17 +29,22 @@ class Gem5ScanWork(ScanWork):
         super().__init__()
         self.file_path = str(file_path)
 
-    def __call__(self) -> list[ScannedVariable]:
+    def __call__(self) -> ScanFileResult:
         """
         Execute scanning using the Gem5StatsScanner.
-        Returns full list of variables with types and entries.
+
+        Returns a ``ScanFileResult`` carrying the discovered variables on
+        success, or the error message on a fatal scan failure (Perl crash,
+        timeout, corrupt JSON, missing file) — never a silent empty list, so
+        aggregation can tell "scanned: empty" apart from "scan failed".
         """
         try:
             scanner = Gem5StatsScanner.get_instance()
-            return scanner.scan_file(Path(self.file_path))
-        except Exception:
-            logger.warning("SCANNER: Failed to scan %s", self.file_path, exc_info=True)
-            return []
+            variables = scanner.scan_file(Path(self.file_path))
+            return ScanFileResult(file_path=self.file_path, variables=variables)
+        except (RuntimeError, FileNotFoundError) as e:
+            logger.warning("SCANNER: Failed to scan %s: %s", self.file_path, e)
+            return ScanFileResult(file_path=self.file_path, error=str(e))
 
     def __str__(self) -> str:
         return f"Gem5ScanWork({os.path.basename(self.file_path)})"

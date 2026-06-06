@@ -12,6 +12,10 @@ from src.core.services.data_services.config_service import ConfigService
 from src.core.services.data_services.csv_pool_service import CsvPoolService
 from src.core.services.data_services.path_service import PathService
 
+# Serialize Perl-worker-pool tests onto one xdist worker to bound the number of
+# concurrent Perl pools under -n3 (matches the other pool tests' convention).
+pytestmark = pytest.mark.xdist_group("perl_pool")
+
 
 class TestGem5Parsing:
     """Integration tests for parsing real gem5 data."""
@@ -54,7 +58,7 @@ class TestGem5Parsing:
             if result:
                 results.append(result)
 
-        variables = facade.finalize_scan(results)
+        variables = facade.finalize_scan(results).variables
         assert len(variables) > 0
 
         # Check for common gem5 stats
@@ -84,7 +88,7 @@ class TestGem5Parsing:
             if result:
                 scan_results.append(result)
 
-        all_variables = facade.finalize_scan(scan_results)
+        all_variables = facade.finalize_scan(scan_results).variables
 
         # 2. Select a few scalar variables
         selected_vars = [
@@ -168,7 +172,7 @@ system.mem.ctrl::1024-2047                    5      50.00%     100.00%      # H
                 if result:
                     scan_results.append(result)
 
-            vars_found = facade.finalize_scan(scan_results)
+            vars_found = facade.finalize_scan(scan_results).variables
             hist_var = next((v for v in vars_found if v.name == "system.mem.ctrl"), None)
 
             assert hist_var is not None

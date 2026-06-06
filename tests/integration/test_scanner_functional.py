@@ -46,7 +46,7 @@ class TestScannerFunctional:
         assert len(results) > 0
 
         # 3. Finalize/Aggregate
-        scanned_vars = facade.finalize_scan(results)
+        scanned_vars = facade.finalize_scan(results).variables
 
         assert len(scanned_vars) > 0
 

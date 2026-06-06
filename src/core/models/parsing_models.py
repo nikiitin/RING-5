@@ -76,6 +76,39 @@ class ScannedVariable:
 
 
 @dataclass(frozen=True)
+class ScanFileResult:
+    """Outcome of scanning a single stats file.
+
+    On success ``variables`` holds the discovered variables and ``error`` is
+    ``None``; on failure ``error`` holds the message and ``variables`` is empty.
+    This lets aggregation distinguish "scanned: empty" from "scan failed"
+    instead of masking failures as zero variables.
+    """
+
+    file_path: str
+    variables: list[ScannedVariable] = field(default_factory=lambda: list[ScannedVariable]())
+    error: str | None = None
+
+    @property
+    def ok(self) -> bool:
+        """True when the file scanned without error."""
+        return self.error is None
+
+
+@dataclass(frozen=True)
+class ScanResult:
+    """Aggregated outcome of a scan across multiple files.
+
+    ``variables`` is the merged, deduplicated list from files that scanned
+    successfully; ``failures`` lists per-file failures so the UI can surface
+    them instead of silently showing "no variables".
+    """
+
+    variables: list[ScannedVariable] = field(default_factory=lambda: list[ScannedVariable]())
+    failures: list[ScanFileResult] = field(default_factory=lambda: list[ScanFileResult]())
+
+
+@dataclass(frozen=True)
 class StatConfig:
     r"""
     Configuration for a specific statistic extraction.

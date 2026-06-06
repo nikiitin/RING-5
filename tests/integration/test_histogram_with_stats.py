@@ -53,7 +53,7 @@ class TestHistogramWithStatistics:
         # Scan
         scan_futures = facade.submit_scan_async(str(stats_dir), "stats.txt", limit=-1)
         scan_results = [f.result() for f in scan_futures]
-        vars_found = facade.finalize_scan(scan_results)
+        vars_found = facade.finalize_scan(scan_results).variables
 
         # Find the variable
         htm_var = next(
@@ -89,7 +89,7 @@ class TestHistogramWithStatistics:
         # 1. Scan
         scan_futures = facade.submit_scan_async(str(stats_dir), "stats.txt", limit=-1)
         scan_results = [f.result() for f in scan_futures]
-        vars_found = facade.finalize_scan(scan_results)
+        vars_found = facade.finalize_scan(scan_results).variables
 
         # 2. Parse with histogram configuration
         output_dir = tmp_path / "hist_stats_output"
@@ -134,7 +134,7 @@ class TestHistogramWithStatistics:
         # 1. Scan
         scan_futures = facade.submit_scan_async(str(stats_dir), "stats.txt", limit=-1)
         scan_results = [f.result() for f in scan_futures]
-        vars_found = facade.finalize_scan(scan_results)
+        vars_found = facade.finalize_scan(scan_results).variables
 
         # 2. Parse with regex pattern
         output_dir = tmp_path / "hist_regex_output"
@@ -186,7 +186,7 @@ class TestHistogramWithStatistics:
         # 1. Scan
         scan_futures = facade.submit_scan_async(str(stats_dir), "stats.txt", limit=-1)
         scan_results = [f.result() for f in scan_futures]
-        vars_found = facade.finalize_scan(scan_results)
+        vars_found = facade.finalize_scan(scan_results).variables
 
         # 2. Parse with explicit statistics
         output_dir = tmp_path / "hist_explicit_stats_output"

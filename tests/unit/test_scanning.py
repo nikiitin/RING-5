@@ -28,8 +28,9 @@ def test_stats_scan_work_success() -> None:
         result = work()
 
         mock_instance.scan_file.assert_called_once()
-        assert len(result) == 2
-        assert result[0].name == "var1"
+        assert len(result.variables) == 2
+        assert result.variables[0].name == "var1"
+        assert result.ok
 
 
 def test_stats_scan_work_failure() -> None:
@@ -40,11 +41,14 @@ def test_stats_scan_work_failure() -> None:
     ) as mock_scanner_cls:
         mock_instance = MagicMock()
         mock_scanner_cls.return_value = mock_instance
-        mock_instance.scan_file.side_effect = Exception("Scan error")
+        mock_instance.scan_file.side_effect = RuntimeError("Scan error")
 
-        # Should handle exception and return empty
+        # A fatal scan failure is reported as a failed ScanFileResult,
+        # never masked as an empty success.
         result = work()
-        assert result == []
+        assert not result.ok
+        assert result.variables == []
+        assert "Scan error" in (result.error or "")
 
 
 # --- ScanWorkPool Tests ---

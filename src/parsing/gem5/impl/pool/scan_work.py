@@ -6,7 +6,7 @@ in gem5 statistics files. Used by scanner service for parallel discovery
 of scalar, vector, and other statistics.
 """
 
-from src.core.models import ScannedVariable
+from src.core.models import ScanFileResult
 from src.parsing.gem5.impl.pool.job import Job
 
 
@@ -19,7 +19,7 @@ class ScanWork(Job):
     def __init__(self) -> None:
         pass
 
-    def __call__(self) -> list[ScannedVariable]:
+    def __call__(self) -> ScanFileResult:
         raise NotImplementedError("This method must be implemented by the child class")
 
     def __str__(self) -> str:

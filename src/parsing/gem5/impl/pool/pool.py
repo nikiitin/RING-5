@@ -11,7 +11,7 @@ import threading
 from collections.abc import Sequence
 from concurrent.futures import Future
 
-from src.core.models import ScannedVariable
+from src.core.models import ScanFileResult
 from src.parsing.gem5.impl.pool.parse_work import ParsedVarsDict, ParseWork
 from src.parsing.gem5.impl.pool.scan_work import ScanWork
 from src.parsing.gem5.impl.pool.work_pool import WorkPool
@@ -55,11 +55,11 @@ class ScanWorkPool:
     def __init__(self) -> None:
         """Initialize the scan work pool with WorkPool backend."""
         self._workPool: WorkPool = WorkPool.get_instance()
-        self._futures: list[Future[list[ScannedVariable]]] = []
+        self._futures: list[Future[ScanFileResult]] = []
 
     def submit_batch_async(
         self, works: Sequence[ScanWork], chunk_size: int | None = None
-    ) -> list[Future[list[ScannedVariable]]]:
+    ) -> list[Future[ScanFileResult]]:
         """
         Submit a batch of scan works with optimized chunking.
 
@@ -82,16 +82,14 @@ class ScanWorkPool:
         if chunk_size is None:
             chunk_size = max(1, len(works) // 8)  # Conservative default
 
-        current_batch_futures: list[Future[list[ScannedVariable]]] = []
+        current_batch_futures: list[Future[ScanFileResult]] = []
 
         # Submit in optimized chunks to reduce overhead
         for i in range(0, len(works), chunk_size):
             chunk = works[i : i + chunk_size]
             for work in chunk:
                 if work is not None:
-                    future: Future[list[ScannedVariable]] = self._workPool.submit(
-                        work, use_threads=True
-                    )
+                    future: Future[ScanFileResult] = self._workPool.submit(work, use_threads=True)
                     self._futures.append(future)
                     current_batch_futures.append(future)
 

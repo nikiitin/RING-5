@@ -66,7 +66,7 @@ class TestFacadeReduction:
             if result:
                 scan_results.append(result)
 
-        scanned_vars = facade.finalize_scan(scan_results)
+        scanned_vars = facade.finalize_scan(scan_results).variables
 
         # 3. Run Facade Parse
         batch = facade.submit_parse_async(

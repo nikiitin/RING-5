@@ -9,7 +9,7 @@ from concurrent.futures import Future, as_completed
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
-from src.core.models import ScannedVariable
+from src.core.models import ScanFileResult
 from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
 from src.web.components.common.filtered_selector import (
     filtered_multiselect,
@@ -446,7 +446,7 @@ class VariableEditor:
         api: ApplicationAPI,
         var_name: str,
         var_id: str,
-        futures: list[Future[list[ScannedVariable]]],
+        futures: list[Future[ScanFileResult]],
         is_distribution: bool,
     ) -> None:
         """Blocking dialog for async scanning using futures."""
@@ -454,7 +454,7 @@ class VariableEditor:
         st.write(f"Scanning {len(futures)} files...")
         progress_bar = st.progress(0, text="Starting scan...")
 
-        results: list[list[ScannedVariable]] = []
+        results: list[ScanFileResult] = []
         errors: list[str] = []
         completed = 0
         total = len(futures)
@@ -463,8 +463,9 @@ class VariableEditor:
             for future in as_completed(futures):
                 try:
                     res = future.result()
-                    if res:
-                        results.append(res)
+                    results.append(res)
+                    if not res.ok:
+                        errors.append(f"{res.file_path}: {res.error}")
                 except Exception as e:
                     errors.append(str(e))
 
@@ -477,7 +478,7 @@ class VariableEditor:
             return
 
         if errors:
-            st.warning(f"Encountered {len(errors)} errors during scan.")
+            st.warning(f"Encountered {len(errors)} scan error(s).")
 
         if not results:
             st.warning("No results found.")
@@ -486,8 +487,8 @@ class VariableEditor:
         # Aggregate results with status container
         with st.status("Processing scan results...", expanded=True) as status:
             st.write("Aggregating scan data...")
-            snapshot = api.finalize_scan(results)
-            snapshot_dicts = [sv.to_dict() for sv in snapshot]
+            scan_result = api.finalize_scan(results)
+            snapshot_dicts = [sv.to_dict() for sv in scan_result.variables]
 
             # Process results based on type
             if is_distribution:

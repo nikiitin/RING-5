@@ -8,7 +8,13 @@ into a single cohesive API for the gem5 simulator backend.
 from concurrent.futures import Future
 from typing import Any
 
-from src.core.models import ParseBatchResult, ScannedVariable, StatConfig
+from src.core.models import (
+    ParseBatchResult,
+    ScanFileResult,
+    ScannedVariable,
+    ScanResult,
+    StatConfig,
+)
 from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 from src.parsing.gem5.impl.gem5_scanner import Gem5Scanner
 from src.parsing.parser_protocol import SimulationParser
@@ -62,13 +68,13 @@ class Gem5ParserAPI(SimulationParser):
         stats_path: str,
         stats_pattern: str = "stats.txt",
         limit: int = 5,
-    ) -> list[Future[list[ScannedVariable]]]:
+    ) -> list[Future[ScanFileResult]]:
         """Submit async scanning job via Gem5Scanner."""
         return Gem5Scanner.submit_scan_async(stats_path, stats_pattern, limit)
 
     def aggregate_scan_results(
         self,
-        results: list[list[ScannedVariable]],
-    ) -> list[ScannedVariable]:
+        results: list[ScanFileResult],
+    ) -> ScanResult:
         """Aggregate scan results via Gem5Scanner."""
         return Gem5Scanner.aggregate_scan_results(results)

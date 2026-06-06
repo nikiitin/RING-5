@@ -10,7 +10,7 @@ from dataclasses import replace
 from pathlib import Path
 
 from src.core.common.utils import normalize_user_path, sanitize_glob_pattern
-from src.core.models import ScannedVariable
+from src.core.models import ScanFileResult, ScannedVariable, ScanResult
 from src.parsing.gem5.impl.pool.pool import ScanWorkPool
 from src.parsing.gem5.impl.scanning.gem5_scan_work import Gem5ScanWork
 from src.parsing.gem5.impl.scanning.pattern_aggregator import PatternAggregator
@@ -29,7 +29,7 @@ class Gem5Scanner:
     @staticmethod
     def submit_scan_async(
         stats_path: str, stats_pattern: str = "stats.txt", limit: int = 5
-    ) -> list[Future[list[ScannedVariable]]]:
+    ) -> list[Future[ScanFileResult]]:
         """
         Submit async scan job and return futures.
 
@@ -39,7 +39,7 @@ class Gem5Scanner:
             limit: Maximum number of files to scan (0 for unlimited)
 
         Returns:
-            List of Future objects that will resolve to scan results
+            List of Future objects that each resolve to a ``ScanFileResult``
 
         Raises:
             FileNotFoundError: If stats_path doesn't exist or no files found
@@ -70,28 +70,33 @@ class Gem5Scanner:
         return pool.submit_batch_async(batch_work)
 
     @staticmethod
-    def aggregate_scan_results(results: list[list[ScannedVariable]]) -> list[ScannedVariable]:
+    def aggregate_scan_results(results: list[ScanFileResult]) -> ScanResult:
         """
-        Aggregate results from async scan into unified variable list.
+        Aggregate per-file scan results into a unified outcome.
+
+        Successful files are merged and deduplicated into one variable list;
+        failed files are collected separately so the caller can surface them
+        instead of silently treating a failed scan as "no variables".
 
         Args:
-            results: List of scan results from each file (each is a list of variables)
+            results: Per-file ``ScanFileResult`` objects from the workers.
 
         Returns:
-            Sorted list of merged variables with deduplicated entries
+            ``ScanResult`` with the merged variables and the list of failures.
         """
+        failures: list[ScanFileResult] = [r for r in results if not r.ok]
+
         merged_registry: dict[str, ScannedVariable] = {}
-        for file_vars in results:
-            for var in file_vars:
+        for file_result in results:
+            for var in file_result.variables:
                 Gem5Scanner._merge_variable(merged_registry, var)
 
         merged_vars = sorted(list(merged_registry.values()), key=lambda x: x.name)
 
         # Apply pattern aggregation to consolidate repeated numeric patterns
-        # Use models for aggregation
         aggregated_vars = PatternAggregator.aggregate_patterns(merged_vars)
 
-        return aggregated_vars
+        return ScanResult(variables=aggregated_vars, failures=failures)
 
     @staticmethod
     def _merge_variable(registry: dict[str, ScannedVariable], var: ScannedVariable) -> None:

@@ -4,6 +4,7 @@ from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 
+from src.core.models import ScanResult
 from src.web.components.data_source.data_source_components import DataSourceComponents
 from tests.conftest import columns_side_effect
 
@@ -112,7 +113,7 @@ def test_render_parser_config(mock_streamlit: Any, mock_api: Any) -> None:
     mock_future = MagicMock()
     mock_future.result.return_value = {}
     mock_api.submit_scan_async.return_value = [mock_future]
-    mock_api.finalize_scan.return_value = []
+    mock_api.finalize_scan.return_value = ScanResult(variables=[])
 
     # Patch as_completed so mock futures don't hang
     with patch(

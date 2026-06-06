@@ -7,6 +7,7 @@ import pandas as pd
 import pytest
 
 from src.core.application_api import ApplicationAPI
+from src.core.models import ScanResult
 from src.core.models.data_models import ParseVariableConfig
 from src.web.components.data_source.data_source_components import DataSourceComponents
 from src.web.components.data_source.variable_editor import VariableEditor
@@ -76,7 +77,7 @@ class TestScannerFix:
         mock_future = MagicMock()
         mock_future.result.return_value = []
         mock_api.submit_scan_async.return_value = [mock_future]
-        mock_api.finalize_scan.return_value = []
+        mock_api.finalize_scan.return_value = ScanResult(variables=[])
 
         # Execute
         try:
@@ -121,7 +122,7 @@ class TestScannerFix:
         mock_future = MagicMock()
         mock_future.result.return_value = []
         mock_api.submit_scan_async.return_value = [mock_future]
-        mock_api.finalize_scan.return_value = []
+        mock_api.finalize_scan.return_value = ScanResult(variables=[])
 
         # Mocking UUID generation just in case, though we provided _id
         with patch(

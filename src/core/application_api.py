@@ -32,7 +32,13 @@ import numpy as np
 import pandas as pd
 
 from src.core.common.utils import normalize_user_path, sanitize_glob_pattern
-from src.core.models import ParseBatchResult, ScannedVariable, StatConfig
+from src.core.models import (
+    ParseBatchResult,
+    ScanFileResult,
+    ScannedVariable,
+    ScanResult,
+    StatConfig,
+)
 from src.core.models.data_models import (
     ColumnInfoResult,
     CsvPoolEntry,
@@ -243,12 +249,12 @@ class ApplicationAPI:
 
     def submit_scan_async(
         self, stats_path: str, stats_pattern: str = "stats.txt", limit: int = 5
-    ) -> list[Future[list[ScannedVariable]]]:
-        """Submit scanning job."""
+    ) -> list[Future[ScanFileResult]]:
+        """Submit scanning job. Each future resolves to a ``ScanFileResult``."""
         return self._parser.submit_scan_async(stats_path, stats_pattern, limit)
 
-    def finalize_scan(self, results: list[list[ScannedVariable]]) -> list[ScannedVariable]:
-        """Aggregate scan results."""
+    def finalize_scan(self, results: list[ScanFileResult]) -> ScanResult:
+        """Aggregate per-file scan results into a ``ScanResult``."""
         return self._parser.aggregate_scan_results(results)
 
     def get_parse_status(self) -> str:
@@ -389,7 +395,7 @@ class ApplicationAPI:
         self.state_manager.add_portfolio_history_record(record)
 
     def get_manager_history(self) -> list[OperationRecord]:
-        """Get the rolling manager operation history (last 20)."""
+        """Get the rolling manager operation history (last 10)."""
         return self.state_manager.get_manager_history()
 
     def get_portfolio_history(self) -> list[OperationRecord]:

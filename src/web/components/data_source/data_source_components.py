@@ -15,7 +15,7 @@ from typing import Any, cast
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
-from src.core.models import ParseBatchResult, ScannedVariable
+from src.core.models import ParseBatchResult, ScanFileResult, ScanResult
 from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
 from src.web.components.common.card_components import CardComponents
 from src.web.components.common.data_components import DataComponents
@@ -201,27 +201,35 @@ class DataSourceComponents:
                                 stats_path, stats_pattern, limit=scan_limit
                             )
                             st.write(f"Scanning {len(scan_futures)} files...")
-                            scan_results: list[list[ScannedVariable]] = []
+                            scan_results: list[ScanFileResult] = []
                             total_futures = len(scan_futures)
                             for i, future in enumerate(as_completed(scan_futures)):
                                 scan_results.append(future.result())
                                 st.write(f"Scanned {i + 1}/{total_futures} files...")
                             st.write("Aggregating patterns...")
-                            scanned_vars_result: list[ScannedVariable] = api.finalize_scan(
-                                scan_results
-                            )
-                            scanned_vars_dicts = [v.to_dict() for v in scanned_vars_result]
+                            scan_result: ScanResult = api.finalize_scan(scan_results)
+                            found_vars = scan_result.variables
+                            scanned_vars_dicts = [v.to_dict() for v in found_vars]
                             api.state_manager.set_scanned_variables(scanned_vars_dicts)
+                            for failure in scan_result.failures:
+                                st.warning(f"Scan failed for {failure.file_path}: {failure.error}")
                             status.update(
-                                label=f"Scan complete — {len(scanned_vars_result)} variables found",
+                                label=f"Scan complete — {len(found_vars)} variables found",
                                 state="complete",
                                 expanded=False,
                             )
 
-                        st.toast(
-                            f"✅ Scan complete! Found {len(scanned_vars_result)} variables.",
-                            icon="🔍",
-                        )
+                        if scan_result.failures:
+                            st.toast(
+                                f"⚠️ Scan finished with {len(scan_result.failures)} file "
+                                f"error(s); found {len(found_vars)} variables.",
+                                icon="⚠️",
+                            )
+                        else:
+                            st.toast(
+                                f"✅ Scan complete! Found {len(found_vars)} variables.",
+                                icon="🔍",
+                            )
                         # Release completed futures to free memory (~70MB for 252 files).
                         ApplicationAPI.cancel_pending_scans()
                         st.rerun()

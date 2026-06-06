@@ -34,7 +34,7 @@ class TestScannerPatternAggregation:
 
         # Get results
         scan_results = [f.result() for f in futures]
-        scanned_vars = ScannerService.aggregate_scan_results(scan_results)
+        scanned_vars = ScannerService.aggregate_scan_results(scan_results).variables
 
         # Check that we have pattern variables (not individual cpu0, cpu1, etc.)
         var_names = [v.name for v in scanned_vars]
@@ -60,7 +60,7 @@ class TestScannerPatternAggregation:
         futures = ScannerService.submit_scan_async(str(stats_dir), "stats.txt", limit=1)
 
         scan_results = [f.result() for f in futures]
-        scanned_vars = ScannerService.aggregate_scan_results(scan_results)
+        scanned_vars = ScannerService.aggregate_scan_results(scan_results).variables
 
         var_names = [v.name for v in scanned_vars]
 
@@ -83,7 +83,7 @@ class TestScannerPatternAggregation:
         futures = ScannerService.submit_scan_async(str(stats_dir), "stats.txt", limit=1)
 
         scan_results = [f.result() for f in futures]
-        scanned_vars = ScannerService.aggregate_scan_results(scan_results)
+        scanned_vars = ScannerService.aggregate_scan_results(scan_results).variables
 
         var_names = [v.name for v in scanned_vars]
 
@@ -103,7 +103,7 @@ class TestScannerPatternAggregation:
         futures = ScannerService.submit_scan_async(str(stats_dir), "stats.txt", limit=1)
 
         scan_results = [f.result() for f in futures]
-        scanned_vars = ScannerService.aggregate_scan_results(scan_results)
+        scanned_vars = ScannerService.aggregate_scan_results(scan_results).variables
 
         # Find a CPU pattern variable
         cpu_vars = [v for v in scanned_vars if r"cpu\d+" in v.name]
@@ -139,7 +139,7 @@ class TestScannerPatternAggregation:
         # Scan WITH aggregation (through service)
         futures = ScannerService.submit_scan_async(str(stats_dir), "stats.txt", limit=1)
         scan_results = [f.result() for f in futures]
-        aggregated_vars = ScannerService.aggregate_scan_results(scan_results)
+        aggregated_vars = ScannerService.aggregate_scan_results(scan_results).variables
 
         # Aggregation should significantly reduce variable count
         # (16 CPUs × N stats → N pattern variables)
@@ -163,7 +163,7 @@ class TestScannerPatternAggregation:
         # Scan to get pattern variables
         futures = ScannerService.submit_scan_async(str(stats_dir), "stats.txt", limit=1)
         scan_results = [f.result() for f in futures]
-        scanned_vars = ScannerService.aggregate_scan_results(scan_results)
+        scanned_vars = ScannerService.aggregate_scan_results(scan_results).variables
 
         # Find a simple CPU scalar pattern (converted to vector)
         cpu_scalar_patterns = [

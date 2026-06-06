@@ -46,7 +46,7 @@ class TestHistogramPlotIntegration:
         # 1. Scan for histogram variables
         scan_futures = facade.submit_scan_async(str(stats_dir), "stats.txt", limit=-1)
         scan_results = [f.result() for f in scan_futures]
-        vars_found = facade.finalize_scan(scan_results)
+        vars_found = facade.finalize_scan(scan_results).variables
 
         # Find htm_transaction_commit_cycles (histogram variable)
         htm_var = next(
@@ -125,7 +125,7 @@ class TestHistogramPlotIntegration:
 
         scan_futures = facade.submit_scan_async(str(stats_dir), "stats.txt", limit=-1)
         scan_results = [f.result() for f in scan_futures]
-        vars_found = facade.finalize_scan(scan_results)
+        vars_found = facade.finalize_scan(scan_results).variables
 
         # Get a histogram variable
         htm_var = next(

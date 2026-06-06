@@ -1,7 +1,13 @@
 from concurrent.futures import Future
 from typing import Any, Protocol, runtime_checkable
 
-from src.core.models import ParseBatchResult, ScannedVariable, StatConfig
+from src.core.models import (
+    ParseBatchResult,
+    ScanFileResult,
+    ScannedVariable,
+    ScanResult,
+    StatConfig,
+)
 
 
 @runtime_checkable
@@ -44,17 +50,21 @@ class SimulationParser(Protocol):
         stats_path: str,
         stats_pattern: str = "stats.txt",
         limit: int = 5,
-    ) -> list[Future[list[ScannedVariable]]]:
+    ) -> list[Future[ScanFileResult]]:
         """
         Submit an async scanning job to discover potential variables across files.
+
+        Each future resolves to a ``ScanFileResult`` (variables on success,
+        error on failure).
         """
         ...
 
     def aggregate_scan_results(
         self,
-        results: list[list[ScannedVariable]],
-    ) -> list[ScannedVariable]:
+        results: list[ScanFileResult],
+    ) -> ScanResult:
         """
-        Aggregate and deduplicate the variable scan results from workers.
+        Aggregate per-file scan results into a ``ScanResult`` (merged,
+        deduplicated variables plus any per-file failures).
         """
         ...
