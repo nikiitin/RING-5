@@ -127,7 +127,7 @@ class ManagePlotsPage(BasePage):
         Args:
             plot_name: Display name of the plot.
         """
-        return self.plot_selector_pills.get_by_role("button", name=plot_name)
+        return self.plot_selector_pills.get_by_role("button", name=plot_name, exact=True)
 
     # ==================================================================
     #  4. Controls row (rename / save / load / delete / duplicate)
@@ -507,31 +507,47 @@ class ManagePlotsPage(BasePage):
             self.select_plot_type(plot_type)
         self.create_plot_button.click()
         self.wait_for_streamlit()
+        # Confirm creation registered (the pill appears) before callers proceed.
+        expect(self.get_plot_pill(name).first).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
     def _select_dropdown_option(self, option_text: str) -> None:
         """Click an option in the currently-open Streamlit selectbox dropdown.
 
-        Streamlit renders selectbox options as ``<li>`` elements inside
-        a ``[data-testid='stSelectboxVirtualDropdown']`` container.
+        Streamlit renders selectbox options as ``<li>`` elements inside a
+        ``[data-testid='stSelectboxVirtualDropdown']`` container. Waits for the
+        option to render (rather than a fixed sleep) so it is deterministic
+        under load.
 
         Args:
             option_text: Exact display label of the option.
         """
-        self.page.wait_for_timeout(300)
         option = self.page.locator("[data-testid='stSelectboxVirtualDropdown'] li").get_by_text(
             option_text, exact=True
         )
-        option.click()
+        expect(option.first).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        option.first.click()
         self.wait_for_streamlit()
 
+    def _open_and_select(self, selectbox: Locator, value: str) -> None:
+        """Verify-then-act: wait for a selectbox to render, open it, choose *value*.
+
+        Waiting for the selectbox before clicking avoids racing a not-yet-rendered
+        visualization fragment under load (a major source of e2e flakiness).
+        """
+        expect(selectbox).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        selectbox.click()
+        self._select_dropdown_option(value)
+
     def select_plot_type(self, plot_type: str) -> None:
-        """Select a plot type in the create-plot form selectbox.
+        """Select a plot type in the create-plot form selectbox, verifying it took.
 
         Args:
-            plot_type: Exact display label (e.g. "Bar Chart").
+            plot_type: Exact factory key (e.g. "bar", "dual_axis_bar_dot").
         """
-        self.plot_type_selectbox.click()
-        self._select_dropdown_option(plot_type)
+        self._open_and_select(self.plot_type_selectbox, plot_type)
+        # Confirm the selection registered — guards the "selected dual_axis but a
+        # bar plot got created" race seen under -n 3.
+        expect(self.plot_type_selectbox).to_contain_text(plot_type, timeout=self.RENDER_TIMEOUT)
 
     # ==================================================================
     #  ACTIONS — Plot Selector
@@ -580,8 +596,7 @@ class ManagePlotsPage(BasePage):
         Args:
             shaper_name: Exact display label (e.g. "Column Selector").
         """
-        self.add_transformation_selectbox.click()
-        self._select_dropdown_option(shaper_name)
+        self._open_and_select(self.add_transformation_selectbox, shaper_name)
         self.add_to_pipeline_button.click()
         self.wait_for_streamlit()
 
@@ -641,67 +656,32 @@ class ManagePlotsPage(BasePage):
     # ==================================================================
 
     def select_x_axis(self, column: str) -> None:
-        """Select a column for the X-axis.
-
-        Args:
-            column: Exact column name.
-        """
-        self.viz_x_axis_selectbox.click()
-        self._select_dropdown_option(column)
+        """Select a column for the X-axis."""
+        self._open_and_select(self.viz_x_axis_selectbox, column)
 
     def select_y_axis(self, column: str) -> None:
-        """Select a column for the Y-axis.
-
-        Args:
-            column: Exact column name.
-        """
-        self.viz_y_axis_selectbox.click()
-        self._select_dropdown_option(column)
+        """Select a column for the Y-axis."""
+        self._open_and_select(self.viz_y_axis_selectbox, column)
 
     def select_y_bar(self, column: str) -> None:
-        """Select the bars (left Y-axis) column for a dual-axis bar+dot plot.
-
-        Args:
-            column: Exact column name.
-        """
-        self.viz_y_bar_selectbox.click()
-        self._select_dropdown_option(column)
+        """Select the bars (left Y-axis) column for a dual-axis bar+dot plot."""
+        self._open_and_select(self.viz_y_bar_selectbox, column)
 
     def select_y_dot(self, column: str) -> None:
-        """Select the dots (right Y-axis) column for a dual-axis bar+dot plot.
-
-        Args:
-            column: Exact column name.
-        """
-        self.viz_y_dot_selectbox.click()
-        self._select_dropdown_option(column)
+        """Select the dots (right Y-axis) column for a dual-axis bar+dot plot."""
+        self._open_and_select(self.viz_y_dot_selectbox, column)
 
     def select_color_by(self, column: str) -> None:
-        """Select a column for 'Color by'.
-
-        Args:
-            column: Exact column name.
-        """
-        self.viz_color_by_selectbox.click()
-        self._select_dropdown_option(column)
+        """Select a column for 'Color by'."""
+        self._open_and_select(self.viz_color_by_selectbox, column)
 
     def select_group_by(self, column: str) -> None:
-        """Select a column for 'Group by' (Grouped Bar).
-
-        Args:
-            column: Exact column name.
-        """
-        self.viz_group_by_selectbox.click()
-        self._select_dropdown_option(column)
+        """Select a column for 'Group by' (Grouped Bar)."""
+        self._open_and_select(self.viz_group_by_selectbox, column)
 
     def select_stack_by(self, column: str) -> None:
-        """Select a column for 'Stack by' (Stacked Bar).
-
-        Args:
-            column: Exact column name.
-        """
-        self.viz_stack_by_selectbox.click()
-        self._select_dropdown_option(column)
+        """Select a column for 'Stack by' (Stacked Bar)."""
+        self._open_and_select(self.viz_stack_by_selectbox, column)
 
     def refresh_plot(self) -> None:
         """Click 'Refresh Plot' and wait."""
@@ -719,12 +699,20 @@ class ManagePlotsPage(BasePage):
         self.wait_for_streamlit()
 
     def select_engine(self, engine: str) -> None:
-        """Select a rendering engine via pills.
+        """Select a rendering engine via pills (idempotent).
+
+        Clicking an already-active segmented-control pill DESELECTS it, so we
+        click only when the target engine isn't already active.
 
         Args:
             engine: ``"plotly"`` or ``"matplotlib"``.
         """
-        self.viz_engine_pills.get_by_role("button", name=engine).click()
+        pill = self.viz_engine_pills.get_by_role("button", name=engine)
+        expect(pill).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        active = self.viz_engine_pills.locator("[data-testid='stBaseButton-pillsActive']")
+        if active.count() and engine.lower() in (active.first.inner_text() or "").lower():
+            return
+        pill.click()
         self.wait_for_streamlit()
 
     # ==================================================================

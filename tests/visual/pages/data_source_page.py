@@ -584,7 +584,10 @@ class DataSourcePage(BasePage):
             card.locator("summary").click()
             self.wait_for_streamlit()
         expect(load_btn).to_be_visible(timeout=30_000)
-        load_btn.click()
+        # Dispatch the click straight to the button: the expander's open
+        # ``<details>`` element can intercept normal pointer events on the
+        # button (mid-open), which otherwise times out the click.
+        load_btn.dispatch_event("click")
         self.wait_for_streamlit()
         # Confirm the load actually took (guards against a raced no-op click).
         expect(self.page.get_by_text(re.compile(r"Loaded\s+\d+\s+rows")).first).to_be_visible(

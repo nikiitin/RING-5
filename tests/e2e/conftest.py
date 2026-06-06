@@ -224,6 +224,12 @@ def _reset_app_state(shared_page: Page, live_server_url: str) -> Generator[None]
     bp = BasePage(shared_page)
     bp.goto_and_wait(live_server_url)
     bp.reset_all()
+    # Verify the reset actually cleared plots. A flaky/no-op reset would let
+    # plots accumulate across classes in the shared singleton — the cause of the
+    # plot-pill "resolved to N elements" failures. Fail loudly here instead.
+    mp = ManagePlotsPage(shared_page)
+    mp.navigate()
+    expect(mp.no_plots_warning).to_be_visible(timeout=LOAD_TIMEOUT)
     yield
 
 
@@ -296,8 +302,13 @@ def e2e_csv_path() -> Path:
 def tier0_page(
     shared_page: Page,
     live_server_url: str,
+    _reset_app_state: None,
 ) -> Page:
     """Tier 0: Fresh app, navigated to home page.
+
+    Depends on ``_reset_app_state`` so the clean-slate reset is guaranteed to run
+    BEFORE any tier setup (autouse ordering alone proved unreliable — tier0 was
+    instantiated before the reset, so a prior class's plots were still present).
 
     State: No data loaded, default page visible.
     """
