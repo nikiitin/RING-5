@@ -196,3 +196,33 @@ a hard rule*, but together they're a latent-mutation risk class):
 4. **Theme C** — decide the copy-on-read contract and apply it uniformly; freeze `FigureConfig`.
 5. **M4, Theme E** — delete duplicated/dead surface; route the view's pipeline run through the facade.
 6. **Theme B/D** — consolidate per-plot-type reshape logic; remove sim-specific literals from views.
+
+---
+
+## Remediation status (all findings addressed)
+
+Completed across the 5-phase plan on branch `005/unified-engine-ui-v2`. Every change
+*substituted* the old path (no legacy shims/aliases); callers and tests were migrated.
+
+| Finding | Status | Commit(s) |
+|---------|--------|-----------|
+| Phase 1 — M1 (live `plot.config` mutation), Theme E (dead/duplicate surface), cheap Theme A/D leaks (palette source, portfolio default-engine constant, D1 sim suggested-metrics, D3 no hardcoded labels) | ✅ fixed | `2198b87` |
+| M5 — scan failures masked as empty → typed `ScanFileResult`/`ScanResult` | ✅ fixed | `8b8a51e` |
+| S1+S2+D2 — models→services / parsing→services dependency-direction violations; `is_regex` via `PatternIndexService` | ✅ fixed | `d74e26a` |
+| S3 — UI→`RepositoryStateManager` facade erosion + 3 new `arch-check` boundary guards | ✅ fixed | `c5db9b0` |
+| M2 — legend relabel honored by both engines (single source) | ✅ fixed | `5274482` |
+| M2-A — Plotly relayout decoding moved out of core into web | ✅ fixed | `2cd4427` |
+| M3-A — engine-agnostic bar-group separators + shading (matplotlib parity) | ✅ fixed | `62d5f9c` |
+| M3 — matplotlib dual-axis parity (secondary Y-title + legend) | ✅ fixed | `e152b1b` |
+| Theme C — C3/C5/C6 (serialization / shaper / caller-dict leaks) | ✅ fixed | `8ad5139` |
+| Theme C — C1/C2 uniform copy-on-read across all 7 repositories | ✅ fixed | `8d6f561` |
+| Theme C — C4 freeze `FigureConfig` + the whole styling sub-spec tree | ✅ fixed | `c152982` |
+| Theme B — B1/B2/B3 consolidate plot-type view-prep helpers | ✅ fixed | `22858ab` |
+| Theme B — B6 decompose dual-axis bar+dot god-method | ✅ fixed | `5821715` |
+| Theme B — B4/B5 per-bin/per-cell view prep | ⏸ deferred (documented, not extracted — legitimate gem5-format-specific view logic) | `10afb6c` |
+
+**Verification:** `make arch-check` (5 boundary checks + 3 new guards) green · mypy / flake8 /
+black clean · full unit + ui_unit suite (2958 passed) · ui_logic (308) · full integration
+(262 passed, incl. Perl parsing) · plus a live dual-engine browser check (Plotly + matplotlib)
+of the bar and dual-axis render paths, confirming the frozen-config tree and the decomposed
+trace builders render with zero console errors.
