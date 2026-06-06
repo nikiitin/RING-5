@@ -50,6 +50,12 @@ _E2E_CSV: Path = _FIXTURES_DIR / "sample_data.csv"
 LOAD_TIMEOUT: int = 30_000
 CHART_TIMEOUT: int = 30_000
 E2E_TIMEOUT: int = 60_000
+# Raster downloads (png/svg/pdf) render the figure eagerly via Kaleido
+# (fig.to_image()) BEFORE st.download_button, so the button is absent until the
+# export finishes. Under -n 3 that Kaleido/Chromium export starves on CPU and
+# can take well over E2E_TIMEOUT — give those button waits extra headroom (kept
+# under the 120s per-test timeout; normal exports finish in seconds).
+EXPORT_TIMEOUT: int = 90_000
 
 
 # ---------------------------------------------------------------------------

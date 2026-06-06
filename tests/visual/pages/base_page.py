@@ -51,6 +51,9 @@ class BasePage:
         """
         btn = self.sidebar.get_by_role("button", name=page_name)
         btn.click()
+        # NOTE: do NOT pass expect_rerun here — navigating to the page you are
+        # already on is a no-op that does not rerun, so an expect_rerun wait
+        # would stall on the (never-appearing) status widget for every such call.
         self.wait_for_streamlit()
 
     def reset_all(self) -> None:
@@ -63,7 +66,10 @@ class BasePage:
         state otherwise persists across browser sessions on the same server.
         """
         self.sidebar.get_by_role("button", name="Reset All").click()
-        self.wait_for_streamlit()
+        # Reset reruns to clear state; wait for it to start (and finish) so a
+        # too-fast follow-up navigation can't abort it before reset_session()
+        # runs (which would leave a prior class's plots in place).
+        self.wait_for_streamlit(expect_rerun=True)
 
     # ------------------------------------------------------------------
     # Streamlit sync helpers
@@ -89,8 +95,11 @@ class BasePage:
         running = self.page.locator("[data-testid='stStatusWidget']")
         if expect_rerun:
             try:
-                # Bounded so a very fast rerun (already finished) doesn't stall.
-                running.wait_for(state="visible", timeout=3_000)
+                # Wait for the rerun to actually begin. Under -n 3 load the
+                # client→server round-trip can take a few seconds, so allow a
+                # generous window; a real rerun's status is visible well over a
+                # poll interval, so fast reruns are still caught near-instantly.
+                running.wait_for(state="visible", timeout=6_000)
             except Exception:
                 pass
         try:

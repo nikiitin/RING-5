@@ -16,7 +16,7 @@ from __future__ import annotations
 import pytest
 from playwright.sync_api import Page, expect
 
-from tests.e2e.conftest import CHART_TIMEOUT, E2E_TIMEOUT
+from tests.e2e.conftest import CHART_TIMEOUT, E2E_TIMEOUT, EXPORT_TIMEOUT
 from tests.visual.pages.manage_plots_page import ManagePlotsPage
 
 pytestmark = pytest.mark.requires_browser
@@ -75,7 +75,9 @@ class TestExportDownload:
         """
         pill = mp.download_format_pills.get_by_role("button", name=format_name)
         pill.click()
-        mp.wait_for_streamlit(expect_rerun=True)
+        # The rerun runs the (eager) Kaleido export for raster formats, which can
+        # be slow under -n 3 — allow extra time for the rerun to finish.
+        mp.wait_for_streamlit(timeout=EXPORT_TIMEOUT, expect_rerun=True)
 
     # -- tests -------------------------------------------------------------
 
@@ -122,7 +124,7 @@ class TestExportDownload:
         self._select_format_pill(mp, "pdf")
 
         # Download button should appear
-        expect(mp.download_button).to_be_visible(timeout=E2E_TIMEOUT)
+        expect(mp.download_button).to_be_visible(timeout=EXPORT_TIMEOUT)
 
     def test_04_svg_format_available(self, tier2_page: Page) -> None:
         """Selecting the SVG format pill makes the download button appear.
@@ -141,7 +143,7 @@ class TestExportDownload:
         self._select_format_pill(mp, "svg")
 
         # Download button should appear
-        expect(mp.download_button).to_be_visible(timeout=E2E_TIMEOUT)
+        expect(mp.download_button).to_be_visible(timeout=EXPORT_TIMEOUT)
 
     def test_05_png_format_available(self, tier2_page: Page) -> None:
         """Selecting the PNG format pill makes the download button appear.
@@ -160,7 +162,7 @@ class TestExportDownload:
         self._select_format_pill(mp, "png")
 
         # Download button should appear
-        expect(mp.download_button).to_be_visible(timeout=E2E_TIMEOUT)
+        expect(mp.download_button).to_be_visible(timeout=EXPORT_TIMEOUT)
 
     def test_06_matplotlib_pgf_format(self, tier2_page: Page) -> None:
         """After switching to Matplotlib, the PGF format pill is available.
@@ -209,5 +211,5 @@ class TestExportDownload:
         self._select_format_pill(mp, "html")
 
         # Verify the button has the expected accessible name + is enabled.
-        expect(mp.download_button).to_be_visible(timeout=E2E_TIMEOUT)
-        expect(mp.download_button).to_be_enabled(timeout=E2E_TIMEOUT)
+        expect(mp.download_button).to_be_visible(timeout=EXPORT_TIMEOUT)
+        expect(mp.download_button).to_be_enabled(timeout=EXPORT_TIMEOUT)
