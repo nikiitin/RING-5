@@ -20,6 +20,11 @@ from src.core.models.visualization.trace_config import (
 from src.web.components.plotting.config import dual_axis_config
 from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
+from src.web.pages.ui.plotting.types._trace_helpers import (
+    extract_error_bars,
+    prepare_categorical_data,
+)
+from src.web.pages.ui.plotting.utils import order_with_overrides
 
 
 class DualAxisBarDotPlot(BasePlot):
@@ -57,7 +62,6 @@ class DualAxisBarDotPlot(BasePlot):
         Returns:
             TraceBuildResult with bars on primary Y and dots on secondary Y.
         """
-        data = data.copy()
         x_col: str = config["x"]
         y_bar: str = config["y_bar"]
         y_dot: str = config["y_dot"]
@@ -68,227 +72,96 @@ class DualAxisBarDotPlot(BasePlot):
         dot_color: str | None = config.get("dot_color")
         line_width: int = config.get("line_width", 2)
 
-        # Ensure categorical x-axis
-        data[x_col] = data[x_col].astype(str)
-        if color_col:
-            data[color_col] = data[color_col].astype(str)
+        # Categorical x (+ optional color) axis; copies so input is never mutated.
+        data = prepare_categorical_data(data, [x_col, color_col])
 
-        # Error bar helpers
-        bar_sd_col: str | None = None
-        dot_sd_col: str | None = None
-        if config.get("show_error_bars"):
-            bar_sd_candidate = f"{y_bar}.sd"
-            if bar_sd_candidate in data.columns:
-                bar_sd_col = bar_sd_candidate
-            dot_sd_candidate = f"{y_dot}.sd"
-            if dot_sd_candidate in data.columns:
-                dot_sd_col = dot_sd_candidate
+        bar_sd_col: str | None = extract_error_bars(data, y_bar, config)
+        dot_sd_col: str | None = extract_error_bars(data, y_dot, config)
 
-        # Isolation: when isolate_last_group is active and lines are shown,
-        # the last x-category gets its own markers-only trace
+        # Isolation: when isolate_last_group is active and lines are shown, the
+        # last x-category gets its own markers-only trace (no connecting line).
         isolate_last: bool = bool(config.get("isolate_last_group")) and show_lines
-
-        # Resolve ordered x-categories for isolation split
-        ordered_x: list[str]
         if config.get("xaxis_order"):
-            ordered_x = [str(v) for v in config["xaxis_order"]]
+            ordered_x: list[str] = [str(v) for v in config["xaxis_order"]]
         else:
             ordered_x = sorted(data[x_col].unique().tolist())
         last_x: str | None = ordered_x[-1] if ordered_x else None
 
+        def bar_trace(df: pd.DataFrame, *, name: str, legendgroup: str = "") -> BarTraceConfig:
+            """Bar trace on the primary (left) Y-axis."""
+            return BarTraceConfig(
+                name=name,
+                x=df[x_col].tolist(),
+                y=df[y_bar].tolist(),
+                legendgroup=legendgroup,
+                error_y=df[bar_sd_col].tolist() if bar_sd_col else None,
+                yaxis="y",
+            )
+
+        def dot_traces(
+            df: pd.DataFrame, *, name: str, legendgroup: str = "", color: str = ""
+        ) -> list[TraceConfig]:
+            """Dot/line trace(s) on the secondary (right) Y-axis.
+
+            Honours the isolate-last-category split: the connecting line covers
+            all but the last category, which gets a markers-only scatter.
+            """
+
+            def line(sub: pd.DataFrame) -> LineTraceConfig:
+                return LineTraceConfig(
+                    name=name,
+                    x=sub[x_col].tolist(),
+                    y=sub[y_dot].tolist(),
+                    legendgroup=legendgroup,
+                    color=color,
+                    show_markers=True,
+                    marker_symbol=dot_symbol,
+                    marker_size=dot_size,
+                    line_width=float(line_width),
+                    error_y=sub[dot_sd_col].tolist() if dot_sd_col else None,
+                    yaxis="y2",
+                )
+
+            def scatter(sub: pd.DataFrame, *, in_legend: bool) -> ScatterTraceConfig:
+                return ScatterTraceConfig(
+                    name=name,
+                    x=sub[x_col].tolist(),
+                    y=sub[y_dot].tolist(),
+                    legendgroup=legendgroup,
+                    color=color,
+                    show_in_legend=in_legend,
+                    marker_symbol=dot_symbol,
+                    marker_size=dot_size,
+                    error_y=sub[dot_sd_col].tolist() if dot_sd_col else None,
+                    yaxis="y2",
+                )
+
+            out: list[TraceConfig] = []
+            if isolate_last and last_x is not None:
+                main_data = df[df[x_col] != last_x]
+                iso_data = df[df[x_col] == last_x]
+                if not main_data.empty:
+                    out.append(line(main_data))
+                if not iso_data.empty:
+                    out.append(scatter(iso_data, in_legend=False))
+            elif show_lines:
+                out.append(line(df))
+            else:
+                out.append(scatter(df, in_legend=True))
+            return out
+
         traces: list[TraceConfig] = []
 
         if color_col:
-            groups: list[str] = sorted(data[color_col].unique().tolist())
-            if config.get("legend_order"):
-                ordered: list[str] = [
-                    str(g) for g in config["legend_order"] if str(g) in data[color_col].unique()
-                ]
-                missing: list[str] = [g for g in groups if g not in ordered]
-                groups = ordered + missing
-
+            groups = order_with_overrides(data[color_col].unique(), config.get("legend_order"))
             for grp in groups:
                 grp_data: pd.DataFrame = data[data[color_col] == grp]
-
-                # Bar trace (primary Y)
-                bar_error: list[float] | None = None
-                if bar_sd_col:
-                    bar_error = grp_data[bar_sd_col].tolist()
-
-                traces.append(
-                    BarTraceConfig(
-                        name=f"{grp} ({y_bar})",
-                        x=grp_data[x_col].tolist(),
-                        y=grp_data[y_bar].tolist(),
-                        legendgroup=grp,
-                        error_y=bar_error,
-                        yaxis="y",
-                    )
-                )
-
-                # Scatter traces — split if isolating last category
-                if isolate_last and last_x is not None:
-                    main_data = grp_data[grp_data[x_col] != last_x]
-                    iso_data = grp_data[grp_data[x_col] == last_x]
-
-                    if not main_data.empty:
-                        main_dot_error: list[float] | None = None
-                        if dot_sd_col:
-                            main_dot_error = main_data[dot_sd_col].tolist()
-                        traces.append(
-                            LineTraceConfig(
-                                name=f"{grp} ({y_dot})",
-                                x=main_data[x_col].tolist(),
-                                y=main_data[y_dot].tolist(),
-                                legendgroup=grp,
-                                show_markers=True,
-                                marker_symbol=dot_symbol,
-                                marker_size=dot_size,
-                                line_width=float(line_width),
-                                error_y=main_dot_error,
-                                yaxis="y2",
-                            )
-                        )
-
-                    if not iso_data.empty:
-                        iso_dot_error: list[float] | None = None
-                        if dot_sd_col:
-                            iso_dot_error = iso_data[dot_sd_col].tolist()
-                        traces.append(
-                            ScatterTraceConfig(
-                                name=f"{grp} ({y_dot})",
-                                x=iso_data[x_col].tolist(),
-                                y=iso_data[y_dot].tolist(),
-                                legendgroup=grp,
-                                show_in_legend=False,
-                                marker_symbol=dot_symbol,
-                                marker_size=dot_size,
-                                error_y=iso_dot_error,
-                                yaxis="y2",
-                            )
-                        )
-                else:
-                    dot_error: list[float] | None = None
-                    if dot_sd_col:
-                        dot_error = grp_data[dot_sd_col].tolist()
-
-                    if show_lines:
-                        traces.append(
-                            LineTraceConfig(
-                                name=f"{grp} ({y_dot})",
-                                x=grp_data[x_col].tolist(),
-                                y=grp_data[y_dot].tolist(),
-                                legendgroup=grp,
-                                show_markers=True,
-                                marker_symbol=dot_symbol,
-                                marker_size=dot_size,
-                                line_width=float(line_width),
-                                error_y=dot_error,
-                                yaxis="y2",
-                            )
-                        )
-                    else:
-                        traces.append(
-                            ScatterTraceConfig(
-                                name=f"{grp} ({y_dot})",
-                                x=grp_data[x_col].tolist(),
-                                y=grp_data[y_dot].tolist(),
-                                legendgroup=grp,
-                                marker_symbol=dot_symbol,
-                                marker_size=dot_size,
-                                error_y=dot_error,
-                                yaxis="y2",
-                            )
-                        )
+                traces.append(bar_trace(grp_data, name=f"{grp} ({y_bar})", legendgroup=grp))
+                traces.extend(dot_traces(grp_data, name=f"{grp} ({y_dot})", legendgroup=grp))
         else:
-            # No color grouping — single bar + single dot trace
-            bar_error_vals: list[float] | None = None
-            if bar_sd_col:
-                bar_error_vals = data[bar_sd_col].tolist()
-
-            traces.append(
-                BarTraceConfig(
-                    name=y_bar,
-                    x=data[x_col].tolist(),
-                    y=data[y_bar].tolist(),
-                    error_y=bar_error_vals,
-                    yaxis="y",
-                )
-            )
-
-            if isolate_last and last_x is not None:
-                main_data = data[data[x_col] != last_x]
-                iso_data = data[data[x_col] == last_x]
-
-                if not main_data.empty:
-                    main_dot_error_vals: list[float] | None = None
-                    if dot_sd_col:
-                        main_dot_error_vals = main_data[dot_sd_col].tolist()
-                    traces.append(
-                        LineTraceConfig(
-                            name=y_dot,
-                            x=main_data[x_col].tolist(),
-                            y=main_data[y_dot].tolist(),
-                            color=dot_color or "",
-                            show_markers=True,
-                            marker_symbol=dot_symbol,
-                            marker_size=dot_size,
-                            line_width=float(line_width),
-                            error_y=main_dot_error_vals,
-                            yaxis="y2",
-                        )
-                    )
-
-                if not iso_data.empty:
-                    iso_dot_error_vals: list[float] | None = None
-                    if dot_sd_col:
-                        iso_dot_error_vals = iso_data[dot_sd_col].tolist()
-                    traces.append(
-                        ScatterTraceConfig(
-                            name=y_dot,
-                            x=iso_data[x_col].tolist(),
-                            y=iso_data[y_dot].tolist(),
-                            show_in_legend=False,
-                            color=dot_color or "",
-                            marker_symbol=dot_symbol,
-                            marker_size=dot_size,
-                            error_y=iso_dot_error_vals,
-                            yaxis="y2",
-                        )
-                    )
-            else:
-                dot_error_vals: list[float] | None = None
-                if dot_sd_col:
-                    dot_error_vals = data[dot_sd_col].tolist()
-
-                if show_lines:
-                    traces.append(
-                        LineTraceConfig(
-                            name=y_dot,
-                            x=data[x_col].tolist(),
-                            y=data[y_dot].tolist(),
-                            color=dot_color or "",
-                            show_markers=True,
-                            marker_symbol=dot_symbol,
-                            marker_size=dot_size,
-                            line_width=float(line_width),
-                            error_y=dot_error_vals,
-                            yaxis="y2",
-                        )
-                    )
-                else:
-                    traces.append(
-                        ScatterTraceConfig(
-                            name=y_dot,
-                            x=data[x_col].tolist(),
-                            y=data[y_dot].tolist(),
-                            color=dot_color or "",
-                            marker_symbol=dot_symbol,
-                            marker_size=dot_size,
-                            error_y=dot_error_vals,
-                            yaxis="y2",
-                        )
-                    )
+            # No color grouping — single bar + single dot series.
+            traces.append(bar_trace(data, name=y_bar))
+            traces.extend(dot_traces(data, name=y_dot, color=dot_color or ""))
 
         return TraceBuildResult(
             traces=traces,
