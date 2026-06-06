@@ -34,9 +34,9 @@ class DataRepository:
         Retrieve the primary dataset.
 
         Returns:
-            Primary DataFrame or None if not set
+            A copy of the primary DataFrame (defensive copy-on-read), or None.
         """
-        return self._data
+        return self._data.copy() if self._data is not None else None
 
     def set_data(
         self, data: pd.DataFrame | None, on_change: Callable[[], None] | None = None
@@ -65,9 +65,9 @@ class DataRepository:
         Retrieve the processed dataset (after shapers/transformations).
 
         Returns:
-            Processed DataFrame or None if not set
+            A copy of the processed DataFrame (defensive copy-on-read), or None.
         """
-        return self._processed_data
+        return self._processed_data.copy() if self._processed_data is not None else None
 
     def set_processed_data(self, data: pd.DataFrame | None) -> None:
         """

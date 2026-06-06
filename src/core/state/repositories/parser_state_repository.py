@@ -47,9 +47,9 @@ class ParserStateRepository:
         Get the list of variables to parse from simulator stats.
 
         Returns:
-            List of parse variable configurations
+            A shallow copy of the parse-variable list (defensive copy-on-read).
         """
-        return self._parse_variables
+        return list(self._parse_variables)
 
     def set_parse_variables(self, variables: list[ParseVariableConfig]) -> None:
         """
@@ -144,9 +144,9 @@ class ParserStateRepository:
         Get variables discovered via scanning stats files.
 
         Returns:
-            List of scanned variable metadata
+            A shallow copy of the scanned-variable list (defensive copy-on-read).
         """
-        return self._scanned_variables
+        return list(self._scanned_variables)
 
     def set_scanned_variables(self, variables: list[ScannedVariableDict]) -> None:
         """

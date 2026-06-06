@@ -46,7 +46,8 @@ class PreviewRepository:
         """
         if not operation_name:
             return None
-        return self._previews.get(operation_name)
+        preview = self._previews.get(operation_name)
+        return preview.copy() if preview is not None else None
 
     def has_preview(self, operation_name: str) -> bool:
         """

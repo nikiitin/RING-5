@@ -39,9 +39,9 @@ class ConfigRepository:
         Get the complete configuration dictionary.
 
         Returns:
-            Configuration dictionary (empty dict if not initialized)
+            A shallow copy of the configuration dictionary (defensive copy-on-read).
         """
-        return self._config
+        return dict(self._config)
 
     def set_config(self, config: dict[str, Any]) -> None:
         """
@@ -128,9 +128,9 @@ class ConfigRepository:
         Get the CSV pool registry.
 
         Returns:
-            List of CSV pool entries (empty list if not initialized)
+            A shallow copy of the CSV pool list (defensive copy-on-read).
         """
-        return self._csv_pool
+        return list(self._csv_pool)
 
     def set_csv_pool(self, pool: list[CsvPoolEntry]) -> None:
         """
@@ -147,9 +147,9 @@ class ConfigRepository:
         Get saved configuration entries.
 
         Returns:
-            List of saved configurations (empty list if not initialized)
+            A shallow copy of the saved-config list (defensive copy-on-read).
         """
-        return self._saved_configs
+        return list(self._saved_configs)
 
     def set_saved_configs(self, configs: list[SavedConfigEntry]) -> None:
         """

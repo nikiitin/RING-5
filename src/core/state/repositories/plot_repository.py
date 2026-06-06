@@ -45,9 +45,10 @@ class PlotRepository:
         Retrieve all plot objects.
 
         Returns:
-            List of PlotProtocol instances (empty list if none exist)
+            A shallow copy of the plot list (defensive copy-on-read) — callers
+            may reorder/filter it freely and persist via ``set_plots``.
         """
-        return self._plots
+        return list(self._plots)
 
     def set_plots(self, plots: list[PlotProtocol]) -> None:
         """
