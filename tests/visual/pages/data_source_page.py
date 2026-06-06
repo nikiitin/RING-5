@@ -11,6 +11,7 @@ Playwright tests can exercise it.
 
 from __future__ import annotations
 
+import re
 import shutil
 from pathlib import Path
 
@@ -560,6 +561,36 @@ class DataSourcePage(BasePage):
         self.pool_card_load_button(index).click()
         self.wait_for_streamlit()
 
+    def load_recent_csv_by_name(self, filename: str) -> None:
+        """Load a specific CSV from the Recent-CSV pool by filename.
+
+        Deterministic under load and a large/cluttered pool (the failure mode
+        behind the `-n 3` "No data loaded" tier1 errors): waits for the named
+        card to render, expands it if collapsed (only the newest card is
+        auto-expanded), waits for its 'Load This File' button, clicks, then
+        ASSERTS the load registered. The assertion is essential —
+        ``wait_for_streamlit`` returns even when a raced click triggered no
+        rerun, so without it a missed click fails silently downstream.
+
+        Args:
+            filename: Exact pool filename (e.g. ``e2e_staged_gw0_sample_data.csv``).
+        """
+        self.select_recent_mode()
+        card = self.page.locator("[data-testid='stExpander']").filter(has_text=filename).first
+        expect(card).to_be_visible(timeout=30_000)
+        load_btn = card.get_by_role("button", name="Load This File")
+        if not load_btn.is_visible():
+            # Collapsed (another worker's freshly-staged file is newer) — expand.
+            card.locator("summary").click()
+            self.wait_for_streamlit()
+        expect(load_btn).to_be_visible(timeout=30_000)
+        load_btn.click()
+        self.wait_for_streamlit()
+        # Confirm the load actually took (guards against a raced no-op click).
+        expect(self.page.get_by_text(re.compile(r"Loaded\s+\d+\s+rows")).first).to_be_visible(
+            timeout=self.RENDER_TIMEOUT
+        )
+
     def upload_csv(self, csv_path: str | Path) -> None:
         """Load a CSV into the app from a local path.
 
@@ -585,7 +616,7 @@ class DataSourcePage(BasePage):
         worker = os.environ.get("PYTEST_XDIST_WORKER", "main")
         staged = pool_dir / f"e2e_staged_{worker}_{Path(csv_path).stem}.csv"
         shutil.copy(str(csv_path), str(staged))
-        self.load_recent_csv(0)
+        self.load_recent_csv_by_name(staged.name)
 
     # ==================================================================
     # Assertions

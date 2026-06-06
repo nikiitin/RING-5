@@ -81,6 +81,33 @@ def _wait_for_server(port: int, *, timeout: float = 30.0) -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _isolated_data_dir(tmp_path_factory: pytest.TempPathFactory) -> Generator[None]:
+    """Redirect the app data dir (pool / portfolios / configs) to an isolated,
+    empty per-worker temp dir for the whole session.
+
+    Keeps e2e runs off the user's cluttered ``.ring5`` pool (~150 CSVs that slow
+    the Recent-mode render and caused ``-n 3`` timeouts) and gives each xdist
+    worker its own clean, fast, race-free pool. ``RING5_DATA_DIR`` is set on
+    ``os.environ`` before ``live_server_url`` starts, so the Streamlit server
+    subprocess inherits it; the test process resets the path caches so its own
+    pool staging targets the same temp dir.
+    """
+    from src.core.services.data_services.csv_pool_service import CsvPoolService
+    from src.core.services.data_services.path_service import PathService
+
+    worker = os.environ.get("PYTEST_XDIST_WORKER", "main")
+    data_dir = tmp_path_factory.getbasetemp() / f"ring5_data_{worker}"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    os.environ["RING5_DATA_DIR"] = str(data_dir)
+    PathService.reset_caches()
+    CsvPoolService._pool_dir = None
+    yield
+    os.environ.pop("RING5_DATA_DIR", None)
+    PathService.reset_caches()
+    CsvPoolService._pool_dir = None
+
+
 @pytest.fixture(scope="session")
 def _streamlit_port() -> int:
     """Choose a free port once per session."""
@@ -88,8 +115,12 @@ def _streamlit_port() -> int:
 
 
 @pytest.fixture(scope="session")
-def live_server_url(_streamlit_port: int) -> Generator[str]:
-    """Start a Streamlit server and yield its base URL."""
+def live_server_url(_streamlit_port: int, _isolated_data_dir: None) -> Generator[str]:
+    """Start a Streamlit server and yield its base URL.
+
+    Depends on ``_isolated_data_dir`` so ``RING5_DATA_DIR`` is exported before the
+    server subprocess (which inherits ``os.environ``) starts.
+    """
     port = _streamlit_port
     cmd = [
         _PYTHON,

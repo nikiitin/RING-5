@@ -67,6 +67,29 @@ def _wait_for_server(port: int, *, timeout: float = 30.0) -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _isolated_data_dir(tmp_path_factory: pytest.TempPathFactory) -> Generator[None]:
+    """Redirect the app data dir to an isolated, empty per-worker temp dir.
+
+    Same rationale as the e2e suite: keeps browser tests off the user's
+    cluttered ``.ring5`` pool (fast, race-free) by exporting ``RING5_DATA_DIR``
+    before the Streamlit server subprocess starts.
+    """
+    from src.core.services.data_services.csv_pool_service import CsvPoolService
+    from src.core.services.data_services.path_service import PathService
+
+    worker = os.environ.get("PYTEST_XDIST_WORKER", "main")
+    data_dir = tmp_path_factory.getbasetemp() / f"ring5_data_{worker}"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    os.environ["RING5_DATA_DIR"] = str(data_dir)
+    PathService.reset_caches()
+    CsvPoolService._pool_dir = None
+    yield
+    os.environ.pop("RING5_DATA_DIR", None)
+    PathService.reset_caches()
+    CsvPoolService._pool_dir = None
+
+
 @pytest.fixture(scope="session")
 def _streamlit_port() -> int:
     """Choose a free port once per session."""
@@ -76,6 +99,7 @@ def _streamlit_port() -> int:
 @pytest.fixture(scope="session")
 def live_server_url(
     _streamlit_port: int,
+    _isolated_data_dir: None,
 ) -> Generator[str]:
     """Start a Streamlit server and yield its base URL.
 

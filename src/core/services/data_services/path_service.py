@@ -6,6 +6,7 @@ data directory, portfolio storage, and other critical paths. Provides
 consistent, testable access to file system locations.
 """
 
+import os
 from pathlib import Path
 
 
@@ -32,9 +33,17 @@ class PathService:
 
     @staticmethod
     def get_data_dir() -> Path:
-        """Get the .ring5 data directory."""
+        """Get the app data directory (pool, portfolios, configs).
+
+        Defaults to ``<repo>/.ring5`` but honours the ``RING5_DATA_DIR``
+        environment variable when set, so tests (and sandboxes) can redirect all
+        app data to an isolated location instead of the shared repo ``.ring5``.
+        """
         if PathService._data_dir is None:
-            PathService._data_dir = PathService.get_root_dir() / ".ring5"
+            override = os.environ.get("RING5_DATA_DIR")
+            PathService._data_dir = (
+                Path(override) if override else PathService.get_root_dir() / ".ring5"
+            )
             PathService._data_dir.mkdir(parents=True, exist_ok=True)
         return PathService._data_dir
 
