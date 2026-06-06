@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import streamlit as st
 
+from src.core.models.visualization.trace_build_result import SeparatorLine, ShadedRegion
 from src.core.models.visualization.trace_config import HeatmapTraceConfig, TraceConfig
 from src.core.services.visualization.config_resolver import resolve_config
 from src.web.components.plotting.interactive_plot import interactive_plotly_chart
@@ -142,6 +143,8 @@ class ChartDisplayComponent:
         config: dict[str, Any],
         plot_type: str,
         traces: list[TraceConfig] | None = None,
+        separator_lines: list[SeparatorLine] | None = None,
+        shaded_regions: list[ShadedRegion] | None = None,
     ) -> None:
         """Render a matplotlib chart derived from a Plotly figure."""
         mpl_state_key = f"plot.{plot_id}.mpl_fig"
@@ -193,6 +196,12 @@ class ChartDisplayComponent:
 
             # 5. Apply spec-based styling
             FigureSpecToMatplotlib.apply(spec, ax, render_result)
+
+            # 5b. Draw engine-agnostic bar-group separators / shading bands so
+            # they match the Plotly figure (dual-engine parity).
+            FigureSpecToMatplotlib.draw_layout_shapes(
+                ax, separator_lines or [], shaded_regions or []
+            )
 
             # 6. Display
             st.pyplot(mpl_fig)

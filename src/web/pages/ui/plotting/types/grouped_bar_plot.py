@@ -151,7 +151,6 @@ class GroupedBarPlot(BasePlot):
         }
         tick_vals = coord_result["tick_vals"]
         tick_text = coord_result["tick_text"]
-        distinction_shapes = coord_result["shapes"]
 
         # 3. Create Traces
         traces: list[BarTraceConfig] = []
@@ -194,15 +193,15 @@ class GroupedBarPlot(BasePlot):
                 )
             )
 
-        # 4. Build result with shapes and tick overrides
-        existing_shapes = config.get("shapes", []) or []
-        if not isinstance(existing_shapes, list):
-            existing_shapes = []
-
+        # 4. Build result with separators/shading and tick overrides.
+        # User-drawn shapes (config["shapes"]) are applied separately by the
+        # Plotly StyleApplicator; the auto separators/shades flow through the
+        # engine-agnostic fields so both engines render them.
         return TraceBuildResult(
             traces=traces,
             barmode="group",
-            shapes=existing_shapes + distinction_shapes,
+            separator_lines=coord_result["separator_lines"],
+            shaded_regions=coord_result["shaded_regions"],
             custom_x_ticks={"vals": tick_vals, "text": tick_text},
         )
 

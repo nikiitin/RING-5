@@ -1,6 +1,8 @@
 """Shared utilities for grouped bar plots."""
 
-from typing import Any
+from typing import Any, Literal
+
+from src.core.models.visualization.trace_build_result import SeparatorLine, ShadedRegion
 
 
 class GroupedBarUtils:
@@ -9,86 +11,24 @@ class GroupedBarUtils:
     @staticmethod
     def create_shade_shape(
         x0: float, x1: float, shade_color: str = "#F5F5F5", opacity: float = 0.5
-    ) -> dict[str, Any]:
-        """
-        Create a shading rectangle shape for alternating categories.
-
-        Args:
-            x0: Left x coordinate
-            x1: Right x coordinate
-            shade_color: Fill color
-            opacity: Opacity level
-
-        Returns:
-            Plotly shape dict
-        """
-        return dict(
-            type="rect",
-            xref="x",
-            yref="paper",
-            x0=x0,
-            x1=x1,
-            y0=0,
-            y1=1,
-            fillcolor=shade_color,
-            opacity=opacity,
-            layer="below",
-            line_width=0,
-        )
+    ) -> ShadedRegion:
+        """Create an engine-agnostic shading band for alternating categories."""
+        return ShadedRegion(x0=x0, x1=x1, color=shade_color, opacity=opacity)
 
     @staticmethod
     def create_separator_shape(
         sep_x: float,
         sep_color: str = "#E0E0E0",
-        dash: str = "dash",
-        width: int = 1,
-    ) -> dict[str, Any]:
-        """
-        Create a dashed separator line shape between categories.
-
-        Args:
-            sep_x: X coordinate for the separator
-            sep_color: Line color
-            dash: Dash style ("dash", "solid", etc.)
-            width: Line width
-
-        Returns:
-            Plotly shape dict
-        """
-        return dict(
-            type="line",
-            xref="x",
-            yref="paper",
-            x0=sep_x,
-            x1=sep_x,
-            y0=0,
-            y1=1,
-            line=dict(color=sep_color, width=width, dash=dash),
-            layer="below",
-        )
+        dash: Literal["solid", "dash", "dot", "dashdot"] = "dash",
+        width: float = 1.0,
+    ) -> SeparatorLine:
+        """Create an engine-agnostic dashed separator line between categories."""
+        return SeparatorLine(x=sep_x, color=sep_color, dash=dash, width=width)
 
     @staticmethod
-    def create_isolation_separator(sep_x: float) -> dict[str, Any]:
-        """
-        Create a solid isolation separator line (thicker, solid).
-
-        Args:
-            sep_x: X coordinate for the separator
-
-        Returns:
-            Plotly shape dict
-        """
-        return dict(
-            type="line",
-            xref="x",
-            yref="paper",
-            x0=sep_x,
-            x1=sep_x,
-            y0=0,
-            y1=1,
-            line=dict(color="#333333", width=2, dash="solid"),
-            layer="below",
-        )
+    def create_isolation_separator(sep_x: float) -> SeparatorLine:
+        """Create an engine-agnostic solid isolation separator (thicker, solid)."""
+        return SeparatorLine(x=sep_x, color="#333333", dash="solid", width=2.0)
 
     @staticmethod
     def build_category_annotations(
@@ -169,7 +109,8 @@ class GroupedBarUtils:
         tick_vals = []
         tick_text = []
         cat_centers = []
-        shapes = []
+        separator_lines: list[SeparatorLine] = []
+        shaded_regions: list[ShadedRegion] = []
 
         show_separators = config.get("show_separators", False)
         sep_color = config.get("separator_color", "#E0E0E0")
@@ -211,7 +152,7 @@ class GroupedBarUtils:
                 # Account for bargroupgap in the shade boundaries.
                 x0 = start_x - 0.5 - (bargroupgap / 2.0)
                 x1 = (current_x - 1.0) + 0.5 + (bargroupgap / 2.0)
-                shapes.append(GroupedBarUtils.create_shade_shape(x0, x1, shade_color))
+                shaded_regions.append(GroupedBarUtils.create_shade_shape(x0, x1, shade_color))
 
             # Separators (Vertical Lines)
             next_is_last_isolated = isolate_last and (i == len(categories) - 2)
@@ -235,7 +176,7 @@ class GroupedBarUtils:
                     # Sep Position:
 
                     sep_x = (current_x - bargroupgap) - 0.5 + (bargroupgap / 2.0)
-                    shapes.append(GroupedBarUtils.create_separator_shape(sep_x, sep_color))
+                    separator_lines.append(GroupedBarUtils.create_separator_shape(sep_x, sep_color))
 
             # Isolation Gap (Extra spacing for last group)
             if next_is_last_isolated:
@@ -247,13 +188,14 @@ class GroupedBarUtils:
                 # start of gap = current_x - gap_total
                 gap_total = bargroupgap + isolation_gap
                 sep_x = current_x - 0.5 - (gap_total / 2.0)
-                shapes.append(GroupedBarUtils.create_isolation_separator(sep_x))
+                separator_lines.append(GroupedBarUtils.create_isolation_separator(sep_x))
 
         return {
             "coord_map": coord_map,
             "tick_vals": tick_vals,
             "tick_text": tick_text,
             "cat_centers": cat_centers,
-            "shapes": shapes,
+            "separator_lines": separator_lines,
+            "shaded_regions": shaded_regions,
             "bar_width": 1.0 - config.get("bargap", 0.2),  # Approximation
         }

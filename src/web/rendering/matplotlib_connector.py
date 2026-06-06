@@ -16,11 +16,12 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from src.core.models.visualization.data_label_config import DataLabelConfig
 from src.core.models.visualization.figure_config import FigureConfig
 from src.core.models.visualization.legend_config import ColorbarConfig
+from src.core.models.visualization.trace_build_result import SeparatorLine, ShadedRegion
 from src.web.rendering._render_result import MatplotlibRenderResult
 
 if TYPE_CHECKING:
@@ -518,6 +519,37 @@ class FigureSpecToMatplotlib:
     }
 
     @staticmethod
+    def draw_layout_shapes(
+        ax: Axes,
+        separator_lines: list[SeparatorLine],
+        shaded_regions: list[ShadedRegion],
+    ) -> None:
+        """Draw engine-agnostic bar-group separators and shading bands.
+
+        Mirrors the ``layout.shapes`` the Plotly trace converter builds (same
+        data-x coordinates as the bar positions), so separators/shading appear
+        in matplotlib too. Both are drawn beneath the bars.
+        """
+        for band in shaded_regions:
+            ax.axvspan(
+                band.x0,
+                band.x1,
+                facecolor=band.color,
+                alpha=band.opacity,
+                linewidth=0,
+                zorder=0,
+            )
+        for sep in separator_lines:
+            ls = FigureSpecToMatplotlib._DASH_MAP.get(sep.dash, "--")
+            ax.axvline(
+                sep.x,
+                color=sep.color,
+                linestyle=ls,
+                linewidth=sep.width,
+                zorder=0.5,
+            )
+
+    @staticmethod
     def _apply_backgrounds(spec: FigureConfig, ax: Axes) -> None:
         """Set figure and axes background colours."""
         fig = ax.figure
@@ -682,9 +714,12 @@ class FigureSpecToMatplotlib:
                     "linewidth": ann.border_width,
                 }
 
+            # By this point any data-ref string coordinate has been resolved to
+            # a numeric value (or skipped above); cast satisfies the stricter
+            # matplotlib stubs without altering runtime behavior.
             ax.annotate(
                 text,
-                xy=(x_coord, y_coord),
+                xy=cast("tuple[float, float]", (x_coord, y_coord)),
                 xycoords=transform,
                 fontsize=fontsize,
                 fontweight=fontweight,

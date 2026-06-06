@@ -74,13 +74,23 @@ class TestTracesToPlotly:
         assert layout.xaxis.showticklabels is False
         assert layout.xaxis.ticks == ""
 
-    def test_shapes_passed_through(self) -> None:
-        shapes: list[Any] = [{"type": "rect", "x0": 0, "x1": 1}]
-        result = TraceBuildResult(shapes=shapes)
+    def test_separators_and_shades_converted_to_shapes(self) -> None:
+        from src.core.models.visualization.trace_build_result import (
+            SeparatorLine,
+            ShadedRegion,
+        )
+
+        result = TraceBuildResult(
+            separator_lines=[SeparatorLine(x=1.5, color="#E0E0E0", dash="dash", width=1.0)],
+            shaded_regions=[ShadedRegion(x0=0.0, x1=1.0, color="#F5F5F5", opacity=0.5)],
+        )
         fig = traces_to_plotly(result)
         layout = cast(Any, fig.layout)
         assert layout.shapes is not None
-        assert len(layout.shapes) == 1
+        # One rect (shade) + one line (separator); shade drawn first.
+        assert len(layout.shapes) == 2
+        types = [s.type for s in layout.shapes]
+        assert types == ["rect", "line"]
 
     def test_annotations_converted(self) -> None:
         ann = AnnotationConfig(text="Hello", x=0.5, y=0.5, xref="paper", yref="paper")

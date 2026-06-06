@@ -11,11 +11,39 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Literal
 
-from src.core.models.plot_config import ShapeConfig
 from src.core.models.visualization.annotation_config import AnnotationConfig
 from src.core.models.visualization.trace_config import TraceConfig
+
+
+@dataclass
+class SeparatorLine:
+    """A full-height vertical separator line at a data-space x position.
+
+    Engine-agnostic: the Plotly connector renders it as a ``layout.shapes``
+    line, the matplotlib connector as a blended-transform vertical line — so
+    bar-group separators appear in both engines.
+    """
+
+    x: float
+    color: str = "#E0E0E0"
+    dash: Literal["solid", "dash", "dot", "dashdot"] = "dash"
+    width: float = 1.0
+
+
+@dataclass
+class ShadedRegion:
+    """A full-height background band spanning ``[x0, x1]`` in data space.
+
+    Used for alternating-category shading; rendered by Plotly as a
+    ``layout.shapes`` rect and by matplotlib as ``axvspan``.
+    """
+
+    x0: float
+    x1: float
+    color: str = "#F5F5F5"
+    opacity: float = 0.5
 
 
 @dataclass
@@ -26,7 +54,8 @@ class TraceBuildResult:
         traces: Engine-agnostic trace specifications.
         annotations: Text annotations (group labels, tertiary legends, etc.).
         layout_annotations: Raw annotation dicts passed straight to layout.
-        shapes: Plotly-format shape dicts (separators, shading rectangles).
+        separator_lines: Engine-agnostic vertical separators between bar groups.
+        shaded_regions: Engine-agnostic alternating-category background bands.
         barmode: Bar grouping mode (``"group"``, ``"stack"``, etc.).
         custom_x_ticks: Optional override for x-axis tick values/labels.
             Expected keys: ``"vals"`` (``List[float]``), ``"text"``
@@ -37,7 +66,8 @@ class TraceBuildResult:
     traces: Sequence[TraceConfig] = field(default_factory=list)
     annotations: list[AnnotationConfig] = field(default_factory=list)
     layout_annotations: list[dict[str, Any]] = field(default_factory=list)
-    shapes: list[ShapeConfig] = field(default_factory=list)
+    separator_lines: list[SeparatorLine] = field(default_factory=list)
+    shaded_regions: list[ShadedRegion] = field(default_factory=list)
     barmode: str = "group"
     custom_x_ticks: dict[str, list[float] | list[str] | list[bool]] | None = None
     secondary_y: bool = False

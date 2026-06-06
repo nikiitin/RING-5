@@ -93,8 +93,39 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
             xaxis_update["ticks"] = ""
         layout_updates["xaxis"] = xaxis_update
 
-    if result.shapes:
-        layout_updates["shapes"] = result.shapes
+    separator_shapes: list[dict[str, Any]] = [
+        {
+            "type": "line",
+            "xref": "x",
+            "yref": "paper",
+            "x0": sep.x,
+            "x1": sep.x,
+            "y0": 0,
+            "y1": 1,
+            "line": {"color": sep.color, "width": sep.width, "dash": sep.dash},
+            "layer": "below",
+        }
+        for sep in result.separator_lines
+    ]
+    shade_shapes: list[dict[str, Any]] = [
+        {
+            "type": "rect",
+            "xref": "x",
+            "yref": "paper",
+            "x0": band.x0,
+            "x1": band.x1,
+            "y0": 0,
+            "y1": 1,
+            "fillcolor": band.color,
+            "opacity": band.opacity,
+            "layer": "below",
+            "line_width": 0,
+        }
+        for band in result.shaded_regions
+    ]
+    if separator_shapes or shade_shapes:
+        # Shades first (drawn under), then separators.
+        layout_updates["shapes"] = shade_shapes + separator_shapes
 
     if result.annotations or result.layout_annotations:
         all_annotations: list[dict[str, Any]] = []

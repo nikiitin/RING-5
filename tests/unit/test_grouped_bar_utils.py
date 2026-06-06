@@ -11,37 +11,32 @@ class TestGroupedBarUtils:
     # -- Shapes --
 
     def test_create_shade_shape(self) -> None:
-        shape = GroupedBarUtils.create_shade_shape(0.0, 2.0)
-        assert shape["type"] == "rect"
-        assert shape["x0"] == 0.0
-        assert shape["x1"] == 2.0
-        assert shape["layer"] == "below"
-        assert "fillcolor" in shape
+        band = GroupedBarUtils.create_shade_shape(0.0, 2.0)
+        assert band.x0 == 0.0
+        assert band.x1 == 2.0
+        assert band.color
 
     def test_create_shade_shape_custom(self) -> None:
-        shape = GroupedBarUtils.create_shade_shape(1.0, 3.0, "#FF0000", 0.3)
-        assert shape["fillcolor"] == "#FF0000"
-        assert shape["opacity"] == 0.3
+        band = GroupedBarUtils.create_shade_shape(1.0, 3.0, "#FF0000", 0.3)
+        assert band.color == "#FF0000"
+        assert band.opacity == 0.3
 
     def test_create_separator_shape(self) -> None:
-        shape = GroupedBarUtils.create_separator_shape(1.5)
-        assert shape["type"] == "line"
-        assert shape["x0"] == 1.5
-        assert shape["x1"] == 1.5
-        assert shape["line"]["dash"] == "dash"
+        sep = GroupedBarUtils.create_separator_shape(1.5)
+        assert sep.x == 1.5
+        assert sep.dash == "dash"
 
     def test_create_separator_shape_custom(self) -> None:
-        shape = GroupedBarUtils.create_separator_shape(2.0, "#000", "solid", 3)
-        assert shape["line"]["color"] == "#000"
-        assert shape["line"]["dash"] == "solid"
-        assert shape["line"]["width"] == 3
+        sep = GroupedBarUtils.create_separator_shape(2.0, "#000", "solid", 3.0)
+        assert sep.color == "#000"
+        assert sep.dash == "solid"
+        assert sep.width == 3.0
 
     def test_create_isolation_separator(self) -> None:
-        shape = GroupedBarUtils.create_isolation_separator(5.0)
-        assert shape["type"] == "line"
-        assert shape["x0"] == 5.0
-        assert shape["line"]["width"] == 2
-        assert shape["line"]["dash"] == "solid"
+        sep = GroupedBarUtils.create_isolation_separator(5.0)
+        assert sep.x == 5.0
+        assert sep.width == 2.0
+        assert sep.dash == "solid"
 
     # -- Annotations --
 
@@ -79,7 +74,8 @@ class TestGroupedBarUtils:
         assert "tick_vals" in result
         assert "tick_text" in result
         assert "cat_centers" in result
-        assert "shapes" in result
+        assert "separator_lines" in result
+        assert "shaded_regions" in result
         assert "bar_width" in result
 
         # 2 categories × 2 groups = 4 coordinates
@@ -109,9 +105,8 @@ class TestGroupedBarUtils:
         result = GroupedBarUtils.calculate_grouped_coordinates(
             ["A", "B", "C"], ["g1", "g2"], config
         )
-        # Should have separator shapes between A-B and B-C
-        sep_shapes = [s for s in result["shapes"] if s["type"] == "line"]
-        assert len(sep_shapes) == 2
+        # Should have separator lines between A-B and B-C
+        assert len(result["separator_lines"]) == 2
 
     def test_calculate_grouped_coordinates_shade_alternate(self) -> None:
         config = {
@@ -120,8 +115,7 @@ class TestGroupedBarUtils:
             "shade_alternate": True,
         }
         result = GroupedBarUtils.calculate_grouped_coordinates(["A", "B", "C"], ["g1"], config)
-        rect_shapes = [s for s in result["shapes"] if s["type"] == "rect"]
-        assert len(rect_shapes) == 1  # Only "B" (index 1) is shaded
+        assert len(result["shaded_regions"]) == 1  # Only "B" (index 1) is shaded
 
     def test_calculate_grouped_coordinates_isolate_last(self) -> None:
         config = {
@@ -131,13 +125,9 @@ class TestGroupedBarUtils:
             "isolation_gap": 0.5,
         }
         result = GroupedBarUtils.calculate_grouped_coordinates(["A", "B", "C"], ["g1"], config)
-        # Should have an isolation separator
-        iso_shapes = [
-            s
-            for s in result["shapes"]
-            if s["type"] == "line" and s.get("line", {}).get("width") == 2
-        ]
-        assert len(iso_shapes) == 1
+        # Should have an isolation separator (the thick, solid one, width 2.0)
+        iso_seps = [s for s in result["separator_lines"] if s.width == 2.0]
+        assert len(iso_seps) == 1
 
     def test_coord_map_keys_are_tuples_with_groups(self) -> None:
         result = GroupedBarUtils.calculate_grouped_coordinates(

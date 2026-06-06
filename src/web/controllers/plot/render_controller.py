@@ -247,6 +247,8 @@ class PlotRenderController:
                 # Use pre-computed traces when available (B7 forward path)
                 _traces_result = plot.last_traces
                 pre_traces = list(_traces_result.traces) if _traces_result is not None else None
+                sep_lines = list(_traces_result.separator_lines) if _traces_result else None
+                shades = list(_traces_result.shaded_regions) if _traces_result else None
                 ChartDisplayComponent.render_matplotlib_chart(
                     fig,
                     plot.plot_id,
@@ -254,6 +256,8 @@ class PlotRenderController:
                     plot.config,
                     plot.plot_type,
                     traces=pre_traces,
+                    separator_lines=sep_lines,
+                    shaded_regions=shades,
                 )
             else:
                 relayout_data = ChartDisplayComponent.render_plotly_chart(

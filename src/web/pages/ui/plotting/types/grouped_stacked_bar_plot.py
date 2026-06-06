@@ -280,7 +280,8 @@ class GroupedStackedBarPlot(StackedBarPlot):
         tick_vals = coord_result["tick_vals"]
         tick_text = coord_result["tick_text"]
         cat_centers = coord_result["cat_centers"]
-        distinction_shapes = coord_result["shapes"]
+        separator_lines = coord_result["separator_lines"]
+        shaded_regions = coord_result["shaded_regions"]
         bar_width = coord_result["bar_width"]
 
         # Map coordinates to data
@@ -321,12 +322,6 @@ class GroupedStackedBarPlot(StackedBarPlot):
             # Backward compat for old boolean flag
             custom_x_ticks["hide_ticks"] = [True]
 
-        # Combine shapes
-        existing_shapes = config.get("shapes", []) or []
-        if not isinstance(existing_shapes, list):
-            existing_shapes = []
-        all_shapes = existing_shapes + distinction_shapes
-
         # Build annotations
         layout_annotations = self._build_category_annotations(cat_centers, config)
 
@@ -342,7 +337,8 @@ class GroupedStackedBarPlot(StackedBarPlot):
         return TraceBuildResult(
             traces=traces,
             barmode="stack",
-            shapes=all_shapes,
+            separator_lines=separator_lines,
+            shaded_regions=shaded_regions,
             custom_x_ticks=custom_x_ticks,
             layout_annotations=layout_annotations,
             secondary_y=dual_axis,

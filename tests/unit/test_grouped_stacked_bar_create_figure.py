@@ -168,27 +168,27 @@ class TestCreateFigure:
         # 2 categories + 4 total annotations (2 groups × 2 categories)
         assert len(annotations) > 2
 
-    def test_with_existing_shapes_config(
+    def test_separators_rendered_when_enabled(
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
-        """User shapes are combined with distinction shapes."""
-        user_shape = dict(type="line", x0=0, x1=1, y0=0, y1=1)
+        """Auto bar-group separators flow through the engine-agnostic path and
+        become Plotly line shapes (and would be axvlines in matplotlib)."""
         config = {
             "x": "Benchmark",
             "group": "Config",
             "y_columns": ["Ticks"],
-            "shapes": [user_shape],
-            "title": "Shapes",
+            "show_separators": True,
+            "title": "Separators",
         }
         fig = plot.create_figure(sample_data, config)
         shapes = list(fig.layout.shapes)
-        # Should include user shape + any distinction shapes
         assert any(s.type == "line" for s in shapes)
 
-    def test_shapes_config_non_list(
+    def test_user_shapes_config_ignored_by_create_figure(
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
-        """Non-list shapes config is handled gracefully."""
+        """create_figure no longer reads config['shapes']; user-drawn shapes are
+        applied separately by the StyleApplicator. A bad value is simply ignored."""
         config = {
             "x": "Benchmark",
             "group": "Config",

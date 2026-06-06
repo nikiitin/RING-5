@@ -48,9 +48,13 @@ class StyleApplicator:
         # Delegate all Plotly layout mutations to the connector
         FigureSpecToPlotly.apply(self.last_spec, fig)
 
-        # Pass-through: raw Plotly shapes are not part of the FigureConfig
-        # model (they are renderer-specific).  Apply them directly.
-        if config.get("shapes"):
-            fig.update_layout(shapes=config["shapes"])
+        # Pass-through: user-drawn Plotly shapes are not part of the
+        # FigureConfig model.  APPEND them to any shapes the connector already
+        # set (e.g. auto bar-group separators/shading) rather than replacing —
+        # otherwise drawing a custom shape would wipe the separators.
+        user_shapes = config.get("shapes")
+        if user_shapes:
+            existing = list(fig.layout.shapes or ())
+            fig.update_layout(shapes=existing + list(user_shapes))
 
         return fig
