@@ -17,9 +17,8 @@ import pandas as pd
 import pytest
 
 from src.core.application_api import ApplicationAPI
-from src.core.models.data_models import PipelineStep, ShaperStepConfig
+from src.core.models.data_models import ShaperStepConfig
 from src.core.services.shapers.factory import ShaperFactory
-from src.core.services.shapers.pipeline_service import PipelineService
 
 
 @pytest.fixture
@@ -112,59 +111,6 @@ class TestTransformationPipeline:
         assert all(
             mcf_idx < omnetpp_idx for mcf_idx in mcf_indices for omnetpp_idx in omnetpp_indices
         )
-
-    def test_pipeline_persistence(self, tmp_path: Path) -> None:
-        """
-        Test pipeline save and load functionality using PipelineService.
-        """
-        # Define pipeline
-        pipeline: list[PipelineStep] = [
-            {
-                "id": 0,
-                "type": "normalize",
-                "config": cast(
-                    ShaperStepConfig,
-                    {
-                        "normalizeVars": ["ipc", "cache_miss_rate"],
-                        "normalizerColumn": "config",
-                        "normalizerValue": "baseline",
-                        "groupBy": ["benchmark"],
-                    },
-                ),
-            },
-            {
-                "id": 1,
-                "type": "sort",
-                "config": cast(
-                    ShaperStepConfig,
-                    {
-                        "order_dict": {"config": ["baseline", "tx_lazy", "tx_eager"]},
-                    },
-                ),
-            },
-        ]
-
-        # Save pipeline using PipelineService (instance-based)
-        service = PipelineService(tmp_path)
-        test_pipeline_name = f"test_pipeline_{tmp_path.name}"
-        service.save_pipeline(test_pipeline_name, pipeline, description="Test pipeline")
-
-        # List pipelines to verify it was saved
-        available_pipelines = service.list_pipelines()
-        assert test_pipeline_name in available_pipelines
-
-        # Load pipeline
-        loaded = service.load_pipeline(test_pipeline_name)
-
-        # Verify loaded pipeline matches original
-        assert "pipeline" in loaded
-        loaded_pipeline = loaded["pipeline"]
-        assert len(loaded_pipeline) == len(pipeline)
-        assert loaded_pipeline[0]["type"] == "normalize"
-        assert loaded_pipeline[1]["type"] == "sort"
-
-        # Cleanup
-        service.delete_pipeline(test_pipeline_name)
 
     def test_pipeline_with_mean_aggregation(self, sample_benchmark_data: pd.DataFrame) -> None:
         """

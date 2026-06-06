@@ -9,7 +9,6 @@ via dependency injection at this composition root.
 """
 
 from src.core.services.data_services.data_services_impl import DefaultDataServicesAPI
-from src.core.services.data_services.path_service import PathService
 from src.core.services.managers.managers_impl import DefaultManagersAPI
 from src.core.services.shapers.shapers_impl import DefaultShapersAPI
 from src.core.state.state_manager import StateManager
@@ -26,21 +25,18 @@ class DefaultServicesAPI:
         api = DefaultServicesAPI(state_manager)
         pool = api.data_services.load_csv_pool()
         result = api.managers.remove_outliers(df, col, groups)
-        api.shapers.save_pipeline("my_pipeline", config)
+        out = api.shapers.process_pipeline(df, pipeline_config)
     """
 
     def __init__(self, state_manager: StateManager) -> None:
         """Initialize the services API with all sub-APIs.
-
-        Cross-module dependencies are injected here:
-        - ShapersAPI receives pipelines_dir from PathService.
 
         Args:
             state_manager: State manager instance for portfolio operations.
         """
         self._managers = DefaultManagersAPI()
         self._data_services = DefaultDataServicesAPI(state_manager)
-        self._shapers = DefaultShapersAPI(PathService.get_pipelines_dir())
+        self._shapers = DefaultShapersAPI()
 
     @property
     def managers(self) -> DefaultManagersAPI:

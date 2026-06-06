@@ -10,7 +10,6 @@ from typing import cast
 import pandas as pd
 import pytest
 
-from src.core.models.data_models import PipelineStep
 from src.core.models.shaper_models import ShaperStepConfig
 from src.core.services.shapers.pipeline_service import PipelineService
 
@@ -234,44 +233,3 @@ class TestPipelineEndToEnd:
             PipelineService.process_pipeline(
                 pipeline_data, cast(list[ShaperStepConfig], pipeline_config)
             )
-
-
-class TestPipelinePersistence:
-    """Test pipeline save/load/delete cycle."""
-
-    def test_save_load_delete_cycle(self, tmp_path) -> None:
-        """Full persistence lifecycle: save → list → load → delete."""
-        svc = PipelineService(tmp_path / "pipelines")
-
-        config = [
-            {"id": 0, "type": "sort", "order_dict": {"benchmark": ["a", "b"]}},
-            {"id": 1, "type": "columnSelector", "columns": ["benchmark", "ipc"]},
-        ]
-        svc.save_pipeline(
-            "test_pipeline", cast(list[PipelineStep], config), description="Test pipeline"
-        )
-
-        # List
-        pipelines = svc.list_pipelines()
-        assert "test_pipeline" in pipelines
-
-        # Load
-        loaded = svc.load_pipeline("test_pipeline")
-        assert loaded["name"] == "test_pipeline"
-        assert loaded.get("description") == "Test pipeline"
-        assert len(loaded["pipeline"]) == 2
-        assert loaded["pipeline"][0]["type"] == "sort"
-
-        # Prepare
-        steps, counter = PipelineService.prepare_loaded_pipeline(loaded)
-        assert counter == 2  # max id (1) + 1
-        assert steps[0] is not loaded["pipeline"][0]  # deep copy
-
-        # Delete
-        svc.delete_pipeline("test_pipeline")
-        assert "test_pipeline" not in svc.list_pipelines()
-
-    def test_load_nonexistent_raises(self, tmp_path) -> None:
-        svc = PipelineService(tmp_path / "pipelines")
-        with pytest.raises(FileNotFoundError, match="not found"):
-            svc.load_pipeline("does_not_exist")

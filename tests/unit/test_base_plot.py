@@ -179,15 +179,13 @@ def test_render_advanced_options_shapes(concrete_plot: Any, mock_streamlit: Any)
 
     mock_streamlit.button.side_effect = button_side_effect
 
-    concrete_plot.render_advanced_options(config)
+    result = concrete_plot.render_advanced_options(config)
 
-    # Should have appended a shape to config['shapes']
-    # The code does shapes.append() which modifies the list in place if it came from config
-    # `shapes = saved_config.get("shapes", [])`. If list exists in config, it updates config list.
-    assert len(config["shapes"]) == 1
-    assert config["shapes"][0]["type"] == "line"
-    # Validate that the shape list length increased.
-    mock_streamlit.rerun.assert_called()
+    # New contract (audit M1): the added shape lands in the RETURNED config;
+    # the input saved_config is never mutated in place.
+    assert config["shapes"] == []
+    assert len(result["shapes"]) == 1
+    assert result["shapes"][0]["type"] == "line"
 
 
 def test_render_advanced_options_display(concrete_plot: Any, mock_streamlit: Any) -> None:

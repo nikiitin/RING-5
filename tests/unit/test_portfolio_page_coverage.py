@@ -29,7 +29,6 @@ class TestShowPortfolioPage:
         api.state_manager.has_data.return_value = False
         api.state_manager.get_plots.return_value = []
         api.data_services.list_portfolios.return_value = []
-        api.shapers.list_pipelines.return_value = []
 
         mock_st.fragment.side_effect = lambda func: func
         mock_st.columns.side_effect = _columns_side_effect
@@ -61,7 +60,6 @@ class TestShowPortfolioPage:
         api.state_manager.get_csv_path.return_value = None
         api.state_manager.get_parse_variables.return_value = None
         api.data_services.list_portfolios.return_value = []
-        api.shapers.list_pipelines.return_value = []
 
         mock_st.fragment.side_effect = lambda func: func
         mock_st.columns.side_effect = _columns_side_effect
@@ -88,7 +86,6 @@ class TestShowPortfolioPage:
         api.data_services.save_portfolio.side_effect = IOError("disk full")
         api.data_services.list_portfolios.return_value = []
         api.state_manager.get_plots.return_value = []
-        api.shapers.list_pipelines.return_value = []
 
         mock_st.fragment.side_effect = lambda func: func
         mock_st.columns.side_effect = _columns_side_effect
@@ -114,8 +111,6 @@ class TestShowPortfolioPage:
         api.state_manager.get_plots.return_value = []
         api.data_services.list_portfolios.return_value = ["p1"]
         api.data_services.load_portfolio.return_value = {"data": {"a": [1]}}
-        api.shapers.list_pipelines.return_value = []
-
         mock_st.fragment.side_effect = lambda func: func
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.button.return_value = True
@@ -141,8 +136,6 @@ class TestShowPortfolioPage:
         api.state_manager.get_plots.return_value = []
         api.data_services.list_portfolios.return_value = ["p1"]
         api.data_services.load_portfolio.side_effect = ValueError("corrupt")
-        api.shapers.list_pipelines.return_value = []
-
         mock_st.fragment.side_effect = lambda func: func
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.button.return_value = True
@@ -167,7 +160,6 @@ class TestShowPortfolioPage:
         api.state_manager.has_data.return_value = False
         api.state_manager.get_plots.return_value = []
         api.data_services.list_portfolios.return_value = []
-        api.shapers.list_pipelines.return_value = []
 
         mock_st.fragment.side_effect = lambda func: func
         mock_st.columns.side_effect = _columns_side_effect
@@ -193,8 +185,6 @@ class TestShowPortfolioPage:
         api.state_manager.has_data.return_value = False
         api.state_manager.get_plots.return_value = []
         api.data_services.list_portfolios.return_value = ["p1"]
-        api.shapers.list_pipelines.return_value = []
-
         mock_st.fragment.side_effect = lambda func: func
         mock_st.columns.side_effect = _columns_side_effect
 

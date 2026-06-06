@@ -3,6 +3,8 @@
 Extracted from ``BasePlot._render_shapes_ui``.
 """
 
+from copy import deepcopy
+
 import streamlit as st
 
 from src.core.models.plot_config import ShapeConfig
@@ -35,9 +37,12 @@ class ShapesSettingsComponent:
             saved_config: Previously saved configuration.
 
         Returns:
-            List of shape configuration dictionaries.
+            A NEW list of shape configuration dictionaries. The caller's
+            ``saved_config`` is never mutated — edits are returned and
+            committed through the normal config change-detection path.
         """
-        shapes: list[ShapeConfig] = saved_config.get("shapes", [])
+        # Independent copy: never mutate the caller's (live) config in place.
+        shapes: list[ShapeConfig] = deepcopy(saved_config.get("shapes", []))
 
         # Add new shape
         with st.expander("Add New Shape"):
@@ -73,7 +78,6 @@ class ShapesSettingsComponent:
                         "line": {"color": s_color, "width": s_width},
                     }
                 )
-                st.rerun()
 
         # List existing shapes
         if shapes:
@@ -92,6 +96,7 @@ class ShapesSettingsComponent:
                 st.caption("Type")
 
         if st.session_state.get(f"edit_shapes_{self.plot_id}", False):
+            delete_index: int | None = None
             for i, shape in enumerate(shapes):
                 c1, c2, c3, c4, c5, c6 = st.columns([1, 1, 1, 1, 1, 0.5])
 
@@ -127,13 +132,15 @@ class ShapesSettingsComponent:
                     st.text(shape["type"])
                 with c6:
                     if st.button("\U0001f5d1\ufe0f", key=f"del_shape_{i}_{self.plot_id}"):
-                        shapes.pop(i)
-                        st.rerun()
+                        delete_index = i
 
                 shape["x0"] = try_float_edit(new_x0)
                 shape["y0"] = try_float_edit(new_y0)
                 shape["x1"] = try_float_edit(new_x1)
                 shape["y1"] = try_float_edit(new_y1)
+
+            if delete_index is not None:
+                shapes = [s for j, s in enumerate(shapes) if j != delete_index]
 
         return shapes
 

@@ -2,7 +2,7 @@
 Path Service - Centralized File System Navigation.
 
 Manages all file system paths for the application including root directory,
-data directory, pipeline storage, and other critical paths. Provides
+data directory, portfolio storage, and other critical paths. Provides
 consistent, testable access to file system locations.
 """
 
@@ -13,7 +13,6 @@ class PathService:
     # Cached directory paths — mkdir is called only once per process.
     _root_dir: Path | None = None
     _data_dir: Path | None = None
-    _pipelines_dir: Path | None = None
     _portfolios_dir: Path | None = None
 
     @staticmethod
@@ -21,7 +20,6 @@ class PathService:
         """Reset all cached directory paths (for testing)."""
         PathService._root_dir = None
         PathService._data_dir = None
-        PathService._pipelines_dir = None
         PathService._portfolios_dir = None
 
     @staticmethod
@@ -39,14 +37,6 @@ class PathService:
             PathService._data_dir = PathService.get_root_dir() / ".ring5"
             PathService._data_dir.mkdir(parents=True, exist_ok=True)
         return PathService._data_dir
-
-    @staticmethod
-    def get_pipelines_dir() -> Path:
-        """Get the pipelines directory."""
-        if PathService._pipelines_dir is None:
-            PathService._pipelines_dir = PathService.get_data_dir() / "pipelines"
-            PathService._pipelines_dir.mkdir(parents=True, exist_ok=True)
-        return PathService._pipelines_dir
 
     @staticmethod
     def get_portfolios_dir() -> Path:

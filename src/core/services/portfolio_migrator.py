@@ -12,6 +12,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.core.models.visualization.engine import DEFAULT_ENGINE
+
 
 class PortfolioMigrator:
     """Migrate portfolio JSON between schema versions.
@@ -41,6 +43,10 @@ class PortfolioMigrator:
 
         if version < 2:
             portfolio_data = PortfolioMigrator._migrate_v1_to_v2(portfolio_data)
+        else:
+            # Shallow-copy so the already-current path never mutates the
+            # caller's dict (only the top-level schema_version key is written).
+            portfolio_data = dict(portfolio_data)
 
         portfolio_data["schema_version"] = PortfolioMigrator.CURRENT_VERSION
         return portfolio_data
@@ -50,7 +56,7 @@ class PortfolioMigrator:
         """V1 → V2: add engine field, clean export keys.
 
         Changes:
-            - Sets ``config["engine"]`` to ``"plotly"`` (default) if absent.
+            - Sets ``config["engine"]`` to ``DEFAULT_ENGINE`` if absent.
             - Removes all ``export_*`` keys from each plot config (they
               are superseded by the download section in V2).
             - Preserves unknown keys for forward compatibility.
@@ -64,7 +70,7 @@ class PortfolioMigrator:
         plots: list[dict[str, Any]] = data.get("plots", [])
         for plot in plots:
             config: dict[str, Any] = plot.get("config", {})
-            config.setdefault("engine", "plotly")
+            config.setdefault("engine", DEFAULT_ENGINE)
             keys_to_remove: list[str] = [k for k in config if k.startswith("export_")]
             for k in keys_to_remove:
                 del config[k]

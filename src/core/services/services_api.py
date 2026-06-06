@@ -34,7 +34,7 @@ class ServicesAPI(Protocol):
         api = DefaultServicesAPI(state_manager)
         pool = api.data_services.load_csv_pool()
         result = api.managers.remove_outliers(df, col, groups)
-        api.shapers.save_pipeline("my_pipeline", config)
+        out = api.shapers.process_pipeline(df, pipeline_config)
     """
 
     @property

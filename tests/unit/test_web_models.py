@@ -8,14 +8,13 @@ and are JSON-serializable (critical for portfolio save/load).
 import json
 from typing import Any, cast
 
-from src.core.models.data_models import ShaperStepConfig
+from src.core.models.data_models import PipelineStep, ShaperStepConfig
 from src.web.models.plot_models import (
     AnnotationShapeConfig,
     MarginsConfig,
     PlotDisplayConfig,
     RelayoutEventData,
     SeriesStyleConfig,
-    ShaperStep,
     TypographyConfig,
 )
 
@@ -107,14 +106,14 @@ class TestSeriesStyleConfig:
         assert restored == style
 
 
-# ─── ShaperStep ──────────────────────────────────────────────────────────────
+# ─── PipelineStep ─────────────────────────────────────────────────────────────
 
 
-class TestShaperStep:
-    """Tests for ShaperStep TypedDict."""
+class TestPipelineStep:
+    """Tests for PipelineStep TypedDict."""
 
     def test_create_column_selector(self) -> None:
-        step: ShaperStep = {
+        step: PipelineStep = {
             "id": 0,
             "type": "columnSelector",
             "config": cast(ShaperStepConfig, {"columns": ["col_a", "col_b"]}),
@@ -124,7 +123,7 @@ class TestShaperStep:
         assert step["config"].get("columns") == ["col_a", "col_b"]
 
     def test_create_sort_shaper(self) -> None:
-        step: ShaperStep = {
+        step: PipelineStep = {
             "id": 1,
             "type": "sort",
             "config": cast(Any, {"by": "value", "ascending": True}),
@@ -134,11 +133,11 @@ class TestShaperStep:
         assert config_dict["ascending"] is True
 
     def test_create_empty_config(self) -> None:
-        step: ShaperStep = {"id": 2, "type": "mean", "config": cast(Any, {})}
+        step: PipelineStep = {"id": 2, "type": "mean", "config": cast(Any, {})}
         assert step["config"] == {}
 
     def test_json_serializable(self) -> None:
-        step: ShaperStep = {
+        step: PipelineStep = {
             "id": 5,
             "type": "normalize",
             "config": cast(Any, {"baseline": "config_a", "column": "ipc"}),
@@ -314,14 +313,14 @@ class TestPlotDisplayConfig:
         assert config["legend_x"] == 0.8
 
 
-# ─── Pipeline (List of ShaperSteps) ─────────────────────────────────────────
+# ─── Pipeline (List of PipelineSteps) ────────────────────────────────────────
 
 
 class TestPipeline:
-    """Tests for a pipeline as a list of ShaperSteps."""
+    """Tests for a pipeline as a list of PipelineSteps."""
 
     def test_create_pipeline(self) -> None:
-        pipeline: list[ShaperStep] = [
+        pipeline: list[PipelineStep] = [
             {
                 "id": 0,
                 "type": "columnSelector",
@@ -335,7 +334,7 @@ class TestPipeline:
         assert pipeline[2]["type"] == "mean"
 
     def test_json_round_trip(self) -> None:
-        pipeline: list[ShaperStep] = [
+        pipeline: list[PipelineStep] = [
             {
                 "id": 0,
                 "type": "normalize",

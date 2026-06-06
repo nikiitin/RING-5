@@ -17,12 +17,12 @@ import pandas as pd
 import plotly.graph_objects as go
 import pytest
 
+from src.core.models.data_models import PipelineStep
 from src.web.models.plot_models import (
     AnnotationShapeConfig,
     MarginsConfig,
     PlotDisplayConfig,
     SeriesStyleConfig,
-    ShaperStep,
     TypographyConfig,
 )
 
@@ -37,7 +37,9 @@ class TestModuleImports:
         from src.web.models import plot_models
 
         assert hasattr(plot_models, "PlotDisplayConfig")
-        assert hasattr(plot_models, "ShaperStep")
+        # Pipeline-step type is the canonical PipelineStep in core.models —
+        # it is intentionally NOT duplicated in the web layer.
+        assert not hasattr(plot_models, "ShaperStep")
 
     def test_import_state(self) -> None:
         """UIStateManager imports correctly."""
@@ -188,9 +190,9 @@ class TestFigureEngineIntegration:
 class TestModelCompatibility:
     """Verify new TypedDicts are compatible with existing config patterns."""
 
-    def test_shaper_step_creation(self) -> None:
-        """ShaperStep can be created with required fields."""
-        step: ShaperStep = cast(
+    def test_pipeline_step_creation(self) -> None:
+        """PipelineStep can be created with required fields."""
+        step: PipelineStep = cast(
             Any, {"id": 0, "type": "sort", "config": {"order_dict": {"x": ["a"]}}}
         )
         assert step["type"] == "sort"

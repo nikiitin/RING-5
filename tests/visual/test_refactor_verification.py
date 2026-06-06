@@ -231,8 +231,8 @@ class TestPlotFeatures:
         mp.select_plot("Refactor Test Bar")
         shared_page.wait_for_timeout(1_000)
 
-        expect(mp.save_pipe_button).not_to_be_visible(timeout=5_000)
-        expect(mp.load_pipe_button).not_to_be_visible(timeout=5_000)
+        expect(shared_page.get_by_role("button", name="Save Pipe")).not_to_be_visible(timeout=5_000)
+        expect(shared_page.get_by_role("button", name="Load Pipe")).not_to_be_visible(timeout=5_000)
 
     # -- Phase 6: Color palette changes update chart --
 

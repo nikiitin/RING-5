@@ -22,6 +22,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from src.core.services.visualization.palette_service import get_palette_names
 from src.web.models.plot_models import PlotConfig
 
 
@@ -649,21 +650,7 @@ COLORS_PALETTE = WidgetSection(
             key="color_palette",
             label="Color Palette",
             default="Plotly",
-            options=(
-                "Plotly",
-                "G10",
-                "T10",
-                "Alphabet",
-                "Dark24",
-                "Light24",
-                "Pastel",
-                "Set1",
-                "Set2",
-                "Set3",
-                "Tableau",
-                "Safe",
-                "Vivid",
-            ),
+            options=tuple(get_palette_names()),
             spec_path="color_palette",
         ),
     ),

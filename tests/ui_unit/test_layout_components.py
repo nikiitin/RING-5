@@ -22,26 +22,6 @@ def test_sidebar_info(mock_streamlit: Any) -> None:
     mock_streamlit.info.assert_called()
 
 
-def test_navigation_menu(mock_streamlit: Any) -> None:
-
-    mock_streamlit.radio.return_value = "Data Source"
-
-    selected = LayoutComponents.navigation_menu()
-
-    assert selected == "Data Source"
-    mock_streamlit.radio.assert_called_with(
-        "Navigation",
-        [
-            "Data Source",
-            "Data Managers",
-            "Configure Pipeline",
-            "Generate Plots",
-            "Load Configuration",
-        ],
-        label_visibility="collapsed",
-    )
-
-
 def test_progress_display(mock_streamlit: Any) -> None:
 
     LayoutComponents.progress_display(1, 5, "Processing...")

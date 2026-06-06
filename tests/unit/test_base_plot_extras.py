@@ -76,11 +76,13 @@ def test_render_advanced_options_shapes_add(mock_streamlit: Any) -> None:
     mock_streamlit.button.side_effect = button_side_effect
 
     # Render
-    plot.render_advanced_options(config, None)
+    result = plot.render_advanced_options(config, None)
 
-    # Check config update
-    assert len(config["shapes"]) == 1
-    shape_cfg = config["shapes"][0]
+    # New contract (audit M1): returned config holds the added shape; the
+    # input saved_config is never mutated in place.
+    assert config["shapes"] == []
+    assert len(result["shapes"]) == 1
+    shape_cfg = result["shapes"][0]
     assert shape_cfg["type"] == "line"
     assert shape_cfg["x0"] == 0.0
     assert shape_cfg["y0"] == 0.0
@@ -127,10 +129,12 @@ def test_render_advanced_options_shapes_edit_delete(mock_streamlit: Any) -> None
     # Mock st.rerun to prevent actual rerun
     mock_streamlit.rerun = MagicMock()
 
-    plot.render_advanced_options(config, None)
+    result = plot.render_advanced_options(config, None)
 
-    # Shape should be popped
-    assert len(config["shapes"]) == 0
+    # New contract (audit M1): deletion is reflected in the RETURNED config;
+    # the input saved_config is never mutated in place.
+    assert len(config["shapes"]) == 1
+    assert len(result["shapes"]) == 0
 
 
 def test_render_reorderable_list(mock_streamlit: Any) -> None:

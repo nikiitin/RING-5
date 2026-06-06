@@ -1553,40 +1553,17 @@ class TestSelectorValidation:
 
 
 # ===================================================================
-# 14. DefaultShapersAPI delegation (lines 42, 46, 50, 66, 70)
+# 14. DefaultShapersAPI delegation
 # ===================================================================
 
 
 class TestDefaultShapersAPI:
     """Cover DefaultShapersAPI delegation methods."""
 
-    def test_list_pipelines(self, tmp_path: Path) -> None:
+    def test_get_available_shaper_types(self) -> None:
         from src.core.services.shapers.shapers_impl import DefaultShapersAPI
 
-        api = DefaultShapersAPI(tmp_path)
-        result = api.list_pipelines()
-        assert isinstance(result, list)
-
-    def test_save_and_load_pipeline(self, tmp_path: Path) -> None:
-        from src.core.services.shapers.shapers_impl import DefaultShapersAPI
-
-        api = DefaultShapersAPI(tmp_path)
-        api.save_pipeline("test_pipe", cast(Any, [{"type": "rename", "config": {}}]), "desc")
-        result = api.load_pipeline("test_pipe")
-        assert "pipeline" in result or isinstance(result, dict)
-
-    def test_delete_pipeline(self, tmp_path: Path) -> None:
-        from src.core.services.shapers.shapers_impl import DefaultShapersAPI
-
-        api = DefaultShapersAPI(tmp_path)
-        api.save_pipeline("to_delete", cast(Any, [{"type": "rename"}]), "desc")
-        api.delete_pipeline("to_delete")
-        assert "to_delete" not in api.list_pipelines()
-
-    def test_get_available_shaper_types(self, tmp_path: Path) -> None:
-        from src.core.services.shapers.shapers_impl import DefaultShapersAPI
-
-        api = DefaultShapersAPI(tmp_path)
+        api = DefaultShapersAPI()
         types = api.get_available_shaper_types()
         assert isinstance(types, list)
         assert len(types) > 0
@@ -2045,7 +2022,7 @@ class TestRepositoryStateManager:
 
         result = mgr.get_data()
         assert result is not None
-        assert result["benchmark"].dtype == object
+        assert pd.api.types.is_string_dtype(result["benchmark"])  # config vars cast to string
 
     def test_set_data_skip_same_object(self) -> None:
         """Setting the same DataFrame object again should be a no-op."""
@@ -2094,12 +2071,12 @@ class TestRepositoryStateManager:
 class TestDefaultShapersAPIProcessPipeline:
     """Cover process_pipeline delegation."""
 
-    def test_process_pipeline_empty(self, tmp_path: Path) -> None:
+    def test_process_pipeline_empty(self) -> None:
         import pandas as pd
 
         from src.core.services.shapers.shapers_impl import DefaultShapersAPI
 
-        api = DefaultShapersAPI(tmp_path)
+        api = DefaultShapersAPI()
         df = pd.DataFrame({"a": [1, 2, 3]})
         result = api.process_pipeline(df, [])
         pd.testing.assert_frame_equal(result, df)

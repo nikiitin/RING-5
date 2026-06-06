@@ -11,7 +11,6 @@ Categories:
     - Configuration persistence: SavedConfigEntry, SavedConfigData
     - Parse variable configuration: ParseVariableConfig
     - Scanned variable serialization: ScannedVariableDict
-    - Pipeline persistence: PipelineData
     - Cache monitoring: CacheStatsEntry, CacheStatsInfo
 """
 
@@ -105,24 +104,6 @@ class SavedConfigData(TypedDict, total=False):
     timestamp: str
     shapers: Required[list["ShaperStepConfig"]]
     csv_path: str | None
-
-
-# ──────────────────────────────────────────────────────────────────────
-# Pipeline Persistence
-# ──────────────────────────────────────────────────────────────────────
-
-
-class PipelineData(TypedDict, total=False):
-    """Full content of a saved pipeline file.
-
-    Serialized to/from JSON by ``PipelineService``.
-    Uses the **nested** ``PipelineStep`` format.
-    """
-
-    name: Required[str]
-    description: str
-    pipeline: Required[list["PipelineStep"]]
-    timestamp: str
 
 
 # ──────────────────────────────────────────────────────────────────────

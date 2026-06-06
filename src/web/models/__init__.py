@@ -18,7 +18,6 @@ from src.web.models.plot_models import (
     PlotDisplayConfig,
     RelayoutEventData,
     SeriesStyleConfig,
-    ShaperStep,
 )
 from src.web.models.plot_protocols import (
     ConfigRenderer,
@@ -35,7 +34,6 @@ __all__ = [
     "PlotDisplayConfig",
     "RelayoutEventData",
     "SeriesStyleConfig",
-    "ShaperStep",
     # Protocols
     "ConfigRenderer",
     "PipelineExecutor",

@@ -139,16 +139,6 @@ class ManagePlotsPage(BasePage):
         return self._by_label("stTextInput", "Rename plot").locator("input")
 
     @property
-    def save_pipe_button(self) -> Locator:
-        """'Save Pipe' button."""
-        return self.page.get_by_role("button", name="Save Pipe")
-
-    @property
-    def load_pipe_button(self) -> Locator:
-        """'Load Pipe' button."""
-        return self.page.get_by_role("button", name="Load Pipe")
-
-    @property
     def delete_button(self) -> Locator:
         """'Delete' plot button."""
         return self.page.get_by_role("button", name="Delete")
@@ -157,52 +147,6 @@ class ManagePlotsPage(BasePage):
     def duplicate_button(self) -> Locator:
         """'Duplicate' plot button."""
         return self.page.get_by_role("button", name="Duplicate")
-
-    # -- Save pipeline dialog -------
-
-    @property
-    def save_dialog_name_input(self) -> Locator:
-        """Pipeline name input inside the Save dialog."""
-        return self._by_label("stTextInput", "Pipeline Name").locator("input")
-
-    @property
-    def save_dialog_save_button(self) -> Locator:
-        """'Save' form submit in Save dialog."""
-        return self.page.get_by_role("button", name="Save")
-
-    @property
-    def save_dialog_cancel_button(self) -> Locator:
-        """'Cancel' button in Save dialog."""
-        return self.page.get_by_role("button", name="Cancel")
-
-    # -- Load pipeline dialog -------
-
-    @property
-    def load_dialog_selector(self) -> Locator:
-        """Pipeline selector selectbox in Load dialog."""
-        return self._by_label("stSelectbox", "Select Pipeline")
-
-    @property
-    def load_dialog_load_button(self) -> Locator:
-        """'Load' button in Load dialog."""
-        return self.page.get_by_role("button", name="Load")
-
-    @property
-    def load_dialog_cancel_button(self) -> Locator:
-        """'Cancel' button in Load dialog."""
-        return self.page.get_by_role("button", name="Cancel")
-
-    @property
-    def load_dialog_no_pipelines_warning(self) -> Locator:
-        """Warning when no saved pipelines exist."""
-        return self.page.locator("[data-testid='stAlertContentWarning']").filter(
-            has_text="No saved pipelines"
-        )
-
-    @property
-    def load_dialog_close_button(self) -> Locator:
-        """'Close' button shown when no pipelines exist."""
-        return self.page.get_by_role("button", name="Close")
 
     # ==================================================================
     #  5. Pipeline editor (st.fragment)
@@ -606,16 +550,6 @@ class ManagePlotsPage(BasePage):
     def duplicate_plot(self) -> None:
         """Duplicate the currently selected plot."""
         self.duplicate_button.click()
-        self.wait_for_streamlit()
-
-    def open_save_dialog(self) -> None:
-        """Click 'Save Pipe' to open the save pipeline dialog."""
-        self.save_pipe_button.click()
-        self.wait_for_streamlit()
-
-    def open_load_dialog(self) -> None:
-        """Click 'Load Pipe' to open the load pipeline dialog."""
-        self.load_pipe_button.click()
         self.wait_for_streamlit()
 
     # ==================================================================

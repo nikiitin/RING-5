@@ -207,12 +207,6 @@ class TestPathService:
             assert data_dir.exists()
             assert data_dir == tmp_path / ".ring5"
 
-    def test_get_pipelines_dir_creates_directory(self, tmp_path: Path) -> None:
-        with patch.object(PathService, "get_root_dir", return_value=tmp_path):
-            pipelines_dir = PathService.get_pipelines_dir()
-            assert pipelines_dir.exists()
-            assert pipelines_dir == tmp_path / ".ring5" / "pipelines"
-
     def test_get_portfolios_dir_creates_directory(self, tmp_path: Path) -> None:
         with patch.object(PathService, "get_root_dir", return_value=tmp_path):
             portfolios_dir = PathService.get_portfolios_dir()

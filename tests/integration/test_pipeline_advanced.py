@@ -11,63 +11,30 @@ Tests:
     - ItemSelector and ConditionSelector integration
 """
 
-from pathlib import Path
 from typing import Any, cast
 
 import pandas as pd
 import pytest
 
 from src.core.application_api import ApplicationAPI
-from src.core.models.data_models import PipelineData, PipelineStep, ShaperStepConfig
+from src.core.models.data_models import ShaperStepConfig
 from src.core.services.shapers.factory import ShaperFactory
 from src.core.services.shapers.pipeline_service import PipelineService
 
+# Serialize Perl-worker-pool tests onto one xdist worker to bound the number of
+# concurrent Perl pools under -n3 (matches the other pool tests' convention).
+pytestmark = pytest.mark.xdist_group("perl_pool")
+
 # ===========================================================================
-# Test Class 1: Pipeline save → load → apply round-trip
+# Test Class 1: Apply a multi-step pipeline to real data
 # ===========================================================================
 
 
-class TestPipelineRoundTrip:
-    """Test pipeline save/load/apply cycle with real data."""
+class TestPipelineApply:
+    """Apply a multi-step pipeline to real data via process_pipeline."""
 
-    def test_save_and_load_pipeline(self, tmp_path: Path) -> None:
-        """Saved pipeline loads back with identical config."""
-        service = PipelineService(tmp_path / "pipelines")
-
-        pipeline: list[dict[str, Any]] = [
-            {
-                "type": "columnSelector",
-                "columns": ["benchmark_name", "config_description", "system.cpu.ipc"],
-            },
-            {
-                "type": "normalize",
-                "normalizeVars": ["system.cpu.ipc"],
-                "normalizerColumn": "config_description",
-                "normalizerValue": "baseline",
-                "groupBy": ["benchmark_name"],
-            },
-        ]
-
-        service.save_pipeline(
-            "test_pipe", cast(list[PipelineStep], pipeline), description="Test description"
-        )
-
-        loaded: PipelineData = service.load_pipeline("test_pipe")
-
-        assert loaded["name"] == "test_pipe"
-        assert loaded.get("description") == "Test description"
-        assert len(loaded["pipeline"]) == 2
-        assert loaded["pipeline"][0]["type"] == "columnSelector"
-        assert loaded["pipeline"][1]["type"] == "normalize"
-
-    def test_save_load_and_apply(
-        self,
-        rich_sample_data: pd.DataFrame,
-        tmp_path: Path,
-    ) -> None:
-        """Saved pipeline → load → apply to data produces correct result."""
-        service = PipelineService(tmp_path / "pipelines")
-
+    def test_apply_select_then_sort(self, rich_sample_data: pd.DataFrame) -> None:
+        """A select → sort pipeline yields the expected columns and order."""
         pipeline: list[dict[str, Any]] = [
             {
                 "type": "columnSelector",
@@ -81,15 +48,8 @@ class TestPipelineRoundTrip:
             },
         ]
 
-        # Save
-        service.save_pipeline("apply_test", cast(list[PipelineStep], pipeline))
-
-        # Load
-        loaded: PipelineData = service.load_pipeline("apply_test")
-
-        # Apply loaded pipeline to data
         result: pd.DataFrame = PipelineService.process_pipeline(
-            rich_sample_data, cast(list[ShaperStepConfig], loaded["pipeline"])
+            rich_sample_data, cast(list[ShaperStepConfig], pipeline)
         )
 
         assert list(result.columns) == [
@@ -98,34 +58,6 @@ class TestPipelineRoundTrip:
             "system.cpu.ipc",
         ]
         assert result["benchmark_name"].unique().tolist() == ["xalancbmk", "omnetpp", "mcf"]
-
-    def test_list_and_delete_pipeline(self, tmp_path: Path) -> None:
-        """Saved pipelines appear in list, deleted ones disappear."""
-        service = PipelineService(tmp_path / "pipelines")
-
-        service.save_pipeline(
-            "alpha", cast(list[PipelineStep], [{"type": "columnSelector", "columns": ["a"]}])
-        )
-        service.save_pipeline(
-            "beta", cast(list[PipelineStep], [{"type": "columnSelector", "columns": ["b"]}])
-        )
-
-        names: list[str] = service.list_pipelines()
-        assert "alpha" in names
-        assert "beta" in names
-
-        service.delete_pipeline("alpha")
-
-        names_after: list[str] = service.list_pipelines()
-        assert "alpha" not in names_after
-        assert "beta" in names_after
-
-    def test_load_nonexistent_raises(self, tmp_path: Path) -> None:
-        """Loading a pipeline that doesn't exist raises FileNotFoundError."""
-        service = PipelineService(tmp_path / "pipelines")
-
-        with pytest.raises(FileNotFoundError, match="not found"):
-            service.load_pipeline("nonexistent")
 
 
 # ===========================================================================

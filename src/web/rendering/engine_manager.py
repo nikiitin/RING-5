@@ -28,30 +28,31 @@ Usage::
 
 from __future__ import annotations
 
-from typing import Literal, cast
+from typing import cast
 
 import streamlit as st
 
-EngineMode = Literal["plotly", "matplotlib"]
-
-_VALID_MODES: frozenset[str] = frozenset({"plotly", "matplotlib"})
+from src.core.models.visualization.engine import (
+    DEFAULT_ENGINE,
+    VALID_ENGINES,
+    EngineMode,
+)
 
 
 class EngineManager:
     """Manages the visualization engine state in Streamlit session."""
 
     STATE_KEY: str = "ring5_engine_mode"
-    DEFAULT_MODE: EngineMode = "plotly"
 
     @staticmethod
     def get_engine() -> EngineMode:
         """Return the current engine mode.
 
-        Defaults to ``"plotly"`` when no mode has been set yet.
+        Defaults to ``DEFAULT_ENGINE`` when no mode has been set yet.
         """
-        mode: str = st.session_state.get(EngineManager.STATE_KEY, EngineManager.DEFAULT_MODE)
-        if mode not in _VALID_MODES:
-            return EngineManager.DEFAULT_MODE
+        mode: str = st.session_state.get(EngineManager.STATE_KEY, DEFAULT_ENGINE)
+        if mode not in VALID_ENGINES:
+            return DEFAULT_ENGINE
         # Safe cast — validated above.
         return cast(EngineMode, mode)
 
@@ -65,9 +66,9 @@ class EngineManager:
         Raises:
             ValueError: If *mode* is not ``"plotly"`` or ``"matplotlib"``.
         """
-        if mode not in _VALID_MODES:
+        if mode not in VALID_ENGINES:
             raise ValueError(
-                f"Invalid engine mode {mode!r}. " f"Expected one of {sorted(_VALID_MODES)}."
+                f"Invalid engine mode {mode!r}. " f"Expected one of {sorted(VALID_ENGINES)}."
             )
         current = EngineManager.get_engine()
         if current != mode:

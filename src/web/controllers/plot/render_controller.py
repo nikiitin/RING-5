@@ -20,12 +20,14 @@ Architecture Note — Streamlit usage:
 import hashlib
 import json
 import logging
+from copy import deepcopy
 from typing import cast
 
 import pandas as pd
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
+from src.core.models.visualization.engine import EngineMode
 from src.core.performance import get_plot_cache
 from src.web.components.common.chart_display import ChartDisplayComponent
 from src.web.models.plot_models import PlotConfig
@@ -35,7 +37,7 @@ from src.web.models.plot_protocols import (
     RenderablePlot,
 )
 from src.web.pages.ui.plotting.settings_pills import render_settings_pills
-from src.web.rendering.engine_manager import EngineManager, EngineMode
+from src.web.rendering.engine_manager import EngineManager
 from src.web.state.ui_state_manager import UIStateManager
 
 logger = logging.getLogger(__name__)
@@ -105,7 +107,9 @@ class PlotRenderController:
         st.markdown("---")
         st.markdown("### Plot Configuration")
         saved_config: PlotConfig = plot.config
-        current_config: PlotConfig = saved_config.copy()
+        # Deep copy so no settings component can mutate the live persisted
+        # config in place; edits are detected via ``current_config != saved_config``.
+        current_config: PlotConfig = deepcopy(saved_config)
         config_error: bool = False
 
         # 1. Plot type selector (inline)

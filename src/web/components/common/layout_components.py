@@ -24,28 +24,6 @@ class LayoutComponents:
         """)
 
     @staticmethod
-    def navigation_menu() -> str:
-        """
-        Display navigation menu and return selected page.
-
-        Returns:
-            Selected page name
-        """
-        return str(
-            st.radio(
-                "Navigation",
-                [
-                    "Data Source",
-                    "Data Managers",
-                    "Configure Pipeline",
-                    "Generate Plots",
-                    "Load Configuration",
-                ],
-                label_visibility="collapsed",
-            )
-        )
-
-    @staticmethod
     def progress_display(step: int, total_steps: int, message: str) -> None:
         """
         Display a progress indicator.

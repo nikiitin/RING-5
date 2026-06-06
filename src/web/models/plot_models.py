@@ -2,8 +2,11 @@
 Plot Models — Pure data definitions for plot configuration.
 
 Consolidates scattered TypedDicts (ShapeConfig, SeriesStyle from base_plot.py)
-and defines new ones (ShaperStep, PlotDisplayConfig) as the canonical type
+and defines new ones (PlotDisplayConfig) as the canonical type
 vocabulary for the web layer.
+
+The pipeline-step type is **not** redefined here: use the single canonical
+``PipelineStep`` from ``src.core.models.data_models``.
 
 These models are **framework-agnostic**: no Streamlit, no Plotly imports.
 They can be used in tests, serialization, and domain logic without side effects.
@@ -17,8 +20,6 @@ Design Principle:
 from typing import Any
 
 from typing_extensions import TypedDict
-
-from src.core.models.data_models import ShaperStepConfig
 
 # ─── Annotation Shapes ───────────────────────────────────────────────────────
 
@@ -86,22 +87,6 @@ class RelayoutEventData(TypedDict, total=False):
     legend_xanchor: str
     legend_yanchor: str
     legend_title_text: str
-
-
-# ─── Shaper Step ─────────────────────────────────────────────────────────────
-
-
-class ShaperStep(TypedDict):
-    """
-    A single step in a data processing pipeline.
-
-    Currently stored as List[Dict[str, Any]] on BasePlot.pipeline.
-    This TypedDict formalizes the contract.
-    """
-
-    id: int  # Unique step ID within the pipeline
-    type: str  # Shaper type key (columnSelector, sort, mean, ...)
-    config: ShaperStepConfig  # Shaper-specific configuration
 
 
 # ─── Layout & Dimensions ────────────────────────────────────────────────────

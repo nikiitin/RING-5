@@ -81,11 +81,11 @@ class TestRenderablePlotProtocol:
 class TestPlotModels:
     """Test plot model TypedDicts construction and required fields."""
 
-    def test_shaper_step_construction(self) -> None:
-        """ShaperStep can be constructed with required fields."""
-        from src.web.models.plot_models import ShaperStep
+    def test_pipeline_step_construction(self) -> None:
+        """PipelineStep can be constructed with required fields."""
+        from src.core.models.data_models import PipelineStep
 
-        step: ShaperStep = cast(Any, {"id": 1, "type": "sort", "config": {"column": "a"}})
+        step: PipelineStep = cast(Any, {"id": 1, "type": "sort", "config": {"column": "a"}})
         assert step["id"] == 1
         assert step["type"] == "sort"
         assert step["config"].get("column") == "a"
