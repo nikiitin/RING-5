@@ -10,7 +10,8 @@ help:
 	@echo "  test-ci                      - Run tests with 90% coverage gate (main branch CI)"
 	@echo "  test-visual                  - Run visual/UI browser tests (Playwright)"
 	@echo "  test-unit                    - Run only unit tests (fast)"
-	@echo "  dev                          - Install dev dependencies (pytest, black, etc.)"
+	@echo "  dev                          - Install dev + e2e deps and the Playwright browser"
+	@echo "  playwright-install           - (Re)install the Playwright browser for e2e/visual tests"
 	@echo "  clean                        - Remove caches and build artifacts"
 	@echo "  quality-gate                 - Run ALL quality checks (architecture + type + format + lint + security)"
 	@echo "  arch-check                   - Check architecture boundary violations"
@@ -36,13 +37,23 @@ install: venv
 	$(PIP) install .
 
 dev: venv
-	$(PIP) install -e ".[dev]"
+	$(PIP) install -e ".[dev,e2e]"
+	$(VENV_BIN)/playwright install chromium
 	@echo ""
 	@echo "📋 Don't forget to install pre-commit hooks:"
 	@echo "   make pre-commit-install"
 	@echo ""
 	@echo "📋 For LaTeX export support, install system packages:"
 	@echo "   make install-latex"
+	@echo ""
+	@echo "📋 If browser (e2e/visual) tests fail to launch, your OS may be"
+	@echo "   missing chromium system libraries. On Debian/Ubuntu run:"
+	@echo "   $(VENV_BIN)/playwright install-deps chromium"
+
+# (Re)install the Playwright browser used by the e2e / visual test suites.
+# Run automatically by 'make dev'; provided standalone for re-installs.
+playwright-install: venv
+	$(VENV_BIN)/playwright install chromium
 
 # Install system dependencies for LaTeX export
 install-latex:
