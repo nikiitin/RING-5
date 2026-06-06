@@ -129,9 +129,17 @@ class HistogramPlot(BasePlot):
         """
         Extract and process bucket data from DataFrame.
 
+        gem5 histogram buckets are flattened into columns named
+        ``"{var}..{start}-{end}"`` (e.g. ``latency..0-99``, ``latency..100-199``).
+        This parses ``start``/``end`` out of each column's ``..start-end`` suffix
+        and pairs them with the row values. This per-bin reshape is intentionally
+        kept here (not in the shaper pipeline): it is histogram-specific view
+        prep that depends on the gem5 column-naming convention, not a reusable
+        data transform (deferred B5 — documented rather than extracted).
+
         Args:
             data: Source DataFrame
-            bucket_cols: List of bucket column names
+            bucket_cols: List of bucket column names (``{var}..{start}-{end}``)
             config: Plot configuration
 
         Returns:
