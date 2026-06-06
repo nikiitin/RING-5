@@ -9,6 +9,10 @@ Covers:
   - Edge cases (empty legends, no y2 axis)
 """
 
+from dataclasses import FrozenInstanceError
+
+import pytest
+
 from src.core.models.visualization.axis_config import AxesConfig, AxisConfig
 from src.core.models.visualization.figure_config import FigureConfig
 from src.core.models.visualization.legend_config import (
@@ -324,12 +328,18 @@ class TestResolverImmutability:
         assert resolved.legends[1].font_size == 10
 
     def test_deep_copy(self) -> None:
-        """Modifying resolved spec should not affect original."""
+        """resolve_config returns an independent, immutable copy of the input."""
         spec = FigureConfig()
         resolved = resolve_config(spec)
 
-        resolved.title = "Modified"
-        resolved.dimensions.width = 99.0
+        # Distinct objects all the way down — not aliased to the input.
+        assert resolved is not spec
+        assert resolved.dimensions is not spec.dimensions
+        assert resolved.typography is not spec.typography
 
-        assert spec.title == ""
-        assert spec.dimensions.width == 7.0
+        # Both input and output are frozen: the resolver cannot have mutated
+        # the caller's spec, and callers cannot mutate the resolved result.
+        with pytest.raises(FrozenInstanceError):
+            resolved.title = "Modified"  # type: ignore[misc]
+        with pytest.raises(FrozenInstanceError):
+            resolved.dimensions.width = 99.0  # type: ignore[misc]

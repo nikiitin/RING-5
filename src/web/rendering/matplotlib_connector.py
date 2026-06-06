@@ -218,12 +218,14 @@ class FigureSpecToMatplotlib:
         # positions; Plotly-extracted string tickvals are not valid here.
         hm_cols: list[str] | None = render_result.heatmap_col_labels if render_result else None
         hm_rows: list[str] | None = render_result.heatmap_row_labels if render_result else None
+        # x_axis/y_axis belong to the per-render resolved (deep-copied) spec we
+        # own here, so we override the frozen tick fields via object.__setattr__.
         if hm_cols:
-            x_axis.tick_values = [i + 0.5 for i in range(len(hm_cols))]
-            x_axis.tick_text = list(hm_cols)
+            object.__setattr__(x_axis, "tick_values", [i + 0.5 for i in range(len(hm_cols))])
+            object.__setattr__(x_axis, "tick_text", list(hm_cols))
         if hm_rows:
-            y_axis.tick_values = [i + 0.5 for i in range(len(hm_rows))]
-            y_axis.tick_text = list(hm_rows)
+            object.__setattr__(y_axis, "tick_values", [i + 0.5 for i in range(len(hm_rows))])
+            object.__setattr__(y_axis, "tick_text", list(hm_rows))
 
         # X-ticks
         weight = "bold" if typo.bold_ticks else "normal"

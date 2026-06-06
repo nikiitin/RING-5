@@ -85,6 +85,20 @@ def _resolve_float(value: float, parent: float) -> float:
     return parent if value == SENTINEL_FLOAT else value
 
 
+def _inherit_int(obj: object, name: str, parent: int) -> None:
+    """Resolve an int sentinel on a frozen-config field, writing it in place.
+
+    The FigureConfig tree is frozen; ``resolve_config`` owns the deepcopy it
+    walks, so it fills inherited values via ``object.__setattr__``.
+    """
+    object.__setattr__(obj, name, _resolve_int(getattr(obj, name), parent))
+
+
+def _inherit_float(obj: object, name: str, parent: float) -> None:
+    """Resolve a float sentinel on a frozen-config field, writing it in place."""
+    object.__setattr__(obj, name, _resolve_float(getattr(obj, name), parent))
+
+
 def _resolve_typography(typo: object) -> None:
     """Resolve TypographyConfig sentinel chain in-place."""
     from src.core.models.visualization.typography_config import TypographyConfig
@@ -93,22 +107,20 @@ def _resolve_typography(typo: object) -> None:
         return
 
     # y2label inherits from ylabel
-    typo.font_size_y2label = _resolve_int(typo.font_size_y2label, typo.font_size_ylabel)
+    _inherit_int(typo, "font_size_y2label", typo.font_size_ylabel)
 
     # yticks inherits from ticks
-    typo.font_size_yticks = _resolve_int(typo.font_size_yticks, typo.font_size_ticks)
+    _inherit_int(typo, "font_size_yticks", typo.font_size_ticks)
     # y2ticks inherits from yticks (already resolved)
-    typo.font_size_y2ticks = _resolve_int(typo.font_size_y2ticks, typo.font_size_yticks)
+    _inherit_int(typo, "font_size_y2ticks", typo.font_size_yticks)
 
     # legend2 inherits from legend
-    typo.font_size_legend2 = _resolve_int(typo.font_size_legend2, typo.font_size_legend)
+    _inherit_int(typo, "font_size_legend2", typo.font_size_legend)
     # legend3 inherits from legend
-    typo.font_size_legend3 = _resolve_int(typo.font_size_legend3, typo.font_size_legend)
+    _inherit_int(typo, "font_size_legend3", typo.font_size_legend)
     # legend3 sub-fields inherit from legend3 (already resolved)
-    typo.legend3_number_fontsize = _resolve_int(
-        typo.legend3_number_fontsize, typo.font_size_legend3
-    )
-    typo.legend3_text_fontsize = _resolve_int(typo.legend3_text_fontsize, typo.font_size_legend3)
+    _inherit_int(typo, "legend3_number_fontsize", typo.font_size_legend3)
+    _inherit_int(typo, "legend3_text_fontsize", typo.font_size_legend3)
 
 
 def _resolve_legends(legends: list[LegendConfig]) -> None:
@@ -130,23 +142,23 @@ def _resolve_legends(legends: list[LegendConfig]) -> None:
             continue
 
         # Font size: -1 → follow primary
-        legend.font_size = _resolve_int(legend.font_size, primary.font_size)
+        _inherit_int(legend, "font_size", primary.font_size)
 
         # Title font size: -1 → follow own font_size
-        legend.title_font_size = _resolve_int(legend.title_font_size, legend.font_size)
+        _inherit_int(legend, "title_font_size", legend.font_size)
 
         # Position: -1 → auto (keep as -1.0, connectors handle "auto")
         # But spacing inherits from primary
         _resolve_legend_spacing(legend.spacing, primary_spacing)
 
         # Tertiary-annotation font sizes: -1 → follow own font_size
-        legend.number_fontsize = _resolve_int(legend.number_fontsize, legend.font_size)
-        legend.text_fontsize = _resolve_int(legend.text_fontsize, legend.font_size)
+        _inherit_int(legend, "number_fontsize", legend.font_size)
+        _inherit_int(legend, "text_fontsize", legend.font_size)
 
     # Also resolve primary's own title_font_size
-    primary.title_font_size = _resolve_int(primary.title_font_size, primary.font_size)
-    primary.number_fontsize = _resolve_int(primary.number_fontsize, primary.font_size)
-    primary.text_fontsize = _resolve_int(primary.text_fontsize, primary.font_size)
+    _inherit_int(primary, "title_font_size", primary.font_size)
+    _inherit_int(primary, "number_fontsize", primary.font_size)
+    _inherit_int(primary, "text_fontsize", primary.font_size)
 
 
 def _resolve_legend_spacing(
@@ -162,7 +174,7 @@ def _resolve_legend_spacing(
     for f in fields(spacing):
         val = getattr(spacing, f.name)
         if isinstance(val, float) and val == SENTINEL_FLOAT:
-            setattr(spacing, f.name, getattr(parent, f.name))
+            object.__setattr__(spacing, f.name, getattr(parent, f.name))
 
 
 def _resolve_axes(axes: object) -> None:
@@ -179,6 +191,6 @@ def _resolve_axes(axes: object) -> None:
     y2 = axes.y2
 
     # y2 inherits label_pad from y
-    y2.label_pad = _resolve_float(y2.label_pad, y.label_pad)
+    _inherit_float(y2, "label_pad", y.label_pad)
     # y2 inherits tick_pad from y
-    y2.tick_pad = _resolve_float(y2.tick_pad, y.tick_pad)
+    _inherit_float(y2, "tick_pad", y.tick_pad)

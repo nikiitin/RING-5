@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 # ────────────────────────────────────────────────────────────────────
 
 
-@dataclass
+@dataclass(frozen=True)
 class MarginsConfig:
     """Figure margins in **points** (1 pt ≈ 1/72 inch).
 
@@ -58,7 +58,7 @@ class MarginsConfig:
 # ────────────────────────────────────────────────────────────────────
 
 
-@dataclass
+@dataclass(frozen=True)
 class DimensionConfig:
     """Physical dimensions of the figure.
 
@@ -80,7 +80,7 @@ class DimensionConfig:
 # ────────────────────────────────────────────────────────────────────
 
 
-@dataclass
+@dataclass(frozen=True)
 class SeparatorConfig:
     """Group separator lines between bar clusters."""
 
@@ -94,7 +94,7 @@ class SeparatorConfig:
 # ────────────────────────────────────────────────────────────────────
 
 
-@dataclass
+@dataclass(frozen=True)
 class FigureConfig:
     """Engine-agnostic, complete description of a figure.
 
@@ -196,9 +196,9 @@ class FigureConfig:
         from src.core.models.visualization.typography_config import TypographyConfig
 
         if self.typography is None:
-            self.typography = TypographyConfig()
+            object.__setattr__(self, "typography", TypographyConfig())
         if self.axes is None:
-            self.axes = AxesConfig()
+            object.__setattr__(self, "axes", AxesConfig())
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize the entire spec tree to a plain dictionary.
@@ -225,8 +225,11 @@ class FigureConfig:
         from src.core.models.visualization.series_style_config import SeriesStyleConfig
         from src.core.models.visualization.typography_config import TypographyConfig
 
-        dims_data = data.get("dimensions", {})
-        margins_data = dims_data.pop("margins", {}) if isinstance(dims_data, dict) else {}
+        # Shallow-copy the nested dict before .pop() so we never mutate the
+        # caller's input (from_dict must be side-effect free for round-trips).
+        dims_raw = data.get("dimensions", {})
+        dims_data = dict(dims_raw) if isinstance(dims_raw, dict) else {}
+        margins_data = dims_data.pop("margins", {})
         margins = MarginsConfig(**margins_data) if margins_data else MarginsConfig()
         dimensions = (
             DimensionConfig(margins=margins, **dims_data) if dims_data else DimensionConfig()

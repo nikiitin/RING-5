@@ -19,7 +19,7 @@ INHERIT: int = -1
 INHERIT_F: float = -1.0
 
 
-@dataclass
+@dataclass(frozen=True)
 class TypographyConfig:
     """Per-element font size and weight specification.
 

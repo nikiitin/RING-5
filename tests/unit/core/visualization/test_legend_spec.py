@@ -8,6 +8,10 @@ Covers:
   - All three roles (primary, secondary, tertiary)
 """
 
+from dataclasses import FrozenInstanceError
+
+import pytest
+
 from src.core.models.visualization.legend_config import (
     LegendConfig,
     LegendSpacingConfig,
@@ -167,16 +171,17 @@ class TestLegendSpec:
         assert restored.spacing.handletextpad == 0.5
 
     def test_spacing_isolation(self) -> None:
-        """Two LegendSpecs should have independent spacing."""
+        """Two LegendSpecs should have independent (distinct), frozen spacing."""
         legend1 = LegendConfig(spacing=LegendSpacingConfig(columnspacing=1.0))
         legend2 = LegendConfig(spacing=LegendSpacingConfig(columnspacing=2.0))
 
         assert legend1.spacing.columnspacing == 1.0
         assert legend2.spacing.columnspacing == 2.0
+        assert legend1.spacing is not legend2.spacing
 
-        # Modify one — the other should be unaffected
-        legend1.spacing.columnspacing = 99.0
-        assert legend2.spacing.columnspacing == 2.0
+        # Frozen: spacing cannot be mutated to bleed across legends.
+        with pytest.raises(FrozenInstanceError):
+            legend1.spacing.columnspacing = 99.0  # type: ignore[misc]
 
 
 # ────────────────────────────────────────────────────────────────────

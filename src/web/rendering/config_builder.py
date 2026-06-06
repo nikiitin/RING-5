@@ -118,11 +118,10 @@ class PlotlyFigureSpecBuilder:
         capture because the data is set programmatically in
         ``create_figure()`` methods rather than stored in the config dict.
 
-        Modifies *spec* in place.
-
-        Args:
-            spec: An already-built FigureConfig (typically from config).
-            fig: A ``plotly.graph_objects.Figure`` with finalised layout.
+        Modifies *spec* in place. The FigureConfig tree is frozen, but this
+        method is only ever handed a freshly-built, caller-owned spec (see
+        ``ChartDisplayComponent`` — built, enriched, then resolved), so the
+        in-place fill via ``object.__setattr__`` is private to that build step.
         """
         layout: Any = fig.layout if hasattr(fig, "layout") else None
         if layout is None:
@@ -135,10 +134,10 @@ class PlotlyFigureSpecBuilder:
             tt = getattr(xaxis, "ticktext", None)
             if tv is not None:
                 raw = tv.tolist() if hasattr(tv, "tolist") else list(tv)
-                spec.axes.x.tick_values = raw
+                object.__setattr__(spec.axes.x, "tick_values", raw)
             if tt is not None:
                 raw_t = tt.tolist() if hasattr(tt, "tolist") else list(tt)
-                spec.axes.x.tick_text = [str(t) for t in raw_t]
+                object.__setattr__(spec.axes.x, "tick_text", [str(t) for t in raw_t])
 
         yaxis = getattr(layout, "yaxis", None)
         if yaxis is not None:
@@ -146,22 +145,22 @@ class PlotlyFigureSpecBuilder:
             tt = getattr(yaxis, "ticktext", None)
             if tv is not None:
                 raw = tv.tolist() if hasattr(tv, "tolist") else list(tv)
-                spec.axes.y.tick_values = raw
+                object.__setattr__(spec.axes.y, "tick_values", raw)
             if tt is not None:
                 raw_t = tt.tolist() if hasattr(tt, "tolist") else list(tt)
-                spec.axes.y.tick_text = [str(t) for t in raw_t]
+                object.__setattr__(spec.axes.y, "tick_text", [str(t) for t in raw_t])
 
         # ── Annotations ─────────────────────────────────────────
         # Only merge if spec has none (avoid duplicating config-based ones)
         if not spec.annotations:
-            spec.annotations = _extract_annotations(layout)
+            object.__setattr__(spec, "annotations", _extract_annotations(layout))
 
         # ── Barmode ─────────────────────────────────────────────
         plotly_barmode = getattr(layout, "barmode", None)
         if plotly_barmode is not None:
             barmode_str = str(plotly_barmode)
             if barmode_str in ("group", "stack", "overlay", "relative"):
-                spec.barmode = barmode_str  # type: ignore[assignment]
+                object.__setattr__(spec, "barmode", barmode_str)
 
         # ── Legend3 (tertiary legend items) ─────────────────────────
         legend3 = getattr(layout, "legend3", None)
@@ -816,53 +815,46 @@ def _extract_axes(layout: Any, config: dict[str, Any]) -> AxesConfig:
     return AxesConfig(x=x, y=y, y2=y2)
 
 
+def _legend_position_kwargs(legend_obj: Any) -> dict[str, Any]:
+    """Extract position/anchor overrides from a Plotly legend object.
+
+    Returns kwargs ready to pass to the (frozen) ``LegendConfig`` constructor;
+    empty when ``legend_obj`` is ``None`` or carries no overrides.
+    """
+    kwargs: dict[str, Any] = {}
+    if legend_obj is None:
+        return kwargs
+    x = getattr(legend_obj, "x", None)
+    y = getattr(legend_obj, "y", None)
+    if x is not None:
+        kwargs["position_x"] = float(x)
+        kwargs["custom_position"] = True
+    if y is not None:
+        kwargs["position_y"] = float(y)
+    xanchor = getattr(legend_obj, "xanchor", None)
+    if xanchor:
+        kwargs["anchor_x"] = xanchor
+    yanchor = getattr(legend_obj, "yanchor", None)
+    if yanchor:
+        kwargs["anchor_y"] = yanchor
+    return kwargs
+
+
 def _extract_legends(layout: Any, config: dict[str, Any]) -> list[LegendConfig]:
     """Extract legend configurations from Plotly layout."""
-    legends: list[LegendConfig] = []
+    legends: list[LegendConfig] = [
+        LegendConfig(
+            role="primary",
+            font_size=config.get("legend_font_size", 8),
+            font_color=config.get("legend_font_color", "#444"),
+            orientation=("horizontal" if config.get("legend_orientation") == "h" else "vertical"),
+            **_legend_position_kwargs(getattr(layout, "legend", None)),
+        )
+    ]
 
-    legend = getattr(layout, "legend", None)
-    primary = LegendConfig(
-        role="primary",
-        font_size=config.get("legend_font_size", 8),
-        font_color=config.get("legend_font_color", "#444"),
-        orientation=("horizontal" if config.get("legend_orientation") == "h" else "vertical"),
-    )
-
-    if legend is not None:
-        x = getattr(legend, "x", None)
-        y = getattr(legend, "y", None)
-        if x is not None:
-            primary.position_x = float(x)
-            primary.custom_position = True
-        if y is not None:
-            primary.position_y = float(y)
-        xanchor = getattr(legend, "xanchor", None)
-        if xanchor:
-            primary.anchor_x = xanchor
-        yanchor = getattr(legend, "yanchor", None)
-        if yanchor:
-            primary.anchor_y = yanchor
-
-    legends.append(primary)
-
-    # legend2
     legend2 = getattr(layout, "legend2", None)
     if legend2 is not None:
-        sec = LegendConfig(role="secondary")
-        x = getattr(legend2, "x", None)
-        y = getattr(legend2, "y", None)
-        if x is not None:
-            sec.position_x = float(x)
-            sec.custom_position = True
-        if y is not None:
-            sec.position_y = float(y)
-        xanchor = getattr(legend2, "xanchor", None)
-        if xanchor:
-            sec.anchor_x = xanchor
-        yanchor = getattr(legend2, "yanchor", None)
-        if yanchor:
-            sec.anchor_y = yanchor
-        legends.append(sec)
+        legends.append(LegendConfig(role="secondary", **_legend_position_kwargs(legend2)))
 
     return legends
 
@@ -884,29 +876,32 @@ def _extract_annotations(layout: Any) -> list[AnnotationConfig]:
             y_val: float | str = float(raw_y)
         except (ValueError, TypeError):
             y_val = str(raw_y) if raw_y is not None else 0.0
-        spec = AnnotationConfig(
-            text=getattr(ann, "text", ""),
-            x=x_val,
-            y=y_val,
-            xref="paper" if getattr(ann, "xref", "") == "paper" else "data",
-            yref="paper" if getattr(ann, "yref", "") == "paper" else "data",
-            show_arrow=bool(getattr(ann, "showarrow", False)),
-            font_size=int(getattr(font, "size", 0) or 0) if font else -1,
-            font_color=str(getattr(font, "color", "#444") or "#444") if font else "#444",
-            text_angle=float(getattr(ann, "textangle", 0) or 0),
-            border_width=float(getattr(ann, "borderwidth", 0) or 0),
-            border_color=str(getattr(ann, "bordercolor", "") or ""),
-            border_pad=float(getattr(ann, "borderpad", 0) or 0),
-            bgcolor=str(getattr(ann, "bgcolor", "") or ""),
-            align=getattr(ann, "align", "left") or "left",
-        )
+        anchor_kwargs: dict[str, Any] = {}
         xanchor = getattr(ann, "xanchor", None)
         if xanchor:
-            spec.xanchor = xanchor
+            anchor_kwargs["xanchor"] = xanchor
         yanchor = getattr(ann, "yanchor", None)
         if yanchor:
-            spec.yanchor = yanchor
-        annotations.append(spec)
+            anchor_kwargs["yanchor"] = yanchor
+        annotations.append(
+            AnnotationConfig(
+                text=getattr(ann, "text", ""),
+                x=x_val,
+                y=y_val,
+                xref="paper" if getattr(ann, "xref", "") == "paper" else "data",
+                yref="paper" if getattr(ann, "yref", "") == "paper" else "data",
+                show_arrow=bool(getattr(ann, "showarrow", False)),
+                font_size=int(getattr(font, "size", 0) or 0) if font else -1,
+                font_color=str(getattr(font, "color", "#444") or "#444") if font else "#444",
+                text_angle=float(getattr(ann, "textangle", 0) or 0),
+                border_width=float(getattr(ann, "borderwidth", 0) or 0),
+                border_color=str(getattr(ann, "bordercolor", "") or ""),
+                border_pad=float(getattr(ann, "borderpad", 0) or 0),
+                bgcolor=str(getattr(ann, "bgcolor", "") or ""),
+                align=getattr(ann, "align", "left") or "left",
+                **anchor_kwargs,
+            )
+        )
 
     return annotations
 

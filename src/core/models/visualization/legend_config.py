@@ -19,7 +19,7 @@ from typing import Any, Literal
 INHERIT_F: float = -1.0
 
 
-@dataclass
+@dataclass(frozen=True)
 class ColorbarConfig:
     """Colorbar-specific settings for heatmap plots.
 
@@ -57,7 +57,7 @@ class ColorbarConfig:
         return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
 
 
-@dataclass
+@dataclass(frozen=True)
 class LegendSpacingConfig:
     """Fine-grained spacing parameters for a legend box.
 
@@ -90,7 +90,7 @@ class LegendSpacingConfig:
         return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
 
 
-@dataclass
+@dataclass(frozen=True)
 class LegendConfig:
     """Configuration for a single legend instance.
 
@@ -224,11 +224,13 @@ class LegendConfig:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> LegendConfig:
         """Reconstruct from serialized dictionary."""
-        spacing_data = data.pop("spacing", {}) if isinstance(data.get("spacing"), dict) else {}
+        # Use .get() (not .pop()) so we never mutate the caller's input dict;
+        # the `filtered` comprehension below already excludes these keys.
+        spacing_data = data.get("spacing", {}) if isinstance(data.get("spacing"), dict) else {}
         spacing = (
             LegendSpacingConfig.from_dict(spacing_data) if spacing_data else LegendSpacingConfig()
         )
-        colorbar_data = data.pop("colorbar", {}) if isinstance(data.get("colorbar"), dict) else {}
+        colorbar_data = data.get("colorbar", {}) if isinstance(data.get("colorbar"), dict) else {}
         colorbar = ColorbarConfig.from_dict(colorbar_data) if colorbar_data else ColorbarConfig()
         filtered = {
             k: v

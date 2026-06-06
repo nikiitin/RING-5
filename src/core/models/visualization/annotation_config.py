@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 
-@dataclass
+@dataclass(frozen=True)
 class AnnotationConfig:
     """Engine-agnostic description of a text annotation.
 
@@ -61,7 +61,7 @@ class AnnotationConfig:
     align: Literal["left", "center", "right"] = "left"
 
 
-@dataclass
+@dataclass(frozen=True)
 class ReferenceLineConfig:
     """A horizontal or vertical reference line across the plot.
 

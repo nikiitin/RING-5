@@ -18,7 +18,7 @@ from typing import Any, Literal
 INHERIT_F: float = -1.0
 
 
-@dataclass
+@dataclass(frozen=True)
 class AxisConfig:
     """Configuration for a single axis (x, y, or y2).
 
@@ -78,7 +78,7 @@ class AxisConfig:
         return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
 
 
-@dataclass
+@dataclass(frozen=True)
 class AxesConfig:
     """Container for all axes in a figure.
 

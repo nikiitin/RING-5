@@ -8,6 +8,10 @@ Covers:
   - Sub-spec isolation (modifying one spec doesn't affect another)
 """
 
+from dataclasses import FrozenInstanceError
+
+import pytest
+
 from src.core.models.visualization.annotation_config import (
     AnnotationConfig,
     ReferenceLineConfig,
@@ -213,25 +217,35 @@ class TestFigureSpecSerialization:
 
 
 class TestSubSpecIsolation:
-    """Test that sub-specs are independent instances."""
+    """Test that sub-specs are independent instances.
+
+    The FigureConfig tree is frozen, so values cannot bleed across specs by
+    mutation; isolation is guaranteed by each spec getting its own (distinct)
+    default-factory instances.
+    """
 
     def test_margins_isolation(self) -> None:
-        """Two FigureSpecs should have independent margins."""
+        """Two FigureSpecs should have independent (distinct) margins instances."""
         spec1 = FigureConfig()
         spec2 = FigureConfig()
 
-        spec1.dimensions.margins.top = 100.0
-        assert spec2.dimensions.margins.top == 40.0
+        assert spec1.dimensions.margins is not spec2.dimensions.margins
+        # Frozen: a margin cannot be mutated to bleed into the other spec.
+        with pytest.raises(FrozenInstanceError):
+            spec1.dimensions.margins.top = 100.0  # type: ignore[misc]
 
     def test_axes_isolation(self) -> None:
-        """Two FigureSpecs should have independent axes."""
+        """Two FigureSpecs should have independent (distinct) axes instances."""
         spec1 = FigureConfig()
         spec2 = FigureConfig()
 
         assert spec1.axes is not None
         assert spec2.axes is not None
-        spec1.axes.x.label = "Modified"
-        assert spec2.axes.x.label == ""
+        assert spec1.axes is not spec2.axes
+        assert spec1.axes.x is not spec2.axes.x
+        # Frozen: axis fields cannot be mutated post-construction.
+        with pytest.raises(FrozenInstanceError):
+            spec1.axes.x.label = "Modified"  # type: ignore[misc]
 
     def test_legend_list_isolation(self) -> None:
         """Legend lists should be independent."""
@@ -460,3 +474,40 @@ class TestFigureSpecStep6FullRoundTrip:
         assert restored.data_labels.font_size == 14
         assert len(restored.series_styles) == 1
         assert restored.series_styles[0].line_width == 3.0
+
+
+class TestFigureSpecImmutability:
+    """The whole FigureConfig styling tree is frozen for reproducibility.
+
+    Connectors and the resolver treat a resolved spec as read-only; these
+    guards lock in that contract so a future field assignment can't silently
+    mutate shared styling state.
+    """
+
+    def test_figure_config_is_frozen(self) -> None:
+        spec = FigureConfig()
+        with pytest.raises(FrozenInstanceError):
+            spec.title = "nope"  # type: ignore[misc]
+        with pytest.raises(FrozenInstanceError):
+            spec.barmode = "stack"  # type: ignore[misc]
+
+    def test_nested_specs_are_frozen(self) -> None:
+        spec = FigureConfig(legends=[LegendConfig()])
+        with pytest.raises(FrozenInstanceError):
+            spec.dimensions.width = 1.0  # type: ignore[misc]
+        with pytest.raises(FrozenInstanceError):
+            spec.typography.font_size_base = 1  # type: ignore[misc]
+        with pytest.raises(FrozenInstanceError):
+            spec.axes.y.label = "x"  # type: ignore[misc]
+        with pytest.raises(FrozenInstanceError):
+            spec.legends[0].font_size = 99  # type: ignore[misc]
+        with pytest.raises(FrozenInstanceError):
+            spec.separator.enabled = True  # type: ignore[misc]
+
+    def test_list_fields_remain_replaceable_by_construction(self) -> None:
+        """Frozen blocks field rebinding, not building a fresh spec with new lists."""
+        spec = FigureConfig(legends=[LegendConfig(role="primary")])
+        # Construction (not mutation) is how you get a changed spec.
+        spec2 = FigureConfig(legends=[*spec.legends, LegendConfig(role="secondary")])
+        assert len(spec.legends) == 1
+        assert len(spec2.legends) == 2

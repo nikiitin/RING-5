@@ -165,20 +165,25 @@ class TestCreateFigureWithGroup:
         for trace in fig.data:
             assert cast(go.Bar, trace).error_y is not None
 
-    def test_shapes_config_combined(self, plot: GroupedBarPlot, sample_data: pd.DataFrame) -> None:
-        """User shapes and distinction shapes are combined."""
-        user_shape = dict(type="line", x0=0, x1=5, y0=0, y1=1)
-        config = {
+    def test_user_shapes_config_ignored_by_create_figure(
+        self, plot: GroupedBarPlot, sample_data: pd.DataFrame
+    ) -> None:
+        """create_figure no longer reads config['shapes']; user-drawn shapes are
+        applied separately by the StyleApplicator (see test_style_applicator). So
+        passing them must not change the figure create_figure builds."""
+        base_config = {
             "x": "Category",
             "y": "Value",
             "group": "Group",
             "title": "Shapes",
-            "shapes": [user_shape],
             "show_error_bars": False,
         }
-        fig = plot.create_figure(sample_data, config)
-        shapes = list(fig.layout.shapes)
-        assert len(shapes) >= 1
+        without = plot.create_figure(sample_data, dict(base_config))
+        with_shapes = plot.create_figure(
+            sample_data,
+            {**base_config, "shapes": [dict(type="line", x0=0, x1=5, y0=0, y1=1)]},
+        )
+        assert len(list(with_shapes.layout.shapes)) == len(list(without.layout.shapes))
 
     def test_shapes_config_non_list(self, plot: GroupedBarPlot, sample_data: pd.DataFrame) -> None:
         """Non-list shapes handled gracefully."""
