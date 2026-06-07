@@ -704,9 +704,14 @@ class ManagePlotsPage(BasePage):
         self._open_and_select(self.viz_group_by_selectbox, column)
 
     def refresh_plot(self) -> None:
-        """Click 'Refresh Plot' and wait."""
+        """Click 'Refresh Plot' and wait for the regeneration rerun.
+
+        Refresh reruns to regenerate the figure; under -n 3 that can be slow, so
+        we wait for the rerun (expect_rerun) with generous time before callers
+        assert the chart — otherwise the regen races a tight assert_chart_visible.
+        """
         self.viz_refresh_button.click()
-        self.wait_for_streamlit()
+        self.wait_for_streamlit(timeout=30_000, expect_rerun=True)
 
     def toggle_auto_refresh(self) -> None:
         """Toggle the auto-refresh switch."""
@@ -733,10 +738,15 @@ class ManagePlotsPage(BasePage):
             expect(checkbox).to_be_checked(timeout=self.RENDER_TIMEOUT)
 
     def select_engine(self, engine: str) -> None:
-        """Select a rendering engine via pills (idempotent).
+        """Select a rendering engine via pills (idempotent + verify-then-act).
 
         Clicking an already-active segmented-control pill DESELECTS it, so we
-        click only when the target engine isn't already active.
+        click only when the target engine isn't already active. Switching engines
+        reruns to regenerate the figure (and swap the Plotly iframe ↔ Matplotlib
+        image), which can be slow under -n 3 — so we wait for that rerun and then
+        assert the pill became active, so a missed switch fails loudly instead of
+        leaving the OLD engine's chart on screen (which then trips
+        assert_chart_visible / assert_matplotlib_chart_visible downstream).
 
         Args:
             engine: ``"plotly"`` or ``"matplotlib"``.
@@ -747,7 +757,11 @@ class ManagePlotsPage(BasePage):
         if active.count() and engine.lower() in (active.first.inner_text() or "").lower():
             return
         pill.click()
-        self.wait_for_streamlit()
+        # Engine switch + figure regeneration; allow generous time for the rerun.
+        self.wait_for_streamlit(timeout=30_000, expect_rerun=True)
+        expect(pill).to_have_attribute(
+            "data-testid", "stBaseButton-pillsActive", timeout=self.RENDER_TIMEOUT
+        )
 
     # ==================================================================
     #  ASSERTIONS
