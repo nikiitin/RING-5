@@ -9,6 +9,7 @@ help:
 	@echo "  test                         - Run unit + integration tests (no coverage gate)"
 	@echo "  test-ci                      - Run tests with 90% coverage gate (main branch CI)"
 	@echo "  test-visual                  - Run visual/UI browser tests (Playwright)"
+	@echo "  test-e2e                     - Run the Playwright e2e suite (two-pass: -n 3 parallel + -n 0 serial)"
 	@echo "  test-unit                    - Run only unit tests (fast)"
 	@echo "  dev                          - Install dev + e2e deps and the Playwright browser"
 	@echo "  playwright-install           - (Re)install the Playwright browser for e2e/visual tests"
@@ -201,6 +202,29 @@ test-visual:
 	echo "Stopping Streamlit server..."; \
 	kill %1 2>/dev/null || true; \
 	exit $${EXIT_CODE:-0}
+
+# Run the Playwright e2e suite as TWO passes (each spins up its own Streamlit
+# server(s) via the e2e fixtures — no manual server needed):
+#   1. main suite in parallel (-n 3 --dist loadgroup);
+#   2. the @pytest.mark.serial classes in -n 0 — the Kaleido raster-download
+#      tests drive a headless-Chrome subprocess and deadlock/starve (and cascade
+#      into other tests) if run across xdist workers. Running them serially is
+#      required, NOT optional — a plain `pytest tests/e2e` would run them under
+#      the default -n 3 and flake. Both passes always run; the target fails if
+#      either does.
+test-e2e:
+	@echo "=== E2E pass 1/2: parallel (-n 3 --dist loadgroup) ==="
+	@$(pytest) tests/e2e -m "requires_browser and not serial" \
+		-n 3 --dist loadgroup --no-cov --timeout=120; E1=$$?; \
+	echo ""; \
+	echo "=== E2E pass 2/2: serial (-n 0 — Kaleido raster export) ==="; \
+	$(pytest) tests/e2e -m "requires_browser and serial" \
+		-n 0 --no-cov --timeout=120; E2=$$?; \
+	echo ""; \
+	if [ $$E1 -ne 0 ] || [ $$E2 -ne 0 ]; then \
+		echo "🔴 e2e FAILED (parallel=$$E1, serial=$$E2)"; exit 1; \
+	fi; \
+	echo "🟢 e2e PASSED (both passes)"
 
 # Run the application
 run:
