@@ -1,3 +1,13 @@
+---
+title: "Manage Plots"
+parent: Page Guides
+grand_parent: User Guide
+nav_order: 3
+redirect_from:
+  - /webapp/Creating-Plots/
+  - /Creating-Plots/
+---
+
 # Manage Plots
 
 The **Manage Plots** page is the core workspace of RING-5. This is where you

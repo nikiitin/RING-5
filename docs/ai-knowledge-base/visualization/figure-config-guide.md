@@ -1,3 +1,10 @@
+---
+title: "FigureConfig Dataclass Hierarchy"
+parent: Visualization
+grand_parent: AI Knowledge Base
+nav_order: 1
+---
+
 # FigureConfig Dataclass Hierarchy
 
 > **Scope**: Complete field reference for the engine-agnostic `FigureConfig` composition tree.

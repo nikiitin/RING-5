@@ -1,3 +1,10 @@
+---
+title: "Tutorial: Custom Styling"
+parent: Tutorials
+grand_parent: User Guide
+nav_order: 5
+---
+
 # Tutorial: Custom Styling
 
 This tutorial walks you through advanced plot customization in RING-5. By the end, you will know how to control typography, colors, legends, axes, layout, and reference lines to produce polished, publication-quality figures.

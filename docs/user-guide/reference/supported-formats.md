@@ -1,3 +1,10 @@
+---
+title: "Supported Formats"
+parent: Reference
+grand_parent: User Guide
+nav_order: 2
+---
+
 # Supported Formats
 
 This reference lists all file formats that RING-5 can read and write.

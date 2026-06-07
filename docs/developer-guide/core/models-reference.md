@@ -1,3 +1,10 @@
+---
+title: "Core Models Reference"
+parent: Core
+grand_parent: Developer Guide
+nav_order: 1
+---
+
 # Core Models Reference
 
 > RING-5 Unified Engine v2 -- Exhaustive catalog of every model class, type alias,

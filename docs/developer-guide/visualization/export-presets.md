@@ -1,3 +1,10 @@
+---
+title: "Export and Preset System"
+parent: Visualization
+grand_parent: Developer Guide
+nav_order: 5
+---
+
 # Export and Preset System
 
 ## Overview
@@ -336,6 +343,133 @@ To add a new export format:
 3. Add a branch in `plotly_download_bytes()` or `matplotlib_download_bytes()`
    that produces bytes for the new format.
 4. The format will automatically appear in the UI format pills.
+
+---
+
+## LaTeX export troubleshooting
+
+LaTeX-backed export is exercised by the Matplotlib path (`src/web/rendering/matplotlib_connector.py` plus the byte-producing functions in `src/web/pages/ui/plotting/download_section.py`), which calls `savefig` for PDF/PGF/SVG and renders text through the system TeX toolchain. The Plotly path (Kaleido) does not require a TeX install. The remedies below cover the most common failures.
+
+### Prerequisites: TeX Live packages
+
+Most LaTeX export failures are missing system packages rather than RING-5 bugs. On Ubuntu/Debian:
+
+```bash
+# Basic LaTeX support (PDF/SVG export with LaTeX text rendering):
+sudo apt-get install texlive-latex-base texlive-fonts-recommended \
+                     texlive-fonts-extra cm-super texlive-latex-extra
+
+# For PGF format support (uses XeLaTeX):
+sudo apt-get install texlive-xetex
+
+# Automated installation (recommended):
+make install-latex
+```
+
+Package roles:
+
+| Package | Role |
+|---------|------|
+| `texlive-latex-base` | Core LaTeX engine (`pdflatex`) plus `amsmath`, `amssymb` |
+| `texlive-fonts-recommended` | Standard LaTeX fonts |
+| `texlive-fonts-extra` | Additional font packages |
+| `texlive-latex-extra` | Additional LaTeX packages |
+| `cm-super` | Type 1 Computer Modern fonts (provides `type1ec.sty`) |
+| `texlive-xetex` | XeLaTeX engine, required only for PGF export |
+
+The export preamble automatically includes `inputenc[utf8]`, `fontenc[T1]` (prevents `\mathdefault` errors), `amsmath`, and `amssymb`. Avoid raw Unicode characters (α, β, ...) in titles and labels; use LaTeX math mode instead (`$\alpha$`, `$\beta$`).
+
+On macOS, install the full TeX distribution:
+
+```bash
+brew install --cask mactex
+```
+
+Verify the toolchain before exporting:
+
+```bash
+latex --version    # Should show a TeX Live version
+xelatex --version  # Required for PGF format
+make check-latex   # Automated verification
+```
+
+### Error: `File 'type1ec.sty' not found`
+
+**Cause**: The `cm-super` font package is missing. It provides the Type 1 Computer Modern fonts required for LaTeX text rendering in Matplotlib.
+
+**Fix**:
+
+```bash
+sudo apt-get install cm-super texlive-fonts-extra
+```
+
+### Error: `'xelatex' not found`
+
+**Cause**: The XeLaTeX engine is missing. PGF export configures XeLaTeX as the TeX system, so PGF fails without it.
+
+**Fix**:
+
+```bash
+sudo apt-get install texlive-xetex
+```
+
+**Alternative**: Export to PDF or SVG instead of PGF. PDF is the recommended vector format for most LaTeX workflows and does not require XeLaTeX.
+
+### Error: `Cannot export empty figure`
+
+**Cause**: The figure has no traces, or every trace has empty data arrays.
+
+**Fix**: Ensure the figure contains at least one trace with non-empty data:
+
+```python
+fig = go.Figure()
+fig.add_trace(go.Bar(x=[1, 2, 3], y=[4, 5, 6]))  # OK: has data
+
+# These fail:
+empty_fig = go.Figure()                       # no traces
+bad_fig = go.Figure(data=[go.Bar(x=[], y=[])])  # empty data
+```
+
+### Error: `LaTeX was not able to process...`
+
+**Cause**: Missing LaTeX system packages, or LaTeX syntax in a label that cannot be compiled.
+
+**Fix**:
+
+```bash
+# Ubuntu/Debian -- complete installation
+sudo apt-get install texlive-latex-base texlive-fonts-recommended \
+                     texlive-fonts-extra cm-super dvipng
+
+# macOS
+brew install --cask mactex
+
+# Verify
+latex --version
+```
+
+If packages are present, check the offending label for unbalanced math delimiters or characters that need escaping (`%`, `&`, `_`, `#`).
+
+### Export succeeds but the figure looks wrong
+
+When export completes without error but the output is visually off, check:
+
+1. **Preset matches the venue** -- use the column-width preset that matches the target (single vs. double column).
+2. **Data is in range** -- ensure points are not clipped outside the axis ranges.
+3. **Font sizes** -- adjust the `font_size_*` fields (via a preset or `apply_partial()`) if text is too small or too large.
+4. **DPI** -- raise `dpi` for higher-resolution raster output (presets default to 300, with 600 for Nature/Science).
+
+Inspect the returned `ExportResult["metadata"]` to confirm which dimensions, fonts, and DPI were actually applied.
+
+### Performance: export takes too long
+
+**Cause**: LaTeX text rendering is slow for PGF export because it spawns a full XeLaTeX compilation.
+
+**Fixes**:
+
+- Prefer PDF export -- it is faster and does not require a TeX compile pass.
+- Downsample dense data before plotting to reduce draw time.
+- For quick previews, use the Plotly engine (Kaleido), which bypasses LaTeX entirely.
 
 ---
 

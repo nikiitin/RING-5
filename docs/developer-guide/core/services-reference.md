@@ -1,3 +1,10 @@
+---
+title: "Core Services Reference"
+parent: Core
+grand_parent: Developer Guide
+nav_order: 2
+---
+
 # Core Services Reference
 
 This document catalogs every service class in the RING-5 Unified Engine v2

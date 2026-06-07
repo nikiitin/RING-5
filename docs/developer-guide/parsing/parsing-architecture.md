@@ -1,3 +1,13 @@
+---
+title: "Parsing Architecture"
+parent: Parsing
+grand_parent: Developer Guide
+nav_order: 1
+redirect_from:
+  - /api/Parsing-Guide/
+  - /Parsing-Guide/
+---
+
 # Parsing Architecture
 
 ## Overview

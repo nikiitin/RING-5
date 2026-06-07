@@ -1,3 +1,10 @@
+---
+title: "Controllers"
+parent: Web Layer
+grand_parent: Developer Guide
+nav_order: 2
+---
+
 # Controllers
 
 ## Overview

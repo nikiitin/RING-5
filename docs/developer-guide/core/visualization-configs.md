@@ -1,3 +1,10 @@
+---
+title: "Visualization Configuration Models"
+parent: Core
+grand_parent: Developer Guide
+nav_order: 4
+---
+
 # Visualization Configuration Models
 
 This guide covers the visualization configuration system in RING-5 Unified Engine v2.

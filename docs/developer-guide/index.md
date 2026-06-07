@@ -1,3 +1,9 @@
+---
+title: "Developer Guide"
+nav_order: 3
+has_children: true
+---
+
 # RING-5 Unified Engine v2 -- Developer Guide
 
 > Comprehensive technical documentation for developers contributing to RING-5,
@@ -136,8 +142,8 @@ Layer A (Data)          -->  src/parsing/     -->  File I/O, parsing, scanning
 
 ---
 
-## Source Analysis
+## Canonical AI guide
 
-This guide was generated from 30 deep analysis steps totaling ~47,000 lines of
-code examination. The source analysis files are in
-`.agent/documentation-project/analysis/step-*.md`.
+For the maintained, single-source project guide aimed at AI coding agents (architecture, hard rules,
+commands, conventions, and extension recipes), see [`CLAUDE.md`](../../CLAUDE.md) at the repository
+root, with task-specific guides under [`.claude/skills/`](../../.claude/skills/).

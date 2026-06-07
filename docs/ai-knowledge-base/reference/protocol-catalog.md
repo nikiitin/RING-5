@@ -1,3 +1,10 @@
+---
+title: "Protocol Catalog"
+parent: Reference
+grand_parent: AI Knowledge Base
+nav_order: 3
+---
+
 # Protocol Catalog
 
 > 19 Python `Protocol` classes across 3 architectural layers.

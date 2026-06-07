@@ -1,3 +1,10 @@
+---
+title: "Plotting System"
+parent: Visualization
+grand_parent: Developer Guide
+nav_order: 1
+---
+
 # Plotting System
 
 This guide documents the plotting subsystem of the RING-5 Unified Engine v2. It

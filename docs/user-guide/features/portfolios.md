@@ -1,3 +1,10 @@
+---
+title: "Portfolios"
+parent: Features
+grand_parent: User Guide
+nav_order: 6
+---
+
 # Portfolios
 
 ## Overview

@@ -1,3 +1,10 @@
+---
+title: "End-to-End Data Flow"
+parent: Architecture
+grand_parent: AI Knowledge Base
+nav_order: 4
+---
+
 # End-to-End Data Flow
 
 Reference for the 6 data pipelines in RING-5 Unified Engine v2.

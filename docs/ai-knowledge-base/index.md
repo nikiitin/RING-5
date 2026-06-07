@@ -1,3 +1,9 @@
+---
+title: "AI Knowledge Base"
+nav_order: 4
+has_children: true
+---
+
 # RING-5 AI Knowledge Base
 
 > Optimized for AI assistant consumption (Claude, Copilot, Cursor, etc.).
@@ -10,7 +16,7 @@
 - **App**: RING-5 Unified Engine v2 -- scientific data analysis for gem5 simulator output
 - **Target**: ISCA, MICRO, ASPLOS publication-quality plots
 - **Stack**: Python 3.12+, Streamlit, Plotly Graph Objects, Matplotlib (PGF/PDF), Pandas
-- **Architecture**: 3-layer (Web -> Core <- Parsing), ~237 Python files
+- **Architecture**: 3-layer (Web -> Core <- Parsing), a few hundred Python modules
 - **Entry point**: `app.py` -> `ApplicationAPI` (singleton via `@st.cache_resource`)
 
 ---
@@ -80,7 +86,7 @@
 - **Facade**: All UI access goes through `ApplicationAPI` (`src/core/application_api.py`)
 - **State**: `RepositoryStateManager` with 7 child repos, stored in `st.session_state`
 - **Plot types**: 9 (bar, line, scatter, histogram, heatmap, grouped_bar, stacked_bar, grouped_stacked_bar, dual_axis_bar_dot)
-- **Shapers**: 10 registered in `ShaperFactory` (selector, sort, mean, normalize, pivot, split_apply, transformer, uni_df, item_selector, column_selector)
+- **Shapers**: 10 registered in `ShaperFactory` (camelCase keys: mean, columnSelector, conditionSelector, itemSelector, normalize, pivotLonger, pivotWider, sort, splitApply, transformer)
 - **Protocols**: 19 total (7 Core, 2 Parsing, 10 Web)
 - **Factories**: 4 (ShaperFactory, StrategyFactory, StyleUIFactory, PlotFactory)
 - **No `inplace=True`**: Enforced by pre-commit hook
@@ -91,5 +97,7 @@
 
 ## Source
 
-Generated from 30 analysis steps (~47,000 lines of code examination).
-Source analysis: `.agent/documentation-project/analysis/step-*.md`
+This knowledge base was generated from a deep, multi-step analysis of the codebase and is kept here
+for browsing. The **canonical, continuously-maintained in-repo guide for AI agents is
+[`CLAUDE.md`](../../CLAUDE.md)** (with `.claude/skills/`) at the repository root — prefer it when the
+two disagree.

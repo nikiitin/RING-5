@@ -1,3 +1,10 @@
+---
+title: "Adding a New Rendering Engine"
+parent: Extension Guides
+grand_parent: Developer Guide
+nav_order: 3
+---
+
 # Adding a New Rendering Engine
 
 ## Overview

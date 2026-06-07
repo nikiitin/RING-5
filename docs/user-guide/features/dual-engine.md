@@ -1,3 +1,10 @@
+---
+title: "Dual Rendering Engine"
+parent: Features
+grand_parent: User Guide
+nav_order: 3
+---
+
 # Dual Rendering Engine
 
 ## Overview

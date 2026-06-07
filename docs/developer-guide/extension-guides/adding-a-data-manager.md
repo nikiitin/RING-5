@@ -1,3 +1,10 @@
+---
+title: "Adding a New Data Manager"
+parent: Extension Guides
+grand_parent: Developer Guide
+nav_order: 4
+---
+
 # Adding a New Data Manager
 
 ## Overview

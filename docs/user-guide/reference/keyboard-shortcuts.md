@@ -1,3 +1,10 @@
+---
+title: "Keyboard Shortcuts"
+parent: Reference
+grand_parent: User Guide
+nav_order: 3
+---
+
 # Keyboard Shortcuts
 
 RING-5 is a Streamlit web application. Most interactions happen through the sidebar navigation, dropdown menus, pills, toggles, and buttons. There are no application-specific keyboard shortcuts.

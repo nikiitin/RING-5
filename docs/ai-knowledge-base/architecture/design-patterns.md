@@ -1,3 +1,10 @@
+---
+title: "Design Patterns Catalog"
+parent: Architecture
+grand_parent: AI Knowledge Base
+nav_order: 3
+---
+
 # Design Patterns Catalog
 
 ## Quick Reference

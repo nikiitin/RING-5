@@ -1,24 +1,32 @@
+---
+title: "Testing"
+parent: Development
+grand_parent: Developer Guide
+nav_order: 2
+---
+
 # Testing
 
-This guide covers the testing architecture, patterns, and conventions used in the
-RING-5 Unified Engine v2 project. The test suite contains approximately 200 test
-files organized across eight directories, each targeting a specific testing concern.
+This guide covers the testing architecture, patterns, and conventions used in
+RING-5. The test suite is organized across eight directories, each targeting a
+specific testing concern. Run `make test` for the current suite.
 
 ## Overview
 
 The project uses **pytest** (>= 9.0.2) as its test framework, with parallel
 execution via **pytest-xdist** (`-n 3 --dist loadgroup`) enabled by default.
 
-| Category | Directory | Files | Purpose |
-|---|---|---|---|
-| Unit | `tests/unit/` | ~100 | Pure logic tests with mocked dependencies |
-| Integration | `tests/integration/` | ~35 | Multi-component tests with real services |
-| UI E2E | `tests/ui/` | ~10 | Streamlit `AppTest`-based end-to-end tests |
-| UI Unit | `tests/ui_unit/` | ~14 | UI component tests with mocked Streamlit |
-| UI Logic | `tests/ui_logic/` | ~12 | Controller and orchestration tests |
-| Visual | `tests/visual/` | ~15 | Playwright browser tests (excluded from default runs) |
-| Performance | `tests/performance/` | 2 | Timing threshold regression tests |
-| Compliance | `tests/tests_principle_compliance/` | 11 | TDD principle demos (excluded from default runs) |
+| Category | Directory | Purpose |
+|---|---|---|
+| Unit | `tests/unit/` | Pure logic tests with mocked dependencies |
+| Integration | `tests/integration/` | Multi-component tests with real services |
+| UI E2E | `tests/ui/` | Streamlit `AppTest`-based end-to-end tests |
+| UI Unit | `tests/ui_unit/` | UI component tests with mocked Streamlit |
+| UI Logic | `tests/ui_logic/` | Controller and orchestration tests |
+| E2E (browser) | `tests/e2e/` | Playwright browser tests (marker `requires_browser`) |
+| Visual | `tests/visual/` | Playwright screenshot tests (excluded from default runs) |
+| Performance | `tests/performance/` | Timing threshold regression tests |
+| Compliance | `tests/tests_principle_compliance/` | TDD principle demos (excluded from default runs) |
 
 ## Directory Structure
 
@@ -27,14 +35,15 @@ tests/
     conftest.py                     # Root: shared fixtures, pytest_plugins
     helpers/                        # Shared utilities (gem5 fixtures, benchmarks, sample figures)
     data/                           # Test data: synthetic gem5 stats, mock configs (excluded)
-    unit/                           # ~100 files: core, visualization, export, parsers, shapers
-    integration/                    # ~35 files: real API, pipelines, parsing, portfolios
-    ui/                             # ~10 files: AppTest E2E with helpers.py bootstrap
-    ui_unit/                        # ~14 files: mocked st module component tests
-    ui_logic/                       # ~12 files: controller tests with StubPlotHandle
-    visual/                         # ~15 files: Playwright, Page Object Model (excluded)
-    performance/                    # 2 files: timing threshold regression
-    tests_principle_compliance/     # 11 files: TDD demos (excluded)
+    unit/                           # core, visualization, export, parsers, shapers
+    integration/                    # real API, pipelines, parsing, portfolios
+    ui/                             # AppTest E2E with helpers.py bootstrap
+    ui_unit/                        # mocked st module component tests
+    ui_logic/                       # controller tests with StubPlotHandle
+    e2e/                            # Playwright browser tests (marker requires_browser)
+    visual/                         # Playwright Page Object Model (excluded from default)
+    performance/                    # timing threshold regression
+    tests_principle_compliance/     # TDD demos (excluded from default)
 ```
 
 ## Pytest Configuration
@@ -88,7 +97,7 @@ fixtures available everywhere; sub-directory conftest files add specialized fixt
 ```python
 @pytest.fixture
 def mock_api() -> MagicMock:
-    """MagicMock ApplicationAPI -- used by ~90% of UI tests."""
+    """MagicMock ApplicationAPI -- used by most UI tests."""
     api = MagicMock()
     api.state_manager = MagicMock()
     return api
@@ -307,7 +316,7 @@ pytest --cov=src --cov-report=term-missing       # Terminal report
 pytest --cov=src --cov-report=html                # HTML report
 ```
 
-The project includes approximately 20 coverage-targeted test files
+The project includes coverage-targeted test files
 (`test_*_coverage.py` and `test_*_branches.py`) that systematically fill
 coverage gaps for specific modules.
 
@@ -320,7 +329,7 @@ omit = [
 
 ## See Also
 
-- [pyproject.toml](/pyproject.toml) -- Full pytest, coverage, and tool configuration.
+- [pyproject.toml](https://github.com/nikiitin/RING-5/blob/main/pyproject.toml) -- Full pytest, coverage, and tool configuration.
 - `tests/conftest.py` -- Root fixtures and plugin registration.
 - `tests/helpers/` -- Shared test utilities (benchmarks, fixtures, sample figures).
 - `tests/ui/helpers.py` -- AppTest bootstrapping and navigation helpers.

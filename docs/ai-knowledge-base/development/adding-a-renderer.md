@@ -1,3 +1,10 @@
+---
+title: "Adding a Rendering Engine"
+parent: Development
+grand_parent: AI Knowledge Base
+nav_order: 4
+---
+
 # Adding a Rendering Engine
 
 > Scope: implementing a new visualization backend (connector) for the RING-5 figure pipeline.

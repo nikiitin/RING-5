@@ -1,3 +1,10 @@
+---
+title: "Naming Conventions -- RING-5 Unified Engine v2"
+parent: Quick Reference
+grand_parent: AI Knowledge Base
+nav_order: 3
+---
+
 # Naming Conventions -- RING-5 Unified Engine v2
 
 ## 1. File Naming

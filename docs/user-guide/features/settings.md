@@ -1,3 +1,10 @@
+---
+title: "Settings Pills"
+parent: Features
+grand_parent: User Guide
+nav_order: 2
+---
+
 # Settings Pills
 
 ## Overview

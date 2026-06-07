@@ -1,3 +1,10 @@
+---
+title: "RING-5 Services Catalog"
+parent: Reference
+grand_parent: AI Knowledge Base
+nav_order: 2
+---
+
 # RING-5 Services Catalog
 
 > AI-optimized reference. All services under `src/core/services/`.

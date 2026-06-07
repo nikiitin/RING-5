@@ -1,3 +1,10 @@
+---
+title: "Installation"
+parent: Getting Started
+grand_parent: User Guide
+nav_order: 1
+---
+
 # Installation
 
 This page covers how to install and run RING-5 on your local machine.
@@ -53,6 +60,92 @@ If you plan to run the test suite or use development tools, install the optional
 pip install -e ".[dev]"
 ```
 
+## Platform-Specific Instructions
+
+The steps above work on any platform once Python 3.12, Perl, and Git are available. The sections below show how to obtain those prerequisites on each operating system.
+
+### Linux (Ubuntu/Debian)
+
+```bash
+# Install Python 3.12, the venv module, pip, and Git
+sudo apt update
+sudo apt install python3.12 python3.12-venv python3-pip git perl
+
+# Clone and install
+git clone https://github.com/your-org/ring5.git
+cd ring5
+python3.12 -m venv venv
+source venv/bin/activate
+pip install -e ".[dev]"
+```
+
+### macOS
+
+RING-5 installs cleanly on macOS using [Homebrew](https://brew.sh) to provide Python and Git.
+
+```bash
+# Install Homebrew if you do not already have it
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install Python 3.12 and Git (Perl ships with macOS)
+brew install python@3.12 git
+
+# Clone and install
+git clone https://github.com/your-org/ring5.git
+cd ring5
+python3.12 -m venv venv
+source venv/bin/activate
+pip install -e ".[dev]"
+```
+
+### Windows
+
+On Windows, install Python 3.12 from [python.org](https://www.python.org/downloads/) and Git from [git-scm.com](https://git-scm.com/download/win). Because the gem5 stats parser relies on Perl, also install [Strawberry Perl](https://strawberryperl.com/), which provides a Perl 5 distribution for Windows.
+
+```powershell
+# After installing Python 3.12, Git, and Strawberry Perl:
+
+# Clone the repository
+git clone https://github.com/your-org/ring5.git
+cd ring5
+
+# Create and activate a virtual environment
+python -m venv venv
+venv\Scripts\activate
+
+# Install dependencies
+pip install -e ".[dev]"
+```
+
+## Dependencies
+
+RING-5 organizes its requirements into core, development, and the full set declared in `pyproject.toml`.
+
+### Core Dependencies
+
+Installed by `pip install -e .` and required to run the application:
+
+- **streamlit** -- web application framework
+- **pandas** -- DataFrame operations for simulation data
+- **numpy** and **scipy** -- numerical computation and statistical analysis
+- **matplotlib** -- publication-quality static plot rendering
+- **plotly** and **kaleido** -- interactive plot rendering and image export
+- **jsonschema** -- configuration and portfolio validation
+- **openpyxl** -- Excel file support
+
+### Development Dependencies
+
+Installed by `pip install -e ".[dev]"` and used for testing, type checking, and formatting:
+
+- **pytest** -- testing framework
+- **mypy** -- static type checking
+- **black** -- code formatting
+- **flake8** -- linting
+
+### Full List
+
+See `pyproject.toml` for the complete, authoritative dependency list, including transitive and optional packages.
+
 ## Run the Application
 
 Launch RING-5 from the project root directory:
@@ -81,6 +174,44 @@ To confirm everything is working correctly:
 
 If you see the application load without warnings or tracebacks, the installation is complete.
 
+You can also run the test suite to confirm the development environment is healthy:
+
+```bash
+make test
+```
+
+## Updating
+
+To update an existing installation to the latest version:
+
+```bash
+# Pull the latest changes
+git pull origin main
+
+# Update dependencies inside your virtual environment
+source venv/bin/activate
+pip install -e ".[dev]"
+
+# Confirm everything still works
+make test
+```
+
+## Uninstallation
+
+To remove RING-5 from your machine:
+
+```bash
+# Delete the virtual environment
+rm -rf venv
+
+# Remove the installed package
+pip uninstall ring5
+
+# Delete the repository (if desired)
+cd ..
+rm -rf ring5
+```
+
 ## Troubleshooting
 
 **Port 8501 is already in use.**
@@ -94,7 +225,44 @@ streamlit run app.py --server.port 8502
 Make sure your virtual environment is activated (`source venv/bin/activate`) and that you ran `pip install -e .` from the project root. You can verify installed packages with `pip list`.
 
 **Perl not found (parser errors).**
-The gem5 stats parser relies on Perl scripts. If you see errors related to Perl when parsing stats files, install Perl through your system package manager (for example, `sudo apt install perl` on Debian/Ubuntu).
+The gem5 stats parser relies on Perl scripts. If you see errors related to Perl when parsing stats files, install Perl through your system package manager:
+
+```bash
+# Linux (Debian/Ubuntu)
+sudo apt install perl
+
+# macOS
+brew install perl
+
+# Windows: install Strawberry Perl from https://strawberryperl.com/
+```
+
+**Wrong Python version.**
+Check your version with `python3 --version`; it should be 3.12 or later. If your default `python3` points to an older release, create the virtual environment with the explicit interpreter, for example `python3.12 -m venv venv`.
+
+**Virtual environment not activating.**
+The activation command differs by platform:
+
+```bash
+# Linux/macOS
+source venv/bin/activate
+
+# Windows (PowerShell)
+venv\Scripts\Activate.ps1
+
+# Windows (CMD)
+venv\Scripts\activate.bat
+```
+
+**Permission errors on Linux/macOS.**
+Do not use `sudo` to install RING-5. Instead, ensure your user has write permissions to the project directory (for example, `chmod -R u+w ring5/`).
+
+**ImportError after installation.**
+Reinstall in editable mode from the project root:
+
+```bash
+pip install -e ".[dev]"
+```
 
 **Blank page or connection refused.**
 Streamlit may take a few seconds to start on first launch. Wait for the "Local URL" message in your terminal before opening the browser. If the problem persists, check that no firewall rules are blocking local connections on the configured port.

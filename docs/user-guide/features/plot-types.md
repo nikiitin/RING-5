@@ -1,3 +1,10 @@
+---
+title: "Plot Types Reference"
+parent: Features
+grand_parent: User Guide
+nav_order: 1
+---
+
 # Plot Types Reference
 
 RING-5 provides nine plot types for visualizing gem5 simulation data. Each type is

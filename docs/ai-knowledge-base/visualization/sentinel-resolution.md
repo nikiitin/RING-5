@@ -1,3 +1,10 @@
+---
+title: "Sentinel Resolution System"
+parent: Visualization
+grand_parent: AI Knowledge Base
+nav_order: 3
+---
+
 # Sentinel Resolution System
 
 > **Scope**: The `-1` sentinel value pattern, which configs use it, resolution algorithm, and timing.

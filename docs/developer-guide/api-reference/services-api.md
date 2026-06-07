@@ -1,3 +1,10 @@
+---
+title: "Services API Reference"
+parent: API Reference
+grand_parent: Developer Guide
+nav_order: 2
+---
+
 # Services API Reference
 
 The Services layer is the business-logic tier of RING-5 Unified Engine v2, sitting

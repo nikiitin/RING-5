@@ -1,3 +1,10 @@
+---
+title: "Adding a New Shaper"
+parent: Development
+grand_parent: AI Knowledge Base
+nav_order: 3
+---
+
 # Adding a New Shaper
 
 ## Overview

@@ -1,3 +1,10 @@
+---
+title: "Dependency Injection"
+parent: Architecture
+grand_parent: Developer Guide
+nav_order: 4
+---
+
 # Dependency Injection
 
 ## Overview

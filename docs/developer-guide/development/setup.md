@@ -1,3 +1,10 @@
+---
+title: "Development Setup"
+parent: Development
+grand_parent: Developer Guide
+nav_order: 1
+---
+
 # Development Setup
 
 > How to clone, install, configure, and run RING-5 Unified Engine v2 for local

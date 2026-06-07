@@ -1,3 +1,10 @@
+---
+title: "Adding a New Plot Type"
+parent: Extension Guides
+grand_parent: Developer Guide
+nav_order: 1
+---
+
 # Adding a New Plot Type
 
 ## Overview

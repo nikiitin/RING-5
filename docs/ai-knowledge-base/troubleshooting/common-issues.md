@@ -1,176 +1,80 @@
-# Common Issues & Known Bugs
+---
+title: "Common Issues & Status"
+parent: Troubleshooting
+grand_parent: AI Knowledge Base
+nav_order: 1
+---
 
-> AI-optimized reference. No prose -- tables, bullets, code blocks only.
+# Common Issues & Status
+
+> AI-optimized reference. Tables, bullets, code blocks. Verify against current source before acting.
 
 ---
 
-## Critical Bugs (Must Fix)
+## Previously-reported "critical bugs" — ALL RESOLVED / verified-correct
 
-| # | Bug | File:Line | Severity | Impact |
-|---|-----|-----------|----------|--------|
-| 1 | Outlier detection uses Q3 threshold, removes top 25% instead of IQR outliers | `src/core/services/managers/outlier_service.py:23-24` | CRITICAL | Silent data corruption -- removes valid data points |
-| 2 | `SimpleCache` docstring says "Thread-safe" but originally had NO `threading.Lock` | `src/core/performance.py:24-45` | CRITICAL | Race conditions under concurrent Streamlit reruns |
-| 3 | `CsvPoolService._pool_index` dict has no lock, false thread-safety docs | `src/core/services/pools/csv_pool_service.py` | CRITICAL | Concurrent CSV access corrupts pool index |
-| 4 | `WorkPool` has no `shutdown()` -- N hot-reloads = N orphaned process pools | `src/parsing/gem5/impl/strategies/perl_worker_pool.py` | CRITICAL | Memory/process leak in development; zombie Perl processes |
-| 5 | Zero `plt.close()` in entire codebase -- matplotlib Figure memory leak | `src/web/rendering/matplotlib_connector.py` | HIGH | Unbounded memory growth on repeated exports |
-| 6 | matplotlib Figure stored in `st.session_state` (not serializable) | `src/web/rendering/matplotlib_connector.py` | HIGH | Serialization errors on session persistence |
-| 7 | `mixer.py` missing None check on `operation` -- `AttributeError` crash | `src/web/components/data_managers/mixer.py` | HIGH | UI crash when mixer operation is unset |
-| 8 | Mean NaN handling inconsistent: geomean/hmean propagate NaN, arithmean skips | `src/core/services/shapers/impl/mean.py:218-226` | HIGH | Silent inconsistency across mean algorithms |
+An earlier audit flagged eight "critical bugs". Each was re-verified against the current code and is
+**resolved or was a false positive**. Do **not** try to "fix" these — the code is correct.
 
-### Bug 1 Detail: Outlier Detection
+| Former claim | Verified reality |
+|---|---|
+| Outlier detection removes top 25% (Q3) instead of IQR | Correct textbook **IQR**: `outlier_service.py` removes rows outside `[Q1 − 1.5·IQR, Q3 + 1.5·IQR]` (global and grouped). |
+| `SimpleCache` "Thread-safe" but no lock | Has `threading.Lock` (`src/core/performance.py`); all get/set/clear/stats are guarded. |
+| `CsvPoolService._pool_index` has no lock | Guarded by `_pool_lock` (`src/core/services/data_services/csv_pool_service.py`). |
+| `WorkPool` has no `shutdown()` → orphaned pools | `WorkPool` and `PerlWorkerPool` both expose `shutdown()` and register `atexit` cleanup. |
+| Zero `plt.close()` → matplotlib leak | `src/web/components/common/chart_display.py` calls `plt.close()`; the connector intentionally doesn't (Streamlit owns the figure). |
+| matplotlib Figure in `session_state` (not serializable) | Intentional session-scoped render cache (`plot.{id}.mpl_fig`), never serialized to disk; lifecycle managed with `plt.close()`. |
+| `mixer.py` missing None check → crash | Guarded (`if mode is None:` …). |
+| Mean NaN handling inconsistent | Consistent: `mean.py` `_safe_gmean`/`_safe_hmean` drop NaN and reject non-positive; arithmetic mean uses pandas (skips NaN). |
 
-```python
-# ACTUAL behavior (src/core/services/managers/outlier_service.py:34-39):
-q1 = df[outlier_col].quantile(0.25)
-q3 = df[outlier_col].quantile(0.75)
-iqr = q3 - q1
-lower = q1 - multiplier * iqr
-upper = q3 + multiplier * iqr
-# This IS correct IQR logic -- bug was in an earlier version
-# Verify current behavior matches docstring before modifying
-```
-
-### Bug 4 Detail: WorkPool Orphaned Processes
-
-```
-Streamlit hot-reload lifecycle:
-  reload 1 --> PerlWorkerPool.__init__() --> 3 Perl subprocesses
-  reload 2 --> PerlWorkerPool.__init__() --> 3 MORE Perl subprocesses
-  reload N --> N * 3 orphaned Perl processes (no shutdown hook)
-
-Mitigation: atexit registered in perl_worker_pool.py:13 (import atexit)
-but singleton pattern may not trigger cleanup on Streamlit rerun.
-```
-
-### Bug 5 Detail: matplotlib Memory Leak
-
-```
-FigureSpecToMatplotlib.apply(resolved, ax)
-    --> creates matplotlib Figure
-    --> NO plt.close(fig) anywhere in codebase
-    --> figures accumulate in matplotlib's global state
-    --> each figure: ~1-5 MB depending on data complexity
-
-Fix pattern:
-    try:
-        fig = create_figure(...)
-        export_bytes = fig_to_bytes(fig)
-    finally:
-        plt.close(fig)  # <-- MUST add this
-```
+For the *current*, genuinely-open (minor) issues, see the **Known issues** section of `/CLAUDE.md` — it is
+the maintained source of truth.
 
 ---
 
-## Architecture Violations
+## Architecture boundaries (enforced)
 
-### Web-to-Parsing Direct Imports (3 violations)
-
-| # | File:Line | Import | Should Route Through |
-|---|-----------|--------|---------------------|
-| 1 | `src/web/components/data_source/data_source_components.py:20-21` | `ScanWorkPool`, `SimulatorRegistry` | `ApplicationAPI` |
-| 2 | `src/web/components/data_source/variable_editor.py:536` | `ScanWorkPool` (dynamic) | `ApplicationAPI` |
-| 3 | `src/web/components/data_source/data_source.py:9` | `SimulatorRegistry` | `ApplicationAPI` |
-
-```
-CORRECT layer flow:
-  +----------+      +-----------+      +-----------+
-  | Web (C)  | ---> | Core (B)  | ---> | Parsing(A)|
-  +----------+      +-----------+      +-----------+
-
-VIOLATION (current):
-  +----------+                         +-----------+
-  | Web (C)  | ----------------------> | Parsing(A)|
-  +----------+      (skips Core)       +-----------+
-```
-
-### Direct session_state Accesses (13 violations)
-
-- **Problem**: 13 `st.session_state[]` accesses bypass `UIStateManager`
-- **Source**: Track 7.4 in `.agent/thorough-review/`
-- **Detection command**:
-  ```bash
-  grep -rn "st\.session_state\[" src/web/ --include="*.py" | grep -v __pycache__
-  ```
-- **Fix**: Route all access through `UIStateManager.get()` / `UIStateManager.set()`
-
-### Boundary Validation Commands
+The layer boundaries are enforced by pre-commit hooks + CI; run `make arch-check` (all checks must pass).
+Boundary rules:
 
 ```bash
-# Must ALL return empty:
+# Each MUST return empty:
 grep -rn "import streamlit\|from streamlit" src/core/ --include="*.py" | grep -v __pycache__
 grep -rn "session_state" src/core/ --include="*.py" | grep -v __pycache__
 grep -rn "inplace=True" src/ --include="*.py" | grep -v __pycache__
 ```
 
----
-
-## Dead Code (~950 lines)
-
-| Location | Lines | Description |
-|----------|-------|-------------|
-| `src/core/common/utils.py` | ~200 | 12 of 13 functions dead (only `checkFileExistsOrException` alive) |
-| `src/web/presenters/plot/chart_presenter.py` | ~240 | Entire file -- duplicate of `chart_display.py` |
-| `src/web/pages/ui/components/shapers/split_apply_config.py` | ~361 | Byte-for-byte duplicate of another file |
-| `tests/unit/test_utils.py` | ~150 | Tests only dead utility functions |
-
-- **Total**: ~950 lines safe to remove
-- **Detection**: Cross-reference with `grep -rn "from src.core.common.utils import"` to verify usage
+The previously-claimed "web→parsing direct imports" no longer exist — `grep -rn "src.parsing" src/web/`
+returns empty (the web layer reaches parsing only through `ApplicationAPI`).
 
 ---
 
-## Pandas Anti-Patterns
+## Pandas patterns
 
-### Redundant DataFrame Wrappers (26 instances across 12 files)
-
-```python
-# ANTI-PATTERN (found 26 times):
-result = pd.DataFrame(df[df["col"] > 0])  # boolean indexing already returns DataFrame
-
-# CORRECT:
-result = df[df["col"] > 0]
-```
-
-- **Detection**:
+- **Immutable transforms only** — never `inplace=True` (enforced by the `no-inplace-true` hook); shapers
+  `.copy()` before mutating.
+- All shapers implement `__call__(df) -> df`, so they compose with `.pipe()`.
+- Categorical ordering uses `pd.Categorical(ordered=True)` (see `transformer.py`).
+- To find redundant `pd.DataFrame(df[...])` wrappers (boolean indexing already returns a DataFrame):
   ```bash
   grep -rn "pd\.DataFrame(df\[" src/ --include="*.py" | grep -v __pycache__
   ```
 
-### Enforced Patterns (no violations found)
+---
 
-| Pattern | Status | Enforcement |
-|---------|--------|-------------|
-| No `inplace=True` | Clean | Pre-commit hook `no-inplace-true` |
-| Immutable transforms | Clean | Code review + hook |
-| `pd.Categorical(ordered=True)` | Correct | Used in `transformer.py` |
-| All 10 shapers use `__call__(df) -> df` | Correct | Compatible with `.pipe()` |
+## Modernization opportunities
+
+These are nice-to-haves, not bugs. Find current candidates by grepping rather than trusting a fixed count:
+
+- `@override` decorators on `BasePlot` / `Shaper` / `StatType` subclass methods (Python 3.12+).
+- `if/elif` chains convertible to `match`/`case` (e.g. selector/factory dispatch).
+- Registry string keys that could become `StrEnum` (shaper factory, strategy factory).
 
 ---
 
-## Python 3.12+ Modernization Gaps
+## Debugging entry points
 
-| Gap | Count | Where |
-|-----|-------|-------|
-| Missing `@override` decorators | 30+ | `BasePlot`, `Shaper`, `StatType` subclasses |
-| `if/elif` chains convertible to `match/case` | 2-3 | `condition_selector`, factory modules |
-| Plain string registry keys (should be `StrEnum`) | 12 | Shaper factory (10), strategy factory (2) |
-
----
-
-## Test Coverage Gaps
-
-| Module | Tests | Issue |
-|--------|-------|-------|
-| `src/core/performance.py` (SimpleCache, @cached) | **0 unit tests** | No validation of cache behavior |
-| Private attribute accesses in tests | 370+ `_internal` accesses | Fragile to refactoring |
-| `time.sleep()` in tests | 13 calls | CI flakiness risk |
-| Estimated new tests needed | ~58 | For adequate coverage |
-
----
-
-## Trunk Lint Baseline
-
-| Issue Type | Count | Location |
-|------------|-------|----------|
-| pyright "possibly unbound" | 3 | `pivot_config.py:256-258` (`selection_filters`, `strategy`, `merge_label`) |
-| isort violations | 4 | 2 source files, 2 test files |
-| Markdown formatting | ~111 | Auto-fixable with `trunk fmt` |
+- Parsing/async issues → `/.claude/skills/parsing-and-variable-types/SKILL.md`.
+- Rendering/figure styling → `/.claude/skills/rendering-figureconfig/SKILL.md`.
+- Streamlit/UI/e2e → `/.claude/skills/e2e-streamlit-testing/SKILL.md` and `developer-guide/web/streamlit-best-practices.md`.
+- Architecture map → `architecture/system-overview.md`, `architecture/layer-boundaries.md`, and `/CLAUDE.md`.

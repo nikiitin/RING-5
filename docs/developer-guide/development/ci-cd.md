@@ -1,3 +1,10 @@
+---
+title: "CI/CD Pipeline"
+parent: Development
+grand_parent: Developer Guide
+nav_order: 4
+---
+
 # CI/CD Pipeline
 
 ## 1. Overview
@@ -125,7 +132,7 @@ Runs two parallel jobs:
 **Job 1 -- Architecture Boundaries:** validates five rules via pattern
 matching -- no Streamlit in core, no `session_state` in core, no
 `inplace=True`, no bare `except:`, and no UI library imports in
-`src/core/parsing/` or `src/core/models/`.
+`src/parsing/` or `src/core/models/`.
 
 **Job 2 -- Security Analysis:** scans for dangerous patterns (`eval()`,
 `exec()`, `pickle.load`, hardcoded secrets), runs Bandit with JSON report
@@ -144,6 +151,14 @@ Steps:
 3. If outdated packages are found and no open issue with labels
    `dependencies`, `automated`, `maintenance` already exists, creates a
    GitHub issue automatically.
+
+It also uploads the outdated package list as a downloadable artifact. You
+can trigger it manually from the GitHub UI: **Actions > "Dependency Update
+Check" > Run workflow**, or with the CLI:
+
+```bash
+gh workflow run dependency-check.yml
+```
 
 ### 3.4 CodeQL Advanced Security (`codeql.yml`)
 
@@ -213,7 +228,165 @@ to require the `quality-checks` and `tests` jobs to pass before merging.
 
 ---
 
-## 6. Release Process
+## 6. Dependency Updates
+
+RING-5 keeps its dependencies current through a mix of automation
+(Dependabot plus the scheduled `dependency-check.yml` workflow described in
+section 3.3) and a small set of manual Makefile commands for ad-hoc audits.
+
+### 6.1 Dependabot
+
+**Location:** `.github/dependabot.yml`
+
+Dependabot is the recommended automation. It:
+
+- Checks for updates on a weekly schedule (Monday).
+- Opens individual PRs for security updates.
+- Groups minor/patch updates together to reduce PR noise.
+- Separates dev dependencies from production dependencies.
+- Keeps GitHub Actions versions up to date.
+- Triggers the CI pipeline on every PR, so each update is auto-validated.
+
+**Grouping configuration:**
+
+| Dependency class | Examples                         | PR strategy             |
+|------------------|----------------------------------|-------------------------|
+| Production       | pandas, numpy, streamlit, plotly | Grouped into one PR     |
+| Dev tools        | black, mypy, pytest              | Grouped separately      |
+| Major updates    | any                              | Individual PR (manual review) |
+
+A cap on the number of simultaneously open PRs keeps the queue manageable.
+Dependabot is free for public repos, fully automated, security-focused, and
+emits email notifications. Its main trade-off is PR volume (mitigated by
+grouping) and the fact that major version bumps still require manual review.
+
+**Typical PR flow:**
+
+1. Dependabot opens a PR, e.g. *"deps: Update pandas from 2.3.3 to 2.4.0"*.
+2. GitHub Actions runs automatically (tests, type checking, linting).
+3. Green CI -> review and merge.
+4. Red CI -> review the breaking changes, fix the code, then merge.
+
+To enable it, ensure Dependabot is turned on under **Settings > Code
+security**, or simply push the `.github/dependabot.yml` file.
+
+### 6.2 Manual Makefile Commands
+
+For ad-hoc checks outside the automated cadence:
+
+```bash
+make check-outdated    # list packages with newer versions available
+make update-deps       # update all dependencies (use with care)
+make security-audit    # run pip-audit for known vulnerabilities
+make show-deps         # print the dependency tree
+```
+
+### 6.3 Per-Dependency-Class Strategy
+
+The version constraints in `pyproject.toml` reflect two different
+risk tolerances.
+
+**Production dependencies (pandas, numpy, streamlit, plotly) -- conservative.**
+Pin to allow minor/patch updates but block major bumps:
+
+```toml
+# pyproject.toml
+dependencies = [
+  "pandas>=2.3.3,<3.0",      # allow minor updates, block major
+  "numpy>=2.4.1,<3.0",
+  "streamlit>=1.53.1,<2.0",
+  "plotly>=6.5.2,<7.0",
+]
+```
+
+Major versions of scientific-computing tools often introduce breaking
+changes, and publication-quality plots must remain reproducible, so these
+upgrades are deliberately gated behind manual review.
+
+**Dev tools (black, mypy, flake8, pytest) -- aggressive.**
+Track the latest releases, since linters and test runners rarely break
+production code and newer versions improve type checking, linting, and
+developer experience:
+
+```toml
+dev = [
+  "pytest>=9.0.2",
+  "black>=26.1.0",
+  "mypy>=1.13.0",
+  "flake8>=7.3.0",
+]
+```
+
+### 6.4 Update Routines
+
+**Weekly (automated via Dependabot):**
+
+1. Dependabot opens grouped PRs on Monday.
+2. CI runs automatically.
+3. Triage by outcome:
+   - Green CI + patch/minor update -> merge immediately.
+   - Green CI + major update -> review the changelog, test locally, merge.
+   - Red CI -> investigate breaking changes, fix the code, merge.
+
+**Monthly (manual review):**
+
+```bash
+make check-outdated     # see what is behind
+make security-audit     # pip-audit pass
+
+# If a critical security issue is reported, update immediately:
+./python_venv/bin/pip install --upgrade <package>
+
+# Then re-validate:
+make test
+mypy src/ --strict
+black --check src/ tests/
+```
+
+### 6.5 When to Update Immediately
+
+- **Security vulnerabilities:** a CVE reported by `pip-audit` or a
+  Dependabot security alert -> update ASAP.
+- **Critical bugs:** a blocker bug in a dependency -> move to the patched
+  version.
+- **New Python version support:** when a new Python release lands, update
+  dependencies for compatibility.
+
+### 6.6 Caution: Major Version Updates
+
+Before moving a production dependency across a major boundary (e.g.
+pandas 2.x -> 3.x):
+
+1. **Read the changelog** for breaking changes.
+2. **Check deprecations** to see which APIs changed.
+3. **Test locally:**
+   ```bash
+   ./python_venv/bin/pip install pandas==3.0.0
+   make test
+   mypy src/ --strict
+   ./launch_webapp.sh   # manual smoke test
+   ```
+4. **Open a dedicated PR** -- do not mix the upgrade with other changes.
+5. **Update documentation** if any APIs changed.
+
+### 6.7 Monitoring
+
+Track dependency health from several surfaces:
+
+- **GitHub Security tab:** vulnerability alerts.
+- **Actions tab > Dependency Check:** weekly outdated-package reports.
+- **Dependabot PRs:** pending updates awaiting review.
+- **Issues labelled `dependencies`:** update tracking opened by the
+  scheduled workflow.
+
+If Dependabot produces too many PRs, lower the open-PR limit or relax the
+schedule (for example to `monthly`) in `.github/dependabot.yml`. Patch
+updates can optionally be auto-merged with a small workflow that calls
+`gh pr merge --auto --squash` when the PR is authored by `dependabot[bot]`.
+
+---
+
+## 7. Release Process
 
 The project uses a tag-based release model:
 
@@ -232,9 +405,12 @@ detect newly disclosed vulnerabilities.
 
 ---
 
-## 7. See Also
+## 8. See Also
 
 - [Architecture Overview](../architecture/overview.md) -- layer structure
   that the architecture hooks enforce
 - [Layer Boundaries](../architecture/layer-boundaries.md) -- detailed rules
   for cross-layer imports
+- [Dependabot docs](https://docs.github.com/en/code-security/dependabot)
+- [pip-audit](https://github.com/pypa/pip-audit)
+- [Semantic Versioning](https://semver.org/)

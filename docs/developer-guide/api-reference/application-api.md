@@ -1,3 +1,10 @@
+---
+title: "ApplicationAPI Reference"
+parent: API Reference
+grand_parent: Developer Guide
+nav_order: 1
+---
+
 # ApplicationAPI Reference
 
 ## Overview

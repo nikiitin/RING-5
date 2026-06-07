@@ -1,3 +1,10 @@
+---
+title: "Layer Boundaries"
+parent: Architecture
+grand_parent: Developer Guide
+nav_order: 2
+---
+
 # Layer Boundaries
 
 ## Overview
@@ -351,6 +358,5 @@ consumer depends only on the protocol.
   and Protocol patterns used at layer boundaries.
 - **ApplicationAPI Reference** -- `src/core/application_api.py` is the
   primary boundary enforcement point.
-- **Step 01 Analysis** --
-  `.agent/documentation-project/analysis/step-01-architecture-layer-boundaries.md`
-  contains the raw audit data this guide is based on.
+- **Boundary enforcement** -- `make arch-check` (and the pre-commit hooks) verify these rules on every
+  change; see also [`CLAUDE.md`](../../../CLAUDE.md) §1-2.

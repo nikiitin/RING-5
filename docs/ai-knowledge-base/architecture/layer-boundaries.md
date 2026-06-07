@@ -1,3 +1,10 @@
+---
+title: "Layer Boundaries"
+parent: Architecture
+grand_parent: AI Knowledge Base
+nav_order: 2
+---
+
 # Layer Boundaries
 
 ## Three-Layer Architecture

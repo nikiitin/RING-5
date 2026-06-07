@@ -1,3 +1,10 @@
+---
+title: "Web Components Catalog"
+parent: Web Layer
+grand_parent: Developer Guide
+nav_order: 3
+---
+
 # Web Components Catalog
 
 This guide catalogs every reusable UI component in the RING-5 Unified Engine v2
@@ -422,7 +429,7 @@ PlotPage
   `StateManager` coordination with components.
 - [Plotting System](../visualization/plotting-system.md) -- trace configs and
   the rendering pipeline behind `ChartDisplayComponent`.
-- [Pipeline and Shapers](../core/pipeline-shapers.md) -- `ShaperFactory` and
+- [Shaper Pipeline](../visualization/shaper-pipeline.md) -- `ShaperFactory` and
   `ShaperStepConfig` driving `PipelineComponent`.
 - [Controllers](controllers.md) -- the controller layer that invokes components
   and acts on their return signals.

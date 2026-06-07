@@ -1,3 +1,10 @@
+---
+title: "RING-5 Session State Keys Reference"
+parent: Reference
+grand_parent: AI Knowledge Base
+nav_order: 5
+---
+
 # RING-5 Session State Keys Reference
 
 ## Architecture Overview

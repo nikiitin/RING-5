@@ -1,3 +1,10 @@
+---
+title: "Key Concepts"
+parent: Getting Started
+grand_parent: User Guide
+nav_order: 2
+---
+
 # Key Concepts
 
 This page introduces the core ideas behind RING-5. Understanding these concepts will help you navigate the application and make the most of its features.

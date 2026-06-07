@@ -1,3 +1,10 @@
+---
+title: "Common Tasks -- Quick Reference"
+parent: Quick Reference
+grand_parent: AI Knowledge Base
+nav_order: 2
+---
+
 # Common Tasks -- Quick Reference
 
 ## 1. Add a New Plot Type

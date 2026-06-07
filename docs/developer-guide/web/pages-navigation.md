@@ -1,3 +1,10 @@
+---
+title: "Web Pages and Navigation"
+parent: Web Layer
+grand_parent: Developer Guide
+nav_order: 1
+---
+
 # Web Pages and Navigation
 
 This guide describes the five pages of the RING-5 Unified Engine v2 web

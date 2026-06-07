@@ -1,3 +1,10 @@
+---
+title: "Rendering Pipeline"
+parent: Visualization
+grand_parent: AI Knowledge Base
+nav_order: 2
+---
+
 # Rendering Pipeline
 
 > **Scope**: End-to-end flow from `FigureConfig` to rendered figure, covering both Plotly and Matplotlib engines.

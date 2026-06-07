@@ -1,3 +1,10 @@
+---
+title: "Settings Pills System"
+parent: Visualization
+grand_parent: Developer Guide
+nav_order: 4
+---
+
 # Settings Pills System
 
 The settings pills system is the primary user-facing configuration interface in

@@ -1,3 +1,10 @@
+---
+title: "RING-5 Models Catalog"
+parent: Reference
+grand_parent: AI Knowledge Base
+nav_order: 1
+---
+
 # RING-5 Models Catalog
 
 > All model classes, type aliases, constants, and validation functions in `src/core/models/`.

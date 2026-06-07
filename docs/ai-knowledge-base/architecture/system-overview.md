@@ -1,3 +1,10 @@
+---
+title: "RING-5 System Architecture Overview"
+parent: Architecture
+grand_parent: AI Knowledge Base
+nav_order: 1
+---
+
 # RING-5 System Architecture Overview
 
 ## Purpose
@@ -552,11 +559,11 @@ class Job(ABC):
 
 ---
 
-## File Count Summary
+## Layer footprint
 
-| Layer      | `.py` Files | Packages | `__init__.py` Files |
-|------------|-------------|----------|---------------------|
-| Core       | 81          | 12       | 12                  |
-| Parsing    | 36          | 8        | 8                   |
-| Web        | ~120        | 22       | 22                  |
-| **Total**  | **~237**    | **42**   | **42**              |
+The codebase is a few hundred Python modules split across the three layers, with the Web layer the
+largest, then Core, then Parsing. For exact, current counts run:
+
+```bash
+for d in src/core src/parsing src/web; do echo "$d: $(find $d -name '*.py' | wc -l)"; done
+```

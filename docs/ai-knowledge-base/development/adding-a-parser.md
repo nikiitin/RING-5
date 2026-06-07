@@ -1,3 +1,10 @@
+---
+title: "Adding a New Simulator Parser"
+parent: Development
+grand_parent: AI Knowledge Base
+nav_order: 1
+---
+
 # Adding a New Simulator Parser
 
 ## Overview

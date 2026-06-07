@@ -1,3 +1,13 @@
+---
+title: "Architecture Overview"
+parent: Architecture
+grand_parent: Developer Guide
+nav_order: 1
+redirect_from:
+  - /developer/Architecture/
+  - /Architecture/
+---
+
 # Architecture Overview
 
 ## 1. Overview

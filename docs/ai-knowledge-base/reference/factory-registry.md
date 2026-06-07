@@ -1,3 +1,10 @@
+---
+title: "Factory and Registry Reference"
+parent: Reference
+grand_parent: AI Knowledge Base
+nav_order: 4
+---
+
 # Factory and Registry Reference
 
 ## Quick Index

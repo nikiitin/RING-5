@@ -1,3 +1,10 @@
+---
+title: "Testing Patterns"
+parent: Development
+grand_parent: AI Knowledge Base
+nav_order: 5
+---
+
 # Testing Patterns
 
 > Scope: pytest configuration, directory layout, fixture hierarchy, mock strategies, per-layer guidance.

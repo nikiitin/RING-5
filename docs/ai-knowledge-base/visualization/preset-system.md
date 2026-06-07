@@ -1,3 +1,10 @@
+---
+title: "Preset System"
+parent: Visualization
+grand_parent: AI Knowledge Base
+nav_order: 4
+---
+
 # Preset System
 
 > **Scope**: 13 publication presets, PresetManager loading, PresetSchema types, PresetApplicator overlay.

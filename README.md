@@ -5,7 +5,7 @@
 RING-5 turns raw simulator output into publication-ready figures. Point it at your stats files, pick your variables, and get clean, reproducible plots for your next ISCA, MICRO, or ASPLOS paper -- no scripting required. Currently supports **gem5**, with a multi-simulator architecture for future backends.
 
 [![Python](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/)
-[![Tests](https://img.shields.io/badge/tests-1110%20passing-success)](tests/)
+[![Tests](https://img.shields.io/badge/tests-passing-success)](tests/)
 [![License](https://img.shields.io/badge/license-GPL--3.0--or--later-green)](LICENSE)
 
 ---
@@ -101,11 +101,11 @@ Full documentation is available at **[nikiitin.github.io/RING-5](https://nikiiti
 
 Quick links:
 
-- [Quick Start](https://nikiitin.github.io/RING-5/Quick-Start) -- 5-minute setup
-- [Parsing Guide](https://nikiitin.github.io/RING-5/Parsing-Guide) -- gem5 stats parsing in depth
-- [Data Transformations](https://nikiitin.github.io/RING-5/Data-Transformations) -- shapers and pipelines
-- [Creating Plots](https://nikiitin.github.io/RING-5/Creating-Plots) -- visualization options
-- [Architecture](https://nikiitin.github.io/RING-5/Architecture) -- system design for contributors
+- [Quick Start](https://nikiitin.github.io/RING-5/user-guide/getting-started/first-steps/) -- 5-minute setup
+- [Parsing Guide](https://nikiitin.github.io/RING-5/developer-guide/parsing/parsing-architecture/) -- gem5 stats parsing in depth
+- [Data Transformations](https://nikiitin.github.io/RING-5/user-guide/features/shapers/) -- shapers and pipelines
+- [Creating Plots](https://nikiitin.github.io/RING-5/user-guide/pages/manage-plots/) -- visualization options
+- [Architecture](https://nikiitin.github.io/RING-5/developer-guide/architecture/overview/) -- system design for contributors
 
 ---
 
@@ -121,8 +121,8 @@ make pre-commit-install     # Install git hooks (black, flake8, mypy, isort, ban
 ### Quality checks
 
 ```bash
-make test           # Run all 1110 tests
-make pre-commit     # Run all 14 pre-commit hooks
+make test           # Run the test suite
+make pre-commit     # Run all pre-commit hooks
 ```
 
 ### Project structure

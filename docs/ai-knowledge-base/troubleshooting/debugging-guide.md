@@ -1,3 +1,10 @@
+---
+title: "Debugging Guide"
+parent: Troubleshooting
+grand_parent: AI Knowledge Base
+nav_order: 2
+---
+
 # Debugging Guide
 
 > AI-optimized reference. No prose -- tables, bullets, code blocks only.
@@ -152,7 +159,7 @@ print(view["config"])
 - **Purpose**: Fragment reruns independently when its internal widgets change, without triggering full-app rerun
 - **Anti-pattern**: NEVER define `@st.fragment` inside a loop or parent render function
 - **Rule**: Always define fragments at module level, pass state as arguments
-- **Source**: `.agent/rules/006-streamlit-engineering.md:18-19`
+- **More**: see `developer-guide/web/streamlit-best-practices.md` and `/CLAUDE.md`
 
 ### Widget State Lifecycle
 

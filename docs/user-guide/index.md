@@ -1,3 +1,9 @@
+---
+title: "User Guide"
+nav_order: 2
+has_children: true
+---
+
 # RING-5 User Guide
 
 RING-5 is a data analysis and visualization tool designed for researchers working with the gem5 architectural simulator. It helps you turn raw simulation output into publication-quality plots suitable for venues such as ISCA, MICRO, ASPLOS, and HPCA.

@@ -1,3 +1,10 @@
+---
+title: "State Management"
+parent: Core
+grand_parent: Developer Guide
+nav_order: 3
+---
+
 # State Management
 
 This guide documents the state management architecture of RING-5 Unified Engine

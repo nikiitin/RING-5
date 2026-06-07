@@ -1,3 +1,10 @@
+---
+title: "Code Quality Tools"
+parent: Development
+grand_parent: Developer Guide
+nav_order: 3
+---
+
 # Code Quality Tools
 
 ## Overview

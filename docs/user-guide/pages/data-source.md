@@ -1,3 +1,10 @@
+---
+title: "Data Source Page"
+parent: Page Guides
+grand_parent: User Guide
+nav_order: 1
+---
+
 # Data Source Page
 
 The Data Source page is your starting point in RING-5. This is where you load

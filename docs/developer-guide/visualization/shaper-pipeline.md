@@ -1,3 +1,10 @@
+---
+title: "Shaper Pipeline System"
+parent: Visualization
+grand_parent: Developer Guide
+nav_order: 3
+---
+
 # Shaper Pipeline System
 
 ## Overview

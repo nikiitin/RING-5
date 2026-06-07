@@ -1,3 +1,10 @@
+---
+title: "Creating Publication-Ready Plots"
+parent: Tutorials
+grand_parent: User Guide
+nav_order: 6
+---
+
 # Creating Publication-Ready Plots
 
 This tutorial walks you through creating a camera-ready figure that meets the

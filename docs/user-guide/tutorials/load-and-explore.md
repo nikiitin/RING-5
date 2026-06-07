@@ -1,3 +1,10 @@
+---
+title: "Tutorial: Load and Explore Data"
+parent: Tutorials
+grand_parent: User Guide
+nav_order: 1
+---
+
 # Tutorial: Load and Explore Data
 
 In this tutorial, you will learn how to load simulation data into RING-5 and
@@ -278,7 +285,8 @@ Outlier Remover helps you identify and remove them.
 ### Open the Outlier Remover
 
 Click the **Outlier Remover** tab. You should see a description explaining
-that the tool filters outlier values based on the third quartile (Q3).
+that the tool removes outliers using the IQR (interquartile range) method —
+rows outside `[Q1 − 1.5·IQR, Q3 + 1.5·IQR]` (per group) are removed.
 
 ### Select a Numeric Column
 

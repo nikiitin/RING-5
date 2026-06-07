@@ -1,3 +1,10 @@
+---
+title: "Comparing Simulations with Multiple Seeds"
+parent: Tutorials
+grand_parent: User Guide
+nav_order: 4
+---
+
 # Comparing Simulations with Multiple Seeds
 
 This tutorial walks you through analyzing gem5 simulation data that includes

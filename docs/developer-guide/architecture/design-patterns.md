@@ -1,3 +1,10 @@
+---
+title: "Design Patterns Catalog"
+parent: Architecture
+grand_parent: Developer Guide
+nav_order: 3
+---
+
 # Design Patterns Catalog
 
 This document catalogs the 12 design patterns used in the RING-5 Unified Engine v2

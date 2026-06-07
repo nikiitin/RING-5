@@ -1,3 +1,10 @@
+---
+title: "Error Handling Patterns -- Quick Reference"
+parent: Quick Reference
+grand_parent: AI Knowledge Base
+nav_order: 4
+---
+
 # Error Handling Patterns -- Quick Reference
 
 ## Guiding Rules (from copilot-instructions.md)

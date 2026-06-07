@@ -1,3 +1,10 @@
+---
+title: "Tutorial: Create a Bar Chart"
+parent: Tutorials
+grand_parent: User Guide
+nav_order: 2
+---
+
 # Tutorial: Create a Bar Chart
 
 This tutorial walks you through creating a bar chart that compares IPC
@@ -195,5 +202,5 @@ from the same Manage Plots page.
 
 - [Normalize Data for Fair Comparison](normalize-data.md) -- Learn how to
   express performance relative to a baseline configuration
-- [Create a Heatmap](create-heatmap.md) -- Visualize many metrics at once in
-  a compact grid
+- [Plot Types reference](../features/plot-types.md) -- Including heatmaps to
+  visualize many metrics at once in a compact grid

@@ -1,3 +1,10 @@
+---
+title: "Performance"
+parent: Troubleshooting
+grand_parent: AI Knowledge Base
+nav_order: 3
+---
+
 # Performance
 
 > AI-optimized reference. No prose -- tables, bullets, code blocks only.

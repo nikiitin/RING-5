@@ -1,3 +1,10 @@
+---
+title: "Tutorial: Normalize Data for Fair Comparison"
+parent: Tutorials
+grand_parent: User Guide
+nav_order: 3
+---
+
 # Tutorial: Normalize Data for Fair Comparison
 
 This tutorial shows you how to normalize performance metrics to a baseline
@@ -239,5 +246,5 @@ analysis pipeline used in architecture papers.
 
 - [Create a Bar Chart](create-bar-chart.md) -- If you have not yet explored
   basic chart creation
-- [Create a Heatmap](create-heatmap.md) -- Visualize many metrics at once in
-  a compact grid
+- [Plot Types reference](../features/plot-types.md) -- Including heatmaps to
+  visualize many metrics at once in a compact grid

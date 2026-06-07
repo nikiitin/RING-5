@@ -1,3 +1,10 @@
+---
+title: "Adding a New Simulator Parser"
+parent: Parsing
+grand_parent: Developer Guide
+nav_order: 3
+---
+
 # Adding a New Simulator Parser
 
 This guide walks through every step required to add a new simulator backend

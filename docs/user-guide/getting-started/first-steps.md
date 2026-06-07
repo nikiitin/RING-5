@@ -1,3 +1,13 @@
+---
+title: "First Steps with RING-5"
+parent: Getting Started
+grand_parent: User Guide
+nav_order: 3
+redirect_from:
+  - /webapp/Quick-Start/
+  - /Quick-Start/
+---
+
 # First Steps with RING-5
 
 This guide walks you through a complete analysis session -- from launching the

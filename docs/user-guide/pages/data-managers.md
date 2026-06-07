@@ -1,3 +1,10 @@
+---
+title: "Data Managers"
+parent: Page Guides
+grand_parent: User Guide
+nav_order: 2
+---
+
 # Data Managers
 
 The Data Managers page is where you clean, transform, and prepare your loaded
@@ -145,17 +152,17 @@ scaled by the same baseline value so that error bars remain correct.
 ## Outlier Remover Tab
 
 The Outlier Remover filters out rows containing extreme values in a numeric
-column. It uses a Q3-based detection method: within each group, any row where
-the target column exceeds the third quartile (75th percentile) is flagged for
-removal.
+column. It uses the **IQR (interquartile range)** method: within each group it
+computes Q1, Q3, and IQR = Q3 − Q1, then flags any row outside
+`[Q1 − 1.5·IQR, Q3 + 1.5·IQR]` for removal.
 
 Click the **Outlier Remover** tab to open it.
 
 ### When to Use It
 
 Use the Outlier Remover when a handful of simulation runs produced anomalously
-high values that would distort your analysis. Grouping ensures that the Q3
-threshold is calculated per configuration rather than globally.
+high (or low) values that would distort your analysis. Grouping ensures that the
+IQR bounds are computed per configuration rather than globally.
 
 ### Step-by-Step
 
@@ -165,7 +172,7 @@ threshold is calculated per configuration rather than globally.
 2. **Select group-by columns (optional).** The "Group by columns" multiselect
    lists all categorical columns. The tool intelligently excludes seed-like
    columns (`random_seed`, `iteration`, `run_id`) from the default selection
-   because grouping by seed creates single-row groups where Q3 filtering is
+   because grouping by seed creates single-row groups where IQR filtering is
    meaningless.
 
 3. **Review the distribution.** Four metric cards display the current **Min**,

@@ -1,3 +1,10 @@
+---
+title: "StateManager API Reference"
+parent: API Reference
+grand_parent: Developer Guide
+nav_order: 3
+---
+
 # StateManager API Reference
 
 ## Overview
@@ -331,6 +338,6 @@ their in-memory state is preserved without any serialization or deserialization.
 ## See Also
 
 - [ApplicationAPI Reference](./application-api.md) -- The public API layer that wraps `StateManager`
-- [Portfolio System](./portfolio.md) -- Save/restore flows that use `restore_session`
-- [Data Managers](./data-managers.md) -- Consumers of preview and history methods
-- [Plot System](./plot-system.md) -- Plot lifecycle operations using plot methods
+- [Portfolio System](../web/portfolio-system.md) -- Save/restore flows that use `restore_session`
+- [State Management](../core/state-management.md) -- How repositories coordinate session state
+- [Plotting System](../visualization/plotting-system.md) -- Plot lifecycle and rendering

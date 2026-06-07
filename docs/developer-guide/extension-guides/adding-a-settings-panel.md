@@ -1,3 +1,10 @@
+---
+title: "Adding a Settings Panel"
+parent: Extension Guides
+grand_parent: Developer Guide
+nav_order: 5
+---
+
 # Adding a Settings Panel
 
 ## Overview

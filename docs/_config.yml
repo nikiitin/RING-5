@@ -5,6 +5,10 @@ baseurl: /RING-5
 
 remote_theme: just-the-docs/just-the-docs@v0.10.0
 
+# Preserve old wiki URLs after the docs consolidation (see redirect_from front-matter).
+plugins:
+  - jekyll-redirect-from
+
 permalink: pretty
 
 # Aux links (top-right corner)
@@ -40,5 +44,3 @@ mermaid:
 # Exclude files from build
 exclude:
   - README.md
-  - _Sidebar.md
-  - AI-Agent-Setup.md

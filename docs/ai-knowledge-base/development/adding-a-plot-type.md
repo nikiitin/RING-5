@@ -1,3 +1,10 @@
+---
+title: "Adding a New Plot Type"
+parent: Development
+grand_parent: AI Knowledge Base
+nav_order: 2
+---
+
 # Adding a New Plot Type
 
 ## Overview

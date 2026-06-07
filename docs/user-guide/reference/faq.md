@@ -1,3 +1,10 @@
+---
+title: "Frequently Asked Questions"
+parent: Reference
+grand_parent: User Guide
+nav_order: 1
+---
+
 # Frequently Asked Questions
 
 This page answers common questions about using RING-5. If your question is not covered here, check the tutorials and page-specific guides in the User Guide.

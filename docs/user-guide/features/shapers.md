@@ -1,3 +1,13 @@
+---
+title: "Shaper Pipeline Reference"
+parent: Features
+grand_parent: User Guide
+nav_order: 4
+redirect_from:
+  - /api/Data-Transformations/
+  - /Data-Transformations/
+---
+
 # Shaper Pipeline Reference
 
 ## Overview

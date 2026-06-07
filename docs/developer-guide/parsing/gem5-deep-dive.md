@@ -1,3 +1,10 @@
+---
+title: "gem5 Parsing Implementation Deep Dive"
+parent: Parsing
+grand_parent: Developer Guide
+nav_order: 2
+---
+
 # gem5 Parsing Implementation Deep Dive
 
 This guide walks through the gem5 parsing subsystem in RING-5 Unified Engine v2,

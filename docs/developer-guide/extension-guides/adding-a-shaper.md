@@ -1,3 +1,10 @@
+---
+title: "Adding a New Shaper"
+parent: Extension Guides
+grand_parent: Developer Guide
+nav_order: 2
+---
+
 # Adding a New Shaper
 
 ## Overview

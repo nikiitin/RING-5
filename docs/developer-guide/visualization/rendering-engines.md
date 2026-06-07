@@ -1,3 +1,10 @@
+---
+title: "Rendering Engines -- Dual-Engine Architecture"
+parent: Visualization
+grand_parent: Developer Guide
+nav_order: 2
+---
+
 # Rendering Engines -- Dual-Engine Architecture
 
 This guide documents the rendering layer of RING-5 Unified Engine v2: the

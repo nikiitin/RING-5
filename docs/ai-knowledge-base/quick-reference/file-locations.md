@@ -1,8 +1,15 @@
+---
+title: "File Locations Quick Reference"
+parent: Quick Reference
+grand_parent: AI Knowledge Base
+nav_order: 1
+---
+
 # File Locations Quick Reference
 
 > Where is X in RING-5 Unified Engine v2?
 
-- **Architecture**: 3-layer (Core / Parsing / Web), ~237 `.py` files
+- **Architecture**: 3-layer (Core / Parsing / Web), a few hundred `.py` files
 - **Root entry point**: `app.py`
 - **Source root**: `src/` | **Test root**: `tests/`
 
