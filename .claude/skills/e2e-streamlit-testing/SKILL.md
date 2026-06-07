@@ -88,7 +88,13 @@ pytest tests/e2e -m "requires_browser and not serial" -n 3 --dist loadgroup --ti
 # 2) serial pass — the @pytest.mark.serial classes (Kaleido raster downloads), no parallelism
 pytest tests/e2e -m "requires_browser and serial"     -n 0                  --timeout=120
 ```
-**`-n 0` is the deterministic gate. `-n 3` is best-effort on a shared desktop.** Hard-won facts from
+**`-n 0` is the deterministic gate. `-n 3` is best-effort on a shared desktop.** And the contention is
+**RAM-bound, not just CPU**: each `-n 3` worker runs its own Streamlit server **and** a Chromium
+browser (≈3× both), so on a box already hosting a heavy desktop Chrome the machine starts swapping —
+once that happens *everything* times out and you get a 25-30 failure cascade across unrelated files
+(seen: 6.7 GB swap in use, run 2× slower). That is the memory wall, **not** a regression — confirm with
+`free -h` (swap used) before chasing "failures". Close the desktop browser, or use a runner with
+real RAM headroom, for a clean `-n 3` run. Hard-won facts from
 ~20 full runs:
 - **Kaleido raster export (pdf/svg/png)** — `download_section` renders the figure via Kaleido (a
   Chromium subprocess) *eagerly* before `st.download_button`. Three of those across xdist workers
