@@ -90,13 +90,14 @@ pytest tests/e2e -m "requires_browser and serial"     -n 0                  --ti
 ```
 **`-n 0` is the deterministic gate. `-n 3` is best-effort on a shared desktop.** Hard-won facts from
 ~20 full runs:
-- **Kaleido raster export (pdf/svg/png) is the worst offender** — `download_section` runs
-  `fig.to_image()` (a Chromium subprocess) *eagerly* before `st.download_button`. Three of those across
-  xdist workers deadlock/starve AND cascade (a stuck export pegs CPU, timing out unrelated chart
-  renders on other workers). It is even intermittently unstable at `-n 0` (~1 run in 3 a single export
-  hangs ~90s). Hence the `serial` class + the `-n 0` pass. A real fix is app-side (persistent Kaleido
-  export server / bounded retry in `download_section.py`). test_07's role/enabled check uses
-  kaleido-free `html` to stay fast.
+- **Kaleido raster export (pdf/svg/png)** — `download_section` renders the figure via Kaleido (a
+  Chromium subprocess) *eagerly* before `st.download_button`. Three of those across xdist workers
+  deadlock/starve AND cascade (a stuck export pegs CPU, timing out unrelated chart renders on other
+  workers), so the class stays `serial` (`-n 0`). **App-hardened** (`plotly_download_bytes` now drives
+  `kaleido.calc_fig_sync` directly with a 25s per-attempt timeout + 3× retry, fresh Chrome each
+  attempt) → the serial pass is now reliable (8/8). The other gotcha here: the `<details>` Download
+  expander can **re-collapse on the format-select rerun**, hiding the button — `_select_format_pill`
+  re-opens it afterwards. test_07's role/enabled check uses kaleido-free `html` to stay fast.
 - **Chart renders (`assert_chart_visible`) intermittently exceed `CHART_TIMEOUT` under `-n 3`** even
   without Kaleido — the `@st.fragment` chart rerun is CPU-starved when several plotly/matplotlib
   renders happen across workers at once (some full `-n 3` runs are 100% green, others hit 1–3
