@@ -27,9 +27,17 @@ pytestmark = pytest.mark.requires_browser
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.serial
 @pytest.mark.xdist_group("e2e_export")
 class TestExportDownload:
     """Tier 2: Download expander and format options (ordered).
+
+    Marked ``serial`` (run via a separate ``-n 0`` pass, NOT under ``-n 3``):
+    the Plotly raster downloads (pdf/svg/png) render the figure eagerly via
+    Kaleido (a Chromium subprocess), and three of those running concurrently
+    across xdist workers deadlock/starve the machine. The class is ordered and
+    shares ``tier2_page`` state, so it must run as a whole — hence the marker is
+    on the class, not the individual raster tests.
 
     All tests share the same ``tier2_page`` (class-scoped) which already
     has:
@@ -111,6 +119,10 @@ class TestExportDownload:
         """Selecting the PDF format pill makes the download button appear.
 
         PDF export is available for both Plotly and Matplotlib engines.
+
+        Marked ``serial``: the Plotly path renders the figure via Kaleido
+        (a Chromium subprocess), and three of those running concurrently under
+        ``-n 3`` deadlock/starve — run this in the ``-n 0`` pass.
         """
         mp = self._ensure_on_manage_plots(tier2_page)
         mp.select_plot("E2E Bar")
@@ -130,6 +142,7 @@ class TestExportDownload:
         """Selecting the SVG format pill makes the download button appear.
 
         SVG export is available for both Plotly and Matplotlib engines.
+        Marked ``serial`` (Kaleido raster export — see test_03).
         """
         mp = self._ensure_on_manage_plots(tier2_page)
         mp.select_plot("E2E Bar")
@@ -149,6 +162,7 @@ class TestExportDownload:
         """Selecting the PNG format pill makes the download button appear.
 
         PNG is a raster format available for both engine types.
+        Marked ``serial`` (Kaleido raster export — see test_03).
         """
         mp = self._ensure_on_manage_plots(tier2_page)
         mp.select_plot("E2E Bar")

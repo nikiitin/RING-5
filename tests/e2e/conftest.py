@@ -55,10 +55,10 @@ CHART_TIMEOUT: int = 60_000
 E2E_TIMEOUT: int = 60_000
 # Raster downloads (png/svg/pdf) render the figure eagerly via Kaleido
 # (fig.to_image()) BEFORE st.download_button, so the button is absent until the
-# export finishes. Under -n 3 that Kaleido/Chromium export starves on CPU and
-# can take well over E2E_TIMEOUT (90s proved insufficient). 120s headroom; run
-# the e2e gate with --timeout=180 so a slow export isn't killed mid-flight.
-EXPORT_TIMEOUT: int = 120_000
+# export finishes. Three concurrent Kaleido/Chromium exports deadlock/starve
+# under -n 3 (no timeout fixes it), so those tests are marked ``serial`` and run
+# in a separate -n 0 pass; this 90s headroom comfortably covers a single export.
+EXPORT_TIMEOUT: int = 90_000
 
 
 # ---------------------------------------------------------------------------
