@@ -1,0 +1,15 @@
+{
+  "$comment": "Project-scoped MCP servers for RING-5 (Claude Code reads this file). Claude Code will ask you to approve project servers on first use. See CLAUDE.md section 8. Optional servers (github read-only PR/issue triage; a web 'fetch' server) are intentionally left out — git is human-only here and the built-in WebFetch/WebSearch cover web docs.",
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"],
+      "description": "Up-to-date library docs for fast-moving deps (Streamlit 1.53, Plotly 6.x, pandas 2.x, scipy, matplotlib). Ask with 'use context7' when unsure of a current API."
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"],
+      "description": "Drives a real browser — ideal for the Streamlit e2e/visual suite and for reproducing UI bugs interactively. Pairs with the e2e-streamlit-testing skill."
+    }
+  }
+}
