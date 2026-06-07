@@ -79,13 +79,20 @@ class TestExportDownload:
         """Click a format pill inside the download expander by name.
 
         Selecting a format reruns the script (to rebuild the download for that
-        format), so we wait for the rerun to actually start before its end.
+        format); the raster Kaleido export can make that rerun slow, so we allow
+        extra time for it to finish. That rerun can also re-collapse the
+        ``<details>`` expander (Streamlit doesn't always preserve the open state
+        across a rerun), which would hide the download button — so we re-open it
+        afterwards (idempotent).
         """
         pill = mp.download_format_pills.get_by_role("button", name=format_name)
         pill.click()
-        # The rerun runs the (eager) Kaleido export for raster formats, which can
-        # be slow under -n 3 — allow extra time for the rerun to finish.
         mp.wait_for_streamlit(timeout=EXPORT_TIMEOUT, expect_rerun=True)
+        # Re-open the expander if the rerun collapsed it, so the download button
+        # (rendered inside it) is reachable.
+        if not mp.download_format_pills.is_visible():
+            mp.download_expander.locator("summary").first.click()
+            expect(mp.download_format_pills).to_be_visible(timeout=E2E_TIMEOUT)
 
     # -- tests -------------------------------------------------------------
 

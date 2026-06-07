@@ -135,6 +135,7 @@ module = [
   "numpy.*",
   "yaml.*",
   "jsonschema.*",
+  "kaleido.*",
 ]
 ignore_missing_imports = true
 

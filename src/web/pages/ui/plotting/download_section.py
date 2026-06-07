@@ -11,8 +11,10 @@ and ``fig.to_html()`` for interactive HTML export.
 from __future__ import annotations
 
 import io
+import logging
 from typing import Literal, cast
 
+import kaleido
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import streamlit as st
@@ -21,9 +23,20 @@ from matplotlib.figure import Figure as MplFigure
 from src.core.models.visualization.figure_config import FigureConfig
 from src.web.rendering.engine_manager import EngineManager
 
+logger = logging.getLogger(__name__)
+
 # ── Type aliases ─────────────────────────────────────────────────
 
 PlotlyFormat = Literal["png", "svg", "pdf", "html"]
+
+# Kaleido raster export (png/svg/pdf) drives a headless Chrome subprocess that
+# can intermittently stall under load. Plotly's ``fig.to_image()`` hardcodes a
+# single 90s-timeout attempt, so a stall blocks for ~90s and then fails. We
+# instead drive Kaleido directly with a short per-attempt timeout and retry —
+# each attempt is a fresh oneshot Chrome (the app starts no persistent Kaleido
+# server), so a retry recovers from a wedged browser.
+_KALEIDO_ATTEMPT_TIMEOUT_S: int = 25
+_KALEIDO_ATTEMPTS: int = 3
 
 _FORMAT_MIME = {
     "png": "image/png",
@@ -78,14 +91,34 @@ def plotly_download_bytes(
         )
         return html_str.encode("utf-8")
 
-    # For vector formats scale has no effect, but the API accepts it.
-    raw: bytes = fig.to_image(
-        format=fmt,
-        width=width,
-        height=height,
-        scale=scale,
-    )
-    return raw
+    # Raster/vector via Kaleido — driven directly (not via fig.to_image) so we
+    # can bound each attempt and retry with a fresh Chrome on a stall. For
+    # vector formats scale has no effect, but the API accepts it.
+    fig_dict = fig.to_dict()
+    opts = {"format": fmt, "width": width, "height": height, "scale": scale}
+    last_exc: Exception | None = None
+    for attempt in range(1, _KALEIDO_ATTEMPTS + 1):
+        try:
+            return cast(
+                bytes,
+                kaleido.calc_fig_sync(
+                    fig_dict,
+                    opts=opts,
+                    kopts={"timeout": _KALEIDO_ATTEMPT_TIMEOUT_S},
+                ),
+            )
+        except Exception as exc:  # Kaleido/Chrome stall or transient failure
+            last_exc = exc
+            logger.warning(
+                "Kaleido %s export attempt %d/%d failed (%s); " "retrying with a fresh browser",
+                fmt,
+                attempt,
+                _KALEIDO_ATTEMPTS,
+                exc,
+            )
+    raise RuntimeError(
+        f"Kaleido {fmt} export failed after {_KALEIDO_ATTEMPTS} attempts"
+    ) from last_exc
 
 
 def get_plotly_mime(fmt: PlotlyFormat) -> str:
@@ -223,7 +256,15 @@ def _render_plotly_download(
         return
 
     fmt_typed = cast(PlotlyFormat, fmt)
-    data = plotly_download_bytes(fig, fmt_typed)
+    try:
+        data = plotly_download_bytes(fig, fmt_typed)
+    except Exception as exc:  # never let a download-export failure kill the chart
+        logger.error("Plotly %s export failed: %s", fmt, exc)
+        st.warning(
+            f"Could not generate the {fmt.upper()} export (the image renderer "
+            "timed out). Please try again, or use the HTML format."
+        )
+        return
     st.download_button(
         label=f"Download {fmt.upper()}",
         data=data,

@@ -757,11 +757,12 @@ class ManagePlotsPage(BasePage):
         if active.count() and engine.lower() in (active.first.inner_text() or "").lower():
             return
         pill.click()
-        # Engine switch + figure regeneration; allow generous time for the rerun.
+        # Engine switch + figure regeneration; allow generous time for the rerun
+        # (a cold first switch re-renders/loads heavier than warm ones). The pill
+        # may flip only once that slow rerun settles, so give the verify the same
+        # headroom rather than the default 15s.
         self.wait_for_streamlit(timeout=60_000, expect_rerun=True)
-        expect(pill).to_have_attribute(
-            "data-testid", "stBaseButton-pillsActive", timeout=self.RENDER_TIMEOUT
-        )
+        expect(pill).to_have_attribute("data-testid", "stBaseButton-pillsActive", timeout=60_000)
 
     # ==================================================================
     #  ASSERTIONS
