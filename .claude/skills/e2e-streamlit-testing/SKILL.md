@@ -81,15 +81,32 @@ def _by_label(page, test_id, label):   # scope a widget duplicated across tabs
   server), and it makes `-n 0` work too. Don't remove it; new browser-test classes inherit the clean
   slate automatically (all classes use `shared_page`).
 
-## -n 3 contention sizing (run the gate with `--timeout=180`)
-Under `-n 3` three browsers + three Streamlit servers compete, so the heaviest work is genuinely
-slower than single-run timeouts assume — size for *parallel* latency, not retries:
-- `CHART_TIMEOUT = 60s` (Plotly iframe JS resize / Matplotlib `st.pyplot` can exceed 30s under load).
-- `EXPORT_TIMEOUT = 120s` for the raster download button — `download_section` computes Kaleido
-  `fig.to_image()` **eagerly** before `st.download_button`, so three parallel Chromium exports starve
-  (90s proved insufficient for pdf/svg/png). Run the e2e gate at **`--timeout=180`** so a slow-but-
-  progressing export isn't killed by the per-test cap. (test_07's role/enabled check uses kaleido-free
-  `html` to stay fast.)
+## The e2e gate is TWO passes (and -n 3 is contention-limited on a shared machine)
+```bash
+# 1) main suite — everything except the Kaleido raster-download class
+pytest tests/e2e -m "requires_browser and not serial" -n 3 --dist loadgroup --timeout=120
+# 2) serial pass — the @pytest.mark.serial classes (Kaleido raster downloads), no parallelism
+pytest tests/e2e -m "requires_browser and serial"     -n 0                  --timeout=120
+```
+**`-n 0` is the deterministic gate. `-n 3` is best-effort on a shared desktop.** Hard-won facts from
+~20 full runs:
+- **Kaleido raster export (pdf/svg/png) is the worst offender** — `download_section` runs
+  `fig.to_image()` (a Chromium subprocess) *eagerly* before `st.download_button`. Three of those across
+  xdist workers deadlock/starve AND cascade (a stuck export pegs CPU, timing out unrelated chart
+  renders on other workers). It is even intermittently unstable at `-n 0` (~1 run in 3 a single export
+  hangs ~90s). Hence the `serial` class + the `-n 0` pass. A real fix is app-side (persistent Kaleido
+  export server / bounded retry in `download_section.py`). test_07's role/enabled check uses
+  kaleido-free `html` to stay fast.
+- **Chart renders (`assert_chart_visible`) intermittently exceed `CHART_TIMEOUT` under `-n 3`** even
+  without Kaleido — the `@st.fragment` chart rerun is CPU-starved when several plotly/matplotlib
+  renders happen across workers at once (some full `-n 3` runs are 100% green, others hit 1–3
+  chart-attach timeouts; it depends on instantaneous load + `loadgroup` distribution). It is NOT an app
+  bug — the render is correct and fast at `-n 0` and on favorable `-n 3` runs; bigger timeouts only
+  amplify cascades. Treat `-n 3` flakes here as environmental, not test bugs. `CHART_TIMEOUT = 60s`
+  (up from 30s) absorbs the common case; `EXPORT_TIMEOUT = 90s` covers a single serial export.
+- Observed under starvation: switching engine to Plotly can leave the Matplotlib `stImage` showing
+  (the engine *pill* flips but the fragment hasn't re-rendered yet) — a fragment-rerun timing artifact,
+  not an engine-state bug.
 
 ## Efficiency pattern (worth it for browser tests)
 Class-scoped page fixtures + ordered, semantically-related tests cut a prior suite from 148 → 37
