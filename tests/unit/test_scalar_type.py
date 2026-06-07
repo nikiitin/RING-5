@@ -111,9 +111,9 @@ class TestScalarSetContent:
         # Act
         scalar._set_content(3.14159)
 
-        # Assert - floats are truncated via int() then back to float
+        # Assert - float precision is preserved (no int() truncation)
         assert len(scalar.content) == 1
-        assert scalar.content[0] == 3.0
+        assert scalar.content[0] == pytest.approx(3.14159)
 
     def test_set_content_numeric_string(self) -> None:
         # Arrange
@@ -236,8 +236,8 @@ class TestScalarReduceDuplicates:
         # Assert
         assert scalar.reduced_content == 150.0
 
-    def test_reduce_uses_int_conversion(self) -> None:
-        # Arrange - Test that reduce uses int() before summing
+    def test_reduce_preserves_float_precision(self) -> None:
+        # Arrange - fractional values must NOT be truncated via int()
         scalar = Scalar(repeat=2)
         scalar._set_content(10.9)
         scalar._set_content(20.1)
@@ -246,9 +246,8 @@ class TestScalarReduceDuplicates:
         # Act
         scalar.reduce_duplicates()
 
-        # Assert
-        # Implementation: int(10.9) + int(20.1) = 10 + 20 = 30, / 2 = 15.0
-        assert scalar.reduced_content == 15.0
+        # Assert: (10.9 + 20.1) / 2 = 15.5
+        assert scalar.reduced_content == pytest.approx(15.5)
 
 
 class TestScalarBalanceContent:

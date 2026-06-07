@@ -217,7 +217,7 @@ class StateManager(Protocol):
 
     # History
     def add_manager_history_record(self, record: OperationRecord) -> None:
-        """Add an operation record to the manager history (rolling 20)."""
+        """Add an operation record to the manager history (rolling 10)."""
         ...
 
     def get_manager_history(self) -> list[OperationRecord]:

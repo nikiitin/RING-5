@@ -48,7 +48,7 @@ class TestPrepareData:
         plot = StackedBarPlot(1, "test")
         df = pd.DataFrame({"idx": [1, 2], "val": [10, 20]})
         result = plot._prepare_data(df, "idx", ["val"], {})
-        assert result["idx"].dtype == object  # str
+        assert pd.api.types.is_string_dtype(result["idx"])  # x converted to string
 
     def test_total_column_added(self) -> None:
         plot = StackedBarPlot(1, "test")

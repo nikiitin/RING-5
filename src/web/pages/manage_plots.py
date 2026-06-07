@@ -8,7 +8,7 @@ Composes controllers that each handle a single concern:
     PlotRenderController — config + figure generation + display
 
 The page itself is pure wiring. All logic lives in controllers.
-All rendering lives in presenters. All state access goes through
+All rendering lives in components. All state access goes through
 UIStateManager.
 
 Dependency Injection:

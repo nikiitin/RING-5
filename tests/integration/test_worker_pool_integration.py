@@ -161,6 +161,36 @@ class TestWorkerPoolIntegration:
         # With worker pool, should be < 0.1s
         assert elapsed < 1.0, f"Worker pool took {elapsed:.3f}s (too slow, may not be using pool)"
 
+    def test_each_worker_drains_stderr_and_burst_parses_cleanly(self, test_stats_file: str) -> None:
+        """Regression for the parse-hang-under-load bug.
+
+        The Perl server logs a couple of lines to stderr per request. If that
+        pipe is not continuously drained it fills, blocking the Perl process
+        mid-write and stalling stdout (and the whole parse). Each worker must
+        therefore run a stderr-drainer thread. Verify the drainers exist and
+        that a burst of parses completes without errors or restarts.
+        """
+        import threading
+
+        from src.parsing.gem5.types.type_mapper import TypeMapper
+
+        var_config = StatConfig(name="system.cpu.numCycles", type="scalar")
+        pool = get_worker_pool()
+
+        # The structural guarantee: one live stderr drainer per worker.
+        drainers = {t.name for t in threading.enumerate() if t.name.startswith("perl-stderr-")}
+        assert len(drainers) >= len(pool.workers), f"missing stderr drainers: {drainers}"
+
+        # The behavioural check: a burst of parses must not stall or fail.
+        for _ in range(120):
+            stat_type = TypeMapper.create_stat(var_config)
+            vars_dict = {var_config.name: stat_type}
+            assert Gem5ParseWork(test_stats_file, vars_dict)() is not None
+
+        stats = pool.get_stats()
+        assert stats["total_errors"] == 0, stats
+        assert stats["total_restarts"] == 0, stats
+
 
 class TestWorkerPoolErrorHandling:
     """Test error handling in worker pool integration."""

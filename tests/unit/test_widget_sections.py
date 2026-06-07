@@ -108,9 +108,14 @@ class TestSpecPathWiring:
             assert w is not None and w.spec_path, f"{key} missing spec_path"
 
     def test_grid_colors_have_spec_path(self) -> None:
-        for key in ("grid_color", "axis_color"):
+        # Per-axis grid colors and the axis line color carry the real spec wiring.
+        for key in ("x_grid_color", "y_grid_color", "axis_color"):
             w = AXIS_COLORS.find(key)
             assert w is not None and w.spec_path, f"{key} missing spec_path"
+        # ``grid_color`` is an intentional shared fallback (applied to both axes
+        # when per-axis colors are unset); it deliberately has no single spec_path.
+        fallback = AXIS_COLORS.find("grid_color")
+        assert fallback is not None and fallback.spec_path == ""
 
     def test_data_labels_key_widgets_have_spec_path(self) -> None:
         w = DATA_LABELS.find("show_values")

@@ -1,7 +1,7 @@
 """
 Plot Controllers — orchestration for plot lifecycle, pipeline, and rendering.
 
-Controllers are the ACTION layer: they read state, call presenters for UI,
+Controllers are the ACTION layer: they read state, call components for UI,
 perform domain operations via ApplicationAPI, and update state.
 
 Public API:

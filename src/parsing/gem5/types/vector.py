@@ -171,9 +171,9 @@ class Vector(StatType):
             if not values:
                 reduced[entry] = 0
             else:
-                total = 0
+                total = 0.0
                 for i in range(self._repeat):
-                    total += int(values[i])
+                    total += float(values[i])
                 reduced[entry] = total / self._repeat
 
         object.__setattr__(self, "_reduced_content", reduced)

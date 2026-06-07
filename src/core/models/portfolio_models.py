@@ -30,7 +30,7 @@ class PortfolioData(TypedDict, total=False):
         plots: List of plot configurations
         plot_counter: Current plot ID counter
         config: Application configuration dictionary
-        manager_history: Rolling list of last 20 manager operations
+        manager_history: Rolling list of last 10 manager operations
         portfolio_history: Full list of operations performed in this portfolio
     """
 

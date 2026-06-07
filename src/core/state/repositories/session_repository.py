@@ -116,24 +116,39 @@ class SessionRepository:
                 self.data_repo.set_data(df)
                 logger.info("SESSION_REPO: Restored data - %d rows", len(df))
             except Exception as e:
-                logger.error(f"SESSION_REPO: Failed to restore data: {e}")
+                # Plots reference this data; surface the loss loudly rather than
+                # silently continuing with a half-restored session.
+                logger.error(
+                    "SESSION_REPO: Failed to restore data CSV — plots may render " "empty: %s",
+                    e,
+                    exc_info=True,
+                )
         else:
             logger.info("SESSION_REPO: No data in portfolio (config-only save)")
 
         # Restore plots via injected deserializer (no web-layer import)
         loaded_plots: list[PlotProtocol] = []
+        plot_specs = portfolio_data.get("plots", [])
         if self._plot_deserializer is not None:
-            for plot_data in portfolio_data.get("plots", []):
+            for plot_data in plot_specs:
                 try:
                     plot = self._plot_deserializer(plot_data)
                     if plot is not None:
                         loaded_plots.append(plot)
                 except Exception as e:
-                    logger.error(f"SESSION_REPO: Failed to restore plot: {e}")
+                    logger.error(f"SESSION_REPO: Failed to restore plot: {e}", exc_info=True)
+            failed = len(plot_specs) - len(loaded_plots)
+            if failed:
+                logger.warning(
+                    "SESSION_REPO: Restored %d/%d plots (%d failed to deserialize)",
+                    len(loaded_plots),
+                    len(plot_specs),
+                    failed,
+                )
         else:
             logger.warning(
-                "SESSION_REPO: No plot_deserializer injected — " "skipping %d plots",
-                len(portfolio_data.get("plots", [])),
+                "SESSION_REPO: No plot_deserializer injected — skipping %d plots",
+                len(plot_specs),
             )
 
         self.plot_repo.set_plots(loaded_plots)

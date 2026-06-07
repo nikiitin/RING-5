@@ -16,8 +16,8 @@ from typing import Any, cast
 import pandas as pd
 import streamlit as st
 
-from src.core.models.visualization.palettes import (
-    PALETTE_REGISTRY,
+from src.core.models.visualization.palettes import PALETTE_REGISTRY
+from src.core.services.visualization.palette_service import (
     get_palette_names,
     is_colorblind_safe,
     resolve_palette,

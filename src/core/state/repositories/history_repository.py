@@ -17,7 +17,7 @@ class HistoryRepository:
     In-memory repository for operation history.
 
     Maintains two independent lists:
-    - manager_history:   Rolling window of the last 20 operations (FIFO).
+    - manager_history:   Rolling window of the last 10 operations (FIFO).
     - portfolio_history: Unbounded list of all operations performed in the portfolio.
 
     Both lists store OperationRecord entries with identical fields.

@@ -247,7 +247,7 @@ class TestOutlierRemoverRender:
         mock_ui_state.return_value.manager.consume_load_trigger.return_value = {
             "source_columns": ["benchmark", "cycles"],
             "dest_columns": ["cycles"],
-            "operation": "Outlier Removal (Q3)",
+            "operation": "Outlier Removal (IQR)",
         }
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect
@@ -277,7 +277,7 @@ class TestOutlierRemoverRender:
         mock_ui_state.return_value.manager.consume_load_trigger.return_value = {
             "source_columns": ["nonexistent_group", "missing_outlier_col"],
             "dest_columns": ["missing_outlier_col"],
-            "operation": "Outlier Removal (Q3)",
+            "operation": "Outlier Removal (IQR)",
         }
         mock_api.state_manager.get_data.return_value = sample_df
         mock_st.columns.side_effect = _columns_side_effect

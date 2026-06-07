@@ -5,6 +5,7 @@ import shutil
 from typing import Any, cast
 
 import pandas as pd
+import pytest
 
 from src.core.services.shapers.impl.mean import Mean
 from src.core.services.shapers.impl.normalize import Normalize
@@ -20,6 +21,18 @@ class TestE2EShapers:
     inputsDir = os.path.relpath("tests/data/mock/inputs")
     expectsDir = os.path.relpath("tests/data/mock/expects")
     configDir = os.path.relpath("tests/data/mock/config_files/json_components/config")
+
+    @pytest.fixture(autouse=True)
+    def _require_mock_data(self) -> None:
+        """Skip (not hard-fail) when the mock CSV fixtures aren't present.
+
+        ``tests/data/mock/`` is not part of the published test-data tarball, so
+        these tests skip gracefully where it's absent — matching the skip
+        pattern the gem5-data tests already use.
+        """
+        mock_csv = os.path.join(self.inputsDir, "csv/configurer/configurer_test_case01.csv")
+        if not os.path.exists(mock_csv):
+            pytest.skip(f"mock test data not available: {mock_csv}")
 
     def test_e2e_column_selector_with_gem5_data(self, tmp_path: Any) -> None:
         """Test ColumnSelector shaper with real gem5 data."""
@@ -242,6 +255,13 @@ class TestE2EIntegration:
     """Integration tests combining managers and shapers."""
 
     inputsDir = os.path.relpath("tests/data/mock/inputs")
+
+    @pytest.fixture(autouse=True)
+    def _require_mock_data(self) -> None:
+        """Skip (not hard-fail) when the mock CSV fixtures aren't present."""
+        mock_csv = os.path.join(self.inputsDir, "csv/configurer/configurer_test_case01.csv")
+        if not os.path.exists(mock_csv):
+            pytest.skip(f"mock test data not available: {mock_csv}")
 
     def test_e2e_simple_workflow_with_gem5_data(self, tmp_path: Any) -> None:
         """Test simple end-to-end workflow with real gem5 data: load → select → sort."""

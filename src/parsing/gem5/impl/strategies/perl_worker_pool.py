@@ -64,90 +64,141 @@ class PerlWorker:
         self.last_used = 0.0
         self.is_busy = False
         self._lock = threading.Lock()
-        # Queue-based stdout reader: ONE persistent thread per worker
-        # instead of spawning a thread per readline call.
-        self._line_queue: queue.Queue[str | None] = queue.Queue()
+        # Each worker *generation* (process) gets its OWN queue + reader thread,
+        # assigned in _start_worker. Binding per-generation prevents a dead
+        # process's trailing output (READY/GOODBYE/EOF) from leaking into a live
+        # read on a restarted worker.
+        self._line_queue: queue.Queue[str | None] | None = None
         self._reader_thread: threading.Thread | None = None
+        self._stderr_thread: threading.Thread | None = None
 
         # Start the worker
         self._start_worker()
 
     def _start_worker(self) -> None:
-        """Start or restart the Perl worker process."""
-        try:
-            logger.info(f"[Worker-{self.worker_id}] Starting Perl worker process...")
+        """Start or restart the Perl worker process.
 
-            # Drain any leftover data from a previous reader thread
-            while not self._line_queue.empty():
-                try:
-                    self._line_queue.get_nowait()
-                except queue.Empty:
-                    break
+        Each generation gets its OWN line queue and a reader thread bound to that
+        specific process's stdout, so a previous (dead) process's leftover output
+        can never leak into this generation's protocol reads (the "Unexpected
+        ping response: READY" bug).
 
-            # Start Perl server with full executable path
-            self.process = subprocess.Popen(
-                [self.perl_exe, self.script_path],
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                bufsize=0,  # Unbuffered for immediate I/O
-            )
+        The process swap runs under ``self._lock`` so a concurrent parse or health
+        check (both take ``self._lock``) can't read the queue or write stdin
+        mid-restart — the race that left parses hung under heavy load.
+        """
+        with self._lock:
+            try:
+                logger.info(f"[Worker-{self.worker_id}] Starting Perl worker process...")
 
-            # Start ONE persistent reader thread for this worker's stdout
-            self._start_reader_thread()
-
-            # Wait for READY signal (with timeout)
-            # Increased from 5s to 30s to handle slow container/host process start
-            timeout = 30.0
-            ready_line = self._read_line_with_timeout(timeout=timeout)
-
-            if ready_line != "READY":
-                raise RuntimeError(
-                    f"Worker did not send READY signal within {timeout}s (got: '{ready_line}')"
+                # Start Perl server with full executable path
+                process: subprocess.Popen[str] = subprocess.Popen(
+                    [self.perl_exe, self.script_path],
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    bufsize=1,  # line-buffered: correct for a text line protocol
                 )
 
-            self.is_healthy = True
-            logger.info(
-                f"[Worker-{self.worker_id}] Worker started successfully (PID: {self.process.pid})"
-            )
+                # Fresh queue + reader bound to THIS process's stdout (captured
+                # explicitly, never via self.process), so a lingering reader from
+                # a previous generation can't feed this generation's queue.
+                line_queue: queue.Queue[str | None] = queue.Queue()
+                self._start_reader_thread(process.stdout, line_queue)
+                # CRITICAL: continuously drain stderr too. The Perl server logs a
+                # couple of lines per request to stderr; if we don't drain it the
+                # OS pipe fills, Perl blocks mid-write, and stdout (hence the whole
+                # parse) stalls — the root cause of parse hangs under load.
+                self._start_stderr_drainer(process.stderr)
 
-        except Exception as e:
-            logger.error(f"[Worker-{self.worker_id}] FAILED to start worker: {e}", exc_info=True)
-            self.is_healthy = False
-            raise
+                # Publish this generation.
+                self.process = process
+                self._line_queue = line_queue
 
-    def _start_reader_thread(self) -> None:
-        """Start a persistent background thread that reads stdout into a queue.
+                # Wait for READY (30s handles slow container/host process start).
+                timeout = 30.0
+                ready_line = self._read_line_with_timeout(timeout=timeout)
+                if ready_line != "READY":
+                    raise RuntimeError(
+                        f"Worker did not send READY signal within {timeout}s "
+                        f"(got: '{ready_line}')"
+                    )
 
-        One thread per worker lifetime (not per read call). The thread exits
-        when the process closes stdout (EOF) or the process dies.
+                self.is_healthy = True
+                logger.info(
+                    f"[Worker-{self.worker_id}] Worker started successfully (PID: {process.pid})"
+                )
+
+            except Exception as e:
+                logger.error(
+                    f"[Worker-{self.worker_id}] FAILED to start worker: {e}", exc_info=True
+                )
+                self.is_healthy = False
+                raise
+
+    def _start_reader_thread(self, stdout: Any, line_queue: "queue.Queue[str | None]") -> None:
+        """Start a reader thread bound to ONE process generation.
+
+        Reads from the explicitly-captured ``stdout`` into the explicitly-captured
+        ``line_queue`` (never ``self.process``/``self._line_queue``), so a stale
+        reader left over from a previous generation only drains its own dead pipe
+        into its own dead queue — which nobody reads. A ``None`` sentinel is
+        enqueued on EOF/error so readers unblock instead of hanging forever.
         """
 
         def _reader() -> None:
             try:
-                while self.process and self.process.stdout:
-                    line = self.process.stdout.readline()
+                if stdout is None:
+                    line_queue.put(None)
+                    return
+                while True:
+                    line = stdout.readline()
                     if not line:
-                        # EOF — process closed stdout
-                        self._line_queue.put(None)
-                        break
-                    self._line_queue.put(line.strip())
+                        line_queue.put(None)  # EOF — process closed stdout
+                        return
+                    line_queue.put(line.strip())
             except Exception:
-                self._line_queue.put(None)
+                line_queue.put(None)
 
         self._reader_thread = threading.Thread(
             target=_reader, daemon=True, name=f"perl-reader-{self.worker_id}"
         )
         self._reader_thread.start()
 
+    def _start_stderr_drainer(self, stderr: Any) -> None:
+        """Continuously drain this generation's stderr so its pipe never fills.
+
+        The Perl server logs to stderr (one INFO line per request, plus
+        warnings/errors). Those bytes are never consumed by the protocol, so
+        without a drainer the pipe fills and blocks the Perl process mid-write —
+        stalling stdout and hanging the parse. Perl ERROR lines are surfaced to
+        the logger; the rest is discarded. Bound to an explicit ``stderr`` (not
+        ``self.process``) so a restarted worker's old drainer exits on EOF.
+        """
+
+        def _drain() -> None:
+            try:
+                if stderr is None:
+                    return
+                for line in stderr:
+                    if "ERROR" in line:
+                        logger.warning("[Worker-%s][perl] %s", self.worker_id, line.strip())
+            except Exception:
+                pass
+
+        self._stderr_thread = threading.Thread(
+            target=_drain, daemon=True, name=f"perl-stderr-{self.worker_id}"
+        )
+        self._stderr_thread.start()
+
     def _read_line_with_timeout(self, timeout: float = 30.0) -> str:
         """
         Read a line from the worker's stdout queue with timeout.
 
-        The actual I/O is performed by the persistent reader thread started
-        in ``_start_reader_thread``. This method simply pulls from the queue,
-        avoiding thread-per-read accumulation.
+        The actual I/O is performed by the per-generation reader thread
+        (``_start_reader_thread``). Callers hold ``self._lock``, so the queue
+        snapshot taken here is stable for the duration of the read.
 
         Args:
             timeout: Maximum seconds to wait
@@ -157,10 +208,14 @@ class PerlWorker:
 
         Raises:
             TimeoutError: If no line arrives within timeout
-            RuntimeError: If the reader thread signals EOF
+            RuntimeError: If there is no live queue or the reader signals EOF
         """
+        line_queue = self._line_queue
+        if line_queue is None:
+            raise RuntimeError(f"Worker-{self.worker_id} has no active stdout queue")
+
         try:
-            line = self._line_queue.get(timeout=timeout)
+            line = line_queue.get(timeout=timeout)
         except queue.Empty:
             logger.error(f"[Worker-{self.worker_id}] Read timeout after {timeout}s")
             raise TimeoutError(f"Read timeout after {timeout}s")
@@ -341,6 +396,15 @@ class PerlWorker:
                             pass
                 self.process = None
                 self.is_healthy = False
+            # Join the reader/stderr-drainer threads (their pipes are now closed,
+            # so they unblock on EOF). This stops a daemon thread sitting in a
+            # C-level readline during interpreter teardown — an intermittent
+            # segfault on shutdown otherwise.
+            for _t in (self._reader_thread, self._stderr_thread):
+                if _t is not None and _t.is_alive():
+                    _t.join(timeout=1.0)
+            # Drop the dead generation's queue so any stray read fails fast.
+            self._line_queue = None
 
     def get_stats(self) -> WorkerStats:
         """Get worker statistics."""
@@ -498,6 +562,7 @@ class PerlWorkerPool:
         # Split total timeout across retries to avoid queue starvation
         per_attempt_timeout = max(5.0, timeout / max_retries)
         failures = 0
+        last_exc: BaseException | None = None
 
         for _attempt in range(max_retries):
             # Circuit breaker: fail fast if majority of workers are unhealthy
@@ -531,6 +596,7 @@ class PerlWorkerPool:
 
                 except Exception as e:
                     failures += 1
+                    last_exc = e
                     logger.error(f"Parse error with worker-{worker.worker_id}: {e}")
                 finally:
                     # Ensure busy flag is cleared even on exception
@@ -548,7 +614,7 @@ class PerlWorkerPool:
 
         # All workers failed
         logger.error("CRITICAL: All workers failed to parse file!")
-        raise RuntimeError("All workers failed")
+        raise RuntimeError("All workers failed") from last_exc
 
     def get_stats(self) -> dict[str, Any]:
         """Get pool statistics."""

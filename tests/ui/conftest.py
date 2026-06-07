@@ -1,25 +1,11 @@
-"""
-Conftest for UI AppTest tests.
+"""Conftest for UI AppTest tests.
 
-Monkey-patches a bug in Streamlit 1.53.1's testing framework where
-ButtonGroup.indices iterates over string characters in single-selection mode
-instead of treating the value as a single item.
+Streamlit 1.53.1 had a bug where ``ButtonGroup.indices`` iterated over the
+characters of a single-selection string value instead of treating it as one
+item, which previously required a monkey-patch here. That bug was fixed
+upstream in Streamlit 1.58 (``indices`` now derives from ``formatted_values``),
+so the patch is obsolete and has been removed. This file is kept as the
+package marker for the UI test suite.
 """
 
 from __future__ import annotations
-
-from typing import Any, Sequence
-
-from streamlit.testing.v1.element_tree import ButtonGroup
-
-
-def _patched_indices(self: Any) -> Sequence[int]:
-    """Fix: wrap single string value in list before iterating."""
-    vals = self.value
-    if isinstance(vals, str):
-        vals = [vals]
-    return [self.options.index(self.format_func(v)) for v in vals]
-
-
-# Apply monkey-patch at import time
-ButtonGroup.indices = property(_patched_indices)  # type: ignore[assignment]

@@ -285,6 +285,15 @@ class Normalize(UniDfShaper):
                     if col not in result.columns:
                         result[col] = data_frame[col].copy()
 
+            # Preserve the original column order. Re-adding grouping columns
+            # above appends them at the end; pandas 3.0's groupby().apply() drops
+            # them by default, so without this the input order is lost (e.g. the
+            # groupBy column jumps to the end). New columns (e.g. .sd) keep their
+            # trailing position.
+            ordered = [c for c in data_frame.columns if c in result.columns]
+            extra = [c for c in result.columns if c not in ordered]
+            result = result[ordered + extra]
+
         return result
 
     @override

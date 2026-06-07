@@ -16,11 +16,13 @@ class TestLinkCard:
         from src.web.pages.documentation import _link_card
 
         # Use a path we know exists
-        _link_card("🚀", "Quick Start", "Get started fast.", "webapp/Quick-Start.md")
+        _link_card(
+            "🚀", "Installation", "Get started fast.", "user-guide/getting-started/installation.md"
+        )
 
         call_args = mock_st.markdown.call_args[0][0]
         assert "(coming soon)" not in call_args
-        assert "Quick Start" in call_args
+        assert "Installation" in call_args
 
     @patch("src.web.pages.documentation.st")
     def test_missing_file_shows_coming_soon(self, mock_st: MagicMock) -> None:
@@ -73,7 +75,7 @@ class TestShowDocumentationPage:
 
     @patch("src.web.pages.documentation.st")
     def test_contains_all_three_sections(self, mock_st: MagicMock) -> None:
-        """Page should render WebApp, API, and Developer sections."""
+        """Page should render the User Guide, Developer Guide, and reference sections."""
         from src.web.pages.documentation import show_documentation_page
 
         mock_st.columns.return_value = [MagicMock(), MagicMock()]
@@ -81,9 +83,9 @@ class TestShowDocumentationPage:
         show_documentation_page()
 
         all_markdown = " ".join(str(c[0][0]) for c in mock_st.markdown.call_args_list if c[0])
-        assert "WebApp Guide" in all_markdown
-        assert "API Reference" in all_markdown
-        assert "Developer Guides" in all_markdown
+        assert "Getting Started" in all_markdown
+        assert "Developer Guide" in all_markdown
+        assert "Quick Reference" in all_markdown
 
     @patch("src.web.pages.documentation.st")
     def test_uses_column_layout(self, mock_st: MagicMock) -> None:
@@ -107,6 +109,6 @@ class TestShowDocumentationPage:
 
         all_markdown = " ".join(str(c[0][0]) for c in mock_st.markdown.call_args_list if c[0])
         # Key docs should be referenced
-        assert "Quick-Start.md" in all_markdown
-        assert "Backend-Facade.md" in all_markdown
-        assert "Architecture.md" in all_markdown
+        assert "user-guide/getting-started/installation.md" in all_markdown
+        assert "developer-guide/api-reference/application-api.md" in all_markdown
+        assert "developer-guide/architecture/overview.md" in all_markdown

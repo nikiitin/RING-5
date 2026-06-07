@@ -295,7 +295,7 @@ class TestVectorReduceDuplicates:
         assert vector.reduced_content["e0"] == 0.0
         assert vector.reduced_content["e1"] == 0.0
 
-    def test_reduce_uses_int_conversion(self) -> None:
+    def test_reduce_integer_values(self) -> None:
         # Arrange
         vector = Vector(repeat=2, entries=["e0"])
         vector.content = {"e0": [10, 20]}
@@ -304,7 +304,7 @@ class TestVectorReduceDuplicates:
         # Act
         vector.reduce_duplicates()
 
-        # Assert - int() then division: (10+20)/2=15.0
+        # Assert - float division: (10 + 20) / 2 = 15.0
         assert vector.reduced_content["e0"] == 15.0
 
     def test_reduce_with_truly_empty_entry(self) -> None:
@@ -463,7 +463,7 @@ class TestVectorEdgeCases:
         vector.balance_content()
         vector.reduce_duplicates()
 
-        # Assert - int(6.0) / 1 = 6.0
+        # Assert - 6.0 / 1 = 6.0
         assert vector.reduced_content["e0"] == 6.0
 
     def test_mixed_numeric_types(self) -> None:

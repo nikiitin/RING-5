@@ -94,7 +94,7 @@ class TestDataManagement:
         manager.set_data(df)
         result = manager.get_data()
         assert result is not None
-        assert result["benchmark"].dtype == object  # str type
+        assert pd.api.types.is_string_dtype(result["benchmark"])  # cast to string
         assert result["value"].dtype == float  # unchanged
 
     def test_set_data_with_on_change_callback(self, manager: RepositoryStateManager) -> None:

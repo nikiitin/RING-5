@@ -25,12 +25,13 @@ class OutlierRemoverManager(DataManager):
         st.markdown("### Outlier Remover")
 
         st.info("""
-        **Outlier Remover** filters out outlier values based on the 3rd quartile (Q3).
+        **Outlier Remover** removes statistical outliers using the IQR
+        (interquartile range) method.
 
-        - Groups data by categorical columns
-        - Calculates Q3 for the selected numeric column within each group
-        - Removes rows where the value exceeds Q3 for that group
-        - Helps remove extreme outliers from experiments
+        - Groups data by the selected categorical columns
+        - Within each group, computes Q1, Q3, and IQR = Q3 − Q1 for the numeric column
+        - Removes rows outside [Q1 − 1.5·IQR, Q3 + 1.5·IQR]
+        - Helps drop extreme outliers from experiment results
         """)
 
         # Get current data
@@ -108,14 +109,14 @@ class OutlierRemoverManager(DataManager):
                         key=WidgetKeyBuilder.manager_key("outlier_remover", "groupby"),
                         help=(
                             "Columns to group data by before"
-                            " calculating Q3. Avoid including"
+                            " computing IQR bounds. Avoid including"
                             " seed or iteration columns!"
                         ),
                     )
                 ]
             else:
                 group_by_cols = []
-                st.info("No categorical columns for grouping. Will use global Q3.")
+                st.info("No categorical columns for grouping. Will use global IQR bounds.")
 
         # Show current distribution
         st.markdown(f"**Current distribution of `{outlier_column}`:**")
@@ -186,7 +187,7 @@ class OutlierRemoverManager(DataManager):
                     record: OperationRecord = {
                         "source_columns": [outlier_column] + group_by_cols,
                         "dest_columns": [outlier_column],
-                        "operation": "Outlier Removal (Q3)",
+                        "operation": "Outlier Removal (IQR)",
                         "timestamp": datetime.now(timezone.utc).isoformat(),
                     }
                     self.api.add_manager_history_record(record)

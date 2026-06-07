@@ -42,11 +42,13 @@ class Scalar(StatType):
 
     @override
     def _set_content(self, value: Any) -> None:
-        """Convert to numeric and append to content list."""
+        """Convert to numeric and append to content list (preserve precision)."""
+        # float() first so fractional values are NOT truncated; fall back to
+        # int() only for inputs that float() rejects (same acceptance set).
         try:
-            numeric_value: float = float(int(value))
+            numeric_value: float = float(value)
         except (TypeError, ValueError):
-            numeric_value = float(value)
+            numeric_value = float(int(value))
         self._content.append(numeric_value)
 
     @override
