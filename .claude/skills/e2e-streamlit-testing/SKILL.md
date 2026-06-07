@@ -81,6 +81,16 @@ def _by_label(page, test_id, label):   # scope a widget duplicated across tabs
   server), and it makes `-n 0` work too. Don't remove it; new browser-test classes inherit the clean
   slate automatically (all classes use `shared_page`).
 
+## -n 3 contention sizing (run the gate with `--timeout=180`)
+Under `-n 3` three browsers + three Streamlit servers compete, so the heaviest work is genuinely
+slower than single-run timeouts assume — size for *parallel* latency, not retries:
+- `CHART_TIMEOUT = 60s` (Plotly iframe JS resize / Matplotlib `st.pyplot` can exceed 30s under load).
+- `EXPORT_TIMEOUT = 120s` for the raster download button — `download_section` computes Kaleido
+  `fig.to_image()` **eagerly** before `st.download_button`, so three parallel Chromium exports starve
+  (90s proved insufficient for pdf/svg/png). Run the e2e gate at **`--timeout=180`** so a slow-but-
+  progressing export isn't killed by the per-test cap. (test_07's role/enabled check uses kaleido-free
+  `html` to stay fast.)
+
 ## Efficiency pattern (worth it for browser tests)
 Class-scoped page fixtures + ordered, semantically-related tests cut a prior suite from 148 → 37
 tests (~18 min saved). Trade-off: tests in a class share state and are ordered — acceptable for
