@@ -711,7 +711,7 @@ class ManagePlotsPage(BasePage):
         assert the chart — otherwise the regen races a tight assert_chart_visible.
         """
         self.viz_refresh_button.click()
-        self.wait_for_streamlit(timeout=30_000, expect_rerun=True)
+        self.wait_for_streamlit(timeout=60_000, expect_rerun=True)
 
     def toggle_auto_refresh(self) -> None:
         """Toggle the auto-refresh switch."""
@@ -758,7 +758,7 @@ class ManagePlotsPage(BasePage):
             return
         pill.click()
         # Engine switch + figure regeneration; allow generous time for the rerun.
-        self.wait_for_streamlit(timeout=30_000, expect_rerun=True)
+        self.wait_for_streamlit(timeout=60_000, expect_rerun=True)
         expect(pill).to_have_attribute(
             "data-testid", "stBaseButton-pillsActive", timeout=self.RENDER_TIMEOUT
         )

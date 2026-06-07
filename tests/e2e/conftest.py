@@ -48,14 +48,17 @@ _E2E_CSV: Path = _FIXTURES_DIR / "sample_data.csv"
 
 # Timeouts
 LOAD_TIMEOUT: int = 30_000
-CHART_TIMEOUT: int = 30_000
+# Chart render (Plotly iframe JS resize / Matplotlib st.pyplot) competes with 2
+# other workers' browsers under -n 3, so a render can occasionally exceed 30s;
+# 60s gives headroom while staying well under the per-test timeout.
+CHART_TIMEOUT: int = 60_000
 E2E_TIMEOUT: int = 60_000
 # Raster downloads (png/svg/pdf) render the figure eagerly via Kaleido
 # (fig.to_image()) BEFORE st.download_button, so the button is absent until the
 # export finishes. Under -n 3 that Kaleido/Chromium export starves on CPU and
-# can take well over E2E_TIMEOUT — give those button waits extra headroom (kept
-# under the 120s per-test timeout; normal exports finish in seconds).
-EXPORT_TIMEOUT: int = 90_000
+# can take well over E2E_TIMEOUT (90s proved insufficient). 120s headroom; run
+# the e2e gate with --timeout=180 so a slow export isn't killed mid-flight.
+EXPORT_TIMEOUT: int = 120_000
 
 
 # ---------------------------------------------------------------------------
