@@ -1,9 +1,7 @@
 """
-Matplotlib connector — translate resolved FigureConfig into matplotlib calls.
+Matplotlib connector — translate a resolved FigureConfig into matplotlib calls.
 
-This replaces ``LayoutApplier.apply_to_matplotlib()`` internals.
-It reads from the shared FigureConfig instead of a raw layout dictionary
-and scattered LaTeXPreset fields.
+It reads from the shared FigureConfig — the single styling source of truth.
 
 Usage:
     from src.web.rendering import FigureSpecToMatplotlib

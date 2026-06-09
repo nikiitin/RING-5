@@ -20,7 +20,7 @@ from typing import cast
 import pandas as pd
 import streamlit as st
 
-from src.core.models.data_models import ShaperStepConfig, SplitApplyGroupConfig
+from src.core.models.shaper_models import ShaperStepConfig, SplitApplyGroupConfig
 
 # ── Sub-step config dispatch ──────────────────────────────────────
 # Lazily populated to avoid circular imports.

@@ -1,7 +1,7 @@
 """
 Strategy Factory - Creates FileParserStrategy Instances.
 
-Centralises strategy instantiation so that ParseService (and any future
+Centralises strategy instantiation so that Gem5Parser (and any future
 consumer) never needs inline imports or if/elif chains.
 
 Usage:

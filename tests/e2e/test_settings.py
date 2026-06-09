@@ -1,4 +1,4 @@
-"""E2E tests for settings pills, config inputs, engine switching, and presets.
+"""E2E tests for settings pills, config inputs, and engine switching.
 
 Uses ``tier2_page`` which provides: CSV loaded + bar plot "E2E Bar" created
 with Sort pipeline finalized, axes configured, and Plotly chart visible.
@@ -132,12 +132,3 @@ class TestSettingsPills:
         mp = ManagePlotsPage(tier2_page)
         mp.toggle_advanced_settings()
         expect(mp.viz_advanced_section_pill).to_be_visible(timeout=E2E_TIMEOUT)
-
-
-# NOTE: The former ``TestPresetApplication`` class was removed. It asserted a
-# "Preset" pills widget (``render_preset_pills`` in settings_pills.py), but that
-# function is NOT wired into the render flow (no call site in src/web — only
-# ui_logic unit tests reference it), so no preset pills are shown in the UI for
-# any plot, advanced settings on or off. The class therefore tested a
-# non-existent UI feature. Surfaced as a suspected app gap (preset pills defined
-# + unit-tested but never rendered) rather than silently wiring it up.

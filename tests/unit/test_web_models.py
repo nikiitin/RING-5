@@ -8,7 +8,8 @@ and are JSON-serializable (critical for portfolio save/load).
 import json
 from typing import Any, cast
 
-from src.core.models.data_models import PipelineStep, ShaperStepConfig
+from src.core.models.data_models import PipelineStep
+from src.core.models.shaper_models import ShaperStepConfig
 from src.web.models.plot_models import (
     AnnotationShapeConfig,
     MarginsConfig,

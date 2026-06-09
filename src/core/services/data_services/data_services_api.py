@@ -23,8 +23,8 @@ from src.core.models.data_models import (
     SavedConfigData,
     SavedConfigEntry,
     ScannedVariableDict,
-    ShaperStepConfig,
 )
+from src.core.models.shaper_models import ShaperStepConfig
 
 
 @runtime_checkable

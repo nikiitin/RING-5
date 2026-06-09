@@ -7,7 +7,7 @@ from pandas import DataFrame
 
 from src.core.application_api import ApplicationAPI
 from src.core.models import StatConfig
-from src.core.models.data_models import ShaperStepConfig
+from src.core.models.shaper_models import ShaperStepConfig
 
 # Path to real gem5 test data
 TEST_DATA_PATH = Path(__file__).parent.parent / "data" / "results-micro26-sens"

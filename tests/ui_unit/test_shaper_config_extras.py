@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from src.core.models.data_models import ShaperStepConfig
+from src.core.models.shaper_models import ShaperStepConfig
 from src.web.pages.ui.shaper_config import configure_shaper
 
 

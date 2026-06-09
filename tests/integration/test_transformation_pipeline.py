@@ -17,7 +17,7 @@ import pandas as pd
 import pytest
 
 from src.core.application_api import ApplicationAPI
-from src.core.models.data_models import ShaperStepConfig
+from src.core.models.shaper_models import ShaperStepConfig
 from src.core.services.shapers.factory import ShaperFactory
 
 

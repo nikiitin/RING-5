@@ -10,11 +10,8 @@ from pathlib import Path
 from typing import cast
 
 from src.core.common.utils import sanitize_filename, validate_path_within
-from src.core.models.data_models import (
-    SavedConfigData,
-    SavedConfigEntry,
-    ShaperStepConfig,
-)
+from src.core.models.data_models import SavedConfigData, SavedConfigEntry
+from src.core.models.shaper_models import ShaperStepConfig
 from src.core.services.data_services.path_service import PathService
 
 logger = logging.getLogger(__name__)

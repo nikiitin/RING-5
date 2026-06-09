@@ -16,24 +16,8 @@ Categories:
 
 from typing import Required, TypedDict
 
-# Re-export shaper models from their canonical module so existing imports
-# like ``from src.core.models.data_models import ShaperStepConfig`` keep
-# working. New code should import directly from ``shaper_models``.
-from src.core.models.shaper_models import (  # noqa: F401
-    BaseShaperConfig,
-    ColumnSelectorConfig,
-    ConditionSelectorConfig,
-    ItemSelectorConfig,
-    MeanShaperConfig,
-    NormalizeShaperConfig,
-    PivotLongerShaperConfig,
-    PivotWiderShaperConfig,
-    ShaperStepConfig,
-    SortShaperConfig,
-    SplitApplyGroupConfig,
-    SplitApplyShaperConfig,
-    TransformerShaperConfig,
-)
+# ShaperStepConfig is referenced by SavedConfigData and PipelineStep below.
+from src.core.models.shaper_models import ShaperStepConfig
 
 # ──────────────────────────────────────────────────────────────────────
 # CSV Pool

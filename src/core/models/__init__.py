@@ -25,9 +25,8 @@ from src.core.models.data_models import (
     SavedConfigData,
     SavedConfigEntry,
     ScannedVariableDict,
-    ShaperStepConfig,
-    SplitApplyGroupConfig,
 )
+from src.core.models.shaper_models import ShaperStepConfig, SplitApplyGroupConfig
 from src.core.models.history_models import OperationRecord
 from src.core.models.parsing_models import (
     ParseBatchResult,

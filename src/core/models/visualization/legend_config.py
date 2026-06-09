@@ -1,9 +1,9 @@
 """
 Legend configuration — uniform model for all legend instances.
 
-Instead of special-cased ``legend2_x``, ``legend3_borderpad`` etc. scattered
-across ``LaTeXPreset``, each legend is a ``LegendConfig`` with identical fields.
-A figure holds ``List[LegendConfig]`` — typically 1–3 entries.
+Instead of special-cased ``legend2_x``, ``legend3_borderpad`` etc., each legend
+is a ``LegendConfig`` with identical fields. A figure holds
+``List[LegendConfig]`` — typically 1–3 entries.
 
 This eliminates:
   - Duplicated sentinel resolution for legend2/legend3

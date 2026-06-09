@@ -8,7 +8,7 @@ all available transformation types (filter, sort, normalize, mean, etc.).
 Enables runtime shaper selection and dynamic pipeline construction.
 """
 
-from src.core.models.data_models import ShaperStepConfig
+from src.core.models.shaper_models import ShaperStepConfig
 from src.core.services.shapers.impl.mean import Mean
 from src.core.services.shapers.impl.normalize import Normalize
 from src.core.services.shapers.impl.pivot import PivotLonger, PivotWider

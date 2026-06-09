@@ -10,7 +10,8 @@ from unittest.mock import MagicMock
 import pandas as pd
 import pytest
 
-from src.core.models.data_models import PipelineStep, ShaperStepConfig
+from src.core.models.data_models import PipelineStep
+from src.core.models.shaper_models import ShaperStepConfig
 
 
 # ---------------------------------------------------------------------------

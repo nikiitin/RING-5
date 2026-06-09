@@ -1,27 +1,11 @@
 """
-RING-5 Parsing Module — Interface Layer.
+RING-5 Parsing Module — Layer A.
 
-Provides the public API for the gem5 parsing subsystem.
-The canonical implementations live in the ``gem5/impl/`` subpackage;
-this ``__init__`` re-exports them under their legacy names so that
-existing consumers continue to work.
+Multi-simulator parsing subsystem. Backends register with
+``SimulatorRegistry`` (``registry.py``) and implement the
+``SimulationParser`` protocol (``parser_protocol.py``); the gem5 backend
+lives in ``gem5/`` and auto-registers when ``registry`` is imported.
 
-Public API:
-    - ParseService   (alias for ``Gem5Parser``)
-    - ScannerService  (alias for ``Gem5Scanner``)
-
-Implementation:
-    - gem5/:  gem5-specific types, Perl scripts, and ``impl/``
-
-Backward Compatibility:
-    ``parse_service.py`` and ``scanner_service.py`` are thin re-export
-    shims kept for test-patch compatibility.  New code should import
-    from this package directly.
+Consumers reach a backend through ``SimulatorRegistry.get_parser(name)``,
+never by importing a concrete implementation directly.
 """
-
-# Backward-compatible re-exports for existing consumers.
-# The canonical classes are now Gem5Parser and Gem5Scanner inside gem5/impl/.
-from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
-from src.parsing.gem5.impl.gem5_scanner import Gem5Scanner as ScannerService
-
-__all__ = ["ParseService", "ScannerService"]

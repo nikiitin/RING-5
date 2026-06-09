@@ -14,7 +14,7 @@ from typing import Any, cast
 import pandas as pd
 import plotly.graph_objects as go
 
-from src.core.models.data_models import ShaperStepConfig
+from src.core.models.shaper_models import ShaperStepConfig
 from tests.ui.helpers import create_app_with_data, get_api, navigate_to
 
 # ---------------------------------------------------------------------------

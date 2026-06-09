@@ -10,7 +10,7 @@ import time
 
 import pandas as pd
 
-from src.core.models.data_models import ShaperStepConfig
+from src.core.models.shaper_models import ShaperStepConfig
 from src.core.services.shapers.factory import ShaperFactory
 
 logger = logging.getLogger(__name__)

@@ -14,7 +14,7 @@ Key Responsibilities:
 Architecture:
     ApplicationAPI composes:
     - ServicesAPI:  Unified facade for all service operations
-    - ParseService / ScannerService: Parsing subsystem
+    - SimulationParser (via SimulatorRegistry): Parsing subsystem
     - RepositoryStateManager: Application state
 
     The ServicesAPI sub-APIs are exposed as properties for direct access:
@@ -47,8 +47,8 @@ from src.core.models.data_models import (
     SavedConfigData,
     SavedConfigEntry,
     ScannedVariableDict,
-    ShaperStepConfig,
 )
+from src.core.models.shaper_models import ShaperStepConfig
 from src.core.models.history_models import OperationRecord
 from src.core.models.parsing_models import StatParamValue
 from src.core.models.plot_protocol import PlotDeserializer

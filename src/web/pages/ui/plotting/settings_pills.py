@@ -20,8 +20,6 @@ from dataclasses import dataclass
 
 import streamlit as st
 
-from src.web.pages.ui.plotting.export.presets.preset_manager import PresetManager
-
 
 @dataclass(frozen=True)
 class SettingsSection:
@@ -62,36 +60,6 @@ SETTINGS_SECTIONS: list[SettingsSection] = [
     SettingsSection("colors", "Colors", "palette", advanced=True),
     SettingsSection("advanced", "Advanced", "settings", advanced=True),
 ]
-
-
-def render_preset_pills(plot_id: int) -> str | None:
-    """Render preset selector pills and return the selected preset name.
-
-    Parameters
-    ----------
-    plot_id : int
-        Unique plot identifier, used to create a per-plot widget key.
-
-    Returns
-    -------
-    str | None
-        The selected preset name (e.g. ``"isca"``), or ``None`` if
-        "None" is selected or nothing is chosen.
-    """
-    preset_names: list[str] = PresetManager.list_presets()
-    options: list[str] = ["none"] + preset_names
-
-    selected: str | None = st.pills(
-        "Preset",
-        options=options,
-        format_func=lambda x: "None" if x == "none" else x.upper(),
-        selection_mode="single",
-        key=f"preset_selector_{plot_id}",
-        default="none",
-    )
-    if selected is None or selected == "none":
-        return None
-    return selected
 
 
 def render_settings_pills(show_advanced: bool = False) -> str | None:

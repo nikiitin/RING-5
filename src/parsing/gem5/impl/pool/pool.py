@@ -89,7 +89,7 @@ class ScanWorkPool:
             chunk = works[i : i + chunk_size]
             for work in chunk:
                 if work is not None:
-                    future: Future[ScanFileResult] = self._workPool.submit(work, use_threads=True)
+                    future: Future[ScanFileResult] = self._workPool.submit(work)
                     self._futures.append(future)
                     current_batch_futures.append(future)
 
@@ -179,7 +179,7 @@ class ParseWorkPool:
             chunk = works[i : i + chunk_size]
             for work in chunk:
                 if work is not None:
-                    future: Future[ParsedVarsDict] = self._work_pool.submit(work, use_threads=True)
+                    future: Future[ParsedVarsDict] = self._work_pool.submit(work)
                     self._futures.append(future)
                     current_batch_futures.append(future)
 

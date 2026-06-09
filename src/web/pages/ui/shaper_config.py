@@ -9,7 +9,7 @@ from typing import cast
 import pandas as pd
 import streamlit as st
 
-from src.core.models.data_models import ShaperStepConfig
+from src.core.models.shaper_models import ShaperStepConfig
 from src.core.services.shapers.factory import ShaperFactory
 from src.core.services.shapers.pipeline_service import PipelineService
 from src.core.services.shapers.validation import validate_shaper_config

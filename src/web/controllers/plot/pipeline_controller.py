@@ -25,7 +25,7 @@ import pandas as pd
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
-from src.core.models.data_models import ShaperStepConfig
+from src.core.models.shaper_models import ShaperStepConfig
 from src.web.components.common.pipeline import PipelineComponent
 from src.web.components.common.pipeline_step import (
     PipelineStepComponent,

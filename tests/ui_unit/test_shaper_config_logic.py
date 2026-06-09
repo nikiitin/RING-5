@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 from pandas import DataFrame
 
-from src.core.models.data_models import ShaperStepConfig
+from src.core.models.shaper_models import ShaperStepConfig
 from src.web.pages.ui.shaper_config import configure_shaper
 from tests.conftest import columns_side_effect
 

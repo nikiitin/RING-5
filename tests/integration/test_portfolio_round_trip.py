@@ -19,12 +19,8 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from src.core.application_api import ApplicationAPI
-from src.core.models.data_models import (
-    CsvPoolEntry,
-    PipelineStep,
-    SavedConfigData,
-    ShaperStepConfig,
-)
+from src.core.models.data_models import CsvPoolEntry, PipelineStep, SavedConfigData
+from src.core.models.shaper_models import ShaperStepConfig
 from src.core.state.repository_state_manager import RepositoryStateManager
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.plot_service import PlotService

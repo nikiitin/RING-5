@@ -15,11 +15,8 @@ from unittest.mock import patch
 
 import pytest
 
-from src.core.models.data_models import (
-    SavedConfigData,
-    SavedConfigEntry,
-    ShaperStepConfig,
-)
+from src.core.models.data_models import SavedConfigData, SavedConfigEntry
+from src.core.models.shaper_models import ShaperStepConfig
 from src.core.models.parsing_models import ScannedVariable
 from src.core.services.data_services.config_service import ConfigService
 

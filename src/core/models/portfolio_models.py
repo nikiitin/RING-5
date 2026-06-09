@@ -7,11 +7,8 @@ and restoration across all layers.
 
 from typing import Any, TypedDict
 
-from src.core.models.data_models import (
-    ParseVariableConfig,
-    ScannedVariableDict,
-    ShaperStepConfig,
-)
+from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
+from src.core.models.shaper_models import ShaperStepConfig
 from src.core.models.history_models import OperationRecord
 
 

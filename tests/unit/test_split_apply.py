@@ -18,7 +18,7 @@ from typing import Any, cast
 import pandas as pd
 import pytest
 
-from src.core.models.data_models import ShaperStepConfig
+from src.core.models.shaper_models import ShaperStepConfig
 from src.core.services.shapers.factory import ShaperFactory
 from src.core.services.shapers.impl.split_apply import SplitApply
 

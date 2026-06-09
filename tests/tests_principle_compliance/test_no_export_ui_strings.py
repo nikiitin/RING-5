@@ -13,10 +13,6 @@ from typing import List, Tuple
 
 # Files known to have internal/docstring uses of "export" that are acceptable
 _INTERNAL_EXPORT_MODULES = {
-    "export/__init__.py",
-    "export/presets/__init__.py",
-    "export/presets/preset_schema.py",
-    "export/presets/preset_manager.py",
     "download_section.py",
     "plot_service.py",
     "data_components.py",

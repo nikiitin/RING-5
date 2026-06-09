@@ -13,7 +13,7 @@ from typing import cast
 import pandas as pd
 import streamlit as st
 
-from src.core.models.data_models import ShaperStepConfig
+from src.core.models.shaper_models import ShaperStepConfig
 
 
 class SortConfig:

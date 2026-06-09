@@ -18,7 +18,8 @@ from typing import Any, cast
 import pandas as pd
 
 from src.core.application_api import ApplicationAPI
-from src.core.models.data_models import ColumnInfoResult, ShaperStepConfig
+from src.core.models.data_models import ColumnInfoResult
+from src.core.models.shaper_models import ShaperStepConfig
 from src.core.models.history_models import OperationRecord
 
 # ===========================================================================

@@ -1,27 +1,19 @@
 """
-Work Pool - Unified Parallel Execution Manager.
+Work Pool — singleton thread-pool manager for parallel parse/scan work.
 
-Implements a singleton pattern for managing parallel task execution using
-both process and thread pools. Provides a unified interface for spawning
-CPU-bound and IO-bound work across multiple worker processes.
-
-Features:
-- Process pooling for heavy computation (parsing, analysis)
-- Thread pooling for IO operations (file I/O, network)
-- Dynamic worker scaling based on system CPU count
-- Job queue management and result tracking
+Parsing dispatches its per-file work units to threads; the heavy CPU work runs
+out-of-process in the persistent Perl worker pool, so a thread pool (not a
+process pool) is the right executor here.
 """
 
 from __future__ import annotations
 
 import atexit
 import logging
-import multiprocessing
 import os
 import threading
 from collections.abc import Callable
-from concurrent.futures import Future, ProcessPoolExecutor, ThreadPoolExecutor
-from multiprocessing.context import SpawnContext
+from concurrent.futures import Future, ThreadPoolExecutor
 from typing import Any
 
 from src.parsing.gem5.impl.pool.job import Job
@@ -30,10 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 class WorkPool:
-    """
-    Unified singleton pool manager for parallel task execution.
-    Supports both ProcessPool (for CPU-bound tasks) and ThreadPool (for IO-bound tasks).
-    """
+    """Unified singleton thread-pool manager for parallel task execution."""
 
     _instance: WorkPool | None = None
     _initialized: bool
@@ -47,51 +36,38 @@ class WorkPool:
             return cls._instance
 
     def __init__(self) -> None:
-        if self._initialized:
-            return
-
-        self._num_workers = os.cpu_count() or 1
-        self._process_executor: ProcessPoolExecutor | None = None
-        self._thread_executor: ThreadPoolExecutor | None = None
-
-        # Use spawn context for processes to avoid fork warnings
-        try:
-            self._mp_context: SpawnContext | None = multiprocessing.get_context("spawn")
-        except ValueError:
-            self._mp_context = None
-
-        self._initialized = True
+        # Guard runs under the construction lock so two threads racing the very
+        # first WorkPool() can never both run the init body.
+        with self._new_lock:
+            if self._initialized:
+                return
+            self._num_workers = os.cpu_count() or 1
+            self._thread_executor: ThreadPoolExecutor | None = None
+            self._executor_lock = threading.Lock()
+            self._initialized = True
 
     @classmethod
     def get_instance(cls) -> WorkPool:
         return cls()
 
-    def _get_process_executor(self) -> ProcessPoolExecutor:
-        if self._process_executor is None:
-            self._process_executor = ProcessPoolExecutor(
-                max_workers=max(1, self._num_workers - 1), mp_context=self._mp_context
-            )
-        return self._process_executor
-
     def _get_thread_executor(self) -> ThreadPoolExecutor:
-        if self._thread_executor is None:
-            self._thread_executor = ThreadPoolExecutor(max_workers=self._num_workers * 2)
-        return self._thread_executor
+        # Locked lazy creation so concurrent first submits create exactly one
+        # executor (the one shutdown() later releases), never a leaked extra.
+        with self._executor_lock:
+            if self._thread_executor is None:
+                self._thread_executor = ThreadPoolExecutor(max_workers=self._num_workers * 2)
+            return self._thread_executor
 
-    def submit(self, task: Job | Callable[[], Any], use_threads: bool = False) -> Future[Any]:
-        """Submit a single task to the pool."""
-        executor = self._get_thread_executor() if use_threads else self._get_process_executor()
-        return executor.submit(task)
+    def submit(self, task: Job | Callable[[], Any]) -> Future[Any]:
+        """Submit a single task to the thread pool."""
+        return self._get_thread_executor().submit(task)
 
     def shutdown(self, wait: bool = False) -> None:
-        """Shutdown all executors and release resources."""
-        if self._process_executor is not None:
-            self._process_executor.shutdown(wait=wait)
-            self._process_executor = None
+        """Shutdown the executor and release resources."""
         if self._thread_executor is not None:
             self._thread_executor.shutdown(wait=wait)
             self._thread_executor = None
-        logger.info("WorkPool executors shut down")
+        logger.info("WorkPool executor shut down")
 
 
 def _shutdown_workpool() -> None:

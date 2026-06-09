@@ -15,12 +15,29 @@ from src.core.services.shapers.impl.selector_algorithms.column_selector import (
 from src.core.services.shapers.impl.sort import Sort
 
 
+def _benchmark_order(data: pd.DataFrame) -> list[str]:
+    """Custom sort order derived from the fixture itself (single source of truth).
+
+    Excludes the ``arithmean`` sentinel the Mean shaper injects, so callers can append
+    it explicitly when they want mean rows sorted last.
+    """
+    return sorted(b for b in data["benchmark_name"].unique() if b != "arithmean")
+
+
+def _baseline_config(data: pd.DataFrame) -> str:
+    """Pick the normalization baseline config from the data.
+
+    The fixture is generated from real gem5 runs (``scripts/generate_mock_fixtures.py``),
+    so config names are not hard-coded here. Every config covers every benchmark, so the
+    first one alphabetically is a valid, deterministic baseline.
+    """
+    return sorted(data["config_description_abbrev"].unique().tolist())[0]
+
+
 class TestE2EShapers:
     """End-to-end tests for shapers using real gem5 data."""
 
     inputsDir = os.path.relpath("tests/data/mock/inputs")
-    expectsDir = os.path.relpath("tests/data/mock/expects")
-    configDir = os.path.relpath("tests/data/mock/config_files/json_components/config")
 
     @pytest.fixture(autouse=True)
     def _require_mock_data(self) -> None:
@@ -70,23 +87,8 @@ class TestE2EShapers:
         # Load data
         data = pd.read_csv(test_csv, sep=r"\s+")
 
-        # Create custom sort order
-        benchmark_order = [
-            "llb-l",
-            "llb-h",
-            "cadd",
-            "bayes",
-            "genome",
-            "intruder",
-            "intruder-qs",
-            "kmeans-l",
-            "kmeans-h",
-            "labyrinth",
-            "ssca2",
-            "vacation-l",
-            "vacation-h",
-            "yada",
-        ]
+        # Custom sort order derived from the data
+        benchmark_order = _benchmark_order(data)
 
         sorter = Sort({"order_dict": {"benchmark_name": benchmark_order}})
 
@@ -154,12 +156,15 @@ class TestE2EShapers:
         # Select only the columns we need
         data = cast(pd.DataFrame, data[["benchmark_name", "config_description_abbrev", "simTicks"]])
 
+        # Baseline config derived from the data (present for every benchmark)
+        baseline = _baseline_config(data)
+
         # Create Normalize shaper
         normalize_shaper = Normalize(
             {
                 "normalizeVars": ["simTicks"],
                 "normalizerColumn": "config_description_abbrev",
-                "normalizerValue": "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt",  # noqa: E501
+                "normalizerValue": baseline,
                 "groupBy": ["benchmark_name"],
             }
         )
@@ -172,10 +177,7 @@ class TestE2EShapers:
         assert len(result_df) == len(data)  # Should have same number of rows
 
         # Check that baseline configuration exists for each benchmark
-        baseline_rows = result_df[
-            result_df["config_description_abbrev"]
-            == "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt"  # noqa: E501
-        ]
+        baseline_rows = result_df[result_df["config_description_abbrev"] == baseline]
         assert len(baseline_rows) > 0, "No baseline rows found"
 
         # For single variable normalization, each baseline value should be 1.0
@@ -186,10 +188,7 @@ class TestE2EShapers:
 
         # Check that other configurations are normalized (not 1.0 unless they match baseline)
         # At least some non-baseline rows should exist
-        non_baseline_rows = result_df[
-            result_df["config_description_abbrev"]
-            != "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt"  # noqa: E501
-        ]
+        non_baseline_rows = result_df[result_df["config_description_abbrev"] != baseline]
         assert len(non_baseline_rows) > 0, "Should have non-baseline rows"
 
     def test_e2e_shaper_pipeline(self, tmp_path: Any) -> None:
@@ -223,24 +222,8 @@ class TestE2EShapers:
         # Should have mean row added
         assert "arithmean" in data["benchmark_name"].values
 
-        # Step 3: Sort - sort by benchmark name
-        benchmark_order = [
-            "llb-l",
-            "llb-h",
-            "cadd",
-            "bayes",
-            "genome",
-            "intruder",
-            "intruder-qs",
-            "kmeans-l",
-            "kmeans-h",
-            "labyrinth",
-            "ssca2",
-            "vacation-l",
-            "vacation-h",
-            "yada",
-            "arithmean",
-        ]
+        # Step 3: Sort - sort by benchmark name ("arithmean" rows last)
+        benchmark_order = _benchmark_order(data) + ["arithmean"]
         sorter = Sort({"order_dict": {"benchmark_name": benchmark_order}})
         data = sorter(data)
 
@@ -290,23 +273,8 @@ class TestE2EIntegration:
         assert len(shaped_data) == len(data)
         assert len(shaped_data.columns) == 4
 
-        # Step 2: Sort - order by benchmark
-        benchmark_order = [
-            "llb-l",
-            "llb-h",
-            "cadd",
-            "bayes",
-            "genome",
-            "intruder",
-            "intruder-qs",
-            "kmeans-l",
-            "kmeans-h",
-            "labyrinth",
-            "ssca2",
-            "vacation-l",
-            "vacation-h",
-            "yada",
-        ]
+        # Step 2: Sort - order by benchmark (order derived from the data)
+        benchmark_order = _benchmark_order(data)
         sorter = Sort({"order_dict": {"benchmark_name": benchmark_order}})
         final_data = sorter(shaped_data)
 
@@ -346,21 +314,22 @@ class TestE2EIntegration:
         data = selector(data)
         assert len(data.columns) == 3
 
+        # Baseline config + benchmark order derived from the data (before Mean injects rows)
+        baseline = _baseline_config(data)
+        benchmark_order = _benchmark_order(data) + ["arithmean"]
+
         # Step 2: Normalize - normalize simTicks by baseline configuration
         normalizer = Normalize(
             {
                 "normalizeVars": ["simTicks"],
                 "normalizerColumn": "config_description_abbrev",
-                "normalizerValue": "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt",  # noqa: E501
+                "normalizerValue": baseline,
                 "groupBy": ["benchmark_name"],
             }
         )
         data = normalizer(data)
         # Verify baseline is 1.0
-        baseline_rows = data[
-            data["config_description_abbrev"]
-            == "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt"  # noqa: E501
-        ]
+        baseline_rows = data[data["config_description_abbrev"] == baseline]
         assert all(baseline_rows["simTicks"] == 1.0), "Baseline should be normalized to 1.0"
 
         # Step 3: Mean - calculate arithmetic mean per config
@@ -381,24 +350,7 @@ class TestE2EIntegration:
         assert "simulation_cycles" in data.columns
         assert "simTicks" not in data.columns
 
-        # Step 5: Sort - order benchmarks
-        benchmark_order = [
-            "llb-l",
-            "llb-h",
-            "cadd",
-            "bayes",
-            "genome",
-            "intruder",
-            "intruder-qs",
-            "kmeans-l",
-            "kmeans-h",
-            "labyrinth",
-            "ssca2",
-            "vacation-l",
-            "vacation-h",
-            "yada",
-            "arithmean",  # Mean rows at the end
-        ]
+        # Step 5: Sort - order benchmarks (derived above; "arithmean" rows last)
         sorter = Sort({"order_dict": {"benchmark_name": benchmark_order}})
         data = sorter(data)
 
@@ -441,10 +393,7 @@ class TestE2EIntegration:
         assert "arithmean" in data["benchmark_name"].values, "Mean rows should be present"
 
         # Verify baseline normalization is still preserved after all transformations
-        final_baseline_rows = data[
-            data["config_description_abbrev"]
-            == "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt"  # noqa: E501
-        ]
+        final_baseline_rows = data[data["config_description_abbrev"] == baseline]
         non_mean_baseline = final_baseline_rows[
             final_baseline_rows["benchmark_name"] != "arithmean"
         ]

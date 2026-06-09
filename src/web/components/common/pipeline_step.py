@@ -6,7 +6,7 @@ from typing import TypedDict
 import pandas as pd
 import streamlit as st
 
-from src.core.models.data_models import ShaperStepConfig
+from src.core.models.shaper_models import ShaperStepConfig
 from src.web.components.common.pipeline import PipelineComponent
 
 

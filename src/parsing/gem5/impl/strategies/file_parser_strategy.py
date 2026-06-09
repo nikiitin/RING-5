@@ -4,10 +4,9 @@ File Parser Strategy Interface - Protocol Definition.
 Defines the contract for gem5 file parsing strategies, enabling pluggable
 implementations for different gem5 output formats and parsing workflows.
 
-This interface supports a three-phase parsing workflow:
-1. get_work_items(): Discover files to parse
-2. execute(): Parse files and extract statistics
-3. post_process(): Aggregate and transform results
+This interface supports an async parsing workflow:
+1. get_work_items(): discover files to parse (ParseWork units for the pool)
+2. post_process(): aggregate and transform the pool's results
 
 Strategy Pattern Implementation:
 Different strategies (SimpleStatsStrategy, ConfigAwareStrategy) can handle
@@ -38,35 +37,12 @@ class FileParserStrategy(Protocol):
     Usage Example:
         >>> strategy = SimpleStatsStrategy()
         >>> work_items = strategy.get_work_items("/sim/output", "stats.txt", variables)
-        >>> results = strategy.execute("/sim/output", "stats.txt", variables)
+        >>> results = [f.result() for f in pool.submit_batch_async(list(work_items)).futures]
         >>> final_results = strategy.post_process(results)
 
     Note: This uses Protocol (structural typing) rather than ABC (nominal typing)
     for flexibility and to support duck typing patterns common in Python.
     """
-
-    def execute(
-        self, stats_path: str, stats_pattern: str, variables: list[StatConfig]
-    ) -> list[dict[str, Any]]:
-        """
-        Execute the complete parsing workflow.
-
-        Discovers files, parses them, and returns raw results. This is the
-        main entry point for synchronous parsing operations.
-
-        Args:
-            stats_path: Root directory containing gem5 simulation outputs
-            stats_pattern: Glob pattern for file matching (e.g., "stats.txt")
-            variables: List of StatConfig objects defining what to extract
-
-        Returns:
-            List of dictionaries containing parsed statistics for each file
-
-        Example:
-            >>> results = strategy.execute("/sim/run1", "stats.txt", variables)
-            >>> [{'system.cpu.ipc': 1.5, 'sim_path': '/sim/run1/stats.txt'}, ...]
-        """
-        ...
 
     def get_work_items(
         self, stats_path: str, stats_pattern: str, variables: list[StatConfig]

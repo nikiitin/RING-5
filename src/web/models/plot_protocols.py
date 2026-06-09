@@ -22,7 +22,8 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 import pandas as pd
 
-from src.core.models.data_models import PipelineStep, ShaperStepConfig
+from src.core.models.data_models import PipelineStep
+from src.core.models.shaper_models import ShaperStepConfig
 
 if TYPE_CHECKING:
     import plotly.graph_objects as go

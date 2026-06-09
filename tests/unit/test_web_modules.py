@@ -14,7 +14,8 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
-from src.core.models.data_models import ParseVariableConfig, ShaperStepConfig
+from src.core.models.data_models import ParseVariableConfig
+from src.core.models.shaper_models import ShaperStepConfig
 
 
 class TestStateManager:

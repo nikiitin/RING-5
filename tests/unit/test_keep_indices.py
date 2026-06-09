@@ -815,7 +815,7 @@ class TestConstructFinalCsvNA:
 
     def test_parse_service_construct_final_csv_na(self, tmp_path: Any) -> None:
         """ParseService.construct_final_csv also handles missing vars."""
-        from src.parsing.parse_service import ParseService
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
 
         stat_a = self._mock_scalar(5.0)
         stat_b = self._mock_scalar(10.0)

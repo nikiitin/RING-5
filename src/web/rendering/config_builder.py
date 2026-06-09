@@ -2,12 +2,7 @@
 Bidirectional builders — construct FigureConfig from various sources.
 
   - ``PlotlyFigureSpecBuilder`` — extract spec from Plotly figure + config dict
-  - ``PresetSpecBuilder`` — build spec from a LaTeXPreset (journal template)
   - ``ConfigSpecBuilder`` — build spec from a flat config dict (UI widgets)
-
-These replace:
-  - ``LayoutExtractor.extract_layout()`` (Plotly → raw dict)
-  - ``LayoutApplier._build_*_config()`` methods (LaTeXPreset → dataclasses)
 """
 
 from __future__ import annotations
@@ -26,7 +21,6 @@ from src.core.models.visualization.figure_config import (
     DimensionConfig,
     FigureConfig,
     MarginsConfig,
-    SeparatorConfig,
 )
 from src.core.models.visualization.legend_config import (
     ColorbarConfig,
@@ -182,168 +176,6 @@ class PlotlyFigureSpecBuilder:
             if yanchor:
                 box_kwargs["anchor_y"] = yanchor
             spec.legends.append(LegendConfig(**box_kwargs))
-
-
-class PresetSpecBuilder:
-    """Build a FigureConfig from a LaTeXPreset (journal template).
-
-    This replaces the 4 builder methods in ``LayoutApplier``:
-      - ``_build_font_config()``
-      - ``_build_positioning_config()``
-      - ``_build_separator_config()``
-      - ``_build_legend_spacing_config()``
-
-    Usage:
-        spec = PresetSpecBuilder.from_preset(preset)
-    """
-
-    @staticmethod
-    def from_preset(preset: dict[str, Any]) -> FigureConfig:
-        """Build a FigureConfig from a LaTeXPreset dictionary.
-
-        Args:
-            preset: A ``LaTeXPreset`` TypedDict (or compatible dict).
-
-        Returns:
-            A FigureConfig populated from the preset values.
-        """
-        # ── Dimensions ───────────────────────────────────────────
-        dims = DimensionConfig(
-            width=preset.get("width_inches", 7.0),
-            height=preset.get("height_inches", 4.0),
-            dpi=preset.get("dpi", 300),
-            bar_width_scale=preset.get("bar_width_scale", 1.0),
-        )
-
-        # ── Typography ───────────────────────────────────────────
-        typo = TypographyConfig(
-            font_size_base=preset.get("font_size_base", 10),
-            font_size_title=preset.get("font_size_title", 10),
-            font_size_xlabel=preset.get("font_size_xlabel", 9),
-            font_size_ylabel=preset.get("font_size_ylabel", 9),
-            font_size_y2label=preset.get("font_size_y2label", -1),
-            font_size_ticks=preset.get("font_size_ticks", 7),
-            font_size_yticks=preset.get("font_size_yticks", 7),
-            font_size_y2ticks=preset.get("font_size_y2ticks", -1),
-            font_size_annotations=preset.get("font_size_annotations", 6),
-            font_size_legend=preset.get("font_size_legend", 8),
-            font_size_legend2=preset.get("font_size_legend2", -1),
-            font_size_legend3=preset.get("font_size_legend3", -1),
-            legend3_number_fontsize=preset.get("legend3_number_fontsize", -1),
-            legend3_text_fontsize=preset.get("legend3_text_fontsize", -1),
-            bold_title=preset.get("bold_title", False),
-            bold_xlabel=preset.get("bold_xlabel", False),
-            bold_ylabel=preset.get("bold_ylabel", False),
-            bold_y2label=preset.get("bold_y2label", False),
-            bold_ticks=preset.get("bold_ticks", False),
-            bold_annotations=preset.get("bold_annotations", True),
-            bold_group_labels=preset.get("bold_group_labels", True),
-            bold_legend=preset.get("bold_legend", False),
-            bold_legend2=preset.get("bold_legend2", False),
-            bold_legend3=preset.get("bold_legend3", False),
-        )
-
-        # ── Axes positioning ─────────────────────────────────────
-        x_axis = AxisConfig(
-            tick_angle=preset.get("xtick_rotation", 45.0),
-            tick_pad=preset.get("xtick_pad", 5.0),
-            tick_ha=preset.get("xtick_ha", "right"),
-            tick_offset=preset.get("xtick_offset", 0.0),
-            margin=preset.get("xaxis_margin", 0.02),
-            show_ticks=preset.get("show_xtick_marks", True),
-            tick_dash=preset.get("xtick_dash", "solid"),
-            grid_dash=preset.get("x_grid_dash", "solid"),
-            grid_alpha=float(preset.get("x_grid_alpha", 1.0)),
-        )
-        y_axis = AxisConfig(
-            label_pad=preset.get("ylabel_pad", 10.0),
-            label_position=preset.get("ylabel_y_position", 0.5),
-            tick_pad=preset.get("ytick_pad", 5.0),
-            show_ticks=preset.get("show_ytick_marks", True),
-            tick_dash=preset.get("ytick_dash", "solid"),
-            grid_dash=preset.get("y_grid_dash", "solid"),
-            grid_alpha=float(preset.get("y_grid_alpha", 1.0)),
-        )
-
-        axes = AxesConfig(
-            x=x_axis,
-            y=y_axis,
-            group_label_offset=preset.get("group_label_offset", -0.12),
-            group_label_alternate=preset.get("group_label_alternate", True),
-            group_label_alt_spacing=preset.get("group_label_alt_spacing", 0.05),
-        )
-
-        # ── Legends ──────────────────────────────────────────────
-        primary_spacing = LegendSpacingConfig(
-            columnspacing=preset.get("legend_columnspacing", 0.5),
-            handletextpad=preset.get("legend_handletextpad", 0.3),
-            labelspacing=preset.get("legend_labelspacing", 0.2),
-            handlelength=preset.get("legend_handlelength", 1.0),
-            handleheight=preset.get("legend_handleheight", 0.7),
-            borderpad=preset.get("legend_borderpad", 0.2),
-            borderaxespad=preset.get("legend_borderaxespad", 0.5),
-        )
-        primary_legend = LegendConfig(
-            role="primary",
-            font_size=preset.get("font_size_legend", 8),
-            bold=preset.get("bold_legend", False),
-            ncol=preset.get("legend_ncol", 1),
-            custom_position=preset.get("legend_custom_pos", False),
-            position_x=preset.get("legend_x", -1.0),
-            position_y=preset.get("legend_y", -1.0),
-            spacing=primary_spacing,
-        )
-
-        # Secondary legend (legend2)
-        legend2_spacing = LegendSpacingConfig(
-            columnspacing=preset.get("legend2_columnspacing", -1.0),
-            handletextpad=preset.get("legend2_handletextpad", -1.0),
-            labelspacing=preset.get("legend2_labelspacing", -1.0),
-            handlelength=preset.get("legend2_handlelength", -1.0),
-            handleheight=preset.get("legend2_handleheight", -1.0),
-            borderpad=preset.get("legend2_borderpad", -1.0),
-            borderaxespad=preset.get("legend2_borderaxespad", -1.0),
-        )
-        legend2 = LegendConfig(
-            role="secondary",
-            font_size=preset.get("font_size_legend2", -1),
-            bold=preset.get("bold_legend2", False),
-            ncol=preset.get("legend2_ncol", -1),
-            spacing=legend2_spacing,
-        )
-
-        # Tertiary annotation legend (legend3)
-        legend3_spacing = LegendSpacingConfig(
-            borderpad=preset.get("legend3_borderpad", -1.0),
-            labelspacing=preset.get("legend3_labelspacing", -1.0),
-        )
-        legend3 = LegendConfig(
-            role="tertiary",
-            font_size=preset.get("font_size_legend3", -1),
-            bold=preset.get("bold_legend3", False),
-            number_fontsize=preset.get("legend3_number_fontsize", -1),
-            text_fontsize=preset.get("legend3_text_fontsize", -1),
-            spacing=legend3_spacing,
-        )
-
-        legends = [primary_legend, legend2, legend3]
-
-        # ── Separator ────────────────────────────────────────────
-        separator = SeparatorConfig(
-            enabled=preset.get("group_separator", False),
-            style=preset.get("group_separator_style", "dash"),
-            color=preset.get("group_separator_color", "gray"),
-        )
-
-        return FigureConfig(
-            dimensions=dims,
-            typography=typo,
-            axes=axes,
-            legends=legends,
-            separator=separator,
-            font_family=preset.get("font_family", "serif"),
-            latex_extra_preamble=preset.get("latex_extra_preamble", ""),
-        )
 
 
 class ConfigSpecBuilder:

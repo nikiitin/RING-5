@@ -56,7 +56,7 @@ class TestNoClassLevelState:
 
     def test_parse_service_has_no_active_var_names(self) -> None:
         """ParseService should no longer have _active_var_names class attribute."""
-        from src.parsing.parse_service import ParseService
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
 
         assert not hasattr(ParseService, "_active_var_names"), (
             "ParseService should not have _active_var_names class attribute. "

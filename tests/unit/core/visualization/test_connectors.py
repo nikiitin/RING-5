@@ -5,7 +5,6 @@ Covers:
   - FigureSpecToPlotly: apply spec to a Plotly figure
   - FigureSpecToMatplotlib: apply spec to matplotlib axes
   - PlotlyFigureSpecBuilder: extract spec from Plotly figure
-  - PresetSpecBuilder: build spec from LaTeXPreset
 """
 
 from typing import Any, cast
@@ -25,7 +24,7 @@ from src.core.models.visualization.legend_config import ColorbarConfig, LegendCo
 from src.core.models.visualization.series_style_config import SeriesStyleConfig
 from src.core.models.visualization.typography_config import TypographyConfig
 from src.core.services.visualization.config_resolver import resolve_config
-from src.web.rendering.config_builder import PlotlyFigureSpecBuilder, PresetSpecBuilder
+from src.web.rendering.config_builder import PlotlyFigureSpecBuilder
 from src.web.rendering.plotly_connector import FigureSpecToPlotly
 
 
@@ -292,153 +291,6 @@ class TestPlotlyFigureSpecBuilder:
         assert primary.position_y == 1.0
         assert primary.anchor_x == "center"
         assert primary.orientation == "horizontal"
-
-
-class TestPresetSpecBuilder:
-    """Test building FigureConfig from a LaTeXPreset dictionary."""
-
-    def _make_preset(self) -> dict:  # type: ignore[type-arg]
-        """Create a minimal LaTeXPreset-compatible dictionary."""
-        return {
-            "width_inches": 3.5,
-            "height_inches": 2.5,
-            "dpi": 600,
-            "font_family": "sans-serif",
-            "font_size_base": 8,
-            "font_size_title": 10,
-            "font_size_xlabel": 8,
-            "font_size_ylabel": 8,
-            "font_size_ticks": 6,
-            "font_size_yticks": 6,
-            "font_size_annotations": 5,
-            "font_size_legend": 7,
-            "font_size_legend2": -1,
-            "font_size_legend3": -1,
-            "bold_title": True,
-            "bold_xlabel": False,
-            "bold_ylabel": False,
-            "bold_ticks": False,
-            "bold_annotations": True,
-            "bold_legend": False,
-            "legend_ncol": 2,
-            "legend_columnspacing": 1.0,
-            "legend_handletextpad": 0.4,
-            "legend_labelspacing": 0.3,
-            "legend_handlelength": 1.5,
-            "legend_handleheight": 0.8,
-            "legend_borderpad": 0.3,
-            "legend_borderaxespad": 0.6,
-            "legend_custom_pos": True,
-            "legend_x": 0.5,
-            "legend_y": 1.05,
-            "xtick_rotation": 30.0,
-            "xtick_pad": 4.0,
-            "xtick_ha": "right",
-            "ytick_pad": 4.0,
-            "ylabel_pad": 12.0,
-            "ylabel_y_position": 0.5,
-            "xaxis_margin": 0.03,
-            "bar_width_scale": 0.9,
-            "group_separator": True,
-            "group_separator_style": "dot",
-            "group_separator_color": "blue",
-            "group_label_offset": -0.15,
-            "group_label_alternate": False,
-            "latex_extra_preamble": "",
-        }
-
-    def test_dimensions(self) -> None:
-        """Preset dimensions should map correctly."""
-        preset = self._make_preset()
-        spec = PresetSpecBuilder.from_preset(preset)
-
-        assert spec.dimensions.width == 3.5
-        assert spec.dimensions.height == 2.5
-        assert spec.dimensions.dpi == 600
-        assert spec.dimensions.bar_width_scale == 0.9
-
-    def test_typography(self) -> None:
-        """Preset typography should map correctly."""
-        preset = self._make_preset()
-        spec = PresetSpecBuilder.from_preset(preset)
-
-        assert spec.typography.font_size_base == 8
-        assert spec.typography.font_size_title == 10
-        assert spec.typography.font_size_legend == 7
-        assert spec.typography.bold_title is True
-        assert spec.typography.bold_annotations is True
-
-    def test_legends(self) -> None:
-        """Preset should produce 3 legends (primary, secondary, tertiary)."""
-        preset = self._make_preset()
-        spec = PresetSpecBuilder.from_preset(preset)
-
-        assert len(spec.legends) == 3
-        primary = spec.legends[0]
-        assert primary.role == "primary"
-        assert primary.ncol == 2
-        assert primary.custom_position is True
-        assert primary.position_x == 0.5
-        assert primary.spacing.columnspacing == 1.0
-
-        secondary = spec.legends[1]
-        assert secondary.role == "secondary"
-        assert secondary.font_size == -1  # sentinel, needs resolution
-
-        tertiary = spec.legends[2]
-        assert tertiary.role == "tertiary"
-        assert tertiary.font_size == -1
-
-    def test_axes(self) -> None:
-        """Preset axis settings should map correctly."""
-        preset = self._make_preset()
-        spec = PresetSpecBuilder.from_preset(preset)
-
-        assert spec.axes.x.tick_angle == 30.0
-        assert spec.axes.x.tick_pad == 4.0
-        assert spec.axes.x.tick_ha == "right"
-        assert spec.axes.y.label_pad == 12.0
-        assert spec.axes.group_label_offset == -0.15
-
-    def test_separator(self) -> None:
-        """Preset separator should map correctly."""
-        preset = self._make_preset()
-        spec = PresetSpecBuilder.from_preset(preset)
-
-        assert spec.separator.enabled is True
-        assert spec.separator.style == "dot"
-        assert spec.separator.color == "blue"
-
-    def test_font_family(self) -> None:
-        """Font family from preset should be preserved."""
-        preset = self._make_preset()
-        spec = PresetSpecBuilder.from_preset(preset)
-
-        assert spec.font_family == "sans-serif"
-
-    def test_empty_preset(self) -> None:
-        """Empty preset should produce spec with defaults."""
-        spec = PresetSpecBuilder.from_preset({})
-
-        assert spec.dimensions.width == 7.0
-        assert spec.typography.font_size_base == 10
-        assert len(spec.legends) == 3  # always 3
-
-    def test_preset_then_resolve(self) -> None:
-        """Preset spec with sentinels should resolve correctly."""
-        preset = self._make_preset()
-        spec = PresetSpecBuilder.from_preset(preset)
-        resolved = resolve_config(spec)
-
-        # legend2 font_size was -1, should inherit from primary (7)
-        assert resolved.legends[1].font_size == 7
-        # legend3 font_size was -1, should inherit from primary (7)
-        assert resolved.legends[2].font_size == 7
-
-
-# ────────────────────────────────────────────────────────────────────
-# Step 10 — New FigureSpecToPlotly feature methods
-# ────────────────────────────────────────────────────────────────────
 
 
 class TestPlotlyConnectorColorPalette:

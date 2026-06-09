@@ -5,11 +5,12 @@ Implements traditional line-by-line parsing for standard gem5 stats.txt output.
 Straightforward extraction without configuration awareness, suitable for
 basic statistical analysis.
 
-Workflow:
-1. discovers all matching stats files
-2. Submits parallel parse jobs to worker pool
-3. Aggregates results into unified DataFrame
-4. Handles type conversion and validation
+Responsibilities:
+1. get_work_items(): discover matching stats files and build per-file
+   ``Gem5ParseWork`` units (each with its own deep-copied variable map)
+2. post_process(): aggregate the pool's results
+
+The worker pool that runs the work units is owned by ``Gem5Parser``.
 """
 
 from __future__ import annotations
@@ -31,7 +32,6 @@ from src.core.common.utils import (
     sanitize_log_value,
 )
 from src.core.models import StatConfig
-from src.parsing.gem5.impl.pool import ParseWorkPool
 from src.parsing.gem5.impl.strategies.gem5_parse_work import Gem5ParseWork
 from src.parsing.gem5.types.type_mapper import TypeMapper
 
@@ -46,41 +46,6 @@ class SimpleStatsStrategy:
     submits them to the parallel worker pool, and aggregates the results.
     It corresponds to the legacy behavior of Gem5StatsParser.
     """
-
-    def execute(
-        self, stats_path: str, stats_pattern: str, variables: Sequence[StatConfig]
-    ) -> list[dict[str, Any]]:
-        """
-        Execute the simple parsing workflow.
-        """
-        t_start = time.perf_counter()
-        batch_work = self.get_work_items(stats_path, stats_pattern, variables)
-        if not batch_work:
-            return []
-
-        # We process using the global ParseWorkPool
-        pool = ParseWorkPool.get_instance()
-
-        t_submit_start = time.perf_counter()
-        logger.info("PARSER: Queueing simulation data for digestion...")
-        futures = pool.submit_batch_async(list(batch_work))
-        t_submit_end = time.perf_counter()
-        logger.info(f"PERF: Pool submission took {t_submit_end - t_submit_start:.4f}s")
-
-        logger.info("PARSER: Waiting for parallel worker completion...")
-        t_wait_start = time.perf_counter()
-        results = [f.result() for f in futures]
-        t_wait_end = time.perf_counter()
-        logger.info(f"PERF: result collection took {t_wait_end - t_wait_start:.4f}s")
-
-        t_post_start = time.perf_counter()
-        processed = self.post_process(results)
-        t_post_end = time.perf_counter()
-        logger.info(f"PERF: Strategy local post-process took {t_post_end - t_post_start:.4f}s")
-
-        t_total = time.perf_counter() - t_start
-        logger.info(f"PERF: SimpleStatsStrategy.execute total took {t_total:.4f}s")
-        return processed
 
     def get_work_items(
         self, stats_path: str, stats_pattern: str, variables: Sequence[StatConfig]
@@ -126,7 +91,7 @@ class SimpleStatsStrategy:
 
     def _get_files(self, stats_path: str, stats_pattern: str) -> list[str]:
         """Find all stats files matching the pattern in the target path."""
-        # Path is already validated/resolved by ParseService before reaching strategy
+        # Path is already validated/resolved by Gem5Parser before reaching strategy
         safe_path: str = os.path.normpath(stats_path) if stats_path else "."
         base = normalize_user_path(safe_path)
         safe_pattern = sanitize_glob_pattern(stats_pattern)

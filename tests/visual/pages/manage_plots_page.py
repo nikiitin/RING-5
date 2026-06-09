@@ -400,9 +400,6 @@ class ManagePlotsPage(BasePage):
             "[data-testid='stMainBlockContainer'] " "[data-testid='stButtonGroup']"
         ).filter(has_text="plotly")
 
-    # NOTE: no ``viz_preset_pills`` — the preset pills (render_preset_pills) are
-    # defined but not wired into the render flow, so they never appear in the UI.
-
     # -- Chart output -------
 
     @property

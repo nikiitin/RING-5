@@ -30,7 +30,7 @@ from typing import TYPE_CHECKING, cast
 
 import pandas as pd
 
-from src.core.models.data_models import ShaperStepConfig
+from src.core.models.shaper_models import ShaperStepConfig
 from src.web.models.plot_protocols import PlotHandle
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.plot_factory import PlotFactory

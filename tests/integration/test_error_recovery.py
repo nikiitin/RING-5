@@ -18,7 +18,8 @@ import plotly.graph_objects as go
 import pytest
 
 from src.core.application_api import ApplicationAPI
-from src.core.models.data_models import ColumnInfoResult, ShaperStepConfig
+from src.core.models.data_models import ColumnInfoResult
+from src.core.models.shaper_models import ShaperStepConfig
 from src.core.services.shapers.factory import ShaperFactory
 from src.core.state.repository_state_manager import RepositoryStateManager
 from src.web.pages.ui.plotting.plot_factory import PlotFactory

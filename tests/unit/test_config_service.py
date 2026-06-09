@@ -15,7 +15,7 @@ from typing import cast
 
 import pytest
 
-from src.core.models.data_models import ShaperStepConfig
+from src.core.models.shaper_models import ShaperStepConfig
 from src.core.services.data_services.config_service import ConfigService
 
 # ============================================================================

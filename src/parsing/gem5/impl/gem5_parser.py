@@ -1,5 +1,5 @@
 """
-Module: src.parsing/parse_service.py
+Module: src.parsing.gem5.impl.gem5_parser
 
 Purpose:
     Orchestrates gem5 stats file parsing workflow using persistent Perl worker pool.
@@ -20,7 +20,7 @@ Dependencies:
     - Gem5ParseWork: For individual file parsing logic
 
 Usage Example:
-    >>> from src.parsing.parse_service import ParseService
+    >>> from src.parsing.gem5.impl.gem5_parser import Gem5Parser
     >>>
     >>> # Define variables to parse
     >>> variables = [
@@ -29,7 +29,7 @@ Usage Example:
     ... ]
     >>>
     >>> # Submit async parsing (returns futures)
-    >>> futures = ParseService.submit_parse_async(
+    >>> futures = Gem5Parser.submit_parse_async(
     ...     stats_path="/path/to/gem5/output",
     ...     stats_pattern="stats.txt",
     ...     variables=variables,

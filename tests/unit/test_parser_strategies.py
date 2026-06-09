@@ -17,35 +17,24 @@ def mock_variables() -> list[StatConfig]:
 
 class TestSimpleStatsStrategy:
 
-    @patch("src.parsing.gem5.impl.strategies.simple.ParseWorkPool")
     @patch("src.parsing.gem5.impl.strategies.simple.normalize_user_path")
-    def test_execute_flow(
-        self, mock_normalize: MagicMock, mock_pool_cls: MagicMock, mock_variables: list[StatConfig]
+    def test_get_work_items_one_per_file(
+        self, mock_normalize: MagicMock, mock_variables: list[StatConfig]
     ) -> None:
-        # Arrange
+        # The strategy discovers files and builds one ParseWork unit per file;
+        # the worker pool that runs them is owned by Gem5Parser, not the strategy.
+        from src.parsing.gem5.impl.strategies.gem5_parse_work import Gem5ParseWork
+
         mock_path_obj = MagicMock()
         mock_normalize.return_value = mock_path_obj
-        mock_path_obj.glob.return_value = [MagicMock(), MagicMock()]  # 2 files found
-
-        mock_pool = MagicMock()
-        mock_pool_cls.get_instance.return_value = mock_pool
-
-        # Setup futures result via submit_batch_async
-        expected_results = [{"sim_path": "/path/1"}, {"sim_path": "/path/2"}]
-        mock_future1 = MagicMock()
-        mock_future1.result.return_value = expected_results[0]
-        mock_future2 = MagicMock()
-        mock_future2.result.return_value = expected_results[1]
-        mock_pool.submit_batch_async.return_value = [mock_future1, mock_future2]
+        mock_path_obj.glob.return_value = ["/fake/path/1/stats.txt", "/fake/path/2/stats.txt"]
 
         strategy = SimpleStatsStrategy()
 
-        # Act
-        results = strategy.execute("/fake/path", "stats.txt", mock_variables)
+        work_items = list(strategy.get_work_items("/fake/path", "stats.txt", mock_variables))
 
-        # Assert
-        assert len(results) == 2
-        mock_pool.submit_batch_async.assert_called_once()
+        assert len(work_items) == 2
+        assert all(isinstance(w, Gem5ParseWork) for w in work_items)
 
     def test_variable_mapping_logic(self) -> None:
         strategy = SimpleStatsStrategy()
@@ -61,47 +50,6 @@ class TestSimpleStatsStrategy:
 
 
 class TestConfigAwareStrategy:
-
-    @patch("src.parsing.gem5.impl.strategies.config_aware.configparser")
-    @patch("src.parsing.gem5.impl.strategies.simple.ParseWorkPool")  # Parent class dependency
-    @patch("src.parsing.gem5.impl.strategies.simple.normalize_user_path")  # Parent class dependency
-    def test_config_augmentation(
-        self,
-        mock_normalize: MagicMock,
-        mock_pool_cls: MagicMock,
-        mock_configparser: MagicMock,
-        mock_variables: list[StatConfig],
-    ) -> None:
-        # Arrange
-        # 1. Setup Base Strategy Execution
-        mock_path_obj = MagicMock()
-        mock_normalize.return_value = mock_path_obj
-        # Mock glob logic more carefully since ConfigAware uses Path(sim_path)
-        # We start by satisfying the base class glob
-        mock_path_obj.glob.return_value = ["/sim/results/stats.txt"]
-
-        mock_pool = MagicMock()
-        mock_pool_cls.get_instance.return_value = mock_pool
-
-        # Result from worker
-        base_result = {"sim_path": "/sim/results/stats.txt", "sim_seconds": 0.5}
-        mock_future = MagicMock()
-        mock_future.result.return_value = base_result
-        mock_pool.get_all_futures.return_value = [mock_future]
-
-        # 2. Setup Config Parsing
-        mock_parser = MagicMock()
-        mock_configparser.ConfigParser.return_value = mock_parser
-        mock_parser.sections.return_value = ["system"]
-        mock_parser.items.return_value = [("mem_size", "4GB")]
-
-        # Mock file existence for config.ini
-        # When ConfigAwareStrategy does Path(sim_path).parent / "config.ini"
-        # It needs to return a mock that says .exists() is True
-
-        # This is tricky with global Path patch.
-        # Instead of complex Path mocking, we can mock the _parse_config method for isolation
-        pytest.skip("Complex Path mocking required - tested via _parse_config mock instead")
 
     def test_augment_results(self) -> None:
         # Arrange

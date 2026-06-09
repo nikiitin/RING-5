@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.core.models import ParseBatchResult, ScannedVariable, StatConfig
-from src.parsing.parse_service import ParseService
+from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
 
 # ---------------------------------------------------------------------------
 # Helpers

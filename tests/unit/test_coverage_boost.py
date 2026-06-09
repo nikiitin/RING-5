@@ -15,8 +15,8 @@ Targets the following files/lines:
 - src/parsing/gem5/impl/pool/parse_work.py  (80% → 100%)
     Lines 44, 53: __call__ raises NotImplementedError, __str__
 - src/parsing/gem5/impl/pool/work_pool.py  (85% → ~100%)
-    Lines 50-51, 67-69: _mp_context ValueError fallback, _get_thread_executor
-- src/parsing/parse_service.py  (79% → ~90%)
+    Thread-executor lazy init and submit.
+- src/parsing/gem5/impl/gem5_parser.py  (79% → ~90%)
     Lines 143-146, 155-198, 210-212, 325: regex expansion, keep_indices, finalize
 - src/web/pages/ui/components/data_source_components.py  (73% → ~85%)
     Lines covering render_csv_pool, variable_config_dialog, _show_parse_dialog
@@ -305,12 +305,12 @@ class TestParseWork:
 
 
 # ===================================================================
-# 6. WorkPool — _mp_context fallback + _get_thread_executor (lines 50-51, 67-69)
+# 6. WorkPool — thread executor lazy init + submit
 # ===================================================================
 
 
 class TestWorkPool:
-    """Cover mp_context ValueError fallback and thread executor lazy init."""
+    """Cover the thread-executor lazy init and submit."""
 
     def test_thread_executor_lazy_init(self) -> None:
         from src.parsing.gem5.impl.pool.work_pool import WorkPool
@@ -332,22 +332,7 @@ class TestWorkPool:
         # Cleanup
         WorkPool._instance = None
 
-    @patch("src.parsing.gem5.impl.pool.work_pool.multiprocessing.get_context")
-    def test_mp_context_fallback_on_value_error(self, mock_ctx: MagicMock) -> None:
-        from src.parsing.gem5.impl.pool.work_pool import WorkPool
-
-        mock_ctx.side_effect = ValueError("no spawn")
-
-        # Reset singleton
-        WorkPool._instance = None
-
-        pool = WorkPool()
-        assert pool._mp_context is None  # Fell back to None
-
-        # Cleanup
-        WorkPool._instance = None
-
-    def test_submit_with_threads(self) -> None:
+    def test_submit_runs_on_thread_pool(self) -> None:
         from src.parsing.gem5.impl.pool.work_pool import WorkPool
 
         WorkPool._instance = None
@@ -356,7 +341,7 @@ class TestWorkPool:
         def dummy_task() -> str:
             return "done"
 
-        future = pool.submit(dummy_task, use_threads=True)
+        future = pool.submit(dummy_task)
         result = future.result(timeout=5)
         assert result == "done"
 
@@ -381,7 +366,7 @@ class TestParseServiceRegexExpansion:
             ScannedVariable,
             StatConfig,
         )
-        from src.parsing.parse_service import ParseService
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
 
         # Create the stats directory so FileNotFoundError isn't raised
         stats_dir = tmp_path / "sim"
@@ -421,7 +406,7 @@ class TestParseServiceRegexExpansion:
             ScannedVariable,
             StatConfig,
         )
-        from src.parsing.parse_service import ParseService
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
 
         stats_dir = tmp_path / "sim"
         stats_dir.mkdir()
@@ -468,7 +453,7 @@ class TestParseServiceRegexExpansion:
             ScannedVariable,
             StatConfig,
         )
-        from src.parsing.parse_service import ParseService
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
 
         stats_dir = tmp_path / "sim"
         stats_dir.mkdir()
@@ -525,7 +510,7 @@ class TestParseServiceRegexExpansion:
             ScannedVariable,
             StatConfig,
         )
-        from src.parsing.parse_service import ParseService
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
 
         stats_dir = tmp_path / "sim"
         stats_dir.mkdir()
@@ -578,7 +563,7 @@ class TestParseServiceRegexExpansion:
             ScannedVariable,
             StatConfig,
         )
-        from src.parsing.parse_service import ParseService
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
 
         stats_dir = tmp_path / "sim"
         stats_dir.mkdir()
@@ -617,7 +602,7 @@ class TestParseServiceRegexExpansion:
             ScannedVariable,
             StatConfig,
         )
-        from src.parsing.parse_service import ParseService
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
 
         stats_dir = tmp_path / "sim"
         stats_dir.mkdir()
@@ -650,7 +635,7 @@ class TestParseServiceFinalize:
     """Cover finalize_parsing and construct_final_csv."""
 
     def test_finalize_parsing_no_results(self) -> None:
-        from src.parsing.parse_service import ParseService
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
 
         result = ParseService.finalize_parsing("/tmp/out", [])
         assert result is None
@@ -659,7 +644,7 @@ class TestParseServiceFinalize:
     def test_finalize_parsing_delegates_to_strategy(
         self, mock_factory: MagicMock, tmp_path: Path
     ) -> None:
-        from src.parsing.parse_service import ParseService
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
 
         mock_strategy = MagicMock()
         mock_strategy.post_process.return_value = []
@@ -672,14 +657,14 @@ class TestParseServiceFinalize:
         mock_strategy.post_process.assert_called_once()
 
     def test_construct_final_csv_empty(self) -> None:
-        from src.parsing.parse_service import ParseService
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
 
         result = ParseService.construct_final_csv("/tmp/out", [])
         assert result is None
 
     def test_construct_final_csv_with_data(self, tmp_path: Path) -> None:
         """Cover CSV generation with stat objects."""
-        from src.parsing.parse_service import ParseService
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
 
         # Create mock stat objects with the expected interface
         mock_var = MagicMock()
@@ -702,7 +687,7 @@ class TestParseServiceFinalize:
 
     def test_construct_final_csv_scalar_no_entries(self, tmp_path: Path) -> None:
         """Cover scalar variable path (no entries)."""
-        from src.parsing.parse_service import ParseService
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
 
         mock_var = MagicMock()
         mock_var.entries = []
@@ -721,7 +706,7 @@ class TestParseServiceFinalize:
 
     def test_construct_final_csv_missing_var_in_result(self, tmp_path: Path) -> None:
         """Cover NaN path when variable is absent from a result."""
-        from src.parsing.parse_service import ParseService
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
 
         mock_var = MagicMock()
         mock_var.entries = []
@@ -741,7 +726,7 @@ class TestParseServiceFinalize:
 
     def test_construct_final_csv_raw_data(self, tmp_path: Path) -> None:
         """Cover raw data path (no balance_content attribute)."""
-        from src.parsing.parse_service import ParseService
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
 
         # Raw data still needs 'entries' for header construction,
         # but lacks 'balance_content' triggering the raw-data row path.
