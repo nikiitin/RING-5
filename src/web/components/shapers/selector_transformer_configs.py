@@ -135,6 +135,58 @@ class ConditionSelectorConfig:
             return cast(ShaperStepConfig, {"column": filter_column, "values": selected_values})
 
 
+class ItemSelectorConfig:
+    @staticmethod
+    def render(
+        data: pd.DataFrame, existing_config: ShaperStepConfig, key_prefix: str, shaper_id: int
+    ) -> ShaperStepConfig:
+        st.markdown("Keep rows whose column value matches the given items")
+        all_cols = data.columns.tolist()
+        col_default = cast(str, existing_config.get("column", ""))
+        col_index = all_cols.index(col_default) if col_default in all_cols else 0
+        column = st.selectbox(
+            "Column to match",
+            options=all_cols,
+            index=col_index,
+            key=f"{key_prefix}item_col_{shaper_id}",
+        )
+        if not column:
+            return cast(ShaperStepConfig, {})
+
+        modes = ["exact", "contains"]
+        mode_default = cast(str, existing_config.get("mode", "exact"))
+        mode = st.selectbox(
+            "Match mode",
+            options=modes,
+            index=modes.index(mode_default) if mode_default in modes else 0,
+            help="'exact' keeps rows equal to a selected value; 'contains' matches substrings.",
+            key=f"{key_prefix}item_mode_{shaper_id}",
+        )
+
+        existing_strings = [str(s) for s in cast("list[str]", existing_config.get("strings", []))]
+        if mode == "exact":
+            unique_values = [str(v) for v in data[column].unique().tolist()]
+            default_values = [v for v in existing_strings if v in unique_values]
+            strings: list[str] = st.multiselect(
+                "Values to keep",
+                options=unique_values,
+                default=default_values,
+                key=f"{key_prefix}item_vals_{shaper_id}",
+            )
+        else:
+            raw = st.text_input(
+                "Substrings to match (comma-separated)",
+                value=", ".join(existing_strings),
+                key=f"{key_prefix}item_text_{shaper_id}",
+            )
+            strings = [s.strip() for s in raw.split(",") if s.strip()]
+
+        return cast(
+            ShaperStepConfig,
+            {"column": str(column), "strings": list(strings), "mode": mode},
+        )
+
+
 class TransformerConfig:
     @staticmethod
     def render(

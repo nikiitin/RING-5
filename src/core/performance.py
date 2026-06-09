@@ -10,6 +10,7 @@ import hashlib
 import logging
 import threading
 import time
+from collections import OrderedDict
 from collections.abc import Callable
 from typing import Any, TypeVar, cast
 
@@ -37,7 +38,7 @@ class SimpleCache:
             maxsize: Maximum number of cached entries
             ttl: Time-to-live in seconds (None = no expiration)
         """
-        self._cache: dict[str, tuple[Any, float]] = {}
+        self._cache: OrderedDict[str, tuple[Any, float]] = OrderedDict()
         self._maxsize = maxsize
         self._ttl = ttl
         self._hits = 0
@@ -45,7 +46,7 @@ class SimpleCache:
         self._lock = threading.Lock()
 
     def get(self, key: str) -> Any | None:
-        """Get value from cache if not expired."""
+        """Get value from cache if not expired (marks the entry as recently used)."""
         with self._lock:
             if key not in self._cache:
                 self._misses += 1
@@ -59,16 +60,17 @@ class SimpleCache:
                 self._misses += 1
                 return None
 
+            self._cache.move_to_end(key)  # mark most-recently-used (true LRU)
             self._hits += 1
             return value
 
     def set(self, key: str, value: Any) -> None:
-        """Set value in cache with LRU eviction."""
+        """Set value in cache, evicting the least-recently-used entry at capacity."""
         with self._lock:
-            # Evict oldest if at capacity
-            if len(self._cache) >= self._maxsize:
-                oldest_key = min(self._cache.keys(), key=lambda k: self._cache[k][1])
-                del self._cache[oldest_key]
+            if key in self._cache:
+                self._cache.move_to_end(key)
+            elif len(self._cache) >= self._maxsize:
+                self._cache.popitem(last=False)  # evict least-recently-used
 
             self._cache[key] = (value, time.time())
 
@@ -236,8 +238,13 @@ def compute_data_fingerprint(
     if len(data) > 0 and relevant_cols:
         existing = list(dict.fromkeys(c for c in relevant_cols if c in data.columns))
         if existing:
-            sample_rows = data[existing].head(2).to_json()
-            fingerprint_parts.append(f"sample:{sample_rows}")
+            # Hash the full content of the relevant columns (every row), so a
+            # change in any row — not just the first few — busts the cache.
+            row_hashes = pd.util.hash_pandas_object(data[existing], index=False)
+            content_digest = hashlib.md5(
+                row_hashes.to_numpy().tobytes(), usedforsecurity=False
+            ).hexdigest()
+            fingerprint_parts.append(f"content:{content_digest}")
 
     fingerprint = "|".join(fingerprint_parts)
     return hashlib.md5(fingerprint.encode(), usedforsecurity=False).hexdigest()[:16]

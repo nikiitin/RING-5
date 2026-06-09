@@ -11,6 +11,7 @@ import streamlit as st
 
 from src.core.models.data_models import ShaperStepConfig
 from src.core.services.shapers.factory import ShaperFactory
+from src.core.services.shapers.pipeline_service import PipelineService
 from src.core.services.shapers.validation import validate_shaper_config
 from src.web.components.shapers.mean_config import MeanConfig
 from src.web.components.shapers.normalize_config import NormalizeConfig
@@ -18,6 +19,7 @@ from src.web.components.shapers.pivot_config import PivotLongerConfig, PivotWide
 from src.web.components.shapers.selector_transformer_configs import (
     ColumnSelectorConfig,
     ConditionSelectorConfig,
+    ItemSelectorConfig,
     TransformerConfig,
 )
 from src.web.components.shapers.sort_config import SortConfig
@@ -31,6 +33,22 @@ logger = logging.getLogger(__name__)
 SHAPER_TYPE_MAP: dict[str, str] = {
     **ShaperFactory.get_display_name_map(),
     **{v: k for k, v in ShaperFactory.get_display_name_map().items()},
+}
+
+# Shaper type → UI config renderer. Every registered, user-selectable shaper
+# must have an entry here (enforced by test_shaper_ui_completeness) so a shaper
+# can never appear in the dropdown without a way to configure it.
+CONFIG_DISPATCH = {
+    "columnSelector": ColumnSelectorConfig.render,
+    "normalize": NormalizeConfig.render,
+    "mean": MeanConfig.render,
+    "conditionSelector": ConditionSelectorConfig.render,
+    "itemSelector": ItemSelectorConfig.render,
+    "splitApply": SplitApplyConfig.render,
+    "transformer": TransformerConfig.render,
+    "sort": SortConfig.render,
+    "pivotLonger": PivotLongerConfig.render,
+    "pivotWider": PivotWiderConfig.render,
 }
 
 
@@ -59,21 +77,9 @@ def configure_shaper(
     key_prefix = f"p{owner_id}_" if owner_id is not None else ""
     safe_config: ShaperStepConfig = cast(ShaperStepConfig, existing_config or {})
 
-    config_dispatch = {
-        "columnSelector": ColumnSelectorConfig.render,
-        "normalize": NormalizeConfig.render,
-        "mean": MeanConfig.render,
-        "conditionSelector": ConditionSelectorConfig.render,
-        "splitApply": SplitApplyConfig.render,
-        "transformer": TransformerConfig.render,
-        "sort": SortConfig.render,
-        "pivotLonger": PivotLongerConfig.render,
-        "pivotWider": PivotWiderConfig.render,
-    }
-
-    if shaper_type in config_dispatch:
+    if shaper_type in CONFIG_DISPATCH:
         try:
-            config: ShaperStepConfig = config_dispatch[shaper_type](
+            config: ShaperStepConfig = CONFIG_DISPATCH[shaper_type](
                 data, safe_config, key_prefix, shaper_id
             )
             # Ensure 'type' is ALWAYS present even if component returned empty or partial
@@ -97,7 +103,10 @@ def apply_shapers(
 ) -> pd.DataFrame:
     """
     Apply a sequence of shapers to the data.
-    Delegates to ShaperFactory (Layer B interaction).
+
+    The UI concern — skipping incomplete steps with a user-facing warning — is
+    handled here; execution itself is delegated to the single canonical engine
+    ``PipelineService.process_pipeline`` so there is exactly one execution loop.
 
     Args:
         data: Input DataFrame (or None)
@@ -112,56 +121,35 @@ def apply_shapers(
     if data is None:
         raise ValueError("Shaper Orchestrator: Cannot apply shapers to None data.")
 
-    result = data.copy()
+    # UI concern: validate and drop incomplete steps with a user-facing warning.
+    valid_steps: list[ShaperStepConfig] = []
     for idx, shaper_cfg in enumerate(shapers_config):
         shaper_type = shaper_cfg.get("type")
         if not shaper_type:
             logger.warning(f"Pipeline step {idx + 1}: Skipping shaper with no type specified")
             continue
 
-        # Validate configuration before creating shaper
         is_valid, missing_fields = validate_shaper_config(shaper_type, shaper_cfg)
         if not is_valid:
-            # Configuration incomplete - show user-friendly warning, don't raise exception
             fields_to_report = missing_fields or ["<unspecified>"]
             missing_str = ", ".join(f"'{f}'" for f in fields_to_report)
-            warning_msg = (
+            st.warning(
                 f"⚠️ Pipeline step {idx + 1} ({shaper_type}): "
                 f"Configuration incomplete. Missing or empty fields: {missing_str}. "
                 f"Please fill in all required fields."
             )
-            st.warning(warning_msg)
             logger.debug(
                 f"PIPELINE: Skipping incomplete shaper {shaper_type} "
                 f"at step {idx + 1}, missing: {missing_fields}"
             )
-            continue  # Skip this shaper, don't attempt to create/execute it
+            continue
 
-        try:
-            shaper = ShaperFactory.create_shaper(shaper_type, shaper_cfg)
-            result = shaper(result)
-        except ValueError as e:
-            # Configuration validation error from shaper itself
-            error_msg = f"❌ Pipeline step {idx + 1} ({shaper_type}): " f"Configuration error - {e}"
-            st.error(error_msg)
-            logger.error(f"PIPELINE: Config validation failed for {shaper_type}: {e}")
-            raise ValueError(error_msg) from e
-        except KeyError as e:
-            # Missing column or data issue
-            error_msg = (
-                f"❌ Pipeline step {idx + 1} ({shaper_type}): "
-                f"Data error - Missing required column or field: {e}"
-            )
-            st.error(error_msg)
-            logger.error(f"PIPELINE: Data validation failed for {shaper_type}: {e}")
-            raise KeyError(error_msg) from e
-        except Exception as e:
-            # Unexpected error during transformation
-            error_msg = (
-                f"❌ Pipeline step {idx + 1} ({shaper_type}): " f"Transformation failed - {e}"
-            )
-            st.exception(e)
-            logger.error(f"PIPELINE: Transformation failed for {shaper_type}: {e}", exc_info=True)
-            raise e  # Reraise to halt pipeline
+        valid_steps.append(shaper_cfg)
 
-    return result
+    # Execution: the single canonical pipeline engine.
+    try:
+        return PipelineService.process_pipeline(data, valid_steps)
+    except ValueError as e:
+        st.error(f"❌ Pipeline execution failed: {e}")
+        logger.error(f"PIPELINE: {e}", exc_info=True)
+        raise

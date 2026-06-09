@@ -3,7 +3,27 @@
 import threading
 import time
 
-from src.core.performance import SimpleCache
+import pandas as pd
+
+from src.core.performance import SimpleCache, compute_data_fingerprint
+
+
+class TestComputeDataFingerprint:
+    """The fingerprint must reflect a change in *any* row, not just the first few."""
+
+    def test_late_row_change_changes_fingerprint(self):
+        # Identical shape and identical first rows; differ only in the last row.
+        df1 = pd.DataFrame({"v": [1.0, 1.0, 1.0, 1.0]})
+        df2 = pd.DataFrame({"v": [1.0, 1.0, 1.0, 9.0]})
+        fp1 = compute_data_fingerprint(df1, {}, ["v"])
+        fp2 = compute_data_fingerprint(df2, {}, ["v"])
+        assert fp1 != fp2  # a head(2) sample would have collided here
+
+    def test_identical_data_same_fingerprint(self):
+        df = pd.DataFrame({"v": [1.0, 2.0, 3.0]})
+        assert compute_data_fingerprint(df, {}, ["v"]) == compute_data_fingerprint(
+            df.copy(), {}, ["v"]
+        )
 
 
 class TestBasicOperations:
@@ -114,6 +134,21 @@ class TestBasicOperations:
         assert cache.get("first") is None
         assert cache.get("second") == 2
         assert cache.get("third") == 3
+
+    def test_lru_eviction_promotes_on_access(self):
+        """get() marks an entry most-recently-used so it survives eviction (true LRU)."""
+        cache = SimpleCache(maxsize=2)
+        cache.set("a", 1)
+        cache.set("b", 2)
+
+        # Access "a" so it becomes the most-recently-used entry.
+        assert cache.get("a") == 1
+
+        # Inserting "c" must now evict the least-recently-used "b", not "a".
+        cache.set("c", 3)
+        assert cache.get("a") == 1, "recently-accessed 'a' must survive eviction"
+        assert cache.get("b") is None, "least-recently-used 'b' should be evicted"
+        assert cache.get("c") == 3
 
     def test_stats_counters(self):
         """Stats should accurately track hits, misses, size, and hit rate."""

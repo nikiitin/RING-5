@@ -174,8 +174,9 @@ class TestApplyShapers:
         mock_st.warning.assert_called_once()
 
     @patch("src.web.pages.ui.shaper_config.st")
-    @patch("src.web.pages.ui.shaper_config.ShaperFactory")
+    @patch("src.core.services.shapers.pipeline_service.ShaperFactory")
     def test_successful_shaper_execution(self, mock_factory: MagicMock, mock_st: MagicMock) -> None:
+        # Execution is delegated to the single canonical PipelineService engine.
         df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         transformed = pd.DataFrame({"a": [1, 2], "b": [4, 5]})
 
@@ -189,45 +190,39 @@ class TestApplyShapers:
         mock_factory.create_shaper.assert_called_once_with("columnSelector", config[0])
 
     @patch("src.web.pages.ui.shaper_config.st")
-    @patch("src.web.pages.ui.shaper_config.ShaperFactory")
-    def test_value_error_in_shaper(self, mock_factory: MagicMock, mock_st: MagicMock) -> None:
+    @patch("src.core.services.shapers.pipeline_service.ShaperFactory")
+    def test_shaper_error_halts_pipeline(self, mock_factory: MagicMock, mock_st: MagicMock) -> None:
+        # The single engine wraps any shaper failure as ValueError; the web layer
+        # surfaces it via st.error and re-raises to halt the pipeline.
         mock_factory.create_shaper.side_effect = ValueError("bad config")
 
         df = pd.DataFrame({"a": [1]})
         config = [cast(ShaperStepConfig, {"type": "columnSelector", "columns": ["a"]})]
 
-        with pytest.raises(ValueError, match="Configuration error"):
+        with pytest.raises(ValueError, match="Failed to apply shaper"):
             apply_shapers(df, config)
         mock_st.error.assert_called_once()
 
     @patch("src.web.pages.ui.shaper_config.st")
-    @patch("src.web.pages.ui.shaper_config.ShaperFactory")
-    def test_key_error_in_shaper(self, mock_factory: MagicMock, mock_st: MagicMock) -> None:
-        mock_shaper = MagicMock(side_effect=KeyError("missing_col"))
-        mock_factory.create_shaper.return_value = mock_shaper
-
-        df = pd.DataFrame({"a": [1]})
-        config = [cast(ShaperStepConfig, {"type": "columnSelector", "columns": ["a"]})]
-
-        with pytest.raises(KeyError, match="Missing required column"):
-            apply_shapers(df, config)
-        mock_st.error.assert_called_once()
-
-    @patch("src.web.pages.ui.shaper_config.st")
-    @patch("src.web.pages.ui.shaper_config.ShaperFactory")
-    def test_generic_exception_in_shaper(self, mock_factory: MagicMock, mock_st: MagicMock) -> None:
+    @patch("src.core.services.shapers.pipeline_service.ShaperFactory")
+    def test_runtime_error_in_shaper_surfaces_as_valueerror(
+        self, mock_factory: MagicMock, mock_st: MagicMock
+    ) -> None:
         mock_shaper = MagicMock(side_effect=RuntimeError("unexpected"))
         mock_factory.create_shaper.return_value = mock_shaper
 
         df = pd.DataFrame({"a": [1]})
         config = [cast(ShaperStepConfig, {"type": "columnSelector", "columns": ["a"]})]
 
-        with pytest.raises(RuntimeError):
+        with pytest.raises(ValueError, match="Failed to apply shaper"):
             apply_shapers(df, config)
-        mock_st.exception.assert_called_once()
+        mock_st.error.assert_called_once()
 
     def test_does_not_mutate_original_data(self) -> None:
-        """apply_shapers should call .copy() on the input."""
-        df = pd.DataFrame({"a": [1, 2, 3]})
-        result = apply_shapers(df, [])
-        assert result is not df
+        """A shaper pipeline must not mutate the caller's DataFrame."""
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        config = [cast(ShaperStepConfig, {"type": "columnSelector", "columns": ["a"]})]
+        apply_shapers(df, config)
+        # The original frame is untouched (the shaper copies internally).
+        assert list(df.columns) == ["a", "b"]
+        assert len(df) == 3

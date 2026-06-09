@@ -51,14 +51,14 @@ class TestShaperConfigBranches:
         assert result.get("type") == "unknownType"
 
     @patch("src.web.pages.ui.shaper_config.st")
-    @patch("src.web.pages.ui.shaper_config.ColumnSelectorConfig")
-    def test_configure_error_handling(self, mock_cs: MagicMock, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.shaper_config import configure_shaper
+    def test_configure_error_handling(self, mock_st: MagicMock) -> None:
+        from src.web.pages.ui.shaper_config import CONFIG_DISPATCH, configure_shaper
 
-        mock_cs.render.side_effect = RuntimeError("boom")
+        mock_render = MagicMock(side_effect=RuntimeError("boom"))
         df = pd.DataFrame({"a": [1]})
 
-        result = configure_shaper("columnSelector", df, 1, None)
+        with patch.dict(CONFIG_DISPATCH, {"columnSelector": mock_render}):
+            result = configure_shaper("columnSelector", df, 1, None)
 
         mock_st.exception.assert_called()
         assert result.get("type") == "columnSelector"
