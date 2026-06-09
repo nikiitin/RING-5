@@ -427,9 +427,10 @@ class ApplicationAPI:
         """Return metadata for a specific simulator."""
         return SimulatorRegistry.get_info(name)
 
-    @staticmethod
-    def cancel_pending_scans() -> None:
-        """Cancel all pending scan futures to release memory."""
-        from src.parsing.gem5.impl.pool.pool import ScanWorkPool
+    def cancel_pending_scans(self) -> None:
+        """Cancel all pending scan futures to release memory.
 
-        ScanWorkPool.get_instance().cancel_all()
+        Delegates to the injected parser so cancellation respects the active
+        backend rather than reaching into a gem5-specific pool.
+        """
+        self._parser.cancel_pending_scans()

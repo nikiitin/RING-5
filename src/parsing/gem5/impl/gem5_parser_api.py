@@ -78,3 +78,9 @@ class Gem5ParserAPI(SimulationParser):
     ) -> ScanResult:
         """Aggregate scan results via Gem5Scanner."""
         return Gem5Scanner.aggregate_scan_results(results)
+
+    def cancel_pending_scans(self) -> None:
+        """Cancel all pending gem5 scan futures to release memory."""
+        from src.parsing.gem5.impl.pool.pool import ScanWorkPool
+
+        ScanWorkPool.get_instance().cancel_all()

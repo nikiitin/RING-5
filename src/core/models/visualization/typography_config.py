@@ -1,13 +1,11 @@
 """
 Typography configuration — font sizes and bold flags for every text element.
 
-This replaces the dual vocabulary:
-  - ``FontStyleConfig`` (matplotlib-side dataclass with sentinel fields)
-  - Scattered font keys in ``PlotDisplayConfig`` (Plotly-side)
-
-All sizes are in **points** (the typographic standard).  Plotly connector
-converts to px when needed.  Sentinel value ``-1`` means "inherit from
-the nearest parent" and is resolved by ``resolvers.resolve_spec()``.
+All sizes are in **points** (the typographic standard); the Plotly connector
+converts to px when needed. Sentinel value ``-1`` means "inherit from the
+nearest parent" and is resolved by
+``services.visualization.config_resolver.resolve_config()`` before any
+connector runs.
 """
 
 from __future__ import annotations

@@ -15,6 +15,7 @@ Usage:
 from __future__ import annotations
 
 import logging
+import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
@@ -80,6 +81,7 @@ class SimulatorRegistry:
 
     _registry: dict[str, tuple[SimulatorInfo, Callable[[], SimulationParser]]] = {}
     _instances: dict[str, SimulationParser] = {}
+    _instances_lock: threading.Lock = threading.Lock()
 
     @classmethod
     def register(
@@ -126,12 +128,13 @@ class SimulatorRegistry:
             available = ", ".join(sorted(cls._registry.keys())) or "(none)"
             raise KeyError(f"Unknown simulator '{name}'. Available: {available}")
 
-        if name not in cls._instances:
-            _, factory = cls._registry[name]
-            cls._instances[name] = factory()
-            logger.info(f"Created parser instance for simulator: {name}")
-
-        return cls._instances[name]
+        # Locked lazy-init so concurrent first calls create exactly one instance.
+        with cls._instances_lock:
+            if name not in cls._instances:
+                _, factory = cls._registry[name]
+                cls._instances[name] = factory()
+                logger.info(f"Created parser instance for simulator: {name}")
+            return cls._instances[name]
 
     @classmethod
     def get_info(cls, name: str) -> SimulatorInfo:

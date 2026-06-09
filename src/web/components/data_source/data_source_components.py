@@ -231,7 +231,7 @@ class DataSourceComponents:
                                 icon="🔍",
                             )
                         # Release completed futures to free memory (~70MB for 252 files).
-                        ApplicationAPI.cancel_pending_scans()
+                        api.cancel_pending_scans()
                         st.rerun()
                     except Exception as e:
                         st.exception(e)

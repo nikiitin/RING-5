@@ -537,9 +537,7 @@ class VariableEditor:
                     st.warning(f"No valid entries found matching '{var_name}'.")
 
         # Release completed futures to free memory (~70MB for 252 files).
-        from src.core.application_api import ApplicationAPI
-
-        ApplicationAPI.cancel_pending_scans()
+        api.cancel_pending_scans()
 
         if st.button("Close", key=f"finish_{var_id}"):
             st.rerun()

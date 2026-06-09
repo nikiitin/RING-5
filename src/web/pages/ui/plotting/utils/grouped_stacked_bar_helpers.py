@@ -18,7 +18,7 @@ from src.core.models.visualization.trace_config import (
     ScatterTraceConfig,
     TraceConfig,
 )
-from src.web.pages.ui.plotting.utils import GroupedBarUtils
+from src.web.pages.ui.plotting.utils.grouped_bar_utils import GroupedBarUtils
 
 
 def order_with_overrides(present: Iterable[Any], explicit_order: list[Any] | None) -> list[str]:

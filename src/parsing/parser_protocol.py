@@ -68,3 +68,10 @@ class SimulationParser(Protocol):
         deduplicated variables plus any per-file failures).
         """
         ...
+
+    def cancel_pending_scans(self) -> None:
+        """
+        Cancel any in-flight scan work this backend has submitted, releasing
+        its resources. A no-op if the backend has no cancellable scan work.
+        """
+        ...

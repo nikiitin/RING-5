@@ -86,6 +86,23 @@ class SessionRepository:
         but domain repositories should be UI agnostic.
         """
 
+    def enforce_config_dtypes(self, data: pd.DataFrame) -> pd.DataFrame:
+        """Cast configuration-typed columns to str on a copy of *data*.
+
+        Configuration columns are grouping keys, so every ingestion path
+        (fresh load and portfolio restore) must agree on their dtype. Returns
+        a new frame; never mutates the caller's.
+        """
+        result = data.copy()
+        try:
+            variables = self.parser_repo.get_parse_variables()
+            config_vars = [v["name"] for v in variables if v.get("type") == "configuration"]
+            for col in (c for c in config_vars if c in result.columns):
+                result[col] = result[col].astype(str)
+        except (KeyError, TypeError, ValueError) as e:
+            logger.error("SESSION_REPO: config dtype enforcement failed: %s", e)
+        return result
+
     def restore_from_portfolio(self, portfolio_data: PortfolioData) -> None:
         """
         Restore complete session state from portfolio data.
@@ -112,7 +129,7 @@ class SessionRepository:
         data_csv = portfolio_data.get("data_csv", "")
         if data_csv:
             try:
-                df = pd.read_csv(io.StringIO(data_csv))
+                df = self.enforce_config_dtypes(pd.read_csv(io.StringIO(data_csv)))
                 self.data_repo.set_data(df)
                 logger.info("SESSION_REPO: Restored data - %d rows", len(df))
             except Exception as e:

@@ -64,25 +64,10 @@ class RepositoryStateManager:
     def set_data(
         self, data: pd.DataFrame | None, on_change: Callable[[], None] | None = None
     ) -> None:
-        # Skip if setting the exact same DataFrame object (avoids re-typing on every rerun)
-        if data is self._session_repo.data_repo.get_data():
-            return
-
-        # Enforce type constraints logic moved here from old static StateManager
+        # Copy + enforce configuration-column dtypes via the shared ingestion
+        # helper, so fresh loads and portfolio restores agree on dtypes.
         if data is not None:
-            # Always copy to prevent external mutations from propagating to stored data
-            data = data.copy()
-            try:
-                variables = self._session_repo.parser_repo.get_parse_variables()
-                config_vars: list[str] = [
-                    v["name"] for v in variables if v.get("type") == "configuration"
-                ]
-                cols_to_cast = [col for col in config_vars if col in data.columns]
-                if cols_to_cast:
-                    for col in cols_to_cast:
-                        data[col] = data[col].astype(str)
-            except (KeyError, TypeError, ValueError) as e:
-                logger.error("STATE: Type enforcement failed: %s", e)
+            data = self._session_repo.enforce_config_dtypes(data)
 
         self._session_repo.data_repo.set_data(data, on_change)
 

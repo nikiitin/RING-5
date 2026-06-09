@@ -212,7 +212,11 @@ class FigureConfig:
     def from_dict(cls, data: dict[str, Any]) -> FigureConfig:
         """Reconstruct a FigureConfig from a serialized dictionary.
 
-        Round-trip: ``FigureConfig.from_dict(spec.to_dict()) == spec``.
+        Nested config fields (axes / legends / series_styles / reference_lines
+        / data_labels) are rebuilt into their dataclasses; ``traces`` are kept
+        as the raw dicts that ``to_dict`` produced — their concrete TraceConfig
+        subclasses are not reconstructed — so a round-trip preserves field
+        values but is not object-identical for traces.
         """
         from src.core.models.visualization.annotation_config import (
             AnnotationConfig,

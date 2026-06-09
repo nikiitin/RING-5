@@ -10,7 +10,7 @@ following the Dependency Inversion Principle.
 """
 
 from collections.abc import Callable
-from typing import Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 import pandas as pd
 
@@ -22,6 +22,9 @@ from src.core.models.data_models import (
     ScannedVariableDict,
 )
 from src.core.models.history_models import OperationRecord
+
+if TYPE_CHECKING:
+    from src.core.models.visualization.figure_config import FigureConfig
 
 
 @runtime_checkable
@@ -196,6 +199,19 @@ class StateManager(Protocol):
 
     def set_current_plot_id(self, plot_id: int | None) -> None:
         """Set the currently selected plot ID."""
+        ...
+
+    # Visualization config
+    def get_visualization_config(self, plot_id: int) -> "FigureConfig | None":
+        """Get the resolved visualization config for a plot, if any."""
+        ...
+
+    def set_visualization_config(self, plot_id: int, config: "FigureConfig") -> None:
+        """Store the visualization config for a plot."""
+        ...
+
+    def remove_visualization_config(self, plot_id: int) -> None:
+        """Remove the visualization config for a plot."""
         ...
 
     # Previews
