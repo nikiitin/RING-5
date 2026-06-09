@@ -32,6 +32,25 @@ logger = logging.getLogger(__name__)
 
 _CSS_RGB_RE = re.compile(r"^rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$", re.IGNORECASE)
 
+# Plotly marker-symbol names → matplotlib marker codes (for per-trace overrides).
+_PLOTLY_TO_MPL_MARKER: dict[str, str] = {
+    "circle": "o",
+    "circle-open": "o",
+    "square": "s",
+    "square-open": "s",
+    "diamond": "D",
+    "diamond-open": "D",
+    "cross": "P",
+    "x": "X",
+    "triangle-up": "^",
+    "triangle-down": "v",
+    "triangle-left": "<",
+    "triangle-right": ">",
+    "star": "*",
+    "pentagon": "p",
+    "hexagon": "h",
+}
+
 
 def _css_rgb_to_hex(color: str) -> str:
     """Convert a CSS ``rgb(r,g,b)`` string to ``#rrggbb`` hex.
@@ -76,6 +95,10 @@ class FigureSpecToMatplotlib:
         FigureSpecToMatplotlib._apply_axis_ranges(spec, ax)
         FigureSpecToMatplotlib._apply_axis_colors(spec, ax)
         FigureSpecToMatplotlib._apply_grids(spec, ax)
+        # Per-trace styling must run before the legend is built so renames and
+        # restyled handles are reflected (parity with the Plotly connector).
+        FigureSpecToMatplotlib._apply_series_styling(spec, ax)
+        FigureSpecToMatplotlib._apply_trace_overrides(spec, ax)
         FigureSpecToMatplotlib._apply_legends(spec, ax)
         FigureSpecToMatplotlib._apply_reference_lines(spec, ax)
         FigureSpecToMatplotlib._apply_data_labels(spec, ax)
@@ -86,6 +109,115 @@ class FigureSpecToMatplotlib:
 
         if render_result and render_result.heatmap_image is not None:
             FigureSpecToMatplotlib._apply_colorbar(spec, ax, render_result.heatmap_image)
+
+    # ────────────────────────────────────────────────────────────
+    # Per-trace styling (parity with the Plotly connector)
+    # ────────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _styleable_handles(ax: Axes) -> list[tuple[Any, str]]:
+        """Ordered (artist, label) pairs across the primary and twin axes.
+
+        Each trace is drawn with ``label=spec.name``, so the legend handles
+        give the trace order (for ``series_styles``) and the trace names (for
+        ``trace_overrides``).
+        """
+        pairs: list[tuple[Any, str]] = list(zip(*ax.get_legend_handles_labels()))
+        twin = getattr(ax, "_ring5_twin", None)
+        if twin is not None:
+            pairs += list(zip(*twin.get_legend_handles_labels()))
+        return pairs
+
+    @staticmethod
+    def _style_handle(
+        handle: Any,
+        *,
+        color: str | None = None,
+        alpha: float | None = None,
+        line_width: float | None = None,
+        marker: str | None = None,
+        marker_size: float | None = None,
+        edge_color: str | None = None,
+        edge_width: float | None = None,
+        hatch: str | None = None,
+    ) -> None:
+        """Apply styling to a single matplotlib artist, dispatching by its type."""
+        from matplotlib.collections import PathCollection
+        from matplotlib.container import BarContainer
+        from matplotlib.lines import Line2D
+
+        fill = _css_rgb_to_hex(color) if color else None
+        edge = _css_rgb_to_hex(edge_color) if edge_color else None
+
+        if isinstance(handle, BarContainer):
+            for patch in handle.patches:
+                if fill:
+                    patch.set_facecolor(fill)
+                if alpha is not None:
+                    patch.set_alpha(alpha)
+                if hatch:
+                    patch.set_hatch(hatch)
+                if edge:
+                    patch.set_edgecolor(edge)
+                if edge_width is not None:
+                    patch.set_linewidth(edge_width)
+        elif isinstance(handle, Line2D):
+            if fill:
+                handle.set_color(fill)
+            if alpha is not None:
+                handle.set_alpha(alpha)
+            if line_width is not None:
+                handle.set_linewidth(line_width)
+            if marker:
+                handle.set_marker(marker)
+            if marker_size is not None:
+                handle.set_markersize(marker_size)
+        elif isinstance(handle, PathCollection):
+            if fill:
+                handle.set_color(fill)
+            if alpha is not None:
+                handle.set_alpha(alpha)
+            if marker_size is not None:
+                handle.set_sizes([float(marker_size)])
+
+    @staticmethod
+    def _apply_series_styling(spec: FigureConfig, ax: Axes) -> None:
+        """Apply per-trace line_width / marker_size / opacity / bar border (by index)."""
+        if not spec.series_styles:
+            return
+        for i, (handle, _label) in enumerate(FigureSpecToMatplotlib._styleable_handles(ax)):
+            style = spec.series_styles[i % len(spec.series_styles)]
+            FigureSpecToMatplotlib._style_handle(
+                handle,
+                alpha=style.opacity if style.opacity > 0 else None,
+                line_width=style.line_width if style.line_width > 0 else None,
+                marker_size=style.marker_size if style.marker_size > 0 else None,
+                edge_color=(
+                    (style.bar_border_color or "#000") if style.bar_border_width > 0 else None
+                ),
+                edge_width=style.bar_border_width if style.bar_border_width > 0 else None,
+            )
+
+    @staticmethod
+    def _apply_trace_overrides(spec: FigureConfig, ax: Axes) -> None:
+        """Apply per-trace overrides (color/symbol/size/width/hatch/rename) by trace name."""
+        if not spec.trace_overrides:
+            return
+        for handle, label in FigureSpecToMatplotlib._styleable_handles(ax):
+            style = spec.trace_overrides.get(label)
+            if style is None:
+                continue
+            marker = _PLOTLY_TO_MPL_MARKER.get(style.symbol) if style.symbol else None
+            FigureSpecToMatplotlib._style_handle(
+                handle,
+                color=style.color or None,
+                marker=marker,
+                marker_size=style.marker_size if style.marker_size > 0 else None,
+                line_width=style.line_width if style.line_width > 0 else None,
+                hatch=style.hatching_pattern or None,
+            )
+            if style.display_name:
+                handle.set_label(style.display_name)
 
     @staticmethod
     def _apply_margins(spec: FigureConfig, ax: Axes) -> None:
