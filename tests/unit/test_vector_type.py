@@ -16,6 +16,7 @@ Tests cover:
 """
 
 import logging
+import math
 from typing import Any
 
 import pytest
@@ -200,7 +201,7 @@ class TestVectorContentProperty:
 class TestVectorBalanceContent:
     """Test balance_content method (padding per entry)."""
 
-    def test_balance_empty_entries_pads_with_zeros(self) -> None:
+    def test_balance_empty_entries_pads_with_nan(self) -> None:
         # Arrange
         vector = Vector(repeat=3, entries=["e0", "e1"])
         # Empty content
@@ -208,10 +209,11 @@ class TestVectorBalanceContent:
         # Act
         vector.balance_content()
 
-        # Assert - each entry padded to repeat count
+        # Assert - absent entries are NaN-padded (missing, not a measured 0)
         assert vector.is_balanced is True
-        assert vector.content["e0"] == [0, 0, 0]
-        assert vector.content["e1"] == [0, 0, 0]
+        assert len(vector.content["e0"]) == 3
+        assert all(math.isnan(x) for x in vector.content["e0"])
+        assert all(math.isnan(x) for x in vector.content["e1"])
 
     def test_balance_partial_entries_pads_remainder(self) -> None:
         # Arrange
@@ -224,9 +226,11 @@ class TestVectorBalanceContent:
         # Act
         vector.balance_content()
 
-        # Assert - pad to repeat=4
-        assert vector.content["e0"] == [10, 20, 0, 0]
-        assert vector.content["e1"] == [30, 0, 0, 0]
+        # Assert - missing dumps are NaN-padded (not a measured 0)
+        assert vector.content["e0"][:2] == [10, 20]
+        assert all(math.isnan(x) for x in vector.content["e0"][2:])
+        assert vector.content["e1"][:1] == [30]
+        assert all(math.isnan(x) for x in vector.content["e1"][1:])
 
     def test_balance_exact_count_no_change(self) -> None:
         # Arrange
@@ -271,9 +275,12 @@ class TestVectorReduceDuplicates:
         assert vector.reduced_content == {"e0": 100.0, "e1": 200.0}
 
     def test_reduce_multiple_values_calculates_mean(self) -> None:
-        # Arrange
+        # Arrange — assign each dump individually (the setter sums a list given
+        # in a single assignment, so individual assignments simulate dumps)
         vector = Vector(repeat=3, entries=["e0", "e1"])
-        vector.content = {"e0": [10, 20, 30], "e1": [100, 200, 300]}
+        vector.content = {"e0": 10, "e1": 100}
+        vector.content = {"e0": 20, "e1": 200}
+        vector.content = {"e0": 30, "e1": 300}
         vector.balance_content()
 
         # Act
@@ -283,22 +290,23 @@ class TestVectorReduceDuplicates:
         assert vector.reduced_content["e0"] == 20.0
         assert vector.reduced_content["e1"] == 200.0
 
-    def test_reduce_empty_entry_returns_zero(self) -> None:
+    def test_reduce_empty_entry_returns_nan(self) -> None:
         # Arrange
         vector = Vector(entries=["e0", "e1"])
-        vector.balance_content()  # Pads with zeros
+        vector.balance_content()  # Pads absent entries with NaN
 
         # Act
         vector.reduce_duplicates()
 
-        # Assert - empty (all zeros) -> mean = 0
-        assert vector.reduced_content["e0"] == 0.0
-        assert vector.reduced_content["e1"] == 0.0
+        # Assert - absent entry -> NaN (missing, not a measured 0)
+        assert math.isnan(vector.reduced_content["e0"])
+        assert math.isnan(vector.reduced_content["e1"])
 
     def test_reduce_integer_values(self) -> None:
-        # Arrange
+        # Arrange — two dumps assigned individually
         vector = Vector(repeat=2, entries=["e0"])
-        vector.content = {"e0": [10, 20]}
+        vector.content = {"e0": 10}
+        vector.content = {"e0": 20}
         vector.balance_content()
 
         # Act
@@ -317,8 +325,8 @@ class TestVectorReduceDuplicates:
         # Act - directly call reduce (bypass property guard)
         vector.reduce_duplicates()
 
-        # Assert - e1 has no values, defaults to 0
-        assert object.__getattribute__(vector, "_reduced_content")["e1"] == 0.0
+        # Assert - e1 has no values -> NaN (missing, not a measured 0)
+        assert math.isnan(object.__getattribute__(vector, "_reduced_content")["e1"])
 
     def test_aggregation_error_handling(self) -> None:
         # Arrange

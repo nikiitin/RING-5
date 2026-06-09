@@ -67,6 +67,7 @@ class StatType:
             "_reduced_content",
             "_balanced",
             "_reduced",
+            "_padded",
         }
     )
 
@@ -77,6 +78,7 @@ class StatType:
         object.__setattr__(self, "_reduced_content", None)
         object.__setattr__(self, "_balanced", False)
         object.__setattr__(self, "_reduced", False)
+        object.__setattr__(self, "_padded", 0)
 
     def __setattr__(self, name: str, value: Any) -> None:
         """Protect against setting invalid attributes."""
@@ -152,7 +154,13 @@ class StatType:
         content_list.append(value)
 
     def balance_content(self) -> None:
-        """Ensure content has exactly `repeat` entries, padding with zeros if needed."""
+        """Ensure content has exactly `repeat` entries.
+
+        Missing entries are padded with NaN, never a fabricated 0 — a point
+        measurement that was absent (or present in fewer dumps than expected)
+        must remain distinguishable from a genuine 0 (hard rule 6). The number
+        of padded entries is recorded in ``_padded`` for traceability.
+        """
         object.__setattr__(self, "_balanced", True)
         content_list: list[Any] = self._content
         content_len: int = len(content_list)
@@ -160,12 +168,18 @@ class StatType:
 
         if content_len < repeat:
             padding: int = repeat - content_len
-            content_list.extend([0] * padding)
+            object.__setattr__(self, "_padded", padding)
+            content_list.extend([float("nan")] * padding)
         elif content_len > repeat:
             raise RuntimeError(
                 f"{self._type_name.upper()}: More values ({content_len}) than "
                 f"expected ({repeat}). Values: {content_list}"
             )
+
+    @property
+    def padded_count(self) -> int:
+        """Number of missing entries padded with NaN during balancing (0 if none)."""
+        return int(object.__getattribute__(self, "_padded"))
 
     def reduce_duplicates(self) -> None:
         """Reduce content to single value via arithmetic mean."""

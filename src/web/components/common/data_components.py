@@ -38,6 +38,38 @@ class DataComponents:
             categorical_cols = data.select_dtypes(include=["object", "string"]).columns
             st.metric("Categorical Columns", len(categorical_cols), border=True)
 
+        DataComponents.show_missing_data_notice(data)
+
+    @staticmethod
+    def show_missing_data_notice(data: pd.DataFrame) -> None:
+        """Warn when numeric columns contain missing (NaN) values.
+
+        Missing/unmeasured stats are kept as NaN rather than fabricated as 0,
+        so surface them here for traceability: the affected columns are named,
+        and the parser logs name the specific source files.
+        """
+        numeric = data.select_dtypes(include=["number"])
+        if numeric.empty:
+            return
+        na_counts = numeric.isna().sum()
+        affected = na_counts[na_counts > 0]
+        if affected.empty:
+            return
+
+        st.warning(
+            f"⚠️ {len(affected)} column(s) contain missing values (kept as NaN, not 0) — "
+            "these stats were absent or incomplete in some runs. See the parser logs for the "
+            "specific files."
+        )
+        with st.expander(f"Missing-value details ({len(affected)} column(s))"):
+            detail = (
+                affected.rename("Missing rows")
+                .rename_axis("Column")
+                .reset_index()
+                .sort_values("Missing rows", ascending=False)
+            )
+            st.dataframe(detail, width="stretch", hide_index=True)
+
     @staticmethod
     def show_column_details(data: pd.DataFrame) -> None:
         """

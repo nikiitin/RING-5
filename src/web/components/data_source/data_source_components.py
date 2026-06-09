@@ -543,5 +543,6 @@ class DataSourceComponents:
         # so they remain visible when the status collapses.
         if _loaded_data is not None and not _parse_failed:
             st.success(f"Done! Generated {len(_loaded_data)} rows.")
+            DataComponents.show_missing_data_notice(_loaded_data)
             if st.button("Close & Reload", key="finish_parse_futures_btn"):
                 st.rerun()

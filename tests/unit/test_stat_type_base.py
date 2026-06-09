@@ -1,5 +1,7 @@
 """Tests for StatType base + StatTypeRegistry — target 78% → 95%+."""
 
+import math
+
 import pytest
 
 from src.parsing.gem5.types.base import StatType, StatTypeRegistry, register_type
@@ -52,11 +54,14 @@ class TestStatType:
         st.content = 20
         assert st.content == [10, 20]
 
-    def test_balance_content_pads_with_zeros(self) -> None:
+    def test_balance_content_pads_with_nan(self) -> None:
         st = StatType(repeat=3)
         st.content = 42
         st.balance_content()
-        assert st.content == [42, 0, 0]
+        # Missing entries are NaN (not a fabricated 0), and counted for traceability
+        assert st.content[0] == 42
+        assert all(math.isnan(x) for x in st.content[1:])
+        assert st.padded_count == 2
 
     def test_balance_content_exact_match(self) -> None:
         st = StatType(repeat=2)
@@ -84,7 +89,7 @@ class TestStatType:
         st = StatType(repeat=1)
         st.balance_content()
         st.reduce_duplicates()
-        assert st.reduced_content == 0  # [0] padded -> 0/1
+        assert math.isnan(st.reduced_content)  # [nan] padded -> nan/1 (missing, not 0)
 
     def test_reduce_duplicates_non_numeric(self) -> None:
         st = StatType(repeat=1)

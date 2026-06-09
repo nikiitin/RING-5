@@ -179,7 +179,12 @@ sub parseAndPrintLineWithFormat {
     elsif ($line =~ $confRegex) {
         print "configuration/" . formatLine($line) . "\n";
     }
-    # Unknown type - silently skip (optimization: no else block)
+    # A line that matched the user's filter but no type regex is a requested
+    # stat we could not classify: report it (the Python stderr-drainer surfaces
+    # "ERROR" lines as warnings) so missingness is traceable, never silent.
+    else {
+        print STDERR "ERROR: unclassifiable line matched filter: $line\n";
+    }
 }
 
 sub classifyLine {

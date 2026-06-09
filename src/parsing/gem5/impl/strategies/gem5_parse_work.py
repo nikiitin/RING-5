@@ -233,21 +233,39 @@ class Gem5ParseWork(ParseWork):
 
     def _validateVars(self, varsToParse: VarsDictType) -> VarsDictType:
         """
-        Ensure all variables have content, applying defaults where needed.
+        Validate parsed variables and log absent/incomplete numeric stats.
+
+        Configuration variables fall back to their user-configured ``onEmpty``
+        value. Numeric variables are NOT fabricated: an absent or incomplete
+        stat is left empty so ``balance_content`` pads it with NaN downstream
+        (hard rule 6). Every absent/incomplete numeric stat is logged with the
+        source file so missingness is traceable (what + where).
 
         Args:
             varsToParse: Dictionary of parsed variables
 
         Returns:
-            The same dictionary after validation and default application
+            The same dictionary after validation
         """
-        for _varID, var in varsToParse.items():
-            if var.content is None:
-                var.content = "0"
-
+        missing: list[str] = []
+        for varID, var in varsToParse.items():
             if self._getExpectedType(var) == "configuration":
                 if not var.content:  # Empty content
                     var.content = var.onEmpty if var.onEmpty else "None"
+                continue
+
+            content = var.content
+            if not content or (not isinstance(content, dict) and len(content) < var.repeat):
+                missing.append(varID)
+
+        if missing:
+            logger.warning(
+                "PARSER: %d requested stat(s) absent or incomplete in %s — "
+                "recorded as NaN (not 0): %s",
+                len(missing),
+                self._fileToParse,
+                ", ".join(sorted(missing)),
+            )
 
         return varsToParse
 

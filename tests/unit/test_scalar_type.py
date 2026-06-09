@@ -253,7 +253,7 @@ class TestScalarReduceDuplicates:
 class TestScalarBalanceContent:
     """Test Scalar balance_content (via base class)."""
 
-    def test_balance_pads_with_zeros(self) -> None:
+    def test_balance_pads_with_nan(self) -> None:
         # Arrange
         scalar = Scalar(repeat=5)
         scalar._set_content(10)
@@ -262,10 +262,12 @@ class TestScalarBalanceContent:
         # Act
         scalar.balance_content()
 
-        # Assert
+        # Assert - missing dumps are NaN (not a fabricated 0), counted for traceability
         assert scalar.is_balanced is True
         assert len(scalar.content) == 5
-        assert scalar.content == [10.0, 20.0, 0, 0, 0]
+        assert scalar.content[:2] == [10.0, 20.0]
+        assert all(math.isnan(x) for x in scalar.content[2:])
+        assert scalar.padded_count == 3
 
     def test_balance_exact_count_no_change(self) -> None:
         # Arrange

@@ -152,7 +152,8 @@ class Vector(StatType):
             current_len = len(self._content.get(entry, []))
             if current_len < self._repeat:
                 padding = self._repeat - current_len
-                self._content[entry].extend([0] * padding)
+                object.__setattr__(self, "_padded", self.padded_count + padding)
+                self._content[entry].extend([float("nan")] * padding)
             elif current_len > self._repeat:
                 raise RuntimeError(
                     f"VECTOR: Entry '{entry}' has more values than expected. "
@@ -169,7 +170,7 @@ class Vector(StatType):
         for entry in self._entries:
             values = self._content.get(entry, [])
             if not values:
-                reduced[entry] = 0
+                reduced[entry] = float("nan")
             else:
                 total = 0.0
                 for i in range(self._repeat):

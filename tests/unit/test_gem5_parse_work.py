@@ -22,18 +22,21 @@ class MockType:
 class Scalar:
     def __init__(self) -> None:
         self.content = None
+        self.repeat = 1
 
 
 class Vector:
     def __init__(self) -> None:
         self.content = None
         self.entries = []
+        self.repeat = 1
 
 
 class Distribution:
     def __init__(self) -> None:
         self.content = None
         self.entries = []
+        self.repeat = 1
 
 
 class Configuration:
@@ -103,21 +106,25 @@ distribution/dist_var::max/15
     assert d_content["max"] == ["15"]
 
 
-def test_validate_vars_missing_content(parser: Any) -> None:
+def test_validate_vars_missing_numeric_not_fabricated(parser: Any, caplog: Any) -> None:
+    import logging
 
-    # Scalar var content remains None
-    # WITH FIX: Should default to "0" instead of raising error
-    parser._validateVars(parser._varsToParse)
-    assert parser._varsToParse["scalar_var"].content == "0"
+    # A numeric var with no parsed content must NOT be fabricated to "0";
+    # it is left empty (NaN-padded downstream) and logged for traceability.
+    with caplog.at_level(logging.WARNING):
+        parser._validateVars(parser._varsToParse)
+    assert parser._varsToParse["scalar_var"].content is None
+    assert "absent or incomplete" in caplog.text
+    assert "scalar_var" in caplog.text
 
 
-def test_process_output_empty_returns_defaults(parser: Any) -> None:
+def test_process_output_empty_no_fabrication(parser: Any) -> None:
 
-    # Empty output should result in defaults being populated
+    # Empty output: numeric vars are left empty (missing), never fabricated to "0".
     output = ""
     parsed = parser._processOutput(output, parser._varsToParse)
     assert parsed is not None
-    assert parsed["scalar_var"].content == "0"
+    assert parsed["scalar_var"].content is None
 
 
 def test_validate_vars_config_default() -> None:

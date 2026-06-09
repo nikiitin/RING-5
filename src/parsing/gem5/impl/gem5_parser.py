@@ -76,19 +76,36 @@ Last Modified: 2026-01-27
 
 import csv
 import logging
+import math
 import os
 import re
 import time
 from dataclasses import replace
+from pathlib import Path
 from typing import Any
 
 from src.core.common.utils import normalize_user_path
 from src.core.models import ParseBatchResult, ScannedVariable, StatConfig
+from src.core.models.csv_contract import MISSING_VALUE, validate_parser_csv
 from src.core.models.pattern_index_service import PatternIndexService
 from src.parsing.gem5.impl.pool.pool import ParseWorkPool
 from src.parsing.gem5.impl.strategies.factory import StrategyFactory
 
 logger = logging.getLogger(__name__)
+
+
+def _render_value(val: Any) -> str:
+    """Render a reduced stat value for the CSV, mapping missing → MISSING_VALUE.
+
+    A missing/unmeasured numeric value (None, NaN, or the legacy ``"NA"``
+    sentinel) is written as the canonical ``MISSING_VALUE`` so it is never
+    confused with a measured 0 (hard rule 6).
+    """
+    if val is None or val == "NA":
+        return MISSING_VALUE
+    if isinstance(val, float) and math.isnan(val):
+        return MISSING_VALUE
+    return str(val)
 
 
 class Gem5Parser:
@@ -240,6 +257,11 @@ class Gem5Parser:
             output_dir, processed_results, var_names=var_names
         )
 
+        # Enforce the inter-layer CSV contract (logged, non-fatal).
+        if csv_path and Path(csv_path).exists():
+            for warning in validate_parser_csv(Path(csv_path)):
+                logger.warning("CSV contract: %s", warning)
+
         t_total = time.perf_counter() - t_start
         logger.info(f"PERF: finalize_parsing total took {t_total:.4f}s")
         return csv_path
@@ -302,7 +324,7 @@ class Gem5Parser:
                 row_parts: list[str] = []
                 for var_name in ordered_names:
                     if var_name not in file_stats:
-                        row_parts.append("NaN")
+                        row_parts.append(MISSING_VALUE)
                         continue
 
                     var = file_stats[var_name]
@@ -316,10 +338,9 @@ class Gem5Parser:
                         if entries is not None:
                             reduced = var.reduced_content
                             for e in entries:
-                                val = reduced.get(e, "NaN")
-                                row_parts.append(str(val))
+                                row_parts.append(_render_value(reduced.get(e)))
                         else:
-                            row_parts.append(str(var.reduced_content))
+                            row_parts.append(_render_value(var.reduced_content))
                     else:
                         # Raw data (string/int/etc.)
                         row_parts.append(str(var))

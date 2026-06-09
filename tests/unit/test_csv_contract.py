@@ -20,7 +20,7 @@ class TestConstants:
     """Verify contract constants are defined correctly."""
 
     def test_missing_value(self) -> None:
-        assert MISSING_VALUE == ""
+        assert MISSING_VALUE == "NaN"
 
     def test_csv_encoding(self) -> None:
         assert CSV_ENCODING == "utf-8"

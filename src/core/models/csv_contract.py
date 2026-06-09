@@ -9,7 +9,7 @@ Format Rules:
     2. Each row represents one dump interval (begin/end simpoint pair).
     3. Column names are variable names (hierarchical, dot-separated).
     4. Values are numeric (float) or string (for configuration variables).
-    5. Missing values are represented as empty string.
+    5. Missing/unmeasured numeric values are represented as ``NaN`` (parsed as NaN by pandas).
     6. No simulator-specific metadata in the CSV — only data values.
 
 Note:
@@ -35,8 +35,8 @@ logger = logging.getLogger(__name__)
 
 # ─── Constants ────────────────────────────────────────────────────────────────
 
-MISSING_VALUE: str = ""
-# Representation for missing/unavailable values in the CSV output.
+MISSING_VALUE: str = "NaN"
+# Representation for missing/unavailable values in the CSV output (parsed as NaN by pandas).
 
 CSV_ENCODING: str = "utf-8"
 # Character encoding for all parser CSV output.

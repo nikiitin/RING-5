@@ -1,3 +1,5 @@
+import math
+
 from src.parsing.gem5.types.vector import Vector
 
 
@@ -31,19 +33,22 @@ def test_vector_unknown_entries_warning() -> None:
 
 
 def test_vector_balancing() -> None:
-    """Test balancing logic (padding)."""
+    """Test balancing logic (NaN padding for missing dumps)."""
     v = Vector(repeat=2, entries=["A"])
-    # One value provided, need two
+    # One dump provided, two expected -> the missing one is NaN, not 0
     v.content = {"A": [10]}
     v.balance_content()
 
-    assert v.content["A"] == [10, 0]
+    assert v.content["A"][0] == 10
+    assert math.isnan(v.content["A"][1])
 
 
 def test_vector_reduction() -> None:
-    """Test reduction logic (mean)."""
+    """Test reduction logic (mean over dumps)."""
     v = Vector(repeat=2, entries=["A"])
-    v.content = {"A": [10, 20]}
+    # Two dumps assigned individually (a list in one assignment is summed)
+    v.content = {"A": 10}
+    v.content = {"A": 20}
     v.balance_content()
     v.reduce_duplicates()
 
