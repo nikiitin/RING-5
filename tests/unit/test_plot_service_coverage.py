@@ -147,70 +147,50 @@ class TestChangePlotType:
         assert result is new_plot
 
 
-class TestExportPlotToFile:
-    """Test PlotService.export_plot_to_file."""
+class TestRing5ExportFile:
+    """Unit tests for ring5._export.export_file (subsumed export_plot_to_file)."""
 
-    def test_html_export(self, tmp_path: Path) -> None:
-        plot = MagicMock()
-        plot.name = "My Plot"
-        plot.config = {}
-        fig = MagicMock()
-        plot.generate_figure.return_value = fig
+    def test_pdf_export_writes_bytes(self, tmp_path: Path) -> None:
+        import plotly.graph_objects as go
 
-        result = PlotService.export_plot_to_file(plot, str(tmp_path), format="html")
+        from ring5._export import export_file
 
-        assert result is not None
-        assert result.endswith(".html")
-        fig.write_html.assert_called_once()
+        fig = go.Figure()
+        with patch(
+            "ring5._export.plotly_download_bytes", return_value=b"%PDF-fake"
+        ) as mock_download:
+            result = export_file(fig, str(tmp_path / "ipc.pdf"))
 
-    def test_unsupported_format_raises(self, tmp_path: Path) -> None:
-        plot = MagicMock()
-        plot.name = "My Plot"
-        plot.config = {}
-        plot.generate_figure.return_value = MagicMock()
-
-        with pytest.raises(ValueError, match="Unsupported export format"):
-            PlotService.export_plot_to_file(plot, str(tmp_path), format="pgf")
-
-    def test_generate_figure_fails_returns_none(self, tmp_path: Path) -> None:
-        plot = MagicMock()
-        plot.name = "X"
-        plot.generate_figure.side_effect = RuntimeError("no data")
-
-        result = PlotService.export_plot_to_file(plot, str(tmp_path))
-
-        assert result is None
-
-    @patch("src.web.pages.ui.plotting.download_section.plotly_download_bytes")
-    def test_pdf_export_success(
-        self,
-        mock_download: MagicMock,
-        tmp_path: Path,
-    ) -> None:
-        plot = MagicMock()
-        plot.name = "IPC"
-        plot.config = {}
-        fig = MagicMock()
-        plot.generate_figure.return_value = fig
-
-        mock_download.return_value = b"%PDF-fake"
-
-        result = PlotService.export_plot_to_file(plot, str(tmp_path), format="pdf")
-
-        assert result is not None
-        assert result.endswith(".pdf")
-        written = Path(result).read_bytes()
-        assert written == b"%PDF-fake"
+        assert result.endswith("ipc.pdf")
+        assert Path(result).read_bytes() == b"%PDF-fake"
         mock_download.assert_called_once()
 
-    def test_default_format_from_config(self, tmp_path: Path) -> None:
-        plot = MagicMock()
-        plot.name = "X"
-        plot.config = {"download_format": "html"}
-        fig = MagicMock()
-        plot.generate_figure.return_value = fig
+    def test_unsupported_format_raises(self, tmp_path: Path) -> None:
+        import plotly.graph_objects as go
 
-        result = PlotService.export_plot_to_file(plot, str(tmp_path))
+        from ring5._export import export_file
+        from ring5.errors import ExportError
 
-        assert result is not None
-        assert result.endswith(".html")
+        with pytest.raises(ExportError, match="not supported"):
+            export_file(go.Figure(), str(tmp_path / "x.pgf"))
+
+    def test_chrome_missing_becomes_typed_error(self, tmp_path: Path) -> None:
+        import plotly.graph_objects as go
+        from kaleido.errors import ChromeNotFoundError
+
+        from ring5._export import export_file
+        from ring5.errors import DependencyMissingError
+
+        with patch(
+            "ring5._export.plotly_download_bytes",
+            side_effect=ChromeNotFoundError("no chrome"),
+        ):
+            with pytest.raises(DependencyMissingError, match="chrome"):
+                export_file(go.Figure(), str(tmp_path / "x.png"))
+
+    def test_unknown_object_raises(self, tmp_path: Path) -> None:
+        from ring5._export import export_file
+        from ring5.errors import ExportError
+
+        with pytest.raises(ExportError, match="Cannot export"):
+            export_file(object(), str(tmp_path / "x.png"))  # type: ignore[arg-type]

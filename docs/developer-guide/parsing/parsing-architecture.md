@@ -22,8 +22,9 @@ The architecture is organized into three tiers:
 
 1. **Registry tier** -- `SimulatorRegistry` maps simulator names to metadata
    descriptors and lazy-instantiated parser factories.
-2. **Python orchestration tier** -- `Gem5Parser` and `Gem5Scanner` coordinate
-   file discovery, regex expansion, strategy selection, and worker-pool dispatch.
+2. **Python orchestration tier** -- `Gem5Parser` (the gem5 backend) coordinates
+   file discovery, scanning, regex expansion, strategy selection, and worker-pool
+   dispatch.
 3. **Perl execution tier** -- high-performance Perl scripts perform line-by-line
    regex classification and value extraction against gem5 stat files.
 
@@ -37,9 +38,9 @@ simulator backend produces identically structured output.
 |--------|------|
 | Protocol definition | `src/parsing/parser_protocol.py` |
 | Registry and metadata | `src/parsing/registry.py` |
-| Public re-exports | `src/parsing/__init__.py` |
+| Shared framework | `src/parsing/framework/` (WorkPool, Job, find_stats_files) |
 | CSV contract | `src/core/models/csv_contract.py` |
-| gem5 facade | `src/parsing/gem5/impl/gem5_parser_api.py` |
+| gem5 backend | `src/parsing/gem5/impl/gem5_parser.py` |
 | Strategy protocol | `src/parsing/gem5/impl/strategies/file_parser_strategy.py` |
 | Strategy factory | `src/parsing/gem5/impl/strategies/factory.py` |
 | gem5-specific model | `src/parsing/gem5/models.py` |
@@ -133,8 +134,8 @@ The factory uses a **deferred import** to avoid circular dependencies:
 
 ```python
 def _create_gem5_parser() -> SimulationParser:
-    from src.parsing.gem5.impl.gem5_parser_api import Gem5ParserAPI
-    return Gem5ParserAPI()
+    from src.parsing.gem5.impl.gem5_parser import Gem5Parser
+    return Gem5Parser()
 ```
 
 Importing `src.parsing.registry` is sufficient to make gem5 available. Future
@@ -283,7 +284,7 @@ for files with structural concerns.
 
 ```python
 from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
-from src.parsing.gem5.impl.gem5_scanner import Gem5Scanner as ScannerService
+from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ScannerService
 __all__ = ["ParseService", "ScannerService"]
 ```
 
@@ -304,18 +305,17 @@ parser = SimulatorRegistry.get_parser("gem5")
 futures = parser.submit_scan_async("/path/to/stats")
 ```
 
-The `Gem5ParserAPI` facade returned by the registry wraps both `Gem5Parser` and
-`Gem5Scanner` behind the unified `SimulationParser` protocol. It delegates
-scanning methods to `Gem5Scanner` and parsing methods to `Gem5Parser`, keeping
-those two concerns in separate classes while presenting a single interface.
+The registry returns a single `Gem5Parser` instance — the gem5 backend that
+implements the `SimulationParser` protocol directly, covering parsing, scanning,
+and CSV assembly behind one interface. A second backend would register its own
+class implementing the same protocol.
 
 ### Consumer patterns
 
 | Consumer | Pattern | Receives |
 |----------|---------|----------|
-| Web controllers | `SimulatorRegistry.get_parser("gem5")` | `SimulationParser` via `Gem5ParserAPI` |
+| Web controllers | `SimulatorRegistry.get_parser("gem5")` | `SimulationParser` (a `Gem5Parser`) |
 | Web UI metadata | `SimulatorRegistry.get_info("gem5")` | `SimulatorInfo` (types, strategies) |
-| Legacy code | `from src.parsing import ParseService` | `Gem5Parser` class directly |
 | Tests | `SimulatorRegistry._reset()` then re-register | Clean isolated state |
 
 ---

@@ -85,7 +85,7 @@ is_valid, missing_fields = validate_shaper_config(shaper_type, config)
 if not search_path.exists():
     raise FileNotFoundError(f"Stats path does not exist: {stats_path}")
 
-# src/parsing/gem5/impl/gem5_scanner.py
+# src/parsing/gem5/impl/gem5_parser.py
 if not stats_path.exists():
     raise FileNotFoundError(f"Stats path does not exist: {stats_path}")
 if not stats_files:
@@ -198,7 +198,7 @@ def load_data(self, csv_path: str) -> None:
 | Division by zero | Core | Silent replace: `s2.replace(0, np.nan)` | `arithmetic_service.py` |
 | Invalid regex pattern | Parsing | `logger.warning`, skip expansion | `gem5_parser.py` |
 | Stats path not found | Parsing | `FileNotFoundError` raised | `gem5_parser.py` |
-| No stats files found | Parsing | `FileNotFoundError` raised | `gem5_scanner.py` |
+| No stats files found | Parsing | `FileNotFoundError` raised | `gem5_parser.py` |
 | Unknown simulator name | Parsing | `KeyError` with available list | `registry.py` |
 | Path traversal attempt | Core | `ValueError` from `validate_path_within` | `utils.py` |
 | Portfolio not found | Core | `FileNotFoundError` raised | `portfolio_service.py` |

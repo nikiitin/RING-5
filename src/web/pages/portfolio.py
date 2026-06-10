@@ -6,21 +6,16 @@ data, plots, and all configurations as portfolio files.
 """
 
 import logging
-from typing import Any, cast
+
 
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
 from src.core.models import PortfolioData  # noqa: F401 (re-exported)
-from src.web.rendering.config_builder import ConfigSpecBuilder
+from src.core.services.portfolio_migrator import PortfolioVersionError
+from src.web.rendering.config_builder import build_figure_spec_dict
 
 logger: logging.Logger = logging.getLogger(__name__)
-
-
-def _build_figure_spec(config: dict[str, Any], plot_type: str) -> dict[str, Any] | None:
-    """Build a FigureConfig dict from plot config (injected into core layer)."""
-    spec = ConfigSpecBuilder.from_config(config, plot_type)
-    return spec.to_dict()
 
 
 def _portfolio_fragment(api: ApplicationAPI) -> None:
@@ -46,8 +41,8 @@ def _portfolio_fragment(api: ApplicationAPI) -> None:
                     config=api.state_manager.get_config(),
                     plot_counter=api.state_manager.get_plot_counter(),
                     csv_path=api.state_manager.get_csv_path(),
-                    parse_variables=cast(list[str] | None, api.state_manager.get_parse_variables()),
-                    figure_spec_enricher=_build_figure_spec,
+                    parse_variables=api.state_manager.get_parse_variables(),
+                    figure_spec_enricher=build_figure_spec_dict,
                 )
                 st.toast(f"Portfolio saved: {portfolio_name}", icon="✅")
                 st.rerun()
@@ -75,9 +70,31 @@ def _portfolio_fragment(api: ApplicationAPI) -> None:
             if st.button("Load Portfolio", type="primary", width="stretch"):
                 try:
                     data = api.data_services.load_portfolio(selected_portfolio)
-                    api.state_manager.restore_session(data)
+                    report = api.state_manager.restore_session(data)
+                    if not report.complete:
+                        issues: list[str] = list(report.plots_skipped)
+                        if report.data_error:
+                            issues.append(f"data: {report.data_error}")
+                        if report.parse_variables_skipped:
+                            issues.append(
+                                f"{report.parse_variables_skipped} malformed "
+                                "parse-variable entries skipped"
+                            )
+                        # Toast (not st.warning): must survive the rerun below.
+                        st.toast(
+                            f"Restore incomplete — {'; '.join(issues[:3])}"
+                            + ("…" if len(issues) > 3 else ""),
+                            icon="⚠️",
+                        )
+                        logger.warning(
+                            "PORTFOLIO: incomplete restore of '%s': %s",
+                            selected_portfolio,
+                            issues,
+                        )
                     st.toast(f"Portfolio loaded: {selected_portfolio}", icon="✅")
                     st.rerun(scope="app")
+                except PortfolioVersionError as e:
+                    st.error(str(e))
                 except Exception as e:
                     st.exception(e)
                     logger.error(

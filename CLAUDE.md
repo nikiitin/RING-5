@@ -56,7 +56,30 @@ frozen dataclasses, Protocols) imported by everyone, depending on nobody.
 - orchestrates parse/scan via an injected `SimulationParser` (defaults to gem5 via registry);
 - delegates previews, history, visualization config, simulator-registry lookups.
 
-> ⚠️ Old docs referenced `src/web/facade.py` — **it does not exist.** The facade is `ApplicationAPI`.
+> The facade is `ApplicationAPI` (`src/core/application_api.py`). There is **no** `src/web/facade.py`.
+
+### The public package (`ring5/` — headless composition root)
+
+Top-level **`ring5/`** is the supported programmatic surface (`import ring5` + the `ring5` CLI,
+registered via `[project.scripts]`). Like `app.py`, it is a **composition root**: it may import
+both `src.core` and `src.web` (the layer rules below it are untouched — never "fix" its web
+imports). It wires `ApplicationAPI(plot_deserializer=BasePlot.from_dict)` and adds the seams the
+facade never had:
+- **`ring5.Session`** — parse (`ParseJob` handles carry strategy/var_names; strict missing-stat
+  detection), load/shape/managers, `create_plot` (snake_case types), `render(plot, engine=…)`
+  (engine is always an explicit per-call argument — never `EngineManager`/session state),
+  `export(fig, path, deterministic=…)`, portfolio save (`overwrite=False` default) / load
+  (returns `RestoreReport`).
+- **`ring5.render_portfolio(name, out_dir, …)`** — the reproducibility flagship: restore a
+  snapshot and regenerate every figure file headlessly (CLI: `ring5 render`).
+- **`ring5.doctor()`** (perl/chrome/xelatex preflight), **`ring5.shutdown()`** (process pools),
+  typed errors under `ring5.Ring5Error`.
+- Rendering executes the exact UI sequences (`create_figure` + `apply_common_layout`; mpl path
+  via `ConfigSpecBuilder`→`enrich_from_plotly`→`resolve_config`→connector). Byte-export functions
+  live UI-free in `src/web/rendering/figure_export.py` (with `deterministic=True` knobs for CI);
+  `download_section.py` is only the Streamlit presentation around them.
+- Keystone test: `tests/integration/test_ring5_public_api.py`. User docs:
+  `docs/user-guide/features/scripting.md`.
 
 ### State (Repository pattern)
 
@@ -70,12 +93,20 @@ Portfolio restore uses an injected `PlotDeserializer` so core never imports web.
 
 - `src/parsing/parser_protocol.py::SimulationParser` — the protocol every backend implements
   (`submit_parse_async`, `finalize_parsing`, `submit_scan_async`, `aggregate_scan_results`).
+  Scan cancellation is handle-based and instance-scoped: `ApplicationAPI.cancel_pending_scans()`
+  cancels only the futures that instance submitted (pool facades hold no future references).
+  NOTE: the web app caches ONE instance process-wide, so there it spans all browser sessions;
+  ring5 scripts (one instance per Session) get true per-session scoping.
 - `src/parsing/registry.py::SimulatorRegistry` — class-level registry (`SimulatorInfo` metadata +
   lazy factory + cached instance). gem5 auto-registers at import. `get_parser("gem5")`.
+- `src/parsing/framework/` — **simulator-agnostic** shared infra every backend builds on:
+  `work_pool.py::WorkPool` (one `ThreadPoolExecutor` singleton, `shutdown()`+`atexit`),
+  `job.py::Job` (work-unit ABC), `file_discovery.py::find_stats_files`.
 - `src/parsing/gem5/` — the only backend today:
-  - `impl/gem5_parser_api.py` (`Gem5ParserAPI`), `impl/gem5_parser.py`, `impl/gem5_scanner.py`
-  - `impl/pool/` — singleton `WorkPool`/`ScanWorkPool`/`ParseWorkPool` over
-    `concurrent.futures` (Process/Thread executors), with `shutdown()` + `atexit` cleanup.
+  - `impl/gem5_parser.py::Gem5Parser` — **the gem5 backend** (parse + scan + CSV assembly);
+    implements `SimulationParser`, and is what the registry instantiates. Methods are static (the
+    pools are singletons), so callable on the class or the registry's instance.
+  - `impl/pool/pool.py` — `ScanWorkPool`/`ParseWorkPool` facades over the framework `WorkPool`.
   - `impl/strategies/perl_worker_pool.py::PerlWorkerPool` — **persistent Perl processes** (the 54×
     speedup); also `shutdown()` + `atexit`.
   - `impl/strategies/` — `simple` and `config_aware` strategies via `StrategyFactory`.
@@ -135,6 +166,7 @@ mix) → Manage Plots → create plot → build shaper pipeline → **finalize**
 ```bash
 make dev                # create venv + install -e ".[dev]"   (then: make pre-commit-install)
 make run                # streamlit run app.py   (http://localhost:8501)
+                        # headless: ./python_venv/bin/ring5 {doctor,parse,render,upgrade}
 make test               # unit + integration, no coverage gate (downloads test data on first run)
 make test-unit          # unit only, fast
 make test-ci            # full suite + 90% coverage gate (what main-branch CI enforces)
@@ -198,6 +230,20 @@ For deeper testing recipes (esp. Streamlit×Playwright gotchas) see
 | Figure styling / dual-engine | `rendering-figureconfig` | edit `FigureConfig` + apply in **both** connectors in `STYLING_PIPELINE_ORDER`; sentinels resolved before connectors |
 | E2E / UI tests | `e2e-streamlit-testing` | POM, `data-testid` selectors, segmented-control toggle & fragment-rerun gotchas |
 | New simulator backend | (see §2) | implement `SimulationParser`, `SimulatorRegistry.register(SimulatorInfo, factory)` |
+
+**Verification gates & cleanup** — consult/run before merging. Each is self-maintaining: it edits
+its own `SKILL.md` in place (present tense, canon-only) when the code drifts, and writes a memory for
+durable facts.
+
+| Gate | Skill | Checks |
+|------|-------|--------|
+| Architecture | `architecture-check` | the 7 hard rules + the 8 boundary greps (`make arch-check` / `quality-gate`) |
+| Facade / API | `api-check` | `ApplicationAPI` contract, the 3 sub-APIs, async parse/scan, no direct core reach-around |
+| Web / UI | `ui-check` | Page→Controller→Component (no presenter), namespaced UI state, dual-engine, UI test layers |
+| Plot type | `plot-type-check` | `BasePlot` contract, engine-agnostic traces, `PlotFactory` registration, dual-engine render |
+| Parser correctness | `parser-check` | no fabrication, async-only, StatType lifecycle, Perl regex duplication, pool lifecycle |
+| Parser perf / robustness | `parser-improvement` | speed up / harden parsing behind the correctness invariants |
+| Stale paths & docs | `clean-stale-paths` | sweep dead/duplicated/stale paths in code+docs; enforce canon-only docs |
 
 ---
 
@@ -284,9 +330,10 @@ is human-only), and a `fetch` server (the built-in WebFetch/WebSearch usually su
 ## 9. Pointers
 
 - Published docs (GitHub Pages, keep authoritative for users): `docs/` →
-  `nikiitin.github.io/RING-5`. Accurate: `docs/api/*`, `docs/developer/Testing-Guide.md`. Some
-  `docs/developer/*` still cite pre-refactor paths (`src/plotting/`, `src/web/services/`,
-  `src/web/presenters/`) — trust this file over those.
+  `nikiitin.github.io/RING-5`, organized as three trees: `docs/user-guide/`, `docs/developer-guide/`,
+  `docs/ai-knowledge-base/`. **Document only the one canonical way to do a thing** — present tense,
+  no "was X, now Y" narration (the lone exception is `architecture/history.md`, the single place
+  history is allowed to live). If a doc path disagrees with the code, the code wins — fix the doc.
 - Dev tooling: `Makefile`, `pyproject.toml` (black/flake8/mypy/pytest/bandit config),
   `.pre-commit-config.yaml` (14 hooks incl. the local architecture hooks), `.trunk/` (trunk.io),
   `.streamlit/config.toml` (theme), `CONTRIBUTING.md` (note: its test/coverage numbers are stale).

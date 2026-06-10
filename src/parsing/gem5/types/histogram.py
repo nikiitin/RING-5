@@ -37,9 +37,6 @@ class Histogram(StatType):
             "_reduced_content",
             "_balanced",
             "_reduced",
-            "balancedContent",
-            "reducedDuplicates",
-            "reducedContent",
             "_bins",
             "_max_range",
             "_entries",
@@ -313,24 +310,6 @@ class Histogram(StatType):
         if any(c.isdigit() for c in key):
             logger.debug("HISTOGRAM: Could not parse range from key '%s'", key)
         return []
-
-    @property
-    def reduced_content(self) -> dict[str, float]:
-        """Get the final reduced (averaged) data."""
-        balanced = object.__getattribute__(self, "_balanced")
-        reduced = object.__getattribute__(self, "_reduced")
-        if not balanced or not reduced:
-            raise AttributeError(
-                "HISTOGRAM: Cannot access reduced_content before calling "
-                "balance_content() AND reduce_duplicates()"
-            )
-        reduced_dict: dict[str, float] = object.__getattribute__(self, "_reduced_content")
-        return reduced_dict
-
-    @property
-    def reducedContent(self) -> dict[str, float]:
-        """Backward compatibility alias."""
-        return self.reduced_content
 
     def __str__(self) -> str:
         return f"Histogram(buckets={len(self._content)}, repeat={self._repeat})"

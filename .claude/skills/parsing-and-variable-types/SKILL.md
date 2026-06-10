@@ -65,7 +65,8 @@ Stat types self-register; there are two halves — **Python** (model + reduction
 ## Debugging async parsing
 - **Hangs / timeouts:** check `gem5/impl/strategies/perl_worker_pool.py` (worker health check skips
   if `last_used < 60s`; `is_busy` uses GIL atomicity). Pools register `atexit` cleanup and have
-  `shutdown()` — call `ApplicationAPI.cancel_pending_scans()` to release scan futures/memory.
+  `shutdown()` — call `ApplicationAPI.cancel_pending_scans()` to release THAT instance's scan
+  futures/memory (handle-based; pool facades keep none; the web app shares one cached instance).
 - **Missing/empty columns in CSV:** `construct_final_csv` unions headers across files; a variable
   absent in the first file is fine. If a header is *permanently* short, suspect header being built
   from a sample file rather than the variable config.

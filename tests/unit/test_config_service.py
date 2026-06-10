@@ -141,7 +141,24 @@ class TestConfigurationSaving:
         filename = Path(config_path).name
         assert filename.startswith("myconfig_")
         assert filename.endswith(".json")
-        assert len(filename.split("_")) >= 3  # name_date_time.json
+        assert len(filename.split("_")) >= 3  # name_date_time_uid.json
+
+    def test_save_configuration_same_name_same_second_no_overwrite(
+        self, empty_config_dir: Path
+    ) -> None:
+        """Two same-name saves within one second must yield distinct files.
+
+        Timestamps have 1-second resolution; without a uniqueness suffix the
+        second save would silently replace the first.
+        """
+        # Act — back-to-back saves land within the same wall-clock second
+        path1 = ConfigService.save_configuration(name="dup", description="a", shapers_config=[])
+        path2 = ConfigService.save_configuration(name="dup", description="b", shapers_config=[])
+
+        # Assert
+        assert path1 != path2
+        assert Path(path1).exists()
+        assert Path(path2).exists()
 
     def test_save_configuration_stores_all_fields(self, empty_config_dir: Path) -> None:
         """Verify all configuration fields are saved."""

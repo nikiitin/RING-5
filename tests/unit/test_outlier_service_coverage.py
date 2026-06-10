@@ -1,6 +1,7 @@
 """Tests for OutlierService — IQR-based outlier removal."""
 
 import pandas as pd
+import pytest
 
 from src.core.services.managers.outlier_service import OutlierService
 
@@ -13,10 +14,20 @@ class TestRemoveOutliers:
         result = OutlierService.remove_outliers(df, "val", [])
         assert result.empty
 
-    def test_column_not_in_df_returns_original(self) -> None:
+    def test_column_not_in_df_raises(self) -> None:
         df = pd.DataFrame({"a": [1, 2, 3]})
-        result = OutlierService.remove_outliers(df, "missing", [])
-        assert len(result) == 3
+        with pytest.raises(ValueError, match="'missing' not found"):
+            OutlierService.remove_outliers(df, "missing", [])
+
+    def test_non_numeric_column_raises(self) -> None:
+        df = pd.DataFrame({"a": ["x", "y", "z"]})
+        with pytest.raises(ValueError, match="must be numeric"):
+            OutlierService.remove_outliers(df, "a", [])
+
+    def test_missing_group_by_column_raises(self) -> None:
+        df = pd.DataFrame({"val": [1.0, 2.0, 3.0]})
+        with pytest.raises(ValueError, match="Group by columns not found"):
+            OutlierService.remove_outliers(df, "val", ["nope"])
 
     def test_no_group_by_removes_iqr_outliers(self) -> None:
         # Data: [1, 2, 3, 4, 5, 6, 7, 100]

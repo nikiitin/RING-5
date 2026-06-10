@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from src.parsing.gem5.impl.pool.job import Job
+from src.parsing.framework.job import Job
 
 # Type alias for parsed variable dictionaries
 # Key: variable identifier (str)

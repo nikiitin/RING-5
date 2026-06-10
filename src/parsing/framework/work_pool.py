@@ -1,9 +1,9 @@
 """
 Work Pool — singleton thread-pool manager for parallel parse/scan work.
 
-Parsing dispatches its per-file work units to threads; the heavy CPU work runs
-out-of-process in the persistent Perl worker pool, so a thread pool (not a
-process pool) is the right executor here.
+Backends dispatch their per-file work units (``Job``s) to this thread pool; the
+heavy CPU work typically runs out-of-process in the backend's own workers, so a
+thread pool (not a process pool) is the right executor here.
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ from collections.abc import Callable
 from concurrent.futures import Future, ThreadPoolExecutor
 from typing import Any
 
-from src.parsing.gem5.impl.pool.job import Job
+from src.parsing.framework.job import Job
 
 logger = logging.getLogger(__name__)
 

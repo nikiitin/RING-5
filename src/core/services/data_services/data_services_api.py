@@ -211,10 +211,11 @@ class DataServicesAPI(Protocol):
         config: dict[str, Any],
         plot_counter: int,
         csv_path: str | None = None,
-        parse_variables: list[str] | None = None,
+        parse_variables: list[ParseVariableConfig] | None = None,
         figure_spec_enricher: None | (
             Callable[[dict[str, Any], str], dict[str, Any] | None]
         ) = None,
+        overwrite: bool = True,
     ) -> None:
         """Serialize and save the current workspace state."""
         ...

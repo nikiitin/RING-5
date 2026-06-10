@@ -41,9 +41,6 @@ class Vector(StatType):
             "_balanced",
             "_reduced",
             "_entries",
-            "balancedContent",
-            "reducedDuplicates",
-            "reducedContent",
         }
     )
 
@@ -178,23 +175,6 @@ class Vector(StatType):
                 reduced[entry] = total / self._repeat
 
         object.__setattr__(self, "_reduced_content", reduced)
-
-    @property
-    def reduced_content(self) -> dict[str, float]:
-        balanced = object.__getattribute__(self, "_balanced")
-        reduced = object.__getattribute__(self, "_reduced")
-        if not balanced or not reduced:
-            raise AttributeError(
-                "VECTOR: Cannot access reducedContent before calling "
-                "balance_content() AND reduce_duplicates()"
-            )
-        reduced_dict: dict[str, float] = object.__getattribute__(self, "_reduced_content")
-        return reduced_dict
-
-    # Backward compatibility
-    @property
-    def reducedContent(self) -> dict[str, float]:
-        return self.reduced_content
 
     def __str__(self) -> str:
         return f"Vector({self._content})"

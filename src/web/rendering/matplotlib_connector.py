@@ -83,30 +83,38 @@ class FigureSpecToMatplotlib:
             spec: A resolved FigureConfig (no sentinel values).
             ax: A ``matplotlib.axes.Axes`` instance.
         """
-        # Pipeline order: see _connector_protocol.STYLING_PIPELINE_ORDER
-        FigureSpecToMatplotlib._apply_backgrounds(spec, ax)
-        FigureSpecToMatplotlib._apply_font_family(spec, ax)
-        FigureSpecToMatplotlib._apply_color_palette(spec, ax)
-        FigureSpecToMatplotlib._apply_title(spec, ax)
-        FigureSpecToMatplotlib._apply_axis_labels(spec, ax)
-        FigureSpecToMatplotlib._apply_axis_ticks(spec, ax, render_result)
-        FigureSpecToMatplotlib._apply_axis_ranges(spec, ax)
-        FigureSpecToMatplotlib._apply_axis_colors(spec, ax)
-        FigureSpecToMatplotlib._apply_grids(spec, ax)
-        # Per-trace styling must run before the legend is built so renames and
-        # restyled handles are reflected (parity with the Plotly connector).
-        FigureSpecToMatplotlib._apply_series_styling(spec, ax)
-        FigureSpecToMatplotlib._apply_trace_overrides(spec, ax)
-        FigureSpecToMatplotlib._apply_legends(spec, ax)
-        FigureSpecToMatplotlib._apply_reference_lines(spec, ax)
-        FigureSpecToMatplotlib._apply_data_labels(spec, ax)
-        FigureSpecToMatplotlib._apply_annotations(spec, ax)
-        FigureSpecToMatplotlib._apply_separators(spec, ax)
-        FigureSpecToMatplotlib._apply_hatching(spec, ax)
-        FigureSpecToMatplotlib._apply_margins(spec, ax)
+        import matplotlib as mpl
 
-        if render_result and render_result.heatmap_image is not None:
-            FigureSpecToMatplotlib._apply_colorbar(spec, ax, render_result.heatmap_image)
+        # Scope the font family to this build: artists the steps below create
+        # (title, labels, ticks, legend, annotations) inherit it from the
+        # rc_context; pre-existing artists are fixed by _apply_font_family.
+        # Global rcParams is never mutated.
+        font_rc = {"font.family": spec.font_family} if spec.font_family else {}
+        with mpl.rc_context(font_rc):
+            # Pipeline order: see _connector_protocol.STYLING_PIPELINE_ORDER
+            FigureSpecToMatplotlib._apply_backgrounds(spec, ax)
+            FigureSpecToMatplotlib._apply_font_family(spec, ax)
+            FigureSpecToMatplotlib._apply_color_palette(spec, ax)
+            FigureSpecToMatplotlib._apply_title(spec, ax)
+            FigureSpecToMatplotlib._apply_axis_labels(spec, ax)
+            FigureSpecToMatplotlib._apply_axis_ticks(spec, ax, render_result)
+            FigureSpecToMatplotlib._apply_axis_ranges(spec, ax)
+            FigureSpecToMatplotlib._apply_axis_colors(spec, ax)
+            FigureSpecToMatplotlib._apply_grids(spec, ax)
+            # Per-trace styling must run before the legend is built so renames and
+            # restyled handles are reflected (parity with the Plotly connector).
+            FigureSpecToMatplotlib._apply_series_styling(spec, ax)
+            FigureSpecToMatplotlib._apply_trace_overrides(spec, ax)
+            FigureSpecToMatplotlib._apply_legends(spec, ax)
+            FigureSpecToMatplotlib._apply_reference_lines(spec, ax)
+            FigureSpecToMatplotlib._apply_data_labels(spec, ax)
+            FigureSpecToMatplotlib._apply_annotations(spec, ax)
+            FigureSpecToMatplotlib._apply_separators(spec, ax)
+            FigureSpecToMatplotlib._apply_hatching(spec, ax)
+            FigureSpecToMatplotlib._apply_margins(spec, ax)
+
+            if render_result and render_result.heatmap_image is not None:
+                FigureSpecToMatplotlib._apply_colorbar(spec, ax, render_result.heatmap_image)
 
     # ────────────────────────────────────────────────────────────
     # Per-trace styling (parity with the Plotly connector)
@@ -692,11 +700,20 @@ class FigureSpecToMatplotlib:
 
     @staticmethod
     def _apply_font_family(spec: FigureConfig, ax: Axes) -> None:
-        """Set global font family via rcParams for this figure."""
-        import matplotlib as mpl
+        """Apply the font family to every text artist that already exists.
+
+        Artists created before this step (at figure creation and by the
+        trace renderer) captured the process default at creation time; the
+        ``rc_context`` established by :meth:`apply` covers artists created
+        by the later steps. Global ``mpl.rcParams`` is deliberately never
+        mutated — a mid-render mutation leaked process-wide and made the
+        first figure of every process render in the wrong font.
+        """
+        import matplotlib.text
 
         if spec.font_family:
-            mpl.rcParams["font.family"] = spec.font_family
+            for text in ax.figure.findobj(matplotlib.text.Text):
+                text.set_fontfamily(spec.font_family)
 
     @staticmethod
     def _apply_color_palette(spec: FigureConfig, ax: Axes) -> None:
@@ -1089,6 +1106,30 @@ class FigureSpecToMatplotlib:
             axes_list: List of Axes, one per heatmap subplot.
             render_results: Corresponding render results (one per axes).
         """
+        import matplotlib as mpl
+        import matplotlib.text
+
+        # This runs AFTER the per-axes apply() calls, so the colorbar's new
+        # Axes/Text artists would otherwise be created with the process
+        # default font instead of spec.font_family (the single-heatmap
+        # colorbar is built inside apply()'s rc_context and is unaffected).
+        font_rc = {"font.family": spec.font_family} if spec.font_family else {}
+        with mpl.rc_context(font_rc):
+            FigureSpecToMatplotlib._build_multi_heatmap_colorbars(
+                spec, fig, axes_list, render_results
+            )
+        if spec.font_family:
+            for text in fig.findobj(matplotlib.text.Text):
+                text.set_fontfamily(spec.font_family)
+
+    @staticmethod
+    def _build_multi_heatmap_colorbars(
+        spec: FigureConfig,
+        fig: Figure,
+        axes_list: list[Axes],
+        render_results: list[MatplotlibRenderResult],
+    ) -> None:
+        """Create the colorbars (see :meth:`apply_multi_heatmap_colorbars`)."""
         from matplotlib.ticker import FormatStrFormatter, MaxNLocator
 
         nticks = 5
@@ -1205,12 +1246,16 @@ class FigureSpecToMatplotlib:
         # Scale height by number of rows
         total_height = height_in * nrows
 
-        fig, axes = plt.subplots(
-            nrows=nrows,
-            ncols=1,
-            figsize=(width_in, total_height),
-            dpi=render_dpi,
-        )
+        import matplotlib as mpl
+
+        font_rc = {"font.family": spec.font_family} if spec.font_family else {}
+        with mpl.rc_context(font_rc):
+            fig, axes = plt.subplots(
+                nrows=nrows,
+                ncols=1,
+                figsize=(width_in, total_height),
+                dpi=render_dpi,
+            )
         # Ensure axes is always a list
         if nrows == 1:
             axes_list: list[Axes] = [axes]
@@ -1254,8 +1299,12 @@ class FigureSpecToMatplotlib:
             width_in = dims.width
             height_in = dims.height
 
-        fig, ax = plt.subplots(
-            figsize=(width_in, height_in),
-            dpi=render_dpi,
-        )
+        import matplotlib as mpl
+
+        font_rc = {"font.family": spec.font_family} if spec.font_family else {}
+        with mpl.rc_context(font_rc):
+            fig, ax = plt.subplots(
+                figsize=(width_in, height_in),
+                dpi=render_dpi,
+            )
         return fig, ax

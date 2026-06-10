@@ -227,9 +227,9 @@ GEM5_INFO = SimulatorInfo(
 
 def _create_gem5_parser() -> SimulationParser:
     """Factory function for gem5 parser."""
-    from src.parsing.gem5.impl.gem5_parser_api import Gem5ParserAPI
+    from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
-    return Gem5ParserAPI()
+    return Gem5Parser()
 
 
 SimulatorRegistry.register(GEM5_INFO, _create_gem5_parser)

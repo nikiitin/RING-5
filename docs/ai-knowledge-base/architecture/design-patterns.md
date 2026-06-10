@@ -16,8 +16,8 @@ nav_order: 3
 | 3 | Protocol (DI) | Structural | All layer boundaries (19 protocols) | All |
 | 4 | Factory | Creational | `src/core/services/shapers/factory.py`, `src/web/pages/ui/plotting/plot_factory.py` | Core, Web |
 | 5 | Strategy | Behavioral | `src/parsing/gem5/impl/strategies/` | Parsing |
-| 6 | Command | Behavioral | `src/parsing/gem5/impl/pool/job.py` | Parsing |
-| 7 | Singleton | Creational | `src/parsing/gem5/impl/pool/work_pool.py`, `app.py` | Parsing, Entry |
+| 6 | Command | Behavioral | `src/parsing/framework/job.py` | Parsing |
+| 7 | Singleton | Creational | `src/parsing/framework/work_pool.py`, `app.py` | Parsing, Entry |
 | 8 | Adapter | Structural | `src/web/pages/plot_adapters.py` | Web |
 | 9 | Observer | Behavioral | `src/core/state/repositories/data_repository.py` | Core |
 | 10 | Sentinel Value | Domain-specific | `src/core/services/visualization/config_resolver.py` | Core |
@@ -182,7 +182,7 @@ class FileParserStrategy(Protocol):
 
 ## 6. Command
 
-**Location:** `src/parsing/gem5/impl/pool/job.py` (ABC), `parse_work.py`, `scan_work.py`
+**Location:** `src/parsing/framework/job.py` (ABC), `parse_work.py`, `scan_work.py`
 
 | When to Use | When NOT to Use |
 |-------------|-----------------|
@@ -190,7 +190,7 @@ class FileParserStrategy(Protocol):
 | Need to queue, serialize, or retry work | Simple function call |
 
 ```python
-# src/parsing/gem5/impl/pool/job.py
+# src/parsing/framework/job.py
 class Job(ABC):
     @abstractmethod
     def __call__(self) -> Any:
@@ -217,7 +217,7 @@ class ParseWork(Job):
 | Class-level `dict` | Factory registries (implicit singleton state) |
 
 ```python
-# src/parsing/gem5/impl/pool/work_pool.py
+# src/parsing/framework/work_pool.py
 class WorkPool:
     _instance: WorkPool | None = None
     _new_lock: threading.Lock = threading.Lock()
@@ -376,8 +376,8 @@ def create_figure(self, data, config) -> go.Figure:
 
 # src/parsing/registry.py -- lazy parser class import in factory callable
 def _create_gem5_parser() -> SimulationParser:
-    from src.parsing.gem5.impl.gem5_parser_api import Gem5ParserAPI
-    return Gem5ParserAPI()
+    from src.parsing.gem5.impl.gem5_parser import Gem5Parser
+    return Gem5Parser()
 ```
 
 **Related:** Singleton combines with lazy import for one-time init, Factory callables use lazy imports

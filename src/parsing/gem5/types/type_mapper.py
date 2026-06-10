@@ -110,34 +110,32 @@ class TypeMapper:
         # Type-specific mapping
         norm_type = cls.normalize_type(var_type)
 
-        if norm_type == "vector":
-            if statistics_only:
-                kwargs["entries"] = params.get("statistics") or []
-            else:
-                kwargs["entries"] = params.get("vectorEntries") or params.get("entries")
-
-        elif norm_type == "distribution":
-            kwargs["statistics_only"] = statistics_only
-            if statistics_only:
-                kwargs["minimum"] = 0
-                kwargs["maximum"] = 0
-            else:
-                kwargs["minimum"] = params.get("minimum", 0)
-                kwargs["maximum"] = params.get("maximum", 100)
-            kwargs["statistics"] = params.get("vectorEntries") or params.get("statistics")
-
-        elif norm_type == "histogram":
-            if statistics_only:
-                kwargs["bins"] = 0
-                kwargs["max_range"] = 0.0
-                kwargs["entries"] = None
-            else:
-                kwargs["bins"] = params.get("bins", 0)
-                kwargs["max_range"] = params.get("max_range", 0.0)
-                kwargs["entries"] = params.get("entries")
-            kwargs["statistics"] = params.get("statistics") or params.get("vectorEntries")
-
-        elif norm_type == "configuration":
-            kwargs["onEmpty"] = params.get("onEmpty", "None")
+        match norm_type:
+            case "vector":
+                if statistics_only:
+                    kwargs["entries"] = params.get("statistics") or []
+                else:
+                    kwargs["entries"] = params.get("vectorEntries") or params.get("entries")
+            case "distribution":
+                kwargs["statistics_only"] = statistics_only
+                if statistics_only:
+                    kwargs["minimum"] = 0
+                    kwargs["maximum"] = 0
+                else:
+                    kwargs["minimum"] = params.get("minimum", 0)
+                    kwargs["maximum"] = params.get("maximum", 100)
+                kwargs["statistics"] = params.get("vectorEntries") or params.get("statistics")
+            case "histogram":
+                if statistics_only:
+                    kwargs["bins"] = 0
+                    kwargs["max_range"] = 0.0
+                    kwargs["entries"] = None
+                else:
+                    kwargs["bins"] = params.get("bins", 0)
+                    kwargs["max_range"] = params.get("max_range", 0.0)
+                    kwargs["entries"] = params.get("entries")
+                kwargs["statistics"] = params.get("statistics") or params.get("vectorEntries")
+            case "configuration":
+                kwargs["onEmpty"] = params.get("onEmpty", "None")
 
         return StatTypeRegistry.create(norm_type, **kwargs)  # type: ignore[arg-type]

@@ -18,7 +18,7 @@ from typing import Any
 
 import pandas as pd
 
-from src.core.models import PlotProtocol, PortfolioData
+from src.core.models import PlotProtocol, PortfolioData, RestoreReport
 from src.core.models.data_models import (
     CsvPoolEntry,
     ParseVariableConfig,
@@ -249,5 +249,5 @@ class RepositoryStateManager:
     def clear_all(self) -> None:
         self._session_repo.clear_all()
 
-    def restore_session(self, portfolio_data: PortfolioData) -> None:
-        self._session_repo.restore_from_portfolio(portfolio_data)
+    def restore_session(self, portfolio_data: PortfolioData) -> RestoreReport:
+        return self._session_repo.restore_from_portfolio(portfolio_data)

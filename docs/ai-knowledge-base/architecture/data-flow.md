@@ -42,7 +42,7 @@ stdout: "type/name::entry/value" lines
 CSV file on disk (csv_contract format)
 ```
 
-**Key files**: `src/parsing/gem5/impl/gem5_scanner.py`, `src/parsing/gem5/impl/gem5_parser.py`, `src/parsing/gem5/perl/statsScanner.pl`, `src/parsing/gem5/perl/fileParser.pl`, `src/parsing/gem5/perl/libs/TypesFormatRegex.pm`, `src/parsing/gem5/impl/gem5_parser_api.py`, `src/core/models/csv_contract.py`, `src/web/pages/data_source.py`
+**Key files**: `src/parsing/gem5/impl/gem5_parser.py`, `src/parsing/framework/file_discovery.py`, `src/parsing/gem5/perl/statsScanner.pl`, `src/parsing/gem5/perl/fileParser.pl`, `src/parsing/gem5/perl/libs/TypesFormatRegex.pm`, `src/core/models/csv_contract.py`, `src/web/pages/data_source.py`
 
 | Stage | Data Type |
 |-------|-----------|
@@ -233,7 +233,7 @@ app.py: ApplicationAPI(plot_deserializer=BasePlot.from_dict)
 | Parser state | `st.session_state` keys |
 | Operation history (both tracks) | |
 
-**Key files**: `src/web/pages/portfolio.py`, `src/core/services/data_services/portfolio_service.py`, `src/core/models/portfolio_models.py`, `src/core/services/data_services/portfolio_migrator.py`, `src/core/state/repositories/session_repository.py`
+**Key files**: `src/web/pages/portfolio.py`, `src/core/services/data_services/portfolio_service.py`, `src/core/models/portfolio_models.py`, `src/core/services/portfolio_migrator.py`, `src/core/state/repositories/session_repository.py`
 
 **Errors**: corrupt JSON fails at load; migrator handles unknown schema versions; malformed CSV string fails `pd.read_csv()`; unknown plot types logged and skipped.
 
@@ -243,9 +243,9 @@ app.py: ApplicationAPI(plot_deserializer=BasePlot.from_dict)
 
 | Stage | Input Type | Output Type | Key File |
 |-------|-----------|-------------|----------|
-| File discovery | `str` (path) | `list[Path]` | `src/parsing/gem5/impl/gem5_scanner.py` |
+| File discovery | `str` (path) | `list[str]` | `src/parsing/framework/file_discovery.py` |
 | Stats scanning | `Path` | `list[ScannedVariable]` | `src/parsing/gem5/perl/statsScanner.pl` |
-| Scan aggregation | `list[list[ScannedVariable]]` | `list[ScannedVariable]` | `src/parsing/gem5/impl/gem5_scanner.py` |
+| Scan aggregation | `list[list[ScannedVariable]]` | `list[ScannedVariable]` | `src/parsing/gem5/impl/gem5_parser.py` |
 | Variable normalization | `list[ParseVariableConfig]` | `list[StatConfig]` | `src/core/application_api.py` |
 | Parse dispatch | `list[StatConfig]` | `ParseBatchResult` | `src/parsing/gem5/impl/gem5_parser.py` |
 | Per-file extraction | `str` (file) | `dict[str, Any]` | `src/parsing/gem5/perl/fileParser.pl` |

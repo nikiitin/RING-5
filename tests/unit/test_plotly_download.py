@@ -9,7 +9,7 @@ from __future__ import annotations
 import plotly.graph_objects as go
 import pytest
 
-from src.web.pages.ui.plotting.download_section import (
+from src.web.rendering.figure_export import (
     get_plotly_extension,
     get_plotly_mime,
     plotly_download_bytes,
@@ -169,3 +169,76 @@ class TestPlotlyMultipleFigures:
         """Line figure exports to SVG correctly."""
         data = plotly_download_bytes(simple_line_figure, "svg")
         assert b"<svg" in data
+
+
+# ── Dependency-failure behavior ─────────────────────────────────
+
+
+class TestChromeNotFound:
+    """A missing browser must fail fast with the actionable upstream error."""
+
+    def test_chrome_not_found_propagates_without_retry(self, simple_bar_figure: go.Figure) -> None:
+        """ChromeNotFoundError carries install instructions; retrying cannot
+        help and wrapping it as a generic RuntimeError buries the fix."""
+        from unittest.mock import patch
+
+        from kaleido.errors import ChromeNotFoundError
+
+        with patch(
+            "src.web.rendering.figure_export.kaleido.calc_fig_sync",
+            side_effect=ChromeNotFoundError("Chrome not found — run kaleido_get_chrome"),
+        ) as mock_calc:
+            with pytest.raises(ChromeNotFoundError):
+                plotly_download_bytes(simple_bar_figure, "png")
+            mock_calc.assert_called_once()  # no pointless retries
+
+    def test_transient_failures_still_retry(self, simple_bar_figure: go.Figure) -> None:
+        """Non-Chrome failures keep the bounded retry-then-RuntimeError contract."""
+        from unittest.mock import patch
+
+        with patch(
+            "src.web.rendering.figure_export.kaleido.calc_fig_sync",
+            side_effect=TimeoutError("stalled"),
+        ) as mock_calc:
+            with pytest.raises(RuntimeError, match="after 3 attempts"):
+                plotly_download_bytes(simple_bar_figure, "png")
+            assert mock_calc.call_count == 3
+
+
+# ── Deterministic exports ────────────────────────────────────────
+
+
+class TestDeterministicSvg:
+    """deterministic=True must yield byte-identical SVG re-exports."""
+
+    def test_bar_svg_deterministic(self, simple_bar_figure: go.Figure) -> None:
+        a = plotly_download_bytes(simple_bar_figure, "svg", deterministic=True)
+        b = plotly_download_bytes(simple_bar_figure, "svg", deterministic=True)
+        assert a == b
+
+    def test_colorbar_heatmap_svg_deterministic(self) -> None:
+        """Colorbar gradients embed a SECOND random id (g<uid>-<8hex>) that
+        the normalizer must remap — a single-uid replace is not enough."""
+        fig = go.Figure(data=go.Heatmap(z=[[1, 2], [3, 4]], showscale=True))
+        a = plotly_download_bytes(fig, "svg", deterministic=True)
+        b = plotly_download_bytes(fig, "svg", deterministic=True)
+        assert a == b
+
+    def test_heatmap_base64_raster_not_corrupted(self) -> None:
+        """The uid rewrite is anchored to id contexts, so the base64-embedded
+        raster must decode identically with and without normalization."""
+        import base64
+        import re as _re
+
+        fig = go.Figure(data=go.Heatmap(z=[[i * j for j in range(8)] for i in range(8)]))
+        raw = plotly_download_bytes(fig, "svg", deterministic=False)
+        norm = plotly_download_bytes(fig, "svg", deterministic=True)
+
+        def _raster(svg: bytes) -> bytes:
+            m = _re.search(rb"base64,([A-Za-z0-9+/=]+)", svg)
+            assert m is not None, "expected an embedded raster"
+            return base64.b64decode(m.group(1))
+
+        # Both exports rasterize the same z-matrix — the PNG payload must
+        # be a valid, identical image (normalization never touches it).
+        assert _raster(norm) == _raster(raw)

@@ -36,7 +36,6 @@ so that the UI remains thin and the state layer remains a pure data store.
 
 ```
 src/core/services/
-    config_validation_service.py
     portfolio_migrator.py
     services_api.py
     services_impl.py
@@ -662,7 +661,7 @@ Deletes the portfolio file if it exists.
 
 | | |
 |---|---|
-| **File** | `src/core/services/data_services/pattern_index_service.py` |
+| **File** | `src/core/models/pattern_index_service.py` |
 | **Stateless** | Yes -- all methods are `@staticmethod` |
 | **Lines** | 269 |
 
@@ -1054,128 +1053,7 @@ Synchronizes display ordering for reorderable lists:
 
 ---
 
-## 6. Config Validation Service
-
-| | |
-|---|---|
-| **File** | `src/core/services/config_validation_service.py` |
-| **Lines** | 378 |
-
-Contains two classes for JSON-based pipeline configuration management.
-
-### 6.1 ConfigValidator
-
-**Stateful** -- holds a loaded JSON schema and a `Draft7Validator` instance.
-
-#### Constructor
-
-```python
-def __init__(self, schema_path: str | None = None) -> None
-```
-Loads the JSON schema from `src/core/models/config/schemas/pipeline_schema.json`
-(default) or a custom path. The schema path is validated within the schemas
-directory.
-
-#### Public methods
-
-```python
-def validate(self, config: RingConfig | dict[str, Any]) -> bool
-```
-Validates a configuration dict against the schema. Returns `True` if valid;
-raises `ValidationError` on failure.
-
-```python
-def validate_file(self, config_path: str) -> bool
-```
-Loads and validates a JSON configuration file.
-
-```python
-def get_errors(self, config: dict[str, Any]) -> list[str]
-```
-Returns all validation errors as a list of `"{path}: {message}"` strings.
-
-### 6.2 ConfigTemplateGenerator
-
-**Stateless** -- all methods are `@staticmethod`.
-
-Generates configuration templates with guided prompts. Contains reference
-dictionaries for plot types, aggregate methods, and themes.
-
-#### Supported plot types
-
-`bar`, `line`, `heatmap`, `grouped_bar`, `stacked_bar`, `box`, `violin`,
-`scatter`.
-
-#### Public methods
-
-```python
-@staticmethod
-def create_minimal_config(output_path: str, stats_path: str) -> RingConfig
-```
-Returns a minimal configuration with required fields only.
-
-```python
-@staticmethod
-def create_plot_config(
-    plot_type: str, x: str, y: str, filename: str, **kwargs: Any
-) -> PlotConfig
-```
-Returns a plot configuration dict. Accepts optional `hue`, `title`, `xlabel`,
-`ylabel`, `ylim`, `grid`, `legend`, `format`, `dpi`, `width`, `height`,
-`theme`, `filters`, and `aggregate` keyword arguments.
-
-```python
-@staticmethod
-def add_variable(
-    config: RingConfig | dict, name: str, var_type: str,
-    rename: str | None = None
-) -> RingConfig | dict
-```
-Appends a variable to `config["parseConfig"]["variables"]`.
-
-```python
-@staticmethod
-def enable_seeds_reducer(config: RingConfig | dict) -> RingConfig | dict
-```
-Sets `config["dataManagers"]["seedsReducer"]` to `True`.
-
-```python
-@staticmethod
-def enable_outlier_removal(
-    config: dict, column: str, method: str = "iqr", threshold: float = 1.5
-) -> dict
-```
-Configures outlier removal in the data managers section.
-
-```python
-@staticmethod
-def enable_normalizer(
-    config: dict, baseline: dict[str, str], columns: list[str],
-    group_by: list[str]
-) -> dict
-```
-Configures data normalization in the data managers section.
-
-```python
-@staticmethod
-def save_config(config: dict, output_path: str) -> None
-```
-Writes configuration to a JSON file.
-
-### 6.3 Module-level convenience function
-
-```python
-def create_simple_bar_plot_config(
-    output_path: str, stats_path: str,
-    x_var: str, y_var: str, hue_var: str | None = None,
-) -> RingConfig
-```
-Creates a complete configuration for a simple bar plot with seeds reduction
-enabled.
-
----
-
-## 7. Portfolio Migrator
+## 6. Portfolio Migrator
 
 | | |
 |---|---|
@@ -1212,7 +1090,7 @@ migration (deep copy, add `engine` defaults, remove `export_*` keys). Sets
 
 ---
 
-## 8. See Also
+## 7. See Also
 
 - **Application API** -- the public facade that delegates to all services
   listed here: `src/core/application_api.py`.

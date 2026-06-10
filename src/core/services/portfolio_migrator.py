@@ -15,6 +15,15 @@ from typing import Any
 from src.core.models.visualization.engine import DEFAULT_ENGINE
 
 
+class PortfolioVersionError(ValueError):
+    """A portfolio's schema_version is newer than this RING-5 understands.
+
+    Loading it anyway would silently downgrade-stamp the version, drop
+    unknown plot types, and — on the next save — permanently destroy the
+    newer data. Refusing to load is the only safe behavior.
+    """
+
+
 class PortfolioMigrator:
     """Migrate portfolio JSON between schema versions.
 
@@ -38,8 +47,21 @@ class PortfolioMigrator:
 
         Returns:
             Portfolio dictionary at ``CURRENT_VERSION``.
+
+        Raises:
+            PortfolioVersionError: When the portfolio was written by a NEWER
+                schema than this version understands (forward compatibility
+                is refused, never silently downgraded).
         """
         version: int = int(portfolio_data.get("schema_version", 1))
+
+        if version > PortfolioMigrator.CURRENT_VERSION:
+            raise PortfolioVersionError(
+                f"Portfolio schema_version {version} is newer than this RING-5 "
+                f"supports (current: {PortfolioMigrator.CURRENT_VERSION}). "
+                "Upgrade RING-5 to load it — loading here would silently drop "
+                "newer data and destroy it on the next save."
+            )
 
         if version < 2:
             portfolio_data = PortfolioMigrator._migrate_v1_to_v2(portfolio_data)

@@ -49,7 +49,7 @@ class TestSubmitParseAsync:
 
     @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
-    def test_empty_work_items(
+    def test_empty_work_items_raises(
         self, mock_factory: MagicMock, mock_pool: MagicMock, tmp_path: Any
     ) -> None:
         stats_dir = tmp_path / "stats"
@@ -59,13 +59,13 @@ class TestSubmitParseAsync:
         strategy.get_work_items.return_value = []
         mock_factory.create.return_value = strategy
 
-        result = Gem5Parser.submit_parse_async(
-            str(stats_dir),
-            "stats.txt",
-            [],
-            str(tmp_path),
-        )
-        assert result.futures == []
+        with pytest.raises(FileNotFoundError, match="No parse work generated"):
+            Gem5Parser.submit_parse_async(
+                str(stats_dir),
+                "stats.txt",
+                [],
+                str(tmp_path),
+            )
 
     @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")

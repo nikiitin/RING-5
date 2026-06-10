@@ -26,16 +26,34 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from src.parsing.gem5.types.base import StatType
 
-from src.core.common.utils import (
-    normalize_user_path,
-    sanitize_glob_pattern,
-    sanitize_log_value,
-)
+from src.core.common.utils import sanitize_log_value
 from src.core.models import StatConfig
+from src.parsing.framework.file_discovery import find_stats_files
 from src.parsing.gem5.impl.strategies.gem5_parse_work import Gem5ParseWork
 from src.parsing.gem5.types.type_mapper import TypeMapper
 
 logger = logging.getLogger(__name__)
+
+
+def _max_var_repeat() -> int:
+    """Per-variable cap on regex-expanded instances (``repeat``).
+
+    A regex variable can match thousands of concrete instances (e.g. an NxN
+    network traffic matrix → repeat in the thousands), which blows up memory when
+    parsed across many files. Variables above this cap are skipped with a loud log
+    rather than risking an OOM. Override with ``RING5_MAX_VAR_REPEAT``; ``0`` disables
+    the cap (parse everything).
+    """
+    raw = os.environ.get("RING5_MAX_VAR_REPEAT")
+    if raw is not None:
+        try:
+            n = int(raw)
+            if n >= 0:
+                return n
+            logger.warning("RING5_MAX_VAR_REPEAT=%r is negative; using default", raw)
+        except ValueError:
+            logger.warning("RING5_MAX_VAR_REPEAT=%r is not an integer; using default", raw)
+    return 1024
 
 
 class SimpleStatsStrategy:
@@ -61,14 +79,6 @@ class SimpleStatsStrategy:
         t_files = time.perf_counter()
         logger.info(f"PERF: File discovery (glob) took {t_files - t_start:.4f}s")
 
-        if not files:
-            logger.warning(
-                "PARSER: No files found matching '%s' in %s",
-                sanitize_log_value(stats_pattern),
-                sanitize_log_value(stats_path),
-            )
-            return []
-
         # Build one template map, then deep-copy per file so that each
         # thread-based worker operates on its own mutable StatType set.
         t_map_start = time.perf_counter()
@@ -90,13 +100,14 @@ class SimpleStatsStrategy:
         return results
 
     def _get_files(self, stats_path: str, stats_pattern: str) -> list[str]:
-        """Find all stats files matching the pattern in the target path."""
-        # Path is already validated/resolved by Gem5Parser before reaching strategy
-        safe_path: str = os.path.normpath(stats_path) if stats_path else "."
-        base = normalize_user_path(safe_path)
-        safe_pattern = sanitize_glob_pattern(stats_pattern)
-        pattern = f"**/{safe_pattern}"
-        files = [str(f) for f in base.glob(pattern)]
+        """Find all stats files matching the pattern in the target path.
+
+        Raises:
+            FileNotFoundError: When no file matches — same contract as the
+                scan path. Returning an empty work list instead would let a
+                whole parse run "succeed" while producing nothing.
+        """
+        files = find_stats_files(stats_path, stats_pattern, raise_if_empty=True)
         logger.info(
             "PARSER: Found %d candidate files in %s",
             len(files),
@@ -126,15 +137,27 @@ class SimpleStatsStrategy:
             parsed_ids: list[str] = parsed_ids_raw if isinstance(parsed_ids_raw, list) else []
 
             if parsed_ids:
+                n_ids = len(parsed_ids)
+                cap = _max_var_repeat()
+                if cap and n_ids > cap:
+                    logger.error(
+                        "PARSER: skipping variable '%s' — repeat=%d exceeds the cap of %d "
+                        "(would risk excessive memory). Raise RING5_MAX_VAR_REPEAT (or set 0 "
+                        "to disable) to include it.",
+                        name,
+                        n_ids,
+                        cap,
+                    )
+                    continue
                 # Update repeat count for the logical variable (Spatial aggregation)
-                stat_obj = TypeMapper.create_stat(replace(var, repeat=len(parsed_ids)))
-                if len(parsed_ids) > 50:
+                stat_obj = TypeMapper.create_stat(replace(var, repeat=n_ids))
+                if n_ids > 50:
                     logger.warning(
                         "PARSER: Variable '%s' has repeat=%d (from %d parsed_ids) — "
                         "this may increase memory usage significantly.",
                         name,
-                        len(parsed_ids),
-                        len(parsed_ids),
+                        n_ids,
+                        n_ids,
                     )
             else:
                 stat_obj = TypeMapper.create_stat(var)

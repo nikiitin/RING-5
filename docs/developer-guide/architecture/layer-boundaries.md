@@ -74,9 +74,8 @@ from src.parsing.registry import SimulatorInfo, SimulatorRegistry
    importing from Parsing directly (see `src/core/application_api.py:414`).
 
 All three are **protocol or metadata** imports. `ApplicationAPI` never imports
-a concrete implementation such as `Gem5Parser` or `Gem5Scanner`. This is
-Dependency Inversion: the core depends on an abstraction that Parsing
-implements.
+a concrete implementation such as `Gem5Parser`. This is Dependency Inversion:
+the core depends on an abstraction that Parsing implements.
 
 ---
 
@@ -90,9 +89,8 @@ the domain.
 |-------------|-------------|---------|
 | `src/parsing/parser_protocol.py:4` | `ParseBatchResult`, `ScannedVariable`, `StatConfig` | Protocol type signatures |
 | `src/parsing/gem5/models.py:13-14` | `ScannedVariableDict`, `ScannedVariable` | Extend core model with gem5 metadata |
-| `src/parsing/gem5/impl/gem5_parser.py:85-87` | `normalize_user_path`, `ParseBatchResult`, `ScannedVariable`, `StatConfig`, `PatternIndexService` | Parser orchestration |
-| `src/parsing/gem5/impl/gem5_parser_api.py:11` | `ParseBatchResult`, `ScannedVariable`, `StatConfig` | Unified parser facade |
-| `src/parsing/gem5/impl/gem5_scanner.py:12-13` | `normalize_user_path`, `sanitize_glob_pattern`, `ScannedVariable` | Scanner file discovery |
+| `src/parsing/gem5/impl/gem5_parser.py` | `ParseBatchResult`, `ScanResult`, `ScanFileResult`, `ScannedVariable`, `StatConfig`, `PatternIndexService`, `normalize_user_path` | gem5 backend (parse + scan + CSV) |
+| `src/parsing/framework/file_discovery.py` | `normalize_user_path`, `sanitize_glob_pattern` | Shared stats-file discovery |
 | `src/parsing/gem5/impl/pool/pool.py:14` | `ScannedVariable` | Worker pool type hints |
 | `src/parsing/gem5/impl/pool/scan_work.py:9` | `ScannedVariable` | Scan work items |
 | `src/parsing/gem5/impl/scanning/scanner.py:17` | `ScannedVariable` | Core scanning logic |
@@ -106,7 +104,6 @@ the domain.
 | `src/parsing/gem5/types/histogram.py:7` | `StatParamValue` | Histogram stat type |
 | `src/parsing/gem5/types/configuration.py:5` | `StatParamValue` | Configuration stat type |
 | `src/parsing/gem5/types/type_mapper.py:11-13` | `StatConfig`, `ScannedVariableDict`, `StatParamValue` | Type discrimination |
-| `src/parsing/parse_service.py:14` | `PatternIndexService` | Pattern index for stat matching |
 
 The imports fall into three categories:
 
@@ -115,8 +112,7 @@ The imports fall into three categories:
 - **Utilities** (`normalize_user_path`, `sanitize_glob_pattern`) -- shared
   path helpers from `src/core/common/utils.py`.
 - **Services** (`PatternIndexService`) -- the tightest coupling point. This
-  is a service-level import used by `src/parsing/gem5/impl/gem5_parser.py:87`
-  and the legacy shim `src/parsing/parse_service.py:14`.
+  is a service-level import used by `src/parsing/gem5/impl/gem5_parser.py`.
 
 ---
 
@@ -192,8 +188,8 @@ worker pool architecture that gives the parser its 54x speedup.
 
 All parsing access goes through `ApplicationAPI`. The Web layer calls
 `api.submit_parse_async()` and `api.finalize_parsing()` -- it never
-instantiates `Gem5Parser` or `Gem5Scanner` directly. This indirection means a
-new simulator backend could be registered without touching any Web code.
+instantiates `Gem5Parser` directly. This indirection means a new simulator
+backend could be registered without touching any Web code.
 
 ---
 
@@ -227,13 +223,14 @@ visualization config models, palette utilities, and the config resolver.
 `src/parsing/__init__.py` defines a minimal public API:
 
 ```python
-from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
-from src.parsing.gem5.impl.gem5_scanner import Gem5Scanner as ScannerService
-__all__ = ["ParseService", "ScannerService"]
+# src/parsing/__init__.py exposes no concrete classes — reach a backend only via:
+from src.parsing.registry import SimulatorRegistry
+parser = SimulatorRegistry.get_parser("gem5")   # -> Gem5Parser (a SimulationParser)
 ```
 
-The legacy shims `parse_service.py` and `scanner_service.py` are kept for
-test-patch compatibility. New code should import from the package root.
+Some tests import the backend under a local alias (e.g. `Gem5Parser as
+ParseService`) for readability — these are test-local cosmetics, not production
+shims.
 
 ### Web
 

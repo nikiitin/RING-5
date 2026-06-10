@@ -80,16 +80,28 @@ import math
 import os
 import re
 import time
+from concurrent.futures import Future
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
 from src.core.common.utils import normalize_user_path
-from src.core.models import ParseBatchResult, ScannedVariable, StatConfig
+from src.core.models import (
+    ParseBatchResult,
+    ScanFileResult,
+    ScannedVariable,
+    ScanResult,
+    StatConfig,
+)
 from src.core.models.csv_contract import MISSING_VALUE, validate_parser_csv
 from src.core.models.pattern_index_service import PatternIndexService
-from src.parsing.gem5.impl.pool.pool import ParseWorkPool
+from src.parsing.framework.file_discovery import find_stats_files
+from src.parsing.gem5.impl.pool.pool import ParseWorkPool, ScanWorkPool
+from src.parsing.gem5.impl.scanning.gem5_scan_work import Gem5ScanWork
+from src.parsing.gem5.impl.scanning.pattern_aggregator import PatternAggregator
 from src.parsing.gem5.impl.strategies.factory import StrategyFactory
+from src.parsing.gem5.models import Gem5ScannedVariable
+from src.parsing.parser_protocol import SimulationParser
 
 logger = logging.getLogger(__name__)
 
@@ -108,8 +120,14 @@ def _render_value(val: Any) -> str:
     return str(val)
 
 
-class Gem5Parser:
-    """Service for orchestrating the parsing workflow."""
+class Gem5Parser(SimulationParser):
+    """The gem5 simulation backend — parsing, scanning, and CSV assembly.
+
+    The single class the registry instantiates for ``"gem5"``; implements the
+    ``SimulationParser`` protocol. Methods are static (no instance state — the
+    pools are singletons), so they are callable both on the class and on the
+    instance the registry hands to ``ApplicationAPI``.
+    """
 
     @staticmethod
     def submit_parse_async(
@@ -219,7 +237,12 @@ class Gem5Parser:
         logger.info(f"PERF: Work item generation took {t_work_end - t_work_start:.4f}s")
 
         if not batch_work:
-            return ParseBatchResult(futures=[], var_names=[])
+            # Strategies raise on zero matching files; an empty work list here
+            # means a custom strategy produced nothing — fail loudly rather
+            # than letting the parse "succeed" while producing no CSV.
+            raise FileNotFoundError(
+                f"No parse work generated for pattern '{stats_pattern}' under: {stats_path}"
+            )
 
         var_names: list[str] = [v.name for v in processed_configs]
 
@@ -229,6 +252,120 @@ class Gem5Parser:
         t_total = time.perf_counter() - t_start
         logger.info(f"PERF: submit_parse_async total (pre-pool) took {t_total:.4f}s")
         return ParseBatchResult(futures=futures, var_names=var_names)
+
+    # ------------------------------------------------------------------ scanning
+
+    @staticmethod
+    def submit_scan_async(
+        stats_path: str, stats_pattern: str = "stats.txt", limit: int = 5
+    ) -> list[Future[ScanFileResult]]:
+        """
+        Submit async scan job and return futures.
+
+        Args:
+            stats_path: Base directory to search for stats files
+            stats_pattern: Filename pattern to match (default: "stats.txt")
+            limit: Maximum number of files to scan (0 for unlimited)
+
+        Returns:
+            List of Future objects that each resolve to a ``ScanFileResult``
+
+        Raises:
+            FileNotFoundError: If stats_path doesn't exist or no files found
+        """
+        files = find_stats_files(
+            stats_path, stats_pattern, limit=limit, sort=True, raise_if_empty=True
+        )
+        pool: ScanWorkPool = ScanWorkPool.get_instance()
+        batch_work: list[Gem5ScanWork] = [Gem5ScanWork(f) for f in files]
+        return pool.submit_batch_async(batch_work)
+
+    @staticmethod
+    def aggregate_scan_results(results: list[ScanFileResult]) -> ScanResult:
+        """
+        Aggregate per-file scan results into a unified outcome.
+
+        Successful files are merged and deduplicated into one variable list;
+        failed files are collected separately so the caller can surface them
+        instead of silently treating a failed scan as "no variables".
+
+        Args:
+            results: Per-file ``ScanFileResult`` objects from the workers.
+
+        Returns:
+            ``ScanResult`` with the merged variables and the list of failures.
+        """
+        failures: list[ScanFileResult] = [r for r in results if not r.ok]
+
+        merged_registry: dict[str, ScannedVariable] = {}
+        for file_result in results:
+            for var in file_result.variables:
+                Gem5Parser._merge_variable(merged_registry, var)
+
+        merged_vars = sorted(list(merged_registry.values()), key=lambda x: x.name)
+
+        # Apply pattern aggregation to consolidate repeated numeric patterns
+        aggregated_vars = PatternAggregator.aggregate_patterns(merged_vars)
+
+        return ScanResult(variables=aggregated_vars, failures=failures)
+
+    @staticmethod
+    def _merge_variable(registry: dict[str, ScannedVariable], var: ScannedVariable) -> None:
+        """
+        Merge a single variable into the registry.
+
+        Handles deduplication and merging of:
+        - Vector/histogram entries (union of all entries)
+        - Distribution min/max ranges (expanded to include all values)
+
+        Args:
+            registry: Mutable registry dict to update
+            var: ScannedVariable to merge in
+        """
+
+        name: str = var.name
+        if name not in registry:
+            registry[name] = var
+        else:
+            existing = registry[name]
+            if var.type in ("vector", "histogram"):
+                new_entries = sorted(list(set(existing.entries) | set(var.entries)))
+                # Preserve other fields (like pattern_indices) while updating entries
+                registry[name] = replace(existing, entries=new_entries)
+
+            elif var.type == "distribution":
+                # Handle distribution range merging (gem5-specific min/max)
+                gem5_existing = existing if isinstance(existing, Gem5ScannedVariable) else None
+                gem5_var = var if isinstance(var, Gem5ScannedVariable) else None
+
+                cur_min = gem5_existing.minimum if gem5_existing else None
+                cur_max = gem5_existing.maximum if gem5_existing else None
+                var_min = gem5_var.minimum if gem5_var else None
+                var_max = gem5_var.maximum if gem5_var else None
+
+                # Explicit None guards — `var_min or cur_min` would discard a
+                # legitimate scanned minimum of 0.0 (falsy), losing the range.
+                new_min: float | None
+                new_max: float | None
+                if cur_min is not None and var_min is not None:
+                    new_min = min(cur_min, var_min)
+                else:
+                    new_min = var_min if var_min is not None else cur_min
+                if cur_max is not None and var_max is not None:
+                    new_max = max(cur_max, var_max)
+                else:
+                    new_max = var_max if var_max is not None else cur_max
+
+                registry[name] = Gem5ScannedVariable(
+                    name=existing.name,
+                    type=existing.type,
+                    entries=existing.entries,
+                    pattern_indices=existing.pattern_indices,
+                    minimum=new_min,
+                    maximum=new_max,
+                )
+
+    # ----------------------------------------------------------------- finalize
 
     @staticmethod
     def finalize_parsing(

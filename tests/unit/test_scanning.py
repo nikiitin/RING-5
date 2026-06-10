@@ -73,7 +73,7 @@ def test_scan_work_pool_async_flow(clean_pool_singleton: Any) -> None:
     """Test the core async flow of the pool."""
     from concurrent.futures import Future
 
-    with patch("src.parsing.gem5.impl.pool.work_pool.WorkPool.get_instance"):
+    with patch("src.parsing.framework.work_pool.WorkPool.get_instance"):
         scan_pool = ScanWorkPool.get_instance()
 
         work1 = MagicMock(spec=Gem5ScanWork)

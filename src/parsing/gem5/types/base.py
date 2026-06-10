@@ -52,7 +52,7 @@ class StatType:
     Provides common functionality for content storage, balancing, and reduction.
 
     IMPORTANT: This base class enforces critical safety invariants:
-    - reducedContent can ONLY be accessed after balance_content() AND reduce_duplicates()
+    - reduced_content can ONLY be accessed after balance_content() AND reduce_duplicates()
     - Subclasses should override _set_content() to validate incoming data
     - All types protect against invalid attribute access
     """
@@ -102,7 +102,13 @@ class StatType:
             )
 
     def __getattribute__(self, name: str) -> Any:
-        """Guard access to reduced_content - only valid after reduction."""
+        """Single source of truth for the lifecycle invariant: ``reduced_content``
+        is only readable after ``balance_content()`` and ``reduce_duplicates()``.
+
+        Don't remove this without first declaring the ``object.__setattr__``-assigned
+        attributes (``_content`` etc.): its ``-> Any`` also masks ~115 latent mypy
+        attribute errors across the hierarchy.
+        """
         if name == "reduced_content":
             balanced = object.__getattribute__(self, "_balanced")
             reduced = object.__getattribute__(self, "_reduced")
@@ -142,7 +148,8 @@ class StatType:
 
     @property
     def reduced_content(self) -> Any:
-        # Guard is in __getattribute__
+        # Guard lives in __getattribute__ (single source of truth); subclasses
+        # inherit this property rather than re-implementing the same check.
         return object.__getattribute__(self, "_reduced_content")
 
     def _validate_content(self, value: Any) -> None:

@@ -212,8 +212,9 @@ class TestPipelineEndToEnd:
         result = PipelineService.process_pipeline(pipeline_data, [])
         pd.testing.assert_frame_equal(result, pipeline_data)
 
-    def test_pipeline_with_skip_null_type(self, pipeline_data: pd.DataFrame) -> None:
-        """Pipeline entries with no type should be skipped gracefully."""
+    def test_pipeline_null_type_raises(self, pipeline_data: pd.DataFrame) -> None:
+        """A step with no type must raise — silently skipping it would return
+        un-transformed data while the caller believes the pipeline ran."""
         pipeline_config = [
             {"type": None},  # type: ignore[typeddict-item]
             {
@@ -221,8 +222,8 @@ class TestPipelineEndToEnd:
                 "columns": ["benchmark_name", "system.cpu.ipc"],
             },
         ]
-        result = PipelineService.process_pipeline(pipeline_data, pipeline_config)
-        assert list(result.columns) == ["benchmark_name", "system.cpu.ipc"]
+        with pytest.raises(ValueError, match="step 0 has no 'type'"):
+            PipelineService.process_pipeline(pipeline_data, pipeline_config)
 
     def test_pipeline_invalid_shaper_raises(self, pipeline_data: pd.DataFrame) -> None:
         """Pipeline with an unknown shaper type should raise ValueError."""

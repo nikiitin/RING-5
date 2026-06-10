@@ -72,9 +72,10 @@ backends without touching Core or Web.
 
 | Sub-package | Purpose |
 |---|---|
-| `parser_protocol.py` | `SimulationParser` Protocol (4 methods) |
+| `parser_protocol.py` | `SimulationParser` Protocol (5 methods) |
 | `registry.py` | `SimulatorRegistry` with auto-discovery |
-| `gem5/impl/` | `Gem5Parser`, `Gem5Scanner`, worker pools, strategies |
+| `framework/` | Simulator-agnostic infra: `WorkPool`, `Job`, `find_stats_files` |
+| `gem5/impl/` | `Gem5Parser` (parse + scan + CSV), pools, strategies |
 | `gem5/types/` | Self-registering stat types (scalar, vector, distribution, histogram, configuration) |
 
 ### Web (`src/web/`, ~120 files)
@@ -119,8 +120,7 @@ ApplicationAPI
   |     |-- DefaultManagersAPI       (arithmetic, outlier, reduction)
   |     |-- DefaultDataServicesAPI   (CSV pool, config, variables, portfolio)
   |     \-- DefaultShapersAPI        (factory, pipeline, 7+ shapers)
-  |-- ParseService              (Gem5Parser)
-  \-- ScannerService            (Gem5Scanner)
+  \-- SimulationParser          (Gem5Parser backend: parse + scan)
 ```
 
 Constructor injection is used throughout. `ApplicationAPI.__init__` accepts a
@@ -190,7 +190,7 @@ its sole dependency.
 | ABC | File | Concrete Types |
 |---|---|---|
 | `Shaper` | `src/core/services/shapers/shaper.py` | 7+ shapers (Selector, Sort, Mean, Normalize, Pivot, ...) |
-| `Job` | `src/parsing/gem5/impl/pool/job.py` | `ParseWork`, `ScanWork` |
+| `Job` | `src/parsing/framework/job.py` | `ParseWork`, `ScanWork` |
 | `BasePlot` | `src/web/pages/ui/plotting/base_plot.py` | 9 plot types (Bar, Line, Scatter, Heatmap, ...) |
 | `DataManager` | `src/web/components/data_managers/data_manager.py` | Preprocessor, SeedsReducer, OutlierRemover, Mixer |
 
@@ -240,19 +240,18 @@ its sole dependency.
                                  ^
                                  |
 +---------------------------------------------------------------------------+
-|                    DATA / INFRASTRUCTURE (Parsing)                         |
+|                    DATA / INFRASTRUCTURE (Parsing)                        |
 |                                                                           |
 |  parser_protocol.py    (SimulationParser Protocol)                        |
 |  registry.py           (SimulatorRegistry)                                |
-|  parse_service.py      (shim -> Gem5Parser)                               |
-|  scanner_service.py    (shim -> Gem5Scanner)                              |
+|  framework/            (WorkPool, Job, find_stats_files -- shared)        |
 |  gem5/                                                                    |
 |    +-- impl/                                                              |
-|    |   +-- gem5_parser.py     gem5_scanner.py                             |
-|    |   +-- pool/             (PerlWorkerPool, WorkPool, Job)              |
-|    |   +-- scanning/         (scanner, pattern_aggregator)                |
-|    |   \-- strategies/       (simple, config_aware, perl_worker)          |
-|    \-- types/                (scalar, vector, distribution, etc.)         |
+|    |   +-- gem5_parser.py   (Gem5Parser: parse + scan + CSV)              |
+|    |   +-- pool/            (ScanWorkPool / ParseWorkPool facades)        |
+|    |   +-- scanning/        (scanner, pattern_aggregator)                 |
+|    |   \-- strategies/      (simple, config_aware, perl_worker_pool)      |
+|    \-- types/               (scalar, vector, distribution, etc.)          |
 |                                                                           |
 +---------------------------------------------------------------------------+
 

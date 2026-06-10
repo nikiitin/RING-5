@@ -12,6 +12,7 @@ Features:
 
 import atexit
 import logging
+import os
 import queue
 import shutil
 import subprocess
@@ -22,6 +23,25 @@ from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+
+def _default_pool_size() -> int:
+    """Resolve the number of persistent Perl workers.
+
+    Defaults to **half the available CPUs** — parse throughput is bounded by this
+    pool, and measurements show the gain flattens out around cores/2. Override with
+    the ``RING5_PERL_POOL_SIZE`` environment variable (an integer >= 1).
+    """
+    override = os.environ.get("RING5_PERL_POOL_SIZE")
+    if override:
+        try:
+            n = int(override)
+            if n >= 1:
+                return n
+            logger.warning("RING5_PERL_POOL_SIZE=%r is < 1; ignoring", override)
+        except ValueError:
+            logger.warning("RING5_PERL_POOL_SIZE=%r is not an integer; ignoring", override)
+    return max(1, (os.cpu_count() or 4) // 2)
 
 
 @dataclass
@@ -429,14 +449,15 @@ class PerlWorkerPool:
     - Statistics tracking
     """
 
-    def __init__(self, pool_size: int = 4):
+    def __init__(self, pool_size: int | None = None):
         """
         Initialize worker pool - THE PRIMARY MECHANISM.
 
         Args:
-            pool_size: Number of worker processes to maintain
+            pool_size: Number of worker processes to maintain. When ``None``,
+                defaults to half the available CPUs (see ``_default_pool_size``).
         """
-        self.pool_size = pool_size
+        self.pool_size = pool_size if pool_size is not None else _default_pool_size()
         self.workers: list[PerlWorker] = []
         self.worker_queue: queue.Queue[PerlWorker] = queue.Queue()
         self._lock = threading.Lock()
@@ -462,7 +483,7 @@ class PerlWorkerPool:
         # Initialize pool - this is the ONLY mechanism now!
         self._initialize_pool()
         self._start_health_monitor()
-        logger.info(f"Worker pool initialized as PRIMARY mechanism ({pool_size} workers)")
+        logger.info(f"Worker pool initialized as PRIMARY mechanism ({self.pool_size} workers)")
 
     def _initialize_pool(self) -> None:
         """Initialize worker processes."""
@@ -661,12 +682,13 @@ _worker_pool_instance: PerlWorkerPool | None = None
 _pool_lock = threading.Lock()
 
 
-def get_worker_pool(pool_size: int = 4) -> PerlWorkerPool:
+def get_worker_pool(pool_size: int | None = None) -> PerlWorkerPool:
     """
     Get or create the singleton worker pool - THE PRIMARY MECHANISM.
 
     Args:
-        pool_size: Number of workers (only used on first call)
+        pool_size: Number of workers (only used on first call). ``None`` resolves
+            to half the available CPUs (override via ``RING5_PERL_POOL_SIZE``).
 
     Returns:
         PerlWorkerPool instance

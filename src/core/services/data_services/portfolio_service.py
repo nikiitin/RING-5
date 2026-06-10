@@ -74,7 +74,7 @@ from typing import Any, cast
 import pandas as pd
 
 from src.core.common.utils import sanitize_filename, validate_path_within
-from src.core.models import PlotProtocol, PortfolioData
+from src.core.models import ParseVariableConfig, PlotProtocol, PortfolioData
 from src.core.services.data_services.path_service import PathService
 from src.core.services.portfolio_migrator import PortfolioMigrator
 from src.core.state.state_manager import StateManager
@@ -104,10 +104,11 @@ class PortfolioService:
         config: dict[str, Any],
         plot_counter: int,
         csv_path: str | None = None,
-        parse_variables: list[str] | None = None,
+        parse_variables: list[ParseVariableConfig] | None = None,
         figure_spec_enricher: None | (
             Callable[[dict[str, Any], str], dict[str, Any] | None]
         ) = None,
+        overwrite: bool = True,
     ) -> None:
         """Serialize and save the current workspace state.
 
@@ -118,10 +119,15 @@ class PortfolioService:
             config: Global configuration dict.
             plot_counter: Current plot counter for ID generation.
             csv_path: Path to the original CSV file.
-            parse_variables: List of parsed variable names.
+            parse_variables: Parse-variable config dicts (the shape
+                ``StateManager.get_parse_variables()`` returns); a plain list
+                of strings would crash ``restore_session`` on load.
             figure_spec_enricher: Optional callback from the presentation layer
                 that converts a plot config dict and plot_type into a
                 FigureConfig dict. Injected to avoid core→web imports.
+            overwrite: When False, raise FileExistsError instead of replacing
+                an existing portfolio of the same name (portfolios are keyed
+                by name alone — the default silently overwrites).
         """
         if not name:
             raise ValueError("Portfolio name cannot be empty")
@@ -168,8 +174,14 @@ class PortfolioService:
             PathService.get_portfolios_dir() / f"{sanitize_filename(name)}.json",
             PathService.get_portfolios_dir(),
         )
-        with open(save_path, "w") as f:
-            json.dump(portfolio_data, f, indent=2)
+        # 'x' = atomic exclusive create: a check-then-write would let two
+        # concurrent savers both pass the check and silently clobber.
+        mode = "w" if overwrite else "x"
+        try:
+            with open(save_path, mode) as f:
+                json.dump(portfolio_data, f, indent=2)
+        except FileExistsError as exc:
+            raise FileExistsError(f"Portfolio '{name}' already exists at {save_path}") from exc
 
     def load_portfolio(self, name: str) -> PortfolioData:
         """Load a portfolio JSON by name.

@@ -26,9 +26,18 @@ class OutlierService:
         Values outside [Q1 - multiplier*IQR, Q3 + multiplier*IQR] are removed.
         The default multiplier of 1.5 identifies mild outliers (standard).
         Use 3.0 for extreme outliers only.
+
+        Raises:
+            ValueError: If the outlier column is missing/non-numeric or any
+                group-by column is missing (a silent no-op here would let a
+                caller publish data believing outliers were removed).
         """
-        if df.empty or outlier_col not in df.columns:
+        if df.empty:
             return df
+
+        errors = OutlierService.validate_outlier_inputs(df, outlier_col, group_by_cols)
+        if errors:
+            raise ValueError("; ".join(errors))
 
         if not group_by_cols:
             q1 = df[outlier_col].quantile(0.25)

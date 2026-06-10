@@ -18,8 +18,9 @@ The Unified Engine provides a publication-quality export system built on three p
    HTML/PNG/SVG/PDF and Matplotlib (`savefig`) for PDF/PGF/PNG/SVG -- with PGF
    producing native LaTeX vector output.
 3. **A Streamlit download UI** (`render_download_section`) that presents
-   engine-aware format pills and an `st.download_button`, plus a programmatic
-   `export_plot_to_file` API for batch export.
+   engine-aware format pills and an `st.download_button`. Programmatic /
+   batch export goes through the public `ring5` package
+   (`ring5.Session.export`, `ring5.render_portfolio`, and the `ring5` CLI).
 
 Presets are **immutable**. They are overlaid onto a `FigureConfig` via
 `dataclasses.replace()`, producing a new spec with publication-quality
@@ -36,7 +37,8 @@ inheritance chains before any rendering connector touches the spec.
 | `src/web/pages/ui/plotting/export/presets/latex_presets.json` | JSON catalogue of all 13 presets |
 | `src/web/rendering/preset_applicator.py` | `PresetApplicator.apply()` and `apply_partial()` |
 | `src/web/rendering/config_builder.py` | `PresetSpecBuilder.from_preset()` -- flat dict to `FigureConfig` |
-| `src/web/pages/ui/plotting/download_section.py` | Byte-producing functions and download UI |
+| `src/web/rendering/figure_export.py` | Byte-producing export functions (both engines, deterministic-output knobs) |
+| `src/web/pages/ui/plotting/download_section.py` | Streamlit download UI around them |
 
 ---
 
@@ -229,21 +231,26 @@ active rendering engine.
 
 - **HTML**: `fig.to_html(include_plotlyjs=True, full_html=True)` encoded to
   UTF-8. Produces a self-contained interactive file.
-- **PNG / SVG / PDF**: `fig.to_image(format=fmt, width=700, height=400, scale=2)`
-  via Kaleido v1.
+- **PNG / SVG / PDF**: Kaleido v1 (`kaleido.calc_fig_sync`, bounded retries)
+  at width=700, height=400, scale=2.
+
+Both byte producers live in `src/web/rendering/figure_export.py` (UI-free,
+shared with the `ring5` package).
 
 ### Matplotlib path
 
-`_render_mpl_download()` reads the matplotlib figure from
-`st.session_state[f"plot.{plot_id}.mpl_fig"]` and offers format pills for PDF,
-PGF, PNG, and SVG (default: PDF). Byte generation dispatches to
+`_render_mpl_download()` reads the matplotlib figure and its resolved
+`FigureConfig` from `st.session_state` (`plot.{plot_id}.mpl_fig` /
+`plot.{plot_id}.mpl_spec`) and offers format pills for PDF, PGF, PNG, and
+SVG (default: PDF). Byte generation dispatches to
 `matplotlib_download_bytes()`:
 
 - **PDF**: `fig.savefig(buf, format="pdf", dpi=dpi, bbox_inches="tight")`
 - **PGF**: Uses `plt.rc_context` to set `pgf.texsystem` to XeLaTeX and inject
-  the preset preamble, then `fig.savefig(buf, format="pgf", backend="pgf")`.
-  If PGF fails due to raster content (e.g., heatmaps), falls back to PDF with
-  a user warning.
+  the user's extra LaTeX preamble from the cached spec
+  (`latex_extra_preamble`), then `fig.savefig(buf, format="pgf",
+  backend="pgf")`. If PGF fails due to raster content (e.g., heatmaps),
+  falls back to PDF with a user warning.
 - **PNG**: Disables `text.usetex` to avoid dvipng dependency issues, uses the
   `agg` backend.
 - **SVG**: `fig.savefig(buf, format="svg", bbox_inches="tight")`
@@ -337,7 +344,7 @@ memory leaks.
 To add a new export format:
 
 1. Add the format string, MIME type, and file extension to the appropriate
-   dictionaries in `download_section.py` (`_FORMAT_MIME` / `_FORMAT_EXT` for
+   dictionaries in `figure_export.py` (`_FORMAT_MIME` / `_FORMAT_EXT` for
    Plotly, `_MPL_FORMAT_MIME` / `_MPL_FORMAT_EXT` for Matplotlib).
 2. Update the `Literal` type alias (`PlotlyFormat` or `MatplotlibFormat`).
 3. Add a branch in `plotly_download_bytes()` or `matplotlib_download_bytes()`
@@ -348,7 +355,7 @@ To add a new export format:
 
 ## LaTeX export troubleshooting
 
-LaTeX-backed export is exercised by the Matplotlib path (`src/web/rendering/matplotlib_connector.py` plus the byte-producing functions in `src/web/pages/ui/plotting/download_section.py`), which calls `savefig` for PDF/PGF/SVG and renders text through the system TeX toolchain. The Plotly path (Kaleido) does not require a TeX install. The remedies below cover the most common failures.
+LaTeX-backed export is exercised by the Matplotlib path (`src/web/rendering/matplotlib_connector.py` plus the byte-producing functions in `src/web/rendering/figure_export.py`), which calls `savefig` for PDF/PGF/SVG and renders text through the system TeX toolchain. The Plotly path (Kaleido) does not require a TeX install. The remedies below cover the most common failures.
 
 ### Prerequisites: TeX Live packages
 
@@ -487,5 +494,5 @@ Inspect the returned `ExportResult["metadata"]` to confirm which dimensions, fon
   preset selector UI component
 - `src/web/components/common/chart_display.py` -- `ChartDisplayComponent` that
   wires the download section into chart rendering
-- `src/web/pages/ui/plotting/plot_service.py` -- `PlotService.export_plot_to_file()`
-  for programmatic batch export
+- `ring5` (top-level package) -- `Session.export()` / `render_portfolio()` /
+  the `ring5` CLI for programmatic and batch export

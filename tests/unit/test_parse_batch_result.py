@@ -106,10 +106,11 @@ class TestSubmitParseAsyncReturnType:
     @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     @patch("src.parsing.gem5.impl.gem5_parser.normalize_user_path")
-    def test_empty_work_returns_empty_batch(
+    def test_empty_work_raises(
         self, mock_path: MagicMock, mock_factory: MagicMock, mock_pool: MagicMock
     ) -> None:
-        """Empty work should return ParseBatchResult with empty lists."""
+        """An empty work list raises — never an empty batch a script could
+        chain through finalize_parsing as a phantom 'success'."""
         from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
         mock_path.return_value.exists.return_value = True
@@ -117,16 +118,13 @@ class TestSubmitParseAsyncReturnType:
         mock_strategy.get_work_items.return_value = []
         mock_factory.create.return_value = mock_strategy
 
-        result = Gem5Parser.submit_parse_async(
-            stats_path="/tmp/stats",
-            stats_pattern="stats.txt",
-            variables=[StatConfig(name="test", type="scalar")],
-            output_dir="/tmp/out",
-        )
-
-        assert isinstance(result, ParseBatchResult)
-        assert result.futures == []
-        assert result.var_names == []
+        with pytest.raises(FileNotFoundError, match="No parse work generated"):
+            Gem5Parser.submit_parse_async(
+                stats_path="/tmp/stats",
+                stats_pattern="stats.txt",
+                variables=[StatConfig(name="test", type="scalar")],
+                output_dir="/tmp/out",
+            )
 
 
 class TestConstructFinalCsvVarNames:

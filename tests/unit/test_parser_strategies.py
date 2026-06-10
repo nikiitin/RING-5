@@ -17,17 +17,15 @@ def mock_variables() -> list[StatConfig]:
 
 class TestSimpleStatsStrategy:
 
-    @patch("src.parsing.gem5.impl.strategies.simple.normalize_user_path")
+    @patch("src.parsing.gem5.impl.strategies.simple.find_stats_files")
     def test_get_work_items_one_per_file(
-        self, mock_normalize: MagicMock, mock_variables: list[StatConfig]
+        self, mock_find: MagicMock, mock_variables: list[StatConfig]
     ) -> None:
         # The strategy discovers files and builds one ParseWork unit per file;
         # the worker pool that runs them is owned by Gem5Parser, not the strategy.
         from src.parsing.gem5.impl.strategies.gem5_parse_work import Gem5ParseWork
 
-        mock_path_obj = MagicMock()
-        mock_normalize.return_value = mock_path_obj
-        mock_path_obj.glob.return_value = ["/fake/path/1/stats.txt", "/fake/path/2/stats.txt"]
+        mock_find.return_value = ["/fake/path/1/stats.txt", "/fake/path/2/stats.txt"]
 
         strategy = SimpleStatsStrategy()
 
@@ -47,6 +45,34 @@ class TestSimpleStatsStrategy:
         # We need to verify it is the correct type of object
         assert var_map["foo"].__class__.__name__ == "Scalar"
         assert var_map["foo"].repeat == 1
+
+    def _ids(self, name: str, n: int) -> StatConfig:
+        return StatConfig(
+            name=name, type="scalar", params={"parsed_ids": [f"{name}{i}" for i in range(n)]}
+        )
+
+    def test_repeat_cap_skips_huge_pattern_vars(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """A regex var expanding past the cap is skipped (not OOM-parsed)."""
+        monkeypatch.delenv("RING5_MAX_VAR_REPEAT", raising=False)  # default cap = 1024
+        strategy = SimpleStatsStrategy()
+        var_map = strategy._map_variables(
+            [self._ids("normal.cpu", 64), self._ids("monster.matrix", 2704)]
+        )
+        # normal var (+ its aliases) stays; monster var and its aliases are dropped
+        assert "normal.cpu" in var_map and var_map["normal.cpu"].repeat == 64
+        assert not any(k.startswith("monster.matrix") for k in var_map)
+
+    def test_repeat_cap_env_override(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """RING5_MAX_VAR_REPEAT tightens the cap; 0 disables it entirely."""
+        strategy = SimpleStatsStrategy()
+
+        monkeypatch.setenv("RING5_MAX_VAR_REPEAT", "100")
+        var_map = strategy._map_variables([self._ids("v", 64), self._ids("big", 2704)])
+        assert "v" in var_map and "big" not in var_map  # 64 <= 100 < 2704
+
+        monkeypatch.setenv("RING5_MAX_VAR_REPEAT", "0")  # 0 == unlimited
+        var_map = strategy._map_variables([self._ids("big", 2704)])
+        assert "big" in var_map and var_map["big"].repeat == 2704
 
 
 class TestConfigAwareStrategy:

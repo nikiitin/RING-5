@@ -360,7 +360,7 @@ output format means implementing one new class.
 
 **GoF Classification:** Behavioral
 
-**Location:** `src/parsing/gem5/impl/pool/job.py` -- `Job` ABC (lines 18--29),
+**Location:** `src/parsing/framework/job.py` -- `Job` ABC (lines 18--29),
 `src/parsing/gem5/impl/pool/parse_work.py` -- `ParseWork` (lines 15--53)
 
 **Implementation.**
@@ -369,7 +369,7 @@ subclasses encapsulate a unit of work that can be submitted to a worker pool
 for parallel execution.
 
 ```python
-# src/parsing/gem5/impl/pool/job.py:18-29
+# src/parsing/framework/job.py:18-29
 class Job(ABC):
     """Base interface for all parallel tasks. Follows the Command pattern."""
 
@@ -563,8 +563,7 @@ data).
 sometimes called the "Special Case" or "Null Object" variant.
 
 **Location:** `src/core/services/visualization/config_resolver.py` (lines 56--57
-for constants, lines 60--75 for the resolver function). Backward-compatibility
-shim at `src/core/models/visualization/resolvers.py`.
+for constants, lines 60--75 for the resolver function).
 
 **Implementation.**
 Visualization configuration dataclasses use `-1` (int) and `-1.0` (float) as

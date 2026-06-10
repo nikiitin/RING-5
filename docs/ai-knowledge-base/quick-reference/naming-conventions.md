@@ -14,7 +14,7 @@ nav_order: 3
 | General modules | `snake_case.py` | `src/core/services/shapers/factory.py`, `src/web/rendering/engine_manager.py` |
 | Protocol files | `*_protocol.py` | `src/parsing/parser_protocol.py`, `src/core/models/plot_protocol.py` |
 | Private modules | `_*.py` (underscore prefix) | `src/web/rendering/_connector_protocol.py`, `src/web/rendering/_render_result.py`, `src/web/rendering/_heatmap_utils.py` |
-| Service files | `*_service.py` | `src/parsing/parse_service.py`, `src/core/services/data_services/portfolio_service.py` |
+| Service files | `*_service.py` | `src/core/services/data_services/csv_pool_service.py`, `src/core/services/data_services/portfolio_service.py` |
 | Config files | `*_config.py` | `src/core/models/visualization/figure_config.py`, `src/core/models/visualization/axis_config.py` |
 | Repository files | `*_repository.py` | `src/core/state/repositories/plot_repository.py`, `src/core/state/repositories/data_repository.py` |
 | Controller files | `*_controller.py` | `src/web/controllers/plot/render_controller.py`, `src/web/controllers/plot/creation_controller.py` |
@@ -103,7 +103,7 @@ All session state keys are managed through `src/web/state/ui_state_manager.py`. 
 | Directory Pattern | Purpose | Examples |
 |---|---|---|
 | `impl/` | Concrete implementations | `src/core/services/shapers/impl/mean.py`, `src/parsing/gem5/impl/gem5_parser.py` |
-| `impl/pool/` | Worker pool internals | `src/parsing/gem5/impl/pool/work_pool.py`, `src/parsing/gem5/impl/pool/job.py` |
+| `impl/pool/` | Worker pool internals | `src/parsing/framework/work_pool.py`, `src/parsing/framework/job.py` |
 | `impl/strategies/` | Strategy pattern implementations | `src/parsing/gem5/impl/strategies/simple.py`, `src/parsing/gem5/impl/strategies/config_aware.py` |
 | `impl/selector_algorithms/` | Selector algorithm variants | `src/core/services/shapers/impl/selector_algorithms/column_selector.py` |
 | `types/` | Type hierarchies and type-specific modules | `src/parsing/gem5/types/scalar.py`, `src/web/pages/ui/plotting/types/bar_plot.py` |

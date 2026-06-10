@@ -337,15 +337,16 @@ UI layer via `st.session_state`.
 #### `cancel_pending_scans`
 
 ```python
-@staticmethod
 def cancel_pending_scans() -> None
 ```
 
-**Source:** `src/core/application_api.py:423-428`
+**Source:** `src/core/application_api.py`
 
-Cancels all pending scan futures to release thread-pool resources and memory. Delegates
-to `ScanWorkPool.get_instance().cancel_all()`. The `ScanWorkPool` import is deferred
-(inline) to avoid loading parsing modules at import time.
+Cancels the scan futures **this instance** submitted via `submit_scan_async`, releasing
+thread-pool resources and memory. Cancellation is handle-based and instance-scoped: the
+work pools keep no future references. The web app caches one instance process-wide, so
+there this spans all browser sessions; ring5 scripts (one instance per `Session`) get
+true per-session scoping. `finalize_scan` also releases settled future references.
 
 ---
 

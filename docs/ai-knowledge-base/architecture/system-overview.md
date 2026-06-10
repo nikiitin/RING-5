@@ -177,7 +177,7 @@ ApplicationAPI
   |
   +-- self._parser = SimulatorRegistry.get_parser("gem5")
         |
-        +-- Gem5ParserAPI()  (lazy-created via registry factory)
+        +-- Gem5Parser()  (lazy-created via registry factory)
 ```
 
 Sub-API access via properties:
@@ -333,7 +333,7 @@ class SimulatorRegistry:
 | ABC            | File                                                    | Layer   | Abstract Methods                  | Concrete Implementations                    |
 |----------------|--------------------------------------------------------|---------|-----------------------------------|---------------------------------------------|
 | `Shaper`       | `src/core/services/shapers/shaper.py`                  | Core    | `_verify_params()`, `__call__()`  | Mean, ColumnSelector, ConditionSelector, ItemSelector, Normalize, PivotLonger, PivotWider, Sort, SplitApply, Transformer |
-| `Job`          | `src/parsing/gem5/impl/pool/job.py`                    | Parsing | `__call__()`                      | ParseWork, ScanWork                          |
+| `Job`          | `src/parsing/framework/job.py`                    | Parsing | `__call__()`                      | ParseWork, ScanWork                          |
 | `BasePlot`     | `src/web/pages/ui/plotting/base_plot.py`               | Web     | `create_traces()`, `get_legend_column()` | BarPlot, LinePlot, ScatterPlot, HistogramPlot, HeatmapPlot, GroupedBarPlot, StackedBarPlot, GroupedStackedBarPlot, DualAxisBarDotPlot |
 | `DataManager`  | `src/web/components/data_managers/data_manager.py`     | Web     | `name` (property), `render()`     | Preprocessor, SeedsReducer, OutlierRemover, Mixer |
 
@@ -384,7 +384,7 @@ class DataManager(ABC):
     @abstractmethod
     def render(self) -> None: ...
 
-# src/parsing/gem5/impl/pool/job.py
+# src/parsing/framework/job.py
 class Job(ABC):
     @abstractmethod
     def __call__(self) -> Any: ...
@@ -510,28 +510,29 @@ class Job(ABC):
        |  imports (Parsing -> Core: models + utilities)
        |
 +------------------------------------------------------------------+
-|                   src/parsing/ (Layer A)                          |
 |                                                                  |
 |  parser_protocol.py      (SimulationParser Protocol)             |
 |  registry.py             (SimulatorRegistry + SimulatorInfo)     |
-|  parse_service.py        (shim -> Gem5Parser)                    |
-|  scanner_service.py      (shim -> Gem5Scanner)                   |
+|                                                                  |
+|  framework/   (simulator-agnostic shared infra)                  |
+|    +-- work_pool.py       (WorkPool singleton ThreadPool)        |
+|    +-- job.py             (Job ABC)                              |
+|    +-- file_discovery.py  (find_stats_files)                     |
 |                                                                  |
 |  gem5/                                                           |
 |    +-- impl/                                                     |
-|    |     +-- gem5_parser.py       gem5_scanner.py                |
-|    |     +-- gem5_parser_api.py                                  |
+|    |     +-- gem5_parser.py   (Gem5Parser: parse + scan + CSV,   |
+|    |     |                      implements SimulationParser)     |
 |    |     +-- pool/                                               |
-|    |     |     +-- job.py          (Job ABC)                     |
-|    |     |     +-- pool.py         (PerlWorkerPool)              |
-|    |     |     +-- work_pool.py    (WorkPool singleton)          |
-|    |     |     +-- parse_work.py   scan_work.py                  |
+|    |     |     +-- pool.py        (ScanWorkPool/ParseWorkPool)   |
+|    |     |     +-- parse_work.py  scan_work.py                   |
 |    |     +-- scanning/                                           |
-|    |     |     +-- scanner.py      pattern_aggregator.py         |
+|    |     |     +-- scanner.py     pattern_aggregator.py          |
 |    |     +-- strategies/                                         |
-|    |           +-- file_parser_strategy.py  (Protocol)           |
-|    |           +-- factory.py      (StrategyFactory)             |
-|    |           +-- simple.py       config_aware.py               |
+|    |           +-- perl_worker_pool.py     (PerlWorkerPool)      |
+|    |           +-- file_parser_strategy.py (Protocol)            |
+|    |           +-- factory.py     (StrategyFactory)              |
+|    |           +-- simple.py      config_aware.py                |
 |    +-- types/                                                    |
 |          +-- scalar.py  vector.py  distribution.py               |
 |          +-- histogram.py  configuration.py                      |
@@ -550,11 +551,11 @@ class Job(ABC):
 | Protocol (DIP)      | All layer boundaries                              | 19 Protocol classes for structural typing       |
 | Factory             | Core, Parsing, Web                                | 4 factories with registry + creation           |
 | Strategy            | `src/parsing/gem5/impl/strategies/`               | Interchangeable parsing strategies             |
-| Command             | `src/parsing/gem5/impl/pool/job.py`               | Job ABC for parallel work units                |
+| Command             | `src/parsing/framework/job.py`               | Job ABC for parallel work units                |
 | Singleton           | `app.py` via `@st.cache_resource`                 | One ApplicationAPI per server process          |
 | Adapter             | `src/web/pages/plot_adapters.py`                  | BasePlot -> PlotHandle/ConfigRenderer          |
 | Lazy Import         | `app.py` page routing                             | Only active page module is loaded              |
-| Sentinel Value      | `src/core/models/visualization/resolvers.py`      | -1 means "use engine default"                  |
+| Sentinel Value      | `src/core/services/visualization/config_resolver.py` | -1 means "use engine default"               |
 | Mixin               | `PlotConfigUIMixin` in `BasePlot`                 | Separates plot logic from UI config methods    |
 
 ---

@@ -2,7 +2,7 @@
 
 **R**eproducible **I**nstrumentation for **N**umerical **G**raphics for gem5
 
-RING-5 turns raw simulator output into publication-ready figures. Point it at your stats files, pick your variables, and get clean, reproducible plots for your next ISCA, MICRO, or ASPLOS paper -- no scripting required. Currently supports **gem5**, with a multi-simulator architecture for future backends.
+RING-5 turns raw simulator output into publication-ready figures. Point it at your stats files, pick your variables, and get clean, reproducible plots for your next ISCA, MICRO, or ASPLOS paper -- in the web app (no scripting required) or headlessly via the `ring5` Python API and CLI (batch parsing, CI figure regression, regenerating every figure from a saved portfolio). Currently supports **gem5**, with a multi-simulator architecture for future backends.
 
 [![Python](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/)
 [![Tests](https://img.shields.io/badge/tests-passing-success)](tests/)

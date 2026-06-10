@@ -65,6 +65,7 @@ import hashlib
 import logging
 import shutil
 import threading
+import uuid
 from pathlib import Path
 from typing import cast
 
@@ -152,8 +153,11 @@ class CsvPoolService:
             Path to the file in the pool.
         """
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        # uuid suffix: timestamps have 1-second resolution, so two adds in the
+        # same second (parallel sessions / batch CLI) would silently overwrite.
+        unique = uuid.uuid4().hex[:8]
         pool_dir = CsvPoolService.get_pool_dir()
-        pool_path = validate_path_within(pool_dir / f"parsed_{timestamp}.csv", pool_dir)
+        pool_path = validate_path_within(pool_dir / f"parsed_{timestamp}_{unique}.csv", pool_dir)
         source_path = Path(csv_path).resolve()
         shutil.copy(str(source_path), pool_path)
         return str(pool_path)
@@ -212,8 +216,12 @@ class CsvPoolService:
         cache_key = CsvPoolService._compute_file_hash(resolved_path)
         cached_df = CsvPoolService._dataframe_cache.get(cache_key)
         if cached_df is not None:
-            # Trust cache contains DataFrame
-            return cast(DataFrame, cached_df)
+            # Defensive copy: the cache holds one pristine frame shared by every
+            # caller (and every session) — handing out the cached object itself
+            # would let one caller's in-place mutation corrupt all the others.
+            # Shallow (deep=False) is sufficient and ~1000× cheaper: pandas 3
+            # Copy-on-Write isolates every mutation path through the new frame.
+            return cast(DataFrame, cached_df).copy(deep=False)
 
         # Load with optimizations
         # Note: low_memory doesn't work with python engine, so we use C engine when possible
@@ -234,7 +242,7 @@ class CsvPoolService:
         }
         CsvPoolService._metadata_cache.set(resolved_path, metadata)
 
-        return result
+        return result.copy(deep=False)
 
     @staticmethod
     def _compute_file_hash(file_path: str) -> str:

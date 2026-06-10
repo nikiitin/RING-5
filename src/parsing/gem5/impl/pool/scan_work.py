@@ -7,7 +7,7 @@ of scalar, vector, and other statistics.
 """
 
 from src.core.models import ScanFileResult
-from src.parsing.gem5.impl.pool.job import Job
+from src.parsing.framework.job import Job
 
 
 class ScanWork(Job):

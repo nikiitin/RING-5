@@ -107,9 +107,7 @@ nav_order: 1
 
 - **ConfigResolver**: `config_resolver.py`
 - **PaletteService**: `palette_service.py`
-- **Plot interaction**: `plot_interaction.py`
-- **PlotInteractionService**: `src/core/services/plot_interaction_service.py`
-- **ConfigValidationService**: `src/core/services/config_validation_service.py`
+- **Plot interaction helpers**: `plot_interaction.py`
 - **PortfolioMigrator**: `src/core/services/portfolio_migrator.py`
 
 ---
@@ -146,14 +144,12 @@ nav_order: 1
 
 - **SimulationParser Protocol**: `parser_protocol.py`
 - **SimulatorRegistry**: `registry.py`
-- **ParseService shim**: `parse_service.py`
-- **ScannerService shim**: `scanner_service.py`
+- **Shared framework**: `framework/` (`work_pool.py`, `job.py`, `file_discovery.py`)
 
 ### gem5 Implementation (`src/parsing/gem5/impl/`)
 
 - **Gem5Parser**: `gem5_parser.py`
-- **Gem5ParserAPI**: `gem5_parser_api.py`
-- **Gem5Scanner**: `gem5_scanner.py`
+- **Gem5Parser** (parse + scan + CSV; implements `SimulationParser`): `gem5_parser.py`
 
 ### Strategies (`src/parsing/gem5/impl/strategies/`)
 

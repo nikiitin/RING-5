@@ -313,9 +313,11 @@ class Normalize(UniDfShaper):
         relevant_cols = self._normalize_vars + self._group_by + [self._normalizer_column]
         fingerprint = compute_data_fingerprint(data_frame, self._params, relevant_cols)
 
-        # Use cache with fingerprint as key (NOT the DataFrame itself)
+        # Use cache with fingerprint as key (NOT the DataFrame itself).
+        # Shallow copy (CoW) so callers can never mutate the cache-resident
+        # frame in place and poison later hits.
         result: DataFrame = self._normalize_with_cache(data_frame, fingerprint)
-        return result
+        return result.copy(deep=False)
 
 
 if __name__ == "__main__":

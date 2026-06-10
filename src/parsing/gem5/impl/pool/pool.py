@@ -14,7 +14,7 @@ from concurrent.futures import Future
 from src.core.models import ScanFileResult
 from src.parsing.gem5.impl.pool.parse_work import ParsedVarsDict, ParseWork
 from src.parsing.gem5.impl.pool.scan_work import ScanWork
-from src.parsing.gem5.impl.pool.work_pool import WorkPool
+from src.parsing.framework.work_pool import WorkPool
 
 
 class ScanWorkPool:
@@ -55,56 +55,23 @@ class ScanWorkPool:
     def __init__(self) -> None:
         """Initialize the scan work pool with WorkPool backend."""
         self._workPool: WorkPool = WorkPool.get_instance()
-        self._futures: list[Future[ScanFileResult]] = []
 
-    def submit_batch_async(
-        self, works: Sequence[ScanWork], chunk_size: int | None = None
-    ) -> list[Future[ScanFileResult]]:
+    def submit_batch_async(self, works: Sequence[ScanWork]) -> list[Future[ScanFileResult]]:
         """
-        Submit a batch of scan works with optimized chunking.
+        Submit a batch of scan works to the shared pool — one future per work.
+
+        The returned futures are the caller's handles: the singleton keeps no
+        reference to them (retaining the last batch here let one caller cancel
+        another caller's in-flight work, and pinned its results in memory).
+        Cancellation is per-handle: ``future.cancel()`` on the futures you own.
 
         Args:
-            works: List of ScanWork instances to execute in parallel
-            chunk_size: Optional chunk size for batching (auto-calculated if None)
+            works: ScanWork instances to execute in parallel
 
         Returns:
             List of Future objects for tracking execution status
         """
-        if not works:
-            return []
-
-        # Release references to completed futures from previous batches
-        # to prevent unbounded memory growth in this singleton.
-        self._futures.clear()
-
-        # Auto-calculate optimal chunk size
-        # Use default of 4 workers if we can't determine pool size
-        if chunk_size is None:
-            chunk_size = max(1, len(works) // 8)  # Conservative default
-
-        current_batch_futures: list[Future[ScanFileResult]] = []
-
-        # Submit in optimized chunks to reduce overhead
-        for i in range(0, len(works), chunk_size):
-            chunk = works[i : i + chunk_size]
-            for work in chunk:
-                if work is not None:
-                    future: Future[ScanFileResult] = self._workPool.submit(work)
-                    self._futures.append(future)
-                    current_batch_futures.append(future)
-
-        return current_batch_futures
-
-    def cancel_all(self) -> None:
-        """
-        Cancel all pending futures and release references.
-
-        This attempts to cancel all submitted work that hasn't started yet,
-        then clears the internal list to free memory.
-        """
-        for f in self._futures:
-            f.cancel()
-        self._futures.clear()
+        return [self._workPool.submit(w) for w in works if w is not None]
 
 
 class ParseWorkPool:
@@ -149,49 +116,20 @@ class ParseWorkPool:
     def __init__(self) -> None:
         """Initialize the parse work pool with WorkPool backend."""
         self._work_pool: WorkPool = WorkPool.get_instance()
-        self._futures: list[Future[ParsedVarsDict]] = []
 
     def submit_batch_async(self, works: Sequence[ParseWork]) -> list[Future[ParsedVarsDict]]:
         """
-        Submit a batch of parsing works with optimized chunking.
+        Submit a batch of parsing works to the shared pool — one future per work.
+
+        The returned futures are the caller's handles: the singleton keeps no
+        reference to them (retaining the last batch here let one caller cancel
+        another caller's in-flight work, and pinned its results in memory).
+        Cancellation is per-handle: ``future.cancel()`` on the futures you own.
 
         Args:
-            works: List of ParseWork instances to execute in parallel
+            works: ParseWork instances to execute in parallel
 
         Returns:
             List of Future objects for tracking execution status
         """
-        if not works:
-            return []
-
-        # Release references to completed futures from previous batches
-        # to prevent unbounded memory growth in this singleton.
-        self._futures.clear()
-
-        # Auto-calculate optimal chunk size
-        # Use conservative default to avoid overhead
-        chunk_size = max(1, len(works) // 8)
-
-        current_batch_futures: list[Future[ParsedVarsDict]] = []
-
-        # Submit in optimized chunks to reduce overhead
-        for i in range(0, len(works), chunk_size):
-            chunk = works[i : i + chunk_size]
-            for work in chunk:
-                if work is not None:
-                    future: Future[ParsedVarsDict] = self._work_pool.submit(work)
-                    self._futures.append(future)
-                    current_batch_futures.append(future)
-
-        return current_batch_futures
-
-    def cancel_all(self) -> None:
-        """
-        Cancel all pending futures and release references.
-
-        This attempts to cancel all submitted work that hasn't started yet,
-        then clears the internal list to free memory.
-        """
-        for f in self._futures:
-            f.cancel()
-        self._futures.clear()
+        return [self._work_pool.submit(w) for w in works if w is not None]

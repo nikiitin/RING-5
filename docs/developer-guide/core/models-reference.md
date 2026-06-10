@@ -1242,13 +1242,13 @@ exist and `ValueError` if fundamentally invalid.
 
 ## 11. See Also
 
-- **State Management** -- `src/core/services/state_manager.py` consumes
+- **State Management** -- `src/core/state/state_manager.py` consumes
   `ParseVariableConfig`, `ScannedVariableDict`, and `OperationRecord`.
-- **Shaper Pipeline** -- `src/core/services/shaper/` implements the shapers
+- **Shaper Pipeline** -- `src/core/services/shapers/` implements the shapers
   whose configs are defined in `shaper_models.py`.
 - **Visualization Connectors** -- `src/core/services/visualization/` translates
   `FigureConfig` trees into Plotly or matplotlib figures.
-- **Portfolio Service** -- `src/core/services/portfolio_service.py` serializes
+- **Portfolio Service** -- `src/core/services/data_services/portfolio_service.py` serializes
   and restores `PortfolioData`.
 - **Palette Service** -- `src/core/services/visualization/palette_service.py`
   resolves palette names from `PALETTE_REGISTRY`.

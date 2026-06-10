@@ -31,7 +31,6 @@ from typing import Any, cast
 import numpy as np
 import pandas as pd
 
-from src.core.common.utils import normalize_user_path, sanitize_glob_pattern
 from src.core.models import (
     ParseBatchResult,
     ScanFileResult,
@@ -58,6 +57,7 @@ from src.core.services.managers.managers_api import ManagersAPI
 from src.core.services.services_impl import DefaultServicesAPI
 from src.core.services.shapers.shapers_api import ShapersAPI
 from src.core.state.repository_state_manager import RepositoryStateManager
+from src.parsing.framework.file_discovery import find_stats_files as _find_stats_files
 from src.parsing.parser_protocol import SimulationParser
 from src.parsing.registry import SimulatorInfo, SimulatorRegistry
 
@@ -99,6 +99,13 @@ class ApplicationAPI:
 
         # Simulator parser backend (lazy default to gem5 via registry)
         self._parser: SimulationParser = parser or SimulatorRegistry.get_parser("gem5")
+
+        # Scan futures submitted through THIS ApplicationAPI instance —
+        # cancellation is handle-based and instance-scoped. NOTE: the web app
+        # caches ONE instance process-wide (@st.cache_resource in app.py), so
+        # there the scope is effectively the whole process; the pools
+        # themselves keep no future references.
+        self._pending_scan_futures: list[Future[ScanFileResult]] = []
 
         logger.info("ApplicationAPI initialized (Singleton Service)")
 
@@ -165,11 +172,7 @@ class ApplicationAPI:
 
     def find_stats_files(self, search_path: str, pattern: str = "stats.txt") -> list[str]:
         """Find stats files in a directory."""
-        path = normalize_user_path(search_path)
-        if not path.exists():
-            return []
-        safe_pattern = sanitize_glob_pattern(pattern)
-        return [str(p) for p in path.rglob(safe_pattern)]
+        return _find_stats_files(search_path, pattern)
 
     def submit_parse_async(
         self,
@@ -252,10 +255,22 @@ class ApplicationAPI:
         self, stats_path: str, stats_pattern: str = "stats.txt", limit: int = 5
     ) -> list[Future[ScanFileResult]]:
         """Submit scanning job. Each future resolves to a ``ScanFileResult``."""
-        return self._parser.submit_scan_async(stats_path, stats_pattern, limit)
+        futures = self._parser.submit_scan_async(stats_path, stats_pattern, limit)
+        # Accumulate (pruning settled futures) rather than replace: replacing
+        # would orphan a still-running earlier batch from cancellation.
+        self._pending_scan_futures = [f for f in self._pending_scan_futures if not f.done()] + list(
+            futures
+        )
+        return futures
 
     def finalize_scan(self, results: list[ScanFileResult]) -> ScanResult:
-        """Aggregate per-file scan results into a ``ScanResult``."""
+        """Aggregate per-file scan results into a ``ScanResult``.
+
+        Also releases this instance's settled scan-future references (their
+        per-file payloads are large; aggregation is the natural release
+        point).
+        """
+        self._pending_scan_futures = [f for f in self._pending_scan_futures if not f.done()]
         return self._parser.aggregate_scan_results(results)
 
     def get_parse_status(self) -> str:
@@ -428,9 +443,14 @@ class ApplicationAPI:
         return SimulatorRegistry.get_info(name)
 
     def cancel_pending_scans(self) -> None:
-        """Cancel all pending scan futures to release memory.
+        """Cancel the scan futures THIS instance submitted, releasing memory.
 
-        Delegates to the injected parser so cancellation respects the active
-        backend rather than reaching into a gem5-specific pool.
+        Handle-based and instance-scoped: only futures returned by this
+        instance's ``submit_scan_async`` are cancelled. The web app shares
+        one cached instance across browser sessions, so there this spans
+        the process — scripts (one Session per ApplicationAPI) get true
+        per-session scoping.
         """
-        self._parser.cancel_pending_scans()
+        for future in self._pending_scan_futures:
+            future.cancel()
+        self._pending_scan_futures.clear()

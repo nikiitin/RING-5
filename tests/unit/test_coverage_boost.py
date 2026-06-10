@@ -8,13 +8,12 @@ Targets the following files/lines:
     Lines 53-64: ScannedVariable.to_dict optional fields (minimum, maximum, pattern_indices)
 - src/parsing/gem5/impl/strategies/factory.py  (53% → 100%)
     Lines 37-44: config_aware branch + ValueError for unknown strategy
-- src/parsing/gem5/impl/gem5_parser_api.py  (71% → 100%)
     Lines 40, 57, 66, 73: all four delegating methods
 - src/parsing/gem5/impl/strategies/config_aware.py  (67% → ~100%)
     Lines 42-43, 55, 68-75: post_process + _parse_config branches
 - src/parsing/gem5/impl/pool/parse_work.py  (80% → 100%)
     Lines 44, 53: __call__ raises NotImplementedError, __str__
-- src/parsing/gem5/impl/pool/work_pool.py  (85% → ~100%)
+- src/parsing/framework/work_pool.py  (85% → ~100%)
     Thread-executor lazy init and submit.
 - src/parsing/gem5/impl/gem5_parser.py  (79% → ~90%)
     Lines 143-146, 155-198, 210-212, 325: regex expansion, keep_indices, finalize
@@ -118,72 +117,6 @@ class TestStrategyFactory:
 
         with pytest.raises(ValueError, match="Unknown strategy type"):
             StrategyFactory.create("nonexistent")
-
-
-# ===================================================================
-# 3. Gem5ParserAPI — all four delegation methods (lines 40, 57, 66, 73)
-# ===================================================================
-
-
-class TestGem5ParserAPI:
-    """Cover submit_parse_async, finalize_parsing, submit_scan_async, aggregate_scan_results."""
-
-    @patch("src.parsing.gem5.impl.gem5_parser_api.Gem5Parser")
-    def test_submit_parse_async(self, mock_parser: MagicMock) -> None:
-        from src.core.models.parsing_models import ParseBatchResult
-        from src.parsing.gem5.impl.gem5_parser_api import Gem5ParserAPI
-
-        mock_parser.submit_parse_async.return_value = ParseBatchResult(futures=[], var_names=[])
-        api = Gem5ParserAPI()
-        result = api.submit_parse_async(
-            stats_path="/fake/path",
-            stats_pattern="stats.txt",
-            variables=[],
-            output_dir="/tmp/out",
-            strategy_type="simple",
-            scanned_vars=None,
-        )
-        mock_parser.submit_parse_async.assert_called_once()
-        assert isinstance(result, ParseBatchResult)
-
-    @patch("src.parsing.gem5.impl.gem5_parser_api.Gem5Parser")
-    def test_finalize_parsing(self, mock_parser: MagicMock) -> None:
-        from src.parsing.gem5.impl.gem5_parser_api import Gem5ParserAPI
-
-        mock_parser.finalize_parsing.return_value = "/some/path.csv"
-        api = Gem5ParserAPI()
-        result = api.finalize_parsing(
-            output_dir="/tmp/out",
-            results=[{"data": 1}],
-            strategy_type="simple",
-            var_names=["a"],
-        )
-        mock_parser.finalize_parsing.assert_called_once()
-        assert result == "/some/path.csv"
-
-    @patch("src.parsing.gem5.impl.gem5_parser_api.Gem5Scanner")
-    def test_submit_scan_async(self, mock_scanner: MagicMock) -> None:
-        from src.parsing.gem5.impl.gem5_parser_api import Gem5ParserAPI
-
-        mock_scanner.submit_scan_async.return_value = []
-        api = Gem5ParserAPI()
-        result = api.submit_scan_async(
-            stats_path="/fake/path",
-            stats_pattern="stats.txt",
-            limit=5,
-        )
-        mock_scanner.submit_scan_async.assert_called_once()
-        assert result == []
-
-    @patch("src.parsing.gem5.impl.gem5_parser_api.Gem5Scanner")
-    def test_aggregate_scan_results(self, mock_scanner: MagicMock) -> None:
-        from src.parsing.gem5.impl.gem5_parser_api import Gem5ParserAPI
-
-        mock_scanner.aggregate_scan_results.return_value = []
-        api = Gem5ParserAPI()
-        result = api.aggregate_scan_results(results=[[]])
-        mock_scanner.aggregate_scan_results.assert_called_once()
-        assert result == []
 
 
 # ===================================================================
@@ -313,7 +246,7 @@ class TestWorkPool:
     """Cover the thread-executor lazy init and submit."""
 
     def test_thread_executor_lazy_init(self) -> None:
-        from src.parsing.gem5.impl.pool.work_pool import WorkPool
+        from src.parsing.framework.work_pool import WorkPool
 
         # Reset singleton to force fresh initialization
         WorkPool._instance = None
@@ -333,7 +266,7 @@ class TestWorkPool:
         WorkPool._instance = None
 
     def test_submit_runs_on_thread_pool(self) -> None:
-        from src.parsing.gem5.impl.pool.work_pool import WorkPool
+        from src.parsing.framework.work_pool import WorkPool
 
         WorkPool._instance = None
         pool = WorkPool()
@@ -373,7 +306,7 @@ class TestParseServiceRegexExpansion:
         stats_dir.mkdir()
 
         mock_strategy = MagicMock()
-        mock_strategy.get_work_items.return_value = []
+        mock_strategy.get_work_items.return_value = [MagicMock()]
         mock_factory.create.return_value = mock_strategy
 
         scanned = [
@@ -412,7 +345,7 @@ class TestParseServiceRegexExpansion:
         stats_dir.mkdir()
 
         mock_strategy = MagicMock()
-        mock_strategy.get_work_items.return_value = []
+        mock_strategy.get_work_items.return_value = [MagicMock()]
         mock_factory.create.return_value = mock_strategy
 
         scanned = [
@@ -459,7 +392,7 @@ class TestParseServiceRegexExpansion:
         stats_dir.mkdir()
 
         mock_strategy = MagicMock()
-        mock_strategy.get_work_items.return_value = []
+        mock_strategy.get_work_items.return_value = [MagicMock()]
         mock_factory.create.return_value = mock_strategy
 
         mock_pool = MagicMock()
@@ -516,7 +449,7 @@ class TestParseServiceRegexExpansion:
         stats_dir.mkdir()
 
         mock_strategy = MagicMock()
-        mock_strategy.get_work_items.return_value = []
+        mock_strategy.get_work_items.return_value = [MagicMock()]
         mock_factory.create.return_value = mock_strategy
 
         mock_pool = MagicMock()
@@ -569,7 +502,7 @@ class TestParseServiceRegexExpansion:
         stats_dir.mkdir()
 
         mock_strategy = MagicMock()
-        mock_strategy.get_work_items.return_value = []
+        mock_strategy.get_work_items.return_value = [MagicMock()]
         mock_factory.create.return_value = mock_strategy
 
         scanned = [
@@ -608,7 +541,7 @@ class TestParseServiceRegexExpansion:
         stats_dir.mkdir()
 
         mock_strategy = MagicMock()
-        mock_strategy.get_work_items.return_value = []
+        mock_strategy.get_work_items.return_value = [MagicMock()]
         mock_factory.create.return_value = mock_strategy
 
         scanned = [
@@ -1176,7 +1109,7 @@ class TestGem5ParserSubmitParseAsync:
         stats_dir.mkdir()
 
         mock_strategy = MagicMock()
-        mock_strategy.get_work_items.return_value = []
+        mock_strategy.get_work_items.return_value = [MagicMock()]
         mock_factory.create.return_value = mock_strategy
 
         scanned = [
@@ -1215,7 +1148,7 @@ class TestGem5ParserSubmitParseAsync:
         stats_dir.mkdir()
 
         mock_strategy = MagicMock()
-        mock_strategy.get_work_items.return_value = []
+        mock_strategy.get_work_items.return_value = [MagicMock()]
         mock_factory.create.return_value = mock_strategy
 
         scanned = [
@@ -1262,7 +1195,7 @@ class TestGem5ParserSubmitParseAsync:
         stats_dir.mkdir()
 
         mock_strategy = MagicMock()
-        mock_strategy.get_work_items.return_value = []
+        mock_strategy.get_work_items.return_value = [MagicMock()]
         mock_factory.create.return_value = mock_strategy
 
         mock_pool = MagicMock()
@@ -1318,7 +1251,7 @@ class TestGem5ParserSubmitParseAsync:
         stats_dir.mkdir()
 
         mock_strategy = MagicMock()
-        mock_strategy.get_work_items.return_value = []
+        mock_strategy.get_work_items.return_value = [MagicMock()]
         mock_factory.create.return_value = mock_strategy
 
         mock_pool = MagicMock()
@@ -1370,7 +1303,7 @@ class TestGem5ParserSubmitParseAsync:
         stats_dir.mkdir()
 
         mock_strategy = MagicMock()
-        mock_strategy.get_work_items.return_value = []
+        mock_strategy.get_work_items.return_value = [MagicMock()]
         mock_factory.create.return_value = mock_strategy
 
         scanned = [ScannedVariable(name="system.mem.bw", type="scalar")]
@@ -1402,7 +1335,7 @@ class TestGem5ParserSubmitParseAsync:
         stats_dir.mkdir()
 
         mock_strategy = MagicMock()
-        mock_strategy.get_work_items.return_value = []
+        mock_strategy.get_work_items.return_value = [MagicMock()]
         mock_factory.create.return_value = mock_strategy
 
         scanned = [ScannedVariable(name="system.cpu0.ipc", type="scalar")]
@@ -1759,7 +1692,7 @@ class TestJobBase:
     """Cover Job.__str__ and abstract __call__."""
 
     def test_job_str(self) -> None:
-        from src.parsing.gem5.impl.pool.job import Job
+        from src.parsing.framework.job import Job
 
         class MyJob(Job):
             def __call__(self) -> Any:

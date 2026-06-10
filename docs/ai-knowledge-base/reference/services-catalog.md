@@ -18,8 +18,8 @@ ApplicationAPI (src/core/application_api.py)
         +-- DefaultDataServicesAPI -> CsvPoolService, ConfigService, PathService,
         |                            VariableService, PortfolioService, PatternIndexService
         +-- DefaultShapersAPI    -> ShaperFactory, PipelineService
-  +-- Visualization (standalone) -> ConfigResolver, PaletteService, PlotInteractionService
-  +-- Other (standalone)         -> ConfigValidationService, PortfolioMigrator
+  +-- Visualization (standalone) -> ConfigResolver, PaletteService, plot_interaction helpers
+  +-- Other (standalone)         -> PortfolioMigrator
 ```
 
 - Every sub-API is a `@runtime_checkable Protocol` with a single `Default*` implementation
@@ -251,7 +251,7 @@ File I/O and domain entity management. Accessed via `api.data_services.*`.
 
 ### PatternIndexService
 
-- **File**: `src/core/services/data_services/pattern_index_service.py`
+- **File**: `src/core/models/pattern_index_service.py`
 - **Stateless**: Yes (all `@staticmethod`)
 - **Methods**:
   - `is_pattern_variable(var_name: str) -> bool`
@@ -418,21 +418,19 @@ SENTINEL_FLOAT = -1.0
 
 ---
 
-### PlotInteractionService
+### Plot Interaction Helpers
 
 - **File**: `src/core/services/visualization/plot_interaction.py`
 - **Stateless**: Yes (pure functions)
-- **Methods**:
+- **Functions**:
   - `try_float(value: str) -> float | str`
   - `try_float_edit(value: Any) -> float | str`
-  - `update_config_from_relayout(config: dict, relayout_data: dict) -> tuple[dict, bool]`
   - `resolve_item_order(items: list[str], default_order: list[str] | None = None, current_order: list[str] | None = None) -> list[str]`
-- **Key behavior**:
-  - `update_config_from_relayout` handles:
-    - Zoom/pan: `xaxis.range[0/1]` -> `range_x`
-    - Reset zoom: `xaxis.autorange` -> `range_x = None`
-    - Legend drag: `legend.x/y` -> `legend_x/y` + auto-set anchors (`xanchor="left"`, `yanchor="top"`)
-    - Legend title: `legend.title.text` -> `legend_title`
+- **Relayout sync** -- `src/web/rendering/relayout.py::update_config_from_relayout(config: dict, relayout_data: dict) -> tuple[dict, bool]`:
+  - Zoom/pan: `xaxis.range[0/1]` -> `range_x`
+  - Reset zoom: `xaxis.autorange` -> `range_x = None`
+  - Legend drag: `legend.x/y` -> `legend_x/y` + auto-set anchors (`xanchor="left"`, `yanchor="top"`)
+  - Legend title: `legend.title.text` -> `legend_title`
   - Change detection uses `math.isclose(rel_tol=1e-9)` to avoid float noise
   - Returns `(config, False)` for empty relayout data
   - `resolve_item_order`: preserves existing order for common items, appends new items at end
@@ -440,46 +438,6 @@ SENTINEL_FLOAT = -1.0
 ---
 
 ## 5. Other Services
-
-### ConfigValidationService
-
-- **File**: `src/core/services/config_validation_service.py`
-- **Stateless**: No (`ConfigValidator` holds schema; `ConfigTemplateGenerator` is stateless)
-
-#### ConfigValidator
-
-- **Methods**:
-  - `__init__(schema_path: str | None = None) -> None`
-  - `validate(config: RingConfig | dict) -> bool`
-  - `validate_file(config_path: str) -> bool`
-  - `get_errors(config: dict) -> list[str]`
-- **Key behavior**:
-  - Uses `jsonschema.Draft7Validator`
-  - Default schema: `src/core/models/config/schemas/pipeline_schema.json`
-  - Schema path validated within schemas directory
-  - `validate` raises `ValidationError` on failure
-  - `get_errors` returns list of `"{path}: {message}"` strings
-
-#### ConfigTemplateGenerator
-
-- **Methods**:
-  - `create_minimal_config(output_path: str, stats_path: str) -> RingConfig` [static]
-  - `create_plot_config(plot_type: str, x: str, y: str, filename: str, **kwargs) -> PlotConfig` [static]
-  - `add_variable(config: dict, name: str, var_type: str, rename: str | None = None) -> dict` [static]
-  - `enable_seeds_reducer(config: dict) -> dict` [static]
-  - `enable_outlier_removal(config: dict, column: str, method: str = "iqr", threshold: float = 1.5) -> dict` [static]
-  - `enable_normalizer(config: dict, baseline: dict, columns: list, group_by: list) -> dict` [static]
-  - `save_config(config: dict, output_path: str) -> None` [static]
-- **Key behavior**:
-  - All methods are `@staticmethod`
-  - Supported plot types: `bar`, `line`, `heatmap`, `grouped_bar`, `stacked_bar`, `box`, `violin`, `scatter`
-  - Supported aggregate methods: `mean`, `median`, `sum`, `geomean`
-  - Supported themes: `default`, `whitegrid`, `darkgrid`, `white`, `dark`, `ticks`
-
-**Convenience function**:
-- `create_simple_bar_plot_config(output_path: str, stats_path: str, x_var: str, y_var: str, hue_var: str | None = None) -> RingConfig`
-
----
 
 ### PortfolioMigrator
 
@@ -515,7 +473,7 @@ SENTINEL_FLOAT = -1.0
 | PipelineService | `ValueError` empty name / wrapped shaper errors |
 | ConfigResolver | No error handling (pure, operates on deep copy) |
 | PaletteService | Never raises; falls back to `"wong"` palette |
-| PlotInteractionService | Returns `(config, False)` for empty data |
+| `relayout.update_config_from_relayout` | Returns `(config, False)` for empty data |
 
 ### Security Measures
 
@@ -531,14 +489,6 @@ SENTINEL_FLOAT = -1.0
 - ConfigResolver: `deepcopy()` on input FigureConfig
 - PaletteService: returns copy of color list
 - PortfolioMigrator: `deepcopy()` during migration
-
-### Deprecated Shims
-
-| File | Canonical Location | Status |
-|---|---|---|
-| `src/core/services/plot_interaction_service.py` | `src/core/services/visualization/plot_interaction.py` | Removal in Phase 10 |
-
----
 
 ## Protocol / Implementation Map
 

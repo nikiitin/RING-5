@@ -46,15 +46,17 @@ def test_async_scan_flow() -> None:
 
 
 def test_async_scan_cancellation() -> None:
-    """Test cancellation of async scan via futures."""
+    """Test cancellation of async scan via the caller-owned future handles."""
     pool = ScanWorkPool.get_instance()
 
     # Long duration works
     works = [MockWork(i, 0.5) for i in range(5)]
     futures = pool.submit_batch_async(works)
 
-    # Cancel all immediately
-    pool.cancel_all()
+    # Cancel the handles we own — the pool keeps no references, so
+    # cancellation cannot touch another caller's in-flight batch.
+    for future in futures:
+        future.cancel()
 
     # Try to collect results - some may be cancelled
     results = []

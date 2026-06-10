@@ -383,10 +383,10 @@ validated within the shaper's own `_verify_params()`.
   `factory.py`, add validation in `validation.py`, build the UI component,
   and register in the UI dispatcher at `shaper_config.py`.
 - **State Management** -- Pipeline steps are stored in Streamlit session state
-  per plot. See `src/core/services/state/`.
+  per plot. See `src/core/state/`.
 - **Plotting System** -- Shaper output feeds directly into the plotting
   pipeline.
 - **Performance Caching** -- `Mean` and `Normalize` use `@cached` with
-  `compute_data_fingerprint()` from `src/core/performance/`.
+  `compute_data_fingerprint()` from `src/core/performance.py`.
 - **Portfolio System** -- Saved pipeline configurations can be stored and
   restored as part of portfolio presets.

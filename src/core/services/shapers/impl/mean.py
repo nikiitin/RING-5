@@ -246,5 +246,6 @@ class Mean(UniDfShaper):
         relevant_cols = self.mean_vars + self.grouping_columns + [self.replacing_column]
         fingerprint = compute_data_fingerprint(data_frame, self._params, relevant_cols)
 
-        # Use cached calculation
-        return self._calculate_mean_with_cache(data_frame, fingerprint)
+        # Use cached calculation. Shallow copy (CoW) so callers can never
+        # mutate the cache-resident frame in place and poison later hits.
+        return self._calculate_mean_with_cache(data_frame, fingerprint).copy(deep=False)

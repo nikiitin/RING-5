@@ -41,21 +41,28 @@ class TestSubmitParseAsync:
 
     @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
-    def test_returns_empty_batch_when_no_work(
+    def test_raises_when_no_work(
         self, mock_sf: MagicMock, mock_pool: MagicMock, tmp_path: Path
     ) -> None:
+        """An empty work list must raise — an empty batch chained through
+        finalize_parsing would let a whole parse run 'succeed' silently."""
         stats_dir = tmp_path / "data"
         stats_dir.mkdir()
         strategy = MagicMock()
         strategy.get_work_items.return_value = []
         mock_sf.create.return_value = strategy
 
-        result = ParseService.submit_parse_async(
-            str(stats_dir), "stats.txt", [], str(tmp_path / "out")
-        )
+        with pytest.raises(FileNotFoundError, match="No parse work generated"):
+            ParseService.submit_parse_async(str(stats_dir), "stats.txt", [], str(tmp_path / "out"))
 
-        assert result.futures == []
-        assert result.var_names == []
+    def test_raises_on_stats_free_directory(self, tmp_path: Path) -> None:
+        """Same raise-if-empty contract as the scan path (real strategy)."""
+        stats_dir = tmp_path / "data"
+        stats_dir.mkdir()
+        (stats_dir / "decoy.log").write_text("not a stats file\n")
+
+        with pytest.raises(FileNotFoundError, match="No files matching"):
+            ParseService.submit_parse_async(str(stats_dir), "stats.txt", [], str(tmp_path / "out"))
 
     @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")

@@ -108,3 +108,25 @@ class TestEdgeCases:
         }
         result = PortfolioMigrator.migrate(v1)
         assert result["plots"][0]["config"]["engine"] == "matplotlib"
+
+
+class TestForwardVersionGuard:
+    """A newer-schema portfolio must be refused, never silently downgraded."""
+
+    def test_newer_schema_version_raises(self) -> None:
+        import pytest
+
+        from src.core.services.portfolio_migrator import PortfolioVersionError
+
+        v3: Dict[str, Any] = {
+            "schema_version": 3,
+            "plots": [{"plot_type": "sankey_3d", "config": {}}],
+            "v3_only_key": {"future": "data"},
+        }
+        with pytest.raises(PortfolioVersionError, match="newer than this RING-5"):
+            PortfolioMigrator.migrate(v3)
+
+    def test_current_version_still_loads(self) -> None:
+        data: Dict[str, Any] = {"schema_version": 2, "plots": []}
+        result = PortfolioMigrator.migrate(data)
+        assert result["schema_version"] == 2

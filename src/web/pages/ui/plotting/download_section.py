@@ -1,215 +1,34 @@
-"""Download helpers and UI for both rendering engines.
+"""Download UI for both rendering engines.
 
-Byte-producing functions + a thin ``render_download_section()`` that
-wires format selection and ``st.download_button`` for the active engine.
-
-**Plotly path**: Uses Kaleido v1 (``fig.to_image()``) for PNG/SVG/PDF,
-and ``fig.to_html()`` for interactive HTML export.
-**Matplotlib path**: Uses ``savefig`` for PDF/PNG/SVG/PGF  (Step 19).
+Format pills + ``st.download_button`` wiring for the active engine. The
+byte-producing export functions live in the UI-free
+``src.web.rendering.figure_export`` module (shared with the public ``ring5``
+package); this module is exclusively the Streamlit presentation around them.
 """
 
 from __future__ import annotations
 
-import io
 import logging
-from typing import Literal, cast
+from typing import cast
 
-import kaleido
-import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import streamlit as st
+from kaleido.errors import ChromeNotFoundError
 from matplotlib.figure import Figure as MplFigure
 
-from src.core.models.visualization.figure_config import FigureConfig
 from src.web.rendering.engine_manager import EngineManager
+from src.web.rendering.figure_export import (
+    MatplotlibFormat,
+    PlotlyFormat,
+    get_matplotlib_extension,
+    get_matplotlib_mime,
+    get_plotly_extension,
+    get_plotly_mime,
+    matplotlib_download_bytes,
+    plotly_download_bytes,
+)
 
 logger = logging.getLogger(__name__)
-
-# ── Type aliases ─────────────────────────────────────────────────
-
-PlotlyFormat = Literal["png", "svg", "pdf", "html"]
-
-# Kaleido raster export (png/svg/pdf) drives a headless Chrome subprocess that
-# can intermittently stall under load. Plotly's ``fig.to_image()`` hardcodes a
-# single 90s-timeout attempt, so a stall blocks for ~90s and then fails. We
-# instead drive Kaleido directly with a short per-attempt timeout and retry —
-# each attempt is a fresh oneshot Chrome (the app starts no persistent Kaleido
-# server), so a retry recovers from a wedged browser.
-_KALEIDO_ATTEMPT_TIMEOUT_S: int = 25
-_KALEIDO_ATTEMPTS: int = 3
-
-_FORMAT_MIME = {
-    "png": "image/png",
-    "svg": "image/svg+xml",
-    "pdf": "application/pdf",
-    "html": "text/html",
-}
-
-_FORMAT_EXT = {
-    "png": ".png",
-    "svg": ".svg",
-    "pdf": ".pdf",
-    "html": ".html",
-}
-
-
-# ── Plotly download (Kaleido v1) ─────────────────────────────────
-
-
-def plotly_download_bytes(
-    fig: go.Figure,
-    fmt: PlotlyFormat,
-    *,
-    width: int = 700,
-    height: int = 400,
-    scale: int = 2,
-) -> bytes:
-    """Export a Plotly figure to bytes.
-
-    Args:
-        fig: The Plotly figure to export.
-        fmt: One of ``"png"``, ``"svg"``, ``"pdf"``, ``"html"``.
-        width: Image width in pixels (before scale).  Ignored for HTML.
-        height: Image height in pixels (before scale).  Ignored for HTML.
-        scale: Resolution multiplier (only affects raster formats).
-
-    Returns:
-        Raw bytes of the exported content.
-
-    Raises:
-        ValueError: If *fmt* is not a supported format.
-    """
-    if fmt not in _FORMAT_MIME:
-        raise ValueError(
-            f"Unsupported format {fmt!r}. " f"Choose from {list(_FORMAT_MIME.keys())}."
-        )
-
-    if fmt == "html":
-        html_str: str = fig.to_html(
-            include_plotlyjs=True,
-            full_html=True,
-        )
-        return html_str.encode("utf-8")
-
-    # Raster/vector via Kaleido — driven directly (not via fig.to_image) so we
-    # can bound each attempt and retry with a fresh Chrome on a stall. For
-    # vector formats scale has no effect, but the API accepts it.
-    fig_dict = fig.to_dict()
-    opts = {"format": fmt, "width": width, "height": height, "scale": scale}
-    last_exc: Exception | None = None
-    for attempt in range(1, _KALEIDO_ATTEMPTS + 1):
-        try:
-            return cast(
-                bytes,
-                kaleido.calc_fig_sync(
-                    fig_dict,
-                    opts=opts,
-                    kopts={"timeout": _KALEIDO_ATTEMPT_TIMEOUT_S},
-                ),
-            )
-        except Exception as exc:  # Kaleido/Chrome stall or transient failure
-            last_exc = exc
-            logger.warning(
-                "Kaleido %s export attempt %d/%d failed (%s); " "retrying with a fresh browser",
-                fmt,
-                attempt,
-                _KALEIDO_ATTEMPTS,
-                exc,
-            )
-    raise RuntimeError(
-        f"Kaleido {fmt} export failed after {_KALEIDO_ATTEMPTS} attempts"
-    ) from last_exc
-
-
-def get_plotly_mime(fmt: PlotlyFormat) -> str:
-    """Return the MIME type for a Plotly export format."""
-    return _FORMAT_MIME[fmt]
-
-
-def get_plotly_extension(fmt: PlotlyFormat) -> str:
-    """Return the file extension (with dot) for a Plotly export format."""
-    return _FORMAT_EXT[fmt]
-
-
-# ── Matplotlib download (savefig + PGF) ──────────────────────────
-
-MatplotlibFormat = Literal["pdf", "pgf", "png", "svg"]
-
-_MPL_FORMAT_MIME = {
-    "pdf": "application/pdf",
-    "pgf": "application/x-pgf",
-    "png": "image/png",
-    "svg": "image/svg+xml",
-}
-
-_MPL_FORMAT_EXT = {
-    "pdf": ".pdf",
-    "pgf": ".pgf",
-    "png": ".png",
-    "svg": ".svg",
-}
-
-
-def matplotlib_download_bytes(
-    fig: MplFigure,
-    fmt: MatplotlibFormat,
-    *,
-    dpi: int = 300,
-    spec: FigureConfig | None = None,
-) -> bytes:
-    """Export a matplotlib Figure to image bytes via savefig.
-
-    Args:
-        fig: The matplotlib Figure to export.
-        fmt: One of ``"pdf"``, ``"pgf"``, ``"png"``, ``"svg"``.
-        dpi: Resolution for raster formats (PNG). Ignored by vector formats.
-        spec: Optional FigureConfig for PGF preamble extraction.
-
-    Returns:
-        Raw bytes of the exported image.
-
-    Raises:
-        ValueError: If *fmt* is not a supported format.
-    """
-    if fmt not in _MPL_FORMAT_MIME:
-        raise ValueError(
-            f"Unsupported format {fmt!r}. " f"Choose from {list(_MPL_FORMAT_MIME.keys())}."
-        )
-
-    buf = io.BytesIO()
-
-    if fmt == "pgf":
-        preamble = spec.latex_extra_preamble if spec else ""
-        with plt.rc_context(
-            {
-                "pgf.texsystem": "xelatex",
-                "pgf.preamble": preamble,
-                "pgf.rcfonts": True,
-            }
-        ):
-            fig.savefig(buf, format="pgf", backend="pgf")
-    elif fmt == "pdf":
-        fig.savefig(buf, format="pdf", dpi=dpi, bbox_inches="tight")
-    elif fmt == "png":
-        # rc_context ensures usetex is off – dvipng may not be installed
-        # and another caller may have turned it on globally.
-        with plt.rc_context({"text.usetex": False}):
-            fig.savefig(buf, format="png", dpi=dpi, bbox_inches="tight", backend="agg")
-    elif fmt == "svg":
-        fig.savefig(buf, format="svg", bbox_inches="tight")
-
-    buf.seek(0)
-    return buf.read()
-
-
-def get_matplotlib_mime(fmt: MatplotlibFormat) -> str:
-    """Return the MIME type for a matplotlib export format."""
-    return _MPL_FORMAT_MIME[fmt]
-
-
-def get_matplotlib_extension(fmt: MatplotlibFormat) -> str:
-    """Return the file extension (with dot) for a matplotlib export format."""
-    return _MPL_FORMAT_EXT[fmt]
 
 
 # ── UI download section ──────────────────────────────────────────
@@ -258,6 +77,14 @@ def _render_plotly_download(
     fmt_typed = cast(PlotlyFormat, fmt)
     try:
         data = plotly_download_bytes(fig, fmt_typed)
+    except ChromeNotFoundError as exc:
+        logger.error("Plotly %s export failed — no browser for Kaleido: %s", fmt, exc)
+        st.warning(
+            f"Could not generate the {fmt.upper()} export: no Chrome-family browser "
+            "was found for the image renderer. Install one with `kaleido_get_chrome` "
+            "(or set BROWSER_PATH), or use the HTML format."
+        )
+        return
     except Exception as exc:  # never let a download-export failure kill the chart
         logger.error("Plotly %s export failed: %s", fmt, exc)
         st.warning(
@@ -282,6 +109,10 @@ def _render_mpl_download(plot_id: int, plot_name: str) -> None:
         st.warning("No matplotlib figure available for download.")
         return
 
+    # Resolved FigureConfig cached by the chart display — PGF reads the
+    # user's LaTeX preamble (latex_extra_preamble) from it.
+    spec = st.session_state.get(f"plot.{plot_id}.mpl_spec")
+
     fmt = st.pills(
         "Format",
         options=["pdf", "pgf", "png", "svg"],
@@ -293,7 +124,7 @@ def _render_mpl_download(plot_id: int, plot_name: str) -> None:
 
     fmt_typed = cast(MatplotlibFormat, fmt)
     try:
-        data = matplotlib_download_bytes(mpl_fig, fmt_typed)
+        data = matplotlib_download_bytes(mpl_fig, fmt_typed, spec=spec)
     except ValueError as exc:
         if "raster" in str(exc).lower() and fmt_typed == "pgf":
             st.warning(
@@ -301,7 +132,7 @@ def _render_mpl_download(plot_id: int, plot_name: str) -> None:
                 "Falling back to PDF with LaTeX rendering."
             )
             fmt_typed = "pdf"
-            data = matplotlib_download_bytes(mpl_fig, fmt_typed)
+            data = matplotlib_download_bytes(mpl_fig, fmt_typed, spec=spec)
         else:
             raise
     st.download_button(

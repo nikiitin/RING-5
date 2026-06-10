@@ -40,6 +40,7 @@ install: venv
 dev: venv
 	$(PIP) install -e ".[dev,e2e]"
 	$(VENV_BIN)/playwright install chromium
+	$(MAKE) mock-data
 	@echo ""
 	@echo "📋 Don't forget to install pre-commit hooks:"
 	@echo "   make pre-commit-install"
@@ -154,6 +155,10 @@ TEST_DATA_DIR = tests/data/results-micro26-sens
 TEST_DATA_URL = https://github.com/nikiitin/RING-5/releases/download/test-data-v1/test_data.tar.gz
 TEST_DATA_TARBALL = test_data.tar.gz
 
+# Shaper e2e mock CSV fixture, generated from the gem5 stats.txt by parsing them.
+# (The fixture is not committed and is not in the test-data tarball — see the script.)
+MOCK_CSV = tests/data/mock/inputs/csv/configurer/configurer_test_case01.csv
+
 test-data:
 	@if [ ! -d "$(TEST_DATA_DIR)" ]; then \
 		echo ">> Test data not found. Downloading..."; \
@@ -178,11 +183,22 @@ test-data:
 		echo ""; \
 	fi
 
-test: test-data
+# Generate the shaper e2e mock CSV fixture by parsing the gem5 stats.txt data.
+# Idempotent (skips if present); needs the .txt data (test-data) and the editable install.
+.PHONY: mock-data
+mock-data: test-data
+	@if [ ! -f "$(MOCK_CSV)" ]; then \
+		echo ">> Generating shaper mock CSV fixture from gem5 stats.txt ..."; \
+		$(VENV_BIN)/python scripts/generate_mock_fixtures.py; \
+	else \
+		echo ">> Mock fixture already present: $(MOCK_CSV)"; \
+	fi
+
+test: test-data mock-data
 	$(pytest) --no-cov
 
 # Run unit + integration tests WITH 90% coverage gate (for main branch CI/CD)
-test-ci: test-data
+test-ci: test-data mock-data
 	$(pytest) --cov=src --cov-report=term-missing --cov-branch --cov-fail-under=90
 
 # Run only unit tests (fast feedback during development)
@@ -362,20 +378,20 @@ quality-gate:
 	@PASS=0; FAIL=0; \
 	echo "▸ Gate 1: Architecture..."; \
 	V=$$(grep -rn "import streamlit\|from streamlit" src/core/ --include="*.py" 2>/dev/null | grep -v __pycache__ | wc -l); \
-	V=$$((V + $$(grep -rn "inplace=True" src/ --include="*.py" 2>/dev/null | grep -v __pycache__ | wc -l))); \
-	V=$$((V + $$(grep -rn "^[[:space:]]*except:" src/ --include="*.py" 2>/dev/null | grep -v __pycache__ | wc -l))); \
+	V=$$((V + $$(grep -rn "inplace=True" src/ ring5/ --include="*.py" 2>/dev/null | grep -v __pycache__ | wc -l))); \
+	V=$$((V + $$(grep -rn "^[[:space:]]*except:" src/ ring5/ --include="*.py" 2>/dev/null | grep -v __pycache__ | wc -l))); \
 	V=$$((V + $$(grep -rn "session_state" src/core/ --include="*.py" 2>/dev/null | grep -v __pycache__ | grep -v "^\s*#" | grep -v "^.*#.*session_state" | grep -v "st\.session_state is" | wc -l))); \
 	if [ $$V -eq 0 ]; then echo "  ✅ Architecture OK"; PASS=$$((PASS+1)); else echo "  ❌ $$V violations"; FAIL=$$((FAIL+1)); fi; \
 	echo "▸ Gate 2: Type Safety..."; \
-	MYPY_ERRORS=$$($(VENV_BIN)/mypy src/ --no-error-summary 2>&1 | grep ": error:" | wc -l); \
+	MYPY_ERRORS=$$($(VENV_BIN)/mypy src/ ring5/ --no-error-summary 2>&1 | grep ": error:" | wc -l); \
 	if [ "$$MYPY_ERRORS" -eq 0 ]; then echo "  ✅ Types OK"; PASS=$$((PASS+1)); else echo "  ❌ $$MYPY_ERRORS mypy errors"; FAIL=$$((FAIL+1)); fi; \
 	echo "▸ Gate 3: Formatting..."; \
-	if $(VENV_BIN)/black --check --quiet src/ 2>&1; then echo "  ✅ Formatting OK"; PASS=$$((PASS+1)); else echo "  ❌ Needs formatting"; FAIL=$$((FAIL+1)); fi; \
+	if $(VENV_BIN)/black --check --quiet src/ ring5/ 2>&1; then echo "  ✅ Formatting OK"; PASS=$$((PASS+1)); else echo "  ❌ Needs formatting"; FAIL=$$((FAIL+1)); fi; \
 	echo "▸ Gate 4: Linting..."; \
-	LINT_ERRORS=$$($(VENV_BIN)/flake8 src/ --count 2>&1 | tail -1); \
+	LINT_ERRORS=$$($(VENV_BIN)/flake8 src/ ring5/ --count 2>&1 | tail -1); \
 	if [ "$$LINT_ERRORS" = "0" ] || [ -z "$$LINT_ERRORS" ]; then echo "  ✅ Linting OK"; PASS=$$((PASS+1)); else echo "  ❌ $$LINT_ERRORS lint issues"; FAIL=$$((FAIL+1)); fi; \
 	echo "▸ Gate 5: Security..."; \
-	SEC=$$(grep -rn "eval(\|exec(" src/ --include="*.py" 2>/dev/null | grep -v __pycache__ | grep -v test | wc -l); \
+	SEC=$$(grep -rn "eval(\|exec(" src/ ring5/ --include="*.py" 2>/dev/null | grep -v __pycache__ | grep -v test | wc -l); \
 	if [ $$SEC -eq 0 ]; then echo "  ✅ Security OK"; PASS=$$((PASS+1)); else echo "  ⚠️ $$SEC security findings"; FAIL=$$((FAIL+1)); fi; \
 	echo ""; \
 	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"; \

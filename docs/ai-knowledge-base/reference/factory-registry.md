@@ -189,7 +189,7 @@ BaseStyleUI  -- src/web/pages/ui/plotting/styles/base_ui.py
 
 | Key | Display Name | Factory | Parser Class |
 |-----|-------------|---------|-------------|
-| `"gem5"` | `"gem5"` | `_create_gem5_parser()` | `Gem5ParserAPI` (`src/parsing/gem5/impl/gem5_parser_api.py`) |
+| `"gem5"` | `"gem5"` | `_create_gem5_parser()` | `Gem5Parser` (`src/parsing/gem5/impl/gem5_parser.py`) |
 
 #### gem5 SimulatorInfo
 
@@ -250,7 +250,7 @@ from src.parsing.gem5.types import configuration as _configuration
 |---------|---------------|----------|
 | `ShaperFactory.create_shaper()` | `DefaultShapersAPI` | `src/core/services/shapers/shapers_impl.py` |
 | `PlotFactory.create_plot()` | `CreationController` | `src/web/controllers/plot/creation_controller.py` |
-| `StrategyFactory.create()` | `Gem5ParserAPI` | `src/parsing/gem5/impl/gem5_parser_api.py` |
+| `StrategyFactory.create()` | `Gem5Parser` | `src/parsing/gem5/impl/gem5_parser.py` |
 | `StyleUIFactory.get_strategy()` | `BasePlot.__init__()` | `src/web/pages/ui/plotting/base_plot.py` |
 | `SimulatorRegistry.get_parser()` | `ApplicationAPI` | `src/core/application_api.py` |
 | `StatTypeRegistry.create()` | `TypeMapper.create_stat()` | `src/parsing/gem5/types/type_mapper.py` |

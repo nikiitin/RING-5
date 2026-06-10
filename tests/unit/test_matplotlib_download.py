@@ -15,7 +15,7 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
 from src.core.models.visualization.figure_config import FigureConfig
-from src.web.pages.ui.plotting.download_section import (
+from src.web.rendering.figure_export import (
     get_matplotlib_extension,
     get_matplotlib_mime,
     matplotlib_download_bytes,

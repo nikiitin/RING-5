@@ -181,7 +181,7 @@ A typical edit-test-lint-commit cycle:
 use the flat style from the repository root:
 
 ```python
-from src.core.services.config_validation_service import ConfigValidator
+from src.core.application_api import ApplicationAPI
 ```
 
 **2. Test** -- Run unit tests for fast feedback:

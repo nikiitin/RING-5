@@ -83,18 +83,43 @@ class TestMatplotlibBackgrounds:
 
 
 class TestMatplotlibFontFamily:
-    """Test _apply_font_family."""
+    """Test _apply_font_family — applies to text artists, never to global rcParams."""
 
-    def test_font_family_set(self, ax: Axes) -> None:
-        spec = FigureConfig(font_family="serif")
+    def test_font_family_set_on_existing_text(self, ax: Axes) -> None:
+        ax.set_title("t")
+        spec = FigureConfig(font_family="monospace")
         FigureSpecToMatplotlib._apply_font_family(spec, ax)
-        assert matplotlib.rcParams["font.family"] == ["serif"]
+        assert ax.title.get_fontfamily() == ["monospace"]
+        assert all(t.get_fontfamily() == ["monospace"] for t in ax.get_xticklabels())
+
+    def test_font_family_never_mutates_global_rcparams(self, ax: Axes) -> None:
+        """The old global mutation made the FIRST figure of every process
+        render in the wrong font and leaked state into unrelated figures."""
+        original = matplotlib.rcParams["font.family"]
+        spec = FigureConfig(font_family="monospace")
+        FigureSpecToMatplotlib._apply_font_family(spec, ax)
+        assert matplotlib.rcParams["font.family"] == original
 
     def test_empty_font_family_no_change(self, ax: Axes) -> None:
         original = matplotlib.rcParams["font.family"]
         spec = FigureConfig(font_family="")
         FigureSpecToMatplotlib._apply_font_family(spec, ax)
         assert matplotlib.rcParams["font.family"] == original
+
+    def test_first_figure_full_apply_correct_font_and_no_leak(self) -> None:
+        """End-to-end: a full apply() on a fresh figure must style every text
+        artist with the spec font while leaving process rcParams untouched."""
+        original = matplotlib.rcParams["font.family"]
+        spec = FigureConfig(font_family="monospace", title="My Title")
+        fig, ax = FigureSpecToMatplotlib.create_figure(spec)
+        try:
+            ax.bar(["a", "b"], [1.0, 2.0])
+            FigureSpecToMatplotlib.apply(spec, ax)
+            assert ax.title.get_fontfamily() == ["monospace"]
+            assert all(t.get_fontfamily() == ["monospace"] for t in ax.get_xticklabels())
+            assert matplotlib.rcParams["font.family"] == original
+        finally:
+            plt.close(fig)
 
 
 # ────────────────────────────────────────────────────────────────────

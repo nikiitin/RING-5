@@ -82,9 +82,6 @@ from src.parsing.parser_protocol import SimulationParser
 
 # Line 55 -- Registry metadata for simulator auto-discovery
 from src.parsing.registry import SimulatorInfo, SimulatorRegistry
-
-# Line 426 -- Lazy import inside cancel_pending_scans()
-from src.parsing.gem5.impl.pool.pool import ScanWorkPool
 ```
 
 **Why these exist**:
@@ -94,9 +91,8 @@ from src.parsing.gem5.impl.pool.pool import ScanWorkPool
 | `SimulationParser`  | Constructor parameter type (`parser: SimulationParser`) | Dependency Inversion |
 | `SimulatorRegistry` | `list_simulators()`, `get_simulator_info()`   | Service Locator      |
 | `SimulatorInfo`     | Return type from registry queries             | DTO                  |
-| `ScanWorkPool`      | Cancel pending scan futures (lazy, line 426)  | Lazy Import          |
 
-`ApplicationAPI` never imports concrete implementations (`Gem5Parser`, `Gem5Scanner`).
+`ApplicationAPI` never imports concrete implementations (`Gem5Parser`).
 Concrete parsers are injected or resolved via the registry at runtime.
 
 ---

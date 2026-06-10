@@ -16,6 +16,20 @@ from src.core.services.shapers.factory import ShaperFactory
 logger = logging.getLogger(__name__)
 
 
+class PipelineStepError(ValueError):
+    """A pipeline step failed — carries the step location as data.
+
+    A ``ValueError`` subclass so existing callers keep working; consumers
+    that need to point at the failing step (the public ring5 API, the UI)
+    read ``step_index``/``shaper_type`` instead of parsing the message.
+    """
+
+    def __init__(self, message: str, *, step_index: int, shaper_type: str | None) -> None:
+        self.step_index = step_index
+        self.shaper_type = shaper_type
+        super().__init__(message)
+
+
 class PipelineService:
     """Executes shaper transformation chains."""
 
@@ -26,7 +40,8 @@ class PipelineService:
         """Apply a sequence of shapers to a DataFrame.
 
         Each shaper copies its input internally, so no initial copy is made.
-        Raises ``ValueError`` (wrapping the original error) if any shaper fails.
+        Raises ``PipelineStepError`` (a ``ValueError`` carrying
+        ``step_index``/``shaper_type``) if any step is malformed or fails.
         """
         t_start = time.perf_counter()
         current_data = data
@@ -34,7 +49,12 @@ class PipelineService:
         for i, shaper_config in enumerate(pipeline_config):
             shaper_type = shaper_config.get("type")
             if not shaper_type:
-                continue
+                raise PipelineStepError(
+                    f"Pipeline step {i} has no 'type' key (got: {shaper_config!r}). "
+                    "Every step must name a registered shaper type.",
+                    step_index=i,
+                    shaper_type=None,
+                )
 
             try:
                 t_shaper_start = time.perf_counter()
@@ -45,7 +65,11 @@ class PipelineService:
                     f"PERF: Shaper {i} ({shaper_type}) took {t_shaper_end - t_shaper_start:.4f}s"
                 )
             except Exception as e:
-                raise ValueError(f"Failed to apply shaper {shaper_type}: {e}") from e
+                raise PipelineStepError(
+                    f"Failed to apply shaper {shaper_type} (step {i}): {e}",
+                    step_index=i,
+                    shaper_type=str(shaper_type),
+                ) from e
 
         t_total = time.perf_counter() - t_start
         logger.info(f"PERF: process_pipeline total took {t_total:.4f}s for {len(data)} rows")

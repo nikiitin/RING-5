@@ -28,6 +28,7 @@ This guide is organized into five sections.
   - Shaper Pipeline -- per-plot data transformations (filter, sort, normalize, and more).
   - Settings Pills -- fine-grained control over typography, axes, legends, and layout.
   - Export Presets -- one-click formatting for IEEE, ACM, and other conference templates.
+  - [Scripting & Headless Use](features/scripting.md) -- the `ring5` Python API and CLI: batch parsing, CI figure regression, regenerating every figure from a portfolio.
 
 - **Tutorials** -- Step-by-step recipes for common research workflows.
 

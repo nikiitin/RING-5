@@ -6,6 +6,7 @@ Manages saving and loading of configuration files.
 import datetime
 import json
 import logging
+import uuid
 from pathlib import Path
 from typing import cast
 
@@ -86,7 +87,9 @@ class ConfigService:
         """
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         safe_name = sanitize_filename(name)
-        config_filename = f"{safe_name}_{timestamp}.json"
+        # uuid suffix: timestamps have 1-second resolution, so two saves of the
+        # same name in the same second would silently overwrite each other.
+        config_filename = f"{safe_name}_{timestamp}_{uuid.uuid4().hex[:8]}.json"
         config_dir = ConfigService.get_config_dir()
         config_path = validate_path_within(config_dir / config_filename, config_dir)
 

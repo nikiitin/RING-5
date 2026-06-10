@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 import pandas as pd
 
-from src.core.models import PlotProtocol, PortfolioData
+from src.core.models import PlotProtocol, PortfolioData, RestoreReport
 from src.core.models.data_models import (
     CsvPoolEntry,
     ParseVariableConfig,
@@ -261,6 +261,11 @@ class StateManager(Protocol):
         """Clear all state."""
         ...
 
-    def restore_session(self, portfolio_data: PortfolioData) -> None:
-        """Restore state from a portfolio snapshot."""
+    def restore_session(self, portfolio_data: PortfolioData) -> RestoreReport:
+        """Restore state from a portfolio snapshot.
+
+        Returns:
+            A :class:`RestoreReport` recording what was restored and what
+            was skipped (and why) — restore is best-effort per item.
+        """
         ...

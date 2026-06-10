@@ -23,7 +23,7 @@ nav_order: 3
 | 5 | `DataServicesAPI` | Core | `src/core/services/data_services/data_services_api.py` | 31 | 25 | `DefaultDataServicesAPI` |
 | 6 | `ManagersAPI` | Core | `src/core/services/managers/managers_api.py` | 15 | 8 | `DefaultManagersAPI` |
 | 7 | `ShapersAPI` | Core | `src/core/services/shapers/shapers_api.py` | 17 | 7 | `DefaultShapersAPI` |
-| 8 | `SimulationParser` | Parsing | `src/parsing/parser_protocol.py` | 8 | 4 | `Gem5Parser`, `Gem5ParserAPI` |
+| 8 | `SimulationParser` | Parsing | `src/parsing/parser_protocol.py` | 8 | 4 | `Gem5Parser` |
 | 9 | `FileParserStrategy` | Parsing | `src/parsing/gem5/impl/strategies/file_parser_strategy.py` | 25 | 3 | `SimpleStatsStrategy`, `ConfigAwareStrategy` |
 | 10 | `PlotHandle` | Web | `src/web/models/plot_protocols.py` | 37 | 0 (6 attrs) | `BasePlot` |
 | 11 | `ConfigRenderer` | Web | `src/web/models/plot_protocols.py` | 58 | 4 + 1 attr | `BasePlot` |
@@ -234,7 +234,7 @@ PlotDeserializer = Callable[[dict[str, Any]], PlotProtocol | None]
 - **Purpose**: Unified contract for simulation data parsing and variable scanning, decoupling app from gem5 specifics.
 - **Implementations**:
   - `Gem5Parser` in `src/parsing/gem5/impl/gem5_parser.py` line 94
-  - `Gem5ParserAPI` in `src/parsing/gem5/impl/gem5_parser_api.py` line 17
+  - `Gem5Parser` in `src/parsing/gem5/impl/gem5_parser.py` line 17
 
 | Method | Signature |
 |--------|-----------|

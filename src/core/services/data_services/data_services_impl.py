@@ -214,10 +214,11 @@ class DefaultDataServicesAPI:
         config: dict[str, Any],
         plot_counter: int,
         csv_path: str | None = None,
-        parse_variables: list[str] | None = None,
+        parse_variables: list[ParseVariableConfig] | None = None,
         figure_spec_enricher: None | (
             Callable[[dict[str, Any], str], dict[str, Any] | None]
         ) = None,
+        overwrite: bool = True,
     ) -> None:
         """Serialize and save the current workspace state."""
         self._portfolio_service.save_portfolio(
@@ -229,6 +230,7 @@ class DefaultDataServicesAPI:
             csv_path,
             parse_variables,
             figure_spec_enricher,
+            overwrite,
         )
 
     def load_portfolio(self, name: str) -> PortfolioData:

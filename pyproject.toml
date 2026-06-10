@@ -54,12 +54,12 @@ e2e = ["pytest-playwright>=0.8.0", "pytest-base-url>=2.1.0"]
 Homepage = "https://github.com/your-org/ring5"
 Repository = "https://github.com/your-org/ring5"
 
+[project.scripts]
+ring5 = "ring5.cli:main"
+
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["src*", "components_library*"]
-
-[tool.setuptools]
-py-modules = ["argumentParser", "ring5"]
+include = ["src*", "ring5*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

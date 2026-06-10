@@ -36,7 +36,7 @@ from src.core.models.parsing_models import (
     StatConfig,
 )
 from src.core.models.plot_protocol import PlotDeserializer, PlotProtocol
-from src.core.models.portfolio_models import PortfolioData
+from src.core.models.portfolio_models import PortfolioData, RestoreReport
 from src.core.models.shaper_models import (
     BaseShaperConfig,
     ColumnSelectorConfig,
@@ -77,6 +77,7 @@ __all__ = [
     "StatConfig",
     "TransformerShaperConfig",
     "PortfolioData",
+    "RestoreReport",
     "PlotProtocol",
     "PlotDeserializer",
     "OperationRecord",

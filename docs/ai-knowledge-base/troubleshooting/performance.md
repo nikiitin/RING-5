@@ -117,7 +117,7 @@ compute_data_fingerprint(
 
 | Property | Value |
 |----------|-------|
-| File | `src/parsing/gem5/impl/pool/work_pool.py:32-104` |
+| File | `src/parsing/framework/work_pool.py:32-104` |
 | Pattern | Singleton via `__new__` + `threading.Lock` |
 | Executors | `ProcessPoolExecutor` (CPU-bound) + `ThreadPoolExecutor` (IO-bound) |
 | Worker count | Process: `cpu_count() - 1`, Thread: `cpu_count() * 2` |
@@ -130,7 +130,7 @@ WorkPool.get_instance()          # Get or create singleton
 pool.submit(task, use_threads=False)  # Submit to process or thread pool
 pool.shutdown(wait=False)        # Explicit shutdown (rarely called)
 
-# atexit handler (src/parsing/gem5/impl/pool/work_pool.py:97-104)
+# atexit handler (src/parsing/framework/work_pool.py:97-104)
 def _shutdown_workpool():
     if WorkPool._instance is not None:
         WorkPool._instance.shutdown(wait=False)
@@ -297,13 +297,16 @@ watch -n 2 "ps aux | grep streamlit | grep -v grep"
 
 ---
 
-## Performance-Related Known Issues Summary
+## Lifecycle & Concurrency Guarantees
 
-| Issue | File | Severity | Status |
-|-------|------|----------|--------|
-| `SimpleCache` originally had no thread locks | `src/core/performance.py` | CRITICAL | Locks added, 0 unit tests |
-| `WorkPool` no shutdown on Streamlit hot-reload | `src/parsing/gem5/impl/pool/work_pool.py` | CRITICAL | `atexit` handler exists, may not fire |
-| `PerlWorkerPool` orphaned processes | `src/parsing/gem5/impl/strategies/perl_worker_pool.py` | CRITICAL | N reloads = N * pool_size processes |
-| matplotlib Figure memory leak | `src/web/rendering/matplotlib_connector.py` | HIGH | Zero `plt.close()` in connector |
-| matplotlib Figure in `st.session_state` | `src/web/rendering/matplotlib_connector.py` | HIGH | Not serializable |
-| `CsvPoolService._pool_index` no lock | `src/core/services/pools/csv_pool_service.py` | CRITICAL | Race condition on concurrent access |
+The performance-sensitive subsystems carry these guarantees — they are facts of the current
+design, not open issues:
+
+| Subsystem | File | Guarantee |
+|-----------|------|-----------|
+| `SimpleCache` | `src/core/performance.py` | Thread-safe (`threading.Lock`) |
+| `CsvPoolService` | `src/core/services/data_services/csv_pool_service.py` | Thread-safe (`threading.Lock`) |
+| `WorkPool` | `src/parsing/framework/work_pool.py` | `shutdown()` + `atexit` cleanup |
+| `PerlWorkerPool` | `src/parsing/gem5/impl/strategies/perl_worker_pool.py` | `shutdown()` + `atexit` cleanup |
+| matplotlib figures | `src/web/rendering/matplotlib_connector.py` | Connector does not close the figure — `st.pyplot` owns it (no leak) |
+| matplotlib render cache | `src/web/components/common/chart_display.py` | Session-scoped cache; `plt.close()` is called; never serialized to disk |

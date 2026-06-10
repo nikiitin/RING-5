@@ -760,3 +760,13 @@ def _get_range(axis: Any) -> list[float] | None:
         return [float(r[0]), float(r[1])]
     except (TypeError, IndexError, ValueError):
         return None
+
+
+def build_figure_spec_dict(config: dict[str, Any], plot_type: str) -> dict[str, Any] | None:
+    """Plot-config dict → serialized FigureConfig dict (portfolio enricher).
+
+    The one canonical ``figure_spec_enricher`` for portfolio saves — used by
+    the web portfolio page and the public ring5 package alike, so portfolios
+    saved from either surface carry the same per-plot ``figure_spec`` block.
+    """
+    return ConfigSpecBuilder.from_config(config, plot_type).to_dict()

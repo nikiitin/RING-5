@@ -29,9 +29,6 @@ class Configuration(StatType):
             "_balanced",
             "_reduced",
             "_on_empty",
-            "balancedContent",
-            "reducedDuplicates",
-            "reducedContent",
         }
     )
 

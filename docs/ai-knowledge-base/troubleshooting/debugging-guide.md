@@ -38,14 +38,14 @@ nav_order: 2
 
 | Property | Detail |
 |----------|--------|
-| Key classes | `Gem5ParserAPI`, `Gem5Scanner`, `PerlWorkerPool`, `WorkPool` |
+| Key classes | `Gem5Parser`, `PerlWorkerPool`, `WorkPool` |
 | Subprocess | Perl scripts via `PerlWorkerPool` (pool of persistent Perl processes) |
 | Parallelism | `WorkPool` singleton: `ProcessPoolExecutor` + `ThreadPoolExecutor` |
 | Pool status | `WorkPool.get_instance()` -- check `_process_executor`, `_thread_executor` |
 
 - **Check WorkPool status**:
   ```python
-  from src.parsing.gem5.impl.pool.work_pool import WorkPool
+  from src.parsing.framework.work_pool import WorkPool
   pool = WorkPool.get_instance()
   print(pool._process_executor)  # None = not yet created
   print(pool._thread_executor)   # None = not yet created

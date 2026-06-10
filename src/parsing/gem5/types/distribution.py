@@ -40,9 +40,6 @@ class Distribution(StatType):
             "_maximum",
             "_statistics",
             "_statistics_only",
-            "balancedContent",
-            "reducedDuplicates",
-            "reducedContent",
         }
     )
 
@@ -239,23 +236,6 @@ class Distribution(StatType):
                 reduced[bucket] = math.fsum(values[: self._repeat]) / self._repeat
 
         object.__setattr__(self, "_reduced_content", reduced)
-
-    @property
-    def reduced_content(self) -> dict[str, float]:
-        """Get the final processed distribution data."""
-        balanced = object.__getattribute__(self, "_balanced")
-        reduced = object.__getattribute__(self, "_reduced")
-        if not balanced or not reduced:
-            raise AttributeError(
-                "DISTRIBUTION: Process incomplete. Call balance_content() and reduce_duplicates()."
-            )
-        reduced_dict: dict[str, float] = object.__getattribute__(self, "_reduced_content")
-        return reduced_dict
-
-    @property
-    def reducedContent(self) -> dict[str, float]:
-        """Backward compatibility alias."""
-        return self.reduced_content
 
     def __str__(self) -> str:
         return f"Distribution(range=[{self._minimum}, {self._maximum}], repeat={self._repeat})"

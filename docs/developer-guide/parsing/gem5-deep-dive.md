@@ -47,15 +47,16 @@ Two distinct phases provide a clean separation of concerns:
 
 ---
 
-## 2. Gem5Scanner -- File Discovery, Stat Scanning, Pattern Aggregation
+## 2. Scanning -- File Discovery, Stat Scanning, Pattern Aggregation
 
-**Source:** `src/parsing/gem5/impl/gem5_scanner.py`
+**Source:** `src/parsing/gem5/impl/gem5_parser.py` (scan methods) + `src/parsing/framework/file_discovery.py`
 
 ### 2.1 File Discovery with Early Stop
 
-`submit_scan_async()` normalises the input path, sanitises the glob pattern,
-and uses `Path.rglob()` with an early-stop optimisation -- when `limit > 0`,
-the generator is consumed only until enough files are collected:
+`submit_scan_async()` delegates discovery to `find_stats_files()` (in the shared
+framework), which normalises the input path, sanitises the glob pattern, and uses
+`Path.rglob()` with an early-stop optimisation -- when `limit > 0`, the generator
+is consumed only until enough files are collected:
 
 ```python
 if limit > 0:
@@ -128,29 +129,33 @@ variables missing from some files still appear. Complex types expand into
 
 ---
 
-## 4. Gem5ParserAPI -- High-Level API with Configuration
+## 4. Gem5Parser as the Registry Backend
 
-**Source:** `src/parsing/gem5/impl/gem5_parser_api.py`
+**Source:** `src/parsing/gem5/impl/gem5_parser.py`
 
-`Gem5ParserAPI` is the object returned by
+`Gem5Parser` is the single object returned by
 `SimulatorRegistry.get_parser("gem5")`. It implements the `SimulationParser`
-protocol as a thin facade delegating to the two service classes:
+protocol directly -- there is no separate adapter; one class owns scanning (§2),
+parsing (§3), and CSV assembly. Its methods are `@staticmethod` (the pools are
+singletons), so they work both on the class and on the registry's instance.
 
-| Method | Delegates to | Phase |
-|--------|-------------|-------|
-| `submit_scan_async` | `Gem5Scanner` | Scanning |
-| `aggregate_scan_results` | `Gem5Scanner` | Scanning |
-| `submit_parse_async` | `Gem5Parser` | Parsing |
-| `finalize_parsing` | `Gem5Parser` | Parsing |
+| Protocol method | Phase |
+|-----------------|-------|
+| `submit_scan_async`, `aggregate_scan_results` | Scanning |
+| `submit_parse_async`, `finalize_parsing` | Parsing |
 
-This keeps scanning and parsing logic in separate, focused classes while giving
-consumers a single entry point. Typical usage:
+Scan cancellation is not a backend concern: the futures returned by
+`submit_scan_async` are the caller's handles, and `ApplicationAPI.cancel_pending_scans()`
+cancels only the futures that ApplicationAPI instance submitted.
+
+A second simulator backend registers its own class implementing the same four
+methods. Typical usage:
 
 ```python
-api = Gem5ParserAPI()
-futures = api.submit_scan_async("/path/to/stats")
+parser = SimulatorRegistry.get_parser("gem5")
+futures = parser.submit_scan_async("/path/to/stats")
 results = [f.result() for f in futures]
-variables = api.aggregate_scan_results(results)
+variables = parser.aggregate_scan_results(results)
 ```
 
 ---
@@ -318,16 +323,17 @@ thread-per-readline accumulation under load.
 
 ---
 
-## 9. WorkPool -- Process + Thread Executor Management
+## 9. WorkPool -- Shared Thread Pool
 
-**Source:** `src/parsing/gem5/impl/pool/work_pool.py`
+**Source:** `src/parsing/framework/work_pool.py`
 
 ### 9.1 Unified Singleton
 
-`WorkPool` manages a lazily-created `ProcessPoolExecutor` (CPU-bound, `N-1`
-workers where `N = cpu_count`) and `ThreadPoolExecutor` (I/O-bound, `2N`
-workers). Callers pick the executor via the `use_threads` parameter on
-`submit()`.
+`WorkPool` manages one lazily-created `ThreadPoolExecutor` (`2N` workers where
+`N = cpu_count`). The heavy CPU work runs out-of-process in the backend's own
+workers (gem5's persistent Perl pool, §8), so a thread pool -- not a process
+pool -- is the right executor here. `submit()` takes a `Job` and returns a
+`Future`.
 
 ### 9.2 Facade Pools
 
@@ -336,13 +342,15 @@ workers). Callers pick the executor via the `use_threads` parameter on
 | `ScanWorkPool` | `ScanWork` items | `Future[list[ScannedVariable]]` | Thread pool |
 | `ParseWorkPool` | `ParseWork` items | `Future[ParsedVarsDict]` | Thread pool |
 
-Both are singletons with `get_instance()` / `reset()` class methods.  They
-auto-calculate chunk sizes and clear stale future references on each batch.
+Both are singletons with `get_instance()` / `reset()` class methods. Each
+`submit_batch_async()` submits one `Future` per work item and replaces the
+previous batch's futures (releasing their references).
 
 ### 9.3 Lifecycle
 
-An `atexit` handler shuts down both executors when the interpreter exits,
-ensuring subprocess resources are released.
+An `atexit` handler shuts down the executor when the interpreter exits, releasing
+the thread pool. (The persistent Perl workers have their own `shutdown()` +
+`atexit`, §8.)
 
 ---
 
@@ -404,7 +412,7 @@ returns the populated dict.
 | Perl regex building blocks (7 shared patterns) | `src/parsing/gem5/perl/libs/Scanning/RegexUtils.pm` |
 | Perl type modules (Scalar, Vector, Distribution, Histogram, Configuration, Summary) | `src/parsing/gem5/perl/libs/Scanning/Type/` |
 | Master Perl dispatch (`classifyLine`, `parseAndPrintLineWithFormat`) | `src/parsing/gem5/perl/libs/TypesFormatRegex.pm` |
-| `PatternIndexService` (concrete name reconstruction) | `src/core/services/data_services/pattern_index_service.py` |
+| `PatternIndexService` (concrete name reconstruction) | `src/core/models/pattern_index_service.py` |
 | `Gem5ScannedVariable` model (min/max metadata) | `src/parsing/gem5/models.py` |
-| Shaper pipeline (consumes parsed CSV) | `src/core/services/data_services/shaper/` |
+| Shaper pipeline (consumes parsed CSV) | `src/core/services/shapers/` |
 | Web controllers (invoke scanning/parsing) | `src/web/controllers/` |

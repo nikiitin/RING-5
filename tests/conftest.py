@@ -165,3 +165,21 @@ def _cleanup_perl_worker_pool() -> Generator[Any, None, None]:
     )
 
     shutdown_worker_pool()
+
+
+@pytest.fixture
+def portfolios_dir(tmp_path: Any) -> Generator[Any, None, None]:
+    """Isolated portfolio storage (PathService caches dirs process-wide).
+
+    The single canonical fixture for any test that saves/loads portfolios —
+    don't redefine per-file.
+    """
+    from unittest.mock import patch
+
+    pdir = tmp_path / "portfolios"
+    pdir.mkdir()
+    with patch(
+        "src.core.services.data_services.path_service.PathService.get_portfolios_dir",
+        return_value=pdir,
+    ):
+        yield pdir

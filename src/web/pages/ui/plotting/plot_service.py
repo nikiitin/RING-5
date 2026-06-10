@@ -7,11 +7,7 @@ Coordinates plot factory, state persistence, and configuration updates.
 
 import copy
 import logging
-import os
-from pathlib import Path
 from typing import TYPE_CHECKING
-
-from src.core.common.utils import normalize_user_path, validate_path_within
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
@@ -88,73 +84,3 @@ class PlotService:
         state_manager.set_plots(plots)
 
         return new_plot
-
-    @staticmethod
-    def export_plot_to_file(
-        plot: BasePlot, directory: str, format: str | None = None
-    ) -> str | None:
-        """
-        Export a plot to a file in the specified directory.
-
-        Supports HTML and PDF export. PDF export uses matplotlib/LaTeX backend
-        for publication-quality output.
-
-        Args:
-            plot: The plot to export
-            directory: Output directory path
-            format: Export format ("html", "pdf", "png", or "svg"). Defaults to "pdf"
-
-        Returns:
-            Path to exported file, or None if export failed
-
-        Note:
-            Uses Kaleido for vector/raster export of Plotly figures.
-        """
-        # Normalize and validate directory path before any filesystem ops
-        safe_dir: str = os.path.normpath(directory) if directory else "."
-        resolved_dir_path = normalize_user_path(safe_dir)
-        if not resolved_dir_path.exists():
-            resolved_dir_path.mkdir(parents=True, exist_ok=True)
-
-        # Ensure figure is generated
-        try:
-            fig = plot.generate_figure()
-        except Exception:
-            logger.warning(
-                "Figure generation failed for plot '%s', skipping export",
-                plot.name,
-                exc_info=True,
-            )
-            return None
-
-        fmt = format or plot.config.get("download_format", "pdf")
-
-        # Validate format BEFORE constructing path (security: prevent path traversal)
-        allowed_formats = ["html", "pdf", "png", "svg"]
-        if fmt not in allowed_formats:
-            raise ValueError(
-                f"Unsupported export format '{fmt}'. "
-                f"Supported formats: {', '.join(allowed_formats)}"
-            )
-
-        # Clean name
-        safe_name = "".join([c if c.isalnum() else "_" for c in plot.name])
-        filename = f"{safe_name}.{fmt}"
-        validated_path = validate_path_within(resolved_dir_path / filename, resolved_dir_path)
-        path = os.path.normpath(str(validated_path))
-
-        if fmt == "html":
-            fig.write_html(Path(path))
-        elif fmt in ("pdf", "png", "svg"):
-            from typing import cast
-
-            from src.web.pages.ui.plotting.download_section import (
-                PlotlyFormat,
-                plotly_download_bytes,
-            )
-
-            data = plotly_download_bytes(fig, fmt=cast(PlotlyFormat, fmt))
-            with open(path, "wb") as f:
-                f.write(data)
-
-        return path

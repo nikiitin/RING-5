@@ -156,6 +156,19 @@ class TestCSVLoading:
             mock_read.assert_not_called()
             assert df2.equals(df1)
 
+    def test_load_csv_file_returns_defensive_copy(self, sample_csv: Path) -> None:
+        """Callers must get independent frames — never the cached object itself.
+
+        The cache is shared process-wide; handing out the cached DataFrame
+        would let one caller's in-place mutation corrupt every other caller.
+        """
+        df1 = CsvPoolService.load_csv_file(str(sample_csv))
+        df1.loc[0, "value"] = -999.0  # mutate the frame we were handed
+
+        df2 = CsvPoolService.load_csv_file(str(sample_csv))  # cache hit
+        assert df2.loc[0, "value"] != -999.0
+        assert df1 is not df2
+
     def test_load_csv_file_caches_metadata(self, sample_csv: Path) -> None:
         """Verify metadata is cached during DataFrame load."""
         # Act
@@ -312,21 +325,15 @@ class TestPoolManagement:
     def test_add_to_pool_generates_unique_filenames(
         self, sample_csv: Path, empty_pool_dir: Path
     ) -> None:
-        """Verify consecutive adds create unique filenames."""
-        import datetime
-        from unittest.mock import patch
+        """Two adds within the same second must not overwrite each other.
 
-        # Act - Mock datetime.now to return distinct timestamps
-        fake_time1 = datetime.datetime(2026, 1, 1, 12, 0, 0)
-        fake_time2 = datetime.datetime(2026, 1, 1, 12, 0, 5)
-
-        with patch("src.core.services.data_services.csv_pool_service.datetime.datetime") as mock_dt:
-            mock_dt.now.return_value = fake_time1
-            mock_dt.strftime = datetime.datetime.strftime
-            path1 = CsvPoolService.add_to_pool(str(sample_csv))
-
-            mock_dt.now.return_value = fake_time2
-            path2 = CsvPoolService.add_to_pool(str(sample_csv))
+        Timestamps have 1-second resolution; without a uniqueness component,
+        parallel sessions (or a batch CLI) adding in the same second would
+        silently lose the first dataset.
+        """
+        # Act — back-to-back adds land within the same wall-clock second
+        path1 = CsvPoolService.add_to_pool(str(sample_csv))
+        path2 = CsvPoolService.add_to_pool(str(sample_csv))
 
         # Assert
         assert path1 != path2

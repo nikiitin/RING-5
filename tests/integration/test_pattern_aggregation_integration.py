@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from src.parsing.gem5.impl.gem5_scanner import Gem5Scanner as ScannerService
+from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ScannerService
 
 
 class TestScannerPatternAggregation:

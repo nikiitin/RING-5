@@ -13,7 +13,7 @@ nav_order: 1
 - Protocol: `SimulationParser` (`src/parsing/parser_protocol.py`)
 - Registry: `SimulatorRegistry` (`src/parsing/registry.py`)
 - Metadata: `SimulatorInfo` frozen dataclass (`src/parsing/registry.py`)
-- Reference implementation: gem5 (`src/parsing/gem5/impl/gem5_parser_api.py`)
+- Reference implementation: gem5 (`src/parsing/gem5/impl/gem5_parser.py`)
 
 ## Protocol Contract
 

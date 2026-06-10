@@ -25,20 +25,6 @@ nav_order: 3
 
 ---
 
-## Backward-Compatibility Shim
-
-**File**: `src/core/models/visualization/resolvers.py` (lines 1-13)
-
-```python
-from src.core.services.visualization.config_resolver import (
-    SENTINEL_FLOAT, SENTINEL_INT, resolve_config,
-)
-```
-
-Re-exports from the canonical location. Marked for removal in Phase 10.
-
----
-
 ## Which Configs Use Sentinels
 
 ### TypographyConfig -- 7 sentinel fields
@@ -224,8 +210,7 @@ This ensures:
 
 | File | Role | Lines |
 |------|------|-------|
-| `src/core/services/visualization/config_resolver.py` | `resolve_config()`, `SENTINEL_INT`, `SENTINEL_FLOAT`, chain resolvers | 185 |
-| `src/core/models/visualization/resolvers.py` | Backward-compat re-export shim | 13 |
+| `src/core/services/visualization/config_resolver.py` | `resolve_config()`, `SENTINEL_INT`, `SENTINEL_FLOAT`, chain resolvers | 196 |
 | `src/core/models/visualization/typography_config.py` | `INHERIT`, `INHERIT_F` aliases; sentinel default values | 72 |
 | `src/core/models/visualization/legend_config.py` | `INHERIT_F` alias; LegendSpacingConfig sentinel defaults | 239 |
 | `src/core/models/visualization/axis_config.py` | `INHERIT_F` alias; y2 sentinel defaults | 141 |

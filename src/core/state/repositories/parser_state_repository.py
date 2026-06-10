@@ -55,20 +55,31 @@ class ParserStateRepository:
         """
         Set the parse variable list, ensuring each has a unique ID.
 
+        Entries are validated and copied: callers (notably portfolio restore)
+        may pass untrusted or shared dicts, and injecting ``_id`` into
+        caller-owned objects would alias repository state into them.
+
         Args:
-            variables: List of variable configurations
+            variables: List of variable configurations.
+
+        Raises:
+            TypeError: If any entry is not a dict (e.g. a plain string from a
+                hand-edited portfolio) — callers that handle untrusted input
+                filter first and report what they dropped.
         """
-        # Ensure all variables have unique IDs
         for var in variables:
+            if not isinstance(var, dict):
+                raise TypeError(
+                    f"Parse variable entries must be dicts, got " f"{type(var).__name__}: {var!r}"
+                )
+
+        copied: list[ParseVariableConfig] = [dict(var) for var in variables]  # type: ignore[misc]
+        for var in copied:
             if "_id" not in var:
                 var["_id"] = str(uuid.uuid4())
 
-        # Skip write + log if the list is referentially identical (same object)
-        if variables is self._parse_variables:
-            return
-
-        self._parse_variables = variables
-        logger.info("PARSER_REPO: Parse variables updated - %d variables", len(variables))
+        self._parse_variables = copied
+        logger.info("PARSER_REPO: Parse variables updated - %d variables", len(copied))
 
     def add_parse_variable(self, variable: ParseVariableConfig) -> None:
         """
@@ -77,8 +88,7 @@ class ParserStateRepository:
         Args:
             variable: Variable configuration to add
         """
-        self._parse_variables.append(variable)
-        self.set_parse_variables(self._parse_variables)
+        self.set_parse_variables([*self._parse_variables, variable])
 
     def remove_parse_variable(self, variable_id: str) -> bool:
         """
