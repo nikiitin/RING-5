@@ -29,17 +29,27 @@ from src.core.models.visualization.palettes import (
 
 
 def resolve_palette(name: object) -> list[str]:
-    """Resolve a palette name to a list of hex color strings.
+    """Resolve a palette to a list of hex color strings.
 
-    Falls back to the Wong colorblind-safe palette when *name* is
-    ``None``, empty, or not found in the registry.
+    Accepts **either** a registry name (string) **or** an explicit sequence of
+    color strings (e.g. ``["#66c2a5", "#fc8d62", ...]``), which is returned as a
+    cleaned copy. Falls back to the Wong colorblind-safe palette when *name* is
+    ``None``, empty, an unknown name, or a sequence with no usable colors.
 
     Args:
-        name: Palette name (string) or ``None``.
+        name: Palette name (string), an explicit list/tuple of color strings,
+            or ``None``.
 
     Returns:
         A **copy** of the hex color list (safe to mutate).
     """
+    # Explicit list/tuple of colors -> cleaned copy (passthrough). Checked
+    # before the string branch so a custom palette is no longer silently
+    # ignored (the previous behaviour fell back to Wong for any non-str).
+    if isinstance(name, (list, tuple)):
+        colors = [c.strip() for c in name if isinstance(c, str) and c.strip()]
+        return colors if colors else list(PALETTE_REGISTRY["wong"])
+
     if not name or not isinstance(name, str):
         return list(PALETTE_REGISTRY["wong"])
 

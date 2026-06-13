@@ -55,6 +55,16 @@ from ring5.errors import (
     ScanError,
 )
 
+# Typed figure config — pure dataclasses (no pandas/matplotlib), so eager:
+# build a FigureSpec and pass ``.to_config()`` as the plot config.
+from ring5.figure_spec import (
+    DualAxisOpts,
+    FigureSpec,
+    FigureSpecBuilder,
+    LegendOpts,
+    ReferenceLineOpts,
+)
+
 if TYPE_CHECKING:
     # Static names for mypy/IDEs; at runtime these resolve via __getattr__.
     from src.core.models import RestoreReport
@@ -130,6 +140,12 @@ __all__ = [
     "export_bytes",
     "export_file",
     "render_portfolio",
+    # typed figure config
+    "FigureSpec",
+    "FigureSpecBuilder",
+    "DualAxisOpts",
+    "LegendOpts",
+    "ReferenceLineOpts",
     # process utilities
     "doctor",
     "DoctorReport",

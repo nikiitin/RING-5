@@ -182,6 +182,7 @@ class GroupedBarPlot(BasePlot):
             traces=traces,
             barmode="group",
             separator_lines=coord_result["separator_lines"],
+            rule_lines=coord_result.get("category_group_rules") or [],
             shaded_regions=coord_result["shaded_regions"],
             custom_x_ticks={"vals": tick_vals, "text": tick_text},
         )

@@ -56,3 +56,13 @@ tests/visual/artifacts/
 !.ai-assistant-guide.md
 !AI-SETUP.md
 tests/e2e/artifacts/
+
+# R session / environment artifacts (RING-5 is a Python project)
+.RData
+.Rhistory
+.proj
+.proj.json
+/renv/
+
+# Editor workspace files
+*.code-workspace

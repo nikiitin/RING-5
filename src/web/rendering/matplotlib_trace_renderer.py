@@ -246,6 +246,12 @@ class MatplotlibTraceRenderer:
             props["linewidth"] = spec.line_width
         if spec.line_dash:
             props["linestyle"] = _DASH_MAP.get(spec.line_dash, "-")
+        # Markers: honour show_markers/marker_symbol/marker_size so the matplotlib
+        # engine matches Plotly's "lines+markers" mode (dot-lines, dual-axis dots).
+        if spec.show_markers:
+            props["marker"] = _MARKER_MAP.get(spec.marker_symbol, "o")
+            if spec.marker_size:
+                props["markersize"] = float(spec.marker_size)
 
         y_clean = [float(v) if v is not None else np.nan for v in spec.y]
         ax.plot(spec.x, y_clean, label=spec.name, **props)
@@ -421,6 +427,19 @@ _DASH_MAP: dict[str, str] = {
     "longdash": "--",
     "longdashdot": "-.",
     "solid": "-",
+}
+
+# Plotly marker-symbol names -> matplotlib marker codes. Keeps the matplotlib
+# engine's markers consistent with the Plotly path (which uses "lines+markers").
+_MARKER_MAP: dict[str, str] = {
+    "circle": "o",
+    "square": "s",
+    "diamond": "D",
+    "cross": "+",
+    "x": "x",
+    "triangle-up": "^",
+    "triangle-down": "v",
+    "star": "*",
 }
 
 

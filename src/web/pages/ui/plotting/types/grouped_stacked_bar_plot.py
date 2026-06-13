@@ -323,6 +323,11 @@ class GroupedStackedBarPlot(StackedBarPlot):
         # Build annotations
         layout_annotations = self._build_category_annotations(cat_centers, config)
 
+        # Super-group labels under the category labels
+        group_centers = coord_result.get("category_group_centers") or []
+        if group_centers:
+            layout_annotations.extend(self._build_category_group_annotations(group_centers, config))
+
         # Add totals if requested
         if config.get("show_totals"):
             totals_annotations = self._build_totals_annotations(data, "__x_coord", config)
@@ -336,6 +341,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
             traces=traces,
             barmode="stack",
             separator_lines=separator_lines,
+            rule_lines=coord_result.get("category_group_rules") or [],
             shaded_regions=shaded_regions,
             custom_x_ticks=custom_x_ticks,
             layout_annotations=layout_annotations,
@@ -403,6 +409,16 @@ class GroupedStackedBarPlot(StackedBarPlot):
         )
 
         return build_category_annotations(cat_centers, config)
+
+    def _build_category_group_annotations(
+        self, group_centers: list[tuple[float, str]], config: PlotConfig
+    ) -> list[dict[str, Any]]:
+        """Build annotations for category super-group labels."""
+        from src.web.pages.ui.plotting.utils.grouped_stacked_bar_helpers import (
+            build_category_group_annotations,
+        )
+
+        return build_category_group_annotations(group_centers, config)
 
     @override
     def apply_common_layout(self, fig: go.Figure, config: PlotConfig) -> go.Figure:

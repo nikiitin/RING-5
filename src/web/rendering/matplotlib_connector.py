@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING, Any, cast
 from src.core.models.visualization.data_label_config import DataLabelConfig
 from src.core.models.visualization.figure_config import FigureConfig
 from src.core.models.visualization.legend_config import ColorbarConfig
-from src.core.models.visualization.trace_build_result import SeparatorLine, ShadedRegion
+from src.core.models.visualization.trace_build_result import RuleLine, SeparatorLine, ShadedRegion
 from src.web.rendering._render_result import MatplotlibRenderResult
 
 if TYPE_CHECKING:
@@ -663,12 +663,14 @@ class FigureSpecToMatplotlib:
         ax: Axes,
         separator_lines: list[SeparatorLine],
         shaded_regions: list[ShadedRegion],
+        rule_lines: list[RuleLine] | None = None,
     ) -> None:
-        """Draw engine-agnostic bar-group separators and shading bands.
+        """Draw engine-agnostic bar-group separators, shading bands and span rules.
 
         Mirrors the ``layout.shapes`` the Plotly trace converter builds (same
         data-x coordinates as the bar positions), so separators/shading appear
-        in matplotlib too. Both are drawn beneath the bars.
+        in matplotlib too. Separators/shades are drawn beneath the bars; span
+        rules (data-x, paper-y) live below the axis, so clipping is off.
         """
         for band in shaded_regions:
             ax.axvspan(
@@ -688,6 +690,23 @@ class FigureSpecToMatplotlib:
                 linewidth=sep.width,
                 zorder=0.5,
             )
+        if rule_lines:
+            from matplotlib.lines import Line2D
+            from matplotlib.transforms import blended_transform_factory
+
+            trans = blended_transform_factory(ax.transData, ax.transAxes)
+            for rule in rule_lines:
+                ax.add_line(
+                    Line2D(
+                        [rule.x0, rule.x1],
+                        [rule.y, rule.y],
+                        transform=trans,
+                        color=rule.color,
+                        linewidth=rule.width,
+                        clip_on=False,
+                        zorder=5,
+                    )
+                )
 
     @staticmethod
     def _apply_backgrounds(spec: FigureConfig, ax: Axes) -> None:

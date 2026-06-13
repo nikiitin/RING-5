@@ -74,6 +74,11 @@ facade never had:
   snapshot and regenerate every figure file headlessly (CLI: `ring5 render`).
 - **`ring5.doctor()`** (perl/chrome/xelatex preflight), **`ring5.shutdown()`** (process pools),
   typed errors under `ring5.Ring5Error`.
+- **`ring5.FigureSpec`** (+ `FigureSpecBuilder`, `DualAxisOpts`, `LegendOpts`, `ReferenceLineOpts`
+  in `ring5/figure_spec.py`) — an optional typed front-end over the flat config dict so callers
+  get autocomplete/validation instead of grepping ~80 keys. Pure dataclasses (no pandas/mpl, so
+  eagerly exported); `spec.to_config()` feeds `Session.create_plot(config=…)`. The long tail of
+  flat keys stays reachable via `FigureSpec.extra`.
 - Rendering executes the exact UI sequences (`create_figure` + `apply_common_layout`; mpl path
   via `ConfigSpecBuilder`→`enrich_from_plotly`→`resolve_config`→connector). Byte-export functions
   live UI-free in `src/web/rendering/figure_export.py` (with `deterministic=True` knobs for CI);
@@ -148,6 +153,16 @@ and pipeable; pipeline run + fingerprint caching in `shapers/pipeline_service.py
   hatching → margins. Trace conversion: `trace_to_plotly.py` / `matplotlib_trace_renderer.py`.
 - `src/web/rendering/engine_manager.py::EngineManager` switches `plotly`/`matplotlib` via the
   `ring5_engine_mode` session key. Default palette is **`wong`** (colorblind-safe).
+- **Grouped-bar extras** (computed in `GroupedBarUtils.calculate_grouped_coordinates`, rendered
+  by both engines): `category_groups={cat: label}` draws a bolder boundary separator at each label
+  change (even when `show_separators=False`; an `isolate_last_group` boundary keeps its line) plus a
+  centered super-group label under each contiguous run, and — on by default — a `\cmidrule`-style
+  **span rule** above each label. The span rule is an engine-agnostic `RuleLine` (data-x, paper-y)
+  in `TraceBuildResult.rule_lines`, drawn by `trace_to_plotly` (paper-yref line) and
+  `matplotlib_connector.draw_layout_shapes` (blended transform, `clip_on=False`); it threads through
+  `build_matplotlib_figure` / `chart_display` / `render_controller` / `ring5._render`. Per-label
+  rotation via `major_label_rotation_overrides={label: deg}`. Palette config also accepts a hex
+  **list** (`palette_service.resolve_palette`).
 - UI state: `src/web/state/ui_state_manager.py::UIStateManager` — namespaced keys
   `plot.{id}.*`, `manager.*`, `nav.*`, `export.*`. Controllers: `src/web/controllers/plot/`
   (`creation`, `pipeline`, `render`). Pages: `src/web/pages/` (`data_source`, `data_managers`,

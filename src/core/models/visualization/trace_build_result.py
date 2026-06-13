@@ -33,6 +33,23 @@ class SeparatorLine:
 
 
 @dataclass
+class RuleLine:
+    """A horizontal rule spanning ``[x0, x1]`` in data space at a paper-fraction y.
+
+    Used for category super-group span rules (the LaTeX ``\\cmidrule`` look,
+    drawn under each run of same-group categories, below the axis). Rendered
+    by Plotly as a ``layout.shapes`` line with ``yref="paper"`` and by
+    matplotlib as a blended-transform horizontal line with clipping off.
+    """
+
+    x0: float
+    x1: float
+    y: float
+    color: str = "#444444"
+    width: float = 1.0
+
+
+@dataclass
 class ShadedRegion:
     """A full-height background band spanning ``[x0, x1]`` in data space.
 
@@ -55,6 +72,7 @@ class TraceBuildResult:
         annotations: Text annotations (group labels, tertiary legends, etc.).
         layout_annotations: Raw annotation dicts passed straight to layout.
         separator_lines: Engine-agnostic vertical separators between bar groups.
+        rule_lines: Engine-agnostic horizontal span rules (category super-groups).
         shaded_regions: Engine-agnostic alternating-category background bands.
         barmode: Bar grouping mode (``"group"``, ``"stack"``, etc.).
         custom_x_ticks: Optional override for x-axis tick values/labels.
@@ -67,6 +85,7 @@ class TraceBuildResult:
     annotations: list[AnnotationConfig] = field(default_factory=list)
     layout_annotations: list[dict[str, Any]] = field(default_factory=list)
     separator_lines: list[SeparatorLine] = field(default_factory=list)
+    rule_lines: list[RuleLine] = field(default_factory=list)
     shaded_regions: list[ShadedRegion] = field(default_factory=list)
     barmode: str = "group"
     custom_x_ticks: dict[str, list[float] | list[str] | list[bool]] | None = None

@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.core.models.visualization.trace_build_result import SeparatorLine, ShadedRegion
+from src.core.models.visualization.trace_build_result import RuleLine, SeparatorLine, ShadedRegion
 from src.core.models.visualization.trace_config import TraceConfig
 from src.web.components.plotting.interactive_plot import interactive_plotly_chart
 from src.web.pages.ui.plotting.download_section import render_download_section
@@ -140,6 +140,7 @@ class ChartDisplayComponent:
         traces: list[TraceConfig] | None = None,
         separator_lines: list[SeparatorLine] | None = None,
         shaded_regions: list[ShadedRegion] | None = None,
+        rule_lines: list[RuleLine] | None = None,
     ) -> None:
         """Render a matplotlib chart derived from a Plotly figure.
 
@@ -167,6 +168,7 @@ class ChartDisplayComponent:
             traces,
             separator_lines,
             shaded_regions,
+            rule_lines,
         )
 
         try:

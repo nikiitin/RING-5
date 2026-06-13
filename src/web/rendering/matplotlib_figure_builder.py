@@ -24,7 +24,7 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure as MplFigure
 
 from src.core.models.visualization.figure_config import FigureConfig
-from src.core.models.visualization.trace_build_result import SeparatorLine, ShadedRegion
+from src.core.models.visualization.trace_build_result import RuleLine, SeparatorLine, ShadedRegion
 from src.core.models.visualization.trace_config import HeatmapTraceConfig, TraceConfig
 from src.core.services.visualization.config_resolver import resolve_config
 from src.web.rendering._heatmap_utils import compute_nice_range, compute_z_extent
@@ -41,6 +41,7 @@ def build_matplotlib_figure(
     traces: list[TraceConfig] | None = None,
     separator_lines: list[SeparatorLine] | None = None,
     shaded_regions: list[ShadedRegion] | None = None,
+    rule_lines: list[RuleLine] | None = None,
 ) -> tuple[MplFigure, FigureConfig]:
     """Build a fully styled matplotlib figure from a styled plotly figure.
 
@@ -53,6 +54,7 @@ def build_matplotlib_figure(
         traces: Engine-agnostic traces (``plot.last_traces.traces``).
         separator_lines: Bar-group separators from the trace build.
         shaded_regions: Alternate-shading bands from the trace build.
+        rule_lines: Category super-group span rules from the trace build.
 
     Returns:
         ``(figure, resolved_spec)`` — the spec is what PGF export needs
@@ -89,7 +91,9 @@ def build_matplotlib_figure(
             bar_border_width=float(config.get("bar_border_width", 0.0)),
         )
         FigureSpecToMatplotlib.apply(spec, ax, render_result)
-        FigureSpecToMatplotlib.draw_layout_shapes(ax, separator_lines or [], shaded_regions or [])
+        FigureSpecToMatplotlib.draw_layout_shapes(
+            ax, separator_lines or [], shaded_regions or [], rule_lines or []
+        )
 
         # 5c. Dual-axis parity: right-axis title + legend on the twin
         twin = getattr(ax, "_ring5_twin", None)
@@ -124,6 +128,13 @@ def apply_dual_axis(twin: Axes, config: dict[str, Any], spec: FigureConfig) -> N
         if font_family:
             label_kwargs["fontfamily"] = font_family
         twin.set_ylabel(str(ylabel_right), **label_kwargs)
+
+    # Explicit right-axis range + tick font (matches the Plotly y2 handling).
+    rng = config.get("range_y2")
+    if isinstance(rng, (list, tuple)) and len(rng) == 2:
+        twin.set_ylim(float(rng[0]), float(rng[1]))
+    if typo is not None and typo.font_size_y2ticks > 0:
+        twin.tick_params(axis="y", labelsize=typo.font_size_y2ticks)
 
     # A legend for the right-axis (twin) series — matplotlib's primary
     # legend on the base axes only sees the left-axis handles.

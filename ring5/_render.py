@@ -70,6 +70,7 @@ def render_figure(plot: BasePlot, *, engine: EngineMode = "plotly") -> Figure:
         list(traces_result.traces) if traces_result is not None else [],
         list(traces_result.separator_lines) if traces_result else [],
         list(traces_result.shaded_regions) if traces_result else [],
+        list(traces_result.rule_lines) if traces_result else [],
     )
 
     # Deregister from pyplot: headless callers loop over many plots

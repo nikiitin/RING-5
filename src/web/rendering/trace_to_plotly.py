@@ -107,6 +107,19 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
         }
         for sep in result.separator_lines
     ]
+    rule_shapes: list[dict[str, Any]] = [
+        {
+            "type": "line",
+            "xref": "x",
+            "yref": "paper",
+            "x0": rule.x0,
+            "x1": rule.x1,
+            "y0": rule.y,
+            "y1": rule.y,
+            "line": {"color": rule.color, "width": rule.width},
+        }
+        for rule in result.rule_lines
+    ]
     shade_shapes: list[dict[str, Any]] = [
         {
             "type": "rect",
@@ -123,9 +136,9 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
         }
         for band in result.shaded_regions
     ]
-    if separator_shapes or shade_shapes:
-        # Shades first (drawn under), then separators.
-        layout_updates["shapes"] = shade_shapes + separator_shapes
+    if separator_shapes or shade_shapes or rule_shapes:
+        # Shades first (drawn under), then separators, then span rules.
+        layout_updates["shapes"] = shade_shapes + separator_shapes + rule_shapes
 
     if result.annotations or result.layout_annotations:
         all_annotations: list[dict[str, Any]] = []

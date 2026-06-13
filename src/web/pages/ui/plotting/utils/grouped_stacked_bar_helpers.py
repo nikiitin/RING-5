@@ -232,6 +232,20 @@ def build_category_annotations(
         font_color=config.get("major_label_color", "#000000"),
         y_offset=config.get("major_label_offset", -0.15),
         stagger_dy=stagger_dy,
+        rotation=float(config.get("major_label_rotation", 0.0)),
+        rotation_overrides=config.get("major_label_rotation_overrides"),
+    )
+
+
+def build_category_group_annotations(
+    group_centers: list[tuple[float, str]], config: dict[str, Any]
+) -> list[dict[str, Any]]:
+    """Build annotations for category super-group labels."""
+    return GroupedBarUtils.build_category_group_annotations(
+        group_centers=group_centers,
+        font_size=config.get("category_group_label_size", 12),
+        font_color=config.get("category_group_label_color", "#000000"),
+        y_offset=config.get("category_group_label_offset", -0.28),
     )
 
 
@@ -434,6 +448,33 @@ def apply_separate_legends(fig: go.Figure, config: dict[str, Any]) -> None:
     )
 
 
+def _per_group_line_xy(
+    data: pd.DataFrame, x_coord_col: str, y_col: str, config: dict[str, Any]
+) -> tuple[list[str | int | float], list[int | float]]:
+    """X/Y for a dot-line connected *per group* (per x-category).
+
+    Emits one polyline per x-category by inserting a NaN break between
+    categories, so the connecting line never jumps across group boundaries
+    (both engines render NaN as a gap). Categories follow ``xaxis_order``.
+    """
+    x_name = config.get("x")
+    order = config.get("xaxis_order") or list(dict.fromkeys(data[x_name].tolist()))
+    xs: list[str | int | float] = []
+    ys: list[int | float] = []
+    first = True
+    for cat in order:
+        sub = data[data[x_name] == cat].sort_values(x_coord_col)
+        if sub.empty:
+            continue
+        if not first:
+            xs.append(float("nan"))
+            ys.append(float("nan"))
+        first = False
+        xs.extend(float(v) for v in sub[x_coord_col].tolist())
+        ys.extend(float(v) for v in sub[y_col].tolist())
+    return xs, ys
+
+
 def build_right_axis_traces(
     data: pd.DataFrame,
     x_coord_col: str,
@@ -483,17 +524,29 @@ def build_right_axis_traces(
             )
         else:  # dots
             show_lines: bool = config.get("right_show_lines", True)
+            dot_color: str = style.get("color", "") if style.get("use_color") else ""
+            symbol: str = config.get("right_dot_symbol", "circle")
+            size: int = config.get("right_dot_size", 10)
             if show_lines:
+                # Per-group connects only dots within each x-category (gaps between
+                # groups); otherwise one continuous line across all points.
+                if config.get("right_line_per_group") and config.get("x"):
+                    xs, ys = _per_group_line_xy(data, x_coord_col, y_col, config)
+                    err = None  # NaN-broken segments can't carry per-point error bars
+                else:
+                    xs, ys = data[x_coord_col].tolist(), data[y_col].tolist()
+                    err = error_y_vals
                 traces.append(
                     LineTraceConfig(
                         name=trace_name,
-                        x=data[x_coord_col].tolist(),
-                        y=data[y_col].tolist(),
+                        x=xs,
+                        y=ys,
+                        color=dot_color,
                         show_markers=True,
-                        marker_symbol=config.get("right_dot_symbol", "circle"),
-                        marker_size=config.get("right_dot_size", 10),
+                        marker_symbol=symbol,
+                        marker_size=size,
                         line_width=float(config.get("right_line_width", 2)),
-                        error_y=error_y_vals,
+                        error_y=err,
                         yaxis="y2",
                     )
                 )
@@ -503,8 +556,9 @@ def build_right_axis_traces(
                         name=trace_name,
                         x=data[x_coord_col].tolist(),
                         y=data[y_col].tolist(),
-                        marker_symbol=config.get("right_dot_symbol", "circle"),
-                        marker_size=config.get("right_dot_size", 10),
+                        color=dot_color,
+                        marker_symbol=symbol,
+                        marker_size=size,
                         error_y=error_y_vals,
                         yaxis="y2",
                     )
