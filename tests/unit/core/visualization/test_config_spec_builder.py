@@ -445,3 +445,40 @@ class TestConfigSpecScalarFlags:
         config = _sample_config(hovermode="closest")
         spec = ConfigSpecBuilder.from_config(config, "grouped_bar")
         assert spec.hovermode == "closest"
+
+
+class TestGlobalSeriesStyle:
+    """The global series style must carry ONLY explicitly-set values.
+
+    Regression: bar_border_width used to force marker_size=6 / line_width=2.0
+    onto the single global style, which the matplotlib per-trace styling then
+    stamped on every trace — clobbering a dual-axis line's own width and
+    blacking the bars. Unset knobs must stay 0 (treated as "skip").
+    """
+
+    def test_bar_border_width_does_not_force_marker_or_line(self) -> None:
+        spec = ConfigSpecBuilder.from_config(
+            _sample_config(bar_border_width=0.2), "grouped_stacked_bar"
+        )
+        assert len(spec.series_styles) == 1
+        style = spec.series_styles[0]
+        assert style.bar_border_width == 0.2
+        assert style.marker_size == 0  # not 6 — unset, so the styling step skips it
+        assert style.line_width == 0.0  # not 2.0 — unset
+
+    def test_bar_border_color_passthrough(self) -> None:
+        spec = ConfigSpecBuilder.from_config(
+            _sample_config(bar_border_width=0.2, bar_border_color="white"),
+            "grouped_stacked_bar",
+        )
+        assert spec.series_styles[0].bar_border_color == "white"
+
+    def test_explicit_marker_and_line_are_kept(self) -> None:
+        spec = ConfigSpecBuilder.from_config(_sample_config(marker_size=9, line_width=1.4), "line")
+        style = spec.series_styles[0]
+        assert style.marker_size == 9
+        assert style.line_width == 1.4
+
+    def test_no_series_keys_means_no_global_style(self) -> None:
+        spec = ConfigSpecBuilder.from_config(_sample_config(), "grouped_bar")
+        assert spec.series_styles == []

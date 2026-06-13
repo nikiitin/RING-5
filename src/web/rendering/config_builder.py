@@ -409,11 +409,16 @@ class ConfigSpecBuilder:
             config.get(k) is not None for k in ("bar_border_width", "marker_size", "line_width")
         )
         if has_series:
+            # Carry ONLY explicitly-set values; leave the rest 0 so the per-trace
+            # styling step skips them (it treats 0 as "unset"). Hard defaults here
+            # (e.g. line_width=2.0) would otherwise be stamped onto every trace —
+            # clobbering a dual-axis line's own width / a plot type's marker size.
             series_styles.append(
                 SeriesStyleConfig(
-                    bar_border_width=float(config.get("bar_border_width", 0.0)),
-                    marker_size=int(config.get("marker_size") or 6),
-                    line_width=float(config.get("line_width") or 2.0),
+                    bar_border_width=float(config.get("bar_border_width") or 0.0),
+                    bar_border_color=str(config.get("bar_border_color", "")),
+                    marker_size=int(config["marker_size"]) if config.get("marker_size") else 0,
+                    line_width=float(config["line_width"]) if config.get("line_width") else 0.0,
                 )
             )
 

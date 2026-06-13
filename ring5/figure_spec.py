@@ -129,6 +129,7 @@ class FigureSpec:
     bargap: float = 0.2
     bargroupgap: float = 0.0
     bar_border_width: float = 0.0
+    bar_border_color: str = ""  # "" -> connector default; e.g. "white" for separators
     palette: str | list[str] | None = None  # registry name OR explicit hex list
 
     # ── Grouped separators ──────────────────────────────────────────
@@ -220,6 +221,7 @@ class FigureSpec:
             "bargap": self.bargap,
             "bargroupgap": self.bargroupgap,
             "bar_border_width": self.bar_border_width,
+            "bar_border_color": self.bar_border_color,
             # grouped separators
             "show_separators": self.show_separators,
             "separator_color": self.separator_color,

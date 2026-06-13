@@ -73,6 +73,17 @@ def build_matplotlib_figure(
     PlotlyFigureSpecBuilder.enrich_from_plotly(spec, plotly_fig)
     spec = resolve_config(spec)
 
+    # Dual-axis Y-titles are injected as paper-space annotations by
+    # apply_dual_axis_titles (Plotly parity). The matplotlib path sets the real
+    # axis labels (left here, right via apply_dual_axis), so drop the annotation
+    # copies — else both titles render twice (rotated text over the plot).
+    if config.get("dual_axis") and spec.annotations:
+        titles = {str(config.get("ylabel", "")), str(config.get("ylabel_right", ""))} - {""}
+        if titles:
+            kept = [a for a in spec.annotations if str(getattr(a, "text", "")) not in titles]
+            if len(kept) != len(spec.annotations):
+                object.__setattr__(spec, "annotations", kept)
+
     # 2a. Multi-heatmap: one subplot row per heatmap trace
     heatmap_traces = [t for t in traces if isinstance(t, HeatmapTraceConfig)]
     if len(heatmap_traces) > 1:
