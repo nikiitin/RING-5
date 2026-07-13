@@ -58,7 +58,7 @@ Version: 2.0.0
 Last Modified: 2026-01-27
 """
 
-from typing import Any, Dict
+from typing import Any, override
 
 import pandas as pd
 
@@ -70,7 +70,7 @@ class Selector(UniDfShaper):
     Abstract base for shapers that filter data by column values.
     """
 
-    def __init__(self, params: Dict[str, Any]) -> None:
+    def __init__(self, params: dict[str, Any]) -> None:
         """
         Initialize the selector.
 
@@ -80,6 +80,7 @@ class Selector(UniDfShaper):
         super().__init__(params)
         self.column: str = params["column"]
 
+    @override
     def _verify_params(self) -> bool:
         """Verify mandatory 'column' parameter exists."""
         super()._verify_params()
@@ -96,6 +97,7 @@ class Selector(UniDfShaper):
             raise ValueError(f"Selector: Column '{self.column}' not found in dataframe.")
         return True
 
+    @override
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
         """Filter the dataframe."""
         return super().__call__(data_frame)

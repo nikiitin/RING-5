@@ -20,8 +20,8 @@ import pytest
 
 from src.core.application_api import ApplicationAPI
 from src.core.models import StatConfig
-from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
-from src.core.parsing.gem5.impl.gem5_scanner import Gem5Scanner as ScannerService
+from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
+from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ScannerService
 
 
 @pytest.fixture
@@ -73,7 +73,7 @@ class TestFullParserWorkflow:
         )
 
         scan_results = [f.result() for f in scan_futures]
-        scanned_vars = ScannerService.aggregate_scan_results(scan_results)
+        scanned_vars = ScannerService.aggregate_scan_results(scan_results).variables
 
         # Verify scanning found expected variables
         assert len(scanned_vars) > 0
@@ -137,7 +137,7 @@ class TestFullParserWorkflow:
         )
 
         scan_results = [f.result() for f in scan_futures]
-        scanned_vars = facade.finalize_scan(scan_results)
+        scanned_vars = facade.finalize_scan(scan_results).variables
 
         assert len(scanned_vars) > 0
 
@@ -156,6 +156,8 @@ class TestFullParserWorkflow:
 
             parse_results = [f.result() for f in batch.futures]
             csv_path = facade.finalize_parsing(output_dir, parse_results, var_names=batch.var_names)
+
+            assert csv_path is not None
 
             # Step 4: Load into CSV pool
             facade.add_to_csv_pool(csv_path)

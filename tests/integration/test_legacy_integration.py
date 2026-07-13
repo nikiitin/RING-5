@@ -6,11 +6,14 @@ Tests the complete workflow with new features.
 import shutil
 import tempfile
 from pathlib import Path
+from typing import cast
 
 import pandas as pd
 
+from src.core.models.shaper_models import ShaperStepConfig
 
-def test_complete_workflow_integration():
+
+def test_complete_workflow_integration() -> None:
     """Test complete workflow: load CSV, configure pipeline, apply transformations."""
 
     from src.core.application_api import ApplicationAPI
@@ -37,29 +40,31 @@ def test_complete_workflow_integration():
         loaded_data = facade.load_csv_file(str(test_csv))
         assert len(loaded_data) == 4
         assert list(loaded_data.columns) == ["benchmark", "config", "ipc", "latency"]
-        print("✓ CSV loading works")
 
         # Test 2: Add to CSV pool
         pool_path = facade.add_to_csv_pool(str(test_csv))
         assert Path(pool_path).exists()
-        print("✓ CSV pool works")
 
         # Test 3: Load CSV pool
         pool = facade.load_csv_pool()
         assert len(pool) > 0
-        print("✓ CSV pool loading works")
 
         # Test 4: Create dynamic pipeline
-        pipeline = [
-            {"type": "columnSelector", "columns": ["benchmark", "ipc"]},
-            {"type": "columnSelector", "columns": ["benchmark", "ipc"]},  # Multiple of same type
-        ]
+        pipeline = cast(
+            list[ShaperStepConfig],
+            [
+                {"type": "columnSelector", "columns": ["benchmark", "ipc"]},
+                {
+                    "type": "columnSelector",
+                    "columns": ["benchmark", "ipc"],
+                },  # Multiple of same type
+            ],
+        )
 
         # Test 5: Apply pipeline
         result = facade.apply_shapers(test_data, pipeline)
         assert "benchmark" in result.columns
         assert "ipc" in result.columns
-        print("✓ Dynamic pipeline works")
 
         # Test 6: Save configuration
         config_path = facade.save_configuration(
@@ -69,13 +74,11 @@ def test_complete_workflow_integration():
             csv_path=str(test_csv),
         )
         assert Path(config_path).exists()
-        print("✓ Configuration saving works")
 
         # Test 7: Load configuration
         loaded_config = facade.load_configuration(config_path)
         assert loaded_config["name"] == "test_pipeline"
         assert len(loaded_config["shapers"]) == 2
-        print("✓ Configuration loading works")
 
         # Test 8: Preview transformations (step by step)
         step1_result = facade.apply_shapers(test_data, pipeline[:1])
@@ -83,23 +86,16 @@ def test_complete_workflow_integration():
 
         step2_result = facade.apply_shapers(test_data, pipeline[:2])
         assert len(step2_result.columns) == 2
-        print("✓ Step-by-step preview works")
 
         # Test 9: Data manager operations
         # Test filtering
         filtered = test_data[test_data["ipc"] > 1.7]
         assert len(filtered) == 3  # ipc values: 2.0, 1.8, 2.2 are > 1.7
-        print("✓ Data filtering works")
 
         # Test column operations
         test_data_copy = test_data.copy()
         test_data_copy["new_col"] = test_data_copy["ipc"] * 2
         assert "new_col" in test_data_copy.columns
-        print("✓ Column operations work")
-
-        print("\n" + "=" * 60)
-        print("ALL INTEGRATION TESTS PASSED!")
-        print("=" * 60)
 
     finally:
         # Cleanup
@@ -107,23 +103,25 @@ def test_complete_workflow_integration():
             shutil.rmtree(test_dir)
 
 
-def test_pipeline_reordering():
+def test_pipeline_reordering() -> None:
     """Test pipeline reordering functionality."""
-    pipeline = [
-        {"type": "columnSelector", "columns": ["a", "b"]},
-        {"type": "sort", "order_dict": {"col": ["x", "y"]}},
-        {"type": "normalize", "normalizeVars": ["val"]},
-    ]
+    pipeline: list[ShaperStepConfig] = cast(
+        list[ShaperStepConfig],
+        [
+            {"type": "columnSelector", "columns": ["a", "b"]},
+            {"type": "sort", "order_dict": {"col": ["x", "y"]}},
+            {"type": "normalize", "normalizeVars": ["val"]},
+        ],
+    )
 
     # Simulate moving item up
     pipeline[1], pipeline[0] = pipeline[0], pipeline[1]
 
-    assert pipeline[0]["type"] == "sort"
-    assert pipeline[1]["type"] == "columnSelector"
-    print("✓ Pipeline reordering works")
+    assert pipeline[0].get("type") == "sort"
+    assert pipeline[1].get("type") == "columnSelector"
 
 
-def test_multiple_same_shapers():
+def test_multiple_same_shapers() -> None:
     """Test adding multiple shapers of the same type."""
     from src.core.application_api import ApplicationAPI
 
@@ -132,10 +130,13 @@ def test_multiple_same_shapers():
     test_data = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9], "d": [10, 11, 12]})
 
     # Pipeline with multiple column selectors
-    pipeline = [
-        {"type": "columnSelector", "columns": ["a", "b", "c"]},
-        {"type": "columnSelector", "columns": ["a", "b"]},
-    ]
+    pipeline = cast(
+        list[ShaperStepConfig],
+        [
+            {"type": "columnSelector", "columns": ["a", "b", "c"]},
+            {"type": "columnSelector", "columns": ["a", "b"]},
+        ],
+    )
 
     result = facade.apply_shapers(test_data, pipeline)
 
@@ -143,15 +144,3 @@ def test_multiple_same_shapers():
     assert "a" in result.columns
     assert "b" in result.columns
     assert "c" not in result.columns
-    print("✓ Multiple same shapers work correctly")
-
-
-if __name__ == "__main__":
-    print("Running RING-5 Integration Tests...")
-    print("=" * 60)
-
-    test_complete_workflow_integration()
-    test_pipeline_reordering()
-    test_multiple_same_shapers()
-
-    print("\n✓ All integration tests completed successfully!")

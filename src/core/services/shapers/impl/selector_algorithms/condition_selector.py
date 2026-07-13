@@ -6,10 +6,12 @@ Supports comparisons, range queries, categorical inclusion, and substring matchi
 Part of the selector algorithm family for flexible data filtering.
 """
 
-from typing import Any, Callable, Dict, List, Optional, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 import pandas as pd
 
+from src.core.models.shaper_models import ConditionSelectorConfig
 from src.core.services.shapers.impl.selector import Selector
 
 
@@ -25,7 +27,7 @@ class ConditionSelector(Selector):
     - Legacy direct comparison strings (<, >, ==, etc.)
     """
 
-    def __init__(self, params: Dict[str, Any]) -> None:
+    def __init__(self, params: dict[str, Any]) -> None:
         """
         Initialize ConditionSelector.
 
@@ -33,41 +35,44 @@ class ConditionSelector(Selector):
             params: Dictionary containing 'column' and one or more filter definitions:
                 - mode (str): 'greater_than', 'less_than', 'equals', 'contains', 'legacy'
                 - threshold (float): threshold for numeric modes
-                - range (List[float]): [min, max] for range mode
-                - values (List[Any]): Allowed values for categorical mode
+                - range (list[float]): [min, max] for range mode
+                - values (list[str]): Allowed values for categorical mode
                 - condition (str): operator for legacy mode
-                - value (Any): comparison value for legacy/equals/contains mode
+                - value (str | float | int): comparison value for legacy/equals/contains mode
         """
+        config = cast(ConditionSelectorConfig, params)
         # Load parameters with defaults BEFORE super().__init__
         # because super().__init__ calls _verify_params which uses these.
-        self.mode: str = params.get("mode", "legacy")
-        self.condition: Optional[str] = params.get("condition")
-        self.value: Any = params.get("value")
-        self.threshold: Optional[float] = params.get("threshold")
-        self.range: Optional[List[float]] = params.get("range")
-        self.values: Optional[List[Any]] = params.get("values")
+        self.mode: str = config.get("mode", "legacy")
+        self.condition: str | None = params.get("condition")  # Legacy
+        self.value: str | float | int | None = params.get("value")  # Legacy
+        self.threshold: float | None = config.get("threshold")
+        self.range: list[float] | None = config.get("range")
+        self.values: list[str] | None = config.get("values")
 
         super().__init__(params)
 
     def _verify_params(self) -> bool:
         """Validate that the parameter combination is sufficient for filtering."""
         super()._verify_params()
+        config = cast(ConditionSelectorConfig, self.params)
 
-        if self.params.get("values") is not None:
-            if not isinstance(self.params["values"], list):
+        if config.get("values") is not None:
+            if not isinstance(config.get("values"), list):
                 raise TypeError("ConditionSelector: 'values' must be a list.")
 
-        elif self.params.get("range") is not None:
-            r = self.params["range"]
+        elif config.get("range") is not None:
+            r = config.get("range")
             if not isinstance(r, list) or len(r) != 2:
                 raise ValueError("ConditionSelector: 'range' must be a list of 2 values.")
 
         elif self.mode == "greater_than" or self.mode == "less_than":
-            if self.params.get("threshold") is None:
+            if config.get("threshold") is None:
                 raise ValueError(f"ConditionSelector: '{self.mode}' mode requires 'threshold'.")
 
         elif self.mode == "equals" or self.mode == "contains":
-            if self.params.get("value") is None:
+            # value is required for these modes
+            if config.get("value") is None:
                 raise ValueError(f"ConditionSelector: '{self.mode}' mode requires 'value'.")
 
         elif self.condition is not None and self.value is not None:
@@ -78,10 +83,18 @@ class ConditionSelector(Selector):
         return True
 
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
-        """Execute the filtering logic."""
+        """Filter the dataframe, always returning an independent copy (not a view)."""
+        return self._apply(data_frame).copy()
+
+    def _apply(self, data_frame: pd.DataFrame) -> pd.DataFrame:
+        """Execute the filtering logic (the result may be a view of *data_frame*)."""
         self._verify_preconditions(data_frame)
 
         col = self.column
+        # Precedence (documented, by design): a direct selection wins over ``mode`` —
+        # ``values`` > ``range`` > ``mode`` (greater_than/less_than/equals/contains) >
+        # legacy operator/value. The UI only ever sets one of these, so the order matters
+        # only for hand-built configs; it is fixed here so behavior is predictable.
         # 1. Categorical inclusion
         if self.values is not None:
             return data_frame[data_frame[col].isin(self.values)]
@@ -93,16 +106,16 @@ class ConditionSelector(Selector):
             return data_frame[mask]
 
         # 3. Explicit UI Modes
-        if self.mode == "greater_than":
-            return data_frame[data_frame[col] > self.threshold]
-        elif self.mode == "less_than":
-            return data_frame[data_frame[col] < self.threshold]
-        elif self.mode == "equals":
-            # Equality comparison may return Any in some pandas contexts
-            return cast(pd.DataFrame, data_frame[data_frame[col] == self.value])
-        elif self.mode == "contains":
-            mask = data_frame[col].astype(str).str.contains(str(self.value), na=False)
-            return data_frame[mask]
+        match self.mode:
+            case "greater_than":
+                return data_frame[data_frame[col] > self.threshold]
+            case "less_than":
+                return data_frame[data_frame[col] < self.threshold]
+            case "equals":
+                return data_frame[data_frame[col] == self.value]
+            case "contains":
+                mask = data_frame[col].astype(str).str.contains(str(self.value), na=False)
+                return data_frame[mask]
 
         # 4. Legacy Operator/Value pair
         if self.condition is not None and self.value is not None:
@@ -122,7 +135,7 @@ class ConditionSelector(Selector):
                 "==": lambda x, y: x == y,
                 "!=": lambda x, y: x != y,
             }
-            typed_ops: Dict[str, Callable[[Any, Any], Any]] = ops
+            typed_ops: dict[str, Callable[[Any, Any], Any]] = ops
             if self.condition in typed_ops:
                 # Lambda returns Any - cast to document DataFrame return
                 return cast(

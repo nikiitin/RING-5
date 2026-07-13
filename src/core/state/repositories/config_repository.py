@@ -4,7 +4,9 @@ Single Responsibility: Manage application configuration state.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
+
+from src.core.models.data_models import CsvPoolEntry, SavedConfigEntry
 
 logger = logging.getLogger(__name__)
 
@@ -26,22 +28,22 @@ class ConfigRepository:
 
     def __init__(self) -> None:
         """Initialize in-memory storage."""
-        self._config: Dict[str, Any] = {}
-        self._temp_dir: Optional[str] = None
-        self._csv_path: Optional[str] = None
-        self._csv_pool: List[Dict[str, Any]] = []
-        self._saved_configs: List[Dict[str, Any]] = []
+        self._config: dict[str, Any] = {}
+        self._temp_dir: str | None = None
+        self._csv_path: str | None = None
+        self._csv_pool: list[CsvPoolEntry] = []
+        self._saved_configs: list[SavedConfigEntry] = []
 
-    def get_config(self) -> Dict[str, Any]:
+    def get_config(self) -> dict[str, Any]:
         """
         Get the complete configuration dictionary.
 
         Returns:
-            Configuration dictionary (empty dict if not initialized)
+            A shallow copy of the configuration dictionary (defensive copy-on-read).
         """
-        return self._config
+        return dict(self._config)
 
-    def set_config(self, config: Dict[str, Any]) -> None:
+    def set_config(self, config: dict[str, Any]) -> None:
         """
         Set the complete configuration dictionary.
 
@@ -49,9 +51,9 @@ class ConfigRepository:
             config: Configuration dictionary to store
         """
         self._config = config
-        logger.info(f"CONFIG_REPO: Configuration updated - {len(config)} keys")
+        logger.info("CONFIG_REPO: Configuration updated - %d keys", len(config))
 
-    def update_config(self, key: str, value: Any) -> None:
+    def update_config(self, key: str, value: object) -> None:
         """
         Update a specific configuration key.
 
@@ -62,7 +64,7 @@ class ConfigRepository:
         self._config[key] = value
         logger.debug(f"CONFIG_REPO: Config key '{key}' updated")
 
-    def get_config_value(self, key: str, default: Any = None) -> Any:
+    def get_config_value(self, key: str, default: object = None) -> object:
         """
         Get a specific configuration value.
 
@@ -80,7 +82,7 @@ class ConfigRepository:
         self._config = {}
         logger.info("CONFIG_REPO: Configuration cleared")
 
-    def get_temp_dir(self) -> Optional[str]:
+    def get_temp_dir(self) -> str | None:
         """
         Get the temporary directory path.
 
@@ -96,10 +98,12 @@ class ConfigRepository:
         Args:
             path: Path to temporary directory
         """
+        if self._temp_dir == path:
+            return
         self._temp_dir = path
-        logger.info(f"CONFIG_REPO: Temp dir set to '{path}'")
+        logger.info("CONFIG_REPO: Temp dir set to '%s'", path)
 
-    def get_csv_path(self) -> Optional[str]:
+    def get_csv_path(self) -> str | None:
         """
         Get the current CSV file path.
 
@@ -115,18 +119,20 @@ class ConfigRepository:
         Args:
             path: Path to CSV file
         """
+        if self._csv_path == path:
+            return
         self._csv_path = path
 
-    def get_csv_pool(self) -> List[Dict[str, Any]]:
+    def get_csv_pool(self) -> list[CsvPoolEntry]:
         """
         Get the CSV pool registry.
 
         Returns:
-            List of CSV pool entries (empty list if not initialized)
+            A shallow copy of the CSV pool list (defensive copy-on-read).
         """
-        return self._csv_pool
+        return list(self._csv_pool)
 
-    def set_csv_pool(self, pool: List[Dict[str, Any]]) -> None:
+    def set_csv_pool(self, pool: list[CsvPoolEntry]) -> None:
         """
         Set the CSV pool registry.
 
@@ -134,18 +140,18 @@ class ConfigRepository:
             pool: List of CSV pool entries
         """
         self._csv_pool = pool
-        logger.info(f"CONFIG_REPO: CSV pool updated - {len(pool)} entries")
+        logger.info("CONFIG_REPO: CSV pool updated - %d entries", len(pool))
 
-    def get_saved_configs(self) -> List[Dict[str, Any]]:
+    def get_saved_configs(self) -> list[SavedConfigEntry]:
         """
         Get saved configuration entries.
 
         Returns:
-            List of saved configurations (empty list if not initialized)
+            A shallow copy of the saved-config list (defensive copy-on-read).
         """
-        return self._saved_configs
+        return list(self._saved_configs)
 
-    def set_saved_configs(self, configs: List[Dict[str, Any]]) -> None:
+    def set_saved_configs(self, configs: list[SavedConfigEntry]) -> None:
         """
         Set saved configuration entries.
 
@@ -153,4 +159,4 @@ class ConfigRepository:
             configs: List of saved configurations
         """
         self._saved_configs = configs
-        logger.info(f"CONFIG_REPO: Saved configs updated - {len(configs)} entries")
+        logger.info("CONFIG_REPO: Saved configs updated - %d entries", len(configs))

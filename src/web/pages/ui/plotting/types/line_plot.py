@@ -1,13 +1,16 @@
 """Line plot implementation."""
 
-from typing import Any, Dict, Optional
+from typing import override
 
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
 import streamlit as st
 
+from src.core.models.visualization.trace_build_result import TraceBuildResult
+from src.core.models.visualization.trace_config import LineTraceConfig
+from src.web.components.plotting.config.base_plot_config import render_common_with_color
+from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
+from src.web.pages.ui.plotting.types._trace_helpers import build_color_grouped_traces
 
 
 class LinePlot(BasePlot):
@@ -16,29 +19,15 @@ class LinePlot(BasePlot):
     def __init__(self, plot_id: int, name: str):
         super().__init__(plot_id, name, "line")
 
-    def render_config_ui(self, data: pd.DataFrame, saved_config: Dict[str, Any]) -> Dict[str, Any]:
+    @override
+    def render_config_ui(self, data: pd.DataFrame, saved_config: PlotConfig) -> PlotConfig:
         """Render configuration UI for line plot."""
-        # Common config
-        config = self.render_common_config(data, saved_config)
+        return render_common_with_color(data, saved_config, self.plot_id)
 
-        # Color option
-        color_options = [None] + config["categorical_cols"]
-        color_default_idx = 0
-        if saved_config.get("color") and saved_config["color"] in config["categorical_cols"]:
-            color_default_idx = color_options.index(saved_config["color"])
-
-        color_column = st.selectbox(
-            "Color by (optional)",
-            options=color_options,
-            index=color_default_idx,
-            key=f"color_{self.plot_id}",
-        )
-
-        return {**config, "color": color_column}
-
+    @override
     def render_specific_advanced_options(
-        self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame] = None
-    ) -> Dict[str, Any]:
+        self, saved_config: PlotConfig, data: pd.DataFrame | None = None
+    ) -> PlotConfig:
         """Specific options for Line Plot."""
         config = {}
         st.markdown("#### Line Settings")
@@ -52,35 +41,34 @@ class LinePlot(BasePlot):
         )
         return config
 
-    def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
-        """Create line plot figure."""
-        # Sort data by x-axis to ensure correct line drawing order (prevents zig-zags)
-        if config.get("x") in data.columns:
-            data = data.sort_values(by=config["x"])
+    @override
+    def create_traces(self, data: pd.DataFrame, config: PlotConfig) -> TraceBuildResult:
+        """Produce line traces from data and config."""
+        x_col: str = config["x"]
+        y_col: str = config["y"]
 
-        y_error = None
-        if config.get("show_error_bars"):
-            sd_col = f"{config['y']}.sd"
-            if sd_col in data.columns:
-                y_error = sd_col
+        # Sort by x-axis to ensure correct line drawing order
+        if x_col in data.columns:
+            data = data.sort_values(by=x_col)
 
-        fig = px.line(
-            data,
-            x=config["x"],
-            y=config["y"],
-            color=config.get("color"),
-            error_y=y_error,
-            title=config["title"],
-            labels={config["x"]: config["xlabel"], config["y"]: config["ylabel"]},
-            markers=True,  # Enable markers to show explicit points
-        )
+        def _make_trace(
+            grp_data: pd.DataFrame,
+            group_name: str | None,
+            sd_col: str | None,
+        ) -> LineTraceConfig:
+            return LineTraceConfig(
+                name=str(group_name) if group_name is not None else y_col,
+                x=grp_data[x_col].tolist(),
+                y=grp_data[y_col].tolist(),
+                show_markers=True,
+                error_y=grp_data[sd_col].tolist() if sd_col else None,
+            )
 
-        # Force categorical x-axis to show all unique values as labels
-        fig.update_xaxes(type="category")
+        traces = build_color_grouped_traces(data, config, _make_trace)
+        return TraceBuildResult(traces=traces)
 
-        return fig
-
-    def get_legend_column(self, config: Dict[str, Any]) -> Optional[str]:
+    @override
+    def get_legend_column(self, config: PlotConfig) -> str | None:
         """Get legend column for line plot."""
         result = config.get("color")
         return str(result) if result is not None else None

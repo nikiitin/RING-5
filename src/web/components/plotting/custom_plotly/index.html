@@ -1,0 +1,104 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Streamlit Interactive Plotly</title>
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: visible;
+      }
+      #myDiv {
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="myDiv"></div>
+    <script>
+      // ----------------------------------------------------
+      // Streamlit Component Protocol Implementation
+      // ----------------------------------------------------
+      function sendMessageToStreamlitClient(type, data) {
+        var outData = Object.assign(
+          {
+            isStreamlitMessage: true,
+            type: type,
+          },
+          data,
+        );
+        window.parent.postMessage(outData, "*");
+      }
+
+      var Streamlit = {
+        setComponentValue: function (value) {
+          sendMessageToStreamlitClient("streamlit:setComponentValue", {
+            value: value,
+          });
+        },
+        setFrameHeight: function (height) {
+          sendMessageToStreamlitClient("streamlit:setFrameHeight", {
+            height: height,
+          });
+        },
+      };
+
+      function onRender(event) {
+        var args = event.data.args;
+        if (!args.spec) return;
+
+        var spec = JSON.parse(args.spec);
+        var config = args.config ? JSON.parse(args.config) : {};
+
+        // Ensure responsive is strictly true if not set
+        if (config.responsive === undefined) {
+          config.responsive = true;
+        }
+
+        var divId = "myDiv";
+
+        // Render or Update
+        Plotly.react(divId, spec.data, spec.layout, config).then(function (gd) {
+          // Attach listeners only once if possible, but React handles it.
+          if (!gd._streamlit_listeners_attached) {
+            gd.on("plotly_relayout", function (eventData) {
+              handleRelayout(eventData);
+            });
+            gd._streamlit_listeners_attached = true;
+          }
+
+          // Use actual rendered height so X-axis labels are never clipped
+          var rect = gd.getBoundingClientRect();
+          var actualHeight = Math.ceil(rect.height);
+          var layoutHeight =
+            spec.layout && spec.layout.height ? spec.layout.height : 500;
+          var finalHeight = Math.max(actualHeight, layoutHeight) + 30;
+          Streamlit.setFrameHeight(finalHeight);
+        });
+      }
+
+      // Debounce logic
+      let debounceTimer;
+      function handleRelayout(eventData) {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(function () {
+          Streamlit.setComponentValue(eventData);
+        }, 400); // 400ms debounce to avoid rapid updates during drag
+      }
+
+      // Hook into Streamlit events
+      window.addEventListener("message", function (event) {
+        if (event.data.type === "streamlit:render") {
+          onRender(event);
+        }
+      });
+
+      // Notify Streamlit we are ready
+      sendMessageToStreamlitClient("streamlit:componentReady", {
+        apiVersion: 1,
+      });
+    </script>
+  </body>
+</html>

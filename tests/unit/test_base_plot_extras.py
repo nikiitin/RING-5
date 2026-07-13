@@ -1,25 +1,39 @@
+from collections.abc import Generator
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
+from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.web.pages.ui.plotting.base_plot import BasePlot
 
 
 # Concrete implementation for testing abstract class
 class ConcretePlot(BasePlot):
-    def render_config_ui(self, data, saved_config):
+    def render_config_ui(self, data: Any, saved_config: Any) -> dict:
+
         return {}
 
-    def create_figure(self, data, config):
-        pass
+    def create_traces(self, data: Any, config: Any) -> TraceBuildResult:
 
-    def get_legend_column(self, config):
+        from src.core.models.visualization.trace_build_result import TraceBuildResult
+
+        return TraceBuildResult(traces=[])
+
+    def get_legend_column(self, config: Any) -> None:
+
         return None
 
 
 @pytest.fixture
-def mock_streamlit():
-    with patch("src.web.pages.ui.plotting.base_plot.st") as mock_st:
+def mock_streamlit() -> Generator[None, None, None]:
+    with (
+        patch("src.web.pages.ui.plotting.plot_config_ui.st") as mock_st,
+        patch("src.web.components.common.reorderable_list.st", mock_st),
+        patch("src.web.components.plotting.settings.shapes_settings.st", mock_st),
+        patch("src.web.components.plotting.settings.reference_line_settings.st", mock_st),
+        patch("src.web.components.plotting.settings.ordering_settings.st", mock_st),
+    ):
         # Mock columns
         mock_st.columns.side_effect = lambda n: (
             [MagicMock() for _ in range(n)] if isinstance(n, int) else [MagicMock() for _ in n]
@@ -31,7 +45,8 @@ def mock_streamlit():
         yield mock_st
 
 
-def test_render_advanced_options_shapes_add(mock_streamlit):
+def test_render_advanced_options_shapes_add(mock_streamlit: Any) -> None:
+
     plot = ConcretePlot(1, "Test Plot", "scatter")
     config = {"shapes": []}
 
@@ -52,7 +67,8 @@ def test_render_advanced_options_shapes_add(mock_streamlit):
     mock_streamlit.number_input.return_value = 2
 
     # Mock specific button return for "Add Shape".
-    def button_side_effect(label, key=None, **kwargs):
+    def button_side_effect(label: Any, key: Any = None, **kwargs: Any) -> int:
+
         if key == "add_shape_1":
             return True
         return False
@@ -60,17 +76,20 @@ def test_render_advanced_options_shapes_add(mock_streamlit):
     mock_streamlit.button.side_effect = button_side_effect
 
     # Render
-    plot.render_advanced_options(config, None)
+    result = plot.render_advanced_options(config, None)
 
-    # Check config update
-    assert len(config["shapes"]) == 1
-    shape_cfg = config["shapes"][0]
+    # New contract (audit M1): returned config holds the added shape; the
+    # input saved_config is never mutated in place.
+    assert config["shapes"] == []
+    assert len(result["shapes"]) == 1
+    shape_cfg = result["shapes"][0]
     assert shape_cfg["type"] == "line"
     assert shape_cfg["x0"] == 0.0
     assert shape_cfg["y0"] == 0.0
 
 
-def test_render_advanced_options_shapes_edit_delete(mock_streamlit):
+def test_render_advanced_options_shapes_edit_delete(mock_streamlit: Any) -> None:
+
     plot = ConcretePlot(1, "Test Plot", "scatter")
     config = {
         "shapes": [{"type": "line", "x0": 0, "y0": 0, "x1": 1, "y1": 1, "line": {"color": "red"}}]
@@ -83,7 +102,8 @@ def test_render_advanced_options_shapes_edit_delete(mock_streamlit):
     # We want to delete the shape.
     # key=f"del_shape_{i}_{self.plot_id}" -> "del_shape_0_1"
 
-    def button_side_effect(label, key=None, **kwargs):
+    def button_side_effect(label: Any, key: Any = None, **kwargs: Any) -> int:
+
         if key == "del_shape_0_1":
             return True
         return False
@@ -109,13 +129,16 @@ def test_render_advanced_options_shapes_edit_delete(mock_streamlit):
     # Mock st.rerun to prevent actual rerun
     mock_streamlit.rerun = MagicMock()
 
-    plot.render_advanced_options(config, None)
+    result = plot.render_advanced_options(config, None)
 
-    # Shape should be popped
-    assert len(config["shapes"]) == 0
+    # New contract (audit M1): deletion is reflected in the RETURNED config;
+    # the input saved_config is never mutated in place.
+    assert len(config["shapes"]) == 1
+    assert len(result["shapes"]) == 0
 
 
-def test_render_reorderable_list(mock_streamlit):
+def test_render_reorderable_list(mock_streamlit: Any) -> None:
+
     plot = ConcretePlot(1, "Test Plot", "bar")
     items = ["A", "B", "C"]
 
@@ -127,7 +150,8 @@ def test_render_reorderable_list(mock_streamlit):
     # Second render: Trigger Move Down on A (index 0)
     # key=f"{key_prefix}_down_{i}_{self.plot_id}" -> "test_down_0_1"
 
-    def button_side_effect(label, key=None, **kwargs):
+    def button_side_effect(label: Any, key: Any = None, **kwargs: Any) -> int:
+
         if key == "test_down_0_1":
             return True
         return False

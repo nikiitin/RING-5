@@ -5,7 +5,16 @@
   // Python configuration
   "python.defaultInterpreterPath": "${workspaceFolder}/python_venv/bin/python",
   "python.terminal.activateEnvironment": true,
-  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.typeCheckingMode": "strict",
+  "python.analysis.diagnosticSeverityOverrides": {
+    "reportMissingTypeStubs": "warning",
+    "reportUnknownMemberType": "warning",
+    "reportUnknownParameterType": "warning",
+    "reportUnknownVariableType": "warning",
+    "reportUnknownArgumentType": "warning",
+    "reportMissingParameterType": "error",
+    "reportUntypedFunctionDecorator": "warning"
+  },
 
   // GitHub Copilot
   "github.copilot.enable": {
@@ -24,6 +33,9 @@
   "python.linting.enabled": true,
   "python.linting.pylintEnabled": false,
   "python.linting.flake8Enabled": true,
+  "python.linting.banditEnabled": true,
+  "python.linting.mypyEnabled": true,
+  "python.linting.mypyArgs": ["--show-error-codes", "--pretty"],
 
   // Testing
   "python.testing.pytestEnabled": true,
@@ -42,12 +54,34 @@
     "**/python_venv": true,
     "**/.pytest_cache": true,
     "**/__pycache__": true,
-    "**/*.egg-info": true
+    "**/*.egg-info": true,
+    "**/node_modules": true,
+    "**/.mypy_cache": true
   },
 
   // Files to watch (for AI context)
   "files.watcherExclude": {
     "**/python_venv/**": true,
-    "**/.pytest_cache/**": true
-  }
+    "**/.pytest_cache/**": true,
+    "**/__pycache__/**": true,
+    "**/.mypy_cache/**": true
+  },
+
+  // Disable markdown validation in Problems tab
+  // (markdownlint runs via Trunk CLI instead)
+  "markdownlint.config": {
+    "default": false
+  },
+
+  // Trunk extension configuration
+  "trunk.pathToTrunk": "${workspaceFolder}/.trunk",
+  "trunk.enableFormatOnSave": false,
+  "trunk.enableDebugLogs": false,
+
+  // Copilot Chat instructions reference
+  "github.copilot.chat.codeGeneration.instructions": [
+    {
+      "file": ".github/copilot-instructions.md"
+    }
+  ]
 }

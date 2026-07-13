@@ -2,7 +2,7 @@
 Core data models for the Parser ↔ Application ↔ UI boundary.
 
 These frozen dataclasses represent the "common language" shared across all
-layers of RING-5. They were originally in ``src.core.parsing.models`` and
+layers of RING-5. They were originally in ``src.parsing.models`` and
 were externalised so that:
 
     • Layer A (Parsing) can produce them
@@ -16,7 +16,12 @@ All models are **immutable** (``frozen=True``) to guarantee reproducibility.
 
 from concurrent.futures import Future
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
+
+from src.core.models.data_models import ScannedVariableDict
+
+# Type alias for StatConfig parameter values
+StatParamValue = str | int | float | bool | list[str] | None
 
 
 @dataclass(frozen=True)
@@ -30,60 +35,96 @@ class ParseBatchResult:
     mutable state.
     """
 
-    futures: List[Future[Any]]
-    var_names: List[str]
+    futures: list[Future[dict[str, Any]]]
+    var_names: list[str]
 
 
 @dataclass(frozen=True)
 class ScannedVariable:
     """
-    Metadata for a variable discovered in a gem5 stats file.
-    Output of Layer A (Ingestion).
+    Base metadata for a variable discovered by a simulator parser.
+
+    This is the simulator-agnostic base class.  Simulator-specific
+    subclasses may add extra fields such as distribution min/max ranges.
     """
 
     name: str
-    type: str  # "scalar", "vector", "distribution", "histogram", "configuration"
-    entries: List[str] = field(default_factory=list)
-    minimum: Optional[float] = None
-    maximum: Optional[float] = None
-    pattern_indices: Optional[List[str]] = None
+    type: str  # Simulator-specific type string (e.g. "scalar", "vector")
+    entries: list[str] = field(default_factory=lambda: list[str]())
+    pattern_indices: list[str] | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Legacy compatibility for dictionary-based components."""
-        result: Dict[str, Any] = {
-            "name": self.name,
-            "type": self.type,
-            "entries": self.entries,
-        }
-        if self.minimum is not None:
-            result["minimum"] = self.minimum
-        if self.maximum is not None:
-            result["maximum"] = self.maximum
+    def to_dict(self) -> ScannedVariableDict:
+        """Serialize to dictionary for JSON-compatible output.
+
+        Copies the mutable list members so the returned dict cannot mutate this
+        (frozen, reproducibility-guaranteeing) model's internal lists by reference.
+        """
+        result: ScannedVariableDict = ScannedVariableDict(
+            name=self.name,
+            type=self.type,
+            entries=list(self.entries),
+        )
         if self.pattern_indices is not None:
-            result["pattern_indices"] = self.pattern_indices
+            result["pattern_indices"] = list(self.pattern_indices)
         return result
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ScannedVariable":
-        """Reconstruct model from dictionary."""
+    def from_dict(cls, data: ScannedVariableDict) -> "ScannedVariable":
+        """Reconstruct model from dictionary.
+
+        Copies the incoming lists so the model and the caller's dict don't share
+        mutable references.
+        """
+        pattern_indices = data.get("pattern_indices")
         return cls(
             name=data["name"],
             type=data["type"],
-            entries=data.get("entries", []),
-            minimum=data.get("minimum"),
-            maximum=data.get("maximum"),
-            pattern_indices=data.get("pattern_indices"),
+            entries=list(data.get("entries", [])),
+            pattern_indices=list(pattern_indices) if pattern_indices is not None else None,
         )
 
 
 @dataclass(frozen=True)
-class StatConfig:
+class ScanFileResult:
+    """Outcome of scanning a single stats file.
+
+    On success ``variables`` holds the discovered variables and ``error`` is
+    ``None``; on failure ``error`` holds the message and ``variables`` is empty.
+    This lets aggregation distinguish "scanned: empty" from "scan failed"
+    instead of masking failures as zero variables.
     """
+
+    file_path: str
+    variables: list[ScannedVariable] = field(default_factory=lambda: list[ScannedVariable]())
+    error: str | None = None
+
+    @property
+    def ok(self) -> bool:
+        """True when the file scanned without error."""
+        return self.error is None
+
+
+@dataclass(frozen=True)
+class ScanResult:
+    """Aggregated outcome of a scan across multiple files.
+
+    ``variables`` is the merged, deduplicated list from files that scanned
+    successfully; ``failures`` lists per-file failures so the UI can surface
+    them instead of silently showing "no variables".
+    """
+
+    variables: list[ScannedVariable] = field(default_factory=lambda: list[ScannedVariable]())
+    failures: list[ScanFileResult] = field(default_factory=lambda: list[ScanFileResult]())
+
+
+@dataclass(frozen=True)
+class StatConfig:
+    r"""
     Configuration for a specific statistic extraction.
     Input to the FileParserStrategy implementations.
 
     Attributes:
-        name: Variable name or regex pattern (e.g., ``system.cpu\\d+.ipc``).
+        name: Variable name or regex pattern (e.g., ``system.cpu\d+.ipc``).
         type: One of ``scalar``, ``vector``, ``distribution``, ``histogram``,
               ``configuration``.
         repeat: Number of dump repetitions expected.
@@ -91,12 +132,13 @@ class StatConfig:
         statistics_only: If True, parse only statistical summaries.
         is_regex: Explicit flag indicating that *name* is a regex pattern
                   requiring expansion against scanned variables.  Set
-                  automatically when the name contains ``\\d+``.
+                  automatically when the name contains ``\d+``.
     """
 
     name: str
     type: str
     repeat: int = 1
-    params: Dict[str, Any] = field(default_factory=dict)
+    params: dict[str, StatParamValue] = field(default_factory=lambda: dict[str, StatParamValue]())
     statistics_only: bool = False
     is_regex: bool = False
+    keep_indices: bool = False

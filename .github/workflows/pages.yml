@@ -2,10 +2,10 @@ name: Deploy Documentation
 
 on:
   push:
-    branches: ["main"]
+    branches: [main]
     paths:
-      - "docs/**"
-      - ".github/workflows/pages.yml"
+      - docs/**
+      - .github/workflows/pages.yml
   workflow_dispatch:
 
 permissions:
@@ -14,7 +14,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages"
+  group: pages
   cancel-in-progress: false
 
 jobs:

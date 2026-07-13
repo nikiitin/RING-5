@@ -62,10 +62,10 @@ RING-5 uses **mypy strict mode** with zero tolerance for type errors:
 mypy src/ --strict
 
 # Check specific file
-mypy src/web/services/variable_service.py --strict
+mypy src/core/services/data_services/variable_service.py --strict
 ```
 
-**Current Status**: 0 errors in 117 source files ✅
+**Current Status**: mypy clean — run `mypy src/ --strict` ✅
 
 ### Code Formatting
 
@@ -101,7 +101,7 @@ Every push and pull request triggers automated checks:
 
 **Requirements for Merge**:
 
-- ✅ All tests passing (653/653)
+- ✅ All tests passing
 - ✅ Type safety (0 mypy errors)
 - ✅ Code formatted with black
 - ✅ No critical flake8 violations
@@ -175,7 +175,7 @@ def calculate_speedup(baseline: float, experiment: float) -> float:
 - **Integration tests**: Test component interactions
 - **UI tests**: Test Streamlit components (mocked)
 
-**Coverage Target**: Maintain 77%+ coverage
+**Coverage Target**: Maintain or improve coverage (CI enforces the gate via `make test-ci`)
 
 ```python
 # Example unit test structure
@@ -198,7 +198,7 @@ class TestCalculateSpeedup:
 
 RING-5 follows strict architectural layers:
 
-```
+```text
 UI Layer (Streamlit)
     ↓ uses
 Service Layer (Business Logic)
@@ -289,20 +289,20 @@ Your PR will be automatically checked by CI. Required:
 - ✅ All tests pass
 - ✅ No type errors
 - ✅ Code formatted with black
-- ✅ Coverage maintained (≥77%)
+- ✅ Coverage maintained (CI gate via `make test-ci`)
 
 ## Common Tasks
 
 ### Adding a New Service
 
-1. Create service file: `src/web/services/my_service.py`
+1. Create service file: `src/core/services/data_services/my_service.py`
 2. Add comprehensive type hints
 3. Write unit tests: `tests/unit/test_my_service.py`
-4. Ensure 0 mypy errors: `mypy src/web/services/my_service.py --strict`
+4. Ensure 0 mypy errors: `mypy src/core/services/data_services/my_service.py --strict`
 
 ### Adding a New Plot Type
 
-1. Create plot class: `src/plotting/types/my_plot.py`
+1. Create plot class: `src/web/pages/ui/plotting/types/my_plot.py`
 2. Register in `PlotFactory`
 3. Add integration test: `tests/integration/test_my_plot.py`
 4. Update documentation
@@ -314,10 +314,54 @@ Your PR will be automatically checked by CI. Required:
 3. Run tests after each change
 4. Verify: `make test && mypy src/ --strict`
 
+## Testing Patterns
+
+### Connector Tests
+
+Test engine connectors by verifying they correctly apply `FigureSpec` fields:
+
+```python
+def test_plotly_connector_applies_title(default_figure_spec):
+    spec = dataclasses.replace(default_figure_spec, title="My Title")
+    connector = PlotlyConnector()
+    fig = connector.apply(go.Figure(), spec)
+    assert fig.layout.title.text == "My Title"
+```
+
+### Spec Roundtrip Tests
+
+Verify `FigureSpec` survives config → spec → config conversion:
+
+```python
+def test_spec_roundtrip(default_figure_spec):
+    config = ConfigBridge.spec_to_config(default_figure_spec)
+    rebuilt = ConfigSpecBuilder.from_config(config)
+    assert rebuilt == default_figure_spec
+```
+
+### UI Logic Tests (No Streamlit)
+
+Test widget logic without running Streamlit by mocking `st.*` calls:
+
+```python
+@mock.patch("src.web.pages.ui.plotting.base_plot.st")
+def test_section_renders(mock_st, base_plot_instance):
+    base_plot_instance.render_settings_section("layout", {})
+    mock_st.number_input.assert_called()
+```
+
+### Principle Compliance Tests
+
+Guard architectural rules with automated checks in `tests/tests_principle_compliance/`:
+
+- No `Any` in spec dataclasses
+- No UI "Export" strings (must be "Download")
+- No `st.expander` for styling navigation
+
 ## Questions?
 
 - Check existing code for examples
-- Read `.agent/` documentation for detailed guides
+- Read `CLAUDE.md` and `.claude/skills/` for detailed guides
 - Open an issue for clarification
 
 ## Code of Conduct

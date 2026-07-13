@@ -1,40 +1,45 @@
+from collections.abc import Generator
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
-import plotly.graph_objects as go
 import pytest
 
+from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.web.pages.ui.plotting.base_plot import BasePlot
+from tests.conftest import columns_side_effect
 
 
 # Concrete implementation for testing abstract class
 class ConcretePlot(BasePlot):
-    def render_config_ui(self, data, saved_config):
+    def render_config_ui(self, data: Any, saved_config: Any) -> dict:
+
         return {}
 
-    def create_figure(self, data, config):
-        return go.Figure()
+    def create_traces(self, data: Any, config: Any) -> TraceBuildResult:
 
-    def get_legend_column(self, config):
+        from src.core.models.visualization.trace_build_result import TraceBuildResult
+
+        return TraceBuildResult(traces=[])
+
+    def get_legend_column(self, config: Any) -> str:
+
         return "col"
 
 
 @pytest.fixture
-def concrete_plot():
+def concrete_plot() -> ConcretePlot:
     return ConcretePlot(plot_id=1, name="Test Plot", plot_type="test")
 
 
 @pytest.fixture
-def mock_streamlit():
-    with patch("src.web.pages.ui.plotting.base_plot.st") as mock_st:
+def mock_streamlit() -> Generator[None, None, None]:
+    with (
+        patch("src.web.pages.ui.plotting.plot_config_ui.st") as mock_st,
+        patch("src.web.components.common.reorderable_list.st", mock_st),
+        patch("src.web.components.plotting.settings.shapes_settings.st", mock_st),
+    ):
         mock_st.session_state = {}
-
-        def columns_side_effect(spec, **kwargs):
-            if isinstance(spec, int):
-                return [MagicMock() for _ in range(spec)]
-            elif isinstance(spec, (list, tuple)):
-                return [MagicMock() for _ in range(len(spec))]
-            return [MagicMock()]
 
         mock_st.columns.side_effect = columns_side_effect
 
@@ -43,7 +48,10 @@ def mock_streamlit():
         mock_st.slider.return_value = 0
 
         # Mock selectbox to return first option or specific logic
-        def selectbox_side_effect(label, options, index=0, **kwargs):
+        def selectbox_side_effect(
+            label: Any, options: Any, index: Any = 0, **kwargs: Any
+        ) -> MagicMock:
+
             if isinstance(options, list) and len(options) > index:
                 return options[index]
             return MagicMock()
@@ -53,7 +61,7 @@ def mock_streamlit():
         yield mock_st
 
 
-def test_serialization(concrete_plot):
+def test_serialization(concrete_plot: Any) -> None:
     """Test to_dict and from_dict serialization."""
     concrete_plot.config = {"x": "col1"}
     concrete_plot.processed_data = pd.DataFrame({"col1": [1, 2, 3]})
@@ -80,36 +88,51 @@ def test_serialization(concrete_plot):
         assert len(loaded_plot.processed_data) == 3
 
 
-def test_render_common_config(concrete_plot, mock_streamlit):
-    """Test common config UI rendering."""
+@patch("src.web.components.plotting.config.base_plot_config.st")
+@patch("src.web.components.plotting.config.base_plot_config.PlotConfigComponents")
+def test_render_common_config(mock_plc: Any, mock_st: Any, concrete_plot: Any) -> None:
+    """Test common config component rendering."""
+    from src.web.components.plotting.config.base_plot_config import render_common_config
+
     data = pd.DataFrame({"num": [1, 2], "cat": ["a", "b"]})
-    saved_config = {"x": "num", "title": "My Title"}
+    saved_config: dict[str, Any] = {"x": "num", "title": "My Title"}
 
     # Mock widget returns
-    mock_streamlit.selectbox.side_effect = ["num", "num"]  # x, y
-    mock_streamlit.text_input.side_effect = ["My Title", "X Label", "Y Label", "Leg Title"]
+    col_ctx = MagicMock()
+    col_ctx.__enter__ = MagicMock(return_value=col_ctx)
+    col_ctx.__exit__ = MagicMock(return_value=False)
+    mock_st.columns.return_value = [col_ctx, col_ctx]
+    mock_st.selectbox.side_effect = ["num", "num"]
 
-    config = concrete_plot.render_common_config(data, saved_config)
+    mock_plc.render_title_labels_section.return_value = {
+        "title": "My Title",
+        "xlabel": "X Label",
+        "ylabel": "Y Label",
+        "legend_title": "Leg Title",
+    }
+
+    config = render_common_config(data, saved_config, plot_id=1)
 
     assert config["x"] == "num"
     assert config["title"] == "My Title"
 
 
-def test_apply_legend_labels(concrete_plot):
-    """Test legend label application."""
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(name="trace1", x=[1], y=[1]))
-    fig.add_trace(go.Scatter(name="trace2", x=[2], y=[2]))
+def test_relabel_traces_renames_engine_agnostic_names() -> None:
+    """Legend relabeling renames the engine-agnostic TraceConfig.name once
+    (single source of truth) so both Plotly and Matplotlib honor it."""
+    from src.core.models.visualization.trace_build_result import TraceBuildResult
+    from src.core.models.visualization.trace_config import TraceConfig
+    from src.web.pages.ui.plotting.base_plot import _relabel_traces
 
-    labels = {"trace1": "Renamed 1"}
+    result = TraceBuildResult(traces=[TraceConfig(name="trace1"), TraceConfig(name="trace2")])
+    relabeled = _relabel_traces(result, {"trace1": "Renamed 1"})
 
-    fig = concrete_plot.apply_legend_labels(fig, labels)
+    assert [t.name for t in relabeled.traces] == ["Renamed 1", "trace2"]
+    # Input is not mutated (relabel returns new objects).
+    assert [t.name for t in result.traces] == ["trace1", "trace2"]
 
-    assert fig.data[0].name == "Renamed 1"
-    assert fig.data[1].name == "trace2"
 
-
-def test_render_reorderable_list(concrete_plot, mock_streamlit):
+def test_render_reorderable_list(concrete_plot: Any, mock_streamlit: Any) -> None:
     """Test reorderable list UI."""
     items = ["A", "B", "C"]
 
@@ -126,7 +149,8 @@ def test_render_reorderable_list(concrete_plot, mock_streamlit):
     # Mock button returns
     # We have loops. Up on index 1 should trigger swap.
     # Pattern: up_{i}
-    def button_side_effect(label, key, **kwargs):
+    def button_side_effect(label: Any, key: Any, **kwargs: Any) -> int:
+
         if key == f"test_key_up_1_{concrete_plot.plot_id}":
             return True
         return False
@@ -140,32 +164,31 @@ def test_render_reorderable_list(concrete_plot, mock_streamlit):
     mock_streamlit.rerun.assert_called()
 
 
-def test_render_advanced_options_shapes(concrete_plot, mock_streamlit):
+def test_render_advanced_options_shapes(concrete_plot: Any, mock_streamlit: Any) -> None:
     """Test advanced options with shape management."""
     config = {"shapes": []}
 
     # Mock adding a shape
     # Button "Add Shape" returns True
     # Inputs return minimal valid data
-    def button_side_effect(label, key=None, **kwargs):
+    def button_side_effect(label: Any, key: Any = None, **kwargs: Any) -> int:
+
         if "add_shape" in str(key):
             return True
         return False
 
     mock_streamlit.button.side_effect = button_side_effect
 
-    concrete_plot.render_advanced_options(config)
+    result = concrete_plot.render_advanced_options(config)
 
-    # Should have appended a shape to config['shapes']
-    # The code does shapes.append() which modifies the list in place if it came from config
-    # `shapes = saved_config.get("shapes", [])`. If list exists in config, it updates config list.
-    assert len(config["shapes"]) == 1
-    assert config["shapes"][0]["type"] == "line"
-    # Validate that the shape list length increased.
-    mock_streamlit.rerun.assert_called()
+    # New contract (audit M1): the added shape lands in the RETURNED config;
+    # the input saved_config is never mutated in place.
+    assert config["shapes"] == []
+    assert len(result["shapes"]) == 1
+    assert result["shapes"][0]["type"] == "line"
 
 
-def test_render_advanced_options_display(concrete_plot, mock_streamlit):
+def test_render_advanced_options_display(concrete_plot: Any, mock_streamlit: Any) -> None:
     """Test advanced options output dict."""
     config = {"download_format": "png"}
 

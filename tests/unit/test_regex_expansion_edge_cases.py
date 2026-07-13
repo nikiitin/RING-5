@@ -16,14 +16,14 @@ Covers:
 
 import re
 from dataclasses import replace
-from typing import Any, Dict, List, Optional
+from typing import Any, cast
 
 from src.core.models import ScannedVariable, StatConfig
 
 
 def _expand_regex(
     config: StatConfig,
-    scanned_vars: Optional[List[Any]],
+    scanned_vars: list[Any] | None,
 ) -> StatConfig:
     """
     Mirror the expansion logic from ParseService/Gem5Parser.
@@ -35,7 +35,7 @@ def _expand_regex(
     if scanned_vars and config.is_regex:
         try:
             pattern = re.compile(config.name)
-            matched_ids: List[str] = []
+            matched_ids: list[str] = []
             for sv in scanned_vars:
                 sv_name = sv.name if hasattr(sv, "name") else str(sv.get("name", ""))
                 if config.name == sv_name or pattern.fullmatch(sv_name):
@@ -233,9 +233,10 @@ class TestPatternIndicesExpansion:
         ]
 
         result = _expand_regex(config, scanned)
-        assert len(result.params["parsed_ids"]) == 4
-        assert "system.ruby.l0_cntrl0.hits" in result.params["parsed_ids"]
-        assert "system.ruby.l1_cntrl1.hits" in result.params["parsed_ids"]
+        parsed_ids = cast(list[str], result.params["parsed_ids"])
+        assert len(parsed_ids) == 4
+        assert "system.ruby.l0_cntrl0.hits" in parsed_ids
+        assert "system.ruby.l1_cntrl1.hits" in parsed_ids
 
     def test_expansion_without_pattern_indices_uses_sv_name(self) -> None:
         """Non-aggregated variable without pattern_indices uses its name."""
@@ -263,7 +264,7 @@ class TestPatternIndicesExpansion:
         ]
 
         result = _expand_regex(config, scanned)
-        ids = result.params["parsed_ids"]
+        ids = cast(list[str], result.params["parsed_ids"])
         assert "system.cpu0.ipc" in ids
         assert "system.cpu1.ipc" in ids
         assert "system.cpu2.ipc" in ids
@@ -281,7 +282,7 @@ class TestDictBasedScannedVar:
     def test_dict_with_pattern_indices(self) -> None:
         """Dict scanned var with pattern_indices should expand."""
         config = StatConfig(name=r"system\.cpu\d+\.ipc", type="scalar", is_regex=True)
-        scanned: List[Dict[str, Any]] = [
+        scanned: list[dict[str, Any]] = [
             {
                 "name": r"system\.cpu\d+\.ipc",
                 "type": "scalar",
@@ -295,7 +296,7 @@ class TestDictBasedScannedVar:
     def test_dict_without_pattern_indices(self) -> None:
         """Dict scanned var without pattern_indices uses name."""
         config = StatConfig(name=r"system\.cpu\d+\.ipc", type="scalar", is_regex=True)
-        scanned: List[Dict[str, Any]] = [
+        scanned: list[dict[str, Any]] = [
             {"name": "system.cpu0.ipc", "type": "scalar"},
         ]
 

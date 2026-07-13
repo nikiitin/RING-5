@@ -1,25 +1,25 @@
-from unittest.mock import MagicMock, patch
+from collections.abc import Generator
+from typing import Any, cast
+from unittest.mock import patch
 
 import pandas as pd
+import plotly.graph_objects as go
 import pytest
+from pandas import DataFrame
 
 from src.web.pages.ui.plotting.types.grouped_stacked_bar_plot import (
     GroupedStackedBarPlot,
 )
+from tests.conftest import columns_side_effect
 
 
 @pytest.fixture
-def mock_streamlit():
+def mock_streamlit() -> Generator[None, None, None]:
     with (
         patch("src.web.pages.ui.plotting.types.grouped_stacked_bar_plot.st") as mock_st,
-        patch("src.web.pages.ui.components.plot_config_components.st", mock_st),
+        patch("src.web.components.plotting.config.plot_config_components.st", mock_st),
     ):
         mock_st.session_state = {}
-
-        def columns_side_effect(spec, **kwargs):
-            if isinstance(spec, int):
-                return [MagicMock() for _ in range(spec)]
-            return [MagicMock()]
 
         mock_st.columns.side_effect = columns_side_effect
 
@@ -27,13 +27,13 @@ def mock_streamlit():
 
 
 @pytest.fixture
-def sample_data():
+def sample_data() -> DataFrame:
     return pd.DataFrame(
         {"Benchmark": ["A", "B"], "Config": ["Low", "High"], "Value": [10, 20], "Value2": [5, 15]}
     )
 
 
-def test_render_config_ui_basic(mock_streamlit, sample_data):
+def test_render_config_ui_basic(mock_streamlit: Any, sample_data: Any) -> None:
     """Test basic configuration UI rendering."""
     plot = GroupedStackedBarPlot(1, "Test Plot")
     saved_config = {"x": "Benchmark", "y_columns": ["Value"]}
@@ -50,14 +50,14 @@ def test_render_config_ui_basic(mock_streamlit, sample_data):
     mock_streamlit.multiselect.return_value = ["Value"]
     mock_streamlit.text_input.side_effect = ["Title", "X Label", "Y Label", "Value", "A", "B"]
 
-    config = plot.render_config_ui(sample_data, saved_config)
+    config = plot.render_config_ui(sample_data, cast(Any, saved_config))
 
     assert config["x"] == "Benchmark"
     assert config["y_columns"] == ["Value"]
     assert config["group"] is None
 
 
-def test_render_config_ui_grouped(mock_streamlit, sample_data):
+def test_render_config_ui_grouped(mock_streamlit: Any, sample_data: Any) -> None:
     """Test configuration UI with grouping."""
     plot = GroupedStackedBarPlot(1, "Test Plot")
     saved_config = {"x": "Benchmark", "group": "Config", "y_columns": ["Value", "Value2"]}
@@ -75,14 +75,14 @@ def test_render_config_ui_grouped(mock_streamlit, sample_data):
     # Side effects for widget simulation.
     mock_streamlit.text_input.return_value = "Test Input"
 
-    config = plot.render_config_ui(sample_data, saved_config)
+    config = plot.render_config_ui(sample_data, cast(Any, saved_config))
 
     assert config["x"] == "Benchmark"
     assert config["group"] == "Config"
     assert len(config["y_columns"]) == 2
 
 
-def test_render_config_filter_options(mock_streamlit, sample_data):
+def test_render_config_filter_options(mock_streamlit: Any, sample_data: Any) -> None:
     """Test filter options rendering."""
     plot = GroupedStackedBarPlot(1, "Test Plot")
     saved_config = {"x": "Benchmark", "group": "Config", "y_columns": ["Value"]}
@@ -95,7 +95,10 @@ def test_render_config_filter_options(mock_streamlit, sample_data):
     # 2. X Filter
     # 3. Group Filter
 
-    def multiselect_side_effect(label, options, default=None, key=None, **kwargs):
+    def multiselect_side_effect(
+        label: Any, options: Any, default: Any = None, key: Any = None, **kwargs: Any
+    ) -> list:
+
         if "Statistics" in label:
             return ["Value"]
         if "Filter Benchmark" in label:
@@ -106,13 +109,13 @@ def test_render_config_filter_options(mock_streamlit, sample_data):
 
     mock_streamlit.multiselect.side_effect = multiselect_side_effect
 
-    config = plot.render_config_ui(sample_data, saved_config)
+    config = plot.render_config_ui(sample_data, cast(Any, saved_config))
 
     assert config["x_filter"] == ["A"]
     assert config["group_filter"] == ["Low"]
 
 
-def test_create_figure_grouped_calculated(sample_data):
+def test_create_figure_grouped_calculated(sample_data: Any) -> None:
     """Test figure creation with calculated logic for grouping."""
     plot = GroupedStackedBarPlot(1, "Test")
     config = {
@@ -128,12 +131,13 @@ def test_create_figure_grouped_calculated(sample_data):
     # Implementation loops over y_columns and adds trace.
     # GSB adds one trace per Y column.
 
-    assert len(fig.data) == 1
-    trace = fig.data[0]
+    assert len(list(fig.data)) == 1
+    trace = cast(go.Bar, fig.data[0])
 
     # Data has 2 rows (A, Low) and (B, High).
     # So 2 bars.
-    assert len(trace.x) == 2
+    x_data = cast(tuple[str, ...], trace.x)
+    assert len(x_data) == 2
 
     # Check customdata (totals)
     assert trace.customdata is not None

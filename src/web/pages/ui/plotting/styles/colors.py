@@ -4,35 +4,18 @@ Shared color utilities for consistent palette loading.
 
 import logging
 import re
-from typing import List, cast
 
-import plotly.colors as pc
+from src.core.services.visualization.palette_service import resolve_palette
 
 
-def get_palette_colors(palette_name: str) -> List[str]:
+def get_palette_colors(palette_name: str) -> list[str]:
     """
     Get a list of colors for a given palette name.
-    Attempts to match case-insensitively against Plotly's qualitative palettes.
-    Defaults to Plotly's default qualitative palette if not found.
+
+    Delegates to the unified ``resolve_palette()`` in the core
+    visualization layer.  Returns hex color strings.
     """
-    # Default fallback
-    default_palette: List[str] = cast(List[str], pc.qualitative.Plotly)
-
-    if not palette_name:
-        return default_palette
-
-    # 1. Try direct attribute access (exact match)
-    if hasattr(pc.qualitative, palette_name):
-        palette: List[str] = list(getattr(pc.qualitative, palette_name))
-        return palette
-
-    # 2. Try case-insensitive match
-    for p_attr in dir(pc.qualitative):
-        if p_attr.lower() == palette_name.lower():
-            palette = list(getattr(pc.qualitative, p_attr))
-            return palette
-
-    return list(default_palette)
+    return resolve_palette(palette_name)
 
 
 def to_hex(color_str: str) -> str:
@@ -60,17 +43,19 @@ def to_hex(color_str: str) -> str:
             nums = re.findall(r"\d+", color_str)
             if len(nums) >= 3:
                 r, g, b = int(nums[0]), int(nums[1]), int(nums[2])
-                return "#{:02x}{:02x}{:02x}".format(r, g, b)
+                return f"#{r:02x}{g:02x}{b:02x}"
         except Exception:
             logging.warning(f"Could not parse rgb color: {color_str}")
 
     # Handle named colors via Plotly utility
-    # For now, if we can't convert, return black or input.
     # Streamlit dies on bad input, so fallback to black is safer for UI.
-    # Last resort fallback for Streamlit
     try:
-        result: List[tuple[str, ...]] = pc.convert_colors_to_same_type(color_str, "hex")
-        return str(result[0][0])
+        import plotly.colors as pc
+
+        converted = pc.convert_colors_to_same_type(color_str, "hex")  # type: ignore[attr-defined]
+        color_list: list[str] = [str(c) for c in converted[0]]
+        if color_list:
+            return str(color_list[0])
     except Exception:
         logging.warning(f"Could not convert color {color_str} to hex. Fallback to black.")
 

@@ -8,7 +8,7 @@ from src.core.services.shapers.impl.transformer import Transformer
 class TestTransformer:
     """Test Transformer shaper."""
 
-    def test_scalar_conversion(self):
+    def test_scalar_conversion(self) -> None:
         """Test converting string to scalar."""
         df = pd.DataFrame({"A": ["1", "2.5", "3"]})
         transformer = Transformer({"column": "A", "target_type": "scalar"})
@@ -17,7 +17,7 @@ class TestTransformer:
         assert pd.api.types.is_numeric_dtype(result["A"])
         assert result["A"].iloc[1] == 2.5
 
-    def test_scalar_conversion_invalid(self):
+    def test_scalar_conversion_invalid(self) -> None:
         """Test converting invalid string to scalar."""
         df = pd.DataFrame({"A": ["1", "foo", "3"]})
         transformer = Transformer({"column": "A", "target_type": "scalar"})
@@ -26,7 +26,7 @@ class TestTransformer:
         result = transformer(df)
         assert pd.isna(result["A"].iloc[1])
 
-    def test_factor_conversion_ordering(self):
+    def test_factor_conversion_ordering(self) -> None:
         """Test converting to factor with explicit ordering."""
         df = pd.DataFrame({"Grade": ["B", "A", "C", "A"]})
 
@@ -46,7 +46,7 @@ class TestTransformer:
 class TestMeanExtended:
     """Extended tests for Mean shaper."""
 
-    def test_geometric_mean(self):
+    def test_geometric_mean(self) -> None:
         """Test geometric mean calculation."""
         # 1, 10, 100 -> geomean = 10
         df = pd.DataFrame({"Group": ["A", "A", "A"], "Value": [1, 10, 100]})
@@ -64,9 +64,9 @@ class TestMeanExtended:
         # Should append a row
         mean_row = result[result["Group"] == "geomean"]
         assert len(mean_row) == 1
-        assert np.isclose(mean_row["Value"].iloc[0], 10.0)
+        assert np.isclose(pd.Series(mean_row["Value"]).iloc[0], 10.0)
 
-    def test_harmonic_mean(self):
+    def test_harmonic_mean(self) -> None:
         """Test harmonic mean calculation."""
         # 2, 6 -> harmean = 2 / (1/2 + 1/6) = 2 / (3/6 + 1/6) = 2 / (4/6) = 12/4 = 3
         df = pd.DataFrame({"Group": ["A", "A"], "Value": [2.0, 6.0]})
@@ -82,4 +82,4 @@ class TestMeanExtended:
 
         result = shaper(df)
         mean_row = result[result["Group"] == "hmean"]
-        assert np.isclose(mean_row["Value"].iloc[0], 3.0)
+        assert np.isclose(pd.Series(mean_row["Value"]).iloc[0], 3.0)

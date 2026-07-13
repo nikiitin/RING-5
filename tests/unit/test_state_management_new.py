@@ -3,22 +3,25 @@ Unit tests for the decoupled state management layer.
 Verifies that StateManager and repositories can function by mocking Streamlit session state.
 """
 
+from collections.abc import Generator
+from typing import Any, cast
 from unittest.mock import patch
 
 import pandas as pd
 import pytest
 
+from src.core.models.portfolio_models import PortfolioData
 from src.core.state.repository_state_manager import RepositoryStateManager as StateManager
 
 
 @pytest.fixture
-def mock_session_state():
+def mock_session_state() -> Generator[dict[str, Any], None, None]:
     """Mock streamlit.session_state as a dictionary."""
     with patch("streamlit.session_state", new_callable=dict) as mock_state:
         yield mock_state
 
 
-def test_statemanager_initialization(mock_session_state):
+def test_statemanager_initialization(mock_session_state: Any) -> None:
     """Verify that StateManager initializes correctly."""
     # StateManager is now an instance, often managed by ApplicationAPI,
     # but strictly speaking RepositoryStateManager can be instantiated directly.
@@ -30,7 +33,7 @@ def test_statemanager_initialization(mock_session_state):
     assert len(mgr.get_parse_variables()) > 0
 
 
-def test_data_repository_roundtrip(mock_session_state):
+def test_data_repository_roundtrip(mock_session_state: Any) -> None:
     """Verify data storage and retrieval via StateManager."""
     mgr = StateManager()
 
@@ -43,7 +46,7 @@ def test_data_repository_roundtrip(mock_session_state):
     assert mgr.has_data()
 
 
-def test_config_repository_updates(mock_session_state):
+def test_config_repository_updates(mock_session_state: Any) -> None:
     """Verify config management."""
     mgr = StateManager()
 
@@ -53,7 +56,7 @@ def test_config_repository_updates(mock_session_state):
     assert config["test_key"] == "test_value"
 
 
-def test_plot_lifecycle(mock_session_state):
+def test_plot_lifecycle(mock_session_state: Any) -> None:
     """Verify plot counter and plot list management."""
     mgr = StateManager()
 
@@ -69,16 +72,19 @@ def test_plot_lifecycle(mock_session_state):
     assert mgr.get_current_plot_id() == 10
 
 
-def test_session_restoration(mock_session_state):
+def test_session_restoration(mock_session_state: Any) -> None:
     """Verify that SessionRepository can restore data."""
     mgr = StateManager()
 
-    portfolio_data = {
-        "csv_path": "/mock/path.csv",
-        "plot_counter": 42,
-        "config": {"theme": "scientific"},
-        "data_csv": "col1,col2\nval1,val2",
-    }
+    portfolio_data = cast(
+        PortfolioData,
+        {
+            "csv_path": "/mock/path.csv",
+            "plot_counter": 42,
+            "config": {"theme": "scientific"},
+            "data_csv": "col1,col2\nval1,val2",
+        },
+    )
 
     mgr.restore_session(portfolio_data)
 

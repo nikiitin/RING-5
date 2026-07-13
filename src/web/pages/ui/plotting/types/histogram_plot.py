@@ -1,11 +1,13 @@
 """Histogram plot implementation."""
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, override
 
 import pandas as pd
-import plotly.graph_objects as go
-import streamlit as st
 
+from src.core.models.visualization.trace_build_result import TraceBuildResult
+from src.core.models.visualization.trace_config import BarTraceConfig
+from src.web.components.plotting.config import histogram_config
+from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
 
 
@@ -17,7 +19,7 @@ class HistogramPlot(BasePlot):
     - Single or multiple histograms (grouped by categorical variable)
     - Configurable bucket sizes (rebinning)
     - Multiple normalization modes (count, probability, percent)
-    - Histogram variables from gem5 with bucket ranges
+    - Histogram variables with bucket ranges
     """
 
     def __init__(self, plot_id: int, name: str):
@@ -30,112 +32,22 @@ class HistogramPlot(BasePlot):
         """
         super().__init__(plot_id, name, "histogram")
 
-    def render_config_ui(self, data: pd.DataFrame, saved_config: Dict[str, Any]) -> Dict[str, Any]:
+    @override
+    def render_config_ui(self, data: pd.DataFrame, saved_config: PlotConfig) -> PlotConfig:
+        """Render configuration UI for histogram plot."""
+        return histogram_config.render(data, saved_config, self.plot_id)
+
+    @override
+    def create_traces(self, data: pd.DataFrame, config: PlotConfig) -> TraceBuildResult:
         """
-        Render configuration UI for histogram plot.
-
-        Args:
-            data: The processed data to plot
-            saved_config: Previously saved configuration
-
-        Returns:
-            Current configuration dictionary
-        """
-        # Common config (title, labels)
-        config = self.render_common_config(data, saved_config)
-
-        # Find histogram variables (columns with ".." pattern indicating buckets)
-        histogram_vars = self._detect_histogram_variables(data)
-
-        if not histogram_vars:
-            st.warning(
-                "No histogram variables detected. "
-                "Histogram variables should have columns like 'var..0-10', 'var..10-20', etc."
-            )
-            return {**config, "histogram_variable": None}
-
-        # Histogram variable selection
-        default_var = (
-            saved_config.get("histogram_variable")
-            if saved_config.get("histogram_variable") in histogram_vars
-            else histogram_vars[0]
-        )
-        default_idx = histogram_vars.index(default_var) if default_var in histogram_vars else 0
-
-        histogram_variable = st.selectbox(
-            "Histogram Variable",
-            options=histogram_vars,
-            index=default_idx,
-            key=f"histogram_var_{self.plot_id}",
-            help="Select the variable with histogram bucket data",
-        )
-
-        # Grouping variable (for multiple histograms)
-        categorical_cols = config["categorical_cols"]
-        group_options: List[Optional[str]] = [None] + categorical_cols
-
-        group_default_idx = 0
-        if saved_config.get("group_by") and saved_config["group_by"] in categorical_cols:
-            group_default_idx = group_options.index(saved_config["group_by"])
-
-        group_by = st.selectbox(
-            "Group By (optional)",
-            options=group_options,
-            index=group_default_idx,
-            key=f"histogram_group_{self.plot_id}",
-            format_func=lambda x: "None" if x is None else x,
-            help="Create multiple histograms grouped by this categorical variable",
-        )
-
-        # Bucket size configuration
-        bucket_size = st.number_input(
-            "Bucket Size",
-            min_value=1,
-            value=int(saved_config.get("bucket_size", 10)),
-            key=f"histogram_bucket_{self.plot_id}",
-            help="Size of histogram buckets (for rebinning)",
-        )
-
-        # Normalization mode
-        norm_options = ["count", "probability", "percent", "density"]
-        norm_default = saved_config.get("normalization", "count")
-        norm_default_idx = norm_options.index(norm_default) if norm_default in norm_options else 0
-
-        normalization = st.selectbox(
-            "Normalization",
-            options=norm_options,
-            index=norm_default_idx,
-            key=f"histogram_norm_{self.plot_id}",
-            help="How to normalize histogram heights",
-        )
-
-        # Cumulative option
-        cumulative = st.checkbox(
-            "Cumulative",
-            value=saved_config.get("cumulative", False),
-            key=f"histogram_cumulative_{self.plot_id}",
-            help="Show cumulative distribution",
-        )
-
-        return {
-            **config,
-            "histogram_variable": histogram_variable,
-            "group_by": group_by,
-            "bucket_size": bucket_size,
-            "normalization": normalization,
-            "cumulative": cumulative,
-        }
-
-    def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
-        """
-        Create histogram plot figure.
+        Create histogram trace configurations.
 
         Args:
             data: The data to plot
             config: Configuration dictionary
 
         Returns:
-            Plotly figure object
+            TraceBuildResult with BarTraceConfig traces and barmode
 
         Raises:
             ValueError: If histogram variable not found in data
@@ -157,29 +69,23 @@ class HistogramPlot(BasePlot):
         # Parse bucket ranges and prepare data
         bucket_data = self._extract_bucket_data(data, bucket_cols, config)
 
-        # Create figure
-        fig = go.Figure()
-
-        # Add traces
+        # Build traces
         if config.get("group_by"):
             # Multiple histograms grouped by categorical variable
-            self._add_grouped_histograms(fig, bucket_data, config)
+            traces = self._add_grouped_histograms(bucket_data, config)
+            barmode = "overlay"
         else:
             # Single histogram
-            self._add_single_histogram(fig, bucket_data, config)
+            traces = self._add_single_histogram(bucket_data, config)
+            barmode = "relative"
 
-        # Apply common layout
-        fig.update_layout(
-            title=config["title"],
-            xaxis_title=config["xlabel"],
-            yaxis_title=config["ylabel"],
-            barmode="overlay" if config.get("group_by") else "relative",
-            bargap=0.1,
+        return TraceBuildResult(
+            traces=traces,
+            barmode=barmode,
         )
 
-        return fig
-
-    def get_legend_column(self, config: Dict[str, Any]) -> Optional[str]:
+    @override
+    def get_legend_column(self, config: PlotConfig) -> str | None:
         """
         Get legend column for histogram plot.
 
@@ -194,7 +100,7 @@ class HistogramPlot(BasePlot):
 
     # ========== Helper Methods ==========
 
-    def _detect_histogram_variables(self, data: pd.DataFrame) -> List[str]:
+    def _detect_histogram_variables(self, data: pd.DataFrame) -> list[str]:
         """
         Detect histogram variables from DataFrame columns.
 
@@ -217,22 +123,30 @@ class HistogramPlot(BasePlot):
     def _extract_bucket_data(
         self,
         data: pd.DataFrame,
-        bucket_cols: List[str],
-        config: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        bucket_cols: list[str],
+        config: PlotConfig,
+    ) -> dict[str, Any]:
         """
         Extract and process bucket data from DataFrame.
 
+        gem5 histogram buckets are flattened into columns named
+        ``"{var}..{start}-{end}"`` (e.g. ``latency..0-99``, ``latency..100-199``).
+        This parses ``start``/``end`` out of each column's ``..start-end`` suffix
+        and pairs them with the row values. This per-bin reshape is intentionally
+        kept here (not in the shaper pipeline): it is histogram-specific view
+        prep that depends on the gem5 column-naming convention, not a reusable
+        data transform (deferred B5 — documented rather than extracted).
+
         Args:
             data: Source DataFrame
-            bucket_cols: List of bucket column names
+            bucket_cols: List of bucket column names (``{var}..{start}-{end}``)
             config: Plot configuration
 
         Returns:
             Dictionary with processed bucket data
         """
         # Parse bucket ranges
-        buckets: List[Tuple[float, float]] = []
+        buckets: list[tuple[float, float]] = []
         for col in bucket_cols:
             bucket_part = col.split("..")[1]
             if "-" in bucket_part:
@@ -257,7 +171,7 @@ class HistogramPlot(BasePlot):
         if group_by and group_by in data.columns:
             # Group data
             groups = data[group_by].unique()
-            result = {
+            result: dict[str, Any] = {
                 "buckets": buckets,
                 "groups": groups,
                 "data": {},
@@ -278,17 +192,18 @@ class HistogramPlot(BasePlot):
 
     def _add_single_histogram(
         self,
-        fig: go.Figure,
-        bucket_data: Dict[str, Any],
-        config: Dict[str, Any],
-    ) -> None:
+        bucket_data: dict[str, Any],
+        config: PlotConfig,
+    ) -> list[BarTraceConfig]:
         """
-        Add single histogram trace to figure.
+        Build a single histogram trace.
 
         Args:
-            fig: Plotly figure object
             bucket_data: Processed bucket data
             config: Plot configuration
+
+        Returns:
+            List containing a single BarTraceConfig
         """
         buckets = bucket_data["buckets"]
         values = bucket_data["data"][""]
@@ -299,49 +214,55 @@ class HistogramPlot(BasePlot):
         # Apply normalization
         values_normalized = self._normalize_values(values, config)
 
-        fig.add_trace(
-            go.Bar(
-                x=x_centers,
-                y=values_normalized,
-                name=config.get("histogram_variable", "Histogram"),
-                marker=dict(line=dict(width=1, color="white")),
-            )
+        trace = BarTraceConfig(
+            name=config.get("histogram_variable", "Histogram"),
+            x=[str(c) for c in x_centers],
+            y=values_normalized,
+            x_positions=x_centers,
+            border_width=1.0,
+            border_color="white",
         )
+        return [trace]
 
     def _add_grouped_histograms(
         self,
-        fig: go.Figure,
-        bucket_data: Dict[str, Any],
-        config: Dict[str, Any],
-    ) -> None:
+        bucket_data: dict[str, Any],
+        config: PlotConfig,
+    ) -> list[BarTraceConfig]:
         """
-        Add multiple grouped histogram traces to figure.
+        Build multiple grouped histogram traces.
 
         Args:
-            fig: Plotly figure object
             bucket_data: Processed bucket data
             config: Plot configuration
+
+        Returns:
+            List of BarTraceConfig, one per group
         """
         buckets = bucket_data["buckets"]
         groups = bucket_data["groups"]
 
         x_centers = [(b[0] + b[1]) / 2 for b in buckets]
+        traces: list[BarTraceConfig] = []
 
         for group in groups:
             values = bucket_data["data"].get(str(group), [])
             values_normalized = self._normalize_values(values, config)
 
-            fig.add_trace(
-                go.Bar(
-                    x=x_centers,
-                    y=values_normalized,
-                    name=str(group),
-                    marker=dict(line=dict(width=1, color="white")),
-                    opacity=0.7,
-                )
+            trace = BarTraceConfig(
+                name=str(group),
+                x=[str(c) for c in x_centers],
+                y=values_normalized,
+                x_positions=x_centers,
+                opacity=0.7,
+                border_width=1.0,
+                border_color="white",
             )
+            traces.append(trace)
 
-    def _normalize_values(self, values: List[float], config: Dict[str, Any]) -> List[float]:
+        return traces
+
+    def _normalize_values(self, values: list[float], config: PlotConfig) -> list[float]:
         """
         Normalize histogram values according to config.
 

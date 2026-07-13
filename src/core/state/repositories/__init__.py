@@ -6,10 +6,12 @@ Each repository has a single responsibility (SRP).
 
 from .config_repository import ConfigRepository
 from .data_repository import DataRepository
+from .history_repository import HistoryRepository
 from .parser_state_repository import ParserStateRepository
 from .plot_repository import PlotRepository
 from .preview_repository import PreviewRepository
 from .session_repository import SessionRepository
+from .visualization_repository import VisualizationRepository
 
 __all__ = [
     "DataRepository",
@@ -18,4 +20,6 @@ __all__ = [
     "ConfigRepository",
     "SessionRepository",
     "PreviewRepository",
+    "HistoryRepository",
+    "VisualizationRepository",
 ]

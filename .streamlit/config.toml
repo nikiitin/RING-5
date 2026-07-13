@@ -1,0 +1,28 @@
+# RING-5 Streamlit Theme Configuration
+# Reproducible Instrumentation for Numerical Graphics for gem5
+
+[theme]
+# Primary accent color — violet from the Alphabet-inspired palette
+primaryColor = "#8b5cf6"
+
+# Background colors — dark charcoal (Google dark theme palette)
+backgroundColor = "#1a1a2e"
+secondaryBackgroundColor = "#2d2d44"
+
+# Text color — light gray for readability on dark backgrounds
+textColor = "#e8eaed"
+
+# Font
+font = "sans serif"
+
+[server]
+# Disable file watcher on production
+fileWatcherType = "auto"
+
+[browser]
+# Show gather usage stats prompt
+gatherUsageStats = false
+
+[client]
+# Show error details
+showErrorDetails = true

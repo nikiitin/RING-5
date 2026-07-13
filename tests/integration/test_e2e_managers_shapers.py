@@ -2,10 +2,10 @@
 
 import os
 import shutil
-import sys
-from pathlib import Path
+from typing import Any, cast
 
 import pandas as pd
+import pytest
 
 from src.core.services.shapers.impl.mean import Mean
 from src.core.services.shapers.impl.normalize import Normalize
@@ -14,18 +14,44 @@ from src.core.services.shapers.impl.selector_algorithms.column_selector import (
 )
 from src.core.services.shapers.impl.sort import Sort
 
-# Import test utilities
-sys.path.insert(0, str(Path(__file__).parent / "pytests"))
+
+def _benchmark_order(data: pd.DataFrame) -> list[str]:
+    """Custom sort order derived from the fixture itself (single source of truth).
+
+    Excludes the ``arithmean`` sentinel the Mean shaper injects, so callers can append
+    it explicitly when they want mean rows sorted last.
+    """
+    return sorted(b for b in data["benchmark_name"].unique() if b != "arithmean")
+
+
+def _baseline_config(data: pd.DataFrame) -> str:
+    """Pick the normalization baseline config from the data.
+
+    The fixture is generated from real gem5 runs (``scripts/generate_mock_fixtures.py``),
+    so config names are not hard-coded here. Every config covers every benchmark, so the
+    first one alphabetically is a valid, deterministic baseline.
+    """
+    return sorted(data["config_description_abbrev"].unique().tolist())[0]
 
 
 class TestE2EShapers:
     """End-to-end tests for shapers using real gem5 data."""
 
-    inputsDir = os.path.relpath("tests/pytests/mock/inputs")
-    expectsDir = os.path.relpath("tests/pytests/mock/expects")
-    configDir = os.path.relpath("tests/pytests/mock/config_files/json_components/config")
+    inputsDir = os.path.relpath("tests/data/mock/inputs")
 
-    def test_e2e_column_selector_with_gem5_data(self, tmp_path):
+    @pytest.fixture(autouse=True)
+    def _require_mock_data(self) -> None:
+        """Skip (not hard-fail) when the mock CSV fixtures aren't present.
+
+        ``tests/data/mock/`` is not part of the published test-data tarball, so
+        these tests skip gracefully where it's absent — matching the skip
+        pattern the gem5-data tests already use.
+        """
+        mock_csv = os.path.join(self.inputsDir, "csv/configurer/configurer_test_case01.csv")
+        if not os.path.exists(mock_csv):
+            pytest.skip(f"mock test data not available: {mock_csv}")
+
+    def test_e2e_column_selector_with_gem5_data(self, tmp_path: Any) -> None:
         """Test ColumnSelector shaper with real gem5 data."""
         # Copy input CSV
         input_csv = os.path.join(self.inputsDir, "csv/configurer/configurer_test_case01.csv")
@@ -51,7 +77,7 @@ class TestE2EShapers:
         assert result_df["benchmark_name"].equals(data["benchmark_name"])
         assert result_df["simTicks"].equals(data["simTicks"])
 
-    def test_e2e_sort_with_gem5_data(self, tmp_path):
+    def test_e2e_sort_with_gem5_data(self, tmp_path: Any) -> None:
         """Test Sort shaper with real gem5 data."""
         # Copy input CSV
         input_csv = os.path.join(self.inputsDir, "csv/configurer/configurer_test_case01.csv")
@@ -61,23 +87,8 @@ class TestE2EShapers:
         # Load data
         data = pd.read_csv(test_csv, sep=r"\s+")
 
-        # Create custom sort order
-        benchmark_order = [
-            "llb-l",
-            "llb-h",
-            "cadd",
-            "bayes",
-            "genome",
-            "intruder",
-            "intruder-qs",
-            "kmeans-l",
-            "kmeans-h",
-            "labyrinth",
-            "ssca2",
-            "vacation-l",
-            "vacation-h",
-            "yada",
-        ]
+        # Custom sort order derived from the data
+        benchmark_order = _benchmark_order(data)
 
         sorter = Sort({"order_dict": {"benchmark_name": benchmark_order}})
 
@@ -99,7 +110,7 @@ class TestE2EShapers:
                 ), f"Benchmarks not in order: {benchmark} at {curr_idx}, prev was {prev_idx}"
                 prev_idx = curr_idx
 
-    def test_e2e_mean_with_gem5_data(self, tmp_path):
+    def test_e2e_mean_with_gem5_data(self, tmp_path: Any) -> None:
         """Test Mean shaper with real gem5 data."""
         # Copy input CSV
         input_csv = os.path.join(self.inputsDir, "csv/configurer/configurer_test_case01.csv")
@@ -110,7 +121,7 @@ class TestE2EShapers:
         data = pd.read_csv(test_csv, sep=r"\s+")
 
         # Select only the columns we need
-        data = data[["benchmark_name", "config_description_abbrev", "simTicks"]]
+        data = cast(pd.DataFrame, data[["benchmark_name", "config_description_abbrev", "simTicks"]])
 
         # Create Mean shaper
         mean_shaper = Mean(
@@ -132,7 +143,7 @@ class TestE2EShapers:
         # Should have 'arithmean' in benchmark_name
         assert "arithmean" in result_df["benchmark_name"].values
 
-    def test_e2e_normalize_with_gem5_data(self, tmp_path):
+    def test_e2e_normalize_with_gem5_data(self, tmp_path: Any) -> None:
         """Test Normalize shaper with real gem5 data."""
         # Copy input CSV
         input_csv = os.path.join(self.inputsDir, "csv/configurer/configurer_test_case01.csv")
@@ -143,14 +154,17 @@ class TestE2EShapers:
         data = pd.read_csv(test_csv, sep=r"\s+")
 
         # Select only the columns we need
-        data = data[["benchmark_name", "config_description_abbrev", "simTicks"]]
+        data = cast(pd.DataFrame, data[["benchmark_name", "config_description_abbrev", "simTicks"]])
+
+        # Baseline config derived from the data (present for every benchmark)
+        baseline = _baseline_config(data)
 
         # Create Normalize shaper
         normalize_shaper = Normalize(
             {
                 "normalizeVars": ["simTicks"],
                 "normalizerColumn": "config_description_abbrev",
-                "normalizerValue": "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt",  # noqa: E501
+                "normalizerValue": baseline,
                 "groupBy": ["benchmark_name"],
             }
         )
@@ -163,10 +177,7 @@ class TestE2EShapers:
         assert len(result_df) == len(data)  # Should have same number of rows
 
         # Check that baseline configuration exists for each benchmark
-        baseline_rows = result_df[
-            result_df["config_description_abbrev"]
-            == "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt"  # noqa: E501
-        ]
+        baseline_rows = result_df[result_df["config_description_abbrev"] == baseline]
         assert len(baseline_rows) > 0, "No baseline rows found"
 
         # For single variable normalization, each baseline value should be 1.0
@@ -177,13 +188,10 @@ class TestE2EShapers:
 
         # Check that other configurations are normalized (not 1.0 unless they match baseline)
         # At least some non-baseline rows should exist
-        non_baseline_rows = result_df[
-            result_df["config_description_abbrev"]
-            != "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt"  # noqa: E501
-        ]
+        non_baseline_rows = result_df[result_df["config_description_abbrev"] != baseline]
         assert len(non_baseline_rows) > 0, "Should have non-baseline rows"
 
-    def test_e2e_shaper_pipeline(self, tmp_path):
+    def test_e2e_shaper_pipeline(self, tmp_path: Any) -> None:
         """Test complete shaper pipeline: ColumnSelector -> Mean -> Sort."""
         # Copy input CSV
         input_csv = os.path.join(self.inputsDir, "csv/configurer/configurer_test_case01.csv")
@@ -214,24 +222,8 @@ class TestE2EShapers:
         # Should have mean row added
         assert "arithmean" in data["benchmark_name"].values
 
-        # Step 3: Sort - sort by benchmark name
-        benchmark_order = [
-            "llb-l",
-            "llb-h",
-            "cadd",
-            "bayes",
-            "genome",
-            "intruder",
-            "intruder-qs",
-            "kmeans-l",
-            "kmeans-h",
-            "labyrinth",
-            "ssca2",
-            "vacation-l",
-            "vacation-h",
-            "yada",
-            "arithmean",
-        ]
+        # Step 3: Sort - sort by benchmark name ("arithmean" rows last)
+        benchmark_order = _benchmark_order(data) + ["arithmean"]
         sorter = Sort({"order_dict": {"benchmark_name": benchmark_order}})
         data = sorter(data)
 
@@ -245,9 +237,16 @@ class TestE2EShapers:
 class TestE2EIntegration:
     """Integration tests combining managers and shapers."""
 
-    inputsDir = os.path.relpath("tests/pytests/mock/inputs")
+    inputsDir = os.path.relpath("tests/data/mock/inputs")
 
-    def test_e2e_simple_workflow_with_gem5_data(self, tmp_path):
+    @pytest.fixture(autouse=True)
+    def _require_mock_data(self) -> None:
+        """Skip (not hard-fail) when the mock CSV fixtures aren't present."""
+        mock_csv = os.path.join(self.inputsDir, "csv/configurer/configurer_test_case01.csv")
+        if not os.path.exists(mock_csv):
+            pytest.skip(f"mock test data not available: {mock_csv}")
+
+    def test_e2e_simple_workflow_with_gem5_data(self, tmp_path: Any) -> None:
         """Test simple end-to-end workflow with real gem5 data: load → select → sort."""
         # Copy input CSV
         input_csv = os.path.join(self.inputsDir, "csv/configurer/configurer_test_case01.csv")
@@ -256,12 +255,6 @@ class TestE2EIntegration:
 
         # Load real gem5 benchmark data
         data = pd.read_csv(test_csv, sep=r"\s+")
-
-        print(f"\n✅ Loaded gem5 data: {len(data)} rows × {len(data.columns)} columns")
-        print(f"   Benchmarks: {data['benchmark_name'].unique()[:5]}...")
-        print(
-            f"   Configs: {len(data['config_description_abbrev'].unique())} unique configurations"
-        )
 
         # Step 1: ColumnSelector - select key metrics
         selector = ColumnSelector(
@@ -279,33 +272,14 @@ class TestE2EIntegration:
         assert shaped_data is not None
         assert len(shaped_data) == len(data)
         assert len(shaped_data.columns) == 4
-        print(
-            f"\n✅ Column selection: reduced from {len(data.columns)} to {len(shaped_data.columns)} columns"  # noqa: E501
-        )
 
-        # Step 2: Sort - order by benchmark
-        benchmark_order = [
-            "llb-l",
-            "llb-h",
-            "cadd",
-            "bayes",
-            "genome",
-            "intruder",
-            "intruder-qs",
-            "kmeans-l",
-            "kmeans-h",
-            "labyrinth",
-            "ssca2",
-            "vacation-l",
-            "vacation-h",
-            "yada",
-        ]
+        # Step 2: Sort - order by benchmark (order derived from the data)
+        benchmark_order = _benchmark_order(data)
         sorter = Sort({"order_dict": {"benchmark_name": benchmark_order}})
         final_data = sorter(shaped_data)
 
         assert final_data is not None
         assert len(final_data) > 0
-        print("\n✅ Sorting: data ordered by benchmark")
 
         # Verify benchmarks are in order
         unique_benchmarks = final_data["benchmark_name"].unique()
@@ -320,14 +294,7 @@ class TestE2EIntegration:
         result_csv = tmp_path / "e2e_result.csv"
         final_data.to_csv(result_csv, index=False)
 
-        print("\n✅ COMPLETE E2E TEST SUCCESSFUL!")
-        print(f"   - Input: Real gem5 configurer_test_case01.csv with {len(data)} rows")
-        print("   - Applied: ColumnSelector → Sort")
-        print(f"   - Output: {len(final_data)} rows × {len(final_data.columns)} columns")
-        print(f"   - Result saved to: {result_csv}")
-        print("   - Data properly filtered and ordered for gem5 HTM analysis")
-
-    def test_complete_pipeline_with_plot(self, tmp_path):
+    def test_complete_pipeline_with_plot(self, tmp_path: Any) -> None:
         """
         Complete integration test: Load → Select Columns → Normalize → Mean → Rename → Sort → Plot
         Tests the full pipeline from raw gem5 data to a PDF plot.
@@ -340,44 +307,32 @@ class TestE2EIntegration:
         # Load real gem5 benchmark data
         data = pd.read_csv(test_csv, sep=r"\s+")
 
-        print(f"\n{'='*70}")
-        print("COMPLETE PIPELINE INTEGRATION TEST")
-        print(f"{'='*70}")
-        print("\n📊 Step 0: Load Data")
-        print(f"   Loaded: {len(data)} rows × {len(data.columns)} columns")
-        print(f"   Benchmarks: {len(data['benchmark_name'].unique())} unique")
-        print(f"   Configs: {len(data['config_description_abbrev'].unique())} unique")
-
         # Step 1: ColumnSelector - select only needed columns
-        print("\n📊 Step 1: Column Selection")
         selector = ColumnSelector(
             {"columns": ["benchmark_name", "config_description_abbrev", "simTicks"]}
         )
         data = selector(data)
-        print("   Selected 3 columns: benchmark_name, config_description_abbrev, simTicks")
         assert len(data.columns) == 3
 
+        # Baseline config + benchmark order derived from the data (before Mean injects rows)
+        baseline = _baseline_config(data)
+        benchmark_order = _benchmark_order(data) + ["arithmean"]
+
         # Step 2: Normalize - normalize simTicks by baseline configuration
-        print("\n📊 Step 2: Normalization")
         normalizer = Normalize(
             {
                 "normalizeVars": ["simTicks"],
                 "normalizerColumn": "config_description_abbrev",
-                "normalizerValue": "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt",  # noqa: E501
+                "normalizerValue": baseline,
                 "groupBy": ["benchmark_name"],
             }
         )
         data = normalizer(data)
-        print("   Normalized simTicks by baseline config")
         # Verify baseline is 1.0
-        baseline_rows = data[
-            data["config_description_abbrev"]
-            == "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt"  # noqa: E501
-        ]
+        baseline_rows = data[data["config_description_abbrev"] == baseline]
         assert all(baseline_rows["simTicks"] == 1.0), "Baseline should be normalized to 1.0"
 
         # Step 3: Mean - calculate arithmetic mean per config
-        print("\n📊 Step 3: Calculate Mean")
         mean_shaper = Mean(
             {
                 "meanAlgorithm": "arithmean",
@@ -387,43 +342,19 @@ class TestE2EIntegration:
             }
         )
         data = mean_shaper(data)
-        print("   Added arithmetic mean rows")
         assert "arithmean" in data["benchmark_name"].values
-        mean_rows = data[data["benchmark_name"] == "arithmean"]
-        print(f"   Mean rows added: {len(mean_rows)}")
+        assert any(data["benchmark_name"] == "arithmean")
 
         # Step 4: Rename column - simTicks → simulation_cycles
-        print("\n📊 Step 4: Rename Column")
         data = data.rename(columns={"simTicks": "simulation_cycles"})
-        print("   Renamed: simTicks → simulation_cycles")
         assert "simulation_cycles" in data.columns
         assert "simTicks" not in data.columns
 
-        # Step 5: Sort - order benchmarks
-        print("\n📊 Step 5: Sort Data")
-        benchmark_order = [
-            "llb-l",
-            "llb-h",
-            "cadd",
-            "bayes",
-            "genome",
-            "intruder",
-            "intruder-qs",
-            "kmeans-l",
-            "kmeans-h",
-            "labyrinth",
-            "ssca2",
-            "vacation-l",
-            "vacation-h",
-            "yada",
-            "arithmean",  # Mean rows at the end
-        ]
+        # Step 5: Sort - order benchmarks (derived above; "arithmean" rows last)
         sorter = Sort({"order_dict": {"benchmark_name": benchmark_order}})
         data = sorter(data)
-        print("   Data sorted by benchmark order")
 
         # Step 6: Generate Plot
-        print("\n📊 Step 6: Generate Plot")
         from src.web.pages.ui.plotting import PlotFactory
 
         # Create plot configuration
@@ -455,22 +386,6 @@ class TestE2EIntegration:
         # The old renderer API is deprecated
 
         # Skip actual rendering for this test since API changed
-        print("   ✅ Plot created with new architecture")
-        print("   ℹ️  Note: Rendering API updated, skipping PDF generation in test")
-
-        # Final verification
-        print(f"\n{'='*70}")
-        print("✅ COMPLETE PIPELINE TEST SUCCESSFUL!")
-        print(f"{'='*70}")
-        print("Pipeline executed:")
-        print("  1. ✅ Column Selection (51 → 3 columns)")
-        print("  2. ✅ Normalization (baseline = 1.0)")
-        print(f"  3. ✅ Mean Calculation (added {len(mean_rows)} mean rows)")
-        print("  4. ✅ Column Rename (simTicks → simulation_cycles)")
-        print("  5. ✅ Sorting (benchmark order)")
-        print("  6. ✅ Plot created with new architecture")
-        print(f"📊 Final dataset: {len(data)} rows × {len(data.columns)} columns")
-        print(f"{'='*70}\n")
 
         # Assertions for final data quality
         assert len(data) > 0, "Final data should not be empty"
@@ -478,10 +393,7 @@ class TestE2EIntegration:
         assert "arithmean" in data["benchmark_name"].values, "Mean rows should be present"
 
         # Verify baseline normalization is still preserved after all transformations
-        final_baseline_rows = data[
-            data["config_description_abbrev"]
-            == "CPUtest_BinSfx.htm.fallbacklock_LV_ED_CRrw_RSL0Ev_RSPrec_L0Repl_L1Repl_RldStale_DwnG_Rtry6_Pflt"  # noqa: E501
-        ]
+        final_baseline_rows = data[data["config_description_abbrev"] == baseline]
         non_mean_baseline = final_baseline_rows[
             final_baseline_rows["benchmark_name"] != "arithmean"
         ]

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Module: src.core.services/shapers/impl/normalize.py
 
@@ -73,15 +72,15 @@ Version: 2.0.0
 Last Modified: 2026-01-27
 """
 
-import hashlib
 import logging
 import warnings
-from typing import Any, Dict, List
+from typing import Any, cast, override
 
 import pandas as pd
 from pandas import DataFrame
 
-from src.core.performance import cached
+from src.core.models.shaper_models import NormalizeShaperConfig
+from src.core.performance import cached, compute_data_fingerprint
 from src.core.services.shapers.uni_df_shaper import UniDfShaper
 
 logger = logging.getLogger(__name__)
@@ -95,7 +94,7 @@ class Normalize(UniDfShaper):
     by the value(s) found in a designated baseline row within each group.
     """
 
-    def __init__(self, params: Dict[str, Any]) -> None:
+    def __init__(self, params: dict[str, Any]) -> None:
         """
         Initialize the Normalize shaper with parameters.
 
@@ -108,13 +107,16 @@ class Normalize(UniDfShaper):
                 - groupBy (List[str]): Columns used to define groups.
                 - normalizeSd (Optional[bool]): Whether to normalize .sd columns. Defaults to True.
         """
+        # Use cast for type-safe access
+        config = cast(NormalizeShaperConfig, params)
+
         # Assign properties before super().__init__ as _verify_params needs them
-        self._normalize_vars: List[str] = params.get("normalizeVars", [])
-        self._normalizer_column: str = params.get("normalizerColumn", "")
-        self._normalizer_value: Any = params.get("normalizerValue", "")
-        self._group_by: List[str] = params.get("groupBy", [])
-        self._normalizer_vars: List[str] = params.get("normalizerVars", self._normalize_vars)
-        self._normalize_sd: bool = params.get("normalizeSd", True)
+        self._normalize_vars: list[str] = config.get("normalizeVars", [])
+        self._normalizer_column: str = config.get("normalizerColumn", "")
+        self._normalizer_value: str = config.get("normalizerValue", "")
+        self._group_by: list[str] = config.get("groupBy", [])
+        self._normalizer_vars: list[str] = config.get("normalizerVars", self._normalize_vars)
+        self._normalize_sd: bool = config.get("normalizeSd", True)
 
         # Store params for caching fingerprint
         self._params = params
@@ -135,12 +137,14 @@ class Normalize(UniDfShaper):
         # Type validation
         self._validate_init_types()
 
+    @override
     def _verify_params(self) -> bool:
         """Verify that mandatory parameters exist in the params dict."""
         super()._verify_params()
+        config = cast(NormalizeShaperConfig, self.params)
         required = ["normalizeVars", "normalizerColumn", "normalizerValue", "groupBy"]
         for r in required:
-            if r not in self.params:
+            if r not in config:
                 raise ValueError(f"Normalize: Missing required parameter '{r}'")
         return True
 
@@ -155,6 +159,7 @@ class Normalize(UniDfShaper):
         if not isinstance(self._normalize_sd, bool):
             raise TypeError("normalizeSd must be a boolean")
 
+    @override
     def _verify_preconditions(self, data_frame: pd.DataFrame) -> bool:
         """
         Check that the dataframe contains all required columns and valid baseline values.
@@ -182,9 +187,10 @@ class Normalize(UniDfShaper):
             raise ValueError(f"Grouping column '{self._normalizer_column}' not found.")
 
         # Ensure baseline value exists
-        if self._normalizer_value not in data_frame[self._normalizer_column].values:
+        if self._normalizer_value not in data_frame[self._normalizer_column].unique():
             raise ValueError(
-                f"Baseline value '{self._normalizer_value}' not found in column '{self._normalizer_column}'."  # noqa: E501
+                f"Baseline value '{self._normalizer_value}' not found "
+                f"in column '{self._normalizer_column}'."
             )
 
         # Group validation
@@ -221,9 +227,10 @@ class Normalize(UniDfShaper):
             return result
 
         # Calculate denominator (sum of specified normalizer variables)
-        denominator = baseline[self._normalizer_vars].iloc[0].sum()
+        baseline_vars = baseline[self._normalizer_vars]
+        denominator = baseline_vars.iloc[0].sum()
 
-        if denominator == 0:
+        if pd.isna(denominator) or denominator == 0:
             # Prevent division by zero: zero out normalized columns
             for var in self._normalize_vars:
                 result[var] = 0.0
@@ -242,39 +249,6 @@ class Normalize(UniDfShaper):
                     result[sd_col] = result[sd_col] / denominator
 
         return result
-
-    @staticmethod
-    def _compute_data_fingerprint(data: pd.DataFrame, params: Dict[str, Any]) -> str:
-        """
-        Compute fingerprint for caching normalization results.
-
-        Args:
-            data: Input DataFrame
-            params: Normalization parameters
-
-        Returns:
-            Hash string representing data+params combination
-        """
-        # Combine data shape, relevant columns, and params
-        relevant_cols = (
-            params.get("normalizeVars", [])
-            + params.get("groupBy", [])
-            + [params.get("normalizerColumn", "")]
-        )
-
-        fingerprint_parts = [
-            f"shape:{data.shape}",
-            f"cols:{sorted(relevant_cols)}",
-            f"params:{sorted(params.items())}",
-        ]
-
-        # Add sample of actual data for change detection
-        if len(data) > 0:
-            sample_rows = data[relevant_cols].head(2).to_json() if relevant_cols else ""
-            fingerprint_parts.append(f"sample:{sample_rows}")
-
-        fingerprint = "|".join(fingerprint_parts)
-        return hashlib.md5(fingerprint.encode(), usedforsecurity=False).hexdigest()[:16]
 
     @cached(ttl=300, maxsize=32, key_func=lambda self, df, fp: fp)
     def _normalize_with_cache(self, data_frame: pd.DataFrame, fingerprint: str) -> pd.DataFrame:
@@ -309,10 +283,20 @@ class Normalize(UniDfShaper):
                 # Merge with original group columns
                 for col in self._group_by:
                     if col not in result.columns:
-                        result[col] = data_frame[col].values
+                        result[col] = data_frame[col].copy()
+
+            # Preserve the original column order. Re-adding grouping columns
+            # above appends them at the end; pandas 3.0's groupby().apply() drops
+            # them by default, so without this the input order is lost (e.g. the
+            # groupBy column jumps to the end). New columns (e.g. .sd) keep their
+            # trailing position.
+            ordered = [c for c in data_frame.columns if c in result.columns]
+            extra = [c for c in result.columns if c not in ordered]
+            result = result[ordered + extra]
 
         return result
 
+    @override
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
         """
         Execute the normalization pipeline with caching.
@@ -325,12 +309,23 @@ class Normalize(UniDfShaper):
         """
         self._verify_preconditions(data_frame)
 
-        # Compute fingerprint for caching (only hash metadata, not entire DataFrame)
-        fingerprint = self._compute_data_fingerprint(data_frame, self._params)
+        # Compute fingerprint for caching (only hash metadata, not entire DataFrame).
+        # ``normalizer_vars`` MUST be included: it is the denominator source (see
+        # ``_normalize_group``) and can differ from ``normalize_vars``; omitting it lets a
+        # different baseline value return a stale (wrong) normalized frame within the TTL.
+        relevant_cols = (
+            self._normalize_vars
+            + self._normalizer_vars
+            + self._group_by
+            + [self._normalizer_column]
+        )
+        fingerprint = compute_data_fingerprint(data_frame, self._params, relevant_cols)
 
-        # Use cache with fingerprint as key (NOT the DataFrame itself)
+        # Use cache with fingerprint as key (NOT the DataFrame itself).
+        # Shallow copy (CoW) so callers can never mutate the cache-resident
+        # frame in place and poison later hits.
         result: DataFrame = self._normalize_with_cache(data_frame, fingerprint)
-        return result
+        return result.copy(deep=False)
 
 
 if __name__ == "__main__":

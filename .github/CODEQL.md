@@ -182,7 +182,7 @@ If CodeQL can't resolve imports:
 
 ### Type Safety (2026-02-03)
 
-- **File**: `src/core/parsing/workers/work_pool.py`
+- **File**: `src/parsing/workers/work_pool.py`
 - **Issue**: Optional type not properly narrowed
 - **Fix**: Added explicit validation and type annotation
 - **Status**: ✅ Resolved

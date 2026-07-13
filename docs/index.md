@@ -5,67 +5,39 @@ nav_order: 1
 permalink: /
 ---
 
-# RING-5 Documentation
+## RING-5 Documentation
 
-**Reproducible Instrumentation for Numerical Graphics for gem5**
+Reproducible Instrumentation for Numerical Graphics for gem5
 
-RING-5 turns raw gem5 simulator output into publication-ready figures through an interactive web interface. Parse stats files, transform data, build plots, and export -- all without writing a single script.
-
----
-
-## Quick Links
-
-| | |
-|---|---|
-| [Quick Start](Quick-Start) | Get up and running in 5 minutes |
-| [Installation](Installation) | Detailed setup instructions |
-| [First Analysis](First-Analysis) | Step-by-step walkthrough |
-| [Web Interface](Web-Interface) | Dashboard reference |
-| [Creating Plots](Creating-Plots) | Visualization options |
-| [Architecture](Architecture) | System design for contributors |
+RING-5 turns raw gem5 simulator output into publication-ready figures through an interactive web
+interface. Parse stats files, transform data, build plots, and export -- all without writing a single
+script.
 
 ---
 
-## For Users
+## Documentation
 
-Learn how to parse gem5 stats, transform your data, and create figures for your papers.
+| Guide | For | Start here |
+| ----- | --- | ---------- |
+| [User Guide](user-guide/) | Researchers using the app | [Installation](user-guide/getting-started/installation/) · [First Steps](user-guide/getting-started/first-steps/) |
+| [Developer Guide](developer-guide/) | Contributors & maintainers | [Architecture Overview](developer-guide/architecture/overview/) · [Development Setup](developer-guide/development/setup/) |
+| [AI Knowledge Base](ai-knowledge-base/) | AI coding agents & deep reference | [System Overview](ai-knowledge-base/architecture/system-overview/) · [File Locations](ai-knowledge-base/quick-reference/file-locations/) |
 
-- [Parsing gem5 Stats](Parsing-Guide) -- scan variables, configure parsing, generate CSVs
-- [Data Transformations](Data-Transformations) -- normalize, aggregate, filter, sort
-- [Creating Plots](Creating-Plots) -- all plot types and customization options
-- [LaTeX Export](LaTeX-Export-Guide) -- export figures for LaTeX documents
-- [Portfolios](Portfolios) -- save and restore complete analysis snapshots
+### Popular topics
 
-### Plot Types
+- **Parse gem5 stats** -- [Data Source page](user-guide/pages/data-source/) and
+  [Parsing Architecture](developer-guide/parsing/parsing-architecture/)
+- **Transform data** -- [Shapers](user-guide/features/shapers/) (normalize, aggregate, filter, sort)
+- **Create plots** -- [Plot Types](user-guide/features/plot-types/) and
+  [Manage Plots page](user-guide/pages/manage-plots/)
+- **Publication export** -- [Publication-ready tutorial](user-guide/tutorials/publication-ready/)
+- **Save your work** -- [Portfolios](user-guide/features/portfolios/)
+- **Extend RING-5** -- [Adding a plot type](developer-guide/extension-guides/adding-a-plot-type/) ·
+  [Adding a shaper](developer-guide/extension-guides/adding-a-shaper/)
 
-- [Bar Charts](plots/Bar-Charts)
-- [Grouped Stacked Bars](plots/Grouped-Stacked-Bars)
-- [Line Plots](plots/Line-Plots)
-- [Scatter Plots](plots/Scatter-Plots)
-- [Histograms](histogram-plot)
-
-## For Contributors
-
-Understand the architecture and extend RING-5 with new plot types, shapers, or parser features.
-
-- [Development Setup](Development-Setup) -- dev environment and workflow
-- [Testing Guide](Testing-Guide) -- writing and running tests
-- [Adding Plot Types](Adding-Plot-Types) -- extend the visualization system
-- [Adding Shapers](Adding-Shapers) -- create custom data transformations
-- [Architecture Overview](Architecture) -- layered design, patterns, and conventions
-
-### API Reference
-
-- [Backend Facade](api/Backend-Facade)
-- [Parsing API](api/Parsing-API)
-- [Plotting API](api/Plotting-API)
-- [Shaper API](api/Shaper-API)
-
-### Architecture Diagrams
-
-- [Full Architecture Diagram](architecture-diagram) -- complete module dependency graph
-- [Parsing Architecture](parsing-architecture) -- parser internals
-- [Services Architecture](services-architecture) -- services module design
+> Working in the repo with an AI coding agent? The canonical in-repo guide is
+> [`CLAUDE.md`](https://github.com/nikiitin/RING-5/blob/main/CLAUDE.md) with task recipes under
+> `.claude/skills/`.
 
 ---
 

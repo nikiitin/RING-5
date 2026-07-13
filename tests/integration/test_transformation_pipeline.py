@@ -11,13 +11,14 @@ This validates the shaper system and pipeline persistence.
 """
 
 from pathlib import Path
+from typing import Any, cast
 
 import pandas as pd
 import pytest
 
 from src.core.application_api import ApplicationAPI
+from src.core.models.shaper_models import ShaperStepConfig
 from src.core.services.shapers.factory import ShaperFactory
-from src.core.services.shapers.pipeline_service import PipelineService
 
 
 @pytest.fixture
@@ -50,7 +51,7 @@ class TestTransformationPipeline:
         Test single shaper transformation (normalization).
         """
         # Create normalize shaper
-        normalize_config = {
+        normalize_config: ShaperStepConfig = {
             "type": "normalize",
             "normalizeVars": ["ipc"],
             "normalizerColumn": "config",
@@ -73,7 +74,8 @@ class TestTransformationPipeline:
         # Verify tx_lazy values are scaled correctly
         tx_rows = result[result["config"] == "tx_lazy"]
         expected_mcf = 1.0 / 1.2  # 0.833...
-        assert abs(tx_rows[tx_rows["benchmark"] == "mcf"]["ipc"].iloc[0] - expected_mcf) < 0.01
+        mcf_ipc = cast(pd.Series, tx_rows[tx_rows["benchmark"] == "mcf"]["ipc"]).iloc[0]
+        assert abs(float(mcf_ipc) - expected_mcf) < 0.01
 
     def test_multi_shaper_pipeline(
         self, sample_benchmark_data: pd.DataFrame, facade: ApplicationAPI
@@ -85,7 +87,7 @@ class TestTransformationPipeline:
         3. Filter top configurations
         """
         # Define pipeline
-        pipeline = [
+        pipeline: list[ShaperStepConfig] = [
             {
                 "type": "normalize",
                 "normalizeVars": ["ipc"],
@@ -110,50 +112,12 @@ class TestTransformationPipeline:
             mcf_idx < omnetpp_idx for mcf_idx in mcf_indices for omnetpp_idx in omnetpp_indices
         )
 
-    def test_pipeline_persistence(self, tmp_path: Path) -> None:
-        """
-        Test pipeline save and load functionality using PipelineService.
-        """
-        # Define pipeline
-        pipeline = [
-            {
-                "type": "normalize",
-                "normalizeVars": ["ipc", "cache_miss_rate"],
-                "normalizerColumn": "config",
-                "normalizerValue": "baseline",
-                "groupBy": ["benchmark"],
-            },
-            {"type": "sort", "order_dict": {"config": ["baseline", "tx_lazy", "tx_eager"]}},
-        ]
-
-        # Save pipeline using PipelineService (instance-based)
-        service = PipelineService(tmp_path)
-        test_pipeline_name = f"test_pipeline_{tmp_path.name}"
-        service.save_pipeline(test_pipeline_name, pipeline, description="Test pipeline")
-
-        # List pipelines to verify it was saved
-        available_pipelines = service.list_pipelines()
-        assert test_pipeline_name in available_pipelines
-
-        # Load pipeline
-        loaded = service.load_pipeline(test_pipeline_name)
-
-        # Verify loaded pipeline matches original
-        assert "pipeline" in loaded
-        loaded_pipeline = loaded["pipeline"]
-        assert len(loaded_pipeline) == len(pipeline)
-        assert loaded_pipeline[0]["type"] == "normalize"
-        assert loaded_pipeline[1]["type"] == "sort"
-
-        # Cleanup
-        service.delete_pipeline(test_pipeline_name)
-
     def test_pipeline_with_mean_aggregation(self, sample_benchmark_data: pd.DataFrame) -> None:
         """
         Test pipeline with mean aggregation shaper.
         """
         # Define pipeline with geometric mean
-        pipeline = [
+        pipeline: list[ShaperStepConfig] = [
             {
                 "type": "mean",
                 "meanVars": ["ipc"],
@@ -180,14 +144,14 @@ class TestTransformationPipeline:
         facade = ApplicationAPI()
 
         # Test with invalid shaper type
-        invalid_pipeline = [{"type": "invalid_shaper", "params": {}}]
+        invalid_pipeline: list[ShaperStepConfig] = cast(Any, [{"type": "invalid_shaper"}])
 
         with pytest.raises(ValueError):
             facade.apply_shapers(sample_benchmark_data, invalid_pipeline)
 
         # Test with missing required parameters
-        invalid_normalize = [
-            {
+        invalid_normalize: list[ShaperStepConfig] = [
+            {  # type: ignore
                 "type": "normalize",
                 # Missing required normalizeVars parameter
                 "normalizerColumn": "config",
@@ -220,7 +184,7 @@ class TestTransformationPipeline:
         loaded_data = facade.load_csv_file(str(csv_path))
 
         # Define and apply pipeline
-        pipeline = [
+        pipeline: list[ShaperStepConfig] = [
             {
                 "type": "normalize",
                 "normalizeVars": ["ipc", "execution_time"],

@@ -5,13 +5,13 @@ statistics that appear in the data but were not specifically requested
 in the configuration.
 """
 
-from src.core.parsing.gem5.types import StatTypeRegistry
+from src.parsing.gem5.types import StatTypeRegistry
 
 
 class TestDistributionUnconfiguredStats:
     """Test suite for Distribution handling of unconfigured statistics."""
 
-    def test_distribution_ignores_unconfigured_stats(self):
+    def test_distribution_ignores_unconfigured_stats(self) -> None:
         """
         Verify Distribution does not crash when receiving unconfigured stats.
 
@@ -39,7 +39,7 @@ class TestDistributionUnconfiguredStats:
         assert "0" in dist.content
         assert "10" in dist.content
 
-    def test_distribution_with_configured_stats(self):
+    def test_distribution_with_configured_stats(self) -> None:
         """
         Verify Distribution correctly processes configured statistics.
         """

@@ -5,25 +5,39 @@ Manages saving and loading of configuration files.
 
 import datetime
 import json
+import logging
+import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Optional, cast
+from typing import cast
 
 from src.core.common.utils import sanitize_filename, validate_path_within
+from src.core.models.data_models import SavedConfigData, SavedConfigEntry
+from src.core.models.shaper_models import ShaperStepConfig
 from src.core.services.data_services.path_service import PathService
+
+logger = logging.getLogger(__name__)
 
 
 class ConfigService:
     """Service for managing saved configurations."""
 
+    _config_dir: Path | None = None
+
+    @staticmethod
+    def reset_caches() -> None:
+        """Reset the cached config directory path (for testing)."""
+        ConfigService._config_dir = None
+
     @staticmethod
     def get_config_dir() -> Path:
         """Get the configuration pool directory path."""
-        config_dir = PathService.get_data_dir() / "saved_configs"
-        config_dir.mkdir(parents=True, exist_ok=True)
-        return config_dir
+        if ConfigService._config_dir is None:
+            ConfigService._config_dir = PathService.get_data_dir() / "saved_configs"
+            ConfigService._config_dir.mkdir(parents=True, exist_ok=True)
+        return ConfigService._config_dir
 
     @staticmethod
-    def load_saved_configs() -> List[Dict[str, Any]]:
+    def load_saved_configs() -> list[SavedConfigEntry]:
         """
         Load list of saved configuration files.
 
@@ -31,13 +45,13 @@ class ConfigService:
             List of dicts with 'path', 'name', 'modified', 'description' keys.
         """
         config_dir = ConfigService.get_config_dir()
-        configs = []
+        configs: list[SavedConfigEntry] = []
 
         for config_file in sorted(
             config_dir.glob("*.json"), key=lambda x: x.stat().st_mtime, reverse=True
         ):
             try:
-                with open(config_file, "r") as f:
+                with open(config_file) as f:
                     config_data = json.load(f)
                 configs.append(
                     {
@@ -47,8 +61,8 @@ class ConfigService:
                         "description": config_data.get("description", "No description"),
                     }
                 )
-            except (OSError, json.JSONDecodeError):
-                pass  # Skip unreadable/invalid config files gracefully
+            except (OSError, json.JSONDecodeError) as e:
+                logger.debug("Skipping unreadable config file %s: %s", config_file, e)
 
         return configs
 
@@ -56,8 +70,8 @@ class ConfigService:
     def save_configuration(
         name: str,
         description: str,
-        shapers_config: List[Dict[str, Any]],
-        csv_path: Optional[str] = None,
+        shapers_config: list[ShaperStepConfig],
+        csv_path: str | None = None,
     ) -> str:
         """
         Save a configuration to the pool.
@@ -73,11 +87,13 @@ class ConfigService:
         """
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         safe_name = sanitize_filename(name)
-        config_filename = f"{safe_name}_{timestamp}.json"
+        # uuid suffix: timestamps have 1-second resolution, so two saves of the
+        # same name in the same second would silently overwrite each other.
+        config_filename = f"{safe_name}_{timestamp}_{uuid.uuid4().hex[:8]}.json"
         config_dir = ConfigService.get_config_dir()
         config_path = validate_path_within(config_dir / config_filename, config_dir)
 
-        config_data = {
+        config_data: SavedConfigData = {
             "name": name,
             "description": description,
             "timestamp": timestamp,
@@ -91,7 +107,7 @@ class ConfigService:
         return str(config_path)
 
     @staticmethod
-    def load_configuration(config_path: str) -> Dict[str, Any]:
+    def load_configuration(config_path: str) -> SavedConfigData:
         """
         Load a configuration from file.
 
@@ -103,8 +119,8 @@ class ConfigService:
         """
         config_dir = ConfigService.get_config_dir()
         validated_path = validate_path_within(Path(config_path), config_dir)
-        with open(validated_path, "r") as f:
-            return cast(Dict[str, Any], json.load(f))
+        with open(validated_path) as f:
+            return cast(SavedConfigData, json.load(f))
 
     @staticmethod
     def delete_configuration(config_path: str) -> bool:
@@ -122,5 +138,6 @@ class ConfigService:
             validated_path = validate_path_within(Path(config_path), config_dir)
             validated_path.unlink()
             return True
-        except Exception:
+        except (OSError, ValueError) as e:
+            logger.warning("Failed to delete config file %s: %s", config_path, e)
             return False

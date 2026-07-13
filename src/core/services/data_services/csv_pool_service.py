@@ -59,18 +59,25 @@ Version: 2.0.0
 Last Modified: 2026-01-27
 """
 
+import csv
 import datetime
 import hashlib
+import logging
 import shutil
+import threading
+import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Optional, cast
+from typing import cast
 
 import pandas as pd
 from pandas import DataFrame
 
 from src.core.common.utils import validate_path_within
+from src.core.models.data_models import CacheStatsInfo, CsvMetadata, CsvPoolEntry
 from src.core.performance import SimpleCache
 from src.core.services.data_services.path_service import PathService
+
+logger = logging.getLogger(__name__)
 
 
 class CsvPoolService:
@@ -83,17 +90,21 @@ class CsvPoolService:
     _dataframe_cache: SimpleCache = SimpleCache(maxsize=10, ttl=300)  # 5 min TTL
 
     # Index for fast filename lookups
-    _pool_index: Dict[str, Dict[str, Any]] = {}
+    _pool_index: dict[str, CsvPoolEntry] = {}
+    _pool_lock: threading.Lock = threading.Lock()
+
+    _pool_dir: Path | None = None
 
     @staticmethod
     def get_pool_dir() -> Path:
         """Get the CSV pool directory path."""
-        pool_dir = PathService.get_data_dir() / "csv_pool"
-        pool_dir.mkdir(parents=True, exist_ok=True)
-        return pool_dir
+        if CsvPoolService._pool_dir is None:
+            CsvPoolService._pool_dir = PathService.get_data_dir() / "csv_pool"
+            CsvPoolService._pool_dir.mkdir(parents=True, exist_ok=True)
+        return CsvPoolService._pool_dir
 
     @staticmethod
-    def load_pool() -> List[Dict[str, Any]]:
+    def load_pool() -> list[CsvPoolEntry]:
         """
         Load list of CSV files in the pool with metadata caching.
 
@@ -101,13 +112,13 @@ class CsvPoolService:
             List of dicts with 'path', 'name', 'size', 'modified', 'columns', 'rows' keys.
         """
         pool_dir = CsvPoolService.get_pool_dir()
-        pool = []
-        new_index: Dict[str, Dict[str, Any]] = {}
+        pool: list[CsvPoolEntry] = []
+        new_index: dict[str, CsvPoolEntry] = {}
 
         for csv_file in sorted(
             pool_dir.glob("*.csv"), key=lambda x: x.stat().st_mtime, reverse=True
         ):
-            file_info = {
+            file_info: CsvPoolEntry = {
                 "path": str(csv_file),
                 "name": csv_file.name,
                 "size": csv_file.stat().st_size,
@@ -117,13 +128,16 @@ class CsvPoolService:
             # Try to get cached metadata
             metadata = CsvPoolService._get_csv_metadata(str(csv_file))
             if metadata:
-                file_info.update(metadata)
+                file_info["columns"] = metadata["columns"]
+                file_info["rows"] = metadata["rows"]
+                file_info["dtypes"] = metadata["dtypes"]
 
             pool.append(file_info)
             new_index[csv_file.name] = file_info
 
         # Update index
-        CsvPoolService._pool_index = new_index
+        with CsvPoolService._pool_lock:
+            CsvPoolService._pool_index = new_index
 
         return pool
 
@@ -139,8 +153,11 @@ class CsvPoolService:
             Path to the file in the pool.
         """
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        # uuid suffix: timestamps have 1-second resolution, so two adds in the
+        # same second (parallel sessions / batch CLI) would silently overwrite.
+        unique = uuid.uuid4().hex[:8]
         pool_dir = CsvPoolService.get_pool_dir()
-        pool_path = validate_path_within(pool_dir / f"parsed_{timestamp}.csv", pool_dir)
+        pool_path = validate_path_within(pool_dir / f"parsed_{timestamp}_{unique}.csv", pool_dir)
         source_path = Path(csv_path).resolve()
         shutil.copy(str(source_path), pool_path)
         return str(pool_path)
@@ -161,7 +178,8 @@ class CsvPoolService:
             validated_path = validate_path_within(Path(csv_path), pool_dir)
             validated_path.unlink()
             return True
-        except Exception:
+        except (OSError, ValueError) as e:
+            logger.warning("Failed to delete CSV file %s: %s", csv_path, e)
             return False
 
     @staticmethod
@@ -198,8 +216,12 @@ class CsvPoolService:
         cache_key = CsvPoolService._compute_file_hash(resolved_path)
         cached_df = CsvPoolService._dataframe_cache.get(cache_key)
         if cached_df is not None:
-            # Trust cache contains DataFrame
-            return cast(DataFrame, cached_df)
+            # Defensive copy: the cache holds one pristine frame shared by every
+            # caller (and every session) — handing out the cached object itself
+            # would let one caller's in-place mutation corrupt all the others.
+            # Shallow (deep=False) is sufficient and ~1000× cheaper: pandas 3
+            # Copy-on-Write isolates every mutation path through the new frame.
+            return cast(DataFrame, cached_df).copy(deep=False)
 
         # Load with optimizations
         # Note: low_memory doesn't work with python engine, so we use C engine when possible
@@ -213,14 +235,14 @@ class CsvPoolService:
         CsvPoolService._dataframe_cache.set(cache_key, result)
 
         # Also cache metadata
-        metadata = {
+        metadata: CsvMetadata = {
             "columns": list(result.columns),
             "rows": len(result),
-            "dtypes": {col: str(dtype) for col, dtype in result.dtypes.items()},
+            "dtypes": {str(col): str(dtype) for col, dtype in result.dtypes.items()},
         }
         CsvPoolService._metadata_cache.set(resolved_path, metadata)
 
-        return result
+        return result.copy(deep=False)
 
     @staticmethod
     def _compute_file_hash(file_path: str) -> str:
@@ -241,7 +263,7 @@ class CsvPoolService:
         return file_path
 
     @staticmethod
-    def _get_csv_metadata(csv_path: str) -> Optional[Dict[str, Any]]:
+    def _get_csv_metadata(csv_path: str) -> CsvMetadata | None:
         """
         Get cached metadata for a CSV file, or compute it.
 
@@ -251,34 +273,36 @@ class CsvPoolService:
         Returns:
             Dict with 'columns', 'rows', 'dtypes' or None if error
         """
+        # Resolve once and use the resolved path as the SINGLE canonical cache key — matches
+        # the key load_csv_file writes under, so a load followed by a listing actually hits.
+        resolved_path = str(Path(csv_path).resolve())
+
         # Check cache
-        cached = CsvPoolService._metadata_cache.get(csv_path)
+        cached = CsvPoolService._metadata_cache.get(resolved_path)
         if cached is not None:
-            result: Dict[str, Any] | None = cached
-            return result
+            return cast(CsvMetadata, cached)
 
         # Compute metadata by reading just the header and counting rows
         try:
-            # Resolve path to prevent traversal
-            resolved_path = str(Path(csv_path).resolve())
 
             # Fast row count without loading entire file
-            with open(resolved_path, "r") as f:
-                row_count = sum(1 for _ in f) - 1  # Subtract header
+            with open(resolved_path) as f:
+                row_count = max(0, sum(1 for _ in f) - 1)  # Subtract header
 
             # Read just first row to get columns and types
             sample_df = pd.read_csv(resolved_path, sep=None, engine="python", nrows=100)
 
-            metadata = {
+            metadata: CsvMetadata = {
                 "columns": list(sample_df.columns),
                 "rows": row_count,
-                "dtypes": {col: str(dtype) for col, dtype in sample_df.dtypes.items()},
+                "dtypes": {str(col): str(dtype) for col, dtype in sample_df.dtypes.items()},
             }
 
-            # Cache it
-            CsvPoolService._metadata_cache.set(csv_path, metadata)
+            # Cache it under the resolved key (consistent with the lookup above).
+            CsvPoolService._metadata_cache.set(resolved_path, metadata)
             return metadata
-        except Exception:
+        except (OSError, pd.errors.ParserError, csv.Error, KeyError) as e:
+            logger.debug("Failed to read CSV metadata for %s: %s", csv_path, e)
             return None
 
     @staticmethod
@@ -286,13 +310,20 @@ class CsvPoolService:
         """Clear all CSV pool caches."""
         CsvPoolService._metadata_cache.clear()
         CsvPoolService._dataframe_cache.clear()
-        CsvPoolService._pool_index.clear()
+        with CsvPoolService._pool_lock:
+            CsvPoolService._pool_index.clear()
+        CsvPoolService._pool_dir = None
 
     @staticmethod
-    def get_cache_stats() -> Dict[str, Any]:
+    def get_cache_stats() -> CacheStatsInfo:
         """Get cache statistics for monitoring."""
-        return {
-            "metadata_cache": CsvPoolService._metadata_cache.stats(),
-            "dataframe_cache": CsvPoolService._dataframe_cache.stats(),
-            "index_size": len(CsvPoolService._pool_index),
-        }
+        with CsvPoolService._pool_lock:
+            index_size = len(CsvPoolService._pool_index)
+        return cast(
+            CacheStatsInfo,
+            {
+                "metadata_cache": CsvPoolService._metadata_cache.stats(),
+                "dataframe_cache": CsvPoolService._dataframe_cache.stats(),
+                "index_size": index_size,
+            },
+        )

@@ -34,12 +34,7 @@ from .managers import (
 )
 from .services_api import ServicesAPI
 from .services_impl import DefaultServicesAPI
-from .shapers import (
-    DefaultShapersAPI,
-    PipelineService,
-    ShaperFactory,
-    ShapersAPI,
-)
+from .shapers import DefaultShapersAPI, PipelineService, ShaperFactory, ShapersAPI
 
 __all__ = [
     # Primary API

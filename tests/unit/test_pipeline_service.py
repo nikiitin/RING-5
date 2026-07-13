@@ -1,89 +1,103 @@
-"""Tests for PipelineService."""
+"""Tests for PipelineService — the canonical shaper-pipeline execution engine."""
 
-import json
-from pathlib import Path
+from typing import cast
 
+import pandas as pd
 import pytest
 
+from src.core.models.shaper_models import ShaperStepConfig
 from src.core.services.shapers.pipeline_service import PipelineService
 
 
-class TestPipelineService:
-    """Tests for PipelineService."""
+@pytest.fixture
+def sample_df() -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "benchmark": ["bzip2", "gcc", "mcf"],
+            "ipc": [1.5, 2.3, 3.1],
+        }
+    )
 
-    def test_list_pipelines_empty(self, tmp_path: Path) -> None:
-        """Test listing pipelines when none exist."""
-        service = PipelineService(tmp_path)
-        pipelines = service.list_pipelines()
-        assert pipelines == []
 
-    def test_list_pipelines_non_existent_dir(self, tmp_path: Path) -> None:
-        """Test listing pipelines when directory doesn't exist."""
-        non_existent = tmp_path / "nonexistent"
-        service = PipelineService(non_existent)
-        pipelines = service.list_pipelines()
-        assert pipelines == []
+class TestProcessPipeline:
+    """Tests for PipelineService.process_pipeline."""
 
-    def test_list_pipelines_with_files(self, tmp_path: Path) -> None:
-        """Test listing pipelines when some exist."""
-        (tmp_path / "pipeline1.json").touch()
-        (tmp_path / "pipeline2.json").touch()
-        (tmp_path / "not_json.txt").touch()
+    def test_empty_pipeline_returns_input(self, sample_df: pd.DataFrame) -> None:
+        result = PipelineService.process_pipeline(sample_df, [])
+        assert result.equals(sample_df)
 
-        service = PipelineService(tmp_path)
-        pipelines = service.list_pipelines()
-        assert len(pipelines) == 2
-        assert "pipeline1" in pipelines
-        assert "pipeline2" in pipelines
+    def test_valid_step_applies(self, sample_df: pd.DataFrame) -> None:
+        pipeline = cast(
+            list[ShaperStepConfig],
+            [{"type": "columnSelector", "columns": ["benchmark"]}],
+        )
+        result = PipelineService.process_pipeline(sample_df, pipeline)
+        assert list(result.columns) == ["benchmark"]
 
-    def test_save_pipeline(self, tmp_path: Path) -> None:
-        """Test saving a pipeline."""
-        service = PipelineService(tmp_path)
-        config = [{"type": "columnSelector", "columns": ["a"]}]
-        service.save_pipeline("test_pipeline", config, "Test description")
+    @pytest.mark.parametrize(
+        "bad_step",
+        [
+            {"Type": "columnSelector"},  # key typo
+            {"type": ""},  # empty type
+            {"type": None},  # explicit None
+            {"params": {}},  # no type at all
+        ],
+    )
+    def test_step_without_type_raises(
+        self, sample_df: pd.DataFrame, bad_step: dict[str, object]
+    ) -> None:
+        """A malformed step must raise — silently skipping it would return
+        un-transformed data while the caller believes the pipeline ran."""
+        pipeline = cast(list[ShaperStepConfig], [bad_step])
+        with pytest.raises(ValueError, match="has no 'type'"):
+            PipelineService.process_pipeline(sample_df, pipeline)
 
-        saved_path = tmp_path / "test_pipeline.json"
-        assert saved_path.exists()
+    def test_step_without_type_reports_index(self, sample_df: pd.DataFrame) -> None:
+        pipeline = cast(
+            list[ShaperStepConfig],
+            [
+                {"type": "columnSelector", "columns": ["benchmark", "ipc"]},
+                {"columns": []},
+            ],
+        )
+        with pytest.raises(ValueError, match="step 1"):
+            PipelineService.process_pipeline(sample_df, pipeline)
 
-        with open(saved_path) as f:
-            data = json.load(f)
-        assert data["name"] == "test_pipeline"
-        assert data["description"] == "Test description"
-        assert data["pipeline"] == config
+    def test_unknown_shaper_type_raises(self, sample_df: pd.DataFrame) -> None:
+        pipeline = cast(list[ShaperStepConfig], [{"type": "nonexistentShaper"}])
+        with pytest.raises(ValueError):
+            PipelineService.process_pipeline(sample_df, pipeline)
 
-    def test_save_pipeline_empty_name_raises(self, tmp_path: Path) -> None:
-        """Test that saving with empty name raises."""
-        service = PipelineService(tmp_path)
-        with pytest.raises(ValueError, match="empty"):
-            service.save_pipeline("", [])
 
-    def test_load_pipeline(self, tmp_path: Path) -> None:
-        """Test loading a pipeline."""
-        test_data = {"name": "test", "pipeline": [{"type": "test"}]}
-        (tmp_path / "mytest.json").write_text(json.dumps(test_data))
+class TestPipelineStepError:
+    """Failures carry structured location data — no message parsing needed."""
 
-        service = PipelineService(tmp_path)
-        loaded = service.load_pipeline("mytest")
-        assert loaded["name"] == "test"
+    def test_missing_type_carries_index(self, sample_df: pd.DataFrame) -> None:
+        from src.core.services.shapers.pipeline_service import PipelineStepError
 
-    def test_load_pipeline_not_found(self, tmp_path: Path) -> None:
-        """Test loading non-existent pipeline raises."""
-        service = PipelineService(tmp_path)
-        with pytest.raises(FileNotFoundError, match="not found"):
-            service.load_pipeline("nonexistent")
+        pipeline = cast(list[ShaperStepConfig], [{"columns": []}])
+        with pytest.raises(PipelineStepError) as exc_info:
+            PipelineService.process_pipeline(sample_df, pipeline)
+        assert exc_info.value.step_index == 0
+        assert exc_info.value.shaper_type is None
 
-    def test_delete_pipeline(self, tmp_path: Path) -> None:
-        """Test deleting a pipeline."""
-        pipeline_file = tmp_path / "to_delete.json"
-        pipeline_file.touch()
-        assert pipeline_file.exists()
+    def test_failing_step_carries_index_and_type(self, sample_df: pd.DataFrame) -> None:
+        """With two same-type steps, the SECOND failing must report index 1."""
+        from src.core.services.shapers.pipeline_service import PipelineStepError
 
-        service = PipelineService(tmp_path)
-        service.delete_pipeline("to_delete")
-        assert not pipeline_file.exists()
+        pipeline = cast(
+            list[ShaperStepConfig],
+            [
+                {"type": "columnSelector", "columns": ["benchmark", "ipc"]},
+                {"type": "columnSelector", "columns": ["does_not_exist"]},
+            ],
+        )
+        with pytest.raises(PipelineStepError) as exc_info:
+            PipelineService.process_pipeline(sample_df, pipeline)
+        assert exc_info.value.step_index == 1
+        assert exc_info.value.shaper_type == "columnSelector"
 
-    def test_delete_pipeline_non_existent(self, tmp_path: Path) -> None:
-        """Test deleting non-existent pipeline doesn't raise."""
-        service = PipelineService(tmp_path)
-        # Should not raise
-        service.delete_pipeline("nonexistent")
+    def test_is_a_valueerror(self) -> None:
+        from src.core.services.shapers.pipeline_service import PipelineStepError
+
+        assert issubclass(PipelineStepError, ValueError)

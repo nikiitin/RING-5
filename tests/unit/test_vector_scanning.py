@@ -1,23 +1,32 @@
 import re
 
-from src.core.parsing.gem5.impl.gem5_scanner import Gem5Scanner as ScannerService
+from src.core.models.parsing_models import ScanFileResult, ScannedVariable
+from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ScannerService
 
 
 class TestVectorScanning:
-    def test_scan_vector_entries_via_snapshot(self):
+    def test_scan_vector_entries_via_snapshot(self) -> None:
         """Test that finalize_scan correctly aggregates vector entries."""
-        # Setup mock results from multiple files
         raw_results = [
-            [{"name": "system.cpu0.op_class", "type": "vector", "entries": ["IntAlu", "IntMult"]}],
-            [{"name": "system.cpu1.op_class", "type": "vector", "entries": ["IntDiv"]}],
+            ScanFileResult(
+                "f0",
+                [
+                    ScannedVariable(
+                        name="system.cpu0.op_class", type="vector", entries=["IntAlu", "IntMult"]
+                    )
+                ],
+            ),
+            ScanFileResult(
+                "f1",
+                [ScannedVariable(name="system.cpu1.op_class", type="vector", entries=["IntDiv"])],
+            ),
         ]
 
-        # Test aggregation
         results = ScannerService.aggregate_scan_results(raw_results)
 
         found_entries = set()
         var_name = "system.cpu\\d+.op_class"
-        for v in results:
+        for v in results.variables:
             if v.name == var_name or re.fullmatch(var_name, v.name):
                 found_entries.update(v.entries)
 

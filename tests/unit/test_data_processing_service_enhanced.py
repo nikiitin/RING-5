@@ -44,7 +44,8 @@ class TestArithmeticService:
         result = ArithmeticService.merge_columns(data, ["a", "b"], "Sum", "total")
         assert "total.sd" in result.columns
         expected_sd = np.sqrt(np.array([1, 2, 3]) ** 2 + np.array([0.5, 1.0, 1.5]) ** 2)
-        np.testing.assert_array_almost_equal(result["total.sd"].values, expected_sd)
+        actual_sd = np.asarray(result["total.sd"].values, dtype=np.float64)
+        np.testing.assert_array_almost_equal(actual_sd, expected_sd)
 
 
 class TestOutlierService:
@@ -82,8 +83,10 @@ class TestReductionService:
         assert "ipc" in result.columns
         assert "ipc.sd" in result.columns
         # Mean of [1.0, 1.2] is 1.1; Mean of [2.0, 2.2] is 2.1
-        assert result[result["benchmark"] == "A"]["ipc"].iloc[0] == pytest.approx(1.1)
-        assert result[result["benchmark"] == "B"]["ipc"].iloc[0] == pytest.approx(2.1)
+        ipc_a = pd.DataFrame(result[result["benchmark"] == "A"])["ipc"].iloc[0]
+        ipc_b = pd.DataFrame(result[result["benchmark"] == "B"])["ipc"].iloc[0]
+        assert ipc_a == pytest.approx(1.1)
+        assert ipc_b == pytest.approx(2.1)
 
     def test_validate_seeds_reducer_no_columns(self) -> None:
         """Test validation fails when no categorical columns provided."""

@@ -7,17 +7,17 @@ merge with standard deviation propagation. Used to create derived
 metrics from base statistics.
 """
 
-from typing import List
-
 import numpy as np
 import pandas as pd
+
+from src.core.common.dataframe_utils import concat_columns
 
 
 class ArithmeticService:
     """Service for arithmetic column operations and multi-column merging."""
 
     @staticmethod
-    def list_operators() -> List[str]:
+    def list_operators() -> list[str]:
         """Return the list of supported binary arithmetic operators."""
         return ["Division", "Sum", "Subtraction", "Multiplication"]
 
@@ -49,7 +49,7 @@ class ArithmeticService:
     def apply_mixer(
         df: pd.DataFrame,
         dest_col: str,
-        source_cols: List[str],
+        source_cols: list[str],
         operation: str = "Sum",
         separator: str = "_",
     ) -> pd.DataFrame:
@@ -82,7 +82,7 @@ class ArithmeticService:
         elif operation in ("Mean", "Mean (Average)"):
             result[dest_col] = result[source_cols].mean(axis=1)
         elif operation == "Concatenate":
-            result[dest_col] = result[source_cols].astype(str).agg(separator.join, axis=1)
+            result[dest_col] = concat_columns(result, source_cols, separator)
         else:
             raise ValueError(f"Unknown mixer operation: {operation}")
 
@@ -115,7 +115,7 @@ class ArithmeticService:
     @staticmethod
     def merge_columns(
         df: pd.DataFrame,
-        columns: List[str],
+        columns: list[str],
         operation: str,
         new_column_name: str,
         separator: str = "_",
@@ -135,10 +135,10 @@ class ArithmeticService:
     @staticmethod
     def validate_merge_inputs(
         df: pd.DataFrame,
-        columns: List[str],
+        columns: list[str],
         operation: str,
         new_column_name: str,
-    ) -> List[str]:
+    ) -> list[str]:
         """Validate inputs for merge_columns / apply_mixer operations.
 
         Args:
@@ -150,7 +150,7 @@ class ArithmeticService:
         Returns:
             List of error messages (empty if valid).
         """
-        errors: List[str] = []
+        errors: list[str] = []
 
         if not columns:
             errors.append("At least one column must be selected")

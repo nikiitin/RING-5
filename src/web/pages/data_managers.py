@@ -8,13 +8,16 @@ Handles loading, filtering, and transforming data from various sources.
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
-from src.web.pages.ui.components.data_manager_components import DataManagerComponents
-from src.web.pages.ui.data_managers.impl.mixer import MixerManager
-from src.web.pages.ui.data_managers.impl.outlier_remover import OutlierRemoverManager
-from src.web.pages.ui.data_managers.impl.preprocessor import PreprocessorManager
+from src.web.components.common.history_components import HistoryComponents
+from src.web.components.data_managers.data_manager_components import (
+    DataManagerComponents,
+)
+from src.web.components.data_managers.mixer import MixerManager
+from src.web.components.data_managers.outlier_remover import OutlierRemoverManager
+from src.web.components.data_managers.preprocessor import PreprocessorManager
 
 # Import Sub-Managers
-from src.web.pages.ui.data_managers.impl.seeds_reducer import SeedsReducerManager
+from src.web.components.data_managers.seeds_reducer import SeedsReducerManager
 
 
 def show_data_managers_page(api: ApplicationAPI) -> None:
@@ -31,47 +34,79 @@ def show_data_managers_page(api: ApplicationAPI) -> None:
     - Manage multiple data sources
     """)
 
-    if not api.state_manager.has_data():
-        st.warning("No data loaded. Please load data from **Data Source** or **Upload Data** page.")
+    has_data: bool = api.state_manager.has_data()
+
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(
+        [
+            "Summary",
+            "Data Visualization",
+            "Seeds Reducer",
+            "Outlier Remover",
+            "Preprocessor",
+            "Mixer",
+            "Operations History",
+        ]
+    )
+
+    if not has_data:
+        with tab1:
+            st.warning("No data loaded. Please load data from the **Data Source** page.")
         return
 
     data_or_none = api.state_manager.get_data()
     if data_or_none is None:
-        st.error("Failed to retrieve data.")
+        with tab1:
+            st.error("Failed to retrieve data.")
         return
     data = data_or_none
 
-    # Initialize Managers
-    seeds_mgr = SeedsReducerManager(api)
-    outlier_mgr = OutlierRemoverManager(api)
-    preproc_mgr = PreprocessorManager(api)
-    mixer_mgr = MixerManager(api)
-
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
-        [
-            "Summary",
-            "Data Visualization",
-            seeds_mgr.name,
-            outlier_mgr.name,
-            preproc_mgr.name,
-            mixer_mgr.name,
-        ]
-    )
-
     with tab1:
-        DataManagerComponents.render_summary_tab(data)
+
+        @st.fragment
+        def _summary_fragment() -> None:
+            DataManagerComponents.render_summary_tab(data)
+
+        _summary_fragment()
 
     with tab2:
-        DataManagerComponents.render_visualization_tab(data)
+
+        @st.fragment
+        def _visualization_fragment() -> None:
+            DataManagerComponents.render_visualization_tab(data)
+
+        _visualization_fragment()
 
     with tab3:
-        seeds_mgr.render()
+
+        @st.fragment
+        def _seeds_fragment() -> None:
+            SeedsReducerManager(api).render()
+
+        _seeds_fragment()
 
     with tab4:
-        outlier_mgr.render()
+
+        @st.fragment
+        def _outlier_fragment() -> None:
+            OutlierRemoverManager(api).render()
+
+        _outlier_fragment()
 
     with tab5:
-        preproc_mgr.render()
+
+        @st.fragment
+        def _preproc_fragment() -> None:
+            PreprocessorManager(api).render()
+
+        _preproc_fragment()
 
     with tab6:
-        mixer_mgr.render()
+
+        @st.fragment
+        def _mixer_fragment() -> None:
+            MixerManager(api).render()
+
+        _mixer_fragment()
+
+    with tab7:
+        HistoryComponents.render_portfolio_history(api.get_portfolio_history())

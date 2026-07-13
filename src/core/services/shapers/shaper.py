@@ -10,16 +10,9 @@ enabling users to create custom analysis pipelines.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, TypedDict
+from typing import Any
 
 import pandas as pd
-
-
-class ShaperConfig(TypedDict, total=False):
-    """Type definition for shaper configuration parameters."""
-
-    type: str  # Shaper type identifier
-    params: Dict[str, Any]  # Type-specific parameters
 
 
 class Shaper(ABC):
@@ -31,7 +24,7 @@ class Shaper(ABC):
     interchangeable data transformations.
     """
 
-    def __init__(self, params: Dict[str, Any]) -> None:
+    def __init__(self, params: dict[str, Any]) -> None:
         """
         Initialize the shaper with configuration parameters.
 
@@ -44,7 +37,7 @@ class Shaper(ABC):
         if not isinstance(params, dict):
             raise ValueError("Shaper parameters must be a dictionary.")
 
-        self.params: Dict[str, Any] = params
+        self.params: dict[str, Any] = params
         self._verify_params()
 
     @abstractmethod
