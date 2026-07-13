@@ -55,7 +55,9 @@ class SpecificOptionsRenderer(Protocol):
         self,
         saved_config: PlotConfig,
         data: pd.DataFrame | None,
-    ) -> PlotConfig: ...
+    ) -> PlotConfig:
+        """Render plot-specific options and return the updated configuration."""
+        raise NotImplementedError
 
 
 class OrderingRenderer(Protocol):
@@ -66,7 +68,9 @@ class OrderingRenderer(Protocol):
         saved_config: PlotConfig,
         data: pd.DataFrame,
         config: PlotConfig,
-    ) -> None: ...
+    ) -> None:
+        """Render ordering controls into ``config``."""
+        raise NotImplementedError
 
 
 class AxesSettingsComponent:
