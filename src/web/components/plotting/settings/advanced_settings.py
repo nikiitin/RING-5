@@ -38,7 +38,9 @@ class ReferenceLineRenderer(Protocol):
         saved_config: PlotConfig,
         data: pd.DataFrame | None,
         config: PlotConfig,
-    ) -> None: ...
+    ) -> None:
+        """Render reference-line controls into ``config``."""
+        raise NotImplementedError
 
 
 class ShapesRenderer(Protocol):
@@ -47,7 +49,9 @@ class ShapesRenderer(Protocol):
     def __call__(
         self,
         saved_config: PlotConfig,
-    ) -> list[ShapeConfig]: ...
+    ) -> list[ShapeConfig]:
+        """Render shape controls and return their configuration."""
+        raise NotImplementedError
 
 
 class EngineControlsRenderer(Protocol):
@@ -57,7 +61,9 @@ class EngineControlsRenderer(Protocol):
         self,
         saved_config: PlotConfig,
         config: PlotConfig,
-    ) -> None: ...
+    ) -> None:
+        """Render engine-specific controls into ``config``."""
+        raise NotImplementedError
 
 
 class AdvancedSettingsComponent:

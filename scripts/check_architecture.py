@@ -67,6 +67,12 @@ def inspect_file(path: Path) -> list[str]:
                 issues.append(f"{location}: domain/data layer accesses session_state")
         if isinstance(node, ast.ExceptHandler) and node.type is None:
             issues.append(f"{location}: bare except clause")
+        if (
+            isinstance(node, ast.Expr)
+            and isinstance(node.value, ast.Constant)
+            and node.value.value is Ellipsis
+        ):
+            issues.append(f"{location}: ellipsis statement; use an explicit contract")
         if isinstance(node, ast.Call):
             if isinstance(node.func, ast.Name) and node.func.id in {"eval", "exec"}:
                 issues.append(f"{location}: call to {node.func.id}()")
