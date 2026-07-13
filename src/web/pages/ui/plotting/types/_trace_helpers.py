@@ -12,6 +12,7 @@ import pandas as pd
 
 from src.core.models.visualization.trace_config import TraceConfig
 from src.web.models.plot_models import PlotConfig
+from src.web.pages.ui.plotting.utils.ordering import order_with_overrides
 
 
 def prepare_categorical_data(
@@ -77,10 +78,6 @@ def build_color_grouped_traces(
     traces: list[TraceConfig] = []
 
     if color_col:
-        from src.web.pages.ui.plotting.utils.grouped_stacked_bar_helpers import (
-            order_with_overrides,
-        )
-
         data = prepare_categorical_data(data, [color_col])
 
         # Shared ordering rule: explicit legend_order first, then any remaining sorted.

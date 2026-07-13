@@ -18,7 +18,7 @@ nav_order: 3
 |---|----------|-------|------|------|---------|-----------------|
 | 1 | `StateManager` | Core | `src/core/state/state_manager.py` | 28 | 42 | `RepositoryStateManager` |
 | 2 | `PlotProtocol` | Core | `src/core/models/plot_protocol.py` | 18 | 1 + 8 attrs | `BasePlot` |
-| 3 | `PlotDeserializer` | Core | `src/core/models/plot_protocol.py` | 41 | 1 (`__call__`) | `BasePlot.from_dict` |
+| 3 | `PlotDeserializer` | Core | `src/core/models/plot_protocol.py` | 41 | 1 (`__call__`) | `PlotFactory.from_dict` |
 | 4 | `ServicesAPI` | Core | `src/core/services/services_api.py` | 25 | 3 properties | `DefaultServicesAPI` |
 | 5 | `DataServicesAPI` | Core | `src/core/services/data_services/data_services_api.py` | 31 | 25 | `DefaultDataServicesAPI` |
 | 6 | `ManagersAPI` | Core | `src/core/services/managers/managers_api.py` | 15 | 8 | `DefaultManagersAPI` |
@@ -130,7 +130,7 @@ nav_order: 3
 - **File**: `src/core/models/plot_protocol.py` line 41
 - **Kind**: `Callable` type alias (not a `Protocol` class)
 - **Purpose**: Callback type for dictionary-to-PlotProtocol deserialization, injected at startup.
-- **Implementation**: `BasePlot.from_dict` injected via `ApplicationAPI.__init__`
+- **Implementation**: `PlotFactory.from_dict` injected via `ApplicationAPI.__init__`
 
 ```python
 PlotDeserializer = Callable[[dict[str, Any]], PlotProtocol | None]
@@ -416,7 +416,7 @@ def __call__(self, saved_config: PlotConfig, config: PlotConfig) -> None: ...
 | Protocol | Decouples |
 |----------|-----------|
 | `PlotProtocol` | Core from Web (`BasePlot`) |
-| `PlotDeserializer` | Core from Web (`BasePlot.from_dict`) |
+| `PlotDeserializer` | Core from Web (`PlotFactory.from_dict`) |
 | `StateManager` | `ApplicationAPI` from `RepositoryStateManager` |
 | `SimulationParser` | Core from Parsing (`Gem5Parser`) |
 

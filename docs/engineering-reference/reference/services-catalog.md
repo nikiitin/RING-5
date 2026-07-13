@@ -501,7 +501,7 @@ SENTINEL_FLOAT = -1.0
 ## Instantiation Flow
 
 ```
-app.py -> st.session_state.api -> ApplicationAPI(plot_deserializer=BasePlot.from_dict)
+app.py -> st.session_state.api -> ApplicationAPI(plot_deserializer=PlotFactory.from_dict)
   +-- RepositoryStateManager(plot_deserializer)
   +-- DefaultServicesAPI(state_manager)
   |     +-- DefaultManagersAPI()                         [stateless]

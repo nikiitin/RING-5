@@ -11,6 +11,7 @@ Features:
 """
 
 import atexit
+from contextlib import suppress
 import logging
 import os
 import queue
@@ -404,10 +405,8 @@ class PerlWorker:
                     self.process.stderr,
                 ):
                     if pipe:
-                        try:
+                        with suppress(OSError):
                             pipe.close()
-                        except OSError:
-                            pass
                 self.process = None
                 self.is_healthy = False
             # Join the reader/stderr-drainer threads (their pipes are now closed,
@@ -649,14 +648,6 @@ class PerlWorkerPool:
                 worker.shutdown()
 
         logger.info("Worker pool shutdown complete")
-
-    def __del__(self) -> None:
-        """Ensure workers are cleaned up on garbage collection."""
-        try:
-            if hasattr(self, "_shutdown_event") and not self._shutdown_event.is_set():
-                self.shutdown()
-        except Exception:  # nosec B110 — __del__ must not raise
-            pass
 
 
 # Singleton instance

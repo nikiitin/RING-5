@@ -124,8 +124,6 @@ class GroupedBarPlot(BasePlot):
             ordered_groups = order_with_overrides(
                 data[group_col].unique(), config.get("group_order")
             )
-        else:
-            ordered_groups = []  # Empty list instead of [None]
 
         # 2. Calculate Manual X Coordinates
         coord_result = GroupedBarUtils.calculate_grouped_coordinates(

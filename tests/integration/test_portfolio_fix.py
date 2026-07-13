@@ -5,9 +5,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.core.application_api import ApplicationAPI
-
-# This import is the critical check - if this fails, the test fails immediately
-from src.web.pages.portfolio import PortfolioData, show_portfolio_page
+from src.core.models import PortfolioData
+from src.web.pages.portfolio import show_portfolio_page
 
 
 class TestPortfolioFix:

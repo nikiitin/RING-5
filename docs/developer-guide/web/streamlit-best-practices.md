@@ -269,7 +269,7 @@ resources such as worker pools.
 ```python
 # app.py
 if "api" not in st.session_state:
-    st.session_state.api = ApplicationAPI(plot_deserializer=BasePlot.from_dict)
+    st.session_state.api = ApplicationAPI(plot_deserializer=PlotFactory.from_dict)
 api: ApplicationAPI = st.session_state.api
 ```
 
@@ -734,7 +734,7 @@ separate instance.
 
 ```python
 if "api" not in st.session_state:
-    st.session_state.api = ApplicationAPI(plot_deserializer=BasePlot.from_dict)
+    st.session_state.api = ApplicationAPI(plot_deserializer=PlotFactory.from_dict)
 api: ApplicationAPI = st.session_state.api
 ```
 

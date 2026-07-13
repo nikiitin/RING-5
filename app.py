@@ -44,13 +44,13 @@ def run_app() -> None:
 
     # Initialize Core Components
     from src.core.application_api import ApplicationAPI
-    from src.web.pages.ui.plotting.base_plot import BasePlot
+    from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
     # The API owns mutable data, plots, parser configuration, and operation
     # history. Keep one workspace per browser session; only explicitly
     # thread-safe worker pools are shared process-wide.
     if "api" not in st.session_state:
-        st.session_state.api = ApplicationAPI(plot_deserializer=BasePlot.from_dict)
+        st.session_state.api = ApplicationAPI(plot_deserializer=PlotFactory.from_dict)
 
     api: ApplicationAPI = st.session_state.api
 

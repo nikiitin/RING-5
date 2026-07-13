@@ -31,7 +31,7 @@ class SimulationParser(Protocol):
         """
         Submit an asynchronous parsing job over the simulation output files.
         """
-        ...
+        raise NotImplementedError
 
     def finalize_parsing(
         self,
@@ -43,7 +43,7 @@ class SimulationParser(Protocol):
         """
         Post-process and aggregate internal parsing results into a canonical format (e.g. CSV).
         """
-        ...
+        raise NotImplementedError
 
     def submit_scan_async(
         self,
@@ -57,7 +57,7 @@ class SimulationParser(Protocol):
         Each future resolves to a ``ScanFileResult`` (variables on success,
         error on failure).
         """
-        ...
+        raise NotImplementedError
 
     def aggregate_scan_results(
         self,
@@ -67,4 +67,4 @@ class SimulationParser(Protocol):
         Aggregate per-file scan results into a ``ScanResult`` (merged,
         deduplicated variables plus any per-file failures).
         """
-        ...
+        raise NotImplementedError

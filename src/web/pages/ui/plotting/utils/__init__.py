@@ -9,8 +9,8 @@ from .grouped_stacked_bar_helpers import (
     build_category_annotations,
     build_right_axis_traces,
     get_ordered_categories_and_groups,
-    order_with_overrides,
 )
+from .ordering import order_with_overrides
 
 __all__ = [
     "GroupedBarUtils",

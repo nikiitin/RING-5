@@ -171,7 +171,7 @@ RepositoryStateManager(plot_deserializer: PlotDeserializer | None = None)
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `plot_deserializer` | `PlotDeserializer | None` | Callable that converts a serialized `dict` into a `PlotProtocol` instance. Forwarded to `SessionRepository` so that portfolio restoration never requires importing web-layer classes. At bootstrap, `BasePlot.from_dict` is injected. |
+| `plot_deserializer` | `PlotDeserializer | None` | Callable that converts a serialized `dict` into a `PlotProtocol` instance. Forwarded to `SessionRepository` so that portfolio restoration never requires importing web-layer classes. At bootstrap, `PlotFactory.from_dict` is injected. |
 
 ### Delegation Pattern
 

@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING, TypedDict
+from io import StringIO
+from typing import TYPE_CHECKING, Any, TypedDict
+
+import pandas as pd
 
 if TYPE_CHECKING:
     from .base_plot import BasePlot
@@ -96,6 +99,32 @@ class PlotFactory:
         # Subclasses add plot_type in their __init__ before calling super()
         # Type checker doesn't know subclass signatures, but we validate at runtime
         return plot_constructor(plot_id, name)
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> BasePlot:
+        """Restore a plot and its state from :meth:`BasePlot.to_dict` output.
+
+        Args:
+            data: Serialized plot mapping.
+
+        Returns:
+            Restored plot instance.
+        """
+        plot = cls.create_plot(
+            plot_type=data["plot_type"],
+            plot_id=data["id"],
+            name=data["name"],
+        )
+        plot.config = data.get("config", {})
+        plot.pipeline = data.get("pipeline", [])
+        plot.pipeline_counter = data.get("pipeline_counter", 0)
+        plot.legend_mappings_by_column = data.get("legend_mappings_by_column", {})
+        plot.legend_mappings = data.get("legend_mappings", {})
+
+        processed_data = data.get("processed_data")
+        if processed_data:
+            plot.replace_processed_data(pd.read_csv(StringIO(processed_data)))
+        return plot
 
     @classmethod
     def get_available_plot_types(cls) -> list[str]:

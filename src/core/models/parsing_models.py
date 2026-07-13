@@ -50,7 +50,7 @@ class ScannedVariable:
 
     name: str
     type: str  # Simulator-specific type string (e.g. "scalar", "vector")
-    entries: list[str] = field(default_factory=lambda: list[str]())
+    entries: list[str] = field(default_factory=list)
     pattern_indices: list[str] | None = None
 
     def to_dict(self) -> ScannedVariableDict:
@@ -95,7 +95,7 @@ class ScanFileResult:
     """
 
     file_path: str
-    variables: list[ScannedVariable] = field(default_factory=lambda: list[ScannedVariable]())
+    variables: list[ScannedVariable] = field(default_factory=list)
     error: str | None = None
 
     @property
@@ -113,8 +113,8 @@ class ScanResult:
     them instead of silently showing "no variables".
     """
 
-    variables: list[ScannedVariable] = field(default_factory=lambda: list[ScannedVariable]())
-    failures: list[ScanFileResult] = field(default_factory=lambda: list[ScanFileResult]())
+    variables: list[ScannedVariable] = field(default_factory=list)
+    failures: list[ScanFileResult] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -140,7 +140,7 @@ class StatConfig:
     name: str
     type: str
     repeat: int = 1
-    params: dict[str, StatParamValue] = field(default_factory=lambda: dict[str, StatParamValue]())
+    params: dict[str, StatParamValue] = field(default_factory=dict)
     statistics_only: bool = False
     is_regex: bool = False
     keep_indices: bool = False

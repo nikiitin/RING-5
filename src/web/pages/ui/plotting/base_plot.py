@@ -2,7 +2,6 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import replace
-from io import StringIO
 from typing import Any
 
 import pandas as pd
@@ -198,33 +197,3 @@ class BasePlot(PlotConfigUIMixin, ABC):
             "legend_mappings_by_column": self.legend_mappings_by_column,
             "legend_mappings": self.legend_mappings,
         }
-
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "BasePlot":
-        """
-        Create plot instance from dictionary.
-
-        Args:
-            data: Dictionary representation
-
-        Returns:
-            Plot instance
-        """
-        # Import here to avoid circular imports
-        from .plot_factory import PlotFactory
-
-        plot = PlotFactory.create_plot(
-            plot_type=data["plot_type"], plot_id=data["id"], name=data["name"]
-        )
-
-        plot.config = data.get("config", {})
-        plot.pipeline = data.get("pipeline", [])
-        plot.pipeline_counter = data.get("pipeline_counter", 0)
-        plot.legend_mappings_by_column = data.get("legend_mappings_by_column", {})
-        plot.legend_mappings = data.get("legend_mappings", {})
-
-        # Deserialize processed_data if it exists
-        if data.get("processed_data"):
-            plot.replace_processed_data(pd.read_csv(StringIO(data["processed_data"])))
-
-        return plot

@@ -9,12 +9,13 @@ dependency failures into typed ring5 errors.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, get_args
+from typing import get_args
 
 import plotly.graph_objects as go
 from kaleido.errors import ChromeNotFoundError
 from matplotlib.figure import Figure as MplFigure
 
+from src.core.models.visualization.figure_config import FigureConfig
 from src.web.rendering.figure_export import (
     MatplotlibFormat,
     PlotlyFormat,
@@ -23,9 +24,6 @@ from src.web.rendering.figure_export import (
 )
 
 from ring5.errors import DependencyMissingError, ExportError
-
-if TYPE_CHECKING:
-    from src.core.models.visualization.figure_config import FigureConfig
 
 # Derived from the canonical Literal types — one source of truth.
 _PLOTLY_FORMATS: tuple[str, ...] = get_args(PlotlyFormat)
@@ -46,7 +44,7 @@ def export_bytes(
     height: int = 400,
     scale: int = 2,
     dpi: int = 300,
-    spec: "FigureConfig | None" = None,
+    spec: FigureConfig | None = None,
 ) -> bytes:
     """Export a rendered figure to image/document bytes.
 
@@ -139,7 +137,7 @@ def export_file(
     height: int = 400,
     scale: int = 2,
     dpi: int = 300,
-    spec: "FigureConfig | None" = None,
+    spec: FigureConfig | None = None,
 ) -> str:
     """Export a rendered figure to a file; format defaults from the extension.
 

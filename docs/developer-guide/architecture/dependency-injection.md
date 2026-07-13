@@ -29,7 +29,7 @@ the current browser session:
 ```python
 # app.py
 if "api" not in st.session_state:
-    st.session_state.api = ApplicationAPI(plot_deserializer=BasePlot.from_dict)
+    st.session_state.api = ApplicationAPI(plot_deserializer=PlotFactory.from_dict)
 ```
 
 This single call constructs the entire object graph:
@@ -71,7 +71,7 @@ Every downstream layer receives what it needs through this hub:
 
 | Dependency | Injected as | Purpose |
 |---|---|---|
-| `PlotDeserializer` | `BasePlot.from_dict` | Deserialize plot dicts without importing web-layer classes |
+| `PlotDeserializer` | `PlotFactory.from_dict` | Deserialize plot dicts without importing web-layer classes |
 | `SimulationParser` | gem5 parser (default) | Parse simulator output files |
 | `StateManager` | `RepositoryStateManager` instance | Shared application state |
 | `DefaultServicesAPI` | Internal composition | Service facade for managers, data, and shapers |

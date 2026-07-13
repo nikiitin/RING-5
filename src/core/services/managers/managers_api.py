@@ -23,7 +23,7 @@ class ManagersAPI(Protocol):
 
     def list_operators(self) -> list[str]:
         """Return supported binary arithmetic operators."""
-        ...
+        raise NotImplementedError
 
     def apply_operation(
         self,
@@ -34,7 +34,7 @@ class ManagersAPI(Protocol):
         dest: str,
     ) -> pd.DataFrame:
         """Apply arithmetic operation between two columns."""
-        ...
+        raise NotImplementedError
 
     # -- Mixer (Multi-column merge) --
 
@@ -47,7 +47,7 @@ class ManagersAPI(Protocol):
         separator: str = "_",
     ) -> pd.DataFrame:
         """Merge multiple columns into one with SD propagation."""
-        ...
+        raise NotImplementedError
 
     def validate_merge_inputs(
         self,
@@ -57,7 +57,7 @@ class ManagersAPI(Protocol):
         new_column_name: str,
     ) -> list[str]:
         """Validate inputs for merge/mixer operations."""
-        ...
+        raise NotImplementedError
 
     # -- Outlier Removal --
 
@@ -68,7 +68,7 @@ class ManagersAPI(Protocol):
         group_by_cols: list[str],
     ) -> pd.DataFrame:
         """Remove statistical outliers based on Q3 threshold."""
-        ...
+        raise NotImplementedError
 
     def validate_outlier_inputs(
         self,
@@ -77,7 +77,7 @@ class ManagersAPI(Protocol):
         group_by_cols: list[str],
     ) -> list[str]:
         """Validate inputs for outlier removal."""
-        ...
+        raise NotImplementedError
 
     # -- Seeds Reduction --
 
@@ -88,7 +88,7 @@ class ManagersAPI(Protocol):
         statistic_cols: list[str],
     ) -> pd.DataFrame:
         """Aggregate data across random seeds (mean + stdev)."""
-        ...
+        raise NotImplementedError
 
     def validate_seeds_reducer_inputs(
         self,
@@ -97,4 +97,4 @@ class ManagersAPI(Protocol):
         statistic_cols: list[str],
     ) -> list[str]:
         """Validate inputs for seeds reduction."""
-        ...
+        raise NotImplementedError

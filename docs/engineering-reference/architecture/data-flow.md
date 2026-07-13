@@ -220,7 +220,7 @@ LOAD:
 
 **Dependency injection chain** (preserves layer boundary -- core never imports web classes):
 ```
-app.py: ApplicationAPI(plot_deserializer=BasePlot.from_dict)
+app.py: ApplicationAPI(plot_deserializer=PlotFactory.from_dict)
   -> RepositoryStateManager(plot_deserializer)
     -> SessionRepository._plot_deserializer
 ```

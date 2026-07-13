@@ -157,15 +157,13 @@ def test_restore_returns_report_with_skipped_plots_when_no_deserializer(
 def test_restore_report_complete_with_deserializer(
     portfolio_service: Any, portfolios_dir: Any
 ) -> None:
-    from src.web.pages.ui.plotting.base_plot import BasePlot
-
     df = pd.DataFrame({"A": [1, 2]})
     plot = PlotFactory.create_plot("bar", 2, "OK Plot")
     plot.processed_data = df
     plot.config = {"x": "A", "y": "A"}
     portfolio_service.save_portfolio("report_ok", df, [plot], {}, 1)
 
-    fresh_manager = RepositoryStateManager(plot_deserializer=BasePlot.from_dict)
+    fresh_manager = RepositoryStateManager(plot_deserializer=PlotFactory.from_dict)
     loaded = portfolio_service.load_portfolio("report_ok")
     report = fresh_manager.restore_session(loaded)
 

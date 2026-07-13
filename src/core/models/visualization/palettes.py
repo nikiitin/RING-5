@@ -300,4 +300,4 @@ PALETTE_REGISTRY: dict[str, list[str]] = {
 }
 
 # Ordered list: colorblind-safe first, then Plotly alphabetical
-_PALETTE_ORDER: list[str] = list(_COLORBLIND_PALETTES.keys()) + sorted(_PLOTLY_PALETTES.keys())
+PALETTE_ORDER: list[str] = list(_COLORBLIND_PALETTES.keys()) + sorted(_PLOTLY_PALETTES.keys())

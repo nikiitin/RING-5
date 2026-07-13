@@ -33,7 +33,7 @@ class PlotProtocol(Protocol):
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize the plot to a dictionary."""
-        ...
+        raise NotImplementedError
 
 
 # Type alias: a callable that deserializes a dict into a PlotProtocol.

@@ -9,6 +9,7 @@ import pytest
 
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.web.pages.ui.plotting.base_plot import BasePlot
+from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
 
 class ConcretePlot(BasePlot):
@@ -234,7 +235,7 @@ class TestToDictFromDict:
         }
         with patch("src.web.pages.ui.plotting.plot_factory.PlotFactory.create_plot") as mock:
             mock.return_value = ConcretePlot(1, "Test", "test")
-            loaded = BasePlot.from_dict(data)
+            loaded = PlotFactory.from_dict(data)
             assert loaded.processed_data is None
 
     def test_from_dict_preserves_pipeline_counter(self, plot: ConcretePlot) -> None:
@@ -251,7 +252,7 @@ class TestToDictFromDict:
         }
         with patch("src.web.pages.ui.plotting.plot_factory.PlotFactory.create_plot") as mock:
             mock.return_value = ConcretePlot(1, "Test", "test")
-            loaded = BasePlot.from_dict(data)
+            loaded = PlotFactory.from_dict(data)
             assert loaded.pipeline_counter == 5
             assert loaded.legend_mappings_by_column == {"col": {"a": "A"}}
             assert loaded.legend_mappings == {"x": "X"}

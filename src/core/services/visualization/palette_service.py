@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from src.core.models.visualization.palettes import (
     _COLORBLIND_PALETTES,
-    _PALETTE_ORDER,
+    PALETTE_ORDER,
     PALETTE_REGISTRY,
 )
 
@@ -65,7 +65,7 @@ def get_palette_names() -> list[str]:
     Returns:
         Ordered list of palette name strings.
     """
-    return list(_PALETTE_ORDER)
+    return list(PALETTE_ORDER)
 
 
 def is_colorblind_safe(name: str) -> bool:
