@@ -378,22 +378,31 @@ class TestFigureIdentity:
 
     @patch(f"{_CTRL}.EngineManager")
     @patch(f"{_CTRL}.ChartDisplayComponent")
+    @patch(f"{_CTRL}.st")
     def test_engine_change_regenerates_figure(
         self,
+        mock_st: MagicMock,
         mock_chart: MagicMock,
         mock_engine: MagicMock,
     ) -> None:
-        """Switching rendering engines changes the cache identity."""
-        mock_engine.get_engine.return_value = "plotly"
-        mock_chart.render_engine_selector.side_effect = ["plotly", "matplotlib"]
+        """An engine change reruns, then regenerates with the new identity."""
+        mock_engine.get_engine.side_effect = ["plotly", "plotly", "matplotlib"]
+        mock_chart.render_engine_selector.side_effect = [
+            "plotly",
+            "matplotlib",
+            "matplotlib",
+        ]
         plot = StubPlotHandle(processed_data=pd.DataFrame({"value": [1, 2, 3]}))
         plot.create_figure = MagicMock(return_value=MagicMock())
         ctrl = _make_render_controller()
 
         ctrl._render_visualization(plot, should_generate=False)
         ctrl._render_visualization(plot, should_generate=False)
+        ctrl._render_visualization(plot, should_generate=False)
 
         assert plot.create_figure.call_count == 2
+        mock_engine.set_engine.assert_called_once_with("matplotlib")
+        mock_st.rerun.assert_called_once_with()
 
     @patch(f"{_CTRL}.EngineManager")
     @patch(f"{_CTRL}.ChartDisplayComponent")
