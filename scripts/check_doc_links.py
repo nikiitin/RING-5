@@ -38,6 +38,10 @@ ILLUSTRATIVE_PATHS = {
     "tests/unit/test_cumulative_sum.py",
     "tests/unit/test_cumulative_sum_config.py",
 }
+GENERATED_REPOSITORY_PATHS = {
+    "tests/data",
+    "tests/data/results-micro26-sens",
+}
 
 
 def markdown_files() -> Iterator[Path]:
@@ -100,7 +104,7 @@ def main() -> int:
                 failures.append(f"{relative}:{line_number}: missing target {target!r}")
         for line_number, target in repository_path_targets(path):
             candidate = ROOT / target.rstrip("/")
-            if target in ILLUSTRATIVE_PATHS:
+            if target in ILLUSTRATIVE_PATHS or target.rstrip("/") in GENERATED_REPOSITORY_PATHS:
                 continue
             if not candidate.exists() and not candidate.with_suffix(".py").exists():
                 relative = path.relative_to(ROOT)
