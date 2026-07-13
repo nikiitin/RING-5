@@ -43,7 +43,7 @@ class TestHistogramPlotIntegration:
 
     def test_histogram_with_parsed_gem5_data(self, facade: ApplicationAPI, stats_dir: Path) -> None:
         """Test histogram plot with parsed gem5 histogram data."""
-        # 1. Scan for histogram variables
+        # Scan for histogram variables
         scan_futures = facade.submit_scan_async(str(stats_dir), "stats.txt", limit=-1)
         scan_results = [f.result() for f in scan_futures]
         vars_found = facade.finalize_scan(scan_results).variables
@@ -60,7 +60,7 @@ class TestHistogramPlotIntegration:
 
         assert htm_var is not None, "Histogram variable not found"
 
-        # 2. Parse histogram data
+        # Parse histogram data
         with tempfile.TemporaryDirectory() as tmpdir:
             variables: list[ParseVariableConfig] = [
                 cast(
@@ -88,13 +88,13 @@ class TestHistogramPlotIntegration:
 
             assert csv_path is not None
 
-            # 3. Load data
+            # Load data
             data = pd.read_csv(csv_path)
 
-            # 4. Create histogram plot
+            # Create histogram plot
             plot = PlotFactory.create_plot("histogram", plot_id=1, name="Transaction Cycles")
 
-            # 5. Configure plot
+            # Configure plot
             config = {
                 "histogram_variable": (
                     "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles"
@@ -108,7 +108,7 @@ class TestHistogramPlotIntegration:
                 "cumulative": False,
             }
 
-            # 6. Generate figure
+            # Generate figure
             fig = plot.create_figure(data, config)
 
             assert fig is not None

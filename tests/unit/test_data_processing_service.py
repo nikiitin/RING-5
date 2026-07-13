@@ -1,7 +1,4 @@
-"""
-Unit tests for fragmented data processing services.
-Replaces the old DataProcessingService tests with specific service validations.
-"""
+"""Tests for arithmetic, outlier, and seed-reduction services."""
 
 import numpy as np
 import pandas as pd
@@ -13,7 +10,7 @@ from src.core.services.managers.reduction_service import ReductionService
 
 
 class TestArithmeticService:
-    """Test ArithmeticService methods (formerly part of DataProcessingService)."""
+    """Tests for arithmetic service operations."""
 
     def test_merge_sum(self) -> None:
         """Test merging columns with Sum operation."""

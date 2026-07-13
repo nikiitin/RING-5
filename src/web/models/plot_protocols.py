@@ -31,7 +31,7 @@ if TYPE_CHECKING:
     from src.core.models.visualization.trace_build_result import TraceBuildResult
     from src.core.state.state_manager import StateManager
 
-# ─── Plot Object Protocols ──────────────────────────────────────────────────
+# Plot Object Protocols
 
 
 @runtime_checkable
@@ -129,7 +129,7 @@ class RenderablePlot(PlotHandle, ConfigRenderer, Protocol):
         ...
 
 
-# ─── Service Protocols ──────────────────────────────────────────────────────
+# Service Protocols
 
 
 class PlotLifecycleService(Protocol):

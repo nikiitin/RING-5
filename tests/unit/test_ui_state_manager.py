@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 import pytest
 
-# ─── Helper: Mock session_state ──────────────────────────────────────────────
+# Helper: Mock session_state
 
 
 class MockSessionState(dict):
@@ -41,7 +41,7 @@ def ui_state(mock_state: MockSessionState) -> Any:
     return UIStateManager()
 
 
-# ─── Plot UI State ───────────────────────────────────────────────────────────
+# Plot UI State
 
 
 class TestPlotUIState:
@@ -184,7 +184,7 @@ class TestPlotUIStateCleanup:
         assert "edit_shapes_5" not in mock_state
 
 
-# ─── Manager UI State ────────────────────────────────────────────────────────
+# Manager UI State
 
 
 class TestManagerUIState:
@@ -248,7 +248,7 @@ class TestManagerUIState:
         assert ui_state.manager.get_form_value("mixer", "col") == "b"
 
 
-# ─── Navigation UI State ────────────────────────────────────────────────────
+# Navigation UI State
 
 
 class TestNavUIState:
@@ -269,7 +269,7 @@ class TestNavUIState:
         assert ui_state.nav.get_current_tab() == "Seeds Reducer"
 
 
-# ─── Export UI State ─────────────────────────────────────────────────────────
+# Export UI State
 
 
 class TestExportUIState:
@@ -291,7 +291,7 @@ class TestExportUIState:
         assert "export.last_path" in mock_state
 
 
-# ─── UIStateManager (Top Level) ──────────────────────────────────────────────
+# UIStateManager (Top Level)
 
 
 class TestUIStateManager:
@@ -342,7 +342,7 @@ class TestUIStateManager:
         assert ui_state.get_all_keys() == []
 
 
-# ─── Integration: Multiple Plots Lifecycle ───────────────────────────────────
+# Integration: Multiple Plots Lifecycle
 
 
 class TestMultiPlotLifecycle:

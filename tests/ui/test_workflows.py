@@ -18,9 +18,7 @@ from tests.ui.helpers import create_app, navigate_to
 _APP_PATH = str(Path(__file__).parents[2] / "app.py")
 
 
-# ---------------------------------------------------------------------------
 # Manage Plots workflows
-# ---------------------------------------------------------------------------
 class TestManagePlotsWorkflow:
     """Deeper tests for the Manage Plots page."""
 
@@ -59,9 +57,7 @@ class TestManagePlotsWorkflow:
         assert len(create_buttons) > 0, "Expected 'Create' button"
 
 
-# ---------------------------------------------------------------------------
 # Performance page
-# ---------------------------------------------------------------------------
 class TestPerformancePage:
     """Tests for the Performance monitoring page."""
 
@@ -86,9 +82,7 @@ class TestPerformancePage:
         assert len(at.metric) > 0 or len(at.markdown) > 0, "Expected metrics or content"
 
 
-# ---------------------------------------------------------------------------
 # Portfolio page empty state
-# ---------------------------------------------------------------------------
 class TestPortfolioEmptyState:
     """Tests for Portfolio page when no portfolios exist."""
 
@@ -115,9 +109,7 @@ class TestPortfolioEmptyState:
         assert has_text_input or has_buttons, "Expected save inputs or buttons"
 
 
-# ---------------------------------------------------------------------------
 # Data Managers empty state
-# ---------------------------------------------------------------------------
 class TestDataManagersEmptyState:
     """Tests for Data Managers page when no data is loaded."""
 
@@ -136,9 +128,7 @@ class TestDataManagersEmptyState:
         assert has_warning or has_error or has_info, "Expected data-needed message"
 
 
-# ---------------------------------------------------------------------------
 # Sidebar action buttons
-# ---------------------------------------------------------------------------
 class TestSidebarActions:
     """Tests for sidebar action buttons."""
 
@@ -175,9 +165,7 @@ class TestSidebarActions:
             assert any(page in label for label in nav_labels), f"Missing nav option: {page}"
 
 
-# ---------------------------------------------------------------------------
 # App header and initial state
-# ---------------------------------------------------------------------------
 class TestAppInitialState:
     """Tests for application initial state."""
 

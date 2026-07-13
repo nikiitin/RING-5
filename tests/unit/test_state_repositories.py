@@ -35,9 +35,7 @@ from src.core.state.repositories.plot_repository import PlotRepository
 from src.core.state.repositories.preview_repository import PreviewRepository
 from src.core.state.repositories.session_repository import SessionRepository
 
-# ===================================================================
 # DataRepository
-# ===================================================================
 
 
 class TestDataRepository:
@@ -103,9 +101,7 @@ class TestDataRepository:
         assert repo.get_processed_data() is None
 
 
-# ===================================================================
 # ConfigRepository
-# ===================================================================
 
 
 class TestConfigRepository:
@@ -169,9 +165,7 @@ class TestConfigRepository:
         assert repo.get_saved_configs() == configs
 
 
-# ===================================================================
 # PlotRepository
-# ===================================================================
 
 
 class TestPlotRepository:
@@ -241,9 +235,7 @@ class TestPlotRepository:
         assert repo.get_current_plot_id() is None
 
 
-# ===================================================================
 # HistoryRepository
-# ===================================================================
 
 
 class TestHistoryRepository:
@@ -342,9 +334,7 @@ class TestHistoryRepository:
         assert len(repo.get_manager_history()) == 1
 
 
-# ===================================================================
 # ParserStateRepository
-# ===================================================================
 
 
 class TestParserStateRepository:
@@ -441,9 +431,7 @@ class TestParserStateRepository:
         assert len(repo.get_parse_variables()) == 3
 
 
-# ===================================================================
 # PreviewRepository
-# ===================================================================
 
 
 class TestPreviewRepository:
@@ -511,9 +499,7 @@ class TestPreviewRepository:
         assert set(active) == {"op_a", "op_b"}
 
 
-# ===================================================================
 # SessionRepository
-# ===================================================================
 
 
 class TestSessionRepository:

@@ -1,13 +1,4 @@
-"""
-Tests covering refactoring changes across the codebase.
-
-Sections:
-    1. Mean NaN handling — _safe_gmean, _safe_hmean, and arithmean with NaN
-    2. Scalar reduce_duplicates — empty content returns math.nan (not "NA")
-    3. Distribution math.fsum — precision and reduce_duplicates
-    4. extract_with_pattern — robustness against invalid regex, non-matching, and matching inputs
-    5. CSV header union — construct_final_csv builds header from union of results
-"""
+"""Regression tests for numerical shapers and parser result handling."""
 
 import math
 import os
@@ -16,10 +7,6 @@ from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
-
-# ---------------------------------------------------------------------------
-# 1. Mean NaN handling tests
-# ---------------------------------------------------------------------------
 
 
 class TestMeanNaNHandling:
@@ -161,11 +148,6 @@ class TestMeanNaNHandling:
         assert math.isnan(result)
 
 
-# ---------------------------------------------------------------------------
-# 2. Scalar reduce_duplicates NaN test
-# ---------------------------------------------------------------------------
-
-
 class TestScalarReduceDuplicatesNaN:
     """Verify Scalar.reduce_duplicates returns math.nan for empty content."""
 
@@ -230,11 +212,6 @@ class TestScalarReduceDuplicatesNaN:
         scalar.reduce_duplicates()
 
         assert scalar.reduced_content == pytest.approx(15.0)
-
-
-# ---------------------------------------------------------------------------
-# 3. Distribution math.fsum test
-# ---------------------------------------------------------------------------
 
 
 class TestDistributionMathFsum:
@@ -305,11 +282,6 @@ class TestDistributionMathFsum:
         assert reduced["overflows"] == pytest.approx(0.0)
 
 
-# ---------------------------------------------------------------------------
-# 4. extract_with_pattern robustness tests
-# ---------------------------------------------------------------------------
-
-
 class TestExtractWithPattern:
     """Verify extract_with_pattern handles edge cases gracefully."""
 
@@ -368,11 +340,6 @@ class TestExtractWithPattern:
         assert result == "system::cpu0::l2cache"
 
 
-# ---------------------------------------------------------------------------
-# 5. CSV header union test
-# ---------------------------------------------------------------------------
-
-
 class TestConstructFinalCsvHeaderUnion:
     """Verify construct_final_csv builds the header from the union of results."""
 
@@ -383,7 +350,6 @@ class TestConstructFinalCsvHeaderUnion:
         """
         from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
-        # --- Arrange ---
         # Result 1 has varA but not varB
         var_a1 = MagicMock()
         var_a1.entries = []
@@ -409,12 +375,10 @@ class TestConstructFinalCsvHeaderUnion:
             {"varA": var_a2, "varB": var_b2},
         ]
 
-        # --- Act ---
         csv_path = Gem5Parser.construct_final_csv(
             str(tmp_path), results, var_names=["varA", "varB"]
         )
 
-        # --- Assert ---
         assert csv_path is not None
         assert os.path.exists(csv_path)
 
@@ -488,11 +452,6 @@ class TestConstructFinalCsvHeaderUnion:
 
         result = Gem5Parser.construct_final_csv("/tmp/nonexistent", [])
         assert result is None
-
-
-# ---------------------------------------------------------------------------
-# 6. Normalize NaN baseline handling
-# ---------------------------------------------------------------------------
 
 
 class TestNormalizeNaNBaseline:

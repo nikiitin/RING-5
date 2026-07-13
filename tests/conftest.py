@@ -14,9 +14,7 @@ import pytest
 # Register helper fixture plugins so they are available everywhere
 pytest_plugins = ["tests.helpers.gem5_fixtures"]
 
-# ---------------------------------------------------------------------------
 # Shared Helpers
-# ---------------------------------------------------------------------------
 
 
 def columns_side_effect(spec: int | list[Any] | tuple[Any, ...], **kwargs: Any) -> list[MagicMock]:
@@ -39,9 +37,7 @@ def columns_side_effect(spec: int | list[Any] | tuple[Any, ...], **kwargs: Any) 
     return [MagicMock()]
 
 
-# ---------------------------------------------------------------------------
 # Shared Fixtures
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture

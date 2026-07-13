@@ -1,8 +1,4 @@
-"""Tests for DualAxisBarDotPlot figure-creation branches.
-
-Focus on: color grouping, isolate_last_group, error bars, no-lines mode,
-dot_color, and legend_order.
-"""
+"""Tests for dual-axis color groups, error bars, dots, and legends."""
 
 from typing import Any, cast
 

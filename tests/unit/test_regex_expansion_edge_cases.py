@@ -56,9 +56,7 @@ def _expand_regex(
     return expanded_config
 
 
-# ---------------------------------------------------------------------------
 # Edge case: literal dots
-# ---------------------------------------------------------------------------
 
 
 class TestLiteralDots:
@@ -88,9 +86,7 @@ class TestLiteralDots:
         assert result.params["parsed_ids"] == ["systemXcpuXipc"]
 
 
-# ---------------------------------------------------------------------------
 # Edge case: no match
-# ---------------------------------------------------------------------------
 
 
 class TestNoMatch:
@@ -122,9 +118,7 @@ class TestNoMatch:
         assert result is config
 
 
-# ---------------------------------------------------------------------------
 # Edge case: invalid regex
-# ---------------------------------------------------------------------------
 
 
 class TestInvalidRegex:
@@ -166,9 +160,7 @@ class TestInvalidRegex:
         assert result.params["parsed_ids"] == [""]
 
 
-# ---------------------------------------------------------------------------
 # Edge case: exact name match (config.name == sv.name)
-# ---------------------------------------------------------------------------
 
 
 class TestExactNameMatch:
@@ -203,9 +195,7 @@ class TestExactNameMatch:
         assert result.params["parsed_ids"] == [r"system.cpu\d+.ipc"]
 
 
-# ---------------------------------------------------------------------------
 # Edge case: pattern_indices vs no pattern_indices
-# ---------------------------------------------------------------------------
 
 
 class TestPatternIndicesExpansion:
@@ -271,9 +261,7 @@ class TestPatternIndicesExpansion:
         assert len(ids) == 3
 
 
-# ---------------------------------------------------------------------------
 # Edge case: dict-based scanned variable (legacy path)
-# ---------------------------------------------------------------------------
 
 
 class TestDictBasedScannedVar:
@@ -304,9 +292,7 @@ class TestDictBasedScannedVar:
         assert result.params["parsed_ids"] == ["system.cpu0.ipc"]
 
 
-# ---------------------------------------------------------------------------
 # Edge case: is_regex=True but no scanned_vars
-# ---------------------------------------------------------------------------
 
 
 class TestNoScannedVars:
@@ -329,9 +315,7 @@ class TestNoScannedVars:
         assert result is config
 
 
-# ---------------------------------------------------------------------------
 # Edge case: multiple pattern groups merged
-# ---------------------------------------------------------------------------
 
 
 class TestMultiplePatternGroups:

@@ -35,7 +35,7 @@ def test_save_and_load_portfolio(
 ) -> None:
     """Test saving a portfolio and then loading it back to verify data integrity."""
 
-    # 1. Setup Test Data
+    # Setup Test Data
     df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
     plot_config = {"x": "A", "y": "B"}
 
@@ -47,7 +47,7 @@ def test_save_and_load_portfolio(
     config_state = {"theme": "dark"}
     parse_variables = ["var1", "var2"]
 
-    # 2. Save Portfolio (using instance method)
+    # Save Portfolio (using instance method)
     portfolio_service.save_portfolio(
         name="test_portfolio",
         data=df,
@@ -58,14 +58,14 @@ def test_save_and_load_portfolio(
         parse_variables=parse_variables,
     )
 
-    # 3. Verify File Exists
+    # Verify File Exists
     expected_file = portfolios_dir / "test_portfolio.json"
     assert expected_file.exists()
 
-    # 4. Load Portfolio (using instance method)
+    # Load Portfolio (using instance method)
     loaded_data = portfolio_service.load_portfolio("test_portfolio")
 
-    # 5. Verify Content
+    # Verify Content
     assert loaded_data["version"] == "2.0"
     assert loaded_data["csv_path"] == str(tmp_path / "original.csv")
     assert loaded_data["plot_counter"] == 1

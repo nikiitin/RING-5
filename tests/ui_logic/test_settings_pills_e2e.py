@@ -7,9 +7,7 @@ import pandas as pd
 
 from tests.conftest import columns_side_effect
 
-# ──────────────────────────────────────────────────────────────────
 # Typography settings isolation
-# ──────────────────────────────────────────────────────────────────
 
 
 class TestTypographyNoAxisLeak:
@@ -110,9 +108,7 @@ class TestTypographyNoAxisLeak:
         assert "xaxis_tickfont_color" in result
 
 
-# ──────────────────────────────────────────────────────────────────
 # Axis line controls
-# ──────────────────────────────────────────────────────────────────
 
 
 class TestAxesAxisLineControls:
@@ -199,9 +195,7 @@ class TestAxesAxisLineControls:
         assert result["top_axis_line_width"] == 0.0
 
 
-# ──────────────────────────────────────────────────────────────────
 # Numbered X-axis control
-# ──────────────────────────────────────────────────────────────────
 
 
 class TestNumberedXAxis:
@@ -248,9 +242,7 @@ class TestNumberedXAxis:
         assert result["numbered_xaxis"] is True
 
 
-# ──────────────────────────────────────────────────────────────────
 # Group-label offset
-# ──────────────────────────────────────────────────────────────────
 
 
 class TestGroupLabelYOffset:
@@ -304,9 +296,7 @@ class TestGroupLabelYOffset:
         assert "group_label_alt_spacing" in result
 
 
-# ──────────────────────────────────────────────────────────────────
 # Legend ordering controls
-# ──────────────────────────────────────────────────────────────────
 
 
 class TestLegendRenameReorder:
@@ -361,9 +351,7 @@ class TestLegendRenameReorder:
         ordering_fn.assert_not_called()
 
 
-# ──────────────────────────────────────────────────────────────────
 # Secondary legend configuration
-# ──────────────────────────────────────────────────────────────────
 
 
 class TestSecondaryLegendConfig:
@@ -443,9 +431,7 @@ class TestSecondaryLegendConfig:
         assert "legend_ncols" in result, "Missing legend_ncols"
 
 
-# ──────────────────────────────────────────────────────────────────
 # Cross-cutting: No settings leakage between pills
-# ──────────────────────────────────────────────────────────────────
 
 
 class TestNoSettingsLeakage:
@@ -486,15 +472,11 @@ class TestNoSettingsLeakage:
         assert overlap == set(), f"Keys shared by Typography & Axes: {overlap}"
 
 
-# ======================================================================
 # Legend sizing controls
-# ======================================================================
 
 
-# ──────────────────────────────────────────────────────────────────
 # ``column_spacing``, ``itemwidth``, ``handletextpad``, and
 # ``tracegroupgap`` apply independently to each legend.
-# ──────────────────────────────────────────────────────────────────
 
 
 class TestLegendSizingControls:
@@ -633,9 +615,7 @@ class TestLegendSizingControls:
         assert leaked == set(), f"Primary/secondary sizing keys leaked into tertiary: {leaked}"
 
 
-# ──────────────────────────────────────────────────────────────────
 # Numbered X-axis options
-# ──────────────────────────────────────────────────────────────────
 
 
 class TestNumberedXAxisMultiselect:
@@ -787,9 +767,7 @@ class TestNumberedXAxisMultiselect:
         assert "numbered_xaxis" in result
 
 
-# ──────────────────────────────────────────────────────────────────
 # Data-label progressive disclosure
-# ──────────────────────────────────────────────────────────────────
 
 
 class TestDataLabelsProgressiveDisclosure:
@@ -891,9 +869,7 @@ class TestDataLabelsProgressiveDisclosure:
         assert result["text_constraint"] == "none"
 
 
-# ──────────────────────────────────────────────────────────────────
 # Stacked-series ordering
-# ──────────────────────────────────────────────────────────────────
 
 
 class TestStackedSeriesOrderRename:
@@ -1065,9 +1041,7 @@ class TestStackedSeriesOrderRename:
         assert "col_b" not in rename_kwarg
 
 
-# ──────────────────────────────────────────────────────────────────
 # Legend sizing through the connector pipeline
-# ──────────────────────────────────────────────────────────────────
 
 
 class TestLegendSizingPipeline:

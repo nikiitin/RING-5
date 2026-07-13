@@ -98,7 +98,7 @@ def render(
         ylabel: str = label_config["ylabel"]
         legend_title: str = label_config["legend_title"]
 
-    # ── Dual Axis ──────────────────────────────────────────
+    # Dual Axis
     st.markdown("#### Dual Axis (Secondary Y)")
     dual_axis: bool = st.checkbox(
         "Enable Secondary Y-axis",
@@ -148,7 +148,7 @@ def render(
             help="Numeric columns plotted on the secondary (right) Y-axis.",
         )
 
-    # ── Filters ────────────────────────────────────────────
+    # Filters
     st.markdown("#### Filter Data")
     x_values, group_values = PlotConfigComponents.render_filter_multiselects(
         data=data,

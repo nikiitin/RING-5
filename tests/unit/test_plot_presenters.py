@@ -10,7 +10,7 @@ Since components call Streamlit widgets, we mock st.* to verify:
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
-# ─── PlotCreationComponent Tests ─────────────────────────────────────────────
+# PlotCreationComponent Tests
 
 
 class TestPlotCreationComponent:
@@ -71,7 +71,7 @@ class TestPlotCreationComponent:
         mock_st.session_state.__setitem__.assert_not_called()
 
 
-# ─── PlotControlsComponent Tests ────────────────────────────────────────────
+# PlotControlsComponent Tests
 
 
 class TestPlotControlsComponent:
@@ -112,7 +112,7 @@ class TestPlotControlsComponent:
         assert result["new_name"] == "New Name"
 
 
-# ─── PlotSelectorComponent Tests ────────────────────────────────────────────
+# PlotSelectorComponent Tests
 
 
 class TestPlotSelectorComponent:
@@ -146,7 +146,7 @@ class TestPlotSelectorComponent:
         )
 
 
-# ─── PipelineComponent Tests ────────────────────────────────────────────────
+# PipelineComponent Tests
 
 
 class TestPipelineComponent:
@@ -206,7 +206,7 @@ class TestPipelineComponent:
         assert "delete" in result
 
 
-# ─── ChartDisplayComponent Tests ───────────────────────────────────────────────────
+# ChartDisplayComponent Tests
 
 
 class TestChartDisplayComponent:
@@ -299,7 +299,7 @@ class TestChartDisplayComponent:
         assert result["should_generate"] is True
 
 
-# ─── PipelineStepComponent Tests ────────────────────────────────────────────
+# PipelineStepComponent Tests
 
 
 class TestPipelineStepComponent:

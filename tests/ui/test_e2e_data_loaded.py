@@ -16,9 +16,7 @@ from tests.ui.helpers import (
 )
 
 
-# ---------------------------------------------------------------------------
 # Data Managers — data loaded
-# ---------------------------------------------------------------------------
 class TestDataManagersWithData:
     """Data Managers page renders its 7 tabs when data is available."""
 
@@ -69,9 +67,7 @@ class TestDataManagersWithData:
         assert len(at.dataframe) > 0, "Expected at least one dataframe"
 
 
-# ---------------------------------------------------------------------------
 # Manage Plots — data loaded
-# ---------------------------------------------------------------------------
 class TestManagePlotsWithData:
     """Manage Plots page with data loaded should allow plot creation."""
 
@@ -132,9 +128,7 @@ class TestManagePlotsWithData:
         assert len(no_plot_warnings) == 0, "Should not show 'no plot' warning"
 
 
-# ---------------------------------------------------------------------------
 # Portfolio — data loaded
-# ---------------------------------------------------------------------------
 class TestPortfolioWithData:
     """Portfolio page with data loaded should enable saving."""
 
@@ -156,9 +150,7 @@ class TestPortfolioWithData:
         assert len(save_buttons) > 0, "Expected 'Save Portfolio' button"
 
 
-# ---------------------------------------------------------------------------
 # Sidebar — data loaded
-# ---------------------------------------------------------------------------
 class TestSidebarWithData:
     """Sidebar shows dataset preview when data is loaded."""
 
@@ -191,9 +183,7 @@ class TestSidebarWithData:
         assert not api.state_manager.has_data()
 
 
-# ---------------------------------------------------------------------------
 # Performance — data loaded
-# ---------------------------------------------------------------------------
 class TestPerformanceWithData:
     """Performance page with data loaded shows correct metrics."""
 
@@ -234,9 +224,7 @@ class TestPerformanceWithData:
             assert int(key_metrics[0].value) > 0
 
 
-# ---------------------------------------------------------------------------
 # Data Source — data loaded
-# ---------------------------------------------------------------------------
 class TestDataSourceWithData:
     """Data Source page renders correctly with or without data."""
 

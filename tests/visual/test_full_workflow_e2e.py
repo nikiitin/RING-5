@@ -1,6 +1,6 @@
-"""Comprehensive end-to-end test using real gem5 data (MICRO-26 sensitivity study).
+"""End-to-end workflow using gem5 MICRO-26 sensitivity data.
 
-This test exercises the **complete application workflow** with production-like data:
+The ordered test exercises the application workflow with production-like data:
 
 1. **Parse** real gem5 stats (≥5 statistics, ≥3 configurations, multiple seeds)
 2. **Data Management** — outlier removal, seed reduction, column mixing
@@ -30,9 +30,7 @@ from tests.visual.pages.portfolio_page import PortfolioPage
 
 pytestmark = pytest.mark.requires_browser
 
-# ---------------------------------------------------------------------------
 # Paths
-# ---------------------------------------------------------------------------
 
 _REPO_ROOT: Path = Path(__file__).parents[2]
 _REAL_DATA: Path = _REPO_ROOT / "tests" / "data" / "results-micro26-sens"
@@ -57,13 +55,11 @@ _STATS_TO_PARSE: list[tuple[str, str]] = [
 ]
 
 
-# ===================================================================
 # Single class with ordered tests sharing one browser page
-# ===================================================================
 
 
 @pytest.mark.xdist_group("comprehensive_e2e")
-class TestComprehensiveE2E:
+class TestFullWorkflow:
     """Full application workflow: parse → manage → plot → download → portfolio.
 
     All tests share a single ``shared_page`` (class-scoped) so state
@@ -130,9 +126,7 @@ class TestComprehensiveE2E:
         # Final buffer for UI to fully stabilise
         shared_page.wait_for_timeout(2_000)
 
-    # =================================================================
     # Test 1: Verify parsed data in Data Managers
-    # =================================================================
 
     @pytest.mark.order(1)
     def test_01_verify_parsed_data(self, shared_page: Page) -> None:
@@ -159,9 +153,7 @@ class TestComprehensiveE2E:
         dm.select_tab("Data Visualization")
         dm.assert_dataframe_visible()
 
-    # =================================================================
     # Test 2: Outlier removal on simTicks
-    # =================================================================
 
     @pytest.mark.order(2)
     def test_02_remove_outliers(self, shared_page: Page) -> None:
@@ -195,9 +187,7 @@ class TestComprehensiveE2E:
         # Confirm and apply
         dm.confirm_outlier_remover()
 
-    # =================================================================
     # Test 3: Seed reduction
-    # =================================================================
 
     @pytest.mark.order(3)
     def test_03_reduce_seeds(self, shared_page: Page) -> None:
@@ -221,9 +211,7 @@ class TestComprehensiveE2E:
         # Confirm
         dm.confirm_seeds_reducer()
 
-    # =================================================================
     # Test 4: Column mixing (merge 3 columns into 1)
-    # =================================================================
 
     @pytest.mark.order(4)
     def test_04_mix_columns(self, shared_page: Page) -> None:
@@ -267,9 +255,7 @@ class TestComprehensiveE2E:
         # Confirm
         dm.confirm_mixer()
 
-    # =================================================================
     # Test 5: Verify operations history
-    # =================================================================
 
     @pytest.mark.order(5)
     def test_05_verify_history(self, shared_page: Page) -> None:
@@ -288,9 +274,7 @@ class TestComprehensiveE2E:
         # The completed operation must appear in history.
         dm.assert_history_has_operations()
 
-    # =================================================================
     # Test 6: Create a bar plot with Sort pipeline
-    # =================================================================
 
     @pytest.mark.order(6)
     def test_06_create_bar_plot(self, shared_page: Page) -> None:
@@ -325,9 +309,7 @@ class TestComprehensiveE2E:
         mp.refresh_plot()
         mp.assert_chart_visible(timeout=_CHART_TIMEOUT)
 
-    # =================================================================
     # Test 7: Create a grouped bar plot
-    # =================================================================
 
     @pytest.mark.order(7)
     def test_07_create_grouped_bar(self, shared_page: Page) -> None:
@@ -362,9 +344,7 @@ class TestComprehensiveE2E:
         mp.refresh_plot()
         mp.assert_chart_visible(timeout=_CHART_TIMEOUT)
 
-    # =================================================================
     # Test 8: Create a grouped stacked bar plot
-    # =================================================================
 
     @pytest.mark.order(8)
     def test_08_create_grouped_stacked_bar(self, shared_page: Page) -> None:
@@ -422,9 +402,7 @@ class TestComprehensiveE2E:
         mp.refresh_plot()
         mp.assert_chart_visible(timeout=_CHART_TIMEOUT)
 
-    # =================================================================
     # Test 9: Create a dual-axis bar-dot plot
-    # =================================================================
 
     @pytest.mark.order(9)
     def test_09_create_dual_axis(self, shared_page: Page) -> None:
@@ -457,9 +435,7 @@ class TestComprehensiveE2E:
         mp.refresh_plot()
         mp.assert_chart_visible(timeout=_CHART_TIMEOUT)
 
-    # =================================================================
     # Test 10: Create a scatter plot
-    # =================================================================
 
     @pytest.mark.order(10)
     def test_10_create_scatter(self, shared_page: Page) -> None:
@@ -489,9 +465,7 @@ class TestComprehensiveE2E:
         mp.refresh_plot()
         mp.assert_chart_visible(timeout=_CHART_TIMEOUT)
 
-    # =================================================================
     # Test 11: Engine switching & matplotlib download (PGF)
-    # =================================================================
 
     @pytest.mark.order(11)
     def test_11_matplotlib_download(self, shared_page: Page) -> None:
@@ -538,9 +512,7 @@ class TestComprehensiveE2E:
         mp.select_engine("plotly")
         mp.assert_chart_visible(timeout=_CHART_TIMEOUT)
 
-    # =================================================================
     # Test 12: Plotly download (PDF)
-    # =================================================================
 
     @pytest.mark.order(12)
     def test_12_plotly_download(self, shared_page: Page) -> None:
@@ -574,9 +546,7 @@ class TestComprehensiveE2E:
         dl_btn = mp.download_expander.locator("[data-testid='stDownloadButton']")
         expect(dl_btn).to_be_visible(timeout=_E2E_TIMEOUT)
 
-    # =================================================================
     # Test 13: Save portfolio
-    # =================================================================
 
     @pytest.mark.order(13)
     def test_13_save_portfolio(self, shared_page: Page) -> None:
@@ -606,9 +576,7 @@ class TestComprehensiveE2E:
         )
         expect(portfolio_expander).to_be_visible(timeout=_E2E_TIMEOUT)
 
-    # =================================================================
     # Test 14: Load portfolio and verify state
-    # =================================================================
 
     @pytest.mark.order(14)
     def test_14_load_portfolio(self, shared_page: Page) -> None:
@@ -648,9 +616,7 @@ class TestComprehensiveE2E:
         # Verify at least one of our created plots is visible
         mp.assert_plot_pill_visible("E2E Bar")
 
-    # =================================================================
     # Test 15: Widget verification on loaded bar plot
-    # =================================================================
 
     @pytest.mark.order(15)
     def test_15_verify_widgets(self, shared_page: Page) -> None:
@@ -678,9 +644,7 @@ class TestComprehensiveE2E:
         # Verify visualization section is present
         expect(mp.viz_x_axis_selectbox).to_be_visible(timeout=_E2E_TIMEOUT)
 
-    # =================================================================
     # Test 16: Screenshots of final state
-    # =================================================================
 
     @pytest.mark.order(16)
     def test_16_screenshots(self, shared_page: Page, shared_screenshot_dir: Path) -> None:

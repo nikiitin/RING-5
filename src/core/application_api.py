@@ -71,9 +71,7 @@ class ApplicationAPI:
 
         logger.info("Application API initialized")
 
-    # =========================================================================
     # ServicesAPI sub-API access (for UI components)
-    # =========================================================================
 
     @property
     def managers(self) -> ManagersAPI:
@@ -128,9 +126,7 @@ class ApplicationAPI:
         self.state_manager.clear_data()
         self.state_manager.clear_all()
 
-    # =========================================================================
     # Parsing & Scanning
-    # =========================================================================
 
     def find_stats_files(self, search_path: str, pattern: str = "stats.txt") -> list[str]:
         """Find statistics files recursively.
@@ -258,9 +254,7 @@ class ApplicationAPI:
         """Get current scanner status."""
         return "idle"
 
-    # =========================================================================
     # Shapers & Pipelines
-    # =========================================================================
 
     def apply_shapers(
         self, data: pd.DataFrame, pipeline_config: list[ShaperStepConfig]
@@ -268,9 +262,7 @@ class ApplicationAPI:
         """Apply a sequence of shapers to a DataFrame."""
         return self._services.shapers.process_pipeline(data, pipeline_config)
 
-    # =========================================================================
     # Configuration Management
-    # =========================================================================
 
     def save_configuration(
         self,
@@ -338,9 +330,7 @@ class ApplicationAPI:
             columns=df.columns.tolist(),
         )
 
-    # =========================================================================
     # Visualization Config (Delegated to StateManager)
-    # =========================================================================
 
     def get_visualization_config(self, plot_id: int) -> "FigureConfig | None":
         """Retrieve the visualization config for a plot."""
@@ -354,9 +344,7 @@ class ApplicationAPI:
         """Remove the visualization config for a plot."""
         self.state_manager.remove_visualization_config(plot_id)
 
-    # =========================================================================
     # Previews (Delegated to StateManager)
-    # =========================================================================
 
     def set_preview(self, operation_name: str, data: pd.DataFrame) -> None:
         """Store a preview DataFrame for an operation."""
@@ -374,9 +362,7 @@ class ApplicationAPI:
         """Clear a preview for an operation."""
         self.state_manager.clear_preview(operation_name)
 
-    # =========================================================================
     # History (Delegated to StateManager)
-    # =========================================================================
 
     def add_manager_history_record(self, record: OperationRecord) -> None:
         """Record a manager operation in both manager and portfolio history."""
@@ -396,9 +382,7 @@ class ApplicationAPI:
         self.state_manager.remove_manager_history_record(record)
         self.state_manager.remove_portfolio_history_record(record)
 
-    # =========================================================================
     # Simulator Registry Facades (so web layer avoids parsing imports)
-    # =========================================================================
 
     @staticmethod
     def available_simulators() -> list[str]:

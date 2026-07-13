@@ -19,7 +19,7 @@ from src.web.models.plot_models import (
     TypographyConfig,
 )
 
-# ─── AnnotationShapeConfig ───────────────────────────────────────────────────
+# AnnotationShapeConfig
 
 
 class TestAnnotationShapeConfig:
@@ -70,7 +70,7 @@ class TestAnnotationShapeConfig:
         assert restored == shape
 
 
-# ─── SeriesStyleConfig ───────────────────────────────────────────────────────
+# SeriesStyleConfig
 
 
 class TestSeriesStyleConfig:
@@ -107,7 +107,7 @@ class TestSeriesStyleConfig:
         assert restored == style
 
 
-# ─── PipelineStep ─────────────────────────────────────────────────────────────
+# PipelineStep
 
 
 class TestPipelineStep:
@@ -148,7 +148,7 @@ class TestPipelineStep:
         assert restored == step
 
 
-# ─── RelayoutEventData ───────────────────────────────────────────────────────
+# RelayoutEventData
 
 
 class TestRelayoutEventData:
@@ -178,7 +178,7 @@ class TestRelayoutEventData:
         assert event["xaxis_autorange"] is True
 
 
-# ─── MarginsConfig ───────────────────────────────────────────────────────────
+# MarginsConfig
 
 
 class TestMarginsConfig:
@@ -200,7 +200,7 @@ class TestMarginsConfig:
         assert "top" not in margins
 
 
-# ─── TypographyConfig ────────────────────────────────────────────────────────
+# TypographyConfig
 
 
 class TestTypographyConfig:
@@ -222,7 +222,7 @@ class TestTypographyConfig:
         assert typo["title_color"] == "#000000"
 
 
-# ─── PlotDisplayConfig ───────────────────────────────────────────────────────
+# PlotDisplayConfig
 
 
 class TestPlotDisplayConfig:
@@ -314,7 +314,7 @@ class TestPlotDisplayConfig:
         assert config["legend_x"] == 0.8
 
 
-# ─── Pipeline (List of PipelineSteps) ────────────────────────────────────────
+# Pipeline (List of PipelineSteps)
 
 
 class TestPipeline:

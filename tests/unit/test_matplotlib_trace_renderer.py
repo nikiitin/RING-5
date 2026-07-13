@@ -38,7 +38,7 @@ def ax() -> Generator[matplotlib.axes.Axes]:
     plt.close(fig)
 
 
-# ── render (main entry) ─────────────────────────────────────────────
+# render (main entry)
 
 
 class TestRender:
@@ -141,7 +141,7 @@ class TestRender:
         assert count.trace_count == 0  # fallback doesn't match specific types
 
 
-# ── _compute_categorical_positions ──────────────────────────────────
+# _compute_categorical_positions
 
 
 class TestComputeCategoricalPositions:
@@ -182,7 +182,7 @@ class TestComputeCategoricalPositions:
         assert w_no_gap > w_with_gap
 
 
-# ── _stack_bottom ────────────────────────────────────────────────────
+# _stack_bottom
 
 
 class TestStackBottom:
@@ -230,7 +230,7 @@ class TestStackBottomNumeric:
         assert bottom == [0.0]
 
 
-# ── heatmap rendering ──────────────────────────────────────────────
+# heatmap rendering
 
 
 class TestHeatmapRendering:
@@ -377,7 +377,7 @@ class TestHeatmapRendering:
         assert len(ax.get_lines()) == 0
 
 
-# ── is_dark_cell ──────────────────────────────────────────────────
+# is_dark_cell
 
 
 class TestIsDarkCell:
@@ -400,7 +400,7 @@ class TestIsDarkCell:
         assert is_dark_cell(z, 0, 0) is False  # vmax == vmin
 
 
-# ── heatmap vmin/vmax ─────────────────────────────────────────────
+# heatmap vmin/vmax
 
 
 class TestHeatmapVminVmax:
@@ -442,7 +442,7 @@ class TestHeatmapVminVmax:
         assert clim[1] == 7.0
 
 
-# ── create_multi_figure ────────────────────────────────────────────
+# create_multi_figure
 
 
 class TestCreateMultiFigure:

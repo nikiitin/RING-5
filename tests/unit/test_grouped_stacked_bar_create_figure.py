@@ -1,4 +1,4 @@
-"""Tests for GroupedStackedBarPlot.create_figure — uncovered branches."""
+"""Tests for grouped-stacked-bar figure creation."""
 
 from typing import cast
 

@@ -137,7 +137,7 @@ class AdvancedSettingsComponent:
             s: int = config["export_scale"]
             st.caption(f"Download Size: {w * s} x {h * s} px")
 
-        # ── Legend & Interactivity ───────────────────────────────
+        # Legend & Interactivity
         st.markdown("#### Legend & Interactivity")
         config["enable_editable"] = st.checkbox(
             "Enable Interactive Editing",
@@ -153,16 +153,16 @@ class AdvancedSettingsComponent:
         if "series_styles" not in config:
             config["series_styles"] = saved_config.get("series_styles", {})
 
-        # ── Reference Line ──────────────────────────────────────
+        # Reference Line
         if render_reference_line_fn is not None:
             render_reference_line_fn(saved_config, data, config)
 
-        # ── Annotations (Shapes) ────────────────────────────────
+        # Annotations (Shapes)
         if render_shapes_fn is not None:
             st.markdown("#### Annotations (Shapes)")
             config["shapes"] = render_shapes_fn(saved_config)
 
-        # ── Engine-specific controls ────────────────────────────
+        # Engine-specific controls
         if render_engine_fn is not None:
             render_engine_fn(saved_config, config)
 

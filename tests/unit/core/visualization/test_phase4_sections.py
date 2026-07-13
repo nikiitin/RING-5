@@ -32,7 +32,7 @@ from src.web.rendering.widgets.widget_def import (
     TextWidgetDef,
 )
 
-# ─── 1. Default alignment with base_ui.py ───────────────────────────────────
+# 1. Default alignment with base_ui.py
 
 
 class TestDefaultAlignment:
@@ -114,7 +114,7 @@ class TestDefaultAlignment:
         assert d["text_constraint"] == "none"
 
 
-# ─── 2. Section structural integrity ────────────────────────────────────────
+# 2. Section structural integrity
 
 
 class TestSectionIntegrity:
@@ -204,7 +204,7 @@ class TestSectionIntegrity:
         assert expected == actual
 
 
-# ─── 3. Widget type correctness ─────────────────────────────────────────────
+# 3. Widget type correctness
 
 
 class TestWidgetTypes:

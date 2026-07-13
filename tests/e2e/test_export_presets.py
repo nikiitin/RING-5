@@ -22,9 +22,7 @@ from tests.visual.pages.manage_plots_page import ManagePlotsPage
 pytestmark = pytest.mark.requires_browser
 
 
-# ---------------------------------------------------------------------------
 # Export / download tests
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.serial

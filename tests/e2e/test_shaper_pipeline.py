@@ -24,9 +24,7 @@ from tests.visual.pages.manage_plots_page import ManagePlotsPage
 pytestmark = pytest.mark.requires_browser
 
 
-# ---------------------------------------------------------------------------
 # Helpers
-# ---------------------------------------------------------------------------
 
 
 def _create_bar_plot(mp: ManagePlotsPage, name: str) -> None:
@@ -44,9 +42,7 @@ def _create_finalize_and_reload(mp: ManagePlotsPage, name: str, shapers: list[st
     mp.finalize_pipeline()
 
 
-# ===================================================================
 # Tier 1 -- Pipeline add / remove / reorder operations (ordered)
-# ===================================================================
 
 
 @pytest.mark.xdist_group("e2e_shaper_pipeline")
@@ -113,9 +109,7 @@ class TestShaperPipelineOperations:
         mp.assert_visualization_section_visible()
 
 
-# ===================================================================
 # Tier 1 -- Individual shaper type configuration widgets
-# ===================================================================
 
 
 @pytest.mark.xdist_group("e2e_shaper_types")

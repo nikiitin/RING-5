@@ -23,9 +23,7 @@ from tests.visual.pages.manage_plots_page import ManagePlotsPage
 pytestmark = pytest.mark.requires_browser
 
 
-# ---------------------------------------------------------------------------
 # Engine switching tests
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.xdist_group("e2e_engine")

@@ -20,17 +20,13 @@ from src.core.models.shaper_models import ShaperStepConfig
 from src.core.models.parsing_models import ScannedVariable
 from src.core.services.data_services.config_service import ConfigService
 
-# ===========================================================================
 # Helper: Minimal ScannedVariable dataclass
-# ===========================================================================
 from src.parsing.gem5.impl.scanning.pattern_aggregator import PatternAggregator
 from src.parsing.gem5.models import Gem5ScannedVariable
 from src.parsing.gem5.types.distribution import Distribution
 from src.parsing.gem5.types.histogram import Histogram
 
-# ===========================================================================
 # Test Class 1: Distribution & Histogram processing edge cases
-# ===========================================================================
 
 
 class TestDistributionHistogramEdgeCases:
@@ -136,9 +132,7 @@ class TestDistributionHistogramEdgeCases:
             }
 
 
-# ===========================================================================
 # Test Class 2: Config service delete/reload cycle
-# ===========================================================================
 
 
 class TestConfigServiceEdgeCases:
@@ -221,9 +215,7 @@ class TestConfigServiceEdgeCases:
             assert loaded.get("description") == "Malicious name test"
 
 
-# ===========================================================================
 # Test Class 3: PatternAggregator regex expansion
-# ===========================================================================
 
 
 class TestPatternAggregatorEdgeCases:

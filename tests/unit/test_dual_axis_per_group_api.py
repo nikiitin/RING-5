@@ -23,7 +23,7 @@ from src.web.rendering.matplotlib_trace_renderer import MatplotlibTraceRenderer
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
-# ── FigureSpec / DualAxisOpts -> flat config ─────────────────────────────
+# FigureSpec / DualAxisOpts -> flat config
 
 
 def test_dual_axis_opts_emits_flat_keys() -> None:
@@ -78,7 +78,7 @@ def test_builder_dual_axis() -> None:
     assert cfg["series_styles"]["m"]["color"] == "#123456"
 
 
-# ── per-group dot-line (NaN breaks between x-categories) ─────────────────
+# per-group dot-line (NaN breaks between x-categories)
 
 
 def _grouped_frame() -> pd.DataFrame:
@@ -120,7 +120,7 @@ def test_continuous_line_when_not_per_group() -> None:
     assert not any(isinstance(v, float) and math.isnan(v) for v in line.y)
 
 
-# ── _draw_line honours markers (matplotlib <-> plotly parity) ────────────
+# _draw_line honours markers (matplotlib <-> plotly parity)
 
 
 def test_draw_line_renders_markers() -> None:

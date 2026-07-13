@@ -10,9 +10,7 @@ from src.web.pages.ui.plotting.settings_pills import (
     render_settings_pills,
 )
 
-# ──────────────────────────────────────────────────────────────────
 # SettingsSection dataclass
-# ──────────────────────────────────────────────────────────────────
 
 
 class TestSettingsSection:
@@ -45,9 +43,7 @@ class TestSettingsSection:
         assert a != b
 
 
-# ──────────────────────────────────────────────────────────────────
 # SETTINGS_SECTIONS registry
-# ──────────────────────────────────────────────────────────────────
 
 
 class TestSettingsSections:
@@ -84,9 +80,7 @@ class TestSettingsSections:
             assert sec.label, f"Section {sec.key!r} has no label"
 
 
-# ──────────────────────────────────────────────────────────────────
 # Progressive disclosure filtering
-# ──────────────────────────────────────────────────────────────────
 
 
 class TestProgressiveDisclosure:
@@ -117,9 +111,7 @@ class TestProgressiveDisclosure:
         assert adv[3].key == "advanced"
 
 
-# ──────────────────────────────────────────────────────────────────
 # render_settings_pills (requires Streamlit mocking)
-# ──────────────────────────────────────────────────────────────────
 
 
 class TestRenderSettingsPills:

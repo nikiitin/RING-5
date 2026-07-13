@@ -6,7 +6,7 @@ Tests the business logic in Layer B shaper factory.
 
 from src.core.services.shapers.factory import ShaperFactory
 
-# ─── ShaperFactory Display Names ─────────────────────────────────────────────
+# ShaperFactory Display Names
 
 
 class TestShaperFactoryDisplayNames:

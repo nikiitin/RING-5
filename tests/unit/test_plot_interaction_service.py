@@ -11,7 +11,7 @@ from src.core.services.visualization.plot_interaction import (
     try_float_edit,
 )
 
-# ─── try_float ───────────────────────────────────────────────────────────────
+# try_float
 
 
 class TestTryFloat:
@@ -56,7 +56,7 @@ class TestTryFloatEdit:
         assert try_float_edit(None) == "None"
 
 
-# ─── resolve_item_order ─────────────────────────────────────────────────────
+# resolve_item_order
 
 
 class TestResolveItemOrder:

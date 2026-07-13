@@ -279,7 +279,7 @@ def apply_dual_axis_titles(fig: go.Figure, config: dict[str, Any]) -> None:
         fig: Plotly figure (``make_subplots`` with ``secondary_y``).
         config: Full plot configuration.
     """
-    # ── Resolve primary settings ─────────────────────────────
+    # Resolve primary settings
     ylabel_left: str = config.get("ylabel", "")
     ylabel_right: str = config.get("ylabel_right", "")
 
@@ -287,7 +287,7 @@ def apply_dual_axis_titles(fig: go.Figure, config: dict[str, Any]) -> None:
     primary_standoff: int = int(config.get("yaxis_title_standoff", 0))
     font_color: str = config.get("axis_color", "#444444")
 
-    # ── Resolve secondary settings (fall back to primary) ────
+    # Resolve secondary settings (fall back to primary)
     yaxis2_fs_raw: Any = config.get("yaxis2_title_font_size")
     secondary_font_size: int = (
         int(yaxis2_fs_raw) if yaxis2_fs_raw is not None else primary_font_size
@@ -295,7 +295,7 @@ def apply_dual_axis_titles(fig: go.Figure, config: dict[str, Any]) -> None:
     yaxis2_so_raw: Any = config.get("yaxis2_title_standoff")
     secondary_standoff: int = int(yaxis2_so_raw) if yaxis2_so_raw is not None else primary_standoff
 
-    # ── Secondary Y tick styling (fall back to primary) ────
+    # Secondary Y tick styling (fall back to primary)
     primary_tick_size: int = int(config.get("yaxis_tickfont_size", 12))
     primary_tick_color: str = config.get("yaxis_tickfont_color", "#444444")
 
@@ -316,7 +316,7 @@ def apply_dual_axis_titles(fig: go.Figure, config: dict[str, Any]) -> None:
         secondary_y=True,
     )
 
-    # ── Primary Y title → annotation (if not already done) ──
+    # Primary Y title → annotation (if not already done)
     if ylabel_left:
         fig.update_yaxes(title_text="", secondary_y=False)
 
@@ -335,7 +335,7 @@ def apply_dual_axis_titles(fig: go.Figure, config: dict[str, Any]) -> None:
             xshift=-(primary_standoff + 40),
         )
 
-    # ── Secondary Y title → annotation ──────────────────────
+    # Secondary Y title → annotation
     if ylabel_right:
         fig.update_yaxes(title_text="", secondary_y=True)
 

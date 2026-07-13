@@ -22,9 +22,7 @@ from src.core.models.data_models import ColumnInfoResult
 from src.core.models.shaper_models import ShaperStepConfig
 from src.core.models.history_models import OperationRecord
 
-# ===========================================================================
 # Test Class 1: Data loading and state management
-# ===========================================================================
 
 
 class TestDataLoadingFlow:
@@ -98,9 +96,7 @@ class TestDataLoadingFlow:
         assert info["categorical_columns"] == []
 
 
-# ===========================================================================
 # Test Class 2: History lifecycle
-# ===========================================================================
 
 
 class TestHistoryLifecycle:
@@ -158,9 +154,7 @@ class TestHistoryLifecycle:
         assert facade.get_portfolio_history() == []
 
 
-# ===========================================================================
 # Test Class 3: Preview lifecycle
-# ===========================================================================
 
 
 class TestPreviewLifecycle:
@@ -237,9 +231,7 @@ class TestPreviewLifecycle:
         assert facade.has_preview("remove") is False
 
 
-# ===========================================================================
 # Test Class 4: Apply shapers pipeline through API
-# ===========================================================================
 
 
 class TestApplyShapersPipeline:
@@ -344,9 +336,7 @@ class TestApplyShapersPipeline:
             assert abs(val - 1.0) < 1e-6
 
 
-# ===========================================================================
 # Test Class 5: Session reset
-# ===========================================================================
 
 
 class TestSessionReset:

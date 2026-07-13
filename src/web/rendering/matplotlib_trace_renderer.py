@@ -48,8 +48,7 @@ class MatplotlibTraceRenderer:
     ``TraceConfig`` dataclasses.
     """
 
-    # ── public API ────────────────────────────────────────────────────────
-
+    # public API
     @staticmethod
     def render(
         traces: Sequence[TraceConfig],
@@ -162,8 +161,7 @@ class MatplotlibTraceRenderer:
 
         return result
 
-    # ── bar ────────────────────────────────────────────────────────────────
-
+    # bar
     @staticmethod
     def _draw_bar(
         spec: BarTraceConfig,
@@ -231,8 +229,7 @@ class MatplotlibTraceRenderer:
                 categorical_labels.extend(str(v) for v in spec.x)
             ax.xaxis.set_ticklabels(categorical_labels)
 
-    # ── line ───────────────────────────────────────────────────────────────
-
+    # line
     @staticmethod
     def _draw_line(
         spec: LineTraceConfig,
@@ -258,8 +255,7 @@ class MatplotlibTraceRenderer:
         y_clean = [float(v) if v is not None else np.nan for v in spec.y]
         ax.plot(spec.x, y_clean, label=spec.name, **props)
 
-    # ── scatter ────────────────────────────────────────────────────────────
-
+    # scatter
     @staticmethod
     def _draw_scatter(
         spec: ScatterTraceConfig,
@@ -277,8 +273,7 @@ class MatplotlibTraceRenderer:
         y_clean = [float(v) if v is not None else np.nan for v in spec.y]
         ax.scatter(spec.x, y_clean, label=spec.name, **props)
 
-    # ── histogram ──────────────────────────────────────────────────────────
-
+    # histogram
     @staticmethod
     def _draw_histogram(
         spec: HistogramTraceConfig,
@@ -294,8 +289,7 @@ class MatplotlibTraceRenderer:
         x_clean = [float(v) if v is not None else np.nan for v in spec.x]
         ax.hist(x_clean, bins=spec.nbins, label=spec.name, **props)
 
-    # ── heatmap ─────────────────────────────────────────────────────────────
-
+    # heatmap
     @staticmethod
     def _draw_heatmap(
         spec: HeatmapTraceConfig,
@@ -390,8 +384,7 @@ class MatplotlibTraceRenderer:
                 ax.axhline(y=y_pos, color="black", linewidth=2, zorder=5)
 
 
-# ── module-level helpers ──────────────────────────────────────────────────────
-
+# module-level helpers
 _COLORSCALE_MAP: dict[str, str] = {
     "viridis": "viridis",
     "viridis_r": "viridis_r",

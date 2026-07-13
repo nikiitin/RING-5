@@ -24,9 +24,7 @@ from tests.ui.helpers import (
     navigate_to,
 )
 
-# ---------------------------------------------------------------------------
 # Helpers
-# ---------------------------------------------------------------------------
 
 
 def _create_plot_via_api(api: Any, name: str, plot_type: str = "bar") -> Any:
@@ -47,9 +45,7 @@ def _inject_multiple_plots(api: Any, count: int = 3) -> list[Any]:
     return plots
 
 
-# ---------------------------------------------------------------------------
 # Plot CRUD operations
-# ---------------------------------------------------------------------------
 class TestPlotCreation:
     """Plot creation via API and UI state consistency."""
 
@@ -208,9 +204,7 @@ class TestPlotDuplication:
         assert len(api.state_manager.get_plots()) == count_before + 1
 
 
-# ---------------------------------------------------------------------------
 # Page rendering with injected plots
-# ---------------------------------------------------------------------------
 class TestManagePlotsPageWithPlots:
     """UI elements appear correctly when plots are pre-injected."""
 
@@ -268,9 +262,7 @@ class TestManagePlotsPageWithPlots:
         assert len(at.text_input) >= 2, "Expected text inputs for create name + rename"
 
 
-# ---------------------------------------------------------------------------
 # Pipeline operations
-# ---------------------------------------------------------------------------
 class TestPipelineOperations:
     """Pipeline add/remove/finalize via API."""
 
@@ -359,9 +351,7 @@ class TestPipelineOperations:
         ]
 
 
-# ---------------------------------------------------------------------------
 # Plot type and config
-# ---------------------------------------------------------------------------
 class TestPlotTypeChange:
     """Changing a plot's type via PlotService.change_plot_type."""
 
@@ -411,9 +401,7 @@ class TestPlotTypeChange:
             assert t in types, f"Missing plot type: {t}"
 
 
-# ---------------------------------------------------------------------------
 # Shaper pipeline execution
-# ---------------------------------------------------------------------------
 class TestShaperExecution:
     """Test individual shapers applied to the e2e sample data."""
 
@@ -502,9 +490,7 @@ class TestShaperExecution:
         assert all(final["config_description"] == "baseline")
 
 
-# ---------------------------------------------------------------------------
 # Workspace management widgets
-# ---------------------------------------------------------------------------
 class TestWorkspaceManagement:
     """Workspace management section renders on the Manage Plots page."""
 
@@ -535,9 +521,7 @@ class TestWorkspaceManagement:
             assert not at.exception, "Page should remain stable across reruns"
 
 
-# ---------------------------------------------------------------------------
 # Plot config and rendering controls
-# ---------------------------------------------------------------------------
 class TestPlotConfigUI:
     """Plot configuration widgets render correctly."""
 

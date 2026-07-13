@@ -31,9 +31,7 @@ from src.web.rendering.config_builder import (
 )
 from src.web.rendering.plotly_connector import FigureSpecToPlotly
 
-# ────────────────────────────────────────────────────────────────────
 # Helper: config_builder legend builder (module-level function)
-# ────────────────────────────────────────────────────────────────────
 
 
 class TestLegendValignWiring:

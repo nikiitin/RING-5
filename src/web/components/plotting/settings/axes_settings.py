@@ -156,9 +156,7 @@ class AxesSettingsComponent:
 
         return config
 
-    # ------------------------------------------------------------------
     # X-axis settings
-    # ------------------------------------------------------------------
 
     def _render_x_axis_settings(self, saved_config: PlotConfig, config: PlotConfig) -> None:
         """Render X-axis specific settings (tick angle, grid, tick marks)."""
@@ -230,7 +228,7 @@ class AxesSettingsComponent:
             help="Rotate X-axis labels to prevent overlap",
         )
 
-        # ── Tick marks ──────────────────────────────────────────
+        # Tick marks
         st.markdown("**Tick Marks & Grid**")
         show_xtick_marks = toggle(
             "Show X-Axis Tick Marks",
@@ -276,7 +274,7 @@ class AxesSettingsComponent:
             help="Distance between X-axis tick marks and their labels.",
         )
 
-        # ── Axis Lines ──────────────────────────────────────────
+        # Axis Lines
         st.markdown("**Axis Lines**")
         al_col1, al_col2 = st.columns(2)
         with al_col1:
@@ -322,7 +320,7 @@ class AxesSettingsComponent:
                 default="#444444",
             )
 
-        # ── Numbered X-Axis ───────────────────────────────────────
+        # Numbered X-Axis
         config["numbered_xaxis"] = toggle(
             "Use Numbered X-Axis",
             saved_config,
@@ -349,9 +347,7 @@ class AxesSettingsComponent:
             config["show_numbered_ticks"] = "Numbers" in modes
             config["show_numbered_legend"] = "Number legend" in modes
 
-    # ------------------------------------------------------------------
     # Y-axis settings
-    # ------------------------------------------------------------------
 
     def _render_y_axis_settings(
         self,
@@ -458,7 +454,7 @@ class AxesSettingsComponent:
         if dtick > 0:
             config[dtick_key] = dtick
 
-        # ── Tick marks ──────────────────────────────────────────
+        # Tick marks
         st.markdown("**Tick Marks & Grid**")
         show_ytick_marks = toggle(
             "Show Y-Axis Tick Marks",
@@ -492,7 +488,7 @@ class AxesSettingsComponent:
             )
         config["ytick_dash"] = ytick_dash
 
-        # ── Y-axis title position ───────────────────────────────
+        # Y-axis title position
         st.markdown("**Title Position**")
         config["yaxis_title_standoff"] = slider(
             "Y-Axis Title Standoff (Spacing)",
@@ -523,7 +519,7 @@ class AxesSettingsComponent:
             ),
         )
 
-        # ── Axis Lines ──────────────────────────────────────────
+        # Axis Lines
         st.markdown("**Axis Lines**")
         width_key = f"{prefix}y_axis_line_width" if prefix else "y_axis_line_width"
         color_key = f"{prefix}y_axis_line_color" if prefix else "y_axis_line_color"
@@ -576,9 +572,7 @@ class AxesSettingsComponent:
                     default="#444444",
                 )
 
-    # ------------------------------------------------------------------
     # Group labels settings (separate pill for grouped stacked bar)
-    # ------------------------------------------------------------------
 
     def _render_group_labels_settings(self, saved_config: PlotConfig, config: PlotConfig) -> None:
         """Render group label controls (for grouped stacked bar)."""

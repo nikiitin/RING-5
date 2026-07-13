@@ -23,9 +23,7 @@ from tests.visual.pages.data_source_page import DataSourcePage
 pytestmark = pytest.mark.requires_browser
 
 
-# ---------------------------------------------------------------------------
 # Tier 0: Page structure and mode switching
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.xdist_group("e2e_data_source")
@@ -105,9 +103,7 @@ class TestDataSourcePageStructure:
         ds.assert_parser_config_visible()
 
 
-# ---------------------------------------------------------------------------
 # Tier 0: Add Variable dialog interactions
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.xdist_group("e2e_data_source")
@@ -210,9 +206,7 @@ class TestDataSourceVariableDialog:
         ds.close_dialog()
 
 
-# ---------------------------------------------------------------------------
 # Tier 0: CSV load-from-pool workflow
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.xdist_group("e2e_data_source")

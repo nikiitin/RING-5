@@ -17,9 +17,7 @@ import plotly.graph_objects as go
 from src.core.models.shaper_models import ShaperStepConfig
 from tests.ui.helpers import create_app_with_data, get_api, navigate_to
 
-# ---------------------------------------------------------------------------
 # Helpers
-# ---------------------------------------------------------------------------
 
 
 def _apply_pipeline(raw_data: pd.DataFrame, configs: list[dict[str, Any]]) -> pd.DataFrame:
@@ -33,9 +31,7 @@ def _apply_pipeline(raw_data: pd.DataFrame, configs: list[dict[str, Any]]) -> pd
     return result
 
 
-# ---------------------------------------------------------------------------
 # Multi-plot workspace
-# ---------------------------------------------------------------------------
 class TestMultiPlotWorkspace:
     """Workspace with multiple plots of different types and pipelines."""
 
@@ -135,9 +131,7 @@ class TestMultiPlotWorkspace:
         assert len(p2.pipeline) == 1
 
 
-# ---------------------------------------------------------------------------
 # Data manager → plot consistency
-# ---------------------------------------------------------------------------
 class TestDataManagerPlotConsistency:
     """Data modifications via managers should be available to plots."""
 
@@ -189,9 +183,7 @@ class TestDataManagerPlotConsistency:
         assert "system.cpu.ipc" not in current.columns
 
 
-# ---------------------------------------------------------------------------
 # Cross-page state consistency
-# ---------------------------------------------------------------------------
 class TestCrossPageConsistency:
     """State remains consistent when navigating between pages."""
 
@@ -279,9 +271,7 @@ class TestCrossPageConsistency:
             assert data_metrics[0].value == "Yes"
 
 
-# ---------------------------------------------------------------------------
 # FigureEngine with multiple plot types
-# ---------------------------------------------------------------------------
 class TestFigureEngineMultiType:
     """BasePlot produces valid figures for all registered types."""
 

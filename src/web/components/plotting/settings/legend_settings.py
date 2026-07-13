@@ -122,9 +122,7 @@ class LegendSettingsComponent:
 
         return {**preserved, **active_config}
 
-    # ------------------------------------------------------------------
     # Legend section rendering
-    # ------------------------------------------------------------------
 
     def _render_legend_section(self, saved_config: PlotConfig, key_prefix: str) -> PlotConfig:
         """Render legend styling section for the selected prefix."""

@@ -178,8 +178,7 @@ class PlotRenderController:
         # 5. Figure generation, caching, and chart display
         self._render_visualization(plot, should_gen)
 
-    # ── Private helpers ──────────────────────────────────────────
-
+    # Private helpers
     def _render_visualization(self, plot: RenderablePlot, should_generate: bool) -> None:
         """
         Generate figure (with caching) and delegate display to component.
@@ -209,7 +208,7 @@ class PlotRenderController:
             active_engine = cast("EngineMode", engine_choice)
             EngineManager.set_engine(active_engine)
 
-        # ── Cache identity ───────────────────────────────────────
+        # Cache identity
         data_hash: str = self._compute_data_hash(plot.processed_data)
         cache_key: str = self._compute_figure_cache_key(
             plot.plot_id,
@@ -221,7 +220,7 @@ class PlotRenderController:
             plot.last_generated_fig is not None and plot.last_figure_cache_key == cache_key
         )
 
-        # ── Generate figure if needed ────────────────────────────
+        # Generate figure if needed
         if should_generate or not cache_matches:
             try:
                 # create_figure relabels legend names engine-agnostically
@@ -235,7 +234,7 @@ class PlotRenderController:
                 ChartDisplayComponent.render_error(e)
                 return
 
-        # ── Display ──────────────────────────────────────────────
+        # Display
         display_fig = plot.last_generated_fig
         if display_fig is None:
             return

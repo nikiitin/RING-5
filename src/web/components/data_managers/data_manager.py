@@ -20,7 +20,7 @@ class DataManager(ABC):
         """Initialize the manager with ApplicationAPI."""
         self.api = api
 
-    # ── shared "restore a loaded operation" helpers ──────────────────────
+    # shared "restore a loaded operation" helpers
     # The per-manager decode (which columns map to which widget) is intentionally
     # distinct, but the warning text and the "write a widget key" step are shared so they
     # cannot drift across the four managers.

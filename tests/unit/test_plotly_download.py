@@ -17,7 +17,7 @@ from src.web.rendering.figure_export import (
 
 pytestmark = pytest.mark.serial
 
-# ── Fixtures ─────────────────────────────────────────────────────
+# Fixtures
 
 
 @pytest.fixture()
@@ -53,7 +53,7 @@ def simple_line_figure() -> go.Figure:
     return fig
 
 
-# ── PNG tests ────────────────────────────────────────────────────
+# PNG tests
 
 
 class TestPlotlyPNG:
@@ -77,7 +77,7 @@ class TestPlotlyPNG:
         assert len(large) > len(small)
 
 
-# ── SVG tests ────────────────────────────────────────────────────
+# SVG tests
 
 
 class TestPlotlySVG:
@@ -101,7 +101,7 @@ class TestPlotlySVG:
         assert b"<svg" in data
 
 
-# ── PDF tests ────────────────────────────────────────────────────
+# PDF tests
 
 
 class TestPlotlyPDF:
@@ -119,7 +119,7 @@ class TestPlotlyPDF:
         assert len(data) > 100
 
 
-# ── Error handling ───────────────────────────────────────────────
+# Error handling
 
 
 class TestPlotlyDownloadErrors:
@@ -131,7 +131,7 @@ class TestPlotlyDownloadErrors:
             plotly_download_bytes(simple_bar_figure, "tiff")  # type: ignore[arg-type]
 
 
-# ── Helper functions ─────────────────────────────────────────────
+# Helper functions
 
 
 class TestPlotlyHelpers:
@@ -156,7 +156,7 @@ class TestPlotlyHelpers:
         assert get_plotly_extension("pdf") == ".pdf"
 
 
-# ── Cross-figure tests ──────────────────────────────────────────
+# Cross-figure tests
 
 
 class TestPlotlyMultipleFigures:
@@ -173,7 +173,7 @@ class TestPlotlyMultipleFigures:
         assert b"<svg" in data
 
 
-# ── Dependency-failure behavior ─────────────────────────────────
+# Dependency-failure behavior
 
 
 class TestChromeNotFound:
@@ -207,7 +207,7 @@ class TestChromeNotFound:
             assert mock_calc.call_count == 3
 
 
-# ── Deterministic exports ────────────────────────────────────────
+# Deterministic exports
 
 
 class TestDeterministicSvg:

@@ -1,12 +1,4 @@
-"""
-Comprehensive tests for Gem5StatsScanner.
-
-Exercises scanner discovery and aggregation behavior:
-- Fixture-first design with tmp_path
-- AAA pattern (Arrange-Act-Assert)
-- Monkeypatch for subprocess and path mocking
-- Testing all error paths and edge cases
-"""
+"""Tests for gem5 statistics discovery and aggregation."""
 
 import json
 import subprocess
@@ -51,67 +43,54 @@ class TestScannerInitialization:
 
     def test_init_without_perl_raises(self, monkeypatch: Any, clean_scanner: Any) -> None:
 
-        # Arrange - Perl not available
         monkeypatch.setattr("shutil.which", lambda x: None)
 
-        # Act & Assert
         with pytest.raises(RuntimeError, match="Perl executable not found"):
             Gem5StatsScanner()
 
     def test_init_without_scanner_script_raises(
         self, mock_perl_available, monkeypatch, clean_scanner
     ) -> None:
-        # Arrange - Script missing
         def mock_exists(self) -> int:
 
             return False
 
         monkeypatch.setattr(Path, "exists", mock_exists)
 
-        # Act & Assert
         with pytest.raises(FileNotFoundError, match="Scanner backend script missing"):
             Gem5StatsScanner()
 
     def test_init_with_valid_environment(
         self, mock_perl_available, mock_scanner_script_exists, clean_scanner
     ) -> None:
-        # Arrange & Act
         scanner = Gem5StatsScanner()
 
-        # Assert
         assert scanner._perl_exe == "/usr/bin/perl"
         assert "statsScanner.pl" in str(scanner._script_path)
 
     def test_get_instance_returns_singleton(
         self, mock_perl_available, mock_scanner_script_exists, clean_scanner
     ) -> None:
-        # Arrange & Act
         scanner1 = Gem5StatsScanner.get_instance()
         scanner2 = Gem5StatsScanner.get_instance()
 
-        # Assert
         assert scanner1 is scanner2
 
     def test_get_instance_creates_on_first_call(
         self, mock_perl_available, mock_scanner_script_exists, clean_scanner
     ) -> None:
-        # Arrange
         assert Gem5StatsScanner._instance is None
 
-        # Act
         scanner = Gem5StatsScanner.get_instance()
 
-        # Assert
         assert scanner is not None
         assert Gem5StatsScanner._instance is scanner
 
     def test_script_path_resolution(
         self, mock_perl_available, mock_scanner_script_exists, clean_scanner
     ) -> None:
-        # Arrange & Act
         scanner = Gem5StatsScanner()
 
-        # Assert
         assert scanner._script_path.name == "statsScanner.pl"
         assert "perl" in str(scanner._script_path.parent)
 
@@ -138,11 +117,9 @@ class TestScanFileScanFile:
 
     def test_scan_file_with_missing_file_raises(self, scanner: Any, tmp_path: Any) -> None:
 
-        # Arrange
         missing_file = tmp_path / "nonexistent.txt"
         # Real file doesn't exist, Python-level check should catch it
 
-        # Act & Assert
         with pytest.raises(FileNotFoundError, match="File not found"):
             scanner.scan_file(missing_file)
 
@@ -150,17 +127,14 @@ class TestScanFileScanFile:
         self, scanner: Any, tmp_path: Any, monkeypatch: Any
     ) -> None:
 
-        # Arrange
         test_file = tmp_path / "stats.txt"
         test_file.write_text("dummy")
 
         mock_run = Mock(return_value=Mock(stdout="[]", stderr=""))
         monkeypatch.setattr("subprocess.run", mock_run)
 
-        # Act
         scanner.scan_file(test_file)
 
-        # Assert
         mock_run.assert_called_once()
         args = mock_run.call_args[0][0]
         assert args[0] == "/usr/bin/perl"
@@ -171,7 +145,6 @@ class TestScanFileScanFile:
         self, scanner: Any, tmp_path: Any, monkeypatch: Any
     ) -> None:
 
-        # Arrange
         test_file = tmp_path / "stats.txt"
         test_file.write_text("dummy")
 
@@ -184,10 +157,8 @@ class TestScanFileScanFile:
         mock_run = Mock(return_value=Mock(stdout=perl_output, stderr=""))
         monkeypatch.setattr("subprocess.run", mock_run)
 
-        # Act
         result = scanner.scan_file(test_file)
 
-        # Assert
         assert len(result) == 2
         assert all(isinstance(v, ScannedVariable) for v in result)
 
@@ -195,17 +166,14 @@ class TestScanFileScanFile:
         self, scanner: Any, tmp_path: Any, monkeypatch: Any
     ) -> None:
 
-        # Arrange
         test_file = tmp_path / "stats.txt"
         test_file.write_text("dummy")
 
         mock_run = Mock(return_value=Mock(stdout="[]", stderr=""))
         monkeypatch.setattr("subprocess.run", mock_run)
 
-        # Act
         scanner.scan_file(test_file, config_vars=["benchmark", "seed"])
 
-        # Assert
         args = mock_run.call_args[0][0]
         assert "benchmark,seed" in args
 
@@ -213,48 +181,40 @@ class TestScanFileScanFile:
         self, scanner: Any, tmp_path: Any, monkeypatch: Any
     ) -> None:
 
-        # Arrange
         test_file = tmp_path / "stats.txt"
         test_file.write_text("dummy")
 
         mock_run = Mock(return_value=Mock(stdout="", stderr=""))
         monkeypatch.setattr("subprocess.run", mock_run)
 
-        # Act
         result = scanner.scan_file(test_file)
 
-        # Assert
         assert result == []
 
     def test_scan_file_with_whitespace_only_output(
         self, scanner: Any, tmp_path: Any, monkeypatch: Any
     ) -> None:
 
-        # Arrange
         test_file = tmp_path / "stats.txt"
         test_file.write_text("dummy")
 
         mock_run = Mock(return_value=Mock(stdout="   \n  \t  ", stderr=""))
         monkeypatch.setattr("subprocess.run", mock_run)
 
-        # Act
         result = scanner.scan_file(test_file)
 
-        # Assert
         assert result == []
 
     def test_scan_file_with_timeout_raises(
         self, scanner: Any, tmp_path: Any, monkeypatch: Any
     ) -> None:
 
-        # Arrange
         test_file = tmp_path / "stats.txt"
         test_file.write_text("dummy")
 
         mock_run = Mock(side_effect=subprocess.TimeoutExpired("perl", 60))
         monkeypatch.setattr("subprocess.run", mock_run)
 
-        # Act & Assert
         with pytest.raises(RuntimeError, match="timed out"):
             scanner.scan_file(test_file)
 
@@ -262,14 +222,12 @@ class TestScanFileScanFile:
         self, scanner: Any, tmp_path: Any, monkeypatch: Any
     ) -> None:
 
-        # Arrange
         test_file = tmp_path / "stats.txt"
         test_file.write_text("dummy")
 
         mock_run = Mock(side_effect=subprocess.CalledProcessError(1, "perl", stderr="Perl error"))
         monkeypatch.setattr("subprocess.run", mock_run)
 
-        # Act & Assert
         with pytest.raises(RuntimeError, match="Perl scanner failed"):
             scanner.scan_file(test_file)
 
@@ -277,14 +235,12 @@ class TestScanFileScanFile:
         self, scanner: Any, tmp_path: Any, monkeypatch: Any
     ) -> None:
 
-        # Arrange
         test_file = tmp_path / "stats.txt"
         test_file.write_text("dummy")
 
         mock_run = Mock(return_value=Mock(stdout="not valid json{", stderr=""))
         monkeypatch.setattr("subprocess.run", mock_run)
 
-        # Act & Assert
         with pytest.raises(RuntimeError, match="corrupt JSON"):
             scanner.scan_file(test_file)
 
@@ -292,32 +248,26 @@ class TestScanFileScanFile:
         self, scanner: Any, tmp_path: Any, monkeypatch: Any
     ) -> None:
 
-        # Arrange
         test_file = tmp_path / "stats.txt"
         test_file.write_text("dummy")
 
         mock_run = Mock(return_value=Mock(stdout="[]", stderr=""))
         monkeypatch.setattr("subprocess.run", mock_run)
 
-        # Act
         scanner.scan_file(test_file)
 
-        # Assert
         assert mock_run.call_args[1]["shell"] is False
 
     def test_scan_file_enforces_timeout(
         self, scanner: Any, tmp_path: Any, monkeypatch: Any
     ) -> None:
 
-        # Arrange
         test_file = tmp_path / "stats.txt"
         test_file.write_text("dummy")
 
         mock_run = Mock(return_value=Mock(stdout="[]", stderr=""))
         monkeypatch.setattr("subprocess.run", mock_run)
 
-        # Act
         scanner.scan_file(test_file)
 
-        # Assert
         assert mock_run.call_args[1]["timeout"] == 60

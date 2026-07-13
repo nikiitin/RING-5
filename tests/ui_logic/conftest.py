@@ -14,9 +14,7 @@ from src.core.models.data_models import PipelineStep
 from src.core.models.shaper_models import ShaperStepConfig
 
 
-# ---------------------------------------------------------------------------
 # Minimal PlotHandle stub (satisfies the PlotHandle protocol)
-# ---------------------------------------------------------------------------
 class StubPlotHandle:
     """Lightweight stub satisfying the PlotHandle protocol."""
 

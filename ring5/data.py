@@ -52,7 +52,7 @@ class Table:
         # Defensive copy so the Table owns its data and callers can't mutate it underneath.
         self._df = frame.copy()
 
-    # ── constructors ─────────────────────────────────────────────────────
+    # constructors
     @classmethod
     def from_csv(cls, path: str) -> "Table":
         """Read a CSV into a table.
@@ -83,7 +83,7 @@ class Table:
         """
         return cls(pd.DataFrame(rows))
 
-    # ── introspection ────────────────────────────────────────────────────
+    # introspection
     @property
     def frame(self) -> pd.DataFrame:
         """The underlying DataFrame (a copy) — the engine handoff for ``create_plot``."""
@@ -109,7 +109,7 @@ class Table:
         """
         return [{str(k): _to_py(v) for k, v in rec.items()} for rec in self._df.to_dict("records")]
 
-    # ── I/O ──────────────────────────────────────────────────────────────
+    # I/O
     def to_csv(self, path: str) -> str:
         """Write the table without an index column.
 
@@ -128,7 +128,7 @@ class Table:
             raise ExportError(f"Could not write table to {path!r}: {exc}") from exc
         return path
 
-    # ── transforms (return a new Table) ──────────────────────────────────
+    # transforms (return a new Table)
     def filter_eq(self, column: str, value: Any) -> "Table":
         """Retain rows equal to a value.
 
@@ -222,7 +222,7 @@ class Table:
         """
         return Table(pd.concat([self._df, other._df], ignore_index=True))
 
-    # ── value extraction (for over-cap / dot labels) ─────────────────────
+    # value extraction (for over-cap / dot labels)
     def value_map(self, key_columns: list[str], value_column: str) -> dict[tuple, float]:
         """Map composite row keys to numeric values.
 

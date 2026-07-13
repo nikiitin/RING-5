@@ -24,9 +24,7 @@ class BasePage:
     def __init__(self, page: Page) -> None:
         self.page = page
 
-    # ------------------------------------------------------------------
     # Common locators
-    # ------------------------------------------------------------------
 
     @property
     def sidebar(self) -> Locator:
@@ -38,9 +36,7 @@ class BasePage:
         """The main ``RING-5 Interactive Analyzer`` title."""
         return self.page.locator("h1.main-header")
 
-    # ------------------------------------------------------------------
     # Navigation
-    # ------------------------------------------------------------------
 
     def navigate_to(self, page_name: str) -> None:
         """Click a sidebar navigation button to switch pages.
@@ -67,9 +63,7 @@ class BasePage:
         # too-fast follow-up navigation cannot abort ``reset_session()``.
         self.wait_for_streamlit(expect_rerun=True)
 
-    # ------------------------------------------------------------------
     # Streamlit sync helpers
-    # ------------------------------------------------------------------
 
     def wait_for_streamlit(self, *, timeout: int | None = None, expect_rerun: bool = False) -> None:
         """Wait until Streamlit finishes its current script run.
@@ -93,9 +87,7 @@ class BasePage:
         self.page.goto(url, wait_until="networkidle")
         self.wait_for_streamlit()
 
-    # ------------------------------------------------------------------
     # Screenshot helpers
-    # ------------------------------------------------------------------
 
     def screenshot(
         self,
@@ -124,9 +116,7 @@ class BasePage:
         """
         locator.screenshot(path=str(path))
 
-    # ------------------------------------------------------------------
     # GIF generation
-    # ------------------------------------------------------------------
 
     @staticmethod
     def create_gif(
@@ -152,9 +142,7 @@ class BasePage:
             loop=0,
         )
 
-    # ------------------------------------------------------------------
     # Assertion helpers
-    # ------------------------------------------------------------------
 
     def assert_page_loaded(self) -> None:
         """Assert the main app header is visible (basic health check)."""

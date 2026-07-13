@@ -9,9 +9,7 @@ from src.core.models.shaper_models import ShaperStepConfig
 from tests.ui_logic.conftest import StubPlotHandle
 
 
-# ---------------------------------------------------------------------------
 # PlotLifecycleAdapter
-# ---------------------------------------------------------------------------
 class TestPlotLifecycleAdapter:
     """Verify PlotLifecycleAdapter delegates to PlotService."""
 
@@ -79,9 +77,7 @@ class TestPlotLifecycleAdapter:
             assert result is changed
 
 
-# ---------------------------------------------------------------------------
 # PlotTypeRegistryAdapter
-# ---------------------------------------------------------------------------
 class TestPlotTypeRegistryAdapter:
     """Verify PlotTypeRegistryAdapter delegates to PlotFactory."""
 
@@ -115,9 +111,7 @@ class TestPlotTypeRegistryAdapter:
             assert all(isinstance(t, str) for t in result)
 
 
-# ---------------------------------------------------------------------------
 # PipelineExecutorAdapter
-# ---------------------------------------------------------------------------
 class TestPipelineExecutorAdapter:
     """Verify PipelineExecutorAdapter delegates to shaper functions."""
 
@@ -165,9 +159,7 @@ class TestPipelineExecutorAdapter:
             mock_cfg.assert_called_once_with("sort", sample_data, 2, None, owner_id=None)
 
 
-# ---------------------------------------------------------------------------
 # Protocol conformance
-# ---------------------------------------------------------------------------
 class TestAdapterProtocolConformance:
     """Verify adapters satisfy their protocol contracts."""
 

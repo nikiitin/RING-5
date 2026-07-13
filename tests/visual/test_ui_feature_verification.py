@@ -1,4 +1,4 @@
-"""E2E tests verifying all UI refactoring changes (Phases 1–21).
+"""E2E tests for removed controls and current UI features.
 
 Uses Playwright to verify that:
 - Removed features are truly gone (Performance page, View Current Data,
@@ -26,9 +26,7 @@ from tests.visual.pages.portfolio_page import PortfolioPage
 
 pytestmark = pytest.mark.requires_browser
 
-# ---------------------------------------------------------------------------
 # Paths & constants
-# ---------------------------------------------------------------------------
 
 _REPO_ROOT: Path = Path(__file__).parents[2]
 _REAL_DATA: Path = _REPO_ROOT / "tests" / "data" / "results-micro26-sens"
@@ -47,9 +45,7 @@ _STATS: list[tuple[str, str]] = [
 ]
 
 
-# ===================================================================
 # Group 1: Removed Features (no data needed)
-# ===================================================================
 
 
 class TestRemovedFeatures:
@@ -110,9 +106,7 @@ class TestRemovedFeatures:
         expect(view_data).not_to_be_visible(timeout=5_000)
 
 
-# ===================================================================
 # Group 2: Parse data, then test plot features
-# ===================================================================
 
 
 @pytest.mark.xdist_group("refactor_e2e")
@@ -456,9 +450,7 @@ class TestPlotFeatures:
         shared_page.keyboard.press("Escape")
 
 
-# ===================================================================
 # Group 3: Portfolio load
-# ===================================================================
 
 
 class TestPortfolioLoad:

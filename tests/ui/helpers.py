@@ -19,9 +19,7 @@ from streamlit.testing.v1 import AppTest
 
 _APP_PATH: str = str(Path(__file__).parents[2] / "app.py")
 
-# ---------------------------------------------------------------------------
 # Rich e2e sample data
-# ---------------------------------------------------------------------------
 
 
 def make_e2e_sample_data() -> pd.DataFrame:
@@ -160,9 +158,7 @@ def make_e2e_sample_data() -> pd.DataFrame:
     )
 
 
-# ---------------------------------------------------------------------------
 # AppTest helpers
-# ---------------------------------------------------------------------------
 
 
 def create_app() -> AppTest:

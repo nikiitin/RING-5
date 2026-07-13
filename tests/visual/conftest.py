@@ -32,9 +32,7 @@ from playwright.sync_api import Browser, BrowserContext, Page
 
 from tests.visual.pages.base_page import BasePage
 
-# ---------------------------------------------------------------------------
 # Helpers
-# ---------------------------------------------------------------------------
 
 _ROOT_DIR: Path = Path(__file__).parents[2]
 _APP_PY: Path = _ROOT_DIR / "app.py"
@@ -62,9 +60,7 @@ def _wait_for_server(port: int, *, timeout: float = 30.0) -> None:
     raise TimeoutError(f"Streamlit server did not start within {timeout}s on port {port}")
 
 
-# ---------------------------------------------------------------------------
 # Session-scoped: server lifecycle
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -141,9 +137,7 @@ def live_server_url(
             proc.wait(timeout=5)
 
 
-# ---------------------------------------------------------------------------
 # Browser / page configuration
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture(scope="session")
@@ -170,9 +164,8 @@ def shared_page(
 ) -> Generator[Page]:
     """Class-scoped page — one browser tab shared across all tests in a class.
 
-    This avoids re-creating a browser context and re-navigating for every
-    single test within a consolidated test class, yielding significant
-    speedups for visual/E2E tests where setup dominates execution time.
+    This avoids recreating a browser context and navigating for every test
+    in an ordered visual suite.
     """
     # Use cast to satisfy Pyright regarding BrowserContext options
     context = browser.new_context(**cast(Any, browser_context_args))
@@ -213,7 +206,7 @@ def shared_screenshot_dir(request: pytest.FixtureRequest) -> Path:
     """Return a per-class screenshot directory, cleaned once per class.
 
     Screenshots land in ``tests/visual/screenshots/<ClassName>/``.
-    Used by consolidated test classes that share a ``shared_page``.
+    Used by ordered test classes that share a ``shared_page``.
     """
     class_name: str = request.node.name
     path = _SCREENSHOTS_DIR / class_name
@@ -277,9 +270,7 @@ def pytest_runtest_makereport(item: pytest.Item) -> Generator[None]:
     setattr(item, f"rep_{rep.when}", rep)
 
 
-# ---------------------------------------------------------------------------
 # Headed mode
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture(scope="session")

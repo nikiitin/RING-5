@@ -16,9 +16,7 @@ Usage::
 
 from __future__ import annotations
 
-# ────────────────────────────────────────────────────────────────────
 # Colorblind-safe palettes  (listed first in get_palette_names)
-# ────────────────────────────────────────────────────────────────────
 
 _COLORBLIND_PALETTES: dict[str, list[str]] = {
     "wong": [
@@ -73,9 +71,7 @@ _COLORBLIND_PALETTES: dict[str, list[str]] = {
 }
 
 
-# ────────────────────────────────────────────────────────────────────
 # Plotly qualitative palettes  (resolved to hex at module load)
-# ────────────────────────────────────────────────────────────────────
 
 _PLOTLY_PALETTES: dict[str, list[str]] = {
     "Plotly": [
@@ -296,9 +292,7 @@ _PLOTLY_PALETTES: dict[str, list[str]] = {
 }
 
 
-# ────────────────────────────────────────────────────────────────────
 # Combined registry
-# ────────────────────────────────────────────────────────────────────
 
 PALETTE_REGISTRY: dict[str, list[str]] = {
     **_COLORBLIND_PALETTES,

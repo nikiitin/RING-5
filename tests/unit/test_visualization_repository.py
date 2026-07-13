@@ -16,8 +16,7 @@ from src.core.state.repositories.visualization_repository import VisualizationRe
 class TestVisualizationRepository:
     """Tests for VisualizationRepository."""
 
-    # ── Fixtures ────────────────────────────────────────────────────
-
+    # Fixtures
     @pytest.fixture()
     def repo(self) -> VisualizationRepository:
         return VisualizationRepository()
@@ -26,8 +25,7 @@ class TestVisualizationRepository:
     def sample_config(self) -> FigureConfig:
         return FigureConfig(title="Sample Plot")
 
-    # ── Basic CRUD ──────────────────────────────────────────────────
-
+    # Basic CRUD
     def test_get_returns_none_when_empty(self, repo: VisualizationRepository) -> None:
         assert repo.get_config(1) is None
 
@@ -61,8 +59,7 @@ class TestVisualizationRepository:
         assert result is not None
         assert result.title == "Updated"
 
-    # ── Bulk / clear ────────────────────────────────────────────────
-
+    # Bulk / clear
     def test_get_all_returns_shallow_copy(self, repo: VisualizationRepository) -> None:
         c1: FigureConfig = FigureConfig(title="A")
         c2: FigureConfig = FigureConfig(title="B")
@@ -85,8 +82,7 @@ class TestVisualizationRepository:
         assert repo.get_all() == {}
         assert repo.get_config(1) is None
 
-    # ── Isolation between plot IDs ──────────────────────────────────
-
+    # Isolation between plot IDs
     def test_independent_plots(self, repo: VisualizationRepository) -> None:
         c1: FigureConfig = FigureConfig(title="Plot 1")
         c2: FigureConfig = FigureConfig(title="Plot 2")

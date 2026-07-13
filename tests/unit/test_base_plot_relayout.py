@@ -1,13 +1,4 @@
-"""
-Tests targeting uncovered lines in BasePlot.update_from_relayout and generate_figure.
-
-Covers:
-- update_from_relayout: empty data (L118), xaxis range (L138-142, 155-165),
-  yaxis range (L174-176), autorange (L199), legend drag (L238, 270, 278),
-  legend title (L372), list range equality (L132-136), float close equality (L89, 103)
-- generate_figure: no data error (L270), legend_labels branch (L278)
-- to_dict / from_dict with processed_data=None
-"""
+"""Tests for relayout updates, figure generation, and plot serialization."""
 
 from typing import Any, cast
 from unittest.mock import patch

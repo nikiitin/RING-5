@@ -28,7 +28,7 @@ from src.web.rendering.matplotlib_trace_renderer import MatplotlibTraceRenderer
 matplotlib.use("Agg")
 
 
-# ─── Helpers ─────────────────────────────────────────────────────────────────
+# Helpers
 
 
 def _make_bar_figure() -> go.Figure:
@@ -75,7 +75,7 @@ def _minimal_config() -> dict[str, Any]:
     }
 
 
-# ─── MatplotlibTraceRenderer Tests ──────────────────────────────────────────
+# MatplotlibTraceRenderer Tests
 
 
 class TestMatplotlibTraceRenderer:
@@ -237,7 +237,7 @@ class TestMatplotlibTraceRenderer:
         plt.close(fig)
 
 
-# ─── Full Pipeline Integration ───────────────────────────────────────────────
+# Full Pipeline Integration
 
 
 class TestMatplotlibFullPipeline:

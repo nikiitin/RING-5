@@ -251,9 +251,7 @@ class TestApplicatorLastSpec:
         assert applicator.last_spec is None
 
 
-# ────────────────────────────────────────────────────────────────────
 # Additional configuration mappings
-# ────────────────────────────────────────────────────────────────────
 
 
 class TestConfigSpecDataLabels:

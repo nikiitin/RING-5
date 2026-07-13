@@ -32,9 +32,7 @@ from tests.visual.pages.manage_plots_page import ManagePlotsPage
 
 pytestmark = pytest.mark.requires_browser
 
-# ---------------------------------------------------------------------------
 # Paths
-# ---------------------------------------------------------------------------
 
 _REPO_ROOT: Path = Path(__file__).parents[2]
 _BENCHMARKS_STATS: Path = _REPO_ROOT / "tests" / "data" / "synthetic" / "benchmarks"
@@ -43,9 +41,7 @@ _BENCHMARKS_STATS: Path = _REPO_ROOT / "tests" / "data" / "synthetic" / "benchma
 _E2E_TIMEOUT: int = 60_000
 
 
-# ---------------------------------------------------------------------------
 # Helpers
-# ---------------------------------------------------------------------------
 
 
 def _parse_benchmarks(page: Page, live_server_url: str) -> None:
@@ -94,9 +90,7 @@ def _create_and_finalize_bar(
     mp.navigate()
 
 
-# ===================================================================
 # Tier 1 — No-Data State
-# ===================================================================
 
 
 @pytest.mark.order("first")
@@ -119,9 +113,7 @@ class TestManagePlotsNoData:
         mp.assert_create_form_visible()
 
 
-# ===================================================================
 # Tier 1 — Create / Controls / Pipeline / Render
-# ===================================================================
 
 
 class TestManagePlotsWorkflow:
@@ -142,7 +134,6 @@ class TestManagePlotsWorkflow:
     def test_create_pipeline_render(self, shared_page: Page) -> None:
         """Create bar plot, build pipeline, configure axes, render chart.
 
-        Consolidates:
         - create_plot action
         - add Column Selector + finalize
         - select axes + refresh
@@ -251,9 +242,7 @@ class TestManagePlotsWorkflow:
             mp.assert_plot_pill_visible(name)
 
 
-# ===================================================================
 # Tier 2 — Pipeline Manipulation
-# ===================================================================
 
 
 class TestPipelineManipulation:
@@ -287,9 +276,7 @@ class TestPipelineManipulation:
         mp.assert_pipeline_step_count(1)
 
 
-# ===================================================================
 # Tier 2 — Advanced Settings
-# ===================================================================
 
 
 class TestAdvancedSettings:
@@ -327,9 +314,7 @@ class TestAdvancedSettings:
         expect(mp.viz_settings_pills).to_be_visible(timeout=15_000)
 
 
-# ===================================================================
 # Screenshots
-# ===================================================================
 
 
 class TestManagePlotsScreenshots:

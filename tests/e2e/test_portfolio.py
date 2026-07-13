@@ -25,9 +25,7 @@ pytestmark = pytest.mark.requires_browser
 PORTFOLIO_NAME = "E2E_Test_Portfolio"
 
 
-# ======================================================================
 # Tier 3: Full portfolio save/load cycle
-# ======================================================================
 
 
 @pytest.mark.xdist_group("e2e_portfolio")
@@ -111,9 +109,7 @@ class TestPortfolioSaveLoad:
         mp.assert_plot_pill_visible("E2E Bar")
 
 
-# ======================================================================
 # Tier 2: Cross-page state persistence
-# ======================================================================
 
 
 @pytest.mark.xdist_group("e2e_cross_page")
@@ -130,18 +126,18 @@ class TestCrossPageState:
 
         Data should be present at each step where it is expected.
         """
-        # 1. Verify data on Data Managers
+        # Verify data on Data Managers
         dm = DataManagersPage(tier2_page)
         dm.navigate()
         dm.assert_page_header_visible()
         dm.assert_has_data()
 
-        # 2. Navigate to Manage Plots and verify plot exists
+        # Navigate to Manage Plots and verify plot exists
         mp = ManagePlotsPage(tier2_page)
         mp.navigate()
         mp.assert_plot_pill_visible("E2E Bar")
 
-        # 3. Navigate to Data Source, then back to Data Managers
+        # Navigate to Data Source, then back to Data Managers
         ds = DataSourcePage(tier2_page)
         ds.navigate()
         ds.assert_step_header_visible()

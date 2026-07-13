@@ -24,15 +24,12 @@ def mock_streamlit() -> Generator[None, None, None]:
         patch("src.web.components.plotting.settings.reference_line_settings.st", mock_st_plot),
         patch("src.web.components.plotting.settings.ordering_settings.st", mock_st_plot),
         patch("src.web.components.plotting.settings.widget_factory.st", mock_st_plot),
-    ):  # Mock factory to avoid side effects if needed
-
-        # Setup common mock behaviors
+    ):
         mock_st_plot.columns.side_effect = lambda n: (
             [MagicMock() for _ in range(n)] if isinstance(n, int) else [MagicMock() for _ in n]
         )
         mock_st_plot.expander.return_value.__enter__.return_value = MagicMock()
         mock_st_plot.number_input.return_value = 10
-        # Configure selectbox to return first option if index not specified, or something sensible
         mock_st_plot.selectbox.side_effect = lambda label, options, **kwargs: (
             options[kwargs.get("index", 0)] if options else None
         )
@@ -58,7 +55,6 @@ def test_render_advanced_options_defaults(sample_data: Any, mock_streamlit: Any)
     plot = GroupedStackedBarPlot(1, "Test Plot")
     config = plot.render_advanced_options({}, sample_data)
 
-    # Check default keys exist
     assert "bargap" in config
     assert "bargroupgap" in config
     assert "bar_border_width" in config
@@ -66,27 +62,12 @@ def test_render_advanced_options_defaults(sample_data: Any, mock_streamlit: Any)
 
 
 def test_specific_advanced_options_overrides(sample_data: Any, mock_streamlit: Any) -> None:
-    """Test that advanced options correctly capture user overrides."""
+    """Widget overrides are preserved in the resulting configuration."""
     plot = GroupedStackedBarPlot(1, "Test Plot")
 
-    # Mock interactions for general and bar settings:
-    # 1. st.checkbox("Error Bars") -> True
-    # 2. st.number_input("Y-axis Step") -> 5.0
-    # 3. st.selectbox("Download Format") -> "pdf"
-    # 4. st.selectbox("Export Scale") -> 2
-    # 5. st.slider("X-axis Rotation") -> 15
-    # 6. st.slider("Bar Gap") -> 0.3
-    # 7. st.slider("Bar Group Gap") -> 0.1
-    # 8. st.slider("Bar Border Width") -> 1.5
-    # 9. st.checkbox("Enable Interactive Editing") -> True
-
-    # Note: GroupedStackedBarPlot doesn't have the "Series Renaming" checkbox from BasePlot.
     mock_streamlit.checkbox.side_effect = [True, False, True]  # Error Bars, Ref Line, Editable
     mock_streamlit.number_input.return_value = 5.0
-    # Selectbox needs to match specific keys or order.
-    # General section has 2 (fmt, scale). Reorderable list uses none.
-    # render_series_renaming_ui is called but doesn't use selectbox.
-    # BasePlot._render_shapes_ui uses 1 selectbox.
+    # General export controls precede the shape-type control.
     mock_streamlit.selectbox.side_effect = ["pdf", 2, "line"]
     mock_streamlit.slider.side_effect = [15, 0.3, 0.1, 1.5]
 
@@ -109,8 +90,6 @@ def test_create_figure_renaming(sample_data: Any, mock_streamlit: Any) -> None:
 
     plot = GroupedStackedBarPlot(1, "Test Plot")
 
-    # Config with series renaming (Stacks)
-    # The plot now explicitly renders generic series styling for y_columns
     config = {
         "x": "Benchmark",
         "group": "Config",
@@ -124,8 +103,6 @@ def test_create_figure_renaming(sample_data: Any, mock_streamlit: Any) -> None:
     fig = plot.create_figure(sample_data, config)
     plot._applicator.apply_styles(fig, config)
 
-    # Check traces - Ticks and Energy
-    # Ticks -> Total Cycles
     traces = cast(list[go.Bar], list(fig.data))
     t1 = next(t for t in traces if t.name == "Total Cycles")
     assert cast(go.bar.Marker, t1.marker).color == "#FF0000"
@@ -138,14 +115,12 @@ def test_create_figure_major_minor_renaming(sample_data: Any, mock_streamlit: An
 
     plot = GroupedStackedBarPlot(1, "Test Plot")
 
-    # Rename Major Group (Benchmark): A -> Alpha
-    # Rename Minor Group (Config): Small -> Tiny
     config = {
         "x": "Benchmark",
         "group": "Config",
         "y_columns": ["Ticks"],
-        "xaxis_labels": {"A": "Alpha"},  # Major Group
-        "group_renames": {"Small": "Tiny"},  # Minor Group
+        "xaxis_labels": {"A": "Alpha"},
+        "group_renames": {"Small": "Tiny"},
         "bargroupgap": 0.1,
     }
 

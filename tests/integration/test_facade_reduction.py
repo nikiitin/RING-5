@@ -53,10 +53,10 @@ class TestFacadeReduction:
 
         stats_path, output_dir = temp_dirs
 
-        # 1. Define variable with Regex Pattern
+        # Define variable with Regex Pattern
         variables = [{"name": "system.cpu\\d+.ipc", "type": "scalar"}]
 
-        # 2. Pre-scan to populate regex matching cache
+        # Pre-scan to populate regex matching cache
         scan_futures = facade.submit_scan_async(stats_path, "stats.txt*", limit=10)
 
         # Wait for scan completion
@@ -68,7 +68,7 @@ class TestFacadeReduction:
 
         scanned_vars = facade.finalize_scan(scan_results).variables
 
-        # 3. Run Facade Parse
+        # Run Facade Parse
         batch = facade.submit_parse_async(
             stats_path=stats_path,
             stats_pattern="stats.txt*",
@@ -89,7 +89,7 @@ class TestFacadeReduction:
         assert csv_path is not None
         assert os.path.exists(csv_path)
 
-        # 3. Verify Results
+        # Verify Results
         # Parser outputs CSV.
         df = pd.read_csv(csv_path)
 

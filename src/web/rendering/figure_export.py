@@ -41,8 +41,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# ── Type aliases ─────────────────────────────────────────────────
-
+# Type aliases
 PlotlyFormat = Literal["png", "svg", "pdf", "html"]
 MatplotlibFormat = Literal["pdf", "pgf", "png", "svg"]
 
@@ -96,7 +95,7 @@ DETERMINISTIC_SVG_HASHSALT = "ring5"
 _MPL_EXPORT_LOCK = threading.Lock()
 
 
-# ── Deterministic-output normalizers ─────────────────────────────
+# Deterministic-output normalizers
 
 
 def _normalize_plotly_svg(data: bytes) -> bytes:
@@ -170,7 +169,7 @@ def _normalize_plotly_pdf(data: bytes) -> bytes:
     return re.sub(rb"(/(?:CreationDate|ModDate) \(D:)([^)]*)", _zero_digits, data)
 
 
-# ── Plotly export (Kaleido v1) ───────────────────────────────────
+# Plotly export (Kaleido v1)
 
 
 def plotly_download_bytes(
@@ -270,7 +269,7 @@ def get_plotly_extension(fmt: PlotlyFormat) -> str:
     return _FORMAT_EXT[fmt]
 
 
-# ── Matplotlib export (savefig + PGF) ────────────────────────────
+# Matplotlib export (savefig + PGF)
 
 
 def matplotlib_download_bytes(

@@ -11,9 +11,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-# ---------------------------------------------------------------------------
 # Helpers
-# ---------------------------------------------------------------------------
 MODULE = "src.web.pages.manage_plots"
 
 
@@ -26,9 +24,7 @@ def mock_api() -> MagicMock:
     return api
 
 
-# ---------------------------------------------------------------------------
 # Page initialization
-# ---------------------------------------------------------------------------
 class TestPageInitialization:
     """Verify the page initializes state and creates adapters."""
 
@@ -97,9 +93,7 @@ class TestPageInitialization:
         mock_render_cls.assert_called_once()
 
 
-# ---------------------------------------------------------------------------
 # Pending updates
-# ---------------------------------------------------------------------------
 class TestPendingUpdates:
     """Verify pending widget updates are consumed and applied."""
 
@@ -167,9 +161,7 @@ class TestPendingUpdates:
         assert mock_st.session_state["key"] == "original"
 
 
-# ---------------------------------------------------------------------------
 # Guard: no current plot
-# ---------------------------------------------------------------------------
 class TestNoPlotGuard:
     """When no plot is selected, pipeline/render/controls are skipped."""
 

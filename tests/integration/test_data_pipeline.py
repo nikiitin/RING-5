@@ -64,14 +64,14 @@ class TestDataPipeline:
         # Configure a pipeline: Filter > Sort
 
         # To strictly test the factory and execution
-        # 1. Column Selector
+        # Column Selector
         col_selector = ShaperFactory.create_shaper(
             "columnSelector", {"columns": ["group", "value"]}  # type: ignore
         )
         df_cols = col_selector(sample_data)
         assert "noise" not in df_cols.columns
 
-        # 2. Condition Selector (Filter)
+        # Condition Selector (Filter)
         filter_shaper = ShaperFactory.create_shaper(
             "conditionSelector", {"column": "value", "mode": "less_than", "threshold": 50}  # type: ignore  # noqa: E501
         )

@@ -25,14 +25,14 @@ class AxisConfig:
     Covers label, tick formatting, range, scale, grid, and positioning.
     """
 
-    # ── Label ────────────────────────────────────────────────────
+    # Label
     label: str = ""
     label_pad: float = 10.0  # distance from tick labels (pts)
     label_position: float = 0.5  # 0=bottom/left, 0.5=center, 1=top/right
     label_standoff: int = -1  # sentinel: -1 = auto
     title_vshift: float = 0.0  # vertical shift for title annotation
 
-    # ── Ticks ────────────────────────────────────────────────────
+    # Ticks
     tick_angle: float = 0.0  # rotation in degrees
     tick_pad: float = 5.0  # distance from axis (pts)
     tick_ha: Literal["left", "center", "right"] = "center"  # horizontal alignment
@@ -46,13 +46,13 @@ class AxisConfig:
     show_tick_labels: bool = True
     dtick: float | None = None  # fixed tick interval
 
-    # ── Range & Scale ────────────────────────────────────────
+    # Range & Scale
     range: list[float] | None = None  # [min, max] or None for auto
     scale: Literal["linear", "log"] = "linear"
     margin: float = 0.02  # margin as fraction of data range
     automargin: bool = True  # let engine auto-adjust margins
 
-    # ── Grid ─────────────────────────────────────────────────────
+    # Grid
     show_grid: bool = True
     grid_color: str = "#E5E5E5"
     grid_width: float = 1.0
@@ -62,7 +62,7 @@ class AxisConfig:
     axis_line_color: str = ""  # empty = inherit from axis_color
     axis_line_width: float = 1.0
 
-    # ── Ordering ─────────────────────────────────────────────────
+    # Ordering
     category_order: list[str] | None = None  # explicit category order
     label_aliases: dict[str, str] | None = None  # tick label remapping
 
@@ -90,13 +90,13 @@ class AxesConfig:
     y: AxisConfig = field(default_factory=AxisConfig)
     y2: AxisConfig | None = None  # None = no secondary Y-axis
 
-    # ── Group labels (below X-axis) ──────────────────────────
+    # Group labels (below X-axis)
     group_label_offset: float = -0.12  # vertical offset below axis
     group_label_alternate: bool = True  # alternate up/down
     group_label_alt_spacing: float = 0.05  # distance between levels
     group_order: list[str] | None = None  # explicit group ordering
 
-    # ── Opposite axis lines (top / right) ────────────────────
+    # Opposite axis lines (top / right)
     top_axis_line_width: float = 0.0  # 0 = hidden
     top_axis_line_color: str = "#444"
     right_axis_line_width: float = 0.0  # 0 = hidden

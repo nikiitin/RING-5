@@ -86,12 +86,12 @@ class TestHistogramWithStatistics:
         statistics (::samples, ::mean, etc.), it doesn't raise a type mismatch
         error during parsing.
         """
-        # 1. Scan
+        # Scan
         scan_futures = facade.submit_scan_async(str(stats_dir), "stats.txt", limit=-1)
         scan_results = [f.result() for f in scan_futures]
         vars_found = facade.finalize_scan(scan_results).variables
 
-        # 2. Parse with histogram configuration
+        # Parse with histogram configuration
         output_dir = tmp_path / "hist_stats_output"
         output_dir.mkdir()
 
@@ -131,12 +131,12 @@ class TestHistogramWithStatistics:
         Type: histogram
         Error: "Variable type mismatch - Expected: histogram Found: vector"
         """
-        # 1. Scan
+        # Scan
         scan_futures = facade.submit_scan_async(str(stats_dir), "stats.txt", limit=-1)
         scan_results = [f.result() for f in scan_futures]
         vars_found = facade.finalize_scan(scan_results).variables
 
-        # 2. Parse with regex pattern
+        # Parse with regex pattern
         output_dir = tmp_path / "hist_regex_output"
         output_dir.mkdir()
 
@@ -183,12 +183,12 @@ class TestHistogramWithStatistics:
         When useSpecialMembers=True with specific statistics, those statistics
         should appear as columns in the output CSV.
         """
-        # 1. Scan
+        # Scan
         scan_futures = facade.submit_scan_async(str(stats_dir), "stats.txt", limit=-1)
         scan_results = [f.result() for f in scan_futures]
         vars_found = facade.finalize_scan(scan_results).variables
 
-        # 2. Parse with explicit statistics
+        # Parse with explicit statistics
         output_dir = tmp_path / "hist_explicit_stats_output"
         output_dir.mkdir()
 

@@ -151,10 +151,8 @@ class SimpleStatsStrategy:
 
             var_map[name] = stat_obj
 
-            # Each alias gets a shallow copy to share _content with the parent
-            # variable — this is intentional so that parsed values from aliases
-            # flow to the parent for reduction. Deep copy happens at line 115
-            # (per-file isolation), not here (intra-template sharing).
+            # Aliases share content within a template; work items deep-copy the
+            # template to isolate files.
             for pid in parsed_ids:
                 if pid != name:
                     var_map[pid] = copy.copy(stat_obj)

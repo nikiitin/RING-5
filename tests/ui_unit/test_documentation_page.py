@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-# ── _link_card ───────────────────────────────────────────────────────
+# _link_card
 
 
 class TestLinkCard:
@@ -55,7 +55,7 @@ class TestLinkCard:
         assert "docs/api/Backend-Facade.md" in call_args
 
 
-# ── show_documentation_page ──────────────────────────────────────────
+# show_documentation_page
 
 
 class TestShowDocumentationPage:

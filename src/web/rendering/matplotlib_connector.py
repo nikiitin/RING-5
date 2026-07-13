@@ -137,9 +137,7 @@ class FigureSpecToMatplotlib:
             if render_result and render_result.heatmap_image is not None:
                 FigureSpecToMatplotlib._apply_colorbar(spec, ax, render_result.heatmap_image)
 
-    # ────────────────────────────────────────────────────────────
     # Per-trace styling (parity with the Plotly connector)
-    # ────────────────────────────────────────────────────────────
 
     @staticmethod
     def _styleable_handles(ax: Axes) -> list[tuple[Any, str]]:
@@ -679,8 +677,7 @@ class FigureSpecToMatplotlib:
             result = result.replace(char, f"\\{char}")
         return result
 
-    # ── Layout decoration helpers ─────────────────────────────────────
-
+    # Layout decoration helpers
     _DASH_MAP: dict[str, str] = {
         "solid": "-",
         "dash": "--",
@@ -891,7 +888,7 @@ class FigureSpecToMatplotlib:
             if not ann.text:
                 continue
 
-            # ── Resolve coordinates ────────────────────────────────
+            # Resolve coordinates
             x_coord: float | str = ann.x
             y_coord: float | str = ann.y
 
@@ -1002,7 +999,7 @@ class FigureSpecToMatplotlib:
         if spec.axes is None:
             return
 
-        # ── Bottom (X) axis line ─────────────────────────────────
+        # Bottom (X) axis line
         x = spec.axes.x
         if x.tick_font_color:
             ax.tick_params(axis="x", colors=x.tick_font_color)
@@ -1025,7 +1022,7 @@ class FigureSpecToMatplotlib:
         else:
             ax.spines["top"].set_visible(False)
 
-        # ── Left (Y) axis line ───────────────────────────────────
+        # Left (Y) axis line
         y = spec.axes.y
         if y.tick_font_color:
             ax.tick_params(axis="y", colors=y.tick_font_color)

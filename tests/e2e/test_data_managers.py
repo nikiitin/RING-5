@@ -21,9 +21,7 @@ pytestmark = pytest.mark.requires_browser
 _E2E_TIMEOUT: int = 30_000
 
 
-# ---------------------------------------------------------------------------
 # Helpers — Streamlit widget interaction
-# ---------------------------------------------------------------------------
 
 
 def _select_dropdown_option(page: Page, selectbox: Locator, text: str) -> None:
@@ -58,9 +56,7 @@ def _add_multiselect_option(page: Page, multiselect: Locator, text: str) -> None
     page.wait_for_timeout(200)
 
 
-# ===================================================================
 # Page structure
-# ===================================================================
 
 
 @pytest.mark.xdist_group("e2e_data_managers_structure")
@@ -108,9 +104,7 @@ class TestDataManagersPageStructure:
         expect(dm.no_data_warning).not_to_be_visible()
 
 
-# ===================================================================
 # Outlier Remover
-# ===================================================================
 
 
 @pytest.mark.xdist_group("e2e_data_managers_outlier")
@@ -144,9 +138,7 @@ class TestOutlierRemover:
         dm.assert_success_message_visible()
 
 
-# ===================================================================
 # Seeds Reducer
-# ===================================================================
 
 
 @pytest.mark.xdist_group("e2e_data_managers_seeds")
@@ -179,9 +171,7 @@ class TestSeedsReducer:
         dm.assert_success_message_visible()
 
 
-# ===================================================================
 # Mixer
-# ===================================================================
 
 
 @pytest.mark.xdist_group("e2e_data_managers_mixer")
@@ -219,9 +209,7 @@ class TestMixer:
         dm.assert_success_message_visible()
 
 
-# ===================================================================
 # Preprocessor
-# ===================================================================
 
 
 @pytest.mark.xdist_group("e2e_data_managers_preproc")
@@ -260,9 +248,7 @@ class TestPreprocessor:
         dm.assert_success_message_visible()
 
 
-# ===================================================================
 # Operations History
-# ===================================================================
 
 
 @pytest.mark.xdist_group("e2e_data_managers_history")

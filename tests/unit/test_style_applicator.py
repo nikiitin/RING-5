@@ -6,9 +6,7 @@ import plotly.graph_objects as go
 
 from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
 
-# ---------------------------------------------------------------------------
 # Helpers
-# ---------------------------------------------------------------------------
 
 
 def _bar_fig() -> go.Figure:
@@ -26,9 +24,7 @@ def _multi_bar_fig() -> go.Figure:
     return fig
 
 
-# ===================================================================
 # Public API: apply_styles
-# ===================================================================
 
 
 class TestApplyStyles:

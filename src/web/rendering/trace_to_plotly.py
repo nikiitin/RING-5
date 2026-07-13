@@ -159,7 +159,7 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
     return fig
 
 
-# ── Private helpers ──────────────────────────────────────────────────────
+# Private helpers
 
 
 def _convert_trace(trace: TraceConfig) -> go.BaseTraceType:  # type: ignore[name-defined]

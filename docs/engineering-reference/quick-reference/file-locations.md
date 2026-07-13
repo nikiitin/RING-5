@@ -313,7 +313,7 @@ All under `src/web/components/plotting/settings/`:
 - **Architecture**: `tests/unit/test_architecture_boundary.py`
 - **State**: `tests/unit/test_state_repositories.py`, `tests/unit/test_repository_state_manager.py`
 - **Parsing**: `tests/unit/test_parsing_services.py`, `tests/unit/test_parse_service.py`
-- **Scanner**: `tests/unit/test_scanning.py`, `tests/unit/test_scanner_comprehensive.py`
+- **Scanner**: `tests/unit/test_scanning.py`, `tests/unit/test_gem5_stats_scanner.py`
 - **Shapers**: `tests/unit/test_pipeline_service.py`, `tests/unit/test_shaper_edge_cases.py`
 - **Plot types**: `tests/unit/test_plot_types.py`, `tests/unit/test_plot_classes.py`
 - **Rendering**: `tests/unit/test_trace_to_plotly.py`, `tests/unit/test_engine_manager.py`
@@ -321,4 +321,4 @@ All under `src/web/components/plotting/settings/`:
 - **Settings pills**: `tests/unit/test_settings_pills.py`, `tests/ui_logic/test_settings_pills.py`
 - **Controllers**: `tests/unit/test_plot_controllers.py`, `tests/ui_logic/test_creation_controller.py`
 - **Full pipeline E2E**: `tests/integration/test_full_pipeline_e2e.py`
-- **Visual E2E**: `tests/visual/test_comprehensive_e2e.py`
+- **Visual E2E**: `tests/visual/test_full_workflow_e2e.py`

@@ -32,7 +32,7 @@ def plot() -> GroupedStackedBarPlot:
     return GroupedStackedBarPlot(1, "Test")
 
 
-# ── Figure creation tests ────────────────────────────────────────
+# Figure creation tests
 
 
 class TestDualAxisCreateFigure:
@@ -355,8 +355,7 @@ class TestDualAxisDotScenarios:
         assert right_pattern.shape == "/"
 
 
-# ── Config UI tests ──────────────────────────────────────────────
-
+# Config UI tests
 _MOD = "src.web.pages.ui.plotting.types.grouped_stacked_bar_plot"
 _CFG_MOD = "src.web.components.plotting.config.grouped_stacked_bar_config"
 
@@ -438,10 +437,10 @@ class TestDualAxisConfigUI:
         mock_st.selectbox.side_effect = ["Bench", "Cfg"]
 
         # multiselect calls in order:
-        # 1. y_columns
-        # 2. y_columns_right (inside dual_axis block)
-        # 3. x_filter (from PlotConfigComponents mock → but we mock it)
-        # 4. group_filter
+        # y_columns
+        # y_columns_right (inside dual_axis block)
+        # x_filter (from PlotConfigComponents mock → but we mock it)
+        # group_filter
         mock_st.multiselect.side_effect = [
             ["V1"],  # y_columns
             ["V2"],  # y_columns_right
@@ -470,7 +469,7 @@ class TestDualAxisConfigUI:
         assert result["ylabel_right"] == "Right Label"
 
 
-# ── Y-axis rotation tests ───────────────────────────────────────
+# Y-axis rotation tests
 
 
 class TestDualAxisTitleRotation:
@@ -613,7 +612,7 @@ class TestDualAxisTitleRotation:
         assert right_ann[0].font.size == 20
 
 
-# ── Grid line per-axis tests ────────────────────────────────────
+# Grid line per-axis tests
 
 
 class TestDualAxisGridLines:
@@ -704,7 +703,7 @@ class TestDualAxisGridLines:
         assert fig.layout.yaxis2.showgrid is False
 
 
-# ── Legend unification tests ─────────────────────────────────────
+# Legend unification tests
 
 
 class TestDualAxisLegendUnification:
@@ -796,7 +795,7 @@ class TestDualAxisLegendUnification:
         assert cast(go.Scatter, fig.data[1]).legend == "legend2"
 
 
-# ── Dual-axis display settings UI test ───────────────────────────
+# Dual-axis display settings UI test
 
 
 class TestDualAxisDisplaySettingsUI:
@@ -818,7 +817,7 @@ class TestDualAxisDisplaySettingsUI:
         assert "unified_legend" in config
 
 
-# ── Secondary Y typography tests ─────────────────────────────────
+# Secondary Y typography tests
 
 
 class TestSecondaryYTypography:
@@ -894,7 +893,7 @@ class TestSecondaryYTypography:
         assert fig.layout.yaxis2.tickfont.color == "#ff00ff"
 
 
-# ── Separate legends with full controls tests ────────────────────
+# Separate legends with full controls tests
 
 
 class TestSeparateLegendControls:

@@ -54,9 +54,7 @@ class ManagePlotsPage(BasePage):
     def __init__(self, page: Page) -> None:
         super().__init__(page)
 
-    # ------------------------------------------------------------------
     # Helpers
-    # ------------------------------------------------------------------
 
     def _by_label(self, test_id: str, label_text: str) -> Locator:
         """Return a widget locator filtered by its visible label text.
@@ -67,26 +65,20 @@ class ManagePlotsPage(BasePage):
         """
         return self.page.locator(f"[data-testid='{test_id}']").filter(has_text=label_text)
 
-    # ------------------------------------------------------------------
     # Navigation
-    # ------------------------------------------------------------------
 
     def navigate(self) -> None:
         """Open the Manage Plots page via sidebar."""
         self.navigate_to(self.PAGE_NAME)
 
-    # ==================================================================
     #  1. Page-level locators
-    # ==================================================================
 
     @property
     def page_header(self) -> Locator:
         """The 'Manage Plots' heading (scoped to main content)."""
         return self.page.locator("[data-testid='stMainBlockContainer']").get_by_text("Manage Plots")
 
-    # ==================================================================
     #  2. Create Plot form
-    # ==================================================================
 
     @property
     def plot_name_input(self) -> Locator:
@@ -103,9 +95,7 @@ class ManagePlotsPage(BasePage):
         """'Create Plot' form submit button."""
         return self.page.get_by_role("button", name="Create Plot")
 
-    # ==================================================================
     #  3. Plot selector pills
-    # ==================================================================
 
     @property
     def plot_selector_pills(self) -> Locator:
@@ -127,9 +117,7 @@ class ManagePlotsPage(BasePage):
         """
         return self.plot_selector_pills.get_by_role("radio", name=plot_name, exact=True)
 
-    # ==================================================================
     #  4. Controls row (rename / save / load / delete / duplicate)
-    # ==================================================================
 
     @property
     def rename_input(self) -> Locator:
@@ -146,9 +134,7 @@ class ManagePlotsPage(BasePage):
         """'Duplicate' plot button."""
         return self.page.get_by_role("button", name="Duplicate")
 
-    # ==================================================================
     #  5. Pipeline editor (st.fragment)
-    # ==================================================================
 
     @property
     def add_transformation_selectbox(self) -> Locator:
@@ -276,9 +262,7 @@ class ManagePlotsPage(BasePage):
         """'Convert to:' selectbox in Transformer."""
         return self._by_label("stSelectbox", "Convert to")
 
-    # ==================================================================
     #  6. Visualization section (st.fragment)
-    # ==================================================================
 
     @property
     def viz_plot_type_selectbox(self) -> Locator:
@@ -413,9 +397,7 @@ class ManagePlotsPage(BasePage):
             has_text="No processed data"
         )
 
-    # ==================================================================
     #  7. Download section
-    # ==================================================================
 
     @property
     def download_expander(self) -> Locator:
@@ -432,9 +414,7 @@ class ManagePlotsPage(BasePage):
         """Download button inside the download expander."""
         return self.download_expander.get_by_role("button", name="Download")
 
-    # ==================================================================
     #  8. Workspace management
-    # ==================================================================
 
     @property
     def export_path_input(self) -> Locator:
@@ -461,9 +441,7 @@ class ManagePlotsPage(BasePage):
         """'Save Entire Workspace' button."""
         return self.page.get_by_role("button", name="Save Entire Workspace")
 
-    # ==================================================================
     #  ACTIONS — Create Plot
-    # ==================================================================
 
     def fill_plot_name(self, name: str) -> None:
         """Fill the new plot name input.
@@ -518,9 +496,7 @@ class ManagePlotsPage(BasePage):
             timeout=self.RENDER_TIMEOUT,
         )
 
-    # ==================================================================
     #  ACTIONS — Plot Selector
-    # ==================================================================
 
     def select_plot(self, plot_name: str) -> None:
         """Select a plot by clicking its pill when it is not already selected.
@@ -536,9 +512,7 @@ class ManagePlotsPage(BasePage):
         self.wait_for_streamlit(expect_rerun=True)
         expect(pill).to_be_checked(timeout=self.RENDER_TIMEOUT)
 
-    # ==================================================================
     #  ACTIONS — Controls row
-    # ==================================================================
 
     def rename_plot(self, new_name: str) -> None:
         """Rename the currently selected plot.
@@ -560,9 +534,7 @@ class ManagePlotsPage(BasePage):
         self.duplicate_button.click()
         self.wait_for_streamlit(expect_rerun=True)
 
-    # ==================================================================
     #  ACTIONS — Pipeline editor
-    # ==================================================================
 
     def add_shaper(self, shaper_name: str) -> None:
         """Select a shaper type and click 'Add to Pipeline'.
@@ -606,9 +578,7 @@ class ManagePlotsPage(BasePage):
         self.get_step_down_button(index).click()
         self.wait_for_streamlit()
 
-    # ==================================================================
     #  ACTIONS — Column Selector shaper
-    # ==================================================================
 
     def select_all_columns(self) -> None:
         """Add every available column to the 'Columns to keep' multiselect.
@@ -630,9 +600,7 @@ class ManagePlotsPage(BasePage):
         self.page.keyboard.press("Escape")
         self.wait_for_streamlit()
 
-    # ==================================================================
     #  ACTIONS — Visualization
-    # ==================================================================
 
     def select_x_axis(self, column: str) -> None:
         """Select a column for the X-axis."""
@@ -714,9 +682,7 @@ class ManagePlotsPage(BasePage):
             return
         expect(pill).to_be_checked(timeout=60_000)
 
-    # ==================================================================
     #  ASSERTIONS
-    # ==================================================================
 
     def assert_page_header_visible(self) -> None:
         """Assert the manage plots heading is displayed."""

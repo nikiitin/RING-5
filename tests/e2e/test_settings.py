@@ -15,9 +15,7 @@ from tests.visual.pages.manage_plots_page import ManagePlotsPage
 pytestmark = pytest.mark.requires_browser
 
 
-# ---------------------------------------------------------------------------
 # Settings pills & config inputs
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.xdist_group("e2e_settings")

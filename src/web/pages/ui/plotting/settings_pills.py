@@ -39,9 +39,7 @@ class SettingsSection:
     advanced: bool = False
 
 
-# ------------------------------------------------------------------
 # Top-level navigation sections
-# ------------------------------------------------------------------
 
 SETTINGS_SECTIONS: list[SettingsSection] = [
     # Basic sections — always visible

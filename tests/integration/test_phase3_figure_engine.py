@@ -21,8 +21,7 @@ from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
 from src.web.rendering.config_builder import ConfigSpecBuilder
 from src.web.rendering.plotly_connector import FigureSpecToPlotly
 
-# ─── Fixtures ────────────────────────────────────────────────────────────────
-
+# Fixtures
 _BASE_CONFIG: dict[str, Any] = {
     "x": "benchmark",
     "y": "ipc",
@@ -73,7 +72,7 @@ def bar_config() -> dict[str, Any]:
     return dict(_BASE_CONFIG)
 
 
-# ─── 1. Creator + Styler inline end-to-end ───────────────────────────────────
+# 1. Creator + Styler inline end-to-end
 
 
 class TestFigureEngineEndToEnd:
@@ -147,7 +146,7 @@ class TestFigureEngineEndToEnd:
         assert cast(go.Bar, fig.data[0]).name == "Renamed"
 
 
-# ─── 2. ConfigSpecBuilder ↔ Plotly layout agreement ─────────────────────────
+# 2. ConfigSpecBuilder ↔ Plotly layout agreement
 
 
 class TestConfigSpecRoundTrip:
@@ -211,7 +210,7 @@ class TestConfigSpecRoundTrip:
         assert spec_fig.layout.bargap == app_fig.layout.bargap
 
 
-# ─── 3. Spec survives serialization ─────────────────────────────────────────
+# 3. Spec survives serialization
 
 
 class TestSpecSerialization:
@@ -245,7 +244,7 @@ class TestSpecSerialization:
         assert spec.dimensions.bargap == 0.2
 
 
-# ─── 4. Multi-type engine dispatch ──────────────────────────────────────────
+# 4. Multi-type engine dispatch
 
 
 class TestMultiTypeEngineIntegration:

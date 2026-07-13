@@ -41,17 +41,13 @@ class DataSourcePage(BasePage):
     def __init__(self, page: Page) -> None:
         super().__init__(page)
 
-    # ------------------------------------------------------------------
     # Navigation
-    # ------------------------------------------------------------------
 
     def navigate(self) -> None:
         """Open the Data Source page via sidebar."""
         self.navigate_to(self.PAGE_NAME)
 
-    # ==================================================================
     # SECTION 1: Top-level elements (always visible)
-    # ==================================================================
 
     @property
     def step_header(self) -> Locator:
@@ -65,9 +61,7 @@ class DataSourcePage(BasePage):
             "[data-testid='stMainBlockContainer'] " "[data-testid='stAlert']"
         ).first
 
-    # ==================================================================
     # SECTION 2: Segmented control (mode selector)
-    # ==================================================================
 
     @property
     def segmented_control(self) -> Locator:
@@ -89,12 +83,9 @@ class DataSourcePage(BasePage):
         """'Load from Recent' option."""
         return self.segmented_control.get_by_role("radio", name="Load from Recent")
 
-    # ==================================================================
     # SECTION 3: Parser config (Parse mode)
-    # ==================================================================
 
     # 3a — Simulator selector (pills)
-    # ------------------------------------------------------------------
 
     @property
     def simulator_pills(self) -> Locator:
@@ -107,7 +98,6 @@ class DataSourcePage(BasePage):
         return self.simulator_pills.get_by_role("radio", name="gem5")
 
     # 3b — File Location
-    # ------------------------------------------------------------------
 
     @property
     def file_location_header(self) -> Locator:
@@ -135,7 +125,6 @@ class DataSourcePage(BasePage):
         return self.page.get_by_text("File pattern")
 
     # 3b — Parsing Strategy
-    # ------------------------------------------------------------------
 
     @property
     def strategy_header(self) -> Locator:
@@ -160,7 +149,6 @@ class DataSourcePage(BasePage):
         )
 
     # 3c — Variables to Extract
-    # ------------------------------------------------------------------
 
     @property
     def variables_header(self) -> Locator:
@@ -197,7 +185,6 @@ class DataSourcePage(BasePage):
         return self.page.get_by_role("button", name="Add Variable")
 
     # 3d — Configuration Preview
-    # ------------------------------------------------------------------
 
     @property
     def config_preview_header(self) -> Locator:
@@ -210,7 +197,6 @@ class DataSourcePage(BasePage):
         return self.page.locator("[data-testid='stJson']")
 
     # 3e — Parse button (outside fragment)
-    # ------------------------------------------------------------------
 
     @property
     def parse_button(self) -> Locator:
@@ -231,9 +217,7 @@ class DataSourcePage(BasePage):
             "[data-testid='stMainBlockContainer'] " "[data-testid='stAlertContentError']"
         )
 
-    # ==================================================================
     # SECTION 4: CSV mode
-    # ==================================================================
 
     @property
     def csv_success_message(self) -> Locator:
@@ -242,9 +226,7 @@ class DataSourcePage(BasePage):
             "[data-testid='stMainBlockContainer'] " "[data-testid='stAlertContentSuccess']"
         ).filter(has_text="CSV mode selected")
 
-    # ==================================================================
     # SECTION 5: Recent CSV pool (Load from Recent mode)
-    # ==================================================================
 
     @property
     def recent_header(self) -> Locator:
@@ -280,9 +262,7 @@ class DataSourcePage(BasePage):
         """All file card expanders in the Recent section."""
         return self.page.locator("[data-testid='stExpander']")
 
-    # ==================================================================
     # SECTION 6: Add Variable dialog
-    # ==================================================================
 
     @property
     def dialog_overlay(self) -> Locator:
@@ -355,9 +335,7 @@ class DataSourcePage(BasePage):
         """Close (X) button on the dialog header."""
         return self.dialog_overlay.locator("button[aria-label='Close']")
 
-    # ==================================================================
     # SECTION 7: Variable editor (visible when variables are configured)
-    # ==================================================================
 
     @property
     def current_variables_label(self) -> Locator:
@@ -381,9 +359,7 @@ class DataSourcePage(BasePage):
         """'+ Add Manual' button in the variable editor."""
         return self.page.get_by_role("button", name="Add Manual")
 
-    # ==================================================================
     # SECTION 8: Parsing dialog
-    # ==================================================================
 
     @property
     def parse_dialog(self) -> Locator:
@@ -400,9 +376,7 @@ class DataSourcePage(BasePage):
         """'Close & Reload' button in the parse dialog."""
         return self.parse_dialog.get_by_role("button", name="Close & Reload")
 
-    # ==================================================================
     # Actions
-    # ==================================================================
 
     def _is_mode_active(self, option: Locator) -> bool:
         """Return whether a segmented-control radio option is selected."""
@@ -607,9 +581,7 @@ class DataSourcePage(BasePage):
         shutil.copy(str(csv_path), str(staged))
         self.load_recent_csv_by_name(staged.name)
 
-    # ==================================================================
     # Assertions
-    # ==================================================================
 
     def assert_step_header_visible(self) -> None:
         """Assert the step header is displayed."""
@@ -734,9 +706,7 @@ class DataSourcePage(BasePage):
             value = rows_metric.locator("[data-testid='stMetricValue']")
             expect(value).to_contain_text(str(row_count), timeout=self.RENDER_TIMEOUT)
 
-    # ==================================================================
     # E2E: Scan workflow
-    # ==================================================================
 
     def scan_and_wait(self, *, timeout: int = 30_000) -> None:
         """Click Quick Scan and wait for the scan to complete.
@@ -768,9 +738,7 @@ class DataSourcePage(BasePage):
         match = re.search(r"(\d+)\s+variables", text)
         return int(match.group(1)) if match else 0
 
-    # ==================================================================
     # E2E: Add variable from scanned results (dialog Search mode)
-    # ==================================================================
 
     def add_variable_from_scan(self, index: int = 0) -> None:
         """Open dialog, select a scanned variable by index, and add it.
@@ -840,9 +808,7 @@ class DataSourcePage(BasePage):
                 raise
         self.wait_for_streamlit()
 
-    # ==================================================================
     # E2E: Variable editor — verify added variables
-    # ==================================================================
 
     @property
     def variable_name_inputs(self) -> Locator:
@@ -872,9 +838,7 @@ class DataSourcePage(BasePage):
                 timeout=self.RENDER_TIMEOUT
             )
 
-    # ==================================================================
     # E2E: Parse workflow
-    # ==================================================================
 
     def parse_and_wait(self, *, timeout: int = 60_000) -> None:
         """Click Parse and wait for the parse dialog to complete.

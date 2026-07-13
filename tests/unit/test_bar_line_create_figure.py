@@ -20,7 +20,7 @@ def sample_data() -> pd.DataFrame:
     )
 
 
-# ── BarPlot ──────────────────────────────────────────────────────────
+# BarPlot
 
 
 class TestBarPlotCreateFigure:
@@ -115,7 +115,7 @@ class TestBarPlotCreateFigure:
         assert plot.get_legend_column({}) is None
 
 
-# ── LinePlot ─────────────────────────────────────────────────────────
+# LinePlot
 
 
 class TestLinePlotCreateFigure:

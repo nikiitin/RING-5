@@ -1,14 +1,4 @@
-"""Visual tests for Data Source page — Add Variable dialog.
-
-Consolidated from 18 individual tests to 4 workflow-style tests using
-a class-scoped ``shared_page`` fixture.
-
-Covers:
-- Dialog lifecycle (open, close, reopen, escape, pills)
-- Search mode (warnings, pill state)
-- Manual Entry workflow (switch, fill, config, advanced, add, switch back)
-- Validation and submission (empty name error, successful add)
-"""
+"""Visual tests for the Data Source Add Variable dialog."""
 
 from __future__ import annotations
 
@@ -21,7 +11,7 @@ pytestmark = pytest.mark.requires_browser
 
 
 class TestAddVariableDialog:
-    """Consolidated Add Variable dialog tests.
+    """Ordered Add Variable dialog checks.
 
     Uses ``shared_page`` (class-scoped) so the browser tab is created once
     and reused across all four tests.
@@ -30,7 +20,6 @@ class TestAddVariableDialog:
     def test_dialog_lifecycle(self, shared_page: Page, live_server_url: str) -> None:
         """Dialog opens, closes (X button & Escape), and reopens correctly.
 
-        Consolidates 6 original tests:
         - Dialog opens on click
         - Dialog title says 'Add Variable'
         - Dialog closes with X button
@@ -66,7 +55,6 @@ class TestAddVariableDialog:
     def test_search_mode(self, shared_page: Page, live_server_url: str) -> None:
         """Search mode shows warning when no variables are scanned.
 
-        Consolidates 3 original tests:
         - No vars warning when empty
         - Warning text mentions scan/Run
         - Search pill is active/visible
@@ -89,7 +77,6 @@ class TestAddVariableDialog:
     def test_manual_entry_workflow(self, shared_page: Page, live_server_url: str) -> None:
         """Manual Entry mode: switch, fill name, see config & advanced, switch back.
 
-        Consolidates 7 original tests:
         - Switch to Manual Entry mode
         - Name input is editable
         - Type selectbox visible
@@ -129,7 +116,6 @@ class TestAddVariableDialog:
     def test_validation_and_add(self, shared_page: Page, live_server_url: str) -> None:
         """Validation errors and successful manual add work correctly.
 
-        Consolidates 2 original tests:
         - Add without name shows error
         - Successful manual add closes the dialog
         """

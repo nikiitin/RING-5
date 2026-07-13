@@ -11,9 +11,7 @@ from typing import Any, cast
 import plotly.graph_objects as go
 import pytest
 
-# =============================================================================
 # Fixtures
-# =============================================================================
 
 
 @pytest.fixture
@@ -35,9 +33,7 @@ def simple_figure() -> go.Figure:
     return fig
 
 
-# =============================================================================
 # Plotly Reference Line Tests (via StyleApplicator)
-# =============================================================================
 
 
 class TestPlotlyReferenceLine:
@@ -156,9 +152,7 @@ class TestPlotlyReferenceLine:
             assert hlines[0].line.dash == style
 
 
-# =============================================================================
 # Config Propagation Tests
-# =============================================================================
 
 
 class TestReferenceLineConfig:

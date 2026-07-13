@@ -15,10 +15,8 @@ def mock_streamlit() -> Generator[None, None, None]:
         mock_st.columns.side_effect = columns_side_effect
         mock_st.session_state = {}
 
-        # Fragment passthrough — execute the decorated function directly
+        # Execute fragmented functions synchronously.
         mock_st.fragment.side_effect = lambda func: func
-
-        # Containers
         mock_st.container.return_value.__enter__.return_value = MagicMock()
         mock_st.spinner.return_value.__enter__.return_value = MagicMock()
 
@@ -100,22 +98,17 @@ def test_render_csv_pool_delete(
 
 
 def test_render_parser_config(mock_streamlit: Any, mock_api: Any) -> None:
-
-    # Simulate clicking "Quick Scan" button
     mock_streamlit.button.side_effect = lambda label, **k: "Quick Scan" in label
-
-    # Mock simulator and strategy to avoid selectbox errors
     mock_api.state_manager.get_simulator.return_value = "gem5"
     mock_api.state_manager.get_parser_strategy.return_value = "simple"
     mock_api.state_manager.get_scanned_variables.return_value = []
 
-    # Mock the scan workflow
     mock_future = MagicMock()
     mock_future.result.return_value = {}
     mock_api.submit_scan_async.return_value = [mock_future]
     mock_api.finalize_scan.return_value = ScanResult(variables=[])
 
-    # Patch as_completed so mock futures don't hang
+    # Yield the mock futures immediately.
     with patch(
         "src.web.components.data_source.data_source_components.as_completed",
         side_effect=lambda fs: fs,
@@ -123,45 +116,4 @@ def test_render_parser_config(mock_streamlit: Any, mock_api: Any) -> None:
         DataSourceComponents.render_parser_config(mock_api)
 
     mock_api.submit_scan_async.assert_called()
-    # Check that rerun was called
     mock_streamlit.rerun.assert_called()
-
-
-def test_execute_parser_success(mock_streamlit: Any, mock_api: Any) -> None:
-    """Test that parsing button triggers async parse workflow."""
-    stats_path = "/stats"
-    pattern = "*.txt"
-
-    from src.core.models import ParseBatchResult
-
-    # Mock async workflow
-    mock_future = MagicMock()
-    mock_future.result.return_value = {"data": "test"}
-    mock_api.backend.submit_parse_async.return_value = ParseBatchResult(
-        futures=[mock_future], var_names=["test_var"]
-    )
-
-    generated_csv = "/output.csv"
-    mock_api.backend.finalize_parsing.return_value = generated_csv
-    mock_api.backend.load_csv_file.return_value = MagicMock()
-
-    with patch("pathlib.Path.exists", return_value=True):
-        # Test the async submission
-        batch = mock_api.backend.submit_parse_async(stats_path, pattern, [], "/tmp")
-        assert len(batch.futures) == 1
-
-        # Test finalization
-        results = [f.result() for f in batch.futures]
-        csv_path = mock_api.backend.finalize_parsing("/tmp", results, var_names=batch.var_names)
-        assert csv_path == generated_csv
-
-
-def test_execute_parser_no_files(mock_streamlit: Any, mock_api: Any) -> None:
-    """Test that we can handle the case when submit_parse_async would fail."""
-    # This test verifies the mock can be called - the actual FileNotFoundError
-    # is raised by the real ParseService when Path doesn't exist
-    # Here we're just testing the UI layer doesn't break
-    mock_api.backend.submit_parse_async.side_effect = FileNotFoundError("No files found")
-
-    with pytest.raises(FileNotFoundError):
-        mock_api.backend.submit_parse_async("/p", "*.txt", [], "/tmp")

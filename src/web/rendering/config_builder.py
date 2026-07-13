@@ -78,7 +78,7 @@ class PlotlyFigureSpecBuilder:
         if layout is None:
             return
 
-        # ── Tick positions / labels ─────────────────────────────
+        # Tick positions / labels
         xaxis = getattr(layout, "xaxis", None)
         if xaxis is not None:
             tv = getattr(xaxis, "tickvals", None)
@@ -101,19 +101,19 @@ class PlotlyFigureSpecBuilder:
                 raw_t = tt.tolist() if hasattr(tt, "tolist") else list(tt)
                 object.__setattr__(spec.axes.y, "tick_text", [str(t) for t in raw_t])
 
-        # ── Annotations ─────────────────────────────────────────
+        # Annotations
         # Only merge if spec has none (avoid duplicating config-based ones)
         if not spec.annotations:
             object.__setattr__(spec, "annotations", _extract_annotations(layout))
 
-        # ── Barmode ─────────────────────────────────────────────
+        # Barmode
         plotly_barmode = getattr(layout, "barmode", None)
         if plotly_barmode is not None:
             barmode_str = str(plotly_barmode)
             if barmode_str in ("group", "stack", "overlay", "relative"):
                 object.__setattr__(spec, "barmode", barmode_str)
 
-        # ── Legend3 (tertiary legend items) ─────────────────────────
+        # Legend3 (tertiary legend items)
         legend3 = getattr(layout, "legend3", None)
         if legend3 is not None:
             from src.core.models.visualization.legend_config import LegendConfig
@@ -168,7 +168,7 @@ class ConfigSpecBuilder:
         """
         is_bar = "bar" in plot_type
 
-        # ── Dimensions (dpi=1 ⇒ px passthrough) ─────────────────
+        # Dimensions (dpi=1 ⇒ px passthrough)
         margins = MarginsConfig(
             top=float(config.get("margin_t", 80)),
             bottom=float(config.get("margin_b", 120)),
@@ -185,7 +185,7 @@ class ConfigSpecBuilder:
             bargroupgap=config.get("bargroupgap", 0.0) if "grouped" in plot_type else 0.0,
         )
 
-        # ── Typography ───────────────────────────────────────────
+        # Typography
         typo = TypographyConfig(
             font_size_title=config.get("title_font_size", 18),
             font_size_xlabel=config.get("xaxis_title_font_size", 14),
@@ -195,7 +195,7 @@ class ConfigSpecBuilder:
             font_size_legend=config.get("legend_font_size", 12),
         )
 
-        # ── Axes ─────────────────────────────────────────────────
+        # Axes
         x_label = str(config.get("xlabel") or config.get("xaxis_title") or "").replace(
             "undefined", ""
         )
@@ -269,26 +269,26 @@ class ConfigSpecBuilder:
             right_axis_line_color=config.get("right_axis_line_color", "#444"),
         )
 
-        # ── Primary Legend ───────────────────────────────────────
+        # Primary Legend
         primary_legend = _build_legend_from_config(config, "legend_", "primary")
         legends: list[LegendConfig] = [primary_legend]
 
-        # ── Secondary legend from UI (dual-axis) ────────────────
+        # Secondary legend from UI (dual-axis)
         if any(config.get(f"legend2_{k}") is not None for k in ("font_size", "x", "ncols")):
             legends.append(_build_legend_from_config(config, "legend2_", "secondary"))
 
-        # ── Boxed legend from UI ─────────────────────────────────
+        # Boxed legend from UI
         if any(config.get(f"legend3_{k}") is not None for k in ("font_size", "x", "ncols")):
             legends.append(_build_legend_from_config(config, "legend3_", "tertiary"))
 
-        # ── Backgrounds ──────────────────────────────────────────
+        # Backgrounds
         paper_bg = config.get("paper_bgcolor", "white")
         plot_bg = config.get("plot_bgcolor", "white")
 
-        # ── Title ────────────────────────────────────────────────
+        # Title
         title = str(config.get("title") or "").replace("undefined", "")
 
-        # ── Data labels ──────────────────────────────────────────
+        # Data labels
         data_labels: DataLabelConfig | None = None
         if config.get("show_values"):
             try:
@@ -336,7 +336,7 @@ class ConfigSpecBuilder:
                 size_constraint=size_constraint,
             )
 
-        # ── Reference lines ─────────────────────────────────────
+        # Reference lines
         reference_lines: list[ReferenceLineConfig] = []
         if config.get("reference_line_enabled"):
             rl = ReferenceLineConfig(
@@ -350,7 +350,7 @@ class ConfigSpecBuilder:
             )
             reference_lines.append(rl)
 
-        # ── Series styling (global defaults) ─────────────────────
+        # Series styling (global defaults)
         series_styles: list[SeriesStyleConfig] = []
         has_series = any(
             config.get(k) is not None for k in ("bar_border_width", "marker_size", "line_width")
@@ -369,7 +369,7 @@ class ConfigSpecBuilder:
                 )
             )
 
-        # ── Per-trace overrides from UI series_styles dict ───────
+        # Per-trace overrides from UI series_styles dict
         trace_overrides: dict[str, SeriesStyleConfig] = {}
         raw_overrides: dict[str, Any] = config.get("series_styles", {})
         for trace_name_raw, style_dict_raw in raw_overrides.items():
@@ -386,15 +386,15 @@ class ConfigSpecBuilder:
                 hatching_pattern=str(sd.get("pattern", "")),
             )
 
-        # ── Color palette (resolve name → hex list) ─────────────
+        # Color palette (resolve name → hex list)
         color_palette = resolve_palette(config.get("color_palette"))
 
-        # ── Scalar feature flags ─────────────────────────────────
+        # Scalar feature flags
         show_error_bars = bool(config.get("show_error_bars", False))
         enable_stripes = bool(config.get("enable_stripes", False))
         hovermode = config.get("hovermode", "x unified")
 
-        # ── Bar mode ────────────────────────────────────────────
+        # Bar mode
         barmode_raw_str = str(config.get("barmode", "group")).lower()
         if barmode_raw_str not in ("group", "stack", "overlay", "relative"):
             barmode_raw_str = "group"
@@ -422,9 +422,7 @@ class ConfigSpecBuilder:
         )
 
 
-# ────────────────────────────────────────────────────────────────────
 # Helper: build LegendConfig from prefixed config keys
-# ────────────────────────────────────────────────────────────────────
 
 
 def _build_legend_from_config(
@@ -525,9 +523,7 @@ def _build_legend_from_config(
     )
 
 
-# ────────────────────────────────────────────────────────────────────
 # Helper functions for PlotlyFigureSpecBuilder
-# ────────────────────────────────────────────────────────────────────
 
 
 def _extract_annotations(layout: Any) -> list[AnnotationConfig]:

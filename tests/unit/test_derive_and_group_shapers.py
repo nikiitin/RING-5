@@ -29,7 +29,7 @@ def _df() -> pd.DataFrame:
     )
 
 
-# ── DeriveColumn ──────────────────────────────────────────────────────
+# DeriveColumn
 
 
 def test_derive_sum_skips_nan_like_pandas():
@@ -102,7 +102,7 @@ def test_derive_immutable_and_validation():
         )
 
 
-# ── GroupCardinalitySelector ──────────────────────────────────────────
+# GroupCardinalitySelector
 
 
 def test_group_cardinality_eq_keeps_complete_groups():
@@ -137,7 +137,7 @@ def test_group_cardinality_modes_and_validation():
         )
 
 
-# ── GroupPredicateSelector ────────────────────────────────────────────
+# GroupPredicateSelector
 
 
 def test_group_predicate_drops_zero_baseline_group():
@@ -182,7 +182,7 @@ def test_group_predicate_keep_action_and_validation():
         )
 
 
-# ── Factory registration + UI selectability (registry + display name + config renderer) ──
+# Factory registration + UI selectability (registry + display name + config renderer)
 
 
 def test_new_shapers_registered_and_ui_selectable():

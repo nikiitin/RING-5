@@ -2,7 +2,7 @@
 
 from typing import Any, TypedDict
 
-# ─── Annotation Shapes ───────────────────────────────────────────────────────
+# Annotation Shapes
 
 
 class AnnotationLineConfig(TypedDict, total=False):
@@ -13,12 +13,7 @@ class AnnotationLineConfig(TypedDict, total=False):
 
 
 class AnnotationShapeConfig(TypedDict, total=False):
-    """
-    Configuration for a plot annotation shape (line, circle, rect).
-
-    Consolidated from base_plot.py ShapeConfig. Used in the 'shapes' list
-    within plot config.
-    """
+    """Configuration for a line, circle, or rectangle annotation."""
 
     type: str  # "line", "circle", "rect"
     x0: float | str
@@ -28,16 +23,11 @@ class AnnotationShapeConfig(TypedDict, total=False):
     line: AnnotationLineConfig
 
 
-# ─── Series Styling ──────────────────────────────────────────────────────────
+# Series Styling
 
 
 class SeriesStyleConfig(TypedDict, total=False):
-    """
-    Per-series visual styling (color, marker, pattern, display name).
-
-    Consolidated from base_plot.py SeriesStyle. Stored in config['series_styles']
-    as Dict[str, SeriesStyleConfig] keyed by series value.
-    """
+    """Color, marker, pattern, and display name for a plotted series."""
 
     name: str  # Custom display name
     color: str  # Hex color code (e.g., "#FF5733")
@@ -45,16 +35,11 @@ class SeriesStyleConfig(TypedDict, total=False):
     pattern: str  # For bar charts (/, \\, x, -, |, +, .)
 
 
-# ─── Relayout Events ────────────────────────────────────────────────────────
+# Relayout Events
 
 
 class RelayoutEventData(TypedDict, total=False):
-    """
-    Typed wrapper for Plotly relayout event data.
-
-    Consolidated from base_plot.py RelayoutData. Represents the subset of
-    relayout events we track (zoom, legend drag, legend title edit).
-    """
+    """Tracked Plotly zoom, pan, and legend relayout values."""
 
     # Axis ranges (zoom/pan)
     xaxis_range: list[float]
@@ -70,7 +55,7 @@ class RelayoutEventData(TypedDict, total=False):
     legend_title_text: str
 
 
-# ─── Layout & Dimensions ────────────────────────────────────────────────────
+# Layout & Dimensions
 
 
 class MarginsConfig(TypedDict, total=False):
@@ -112,7 +97,7 @@ class PlotDisplayConfig(TypedDict, total=False):
         - Advanced: ordering, shapes, error bars, export
     """
 
-    # ── Identity & Axes ──
+    # Identity & Axes
     x: str  # X-axis column name
     y: str  # Y-axis column name
     title: str  # Plot title text
@@ -120,42 +105,42 @@ class PlotDisplayConfig(TypedDict, total=False):
     ylabel: str  # Y-axis label
     legend_title: str  # Legend title text
 
-    # ── Grouping ──
+    # Grouping
     color: str | None  # Color-by column
     group: str | None  # Group-by column (grouped/stacked bars)
 
-    # ── Column Metadata (computed, not user-set) ──
+    # Column Metadata (computed, not user-set)
     numeric_cols: list[str]
     categorical_cols: list[str]
 
-    # ── Dimensions & Layout ──
+    # Dimensions & Layout
     width: int  # Plot width in pixels
     height: int  # Plot height in pixels
     margins: MarginsConfig
     template: str  # Plotly template name
 
-    # ── Typography ──
+    # Typography
     typography: TypographyConfig
 
-    # ── Colors & Background ──
+    # Colors & Background
     paper_bgcolor: str
     plot_bgcolor: str
     show_grid: bool
     grid_color: str
     grid_width: int
 
-    # ── Axis Configuration ──
+    # Axis Configuration
     xaxis_tickangle: int  # Label rotation (-90 to 90)
     xaxis_dtick: float | None  # X-axis step (None = auto)
     yaxis_dtick: float | None  # Y-axis step (None = auto)
     xaxis_labels: dict[str, str]  # Renamed x-axis tick labels
 
-    # ── Ordering ──
+    # Ordering
     xaxis_order: list[str] | None  # Custom x-axis category order
     group_order: list[str] | None  # Custom group order
     legend_order: list[str] | None  # Custom legend item order
 
-    # ── Interactive State (from relayout events) ──
+    # Interactive State (from relayout events)
     range_x: list[float] | None  # Current zoom range for x-axis
     range_y: list[float] | None  # Current zoom range for y-axis
     legend_x: float | None  # Legend x position
@@ -163,31 +148,31 @@ class PlotDisplayConfig(TypedDict, total=False):
     legend_xanchor: str | None  # Legend x anchor
     legend_yanchor: str | None  # Legend y anchor
 
-    # ── Legend Labels ──
+    # Legend Labels
     legend_labels: dict[str, str] | None  # Original → display label
 
-    # ── Series Styling ──
+    # Series Styling
     series_styles: dict[str, SeriesStyleConfig]
 
-    # ── Annotations ──
+    # Annotations
     shapes: list[AnnotationShapeConfig]
 
-    # ── Error Bars ──
+    # Error Bars
     show_error_bars: bool
 
-    # ── Bar-specific ──
+    # Bar-specific
     bargap: float  # Spacing between bars
     bargroupgap: float  # Spacing between groups
     bar_border_width: float  # Border width for stacked segments
 
-    # ── Export ──
+    # Export
     download_format: str  # "html", "png", "pdf", "svg"
     export_scale: int  # 1, 2, or 3
 
-    # ── Interactivity ──
+    # Interactivity
     enable_editable: bool  # Enable drag/edit on plot
 
-    # ── Margins (flat keys consumed by ConfigSpecBuilder → FigureConfig) ──
+    # Margins (flat keys consumed by ConfigSpecBuilder → FigureConfig)
     margin_t: int
     margin_b: int
     margin_l: int
@@ -195,7 +180,7 @@ class PlotDisplayConfig(TypedDict, total=False):
     margin_pad: int
     automargin: bool
 
-    # ── Axis colors ──
+    # Axis colors
     axis_color: str
     xaxis_tickfont_size: int
     xaxis_tickfont_color: str
@@ -206,10 +191,10 @@ class PlotDisplayConfig(TypedDict, total=False):
     yaxis_title_standoff: int
     yaxis_title_vshift: int
 
-    # ── Title font ──
+    # Title font
     title_font_size: int
 
-    # ── Legend styling ──
+    # Legend styling
     legend_orientation: str
     legend_font_color: str
     legend_font_size: int
@@ -222,7 +207,7 @@ class PlotDisplayConfig(TypedDict, total=False):
     legend_ncols: int
     legend_col_width: int
 
-    # ── Data labels ──
+    # Data labels
     show_values: bool
     text_format: str
     text_position: str
@@ -235,18 +220,18 @@ class PlotDisplayConfig(TypedDict, total=False):
     text_display_logic: str
     text_threshold: float
 
-    # ── Color palette ──
+    # Color palette
     color_palette: str
     enable_stripes: bool
 
-    # ── Reference line ──
+    # Reference line
     reference_line_enabled: bool
     reference_line_y: float
     reference_line_color: str
     reference_line_width: float
     reference_line_style: str
 
-    # ── Filter columns ──
+    # Filter columns
     x_filter: list[str] | None
     group_filter: list[str] | None
 

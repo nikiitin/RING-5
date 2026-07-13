@@ -19,9 +19,7 @@ from src.core.models.data_models import PipelineStep
 from src.core.models.shaper_models import ShaperStepConfig
 from tests.ui.helpers import create_app_with_data, get_api, navigate_to
 
-# ---------------------------------------------------------------------------
 # Helpers
-# ---------------------------------------------------------------------------
 
 
 def _create_plot_and_finalize(
@@ -51,9 +49,7 @@ def _create_plot_and_finalize(
     return plot
 
 
-# ---------------------------------------------------------------------------
 # Data → Transform → Render chain
-# ---------------------------------------------------------------------------
 class TestDataTransformRenderChain:
     """Full chain: load data → apply shapers → build figure."""
 
@@ -193,9 +189,7 @@ class TestDataTransformRenderChain:
         assert isinstance(fig, go.Figure)
 
 
-# ---------------------------------------------------------------------------
 # Pipeline modification cycle
-# ---------------------------------------------------------------------------
 class TestPipelineModificationCycle:
     """Modify pipeline → re-process → verify output changes."""
 
@@ -252,9 +246,7 @@ class TestPipelineModificationCycle:
         pd.testing.assert_frame_equal(result1, result2)
 
 
-# ---------------------------------------------------------------------------
 # Data → Transform → UI rendering
-# ---------------------------------------------------------------------------
 class TestDataToUIRendering:
     """Full chain through AppTest: data → transform → page render."""
 
@@ -317,9 +309,7 @@ class TestDataToUIRendering:
         assert len(plot.processed_data) == len(raw)
 
 
-# ---------------------------------------------------------------------------
 # Portfolio round-trip with plots
-# ---------------------------------------------------------------------------
 class TestPortfolioRoundTripWithPlots:
     """Save portfolio with plots → load → verify consistency."""
 

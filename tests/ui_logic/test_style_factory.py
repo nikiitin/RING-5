@@ -63,7 +63,6 @@ class TestStyleUIFactory:
 
         result = StyleUIFactory.get_strategy(1, "dual_axis_bar_dot")
         assert isinstance(result, BaseStyleUI)
-        # Assert it is NOT BarStyleUI (exact BaseStyleUI)
         from src.web.pages.ui.plotting.styles.bar_ui import BarStyleUI
 
         assert not isinstance(result, BarStyleUI)

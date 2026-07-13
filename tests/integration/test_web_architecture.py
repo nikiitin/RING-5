@@ -26,7 +26,7 @@ from src.web.models.plot_models import (
     TypographyConfig,
 )
 
-# ─── Module Import Tests ────────────────────────────────────────────────────
+# Module Import Tests
 
 
 class TestModuleImports:
@@ -88,7 +88,7 @@ class TestModuleImports:
         assert callable(show_manage_plots_page)
 
 
-# ─── Layer Dependency Tests ─────────────────────────────────────────────────
+# Layer Dependency Tests
 
 
 class TestLayerDependencies:
@@ -112,7 +112,7 @@ class TestLayerDependencies:
         assert "from streamlit" not in source
 
 
-# ─── PlotFactory + StyleApplicator Integration ────────────────────────────────────
+# PlotFactory + StyleApplicator Integration
 
 
 class TestFigureEngineIntegration:
@@ -184,7 +184,7 @@ class TestFigureEngineIntegration:
         assert cast(go.Bar, fig.data[0]).name == "Custom Label"
 
 
-# ─── Model TypedDict Compatibility ──────────────────────────────────────────
+# Model TypedDict Compatibility
 
 
 class TestModelCompatibility:
@@ -229,7 +229,7 @@ class TestModelCompatibility:
         assert shape["type"] == "line"
 
 
-# ─── Controller Boundary Tests ──────────────────────────────────────────────
+# Controller Boundary Tests
 
 
 class TestControllerBoundaries:
@@ -374,7 +374,7 @@ class TestControllerBoundaries:
                 )
 
 
-# ─── Protocol Compliance Tests ──────────────────────────────────────────────
+# Protocol Compliance Tests
 
 
 class TestProtocolCompliance:

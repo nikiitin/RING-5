@@ -1,11 +1,4 @@
-"""
-Tests for stacked bars, histograms, and plot configuration components.
-
-Targets uncovered lines:
-- stacked_bar_plot.py: 22-63 (render_config_ui), 159->163, 212-213, 253->255
-- histogram_plot.py: 51-55, 145, 238->236, 244-246, 249, 364, 373-374
-- plot_config_components.py: 43->59, 97-114, 165->174
-"""
+"""Tests for stacked bars, histograms, and plot configuration components."""
 
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
@@ -13,10 +6,6 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import plotly.graph_objects as go
 import pytest
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 
 
 def _columns_side_effect(*args: Any, **kwargs: Any) -> list[MagicMock]:
@@ -48,17 +37,12 @@ def _sample_histogram_data() -> pd.DataFrame:
     )
 
 
-# ===========================================================================
-# StackedBarPlot
-# ===========================================================================
-
-
 _STACKED_CFG = "src.web.components.plotting.config.stacked_bar_config"
 _HIST_CFG = "src.web.components.plotting.config.histogram_config"
 
 
 class TestStackedBarRenderConfigUI:
-    """Lines 22-63: render_config_ui (calls PlotConfigComponents)."""
+    """Tests for stacked-bar configuration controls."""
 
     @patch(f"{_STACKED_CFG}.PlotConfigComponents")
     @patch(f"{_STACKED_CFG}.detect_column_types")
@@ -117,7 +101,7 @@ class TestStackedBarRenderConfigUI:
 
 
 class TestStackedBarCreateFigure:
-    """Lines 73-98, 134-145, 156-213, 243-258."""
+    """Tests for stacked-bar figure creation."""
 
     def test_empty_config_returns_placeholder(self) -> None:
         from src.web.pages.ui.plotting.types.stacked_bar_plot import StackedBarPlot
@@ -257,13 +241,8 @@ class TestStackedBarCreateFigure:
         assert plot.get_legend_column({}) is None
 
 
-# ===========================================================================
-# HistogramPlot
-# ===========================================================================
-
-
 class TestHistogramRenderConfigUI:
-    """Lines 51-55, 145 in histogram_plot.py."""
+    """Tests for histogram configuration controls."""
 
     @patch(f"{_HIST_CFG}.render_common_config")
     @patch(f"{_HIST_CFG}.st")
@@ -287,7 +266,7 @@ class TestHistogramRenderConfigUI:
 
 
 class TestHistogramCreateFigure:
-    """Lines 238-249, 364, 373-374."""
+    """Tests for histogram figure creation."""
 
     def test_no_histogram_var_raises(self) -> None:
         from src.web.pages.ui.plotting.types.histogram_plot import HistogramPlot
@@ -392,13 +371,8 @@ class TestHistogramCreateFigure:
         assert "latency" in detected
 
 
-# ===========================================================================
-# PlotConfigComponents
-# ===========================================================================
-
-
-class TestPlotConfigComponentsBranches:
-    """Lines 43->59 (no group_col), 97-114 (statistics fallbacks), 165->174 (legend title)."""
+class TestPlotConfigComponents:
+    """Tests for shared plot configuration controls."""
 
     @patch("src.web.components.plotting.config.plot_config_components.st")
     def test_filter_no_group_col(self, mock_st: MagicMock) -> None:
@@ -499,13 +473,8 @@ class TestPlotConfigComponentsBranches:
         assert "legend_title" not in result
 
 
-# ===========================================================================
-# colors.py
-# ===========================================================================
-
-
-class TestColorsBranches:
-    """Lines 61->71, 64-65, 73."""
+class TestColors:
+    """Tests for color palette lookup and conversion."""
 
     def test_get_palette_case_insensitive(self) -> None:
         from src.web.pages.ui.plotting.styles.colors import get_palette_colors

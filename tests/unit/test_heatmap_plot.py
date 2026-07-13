@@ -405,7 +405,7 @@ def test_heatmap_data_labels_format_and_threshold() -> None:
     assert trace.text[0] == ["", "5.0", "10.0"]
 
 
-# ── R1: Facet ordering & renaming ─────────────────────────────────────
+# R1: Facet ordering & renaming
 
 
 def test_heatmap_facet_ordering() -> None:
@@ -483,7 +483,7 @@ def test_heatmap_facet_order_and_rename_combined() -> None:
     assert names == ["Second", "First"]
 
 
-# ── R2: Colorscale from palette ──────────────────────────────────────
+# R2: Colorscale from palette
 
 
 def test_heatmap_colorscale_from_palette() -> None:
@@ -560,7 +560,7 @@ def test_heatmap_colorscale_legacy_string() -> None:
     assert trace.colorscale == "Viridis"
 
 
-# ── R4: Totals separator metadata ────────────────────────────────────
+# R4: Totals separator metadata
 
 
 def test_heatmap_totals_separator_metadata_right() -> None:
@@ -623,7 +623,7 @@ def test_heatmap_no_totals_no_separator_metadata() -> None:
     assert trace.totals_count == 0
 
 
-# ── R4: Plotly separator shapes ──────────────────────────────────────
+# R4: Plotly separator shapes
 
 
 def test_heatmap_plotly_separator_line_right() -> None:
@@ -688,7 +688,7 @@ def test_heatmap_plotly_no_separator_without_totals() -> None:
     assert len(shapes) == 0
 
 
-# ── Plotly colorbar configuration ─────────────────────────────────
+# Plotly colorbar configuration
 
 
 def test_plotly_shared_colorbar_zmin_zmax_match() -> None:

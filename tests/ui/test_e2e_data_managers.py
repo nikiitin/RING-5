@@ -25,9 +25,7 @@ def _go_to_data_managers(data: Any = None) -> Any:
     return at
 
 
-# ---------------------------------------------------------------------------
 # Summary tab (tab index 0)
-# ---------------------------------------------------------------------------
 class TestSummaryTab:
     """Tests for the Summary tab within Data Managers."""
 
@@ -57,9 +55,7 @@ class TestSummaryTab:
             assert "8" in str(col_metrics[0].value)
 
 
-# ---------------------------------------------------------------------------
 # Data Visualization tab (tab index 1)
-# ---------------------------------------------------------------------------
 class TestDataVisualizationTab:
     """Tests for the Data Visualization tab."""
 
@@ -89,9 +85,7 @@ class TestDataVisualizationTab:
         assert len(at.number_input) > 0 or len(at.selectbox) >= 2
 
 
-# ---------------------------------------------------------------------------
 # Seeds Reducer tab (tab index 2)
-# ---------------------------------------------------------------------------
 class TestSeedsReducerTab:
     """Tests for the Seeds Reducer data manager tab."""
 
@@ -162,9 +156,7 @@ class TestSeedsReducerTab:
         assert len(new_data) < original_len
 
 
-# ---------------------------------------------------------------------------
 # Outlier Remover tab (tab index 3)
-# ---------------------------------------------------------------------------
 class TestOutlierRemoverTab:
     """Tests for the Outlier Remover data manager tab."""
 
@@ -193,9 +185,7 @@ class TestOutlierRemoverTab:
         assert len(apply_buttons) > 0
 
 
-# ---------------------------------------------------------------------------
 # Preprocessor tab (tab index 4)
-# ---------------------------------------------------------------------------
 class TestPreprocessorTab:
     """Tests for the Preprocessor data manager tab."""
 
@@ -224,9 +214,7 @@ class TestPreprocessorTab:
         assert len(preview_buttons) > 0
 
 
-# ---------------------------------------------------------------------------
 # Mixer tab (tab index 5)
-# ---------------------------------------------------------------------------
 class TestMixerTab:
     """Tests for the Mixer data manager tab."""
 
@@ -268,9 +256,7 @@ class TestMixerTab:
         assert len(preview_buttons) > 0
 
 
-# ---------------------------------------------------------------------------
 # Operations History tab (tab index 6)
-# ---------------------------------------------------------------------------
 class TestOperationsHistoryTab:
     """Tests for the Operations History tab."""
 
@@ -324,9 +310,7 @@ class TestOperationsHistoryTab:
         assert "seeds" in history[0]["operation"].lower()
 
 
-# ---------------------------------------------------------------------------
 # Cross-tab consistency
-# ---------------------------------------------------------------------------
 class TestCrossTabConsistency:
     """Tests for data consistency across Data Manager tabs."""
 

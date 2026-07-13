@@ -31,9 +31,7 @@ import pytest
 from src.core.models import ScannedVariable, StatConfig
 from src.core.models.pattern_index_service import PatternIndexService
 
-# ---------------------------------------------------------------------------
 # Unit: StatConfig.keep_indices field
-# ---------------------------------------------------------------------------
 
 
 class TestStatConfigKeepIndices:
@@ -84,9 +82,7 @@ class TestStatConfigKeepIndices:
         assert config.keep_indices is True
 
 
-# ---------------------------------------------------------------------------
 # Integration: ApplicationAPI propagates keepIndices from dicts
-# ---------------------------------------------------------------------------
 
 
 class TestApplicationAPIKeepIndices:
@@ -160,9 +156,7 @@ class TestApplicationAPIKeepIndices:
         assert configs[0].keep_indices is True
 
 
-# ---------------------------------------------------------------------------
 # Expansion logic: keep_indices splits regex config into concrete configs
-# ---------------------------------------------------------------------------
 
 
 class TestKeepIndicesExpansion:
@@ -423,9 +417,7 @@ class TestKeepIndicesExpansion:
         assert "parsed_ids" in all_results[3].params
 
 
-# ---------------------------------------------------------------------------
 # Unit: PatternIndexService.reconstruct_concrete_name
-# ---------------------------------------------------------------------------
 
 
 class TestReconstructConcreteName:
@@ -485,9 +477,7 @@ class TestReconstructConcreteName:
         assert positions == ["l", "cntrl"]
 
 
-# ---------------------------------------------------------------------------
 # Expansion: user-filtered parsed_ids
-# ---------------------------------------------------------------------------
 
 
 class TestKeepIndicesUserFiltered:
@@ -638,9 +628,7 @@ class TestKeepIndicesUserFiltered:
         assert len(result) == 3
 
 
-# ---------------------------------------------------------------------------
 # Multi-dimensional pattern expansion
-# ---------------------------------------------------------------------------
 
 
 class TestMultiDimensionalExpansion:
@@ -706,9 +694,7 @@ class TestMultiDimensionalExpansion:
         assert result[1].name == "system.ruby.l0_cntrl1.missLatencyHist"
 
 
-# ---------------------------------------------------------------------------
 # construct_final_csv NA handling
-# ---------------------------------------------------------------------------
 
 
 class TestConstructFinalCsvNA:

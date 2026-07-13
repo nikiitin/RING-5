@@ -1,7 +1,4 @@
-"""
-Unit tests for the decoupled state management layer.
-Verifies that StateManager and repositories can function by mocking Streamlit session state.
-"""
+"""Tests for repository state backed by Streamlit session state."""
 
 from collections.abc import Generator
 from typing import Any, cast

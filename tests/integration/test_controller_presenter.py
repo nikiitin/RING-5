@@ -25,9 +25,7 @@ from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 from src.web.pages.ui.plotting.plot_service import PlotService
 
-# ---------------------------------------------------------------------------
 # Helpers — minimal protocol-satisfying adapters
-# ---------------------------------------------------------------------------
 
 
 class _LifecycleAdapter:
@@ -67,9 +65,7 @@ class _RenderVisualizationTracker:
         self.last_should_gen = should_generate
 
 
-# ===========================================================================
 # Test Class 1: PlotRenderController integration
-# ===========================================================================
 
 
 class TestPlotRenderControllerIntegration:
@@ -212,9 +208,7 @@ class TestPlotRenderControllerIntegration:
         assert tracker.last_should_gen is False
 
 
-# ===========================================================================
 # Test Class 2: ChartDisplayComponent refresh logic integration
-# ===========================================================================
 
 
 class TestChartDisplayComponentIntegration:
@@ -277,9 +271,7 @@ class TestChartDisplayComponentIntegration:
         assert result["should_generate"] is False
 
 
-# ===========================================================================
 # Test Class 3: PlotLifecycleService integration (real state)
-# ===========================================================================
 
 
 class TestPlotLifecycleIntegration:
@@ -289,16 +281,16 @@ class TestPlotLifecycleIntegration:
         self, state_manager: RepositoryStateManager, rich_sample_data: pd.DataFrame
     ) -> None:
         """Create plot through service → assign data → generate figure."""
-        # 1. Create
+        # Create
         plot: BasePlot = PlotService.create_plot(
             "Integration Bar", "bar", state_manager
         )  # type: ignore[assignment]
         assert plot.plot_type == "bar"
 
-        # 2. Assign data
+        # Assign data
         plot.processed_data = rich_sample_data
 
-        # 3. Configure
+        # Configure
         plot.config = {
             "x": "benchmark_name",
             "y": "system.cpu.ipc",
@@ -307,7 +299,7 @@ class TestPlotLifecycleIntegration:
             "ylabel": "Y",
         }
 
-        # 4. Generate figure
+        # Generate figure
         fig: go.Figure = plot.create_figure(rich_sample_data, plot.config)
         assert isinstance(fig, go.Figure)
         assert len(list(fig.data)) > 0

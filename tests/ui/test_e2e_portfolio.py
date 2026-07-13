@@ -26,9 +26,7 @@ from tests.ui.helpers import (
 )
 
 
-# ---------------------------------------------------------------------------
 # Portfolio page — rendering
-# ---------------------------------------------------------------------------
 class TestPortfolioPageRendering:
     """Portfolio page renders correctly in various states."""
 
@@ -82,9 +80,7 @@ class TestPortfolioPageRendering:
         assert len(warnings) >= 1, "Expected 'no portfolios' warning"
 
 
-# ---------------------------------------------------------------------------
 # Portfolio save/load via API
-# ---------------------------------------------------------------------------
 class TestPortfolioSaveLoad:
     """Portfolio save and load operations via the API."""
 
@@ -181,9 +177,7 @@ class TestPortfolioSaveLoad:
             api.data_services.load_portfolio("nonexistent_portfolio_xyz123")
 
 
-# ---------------------------------------------------------------------------
 # Portfolio page — save via UI
-# ---------------------------------------------------------------------------
 class TestPortfolioSaveViaUI:
     """Test save flow through AppTest UI interaction."""
 
@@ -223,9 +217,7 @@ class TestPortfolioSaveViaUI:
             assert len(at.error) == 0, "Config-only portfolio save should not error"
 
 
-# ---------------------------------------------------------------------------
 # Portfolio — pipeline templates
-# ---------------------------------------------------------------------------
 class TestPortfolioPipelineTemplates:
     """Pipeline template section on the portfolio page."""
 

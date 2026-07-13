@@ -1,24 +1,10 @@
-"""
-Tests for shaper configuration, pipeline components,
-PipelineStepComponent and DataManager.
-
-Exercises validation and action branches:
-- shaper_config.py: 122-134
-- pipeline_presenter.py: 49, 116
-- pipeline_step_presenter.py: 130-132
-- data_manager.py: 25, 30
-- manager.py: 90, 100
-"""
+"""Tests for shaper configuration, pipeline components, and data management."""
 
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 
 
 def _columns_side_effect(*args: Any, **kwargs: Any) -> list[MagicMock]:
@@ -33,13 +19,8 @@ def _make_mock_api() -> MagicMock:
     return api
 
 
-# ===========================================================================
-# shaper_config.py
-# ===========================================================================
-
-
-class TestShaperConfigBranches:
-    """Lines 122-134: configure_shaper error + unknown type."""
+class TestShaperConfig:
+    """Tests for shaper selection and validation."""
 
     @patch("src.web.pages.ui.shaper_config.st")
     def test_configure_unknown_shaper_type(self, mock_st: MagicMock) -> None:
@@ -64,8 +45,8 @@ class TestShaperConfigBranches:
         assert result.get("type") == "columnSelector"
 
 
-class TestShaperApplyBranches:
-    """Additional shaper_config.apply_shapers branches."""
+class TestShaperApplication:
+    """Tests for applying shaper configurations."""
 
     @patch("src.web.pages.ui.shaper_config.st")
     def test_apply_none_data_raises(self, mock_st: MagicMock) -> None:
@@ -104,13 +85,8 @@ class TestShaperApplyBranches:
         pd.testing.assert_frame_equal(result, df)
 
 
-# ===========================================================================
-# PipelineComponent
-# ===========================================================================
-
-
-class TestPipelineComponentBranches:
-    """Lines 49 (render_add_shaper), 116 (render_finalize_button)."""
+class TestPipelineComponent:
+    """Tests for pipeline controls and finalization."""
 
     @patch("src.web.components.common.pipeline.st")
     def test_render_add_shaper(self, mock_st: MagicMock) -> None:
@@ -148,13 +124,8 @@ class TestPipelineComponentBranches:
         assert "delete" in result
 
 
-# ===========================================================================
-# PipelineStepComponent
-# ===========================================================================
-
-
-class TestPipelineStepComponentBranches:
-    """Lines 130-132: render_finalize_result, render_finalize_error."""
+class TestPipelineStepComponent:
+    """Tests for pipeline-step result reporting."""
 
     @patch("src.web.components.common.pipeline_step.st")
     def test_render_finalize_result(self, mock_st: MagicMock) -> None:
@@ -178,13 +149,8 @@ class TestPipelineStepComponentBranches:
         mock_st.exception.assert_called_once()
 
 
-# ===========================================================================
-# DataManager base class (lines 25, 30)
-# ===========================================================================
-
-
 class TestDataManagerBase:
-    """Cover get_data / set_data methods."""
+    """Tests for stored dataframe access."""
 
     def test_get_data(self) -> None:
         from src.web.components.data_managers.data_manager import DataManager

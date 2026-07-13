@@ -177,9 +177,7 @@ class TestLegendSpec:
             legend1.spacing.columnspacing = 99.0  # type: ignore[misc]
 
 
-# ────────────────────────────────────────────────────────────────────
 # col_width, order
-# ────────────────────────────────────────────────────────────────────
 
 
 class TestLegendSpecLayoutFields:

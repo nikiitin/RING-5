@@ -14,7 +14,7 @@ from unittest.mock import MagicMock, patch
 import plotly.graph_objects as go
 from matplotlib.figure import Figure as MplFigure
 
-# ── Helpers ──────────────────────────────────────────────────────
+# Helpers
 
 
 def _simple_plotly_fig() -> go.Figure:
@@ -32,7 +32,7 @@ def _simple_mpl_fig() -> MplFigure:
     return fig
 
 
-# ── Plotly branch ────────────────────────────────────────────────
+# Plotly branch
 
 
 class TestRenderDownloadSectionPlotly:
@@ -125,7 +125,7 @@ class TestRenderDownloadSectionPlotly:
         mock_st.download_button.assert_not_called()
 
 
-# ── Matplotlib branch ────────────────────────────────────────────
+# Matplotlib branch
 
 
 class TestRenderDownloadSectionMatplotlib:

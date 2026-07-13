@@ -20,9 +20,7 @@ from tests.ui_logic.conftest import StubPlotHandle
 _CTRL = "src.web.controllers.plot.render_controller"
 
 
-# ---------------------------------------------------------------------------
 # Helpers
-# ---------------------------------------------------------------------------
 def _make_render_controller(
     api: MagicMock | None = None,
     ui_state: MagicMock | None = None,
@@ -55,9 +53,7 @@ def _default_refresh_controls(
     }
 
 
-# ---------------------------------------------------------------------------
 # No-data guard
-# ---------------------------------------------------------------------------
 class TestNoDataGuard:
     """When processed_data is None, only a warning is shown."""
 
@@ -82,9 +78,7 @@ class TestNoDataGuard:
         mock_st.markdown.assert_not_called()
 
 
-# ---------------------------------------------------------------------------
 # Type selector and type change
-# ---------------------------------------------------------------------------
 class TestTypeSelector:
     """Plot type selector rendering and type change delegation."""
 
@@ -140,9 +134,7 @@ class TestTypeSelector:
         mock_st.rerun.assert_called_once()
 
 
-# ---------------------------------------------------------------------------
 # Config gathering
-# ---------------------------------------------------------------------------
 class TestConfigGathering:
     """Verify config is gathered from plot methods and merged."""
 
@@ -180,9 +172,7 @@ class TestConfigGathering:
         assert plot.config["legend"] is True
 
 
-# ---------------------------------------------------------------------------
 # Config change detection + refresh
-# ---------------------------------------------------------------------------
 class TestRefreshLogic:
     """Auto-refresh and manual refresh controls."""
 
@@ -261,9 +251,7 @@ class TestRefreshLogic:
         ui_state.plot.set_auto_refresh.assert_called_once_with(10, False)
 
 
-# ---------------------------------------------------------------------------
 # Error resilience
-# ---------------------------------------------------------------------------
 class TestErrorResilience:
     """Config errors don't crash the controller flow."""
 

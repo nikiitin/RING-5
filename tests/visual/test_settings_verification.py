@@ -11,7 +11,7 @@ They validate UI structure (widget presence/absence), not rendering
 correctness (which requires visual comparison or snapshot diffing).
 
 Data source: ``tests/data/results-micro26-sens/`` — gem5 HTM sensitivity
-study (same as test_refactor_verification.py).
+study shared with the UI feature verification suite.
 """
 
 from __future__ import annotations
@@ -27,9 +27,7 @@ from tests.visual.pages.manage_plots_page import ManagePlotsPage
 
 pytestmark = pytest.mark.requires_browser
 
-# ---------------------------------------------------------------------------
 # Paths & constants
-# ---------------------------------------------------------------------------
 
 _REPO_ROOT: Path = Path(__file__).parents[2]
 _REAL_DATA: Path = _REPO_ROOT / "tests" / "data" / "results-micro26-sens"
@@ -44,9 +42,7 @@ _STATS: list[tuple[str, str]] = [
 ]
 
 
-# ===================================================================
 # Group 1: Simulator Pill Selector (A2)
-# ===================================================================
 
 
 class TestSimulatorPillSelector:
@@ -94,9 +90,7 @@ class TestSimulatorPillSelector:
         assert "gem5" in pill_text
 
 
-# ===================================================================
 # Group 2: Settings Reorganization (B1-B3)
-# ===================================================================
 
 
 class TestSettingsReorganization:
@@ -213,9 +207,7 @@ class TestSettingsReorganization:
         expect(tick_in_typo).not_to_be_visible(timeout=5_000)
 
 
-# ===================================================================
 # Group 3: Legend Settings (C6/D1)
-# ===================================================================
 
 
 class TestLegendSettings:

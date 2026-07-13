@@ -78,7 +78,7 @@ class TestGem5Parsing:
 
         output_dir.mkdir()
 
-        # 1. Scan for variables
+        # Scan for variables
         scan_futures = facade.submit_scan_async(str(self.TEST_DATA_DIR), "stats.txt", limit=10)
 
         # Wait for scan to complete
@@ -90,7 +90,7 @@ class TestGem5Parsing:
 
         all_variables = facade.finalize_scan(scan_results).variables
 
-        # 2. Select a few scalar variables
+        # Select a few scalar variables
         selected_vars = [
             v
             for v in all_variables
@@ -102,7 +102,7 @@ class TestGem5Parsing:
             # Fallback if specific names not found
             selected_vars = [v for v in all_variables if v.type == "scalar"][:5]
 
-        # 3. Run Parser
+        # Run Parser
         batch = facade.submit_parse_async(
             stats_path=str(self.TEST_DATA_DIR),
             stats_pattern="stats.txt",
@@ -125,7 +125,7 @@ class TestGem5Parsing:
         assert csv_path is not None
         assert os.path.exists(csv_path)
 
-        # 4. Verify CSV content
+        # Verify CSV content
         df = pd.read_csv(csv_path)
 
         # Check Dimensions
@@ -161,7 +161,7 @@ system.mem.ctrl::1024-2047                    5      50.00%     100.00%      # H
         facade = ApplicationAPI()
 
         try:
-            # 1. Scan
+            # Scan
             scan_futures = facade.submit_scan_async(str(stats_dir), "stats.txt", limit=-1)
 
             # Wait for scan to complete
@@ -179,7 +179,7 @@ system.mem.ctrl::1024-2047                    5      50.00%     100.00%      # H
             assert "0-1023" in (hist_var.entries or [])
             assert "1024-2047" in (hist_var.entries or [])
 
-            # 2. Parse
+            # Parse
             # Configure variables
             variables = cast(
                 list[ParseVariableConfig],
@@ -204,7 +204,7 @@ system.mem.ctrl::1024-2047                    5      50.00%     100.00%      # H
             assert csv_path is not None
             assert os.path.exists(csv_path)
 
-            # 3. Verify CSV Content
+            # Verify CSV Content
             df = pd.read_csv(csv_path)
             # Columns should be like system.mem.ctrl..0-1023
             assert "system.mem.ctrl..0-1023" in df.columns

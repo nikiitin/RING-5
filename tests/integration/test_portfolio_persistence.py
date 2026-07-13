@@ -31,7 +31,7 @@ def test_stats_config_persistence(clean_portfolio_env: Any, tmp_path: Any) -> No
     """Test that stats path, pattern, and scanned variables are saved and restored."""
     state_manager, portfolio_service = clean_portfolio_env
 
-    # 1. Set State
+    # Set State
     test_path = str(tmp_path / "gem5/stats/test")
     test_pattern = "*.log"
     test_scanned_vars = [
@@ -47,7 +47,7 @@ def test_stats_config_persistence(clean_portfolio_env: Any, tmp_path: Any) -> No
     dummy_data = pd.DataFrame({"col1": [1, 2], "col2": [3, 4]})
     state_manager.set_data(dummy_data)
 
-    # 2. Save Portfolio
+    # Save Portfolio
     portfolio_service.save_portfolio(
         name="test_persistence",
         data=dummy_data,
@@ -58,18 +58,18 @@ def test_stats_config_persistence(clean_portfolio_env: Any, tmp_path: Any) -> No
         parse_variables=[],
     )
 
-    # 3. Clear State
+    # Clear State
     state_manager.clear_all()
     # Re-init (create new instance or just plain clear)
     # The new instance in real app works this way, or same instance cleared.
 
-    # 4. Load Portfolio
+    # Load Portfolio
     portfolio_data = portfolio_service.load_portfolio("test_persistence")
 
-    # 5. Restore State
+    # Restore State
     state_manager.restore_session(portfolio_data)
 
-    # 6. Verify Restoration - ensure values match what we saved
+    # Verify Restoration - ensure values match what we saved
     assert state_manager.get_stats_path() == test_path
     assert state_manager.get_stats_pattern() == test_pattern
 

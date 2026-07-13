@@ -56,28 +56,28 @@ def facade(tmp_path: Any) -> Generator[ApplicationAPI, None, None]:
 def test_csv_pool_operations(facade: Any, tmp_path: Any) -> None:
     """Test adding, listing, loading, and deleting CSV files."""
 
-    # 1. Create a dummy CSV
+    # Create a dummy CSV
     dummy_csv = tmp_path / "test_data.csv"
     df = pd.DataFrame({"col1": [1, 2], "col2": ["a", "b"]})
     df.to_csv(dummy_csv, index=False)
 
-    # 2. Add to pool
+    # Add to pool
     added_path = facade.add_to_csv_pool(str(dummy_csv))
     assert Path(added_path).exists()
     assert Path(added_path).parent == facade.csv_pool_dir
 
-    # 3. List pool
+    # List pool
     pool = facade.load_csv_pool()
     assert len(pool) == 1
     assert pool[0]["path"] == str(added_path)
     # Logic: f"parsed_{timestamp}.csv" -> Name is changed.
     assert "parsed_" in pool[0]["name"]
 
-    # 4. Load CSV file content
+    # Load CSV file content
     loaded_df = facade.load_csv_file(added_path)
     pd.testing.assert_frame_equal(df, loaded_df)
 
-    # 5. Delete from pool
+    # Delete from pool
     assert facade.delete_from_csv_pool(added_path) is True
     assert not Path(added_path).exists()
     assert len(facade.load_csv_pool()) == 0
@@ -86,7 +86,7 @@ def test_csv_pool_operations(facade: Any, tmp_path: Any) -> None:
 def test_configuration_operations(facade: Any, tmp_path: Any) -> None:
     """Test saving, listing, loading, and deleting configurations."""
 
-    # 1. Save Config
+    # Save Config
     shapers_config = [{"type": "filter", "id": "1"}]
     # Use valid path string, doesn't need to exist for this test usually, but safer
     csv_path = str(tmp_path / "fake.csv")
@@ -99,19 +99,19 @@ def test_configuration_operations(facade: Any, tmp_path: Any) -> None:
 
     assert Path(config_path).exists()
 
-    # 2. List Configs
+    # List Configs
     configs = facade.load_saved_configs()
     assert len(configs) == 1
     assert configs[0]["description"] == "A test description"
     assert "Test Config" in configs[0]["name"]
 
-    # 3. Load Config
+    # Load Config
     loaded_config = facade.load_configuration(config_path)
     assert loaded_config["name"] == "Test Config"
     assert loaded_config["shapers"] == shapers_config
     assert loaded_config["csv_path"] == str(tmp_path / "fake.csv")
 
-    # 4. Delete Config
+    # Delete Config
     assert facade.delete_configuration(config_path) is True
     assert not Path(config_path).exists()
     assert len(facade.load_saved_configs()) == 0

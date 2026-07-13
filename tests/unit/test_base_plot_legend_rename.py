@@ -30,16 +30,16 @@ def concrete_plot() -> ConcretePlot:
 def test_update_from_relayout_legend_title(concrete_plot: Any) -> None:
     """Test that legend title updates are processed."""
 
-    # 1. Initial State
+    # Initial State
     concrete_plot.config = {"legend_title": "Old Title"}
     concrete_plot.last_generated_fig = "valid_cached_fig"
 
-    # 2. Simulate Relayout Event (Rename Legend)
+    # Simulate Relayout Event (Rename Legend)
     relayout_data = {"legend.title.text": "New Title"}
 
     changed = concrete_plot.update_from_relayout(relayout_data)
 
-    # 3. Assertions
+    # Assertions
     assert changed is True
     assert concrete_plot.config["legend_title"] == "New Title"
     assert concrete_plot.last_generated_fig is None  # Cache invalidated

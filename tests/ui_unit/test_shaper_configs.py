@@ -1,6 +1,4 @@
-"""UI-config renderers for the scripting shapers (DeriveColumn, GroupCardinality/Predicate
-selectors). Each test mocks Streamlit, renders the config, and round-trips it through the
-factory to prove the UI produces a config that actually drives the shaper."""
+"""UI configuration tests for scripting and grouping shapers."""
 
 from __future__ import annotations
 

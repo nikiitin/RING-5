@@ -122,12 +122,12 @@ class LegendConfig:
     role: Literal["primary", "secondary", "tertiary"] = "primary"
     visible: bool = True
 
-    # ── Typography ───────────────────────────────────────────────
+    # Typography
     font_size: int = 8  # pts, -1 = inherit from primary
     font_family: str = ""  # empty = inherit from global font_family
     bold: bool = False
 
-    # ── Layout ───────────────────────────────────────────────────
+    # Layout
     ncol: int = 1  # number of columns, -1 = auto
     col_width: float = -1.0  # sentinel: -1 = auto column width
     entrywidth: int = 0  # Plotly entrywidth in pixels, 0 = auto
@@ -138,7 +138,7 @@ class LegendConfig:
     tracegroupgap: int = 10
     order: Literal["normal", "reversed"] = "normal"
 
-    # ── Position ─────────────────────────────────────────────────
+    # Position
     position_x: float = INHERIT_F  # -1 = auto
     position_y: float = INHERIT_F  # -1 = auto
     anchor_x: Literal["left", "center", "right", "auto"] = "auto"
@@ -146,7 +146,7 @@ class LegendConfig:
     valign: Literal["top", "middle", "bottom"] = "middle"  # vertical text alignment
     custom_position: bool = False  # whether to use position_x/y
 
-    # ── Styling ──────────────────────────────────────────────────
+    # Styling
     bgcolor: str = ""  # empty = transparent
     bgalpha: float = INHERIT_F  # background opacity 0..1; -1 = renderer default
     border_width: float = 0.0
@@ -156,10 +156,10 @@ class LegendConfig:
     title_font_size: int = -1  # -1 = follow font_size
     title: str = ""
 
-    # ── Spacing ──────────────────────────────────────────────────
+    # Spacing
     spacing: LegendSpacingConfig = field(default_factory=LegendSpacingConfig)
 
-    # ── Colorbar (heatmap-specific) ──────────────────────────────
+    # Colorbar (heatmap-specific)
     colorbar: ColorbarConfig = field(default_factory=ColorbarConfig)
 
     @staticmethod

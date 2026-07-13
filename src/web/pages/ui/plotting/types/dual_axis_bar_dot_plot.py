@@ -38,18 +38,14 @@ class DualAxisBarDotPlot(BasePlot):
     def __init__(self, plot_id: int, name: str) -> None:
         super().__init__(plot_id, name, "dual_axis_bar_dot")
 
-    # ------------------------------------------------------------------
     # Configuration UI
-    # ------------------------------------------------------------------
 
     @override
     def render_config_ui(self, data: pd.DataFrame, saved_config: PlotConfig) -> PlotConfig:
         """Render configuration UI for dual-axis bar+dot plot."""
         return dual_axis_config.render(data, saved_config, self.plot_id)
 
-    # ------------------------------------------------------------------
     # Figure creation
-    # ------------------------------------------------------------------
 
     @override
     def create_traces(self, data: pd.DataFrame, config: PlotConfig) -> TraceBuildResult:
@@ -169,9 +165,7 @@ class DualAxisBarDotPlot(BasePlot):
             secondary_y=True,
         )
 
-    # ------------------------------------------------------------------
     # Plot-specific advanced options
-    # ------------------------------------------------------------------
 
     @override
     def render_specific_advanced_options(
@@ -263,9 +257,7 @@ class DualAxisBarDotPlot(BasePlot):
 
         return config
 
-    # ------------------------------------------------------------------
     # Legend column
-    # ------------------------------------------------------------------
 
     @override
     def get_legend_column(self, config: PlotConfig) -> str | None:

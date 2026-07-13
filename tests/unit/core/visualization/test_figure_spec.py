@@ -270,9 +270,7 @@ class TestMarginsSpec:
         assert d == {"top": 10, "bottom": 20, "left": 30, "right": 40, "pad": 5}
 
 
-# ────────────────────────────────────────────────────────────────────
 # Step 6 — scalar fields, color palette, hatching, reference lines
-# ────────────────────────────────────────────────────────────────────
 
 
 class TestFigureSpecColorPalette:
