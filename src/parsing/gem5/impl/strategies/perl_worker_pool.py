@@ -194,8 +194,9 @@ class PerlWorker:
                 for line in stderr:
                     if "ERROR" in line:
                         logger.warning("[Worker-%s][perl] %s", self.worker_id, line.strip())
-            except Exception:
-                pass
+            except (OSError, ValueError) as exc:
+                # Closing the worker pipes during shutdown ends the drainer.
+                logger.debug("[Worker-%s] stderr drainer stopped: %s", self.worker_id, exc)
 
         self._stderr_thread = threading.Thread(
             target=_drain, daemon=True, name=f"perl-stderr-{self.worker_id}"
