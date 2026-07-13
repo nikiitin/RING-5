@@ -184,9 +184,9 @@ class PlotRenderController:
         Generate figure (with caching) and delegate display to component.
 
         This method owns the figure lifecycle:
-            1. Cache check (skip regeneration if config/data unchanged)
-            2. Figure generation via ``FigureEngine``
-            3. Engine selector via ``ChartDisplayComponent``
+            1. Engine selection and state reconciliation
+            2. Cache check (skip regeneration if config/data unchanged)
+            3. Figure generation through the plot model
             4. Chart display via ``ChartDisplayComponent`` (Plotly or Matplotlib)
             5. Relayout handling for Plotly interactive charts
 
