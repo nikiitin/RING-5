@@ -11,7 +11,6 @@ import logging
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
-from src.core.models import PortfolioData  # noqa: F401 (re-exported)
 from src.core.services.portfolio_migrator import PortfolioVersionError
 from src.web.rendering.config_builder import build_figure_spec_dict
 

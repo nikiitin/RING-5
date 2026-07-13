@@ -72,14 +72,17 @@ class ColorsSettingsComponent:
         # Palette selector
         st.markdown("#### :material/palette: Color Palette")
         palette_names = get_palette_names()
-        current_palette = saved_config.get("color_palette", "wong")
-
-        if isinstance(current_palette, list):
+        saved_palette = saved_config.get("color_palette", "wong")
+        if isinstance(saved_palette, list):
+            current_palette = next(
+                (name for name, colors in PALETTE_REGISTRY.items() if colors == saved_palette),
+                "wong",
+            )
+        elif isinstance(saved_palette, str):
+            current_palette = saved_palette
+        else:
             current_palette = "wong"
-            for name, colors in PALETTE_REGISTRY.items():
-                if colors == saved_config.get("color_palette"):
-                    current_palette = name
-                    break
+        palette_config = {**saved_config, "color_palette": current_palette}
 
         def _fmt_palette(name: str) -> str:
             label = name.replace("_", " ").title()
@@ -90,7 +93,7 @@ class ColorsSettingsComponent:
         selected_palette: str = select_option(
             "Palette",
             palette_names,
-            saved_config,
+            palette_config,
             "color_palette",
             self.plot_id,
             widget_key=f"palette_select_{self.plot_id}",

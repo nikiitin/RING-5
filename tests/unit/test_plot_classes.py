@@ -9,7 +9,6 @@ from pandas import DataFrame
 
 from src.web.pages.ui.plotting import (
     BarPlot,
-    BasePlot,
     GroupedBarPlot,
     GroupedStackedBarPlot,
     LinePlot,
@@ -242,7 +241,7 @@ class TestPlotSerialization:
         data_dict = plot.to_dict()
 
         # Deserialize
-        restored_plot = BasePlot.from_dict(data_dict)
+        restored_plot = PlotFactory.from_dict(data_dict)
 
         assert restored_plot.plot_id == plot.plot_id
         assert restored_plot.name == plot.name

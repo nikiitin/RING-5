@@ -12,9 +12,12 @@ import pandas as pd
 
 from src.core.application_api import ApplicationAPI
 from src.core.models import RestoreReport, StatConfig
+from src.core.models.data_models import ParseVariableConfig
 from src.core.models.shaper_models import ShaperStepConfig
 from src.core.models.visualization.engine import EngineMode
+from src.parsing.parser_protocol import SimulationParser
 from src.web.pages.ui.plotting.base_plot import BasePlot
+from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
 from ring5 import _export, _parse, _render
 from ring5.errors import (
@@ -40,9 +43,6 @@ PlotType = Literal[
 ]
 
 if TYPE_CHECKING:
-    from src.core.models.data_models import ParseVariableConfig
-    from src.parsing.parser_protocol import SimulationParser
-
     from ring5.data import Table
 
 
@@ -115,9 +115,9 @@ class Session:
     (history, previews, CSV pool, saved configs, …).
     """
 
-    def __init__(self, *, parser: "SimulationParser | None" = None) -> None:
+    def __init__(self, *, parser: SimulationParser | None = None) -> None:
         # Headless portfolio restores need the web composition root's plot deserializer.
-        self.api = ApplicationAPI(plot_deserializer=BasePlot.from_dict, parser=parser)
+        self.api = ApplicationAPI(plot_deserializer=PlotFactory.from_dict, parser=parser)
         # Temporary parse output is removed when the session closes.
         self._owned_tmpdirs: list[str] = []
 
@@ -185,7 +185,7 @@ class Session:
             batch = self.api.submit_parse_async(
                 stats_path,
                 pattern,
-                cast("list[ParseVariableConfig | StatConfig]", list(configs)),
+                cast(list[ParseVariableConfig | StatConfig], list(configs)),
                 out_dir,
                 strategy_type=strategy,
                 scanned_vars=scanned,
@@ -199,7 +199,7 @@ class Session:
         sm.set_stats_pattern(pattern)
         sm.set_parse_variables(
             cast(
-                "list[ParseVariableConfig]",
+                list[ParseVariableConfig],
                 [
                     dict(c) if isinstance(c, dict) else {"name": c.name, "type": c.type}
                     for c in configs
@@ -384,7 +384,7 @@ class Session:
         plot_type: str,
         *,
         data: "pd.DataFrame | Table",
-        config: "FigureSpec | Mapping[str, Any]",
+        config: FigureSpec | Mapping[str, Any],
         name: str | None = None,
     ) -> BasePlot:
         """Create and register a configured plot.
@@ -423,7 +423,7 @@ class Session:
         plot_type: str,
         *,
         data: "pd.DataFrame | Table",
-        config: "FigureSpec | Mapping[str, Any]",
+        config: FigureSpec | Mapping[str, Any],
         engine: EngineMode = "plotly",
         name: str | None = None,
     ) -> _render.Figure:

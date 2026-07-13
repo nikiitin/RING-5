@@ -66,7 +66,7 @@ class FileParserStrategy(Protocol):
             >>> len(work_items)  # Number of files found
             15
         """
-        ...
+        raise NotImplementedError
 
     def post_process(self, results: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
@@ -88,4 +88,4 @@ class FileParserStrategy(Protocol):
             >>> enriched[0].keys()
             dict_keys(['ipc', 'sim_path', 'config_data', ...])
         """
-        ...
+        raise NotImplementedError

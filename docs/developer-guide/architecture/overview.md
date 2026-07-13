@@ -105,7 +105,7 @@ context warnings.
 1. `st.set_page_config(layout="wide")` configures the Streamlit page.
 2. `ApplicationAPI` is created lazily under `st.session_state.api`, giving each
    browser session its own mutable workspace.
-3. `BasePlot.from_dict` is injected as `plot_deserializer` -- this is how Core
+3. `PlotFactory.from_dict` is injected as `plot_deserializer` -- this is how Core
    can deserialize plot dicts back into Web-layer `BasePlot` instances without
    ever importing from Web.
 4. Every page receives that session's API instance through dependency injection.

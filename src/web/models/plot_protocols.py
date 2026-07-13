@@ -57,7 +57,7 @@ class PlotHandle(Protocol):
 
     def replace_processed_data(self, data: pd.DataFrame | None) -> None:
         """Replace processed data and invalidate all derived render state."""
-        ...
+        raise NotImplementedError
 
 
 class ConfigRenderer(Protocol):
@@ -76,15 +76,15 @@ class ConfigRenderer(Protocol):
 
     def render_config_ui(self, data: pd.DataFrame, config: dict[str, Any]) -> dict[str, Any]:
         """Render plot-specific data mapping controls and return their configuration."""
-        ...
+        raise NotImplementedError
 
     def render_display_options(self, config: dict[str, Any]) -> dict[str, Any]:
         """Render plot-specific display controls and return their configuration."""
-        ...
+        raise NotImplementedError
 
     def render_theme_options(self, config: dict[str, Any]) -> dict[str, Any]:
         """Render plot-specific theme controls and return their configuration."""
-        ...
+        raise NotImplementedError
 
     def render_settings_section(
         self,
@@ -93,7 +93,7 @@ class ConfigRenderer(Protocol):
         data: pd.DataFrame | None = None,
     ) -> dict[str, Any]:
         """Render one settings section and return its updated configuration."""
-        ...
+        raise NotImplementedError
 
 
 @runtime_checkable
@@ -114,19 +114,19 @@ class RenderablePlot(PlotHandle, ConfigRenderer, Protocol):
 
     def invalidate_figure(self) -> None:
         """Discard the generated figure, traces, and their cache identity."""
-        ...
+        raise NotImplementedError
 
     def create_figure(self, data: pd.DataFrame, config: dict[str, Any]) -> go.Figure:
         """Create a Plotly figure from processed data and plot configuration."""
-        ...
+        raise NotImplementedError
 
     def apply_common_layout(self, fig: go.Figure, config: dict[str, Any]) -> go.Figure:
         """Apply shared layout settings to a Plotly figure."""
-        ...
+        raise NotImplementedError
 
     def update_from_relayout(self, relayout_data: dict[str, Any]) -> bool:
         """Apply a relayout event and report whether persistent state changed."""
-        ...
+        raise NotImplementedError
 
 
 # Service Protocols
@@ -142,21 +142,21 @@ class PlotLifecycleService(Protocol):
 
     def create_plot(self, name: str, plot_type: str, state_manager: StateManager) -> PlotHandle:
         """Create, register, and return a plot."""
-        ...
+        raise NotImplementedError
 
     def delete_plot(self, plot_id: int, state_manager: StateManager) -> None:
         """Delete a plot by identifier."""
-        ...
+        raise NotImplementedError
 
     def duplicate_plot(self, plot: PlotHandle, state_manager: StateManager) -> PlotHandle:
         """Copy, register, and return a plot."""
-        ...
+        raise NotImplementedError
 
     def change_plot_type(
         self, plot: PlotHandle, new_type: str, state_manager: StateManager
     ) -> PlotHandle:
         """Replace a plot with an equivalent instance of another type."""
-        ...
+        raise NotImplementedError
 
 
 class PlotTypeRegistry(Protocol):
@@ -169,7 +169,7 @@ class PlotTypeRegistry(Protocol):
 
     def get_available_types(self) -> list[str]:
         """Return registered plot-type identifiers."""
-        ...
+        raise NotImplementedError
 
 
 class PipelineExecutor(Protocol):
@@ -186,7 +186,7 @@ class PipelineExecutor(Protocol):
         configs: list[ShaperStepConfig],
     ) -> pd.DataFrame:
         """Apply a shaper pipeline to data."""
-        ...
+        raise NotImplementedError
 
     def configure_shaper(
         self,
@@ -197,4 +197,4 @@ class PipelineExecutor(Protocol):
         owner_id: int | None = None,
     ) -> ShaperStepConfig:
         """Render a shaper editor and return its configuration."""
-        ...
+        raise NotImplementedError

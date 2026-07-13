@@ -17,6 +17,7 @@ as ``ax._ring5_twin``; helpers that need it find it themselves.
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 Figure = Any  # a matplotlib Figure at runtime; kept loose so importing ring5 is cheap
@@ -291,7 +292,7 @@ class FigureDecorations:
         over = sorted(
             (coord_map[k], v)
             for k, v in values.items()
-            if k in coord_map and v == v and v > cap + 1e-9
+            if k in coord_map and not math.isnan(v) and v > cap + 1e-9
         )
         xtrans = ax.get_xaxis_transform()  # x in data coords, y in axes fraction
         placed: list[tuple[float, int]] = []

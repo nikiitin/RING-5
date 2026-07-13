@@ -1,5 +1,6 @@
 """In-memory operation history for managers and portfolios."""
 
+from contextlib import suppress
 import logging
 
 from src.core.models.history_models import OperationRecord
@@ -69,17 +70,13 @@ class HistoryRepository:
 
     def remove_manager_record(self, record: OperationRecord) -> None:
         """Remove first matching record from manager history."""
-        try:
+        with suppress(ValueError):
             self._manager_history.remove(record)
-        except ValueError:
-            pass
 
     def remove_portfolio_record(self, record: OperationRecord) -> None:
         """Remove first matching record from portfolio history."""
-        try:
+        with suppress(ValueError):
             self._portfolio_history.remove(record)
-        except ValueError:
-            pass
 
     # ==================== Lifecycle ======================================
 

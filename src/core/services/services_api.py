@@ -26,14 +26,14 @@ class ServicesAPI(Protocol):
     @property
     def managers(self) -> ManagersAPI:
         """Access stateless data transformation operations."""
-        ...
+        raise NotImplementedError
 
     @property
     def data_services(self) -> DataServicesAPI:
         """Access data storage, retrieval, and domain entity management."""
-        ...
+        raise NotImplementedError
 
     @property
     def shapers(self) -> ShapersAPI:
         """Access pipeline and shaper operations."""
-        ...
+        raise NotImplementedError

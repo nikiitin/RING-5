@@ -77,6 +77,24 @@ class TestPaletteSelector:
             result = comp.render({}, data=None)
         assert result["color_palette"] == "viridis_8"
 
+    @patch("src.web.components.plotting.settings.colors_settings.select_option")
+    @patch("src.web.components.plotting.settings.colors_settings.st")
+    def test_legacy_palette_list_selects_matching_name(
+        self,
+        mock_st: MagicMock,
+        mock_select_option: MagicMock,
+    ) -> None:
+        """Legacy color lists initialize the selector with their registry name."""
+        mock_select_option.return_value = "viridis_8"
+        comp = self._make_component()
+        comp._render_series_section = MagicMock(return_value={})
+        comp._render_backgrounds_section = MagicMock(return_value={})
+
+        comp.render({"color_palette": list(PALETTE_REGISTRY["viridis_8"])})
+
+        palette_config = mock_select_option.call_args.args[2]
+        assert palette_config["color_palette"] == "viridis_8"
+
     @patch("src.web.components.plotting.settings.colors_settings.st")
     def test_swatch_html_is_rendered(self, mock_st: MagicMock) -> None:
         """Verify markdown is called with swatch HTML."""

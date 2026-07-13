@@ -7,6 +7,7 @@ import pytest
 
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.web.pages.ui.plotting.base_plot import BasePlot
+from src.web.pages.ui.plotting.plot_factory import PlotFactory
 from tests.conftest import columns_side_effect
 
 
@@ -74,12 +75,11 @@ def test_serialization(concrete_plot: Any) -> None:
     assert data["config"] == {"x": "col1"}
     assert "processed_data" in data
 
-    # Test loading
-    # Need to patch PlotFactory to avoiding circular imports or logic
+    # Restore through the factory while controlling the concrete plot type.
     with patch("src.web.pages.ui.plotting.plot_factory.PlotFactory.create_plot") as mock_factory:
         mock_factory.return_value = ConcretePlot(1, "Test Plot", "test")
 
-        loaded_plot = BasePlot.from_dict(data)
+        loaded_plot = PlotFactory.from_dict(data)
 
         assert loaded_plot.plot_id == 1
         assert loaded_plot.config == {"x": "col1"}

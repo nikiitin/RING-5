@@ -5,7 +5,6 @@ All functions are stateless — no UI or Streamlit imports.
 """
 
 import math
-from collections.abc import Iterable
 from typing import Any
 
 import pandas as pd
@@ -19,23 +18,7 @@ from src.core.models.visualization.trace_config import (
     TraceConfig,
 )
 from src.web.pages.ui.plotting.utils.grouped_bar_utils import GroupedBarUtils
-
-
-def order_with_overrides(present: Iterable[Any], explicit_order: list[Any] | None) -> list[str]:
-    """Order category-like values: explicit order first, then the rest sorted.
-
-    The single home for the "honour the user's explicit order (stringified),
-    then append any remaining present values in sorted order" rule shared by
-    x-axis categories (``xaxis_order``) and group/legend order. Membership is
-    checked as ``str(v) in present`` to match how callers stringify their
-    override values while leaving the present values in their native form.
-    """
-    present_list = list(present)
-    if not explicit_order:
-        return sorted(present_list)
-    ordered: list[str] = [str(v) for v in explicit_order if str(v) in present_list]
-    ordered.extend(v for v in sorted(present_list) if v not in ordered)
-    return ordered
+from src.web.pages.ui.plotting.utils.ordering import order_with_overrides
 
 
 def get_ordered_categories_and_groups(

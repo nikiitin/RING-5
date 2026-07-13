@@ -321,13 +321,11 @@ class TestDualAxisBarDotPlotSerialization:
 
     def test_from_dict_roundtrip(self, sample_data: pd.DataFrame) -> None:
         """Test round-trip serialization."""
-        from src.web.pages.ui.plotting.base_plot import BasePlot
-
         plot = DualAxisBarDotPlot(1, "Test Dual")
         plot.processed_data = sample_data
         plot.config = {"x": "Benchmark", "y_bar": "CycleCount", "y_dot": "IPC"}
         data_dict = plot.to_dict()
-        restored = BasePlot.from_dict(data_dict)
+        restored = PlotFactory.from_dict(data_dict)
         assert isinstance(restored, DualAxisBarDotPlot)
         assert restored.plot_type == "dual_axis_bar_dot"
         assert restored.config == plot.config

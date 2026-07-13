@@ -22,7 +22,7 @@ class ShapersAPI(Protocol):
         pipeline_config: list[ShaperStepConfig],
     ) -> pd.DataFrame:
         """Apply a sequence of shapers to a DataFrame."""
-        ...
+        raise NotImplementedError
 
     def create_shaper(
         self,
@@ -30,8 +30,8 @@ class ShapersAPI(Protocol):
         params: ShaperStepConfig,
     ) -> Shaper:
         """Create a shaper instance from type and parameters."""
-        ...
+        raise NotImplementedError
 
     def get_available_shaper_types(self) -> list[str]:
         """Return all registered shaper type identifiers."""
-        ...
+        raise NotImplementedError

@@ -176,9 +176,6 @@ class MatplotlibTraceRenderer:
         bar_border_width: float = 0.0,
     ) -> None:
         """Draw a single bar trace from its ``BarTraceConfig``."""
-        color = override_color or spec.color or None
-        is_categorical = bool(spec.x) and isinstance(spec.x[0], str)
-
         # 2) Compute standard x-positions and effective bar width
         if spec.x_positions:
             # Pre-filled numeric axis (e.g., histogram overlay)

@@ -205,7 +205,7 @@ layer can deserialize plots from portfolio data without ever importing
 
 ```python
 # app.py:56
-api = ApplicationAPI(plot_deserializer=BasePlot.from_dict)
+api = ApplicationAPI(plot_deserializer=PlotFactory.from_dict)
 ```
 
 **Design Rationale.**
@@ -420,7 +420,7 @@ under `st.session_state.api`.
 
 ```python
 if "api" not in st.session_state:
-    st.session_state.api = ApplicationAPI(plot_deserializer=BasePlot.from_dict)
+    st.session_state.api = ApplicationAPI(plot_deserializer=PlotFactory.from_dict)
 api: ApplicationAPI = st.session_state.api
 ```
 
@@ -703,15 +703,16 @@ elif page == "Manage Plots":
 # ...
 ```
 
-`BasePlot.from_dict` imports `PlotFactory` inside the method body to break a
-circular dependency between the base class and its factory:
+`PlotFactory` owns both construction and restoration, so `BasePlot` has no
+reverse dependency on its factory:
 
 ```python
-# src/web/pages/ui/plotting/base_plot.py:205-208
+# src/web/pages/ui/plotting/plot_factory.py
 @classmethod
 def from_dict(cls, data: dict[str, Any]) -> "BasePlot":
-    from .plot_factory import PlotFactory
-    plot = PlotFactory.create_plot(plot_type=data["plot_type"], ...)
+    plot = cls.create_plot(plot_type=data["plot_type"], ...)
+    plot.config = data.get("config", {})
+    return plot
 ```
 
 `StrategyFactory.create()` similarly defers imports of concrete strategies:

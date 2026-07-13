@@ -285,7 +285,7 @@ domains in a fixed order:
    If the CSV is empty (config-only portfolio), data is left unset.
    If parsing fails, the error is logged and the session continues without data.
 4. **Plots** -- each plot dict is deserialized via the injected `PlotDeserializer`
-   callable (`BasePlot.from_dict` in production).  Failed plots are logged and
+   callable (`PlotFactory.from_dict` in production).  Failed plots are logged and
    skipped.  The plot counter defaults to the count of successfully loaded plots
    if absent from the portfolio.
 5. **History** -- `manager_history` and `portfolio_history` are written to the

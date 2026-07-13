@@ -34,7 +34,7 @@ Each browser session creates one `ApplicationAPI` and stores it in
 
 ```python
 if "api" not in st.session_state:
-    st.session_state.api = ApplicationAPI(plot_deserializer=BasePlot.from_dict)
+    st.session_state.api = ApplicationAPI(plot_deserializer=PlotFactory.from_dict)
 api: ApplicationAPI = st.session_state.api
 ```
 
@@ -42,7 +42,7 @@ api: ApplicationAPI = st.session_state.api
 - Mutable data, plots, parser configuration, and history are isolated from
   other browser sessions.
 - Process-wide parser worker pools remain explicitly shared and thread-safe.
-- `BasePlot.from_dict` is injected as the plot deserializer so the core layer never
+- `PlotFactory.from_dict` is injected as the plot deserializer so the core layer never
   imports web-layer classes.
 
 ---
@@ -64,7 +64,7 @@ class ApplicationAPI:
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `plot_deserializer` | `PlotDeserializer \| None` | `None` | Callable that converts a `dict` into a `PlotProtocol` instance. Injected into the `RepositoryStateManager` so portfolio restoration can reconstruct plot objects without importing web-layer classes. In production this is `BasePlot.from_dict`. |
+| `plot_deserializer` | `PlotDeserializer \| None` | `None` | Callable that converts a `dict` into a `PlotProtocol` instance. Injected into the `RepositoryStateManager` so portfolio restoration can reconstruct plot objects without importing web-layer classes. In production this is `PlotFactory.from_dict`. |
 | `parser` | `SimulationParser \| None` | `None` | Simulator parser backend. When `None`, defaults to `SimulatorRegistry.get_parser("gem5")`. |
 
 ### Initialization Sequence
