@@ -1,4 +1,4 @@
-"""Tests for PipelineController — 74% → 90%+ coverage."""
+"""Behavioral tests for the plot pipeline controller."""
 
 from unittest.mock import MagicMock, patch
 
@@ -74,6 +74,7 @@ class TestPipelineControllerRender:
             "add_clicked": True,
             "shaper_type": "rename",
         }
+        mock_presenter.render_finalize_button.return_value = False
 
         ctrl = PipelineController(mock_api, MagicMock(), mock_executor)
         ctrl.render(mock_plot)
@@ -112,7 +113,9 @@ class TestPipelineControllerRender:
         ctrl = PipelineController(mock_api, MagicMock(), mock_executor)
         ctrl.render(mock_plot)
 
+        mock_plot.replace_processed_data.assert_called_once()
         mock_step.render_finalize_result.assert_called_once()
+        mock_st.rerun.assert_called_once()
 
     @patch("src.web.controllers.plot.pipeline_controller.PipelineStepComponent")
     @patch("src.web.controllers.plot.pipeline_controller.PipelineComponent")

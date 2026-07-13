@@ -16,15 +16,7 @@
     "reportUntypedFunctionDecorator": "warning"
   },
 
-  // GitHub Copilot
-  "github.copilot.enable": {
-    "*": true,
-    "python": true,
-    "markdown": true
-  },
-
-  // Editor settings for AI assistance
-  "editor.inlineSuggest.enabled": true,
+  // Editor behavior
   "editor.suggestSelection": "first",
   "editor.formatOnSave": true,
 
@@ -44,12 +36,10 @@
 
   // File associations
   "files.associations": {
-    "*.md": "markdown",
-    ".cursorrules": "yaml",
-    ".agent/**": "markdown"
+    "*.md": "markdown"
   },
 
-  // Search exclusions (keep AI focused on relevant code)
+  // Search exclusions
   "search.exclude": {
     "**/python_venv": true,
     "**/.pytest_cache": true,
@@ -59,7 +49,7 @@
     "**/.mypy_cache": true
   },
 
-  // Files to watch (for AI context)
+  // Files to watch
   "files.watcherExclude": {
     "**/python_venv/**": true,
     "**/.pytest_cache/**": true,
@@ -76,12 +66,5 @@
   // Trunk extension configuration
   "trunk.pathToTrunk": "${workspaceFolder}/.trunk",
   "trunk.enableFormatOnSave": false,
-  "trunk.enableDebugLogs": false,
-
-  // Copilot Chat instructions reference
-  "github.copilot.chat.codeGeneration.instructions": [
-    {
-      "file": ".github/copilot-instructions.md"
-    }
-  ]
+  "trunk.enableDebugLogs": false
 }

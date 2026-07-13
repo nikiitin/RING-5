@@ -1,7 +1,7 @@
 """
 Comprehensive tests for Gem5StatsScanner.
 
-Following Rule 004 (QA Testing Mastery):
+Exercises scanner discovery and aggregation behavior:
 - Fixture-first design with tmp_path
 - AAA pattern (Arrange-Act-Assert)
 - Monkeypatch for subprocess and path mocking

@@ -1,4 +1,4 @@
-"""Tests for portfolio page — 57% → 90%+ coverage."""
+"""Tests for portfolio page actions and error states."""
 
 from typing import Any
 from unittest.mock import MagicMock, patch

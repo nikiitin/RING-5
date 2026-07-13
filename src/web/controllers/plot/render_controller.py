@@ -28,7 +28,6 @@ import streamlit as st
 
 from src.core.application_api import ApplicationAPI
 from src.core.models.visualization.engine import EngineMode
-from src.core.performance import get_plot_cache
 from src.web.components.common.chart_display import ChartDisplayComponent
 from src.web.models.plot_models import PlotConfig
 from src.web.models.plot_protocols import (
@@ -170,7 +169,11 @@ class PlotRenderController:
         self._ui.plot.set_auto_refresh(plot.plot_id, controls["auto_refresh"])
 
         should_gen: bool = controls["should_generate"] and not config_error
-        plot.config = current_config
+        # With auto-refresh disabled, keep the persisted config paired with the
+        # visible figure until the user explicitly refreshes. Widget values
+        # remain in Streamlit state and are gathered again on that refresh.
+        if not config_error and (should_gen or plot.last_generated_fig is None):
+            plot.config = current_config
 
         # 5. Figure generation, caching, and chart display
         self._render_visualization(plot, should_gen)
@@ -195,18 +198,31 @@ class PlotRenderController:
         if plot.processed_data is None:
             return
 
-        # ── Cache check ──────────────────────────────────────────
-        data_hash: str = self._compute_data_hash(plot.processed_data)
-        cache_key: str = self._compute_figure_cache_key(plot.plot_id, plot.config, data_hash)
-        cache = get_plot_cache()
+        # The engine is part of the render identity. Select it before deciding
+        # whether the existing figure can be reused.
+        current_engine = EngineManager.get_engine()
+        engine_choice: str | None = ChartDisplayComponent.render_engine_selector(
+            plot.plot_id, current_engine
+        )
+        active_engine = current_engine
+        if engine_choice is not None:
+            active_engine = cast("EngineMode", engine_choice)
+            EngineManager.set_engine(active_engine)
 
-        if not should_generate and plot.last_generated_fig is None:
-            cached_fig = cache.get(cache_key)
-            if cached_fig is not None:
-                plot.last_generated_fig = cached_fig
+        # ── Cache identity ───────────────────────────────────────
+        data_hash: str = self._compute_data_hash(plot.processed_data)
+        cache_key: str = self._compute_figure_cache_key(
+            plot.plot_id,
+            plot.config,
+            data_hash,
+            active_engine,
+        )
+        cache_matches = (
+            plot.last_generated_fig is not None and plot.last_figure_cache_key == cache_key
+        )
 
         # ── Generate figure if needed ────────────────────────────
-        if should_generate or plot.last_generated_fig is None:
+        if should_generate or not cache_matches:
             try:
                 # create_figure relabels legend names engine-agnostically
                 # (on TraceConfig.name), so both engines stay consistent — no
@@ -214,26 +230,19 @@ class PlotRenderController:
                 fig = plot.create_figure(plot.processed_data, plot.config)
                 fig = plot.apply_common_layout(fig, plot.config)
                 plot.last_generated_fig = fig
-                cache.set(cache_key, fig)
+                plot.last_figure_cache_key = cache_key
             except Exception as e:
                 ChartDisplayComponent.render_error(e)
                 return
 
         # ── Display ──────────────────────────────────────────────
-        fig = plot.last_generated_fig
-        if fig is None:  # type: ignore[redundant-expr]
+        display_fig = plot.last_generated_fig
+        if display_fig is None:
             return
-
-        # Engine selector (component renders st.pills)
-        engine_choice: str | None = ChartDisplayComponent.render_engine_selector(
-            plot.plot_id, EngineManager.get_engine()
-        )
-        if engine_choice is not None:
-            EngineManager.set_engine(cast("EngineMode", engine_choice))
 
         # Branch on engine mode
         try:
-            if EngineManager.is_matplotlib():
+            if active_engine == "matplotlib":
                 # Reuse traces computed during plot generation when available.
                 _traces_result = plot.last_traces
                 pre_traces = list(_traces_result.traces) if _traces_result is not None else None
@@ -241,7 +250,7 @@ class PlotRenderController:
                 shades = list(_traces_result.shaded_regions) if _traces_result else None
                 rules = list(_traces_result.rule_lines) if _traces_result else None
                 ChartDisplayComponent.render_matplotlib_chart(
-                    fig,
+                    display_fig,
                     plot.plot_id,
                     plot.name,
                     plot.config,
@@ -253,7 +262,7 @@ class PlotRenderController:
                 )
             else:
                 relayout_data = ChartDisplayComponent.render_plotly_chart(
-                    fig,
+                    display_fig,
                     plot.plot_id,
                     plot.name,
                     plot.config,
@@ -270,7 +279,12 @@ class PlotRenderController:
             ChartDisplayComponent.render_error(e)
 
     @staticmethod
-    def _compute_figure_cache_key(plot_id: int, config: PlotConfig, data_hash: str) -> str:
+    def _compute_figure_cache_key(
+        plot_id: int,
+        config: PlotConfig,
+        data_hash: str,
+        engine: EngineMode = "plotly",
+    ) -> str:
         """
         Compute stable cache key for plot figure.
 
@@ -281,6 +295,7 @@ class PlotRenderController:
             plot_id: Unique plot identifier.
             config: Plot configuration dict.
             data_hash: Hash of the processed data.
+            engine: Active rendering engine.
 
         Returns:
             Cache key string.
@@ -290,14 +305,12 @@ class PlotRenderController:
         }
         config_json = json.dumps(cache_relevant_config, sort_keys=True, default=str)
         config_hash = hashlib.md5(config_json.encode(), usedforsecurity=False).hexdigest()[:8]
-        return f"plot_{plot_id}_{config_hash}_{data_hash}"
+        return f"plot_{plot_id}_{engine}_{config_hash}_{data_hash}"
 
     @staticmethod
     def _compute_data_hash(data: pd.DataFrame) -> str:
         """
-        Compute fast hash of DataFrame for cache invalidation.
-
-        Uses shape + first/last row hashes for speed.
+        Compute a full-content hash of a DataFrame for cache invalidation.
 
         Args:
             data: DataFrame to hash.
@@ -305,14 +318,25 @@ class PlotRenderController:
         Returns:
             Hash string.
         """
-        shape_str = f"{data.shape[0]}x{data.shape[1]}"
-
-        if len(data) > 0:
-            first_row = str(data.iloc[0].values.tolist())
-            last_row = str(data.iloc[-1].values.tolist())
-            columns = str(data.columns.tolist())
-            content = f"{shape_str}|{columns}|{first_row}|{last_row}"
-        else:
-            content = shape_str
-
-        return hashlib.md5(content.encode(), usedforsecurity=False).hexdigest()[:12]
+        schema = json.dumps(
+            {
+                "shape": data.shape,
+                "columns": [str(column) for column in data.columns],
+                "dtypes": [str(dtype) for dtype in data.dtypes],
+            },
+            sort_keys=True,
+        ).encode()
+        digest = hashlib.md5(schema, usedforsecurity=False)
+        try:
+            row_hashes = pd.util.hash_pandas_object(data, index=True)
+            digest.update(row_hashes.to_numpy().tobytes())
+        except (TypeError, ValueError):
+            # Object columns may contain unhashable containers. JSON provides
+            # a deterministic fallback while still inspecting every value.
+            serialized = data.to_json(
+                orient="split",
+                date_format="iso",
+                default_handler=str,
+            )
+            digest.update(serialized.encode())
+        return digest.hexdigest()[:12]

@@ -1,4 +1,4 @@
-"""Tests for PreprocessorManager — branch coverage."""
+"""Tests for preprocessor manager orchestration."""
 
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -40,7 +40,7 @@ def mock_api() -> MagicMock:
 
 
 class TestPreprocessorRender:
-    """Test PreprocessorManager.render branch coverage."""
+    """Exercise preprocessor rendering states."""
 
     @patch("src.web.components.data_managers.preprocessor.HistoryComponents")
     @patch("src.web.components.data_managers.preprocessor.st")

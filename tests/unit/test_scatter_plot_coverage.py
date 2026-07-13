@@ -1,4 +1,4 @@
-"""Tests for ScatterPlot create_figure — 50% → 90%+."""
+"""Tests for scatter-plot figure creation and validation."""
 
 import pandas as pd
 import plotly.graph_objects as go

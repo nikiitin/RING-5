@@ -124,15 +124,17 @@ class StatConfig:
     Input to the FileParserStrategy implementations.
 
     Attributes:
-        name: Variable name or regex pattern (e.g., ``system.cpu\d+.ipc``).
+        name: Logical output name. This is the source statistic when no alias
+            is configured.
+        source_name: Source statistic or regex pattern. ``None`` means it is
+            identical to ``name``.
         type: One of ``scalar``, ``vector``, ``distribution``, ``histogram``,
               ``configuration``.
         repeat: Number of dump repetitions expected.
         params: Type-specific parameters (entries, min/max, etc.).
         statistics_only: If True, parse only statistical summaries.
-        is_regex: Explicit flag indicating that *name* is a regex pattern
-                  requiring expansion against scanned variables.  Set
-                  automatically when the name contains ``\d+``.
+        is_regex: Whether ``source_name`` is a pattern that must be expanded
+            against scanned variables.
     """
 
     name: str
@@ -142,3 +144,4 @@ class StatConfig:
     statistics_only: bool = False
     is_regex: bool = False
     keep_indices: bool = False
+    source_name: str | None = None

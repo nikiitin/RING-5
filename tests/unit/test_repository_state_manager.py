@@ -1,5 +1,5 @@
 """
-Tests for RepositoryStateManager — currently at 0% coverage.
+Tests for RepositoryStateManager delegation and state lifecycle.
 
 Covers all delegation methods: data, config, parser, plot, preview, and history
 management. Since RepositoryStateManager delegates to SessionRepository, these

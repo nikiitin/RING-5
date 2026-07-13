@@ -43,6 +43,7 @@ from typing import TYPE_CHECKING, Any
 from ring5._doctor import DependencyStatus, DoctorReport, doctor
 from ring5.errors import (
     ColumnNotFoundError,
+    DataLoadError,
     DataValidationError,
     DependencyMissingError,
     ExportError,
@@ -51,6 +52,7 @@ from ring5.errors import (
     PipelineError,
     PortfolioError,
     PortfolioVersionError,
+    RenderError,
     Ring5Error,
     ScanError,
 )
@@ -174,7 +176,9 @@ __all__ = [
     "MissingStatError",
     "PipelineError",
     "ColumnNotFoundError",
+    "DataLoadError",
     "DataValidationError",
+    "RenderError",
     "PortfolioError",
     "PortfolioVersionError",
     "ExportError",

@@ -18,7 +18,26 @@ DOC_ROOTS = (
     ROOT / "docs",
 )
 LINK_PATTERN = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
+REPOSITORY_PATH_PATTERN = re.compile(
+    r"`((?:src|ring5|tests|scripts|docs|\.agents|\.github)/[^`\s]+)`"
+)
 EXTERNAL_SCHEMES = {"http", "https", "mailto", "tel"}
+RAW_PATH_EXEMPT_FILES = {ROOT / "docs/developer-guide/architecture/history.md"}
+ILLUSTRATIVE_PATHS = {
+    "src/parsing/my_sim/__init__.py",
+    "src/parsing/sniper/__init__.py",
+    "src/parsing/sniper/impl/sniper_parser_api.py",
+    "src/web/components/plotting/settings/watermark_settings.py",
+    "src/web/rendering/figure_spec_to_bokeh.py",
+    "src/web/rendering/trace_to_bokeh.py",
+    "src/core/services/shapers/impl/cumulative_sum.py",
+    "src/web/components/shapers/cumulative_sum_config.py",
+    "tests/data/synthetic/",
+    "tests/ui_unit/test_interpolator_logic.py",
+    "tests/ui_unit/test_watermark_settings.py",
+    "tests/unit/test_cumulative_sum.py",
+    "tests/unit/test_cumulative_sum_config.py",
+}
 
 
 def markdown_files() -> Iterator[Path]:
@@ -52,6 +71,25 @@ def resolves(path: Path, target: str) -> bool:
     return candidate.exists() or markdown_candidate.exists() or (candidate / "index.md").exists()
 
 
+def repository_path_targets(path: Path) -> Iterator[tuple[int, str]]:
+    """Yield current repository paths written as inline code.
+
+    Architecture history is exempt because it deliberately records removed
+    layouts. Wildcards and template placeholders are not concrete paths and
+    are ignored.
+    """
+    if path in RAW_PATH_EXEMPT_FILES:
+        return
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        for match in REPOSITORY_PATH_PATTERN.finditer(line):
+            target = match.group(1).rstrip(".,;:)")
+            target = target.split("::", 1)[0]
+            target = re.sub(r":\d+.*$", "", target)
+            if any(marker in target for marker in ("*", "{", "}", "<", ">", "...")):
+                continue
+            yield line_number, target
+
+
 def main() -> int:
     """Report broken relative links and return a nonzero status when found."""
     failures: list[str] = []
@@ -60,6 +98,13 @@ def main() -> int:
             if not resolves(path, target):
                 relative = path.relative_to(ROOT)
                 failures.append(f"{relative}:{line_number}: missing target {target!r}")
+        for line_number, target in repository_path_targets(path):
+            candidate = ROOT / target.rstrip("/")
+            if target in ILLUSTRATIVE_PATHS:
+                continue
+            if not candidate.exists() and not candidate.with_suffix(".py").exists():
+                relative = path.relative_to(ROOT)
+                failures.append(f"{relative}:{line_number}: missing repository path {target!r}")
 
     if failures:
         print("Documentation link check failed:", file=sys.stderr)

@@ -59,16 +59,12 @@ class BasePage:
     def reset_all(self) -> None:
         """Click the sidebar 'Reset All' button to clear all app state.
 
-        Drives ``api.reset_session()`` (clears plots + data + config). Used to
-        give each browser-test class a clean slate, since ``ApplicationAPI`` is
-        a process-wide ``@st.cache_resource`` singleton whose ``PlotRepository``
-        keeps plots in plain instance attributes (not ``st.session_state``), so
-        state otherwise persists across browser sessions on the same server.
+        Drives ``api.reset_session()`` to clear the current browser session's
+        plots, data, and configuration.
         """
         self.sidebar.get_by_role("button", name="Reset All").click()
         # Reset reruns to clear state; wait for it to start (and finish) so a
-        # too-fast follow-up navigation can't abort it before reset_session()
-        # runs (which would leave a prior class's plots in place).
+        # too-fast follow-up navigation cannot abort ``reset_session()``.
         self.wait_for_streamlit(expect_rerun=True)
 
     # ------------------------------------------------------------------

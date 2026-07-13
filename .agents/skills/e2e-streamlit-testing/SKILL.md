@@ -72,14 +72,11 @@ def _by_label(page, test_id, label):   # scope a widget duplicated across tabs
 - **Fragment reruns** (`@st.fragment`) need an extra `wait_for_timeout(500)` after interaction.
 - **`st.rerun()` closes dialogs** — don't expect a `stDialog` to survive a rerun.
 - **Forms batch** their widget changes (no per-widget rerun) — submit, then assert.
-- **`@st.cache_resource` is a singleton** → `ApplicationAPI` (and its `PlotRepository`, which stores
-  plots in plain instance attrs, *not* `st.session_state`) persists across browser "sessions" on the
-  same server, so plots/data bleed across test classes. **Isolation is enforced by an autouse,
-  class-scoped `_reset_app_state` fixture** in both `tests/e2e/conftest.py` and `tests/visual/conftest.py`
-  that clicks "Reset All" (`BasePage.reset_all()` → `api.reset_session()`) before each class's setup.
-  Required even under `-n 3 --dist loadgroup` (one worker can run several `xdist_group`s against one
-  server), and it makes `-n 0` work too. Don't remove it; new browser-test classes inherit the clean
-  slate automatically (all classes use `shared_page`).
+- **Application state is browser-session owned.** `st.session_state.api` holds one
+  `ApplicationAPI` per context; `test_session_isolation.py` verifies that data,
+  plots, and reset operations do not cross contexts. Browser-test classes still
+  reuse `shared_page`, so the autouse class-scoped `_reset_app_state` fixture in
+  both conftest files clears that reused context before each class.
 
 ## The e2e gate is TWO passes (and -n 3 is contention-limited on a shared machine)
 ```bash

@@ -90,7 +90,7 @@ def export_bytes(
             )
         except ChromeNotFoundError as exc:
             raise DependencyMissingError("chrome", _CHROME_HINT) from exc
-        except RuntimeError as exc:
+        except (OSError, RuntimeError, ValueError) as exc:
             raise ExportError(f"Plotly {fmt} export failed: {exc}") from exc
 
     if isinstance(fig, MplFigure):
@@ -113,7 +113,7 @@ def export_bytes(
                 spec=spec,
                 deterministic=deterministic,
             )
-        except RuntimeError as exc:
+        except (OSError, RuntimeError, ValueError) as exc:
             # matplotlib pre-checks the TeX toolchain for PGF and raises a
             # RuntimeError naming the missing executable.
             if fmt == "pgf" and "xelatex" in str(exc).lower():
@@ -172,8 +172,11 @@ def export_file(
         dpi=dpi,
         spec=spec,
     )
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_bytes(data)
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(data)
+    except OSError as exc:
+        raise ExportError(f"Could not write export to {path!r}: {exc}") from exc
     return str(target)
 
 

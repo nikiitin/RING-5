@@ -16,7 +16,9 @@ __all__ = [
     "MissingStatError",
     "PipelineError",
     "ColumnNotFoundError",
+    "DataLoadError",
     "DataValidationError",
+    "RenderError",
     "PortfolioError",
     "PortfolioVersionError",
     "ExportError",
@@ -90,6 +92,10 @@ class ColumnNotFoundError(Ring5Error):
         super().__init__(f"Column {column!r} not found. Available: {', '.join(self.available)}")
 
 
+class DataLoadError(Ring5Error):
+    """A requested input table is missing, unreadable, or malformed."""
+
+
 class DataValidationError(Ring5Error):
     """A data-manager operation rejected its inputs.
 
@@ -97,6 +103,10 @@ class DataValidationError(Ring5Error):
     more specific :class:`ColumnNotFoundError`) — e.g. a non-numeric column
     passed to outlier removal or seed reduction.
     """
+
+
+class RenderError(Ring5Error):
+    """A plot cannot be rendered with the requested configuration."""
 
 
 class PortfolioError(Ring5Error):

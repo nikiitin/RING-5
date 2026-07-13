@@ -1,7 +1,7 @@
 """
 Comprehensive tests for Scalar stat type.
 
-Following Rule 004 (QA Testing Mastery):
+Exercises scalar parsing and reduction behavior:
 - Fixture-first design
 - AAA pattern (Arrange-Act-Assert)
 - Parametrization for multiple scenarios

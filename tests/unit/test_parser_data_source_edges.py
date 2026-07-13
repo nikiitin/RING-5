@@ -1,26 +1,4 @@
-"""
-Targeted coverage-boost tests for low-coverage modules.
-
-Targets the following files/lines:
-- src/web/pages/ui/components/pattern_index_selector.py  (24% → ~90%)
-    Lines 70-167: render_selector branches, _filter_entries, _format_entry_display
-- src/core/models/parsing_models.py  (67% → ~100%)
-    Lines 53-64: ScannedVariable.to_dict optional fields (minimum, maximum, pattern_indices)
-- src/parsing/gem5/impl/strategies/factory.py  (53% → 100%)
-    Lines 37-44: config_aware branch + ValueError for unknown strategy
-    Lines 40, 57, 66, 73: all four delegating methods
-- src/parsing/gem5/impl/strategies/config_aware.py  (67% → ~100%)
-    Lines 42-43, 55, 68-75: post_process + _parse_config branches
-- src/parsing/gem5/impl/pool/parse_work.py  (80% → 100%)
-    Lines 44, 53: __call__ raises NotImplementedError, __str__
-- src/parsing/framework/work_pool.py  (85% → ~100%)
-    Thread-executor lazy init and submit.
-- src/parsing/gem5/impl/gem5_parser.py  (79% → ~90%)
-    Lines 143-146, 155-198, 210-212, 325: regex expansion, keep_indices, finalize
-- src/web/pages/ui/components/data_source_components.py  (73% → ~85%)
-    Lines covering render_csv_pool, variable_config_dialog, _show_parse_dialog
-- (removed: plot_manager_components.py — dead code deleted)
-"""
+"""Parser, pattern-index, work-pool, and data-source edge-case tests."""
 
 import configparser
 import os
@@ -1534,7 +1512,7 @@ class TestDataSourcePage:
 
 
 # ===================================================================
-# 16. DataManager abstract base coverage (lines 25, 30)
+# DataManager abstract contract
 # ===================================================================
 
 
@@ -1589,7 +1567,7 @@ class TestDataManagerBase:
 
 
 class TestDataSourceComponentsExtra:
-    """Additional DataSourceComponents coverage."""
+    """Data-source component error and empty-state behavior."""
 
     @patch("src.web.components.data_source.data_source_components.st")
     @patch("src.web.components.data_source.data_source_components.CardComponents")

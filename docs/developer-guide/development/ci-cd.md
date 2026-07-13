@@ -60,7 +60,8 @@ The coverage gate measures `src` and `ring5`, includes branch coverage, and
 requires at least 84%. Plotly/Kaleido export tests run separately with one
 worker because concurrent Chromium exports can starve each other.
 
-Browser tests also separate normal parallel tests from serial export tests:
+Browser tests also separate normal parallel tests from the ordered, stateful
+download-controls scenario:
 
 ```bash
 make test-e2e

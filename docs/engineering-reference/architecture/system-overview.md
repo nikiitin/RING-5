@@ -105,11 +105,10 @@ app.py
   |
   +-- run_app()
        |
-       +-- @st.cache_resource
-       |     def get_api() -> ApplicationAPI
-       |       return ApplicationAPI(plot_deserializer=BasePlot.from_dict)
+       +-- if "api" not in st.session_state
+       |     st.session_state.api = ApplicationAPI(...)
        |
-       +-- st.session_state.api = api   (singleton access for all pages)
+       +-- api = st.session_state.api   (this session's workspace)
        |
        +-- Sidebar navigation (5 pages, lazy imports)
        |
@@ -125,10 +124,9 @@ app.py
 Key signatures from `app.py`:
 
 ```python
-# app.py line 54-56
-@st.cache_resource(show_spinner="Initializing RING-5...")
-def get_api() -> ApplicationAPI:
-    return ApplicationAPI(plot_deserializer=BasePlot.from_dict)
+# app.py
+if "api" not in st.session_state:
+    st.session_state.api = ApplicationAPI(plot_deserializer=BasePlot.from_dict)
 ```
 
 ---
@@ -392,27 +390,24 @@ class Job(ABC):
 
 ---
 
-## Session State Singleton Pattern
+## Session Workspace Pattern
 
 ```
-+-------------------+     @st.cache_resource      +-------------------+
-|                   | --------------------------> |                   |
-|     app.py        |   get_api() returns single  |  ApplicationAPI   |
-|                   |   ApplicationAPI instance    |  (singleton)      |
++-------------------+     st.session_state.api     +-------------------+
+|     app.py        | --------------------------> |  ApplicationAPI   |
+|                   |   one per browser session    |  + repositories   |
 +-------------------+                              +-------------------+
         |                                                  |
         | st.session_state.api = api                       |
         v                                                  v
 +-------------------+                              +-------------------+
-| All pages access  |                              | All repositories  |
-| api via           | --------------------------> | store data in     |
-| st.session_state  |                              | st.session_state  |
+| All pages receive |                              | Repositories hold |
+| the session API   | --------------------------> | pure Python state |
 +-------------------+                              +-------------------+
 ```
 
-- `@st.cache_resource` ensures one `ApplicationAPI` per Streamlit server process
-- `st.session_state.api = api` makes it accessible to all page modules
-- All 7 repositories use `st.session_state` as their backing store
+- `st.session_state.api` isolates mutable workspaces between browser sessions
+- all seven repositories are owned by that API instance
 - Pages receive `api` as constructor/function argument (not global import)
 
 ---
@@ -551,7 +546,7 @@ class Job(ABC):
 | Factory             | Core, Parsing, Web                                | 4 factories with registry + creation           |
 | Strategy            | `src/parsing/gem5/impl/strategies/`               | Interchangeable parsing strategies             |
 | Command             | `src/parsing/framework/job.py`               | Job ABC for parallel work units                |
-| Singleton           | `app.py` via `@st.cache_resource`                 | One ApplicationAPI per server process          |
+| Session workspace   | `app.py` via `st.session_state.api`               | One ApplicationAPI per browser session         |
 | Adapter             | `src/web/pages/plot_adapters.py`                  | BasePlot -> PlotHandle/ConfigRenderer          |
 | Lazy Import         | `app.py` page routing                             | Only active page module is loaded              |
 | Sentinel Value      | `src/core/services/visualization/config_resolver.py` | -1 means "use engine default"               |

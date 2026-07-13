@@ -60,19 +60,6 @@ class SessionRepository:
 
         logger.info("SESSION_REPO: Session initialized with default values")
 
-    def clear_widget_state(self) -> None:
-        """
-        Clear widget-specific state markers.
-
-        NOTE: With the move to Pure Python repositories, strict "widget state" stored in
-        st session state is no longer managed here directly.
-        However, if we re-introduce a persistence layer, this logic belongs there.
-        For now, this is a no-op/placeholder or needs to interact with the UI layer differently.
-
-        Ideally, ApplicationAPI exposes a way to clear UI specific cache if needed,
-        but domain repositories should be UI agnostic.
-        """
-
     def enforce_config_dtypes(self, data: pd.DataFrame) -> pd.DataFrame:
         """Cast configuration-typed columns to str on a copy of *data*.
 
@@ -104,9 +91,6 @@ class SessionRepository:
         Returns:
             A report of what was restored, skipped, and why.
         """
-        # Clear widget state first
-        self.clear_widget_state()
-
         # Restore parser state. Portfolio JSON is untrusted input — a
         # malformed parse_variables list (e.g. plain strings) would crash
         # set_parse_variables, which mutates each entry dict.
@@ -223,8 +207,5 @@ class SessionRepository:
         self.config_repo.set_temp_dir("")
         self.history_repo.clear_all()
         self.visualization_repo.clear()
-
-        # Clear widget state
-        self.clear_widget_state()
 
         logger.info("SESSION_REPO: Complete session cleared")

@@ -67,8 +67,8 @@ Key points:
   `ring5.Ring5Error`: `ScanError`, `ParseError`, `MissingStatError` (a
   typoed stat name fails loudly instead of producing an all-NaN column),
   `PipelineError` (carries the failing step index), `ColumnNotFoundError`,
-  `PortfolioError`, `PortfolioVersionError`, `ExportError`,
-  `DependencyMissingError`.
+  `DataLoadError`, `DataValidationError`, `RenderError`, `PortfolioError`,
+  `PortfolioVersionError`, `ExportError`, `DependencyMissingError`.
 - **Regex stats**: pass a `ring5.StatConfig(name=r"system.cpu\d+.ipc",
   type="scalar", is_regex=True)` instead of a plain name.
 - The full application facade stays reachable as `session.api`

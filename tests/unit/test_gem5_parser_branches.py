@@ -1,4 +1,4 @@
-"""Tests for Gem5Parser — branch coverage for uncovered lines."""
+"""Tests for gem5 parser submission and finalization branches."""
 
 import os
 from dataclasses import dataclass, field
@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.models.parsing_models import ScannedVariable
+from src.core.models.parsing_models import ScannedVariable, StatConfig
 from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
 
@@ -127,6 +127,48 @@ class TestSubmitParseAsync:
             str(tmp_path),
             scanned_vars=scanned,
         )
+
+    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
+    def test_regex_alias_expands_source_and_keeps_output_name(
+        self, mock_factory: MagicMock, mock_pool: MagicMock, tmp_path: Any
+    ) -> None:
+        """An alias does not replace the regex used to find concrete stats."""
+        stats_dir = tmp_path / "stats"
+        stats_dir.mkdir()
+        config = StatConfig(
+            name="IPC",
+            source_name=r"system\.cpu\d+\.ipc",
+            type="scalar",
+            is_regex=True,
+        )
+        scanned = [
+            ScannedVariable(
+                name=r"system\.cpu\d+\.ipc",
+                type="scalar",
+                pattern_indices=["system.cpu0.ipc", "system.cpu1.ipc"],
+            )
+        ]
+        strategy = MagicMock()
+        strategy.get_work_items.return_value = [MagicMock()]
+        mock_factory.create.return_value = strategy
+        pool_instance = MagicMock()
+        pool_instance.submit_batch_async.return_value = [MagicMock()]
+        mock_pool.get_instance.return_value = pool_instance
+
+        batch = Gem5Parser.submit_parse_async(
+            str(stats_dir),
+            "stats.txt",
+            [config],
+            str(tmp_path),
+            scanned_vars=scanned,
+        )
+
+        expanded = strategy.get_work_items.call_args[0][2][0]
+        assert expanded.name == "IPC"
+        assert expanded.source_name == r"system\.cpu\d+\.ipc"
+        assert expanded.params["parsed_ids"] == ["system.cpu0.ipc", "system.cpu1.ipc"]
+        assert batch.var_names == ["IPC"]
 
     @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")

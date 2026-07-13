@@ -13,7 +13,7 @@ from src.core.common.utils import sanitize_filename
 from src.core.models.visualization.engine import EngineMode
 
 from ring5._session import Session
-from ring5.errors import PortfolioError
+from ring5.errors import PortfolioError, Ring5Error
 
 _DEFAULT_FMT: dict[str, str] = {"plotly": "html", "matplotlib": "pdf"}
 
@@ -71,7 +71,7 @@ def render_portfolio(
             try:
                 fig = session.render(plot, engine=engine)
                 written.append(session.export(fig, str(target), deterministic=deterministic))
-            except Exception as exc:
+            except (OSError, ValueError, Ring5Error) as exc:
                 raise PortfolioError(
                     f"Rendering plot '{plot.name}' from portfolio '{name}' failed: {exc}"
                 ) from exc

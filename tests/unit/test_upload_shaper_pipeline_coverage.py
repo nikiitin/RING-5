@@ -1,8 +1,8 @@
 """
-Coverage tests for shaper_config, PipelineComponent,
+Tests for shaper configuration, pipeline components,
 PipelineStepComponent and DataManager.
 
-Targets uncovered lines:
+Exercises validation and action branches:
 - shaper_config.py: 122-134
 - pipeline_presenter.py: 49, 116
 - pipeline_step_presenter.py: 130-132

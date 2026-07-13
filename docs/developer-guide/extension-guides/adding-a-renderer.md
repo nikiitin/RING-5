@@ -233,7 +233,7 @@ Add a test to `tests/integration/` that runs the full pipeline:
 ## ConnectorProtocol Method Reference
 
 The 16 styling stages defined in
-`src/web/rendering/_connector_protocol.STYLING_PIPELINE_ORDER` and the
+`src/web/rendering/_connector_protocol.py::STYLING_PIPELINE_ORDER` and the
 `FigureConfig` fields each stage reads:
 
 | # | Stage | FigureConfig fields | Purpose |

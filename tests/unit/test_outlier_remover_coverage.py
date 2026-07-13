@@ -1,4 +1,4 @@
-"""Tests for OutlierRemoverManager — branch coverage."""
+"""Tests for outlier-remover manager orchestration."""
 
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -40,7 +40,7 @@ def mock_api() -> MagicMock:
 
 
 class TestOutlierRemoverRender:
-    """Test OutlierRemoverManager.render branch coverage."""
+    """Exercise outlier-remover rendering states."""
 
     @patch("src.web.components.data_managers.outlier_remover.HistoryComponents")
     @patch("src.web.components.data_managers.outlier_remover.st")

@@ -1,4 +1,4 @@
-"""Tests for PlotFactory and BarStyleUI — branch coverage."""
+"""Tests for plot factory registration, bar styling, and export UI."""
 
 from typing import Any
 from unittest.mock import MagicMock, patch

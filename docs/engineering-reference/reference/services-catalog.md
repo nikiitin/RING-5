@@ -24,7 +24,7 @@ ApplicationAPI (src/core/application_api.py)
 
 - Every sub-API is a `@runtime_checkable Protocol` with a single `Default*` implementation
 - Composition root: `DefaultServicesAPI.__init__` wires all dependencies
-- Singleton lifecycle: `ApplicationAPI` created once via `@st.cache_resource` in `app.py`
+- Session lifecycle: one `ApplicationAPI` is stored under `st.session_state.api`
 
 ---
 
@@ -501,7 +501,7 @@ SENTINEL_FLOAT = -1.0
 ## Instantiation Flow
 
 ```
-app.py -> @st.cache_resource -> ApplicationAPI(plot_deserializer=BasePlot.from_dict)
+app.py -> st.session_state.api -> ApplicationAPI(plot_deserializer=BasePlot.from_dict)
   +-- RepositoryStateManager(plot_deserializer)
   +-- DefaultServicesAPI(state_manager)
   |     +-- DefaultManagersAPI()                         [stateless]

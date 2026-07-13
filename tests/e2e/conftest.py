@@ -223,22 +223,15 @@ def shared_page(
 def _reset_app_state(shared_page: Page, live_server_url: str) -> Generator[None]:
     """Reset the app to a clean slate at the start of each test class.
 
-    ``ApplicationAPI`` is a process-wide ``@st.cache_resource`` singleton whose
-    ``PlotRepository`` stores plots in plain instance attributes (not
-    ``st.session_state``), so plots/data persist across browser sessions on the
-    same server. This autouse class fixture clicks 'Reset All' before each
-    class's tier/setup fixtures run, giving cross-class isolation under both
-    ``-n 0`` and ``-n 3 --dist loadgroup`` (one xdist worker may run several
-    groups against a single server). Autouse class fixtures instantiate before
-    the explicitly-requested ``tier*_page`` fixtures, so the slate is clean
-    before any data is loaded.
+    A class shares one browser context so its ordered tests can build on prior
+    state. This fixture resets that context before the class's tier/setup
+    fixtures run.
     """
     bp = BasePage(shared_page)
     bp.goto_and_wait(live_server_url)
     bp.reset_all()
-    # Verify the reset actually cleared plots. A flaky/no-op reset would let
-    # plots accumulate across classes in the shared singleton — the cause of the
-    # plot-pill "resolved to N elements" failures. Fail loudly here instead.
+    # Fail loudly if a raced/no-op reset leaves state from an earlier class in
+    # the reused browser context.
     mp = ManagePlotsPage(shared_page)
     mp.navigate()
     expect(mp.no_plots_warning).to_be_visible(timeout=LOAD_TIMEOUT)
@@ -374,10 +367,6 @@ def tier2_page(
     mp.add_shaper("Sort")
     mp.finalize_pipeline()
 
-    # Navigate away and back to trigger render fragment
-    mp.navigate_to("Data Source")
-    mp.navigate()
-
     # Configure axes
     expect(mp.viz_x_axis_selectbox).to_be_visible(timeout=E2E_TIMEOUT)
     mp.select_x_axis("benchmark_name")
@@ -407,10 +396,6 @@ def tier3_page(
     mp.select_all_columns()
     mp.add_shaper("Sort")
     mp.finalize_pipeline()
-
-    # Navigate away and back
-    mp.navigate_to("Data Source")
-    mp.navigate()
 
     expect(mp.viz_x_axis_selectbox).to_be_visible(timeout=E2E_TIMEOUT)
 

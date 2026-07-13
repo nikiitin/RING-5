@@ -269,13 +269,47 @@ class TestErrorSurface:
             ring5.MissingStatError,
             ring5.PipelineError,
             ring5.ColumnNotFoundError,
+            ring5.DataLoadError,
             ring5.DataValidationError,
+            ring5.RenderError,
             ring5.PortfolioError,
             ring5.PortfolioVersionError,
             ring5.ExportError,
             ring5.DependencyMissingError,
         ):
             assert issubclass(err, ring5.Ring5Error)
+
+    def test_missing_csv_raises_typed_error_with_cause(self, tmp_path: Path) -> None:
+        """Input-file failures do not leak ``FileNotFoundError``."""
+        missing = tmp_path / "missing.csv"
+        with ring5.Session() as session:
+            with pytest.raises(ring5.DataLoadError) as exc_info:
+                session.load(str(missing))
+        assert isinstance(exc_info.value.__cause__, FileNotFoundError)
+
+    def test_invalid_engine_lists_choices(self) -> None:
+        """Invalid render configuration uses the public error hierarchy."""
+        data = pd.DataFrame({"x": ["a"], "y": [1.0]})
+        with ring5.Session() as session:
+            plot = session.create_plot("bar", data=data, config={"x": "x", "y": "y"})
+            with pytest.raises(ring5.RenderError, match="matplotlib.*plotly"):
+                session.render(plot, engine="invalid")  # type: ignore[arg-type]
+
+    def test_plot_without_data_raises_render_error(self) -> None:
+        """A restored or manually cleared plot fails with an actionable error."""
+        data = pd.DataFrame({"x": ["a"], "y": [1.0]})
+        with ring5.Session() as session:
+            plot = session.create_plot("bar", data=data, config={"x": "x", "y": "y"})
+            plot.replace_processed_data(None)
+            with pytest.raises(ring5.RenderError, match="no processed data"):
+                session.render(plot)
+
+    def test_table_missing_column_uses_typed_error(self) -> None:
+        """Convenience-table operations share the same column error contract."""
+        table = ring5.Table.from_rows([{"x": 1}])
+        with pytest.raises(ring5.ColumnNotFoundError) as exc_info:
+            table.sort(["missing"])
+        assert exc_info.value.column == "missing"
 
 
 class TestApiErgonomics:

@@ -1,4 +1,4 @@
-"""Tests for PlotService — branch coverage."""
+"""Tests for plot lifecycle operations."""
 
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -92,7 +92,7 @@ class TestDuplicatePlot:
 
             assert cloned.name == "IPC (copy)"
             assert cloned.plot_id == 99
-            assert cloned.last_generated_fig is None
+            cloned.invalidate_figure.assert_called_once()
             mock_state.add_plot.assert_called_once_with(cloned)
 
 

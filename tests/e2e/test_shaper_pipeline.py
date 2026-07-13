@@ -37,13 +37,11 @@ def _create_bar_plot(mp: ManagePlotsPage, name: str) -> None:
 
 
 def _create_finalize_and_reload(mp: ManagePlotsPage, name: str, shapers: list[str]) -> None:
-    """Create a plot, add shapers, finalize, and navigate away+back."""
+    """Create a plot, add shapers, and finalize its pipeline."""
     _create_bar_plot(mp, name)
     for shaper in shapers:
         mp.add_shaper(shaper)
     mp.finalize_pipeline()
-    mp.navigate_to("Data Source")
-    mp.navigate()
 
 
 # ===================================================================
@@ -109,11 +107,9 @@ class TestShaperPipelineOperations:
 
     @pytest.mark.order(7)
     def test_07_finalize_pipeline(self, tier1_page: Page) -> None:
-        """Finalize, navigate away+back, confirm visualization visible."""
+        """Finalizing refreshes the visualization without navigation."""
         mp = ManagePlotsPage(tier1_page)
         mp.finalize_pipeline()
-        mp.navigate_to("Data Source")
-        mp.navigate()
         mp.assert_visualization_section_visible()
 
 

@@ -111,7 +111,33 @@ class TestSubmitParseAsync:
         args_tuple = cast(MagicMock, api._parser.submit_parse_async).call_args
         configs = args_tuple[0][2]
         assert configs[0].name == "IPC"
+        assert configs[0].source_name == "system.cpu.ipc"
         assert configs[0].params["parsed_ids"] == ["system.cpu.ipc"]
+
+    def test_dict_regex_with_alias_preserves_source_pattern(self, api: ApplicationAPI) -> None:
+        """Regex detection uses the source statistic rather than its alias."""
+        cast(Any, api._parser.submit_parse_async).return_value = MagicMock()
+        api.submit_parse_async(
+            "/path",
+            "stats.txt",
+            [
+                cast(
+                    ParseVariableConfig,
+                    {
+                        "name": r"system.cpu\d+.ipc",
+                        "type": "scalar",
+                        "alias": "IPC",
+                    },
+                )
+            ],
+            "/out",
+        )
+
+        configs = cast(MagicMock, api._parser.submit_parse_async).call_args[0][2]
+        assert configs[0].name == "IPC"
+        assert configs[0].source_name == r"system.cpu\d+.ipc"
+        assert configs[0].is_regex is True
+        assert "parsed_ids" not in configs[0].params
 
     def test_dict_variable_with_regex(self, api: ApplicationAPI) -> None:
         r"""Variable with \\d+ in name is marked as regex."""

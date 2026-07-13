@@ -27,25 +27,21 @@ internal collaborators:
 collaborators above, enforces the boundary between UI and domain, and provides semantic
 action names that map to user-visible operations.
 
-### Singleton Instantiation
+### Session-Owned Instantiation
 
-A single `ApplicationAPI` instance is created via Streamlit's `@st.cache_resource`
-decorator in `app.py:54-58`:
+Each browser session creates one `ApplicationAPI` and stores it in
+`st.session_state`:
 
 ```python
-@st.cache_resource(show_spinner="Initializing RING-5...")
-def get_api() -> ApplicationAPI:
-    return ApplicationAPI(plot_deserializer=BasePlot.from_dict)
-
-api = get_api()
-st.session_state.api = api
+if "api" not in st.session_state:
+    st.session_state.api = ApplicationAPI(plot_deserializer=BasePlot.from_dict)
+api: ApplicationAPI = st.session_state.api
 ```
 
-The `@st.cache_resource` decorator guarantees:
-
-- Exactly one instance per Streamlit server process.
-- The instance survives across reruns (page navigations, widget interactions).
-- All sub-services share the same lifecycle as the `ApplicationAPI`.
+- The instance survives reruns within that browser session.
+- Mutable data, plots, parser configuration, and history are isolated from
+  other browser sessions.
+- Process-wide parser worker pools remain explicitly shared and thread-safe.
 - `BasePlot.from_dict` is injected as the plot deserializer so the core layer never
   imports web-layer classes.
 

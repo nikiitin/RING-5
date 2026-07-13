@@ -1,4 +1,4 @@
-"""Tests for simple plot types render_config_ui and create_figure — branch coverage."""
+"""Tests for simple plot configuration and figure creation."""
 
 from typing import Any
 from unittest.mock import MagicMock, patch

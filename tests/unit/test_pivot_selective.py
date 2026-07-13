@@ -1,4 +1,5 @@
 import pandas as pd
+import pytest
 
 from src.core.services.shapers.impl.pivot import PivotLonger
 
@@ -95,3 +96,20 @@ def test_pivot_longer_multi_group_extraction():
 
     assert len(result) == 3
     assert set(result["component"].unique()) == {"0-0", "0-1", "1-0"}
+
+
+def test_pivot_longer_rejects_expression_that_exceeds_timeout():
+    data = pd.DataFrame({"config": ["base"], "a" * 4095 + "!": [1]})
+    value_column = str(data.columns[1])
+    params = {
+        "type": "pivotLonger",
+        "id_vars": ["config"],
+        "value_vars": [value_column],
+        "var_name": "component",
+        "value_name": "value",
+        "extract_pattern": r"(a+)+$",
+        "extract_group_indices": [1],
+    }
+
+    with pytest.raises(ValueError, match="matching exceeded"):
+        PivotLonger(params)(data)

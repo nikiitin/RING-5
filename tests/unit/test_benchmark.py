@@ -1,7 +1,7 @@
 """
 Tests for benchmark utilities.
 
-Following Rule 004 (QA Testing Mastery):
+Exercises benchmark model behavior, validation, and serialization:
 - Fixture-first design for test data
 - AAA pattern (Arrange-Act-Assert)
 - Parametrization for multiple scenarios

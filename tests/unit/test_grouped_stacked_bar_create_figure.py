@@ -206,7 +206,7 @@ class TestCreateFigure:
 
 
 class TestHelperMethods:
-    """Test private helper methods for coverage."""
+    """Test helper behavior used by grouped-stacked figure creation."""
 
     def test_get_ordered_categories_default(self) -> None:
         plot = GroupedStackedBarPlot(1, "T")

@@ -1,4 +1,4 @@
-"""Tests for Normalize shaper — additional branch coverage.
+"""Tests for Normalize shaper validation and transformation branches.
 
 Focus: zero denominator, sd column normalization, fingerprint caching,
 precondition checks (ambiguous baseline, non-numeric).

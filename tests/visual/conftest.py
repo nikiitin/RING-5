@@ -185,13 +185,8 @@ def shared_page(
 def _reset_app_state(shared_page: Page, live_server_url: str) -> Generator[None]:
     """Reset the app to a clean slate at the start of each test class.
 
-    ``ApplicationAPI`` is a process-wide ``@st.cache_resource`` singleton whose
-    ``PlotRepository`` stores plots in plain instance attributes (not
-    ``st.session_state``), so plots/data persist across browser sessions on the
-    same server. This autouse class fixture clicks 'Reset All' before each
-    class's setup runs, giving cross-class isolation under both ``-n 0`` and
-    ``-n 3 --dist loadgroup`` (one xdist worker may run several groups against a
-    single server).
+    Tests in a class deliberately reuse one browser context. Reset that
+    session before the class setup runs so each class starts independently.
     """
     bp = BasePage(shared_page)
     bp.goto_and_wait(live_server_url)

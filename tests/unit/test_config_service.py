@@ -1,5 +1,5 @@
 """
-Comprehensive tests for ConfigService following Rule 004 (QA Testing Mastery).
+Behavioral tests for configuration persistence and validation.
 
 Test Strategy:
 - File-based configuration management testing

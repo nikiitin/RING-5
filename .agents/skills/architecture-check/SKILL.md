@@ -54,7 +54,7 @@ This skill is canon, not history — edit it in place (present tense, no changel
   `.pre-commit-config.yaml`. If those change, re-read them and update this list — they are the
   source of truth, this is a summary.
 - When the gate catches a failure mode worth remembering, add it here; if it's a durable project
-  fact, also write a memory under `~/.claude/.../memory/`.
+  fact, document it in the relevant repository-owned developer guide.
 
 ## Verify after
 `make arch-check && make quality-gate`

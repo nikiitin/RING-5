@@ -17,7 +17,7 @@ nav_order: 3
 | 4 | Factory | Creational | `src/core/services/shapers/factory.py`, `src/web/pages/ui/plotting/plot_factory.py` | Core, Web |
 | 5 | Strategy | Behavioral | `src/parsing/gem5/impl/strategies/` | Parsing |
 | 6 | Command | Behavioral | `src/parsing/framework/job.py` | Parsing |
-| 7 | Singleton | Creational | `src/parsing/framework/work_pool.py`, `app.py` | Parsing, Entry |
+| 7 | Singleton | Creational | `src/parsing/framework/work_pool.py` | Parsing |
 | 8 | Adapter | Structural | `src/web/pages/plot_adapters.py` | Web |
 | 9 | Observer | Behavioral | `src/core/state/repositories/data_repository.py` | Core |
 | 10 | Sentinel Value | Domain-specific | `src/core/services/visualization/config_resolver.py` | Core |
@@ -208,11 +208,11 @@ class ParseWork(Job):
 
 ## 7. Singleton
 
-**Locations:** `WorkPool` (thread-safe `__new__`), `ApplicationAPI` (Streamlit `@st.cache_resource`)
+**Location:** `WorkPool` (thread-safe `__new__`)
 
 | Variant | When to Use |
 |---------|-------------|
-| `@st.cache_resource` | App-level shared resource across Streamlit reruns |
+| `@st.cache_resource` | Thread-safe process-level resource shared across sessions |
 | `__new__` + lock | Process/thread pool requiring exactly one instance |
 | Class-level `dict` | Factory registries (implicit singleton state) |
 
@@ -229,13 +229,12 @@ class WorkPool:
                 cls._instance._initialized = False
             return cls._instance
 
-# app.py
-@st.cache_resource(show_spinner="Initializing RING-5...")
-def get_api() -> ApplicationAPI:
-    return ApplicationAPI(plot_deserializer=BasePlot.from_dict)
 ```
 
-**Related:** Facade is the primary singleton, Command submitted to singleton pool
+`ApplicationAPI` is deliberately not a singleton: each Streamlit session owns
+its mutable workspace under `st.session_state.api`.
+
+**Related:** Commands are submitted to the singleton worker pool
 
 ---
 
@@ -390,7 +389,7 @@ def _create_gem5_parser() -> SimulationParser:
 Facade (ApplicationAPI)
   |-- composes --> Repository (SessionRepository + 7 children)
   |-- accepts  --> Protocol (PlotDeserializer, SimulationParser)
-  |-- created via --> Singleton (@st.cache_resource)
+  |-- owned by --> Streamlit browser session
   |-- delegates to --> Factory (ShaperFactory via ShapersAPI)
   +-- Strategy (FileParserStrategy)
   |     +-- produces --> Command (ParseWork, ScanWork)
@@ -408,7 +407,7 @@ Facade (ApplicationAPI)
 | Do NOT | Do Instead | Reason |
 |--------|-----------|--------|
 | Import web-layer classes in core | Define Protocol in core; inject impl at startup | Maintains `Web -> Core <- Parsing` direction |
-| Use `__new__` singleton for app state | Use `@st.cache_resource` + `st.session_state` | Streamlit manages lifecycle |
+| Share mutable app state process-wide | Store one `ApplicationAPI` in each session | Prevents cross-user data leakage |
 | Add conditionals to `StyleUIFactory` | Convert to registry-based factory | Current conditional form is not extensible |
 | Use `None` for "inherit from parent" | Use sentinel `-1` / `-1.0` | `None` = absent; sentinel = inherit (distinct semantics) |
 | Put UI methods on `BasePlot` directly | Add to `PlotConfigUIMixin` | Separates lifecycle from rendering concerns |

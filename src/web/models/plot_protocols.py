@@ -55,6 +55,10 @@ class PlotHandle(Protocol):
     pipeline: list[PipelineStep]
     pipeline_counter: int
 
+    def replace_processed_data(self, data: pd.DataFrame | None) -> None:
+        """Replace processed data and invalidate all derived render state."""
+        ...
+
 
 class ConfigRenderer(Protocol):
     """
@@ -106,6 +110,11 @@ class RenderablePlot(PlotHandle, ConfigRenderer, Protocol):
 
     last_generated_fig: go.Figure | None
     last_traces: TraceBuildResult | None
+    last_figure_cache_key: str | None
+
+    def invalidate_figure(self) -> None:
+        """Discard the generated figure, traces, and their cache identity."""
+        ...
 
     def create_figure(self, data: pd.DataFrame, config: dict[str, Any]) -> go.Figure:
         """Create a Plotly figure from processed data and plot configuration."""

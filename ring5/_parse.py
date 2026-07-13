@@ -73,18 +73,24 @@ class ParseJob:
         except Exception as exc:
             raise ParseError(f"Parse worker failed: {exc}") from exc
 
-        csv_path = self.api.finalize_parsing(
-            self.output_dir,
-            results,
-            strategy_type=self.strategy,
-            var_names=self.var_names,
-        )
+        try:
+            csv_path = self.api.finalize_parsing(
+                self.output_dir,
+                results,
+                strategy_type=self.strategy,
+                var_names=self.var_names,
+            )
+        except (OSError, RuntimeError, TypeError, ValueError) as exc:
+            raise ParseError(f"Could not assemble parser output: {exc}") from exc
         if csv_path is None:
             raise ParseError(
                 f"Parsing '{self.stats_pattern}' under {self.stats_path} produced no CSV."
             )
 
-        missing = _find_missing_stats(csv_path, self.var_names)
+        try:
+            missing = _find_missing_stats(csv_path, self.var_names)
+        except (OSError, ValueError, UnicodeError) as exc:
+            raise ParseError(f"Could not validate parser output {csv_path!r}: {exc}") from exc
         if missing and strict:
             raise MissingStatError(missing)
         return ParseResult(csv_path=csv_path, missing_stats=missing)
@@ -154,7 +160,7 @@ def build_stat_configs(
     try:
         futures = api.submit_scan_async(stats_path, pattern, limit=scan_limit)
         scan = api.finalize_scan([f.result() for f in futures])
-    except FileNotFoundError as exc:
+    except (OSError, RuntimeError, ValueError) as exc:
         raise ScanError(str(exc)) from exc
 
     if not scan.variables and scan.failures:

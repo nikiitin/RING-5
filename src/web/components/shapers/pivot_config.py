@@ -4,28 +4,70 @@ Configuration Components for Pivot Shapers.
 Provides Streamlit UI implementations for configuring PivotLonger and PivotWider shapers.
 """
 
-import re
+import re as stdlib_re
 from typing import Any, cast
 
 import pandas as pd
 import streamlit as st
 
+from src.core.common.safe_regex import (
+    SafeRegexError,
+    compile_bounded_regex,
+    search_bounded_regex,
+)
 from src.core.models.shaper_models import ShaperStepConfig
 from src.core.models.pattern_index_service import PatternIndexService
 from src.core.services.shapers.impl.pivot import extract_with_pattern
 
 
 def detect_common_pattern(strings: list[str]) -> tuple[str, str]:
-    r"""
-    Detect a common numeric pattern among a list of strings.
+    r"""Detect a shared numeric structure in a list of column names.
 
-    Example: ["cpu0.ipc", "cpu1.ipc", "cpu2.ipc"] -> (r"cpu(\d+).ipc", "cpu{}.ipc")
+    Literal portions are escaped so the result can be executed directly as a
+    regular expression. Every input must have the same literal structure and
+    number of numeric fields.
+
+    Args:
+        strings: Column names to compare.
+
+    Returns:
+        The capture expression and a display template, or two empty strings
+        when the names do not share one numeric structure.
+
+    Example: ["cpu0.ipc", "cpu1.ipc", "cpu2.ipc"] -> (r"cpu(\d+)\.ipc", "cpu{}.ipc")
     """
     if not strings:
         return "", ""
 
-    # Simplified version for the UI proof of concept.
-    return "", ""
+    def split_numeric_fields(value: str) -> tuple[list[str], int]:
+        literals: list[str] = []
+        cursor = 0
+        matches = list(stdlib_re.finditer(r"\d+", value))
+        for match in matches:
+            literals.append(value[cursor : match.start()])
+            cursor = match.end()
+        literals.append(value[cursor:])
+        return literals, len(matches)
+
+    first_literals, field_count = split_numeric_fields(strings[0])
+    if field_count == 0:
+        return "", ""
+
+    for value in strings[1:]:
+        literals, value_field_count = split_numeric_fields(value)
+        if value_field_count != field_count or literals != first_literals:
+            return "", ""
+
+    pattern_parts: list[str] = []
+    template_parts: list[str] = []
+    for index, literal in enumerate(first_literals):
+        pattern_parts.append(stdlib_re.escape(literal))
+        template_parts.append(literal)
+        if index < field_count:
+            pattern_parts.append(r"(\d+)")
+            template_parts.append("{}")
+
+    return "".join(pattern_parts), "".join(template_parts)
 
 
 class PivotLongerConfig:
@@ -93,22 +135,24 @@ class PivotLongerConfig:
 
         st.markdown("##### Advanced Extraction (Regex)")
 
-        # Auto-detect logic
-        detected_pattern = ""
+        pattern_key = f"{key_prefix}plonger_pattern_{shaper_id}"
+        if pattern_key not in st.session_state:
+            st.session_state[pattern_key] = str(cfg.get("extract_pattern", ""))
+
         if value_vars:
             if st.button(
                 "Auto-detect pattern from Value Columns", key=f"{key_prefix}pl_auto_{shaper_id}"
             ):
-                detected_pattern, _ = detect_common_pattern([str(v) for v in value_vars])
+                detected_pattern, _template = detect_common_pattern([str(v) for v in value_vars])
                 if detected_pattern:
+                    st.session_state[pattern_key] = detected_pattern
                     st.success(f"Detected: {detected_pattern}")
                 else:
                     st.warning("No common numeric pattern detected.")
 
         extract_pattern = st.text_input(
             "Extract Pattern (Optional)",
-            value=detected_pattern if detected_pattern else str(cfg.get("extract_pattern", "")),
-            key=f"{key_prefix}plonger_pattern_{shaper_id}",
+            key=pattern_key,
             help=("Regex pattern with capture groups (e.g., r'.+l(\\\\d+)_cntrl(\\\\d+).*')."),
         )
 
@@ -122,7 +166,7 @@ class PivotLongerConfig:
 
         if extract_pattern:
             try:
-                compiled = re.compile(extract_pattern)
+                compiled = compile_bounded_regex(extract_pattern)
                 num_groups = compiled.groups
 
                 if num_groups > 0:
@@ -165,10 +209,12 @@ class PivotLongerConfig:
                     group_values: dict[int, set[str]] = {i: set() for i in range(num_groups + 1)}
                     if value_vars:
                         for v in value_vars:
-                            m = compiled.search(str(v))
+                            m = search_bounded_regex(compiled, str(v))
                             if m:
                                 for i in range(num_groups + 1):
-                                    group_values[i].add(m.group(i))
+                                    group = m.group(i)
+                                    if group is not None:
+                                        group_values[i].add(group)
 
                     new_selection_filters = {}
                     for i in group_indices:
@@ -231,8 +277,8 @@ class PivotLongerConfig:
                     st.warning(
                         "Pattern has no capture groups (parentheses). " "Defaults to whole match."
                     )
-            except Exception:
-                st.error("Invalid Regex Pattern")
+            except (SafeRegexError, ValueError) as exc:
+                st.error(str(exc))
 
         # Convert to strict types
         result: dict[str, Any] = {

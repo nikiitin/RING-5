@@ -187,7 +187,10 @@ class PipelineController:
         try:
             confs: list[ShaperStepConfig] = [s["config"] for s in plot.pipeline if s["config"]]
             processed: pd.DataFrame = self._pipeline.apply_shapers(raw_data, confs)
-            plot.processed_data = processed
+            plot.replace_processed_data(processed)
             PipelineStepComponent.render_finalize_result(processed)
+            # Finalization runs inside a fragment. An app rerun refreshes the
+            # separate visualization fragment immediately with the new data.
+            st.rerun()
         except Exception as e:
             PipelineStepComponent.render_finalize_error(str(e))

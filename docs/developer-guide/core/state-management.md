@@ -29,19 +29,18 @@ by a single `SessionRepository` aggregate root.
 
 Domain state is owned by `RepositoryStateManager`, which wraps the
 `SessionRepository` with a flat facade of 46 methods.  `ApplicationAPI` holds
-the `RepositoryStateManager` and is instantiated exactly once per Streamlit
-session via `@st.cache_resource`.
+the `RepositoryStateManager` and is instantiated exactly once per browser
+session under `st.session_state.api`.
 
 UI state is accessed exclusively through `UIStateManager`, a lightweight class
 with four namespaced sub-managers (`plot`, `manager`, `nav`, `export`).
 
 ### Why State Survives Reruns
 
-The `ApplicationAPI` singleton is created inside a `@st.cache_resource`-decorated
-function in `app.py`.  Streamlit's resource cache stores the object reference in
-a global cache keyed by function signature.  On every rerun, the same Python
-object is returned -- no serialization is needed.  All repository state lives in
-plain Python attributes on these cached objects.
+`app.py` creates `ApplicationAPI` only when the current browser session lacks
+the `api` key. On every rerun, the same session-state object is returned without
+serialization. All repository state lives in plain Python attributes owned by
+that session.
 
 ### Key Source Files
 
@@ -391,13 +390,13 @@ interacts with it:
 [Empty] --> [Parsed/Loaded] --> [Managed] --> [Plotted] --> [Saved]
 ```
 
-### Phase 1: Empty
+### Empty
 
-On first load, `ApplicationAPI` is created via `@st.cache_resource`. All
+On first load, the session creates its `ApplicationAPI`. All
 repositories initialize with defaults: no data, no plots, counter at zero,
 parser disabled, empty histories.
 
-### Phase 2: Parsed / Loaded
+### Parsed / Loaded
 
 Data enters the system through one of three paths:
 
@@ -455,7 +454,7 @@ for domain state is:
 
 | Key | Type | Description |
 |-----|------|-------------|
-| `api` | `ApplicationAPI` | The singleton API reference set in `app.py` |
+| `api` | `ApplicationAPI` | This browser session's mutable workspace |
 
 ### UIStateManager-Managed Keys
 

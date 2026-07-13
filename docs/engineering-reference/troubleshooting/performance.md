@@ -33,19 +33,6 @@ cache.clear() -> None                   # Reset cache + counters
 cache.stats() -> dict                   # {"hits", "misses", "size", "hit_rate"}
 ```
 
-### Global Plot Cache Instance
-
-```python
-# src/core/performance.py:97
-_plot_cache = SimpleCache(maxsize=32, ttl=300)  # 5 min TTL, 32 entries max
-
-# Access
-from src.core.performance import get_plot_cache, get_cache_stats, clear_all_caches
-get_plot_cache()      # Returns _plot_cache singleton
-get_cache_stats()     # {"plot_cache": {hits, misses, size, hit_rate}}
-clear_all_caches()    # Clears _plot_cache
-```
-
 ### `@cached` Decorator
 
 | Parameter | Type | Default | Description |
@@ -141,23 +128,23 @@ atexit.register(_shutdown_workpool)
 - **Mitigation**: `atexit` handler registered, but Streamlit's rerun model may bypass interpreter exit
 - **Detection**: `ps aux | grep -E "python|perl" | wc -l` to count child processes
 
-### 3. Figure Rendering (Manual Hash Cache)
+### 3. Figure Rendering (Per-Plot Identity)
 
 | Property | Value |
 |----------|-------|
-| Cache location | `src/core/performance.py:97` (`_plot_cache`, 32 entries, 5min TTL) |
-| Key computation | `src/web/controllers/plot/render_controller.py:277` |
-| Data hash | `_compute_data_hash()`: shape + first/last row hash |
-| Config hash | `_compute_figure_cache_key()`: plot_id + config hash + data_hash |
+| Cache location | `BasePlot.last_generated_fig` in the session-owned plot |
+| Key computation | `src/web/controllers/plot/render_controller.py` |
+| Data hash | `_compute_data_hash()`: schema, index, and every row |
+| Config hash | `_compute_figure_cache_key()`: plot ID, engine, config, and data hash |
 | NOT used | `@st.cache_data` -- manual cache chosen for control over key generation |
 
 ```
 Figure cache flow:
-  1. Compute data_hash from DataFrame shape + sample rows
-  2. Compute cache_key from plot_id + config + data_hash
-  3. Check _plot_cache.get(cache_key)
-  4. On HIT: return cached figure (skip rendering)
-  5. On MISS: render figure, store in _plot_cache.set(cache_key, fig)
+  1. Compute data_hash from the complete DataFrame
+  2. Compute cache_key from plot ID + engine + config + data hash
+  3. Compare with plot.last_figure_cache_key
+  4. On match: reuse that session's existing figure
+  5. On mismatch: regenerate and update the plot-owned identity
 ```
 
 ### 4. matplotlib Figure Memory Leak
@@ -184,32 +171,29 @@ finally:
 
 ## Streamlit Caching Strategy
 
-### `@st.cache_resource` for ApplicationAPI
+### Session-owned ApplicationAPI
 
 ```python
-# app.py:54-58
-@st.cache_resource(show_spinner="Initializing RING-5...")
-def get_api() -> ApplicationAPI:
-    return ApplicationAPI(plot_deserializer=BasePlot.from_dict)
-
-api = get_api()
-st.session_state.api = api  # Also stored in session_state for component access
+# app.py
+if "api" not in st.session_state:
+    st.session_state.api = ApplicationAPI(plot_deserializer=BasePlot.from_dict)
+api: ApplicationAPI = st.session_state.api
 ```
 
 | Property | Value |
 |----------|-------|
-| Scope | Global singleton, shared across all sessions |
-| Lifecycle | Persists until code change or `st.cache_resource.clear()` |
+| Scope | One mutable workspace per browser session |
+| Lifecycle | Persists across reruns for that session |
 | Contains | `RepositoryStateManager`, `DefaultServicesAPI`, parser |
-| NOT cached | Per-session state (stored in `st.session_state` separately) |
+| Shared globally | Only thread-safe parser worker pools |
 
 ### Manual Hash Cache for Figures
 
 | Component | File | Mechanism |
 |-----------|------|-----------|
-| Cache instance | `src/core/performance.py:97` | `SimpleCache(maxsize=32, ttl=300)` |
-| Key generation | `render_controller.py:277` | `_compute_figure_cache_key(plot_id, config, data_hash)` |
-| Data fingerprint | `render_controller.py:300` | `_compute_data_hash(data)` -- shape + boundary rows |
+| Cache identity | `BasePlot.last_figure_cache_key` | Per-session plot instance |
+| Key generation | `render_controller.py` | `_compute_figure_cache_key(plot_id, config, data_hash, engine)` |
+| Data fingerprint | `render_controller.py` | Full DataFrame content, schema, and index |
 | Data fingerprint (shapers) | `performance.py:210` | `compute_data_fingerprint(data, params, cols)` -- MD5 |
 
 - **Why not `@st.cache_data`**: Need fine-grained control over cache keys; Plotly `Figure` objects are complex to hash automatically
@@ -290,9 +274,6 @@ ps aux | grep -E "python.*ring5|perl" | grep -v grep | wc -l
 # Monitor memory usage during session
 watch -n 2 "ps aux | grep streamlit | grep -v grep"
 
-# Cache stats (from Python/Streamlit console)
-# from src.core.performance import get_cache_stats
-# print(get_cache_stats())
 ```
 
 ---

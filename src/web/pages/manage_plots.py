@@ -57,9 +57,7 @@ def show_manage_plots_page(api: ApplicationAPI) -> None:
         "Create and configure multiple plots with independent " "data processing pipelines."
     )
 
-    # State is already initialized by ApplicationAPI.__init__ (cached via
-    # @st.cache_resource).  Calling initialize() here was redundant and added
-    # logging + conditional writes on every rerun.
+    # ApplicationAPI initializes this session's repositories in its constructor.
     ui_state: UIStateManager = UIStateManager()
 
     # Apply pending widget updates from interactive plot events

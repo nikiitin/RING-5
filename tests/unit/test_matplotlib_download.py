@@ -125,6 +125,7 @@ class TestMatplotlibSVG:
 # ── PGF tests ────────────────────────────────────────────────────
 
 
+@pytest.mark.requires_latex
 class TestMatplotlibPGF:
     """Verify PGF export via savefig with PGF backend."""
 
