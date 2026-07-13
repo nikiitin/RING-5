@@ -76,7 +76,7 @@ class TestSetEngine:
         assert mock_state[EngineManager.STATE_KEY] == "plotly"
 
     def test_idempotent_when_unchanged(self, mock_state: MockSessionState) -> None:
-        """Setting the same mode should NOT write to session_state."""
+        """Setting the current mode leaves session state unchanged."""
         from src.web.rendering.engine_manager import EngineManager
 
         # Default is plotly, setting plotly should leave state empty.

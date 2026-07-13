@@ -25,6 +25,7 @@ from src.web.rendering._render_result import MatplotlibRenderResult
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.figure import Figure
+    from matplotlib.typing import RcKeyType
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +101,7 @@ class FigureSpecToMatplotlib:
         Args:
             spec: A resolved FigureConfig (no sentinel values).
             ax: A ``matplotlib.axes.Axes`` instance.
+            render_result: Trace-rendering metadata, including an optional heatmap image.
         """
         import matplotlib as mpl
 
@@ -107,7 +109,9 @@ class FigureSpecToMatplotlib:
         # (title, labels, ticks, legend, annotations) inherit it from the
         # rc_context; pre-existing artists are fixed by _apply_font_family.
         # Global rcParams is never mutated.
-        font_rc = {"font.family": spec.font_family} if spec.font_family else {}
+        font_rc: dict[RcKeyType, Any] = (
+            {"font.family": spec.font_family} if spec.font_family else {}
+        )
         with mpl.rc_context(font_rc):
             # Pipeline order: see _connector_protocol.STYLING_PIPELINE_ORDER
             FigureSpecToMatplotlib._apply_backgrounds(spec, ax)
@@ -675,9 +679,7 @@ class FigureSpecToMatplotlib:
             result = result.replace(char, f"\\{char}")
         return result
 
-    # ──────────────────────────────────────────────────────────────────
-    #  Step 11 — new feature methods
-    # ──────────────────────────────────────────────────────────────────
+    # ── Layout decoration helpers ─────────────────────────────────────
 
     _DASH_MAP: dict[str, str] = {
         "solid": "-",
@@ -1184,7 +1186,9 @@ class FigureSpecToMatplotlib:
         # Axes/Text artists would otherwise be created with the process
         # default font instead of spec.font_family (the single-heatmap
         # colorbar is built inside apply()'s rc_context and is unaffected).
-        font_rc = {"font.family": spec.font_family} if spec.font_family else {}
+        font_rc: dict[RcKeyType, Any] = (
+            {"font.family": spec.font_family} if spec.font_family else {}
+        )
         with mpl.rc_context(font_rc):
             FigureSpecToMatplotlib._build_multi_heatmap_colorbars(
                 spec, fig, axes_list, render_results
@@ -1319,7 +1323,9 @@ class FigureSpecToMatplotlib:
 
         import matplotlib as mpl
 
-        font_rc = {"font.family": spec.font_family} if spec.font_family else {}
+        font_rc: dict[RcKeyType, Any] = (
+            {"font.family": spec.font_family} if spec.font_family else {}
+        )
         with mpl.rc_context(font_rc):
             fig, axes = plt.subplots(
                 nrows=nrows,
@@ -1372,7 +1378,9 @@ class FigureSpecToMatplotlib:
 
         import matplotlib as mpl
 
-        font_rc = {"font.family": spec.font_family} if spec.font_family else {}
+        font_rc: dict[RcKeyType, Any] = (
+            {"font.family": spec.font_family} if spec.font_family else {}
+        )
         with mpl.rc_context(font_rc):
             fig, ax = plt.subplots(
                 figsize=(width_in, height_in),

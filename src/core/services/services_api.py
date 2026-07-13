@@ -1,18 +1,4 @@
-"""
-Services API Protocol -- Unified facade interface for the services subsystem.
-
-Defines the contract for a complete services API that combines three
-domain-aligned sub-APIs behind a single hierarchical facade.
-
-Architecture:
-    ServicesAPI
-    +-- managers       -> ManagersAPI (arithmetic, outlier, reduction)
-    +-- data_services  -> DataServicesAPI (CSV pool, config, variables, portfolios)
-    +-- shapers        -> ShapersAPI (pipeline CRUD + shaper execution)
-
-Implementations:
-    - DefaultServicesAPI: Default implementation composing individual services
-"""
+"""Protocol combining manager, data-service, and shaper APIs."""
 
 from typing import Protocol, runtime_checkable
 

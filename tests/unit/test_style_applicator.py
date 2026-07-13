@@ -1,8 +1,4 @@
-"""Unit tests for StyleApplicator — public ``apply_styles`` API.
-
-After Phase 2 Step 20 the private ``_apply_*`` helpers were deleted.
-This file retains only the public-API integration tests.
-"""
+"""Unit tests for the public ``StyleApplicator.apply_styles`` API."""
 
 from typing import Any, cast
 

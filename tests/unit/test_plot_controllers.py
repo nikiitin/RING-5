@@ -368,8 +368,7 @@ class TestPipelineController:
         call_args_1 = mock_step_presenter.render_step.call_args_list[1]
         assert call_args_1.kwargs["step_input"] is step0_output
 
-        # apply_shapers should NOT have been called by the controller
-        # (only by PipelineStepComponent internally, which we mocked)
+        # The mocked pipeline component owns shaper execution.
         mock_pipeline_executor.apply_shapers.assert_not_called()
 
 

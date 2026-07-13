@@ -727,7 +727,7 @@ class TestDualAxisLegendUnification:
         fig: go.Figure = plot.create_figure(sample_data, config)
         fig = plot.apply_common_layout(fig, config)
 
-        # All traces should NOT have a legend2 assignment
+        # No trace uses the secondary legend.
         for trace in fig.data:
             legend_attr = getattr(trace, "legend", None)
             assert legend_attr != "legend2"

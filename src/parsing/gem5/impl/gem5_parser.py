@@ -1,78 +1,4 @@
-"""
-Module: src.parsing.gem5.impl.gem5_parser
-
-Purpose:
-    Orchestrates gem5 stats file parsing workflow using persistent Perl worker pool.
-    Coordinates parallel parsing across multiple stats files and aggregates results
-    into a single consolidated CSV file.
-
-Responsibilities:
-    - Submit async parsing jobs to worker pool
-    - Manage variable-to-file mapping for parallel processing
-    - Aggregate parsed results into final CSV
-    - Handle parse cancellation and cleanup
-    - Maintain variable order consistency
-
-Dependencies:
-    - PerlWorkerPool: For persistent Perl process management (54x speedup)
-    - ParseWorkPool: For parallel work distribution
-    - TypeMapper: For variable type mapping and validation
-    - Gem5ParseWork: For individual file parsing logic
-
-Usage Example:
-    >>> from src.parsing.gem5.impl.gem5_parser import Gem5Parser
-    >>>
-    >>> # Define variables to parse
-    >>> variables = [
-    ...     {"name": "system.cpu.ipc", "type": "scalar", "params": {}},
-    ...     {"name": "system.cpu.numCycles", "type": "scalar", "params": {}}
-    ... ]
-    >>>
-    >>> # Submit async parsing (returns futures)
-    >>> futures = Gem5Parser.submit_parse_async(
-    ...     stats_path="/path/to/gem5/output",
-    ...     stats_pattern="stats.txt",
-    ...     variables=variables,
-    ...     output_dir="/tmp/parsed"
-    ... )
-    >>>
-    >>> # Wait for completion and get results
-    >>> results = [f.result() for f in futures]
-    >>>
-    >>> # Aggregate into final CSV
-    >>> csv_path = Gem5Parser.construct_final_csv("/tmp/parsed", results)
-
-Design Patterns:
-    - Service Layer Pattern: Coordinates parsing workflow
-    - Async/Future Pattern: Non-blocking parallel execution
-    - Worker Pool Pattern: Reuses persistent Perl processes
-    - Facade Pattern: Simplifies complex parsing pipeline
-
-Performance Characteristics:
-    - Worker Pool: 54x speedup vs subprocess (30-50ms → <1ms per file)
-    - Parallelism: Concurrent parsing across multiple stats files
-    - Scalability: O(n/p) where n=files, p=pool_size
-    - Typical: 20 files in ~0.01s (vs 0.5s with subprocess)
-
-Error Handling:
-    - Raises FileNotFoundError if stats_path doesn't exist
-    - Raises RuntimeError for worker pool failures
-    - Logs warnings for parse errors (continues with partial results)
-    - Cancellation: Terminates pending work gracefully
-
-Thread Safety:
-    - Worker pool is thread-safe (uses locks internally)
-    - Variable names are encapsulated in ParseBatchResult, no shared mutable
-      class-level state. Multiple concurrent parse batches are fully isolated.
-
-Testing:
-    - Unit tests: tests/unit/test_parse_service.py
-    - Integration tests: tests/integration/test_parser_integration.py
-    - Performance tests: tests/performance/test_worker_pool_performance.py
-
-Version: 2.0.0
-Last Modified: 2026-01-27
-"""
+"""gem5 parser backend for parallel scanning, parsing, and CSV assembly."""
 
 import csv
 import logging
@@ -149,7 +75,6 @@ class Gem5Parser(SimulationParser):
         t_regex_start = time.perf_counter()
         processed_configs: list[StatConfig] = []
         for config in variables:
-            # ... (rest of logic unchanged, just wrapping)
             expanded_config = config
             if scanned_vars and config.is_regex:
                 try:
@@ -417,10 +342,7 @@ class Gem5Parser(SimulationParser):
             return None
         logger.info(f"PERF: Starting construct_final_csv for {len(results)} files")
 
-        # Logic adapted from Gem5StatsParser._persist_results
-        # Build header as UNION of all results' entries so that variables
-        # missing from the first file but present in later files are still
-        # included in the CSV header.
+        # Include variables that are absent from the first result in the CSV header.
         header_parts: list[str] = []
         column_map: dict[str, list[str] | None] = {}
 

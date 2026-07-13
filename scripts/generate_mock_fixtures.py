@@ -104,6 +104,7 @@ def _parse_to_dataframe() -> pd.DataFrame:
 
 
 def generate() -> Path:
+    """Regenerate the canonical parser fixture from downloaded gem5 data."""
     if not STATS_ROOT.is_dir():
         raise SystemExit(f"gem5 stats data not found at {STATS_ROOT}; run `make test-data` first")
 
@@ -136,6 +137,7 @@ def generate() -> Path:
 
 
 def main() -> int:
+    """Generate the fixture when it is absent and return a process exit code."""
     if OUTPUT_CSV.exists():
         print(f">> mock fixture already present: {OUTPUT_CSV.relative_to(REPO_ROOT)} (skipping)")
         return 0

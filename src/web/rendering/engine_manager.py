@@ -1,30 +1,4 @@
-"""
-Engine state management for visualization rendering.
-
-Manages the active rendering engine (Plotly or Matplotlib) in
-Streamlit session state.  All engine queries and mutations flow
-through :class:`EngineManager` so the rest of the codebase never
-touches the raw session-state key directly.
-
-Design Decisions:
-    1. **Literal type** — ``EngineMode`` is ``Literal["plotly", "matplotlib"]``
-       so mypy can catch invalid values at type-check time.
-    2. **Namespaced key** — ``ring5_engine_mode`` avoids collisions with
-       other Streamlit widgets or state managers.
-    3. **Idempotent set** — ``set_engine()`` only writes when the value
-       actually changes, avoiding unnecessary Streamlit reruns.
-    4. **Static API** — No instance state; all methods are ``@staticmethod``
-       operating on ``st.session_state``.
-
-Usage::
-
-    from src.web.rendering.engine_manager import EngineManager
-
-    if EngineManager.is_plotly():
-        render_plotly(fig)
-    else:
-        render_matplotlib(fig)
-"""
+"""Store and validate the active rendering engine in Streamlit session state."""
 
 from __future__ import annotations
 

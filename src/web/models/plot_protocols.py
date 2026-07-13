@@ -70,18 +70,26 @@ class ConfigRenderer(Protocol):
 
     plot_id: int
 
-    def render_config_ui(self, data: pd.DataFrame, config: dict[str, Any]) -> dict[str, Any]: ...
+    def render_config_ui(self, data: pd.DataFrame, config: dict[str, Any]) -> dict[str, Any]:
+        """Render plot-specific data mapping controls and return their configuration."""
+        ...
 
-    def render_display_options(self, config: dict[str, Any]) -> dict[str, Any]: ...
+    def render_display_options(self, config: dict[str, Any]) -> dict[str, Any]:
+        """Render plot-specific display controls and return their configuration."""
+        ...
 
-    def render_theme_options(self, config: dict[str, Any]) -> dict[str, Any]: ...
+    def render_theme_options(self, config: dict[str, Any]) -> dict[str, Any]:
+        """Render plot-specific theme controls and return their configuration."""
+        ...
 
     def render_settings_section(
         self,
         section: str | None,
         saved_config: dict[str, Any],
         data: pd.DataFrame | None = None,
-    ) -> dict[str, Any]: ...
+    ) -> dict[str, Any]:
+        """Render one settings section and return its updated configuration."""
+        ...
 
 
 @runtime_checkable
@@ -99,11 +107,17 @@ class RenderablePlot(PlotHandle, ConfigRenderer, Protocol):
     last_generated_fig: go.Figure | None
     last_traces: TraceBuildResult | None
 
-    def create_figure(self, data: pd.DataFrame, config: dict[str, Any]) -> go.Figure: ...
+    def create_figure(self, data: pd.DataFrame, config: dict[str, Any]) -> go.Figure:
+        """Create a Plotly figure from processed data and plot configuration."""
+        ...
 
-    def apply_common_layout(self, fig: go.Figure, config: dict[str, Any]) -> go.Figure: ...
+    def apply_common_layout(self, fig: go.Figure, config: dict[str, Any]) -> go.Figure:
+        """Apply shared layout settings to a Plotly figure."""
+        ...
 
-    def update_from_relayout(self, relayout_data: dict[str, Any]) -> bool: ...
+    def update_from_relayout(self, relayout_data: dict[str, Any]) -> bool:
+        """Apply a relayout event and report whether persistent state changed."""
+        ...
 
 
 # ─── Service Protocols ──────────────────────────────────────────────────────
@@ -117,15 +131,23 @@ class PlotLifecycleService(Protocol):
     that satisfies this protocol.
     """
 
-    def create_plot(self, name: str, plot_type: str, state_manager: StateManager) -> PlotHandle: ...
+    def create_plot(self, name: str, plot_type: str, state_manager: StateManager) -> PlotHandle:
+        """Create, register, and return a plot."""
+        ...
 
-    def delete_plot(self, plot_id: int, state_manager: StateManager) -> None: ...
+    def delete_plot(self, plot_id: int, state_manager: StateManager) -> None:
+        """Delete a plot by identifier."""
+        ...
 
-    def duplicate_plot(self, plot: PlotHandle, state_manager: StateManager) -> PlotHandle: ...
+    def duplicate_plot(self, plot: PlotHandle, state_manager: StateManager) -> PlotHandle:
+        """Copy, register, and return a plot."""
+        ...
 
     def change_plot_type(
         self, plot: PlotHandle, new_type: str, state_manager: StateManager
-    ) -> PlotHandle: ...
+    ) -> PlotHandle:
+        """Replace a plot with an equivalent instance of another type."""
+        ...
 
 
 class PlotTypeRegistry(Protocol):
@@ -136,7 +158,9 @@ class PlotTypeRegistry(Protocol):
     into an adapter that satisfies this protocol.
     """
 
-    def get_available_types(self) -> list[str]: ...
+    def get_available_types(self) -> list[str]:
+        """Return registered plot-type identifiers."""
+        ...
 
 
 class PipelineExecutor(Protocol):
@@ -151,7 +175,9 @@ class PipelineExecutor(Protocol):
         self,
         data: pd.DataFrame,
         configs: list[ShaperStepConfig],
-    ) -> pd.DataFrame: ...
+    ) -> pd.DataFrame:
+        """Apply a shaper pipeline to data."""
+        ...
 
     def configure_shaper(
         self,
@@ -160,4 +186,6 @@ class PipelineExecutor(Protocol):
         shaper_id: int,
         config: ShaperStepConfig | None,
         owner_id: int | None = None,
-    ) -> ShaperStepConfig: ...
+    ) -> ShaperStepConfig:
+        """Render a shaper editor and return its configuration."""
+        ...

@@ -160,7 +160,7 @@ class TestPlotUIStateCleanup:
     def test_cleanup_preserves_other_plots(
         self, ui_state: Any, mock_state: MockSessionState
     ) -> None:
-        """cleanup(1) should NOT touch plot.2.* keys."""
+        """Cleaning plot 1 preserves plot 2 state."""
         ui_state.plot.set_auto_refresh(1, False)
         ui_state.plot.set_auto_refresh(2, True)
 

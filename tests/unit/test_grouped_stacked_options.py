@@ -36,7 +36,7 @@ class TestRenderStackTotalOptions:
         plot._render_stack_total_options({}, config)
 
         assert config["show_totals"] is False
-        # When disabled, font size / format etc. should NOT be set
+        # Disabled labels do not emit label-specific settings.
         assert "total_font_size" not in config
 
     @patch("src.web.components.plotting.config.grouped_stacked_bar_theme.st")

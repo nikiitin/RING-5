@@ -352,7 +352,7 @@ class TestPlotLifecycleIntegration:
         assert copy_plot.plot_id != plot.plot_id
         assert "(copy)" in copy_plot.name
 
-        # Modify copy config — should NOT affect original
+        # Mutating the copy must leave the original unchanged.
         copy_plot.config["title"] = "Modified"
         assert "title" not in plot.config
 

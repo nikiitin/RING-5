@@ -3,7 +3,7 @@ Tests for AxisConfig and AxesConfig — construction, serialization, round-trip.
 
 Covers:
   - Default construction with sensible defaults
-  - New Step 7 fields: tick_font_color, label_standoff, title_vshift,
+  - Tick styling: tick_font_color, label_standoff, title_vshift,
     axis_line_color, axis_line_width
   - Round-trip fidelity via to_dict()/from_dict()
   - AxesConfig group label fields
@@ -53,8 +53,8 @@ class TestAxisSpecDefaults:
         assert spec.automargin is True
 
 
-class TestAxisSpecStep7Fields:
-    """Test the 5 new fields added in Step 7."""
+class TestAxisSpecStylingFields:
+    """Test axis label, tick, and line styling fields."""
 
     def test_tick_font_color_custom(self) -> None:
         spec = AxisConfig(tick_font_color="#FF0000")

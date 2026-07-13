@@ -61,6 +61,7 @@ class Histogram(StatType):
             entries: Explicit list of buckets to extract (overrides rebinning).
             bins: Number of target buckets for rebinning.
             max_range: Maximum value for rebinning range.
+            statistics: Additional aggregate fields to retain.
             **kwargs: Additional attributes passed to parent.
         """
         super().__init__(repeat, **kwargs)
@@ -84,7 +85,6 @@ class Histogram(StatType):
         # Priority 1: User-selected specific buckets
         if self._entries:
             result.extend(self._entries)
-        # Priority 2: Rebinned buckets
         # Priority 2: Rebinned buckets
         elif self._bins > 0 and self._max_range > 0:
             if self._bins > 1:
@@ -122,8 +122,7 @@ class Histogram(StatType):
         """
         Set and aggregate content from a dictionary.
 
-        This setter handles the 'Sacred Scanning' requirement by automatically
-        summing multiple occurrences per file (e.g., aggregating across CPU cores).
+        Multiple occurrences in one file are summed, such as a regex spanning CPU cores.
         """
         if not isinstance(value, dict):
             raise TypeError(f"HISTOGRAM: Content must be dict, got {type(value).__name__}")
@@ -162,8 +161,7 @@ class Histogram(StatType):
         """
         object.__setattr__(self, "_balanced", True)
 
-        # Scientific Integrity: Ensure all configured/discovered buckets are balanced
-        # This includes re-initializing missing statistical buckets for this dump factor.
+        # Include missing configured statistics before balancing each bucket.
         target_keys = set(self._content.keys())
         if self._statistics:
             target_keys.update(self._statistics)
@@ -177,7 +175,6 @@ class Histogram(StatType):
                 padding = self._repeat - current_len
                 self._content[bucket].extend([0.0] * padding)
             elif current_len > self._repeat:
-                # This could happen if simpoint aware dumps are incorrectly aggregated
                 raise RuntimeError(
                     f"HISTOGRAM: Bucket '{bucket}' has more values than expected. "
                     f"Length: {current_len}, Repeat: {self._repeat}"

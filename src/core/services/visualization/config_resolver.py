@@ -1,12 +1,9 @@
 """Config resolver — sentinel resolution for ``FigureConfig`` trees.
 
-Walks the ``FigureConfig`` tree and fills inherited values.  The sentinel
+Walks the ``FigureConfig`` tree and fills inherited values. The sentinel
 value ``-1`` (int) or ``-1.0`` (float) means "inherit from parent".  This
-module resolves all sentinels in ONE pass so that downstream connectors
+module resolves all sentinels in one pass so downstream connectors
 never see ``-1``.
-
-Moved from ``src.core.models.visualization.resolvers`` (Phase 3.5) to
-comply with P2 (strict 3-layer separation: models = data, services = logic).
 
 Inheritance chains:
     TypographyConfig (only these fields inherit; the rest are independent):

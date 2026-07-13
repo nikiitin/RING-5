@@ -146,7 +146,7 @@ def test_validate_vars_config_no_default_fail() -> None:
 
     work = Gem5ParseWork("f", vars_map)
 
-    # WITH FIX: Should default to "None" instead of raising error
+    # A missing entry is represented by the string ``"None"``.
     work._validateVars(vars_map)
     assert vars_map["config_var"].content == "None"
 
@@ -154,8 +154,7 @@ def test_validate_vars_config_no_default_fail() -> None:
 def test_call_subprocess(parser: Any) -> None:
 
     # Test __call__ flow mocking worker pool instead of subprocess
-    # Note: Worker pool is now the PRIMARY mechanism
-    # Patch at gem5_parse_work module since get_worker_pool is now imported at module level
+    # Patch the symbol imported by ``gem5_parse_work``.
     with patch("src.parsing.gem5.impl.strategies.gem5_parse_work.get_worker_pool") as mock_get_pool:
         with patch("src.core.common.utils.checkFileExistsOrException"):
             # Success Case

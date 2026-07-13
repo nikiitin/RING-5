@@ -1,25 +1,6 @@
-"""
-Plot Models — Pure data definitions for plot configuration.
+"""Framework-independent, serializable plot configuration models."""
 
-Consolidates scattered TypedDicts (ShapeConfig, SeriesStyle from base_plot.py)
-and defines new ones (PlotDisplayConfig) as the canonical type
-vocabulary for the web layer.
-
-The pipeline-step type is **not** redefined here: use the single canonical
-``PipelineStep`` from ``src.core.models.data_models``.
-
-These models are **framework-agnostic**: no Streamlit, no Plotly imports.
-They can be used in tests, serialization, and domain logic without side effects.
-
-Design Principle:
-    - TypedDict for serializable config (JSON-compatible)
-    - total=False for optional fields (progressive disclosure)
-    - Specific types over Dict[str, Any] wherever possible
-"""
-
-from typing import Any
-
-from typing_extensions import TypedDict
+from typing import Any, TypedDict
 
 # ─── Annotation Shapes ───────────────────────────────────────────────────────
 
@@ -270,13 +251,5 @@ class PlotDisplayConfig(TypedDict, total=False):
     group_filter: list[str] | None
 
 
-# ── PlotConfig: Progressive typing alias ──────────────────────────────
-#
-# ``PlotConfig`` is a runtime alias for ``Dict[str, Any]`` that signals
-# "this dictionary follows the PlotDisplayConfig schema but may contain
-# extra keys".  Using it in function signatures documents intent without
-# breaking existing code that writes arbitrary keys.
-#
-# Migration path: as widgets and applicators become fully spec-driven,
-# narrow ``PlotConfig`` → ``PlotDisplayConfig`` one site at a time.
+# Plot configuration accepts extension keys beyond PlotDisplayConfig.
 PlotConfig = dict[str, Any]

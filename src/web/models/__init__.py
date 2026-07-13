@@ -1,17 +1,4 @@
-"""
-Web Layer Models — Pure Data Definitions (Layer 5).
-
-This module contains TypedDicts and dataclasses used throughout the web layer.
-These models have ZERO Streamlit imports and ZERO side effects.
-They serve as the shared vocabulary between Controllers, Components, and State.
-
-Architecture:
-    Page → Controller → Component
-                ↕
-          UIStateManager
-                ↕
-             Models  ← YOU ARE HERE
-"""
+"""Data structures and protocols shared by the web layer."""
 
 from src.web.models.plot_models import (
     AnnotationShapeConfig,

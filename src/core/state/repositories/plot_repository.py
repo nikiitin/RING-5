@@ -1,16 +1,4 @@
-"""
-Plot Repository - Manages Plot Objects and Lifecycle State.
-
-Implements the Repository pattern for plot management, providing operations
-to store, retrieve, and manage plot objects throughout their lifecycle.
-
-Responsibilities:
-- Maintain plot collection and active plot tracking
-- Manage plot ID Counter for unique identification
-- Support plot CRUD operations (add, remove, clear)
-- Validate plot state transitions
-- Track plot serialization and metadata
-"""
+"""In-memory repository for plots and active selection."""
 
 from __future__ import annotations
 
@@ -22,17 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class PlotRepository:
-    """
-    Repository for managing plot objects and plot lifecycle.
-
-    Responsibilities:
-    - Store and retrieve plot objects
-    - Manage plot counter for ID generation
-    - Track current active plot
-    - Plot list operations (add, remove, clear)
-
-    Adheres to SRP: Only manages plot state in memory.
-    """
+    """Store plots, allocate IDs, and track the active plot."""
 
     def __init__(self) -> None:
         """Initialize in-memory storage."""
@@ -114,6 +92,7 @@ class PlotRepository:
         self._plot_counter = counter
 
     def increment_plot_counter(self) -> int:
+        """Allocate and return the next plot identifier."""
         current = self._plot_counter
         self._plot_counter += 1
         return current

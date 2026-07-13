@@ -114,8 +114,7 @@ class TestScannerFix:
         # Radio order: parse_mode then entry_mode
         mock_streamlit["ve"].segmented_control.return_value = "Entries Only"
         mock_streamlit["ve"].pills.return_value = "Manual Entry Names"
-        # st.selectbox needs to return "vector" for var_type check
-        # Use side effect to be safe, or just return "vector" if simple
+        # The variable-type selector must take the vector path.
         mock_streamlit["ve"].selectbox.return_value = "vector"
 
         # Mock futures
@@ -124,7 +123,7 @@ class TestScannerFix:
         mock_api.submit_scan_async.return_value = [mock_future]
         mock_api.finalize_scan.return_value = ScanResult(variables=[])
 
-        # Mocking UUID generation just in case, though we provided _id
+        # Stabilize generated identifiers independently of the supplied fixture ID.
         with patch(
             "src.core.services.data_services.variable_service.VariableService.generate_variable_id",
             return_value="123",

@@ -437,7 +437,7 @@ class TestParserStateRepository:
         repo.clear_parser_state()
         assert repo.get_scanned_variables() == []
         assert repo.is_using_parser() is False
-        # parse_variables should NOT be cleared
+        # Clearing scan results preserves configured parse variables.
         assert len(repo.get_parse_variables()) == 3
 
 

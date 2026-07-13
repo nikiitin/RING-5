@@ -1,7 +1,4 @@
-"""
-Config Repository
-Single Responsibility: Manage application configuration state.
-"""
+"""In-memory repository for application configuration."""
 
 import logging
 from typing import Any
@@ -12,19 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class ConfigRepository:
-    """
-    Repository for managing application configuration.
-
-    Responsibilities:
-    - Store and retrieve configuration dictionary
-    - Update individual config keys
-    - Manage temporary directory path
-    - Manage CSV file path
-    - Manage CSV pool entries
-    - Manage saved configuration entries
-
-    Adheres to SRP: Only manages configuration state in memory.
-    """
+    """Store configuration, paths, and saved configuration entries."""
 
     def __init__(self) -> None:
         """Initialize in-memory storage."""

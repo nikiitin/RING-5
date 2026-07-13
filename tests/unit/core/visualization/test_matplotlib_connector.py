@@ -1,5 +1,5 @@
 """
-Tests for FigureSpecToMatplotlib — Step 11 new feature methods.
+Tests for ``FigureSpecToMatplotlib`` rendering methods.
 
 Covers:
   - _apply_backgrounds: figure/axes facecolor

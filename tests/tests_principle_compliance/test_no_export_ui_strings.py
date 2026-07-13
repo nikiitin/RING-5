@@ -1,17 +1,12 @@
-"""Principle compliance: UI strings must use 'Download' not 'Export'.
-
-Step 37 renamed all user-facing 'Export' labels to 'Download'.
-This test guards against regressions.
-"""
+"""Ensure user-facing UI strings use 'Download' rather than 'Export'."""
 
 from __future__ import annotations
 
 import ast
 import re
 from pathlib import Path
-from typing import List, Tuple
 
-# Files known to have internal/docstring uses of "export" that are acceptable
+# Modules where "export" refers to an internal operation rather than a UI label.
 _INTERNAL_EXPORT_MODULES = {
     "download_section.py",
     "plot_service.py",
@@ -26,17 +21,14 @@ def _is_internal_module(path: Path) -> bool:
     return any(posix.endswith(mod) for mod in _INTERNAL_EXPORT_MODULES)
 
 
-def _find_ui_export_strings(root: Path) -> List[Tuple[Path, int, str]]:
+def _find_ui_export_strings(root: Path) -> list[tuple[Path, int, str]]:
     """Scan web layer Python files for user-facing 'Export' string literals.
 
-    Returns list of (file, line_number, string_content) tuples.
+    Returns:
+        File, line number, and string value for each violation.
     """
-    violations: List[Tuple[Path, int, str]] = []
-    # Only check UI-related directories
-    ui_dirs = [
-        root / "src" / "web" / "pages" / "ui" / "components",
-        root / "src" / "web" / "pages" / "ui" / "plotting",
-    ]
+    violations: list[tuple[Path, int, str]] = []
+    ui_dirs = [root / "src" / "web"]
 
     for ui_dir in ui_dirs:
         if not ui_dir.exists():
@@ -50,12 +42,24 @@ def _find_ui_export_strings(root: Path) -> List[Tuple[Path, int, str]]:
             except SyntaxError:
                 continue
 
+            docstrings = {
+                id(node.body[0].value)
+                for node in ast.walk(tree)
+                if isinstance(
+                    node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
+                )
+                and node.body
+                and isinstance(node.body[0], ast.Expr)
+                and isinstance(node.body[0].value, ast.Constant)
+                and isinstance(node.body[0].value.value, str)
+            }
             for node in ast.walk(tree):
-                # Check string constants (labels, button text, etc.)
-                if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                if (
+                    isinstance(node, ast.Constant)
+                    and isinstance(node.value, str)
+                    and id(node) not in docstrings
+                ):
                     value = node.value
-                    # Look for "Export" as a user-facing word (not in
-                    # variable names or internal identifiers)
                     if re.search(r"\bExport\b", value):
                         violations.append((py_file, node.lineno, value[:80]))
     return violations

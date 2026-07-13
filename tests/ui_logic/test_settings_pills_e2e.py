@@ -1,20 +1,4 @@
-"""End-to-end tests for settings pills UI fixes — Issues #1-6 + new Issues #7-10.
-
-Verifies:
-1. Typography pill outputs ONLY font sizes/colors (no axis settings leaked)
-2. Axes pill outputs axis line controls (bottom/top/left/right width+color)
-3. Axes pill outputs numbered X-axis checkbox
-4. Axes pill Group Labels sub-pill outputs vertical distance from X-axis
-5. Axes pill Y-Left sub-pill outputs axis line controls
-6. Legend rename/reorder is accessible via Axes → X-Axis → Ordering Control
-7. Secondary legend pill outputs all legend2_* config keys
-
---- New Issues (second batch) ---
-8. Legend pill: no Columns/Column Width/Column Spacing for primary or secondary
-9. Numbered X-axis: multiselect pills (Numbers, Number legend, Labels)
-10. Data labels: progressive disclosure (format widgets hidden when Show Values off)
-11. Ordering: stacked series reorder/rename via y_columns
-"""
+"""Integration tests for settings components and their emitted configuration."""
 
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -24,12 +8,12 @@ import pandas as pd
 from tests.conftest import columns_side_effect
 
 # ──────────────────────────────────────────────────────────────────
-# Issue #1: Typography pill must ONLY have font sizes and colors
+# Typography settings isolation
 # ──────────────────────────────────────────────────────────────────
 
 
 class TestTypographyNoAxisLeak:
-    """Verify Typography pill returns exactly 7 font keys — nothing else."""
+    """Verify Typography returns only its documented font settings."""
 
     # The exact set of allowed keys.
     ALLOWED_KEYS = frozenset(
@@ -94,7 +78,7 @@ class TestTypographyNoAxisLeak:
 
     @patch("src.web.components.plotting.settings.typography_settings.st")
     def test_no_forbidden_keys(self, mock_st: MagicMock) -> None:
-        """Typography pill MUST NOT output any axis/grid/tick keys."""
+        """Typography omits axis, grid, and tick settings."""
         comp = self._make_component()
         mock_st.columns.side_effect = columns_side_effect
         mock_st.number_input.return_value = 14
@@ -127,7 +111,7 @@ class TestTypographyNoAxisLeak:
 
 
 # ──────────────────────────────────────────────────────────────────
-# Issue #5: Axis line controls in Axes pill
+# Axis line controls
 # ──────────────────────────────────────────────────────────────────
 
 
@@ -216,7 +200,7 @@ class TestAxesAxisLineControls:
 
 
 # ──────────────────────────────────────────────────────────────────
-# Issue #3: Numbered X-axis checkbox
+# Numbered X-axis control
 # ──────────────────────────────────────────────────────────────────
 
 
@@ -265,7 +249,7 @@ class TestNumberedXAxis:
 
 
 # ──────────────────────────────────────────────────────────────────
-# Issue #4: Group labels Y-offset
+# Group-label offset
 # ──────────────────────────────────────────────────────────────────
 
 
@@ -321,7 +305,7 @@ class TestGroupLabelYOffset:
 
 
 # ──────────────────────────────────────────────────────────────────
-# Issue #6: Legend rename/reorder accessible via Axes pill
+# Legend ordering controls
 # ──────────────────────────────────────────────────────────────────
 
 
@@ -378,7 +362,7 @@ class TestLegendRenameReorder:
 
 
 # ──────────────────────────────────────────────────────────────────
-# Issue #2: Secondary legend config — all keys must be output
+# Secondary legend configuration
 # ──────────────────────────────────────────────────────────────────
 
 
@@ -503,13 +487,13 @@ class TestNoSettingsLeakage:
 
 
 # ======================================================================
-# NEW ISSUES — Second batch (#8-11)
+# Legend sizing controls
 # ======================================================================
 
 
 # ──────────────────────────────────────────────────────────────────
-# Issue #8: Legend sizing controls — column_spacing, itemwidth,
-#           handletextpad, tracegroupgap for ALL legend levels
+# ``column_spacing``, ``itemwidth``, ``handletextpad``, and
+# ``tracegroupgap`` apply independently to each legend.
 # ──────────────────────────────────────────────────────────────────
 
 
@@ -523,7 +507,7 @@ class TestLegendSizingControls:
     per-level prefix.
     """
 
-    # Keys that MUST appear (per-prefix) in the sizing output.
+    # Required suffixes for each legend-specific prefix.
     SIZING_SUFFIXES = (
         "ncols",
         "tracegroupgap",
@@ -650,7 +634,7 @@ class TestLegendSizingControls:
 
 
 # ──────────────────────────────────────────────────────────────────
-# Issue #9: Numbered X-axis multiselect pills
+# Numbered X-axis options
 # ──────────────────────────────────────────────────────────────────
 
 
@@ -804,7 +788,7 @@ class TestNumberedXAxisMultiselect:
 
 
 # ──────────────────────────────────────────────────────────────────
-# Issue #10: Data Labels progressive disclosure
+# Data-label progressive disclosure
 # ──────────────────────────────────────────────────────────────────
 
 
@@ -908,7 +892,7 @@ class TestDataLabelsProgressiveDisclosure:
 
 
 # ──────────────────────────────────────────────────────────────────
-# Issue #11: Stacked series reorder/rename in ordering settings
+# Stacked-series ordering
 # ──────────────────────────────────────────────────────────────────
 
 
@@ -997,7 +981,7 @@ class TestStackedSeriesOrderRename:
 
         render_ordering_ui(1, saved, data, config)
 
-        # render_reorderable_list should NOT have been called for series
+        # Series order is handled without the generic reorderable-list widget.
         calls = mock_reorder.call_args_list
         series_call = [c for c in calls if len(c.args) >= 3 and c.args[2] == "series"]
         assert len(series_call) == 0, "series reorderable_list should not be called"
@@ -1019,7 +1003,7 @@ class TestStackedSeriesOrderRename:
 
         render_ordering_ui(1, saved, data, config)
 
-        # Same order → y_columns should NOT be in config
+        # An unchanged order does not add ``y_columns`` to the config.
         assert "y_columns" not in config
 
     @patch("src.web.components.plotting.settings.ordering_settings.render_reorderable_list")
@@ -1082,7 +1066,7 @@ class TestStackedSeriesOrderRename:
 
 
 # ──────────────────────────────────────────────────────────────────
-# Issue #8 (cont.): Legend sizing → config_builder → plotly_connector
+# Legend sizing through the connector pipeline
 # ──────────────────────────────────────────────────────────────────
 
 

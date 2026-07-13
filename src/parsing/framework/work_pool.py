@@ -48,6 +48,7 @@ class WorkPool:
 
     @classmethod
     def get_instance(cls) -> WorkPool:
+        """Return the process-wide work-pool instance."""
         return cls()
 
     def _get_thread_executor(self) -> ThreadPoolExecutor:

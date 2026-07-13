@@ -41,7 +41,7 @@ class Gem5StatsScanner:
         """
         self._perl_exe = shutil.which("perl")
         if not self._perl_exe:
-            raise RuntimeError("CRITICAL: Perl executable not found in PATH.")
+            raise RuntimeError("Perl executable not found in PATH")
 
         # Resolve script path relative to this file
         # gem5/impl/scanning/scanner.py -> gem5/perl/statsScanner.pl
@@ -50,9 +50,7 @@ class Gem5StatsScanner:
         self._script_path = (gem5_dir / "perl" / "statsScanner.pl").resolve()
 
         if not self._script_path.exists():
-            raise FileNotFoundError(
-                f"CRITICAL: Scanner backend script missing at {self._script_path}"
-            )
+            raise FileNotFoundError(f"Scanner backend script missing at {self._script_path}")
 
     @classmethod
     def get_instance(cls) -> Gem5StatsScanner:

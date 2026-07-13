@@ -1,5 +1,4 @@
-"""
-Phase 3 integration tests — FigureConfig pipeline.
+"""Integration tests for the ``FigureConfig`` pipeline.
 
 Validates:
     1. End-to-end: creator + styler inline produces styled figures

@@ -53,23 +53,22 @@ _STATS: list[tuple[str, str]] = [
 
 
 class TestRemovedFeatures:
-    """Verify that features removed in Phases 1–5 are truly gone."""
+    """Verify that retired features are absent from the interface."""
 
     def test_performance_page_not_in_navigation(
         self, shared_page: Page, live_server_url: str
     ) -> None:
-        """Phase 1: Performance page should NOT appear in the sidebar."""
+        """The Performance page is absent from the sidebar."""
         bp = BasePage(shared_page)
         bp.goto_and_wait(live_server_url)
 
-        # Sidebar should NOT have a Performance button
         perf_btn = bp.sidebar.get_by_role("button", name="Performance")
         expect(perf_btn).not_to_be_visible(timeout=5_000)
 
     def test_workspace_management_not_present(
         self, shared_page: Page, live_server_url: str
     ) -> None:
-        """Phase 5: Workspace management buttons should NOT exist."""
+        """Retired workspace-management buttons are absent."""
         bp = BasePage(shared_page)
         bp.goto_and_wait(live_server_url)
         bp.navigate_to("Manage Plots")
@@ -101,12 +100,10 @@ class TestRemovedFeatures:
             expect(btn).not_to_be_visible(timeout=5_000)
 
     def test_summary_metrics_present_on_home(self, shared_page: Page, live_server_url: str) -> None:
-        """Phase 2: Summary metrics (Rows, Columns, Source) should be on
-        main page but 'View Current Data' expander should NOT exist."""
+        """Summary metrics remain while the retired data expander is absent."""
         bp = BasePage(shared_page)
         bp.goto_and_wait(live_server_url)
 
-        # View Current Data expander should NOT exist
         view_data = shared_page.locator("[data-testid='stExpander']").filter(
             has_text="View Current Data"
         )
@@ -120,7 +117,7 @@ class TestRemovedFeatures:
 
 @pytest.mark.xdist_group("refactor_e2e")
 class TestPlotFeatures:
-    """Verify plot-related refactoring changes (Phases 3, 6–20).
+    """Verify the plot workflow after the interface simplification.
 
     Parses real data once, creates a bar plot, then exercises
     all the plot configuration features.
@@ -175,11 +172,11 @@ class TestPlotFeatures:
         # Wait for chart
         mp.assert_chart_visible(timeout=_CHART_TIMEOUT)
 
-    # -- Phase 2: View Current Data removed, summary metrics present --
+    # -- Summary metrics --
 
     @pytest.mark.order(1)
     def test_view_current_data_removed(self, shared_page: Page) -> None:
-        """View Current Data expander should NOT exist on any page."""
+        """The retired View Current Data expander is absent on every page."""
         view_data = shared_page.locator("[data-testid='stExpander']").filter(
             has_text="View Current Data"
         )
@@ -194,7 +191,7 @@ class TestPlotFeatures:
         count = metrics.count()
         assert count >= 2, f"Expected at least 2 metric widgets, got {count}"
 
-    # -- Phase 3: HTML download available for Plotly --
+    # -- Plotly HTML download --
 
     @pytest.mark.order(3)
     def test_html_download_format_available(self, shared_page: Page) -> None:
@@ -220,11 +217,11 @@ class TestPlotFeatures:
         dl_btn = mp.download_expander.locator("[data-testid='stDownloadButton']")
         expect(dl_btn).to_be_visible(timeout=_E2E_TIMEOUT)
 
-    # -- Phase 4: Pipeline save/load buttons NOT present --
+    # -- Pipeline controls --
 
     @pytest.mark.order(4)
     def test_pipeline_save_load_removed(self, shared_page: Page) -> None:
-        """Save Pipe / Load Pipe buttons should NOT exist."""
+        """The retired Save Pipe and Load Pipe buttons are absent."""
         mp = ManagePlotsPage(shared_page)
         mp.navigate()
         shared_page.wait_for_timeout(1_000)
@@ -234,7 +231,7 @@ class TestPlotFeatures:
         expect(shared_page.get_by_role("button", name="Save Pipe")).not_to_be_visible(timeout=5_000)
         expect(shared_page.get_by_role("button", name="Load Pipe")).not_to_be_visible(timeout=5_000)
 
-    # -- Phase 6: Color palette changes update chart --
+    # -- Color palette updates --
 
     @pytest.mark.order(5)
     def test_color_palette_settings_exist(self, shared_page: Page) -> None:
@@ -261,7 +258,7 @@ class TestPlotFeatures:
         )
         expect(palette_widget).to_be_visible(timeout=_E2E_TIMEOUT)
 
-    # -- Phase 8: Height/width manual inputs work --
+    # -- Figure dimensions --
 
     @pytest.mark.order(6)
     def test_height_width_inputs_exist(self, shared_page: Page) -> None:
@@ -286,7 +283,7 @@ class TestPlotFeatures:
         expect(height_input).to_be_visible(timeout=_E2E_TIMEOUT)
         expect(width_input).to_be_visible(timeout=_E2E_TIMEOUT)
 
-    # -- Phase 10: Tick marks toggle --
+    # -- Tick marks --
 
     @pytest.mark.order(7)
     def test_tick_marks_controls_exist(self, shared_page: Page) -> None:
@@ -310,7 +307,7 @@ class TestPlotFeatures:
         tick_text = shared_page.get_by_text("Tick Marks")
         expect(tick_text.first).to_be_visible(timeout=_E2E_TIMEOUT)
 
-    # -- Phase 12: Axis line width/color controls exist --
+    # -- Axis line controls --
 
     @pytest.mark.order(8)
     def test_axis_line_controls_exist(self, shared_page: Page) -> None:
@@ -333,7 +330,7 @@ class TestPlotFeatures:
         line_width = shared_page.get_by_text("Line Width")
         expect(line_width.first).to_be_visible(timeout=_E2E_TIMEOUT)
 
-    # -- Phase 20: Legend configuration controls --
+    # -- Legend controls --
 
     @pytest.mark.order(9)
     def test_legend_configuration_exists(self, shared_page: Page) -> None:
@@ -354,7 +351,7 @@ class TestPlotFeatures:
         primary_pill = shared_page.get_by_text("Primary")
         expect(primary_pill.first).to_be_visible(timeout=_E2E_TIMEOUT)
 
-    # -- Phase 14: Label reorder + rename --
+    # -- Label ordering and renaming --
 
     @pytest.mark.order(10)
     def test_label_reorder_rename_controls_exist(self, shared_page: Page) -> None:
@@ -379,11 +376,11 @@ class TestPlotFeatures:
         reorder_text = shared_page.get_by_text("Order")
         expect(reorder_text.first).to_be_visible(timeout=_E2E_TIMEOUT)
 
-    # -- Phase 19: Conditional widgets --
+    # -- Conditional widgets --
 
     @pytest.mark.order(11)
     def test_conditional_widgets_dual_axis_hidden(self, shared_page: Page) -> None:
-        """For a bar chart (not dual-axis), Y-Right axis pill should NOT appear."""
+        """A standard bar chart has no Y-Right axis pill."""
         mp = ManagePlotsPage(shared_page)
         mp.navigate()
         shared_page.wait_for_timeout(1_000)
@@ -398,13 +395,12 @@ class TestPlotFeatures:
         axes_pill.click()
         mp.wait_for_streamlit()
 
-        # Y-Right pill should NOT be visible for a standard bar chart
         y_right = shared_page.get_by_text("Y-Right")
         expect(y_right).not_to_be_visible(timeout=5_000)
 
     @pytest.mark.order(12)
     def test_conditional_widgets_secondary_legend_hidden(self, shared_page: Page) -> None:
-        """For non-dual-axis plot, secondary legend pill should NOT appear."""
+        """A standard bar chart has no secondary legend pill."""
         mp = ManagePlotsPage(shared_page)
         mp.navigate()
         shared_page.wait_for_timeout(1_000)
@@ -416,11 +412,10 @@ class TestPlotFeatures:
         legends_pill.click()
         mp.wait_for_streamlit()
 
-        # Secondary legend pill should NOT exist for bar chart
         secondary = shared_page.get_by_text("Secondary")
         expect(secondary).not_to_be_visible(timeout=5_000)
 
-    # -- Phase 18: Customization tab removed --
+    # -- Settings navigation --
 
     @pytest.mark.order(13)
     def test_customization_pill_not_present(self, shared_page: Page) -> None:
@@ -434,15 +429,14 @@ class TestPlotFeatures:
         # Enable advanced to see all pills
         mp.toggle_advanced_settings()
 
-        # Customization should NOT be in the pills
         customization = mp.viz_settings_pills.get_by_text("Customization")
         expect(customization).not_to_be_visible(timeout=5_000)
 
-    # -- Phase 16: Reference Line Normalizer removed --
+    # -- Reference-line controls --
 
     @pytest.mark.order(14)
     def test_reference_line_normalizer_removed(self, shared_page: Page) -> None:
-        """Reference Line Normalizer shaper should NOT be in add dropdown."""
+        """The retired Reference Line Normalizer is absent from the add menu."""
         mp = ManagePlotsPage(shared_page)
         mp.navigate()
         shared_page.wait_for_timeout(1_000)
@@ -453,7 +447,6 @@ class TestPlotFeatures:
         mp.add_transformation_selectbox.click()
         shared_page.wait_for_timeout(300)
 
-        # Reference Line Normalizer should NOT be listed
         ref_line = shared_page.locator("[data-testid='stSelectboxVirtualDropdown'] li").get_by_text(
             "Reference Line Normalizer"
         )

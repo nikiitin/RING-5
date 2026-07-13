@@ -284,7 +284,7 @@ class Gem5ParseWork(ParseWork):
 
         return varsToParse
 
-    # ========== Main Processing ==========
+    # ── Output processing ──────────────────────────────────────
 
     def _processOutput(self, output: str, varsToParse: VarsDictType) -> VarsDictType:
         """

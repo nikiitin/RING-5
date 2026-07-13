@@ -1,27 +1,4 @@
-"""
-Application API Layer - Single Entry Point for UI.
-
-Provides a unified facade for the presentation layer (web/UI) to interact with
-core domain services. Acts as the orchestrator between UI and business logic,
-enforcing clean architecture boundaries and managing application state.
-
-Key Responsibilities:
-- Parse and load simulator statistics from various sources
-- Manage data pipelines (scanning, parsing, transformations)
-- Orchestrate portfolio management and plotting
-- Maintain application state and session persistence
-
-Architecture:
-    ApplicationAPI composes:
-    - ServicesAPI:  Unified facade for all service operations
-    - SimulationParser (via SimulatorRegistry): Parsing subsystem
-    - RepositoryStateManager: Application state
-
-    The ServicesAPI sub-APIs are exposed as properties for direct access:
-    - api.managers       -> ManagersAPI
-    - api.data_services  -> DataServicesAPI
-    - api.shapers        -> ShapersAPI
-"""
+"""Application facade used by the web presentation layer."""
 
 import logging
 from collections.abc import Sequence
@@ -65,16 +42,7 @@ logger = logging.getLogger(__name__)
 
 
 class ApplicationAPI:
-    """
-    Layer B Orchestrator: The single entry point for the Presentation Layer (UI).
-
-    Responsibilities:
-    1. Holds the single source of truth (RepositoryStateManager).
-    2. Orchestrates data flow between Core Services and StateManager (Persistence/Memory).
-    3. Provides semantic actions for the UI.
-    4. Enforce the boundary between UI and Domain.
-    5. Exposes ServicesAPI sub-APIs for direct service access.
-    """
+    """Coordinate parsers, domain services, and repository state for the UI."""
 
     def __init__(
         self,
@@ -94,20 +62,14 @@ class ApplicationAPI:
         """
         self.state_manager = RepositoryStateManager(plot_deserializer=plot_deserializer)
 
-        # Initialize services via unified facade
         self._services = DefaultServicesAPI(self.state_manager)
 
-        # Simulator parser backend (lazy default to gem5 via registry)
         self._parser: SimulationParser = parser or SimulatorRegistry.get_parser("gem5")
 
-        # Scan futures submitted through THIS ApplicationAPI instance —
-        # cancellation is handle-based and instance-scoped. NOTE: the web app
-        # caches ONE instance process-wide (@st.cache_resource in app.py), so
-        # there the scope is effectively the whole process; the pools
-        # themselves keep no future references.
+        # A facade may cancel only scan jobs that it submitted.
         self._pending_scan_futures: list[Future[ScanFileResult]] = []
 
-        logger.info("ApplicationAPI initialized (Singleton Service)")
+        logger.info("Application API initialized")
 
     # =========================================================================
     # ServicesAPI sub-API access (for UI components)
@@ -195,7 +157,7 @@ class ApplicationAPI:
                 # Normalize type for consistency
                 v_type = str(var.get("type", "scalar")).lower()
 
-                # Check for aliasing (legacy compatibility)
+                # Aliases are part of the serialized parser-variable contract.
                 name = str(var.get("name", ""))
                 alias = var.get("alias")
                 params: dict[str, StatParamValue] = cast(dict[str, StatParamValue], dict(var))
@@ -216,7 +178,7 @@ class ApplicationAPI:
                     keep_indices=bool(var.get("keep_indices", var.get("keepIndices", False))),
                 )
             elif hasattr(var, "name") and hasattr(var, "type") and not hasattr(var, "params"):
-                # It's likely a ScannedVariable, convert to StatConfig
+                # Accept scanned-variable objects from compatibility callers.
                 config = StatConfig(
                     name=var.name,
                     type=var.type,
@@ -453,14 +415,14 @@ class ApplicationAPI:
         self._pending_scan_futures = [f for f in self._pending_scan_futures if not f.done()]
 
     def cancel_pending_scans(self) -> None:
-        """Cancel the scan futures THIS instance submitted, releasing memory.
+        """Cancel scan futures submitted through this facade.
 
         Handle-based and instance-scoped: only futures returned by this
         instance's ``submit_scan_async`` are cancelled. The web app shares
         one cached instance across browser sessions, so there this spans
-        the process — scripts (one Session per ApplicationAPI) get true
-        per-session scoping. For routine post-scan memory cleanup (not an explicit
-        abort) prefer :meth:`release_settled_scans`, which never cancels a live scan.
+        the process; scripts with one ``ApplicationAPI`` per session remain
+        isolated. Use :meth:`release_settled_scans` for routine cleanup because
+        it never cancels a live scan.
         """
         for future in self._pending_scan_futures:
             future.cancel()

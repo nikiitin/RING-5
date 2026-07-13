@@ -1,4 +1,4 @@
-"""Tests for engine-specific controls in Advanced section (Step 30)."""
+"""Tests for engine-specific controls in the Advanced section."""
 
 from typing import Any
 from unittest.mock import MagicMock, patch

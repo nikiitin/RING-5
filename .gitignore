@@ -14,7 +14,10 @@ python_venv/
 *.egg-info
 .ruff_cache
 build/
+dist/
 .coverage
+coverage.xml
+htmlcov/
 config_files
 .mypy_cache/
 
@@ -23,7 +26,7 @@ node_modules/
 package.json
 package-lock.json
 
-# Playwright MCP logs
+# Local browser-automation logs
 .playwright-mcp/
 
 # pytest-benchmark output
@@ -43,18 +46,6 @@ tests/data/
 tests/visual/screenshots/
 tests/visual/artifacts/
 
-# AI Assistant - keep configuration, ignore personal settings
-.mcp-config.local.json
-.cursor/
-*.ai-session
-
-# Keep these AI config files (explicitly)
-!.github/copilot-instructions.md
-!.agent/
-!.agent/
-!.cursorrules
-!.ai-assistant-guide.md
-!AI-SETUP.md
 tests/e2e/artifacts/
 
 # R session / environment artifacts (RING-5 is a Python project)

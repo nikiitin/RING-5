@@ -253,7 +253,7 @@ class TestWorkerPoolIntegration:
 
     def test_worker_pool_vs_subprocess_mode(self, test_stats_file: Path) -> None:
         """Test worker pool performance."""
-        # Test with worker pool (the ONLY mechanism now!)
+        # Exercise parsing through the worker pool.
         pool = get_worker_pool(pool_size=2)
 
         import time

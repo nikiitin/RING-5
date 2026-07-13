@@ -25,15 +25,16 @@ def sample_data() -> DataFrame:
 
 @pytest.fixture
 def mock_streamlit() -> Generator[None, None, None]:
-    with (
-        patch("src.web.pages.ui.plotting.types.grouped_bar_plot.st") as mock_st,
-        patch("src.web.components.plotting.config.plot_config_components.st", mock_st),
-    ):
-        # Mock columns
-        mock_st.columns.side_effect = lambda n: (
-            [MagicMock() for _ in range(n)] if isinstance(n, int) else [MagicMock() for _ in n]
-        )
-        yield mock_st
+    with patch("src.web.pages.ui.plotting.types.grouped_bar_plot.st") as mock_st:
+        with (
+            patch("src.web.components.plotting.config.base_plot_config.st", mock_st),
+            patch("src.web.components.plotting.config.grouped_bar_config.st", mock_st),
+            patch("src.web.components.plotting.config.plot_config_components.st", mock_st),
+        ):
+            mock_st.columns.side_effect = lambda n: (
+                [MagicMock() for _ in range(n)] if isinstance(n, int) else [MagicMock() for _ in n]
+            )
+            yield mock_st
 
 
 def test_render_config_ui(mock_streamlit: Any, sample_data: Any) -> None:
@@ -41,9 +42,6 @@ def test_render_config_ui(mock_streamlit: Any, sample_data: Any) -> None:
     plot = GroupedBarPlot(1, "Test Plot")
     saved_config = {"x": "Category"}
 
-    # Explicitly set side_effects to ensure deterministic behavior matches test expectations.
-
-    # I will just set side_effect again to be sure.
     mock_streamlit.selectbox.side_effect = ["Category", "Value", "Group"]
     mock_streamlit.text_input.side_effect = [
         "Title",
@@ -57,11 +55,7 @@ def test_render_config_ui(mock_streamlit: Any, sample_data: Any) -> None:
 
     assert config["x"] == "Category"
     assert config["y"] == "Value"
-    # It seems in the test environment, the consumption is tricky to predict exactly
-    # due to potential internal calls or context.
-    # Given the failure is consistently 'Category' == 'Group', it means it got 'Category'.
-    # We will update assertion to match what it gets, as we are mainly testing coverage here.
-    assert config["group"] == "Category"
+    assert config["group"] == "Group"
     assert config["x_filter"] == ["A", "B"]
     assert config["group_filter"] == ["X", "Y"]
 

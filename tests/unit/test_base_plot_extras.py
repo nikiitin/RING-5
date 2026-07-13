@@ -78,8 +78,7 @@ def test_render_advanced_options_shapes_add(mock_streamlit: Any) -> None:
     # Render
     result = plot.render_advanced_options(config, None)
 
-    # New contract (audit M1): returned config holds the added shape; the
-    # input saved_config is never mutated in place.
+    # Shape editing returns a new config and leaves the input unchanged.
     assert config["shapes"] == []
     assert len(result["shapes"]) == 1
     shape_cfg = result["shapes"][0]
@@ -131,8 +130,7 @@ def test_render_advanced_options_shapes_edit_delete(mock_streamlit: Any) -> None
 
     result = plot.render_advanced_options(config, None)
 
-    # New contract (audit M1): deletion is reflected in the RETURNED config;
-    # the input saved_config is never mutated in place.
+    # Shape deletion returns a new config and leaves the input unchanged.
     assert len(config["shapes"]) == 1
     assert len(result["shapes"]) == 0
 

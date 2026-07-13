@@ -1,5 +1,4 @@
-"""
-Phase 4 tests — Declarative widget section definitions and wiring.
+"""Tests for declarative widget section definitions and wiring.
 
 Validates:
     1. All new standard sections have correct keys and default values

@@ -1,16 +1,12 @@
-"""
-Path Service - Centralized File System Navigation.
-
-Manages all file system paths for the application including root directory,
-data directory, portfolio storage, and other critical paths. Provides
-consistent, testable access to file system locations.
-"""
+"""Centralized paths for persistent application data."""
 
 import os
 from pathlib import Path
 
 
 class PathService:
+    """Resolve and cache repository and application-data directories."""
+
     # Cached directory paths — mkdir is called only once per process.
     _root_dir: Path | None = None
     _data_dir: Path | None = None
